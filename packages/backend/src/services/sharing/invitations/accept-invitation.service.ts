@@ -88,9 +88,9 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
   }
 
   if (invitation.expiresAt.getTime() <= Date.now()) {
-    // Status stays `pending` in the DB until the daily expiration cron sweeps it (per PRD
-    // F5 — cron is the canonical source for expiration). We can't update it here because
-    // the surrounding transaction rolls back when we throw.
+    // Status stays `pending` in the DB until the daily expiration cron sweeps it — the
+    // cron is the canonical source for the `expired` status. We can't update it here
+    // because the surrounding transaction rolls back when we throw.
     throw new ConflictError({ message: 'This invitation has expired.' });
   }
 
@@ -104,9 +104,8 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
 
   // Currency check compares the recipient's base to the *owner's* base — not the
   // account's currency. The account's currency is unrelated; what matters is that both
-  // users' refAmount aggregates line up (per PRD F10). An owner can have a USD account
-  // even if their base currency is AED — the share is fine as long as the recipient's
-  // base is also AED.
+  // users' refAmount aggregates line up. An owner can have a USD account even if their
+  // base currency is AED — the share is fine as long as the recipient's base is also AED.
   const [ownerBaseCurrency, inviteeBaseCurrency] = await Promise.all([
     getBaseCurrency({ userId: invitation.ownerUserId }),
     getBaseCurrency({ userId }),
@@ -137,9 +136,9 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
   });
 
   // Recipient cap is also re-checked here, not just at send-time. Multiple pending
-  // invitations are allowed per resource (see F11), so without an accept-side cap two
-  // recipients racing to accept could both win and exceed the cap. Existing-share path
-  // skips this check — the recipient already has a slot, accepting again is idempotent.
+  // invitations are allowed per resource, so without an accept-side cap two recipients
+  // racing to accept could both win and exceed the cap. Existing-share path skips this
+  // check — the recipient already has a slot, accepting again is idempotent.
   if (!existingShare) {
     // Serialize accept on (resourceType, resourceId) so concurrent recipients can't both
     // pass the count check below. The unique constraint only blocks same-recipient

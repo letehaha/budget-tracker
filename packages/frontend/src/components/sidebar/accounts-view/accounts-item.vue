@@ -4,7 +4,7 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable';
 import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
-import { ROUTES_NAMES } from '@/routes';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { ACCESS_SOURCES, AccountModel } from '@bt/shared/types';
 import { HomeIcon, UsersIcon } from 'lucide-vue-next';
 import { computed, toRef } from 'vue';

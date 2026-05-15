@@ -12,7 +12,7 @@
           <BankProviderLogo class="size-6 shrink-0" :provider="account.bankProviderType" />
         </template>
         <div class="xs:max-w-[calc(100%-60px)] truncate text-base tracking-wide whitespace-nowrap">
-          {{ account.name || t('accounts.noNameSet') }}
+          {{ account.name || $t('accounts.noNameSet') }}
         </div>
       </div>
 
@@ -44,9 +44,7 @@ import { ROUTES_NAMES } from '@/routes/constants';
 import { ACCESS_SOURCES, AccountModel } from '@bt/shared/types';
 import { HomeIcon, UsersIcon } from 'lucide-vue-next';
 import { computed, toRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n();
 const props = defineProps<{ account: AccountModel }>();
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();

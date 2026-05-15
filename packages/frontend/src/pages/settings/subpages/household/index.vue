@@ -13,6 +13,7 @@ import {
 } from '@/api/share';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
+import DemoRestricted from '@/components/demo/demo-restricted.vue';
 import { InputField, SelectField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
@@ -36,7 +37,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
-const { user } = storeToRefs(useUserStore());
+const { user, isDemo } = storeToRefs(useUserStore());
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 
@@ -133,14 +134,20 @@ const showsWriteScope = computed(() => invitePermission.value.value !== SHARE_PE
 const isInviteEmailValid = computed(() => /.+@.+\..+/.test(inviteEmail.value.trim()));
 
 const inviteMutation = useMutation({
-  mutationFn: () =>
-    createShareInvitation({
+  mutationFn: () => {
+    if (myHouseholdId.value === null) {
+      // Guard against a logout race between submit and mutation execute — without this we'd
+      // POST `resourceId: null` and surface a 500 from the DB CHECK rather than a clean abort.
+      throw new Error('No household context for invite');
+    }
+    return createShareInvitation({
       inviteeEmail: inviteEmail.value.trim(),
       resourceType: RESOURCE_TYPES.household,
-      resourceId: myHouseholdId.value!,
+      resourceId: myHouseholdId.value,
       permission: invitePermission.value.value,
       policy: showsWriteScope.value ? { transactionsWriteScope: inviteWriteScope.value.value } : null,
-    }),
+    });
+  },
   onSuccess: (data) => {
     if (data.emailDelivered === false) {
       addErrorNotification(t('pages.household.invite.emailDeliveryFailed'));
@@ -331,7 +338,7 @@ watch(permissionOptions, (next) => {
             />
             <Button
               type="submit"
-              :disabled="!isInviteEmailValid || inviteMutation.isPending.value"
+              :disabled="!isInviteEmailValid || inviteMutation.isPending.value || isDemo"
               class="@sm/household:col-span-3"
             >
               <MailIcon class="mr-2 size-4" />
@@ -381,37 +388,41 @@ watch(permissionOptions, (next) => {
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <Button
-                    v-if="member.permission !== SHARE_PERMISSIONS.read"
-                    size="sm"
-                    variant="outline"
-                    :disabled="changePermissionMutation.isPending.value"
-                    @click="
-                      changePermissionMutation.mutate({ userId: member.user.id, permission: SHARE_PERMISSIONS.read })
-                    "
-                  >
-                    {{ $t('pages.household.permissionChange.setRead') }}
-                  </Button>
-                  <Button
-                    v-else
-                    size="sm"
-                    variant="outline"
-                    :disabled="changePermissionMutation.isPending.value"
-                    @click="
-                      changePermissionMutation.mutate({ userId: member.user.id, permission: SHARE_PERMISSIONS.write })
-                    "
-                  >
-                    {{ $t('pages.household.permissionChange.setWrite') }}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="soft-destructive"
-                    :disabled="revokeMutation.isPending.value"
-                    @click="openRevoke(member)"
-                  >
-                    <UserMinusIcon class="mr-2 size-4" />
-                    {{ $t('pages.household.revoke.action') }}
-                  </Button>
+                  <DemoRestricted>
+                    <Button
+                      v-if="member.permission !== SHARE_PERMISSIONS.read"
+                      size="sm"
+                      variant="outline"
+                      :disabled="changePermissionMutation.isPending.value || isDemo"
+                      @click="
+                        changePermissionMutation.mutate({ userId: member.user.id, permission: SHARE_PERMISSIONS.read })
+                      "
+                    >
+                      {{ $t('pages.household.permissionChange.setRead') }}
+                    </Button>
+                    <Button
+                      v-else
+                      size="sm"
+                      variant="outline"
+                      :disabled="changePermissionMutation.isPending.value || isDemo"
+                      @click="
+                        changePermissionMutation.mutate({ userId: member.user.id, permission: SHARE_PERMISSIONS.write })
+                      "
+                    >
+                      {{ $t('pages.household.permissionChange.setWrite') }}
+                    </Button>
+                  </DemoRestricted>
+                  <DemoRestricted>
+                    <Button
+                      size="sm"
+                      variant="soft-destructive"
+                      :disabled="revokeMutation.isPending.value || isDemo"
+                      @click="openRevoke(member)"
+                    >
+                      <UserMinusIcon class="mr-2 size-4" />
+                      {{ $t('pages.household.revoke.action') }}
+                    </Button>
+                  </DemoRestricted>
                 </div>
               </li>
               <li
@@ -438,25 +449,29 @@ watch(permissionOptions, (next) => {
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    :loading="resendInviteMutation.isPending.value"
-                    :disabled="resendInviteMutation.isPending.value"
-                    @click="resendInviteMutation.mutate(invitation.id)"
-                  >
-                    <RotateCwIcon class="mr-2 size-4" />
-                    {{ $t('pages.household.pending.resend') }}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="soft-destructive"
-                    :disabled="cancelInviteMutation.isPending.value"
-                    @click="openCancelInvite(invitation)"
-                  >
-                    <XIcon class="mr-2 size-4" />
-                    {{ $t('pages.household.pending.cancel') }}
-                  </Button>
+                  <DemoRestricted>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      :loading="resendInviteMutation.isPending.value"
+                      :disabled="resendInviteMutation.isPending.value || isDemo"
+                      @click="resendInviteMutation.mutate(invitation.id)"
+                    >
+                      <RotateCwIcon class="mr-2 size-4" />
+                      {{ $t('pages.household.pending.resend') }}
+                    </Button>
+                  </DemoRestricted>
+                  <DemoRestricted>
+                    <Button
+                      size="sm"
+                      variant="soft-destructive"
+                      :disabled="cancelInviteMutation.isPending.value || isDemo"
+                      @click="openCancelInvite(invitation)"
+                    >
+                      <XIcon class="mr-2 size-4" />
+                      {{ $t('pages.household.pending.cancel') }}
+                    </Button>
+                  </DemoRestricted>
                 </div>
               </li>
             </ul>
@@ -502,15 +517,17 @@ watch(permissionOptions, (next) => {
                   </p>
                 </div>
               </div>
-              <Button
-                size="sm"
-                variant="soft-destructive"
-                :disabled="leaveMutation.isPending.value"
-                @click="openLeave({ resourceId: row.resourceId, ownerName: row.owner.username })"
-              >
-                <LogOutIcon class="mr-2 size-4" />
-                {{ $t('pages.household.leave.action') }}
-              </Button>
+              <DemoRestricted>
+                <Button
+                  size="sm"
+                  variant="soft-destructive"
+                  :disabled="leaveMutation.isPending.value || isDemo"
+                  @click="openLeave({ resourceId: row.resourceId, ownerName: row.owner.username })"
+                >
+                  <LogOutIcon class="mr-2 size-4" />
+                  {{ $t('pages.household.leave.action') }}
+                </Button>
+              </DemoRestricted>
             </li>
           </ul>
         </section>
@@ -521,7 +538,7 @@ watch(permissionOptions, (next) => {
       v-model:open="revokeOpen"
       :confirm-label="$t('pages.household.revoke.confirm')"
       confirm-variant="destructive"
-      :confirm-disabled="revokeMutation.isPending.value"
+      :confirm-disabled="revokeMutation.isPending.value || isDemo"
       @confirm="confirmRevoke"
     >
       <template #title>{{ $t('pages.household.revoke.title') }}</template>
@@ -534,7 +551,7 @@ watch(permissionOptions, (next) => {
       v-model:open="leaveOpen"
       :confirm-label="$t('pages.household.leave.confirm')"
       confirm-variant="destructive"
-      :confirm-disabled="leaveMutation.isPending.value"
+      :confirm-disabled="leaveMutation.isPending.value || isDemo"
       @confirm="confirmLeave"
     >
       <template #title>{{ $t('pages.household.leave.title') }}</template>
@@ -547,7 +564,7 @@ watch(permissionOptions, (next) => {
       v-model:open="cancelInviteOpen"
       :confirm-label="$t('pages.household.pending.cancelConfirm')"
       confirm-variant="destructive"
-      :confirm-disabled="cancelInviteMutation.isPending.value"
+      :confirm-disabled="cancelInviteMutation.isPending.value || isDemo"
       @confirm="confirmCancelInvite"
     >
       <template #title>{{ $t('pages.household.pending.cancelTitle') }}</template>

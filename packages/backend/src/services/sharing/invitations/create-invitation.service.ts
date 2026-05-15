@@ -134,7 +134,7 @@ interface CreateInvitationImplResult {
   invitation: ShareInvitationModel;
   /** Hydrated invitee row when the email resolved to an existing user — used by the
    *  post-commit side-effect step to send the email and in-app notification. `null` for
-   *  unresolved emails (Phase 1 keeps those silent; see PRD D6 / F17). */
+   *  unresolved emails (kept silent to avoid leaking which addresses are registered). */
   resolvedInvitee: { userId: number; email: string } | null;
   resourceName: string;
 }
@@ -150,7 +150,7 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
     throw new ValidationError({ message: 'Household members cannot receive manage permission.' });
   }
 
-  // Owner-side validation only (per D6). Anything that would distinguish "registered" from
+  // Owner-side validation only. Anything that would distinguish "registered" from
   // "unregistered" emails is moved to the accept endpoint to avoid user enumeration.
   const resource = await resolveOwnedResource({ ownerUserId, resourceType, resourceId: resourceIdStr });
 
@@ -178,9 +178,9 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
 
   // Cap on the number of pending invitations per (owner, resource). Test env uses a
   // smaller cap (see SHARING_LIMITS) so the boundary stays cheap to exercise. Dev/prod
-  // share the same higher cap. Per-recipient rate-limiting in S6 is the real spam guard;
-  // this just keeps a single owner from creating thousands of pending rows for one
-  // resource (DB hygiene + UI sanity).
+  // share the same higher cap. Per-recipient rate-limiting is the real spam guard; this
+  // just keeps a single owner from creating thousands of pending rows for one resource
+  // (DB hygiene + UI sanity).
   const pendingCap = getMaxPendingInvitationsPerResource();
   const pendingCount = await ShareInvitations.count({
     where: {
@@ -198,7 +198,8 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
 
   // Resolve invitee best-effort. Used for (a) self-share guard (no leak — owner knows
   // their own email), (b) deciding whether to stamp inviteeUserId + send notifications.
-  // A null result is fine: row is still created with inviteeUserId=null (D6).
+  // A null result is fine: row is still created with inviteeUserId=null, and the
+  // unresolved-email path stays silent to avoid leaking which addresses are registered.
   const invitee = await findUserByEmail({ email: normalizedEmail });
   if (invitee && invitee.appUser.id === ownerUserId) {
     throw new ValidationError({ message: 'You cannot share a resource with yourself.' });
@@ -223,8 +224,9 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
     expiresAt,
   });
 
-  // In-app notification only when invitee is a known user — Phase 1 has no notification
-  // surface for unregistered emails (see F17; Phase 5 adds an outbound signup-invite email).
+  // In-app notification only when invitee is a known user — unregistered emails get
+  // no in-app surface (they'll be reached out-of-band once the signup-invite email path
+  // exists).
   if (invitee) {
     const owner = await Users.findByPk(ownerUserId);
     if (owner) {
@@ -271,7 +273,8 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
 /**
  * Sends a share invitation. Owner-side validation runs synchronously inside the
  * transaction. Invitee-side validation (existence, currency, duplicate share) is
- * intentionally deferred to the accept endpoint per D6 (user-enumeration mitigation).
+ * intentionally deferred to the accept endpoint to avoid leaking which emails belong
+ * to registered users (user-enumeration mitigation).
  *
  * The two side effects are split deliberately: the in-app notification is a durable record
  * we want consistent with the DB row (in-transaction), while the email is "best effort"
@@ -280,8 +283,8 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
 export const createInvitation = async (params: CreateInvitationParams): Promise<CreateInvitationResult> => {
   const result = await withTransaction(createInvitationImpl)(params);
 
-  // Email send is skipped for unresolved invitees — Phase 1 has no outbound path for them
-  // (Phase 5 will add the "sign up to accept" email; see PRD F17). No invitee, no email
+  // Email send is skipped for unresolved invitees — there's no outbound path for them
+  // yet (a future "sign up to accept" email will cover that). No invitee, no email
   // failure mode for the caller to worry about.
   if (!result.resolvedInvitee) {
     return { invitation: result.invitation, emailDelivered: true };

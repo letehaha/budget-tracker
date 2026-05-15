@@ -10,6 +10,7 @@ import {
 } from '@/api/share';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
+import DemoRestricted from '@/components/demo/demo-restricted.vue';
 import ShareAccountDialog from '@/components/dialogs/share-account-dialog.vue';
 import { SelectField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
@@ -41,7 +42,7 @@ const props = defineProps<{
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
-const { user } = storeToRefs(useUserStore());
+const { user, isDemo } = storeToRefs(useUserStore());
 
 const { isOwner, permission } = useAccountAccess(toRef(() => props.account));
 const canManage = computed(() => isOwner.value || permission.value === SHARE_PERMISSIONS.manage);
@@ -216,10 +217,12 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
         <p class="text-muted-foreground text-sm">{{ $t('pages.account.sharing.description') }}</p>
       </div>
 
-      <Button v-if="isOwner" variant="outline" size="sm" @click="inviteDialogOpen = true">
-        <UserPlusIcon class="mr-2 size-4" />
-        {{ $t('pages.account.sharing.inviteAnother') }}
-      </Button>
+      <DemoRestricted v-if="isOwner">
+        <Button variant="outline" size="sm" :disabled="isDemo" @click="inviteDialogOpen = true">
+          <UserPlusIcon class="mr-2 size-4" />
+          {{ $t('pages.account.sharing.inviteAnother') }}
+        </Button>
+      </DemoRestricted>
     </div>
 
     <div class="grid gap-2">
@@ -276,7 +279,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
                   label-key="label"
                   value-key="value"
                   class="min-w-0 flex-1 basis-36 @xl/sharing-panel:w-36 @xl/sharing-panel:flex-none"
-                  :disabled="updateMemberMutation.isPending.value || isSelfRow(member)"
+                  :disabled="updateMemberMutation.isPending.value || isSelfRow(member) || isDemo"
                   @update:model-value="(opt) => handlePermissionChange(member, opt as PermissionOption | null)"
                 />
                 <SelectField
@@ -286,19 +289,21 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
                   label-key="label"
                   value-key="value"
                   class="min-w-0 flex-1 basis-44 @xl/sharing-panel:w-44 @xl/sharing-panel:flex-none"
-                  :disabled="updateMemberMutation.isPending.value || isSelfRow(member)"
+                  :disabled="updateMemberMutation.isPending.value || isSelfRow(member) || isDemo"
                   @update:model-value="(opt) => handleScopeChange(member, opt as ScopeOption | null)"
                 />
-                <DesktopOnlyTooltip :content="$t('pages.account.sharing.member.revoke')">
-                  <Button
-                    variant="soft-destructive"
-                    size="icon-sm"
-                    :disabled="isSelfRow(member) || revokeMutation.isPending.value"
-                    @click="openRevoke(member)"
-                  >
-                    <Trash2Icon class="size-4" />
-                  </Button>
-                </DesktopOnlyTooltip>
+                <DemoRestricted>
+                  <DesktopOnlyTooltip :content="$t('pages.account.sharing.member.revoke')">
+                    <Button
+                      variant="soft-destructive"
+                      size="icon-sm"
+                      :disabled="isSelfRow(member) || revokeMutation.isPending.value || isDemo"
+                      @click="openRevoke(member)"
+                    >
+                      <Trash2Icon class="size-4" />
+                    </Button>
+                  </DesktopOnlyTooltip>
+                </DemoRestricted>
               </div>
             </template>
           </div>
@@ -340,26 +345,30 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
             </div>
 
             <div class="flex items-center gap-2 @sm/sharing-panel:ml-auto">
-              <DesktopOnlyTooltip :content="$t('pages.account.sharing.pending.resend')">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  :disabled="resendInviteMutation.isPending.value"
-                  @click="resendInviteMutation.mutate(invitation.id)"
-                >
-                  <RotateCwIcon class="size-4" />
-                </Button>
-              </DesktopOnlyTooltip>
-              <DesktopOnlyTooltip :content="$t('pages.account.sharing.pending.cancel')">
-                <Button
-                  variant="ghost-destructive"
-                  size="icon-sm"
-                  :disabled="cancelInviteMutation.isPending.value"
-                  @click="openCancelInvite(invitation)"
-                >
-                  <XIcon class="size-4" />
-                </Button>
-              </DesktopOnlyTooltip>
+              <DemoRestricted>
+                <DesktopOnlyTooltip :content="$t('pages.account.sharing.pending.resend')">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    :disabled="resendInviteMutation.isPending.value || isDemo"
+                    @click="resendInviteMutation.mutate(invitation.id)"
+                  >
+                    <RotateCwIcon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+              </DemoRestricted>
+              <DemoRestricted>
+                <DesktopOnlyTooltip :content="$t('pages.account.sharing.pending.cancel')">
+                  <Button
+                    variant="ghost-destructive"
+                    size="icon-sm"
+                    :disabled="cancelInviteMutation.isPending.value || isDemo"
+                    @click="openCancelInvite(invitation)"
+                  >
+                    <XIcon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+              </DemoRestricted>
             </div>
           </div>
         </template>
@@ -372,7 +381,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
       v-model:open="revokeOpen"
       :confirm-label="$t('pages.account.sharing.member.revokeConfirm')"
       confirm-variant="destructive"
-      :confirm-disabled="revokeMutation.isPending.value"
+      :confirm-disabled="revokeMutation.isPending.value || isDemo"
       @confirm="confirmRevoke"
     >
       <template #title>{{ $t('pages.account.sharing.member.revokeTitle') }}</template>
@@ -390,7 +399,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
       v-model:open="cancelInviteOpen"
       :confirm-label="$t('pages.account.sharing.pending.cancelConfirm')"
       confirm-variant="destructive"
-      :confirm-disabled="cancelInviteMutation.isPending.value"
+      :confirm-disabled="cancelInviteMutation.isPending.value || isDemo"
       @confirm="confirmCancelInvite"
     >
       <template #title>{{ $t('pages.account.sharing.pending.cancelTitle') }}</template>
