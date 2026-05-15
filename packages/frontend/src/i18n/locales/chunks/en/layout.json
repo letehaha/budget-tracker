@@ -163,6 +163,9 @@
           },
           "ai-settings": {
             "title": "AI Features"
+          },
+          "sharing": {
+            "title": "Sharing & Household"
           }
         },
         "tasks": {
@@ -241,6 +244,14 @@
           "configure-ai": {
             "title": "Set your own API key",
             "description": "Use your AI API key for the unlimited and uninterrupted access"
+          },
+          "invite-household-member": {
+            "title": "Invite a household member",
+            "description": "Share your whole financial life with someone — they get access to every account you have now and add later."
+          },
+          "share-account": {
+            "title": "Share an account",
+            "description": "Open any account and use the Share action to grant a single user read or write access."
           }
         },
         "ui": {

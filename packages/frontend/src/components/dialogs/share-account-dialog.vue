@@ -8,6 +8,7 @@ import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useUserStore } from '@/stores';
+import { useOnboardingStore } from '@/stores/onboarding';
 import {
   type AccountModel,
   RESOURCE_TYPES,
@@ -35,6 +36,7 @@ const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 const { isDemo } = storeToRefs(useUserStore());
+const onboardingStore = useOnboardingStore();
 
 const isOpen = computed({
   get: () => props.open ?? internalOpen.value,
@@ -153,6 +155,7 @@ const mutation = useMutation({
       addSuccessNotification(t('dialogs.shareAccountDialog.success'));
     }
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
+    onboardingStore.completeTask('share-account');
     isOpen.value = false;
   },
   onError: (err: unknown) => {

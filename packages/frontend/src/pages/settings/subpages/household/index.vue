@@ -21,6 +21,7 @@ import { Separator } from '@/components/lib/ui/separator';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useUserStore } from '@/stores';
+import { useOnboardingStore } from '@/stores/onboarding';
 import {
   RESOURCE_TYPES,
   SHARE_INVITATION_STATUSES,
@@ -40,6 +41,7 @@ const { t } = useI18n();
 const { user, isDemo } = storeToRefs(useUserStore());
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
+const onboardingStore = useOnboardingStore();
 
 // Single source for unwrapping ApiErrorResponseError messages — the API client throws
 // this class with `data: { code, message, details }`, so the common reflex of reading
@@ -156,6 +158,7 @@ const inviteMutation = useMutation({
     }
     inviteEmail.value = '';
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
+    onboardingStore.completeTask('invite-household-member');
   },
   onError: (err) => {
     addErrorNotification(extractApiErrorMessage(err) || t('pages.household.invite.error'));
