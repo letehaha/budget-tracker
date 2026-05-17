@@ -14,7 +14,7 @@ const { t } = useI18n();
 
 const props = defineProps<{
   open?: boolean;
-  transactionIds: number[];
+  transactionIds: string[];
 }>();
 
 const emit = defineEmits<{
@@ -32,7 +32,7 @@ const { data: groups, isLoading } = useQuery({
 });
 
 const searchQuery = ref('');
-const selectedGroupId = ref<number | null>(null);
+const selectedGroupId = ref<string | null>(null);
 const isSubmitting = ref(false);
 const error = ref('');
 

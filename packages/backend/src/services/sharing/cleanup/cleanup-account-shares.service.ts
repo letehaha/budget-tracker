@@ -47,10 +47,10 @@ export const cleanupAccountSharesInTx = withTransaction(
     accountId,
     ownerUserId,
   }: {
-    accountId: number;
+    accountId: string;
     ownerUserId: number;
   }): Promise<AccountShareCleanupResult> => {
-    const resourceId = String(accountId);
+    const resourceId = accountId;
 
     const [shares, householdShares] = await Promise.all([
       ResourceShares.findAll({
@@ -118,9 +118,9 @@ export const notifyAccountDeleteRecipients = async ({
   recipients: AccountShareCleanupResult['recipients'];
   householdRecipients: AccountShareCleanupResult['householdRecipients'];
   owner: Users | null;
-  account: { id: number; name: string };
+  account: { id: string; name: string };
 }): Promise<number> => {
-  const resource = { type: RESOURCE_TYPES.account, id: String(account.id), name: account.name } as const;
+  const resource = { type: RESOURCE_TYPES.account, id: account.id, name: account.name } as const;
   const perResourceNotified = await fanOutNotifications({
     targets: recipients,
     notify: (r) =>

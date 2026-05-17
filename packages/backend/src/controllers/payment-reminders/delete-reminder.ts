@@ -1,10 +1,11 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { deleteReminder } from '@services/payment-reminders/delete-reminder';
 import { z } from 'zod';
 
 const schema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: recordId(),
   }),
 });
 

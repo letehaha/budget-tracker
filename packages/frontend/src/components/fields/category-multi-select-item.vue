@@ -44,12 +44,12 @@ const props = defineProps<{
   category: FormattedCategory;
   depth: number;
   isSearching: boolean;
-  isSelected: (id: number) => boolean;
+  isSelected: (id: string) => boolean;
   getDescendantCount: (category: FormattedCategory) => number;
 }>();
 
 defineEmits<{
-  toggle: [categoryId: number];
+  toggle: [categoryId: string];
 }>();
 
 const descendantCount = computed(() => props.getDescendantCount(props.category));

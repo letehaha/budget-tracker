@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -98,7 +99,7 @@ describe('Update Portfolio Service E2E', () => {
     describe('Error cases', () => {
       it('should return 404 when portfolio does not exist', async () => {
         const response = await helpers.updatePortfolio({
-          portfolioId: 99999,
+          portfolioId: generateRandomRecordId(),
           payload: { name: 'New Name' },
         });
 
@@ -167,7 +168,7 @@ describe('Update Portfolio Service E2E', () => {
 
       it('should return ValidationError for invalid portfolioId parameter', async () => {
         const response = await helpers.updatePortfolio({
-          portfolioId: 'invalid' as unknown as number,
+          portfolioId: 'invalid' as unknown as string,
           payload: { name: 'Test' },
         });
 

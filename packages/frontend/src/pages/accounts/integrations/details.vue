@@ -596,7 +596,7 @@ const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 
-const connectionId = computed(() => Number(route.params.connectionId));
+const connectionId = computed(() => String(route.params.connectionId));
 const isFetchAccountsDialogOpen = ref(false);
 const isDisconnectDialogOpen = ref(false);
 const isEditNameDialogOpen = ref(false);
@@ -750,7 +750,7 @@ const { mutate: disconnectMutation, isPending: isDisconnecting } = useMutation({
 
 // Mutation for updating connection name
 const { mutate: updateNameMutation, isPending: isSavingName } = useMutation({
-  mutationFn: ({ connectionId: connId, providerName }: { connectionId: number; providerName: string }) =>
+  mutationFn: ({ connectionId: connId, providerName }: { connectionId: string; providerName: string }) =>
     updateConnectionDetails(connId, { providerName }),
   onSuccess: () => {
     addSuccessNotification(t('pages.integrations.notifications.updateNameSuccess'));

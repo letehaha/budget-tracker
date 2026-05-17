@@ -1,12 +1,13 @@
 import {
   ResourceType,
+  RecordId,
   SHARE_INVITATION_STATUSES,
   ShareInvitationModel,
   ShareInvitationStatus,
   SharePermission,
   SharePolicy,
 } from '@bt/shared/types';
-import { BeforeCreate, BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
+import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import Users from './users.model';
@@ -20,15 +21,9 @@ export default class ShareInvitations extends Model implements ShareInvitationMo
   @Column({
     type: DataType.UUID,
     primaryKey: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: string;
-
-  @BeforeCreate
-  static generateUUIDv7(instance: ShareInvitations) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({

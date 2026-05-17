@@ -117,7 +117,7 @@ const { t } = useI18n();
 const route = useRoute();
 const accountsStore = useAccountsStore();
 const { accountsRecord, isAccountsFetched } = storeToRefs(accountsStore);
-const account = computed(() => accountsRecord.value[+route.params.id!] ?? null);
+const account = computed(() => accountsRecord.value[route.params.id as string] ?? null);
 
 const limit = 10;
 

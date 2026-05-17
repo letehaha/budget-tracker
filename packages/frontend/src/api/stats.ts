@@ -13,7 +13,7 @@ interface Params {
 export interface BalanceHistoryEntity {
   date: string;
   amount: number;
-  accountId: number;
+  accountId: string;
 }
 
 export const getExpensesAmountForPeriod = async ({
@@ -21,7 +21,7 @@ export const getExpensesAmountForPeriod = async ({
   to,
   excludedCategoryIds,
   ...rest
-}: Params & { excludedCategoryIds?: number[] } = {}): Promise<number> => {
+}: Params & { excludedCategoryIds?: string[] } = {}): Promise<number> => {
   const params: endpointsTypes.GetBalanceHistoryPayload & { excludedCategoryIds?: string } = {
     ...rest,
   };
@@ -42,8 +42,8 @@ export const getSpendingsByCategories = async ({
   ...rest
 }: Params & {
   type?: TRANSACTION_TYPES;
-  categoryIds?: number[];
-  excludedCategoryIds?: number[];
+  categoryIds?: string[];
+  excludedCategoryIds?: string[];
 } = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
   const params: endpointsTypes.GetBalanceHistoryPayload & {
     type?: string;
@@ -88,8 +88,8 @@ interface GetCashFlowParams {
   from: Date;
   to: Date;
   granularity: endpointsTypes.CashFlowGranularity;
-  accountId?: number;
-  categoryIds?: number[];
+  accountId?: string;
+  categoryIds?: string[];
 }
 
 export const getCashFlow = async ({
@@ -117,7 +117,7 @@ interface GetCumulativeDataParams {
   from: Date;
   to: Date;
   metric: endpointsTypes.CumulativeMetric;
-  accountId?: number;
+  accountId?: string;
 }
 
 export const getCumulativeData = async ({

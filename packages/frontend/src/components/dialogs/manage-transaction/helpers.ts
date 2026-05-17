@@ -81,7 +81,7 @@ export const canDeleteTransaction = ({
 }: {
   transaction: TransactionModel | undefined | null;
   oppositeTransaction: TransactionModel | undefined | null;
-  accounts: Record<number, AccountModel>;
+  accounts: Record<string, AccountModel>;
   canMutate: boolean;
 }): boolean => {
   if (!transaction || !canMutate) return false;
@@ -99,8 +99,8 @@ export const canDeleteTransaction = ({
  */
 const buildFormattedCategoriesMap = (
   categories: FormattedCategory[],
-  map: Record<number, FormattedCategory> = {},
-): Record<number, FormattedCategory> => {
+  map: Record<string, FormattedCategory> = {},
+): Record<string, FormattedCategory> => {
   for (const category of categories) {
     map[category.id] = category;
     if (category.subCategories?.length > 0) {
@@ -119,8 +119,8 @@ export const prepopulateForm = ({
 }: {
   transaction: TransactionModel | undefined;
   oppositeTransaction: TransactionModel | undefined;
-  categories: Record<number, CategoryModel>;
-  accounts: Record<number, AccountModel>;
+  categories: Record<string, CategoryModel>;
+  accounts: Record<string, AccountModel>;
   formattedCategories: FormattedCategory[];
 }) => {
   if (transaction) {

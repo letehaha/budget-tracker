@@ -1,6 +1,13 @@
 import { CategoryModel } from '@bt/shared/types';
 import * as helpers from '@tests/helpers';
 
+function assertNoNamesAreI18nPaths(categories: CategoryModel[]) {
+  for (const cat of categories) {
+    expect(cat.name).toBeTruthy();
+    expect(cat.name.startsWith('defaultCategories.')).toBe(false);
+  }
+}
+
 describe('Locale-aware signup', () => {
   /**
    * Helper to create a new user via signup endpoint with specific locale.
@@ -229,24 +236,11 @@ describe('Locale-aware signup', () => {
       const mainKeysSeen = new Set(main.map((c) => c.key as string));
       expect(mainKeysSeen).toEqual(EXPECTED_MAIN_KEYS);
 
-      const idToKey = new Map<number, string>();
+      const idToKey = new Map<string, string>();
       for (const cat of main) idToKey.set(cat.id, cat.key as string);
 
-      const subKeysSeen = new Set(subs.map((c) => `${idToKey.get(c.parentId as number) ?? '?'}/${c.key}`));
+      const subKeysSeen = new Set(subs.map((c) => `${idToKey.get(c.parentId as string) ?? '?'}/${c.key}`));
       expect(subKeysSeen).toEqual(EXPECTED_SUBCATEGORY_KEYS);
-    }
-
-    /**
-     * Catches the case where the i18n rename was incomplete: t() falls back to the
-     * raw key path (e.g. "defaultCategories.main.financial-expenses") when a key
-     * is missing from the locale file. Every category name should be a real
-     * translated string, never the lookup path.
-     */
-    function assertNoNamesAreI18nPaths(categories: CategoryModel[]) {
-      for (const cat of categories) {
-        expect(cat.name).toBeTruthy();
-        expect(cat.name.startsWith('defaultCategories.')).toBe(false);
-      }
     }
 
     it('stamps canonical kebab-case keys for English signups', async () => {

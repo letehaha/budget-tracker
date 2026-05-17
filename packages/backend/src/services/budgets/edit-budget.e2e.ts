@@ -1,3 +1,4 @@
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -32,7 +33,7 @@ describe('Edit Budget', () => {
   it('returns error when budget is not found', async () => {
     const params = { name: 'Some name' };
     const response = await helpers.editCustomBudget({
-      id: 999999,
+      id: NONEXISTENT_ID,
       params,
       raw: false,
     });

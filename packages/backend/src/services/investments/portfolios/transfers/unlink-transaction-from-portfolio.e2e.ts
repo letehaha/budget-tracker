@@ -176,7 +176,7 @@ describe('Unlink Transaction from Portfolio (POST /transactions/:transactionId/u
     });
 
     expect(transfer).toMatchObject({
-      id: expect.any(Number),
+      id: expect.any(String),
       fromAccountId: account.id,
       toPortfolioId: portfolio2.id,
     });

@@ -21,7 +21,7 @@ import {
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
-const props = defineProps<{ holdings: HoldingModel[]; loading?: boolean; error?: boolean; portfolioId: number }>();
+const props = defineProps<{ holdings: HoldingModel[]; loading?: boolean; error?: boolean; portfolioId: string }>();
 
 const isTransactionModalOpen = ref(false);
 const selectedHolding = ref<HoldingModel | null>(null);
@@ -139,7 +139,7 @@ const getRealizedGain = (holding: HoldingModel) => {
   };
 };
 
-const expandedHoldingId = ref<number | undefined>(undefined);
+const expandedHoldingId = ref<string | undefined>(undefined);
 const currentPage = ref(1);
 const limit = ref(10);
 
@@ -154,7 +154,7 @@ const handlePageChange = (newPage: number) => {
   currentPage.value = newPage;
 };
 
-const toggleExpand = (securityId: number) => {
+const toggleExpand = (securityId: string) => {
   if (expandedHoldingId.value === securityId) {
     expandedHoldingId.value = undefined;
   } else {

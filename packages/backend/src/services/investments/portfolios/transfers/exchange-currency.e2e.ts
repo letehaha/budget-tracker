@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -36,7 +37,7 @@ describe('Exchange Currency', () => {
     });
 
     expect(transfer).toMatchObject({
-      id: expect.any(Number),
+      id: expect.any(String),
       fromPortfolioId: portfolio.id,
       toPortfolioId: portfolio.id,
       amount: expect.toBeNumericEqual('500'),
@@ -369,7 +370,7 @@ describe('Exchange Currency', () => {
     } = await helpers.addUserCurrencies({ currencyCodes: ['EUR', 'USD'], raw: true });
 
     const response = await helpers.exchangeCurrency({
-      portfolioId: 999999,
+      portfolioId: generateRandomRecordId(),
       payload: helpers.buildExchangeCurrencyPayload({
         fromCurrencyCode: eurCurrency!.currencyCode,
         toCurrencyCode: usdCurrency!.currencyCode,

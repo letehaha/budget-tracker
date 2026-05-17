@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Portfolios from '@models/investments/portfolios.model';
@@ -120,7 +121,7 @@ describe('POST /transaction (create investment transaction)', () => {
   it('should fail to create a transaction for non-existent portfolio', async () => {
     const response = await helpers.createInvestmentTransaction({
       payload: {
-        portfolioId: 999999,
+        portfolioId: generateRandomRecordId(),
         securityId: vooSecurity.id,
         category: INVESTMENT_TRANSACTION_CATEGORY.buy,
         quantity: '1',
@@ -135,7 +136,7 @@ describe('POST /transaction (create investment transaction)', () => {
     const response = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
-        securityId: 999999,
+        securityId: generateRandomRecordId(),
         category: INVESTMENT_TRANSACTION_CATEGORY.buy,
         quantity: '1',
         price: '50',

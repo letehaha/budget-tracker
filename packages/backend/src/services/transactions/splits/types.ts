@@ -1,7 +1,7 @@
 import { Money } from '@common/types/money';
 
 export interface SplitInput {
-  categoryId: number;
+  categoryId: string;
   amount: Money;
   refAmount?: Money;
   note?: string | null;

@@ -26,8 +26,8 @@ interface CreateSubscriptionPayload {
   frequency: SUBSCRIPTION_FREQUENCIES;
   startDate: string;
   endDate?: string | null;
-  accountId?: number | null;
-  categoryId?: number | null;
+  accountId?: string | null;
+  categoryId?: string | null;
   matchingRules?: { rules: Array<Record<string, unknown>> };
   notes?: string | null;
 }
@@ -40,8 +40,8 @@ interface UpdateSubscriptionPayload {
   frequency?: SUBSCRIPTION_FREQUENCIES;
   startDate?: string;
   endDate?: string | null;
-  accountId?: number | null;
-  categoryId?: number | null;
+  accountId?: string | null;
+  categoryId?: string | null;
   matchingRules?: { rules: Array<Record<string, unknown>> };
   notes?: string | null;
 }
@@ -143,7 +143,7 @@ export async function linkTransactionsToSubscription<R extends boolean | undefin
   raw,
 }: {
   id: string;
-  transactionIds: number[];
+  transactionIds: string[];
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof apiLinkTransactions>>, R>({
@@ -160,7 +160,7 @@ export async function unlinkTransactionsFromSubscription<R extends boolean | und
   raw,
 }: {
   id: string;
-  transactionIds: number[];
+  transactionIds: string[];
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof apiUnlinkTransactions>>, R>({

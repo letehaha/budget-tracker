@@ -90,11 +90,11 @@ const router = useRouter();
 const categoriesStore = useCategoriesStore();
 const { categoriesMap } = storeToRefs(categoriesStore);
 
-const getAllCategoryIds = ({ rootCategoryId }: { rootCategoryId: number }): number[] => {
+const getAllCategoryIds = ({ rootCategoryId }: { rootCategoryId: string }): string[] => {
   const result = [rootCategoryId];
   const categories = Object.values(categoriesMap.value);
 
-  const findChildren = ({ parentId }: { parentId: number }) => {
+  const findChildren = ({ parentId }: { parentId: string }) => {
     categories.forEach((cat) => {
       if (cat.parentId === parentId && !result.includes(cat.id)) {
         result.push(cat.id);
@@ -107,7 +107,7 @@ const getAllCategoryIds = ({ rootCategoryId }: { rootCategoryId: number }): numb
   return result;
 };
 
-const navigateToTransactions = ({ categoryId }: { categoryId: number }) => {
+const navigateToTransactions = ({ categoryId }: { categoryId: string }) => {
   const allCategoryIds = getAllCategoryIds({ rootCategoryId: categoryId });
 
   router.push({
@@ -121,7 +121,7 @@ const navigateToTransactions = ({ categoryId }: { categoryId: number }) => {
 
 const chartContainerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
-const expandedCategories = ref(new Set<number>());
+const expandedCategories = ref(new Set<string>());
 
 const centerLabel = reactive({
   name: '',
@@ -133,14 +133,14 @@ const totalAmount = computed(() => props.data.reduce((sum, item) => sum + item.a
 
 const totalCategoryCount = computed(() => props.data.reduce((sum, item) => sum + 1 + (item.children?.length ?? 0), 0));
 
-const getDefaultExpanded = (): Set<number> => {
+const getDefaultExpanded = (): Set<string> => {
   if (totalCategoryCount.value < 10) {
     return new Set(props.data.filter((item) => item.children?.length).map((item) => item.categoryId));
   }
   return new Set();
 };
 
-const toggleExpand = (categoryId: number) => {
+const toggleExpand = (categoryId: string) => {
   const next = new Set(expandedCategories.value);
   if (next.has(categoryId)) {
     next.delete(categoryId);

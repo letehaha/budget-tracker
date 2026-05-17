@@ -20,7 +20,7 @@ import * as helpers from '@tests/helpers';
  */
 
 type AccountListResponse = Array<{
-  id: number;
+  id: string;
   externalId: string | null;
   externalData: Record<string, unknown> | null;
   bankDataProviderConnectionId: number | null;

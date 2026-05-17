@@ -12,9 +12,9 @@ export const resolveTransferPairs = async ({
   transactionIds,
   userId,
 }: {
-  transactionIds: number[];
+  transactionIds: string[];
   userId: number;
-}): Promise<number[]> => {
+}): Promise<string[]> => {
   // Get transferIds from the provided transactions that are common transfers
   const transferTxs = await Transactions.findAll({
     where: {

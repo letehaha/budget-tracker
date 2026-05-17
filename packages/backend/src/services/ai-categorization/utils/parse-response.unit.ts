@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { parseCategorizationResponse } from './parse-response';
@@ -10,12 +11,23 @@ jest.mock('@js/utils/logger', () => ({
   },
 }));
 
+// Test UUIDs for readability
+const TX1 = generateRandomRecordId();
+const TX2 = generateRandomRecordId();
+const TX3 = generateRandomRecordId();
+const TX4 = generateRandomRecordId();
+const CAT1 = generateRandomRecordId();
+const CAT2 = generateRandomRecordId();
+const CAT3 = generateRandomRecordId();
+const CAT10 = generateRandomRecordId();
+const CAT20 = generateRandomRecordId();
+
 describe('parseCategorizationResponse', () => {
-  const validCategoryIds = new Set([1, 2, 3, 10, 20]);
-  const validTransactionIds = new Set([100, 200, 300, 400]);
+  const validCategoryIds = new Set([CAT1, CAT2, CAT3, CAT10, CAT20]);
+  const validTransactionIds = new Set([TX1, TX2, TX3, TX4]);
 
   it('parses valid single-line response', () => {
-    const response = '100:1';
+    const response = `${TX1}:${CAT1}`;
 
     const result = parseCategorizationResponse({
       response,
@@ -23,13 +35,11 @@ describe('parseCategorizationResponse', () => {
       validTransactionIds,
     });
 
-    expect(result).toEqual([{ transactionId: 100, categoryId: 1 }]);
+    expect(result).toEqual([{ transactionId: TX1, categoryId: CAT1 }]);
   });
 
   it('parses valid multi-line response', () => {
-    const response = `100:1
-200:2
-300:3`;
+    const response = `${TX1}:${CAT1}\n${TX2}:${CAT2}\n${TX3}:${CAT3}`;
 
     const result = parseCategorizationResponse({
       response,
@@ -38,17 +48,14 @@ describe('parseCategorizationResponse', () => {
     });
 
     expect(result).toEqual([
-      { transactionId: 100, categoryId: 1 },
-      { transactionId: 200, categoryId: 2 },
-      { transactionId: 300, categoryId: 3 },
+      { transactionId: TX1, categoryId: CAT1 },
+      { transactionId: TX2, categoryId: CAT2 },
+      { transactionId: TX3, categoryId: CAT3 },
     ]);
   });
 
   it('skips comment lines starting with #', () => {
-    const response = `# This is a comment
-100:1
-# Another comment
-200:2`;
+    const response = `# This is a comment\n${TX1}:${CAT1}\n# Another comment\n${TX2}:${CAT2}`;
 
     const result = parseCategorizationResponse({
       response,
@@ -57,17 +64,13 @@ describe('parseCategorizationResponse', () => {
     });
 
     expect(result).toEqual([
-      { transactionId: 100, categoryId: 1 },
-      { transactionId: 200, categoryId: 2 },
+      { transactionId: TX1, categoryId: CAT1 },
+      { transactionId: TX2, categoryId: CAT2 },
     ]);
   });
 
   it('skips empty lines', () => {
-    const response = `100:1
-
-200:2
-
-`;
+    const response = `${TX1}:${CAT1}\n\n${TX2}:${CAT2}\n\n`;
 
     const result = parseCategorizationResponse({
       response,
@@ -76,17 +79,13 @@ describe('parseCategorizationResponse', () => {
     });
 
     expect(result).toEqual([
-      { transactionId: 100, categoryId: 1 },
-      { transactionId: 200, categoryId: 2 },
+      { transactionId: TX1, categoryId: CAT1 },
+      { transactionId: TX2, categoryId: CAT2 },
     ]);
   });
 
   it('skips lines with invalid format', () => {
-    const response = `100:1
-invalid line
-200:2
-100-3
-300:`;
+    const response = `${TX1}:${CAT1}\ninvalid line\n${TX2}:${CAT2}\n100-3\n${TX3}:`;
 
     const result = parseCategorizationResponse({
       response,
@@ -95,15 +94,14 @@ invalid line
     });
 
     expect(result).toEqual([
-      { transactionId: 100, categoryId: 1 },
-      { transactionId: 200, categoryId: 2 },
+      { transactionId: TX1, categoryId: CAT1 },
+      { transactionId: TX2, categoryId: CAT2 },
     ]);
   });
 
   it('filters out unknown transaction IDs', () => {
-    const response = `100:1
-999:2
-200:3`;
+    const unknownTx = generateRandomRecordId();
+    const response = `${TX1}:${CAT1}\n${unknownTx}:${CAT2}\n${TX2}:${CAT3}`;
 
     const result = parseCategorizationResponse({
       response,
@@ -112,15 +110,14 @@ invalid line
     });
 
     expect(result).toEqual([
-      { transactionId: 100, categoryId: 1 },
-      { transactionId: 200, categoryId: 3 },
+      { transactionId: TX1, categoryId: CAT1 },
+      { transactionId: TX2, categoryId: CAT3 },
     ]);
   });
 
   it('filters out invalid category IDs', () => {
-    const response = `100:1
-200:999
-300:3`;
+    const unknownCat = generateRandomRecordId();
+    const response = `${TX1}:${CAT1}\n${TX2}:${unknownCat}\n${TX3}:${CAT3}`;
 
     const result = parseCategorizationResponse({
       response,
@@ -129,8 +126,8 @@ invalid line
     });
 
     expect(result).toEqual([
-      { transactionId: 100, categoryId: 1 },
-      { transactionId: 300, categoryId: 3 },
+      { transactionId: TX1, categoryId: CAT1 },
+      { transactionId: TX3, categoryId: CAT3 },
     ]);
   });
 
@@ -155,8 +152,7 @@ invalid line
   });
 
   it('handles response with only comments', () => {
-    const response = `# Comment 1
-# Comment 2`;
+    const response = `# Comment 1\n# Comment 2`;
 
     const result = parseCategorizationResponse({
       response,
@@ -168,9 +164,7 @@ invalid line
   });
 
   it('trims whitespace from lines', () => {
-    const response = `  100:1
-   200:2
-300:3   `;
+    const response = `  ${TX1}:${CAT1}\n   ${TX2}:${CAT2}\n${TX3}:${CAT3}   `;
 
     const result = parseCategorizationResponse({
       response,
@@ -179,15 +173,14 @@ invalid line
     });
 
     expect(result).toEqual([
-      { transactionId: 100, categoryId: 1 },
-      { transactionId: 200, categoryId: 2 },
-      { transactionId: 300, categoryId: 3 },
+      { transactionId: TX1, categoryId: CAT1 },
+      { transactionId: TX2, categoryId: CAT2 },
+      { transactionId: TX3, categoryId: CAT3 },
     ]);
   });
 
-  it('rejects lines with extra content after valid format', () => {
-    const response = `100:1 extra stuff
-200:2`;
+  it('rejects lines with extra content after valid format (no extra spaces in UUID format)', () => {
+    const response = `${TX1}:${CAT1} extra stuff\n${TX2}:${CAT2}`;
 
     const result = parseCategorizationResponse({
       response,
@@ -195,20 +188,22 @@ invalid line
       validTransactionIds,
     });
 
-    // "100:1 extra stuff" doesn't match /^\d+:\d+$/ so it's skipped
-    expect(result).toEqual([{ transactionId: 200, categoryId: 2 }]);
+    // The extra content after trim would make it not match valid IDs
+    expect(result).toEqual([{ transactionId: TX2, categoryId: CAT2 }]);
   });
 
-  it('handles large IDs', () => {
-    const largeTransactionIds = new Set([123456789]);
-    const largeCategoryIds = new Set([987654321]);
+  it('handles large set of IDs', () => {
+    const largeTxId = generateRandomRecordId();
+    const largeCatId = generateRandomRecordId();
+    const largeTransactionIds = new Set([largeTxId]);
+    const largeCategoryIds = new Set([largeCatId]);
 
     const result = parseCategorizationResponse({
-      response: '123456789:987654321',
+      response: `${largeTxId}:${largeCatId}`,
       validCategoryIds: largeCategoryIds,
       validTransactionIds: largeTransactionIds,
     });
 
-    expect(result).toEqual([{ transactionId: 123456789, categoryId: 987654321 }]);
+    expect(result).toEqual([{ transactionId: largeTxId, categoryId: largeCatId }]);
   });
 });

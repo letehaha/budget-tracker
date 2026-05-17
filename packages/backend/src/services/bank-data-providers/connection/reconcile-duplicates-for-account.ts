@@ -15,7 +15,7 @@ import { bankProviderRegistry } from '../registry';
  * other providers don't have this hash-drift class of bug.
  */
 export const reconcileDuplicatesForAccount = withTransaction(
-  async ({ connectionId, userId, accountId }: { connectionId: number; userId: number; accountId: number }) => {
+  async ({ connectionId, userId, accountId }: { connectionId: string; userId: number; accountId: string }) => {
     const connection = await BankDataProviderConnections.findOne({
       where: { id: connectionId, userId },
     });

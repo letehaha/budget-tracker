@@ -95,7 +95,7 @@ export const getBalanceHistory = async ({
     ]);
 
     // Pre-group balances by accountId using Maps for O(1) lookup
-    const beforeByAccount = new Map<number, Balances.default[]>();
+    const beforeByAccount = new Map<string, Balances.default[]>();
     for (const b of balancesBeforeFrom) {
       const items = beforeByAccount.get(b.accountId);
       if (items) {
@@ -105,7 +105,7 @@ export const getBalanceHistory = async ({
       }
     }
 
-    const afterByAccount = new Map<number, Balances.default[]>();
+    const afterByAccount = new Map<string, Balances.default[]>();
     for (const b of balancesAfterTo) {
       const items = afterByAccount.get(b.accountId);
       if (items) {
@@ -199,7 +199,7 @@ function aggregateBalanceTrendData(
   // - dataByAccountAndDate: "accountId_date" -> amount for O(1) access
   // - dataByAccount: accountId -> Balances.default[] for efficient first entry lookup
   const dataByAccountAndDate = new Map<string, number>();
-  const dataByAccount = new Map<number, Balances.default[]>();
+  const dataByAccount = new Map<string, Balances.default[]>();
   for (const item of data) {
     dataByAccountAndDate.set(`${item.accountId}_${formatDate(item.date)}`, item.amount.toCents());
 
@@ -217,7 +217,7 @@ function aggregateBalanceTrendData(
   }
 
   // Initialize an object to store the filled data per account.
-  const filledDataPerAccount: Record<number, Record<string, number>> = {};
+  const filledDataPerAccount: Record<string, Record<string, number>> = {};
 
   // For each account, find the earliest transaction and fill that
   // transaction's amount for all prior dates in our dataset.
@@ -256,7 +256,7 @@ function aggregateBalanceTrendData(
   // aggregate amount for each date in the dataset.
   const aggregatedData = Object.keys(filledDataPerAccount).reduce(
     (acc, accountId) => {
-      const accountData = filledDataPerAccount[Number(accountId)];
+      const accountData = filledDataPerAccount[accountId];
       if (accountData) {
         for (const [date, amount] of Object.entries(accountData)) {
           acc[date] = (acc[date] || 0) + amount;

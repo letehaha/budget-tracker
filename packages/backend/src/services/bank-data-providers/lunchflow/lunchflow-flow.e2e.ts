@@ -6,6 +6,7 @@ import {
   TRANSACTION_TYPES,
   asDecimal,
 } from '@bt/shared/types';
+import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
@@ -54,7 +55,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       expect(connectResult).toHaveProperty('connectionId');
-      expect(connectResult.connectionId).toBeGreaterThan(0);
+      expect(connectResult.connectionId).toBeDefined();
 
       const connectionId = connectResult.connectionId;
 
@@ -64,7 +65,7 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(Array.isArray(connections)).toBe(true);
       expect(connections.length).toBeGreaterThan(0);
 
-      const connection = connections.find((c: { id: number }) => c.id === connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionId);
       expect(connection).toBeDefined();
       expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.LUNCHFLOW);
       expect(connection?.providerName).toBe('LunchFlow');
@@ -126,7 +127,7 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: number; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: { externalId: string; id: string; name: string; currentBalance: number; currencyCode: string }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -137,7 +138,7 @@ describe('LunchFlow Data Provider E2E', () => {
 
       // Verify connections list now shows updated account count
       const { connections: updatedConnections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const updatedConnection = updatedConnections.find((c: { id: number }) => c.id === connectionId);
+      const updatedConnection = updatedConnections.find((c: { id: string }) => c.id === connectionId);
       expect(updatedConnection?.accountsCount).toBe(accountIdsToConnect.length);
     });
   });
@@ -161,7 +162,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       expect(result).toHaveProperty('connectionId');
-      expect(result.connectionId).toBeGreaterThan(0);
+      expect(result.connectionId).toBeDefined();
     });
 
     it('should fail with invalid API key', async () => {
@@ -196,7 +197,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
       expect(connection?.providerName).toBe('LunchFlow');
     });
 
@@ -226,7 +227,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
 
       expect(connection).toBeDefined();
       expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.LUNCHFLOW);
@@ -263,7 +264,7 @@ describe('LunchFlow Data Provider E2E', () => {
   describe('Step 4: List external accounts', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.listExternalAccounts({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
       });
 
       expect(result.status).toEqual(ERROR_CODES.NotFoundError);
@@ -368,7 +369,7 @@ describe('LunchFlow Data Provider E2E', () => {
   describe('Step 5: Connect selected accounts', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
         accountExternalIds: ['1001'],
       });
 
@@ -462,7 +463,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === connectionResult.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionResult.connectionId);
       expect(connection?.accountsCount).toBe(1);
     });
 
@@ -488,7 +489,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === connectionResult.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionResult.connectionId);
       expect(connection?.lastSyncAt).not.toBeNull();
     });
   });
@@ -497,7 +498,7 @@ describe('LunchFlow Data Provider E2E', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.makeRequest({
         method: 'get',
-        url: '/bank-data-providers/connections/99999',
+        url: `/bank-data-providers/connections/${NONEXISTENT_ID}`,
       });
 
       expect(result.status).toEqual(ERROR_CODES.NotFoundError);
@@ -555,7 +556,7 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(details.accounts.length).toBe(2);
 
       details.accounts.forEach(
-        (account: { id: number; name: string; externalId: string; currentBalance: number; currencyCode: string }) => {
+        (account: { id: string; name: string; externalId: string; currentBalance: number; currencyCode: string }) => {
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
           expect(account).toHaveProperty('externalId');
@@ -1333,7 +1334,7 @@ describe('LunchFlow Data Provider E2E', () => {
   describe('Update connection details', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.updateConnectionDetails({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
         providerName: 'New Name',
       });
 

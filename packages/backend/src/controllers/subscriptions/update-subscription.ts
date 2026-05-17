@@ -8,7 +8,7 @@ import { matchingRuleSchema } from './shared-schemas';
 
 const schema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: recordId(),
   }),
   body: z
     .object({

@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { updateInvestmentTransaction } from '@services/investments/transactions/update.service';
@@ -13,7 +14,7 @@ export function registerUpdateInvestmentTransaction(server: McpServer) {
       description:
         'Update an existing investment transaction — correct the date, quantity, price, fees, category, or label. Obtain the transactionId from get_investment_transactions. Only provided fields are changed; the holding recalculation runs automatically after every update.',
       inputSchema: {
-        transactionId: z.number().describe('Investment transaction ID (from get_investment_transactions)'),
+        transactionId: recordId().describe('Investment transaction ID (from get_investment_transactions)'),
         category: z
           .enum([
             INVESTMENT_TRANSACTION_CATEGORY.buy,

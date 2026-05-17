@@ -13,12 +13,12 @@ import { Op } from 'sequelize';
 import { expandCategoryIds } from './utils/expand-category-ids';
 
 interface CreateBudgetPayload {
-  id?: number;
+  id?: string;
   userId: number;
   name: string;
   status: string;
   type?: BUDGET_TYPES;
-  categoryIds?: number[];
+  categoryIds?: string[];
   startDate?: Date | null;
   endDate?: Date | null;
   autoInclude?: boolean;

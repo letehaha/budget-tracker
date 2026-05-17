@@ -47,7 +47,7 @@ export const useCategoriesStore = defineStore('categories', () => {
         acc[curr.id] = curr;
         return acc;
       },
-      {} as Record<number, CategoryModel>,
+      {} as Record<string, CategoryModel>,
     ),
   );
 

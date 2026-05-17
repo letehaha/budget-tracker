@@ -11,7 +11,7 @@ export const listExternalAccounts = withTransaction(
     connectionId,
     userId,
   }: {
-    connectionId: number;
+    connectionId: string;
     userId: number;
   }): Promise<(Omit<ProviderAccount, 'balance'> & { balance: Decimal })[]> => {
     const connection = await BankDataProviderConnections.findOne({

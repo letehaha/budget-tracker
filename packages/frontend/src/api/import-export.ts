@@ -95,7 +95,7 @@ export const extractStatementTransactions = async (
 // Statement Parser - Duplicate Detection
 
 interface StatementDetectDuplicatesRequest {
-  accountId: number;
+  accountId: string;
   transactions: StatementExtractionResult['transactions'];
 }
 
@@ -104,7 +104,7 @@ export interface StatementDetectDuplicatesResponse {
     transactionIndex: number;
     extractedTransaction: StatementExtractionResult['transactions'][number];
     existingTransaction: {
-      id: number;
+      id: string;
       date: string;
       amount: number;
       note: string;
@@ -121,7 +121,7 @@ export const detectStatementDuplicates = async (
 // Statement Parser - Execute Import
 
 interface StatementExecuteImportRequest {
-  accountId: number;
+  accountId: string;
   transactions: StatementExtractionResult['transactions'];
   skipIndices: number[];
 }
@@ -135,7 +135,7 @@ export interface StatementExecuteImportResponse {
       error: string;
     }>;
   };
-  newTransactionIds: number[];
+  newTransactionIds: string[];
   batchId: string;
 }
 

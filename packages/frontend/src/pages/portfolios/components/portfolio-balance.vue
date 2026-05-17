@@ -131,7 +131,7 @@ import { TrendingDownIcon, TrendingUpIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { toRef } from 'vue';
 
-const props = defineProps<{ portfolioId: number }>();
+const props = defineProps<{ portfolioId: string }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { data: summary, isLoading, error } = usePortfolioSummary(portfolioId);

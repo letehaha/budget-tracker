@@ -1,5 +1,6 @@
 import * as endpointsTypes from './endpoints';
 
+export * from './record-id';
 export * from './enums';
 export * from './db-models';
 

@@ -13,7 +13,7 @@ import { withTransaction } from '../common/with-transaction';
 import { getWritableTransactionById } from './get-by-id';
 
 export const deleteTransaction = withTransaction(
-  async ({ id, userId }: { id: number; userId: number }): Promise<void> => {
+  async ({ id, userId }: { id: string; userId: number }): Promise<void> => {
     try {
       // Single fetch + write-authorization gate. `getWritableTransactionById` throws 404
       // when the caller has no claim, 401 when scope: 'own' is violated. Returns a
@@ -99,7 +99,7 @@ export const deleteTransaction = withTransaction(
   },
 );
 
-const unlinkRefundTransaction = withTransaction(async (id: number) => {
+const unlinkRefundTransaction = withTransaction(async (id: string) => {
   const refundTx = await RefundTransactions.findOne({
     where: {
       [Op.or]: [{ originalTxId: id }, { refundTxId: id }],

@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { syncTransactionsForAccount } from '@root/services/bank-data-providers/connection/sync-transactions-for-account';
 import { z } from 'zod';
@@ -5,10 +6,10 @@ import { z } from 'zod';
 export default createController(
   z.object({
     params: z.object({
-      connectionId: z.coerce.number(),
+      connectionId: recordId(),
     }),
     body: z.object({
-      accountId: z.number(),
+      accountId: recordId(),
     }),
   }),
   async ({ user, params, body }) => {

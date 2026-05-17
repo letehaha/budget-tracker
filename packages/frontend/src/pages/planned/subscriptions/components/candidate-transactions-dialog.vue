@@ -8,7 +8,7 @@ import { computed } from 'vue';
 
 const props = defineProps<{
   open: boolean;
-  transactionIds: number[];
+  transactionIds: string[];
 }>();
 
 const emit = defineEmits<{

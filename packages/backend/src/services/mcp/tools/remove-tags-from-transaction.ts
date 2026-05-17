@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { removeTransactionsFromTag } from '@services/tags/transaction-tags';
@@ -12,8 +13,8 @@ export function registerRemoveTagsFromTransaction(server: McpServer) {
       description:
         'Remove a tag from one or more transactions. Use when the user wants to untag transactions. Returns the count of removed tag links.',
       inputSchema: {
-        tagId: z.number().describe('ID of the tag to remove from transactions.'),
-        transactionIds: z.array(z.number()).describe('List of transaction IDs to remove the tag from.'),
+        tagId: recordId().describe('ID of the tag to remove from transactions.'),
+        transactionIds: z.array(recordId()).describe('List of transaction IDs to remove the tag from.'),
       },
     },
     async (args, extra) => {

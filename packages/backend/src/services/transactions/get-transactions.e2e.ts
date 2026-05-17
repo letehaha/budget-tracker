@@ -93,6 +93,8 @@ describe('Retrieve transactions with filters', () => {
 
   it('should retrieve transactions filtered by budgetIds correctly', async () => {
     const account = await helpers.createAccount({ raw: true });
+    const categories = await helpers.getCategoriesList();
+    const firstCategoryId = categories[0]!.id;
 
     const transactions = await Promise.all([
       helpers.createTransaction({
@@ -101,7 +103,7 @@ describe('Retrieve transactions with filters', () => {
           amount: 100,
           transactionType: TRANSACTION_TYPES.expense,
           time: '2025-03-02T10:00:00Z',
-          categoryId: 1,
+          categoryId: firstCategoryId,
         }),
         raw: true,
       }),
@@ -111,7 +113,7 @@ describe('Retrieve transactions with filters', () => {
           amount: 200,
           transactionType: TRANSACTION_TYPES.expense,
           time: '2025-03-03T10:00:00Z',
-          categoryId: 1,
+          categoryId: firstCategoryId,
         }),
         raw: true,
       }),
@@ -121,7 +123,7 @@ describe('Retrieve transactions with filters', () => {
           amount: 300,
           transactionType: TRANSACTION_TYPES.expense,
           time: '2025-04-01T10:00:00Z',
-          categoryId: 1,
+          categoryId: firstCategoryId,
         }),
         raw: true,
       }),
@@ -348,7 +350,7 @@ describe('Retrieve transactions with filters', () => {
 
   describe('excludeAccountIds', () => {
     it('excludes transactions from the specified account', async () => {
-      const { income, expense } = await createMockTransactions();
+      const { income } = await createMockTransactions();
 
       const res = await helpers.getTransactions({
         excludeAccountIds: [income.accountId],

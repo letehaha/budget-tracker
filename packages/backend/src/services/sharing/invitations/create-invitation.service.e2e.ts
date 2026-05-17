@@ -6,6 +6,7 @@ import {
   SHARING_LIMITS,
   TRANSACTIONS_WRITE_SCOPES,
 } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
@@ -223,7 +224,7 @@ describe('Share invitations: create + list', () => {
       const res = await helpers.createShareInvitation({
         inviteeEmail: recipient.email,
         resourceType: RESOURCE_TYPES.account,
-        resourceId: 999_999_999,
+        resourceId: NONEXISTENT_ID,
         permission: SHARE_PERMISSIONS.read,
       });
       expect(res.statusCode).toBe(404);

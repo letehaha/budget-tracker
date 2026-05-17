@@ -132,7 +132,7 @@ const queryClient = useQueryClient();
 
 const isDialogOpen = ref(false);
 const isDisconnectDialogOpen = ref(false);
-const connectionToDisconnect = ref<number | null>(null);
+const connectionToDisconnect = ref<string | null>(null);
 
 // Query for providers
 const { data: providers, isLoading: isLoadingProviders } = useQuery({
@@ -173,7 +173,7 @@ const handleIntegrationAdded = () => {
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.bankConnections });
 };
 
-const handleDisconnect = (connectionId: number) => {
+const handleDisconnect = (connectionId: string) => {
   connectionToDisconnect.value = connectionId;
   isDisconnectDialogOpen.value = true;
 };
@@ -187,12 +187,12 @@ const handleDisconnectConfirm = (removeAssociatedAccounts: boolean) => {
   });
 };
 
-const goToConnectionDetails = (connectionId: number) => {
+const goToConnectionDetails = (connectionId: string) => {
   router.push({ name: ROUTES_NAMES.accountIntegrationDetails, params: { connectionId } });
 };
 
 const connectionLogos = computed(() => {
-  const map = new Map<number, string | null>();
+  const map = new Map<string, string | null>();
   for (const conn of connections.value ?? []) {
     map.set(conn.id, conn.bankName ? getBankInstitutionLogoUrl({ bankName: conn.bankName }) : null);
   }

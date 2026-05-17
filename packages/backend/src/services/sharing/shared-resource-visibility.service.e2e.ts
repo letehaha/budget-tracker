@@ -5,7 +5,7 @@ import * as helpers from '@tests/helpers';
 import { CustomResponse } from '@tests/helpers/common';
 
 /** Owner shares an account with a recipient and the recipient accepts. */
-async function shareAccountReadOnly({ accountId, recipientEmail }: { accountId: number; recipientEmail: string }) {
+async function shareAccountReadOnly({ accountId, recipientEmail }: { accountId: string; recipientEmail: string }) {
   const invitation = await helpers.createShareInvitation({
     inviteeEmail: recipientEmail,
     resourceType: RESOURCE_TYPES.account,
@@ -86,7 +86,7 @@ describe('Shared resource visibility (S3)', () => {
         fn: () => helpers.getAccount({ id: account.id, raw: false }),
       });
       expect(res.statusCode).toBe(200);
-      const body = (res as unknown as CustomResponse<{ id: number; share?: { isOwner: boolean; permission: string } }>)
+      const body = (res as unknown as CustomResponse<{ id: string; share?: { isOwner: boolean; permission: string } }>)
         .body.response;
       expect(body.id).toBe(account.id);
       expect(body.share).toBeDefined();
@@ -114,7 +114,7 @@ describe('Shared resource visibility (S3)', () => {
   // identification_hash. Recipients have no use for it and shouldn't see it.
   describe('owner-side bank-link metadata is redacted for recipients', () => {
     type SharedAccountResponse = {
-      id: number;
+      id: string;
       externalId: string | null;
       externalData: Record<string, unknown> | null;
       bankDataProviderConnectionId: number | null;
@@ -228,7 +228,7 @@ describe('Shared resource visibility (S3)', () => {
         cookies: recipient.cookies,
         fn: () => helpers.getTransactions({ raw: true }),
       });
-      const onAccount = (recipientTxns as Array<{ accountId: number }>).filter((tx) => tx.accountId === account.id);
+      const onAccount = (recipientTxns as Array<{ accountId: string }>).filter((tx) => tx.accountId === account.id);
       expect(onAccount).toHaveLength(2);
     });
 
@@ -244,7 +244,7 @@ describe('Shared resource visibility (S3)', () => {
         cookies: stranger.cookies,
         fn: () => helpers.getTransactions({ raw: true }),
       });
-      expect((txns as Array<{ accountId: number }>).filter((tx) => tx.accountId === account.id)).toHaveLength(0);
+      expect((txns as Array<{ accountId: string }>).filter((tx) => tx.accountId === account.id)).toHaveLength(0);
     });
 
     it('drops accountIds outside the accessible set silently (returns empty)', async () => {

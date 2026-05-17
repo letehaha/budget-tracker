@@ -251,7 +251,7 @@ const [CategoryListTemplate, CategoryListContent] = createReusableTemplate();
 
 interface FlatCategory extends FormattedCategory {
   depth: number;
-  rootParentId: number;
+  rootParentId: string;
   rootParentName: string;
 }
 
@@ -265,7 +265,7 @@ const props = withDefaults(
     errorMessage?: string;
     disabled?: boolean;
     /** Forwarded to inner CategoryCircle so icon inheritance walks the right tree. */
-    categoriesMap?: Record<number, CategoryModel>;
+    categoriesMap?: Record<string, CategoryModel>;
     /**
      * When set, surfaces a "Showing @{owner}'s categories" notice atop the dropdown so
      * recipients on a shared account aren't confused by suddenly seeing a different
@@ -320,7 +320,7 @@ const flattenCategories = ({
 }: {
   categories: FormattedCategory[];
   depth?: number;
-  rootParent?: { id: number; name: string };
+  rootParent?: { id: string; name: string };
 }): FlatCategory[] => {
   const result: FlatCategory[] = [];
 

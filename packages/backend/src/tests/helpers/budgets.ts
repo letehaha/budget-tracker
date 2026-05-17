@@ -9,11 +9,11 @@ import { Response } from 'express';
 import { makeRequest } from './common';
 
 interface TestCreateBudgetPayload {
-  id?: number;
+  id?: string;
   name: string;
   status?: string;
   type?: BUDGET_TYPES;
-  categoryIds?: number[];
+  categoryIds?: string[];
   startDate?: string | Date | null;
   endDate?: string | Date | null;
   autoInclude?: boolean;
@@ -22,7 +22,7 @@ interface TestCreateBudgetPayload {
 
 interface EditBudgetPayload {
   name?: string;
-  categoryIds?: number[];
+  categoryIds?: string[];
   startDate?: string;
   endDate?: string;
   limitAmount?: number;
@@ -30,7 +30,7 @@ interface EditBudgetPayload {
 }
 
 interface linkTransactionToBudgetPayload {
-  transactionIds: number[];
+  transactionIds: string[];
 }
 
 export async function createCustomBudget<R extends boolean | undefined = undefined>({
@@ -64,7 +64,7 @@ export async function getCustomBudgetById<R extends boolean | undefined = undefi
   id,
   raw,
 }: {
-  id: number;
+  id: string;
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof getBudgetService.getBudgetById>>, R>({
@@ -78,7 +78,7 @@ export async function deleteCustomBudget<R extends boolean | undefined = undefin
   id,
   raw,
 }: {
-  id: number;
+  id: string;
   raw?: R;
 }) {
   return makeRequest<{ success: boolean }, R>({
@@ -93,7 +93,7 @@ export async function editCustomBudget({
   params,
   raw,
 }: {
-  id: number;
+  id: string;
   params: EditBudgetPayload;
   raw?: false;
 }): Promise<Response>;
@@ -102,7 +102,7 @@ export async function editCustomBudget({
   params,
   raw,
 }: {
-  id: number;
+  id: string;
   params: EditBudgetPayload;
   raw?: true;
 }): Promise<BudgetModel>;
@@ -111,7 +111,7 @@ export async function editCustomBudget({
   params,
   raw = true,
 }: {
-  id: number;
+  id: string;
   params: EditBudgetPayload;
   raw?: boolean;
 }): Promise<Response | BudgetModel> {
@@ -130,7 +130,7 @@ export async function addTransactionToCustomBudget<R extends boolean | undefined
   payload,
   raw,
 }: {
-  id: number;
+  id: string;
   payload: linkTransactionToBudgetPayload;
   raw?: R;
 }) {
@@ -147,7 +147,7 @@ export async function removeTransactionFromCustomBudget<R extends boolean | unde
   payload,
   raw,
 }: {
-  id: number;
+  id: string;
   payload: linkTransactionToBudgetPayload;
   raw?: R;
 }) {
@@ -164,7 +164,7 @@ export async function archiveCustomBudget<R extends boolean | undefined = undefi
   isArchived,
   raw,
 }: {
-  id: number;
+  id: string;
   isArchived: boolean;
   raw?: R;
 }) {
@@ -176,7 +176,7 @@ export async function archiveCustomBudget<R extends boolean | undefined = undefi
   });
 }
 
-export async function getStats<R extends boolean | undefined = undefined>({ id, raw }: { id: number; raw?: R }) {
+export async function getStats<R extends boolean | undefined = undefined>({ id, raw }: { id: string; raw?: R }) {
   return makeRequest<Awaited<ReturnType<typeof getBudgetStats>> | null, R>({
     method: 'get',
     url: `/budgets/${id}/stats`,
@@ -186,16 +186,16 @@ export async function getStats<R extends boolean | undefined = undefined>({ id, 
 
 interface CategoryBudgetTransactionsResponse {
   transactions: Array<{
-    id: number;
+    id: string;
     time: Date;
     transactionType: string;
     refAmount: number;
     amount: number;
     note: string | null;
-    categoryId: number | null;
-    accountId: number;
+    categoryId: string | null;
+    accountId: string;
     effectiveCategory?: {
-      id: number;
+      id: string;
       name: string;
       color: string;
     };
@@ -210,7 +210,7 @@ export async function getCategoryBudgetTransactions<R extends boolean | undefine
   limit,
   raw,
 }: {
-  id: number;
+  id: string;
   from?: number;
   limit?: number;
   raw?: R;
@@ -231,7 +231,7 @@ export async function getSpendingStats<R extends boolean | undefined = undefined
   id,
   raw,
 }: {
-  id: number;
+  id: string;
   raw?: R;
 }) {
   return makeRequest<endpointsTypes.BudgetSpendingStatsResponse, R>({

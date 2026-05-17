@@ -33,7 +33,7 @@ describe('Account group scoping with shared accounts', () => {
     accountId,
     recipient,
   }: {
-    accountId: number;
+    accountId: string;
     recipient: helpers.SecondUserHandle;
   }) {
     const invitation = await helpers.createShareInvitation({
@@ -75,8 +75,8 @@ describe('Account group scoping with shared accounts', () => {
 
     const groupings = await AccountGrouping.findAll({ where: { accountId: account.id } });
     expect(groupings).toHaveLength(2);
-    const groupIds = groupings.map((g) => g.groupId).sort((a, b) => a - b);
-    expect(groupIds).toEqual([ownerGroup.id, recipientGroup.id].sort((a, b) => a - b));
+    const groupIds = groupings.map((g) => g.groupId).toSorted((a, b) => a.localeCompare(b));
+    expect(groupIds).toEqual([ownerGroup.id, recipientGroup.id].toSorted((a, b) => a.localeCompare(b)));
   });
 
   it('non-recipient who is also not the owner gets 404 when trying to group a foreign account', async () => {

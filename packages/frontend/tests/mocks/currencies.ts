@@ -1105,7 +1105,7 @@ export const SYSTEM_CURRENCIES: CurrencyModel[] = [
 ];
 export const USER_BASE_CURRENCY_CODE = 'UAH';
 export const USER_BASE_CURRENCY: UserCurrencyModel = {
-  id: 10,
+  id: '00000000-0000-0000-0000-000000000010',
   userId: USER.id,
   currencyCode: USER_BASE_CURRENCY_CODE,
   exchangeRate: 1,
@@ -1117,7 +1117,7 @@ export const USER_BASE_CURRENCY: UserCurrencyModel = {
 export const USER_CURRENCIES: UserCurrencyModel[] = [
   USER_BASE_CURRENCY,
   {
-    id: 11,
+    id: '00000000-0000-0000-0000-000000000011',
     userId: USER.id,
     currencyCode: 'EUR',
     exchangeRate: 40,
@@ -1126,7 +1126,7 @@ export const USER_CURRENCIES: UserCurrencyModel[] = [
     currency: SYSTEM_CURRENCIES.find((item) => item.code === 'EUR'),
   },
   {
-    id: 12,
+    id: '00000000-0000-0000-0000-000000000012',
     userId: USER.id,
     currencyCode: 'USD',
     exchangeRate: 37,

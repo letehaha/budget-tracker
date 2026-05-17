@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createSingleRefund } from '@services/tx-refunds/create-single-refund.service';
@@ -13,10 +14,11 @@ export function registerLinkRefund(server: McpServer) {
         'Mark an existing transaction as a refund of another transaction. Provide originalTxId (the transaction being refunded) and refundTxId (the refund transaction). The two transactions must have opposite types (income vs expense). Optionally target a specific split of the original.',
       inputSchema: {
         originalTxId: z
-          .number()
+          .string()
+          .uuid()
           .nullable()
           .describe('ID of the original transaction being refunded. Pass null for a standalone refund'),
-        refundTxId: z.number().describe('ID of the transaction that represents the refund'),
+        refundTxId: recordId().describe('ID of the transaction that represents the refund'),
         splitId: z
           .string()
           .optional()

@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -199,7 +200,7 @@ describe('Create transaction with splits', () => {
       accountId: account.id,
       categoryId: categories[0]!.id,
       amount: 1000,
-      splits: [{ categoryId: 999999, amount: 400 }], // Non-existent category
+      splits: [{ categoryId: generateRandomRecordId(), amount: 400 }], // Non-existent category
     });
 
     const res = await helpers.createTransaction({

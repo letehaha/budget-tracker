@@ -238,7 +238,7 @@ async function getDefaultCurrency(userId: number, columnMapping: ColumnMappingCo
   return '';
 }
 
-async function getDefaultAccountId(userId: number, columnMapping: ColumnMappingConfig): Promise<number | null> {
+async function getDefaultAccountId(userId: number, columnMapping: ColumnMappingConfig): Promise<string | null> {
   const accountOption = columnMapping.account;
   if (accountOption.option === AccountOptionValue.existingAccount) {
     const account = await Accounts.getAccountById({ userId, id: accountOption.accountId });
@@ -251,9 +251,9 @@ async function buildAccountNameToIdMapping(
   userId: number,
   validRows: ParsedTransactionRow[],
   accountMapping: AccountMappingConfig,
-  defaultAccountId: number | null,
-): Promise<Map<string, number | null>> {
-  const mapping = new Map<string, number | null>();
+  defaultAccountId: string | null,
+): Promise<Map<string, string | null>> {
+  const mapping = new Map<string, string | null>();
 
   // If using single existing account, all rows map to that account
   if (defaultAccountId !== null) {

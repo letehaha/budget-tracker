@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createInvestmentTransaction } from '@services/investments/transactions/create.service';
@@ -13,8 +14,8 @@ export function registerCreateInvestmentTransaction(server: McpServer) {
       description:
         'Record a new investment transaction (buy, sell, dividend, fee, etc.) in a portfolio. The security must already exist in the portfolio as a holding — call search_securities to resolve a ticker to a securityId, then ensure a holding exists. quantity, price, and fees are decimal strings (e.g. "10.5", "150.00", "0.00").',
       inputSchema: {
-        portfolioId: z.number().describe('Portfolio ID (from get_portfolios)'),
-        securityId: z.number().describe('Security ID — resolve via search_securities first'),
+        portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
+        securityId: recordId().describe('Security ID — resolve via search_securities first'),
         category: z
           .enum([
             INVESTMENT_TRANSACTION_CATEGORY.buy,

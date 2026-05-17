@@ -1,3 +1,4 @@
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import BudgetTransactions from '@models/budget-transactions.model';
@@ -54,11 +55,8 @@ describe('Remove Transactions from Budget', () => {
   it('fails when trying to remove transactions from a non-existent budget', async () => {
     const [transaction] = await helpers.createTransaction({ raw: true });
 
-    // Use a non-existent budget ID
-    const nonExistentBudgetId = 99999;
-
     const response = await helpers.removeTransactionFromCustomBudget({
-      id: nonExistentBudgetId,
+      id: NONEXISTENT_ID,
       payload: { transactionIds: [transaction.id] },
     });
 
@@ -86,7 +84,7 @@ describe('Remove Transactions from Budget', () => {
       (
         await helpers.removeTransactionFromCustomBudget({
           id: budget.id,
-          payload: { transactionIds: ['random-id' as unknown as number] },
+          payload: { transactionIds: ['random-id' as unknown as string] },
         })
       ).statusCode,
     ).toBe(ERROR_CODES.ValidationError);
@@ -95,7 +93,7 @@ describe('Remove Transactions from Budget', () => {
       (
         await helpers.removeTransactionFromCustomBudget({
           id: budget.id,
-          payload: { transactionIds: 122 as unknown as number[] },
+          payload: { transactionIds: 122 as unknown as string[] },
         })
       ).statusCode,
     ).toBe(ERROR_CODES.ValidationError);

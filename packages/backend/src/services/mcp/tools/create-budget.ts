@@ -1,4 +1,5 @@
 import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -26,7 +27,7 @@ export function registerCreateBudget(server: McpServer) {
             'Budget type: manual (transactions linked explicitly) or category (auto-tracks by category). Default: manual',
           ),
         categoryIds: z
-          .array(z.number())
+          .array(recordId())
           .optional()
           .describe('Category IDs to link (only used when type is "category")'),
         startDate: z.string().optional().describe('Budget start date (ISO 8601)'),

@@ -6,7 +6,7 @@ import Users from '@models/users.model';
 import { Op } from 'sequelize';
 
 interface AccountInfo {
-  id: number;
+  id: string;
   userId: number;
   name: string;
 }
@@ -28,7 +28,7 @@ const convertPairLegs = async ({
   errorContext,
 }: {
   legs: [Transactions.default, Transactions.default];
-  accountById: Map<number, AccountInfo>;
+  accountById: Map<string, AccountInfo>;
   usernameByUserId: Map<number, string | null>;
   errorContext: { code: string; trigger: string };
 }) => {
@@ -98,8 +98,8 @@ export const convertCrossUserTransfersToOutOfWallet = async ({
     raw: true,
   })) as unknown as AccountInfo[];
 
-  const accountById = new Map<number, AccountInfo>();
-  const accountIds: number[] = [];
+  const accountById = new Map<string, AccountInfo>();
+  const accountIds: string[] = [];
   for (const account of accounts) {
     accountById.set(account.id, account);
     accountIds.push(account.id);
@@ -178,7 +178,7 @@ export const convertCrossUserTransfersForAccountIds = async ({
   accountIds,
   ownerUserId,
 }: {
-  accountIds: number[];
+  accountIds: string[];
   ownerUserId: number;
 }): Promise<{ convertedPairCount: number }> => {
   if (accountIds.length === 0) return { convertedPairCount: 0 };
@@ -213,13 +213,13 @@ export const convertCrossUserTransfersForAccountIds = async ({
 
   // Step 3: resolve the involved accounts + their owners' usernames so the per-pair
   // conversion can stamp the note suffix without an N-query.
-  const involvedAccountIds = Array.from(new Set(allLegs.map((leg) => leg.accountId)));
+  const involvedAccountIds: string[] = Array.from(new Set(allLegs.map((leg) => leg.accountId as string)));
   const accounts = (await Accounts.findAll({
     where: { id: { [Op.in]: involvedAccountIds } },
     attributes: ['id', 'userId', 'name'],
     raw: true,
   })) as unknown as AccountInfo[];
-  const accountById = new Map(accounts.map((a) => [a.id, a]));
+  const accountById = new Map<string, AccountInfo>(accounts.map((a) => [a.id, a]));
 
   const involvedUserIds = Array.from(new Set(accounts.map((a) => a.userId)));
   const users = (await Users.findAll({

@@ -16,7 +16,7 @@ interface UseTransactionSelectionOptions {
 
 export function useTransactionSelection({ getTransactions, isExtraSelectable }: UseTransactionSelectionOptions) {
   // Use ref with Set for better reactivity tracking
-  const selectedIds = ref(new Set<number>());
+  const selectedIds = ref(new Set<string>());
 
   // Wrapper to trigger reactivity when Set is modified
   const triggerUpdate = () => triggerRef(selectedIds);
@@ -42,11 +42,11 @@ export function useTransactionSelection({ getTransactions, isExtraSelectable }: 
     return selectableTransactions.length > 0 && selectedIds.value.size === selectableTransactions.length;
   });
 
-  const isTransactionSelected = (id: number): boolean => {
+  const isTransactionSelected = (id: string): boolean => {
     return selectedIds.value.has(id);
   };
 
-  const toggleTransaction = ({ value, id }: { value: boolean; id: number }) => {
+  const toggleTransaction = ({ value, id }: { value: boolean; id: string }) => {
     const transactions = getTransactions();
 
     // Filter to only selectable transactions for range selection
@@ -72,7 +72,7 @@ export function useTransactionSelection({ getTransactions, isExtraSelectable }: 
     resetSelection();
   };
 
-  const getSelectedTransactionIds = (): number[] => {
+  const getSelectedTransactionIds = (): string[] => {
     return Array.from(selectedIds.value);
   };
 

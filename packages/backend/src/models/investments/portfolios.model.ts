@@ -1,5 +1,7 @@
+import { RecordId } from '@bt/shared/types';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, Index } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import Users from '../users.model';
 import Holdings from './holdings.model';
@@ -15,10 +17,10 @@ export default class Portfolios extends Model {
     primaryKey: true,
     unique: true,
     allowNull: false,
-    autoIncrement: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @Column({ type: DataType.STRING, allowNull: false })
   name!: string;

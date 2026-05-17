@@ -9,7 +9,7 @@ export const USER: UserModel = {
   middleName: '',
   avatar: '',
   totalBalance: 0,
-  defaultCategoryId: 3131,
+  defaultCategoryId: '00000000-0000-0000-0000-000000003131',
   role: USER_ROLES.common as UserRole,
 };
 

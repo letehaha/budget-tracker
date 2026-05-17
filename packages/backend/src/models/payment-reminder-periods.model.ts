@@ -1,5 +1,10 @@
-import { PaymentReminderPeriodModel, PaymentReminderStatus, PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
+import {
+  PaymentReminderPeriodModel,
+  PaymentReminderStatus,
+  PAYMENT_REMINDER_STATUSES,
+  RecordId,
+} from '@bt/shared/types';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import PaymentReminders from './payment-reminders.model';
@@ -14,22 +19,16 @@ export default class PaymentReminderPeriods extends Model implements PaymentRemi
   @Column({
     type: DataType.UUID,
     primaryKey: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: string;
-
-  @BeforeCreate
-  static generateUUIDv7(instance: PaymentReminderPeriods) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  declare id: RecordId;
 
   @ForeignKey(() => PaymentReminders)
   @Column({
     type: DataType.UUID,
     allowNull: false,
   })
-  reminderId!: string;
+  reminderId!: RecordId;
 
   @Column({
     type: DataType.DATEONLY,
@@ -52,10 +51,10 @@ export default class PaymentReminderPeriods extends Model implements PaymentRemi
 
   @ForeignKey(() => Transactions)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  transactionId!: number | null;
+  transactionId!: RecordId | null;
 
   @Column({
     type: DataType.TEXT,

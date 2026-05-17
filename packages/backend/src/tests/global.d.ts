@@ -12,4 +12,6 @@ declare global {
   var MODELS_CURRENCIES: Currencies[] | null;
   // eslint-disable-next-line no-var
   var APP_AUTH_COOKIES: string | null;
+  // eslint-disable-next-line no-var
+  var DEFAULT_CATEGORY_ID: string;
 }

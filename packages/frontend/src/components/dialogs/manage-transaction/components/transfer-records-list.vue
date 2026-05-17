@@ -18,11 +18,11 @@ import { useI18n } from 'vue-i18n';
 interface TransferRecordsListProps {
   transactionType: TRANSACTION_TYPES;
   /** Origin transaction ID (for recommendations when editing) */
-  originTransactionId?: number;
+  originTransactionId?: string;
   /** Origin transaction amount for recommendations (used when creating new tx) */
   originAmount?: number | null;
   /** Origin account ID for recommendations (used when creating new tx) */
-  originAccountId?: number | null;
+  originAccountId?: string | null;
 }
 
 const props = defineProps<TransferRecordsListProps>();

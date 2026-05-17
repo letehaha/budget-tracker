@@ -1,3 +1,4 @@
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -66,10 +67,10 @@ describe('Get budget stats', () => {
   });
 
   it('fails when invalid param provided', async () => {
-    expect((await helpers.getStats({ id: 'foo' as unknown as number, raw: false })).statusCode).toBe(
+    expect((await helpers.getStats({ id: 'foo' as unknown as string, raw: false })).statusCode).toBe(
       ERROR_CODES.ValidationError,
     );
 
-    expect((await helpers.getStats({ id: 100500, raw: false })).statusCode).toBe(ERROR_CODES.NotFoundError);
+    expect((await helpers.getStats({ id: NONEXISTENT_ID, raw: false })).statusCode).toBe(ERROR_CODES.NotFoundError);
   });
 });

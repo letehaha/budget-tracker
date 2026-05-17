@@ -42,7 +42,7 @@ const getManualBudgetStats = async ({
   budgetId,
 }: {
   userId: number;
-  budgetId: number;
+  budgetId: string;
 }): Promise<StatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId),
@@ -71,7 +71,7 @@ const getCategoryBudgetStats = async ({
   budgetId,
 }: {
   userId: number;
-  budgetId: number;
+  budgetId: string;
 }): Promise<StatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId, {
@@ -123,7 +123,7 @@ const getCategoryBudgetStats = async ({
   });
 
   const result = getResponseInitialState();
-  const countedTransactionIds = new Set<number>();
+  const countedTransactionIds = new Set<string>();
 
   // Process primary category transactions (only those WITHOUT splits)
   for (const tx of primaryCategoryTransactions) {
@@ -227,7 +227,7 @@ const aggregateTransactionStats = ({
 };
 
 export const getBudgetStats = withTransaction(
-  async ({ userId, budgetId }: { userId: number; budgetId: number }): Promise<StatsResponse> => {
+  async ({ userId, budgetId }: { userId: number; budgetId: string }): Promise<StatsResponse> => {
     const budgetDetails = await findOrThrowNotFound({
       query: Budgets.findByPk(budgetId, { attributes: ['type'] }),
       message: t({ key: 'budgets.budgetNotFound' }),

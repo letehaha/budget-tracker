@@ -52,7 +52,7 @@ export enum AccountOptionValue {
 export type CategoryOption =
   | { option: CategoryOptionValue.mapDataSourceColumn; columnName: string }
   | { option: CategoryOptionValue.createNewCategories; columnName: string }
-  | { option: CategoryOptionValue.existingCategory; categoryId: number };
+  | { option: CategoryOptionValue.existingCategory; categoryId: string };
 
 /**
  * Currency assignment options for CSV import
@@ -78,7 +78,7 @@ export type TransactionTypeOption =
  */
 export type AccountOption =
   | { option: AccountOptionValue.dataSourceColumn; columnName: string }
-  | { option: AccountOptionValue.existingAccount; accountId: number };
+  | { option: AccountOptionValue.existingAccount; accountId: string };
 
 /**
  * Column mapping configuration for Step 2
@@ -114,14 +114,14 @@ export interface ExtractUniqueValuesResponse {
 /**
  * Account mapping for import - maps CSV account name to action
  */
-export type AccountMappingValue = { action: 'create-new' } | { action: 'link-existing'; accountId: number };
+export type AccountMappingValue = { action: 'create-new' } | { action: 'link-existing'; accountId: string };
 
 export type AccountMappingConfig = Record<string, AccountMappingValue>;
 
 /**
  * Category mapping for import - maps CSV category name to action
  */
-export type CategoryMappingValue = { action: 'create-new' } | { action: 'link-existing'; categoryId: number };
+export type CategoryMappingValue = { action: 'create-new' } | { action: 'link-existing'; categoryId: string };
 
 export type CategoryMappingConfig = Record<string, CategoryMappingValue>;
 
@@ -155,11 +155,11 @@ export interface DuplicateMatch {
   rowIndex: number;
   importedTransaction: ParsedTransactionRow;
   existingTransaction: {
-    id: number;
+    id: string;
     date: string;
     amount: Cents;
     note: string;
-    accountId: number;
+    accountId: string;
   };
   matchType: 'originalId' | 'exact' | 'fuzzy';
   confidence: number; // 0-100
@@ -195,9 +195,9 @@ export interface ExecuteImportRequest {
   /** Row indices to skip (confirmed duplicates) */
   skipDuplicateIndices: number[];
   /** Fallback account for rows whose accountName is empty (used when "single existing account" was chosen) */
-  defaultAccountId?: number;
+  defaultAccountId?: string;
   /** Fallback category for rows whose categoryName is empty (used when "single existing category" was chosen) */
-  defaultCategoryId?: number;
+  defaultCategoryId?: string;
 }
 
 /**
@@ -219,6 +219,6 @@ export interface ExecuteImportResponse {
     categoriesCreated: number;
     errors: ImportError[];
   };
-  newTransactionIds: number[];
+  newTransactionIds: string[];
   batchId: string;
 }

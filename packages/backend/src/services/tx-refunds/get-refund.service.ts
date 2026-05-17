@@ -8,8 +8,8 @@ import { withTransaction } from '../common/with-transaction';
 
 interface GetRefundParams {
   userId: number;
-  originalTxId: number;
-  refundTxId: number;
+  originalTxId: string;
+  refundTxId: string;
 }
 
 export const getRefund = withTransaction(

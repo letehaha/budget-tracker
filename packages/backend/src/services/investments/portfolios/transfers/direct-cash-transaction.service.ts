@@ -14,7 +14,7 @@ import {
 
 interface DirectCashTransactionParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
   type: 'deposit' | 'withdrawal';
   amount: string;
   currencyCode: string;

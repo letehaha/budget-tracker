@@ -15,8 +15,8 @@ export interface SerializedCandidate {
   detectedFrequency: string;
   averageAmount: number;
   currencyCode: string;
-  accountId: number | null;
-  sampleTransactionIds: number[];
+  accountId: string | null;
+  sampleTransactionIds: string[];
   occurrenceCount: number;
   confidenceScore: number;
   medianIntervalDays: number;

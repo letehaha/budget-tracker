@@ -19,9 +19,9 @@ interface TagReminderSettingsApiResponse {
 }
 
 interface TagReminderApiResponse {
-  id: number;
+  id: string;
   userId: number;
-  tagId: number;
+  tagId: string;
   type: string;
   frequency: string | null;
   dayOfMonth: number | null;

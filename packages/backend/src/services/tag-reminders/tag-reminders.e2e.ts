@@ -1,4 +1,5 @@
 import { NOTIFICATION_TYPES, TAG_REMINDER_FREQUENCIES, TAG_REMINDER_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import TagReminders from '@models/tag-reminders.model';
@@ -158,7 +159,7 @@ describe('Tag Reminders API', () => {
 
     it('fails for non-existent tag', async () => {
       const response = await helpers.createTagReminder({
-        tagId: 999999,
+        tagId: NONEXISTENT_ID,
         payload: helpers.buildTagReminderPayload(),
         raw: false,
       });
@@ -288,7 +289,7 @@ describe('Tag Reminders API', () => {
 
       const response = await helpers.getReminderById({
         tagId: tag.id,
-        id: 999999,
+        id: NONEXISTENT_ID,
         raw: false,
       });
 
@@ -384,7 +385,7 @@ describe('Tag Reminders API', () => {
 
       const response = await helpers.updateTagReminder({
         tagId: tag.id,
-        id: 999999,
+        id: NONEXISTENT_ID,
         payload: { isEnabled: false },
         raw: false,
       });
@@ -456,7 +457,7 @@ describe('Tag Reminders API', () => {
 
       const response = await helpers.deleteTagReminder({
         tagId: tag.id,
-        id: 999999,
+        id: NONEXISTENT_ID,
         raw: false,
       });
 

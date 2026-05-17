@@ -37,7 +37,7 @@ const accountGroupsContext = useActiveAccountGroups(accountGroups as Ref<Account
 provide('accountGroupsContext', accountGroupsContext);
 
 const accountsInGroups = computed(() => {
-  const flattenAccounts = (groups: AccountGroups[]): Record<number, AccountModel> =>
+  const flattenAccounts = (groups: AccountGroups[]): Record<string, AccountModel> =>
     groups.reduce(
       (acc, group) => {
         group.accounts.forEach((account) => {
@@ -48,7 +48,7 @@ const accountsInGroups = computed(() => {
         }
         return acc;
       },
-      {} as Record<number, AccountModel>,
+      {} as Record<string, AccountModel>,
     );
 
   return flattenAccounts(accountGroups.value ?? []);

@@ -16,15 +16,16 @@ type TransactionsParam = UnwrapPromise<ReturnType<typeof getExpensesHistory>>;
 
 // Minimal transaction data needed for refund processing
 type TxMapEntry = Pick<TransactionsParam[0], 'id' | 'refAmount' | 'categoryId' | 'transactionType'>;
+type TxId = TransactionsParam[0]['id'];
 
 export async function getSpendingsByCategories(params: {
   userId: number;
-  accountId?: number;
+  accountId?: string;
   from?: string;
   to?: string;
-  categoryIds?: number[];
+  categoryIds?: string[];
   transactionType?: TRANSACTION_TYPES;
-  excludedCategoryIds?: number[];
+  excludedCategoryIds?: string[];
 }): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> {
   const transactions = await getExpensesHistory(params);
   const txIds = transactions.map((i) => i.id);
@@ -48,7 +49,7 @@ export async function getSpendingsByCategories(params: {
   });
 
   // Build transaction Map for O(1) lookup (only storing fields needed for refund processing)
-  const txMap = new Map<number, TxMapEntry>(
+  const txMap = new Map<TxId, TxMapEntry>(
     transactions.map((t) => [
       t.id,
       { id: t.id, refAmount: t.refAmount, categoryId: t.categoryId, transactionType: t.transactionType },
@@ -56,9 +57,9 @@ export async function getSpendingsByCategories(params: {
   );
 
   // Collect all transaction IDs that need to be fetched (not in current period)
-  const missingTxIds = new Set<number>();
+  const missingTxIds = new Set<TxId>();
   for (const refund of refunds) {
-    if (!txMap.has(refund.originalTxId)) missingTxIds.add(refund.originalTxId);
+    if (refund.originalTxId && !txMap.has(refund.originalTxId)) missingTxIds.add(refund.originalTxId);
     if (!txMap.has(refund.refundTxId)) missingTxIds.add(refund.refundTxId);
   }
 
@@ -121,9 +122,9 @@ async function processWithoutRefunds({
   selectedCategoryIds,
 }: {
   transactions: UnwrapPromise<ReturnType<typeof getExpensesHistory>>;
-  txIds: number[];
+  txIds: TxId[];
   userId: number;
-  selectedCategoryIds?: number[];
+  selectedCategoryIds?: string[];
 }) {
   // Splits are keyed by transactionId only — tx-level visibility was already established
   // by `getExpensesHistory`. See the parallel comment in `processWithRefunds`.
@@ -145,7 +146,7 @@ async function processWithoutRefunds({
     refunds: [],
     splitsByTxId,
     splitsById: new Map(),
-    txMap: new Map<number, TxMapEntry>(
+    txMap: new Map<TxId, TxMapEntry>(
       transactions.map((t) => [
         t.id,
         { id: t.id, refAmount: t.refAmount, categoryId: t.categoryId, transactionType: t.transactionType },
@@ -165,22 +166,22 @@ function groupAndAdjustData(params: {
   categories: AccessibleCategoryInfo[];
   transactions: TransactionsParam;
   refunds: RefundTransactions[];
-  splitsByTxId: Map<number, TransactionSplits[]>;
+  splitsByTxId: Map<TxId, TransactionSplits[]>;
   splitsById: Map<string, TransactionSplits>; // UUID keyed
-  txMap: Map<number, TxMapEntry>;
-  selectedCategoryIds?: number[];
+  txMap: Map<TxId, TxMapEntry>;
+  selectedCategoryIds?: string[];
 }): endpointsTypes.GetSpendingsByCategoriesReturnType {
   const { categories, transactions, refunds, splitsByTxId, splitsById, txMap, selectedCategoryIds } = params;
-  const categoryMap = new Map(categories.map((cat) => [cat.id, cat]));
+  const categoryMap = new Map<string, AccessibleCategoryInfo>(categories.map((cat) => [cat.id, cat]));
   const result: endpointsTypes.GetSpendingsByCategoriesReturnType = {};
 
-  const selectedSet = selectedCategoryIds ? new Set(selectedCategoryIds) : null;
+  const selectedSet = selectedCategoryIds ? new Set<string>(selectedCategoryIds) : null;
 
   // Cache for category group lookups to avoid repeated traversals
-  const groupCache = new Map<number, number | null>();
+  const groupCache = new Map<string, string | null>();
 
   // Function to get root category ID with caching (default mode)
-  const getRootCategoryId = (categoryId: number): number => {
+  const getRootCategoryId = (categoryId: string): string => {
     const cached = groupCache.get(categoryId);
     if (cached !== undefined) return cached!;
 
@@ -196,11 +197,11 @@ function groupAndAdjustData(params: {
   // Function to find the nearest selected ancestor for a category (selected categories mode).
   // Walks up the tree from categoryId. Returns the first ancestor (including self) that is
   // in the selected set, or null if none found.
-  const getSelectedGroupId = (categoryId: number): number | null => {
+  const getSelectedGroupId = (categoryId: string): string | null => {
     const cached = groupCache.get(categoryId);
     if (cached !== undefined) return cached;
 
-    const visited: number[] = [];
+    const visited: string[] = [];
     let current = categoryId;
 
     while (true) {
@@ -219,7 +220,7 @@ function groupAndAdjustData(params: {
   };
 
   // Resolve the group ID for a category based on the current mode
-  const getGroupId = (categoryId: number): number | null => {
+  const getGroupId = (categoryId: string): string | null => {
     return selectedSet ? getSelectedGroupId(categoryId) : getRootCategoryId(categoryId);
   };
 
@@ -227,7 +228,7 @@ function groupAndAdjustData(params: {
   if (selectedSet) {
     for (const catId of selectedSet) {
       const cat = categoryMap.get(catId);
-      result[catId.toString()] = {
+      result[catId] = {
         amount: 0,
         name: cat ? cat.name : 'Unknown',
         color: cat ? cat.color : '#000000',
@@ -236,17 +237,16 @@ function groupAndAdjustData(params: {
   }
 
   // Helper to add amount to a category
-  const addToCategory = (categoryId: number, amount: number) => {
+  const addToCategory = (categoryId: string, amount: number) => {
     const groupId = getGroupId(categoryId);
     if (groupId === null) return;
 
-    const groupIdStr = groupId.toString();
     const groupCategory = categoryMap.get(groupId);
 
-    if (groupIdStr in result) {
-      result[groupIdStr].amount += amount;
+    if (groupId in result) {
+      result[groupId]!.amount += amount;
     } else {
-      result[groupIdStr] = {
+      result[groupId] = {
         amount,
         name: groupCategory ? groupCategory.name : 'Unknown',
         color: groupCategory ? groupCategory.color : '#000000',
@@ -281,6 +281,7 @@ function groupAndAdjustData(params: {
   // describe ref currency
   for (const refund of refunds) {
     // O(1) Map lookups instead of O(n) array.find()
+    if (!refund.originalTxId) continue;
     const baseTx = txMap.get(refund.originalTxId);
     const refundTx = txMap.get(refund.refundTxId);
 
@@ -288,7 +289,7 @@ function groupAndAdjustData(params: {
     if (!baseTx || !refundTx) continue;
 
     // Determine which category to adjust based on refund target
-    let wantedCategoryId: number;
+    let wantedCategoryId: string;
 
     if (refund.splitId) {
       // Refund targets a specific split - O(1) lookup instead of searching
@@ -302,9 +303,8 @@ function groupAndAdjustData(params: {
     const groupId = getGroupId(wantedCategoryId);
     if (groupId === null) continue;
 
-    const groupIdStr = groupId.toString();
-    if (groupIdStr in result) {
-      result[groupIdStr].amount -= refundTx.refAmount.toCents();
+    if (groupId in result) {
+      result[groupId]!.amount -= refundTx.refAmount.toCents();
     }
   }
 
@@ -312,10 +312,10 @@ function groupAndAdjustData(params: {
 }
 
 function groupSplitsByTransactionId({ splits }: { splits: TransactionSplits[] }): {
-  splitsByTxId: Map<number, TransactionSplits[]>;
+  splitsByTxId: Map<TxId, TransactionSplits[]>;
   splitsById: Map<string, TransactionSplits>;
 } {
-  const splitsByTxId = new Map<number, TransactionSplits[]>();
+  const splitsByTxId = new Map<TxId, TransactionSplits[]>();
   const splitsById = new Map<string, TransactionSplits>();
 
   for (const split of splits) {

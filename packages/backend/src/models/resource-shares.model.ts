@@ -1,5 +1,5 @@
-import { ResourceShareModel, ResourceType, SharePermission, SharePolicy } from '@bt/shared/types';
-import { BeforeCreate, BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
+import { ResourceShareModel, ResourceType, SharePermission, SharePolicy, RecordId } from '@bt/shared/types';
+import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import Users from './users.model';
@@ -13,15 +13,9 @@ export default class ResourceShares extends Model implements ResourceShareModel 
   @Column({
     type: DataType.UUID,
     primaryKey: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: string;
-
-  @BeforeCreate
-  static generateUUIDv7(instance: ResourceShares) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({

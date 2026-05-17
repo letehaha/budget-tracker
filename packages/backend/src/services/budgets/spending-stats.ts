@@ -23,14 +23,14 @@ import { Op } from 'sequelize';
 import { buildDateFilter } from './utils/build-date-filter';
 
 interface CategoryInfo {
-  id: number;
+  id: string;
   name: string;
   color: string;
-  parentId: number | null;
+  parentId: string | null;
 }
 
 interface SpendingByCategoryItem {
-  categoryId: number;
+  categoryId: string;
   name: string;
   color: string;
   amount: number; // cents, positive (expenses only)
@@ -39,7 +39,7 @@ interface SpendingByCategoryItem {
 
 interface CategoryAmountEntry {
   amount: number;
-  children: Map<number, number>;
+  children: Map<string, number>;
 }
 
 interface SpendingPeriod {
@@ -112,9 +112,9 @@ const getRootCategoryId = ({
   categoryId,
   categoryMap,
 }: {
-  categoryId: number;
-  categoryMap: Map<number, CategoryInfo>;
-}): number => {
+  categoryId: string;
+  categoryMap: Map<string, CategoryInfo>;
+}): string => {
   let current = categoryMap.get(categoryId);
   if (!current) return categoryId;
 
@@ -138,10 +138,10 @@ const getTopLevelTargetCategoryId = ({
   categoryMap,
   targetCategoryIds,
 }: {
-  categoryId: number;
-  categoryMap: Map<number, CategoryInfo>;
-  targetCategoryIds: Set<number>;
-}): number => {
+  categoryId: string;
+  categoryMap: Map<string, CategoryInfo>;
+  targetCategoryIds: Set<string>;
+}): string => {
   let topLevel = categoryId;
   let current = categoryMap.get(categoryId);
 
@@ -173,9 +173,9 @@ const getEmptyResponse = (): SpendingStatsResponse => ({
 const buildCategoryMap = ({
   categories,
 }: {
-  categories: { id: number; name: string; color: string; parentId: number | null }[];
-}): Map<number, CategoryInfo> => {
-  const categoryMap = new Map<number, CategoryInfo>();
+  categories: { id: string; name: string; color: string; parentId: string | null }[];
+}): Map<string, CategoryInfo> => {
+  const categoryMap = new Map<string, CategoryInfo>();
   categories.forEach((cat) => {
     categoryMap.set(cat.id, {
       id: cat.id,
@@ -212,8 +212,8 @@ const buildSpendingsByCategory = ({
   categoryAmounts,
   categoryMap,
 }: {
-  categoryAmounts: Map<number, CategoryAmountEntry>;
-  categoryMap: Map<number, CategoryInfo>;
+  categoryAmounts: Map<string, CategoryAmountEntry>;
+  categoryMap: Map<string, CategoryInfo>;
 }): SpendingByCategoryItem[] => {
   const result: SpendingByCategoryItem[] = [];
   for (const [catId, entry] of categoryAmounts) {
@@ -253,8 +253,8 @@ interface NormalizedTxData {
   time: Date;
   amount: number; // cents
   isExpense: boolean;
-  categoryId: number | null; // aggregation target (root or top-level target), null = skip category aggregation
-  originalCategoryId: number | null; // the actual leaf category
+  categoryId: string | null; // aggregation target (root or top-level target), null = skip category aggregation
+  originalCategoryId: string | null; // the actual leaf category
 }
 
 const determineDateRange = ({
@@ -285,7 +285,7 @@ const aggregateTransactionData = ({
   txDataList: NormalizedTxData[];
   budgetStartDate: Date | null;
   budgetEndDate: Date | null;
-  categoryMap: Map<number, CategoryInfo>;
+  categoryMap: Map<string, CategoryInfo>;
 }): SpendingStatsResponse => {
   const { from: rangeFrom, to: rangeTo } = determineDateRange({
     budgetStartDate,
@@ -299,7 +299,7 @@ const aggregateTransactionData = ({
   const periodData = new Map<number, { expense: number; income: number }>();
   buckets.forEach((_, index) => periodData.set(index, { expense: 0, income: 0 }));
 
-  const categoryAmounts = new Map<number, CategoryAmountEntry>();
+  const categoryAmounts = new Map<string, CategoryAmountEntry>();
 
   for (const txData of txDataList) {
     const bucketIndex = findBucketIndex({ transactionTime: new Date(txData.time), buckets });
@@ -339,7 +339,7 @@ const getManualBudgetSpendingStats = async ({
   budgetId,
 }: {
   userId: number;
-  budgetId: number;
+  budgetId: string;
 }): Promise<SpendingStatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findOne({ where: { id: budgetId, userId } }),
@@ -391,7 +391,7 @@ const getCategoryBudgetSpendingStats = async ({
   budgetId,
 }: {
   userId: number;
-  budgetId: number;
+  budgetId: string;
 }): Promise<SpendingStatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findOne({
@@ -420,7 +420,7 @@ const getCategoryBudgetSpendingStats = async ({
   const targetCategoryIds = new Set(budgetCategoryIds);
 
   // Expand target categories to include all descendants
-  const expandedCategoryIds = new Set<number>(budgetCategoryIds);
+  const expandedCategoryIds = new Set<string>(budgetCategoryIds);
   allCategories.forEach((cat) => {
     let current: CategoryInfo | undefined = categoryMap.get(cat.id);
     while (current) {
@@ -521,7 +521,7 @@ export const getBudgetSpendingStats = async ({
   budgetId,
 }: {
   userId: number;
-  budgetId: number;
+  budgetId: string;
 }): Promise<SpendingStatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findOne({ where: { id: budgetId, userId }, attributes: ['type'] }),

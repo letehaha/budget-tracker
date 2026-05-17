@@ -73,7 +73,7 @@ export const prepareTxUpdationParams = ({
       editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.transaction.id) : null;
       // Build splitId mapping for refunded-by transactions
       if (form.refundedByTxs) {
-        const splitMapping: Record<number, string> = {};
+        const splitMapping: Record<string, string> = {};
         form.refundedByTxs.forEach((r) => {
           if (r.splitId) {
             splitMapping[r.transaction.id] = r.splitId;
@@ -95,7 +95,7 @@ export const prepareTxUpdationParams = ({
       editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.transaction.id) : undefined;
       // Build splitId mapping for refunded-by transactions
       if (form.refundedByTxs) {
-        const splitMapping: Record<number, string> = {};
+        const splitMapping: Record<string, string> = {};
         form.refundedByTxs.forEach((r) => {
           if (r.splitId) {
             splitMapping[r.transaction.id] = r.splitId;

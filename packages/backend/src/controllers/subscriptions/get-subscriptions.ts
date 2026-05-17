@@ -1,5 +1,5 @@
 import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
-import { booleanQuery } from '@common/lib/zod/custom-types';
+import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as subscriptionsService from '@services/subscriptions';
 import { z } from 'zod';
@@ -23,7 +23,7 @@ export const getSubscriptions = createController(listSchema, async ({ user, quer
 
 const detailSchema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: recordId(),
   }),
 });
 

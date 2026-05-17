@@ -13,7 +13,7 @@ interface MarkPeriodPaidParams {
   userId: number;
   reminderId: string;
   periodId: string;
-  transactionId?: number | null;
+  transactionId?: string | null;
   notes?: string | null;
 }
 

@@ -77,7 +77,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
     },
   });
 
-  const ibanToAccountIds = new Map<string, number[]>();
+  const ibanToAccountIds = new Map<string, string[]>();
   for (const account of accountsWithIban) {
     const externalData = account.externalData as Record<string, unknown> | null;
     const iban = externalData?.iban as string | undefined;
@@ -95,7 +95,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
   if (ibanToAccountIds.size === 0) return;
 
   // Step 3: Match each Walutomat transaction
-  const pairsToLink: [number, number][] = [];
+  const pairsToLink: [string, string][] = [];
 
   for (const tx of walutomatTxs) {
     const externalData = tx.externalData as {

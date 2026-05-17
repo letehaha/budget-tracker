@@ -1,4 +1,6 @@
+import { RecordId } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import TransactionSplits from './transaction-splits.model';
 import Transactions from './transactions.model';
@@ -23,11 +25,11 @@ import Users from './users.model';
 })
 export default class RefundTransactions extends Model {
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     primaryKey: true,
-    autoIncrement: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({
@@ -42,17 +44,17 @@ export default class RefundTransactions extends Model {
     // but in fact it's a refund for some tx_B in an "out of system" account. It is important to
     // consider that not all user real-life accounts will be present in the system
     allowNull: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
   })
-  originalTxId!: number;
+  originalTxId!: RecordId | null;
 
   @ForeignKey(() => Transactions)
   @Column({
     allowNull: false,
     unique: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
   })
-  refundTxId!: number;
+  refundTxId!: RecordId;
 
   // Optional: when set, the refund applies to a specific split rather than the whole transaction
   @ForeignKey(() => TransactionSplits)
@@ -60,7 +62,7 @@ export default class RefundTransactions extends Model {
     allowNull: true,
     type: DataType.UUID,
   })
-  splitId!: string | null;
+  splitId!: RecordId | null;
 
   @BelongsTo(() => TransactionSplits)
   split!: TransactionSplits;
@@ -82,8 +84,8 @@ export const createRefundTransaction = async ({
   splitId,
 }: {
   userId: number;
-  originalTxId: number | null;
-  refundTxId: number;
+  originalTxId: string | null;
+  refundTxId: string;
   splitId?: string | null;
 }) => {
   return RefundTransactions.create({ userId, originalTxId, refundTxId, splitId });

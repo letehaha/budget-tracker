@@ -11,7 +11,7 @@ interface CreateTransactionGroupPayload {
   userId: number;
   name: string;
   note?: string | null;
-  transactionIds: number[];
+  transactionIds: string[];
 }
 
 export const createTransactionGroup = withTransaction(async (payload: CreateTransactionGroupPayload) => {

@@ -143,7 +143,7 @@ async function freshScan() {
 
 // Link mutation
 const linkMutation = useMutation({
-  mutationFn: ({ expenseId, incomeId }: { expenseId: number; incomeId: number }) =>
+  mutationFn: ({ expenseId, incomeId }: { expenseId: string; incomeId: string }) =>
     linkTransactions({ ids: [[expenseId, incomeId]] }),
   onMutate: async ({ expenseId, incomeId }) => {
     const previous = { items: [...allItems.value], total: totalCount.value };
@@ -189,7 +189,7 @@ const linkMutation = useMutation({
 
 // Skip (dismiss) mutation
 const skipMutation = useMutation({
-  mutationFn: ({ expenseId, incomeId }: { expenseId: number; incomeId: number }) =>
+  mutationFn: ({ expenseId, incomeId }: { expenseId: string; incomeId: string }) =>
     dismissTransferSuggestion({
       expenseTransactionId: expenseId,
       incomeTransactionId: incomeId,
@@ -245,11 +245,11 @@ function handleSelectExpense(index: number) {
   }
 }
 
-function handleLink(payload: { expenseId: number; incomeId: number }) {
+function handleLink(payload: { expenseId: string; incomeId: string }) {
   linkMutation.mutate(payload);
 }
 
-function handleSkip(payload: { expenseId: number; incomeId: number }) {
+function handleSkip(payload: { expenseId: string; incomeId: string }) {
   skipMutation.mutate(payload);
 }
 

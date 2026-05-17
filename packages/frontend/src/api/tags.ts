@@ -29,11 +29,11 @@ export const createTag = async (payload: CreateTagPayload): Promise<TagModel> =>
   return api.post('/tags', payload);
 };
 
-export const updateTag = async ({ id, payload }: { id: number; payload: UpdateTagPayload }): Promise<TagModel> => {
+export const updateTag = async ({ id, payload }: { id: string; payload: UpdateTagPayload }): Promise<TagModel> => {
   return api.put(`/tags/${id}`, payload);
 };
 
-export const deleteTag = async ({ id }: { id: number }): Promise<void> => {
+export const deleteTag = async ({ id }: { id: string }): Promise<void> => {
   return api.delete(`/tags/${id}`);
 };
 
@@ -41,8 +41,8 @@ export const addTransactionsToTag = async ({
   tagId,
   transactionIds,
 }: {
-  tagId: number;
-  transactionIds: number[];
+  tagId: string;
+  transactionIds: string[];
 }): Promise<{ message: string; addedCount: number; skippedCount: number }> => {
   return api.post(`/tags/${tagId}/transactions`, { transactionIds });
 };
@@ -51,8 +51,8 @@ export const removeTransactionsFromTag = async ({
   tagId,
   transactionIds,
 }: {
-  tagId: number;
-  transactionIds: number[];
+  tagId: string;
+  transactionIds: string[];
 }): Promise<{ message: string; removedCount: number }> => {
   return api.delete(`/tags/${tagId}/transactions`, { data: { transactionIds } });
 };
@@ -75,7 +75,7 @@ interface UpdateTagReminderPayload {
   isEnabled?: boolean;
 }
 
-export const loadRemindersForTag = async ({ tagId }: { tagId: number }): Promise<TagReminderModel[]> => {
+export const loadRemindersForTag = async ({ tagId }: { tagId: string }): Promise<TagReminderModel[]> => {
   return api.get<TagReminderModel[]>(`/tags/${tagId}/reminders`);
 };
 
@@ -83,7 +83,7 @@ export const createReminder = async ({
   tagId,
   payload,
 }: {
-  tagId: number;
+  tagId: string;
   payload: CreateTagReminderPayload;
 }): Promise<TagReminderModel> => {
   return api.post(`/tags/${tagId}/reminders`, payload);
@@ -94,13 +94,13 @@ export const updateReminder = async ({
   id,
   payload,
 }: {
-  tagId: number;
-  id: number;
+  tagId: string;
+  id: string;
   payload: UpdateTagReminderPayload;
 }): Promise<TagReminderModel> => {
   return api.put(`/tags/${tagId}/reminders/${id}`, payload);
 };
 
-export const deleteReminder = async ({ tagId, id }: { tagId: number; id: number }): Promise<void> => {
+export const deleteReminder = async ({ tagId, id }: { tagId: string; id: string }): Promise<void> => {
   return api.delete(`/tags/${tagId}/reminders/${id}`);
 };

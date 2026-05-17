@@ -8,7 +8,7 @@ const MAX_IDS = 50;
 
 interface GetTransactionsByIdsParams {
   userId: number;
-  ids: number[];
+  ids: string[];
 }
 
 export const getTransactionsByIds = withTransaction(async ({ userId, ids }: GetTransactionsByIdsParams) => {

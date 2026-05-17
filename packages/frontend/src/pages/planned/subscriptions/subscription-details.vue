@@ -81,7 +81,7 @@ const editFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null
 const isDeleteDialogOpen = ref(false);
 const isSuggestDialogOpen = ref(false);
 const suggestedMatches = ref<TransactionModel[]>([]);
-const selectedSuggestionIds = ref<Set<number>>(new Set());
+const selectedSuggestionIds = ref<Set<string>>(new Set());
 const isSuggestLoading = ref(false);
 
 const invalidateQueries = () => {
@@ -133,7 +133,7 @@ const handleDelete = async () => {
   }
 };
 
-const handleUnlinkTransaction = async ({ transactionId }: { transactionId: number }) => {
+const handleUnlinkTransaction = async ({ transactionId }: { transactionId: string }) => {
   try {
     await unlinkTransactionsFromSubscription({ id: subscriptionId.value, transactionIds: [transactionId] });
     invalidateQueries();
@@ -156,7 +156,7 @@ const handleSuggestMatches = async () => {
   }
 };
 
-const toggleSuggestionSelection = ({ transactionId }: { transactionId: number }) => {
+const toggleSuggestionSelection = ({ transactionId }: { transactionId: string }) => {
   const newSet = new Set(selectedSuggestionIds.value);
   if (newSet.has(transactionId)) {
     newSet.delete(transactionId);

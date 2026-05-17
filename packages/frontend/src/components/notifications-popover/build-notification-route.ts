@@ -97,7 +97,7 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
       };
 
     case NOTIFICATION_TYPES.budgetAlert: {
-      const payload = notification.payload as { budgetId?: number } | undefined;
+      const payload = notification.payload as { budgetId?: string } | undefined;
       if (payload?.budgetId) {
         return {
           kind: 'spa',

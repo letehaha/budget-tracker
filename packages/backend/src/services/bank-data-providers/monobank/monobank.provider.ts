@@ -45,7 +45,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   // Connection Management
   // ============================================================================
 
-  async connect(userId: number, credentials: unknown): Promise<number> {
+  async connect(userId: number, credentials: unknown): Promise<string> {
     // Validate credentials structure
     if (!this.isValidCredentials(credentials)) {
       throw new ValidationError({ message: t({ key: 'bankDataProviders.monobank.invalidCredentialsFormat' }) });
@@ -80,7 +80,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     return connection.id;
   }
 
-  async disconnect(connectionId: number): Promise<void> {
+  async disconnect(connectionId: string): Promise<void> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
@@ -102,7 +102,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     return await apiClient.testConnection();
   }
 
-  async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
+  async refreshCredentials(connectionId: string, newCredentials: unknown): Promise<void> {
     if (!this.isValidCredentials(newCredentials)) {
       throw new ValidationError({ message: t({ key: 'bankDataProviders.monobank.invalidCredentialsFormat' }) });
     }
@@ -125,7 +125,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   // Account Operations
   // ============================================================================
 
-  async fetchAccounts(connectionId: number): Promise<ProviderAccount[]> {
+  async fetchAccounts(connectionId: string): Promise<ProviderAccount[]> {
     const { apiToken } = await this.getValidatedCredentials(connectionId);
 
     const apiClient = new MonobankApiClient(apiToken);
@@ -139,7 +139,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   // ============================================================================
 
   async fetchTransactions(
-    connectionId: number,
+    connectionId: string,
     accountExternalId: string,
     dateRange?: DateRange,
   ): Promise<ProviderTransaction[]> {
@@ -184,8 +184,8 @@ export class MonobankProvider extends BaseBankDataProvider {
     systemAccountId,
     userId,
   }: {
-    connectionId: number;
-    systemAccountId: number;
+    connectionId: string;
+    systemAccountId: string;
     userId: number;
   }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
     // Set status to QUEUED (jobs are queued, not actively syncing yet)
@@ -240,8 +240,8 @@ export class MonobankProvider extends BaseBankDataProvider {
     from,
     to,
   }: {
-    connectionId: number;
-    systemAccountId: number;
+    connectionId: string;
+    systemAccountId: string;
     userId: number;
     from: Date;
     to: Date;
@@ -289,7 +289,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   // Balance Operations
   // ============================================================================
 
-  async fetchBalance(connectionId: number, accountExternalId: string): Promise<ProviderBalance> {
+  async fetchBalance(connectionId: string, accountExternalId: string): Promise<ProviderBalance> {
     const { apiToken } = await this.getValidatedCredentials(connectionId);
     const apiClient = new MonobankApiClient(apiToken);
     const clientInfo = await apiClient.getClientInfo();
@@ -308,7 +308,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     };
   }
 
-  async refreshBalance(connectionId: number, systemAccountId: number): Promise<void> {
+  async refreshBalance(connectionId: string, systemAccountId: string): Promise<void> {
     const account = await this.getSystemAccount(systemAccountId);
 
     if (!account.externalId) {
@@ -327,7 +327,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   // Webhook Support
   // ============================================================================
 
-  async setupWebhook(connectionId: number, webhookUrl: string): Promise<void> {
+  async setupWebhook(connectionId: string, webhookUrl: string): Promise<void> {
     const { apiToken } = await this.getValidatedCredentials(connectionId);
     const apiClient = new MonobankApiClient(apiToken);
     await apiClient.setWebhook(webhookUrl);
@@ -367,7 +367,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     );
   }
 
-  private async getValidatedCredentials(connectionId: number): Promise<MonobankCredentials> {
+  private async getValidatedCredentials(connectionId: string): Promise<MonobankCredentials> {
     const credentials = await this.getDecryptedCredentials(connectionId);
     if (!this.isValidCredentials(credentials)) {
       throw new ValidationError({ message: t({ key: 'bankDataProviders.monobank.invalidCredentialsFormat' }) });

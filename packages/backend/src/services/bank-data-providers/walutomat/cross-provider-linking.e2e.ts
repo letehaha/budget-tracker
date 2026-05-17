@@ -45,7 +45,7 @@ async function createBankTransaction({
   transactionType,
   time,
 }: {
-  accountId: number;
+  accountId: string;
   amount: number;
   transactionType: TRANSACTION_TYPES;
   time: Date;

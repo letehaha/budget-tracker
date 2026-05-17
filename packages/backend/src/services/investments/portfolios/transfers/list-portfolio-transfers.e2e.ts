@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -161,7 +162,7 @@ describe('List Portfolio Transfers', () => {
 
   it('should return 404 for non-existent portfolio', async () => {
     const response = await helpers.listPortfolioTransfers({
-      portfolioId: 99999,
+      portfolioId: generateRandomRecordId(),
     });
 
     expect(response.statusCode).toEqual(ERROR_CODES.NotFoundError);

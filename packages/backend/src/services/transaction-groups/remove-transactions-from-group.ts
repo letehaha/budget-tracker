@@ -9,9 +9,9 @@ import { MIN_GROUP_SIZE, INCLUDE_GROUP_TRANSACTIONS } from './constants';
 import { resolveTransferPairs } from './resolve-transfer-pairs';
 
 interface RemoveTransactionsFromGroupPayload {
-  groupId: number;
+  groupId: string;
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
   force?: boolean;
 }
 

@@ -139,7 +139,7 @@ async function applyCategorizationResults({
   const now = new Date().toISOString();
 
   // Group transaction IDs by categoryId
-  const groupedByCategory = new Map<number, number[]>();
+  const groupedByCategory = new Map<string, string[]>();
   for (const result of results) {
     if (!groupedByCategory.has(result.categoryId)) {
       groupedByCategory.set(result.categoryId, []);
@@ -178,7 +178,7 @@ async function getUncategorizedTransactions({
   transactionIds,
 }: {
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
 }): Promise<TransactionForCategorization[]> {
   const transactions = await Transactions.findAll({
     where: {
@@ -220,7 +220,7 @@ export async function categorizeTransactions({
   totalTransactionCount,
 }: {
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
   /** Total transactions to process (for progress tracking). If not provided, uses transactionIds.length */
   totalTransactionCount?: number;
 }): Promise<CategorizationBatchResult> {

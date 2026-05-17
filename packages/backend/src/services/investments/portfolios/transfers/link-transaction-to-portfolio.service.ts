@@ -14,8 +14,8 @@ import { computeRefAmount, findPortfolioOrThrow, negateAmount } from './transfer
 
 interface LinkTransactionToPortfolioParams {
   userId: number;
-  transactionId: number;
-  portfolioId: number;
+  transactionId: string;
+  portfolioId: string;
 }
 
 const DISALLOWED_TRANSFER_NATURES = [

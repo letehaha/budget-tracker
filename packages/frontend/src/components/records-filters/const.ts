@@ -9,11 +9,11 @@ export interface FiltersStruct {
   transferFilter: FILTER_OPERATION;
   refundFilter: FILTER_OPERATION;
   accounts: AccountModel[];
-  budgetIds?: number[] | null;
-  excludedBudgetIds?: number[] | null;
+  budgetIds?: string[] | null;
+  excludedBudgetIds?: string[] | null;
   noteIncludes: string;
-  categoryIds: number[];
-  tagIds: number[];
+  categoryIds: string[];
+  tagIds: string[];
   categorizationSource: CATEGORIZATION_SOURCE | null;
 }
 

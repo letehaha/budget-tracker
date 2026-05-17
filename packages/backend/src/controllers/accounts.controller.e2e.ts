@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -29,7 +30,7 @@ async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T
   }
 }
 
-async function createExpenseTransactions({ accountId, count }: { accountId: number; count: number }) {
+async function createExpenseTransactions({ accountId, count }: { accountId: string; count: number }) {
   for (const index in Array(count).fill(0)) {
     await helpers.createTransaction({
       payload: {
@@ -100,7 +101,7 @@ describe('Accounts controller', () => {
   describe('update account', () => {
     it('should return 404 if try to update unexisting account', async () => {
       const res = await helpers.updateAccount<helpers.ErrorResponse>({
-        id: 1,
+        id: generateRandomRecordId(),
       });
 
       expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
@@ -472,7 +473,7 @@ describe('Accounts controller', () => {
   });
   describe('delete account', () => {
     it('returns 404 when deleting a non-existent account', async () => {
-      const res = await helpers.deleteAccount({ id: 999999, raw: false });
+      const res = await helpers.deleteAccount({ id: generateRandomRecordId(), raw: false });
 
       expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
     });

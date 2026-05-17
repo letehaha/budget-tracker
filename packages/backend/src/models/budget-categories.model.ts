@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import Budgets from '@models/budget.model';
 import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 
@@ -22,10 +23,10 @@ import Categories from './categories.model';
 @Table({ tableName: 'BudgetCategories', timestamps: false })
 export default class BudgetCategories extends Model {
   @ForeignKey(() => Budgets)
-  @Column({ primaryKey: true, allowNull: false, type: DataType.INTEGER })
-  budgetId!: number;
+  @Column({ primaryKey: true, allowNull: false, type: DataType.UUID })
+  budgetId!: RecordId;
 
   @ForeignKey(() => Categories)
-  @Column({ primaryKey: true, allowNull: false, type: DataType.INTEGER })
-  categoryId!: number;
+  @Column({ primaryKey: true, allowNull: false, type: DataType.UUID })
+  categoryId!: RecordId;
 }

@@ -1,6 +1,8 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from '../accounts.model';
 import Currencies from '../currencies.model';
@@ -17,10 +19,10 @@ export default class PortfolioTransfers extends Model {
     primaryKey: true,
     unique: true,
     allowNull: false,
-    autoIncrement: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Index
@@ -29,23 +31,23 @@ export default class PortfolioTransfers extends Model {
 
   @ForeignKey(() => Accounts)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  fromAccountId!: number | null;
+  @Column({ type: DataType.UUID, allowNull: true })
+  fromAccountId!: RecordId | null;
 
   @ForeignKey(() => Portfolios)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  toPortfolioId!: number | null;
+  @Column({ type: DataType.UUID, allowNull: true })
+  toPortfolioId!: RecordId | null;
 
   @ForeignKey(() => Portfolios)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  fromPortfolioId!: number | null;
+  @Column({ type: DataType.UUID, allowNull: true })
+  fromPortfolioId!: RecordId | null;
 
   @ForeignKey(() => Accounts)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  toAccountId!: number | null;
+  @Column({ type: DataType.UUID, allowNull: true })
+  toAccountId!: RecordId | null;
 
   @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
   get amount(): Money {
@@ -141,8 +143,8 @@ export default class PortfolioTransfers extends Model {
 
   @ForeignKey(() => Transactions)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: null, onDelete: 'SET NULL' })
-  transactionId!: number | null;
+  @Column({ type: DataType.UUID, allowNull: true, defaultValue: null, onDelete: 'SET NULL' })
+  transactionId!: RecordId | null;
 
   @BelongsTo(() => Transactions)
   transaction?: Transactions;

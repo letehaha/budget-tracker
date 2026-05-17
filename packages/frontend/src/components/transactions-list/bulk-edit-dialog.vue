@@ -18,8 +18,8 @@ import { useI18n } from 'vue-i18n';
 type TagMode = endpointsTypes.BulkUpdateTagMode;
 
 export interface BulkEditFormValues {
-  categoryId?: number;
-  tagIds?: number[];
+  categoryId?: string;
+  tagIds?: string[];
   tagMode?: TagMode;
   note?: string;
 }
@@ -48,7 +48,7 @@ const isOpen = computed({
 
 const form = reactive({
   category: null as FormattedCategory | null,
-  tagIds: [] as number[],
+  tagIds: [] as string[],
   tagMode: 'add' as TagMode,
   note: '',
 });

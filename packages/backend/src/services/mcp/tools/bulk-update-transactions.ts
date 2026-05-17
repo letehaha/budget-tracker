@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { bulkUpdate } from '@services/transactions/bulk-update';
@@ -12,9 +13,9 @@ export function registerBulkUpdateTransactions(server: McpServer) {
       description:
         'Update multiple transactions at once. Provide transactionIds plus at least one of categoryId, tagIds, or note. Tags can be added to, removed from, or replaced on all specified transactions.',
       inputSchema: {
-        transactionIds: z.array(z.number()).min(1).describe('IDs of transactions to update'),
-        categoryId: z.number().optional().describe('New category ID to assign to all transactions'),
-        tagIds: z.array(z.number()).optional().describe('Tag IDs to apply according to tagMode'),
+        transactionIds: z.array(recordId()).min(1).describe('IDs of transactions to update'),
+        categoryId: recordId().optional().describe('New category ID to assign to all transactions'),
+        tagIds: z.array(recordId()).optional().describe('Tag IDs to apply according to tagMode'),
         tagMode: z
           .enum(['add', 'replace', 'remove'])
           .optional()

@@ -99,18 +99,18 @@ import { storeToRefs } from 'pinia';
 import { computed, nextTick, ref, watch } from 'vue';
 
 const props = defineProps<{
-  excludedCategoryIds: number[];
+  excludedCategoryIds: string[];
 }>();
 
 const emit = defineEmits<{
-  save: [payload: { categoryIds: number[] }];
+  save: [payload: { categoryIds: string[] }];
 }>();
 
 const { formattedCategories, categories } = storeToRefs(useCategoriesStore());
 
 const isPopoverOpen = ref(false);
 const isDialogOpen = ref(false);
-const localExcluded = ref(new Set<number>());
+const localExcluded = ref(new Set<string>());
 const searchQuery = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
 
@@ -131,7 +131,7 @@ const openDialog = () => {
 
 interface FlatCategory extends FormattedCategory {
   depth: number;
-  rootParentId: number;
+  rootParentId: string;
   rootParentName: string;
 }
 
@@ -142,7 +142,7 @@ const flattenCategories = ({
 }: {
   items: FormattedCategory[];
   depth?: number;
-  rootParent?: { id: number; name: string };
+  rootParent?: { id: string; name: string };
 }): FlatCategory[] => {
   const result: FlatCategory[] = [];
 
@@ -198,7 +198,7 @@ const shouldShowSeparator = ({ item, index }: { item: FlatCategory; index: numbe
 // --- Category tree helpers for descendant lookups ---
 
 const childrenMap = computed(() => {
-  const map = new Map<number, number[]>();
+  const map = new Map<string, string[]>();
   for (const cat of categories.value) {
     if (cat.parentId !== null) {
       const children = map.get(cat.parentId) ?? [];
@@ -209,8 +209,8 @@ const childrenMap = computed(() => {
   return map;
 });
 
-const getDescendantIds = ({ categoryId }: { categoryId: number }): number[] => {
-  const result: number[] = [];
+const getDescendantIds = ({ categoryId }: { categoryId: string }): string[] => {
+  const result: string[] = [];
   const queue = [...(childrenMap.value.get(categoryId) ?? [])];
   while (queue.length > 0) {
     const current = queue.shift()!;
@@ -220,7 +220,7 @@ const getDescendantIds = ({ categoryId }: { categoryId: number }): number[] => {
   return result;
 };
 
-const toggleCategory = ({ categoryId }: { categoryId: number }) => {
+const toggleCategory = ({ categoryId }: { categoryId: string }) => {
   const next = new Set(localExcluded.value);
   const wasChecked = next.has(categoryId);
   const descendants = getDescendantIds({ categoryId });

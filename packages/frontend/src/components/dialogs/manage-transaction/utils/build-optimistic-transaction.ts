@@ -83,7 +83,7 @@ export const applyOptimisticTransactionUpdate = ({
   updatedTransaction,
 }: {
   queryClient: QueryClient;
-  transactionId: number;
+  transactionId: string;
   updatedTransaction: TransactionModel;
 }): OptimisticUpdateContext => {
   const previousQueries = new Map<string, unknown>();

@@ -4,7 +4,7 @@ import { BUDGET_STATUSES } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { type Ref, computed } from 'vue';
 
-export function useArchiveToggle({ budgetData, budgetId }: { budgetData: Ref; budgetId: Ref<number> }) {
+export function useArchiveToggle({ budgetData, budgetId }: { budgetData: Ref; budgetId: Ref<string> }) {
   const queryClient = useQueryClient();
 
   const isBudgetArchived = computed(() => budgetData.value?.status === BUDGET_STATUSES.archived);

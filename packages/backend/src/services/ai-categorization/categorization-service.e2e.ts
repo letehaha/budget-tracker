@@ -83,8 +83,8 @@ describe('AI Categorization Service E2E', () => {
           DOMAIN_EVENTS.TRANSACTIONS_SYNCED,
           expect.objectContaining({
             userId: expect.any(Number),
-            accountId: expect.any(Number),
-            transactionIds: expect.arrayContaining([expect.any(Number)]),
+            accountId: expect.any(String),
+            transactionIds: expect.arrayContaining([expect.any(String)]),
           }),
         );
 

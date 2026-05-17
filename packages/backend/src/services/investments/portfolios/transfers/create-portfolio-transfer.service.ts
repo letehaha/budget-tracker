@@ -16,8 +16,8 @@ import {
 
 interface CreatePortfolioTransferParams {
   userId: number;
-  fromPortfolioId: number;
-  toPortfolioId: number;
+  fromPortfolioId: string;
+  toPortfolioId: string;
   currencyCode: string;
   amount: string;
   date: string;

@@ -192,7 +192,7 @@ async function evaluateRule({ rule, transaction, userId }: EvaluateRuleParams): 
     }
     case 'accountId': {
       if (rule.operator !== 'equals') return false;
-      return transaction.accountId === Number(rule.value);
+      return transaction.accountId === rule.value;
     }
     default:
       return false;

@@ -159,9 +159,9 @@ const handleAddedToGroup = () => {
 // Group detail dialog
 const isGroupDialogOpen = ref(false);
 const groupDialogKey = ref(0);
-const groupDialogId = ref<number | undefined>();
+const groupDialogId = ref<string | undefined>();
 
-const handleGroupRowClick = (groupId: number) => {
+const handleGroupRowClick = (groupId: string) => {
   groupDialogId.value = groupId;
   groupDialogKey.value++;
   isGroupDialogOpen.value = true;

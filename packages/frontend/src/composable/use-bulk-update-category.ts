@@ -6,9 +6,9 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 interface BulkUpdateParams {
-  transactionIds: number[];
-  categoryId?: number;
-  tagIds?: number[];
+  transactionIds: string[];
+  categoryId?: string;
+  tagIds?: string[];
   tagMode?: 'add' | 'replace' | 'remove';
   note?: string;
 }

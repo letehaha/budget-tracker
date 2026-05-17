@@ -20,7 +20,7 @@ const buildCommonTxBody = (overrides: Partial<TransactionModel> = {}): Transacti
   const refAmount = amount * currency.exchangeRate;
 
   return {
-    id: faker.number.int({ min: 1, max: 100000 }),
+    id: faker.string.uuid(),
     amount,
     refAmount,
     note: '',

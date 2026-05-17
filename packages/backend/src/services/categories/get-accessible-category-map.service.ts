@@ -7,17 +7,17 @@ import { getAccessibleCategoryOwnerIds } from '@services/sharing/auth/get-access
  * need `key`, `icon`, `type`, etc.
  */
 export interface AccessibleCategoryInfo {
-  id: number;
+  id: string;
   name: string;
   color: string;
-  parentId: number | null;
+  parentId: string | null;
 }
 
 interface AccessibleCategoryMap {
   /** Flat list of every category visible to the caller (own + shared-account owners'). */
   categories: AccessibleCategoryInfo[];
   /** O(1) lookup by category id. Same instances as in `categories`. */
-  byId: Map<number, AccessibleCategoryInfo>;
+  byId: Map<string, AccessibleCategoryInfo>;
 }
 
 /**
@@ -49,7 +49,7 @@ export const getAccessibleCategoryMap = async ({ userId }: { userId: number }): 
     parentId: row.parentId ?? null,
   }));
 
-  const byId = new Map<number, AccessibleCategoryInfo>(categories.map((cat) => [cat.id, cat]));
+  const byId = new Map<string, AccessibleCategoryInfo>(categories.map((cat) => [cat.id, cat]));
 
   return { categories, byId };
 };

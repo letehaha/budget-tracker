@@ -110,11 +110,11 @@ import {
 } from './combobox-categories.helpers';
 
 const props = defineProps<{
-  categoryIds: number[];
+  categoryIds: string[];
 }>();
 
 const emit = defineEmits<{
-  'update:categoryIds': [value: number[]];
+  'update:categoryIds': [value: string[]];
 }>();
 
 const { formattedCategories } = storeToRefs(useCategoriesStore());
@@ -131,7 +131,7 @@ const baseOrderedCategories = computed(() =>
   flattenCategories({ categories: sortInternalLast({ roots: formattedCategories.value }) }),
 );
 
-const sessionRootOrder = ref<number[]>([]);
+const sessionRootOrder = ref<string[]>([]);
 
 watch(isOpen, (open) => {
   if (!open) {
@@ -151,7 +151,7 @@ const orderedFlatCategories = computed<FlatCategory[]>(() => {
     return baseOrderedCategories.value;
   }
 
-  const byRoot = new Map<number, FlatCategory[]>();
+  const byRoot = new Map<string, FlatCategory[]>();
   for (const item of baseOrderedCategories.value) {
     const group = byRoot.get(item.rootParentId) ?? [];
     group.push(item);

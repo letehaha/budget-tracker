@@ -14,7 +14,8 @@ export function registerSearchSecurities(server: McpServer) {
       inputSchema: {
         query: z.string().describe('Ticker symbol or company name to search for (e.g. "AAPL", "Apple")'),
         portfolioId: z
-          .number()
+          .string()
+          .uuid()
           .optional()
           .describe('Portfolio ID to annotate results with isInPortfolio flag (from get_portfolios)'),
         limit: z.number().optional().describe('Maximum number of results to return (default: 20)'),

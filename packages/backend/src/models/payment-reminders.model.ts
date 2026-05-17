@@ -1,7 +1,7 @@
-import { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES, RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
-import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, DataType, BeforeCreate } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import Categories from './categories.model';
@@ -18,15 +18,9 @@ export default class PaymentReminders extends Model {
   @Column({
     type: DataType.UUID,
     primaryKey: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: string;
-
-  @BeforeCreate
-  static generateUUIDv7(instance: PaymentReminders) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({
@@ -40,7 +34,7 @@ export default class PaymentReminders extends Model {
     type: DataType.UUID,
     allowNull: true,
   })
-  subscriptionId!: string | null;
+  subscriptionId!: RecordId | null;
 
   @Column({
     type: DataType.STRING(200),
@@ -110,10 +104,10 @@ export default class PaymentReminders extends Model {
 
   @ForeignKey(() => Categories)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  categoryId!: number | null;
+  categoryId!: RecordId | null;
 
   @Column({
     type: DataType.TEXT,

@@ -61,7 +61,7 @@ const FREQUENCY_OPTIONS = [
 const accountOptions = computed(() => [
   {
     label: t('planned.subscriptions.form.noAccount'),
-    value: 0,
+    value: null,
   },
   ...accountsStore.activeAccounts.map((a) => ({
     label: `${a.name} (${a.currencyCode})`,
@@ -77,8 +77,8 @@ interface FormState {
   frequency: SUBSCRIPTION_FREQUENCIES;
   startDate: Date | null;
   endDate: Date | null;
-  accountId: number | null;
-  categoryId: number | null;
+  accountId: string | null;
+  categoryId: string | null;
   matchingRules: SubscriptionMatchingRule[];
   notes: string;
 }
@@ -133,7 +133,7 @@ const selectedCategory = computed(() => {
 });
 
 const selectedAccount = computed(() => {
-  return accountOptions.value.find((a) => a.value === (form.value.accountId ?? 0)) ?? null;
+  return accountOptions.value.find((a) => a.value === form.value.accountId) ?? null;
 });
 
 const selectedCurrency = computed(() => {

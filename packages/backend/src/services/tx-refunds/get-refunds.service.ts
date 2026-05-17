@@ -5,9 +5,9 @@ import * as Transactions from '@models/transactions.model';
 import type { WhereOptions } from 'sequelize';
 
 interface FiltersStructure {
-  categoryId?: number;
+  categoryId?: string;
   transactionType?: TRANSACTION_TYPES;
-  accountId?: number;
+  accountId?: string;
 }
 
 export interface GetRefundTransactionsParams extends FiltersStructure {

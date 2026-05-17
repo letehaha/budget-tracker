@@ -41,7 +41,7 @@ const prefillValues = ref<SubscriptionModel | null>(null);
 const pendingAcceptCandidateId = ref<string | null>(null);
 const linkingId = ref<string | null>(null);
 const isTransactionsDialogOpen = ref(false);
-const previewTransactionIds = ref<number[]>([]);
+const previewTransactionIds = ref<string[]>([]);
 
 const {
   data: detectionResult,
@@ -131,7 +131,7 @@ const handleDismiss = ({ candidate }: { candidate: SubscriptionCandidate }) => {
   doDismiss({ id: candidate.id });
 };
 
-const handleViewTransactions = ({ transactionIds }: { transactionIds: number[] }) => {
+const handleViewTransactions = ({ transactionIds }: { transactionIds: string[] }) => {
   previewTransactionIds.value = transactionIds;
   isTransactionsDialogOpen.value = true;
 };

@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
@@ -77,7 +78,7 @@ describe('Add account to group', () => {
 
   it('fails when account does not exist', async () => {
     const result = await helpers.addAccountToGroup({
-      accountId: 9999,
+      accountId: generateRandomRecordId(),
       groupId: group.id,
     });
 
@@ -87,7 +88,7 @@ describe('Add account to group', () => {
   it('fails when group does not exist', async () => {
     const result = await helpers.addAccountToGroup({
       accountId: account.id,
-      groupId: 9999,
+      groupId: generateRandomRecordId(),
     });
 
     expect(result.statusCode).toBe(404);

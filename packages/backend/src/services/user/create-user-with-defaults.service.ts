@@ -105,7 +105,7 @@ export async function seedUserDefaults({ userId, locale: providedLocale }: { use
 
   const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
 
-  const categoryKeyToId = new Map<string, { id: number; color: string }>();
+  const categoryKeyToId = new Map<string, { id: string; color: string }>();
   translatedCategories.main.forEach((item, index) => {
     const createdCategory = categories[index];
     if (createdCategory) {
@@ -115,7 +115,7 @@ export async function seedUserDefaults({ userId, locale: providedLocale }: { use
 
   const subcats: Array<{
     name: string;
-    parentId: number;
+    parentId: string;
     color: string;
     icon?: string;
     userId: number;

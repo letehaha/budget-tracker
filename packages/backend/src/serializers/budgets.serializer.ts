@@ -14,14 +14,14 @@ import type Budgets from '@models/budget.model';
 // ============================================================================
 
 interface BudgetCategoryResponse {
-  id: number;
+  id: string;
   name: string;
   color: string;
-  parentId: number | null;
+  parentId: string | null;
 }
 
 interface BudgetApiResponse {
-  id: number;
+  id: string;
   name: string;
   status: string;
   type: BUDGET_TYPES;
@@ -117,7 +117,7 @@ export function serializeBudgetStats(stats: BudgetStatsInternal): BudgetStatsApi
 // ============================================================================
 
 interface SpendingCategoryInternal {
-  categoryId: number;
+  categoryId: string;
   name: string;
   color: string;
   amount: number; // cents

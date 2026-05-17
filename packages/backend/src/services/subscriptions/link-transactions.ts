@@ -10,7 +10,7 @@ import { findSubscriptionOrThrow } from './helpers';
 
 interface LinkTransactionsParams {
   subscriptionId: string;
-  transactionIds: number[];
+  transactionIds: string[];
   userId: number;
   matchSource: SUBSCRIPTION_MATCH_SOURCE;
 }

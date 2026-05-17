@@ -56,7 +56,7 @@ const validateSplits = async ({
   }
 
   // Validate each split
-  const categoryIds = new Set<number>();
+  const categoryIds = new Set<string>();
 
   for (let i = 0; i < splits.length; i++) {
     const split = splits[i]!;

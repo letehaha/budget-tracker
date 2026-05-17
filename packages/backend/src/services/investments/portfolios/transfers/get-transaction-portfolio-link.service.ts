@@ -6,7 +6,7 @@ import Portfolios from '@models/investments/portfolios.model';
 
 interface GetTransactionPortfolioLinkParams {
   userId: number;
-  transactionId: number;
+  transactionId: string;
 }
 
 export const getTransactionPortfolioLink = async ({ userId, transactionId }: GetTransactionPortfolioLinkParams) => {

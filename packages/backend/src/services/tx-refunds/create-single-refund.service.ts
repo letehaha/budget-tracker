@@ -11,8 +11,8 @@ import { withTransaction } from '../common/with-transaction';
 
 interface CreateSingleRefundParams {
   userId: number;
-  originalTxId: number | null;
-  refundTxId: number;
+  originalTxId: string | null;
+  refundTxId: string;
   splitId?: string;
 }
 

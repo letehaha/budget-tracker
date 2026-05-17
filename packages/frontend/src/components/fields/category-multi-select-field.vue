@@ -97,7 +97,7 @@ import { useI18n } from 'vue-i18n';
 const props = withDefaults(
   defineProps<{
     label?: string;
-    modelValue?: number[];
+    modelValue?: string[];
     placeholder?: string;
     errorMessage?: string;
     disabled?: boolean;
@@ -111,7 +111,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  'update:model-value': [value: number[]];
+  'update:model-value': [value: string[]];
 }>();
 
 const { t } = useI18n();
@@ -180,11 +180,11 @@ const filteredCategories = computed(() => {
   return findMatchingCategories(availableCategories.value, query);
 });
 
-const isSelected = (categoryId: number) => selectedCategoryIds.value.has(categoryId);
+const isSelected = (categoryId: string) => selectedCategoryIds.value.has(categoryId);
 
 const getDescendantCount = (category: FormattedCategory): number => collectDescendantIds({ category }).length;
 
-const toggleCategory = (categoryId: number) => {
+const toggleCategory = (categoryId: string) => {
   const currentIds = new Set(props.modelValue ?? []);
   const category = categoriesMap.value[categoryId];
 

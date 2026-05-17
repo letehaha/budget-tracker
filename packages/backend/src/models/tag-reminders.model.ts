@@ -1,23 +1,24 @@
-import { TagReminderFrequency, TagReminderSettings, TagReminderType } from '@bt/shared/types';
+import { TagReminderFrequency, TagReminderSettings, TagReminderType, RecordId } from '@bt/shared/types';
 import Tags from '@models/tags.model';
 import Users from '@models/users.model';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 @Table({
   tableName: 'TagReminders',
   timestamps: true,
 })
 export default class TagReminders extends Model {
-  @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  declare id: number;
+  @Column({ primaryKey: true, allowNull: false, type: DataType.UUID, defaultValue: () => uuidv7() })
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })
   userId!: number;
 
   @ForeignKey(() => Tags)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  tagId!: number;
+  @Column({ allowNull: false, type: DataType.UUID })
+  tagId!: RecordId;
 
   @Column({ allowNull: false, type: DataType.STRING(20) })
   type!: TagReminderType;

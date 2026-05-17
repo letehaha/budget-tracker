@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -468,7 +469,7 @@ describe('Create transaction controller', () => {
           accountId: account.id,
           transactionType: TRANSACTION_TYPES.income,
         }),
-        refundForTxId: 99999, // Non-existent ID
+        refundForTxId: generateRandomRecordId(), // Non-existent ID
       };
 
       const result = await helpers.createTransaction({

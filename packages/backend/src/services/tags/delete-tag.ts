@@ -4,7 +4,7 @@ import Tags from '@models/tags.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteTagPayload {
-  id: number;
+  id: string;
   userId: number;
 }
 

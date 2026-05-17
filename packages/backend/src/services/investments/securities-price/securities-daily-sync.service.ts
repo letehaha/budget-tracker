@@ -18,7 +18,7 @@ interface SecuritiesPricesSyncResult {
   successfulUpdates: number;
   failedUpdates: number;
   skippedClosedMarket: number;
-  errors: Array<{ securityId: number; symbol: string | null; error: string }>;
+  errors: Array<{ securityId: string; symbol: string | null; error: string }>;
 }
 
 /**
@@ -92,13 +92,13 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     const fetchedPrices = await compositeProvider.fetchPricesForSecurities(securitiesInputs, yesterday);
 
     const securityPricesToUpsert: {
-      securityId: number;
+      securityId: string;
       date: Date;
       priceClose: string;
       source: SECURITY_PROVIDER | undefined;
     }[] = [];
 
-    let securitiesIdsToPatch: number[] = [];
+    let securitiesIdsToPatch: string[] = [];
 
     // Step 3: Store fetched prices and update timestamps
     for (const priceData of fetchedPrices) {
@@ -204,7 +204,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
         for (const { symbol } of actuallyMissing) {
           result.failedUpdates++;
           result.errors.push({
-            securityId: securitiesMapBySymbol.get(symbol)?.id || 0,
+            securityId: securitiesMapBySymbol.get(symbol)?.id || '',
             symbol,
             error: 'No price data returned from provider',
           });
@@ -237,7 +237,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     // Add error for all symbols
     for (const symbol of symbols) {
       result.errors.push({
-        securityId: securitiesMapBySymbol.get(symbol)?.id || 0,
+        securityId: securitiesMapBySymbol.get(symbol)?.id || '',
         symbol,
         error: errorMessage,
       });

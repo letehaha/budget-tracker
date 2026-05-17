@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -138,8 +139,8 @@ describe('dismissTransferSuggestion', () => {
   describe('error cases', () => {
     it('returns validation error when expenseTransactionId is missing', async () => {
       const response = await helpers.dismissTransferSuggestion({
-        expenseTransactionId: undefined as unknown as number,
-        incomeTransactionId: 1,
+        expenseTransactionId: undefined as unknown as string,
+        incomeTransactionId: generateRandomRecordId(),
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
@@ -147,17 +148,17 @@ describe('dismissTransferSuggestion', () => {
 
     it('returns validation error when incomeTransactionId is missing', async () => {
       const response = await helpers.dismissTransferSuggestion({
-        expenseTransactionId: 1,
-        incomeTransactionId: undefined as unknown as number,
+        expenseTransactionId: generateRandomRecordId(),
+        incomeTransactionId: undefined as unknown as string,
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
-    it('returns validation error for non-positive IDs', async () => {
+    it('returns validation error for invalid IDs', async () => {
       const response = await helpers.dismissTransferSuggestion({
-        expenseTransactionId: -1,
-        incomeTransactionId: 0,
+        expenseTransactionId: 'not-a-uuid' as string,
+        incomeTransactionId: 'also-not-a-uuid' as string,
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);

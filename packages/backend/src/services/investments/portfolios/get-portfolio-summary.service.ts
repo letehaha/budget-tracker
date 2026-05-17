@@ -10,12 +10,12 @@ import { getHoldingValues } from '@services/investments/holdings/get-holding-val
 
 interface GetPortfolioSummaryParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
   date?: Date;
 }
 
 interface PortfolioSummaryResult {
-  portfolioId: number;
+  portfolioId: string;
   portfolioName: string;
   totalCurrentValue: string;
   totalCostBasis: string;

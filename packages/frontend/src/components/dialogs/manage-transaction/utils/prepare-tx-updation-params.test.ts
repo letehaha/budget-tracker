@@ -398,7 +398,7 @@ describe('prepareTxUpdationParams', () => {
       // picking a category, dereferencing `category.id` would throw a TypeError. The
       // dialog should still submit; the backend keeps the existing column.
       const transferTx = buildSystemTransferExpenseTransaction({
-        categoryId: null as unknown as number,
+        categoryId: null as unknown as string,
       });
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(transferTx),

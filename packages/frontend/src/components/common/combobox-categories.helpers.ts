@@ -4,13 +4,13 @@ import { CATEGORY_TYPES } from '@bt/shared/types';
 
 export interface FlatCategory extends FormattedCategory {
   depth: number;
-  rootParentId: number;
+  rootParentId: string;
   rootParentName: string;
-  descendantIds: number[];
+  descendantIds: string[];
 }
 
-export const collectDescendantIds = ({ category }: { category: FormattedCategory }): number[] => {
-  const ids: number[] = [];
+export const collectDescendantIds = ({ category }: { category: FormattedCategory }): string[] => {
+  const ids: string[] = [];
   if (category.subCategories?.length) {
     for (const child of category.subCategories) {
       ids.push(child.id);
@@ -34,7 +34,7 @@ export const flattenCategories = ({
 }: {
   categories: FormattedCategory[];
   depth?: number;
-  rootParent?: { id: number; name: string };
+  rootParent?: { id: string; name: string };
 }): FlatCategory[] => {
   const result: FlatCategory[] = [];
 
@@ -69,7 +69,7 @@ export const computeCheckedState = ({
   isSearching,
 }: {
   item: FlatCategory;
-  selectedIds: ReadonlySet<number>;
+  selectedIds: ReadonlySet<string>;
   isSearching: boolean;
 }): CheckedState => {
   const isSelfSelected = selectedIds.has(item.id);
@@ -84,7 +84,7 @@ export const computeCheckedState = ({
   return 'indeterminate';
 };
 
-const idsAffectedByToggle = ({ target, isSearching }: { target: FlatCategory; isSearching: boolean }): number[] =>
+const idsAffectedByToggle = ({ target, isSearching }: { target: FlatCategory; isSearching: boolean }): string[] =>
   isSearching ? [target.id] : [target.id, ...target.descendantIds];
 
 export const toggleCategorySelection = ({
@@ -98,12 +98,12 @@ export const toggleCategorySelection = ({
 }: {
   item: FlatCategory;
   clickedIndex: number;
-  currentSelection: readonly number[];
+  currentSelection: readonly string[];
   displayedItems: readonly FlatCategory[];
   isSearching: boolean;
   isShiftPressed: boolean;
   lastClickedIndex: number | null;
-}): number[] => {
+}): string[] => {
   const nextSet = new Set(currentSelection);
   const clickedIds = idsAffectedByToggle({ target: item, isSearching });
   const allClickedSelected = clickedIds.every((id) => nextSet.has(id));
@@ -135,8 +135,8 @@ export const computeSessionRootOrder = ({
   selectedIds,
 }: {
   roots: FormattedCategory[];
-  selectedIds: ReadonlySet<number>;
-}): number[] => {
+  selectedIds: ReadonlySet<string>;
+}): string[] => {
   const rootHasSelection = (root: FormattedCategory): boolean => {
     if (selectedIds.has(root.id)) return true;
     return collectDescendantIds({ category: root }).some((id) => selectedIds.has(id));

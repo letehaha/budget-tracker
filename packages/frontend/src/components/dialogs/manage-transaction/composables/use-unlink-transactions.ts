@@ -8,8 +8,8 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 interface UnlinkTransactionsParams {
   transferIds: string[];
-  transactionId?: number;
-  oppositeTransactionId?: number;
+  transactionId?: string;
+  oppositeTransactionId?: string;
 }
 
 export function useUnlinkTransactions({ onSuccess }: { onSuccess: () => void }) {

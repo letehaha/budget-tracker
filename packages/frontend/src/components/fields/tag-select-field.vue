@@ -87,7 +87,7 @@ import { useI18n } from 'vue-i18n';
 const props = withDefaults(
   defineProps<{
     label?: string;
-    modelValue?: number[];
+    modelValue?: string[];
     placeholder?: string;
     errorMessage?: string;
     disabled?: boolean;
@@ -101,7 +101,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  'update:model-value': [value: number[]];
+  'update:model-value': [value: string[]];
 }>();
 
 const { t } = useI18n();
@@ -121,7 +121,7 @@ const selectedTags = computed(() => {
 
 const placeholder = computed(() => props.placeholder ?? t('fields.tagSelect.placeholder'));
 
-const isSelected = (tagId: number) => selectedTagIds.value.has(tagId);
+const isSelected = (tagId: string) => selectedTagIds.value.has(tagId);
 
 const toggleTag = (tag: TagModel) => {
   const currentIds = [...(props.modelValue ?? [])];

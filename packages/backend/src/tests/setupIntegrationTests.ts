@@ -3,6 +3,7 @@ import { until } from '@common/helpers';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { i18nextReady } from '@i18n/index';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
+import Categories from '@models/categories.model';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
@@ -275,6 +276,20 @@ beforeEach(async () => {
       authUserId: 'test-user-id',
     });
     await seedUserDefaults({ userId: seedAppUser.id, locale: 'en' });
+
+    // Stash a default category UUID for helpers that build transaction payloads.
+    // Pre-UUID-migration this was hardcoded to `categoryId: 1`; now we resolve
+    // the first seeded main category dynamically so non-transfer tx requests pass
+    // schema validation without each test plumbing categoryId explicitly.
+    const defaultCategory = await Categories.findOne({
+      where: { userId: seedAppUser.id, parentId: null },
+      attributes: ['id'],
+      raw: true,
+    });
+    if (!defaultCategory) {
+      throw new Error('Setup: expected at least one seeded default category for test user');
+    }
+    global.DEFAULT_CATEGORY_ID = defaultCategory.id;
 
     // Create better-auth records (ba_*) for test user
     // Since auth is mocked via MSW, we need to manually create these records

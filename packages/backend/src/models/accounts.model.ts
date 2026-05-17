@@ -1,4 +1,10 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  type AccountExternalData,
+  RecordId,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Balances from '@models/balances.model';
@@ -7,9 +13,10 @@ import Currencies from '@models/currencies.model';
 import Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType, AfterCreate, HasMany } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 interface AccountsAttributes {
-  id: number;
+  id: string;
   name: string;
   initialBalance: Money;
   refInitialBalance: Money;
@@ -29,7 +36,7 @@ interface AccountsAttributes {
   // iban: string; // move to additionalFields
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
-  bankDataProviderConnectionId?: number; // FK to BankDataProviderConnections
+  bankDataProviderConnectionId?: string; // FK to BankDataProviderConnections
 }
 
 @Table({
@@ -49,14 +56,8 @@ export default class Accounts extends Model {
   @HasMany(() => Transactions)
   transactions!: Transactions[];
 
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
+  declare id: RecordId;
 
   @Column({ allowNull: false, type: DataType.STRING })
   name!: string;
@@ -164,10 +165,10 @@ export default class Accounts extends Model {
 
   @ForeignKey(() => BankDataProviderConnections)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  bankDataProviderConnectionId!: number;
+  bankDataProviderConnectionId!: RecordId;
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Accounts) {
@@ -283,11 +284,11 @@ export async function updateAccountById({ id, userId, ...payload }: UpdateAccoun
   return account;
 }
 
-export const deleteAccountById = ({ id, userId }: { id: number; userId: number }) => {
+export const deleteAccountById = ({ id, userId }: { id: string; userId: number }) => {
   return Accounts.destroy({ where: { id, userId } });
 };
 
-export const getAccountCurrency = async ({ userId, id }: { userId: number; id: number }) => {
+export const getAccountCurrency = async ({ userId, id }: { userId: number; id: string }) => {
   const account = (await Accounts.findOne({
     where: { userId, id },
     include: {

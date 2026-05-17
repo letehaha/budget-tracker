@@ -3,20 +3,20 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useQuery } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, unref } from 'vue';
 
-export const usePortfolioSummary = (portfolioId: MaybeRefOrGetter<number>, date?: MaybeRefOrGetter<string>) => {
+export const usePortfolioSummary = (portfolioId: MaybeRefOrGetter<string>, date?: MaybeRefOrGetter<string>) => {
   const portfolioIdRef = computed(() => unref(portfolioId));
   const dateRef = computed(() => (date ? unref(date) : undefined));
 
   return useQuery({
     queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioSummary, portfolioIdRef, dateRef],
     queryFn: async () => {
-      const id = unref(portfolioId) as number;
+      const id = unref(portfolioId) as string;
       const dateValue = date ? (unref(date) as string) : undefined;
       return await getPortfolioSummary({ portfolioId: id, date: dateValue });
     },
     enabled: computed(() => {
-      const id = unref(portfolioId) as number;
-      return typeof id === 'number' && id > 0;
+      const id = unref(portfolioId) as string;
+      return typeof id === 'string' && id.length > 0;
     }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

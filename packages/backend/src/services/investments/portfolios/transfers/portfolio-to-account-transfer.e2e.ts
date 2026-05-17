@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -46,7 +47,7 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
     });
 
     expect(transfer).toMatchObject({
-      id: expect.any(Number),
+      id: expect.any(String),
       fromPortfolioId: portfolio.id,
       toAccountId: account.id,
       fromAccountId: null,
@@ -119,7 +120,7 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
       raw: true,
     });
 
-    expect(transfer.id).toEqual(expect.any(Number));
+    expect(transfer.id).toEqual(expect.any(String));
 
     // Verify the existing transaction was updated (not a new one created)
     const transactions = await helpers.getTransactions({
@@ -210,7 +211,7 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
       raw: true,
     });
 
-    expect(transfer.id).toEqual(expect.any(Number));
+    expect(transfer.id).toEqual(expect.any(String));
 
     const [balance] = await helpers.getPortfolioBalance({
       portfolioId: portfolio.id,
@@ -238,7 +239,7 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
 
   it('should reject non-existent portfolio', async () => {
     const response = await helpers.portfolioToAccountTransfer({
-      portfolioId: 999999,
+      portfolioId: generateRandomRecordId(),
       payload: {
         accountId: account.id,
         amount: '100',
@@ -254,7 +255,7 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
     const response = await helpers.portfolioToAccountTransfer({
       portfolioId: portfolio.id,
       payload: {
-        accountId: 999999,
+        accountId: generateRandomRecordId(),
         amount: '100',
         currencyCode,
         date: '2025-06-15',

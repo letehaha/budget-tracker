@@ -14,7 +14,7 @@ import { prepareTxCreationParams } from './prepare-tx-creation-params';
 
 const createMockAccount = (overrides: Partial<AccountModel> = {}): AccountModel =>
   ({
-    id: 1,
+    id: '00000000-0000-0000-0000-000000000001',
     name: 'Test Account',
     currencyCode: 'USD',
     currentBalance: 1000,
@@ -23,7 +23,7 @@ const createMockAccount = (overrides: Partial<AccountModel> = {}): AccountModel 
 
 const createMockCategory = (overrides: Partial<FormattedCategory> = {}): FormattedCategory =>
   ({
-    id: 1,
+    id: '00000000-0000-0000-0000-000000000001',
     name: 'Test Category',
     subCategories: [],
     ...overrides,
@@ -31,10 +31,10 @@ const createMockCategory = (overrides: Partial<FormattedCategory> = {}): Formatt
 
 const createMockTransaction = (overrides: Partial<TransactionModel> = {}): TransactionModel =>
   ({
-    id: 100,
+    id: '00000000-0000-0000-0000-000000000100',
     amount: 500,
-    accountId: 1,
-    categoryId: 1,
+    accountId: '00000000-0000-0000-0000-000000000001',
+    categoryId: '00000000-0000-0000-0000-000000000001',
     transactionType: TRANSACTION_TYPES.expense,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     paymentType: PAYMENT_TYPES.creditCard,
@@ -76,8 +76,8 @@ describe('prepareTxCreationParams', () => {
         time: form.time.toUTCString(),
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: PAYMENT_TYPES.creditCard,
-        accountId: 1,
-        categoryId: 1,
+        accountId: '00000000-0000-0000-0000-000000000001',
+        categoryId: '00000000-0000-0000-0000-000000000001',
       });
     });
 
@@ -92,7 +92,7 @@ describe('prepareTxCreationParams', () => {
 
       expect(result).toMatchObject({
         transactionType: TRANSACTION_TYPES.income,
-        categoryId: 1,
+        categoryId: '00000000-0000-0000-0000-000000000001',
       });
     });
   });
@@ -101,7 +101,7 @@ describe('prepareTxCreationParams', () => {
     it('creates transfer with same currency', () => {
       const form = createBaseForm({
         type: FORM_TYPES.transfer,
-        toAccount: createMockAccount({ id: 2, name: 'Destination Account' }),
+        toAccount: createMockAccount({ id: '00000000-0000-0000-0000-000000000002', name: 'Destination Account' }),
       });
 
       const result = prepareTxCreationParams({
@@ -113,7 +113,7 @@ describe('prepareTxCreationParams', () => {
       expect(result).toMatchObject({
         transactionType: TRANSACTION_TYPES.expense,
         transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        destinationAccountId: 2,
+        destinationAccountId: '00000000-0000-0000-0000-000000000002',
         destinationAmount: 100,
       });
       expect(result.categoryId).toBeUndefined();
@@ -122,7 +122,7 @@ describe('prepareTxCreationParams', () => {
     it('creates transfer with different currencies', () => {
       const form = createBaseForm({
         type: FORM_TYPES.transfer,
-        toAccount: createMockAccount({ id: 2, currencyCode: 'EUR' }),
+        toAccount: createMockAccount({ id: '00000000-0000-0000-0000-000000000002', currencyCode: 'EUR' }),
         targetAmount: 90,
       });
 
@@ -144,7 +144,7 @@ describe('prepareTxCreationParams', () => {
       const form = createBaseForm({
         type: FORM_TYPES.transfer,
         account: OUT_OF_WALLET_ACCOUNT_MOCK,
-        toAccount: createMockAccount({ id: 2 }),
+        toAccount: createMockAccount({ id: '00000000-0000-0000-0000-000000000002' }),
         targetAmount: 100,
       });
 
@@ -157,7 +157,7 @@ describe('prepareTxCreationParams', () => {
       expect(result).toMatchObject({
         transactionType: TRANSACTION_TYPES.income,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-        accountId: 2,
+        accountId: '00000000-0000-0000-0000-000000000002',
         amount: 100,
       });
       expect(result.destinationAccountId).toBeUndefined();
@@ -167,7 +167,7 @@ describe('prepareTxCreationParams', () => {
     it('handles "to" account as out of wallet (expense)', () => {
       const form = createBaseForm({
         type: FORM_TYPES.transfer,
-        account: createMockAccount({ id: 1 }),
+        account: createMockAccount({ id: '00000000-0000-0000-0000-000000000001' }),
         toAccount: OUT_OF_WALLET_ACCOUNT_MOCK,
         amount: 100,
       });
@@ -181,7 +181,7 @@ describe('prepareTxCreationParams', () => {
       expect(result).toMatchObject({
         transactionType: TRANSACTION_TYPES.expense,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-        accountId: 1,
+        accountId: '00000000-0000-0000-0000-000000000001',
         amount: 100,
       });
       expect(result.destinationAccountId).toBeUndefined();
@@ -191,7 +191,7 @@ describe('prepareTxCreationParams', () => {
 
   describe('refund transactions', () => {
     it('includes refundForTxId when refundsTx is set', () => {
-      const refundedTransaction = createMockTransaction({ id: 50 });
+      const refundedTransaction = createMockTransaction({ id: '00000000-0000-0000-0000-000000000050' });
       const form = createBaseForm({
         refundsTx: { transaction: refundedTransaction },
       });
@@ -202,11 +202,11 @@ describe('prepareTxCreationParams', () => {
         isCurrenciesDifferent: false,
       });
 
-      expect(result.refundForTxId).toBe(50);
+      expect(result.refundForTxId).toBe('00000000-0000-0000-0000-000000000050');
     });
 
     it('includes refundForSplitId when refundsTx has splitId', () => {
-      const refundedTransaction = createMockTransaction({ id: 50 });
+      const refundedTransaction = createMockTransaction({ id: '00000000-0000-0000-0000-000000000050' });
       const form = createBaseForm({
         refundsTx: {
           transaction: refundedTransaction,
@@ -220,12 +220,12 @@ describe('prepareTxCreationParams', () => {
         isCurrenciesDifferent: false,
       });
 
-      expect(result.refundForTxId).toBe(50);
+      expect(result.refundForTxId).toBe('00000000-0000-0000-0000-000000000050');
       expect(result.refundForSplitId).toBe('split-uuid-123');
     });
 
     it('does not include refundForSplitId when refundsTx has no splitId', () => {
-      const refundedTransaction = createMockTransaction({ id: 50 });
+      const refundedTransaction = createMockTransaction({ id: '00000000-0000-0000-0000-000000000050' });
       const form = createBaseForm({
         refundsTx: { transaction: refundedTransaction },
       });
@@ -236,7 +236,7 @@ describe('prepareTxCreationParams', () => {
         isCurrenciesDifferent: false,
       });
 
-      expect(result.refundForTxId).toBe(50);
+      expect(result.refundForTxId).toBe('00000000-0000-0000-0000-000000000050');
       expect(result.refundForSplitId).toBeUndefined();
     });
 

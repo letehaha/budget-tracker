@@ -4,7 +4,7 @@ import TransactionGroups from '@models/transaction-groups.model';
 import { INCLUDE_GROUP_TRANSACTIONS } from './constants';
 
 interface GetTransactionGroupByIdPayload {
-  id: number;
+  id: string;
   userId: number;
 }
 

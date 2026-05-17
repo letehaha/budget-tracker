@@ -7,7 +7,7 @@ import { findSubscriptionOrThrow } from './helpers';
 
 interface UnlinkTransactionsParams {
   subscriptionId: string;
-  transactionIds: number[];
+  transactionIds: string[];
   userId: number;
 }
 

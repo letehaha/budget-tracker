@@ -1,5 +1,7 @@
-// AccountGroup.model.ts
+import { RecordId } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, BelongsToMany, DataType } from 'sequelize-typescript';
+// AccountGroup.model.ts
+import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from '../accounts.model';
 import BankDataProviderConnections from '../bank-data-provider-connections.model';
@@ -25,11 +27,11 @@ import AccountGrouping from './account-grouping.model';
 })
 export default class AccountGroup extends Model {
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     primaryKey: true,
-    autoIncrement: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({
@@ -46,17 +48,17 @@ export default class AccountGroup extends Model {
 
   @ForeignKey(() => AccountGroup)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  parentGroupId!: number | null;
+  parentGroupId!: RecordId | null;
 
   @ForeignKey(() => BankDataProviderConnections)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  bankDataProviderConnectionId!: number | null;
+  bankDataProviderConnectionId!: RecordId | null;
 
   @BelongsTo(() => Users)
   user!: Users;

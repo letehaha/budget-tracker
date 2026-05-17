@@ -18,7 +18,7 @@ export const useAccountsStore = defineStore('accounts', () => {
   const queryClient = useQueryClient();
   const { isUserExists } = storeToRefs(useUserStore());
 
-  const accountsRecord = ref<Record<number, AccountWithRelinkStatus>>({});
+  const accountsRecord = ref<Record<string, AccountWithRelinkStatus>>({});
 
   const {
     data: accounts,

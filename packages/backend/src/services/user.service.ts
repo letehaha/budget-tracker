@@ -75,7 +75,7 @@ export const updateUser = withTransaction(
     middleName?: string;
     avatar?: string;
     totalBalance?: number;
-    defaultCategoryId?: number;
+    defaultCategoryId?: string;
   }) => {
     const user = await Users.updateUserById({
       id,

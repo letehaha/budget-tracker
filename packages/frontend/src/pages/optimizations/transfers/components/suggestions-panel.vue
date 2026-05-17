@@ -24,8 +24,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  link: [{ expenseId: number; incomeId: number }];
-  skip: [{ expenseId: number; incomeId: number }];
+  link: [{ expenseId: string; incomeId: string }];
+  skip: [{ expenseId: string; incomeId: string }];
   'record-click': [value: TransactionModel, oppositeTx: TransactionModel | undefined];
 }>();
 

@@ -1,7 +1,7 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { deleteTag } from '@services/tags/delete-tag';
-import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
@@ -12,7 +12,7 @@ export function registerDeleteTag(server: McpServer) {
       description:
         'Permanently delete a tag by ID. This is destructive — the tag will be removed and unlinked from all transactions. Only call when the user explicitly confirms deletion.',
       inputSchema: {
-        id: z.number().describe('ID of the tag to delete.'),
+        id: recordId().describe('ID of the tag to delete.'),
       },
     },
     async (args, extra) => {

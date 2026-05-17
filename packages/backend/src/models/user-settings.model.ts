@@ -1,6 +1,13 @@
 import { SUPPORTED_LOCALES } from '@bt/shared/i18n/locales';
-import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH, AI_FEATURE, AI_PROVIDER, NOTIFICATION_TYPES } from '@bt/shared/types';
+import {
+  AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH,
+  AI_FEATURE,
+  AI_PROVIDER,
+  NOTIFICATION_TYPES,
+  RecordId,
+} from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 
 import Users from './users.model';
@@ -127,12 +134,11 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
 export default class UserSettings extends Model {
   @Column({
     primaryKey: true,
-    autoIncrement: true,
     allowNull: false,
-    unique: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({

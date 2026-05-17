@@ -1,10 +1,11 @@
-import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
+import { BUDGET_STATUSES, BUDGET_TYPES, RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Categories from '@models/categories.model';
 import Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import BudgetCategories from './budget-categories.model';
 import BudgetTransactions from './budget-transactions.model';
@@ -13,8 +14,8 @@ import BudgetTransactions from './budget-transactions.model';
   timestamps: false,
 })
 export default class Budgets extends Model {
-  @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  declare id: number;
+  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
+  declare id: RecordId;
 
   @Column({ allowNull: false, type: DataType.STRING(200) })
   name!: string;

@@ -19,13 +19,13 @@ import { toPositiveInt } from '../sharing-utils';
  * Returns deduplicated, sorted ascending so callers can rely on a stable order if they
  * cache or compare the array.
  */
-export const getAccessibleAccountIdsForUser = async ({ userId }: { userId: number }): Promise<number[]> => {
+export const getAccessibleAccountIdsForUser = async ({ userId }: { userId: number }): Promise<string[]> => {
   const [ownedRows, perResourceRows, householdRows] = await Promise.all([
     Accounts.findAll({
       where: { userId },
       attributes: ['id'],
       raw: true,
-    }) as unknown as Promise<{ id: number }[]>,
+    }) as unknown as Promise<{ id: string }[]>,
     ResourceShares.findAll({
       where: {
         sharedWithUserId: userId,
@@ -46,20 +46,11 @@ export const getAccessibleAccountIdsForUser = async ({ userId }: { userId: numbe
     }) as unknown as Promise<{ resourceId: string }[]>,
   ]);
 
-  const ids = new Set<number>();
+  const ids = new Set<string>();
   for (const row of ownedRows) ids.add(row.id);
   for (const row of perResourceRows) {
-    const numeric = toPositiveInt(row.resourceId);
-    if (numeric !== null) {
-      ids.add(numeric);
-    } else {
-      logger.error(
-        {
-          message: 'Account-type share row has non-numeric resourceId',
-          error: new Error(`resourceId=${JSON.stringify(row.resourceId)}`),
-        },
-        { code: 'SHARED_ACCOUNT_INVALID_RESOURCE_ID', userId, resourceId: row.resourceId },
-      );
+    if (row.resourceId) {
+      ids.add(row.resourceId);
     }
   }
 
@@ -83,9 +74,9 @@ export const getAccessibleAccountIdsForUser = async ({ userId }: { userId: numbe
       where: { userId: { [Op.in]: grantorUserIds } },
       attributes: ['id'],
       raw: true,
-    })) as unknown as { id: number }[];
+    })) as unknown as { id: string }[];
     for (const row of grantorAccounts) ids.add(row.id);
   }
 
-  return Array.from(ids).toSorted((a, b) => a - b);
+  return Array.from(ids).toSorted();
 };

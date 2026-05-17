@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -13,7 +14,7 @@ export function registerAdjustAccountBalance(server: McpServer) {
       description:
         'Set an account to a specific balance by creating an adjustment transaction for the difference. Returns the previous balance, new balance, and the generated transaction (null if the balance was already at the target).',
       inputSchema: {
-        accountId: z.number().describe('ID of the account to adjust.'),
+        accountId: recordId().describe('ID of the account to adjust.'),
         newBalance: z
           .number()
           .describe('Target balance as a decimal (e.g. 1500.00). An adjustment transaction is created for the diff.'),

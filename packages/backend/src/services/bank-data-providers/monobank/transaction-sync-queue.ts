@@ -20,8 +20,8 @@ import { MonobankApiClient } from './api-client';
 
 interface TransactionSyncJobData extends SentryTraceData {
   userId: number;
-  accountId: number;
-  connectionId: number;
+  accountId: string;
+  connectionId: string;
   externalAccountId: string;
   apiToken: string;
   fromTimestamp: number;
@@ -80,9 +80,9 @@ transactionSyncQueue.on('error', (err) => {
  */
 async function createMonobankTransaction(
   data: ExternalMonobankTransactionResponse,
-  accountId: number,
+  accountId: string,
   userId: number,
-): Promise<number | undefined> {
+): Promise<string | undefined> {
   // Check if transaction already exists (duplicate prevention)
   const isTransactionExists = await Transactions.findOne({
     where: {
@@ -110,7 +110,7 @@ async function createMonobankTransaction(
     userId,
   });
 
-  let categoryId: number;
+  let categoryId: string;
 
   if (userMcc.length) {
     categoryId = userMcc[0]!.get('categoryId');
@@ -200,7 +200,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
           });
 
           // Process each transaction and collect created IDs
-          const createdTransactionIds: number[] = [];
+          const createdTransactionIds: string[] = [];
 
           // Sort transactions by date (ascending) so the last transaction for each day
           // This is important for Balances.handleTransactionChange() which uses the
@@ -428,8 +428,8 @@ function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Date; to:
  */
 export async function queueTransactionSync(params: {
   userId: number;
-  accountId: number;
-  connectionId: number;
+  accountId: string;
+  connectionId: string;
   externalAccountId: string;
   apiToken: string;
   from: Date;
@@ -567,15 +567,15 @@ export async function getJobGroupProgress(jobGroupId: string): Promise<{
 export async function getActiveJobsForUser(userId: number): Promise<
   Array<{
     jobGroupId: string;
-    connectionId: number;
-    accountId: number;
+    connectionId: string;
+    accountId: string;
     status: 'waiting' | 'active';
   }>
 > {
   const jobs = await transactionSyncQueue.getJobs(['waiting', 'active']);
 
   // Group jobs by jobGroupId
-  const jobGroups = new Map<string, Array<{ accountId: number }>>();
+  const jobGroups = new Map<string, Array<{ accountId: string }>>();
 
   jobs.forEach((job) => {
     const jobId = job.id;
@@ -606,8 +606,8 @@ export async function getActiveJobsForUser(userId: number): Promise<
   // Convert to array with status
   const result: Array<{
     jobGroupId: string;
-    connectionId: number;
-    accountId: number;
+    connectionId: string;
+    accountId: string;
     status: 'waiting' | 'active';
   }> = [];
 

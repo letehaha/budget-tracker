@@ -27,9 +27,9 @@ export const buildAccountPayload = (
 });
 type BuildAccountPayload = ReturnType<typeof buildAccountPayload>;
 
-export function getAccount({ id, raw }: { id: number; raw: false }): Promise<Response>;
-export function getAccount({ id, raw }: { id: number; raw: true }): Promise<Accounts>;
-export function getAccount({ id, raw = false }: { id: number; raw?: boolean }) {
+export function getAccount({ id, raw }: { id: string; raw: false }): Promise<Response>;
+export function getAccount({ id, raw }: { id: string; raw: true }): Promise<Accounts>;
+export function getAccount({ id, raw = false }: { id: string; raw?: boolean }) {
   return makeRequest({
     method: 'get',
     url: `/accounts/${id}`,
@@ -68,7 +68,7 @@ type UpdateAccountPayload = Partial<BuildAccountPayload> & {
 export function updateAccount<
   T = Awaited<ReturnType<typeof apiUpdateAccount>>,
   R extends boolean | undefined = undefined,
->({ id, payload = {}, raw }: { id: number; payload?: UpdateAccountPayload; raw?: R }) {
+>({ id, payload = {}, raw }: { id: string; payload?: UpdateAccountPayload; raw?: R }) {
   return makeRequest<T, R>({
     method: 'put',
     url: `/accounts/${id}`,
@@ -77,9 +77,9 @@ export function updateAccount<
   });
 }
 
-export function deleteAccount({ id, raw }: { id: number; raw: false }): Promise<Response>;
-export function deleteAccount({ id, raw }: { id: number; raw: true }): Promise<void>;
-export function deleteAccount({ id, raw = false }: { id: number; raw?: boolean }) {
+export function deleteAccount({ id, raw }: { id: string; raw: false }): Promise<Response>;
+export function deleteAccount({ id, raw }: { id: string; raw: true }): Promise<void>;
+export function deleteAccount({ id, raw = false }: { id: string; raw?: boolean }) {
   return makeRequest({
     method: 'delete',
     url: `/accounts/${id}`,
@@ -87,9 +87,9 @@ export function deleteAccount({ id, raw = false }: { id: number; raw?: boolean }
   });
 }
 
-export function unlinkAccountFromBankConnection({ id, raw }: { id: number; raw: false }): Promise<Response>;
-export function unlinkAccountFromBankConnection({ id, raw }: { id: number; raw: true }): Promise<Accounts>;
-export function unlinkAccountFromBankConnection({ id, raw = false }: { id: number; raw?: boolean }) {
+export function unlinkAccountFromBankConnection({ id, raw }: { id: string; raw: false }): Promise<Response>;
+export function unlinkAccountFromBankConnection({ id, raw }: { id: string; raw: true }): Promise<Accounts>;
+export function unlinkAccountFromBankConnection({ id, raw = false }: { id: string; raw?: boolean }) {
   return makeRequest({
     method: 'post',
     url: `/accounts/${id}/unlink`,
@@ -103,8 +103,8 @@ export function linkAccountToBankConnection<R extends boolean | undefined = unde
   externalAccountId,
   raw,
 }: {
-  id: number;
-  connectionId: number;
+  id: string;
+  connectionId: string;
   externalAccountId: string;
   raw?: R;
 }) {
@@ -132,7 +132,7 @@ export function balanceAdjustment<R extends boolean | undefined = undefined>({
   payload,
   raw,
 }: {
-  id: number;
+  id: string;
   payload: { targetBalance: Decimal; note?: string };
   raw?: R;
 }) {

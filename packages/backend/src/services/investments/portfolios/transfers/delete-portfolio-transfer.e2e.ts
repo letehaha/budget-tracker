@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -407,7 +408,7 @@ describe('Delete Portfolio Transfer (DELETE /investments/portfolios/:id/transfer
     it('should return 204 for non-existent transfer', async () => {
       const response = await helpers.deletePortfolioTransfer({
         portfolioId: portfolio.id,
-        transferId: 999999,
+        transferId: generateRandomRecordId(),
       });
 
       expect(response.statusCode).toBe(204);

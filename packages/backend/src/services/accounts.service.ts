@@ -41,7 +41,7 @@ type AccountWithRelinkStatus = Accounts.default & {
  */
 async function attachBankProviderTypes(accounts: AccountWithRelinkStatus[]): Promise<void> {
   const connectionIds = Array.from(
-    new Set(accounts.map((a) => a.bankDataProviderConnectionId).filter((id): id is number => typeof id === 'number')),
+    new Set(accounts.map((a) => a.bankDataProviderConnectionId).filter((id): id is string => typeof id === 'string')),
   );
   if (!connectionIds.length) return;
 
@@ -52,7 +52,7 @@ async function attachBankProviderTypes(accounts: AccountWithRelinkStatus[]): Pro
   const providerTypeById = new Map(connections.map((c) => [c.id, c.providerType as BANK_PROVIDER_TYPE]));
 
   for (const account of accounts) {
-    if (typeof account.bankDataProviderConnectionId === 'number') {
+    if (typeof account.bankDataProviderConnectionId === 'string') {
       account._bankProviderType = providerTypeById.get(account.bankDataProviderConnectionId) ?? null;
     }
   }
@@ -144,7 +144,7 @@ export const getAccounts = withTransaction(
 );
 
 export const getAccountById = withTransaction(
-  async (payload: { id: number; userId: number }): Promise<AccountWithRelinkStatus | null> => {
+  async (payload: { id: string; userId: number }): Promise<AccountWithRelinkStatus | null> => {
     const owned = await Accounts.getAccountById({ ...payload });
 
     if (owned) {
@@ -309,11 +309,11 @@ interface DeleteAccountByIdInTxResult {
   cleanup: AccountShareCleanupResult;
   /** Snapshotted before destroy so the post-commit notification copy can still reference
    *  the account name after the row is gone. */
-  accountSnapshot: { id: number; name: string };
+  accountSnapshot: { id: string; name: string };
 }
 
 const deleteAccountByIdInTx = withTransaction(
-  async ({ id, userId }: { id: number; userId: number }): Promise<DeleteAccountByIdInTxResult> => {
+  async ({ id, userId }: { id: string; userId: number }): Promise<DeleteAccountByIdInTxResult> => {
     const account = await Accounts.default.findOne({ where: { id, userId } });
     if (!account) {
       throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
@@ -345,7 +345,7 @@ const deleteAccountByIdInTx = withTransaction(
   },
 );
 
-export const deleteAccountById = async ({ id, userId }: { id: number; userId: number }) => {
+export const deleteAccountById = async ({ id, userId }: { id: string; userId: number }) => {
   const result = await deleteAccountByIdInTx({ id, userId });
 
   // Post-commit fan-out: the durable changes (share rows deleted, invitations revoked,

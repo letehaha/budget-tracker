@@ -10,7 +10,7 @@ export const uah2AccountName = 'Account UAH (2)';
 
 export const ACCOUNTS: AccountWithRelinkStatus[] = [
   {
-    id: 1,
+    id: '00000000-0000-0000-0000-000000000001',
     name: eurAccountName,
     initialBalance: 0,
     refInitialBalance: 0,
@@ -29,7 +29,7 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     needsRelink: false,
   },
   {
-    id: 2,
+    id: '00000000-0000-0000-0000-000000000002',
     name: usdAccountName,
     initialBalance: 0,
     refInitialBalance: 0,
@@ -48,7 +48,7 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     needsRelink: false,
   },
   {
-    id: 3,
+    id: '00000000-0000-0000-0000-000000000003',
     name: uahAccountName,
     initialBalance: 0,
     refInitialBalance: 0,
@@ -67,7 +67,7 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     needsRelink: false,
   },
   {
-    id: 4,
+    id: '00000000-0000-0000-0000-000000000004',
     name: uah2AccountName,
     initialBalance: 0,
     refInitialBalance: 0,

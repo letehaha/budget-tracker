@@ -55,7 +55,7 @@ const demoUser: UserModel = {
   middleName: '',
   avatar: '',
   totalBalance: 0,
-  defaultCategoryId: 1,
+  defaultCategoryId: '00000000-0000-0000-0000-000000000001',
   role: 'demo',
 };
 
@@ -68,7 +68,7 @@ const regularUser: UserModel = {
   middleName: '',
   avatar: '',
   totalBalance: 0,
-  defaultCategoryId: 1,
+  defaultCategoryId: '00000000-0000-0000-0000-000000000001',
   role: 'common',
 };
 

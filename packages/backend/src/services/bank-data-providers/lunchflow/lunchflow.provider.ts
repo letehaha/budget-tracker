@@ -61,7 +61,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   // Connection Management
   // ============================================================================
 
-  async connect(userId: number, credentials: unknown): Promise<number> {
+  async connect(userId: number, credentials: unknown): Promise<string> {
     if (!this.isValidCredentials(credentials)) {
       throw new ValidationError({ message: t({ key: 'bankDataProviders.lunchflow.invalidCredentialsFormat' }) });
     }
@@ -98,7 +98,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     return connection.id;
   }
 
-  async disconnect(connectionId: number): Promise<void> {
+  async disconnect(connectionId: string): Promise<void> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
@@ -118,7 +118,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     return await apiClient.testConnection();
   }
 
-  async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
+  async refreshCredentials(connectionId: string, newCredentials: unknown): Promise<void> {
     if (!this.isValidCredentials(newCredentials)) {
       throw new ValidationError({ message: t({ key: 'bankDataProviders.lunchflow.invalidCredentialsFormat' }) });
     }
@@ -147,7 +147,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   // Account Operations
   // ============================================================================
 
-  async fetchAccounts(connectionId: number): Promise<ProviderAccount[]> {
+  async fetchAccounts(connectionId: string): Promise<ProviderAccount[]> {
     const { apiKey } = await this.getValidatedCredentials(connectionId);
 
     const apiClient = new LunchFlowApiClient(apiKey);
@@ -232,7 +232,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   // ============================================================================
 
   async fetchTransactions(
-    connectionId: number,
+    connectionId: string,
     accountExternalId: string,
     _dateRange?: DateRange, // eslint-disable-line @typescript-eslint/no-unused-vars
   ): Promise<ProviderTransaction[]> {
@@ -264,8 +264,8 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     systemAccountId,
     userId,
   }: {
-    connectionId: number;
-    systemAccountId: number;
+    connectionId: string;
+    systemAccountId: string;
     userId: number;
   }): Promise<void> {
     await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.SYNCING, userId });
@@ -311,7 +311,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
       postedTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
-      const createdTransactionIds: number[] = [];
+      const createdTransactionIds: string[] = [];
 
       for (const tx of postedTransactions) {
         // Primary dedup: check by originalId (covers normal re-sync)
@@ -408,7 +408,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   // Balance Operations
   // ============================================================================
 
-  async fetchBalance(connectionId: number, accountExternalId: string): Promise<ProviderBalance> {
+  async fetchBalance(connectionId: string, accountExternalId: string): Promise<ProviderBalance> {
     const { apiKey } = await this.getValidatedCredentials(connectionId);
 
     const apiClient = new LunchFlowApiClient(apiKey);
@@ -422,7 +422,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     };
   }
 
-  async refreshBalance(connectionId: number, systemAccountId: number): Promise<void> {
+  async refreshBalance(connectionId: string, systemAccountId: string): Promise<void> {
     const account = await this.getSystemAccount(systemAccountId);
 
     if (!account.externalId) {
@@ -444,7 +444,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
    * Handle auth errors with retry tracking.
    * After 2 consecutive auth failures, deactivate the connection.
    */
-  private async handleAuthError({ connectionId, error }: { connectionId: number; error: unknown }): Promise<void> {
+  private async handleAuthError({ connectionId, error }: { connectionId: string; error: unknown }): Promise<void> {
     const isForbiddenError = error instanceof ForbiddenError;
     if (!isForbiddenError) return;
 
@@ -473,7 +473,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   /**
    * Reset consecutive auth failure counter on successful API call
    */
-  private async resetAuthFailures(connectionId: number): Promise<void> {
+  private async resetAuthFailures(connectionId: string): Promise<void> {
     try {
       const connection = await this.getConnection(connectionId);
       const metadata = (connection.metadata as LunchFlowMetadata) || {};
@@ -500,7 +500,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     return typeof apiKey === 'string' && apiKey.length > 0;
   }
 
-  private async getValidatedCredentials(connectionId: number): Promise<LunchFlowCredentials> {
+  private async getValidatedCredentials(connectionId: string): Promise<LunchFlowCredentials> {
     const credentials = await this.getDecryptedCredentials(connectionId);
     if (!this.isValidCredentials(credentials)) {
       throw new ValidationError({

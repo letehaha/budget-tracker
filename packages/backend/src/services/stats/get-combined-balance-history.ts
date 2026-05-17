@@ -52,7 +52,7 @@ const calculatePortfolioBalanceHistory = async ({
     return null;
   }
 
-  const portfolioIds = portfolios.map((p: { id: number }) => p.id);
+  const portfolioIds = portfolios.map((p: { id: string }) => p.id);
 
   type TransactionRow = Pick<
     InvestmentTransaction,
@@ -145,7 +145,7 @@ const calculatePortfolioBalanceHistory = async ({
   const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
 
   // Build price lookup with O(1) access by security+date
-  const pricesBySecurity = new Map<number, Array<{ date: string; price: number }>>();
+  const pricesBySecurity = new Map<string, Array<{ date: string; price: number }>>();
   const pricesBySecurityAndDate = new Map<string, number>(); // "securityId_date" -> price
   for (const price of securityPrices) {
     const dateStr = String(price.date);
@@ -203,7 +203,7 @@ const calculatePortfolioBalanceHistory = async ({
     return 1;
   };
 
-  const findPriceForDate = (securityId: number, targetDate: string): number | null => {
+  const findPriceForDate = (securityId: string, targetDate: string): number | null => {
     // O(1) exact match lookup
     const exactPrice = pricesBySecurityAndDate.get(`${securityId}_${targetDate}`);
     if (exactPrice !== undefined) return exactPrice;
@@ -225,7 +225,7 @@ const calculatePortfolioBalanceHistory = async ({
   };
 
   // Pre-group transactions by portfolio for O(1) lookup instead of O(n) filter
-  const transactionsByPortfolio = new Map<number, TransactionRow[]>();
+  const transactionsByPortfolio = new Map<string, TransactionRow[]>();
   for (const tx of transactions) {
     if (!transactionsByPortfolio.has(tx.portfolioId)) {
       transactionsByPortfolio.set(tx.portfolioId, []);
@@ -245,7 +245,7 @@ const calculatePortfolioBalanceHistory = async ({
 
       // Build holdings by processing transactions up to this date
       // Transactions are already ordered by date ASC, so we can process incrementally
-      const holdings = new Map<number, HoldingState>();
+      const holdings = new Map<string, HoldingState>();
 
       for (const tx of portfolioTxs) {
         // Since transactions are sorted by date, once we pass the current date, stop

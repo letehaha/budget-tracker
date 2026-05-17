@@ -7,7 +7,7 @@ import { makeRequest } from './common';
 export interface CreateTransactionGroupPayload {
   name: string;
   note?: string | null;
-  transactionIds: number[];
+  transactionIds: string[];
 }
 
 export interface UpdateTransactionGroupPayload {
@@ -58,7 +58,7 @@ export async function getTransactionGroupById<R extends boolean | undefined = un
   id,
   raw,
 }: {
-  id: number;
+  id: string;
   raw?: R;
 }) {
   return makeRequest<TransactionGroupApiResponse, R>({
@@ -73,7 +73,7 @@ export async function updateTransactionGroup<R extends boolean | undefined = und
   payload,
   raw,
 }: {
-  id: number;
+  id: string;
   payload: UpdateTransactionGroupPayload;
   raw?: R;
 }) {
@@ -89,7 +89,7 @@ export async function deleteTransactionGroup<R extends boolean | undefined = und
   id,
   raw,
 }: {
-  id: number;
+  id: string;
   raw?: R;
 }) {
   return makeRequest<{ success: boolean }, R>({
@@ -104,8 +104,8 @@ export async function addTransactionsToGroup<R extends boolean | undefined = und
   transactionIds,
   raw,
 }: {
-  groupId: number;
-  transactionIds: number[];
+  groupId: string;
+  transactionIds: string[];
   raw?: R;
 }) {
   return makeRequest<TransactionGroupApiResponse, R>({
@@ -122,8 +122,8 @@ export async function removeTransactionsFromGroup<R extends boolean | undefined 
   force,
   raw,
 }: {
-  groupId: number;
-  transactionIds: number[];
+  groupId: string;
+  transactionIds: string[];
   force?: boolean;
   raw?: R;
 }) {
@@ -138,7 +138,7 @@ export async function removeTransactionsFromGroup<R extends boolean | undefined 
 // Builder
 
 export function buildTransactionGroupPayload(
-  overrides: Partial<CreateTransactionGroupPayload> & { transactionIds: number[] },
+  overrides: Partial<CreateTransactionGroupPayload> & { transactionIds: string[] },
 ): CreateTransactionGroupPayload {
   return {
     name: `Test Group ${Date.now()}`,

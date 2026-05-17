@@ -4,7 +4,7 @@ import type { TransactionGroupResult } from '@services/transaction-groups/get-tr
 import { serializeTransaction, TransactionApiResponse } from './transactions.serializer';
 
 export interface TransactionGroupApiResponse {
-  id: number;
+  id: string;
   name: string;
   note: string | null;
   createdAt: Date;
@@ -16,7 +16,7 @@ export interface TransactionGroupApiResponse {
 }
 
 interface TransactionGroupInput {
-  id: number;
+  id: string;
   name: string;
   note: string | null;
   createdAt: Date;

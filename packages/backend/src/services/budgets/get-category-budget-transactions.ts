@@ -85,7 +85,7 @@ export const getCategoryBudgetTransactions = async ({
 
   // Combine results
   const results: TransactionWithCategory[] = [];
-  const seenTransactionIds = new Set<number>();
+  const seenTransactionIds = new Set<string>();
 
   // Process primary category transactions (only those WITHOUT splits)
   for (const tx of primaryCategoryTransactions) {
@@ -160,17 +160,17 @@ export const getCategoryBudgetTransactions = async ({
 };
 
 interface TransactionWithCategory {
-  id: number;
+  id: string;
   time: Date;
   transactionType: TRANSACTION_TYPES;
   refAmount: number;
   amount: number;
   note: string | null;
-  categoryId: number | null;
-  accountId: number;
+  categoryId: string | null;
+  accountId: string;
   /** For split transactions, this is the split's category */
   effectiveCategory?: {
-    id: number;
+    id: string;
     name: string;
     color: string;
   };
@@ -180,7 +180,7 @@ interface TransactionWithCategory {
 
 interface GetCategoryBudgetTransactionsParams {
   userId: number;
-  budgetId: number;
+  budgetId: string;
   from?: number;
   limit?: number;
 }

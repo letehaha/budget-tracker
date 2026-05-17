@@ -78,7 +78,7 @@ describe('components/modals/modify-record/helpers', () => {
         acc[account.id] = account;
         return acc;
       },
-      {} as Record<number, (typeof ACCOUNTS)[0]>,
+      {} as Record<string, (typeof ACCOUNTS)[0]>,
     );
 
     const categoriesRecord = USER_CATEGORIES.reduce(
@@ -86,7 +86,7 @@ describe('components/modals/modify-record/helpers', () => {
         acc[category.id] = category;
         return acc;
       },
-      {} as Record<number, (typeof USER_CATEGORIES)[0]>,
+      {} as Record<string, (typeof USER_CATEGORIES)[0]>,
     );
 
     it('returns undefined when transaction is undefined', () => {
@@ -217,7 +217,7 @@ describe('components/modals/modify-record/helpers', () => {
       const sourceAccount = getUahAccount();
       const transaction = buildSystemTransferExpenseTransaction({
         accountId: sourceAccount.id,
-        categoryId: null as unknown as number,
+        categoryId: null as unknown as string,
       });
 
       const result = prepopulateForm({
@@ -369,9 +369,13 @@ describe('components/modals/modify-record/helpers', () => {
   describe('canDeleteTransaction', () => {
     const sourceAccount = getUahAccount();
     const destSystemAccount = getUah2Account();
-    const destMonobankAccount = { ...getUah2Account(), id: 99, type: ACCOUNT_TYPES.monobank } as AccountModel;
+    const destMonobankAccount = {
+      ...getUah2Account(),
+      id: '00000000-0000-0000-0000-000000000099',
+      type: ACCOUNT_TYPES.monobank,
+    } as AccountModel;
 
-    const accounts: Record<number, AccountModel> = {
+    const accounts: Record<string, AccountModel> = {
       [sourceAccount.id!]: sourceAccount as AccountModel,
       [destSystemAccount.id!]: destSystemAccount as AccountModel,
       [destMonobankAccount.id]: destMonobankAccount,

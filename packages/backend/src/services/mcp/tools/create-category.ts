@@ -1,4 +1,5 @@
 import { CATEGORY_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createCategory } from '@services/categories/create-category';
@@ -16,7 +17,7 @@ export function registerCreateCategory(server: McpServer) {
         name: z.string().describe('Category name.'),
         color: z.string().optional().describe('Hex color code (e.g. "#4CAF50"). Inherited from parent if omitted.'),
         icon: z.string().nullable().optional().describe('Optional icon identifier for the category.'),
-        parentId: z.number().optional().describe('ID of the parent category to create a subcategory.'),
+        parentId: recordId().optional().describe('ID of the parent category to create a subcategory.'),
         type: z
           .enum([CATEGORY_TYPES.custom, CATEGORY_TYPES.internal])
           .optional()

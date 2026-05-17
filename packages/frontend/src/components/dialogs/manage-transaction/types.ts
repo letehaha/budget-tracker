@@ -49,5 +49,5 @@ export interface UI_FORM_STRUCT {
   /** Optional splits for distributing transaction amount across multiple categories */
   splits?: FormSplit[];
   /** Optional tag IDs to associate with the transaction */
-  tagIds?: number[];
+  tagIds?: string[];
 }

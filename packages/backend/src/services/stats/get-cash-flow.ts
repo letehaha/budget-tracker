@@ -29,8 +29,8 @@ interface GetCashFlowParams {
   from: string;
   to: string;
   granularity: endpointsTypes.CashFlowGranularity;
-  accountId?: number;
-  categoryIds?: number[];
+  accountId?: string;
+  categoryIds?: string[];
 }
 
 /**
@@ -121,7 +121,7 @@ interface CategoryAmounts {
 interface PeriodCategoryData {
   income: number;
   expenses: number;
-  categories: Map<number, CategoryAmounts>; // categoryId -> amounts by type (aggregated by target category)
+  categories: Map<string, CategoryAmounts>; // categoryId -> amounts by type (aggregated by target category)
 }
 
 /**
@@ -131,9 +131,9 @@ const getRootCategoryId = ({
   categoryId,
   categoryMap,
 }: {
-  categoryId: number;
-  categoryMap: Map<number, CategoryInfo>;
-}): number => {
+  categoryId: string;
+  categoryMap: Map<string, CategoryInfo>;
+}): string => {
   let current = categoryMap.get(categoryId);
   if (!current) return categoryId;
 
@@ -156,10 +156,10 @@ const getAggregationCategoryId = ({
   categoryMap,
   targetCategoryIds,
 }: {
-  categoryId: number;
-  categoryMap: Map<number, CategoryInfo>;
-  targetCategoryIds?: Set<number>;
-}): number => {
+  categoryId: string;
+  categoryMap: Map<string, CategoryInfo>;
+  targetCategoryIds?: Set<string>;
+}): string => {
   // If no target categories specified, aggregate to root
   if (!targetCategoryIds) {
     return getRootCategoryId({ categoryId, categoryMap });
@@ -215,11 +215,11 @@ export const getCashFlow = async ({
   const rootCategories = allCategories.filter((cat) => cat.parentId === null);
 
   // Determine which category IDs to filter by in the query
-  let queryFilterCategoryIds: number[] | undefined;
+  let queryFilterCategoryIds: string[] | undefined;
 
   if (categoryIds && categoryIds.length > 0) {
     // User selected specific categories - expand to include all children
-    const expandedCategoryIds = new Set<number>(categoryIds);
+    const expandedCategoryIds = new Set<string>(categoryIds);
 
     // For each selected category, add all its descendants
     allCategories.forEach((cat) => {
@@ -267,7 +267,7 @@ export const getCashFlow = async ({
   // Determine which categories to report in the breakdown
   // If specific categories selected, report those exact categories (not aggregated to root)
   // Otherwise, aggregate to root categories
-  let reportCategoryIds: number[];
+  let reportCategoryIds: string[];
   // When specific categories are selected, aggregate to those categories instead of root
   const aggregateToSelectedCategories = categoryIds && categoryIds.length > 0;
 
@@ -280,7 +280,7 @@ export const getCashFlow = async ({
   }
 
   // Create a set of target categories for aggregation (when specific categories are selected)
-  const targetCategoryIds = aggregateToSelectedCategories ? new Set(categoryIds) : undefined;
+  const targetCategoryIds = aggregateToSelectedCategories ? new Set<string>(categoryIds) : undefined;
 
   // Aggregate transactions into buckets
   for (const tx of transactions) {

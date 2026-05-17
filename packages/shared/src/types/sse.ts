@@ -29,7 +29,7 @@ export interface AiCategorizationProgressPayload {
  * Account sync status for SYNC_STATUS_CHANGED event
  */
 export interface SyncAccountStatus {
-  accountId: number;
+  accountId: string;
   status: string;
   startedAt: string | null;
   completedAt: string | null;

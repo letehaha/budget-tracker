@@ -1,7 +1,9 @@
+import { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { removeUndefinedKeys } from '@js/helpers';
 import { Op } from 'sequelize';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import Currencies from './currencies.model';
 import Users from './users.model';
@@ -13,13 +15,12 @@ import Users from './users.model';
 })
 export default class UsersCurrencies extends Model {
   @Column({
-    unique: true,
     allowNull: false,
-    autoIncrement: true,
     primaryKey: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })

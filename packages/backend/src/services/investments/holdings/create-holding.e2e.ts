@@ -1,4 +1,5 @@
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
@@ -58,7 +59,7 @@ describe('POST /holdings (create holding)', () => {
   it('should fail to create a holding for non-existent portfolio', async () => {
     const response = await helpers.createHolding({
       payload: {
-        portfolioId: 999999,
+        portfolioId: generateRandomRecordId(),
         securityId: vooSecurity.id,
       },
     });
@@ -70,7 +71,7 @@ describe('POST /holdings (create holding)', () => {
     const response = await helpers.createHolding({
       payload: {
         portfolioId: investmentPortfolio.id,
-        securityId: 999999,
+        securityId: generateRandomRecordId(),
       },
     });
 

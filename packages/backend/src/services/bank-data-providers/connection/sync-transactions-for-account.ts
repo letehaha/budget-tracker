@@ -8,7 +8,7 @@ import { withTransaction } from '@root/services/common/with-transaction';
 import { bankProviderRegistry } from '../registry';
 
 export const syncTransactionsForAccount = withTransaction(
-  async ({ connectionId, userId, accountId }: { connectionId: number; userId: number; accountId: number }) => {
+  async ({ connectionId, userId, accountId }: { connectionId: string; userId: number; accountId: string }) => {
     const connection = await BankDataProviderConnections.findOne({
       where: {
         id: connectionId,

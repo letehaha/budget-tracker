@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getHoldings } from '@services/investments/holdings/get-holdings.service';
@@ -12,8 +13,8 @@ export function registerGetPortfolioHoldings(server: McpServer) {
       description:
         'Positions held in a portfolio with dynamically calculated market value, cost basis, and realized/unrealized gain (value and percent). Each holding includes the embedded security (symbol, name, asset class, currency). Filter by securityId to look at a single position.',
       inputSchema: {
-        portfolioId: z.number().describe('Portfolio ID (from get_portfolios)'),
-        securityId: z.number().optional().describe('Filter to a specific security'),
+        portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
+        securityId: recordId().optional().describe('Filter to a specific security'),
         date: z
           .string()
           .optional()

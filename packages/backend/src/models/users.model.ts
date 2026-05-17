@@ -62,8 +62,8 @@ export default class Users extends Model {
   })
   totalBalance!: number;
 
-  @Column({ allowNull: true, type: DataType.NUMBER })
-  defaultCategoryId!: number;
+  @Column({ allowNull: true, type: DataType.UUID })
+  defaultCategoryId!: string;
 
   @Column({
     allowNull: false,
@@ -164,7 +164,7 @@ export const updateUserById = async ({
   middleName?: string;
   avatar?: string;
   totalBalance?: number;
-  defaultCategoryId?: number;
+  defaultCategoryId?: string;
 }): Promise<UserModel | null> => {
   const where = { id };
   const updateFields: Record<string, unknown> = {};

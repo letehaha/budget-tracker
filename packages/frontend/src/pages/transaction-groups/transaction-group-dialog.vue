@@ -18,7 +18,7 @@ const { t } = useI18n();
 
 const props = defineProps<{
   open?: boolean;
-  groupId?: number;
+  groupId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -73,12 +73,12 @@ const handleDelete = async () => {
 // Remove transaction from group
 const removeConfirm = reactive({
   isOpen: false,
-  transactionId: undefined as number | undefined,
+  transactionId: undefined as string | undefined,
 });
 
 const wouldDissolve = computed(() => transactions.value.length <= 2);
 
-const handleRemoveTransaction = ({ transactionId }: { transactionId: number }) => {
+const handleRemoveTransaction = ({ transactionId }: { transactionId: string }) => {
   removeConfirm.transactionId = transactionId;
   removeConfirm.isOpen = true;
 };

@@ -1,7 +1,7 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { deleteTransaction } from '@services/transactions/delete-transaction';
-import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
@@ -12,7 +12,7 @@ export function registerDeleteTransaction(server: McpServer) {
       description:
         'Permanently delete a transaction by ID. DESTRUCTIVE: this cannot be undone. For transfer transactions, both sides of the transfer are deleted.',
       inputSchema: {
-        id: z.number().describe('ID of the transaction to delete'),
+        id: recordId().describe('ID of the transaction to delete'),
       },
     },
     async (args, extra) => {

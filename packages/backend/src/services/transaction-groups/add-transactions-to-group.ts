@@ -10,9 +10,9 @@ import { resolveTransferPairs } from './resolve-transfer-pairs';
 import { validateTransactionsForGroup } from './validate-transactions-for-group';
 
 interface AddTransactionsToGroupPayload {
-  groupId: number;
+  groupId: string;
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
 }
 
 export const addTransactionsToGroup = withTransaction(async (payload: AddTransactionsToGroupPayload) => {

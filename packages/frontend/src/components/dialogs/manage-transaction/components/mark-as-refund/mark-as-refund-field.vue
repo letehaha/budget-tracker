@@ -14,7 +14,7 @@ import MarkAsRefundDialog from './mark-as-refund-dialog.vue';
 const { t } = useI18n();
 
 const props = defineProps<{
-  transactionId: number | undefined;
+  transactionId: string | undefined;
   transactionType: TRANSACTION_TYPES;
   refunds: RefundsAnoterTx;
   refundedBy: RefundedByAnotherTxs;
@@ -28,7 +28,7 @@ const props = defineProps<{
   /** Current form's currency code */
   currentCurrencyCode?: string;
   /** Current account ID (for recommendations) */
-  currentAccountId?: number | null;
+  currentAccountId?: string | null;
 }>();
 
 const emit = defineEmits<{

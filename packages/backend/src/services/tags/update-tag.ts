@@ -5,7 +5,7 @@ import Tags from '@models/tags.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UpdateTagPayload {
-  id: number;
+  id: string;
   userId: number;
   name?: string;
   color?: string;

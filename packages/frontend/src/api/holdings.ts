@@ -2,13 +2,13 @@ import { api } from '@/api/_api';
 import type { HoldingModel, SecuritySearchResult } from '@bt/shared/types/investments';
 
 export type CreateHoldingRequest = {
-  portfolioId: number;
+  portfolioId: string;
   quantity: number;
   costBasis: number;
-  accountId?: number;
-} & ({ securityId: number } | { searchResult: SecuritySearchResult });
+  accountId?: string;
+} & ({ securityId: string } | { searchResult: SecuritySearchResult });
 
-export const getHoldings = async (portfolioId: number): Promise<HoldingModel[]> => {
+export const getHoldings = async (portfolioId: string): Promise<HoldingModel[]> => {
   const res = await api.get(`/investments/portfolios/${portfolioId}/holdings`);
   return res;
 };
@@ -18,6 +18,6 @@ export const createHolding = async (payload: CreateHoldingRequest): Promise<Hold
   return res;
 };
 
-export const deleteHolding = async (holdingId: number): Promise<void> => {
+export const deleteHolding = async (holdingId: string): Promise<void> => {
   await api.delete('/investments/holding', { data: { holdingId } });
 };

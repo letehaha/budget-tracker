@@ -57,10 +57,19 @@ test.describe('Category Spending Tracker Widget', () => {
     await expect(categoryWidgetBtn).toBeVisible();
     await categoryWidgetBtn.click();
 
-    // Save the dashboard layout
+    // Save the dashboard layout. The Done button click is fire-and-forget — the underlying
+    // mutateAsync persists settings asynchronously. Wait for edit mode to exit (Customize
+    // button re-appears) before moving on, otherwise the next test may race the in-flight
+    // PUT and see stale settings.
     const doneBtn = page.getByRole('button', { name: /done/i }).first();
     await expect(doneBtn).toBeVisible();
     await doneBtn.click();
+
+    // Wait for edit mode to exit so we know the save has fully committed in the UI. This is
+    // a synchronization point — `isEditMode.value = false` only fires after `mutateAsync`
+    // resolves in `saveLayout`, so the PUT must have completed before this assertion passes.
+    await expect(customizeBtn).toBeVisible({ timeout: 30_000 });
+    await expect(doneBtn).not.toBeVisible();
 
     // Verify widget appears with ghost slots
     const widget = page.getByTestId('widget-category-spending-tracker');

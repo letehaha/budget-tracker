@@ -50,7 +50,7 @@ const { formatBaseCurrency } = useFormatCurrency();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 const budgetData = ref();
-const currentBudgetId = ref<number>(Number(route.params.id));
+const currentBudgetId = ref<string>(route.params.id as string);
 const isEditDialogOpen = ref(false);
 const isCategoriesExpanded = ref(false);
 const transactionsFrom = ref(0);
@@ -106,7 +106,7 @@ const { mutateAsync, isPending: isBudgetDataUpdating } = useMutation({
   },
 });
 
-const handleSaveFromDialog = async (payload: { name: string; limitAmount: number; categoryIds: number[] }) => {
+const handleSaveFromDialog = async (payload: { name: string; limitAmount: number; categoryIds: string[] }) => {
   await mutateAsync({
     budgetId: currentBudgetId.value,
     payload,
@@ -139,7 +139,7 @@ watch(
   (item) => {
     if (item) {
       budgetData.value = cloneDeep(item);
-      budgetData.value.categoryIds = item.categories?.map((c: { id: number }) => c.id) ?? [];
+      budgetData.value.categoryIds = item.categories?.map((c: { id: string }) => c.id) ?? [];
     }
   },
   { immediate: true },
@@ -153,7 +153,7 @@ const formatTransactionDate = (date: string) => {
 const categoryBreakdown = computed(() => {
   if (!transactions.value.length) return [];
 
-  const breakdown = new Map<number, { category: CategoryBudgetTransaction['effectiveCategory']; amount: number }>();
+  const breakdown = new Map<string, { category: CategoryBudgetTransaction['effectiveCategory']; amount: number }>();
 
   for (const tx of transactions.value) {
     if (!tx.effectiveCategory) continue;

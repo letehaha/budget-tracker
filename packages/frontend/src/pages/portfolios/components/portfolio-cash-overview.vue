@@ -57,7 +57,7 @@ import { useCurrenciesStore } from '@/stores/currencies';
 import { storeToRefs } from 'pinia';
 import { computed, toRef } from 'vue';
 
-const props = defineProps<{ portfolioId: number }>();
+const props = defineProps<{ portfolioId: string }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { data: balances, isLoading } = usePortfolioBalances(portfolioId);

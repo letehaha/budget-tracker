@@ -5,7 +5,7 @@ import type { PortfolioModel } from '@bt/shared/types';
 import { useVModel } from '@vueuse/core';
 
 const props = defineProps<{
-  portfolioId: number;
+  portfolioId: string;
   portfolio: PortfolioModel;
   open?: boolean;
 }>();

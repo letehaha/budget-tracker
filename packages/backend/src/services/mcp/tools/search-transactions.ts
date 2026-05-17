@@ -1,4 +1,5 @@
 import { SORT_DIRECTIONS, TRANSACTION_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -17,9 +18,9 @@ export function registerSearchTransactions(server: McpServer) {
       inputSchema: {
         startDate: z.string().optional().describe('Start date (ISO 8601). Default: 30 days ago'),
         endDate: z.string().optional().describe('End date (ISO 8601). Default: today'),
-        accountIds: z.array(z.number()).optional().describe('Filter by account IDs'),
-        categoryIds: z.array(z.number()).optional().describe('Filter by category IDs'),
-        tagIds: z.array(z.number()).optional().describe('Filter by tag IDs'),
+        accountIds: z.array(recordId()).optional().describe('Filter by account IDs'),
+        categoryIds: z.array(recordId()).optional().describe('Filter by category IDs'),
+        tagIds: z.array(recordId()).optional().describe('Filter by tag IDs'),
         transactionType: z
           .enum([TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense])
           .optional()

@@ -9,7 +9,7 @@ export const getAccountGroups = async ({
   includeArchived = false,
 }: {
   userId: number;
-  accountIds?: number[];
+  accountIds?: string[];
   includeArchived?: boolean;
 }): Promise<AccountGroup[]> => {
   const accountWhere: WhereOptions<Accounts> = {};

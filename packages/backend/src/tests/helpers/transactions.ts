@@ -16,7 +16,7 @@ export const buildTransactionPayload = (
     Partial<Pick<endpointsTypes.CreateTransactionBody, BuildTxPartialField>>,
 ): endpointsTypes.CreateTransactionBody => ({
   amount: 1000,
-  categoryId: 1,
+  categoryId: global.DEFAULT_CATEGORY_ID,
   transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
   paymentType: PAYMENT_TYPES.creditCard,
   time: startOfDay(new Date()).toISOString(),
@@ -56,19 +56,19 @@ export async function createTransaction({
 }
 
 interface SplitInput {
-  categoryId: number;
+  categoryId: string;
   amount: number;
   note?: string | null;
 }
 
 interface UpdateTransactionBasePayload {
-  id: number;
+  id: string;
   payload?: Omit<Partial<ReturnType<typeof buildTransactionPayload>>, 'splits'> & {
     destinationAmount?: number;
-    destinationAccountId?: number;
-    destinationTransactionId?: number;
-    refundsTxId?: number | null;
-    refundedByTxIds?: number[] | null;
+    destinationAccountId?: string;
+    destinationTransactionId?: string;
+    refundsTxId?: string | null;
+    refundedByTxIds?: string[] | null;
     splits?: SplitInput[] | null;
   };
 }
@@ -92,7 +92,7 @@ export function updateTransaction({ raw = false, id, payload = {} }) {
   });
 }
 
-export function deleteTransaction({ id }: { id?: number } = {}): Promise<Response> {
+export function deleteTransaction({ id }: { id?: string } = {}): Promise<Response> {
   return makeRequest({
     method: 'delete',
     url: `/transactions/${id}`,
@@ -195,7 +195,7 @@ export function getTransactionsByIds<R extends boolean | undefined = undefined>(
   ids,
   raw,
 }: {
-  ids: number[];
+  ids: string[];
   raw?: R;
 }) {
   return makeRequest<TransactionApiResponse[], R>({
@@ -211,7 +211,7 @@ export function getTransactionById<R extends boolean | undefined = undefined>({
   includeSplits,
   raw,
 }: {
-  id: number;
+  id: string;
   includeSplits?: boolean;
   raw?: R;
 }) {
@@ -224,16 +224,16 @@ export function getTransactionById<R extends boolean | undefined = undefined>({
 
 // Bulk update helpers
 interface BulkUpdateTransactionsPayload {
-  transactionIds: number[];
-  categoryId?: number;
-  tagIds?: number[];
+  transactionIds: string[];
+  categoryId?: string;
+  tagIds?: string[];
   tagMode?: 'add' | 'replace' | 'remove';
   note?: string;
 }
 
 interface BulkUpdateResult {
   updatedCount: number;
-  updatedIds: number[];
+  updatedIds: string[];
 }
 
 export function bulkUpdateTransactions<R extends boolean | undefined = undefined>({

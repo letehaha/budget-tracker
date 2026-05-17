@@ -5,7 +5,7 @@ import * as helpers from '@tests/helpers';
 import { MakeRequestReturn } from './common';
 
 export const createSingleRefund = async (
-  payload: { originalTxId: number | null; refundTxId: number; splitId?: string },
+  payload: { originalTxId: string | null; refundTxId: string; splitId?: string },
   raw = false,
 ) => {
   const result = await helpers.makeRequest({
@@ -18,7 +18,7 @@ export const createSingleRefund = async (
 };
 
 export const getSingleRefund = async (
-  { originalTxId, refundTxId }: { originalTxId: number | null; refundTxId: number },
+  { originalTxId, refundTxId }: { originalTxId: string | null; refundTxId: string },
   raw = false,
 ) => {
   const result = await helpers.makeRequest({
@@ -45,7 +45,7 @@ export const getRefundTransactions = async (params?: Omit<GetRefundTransactionsP
 };
 
 export const deleteRefund = async (
-  payload: { originalTxId: number | null; refundTxId: number | null },
+  payload: { originalTxId: string | null; refundTxId: string | null },
   raw = false,
 ) => {
   const result = await helpers.makeRequest({
@@ -58,10 +58,10 @@ export const deleteRefund = async (
 };
 
 interface GetRefundRecommendationsParams {
-  transactionId?: number;
+  transactionId?: string;
   transactionType?: TRANSACTION_TYPES;
   originAmount?: number;
-  accountId?: number;
+  accountId?: string;
 }
 
 export function getRefundRecommendations<R extends boolean | undefined = undefined>({

@@ -1,5 +1,5 @@
-import { PaymentReminderNotificationModel, RemindBeforePreset } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
+import { PaymentReminderNotificationModel, RemindBeforePreset, RecordId } from '@bt/shared/types';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import PaymentReminderPeriods from './payment-reminder-periods.model';
@@ -13,22 +13,16 @@ export default class PaymentReminderNotifications extends Model implements Payme
   @Column({
     type: DataType.UUID,
     primaryKey: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: string;
-
-  @BeforeCreate
-  static generateUUIDv7(instance: PaymentReminderNotifications) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  declare id: RecordId;
 
   @ForeignKey(() => PaymentReminderPeriods)
   @Column({
     type: DataType.UUID,
     allowNull: false,
   })
-  periodId!: string;
+  periodId!: RecordId;
 
   @Column({
     type: DataType.STRING(20),

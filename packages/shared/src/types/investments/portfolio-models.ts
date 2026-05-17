@@ -4,7 +4,7 @@ import { HoldingModel } from './holding.model';
 import { InvestmentTransactionModel } from './investment-transaction.model';
 
 export interface PortfolioBalanceModel {
-  portfolioId: number;
+  portfolioId: string;
   currencyCode: string;
   availableCash: string;
   totalCash: string;
@@ -19,7 +19,7 @@ export interface PortfolioBalanceModel {
 }
 
 export interface PortfolioModel {
-  id: number;
+  id: string;
   name: string;
   userId: number;
   portfolioType: PORTFOLIO_TYPE;
@@ -36,19 +36,19 @@ export interface PortfolioModel {
 }
 
 export interface PortfolioTransferModel {
-  id: number;
+  id: string;
   userId: number;
-  fromAccountId: number | null;
-  toPortfolioId: number | null;
-  fromPortfolioId: number | null;
-  toAccountId: number | null;
+  fromAccountId: string | null;
+  toPortfolioId: string | null;
+  fromPortfolioId: string | null;
+  toAccountId: string | null;
   amount: string;
   refAmount: string;
   currencyCode: string;
   toCurrencyCode: string | null;
   toAmount: string | null;
   refToAmount: string | null;
-  transactionId: number | null;
+  transactionId: string | null;
   metaData: Record<string, unknown> | null;
   date: string;
   description: string | null;

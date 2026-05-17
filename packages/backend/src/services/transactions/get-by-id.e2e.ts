@@ -1,4 +1,5 @@
 import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -31,7 +32,7 @@ async function shareAccountWithRecipient({
   permission,
   transactionsWriteScope,
 }: {
-  accountId: number;
+  accountId: string;
   recipient: helpers.SecondUserHandle;
   permission: (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
   transactionsWriteScope?: 'own' | 'all';
@@ -163,7 +164,7 @@ describe('GET /transactions/:id — getTransactionById 4-branch coverage', () =>
   });
 
   it('returns 404 for a completely non-existent transaction id', async () => {
-    const res = await helpers.getTransactionById({ id: 9999999, raw: false });
+    const res = await helpers.getTransactionById({ id: generateRandomRecordId(), raw: false });
     // Controller serializes missing tx as null with 200; verify no data leaks
     expect(res.statusCode).toBe(200);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

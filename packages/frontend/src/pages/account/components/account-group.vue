@@ -15,7 +15,7 @@ const props = defineProps<{
   account: AccountModel;
 }>();
 
-const accId = ref<number | string>(props.account.id);
+const accId = ref<string>(props.account.id);
 
 const { group: accountGroupData } = useAccountGroupForAccount(accId);
 

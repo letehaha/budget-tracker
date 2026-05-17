@@ -36,7 +36,7 @@ async function provisionRecipient(): Promise<RecipientHandle> {
 }
 
 interface ShareAccountParams {
-  accountId: number;
+  accountId: string;
   recipient: RecipientHandle;
   permission: (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
   transactionsWriteScope?: 'own' | 'all';

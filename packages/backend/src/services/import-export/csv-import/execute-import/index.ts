@@ -32,8 +32,8 @@ interface ExecuteImportParams {
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
-  defaultAccountId?: number;
-  defaultCategoryId?: number;
+  defaultAccountId?: string;
+  defaultCategoryId?: string;
 }
 
 /**
@@ -104,7 +104,7 @@ async function executeImportImpl({
 
   // Create transactions
   const errors: ImportError[] = [];
-  const newTransactionIds: number[] = [];
+  const newTransactionIds: string[] = [];
 
   for (const row of rowsToImport) {
     try {
@@ -190,7 +190,7 @@ interface CreateAccountsParams {
   userId: number;
   rowsToImport: ParsedTransactionRow[];
   accountMapping: AccountMappingConfig;
-  defaultAccountId?: number;
+  defaultAccountId?: string;
 }
 
 async function createAccountsIfNeeded({
@@ -198,8 +198,8 @@ async function createAccountsIfNeeded({
   rowsToImport,
   accountMapping,
   defaultAccountId,
-}: CreateAccountsParams): Promise<Map<string, number>> {
-  const accountNameToId = new Map<string, number>();
+}: CreateAccountsParams): Promise<Map<string, string>> {
+  const accountNameToId = new Map<string, string>();
 
   // Get unique account names from rows
   const uniqueAccountNames = new Set(rowsToImport.map((r) => r.accountName));
@@ -286,8 +286,8 @@ async function createCategoriesIfNeeded({
   userId,
   rowsToImport,
   categoryMapping,
-}: CreateCategoriesParams): Promise<Map<string, number>> {
-  const categoryNameToId = new Map<string, number>();
+}: CreateCategoriesParams): Promise<Map<string, string>> {
+  const categoryNameToId = new Map<string, string>();
 
   // Get unique category names from rows (excluding empty/null)
   const uniqueCategoryNames = new Set(rowsToImport.filter((r) => r.categoryName).map((r) => r.categoryName!));

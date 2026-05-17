@@ -378,10 +378,10 @@ async function recalculateAccounts(params: {
   // and we read our own writes within the same DB transaction.
   const systemAccountIds = accounts.filter((a) => a.type === ACCOUNT_TYPES.system).map((a) => a.id);
 
-  const refAmountSums = new Map<number, number>();
+  const refAmountSums = new Map<string, number>();
 
   if (systemAccountIds.length > 0) {
-    const rows = await Transactions.sequelize!.query<{ accountId: number; refBalanceSum: string }>(
+    const rows = await Transactions.sequelize!.query<{ accountId: string; refBalanceSum: string }>(
       `SELECT
         "accountId",
         COALESCE(SUM(
@@ -512,7 +512,7 @@ async function rebuildBalances(params: {
 async function recalculateInvestmentTransactions(params: {
   userId: number;
   newCurrencyCode: string;
-  portfolioIds: number[];
+  portfolioIds: string[];
   transaction: SequelizeTransaction;
 }): Promise<number> {
   const { userId, newCurrencyCode, portfolioIds, transaction } = params;
@@ -609,7 +609,7 @@ async function recalculatePortfolioTransfers(params: {
 async function recalculateHoldings(params: {
   userId: number;
   newCurrencyCode: string;
-  portfolioIds: number[];
+  portfolioIds: string[];
   transaction: SequelizeTransaction;
 }): Promise<number> {
   const { userId, newCurrencyCode, portfolioIds, transaction } = params;
@@ -651,7 +651,7 @@ async function recalculateHoldings(params: {
 async function recalculatePortfolioBalances(params: {
   userId: number;
   newCurrencyCode: string;
-  portfolioIds: number[];
+  portfolioIds: string[];
   transaction: SequelizeTransaction;
 }): Promise<number> {
   const { userId, newCurrencyCode, portfolioIds, transaction } = params;

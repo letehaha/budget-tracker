@@ -3,14 +3,14 @@ import { SubscriptionModel, TransactionModel } from '@bt/shared/types';
 
 export interface SubscriptionListItem extends SubscriptionModel {
   linkedTransactionsCount: number;
-  account?: { id: number; name: string; currencyCode: string } | null;
-  category?: { id: number; name: string; color: string; icon: string | null } | null;
+  account?: { id: string; name: string; currencyCode: string } | null;
+  category?: { id: string; name: string; color: string; icon: string | null } | null;
 }
 
 interface SubscriptionDetail extends SubscriptionModel {
   nextExpectedDate: string | null;
-  account?: { id: number; name: string; currencyCode: string } | null;
-  category?: { id: number; name: string; color: string; icon: string | null } | null;
+  account?: { id: string; name: string; currencyCode: string } | null;
+  category?: { id: string; name: string; color: string; icon: string | null } | null;
   transactions?: Array<
     TransactionModel & {
       SubscriptionTransactions: {
@@ -74,7 +74,7 @@ export const linkTransactionsToSubscription = async ({
   transactionIds,
 }: {
   id: string;
-  transactionIds: number[];
+  transactionIds: string[];
 }): Promise<{ linked: number }> => {
   return api.post(`/subscriptions/${id}/transactions`, { transactionIds });
 };
@@ -84,7 +84,7 @@ export const unlinkTransactionsFromSubscription = async ({
   transactionIds,
 }: {
   id: string;
-  transactionIds: number[];
+  transactionIds: string[];
 }): Promise<{ unlinked: number }> => {
   return api.delete(`/subscriptions/${id}/transactions`, {
     data: { transactionIds },

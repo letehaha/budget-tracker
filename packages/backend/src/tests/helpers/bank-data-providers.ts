@@ -53,7 +53,7 @@ export function getConnectionDetails<R extends boolean | undefined = false>({
   connectionId,
   raw,
 }: {
-  connectionId: number;
+  connectionId: string;
   raw?: R;
 }) {
   return makeRequest<{ connection: Awaited<ReturnType<typeof getConnectionDetailsService.getConnectionDetails>> }, R>({
@@ -67,7 +67,7 @@ export function listExternalAccounts<R extends boolean | undefined = false>({
   connectionId,
   raw,
 }: {
-  connectionId: number;
+  connectionId: string;
   raw?: R;
 }): Promise<MakeRequestReturn<ListExternalAccountsResponseData, R>> {
   return makeRequest<ListExternalAccountsResponseData, R>({
@@ -82,14 +82,14 @@ export function connectSelectedAccounts<R extends boolean | undefined = false>({
   accountExternalIds,
   raw,
 }: {
-  connectionId: number;
+  connectionId: string;
   accountExternalIds: string[];
   raw?: R;
 }) {
   return makeRequest<
     {
       syncedAccounts: {
-        id: number;
+        id: string;
         externalId: string;
         name: string;
         balance: number;
@@ -113,8 +113,8 @@ export function syncTransactionsForAccount<R extends boolean | undefined = false
   accountId,
   raw,
 }: {
-  connectionId: number;
-  accountId: number;
+  connectionId: string;
+  accountId: string;
   raw?: R;
 }) {
   return makeRequest<
@@ -142,8 +142,8 @@ export function loadTransactionsForPeriod<R extends boolean | undefined = false>
   to,
   raw,
 }: {
-  connectionId: number;
-  accountId: number;
+  connectionId: string;
+  accountId: string;
   from: string;
   to: string;
   raw?: R;
@@ -173,7 +173,7 @@ export function getSyncJobProgress<R extends boolean | undefined = false>({
   jobGroupId,
   raw,
 }: {
-  connectionId: number;
+  connectionId: string;
   jobGroupId: string;
   raw?: R;
 }) {
@@ -204,7 +204,7 @@ export async function waitForSyncJobsToComplete({
   timeoutMs = 30000,
   pollIntervalMs = 500,
 }: {
-  connectionId: number;
+  connectionId: string;
   jobGroupId: string;
   timeoutMs?: number;
   pollIntervalMs?: number;
@@ -241,7 +241,7 @@ export function updateConnectionDetails<R extends boolean | undefined = false>({
   credentials,
   raw,
 }: {
-  connectionId: number;
+  connectionId: string;
   providerName?: string;
   credentials?: Record<string, unknown>;
   raw?: R;
@@ -249,7 +249,7 @@ export function updateConnectionDetails<R extends boolean | undefined = false>({
   return makeRequest<
     {
       connection: {
-        id: number;
+        id: string;
         providerName: string;
         providerType: string;
         isActive: boolean;
@@ -275,7 +275,7 @@ export function disconnectProvider<R extends boolean | undefined = false>({
   removeAssociatedAccounts = false,
   raw,
 }: {
-  connectionId: number;
+  connectionId: string;
   removeAssociatedAccounts?: boolean;
   raw?: R;
 }) {

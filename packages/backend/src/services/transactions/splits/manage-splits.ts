@@ -15,7 +15,7 @@ import { SplitInput } from './types';
 import { assertValidSplits } from './validate-splits';
 
 interface ManageSplitsParams {
-  transactionId: number;
+  transactionId: string;
   /** Caller's userId. Stamped on newly inserted split rows as creator metadata; also
    *  used to fetch the caller's base currency for refAmount conversion. */
   userId: number;
@@ -59,7 +59,7 @@ export const manageSplits = async ({
 
   // Build a map of categoryId -> refund info for existing splits
   const refundsByCategoryId = new Map<
-    number,
+    string,
     {
       totalRefundedRefAmount: Money;
       splitId: string;

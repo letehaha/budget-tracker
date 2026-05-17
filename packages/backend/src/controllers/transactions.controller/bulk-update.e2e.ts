@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -294,7 +295,7 @@ describe('Bulk update transactions controller', () => {
       const result = await helpers.bulkUpdateTransactions({
         payload: {
           transactionIds: [tx.id],
-          categoryId: 999999,
+          categoryId: generateRandomRecordId(),
         },
       });
 
@@ -306,7 +307,7 @@ describe('Bulk update transactions controller', () => {
 
       const result = await helpers.bulkUpdateTransactions({
         payload: {
-          transactionIds: [999999],
+          transactionIds: [generateRandomRecordId()],
           categoryId: category.id,
         },
       });

@@ -46,7 +46,7 @@ async function updateAccountBalanceForChangedTxImpl({
   prevRefAmount = Money.zero(),
   prevTransactionType = transactionType,
 }: {
-  accountId: number;
+  accountId: string;
   transactionType: TRANSACTION_TYPES;
   amount?: Money;
   prevAmount?: Money;

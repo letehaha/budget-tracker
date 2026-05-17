@@ -1,4 +1,5 @@
 import { SUBSCRIPTION_FREQUENCIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import Transactions from '@models/transactions.model';
@@ -16,7 +17,7 @@ async function createRecurringTransactions({
   count = 4,
   intervalDays = 30,
 }: {
-  accountId: number;
+  accountId: string;
   note: string;
   amount?: number;
   count?: number;
@@ -754,7 +755,7 @@ describe('Subscription Candidate Detection', () => {
       });
 
       const res = await helpers.acceptSubscriptionCandidate({
-        id: '01942b94-0000-7000-8000-000000000000',
+        id: generateRandomRecordId(),
         subscriptionId: sub.id,
       });
 
@@ -812,7 +813,7 @@ describe('Subscription Candidate Detection', () => {
 
       const res = await helpers.acceptSubscriptionCandidate({
         id: candidate.id,
-        subscriptionId: '01942b94-0000-7000-8000-000000000000',
+        subscriptionId: generateRandomRecordId(),
       });
 
       expect(res.statusCode).toBe(404);
@@ -940,7 +941,7 @@ describe('Subscription Candidate Detection', () => {
   describe('Error cases', () => {
     it('returns 404 when accepting a non-existent candidate', async () => {
       const res = await helpers.acceptSubscriptionCandidate({
-        id: '01942b94-0000-7000-8000-000000000000',
+        id: generateRandomRecordId(),
       });
 
       expect(res.statusCode).toBe(404);
@@ -994,7 +995,7 @@ describe('Subscription Candidate Detection', () => {
 
     it('returns 404 when dismissing a non-existent candidate', async () => {
       const res = await helpers.dismissSubscriptionCandidate({
-        id: '01942b94-0000-7000-8000-000000000000',
+        id: generateRandomRecordId(),
       });
 
       expect(res.statusCode).toBe(404);

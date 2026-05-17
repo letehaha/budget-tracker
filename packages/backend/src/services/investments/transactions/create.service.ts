@@ -17,8 +17,8 @@ import { calculateCashDelta } from './cash-balance-utils';
 
 interface CreateTxParams {
   userId: number;
-  portfolioId: number;
-  securityId: number;
+  portfolioId: string;
+  securityId: string;
   category: INVESTMENT_TRANSACTION_CATEGORY;
   date: string;
   quantity: string;

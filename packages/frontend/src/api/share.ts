@@ -19,7 +19,7 @@ interface InvitationListItem extends ShareInvitationModel {
 interface CreateInvitationPayload {
   inviteeEmail: string;
   resourceType: ResourceType;
-  resourceId: number | string;
+  resourceId: string;
   permission: SharePermission;
   policy?: SharePolicy | null;
 }

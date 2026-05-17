@@ -103,7 +103,7 @@ import PortfolioCashBalances from './components/portfolio-cash-balances.vue';
 
 const route = useRoute();
 const router = useRouter();
-const portfolioId = computed(() => Number(route.params.portfolioId));
+const portfolioId = computed(() => String(route.params.portfolioId));
 
 const { data: portfolio, isLoading, isError, error, refetch } = usePortfolio(portfolioId, { retry: false });
 

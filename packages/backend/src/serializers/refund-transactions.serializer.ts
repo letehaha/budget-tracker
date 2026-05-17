@@ -14,10 +14,10 @@ import { type TransactionApiResponse, serializeTransaction } from './transaction
 // ============================================================================
 
 interface RefundTransactionApiResponse {
-  id: number;
+  id: string;
   userId: number;
-  originalTxId: number | null;
-  refundTxId: number;
+  originalTxId: string | null;
+  refundTxId: string;
   splitId: string | null;
   createdAt?: Date;
   updatedAt?: Date;

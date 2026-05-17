@@ -130,7 +130,7 @@ const actionOptions = computed<OptionItem[]>(() => [
 
 // Create a reverse mapping to find which CSV account name maps to which system account ID
 const accountIdToCSVName = computed(() => {
-  const mapping: Record<number, string> = {};
+  const mapping: Record<string, string> = {};
   for (const [csvName, value] of Object.entries(importStore.accountMapping)) {
     if (value.action === 'link-existing') {
       mapping[value.accountId] = csvName;
@@ -162,21 +162,20 @@ const handleActionChange = (accountName: string, option: OptionItem | null) => {
     importStore.accountMapping[accountName] = { action: 'create-new' };
   } else if (action === 'link-existing') {
     // Set action but no accountId yet - user needs to select
-    importStore.accountMapping[accountName] = { action: 'link-existing', accountId: 0 };
+    importStore.accountMapping[accountName] = { action: 'link-existing', accountId: '' };
   }
 };
 
 const handleAccountSelect = (accountName: string, value: string) => {
-  const accountId = Number(value);
-  if (accountId) {
-    importStore.accountMapping[accountName] = { action: 'link-existing', accountId };
+  if (value) {
+    importStore.accountMapping[accountName] = { action: 'link-existing', accountId: value };
   }
 };
 
 const getAccountSelectValue = (accountName: string): string => {
   const mapping = importStore.accountMapping[accountName];
   if (mapping?.action === 'link-existing' && mapping.accountId) {
-    return String(mapping.accountId);
+    return mapping.accountId;
   }
   return '';
 };
@@ -192,13 +191,13 @@ const getAccountDisplayValue = (accountName: string): string => {
   return t('pages.importExport.accountMappingTable.selectAccount');
 };
 
-const isAccountMapped = (accountId: number, currentAccountName: string): boolean => {
+const isAccountMapped = (accountId: string, currentAccountName: string): boolean => {
   // Check if this account ID is already mapped to a different CSV account
   const mappedTo = accountIdToCSVName.value[accountId];
   return mappedTo !== undefined && mappedTo !== currentAccountName;
 };
 
-const getMappedToAccountName = (accountId: number): string => {
+const getMappedToAccountName = (accountId: string): string => {
   return accountIdToCSVName.value[accountId] || '';
 };
 

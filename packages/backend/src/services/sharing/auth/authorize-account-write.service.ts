@@ -6,7 +6,7 @@ import { type GrantedAccessResult, canUserAccessResource } from './can-user-acce
 
 interface AuthorizeAccountWriteParams {
   userId: number;
-  accountId: number;
+  accountId: string;
   /**
    * For update/delete: the existing transaction's creator userId. Omit for create
    * (the caller becomes the creator). When set and the recipient's policy is
@@ -36,7 +36,7 @@ export const assertTxWriteAccess = async ({
   notFoundKey,
 }: {
   userId: number;
-  tx: { accountId: number; userId: number };
+  tx: { accountId: string; userId: number };
   notFoundKey: 'transactions.linkCannotFind' | 'transactions.oppositeTransactionNotFound';
 }): Promise<GrantedAccessResult> => {
   const access = await canUserAccessResource({

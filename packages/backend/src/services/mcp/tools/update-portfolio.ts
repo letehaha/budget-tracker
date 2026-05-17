@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { updatePortfolio } from '@services/investments/portfolios/update.service';
@@ -13,7 +14,7 @@ export function registerUpdatePortfolio(server: McpServer) {
       description:
         "Update an existing portfolio's name, type, description, or enabled state. Use when the user wants to rename, recategorize, or disable one of their portfolios. Obtain the portfolioId from get_portfolios first. Only the fields provided are changed.",
       inputSchema: {
-        portfolioId: z.number().describe('Portfolio ID (from get_portfolios)'),
+        portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
         name: z.string().optional().describe('New portfolio name (must be unique for this user)'),
         portfolioType: z
           .enum([PORTFOLIO_TYPE.investment, PORTFOLIO_TYPE.retirement, PORTFOLIO_TYPE.savings, PORTFOLIO_TYPE.other])

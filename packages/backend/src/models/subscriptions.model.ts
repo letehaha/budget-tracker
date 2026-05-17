@@ -1,14 +1,5 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
-import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  BelongsTo,
-  BelongsToMany,
-  DataType,
-  BeforeCreate,
-} from 'sequelize-typescript';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules, RecordId } from '@bt/shared/types';
+import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
@@ -26,15 +17,9 @@ export default class Subscriptions extends Model {
   @Column({
     type: DataType.UUID,
     primaryKey: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: string;
-
-  @BeforeCreate
-  static generateUUIDv7(instance: Subscriptions) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({
@@ -88,17 +73,17 @@ export default class Subscriptions extends Model {
 
   @ForeignKey(() => Accounts)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  accountId!: number | null;
+  accountId!: RecordId | null;
 
   @ForeignKey(() => Categories)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  categoryId!: number | null;
+  categoryId!: RecordId | null;
 
   @Column({
     type: DataType.JSONB,

@@ -137,7 +137,7 @@ const handleOptionChange = (option: OptionItem | null) => {
       importStore.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: '' };
       break;
     case AccountOptionValue.existingAccount:
-      importStore.columnMapping.account = { option: AccountOptionValue.existingAccount, accountId: 0 };
+      importStore.columnMapping.account = { option: AccountOptionValue.existingAccount, accountId: '' };
       break;
   }
 };

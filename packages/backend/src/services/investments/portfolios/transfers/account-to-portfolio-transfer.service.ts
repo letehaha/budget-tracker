@@ -17,8 +17,8 @@ import {
 
 interface AccountToPortfolioTransferParams {
   userId: number;
-  accountId: number;
-  portfolioId: number;
+  accountId: string;
+  portfolioId: string;
   amount: string;
   date: string;
   description?: string | null;

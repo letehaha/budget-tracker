@@ -19,11 +19,11 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const BUDGET_DEFAULT_VALUES: {
-  id: number | null;
+  id: string | null;
   name: string | null;
   status: string | null;
   type: BUDGET_TYPES;
-  categoryIds: number[];
+  categoryIds: string[];
   startDate?: Date | null;
   endDate?: Date | null;
   limitAmount?: number | null;
@@ -81,7 +81,7 @@ const categoryErrorMessage = computed(() => {
 });
 const isSubmitDisabled = computed(() => isMutating.value || !form.value.name || !isCategoryValid.value);
 
-const onCategoriesUpdate = (value: number[]) => {
+const onCategoriesUpdate = (value: string[]) => {
   form.value.categoryIds = value;
   categoriesFieldTouched.value = true;
 };

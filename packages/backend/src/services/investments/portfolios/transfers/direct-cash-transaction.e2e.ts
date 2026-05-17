@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -39,7 +40,7 @@ describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transac
       });
 
       expect(transfer).toMatchObject({
-        id: expect.any(Number),
+        id: expect.any(String),
         fromAccountId: null,
         toPortfolioId: portfolio.id,
         fromPortfolioId: null,
@@ -119,7 +120,7 @@ describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transac
       });
 
       expect(transfer).toMatchObject({
-        id: expect.any(Number),
+        id: expect.any(String),
         fromAccountId: null,
         toPortfolioId: null,
         fromPortfolioId: portfolio.id,
@@ -282,7 +283,7 @@ describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transac
 
     it('should reject non-existent portfolio', async () => {
       const response = await helpers.directCashTransaction({
-        portfolioId: 999999,
+        portfolioId: generateRandomRecordId(),
         payload: {
           type: 'deposit',
           amount: '100',

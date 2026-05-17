@@ -51,7 +51,7 @@ const { data: connections, isLoading: isLoadingConnections } = useQuery<BankConn
 // Fetch external accounts for selected connection
 const { data: externalAccounts, isLoading: isLoadingExternalAccounts } = useQuery<AvailableAccount[]>({
   queryKey: [...VUE_QUERY_CACHE_KEYS.bankAvailableExternalAccounts, selectedConnectionId],
-  queryFn: () => getAvailableAccounts(Number(selectedConnectionId.value)),
+  queryFn: () => getAvailableAccounts(selectedConnectionId.value!),
   enabled: computed(() => !!selectedConnectionId.value),
 });
 
@@ -71,7 +71,7 @@ const linkAccount = async () => {
   try {
     const result = await linkAccountToBankConnection({
       accountId: props.account.id,
-      connectionId: Number(selectedConnectionId.value)!,
+      connectionId: selectedConnectionId.value!,
       externalAccountId: selectedExternalAccountId.value!,
     });
 

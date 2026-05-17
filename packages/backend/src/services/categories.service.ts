@@ -37,7 +37,7 @@ export const bulkCreate = withTransaction(
  * `accountId` and `includeAccessible` are mutually exclusive — caller must pick one.
  */
 export const getCategories = withTransaction(
-  async (payload: { userId: number; accountId?: number; includeAccessible?: boolean }) => {
+  async (payload: { userId: number; accountId?: string; includeAccessible?: boolean }) => {
     const { userId, accountId, includeAccessible } = payload;
 
     if (accountId !== undefined && includeAccessible) {

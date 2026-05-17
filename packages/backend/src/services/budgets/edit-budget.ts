@@ -10,14 +10,14 @@ import { withTransaction } from '@services/common/with-transaction';
 import { expandCategoryIds } from './utils/expand-category-ids';
 
 interface EditBudgetPayload {
-  id: number;
+  id: string;
   userId: number;
   name?: string;
   startDate?: string;
   endDate?: string;
   limitAmount?: Money;
   autoInclude?: boolean;
-  categoryIds?: number[];
+  categoryIds?: string[];
 }
 
 export const editBudget = withTransaction(async ({ id, userId, categoryIds, ...params }: EditBudgetPayload) => {

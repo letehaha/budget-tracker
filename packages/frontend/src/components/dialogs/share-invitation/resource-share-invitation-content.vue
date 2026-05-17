@@ -33,7 +33,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
-  accepted: [{ acceptedAccountId: number | null }];
+  accepted: [{ acceptedAccountId: string | null }];
   declined: [];
 }>();
 
@@ -47,7 +47,7 @@ const { isDemo } = storeToRefs(useUserStore());
 
 type ChildState = 'pending' | 'accepted' | 'declined' | 'error';
 const childState = ref<ChildState>('pending');
-const acceptedAccountId = ref<number | null>(null);
+const acceptedAccountId = ref<string | null>(null);
 
 const permissionLabel = (permission: InvitationLike['permission']) => resolvePermissionLabel(permission, t);
 
@@ -56,8 +56,7 @@ const acceptMutation = useMutation({
   onSuccess: async (data) => {
     childState.value = 'accepted';
     if (data.share.resourceType === RESOURCE_TYPES.account) {
-      const numeric = Number(data.share.resourceId);
-      if (Number.isInteger(numeric)) acceptedAccountId.value = numeric;
+      acceptedAccountId.value = data.share.resourceId;
     }
     addSuccessNotification(t('dialogs.shareInvitationDialog.acceptSuccess'));
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsReceived });

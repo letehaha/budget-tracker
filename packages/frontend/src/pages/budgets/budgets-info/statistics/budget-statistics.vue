@@ -12,7 +12,7 @@ import BudgetCategoryChart from './budget-category-chart.vue';
 import BudgetTimelineChart from './budget-timeline-chart.vue';
 
 const props = defineProps<{
-  budgetId: number;
+  budgetId: string;
 }>();
 
 const { t } = useI18n();

@@ -1,4 +1,5 @@
 import { CategoryModel } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -7,10 +8,10 @@ const CATEGORY_NAME = 'test-1';
 const CATEGORY_COLOR = '#FF0000';
 
 describe('Create custom categories and subcategories', () => {
-  const rootCategories: CategoryModel[] = [];
+  let rootCategories: CategoryModel[] = [];
 
   beforeEach(async () => {
-    rootCategories.push(...(await helpers.getCategoriesList()));
+    rootCategories = await helpers.getCategoriesList();
   });
 
   it('should successfully create a custom categories', async () => {
@@ -73,7 +74,7 @@ describe('Create custom categories and subcategories', () => {
   });
 
   it('should not allow creating category with non-existent parent', async () => {
-    const res = await helpers.addCustomCategory({ parentId: 9999, raw: false });
+    const res = await helpers.addCustomCategory({ parentId: NONEXISTENT_ID, raw: false });
 
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });

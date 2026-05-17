@@ -38,7 +38,7 @@ describe('Walutomat Data Provider E2E', () => {
       });
 
       expect(connectResult).toHaveProperty('connectionId');
-      expect(connectResult.connectionId).toBeGreaterThan(0);
+      expect(connectResult.connectionId).toBeTruthy();
 
       const connectionId = connectResult.connectionId;
 
@@ -48,7 +48,7 @@ describe('Walutomat Data Provider E2E', () => {
       expect(Array.isArray(connections)).toBe(true);
       expect(connections.length).toBeGreaterThan(0);
 
-      const connection = connections.find((c: { id: number }) => c.id === connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionId);
       expect(connection).toBeDefined();
       expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.WALUTOMAT);
       expect(connection?.providerName).toBe('Walutomat');
@@ -113,7 +113,7 @@ describe('Walutomat Data Provider E2E', () => {
       });
 
       expect(result).toHaveProperty('connectionId');
-      expect(result.connectionId).toBeGreaterThan(0);
+      expect(typeof result.connectionId).toBe('string');
     });
 
     it('should fail with invalid API key', async () => {
@@ -166,7 +166,7 @@ describe('Walutomat Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
       expect(connection?.providerName).toBe('Walutomat');
     });
   });
@@ -434,8 +434,10 @@ describe('Walutomat Data Provider E2E', () => {
         raw: true,
       });
 
-      const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === connectionId);
+      const { connections: disconnectedConnections } = await helpers.bankDataProviders.listUserConnections({
+        raw: true,
+      });
+      const connection = disconnectedConnections.find((c: { id: string }) => c.id === connectionId);
       expect(connection).toBeUndefined();
     });
   });

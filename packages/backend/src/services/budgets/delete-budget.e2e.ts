@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -38,7 +39,7 @@ describe('Delete Budget', () => {
           amount: 100,
           transactionType: TRANSACTION_TYPES.expense,
           time: '2025-03-02T10:00:00Z',
-          categoryId: 1,
+          categoryId: global.DEFAULT_CATEGORY_ID,
         }),
         raw: true,
       }),
@@ -48,7 +49,7 @@ describe('Delete Budget', () => {
           amount: 200,
           transactionType: TRANSACTION_TYPES.expense,
           time: '2025-03-03T10:00:00Z',
-          categoryId: 1,
+          categoryId: global.DEFAULT_CATEGORY_ID,
         }),
         raw: true,
       }),
@@ -93,7 +94,7 @@ describe('Delete Budget', () => {
 
   it('fails to delete a non-existent budget', async () => {
     const deleteResponse = await helpers.deleteCustomBudget({
-      id: 999999,
+      id: NONEXISTENT_ID,
       raw: false,
     });
 

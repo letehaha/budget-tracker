@@ -20,7 +20,7 @@ export enum SyncStatus {
 }
 
 export interface AccountSyncStatus {
-  accountId: number;
+  accountId: string;
   status: SyncStatus;
   startedAt: string | null;
   completedAt: string | null;
@@ -82,7 +82,7 @@ export async function setAccountSyncStatus({
   error = null,
   userId,
 }: {
-  accountId: number;
+  accountId: string;
   status: SyncStatus;
   error?: string | null;
   userId: number;
@@ -135,7 +135,7 @@ export async function setAccountSyncStatus({
  * Get sync status for an account
  * Automatically clears stale PENDING/SYNCING statuses
  */
-export async function getAccountSyncStatus(accountId: number): Promise<AccountSyncStatus | null> {
+export async function getAccountSyncStatus(accountId: string): Promise<AccountSyncStatus | null> {
   const defaultStatus = createDefaultStatus(accountId);
 
   if (!isRedisReady()) return defaultStatus;
@@ -162,7 +162,7 @@ export async function getAccountSyncStatus(accountId: number): Promise<AccountSy
 /**
  * Get sync status for multiple accounts - uses MGET for batch Redis lookup
  */
-export async function getMultipleAccountsSyncStatus(accountIds: number[]): Promise<AccountSyncStatus[]> {
+export async function getMultipleAccountsSyncStatus(accountIds: string[]): Promise<AccountSyncStatus[]> {
   if (accountIds.length === 0) return [];
 
   if (!isRedisReady()) {
@@ -212,7 +212,7 @@ export async function getMultipleAccountsSyncStatus(accountIds: number[]): Promi
 /**
  * Clear sync status for an account
  */
-export async function clearAccountSyncStatus(accountId: number): Promise<void> {
+export async function clearAccountSyncStatus(accountId: string): Promise<void> {
   if (!isRedisReady()) return;
   await redisClient.del(REDIS_KEYS.accountSyncStatus(accountId));
 }
@@ -220,7 +220,7 @@ export async function clearAccountSyncStatus(accountId: number): Promise<void> {
 /**
  * Set priority score for an account (higher = more priority)
  */
-export async function setAccountPriority(accountId: number, priority: number): Promise<void> {
+export async function setAccountPriority(accountId: string, priority: number): Promise<void> {
   if (!isRedisReady()) return;
   await redisClient.setex(REDIS_KEYS.accountPriority(accountId), STATUS_TTL, priority.toString());
 }
@@ -298,7 +298,7 @@ export async function clearAllSyncStatuses(): Promise<void> {
 /**
  * Create a default IDLE status for an account
  */
-function createDefaultStatus(accountId: number): AccountSyncStatus {
+function createDefaultStatus(accountId: string): AccountSyncStatus {
   return {
     accountId,
     status: SyncStatus.IDLE,

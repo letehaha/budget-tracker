@@ -80,7 +80,7 @@ export const useDeletePortfolioTransfer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: { portfolioId: number; transferId: number; deleteLinkedTransaction?: boolean }) =>
+    mutationFn: (params: { portfolioId: string; transferId: string; deleteLinkedTransaction?: boolean }) =>
       deletePortfolioTransfer(params),
     onSuccess: () => invalidateTransferRelatedQueries(queryClient),
   });
@@ -98,7 +98,7 @@ export const useLinkTransactionToPortfolio = () => {
   });
 };
 
-export const useTransactionPortfolioLink = (transactionId: MaybeRef<number | undefined>) => {
+export const useTransactionPortfolioLink = (transactionId: MaybeRef<string | undefined>) => {
   return useQuery({
     queryFn: () => getTransactionPortfolioLink({ transactionId: unref(transactionId)! }),
     queryKey: [...VUE_QUERY_CACHE_KEYS.transactionPortfolioLink, transactionId],
@@ -110,7 +110,7 @@ export const useUnlinkTransactionFromPortfolio = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: { transactionId: number }) => unlinkTransactionFromPortfolio(params),
+    mutationFn: (params: { transactionId: string }) => unlinkTransactionFromPortfolio(params),
     onSuccess: () => {
       invalidateTransferRelatedQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
@@ -121,7 +121,7 @@ export const useUnlinkTransactionFromPortfolio = () => {
 
 // Portfolio transfers listing composable - focused on data fetching only
 /** @public */
-export const usePortfolioTransfers = (portfolioId: MaybeRef<number | undefined>, queryOptions = {}) => {
+export const usePortfolioTransfers = (portfolioId: MaybeRef<string | undefined>, queryOptions = {}) => {
   const queryClient = useQueryClient();
 
   const query = useQuery({

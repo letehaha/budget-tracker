@@ -36,7 +36,7 @@ export async function getHoldings<R extends boolean | undefined = false>({
   payload,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   payload: Omit<Parameters<typeof holdingsService.getHoldings>[0], 'userId' | 'portfolioId'>;
   raw?: R;
 }) {

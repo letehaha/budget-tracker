@@ -113,31 +113,12 @@ export const getSharedAccountsForUser = async ({
   ]);
   if (!perResourceShares.length && !householdShares.length) return [];
 
-  const perResourceAccountIds: number[] = [];
+  const perResourceAccountIds: string[] = [];
   const sharesByResourceId = new Map<string, ResourceShares>();
   for (const share of perResourceShares) {
-    const numeric = toPositiveInt(share.resourceId);
-    if (numeric !== null) {
-      perResourceAccountIds.push(numeric);
+    if (share.resourceId) {
+      perResourceAccountIds.push(share.resourceId);
       sharesByResourceId.set(share.resourceId, share);
-    } else {
-      // Account-type shares always carry a positive integer string `resourceId` (it's an
-      // FK into Accounts). A non-numeric value here means the row was written through a
-      // path that bypassed the create-share guards — data corruption, not a recoverable
-      // edge case. Drop the row from the response so the user isn't blocked, but log so
-      // ops can investigate.
-      logger.error(
-        {
-          message: 'Account-type share row has non-numeric resourceId',
-          error: new Error(`resourceId=${JSON.stringify(share.resourceId)}`),
-        },
-        {
-          code: 'SHARED_ACCOUNT_INVALID_RESOURCE_ID',
-          shareId: share.id,
-          userId,
-          resourceId: share.resourceId,
-        },
-      );
     }
   }
 
@@ -245,7 +226,7 @@ export const getSharedAccountById = async ({
   id,
 }: {
   userId: number;
-  id: number;
+  id: string;
 }): Promise<(Accounts & { _shareContext: AccountShareContext }) | null> => {
   const access = await canUserAccessResource({
     userId,

@@ -1,25 +1,20 @@
 import { test, expect } from '@playwright/test';
 
-import { completeOnboarding, createAccount, createTransaction, linkTransactions } from '../../helpers/api-client';
+import {
+  completeOnboarding,
+  createAccount,
+  createTransaction,
+  extractId,
+  linkTransactions,
+} from '../../helpers/api-client';
 import { loginViaUI } from '../../helpers/auth';
 import { buildTestCredentials, signUpAndVerify } from '../../helpers/test-setup';
 
 const CURRENCY = 'USD';
 const creds = buildTestCredentials({ prefix: 'oow-link' });
 
-/** Extract entity ID from API response, handling `{ response: { id } }`, `{ response: [{ id }] }`, and `{ id }` shapes */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractId(apiResult: any): number {
-  const resp = apiResult.response;
-  const id = Array.isArray(resp) ? resp[0]?.id : (resp?.id ?? apiResult.id);
-  if (!id || id <= 0) {
-    throw new Error(`Failed to extract valid ID from API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
-  }
-  return id;
-}
-
-let accountA: { id: number; name: string };
-let accountB: { id: number; name: string };
+let accountA: { id: string; name: string };
+let accountB: { id: string; name: string };
 let dataSeeded = false;
 
 test.describe.configure({ mode: 'serial' });
