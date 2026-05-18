@@ -112,6 +112,40 @@ type FkInfo = {
 
 const TEMP_SUFFIX = '__uuid_tmp';
 
+/**
+ * Translates a single int/numeric-string ID to its UUID via `map`. Returns
+ * `null` when the value isn't translatable (already a UUID, missing from
+ * the map, or an unexpected type).
+ *   - Pass-through: an existing UUID string is returned as-is.
+ *   - Translate: an INTEGER or numeric-string is looked up in `map`.
+ *   - Drop: anything else / unmapped → null (caller decides what to do).
+ */
+const translateId = (value: unknown, map: Map<number, string>): string | null => {
+  if (typeof value === 'string') {
+    if (/^[0-9a-f-]{36}$/i.test(value)) return value;
+    if (/^[0-9]+$/.test(value)) return map.get(Number(value)) ?? null;
+    return null;
+  }
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    return map.get(value) ?? null;
+  }
+  return null;
+};
+
+/**
+ * Translates an array of mixed int/string IDs to UUIDs using the provided map.
+ * Drops entries that can't be translated. Returns null when the input isn't an array.
+ */
+const translateIdArray = (value: unknown, map: Map<number, string>): string[] | null => {
+  if (!Array.isArray(value)) return null;
+  const next: string[] = [];
+  for (const entry of value) {
+    const uuid = translateId(entry, map);
+    if (uuid) next.push(uuid);
+  }
+  return next;
+};
+
 module.exports = {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     const sequelize = queryInterface.sequelize;
@@ -273,6 +307,225 @@ module.exports = {
         });
         // Drop the auto-increment sequence default so the column can be removed cleanly.
         await sequelize.query(`ALTER TABLE "${table}" ALTER COLUMN "id" DROP DEFAULT;`, { transaction: t });
+      }
+
+      // ---------------------------------------------------------------
+      // 6b. Rewrite JSONB and stringified-id columns that embed entity
+      // IDs as integers. The schema migration has produced UUIDs in
+      // `id__uuid_tmp` on each parent table; we reuse those mappings
+      // to translate stored IDs in-place before the old INTEGER columns
+      // are dropped (step 7) and before the CHECK constraints flip to
+      // demand UUID shape (step 13).
+      //
+      // Covered surfaces:
+      //   - UserSettings.settings.dashboard.widgets[*].config.selectedCategoryIds (categories)
+      //   - UserSettings.settings.dashboard.widgets[*].config.excludedCategoryIds (categories)
+      //   - Subscriptions.matchingRules.rules[*].value          where field='accountId' (accounts)
+      //   - PortfolioTransfers.metaData.originalTransactionState.{accountId,categoryId}
+      //   - Notifications.payload.{tagId,budgetId,transactionIds[]} (best-effort; drops
+      //     unmapped ids so the payload stays well-formed)
+      //   - ResourceShares.resourceId                            where resourceType='account' (accounts)
+      //   - ShareInvitations.resourceId                          where resourceType='account' (accounts)
+      //
+      // Stale references (e.g. category deleted before migration ran)
+      // are dropped from arrays, set to null on scalar fields, or — for
+      // share rows where resourceId is NOT NULL and no mapping exists —
+      // the row is deleted to keep the polymorphic CHECK satisfiable.
+      // ---------------------------------------------------------------
+      const buildIntToUuidMap = async (table: string): Promise<Map<number, string>> => {
+        const rows: { id_int: number; id_uuid: string }[] = await sequelize.query(
+          `SELECT "id" AS id_int, "id${TEMP_SUFFIX}"::text AS id_uuid FROM "${table}";`,
+          { type: QueryTypes.SELECT, transaction: t },
+        );
+        return new Map(rows.map((r) => [Number(r.id_int), r.id_uuid]));
+      };
+
+      const categoryIntToUuid = await buildIntToUuidMap('Categories');
+      const accountIntToUuid = await buildIntToUuidMap('Accounts');
+      const tagIntToUuid = await buildIntToUuidMap('Tags');
+      const budgetIntToUuid = await buildIntToUuidMap('Budgets');
+      const transactionIntToUuid = await buildIntToUuidMap('Transactions');
+
+      // -- UserSettings.settings.dashboard.widgets[*].config.{selected,excluded}CategoryIds
+      type WidgetConfig = Record<string, unknown> | undefined;
+      type Widget = { config?: WidgetConfig };
+      type DashboardSettings = { widgets?: Widget[] };
+      type SettingsJson = { dashboard?: DashboardSettings } & Record<string, unknown>;
+      type UserSettingsRow = { id: number; settings: SettingsJson | null };
+
+      const userSettingsRows: UserSettingsRow[] = await sequelize.query(
+        `SELECT "id", "settings" FROM "UserSettings";`,
+        { type: QueryTypes.SELECT, transaction: t },
+      );
+
+      for (const row of userSettingsRows) {
+        const widgets = row.settings?.dashboard?.widgets;
+        if (!Array.isArray(widgets)) continue;
+
+        let mutated = false;
+        for (const widget of widgets) {
+          if (!widget?.config) continue;
+          for (const key of ['selectedCategoryIds', 'excludedCategoryIds']) {
+            const translated = translateIdArray(widget.config[key], categoryIntToUuid);
+            if (translated === null) continue;
+            if (JSON.stringify(widget.config[key]) !== JSON.stringify(translated)) {
+              widget.config[key] = translated;
+              mutated = true;
+            }
+          }
+        }
+
+        if (mutated) {
+          await sequelize.query(`UPDATE "UserSettings" SET "settings" = $1::jsonb WHERE "id" = $2`, {
+            bind: [JSON.stringify(row.settings), row.id],
+            transaction: t,
+          });
+        }
+      }
+
+      // -- Subscriptions.matchingRules.rules[*].value where field='accountId'
+      type MatchingRule = { field?: string; value?: unknown } & Record<string, unknown>;
+      type MatchingRules = { rules?: MatchingRule[] } & Record<string, unknown>;
+      type SubscriptionRow = { id: string; matchingRules: MatchingRules | null };
+
+      const subscriptionRows: SubscriptionRow[] = await sequelize.query(
+        `SELECT "id"::text AS id, "matchingRules" FROM "Subscriptions";`,
+        { type: QueryTypes.SELECT, transaction: t },
+      );
+
+      for (const row of subscriptionRows) {
+        const rules = row.matchingRules?.rules;
+        if (!Array.isArray(rules)) continue;
+
+        let mutated = false;
+        for (const rule of rules) {
+          if (rule?.field !== 'accountId') continue;
+          const uuid = translateId(rule.value, accountIntToUuid);
+          if (uuid && uuid !== rule.value) {
+            rule.value = uuid;
+            mutated = true;
+          }
+        }
+
+        if (mutated) {
+          await sequelize.query(`UPDATE "Subscriptions" SET "matchingRules" = $1::jsonb WHERE "id" = $2`, {
+            bind: [JSON.stringify(row.matchingRules), row.id],
+            transaction: t,
+          });
+        }
+      }
+
+      // -- PortfolioTransfers.metaData.originalTransactionState.{accountId,categoryId}
+      type OriginalTxState = { accountId?: unknown; categoryId?: unknown } & Record<string, unknown>;
+      type TransferMeta = { originalTransactionState?: OriginalTxState } & Record<string, unknown>;
+      type PortfolioTransferRow = { id: string; metaData: TransferMeta | null };
+
+      const transferRows: PortfolioTransferRow[] = await sequelize.query(
+        `SELECT "id"::text AS id, "metaData" FROM "PortfolioTransfers" WHERE "metaData" IS NOT NULL;`,
+        { type: QueryTypes.SELECT, transaction: t },
+      );
+
+      for (const row of transferRows) {
+        const state = row.metaData?.originalTransactionState;
+        if (!state) continue;
+
+        let mutated = false;
+        const newAccountId = translateId(state.accountId, accountIntToUuid);
+        if (newAccountId && newAccountId !== state.accountId) {
+          state.accountId = newAccountId;
+          mutated = true;
+        }
+        const newCategoryId = translateId(state.categoryId, categoryIntToUuid);
+        if (newCategoryId && newCategoryId !== state.categoryId) {
+          state.categoryId = newCategoryId;
+          mutated = true;
+        }
+
+        if (mutated) {
+          await sequelize.query(`UPDATE "PortfolioTransfers" SET "metaData" = $1::jsonb WHERE "id" = $2`, {
+            bind: [JSON.stringify(row.metaData), row.id],
+            transaction: t,
+          });
+        }
+      }
+
+      // -- Notifications.payload.{tagId,budgetId,transactionIds[]}
+      type NotificationPayload = {
+        tagId?: unknown;
+        budgetId?: unknown;
+        transactionIds?: unknown;
+      } & Record<string, unknown>;
+      type NotificationRow = { id: number; payload: NotificationPayload | null };
+
+      const notificationRows: NotificationRow[] = await sequelize.query(
+        `SELECT "id", "payload" FROM "Notifications";`,
+        { type: QueryTypes.SELECT, transaction: t },
+      );
+
+      for (const row of notificationRows) {
+        const payload = row.payload;
+        if (!payload) continue;
+
+        let mutated = false;
+        if ('tagId' in payload) {
+          const uuid = translateId(payload.tagId, tagIntToUuid);
+          if (uuid && uuid !== payload.tagId) {
+            payload.tagId = uuid;
+            mutated = true;
+          }
+        }
+        if ('budgetId' in payload) {
+          const uuid = translateId(payload.budgetId, budgetIntToUuid);
+          if (uuid && uuid !== payload.budgetId) {
+            payload.budgetId = uuid;
+            mutated = true;
+          }
+        }
+        if ('transactionIds' in payload) {
+          const translated = translateIdArray(payload.transactionIds, transactionIntToUuid);
+          if (translated !== null && JSON.stringify(payload.transactionIds) !== JSON.stringify(translated)) {
+            payload.transactionIds = translated;
+            mutated = true;
+          }
+        }
+
+        if (mutated) {
+          await sequelize.query(`UPDATE "Notifications" SET "payload" = $1::jsonb WHERE "id" = $2`, {
+            bind: [JSON.stringify(payload), row.id],
+            transaction: t,
+          });
+        }
+      }
+
+      // -- ResourceShares.resourceId / ShareInvitations.resourceId where resourceType='account'
+      //
+      // Stored as INTEGER::text pre-migration. The polymorphic CHECK we install in
+      // step 13 demands UUID shape, so any account-share rows must be rewritten or
+      // dropped before that ALTER runs.
+      for (const table of ['ResourceShares', 'ShareInvitations']) {
+        const rows: { id: string; resourceId: string }[] = await sequelize.query(
+          `SELECT "id"::text AS id, "resourceId"
+             FROM "${table}"
+            WHERE "resourceType" = 'account';`,
+          { type: QueryTypes.SELECT, transaction: t },
+        );
+
+        for (const row of rows) {
+          const uuid = translateId(row.resourceId, accountIntToUuid);
+          if (uuid && uuid !== row.resourceId) {
+            await sequelize.query(`UPDATE "${table}" SET "resourceId" = $1 WHERE "id" = $2`, {
+              bind: [uuid, row.id],
+              transaction: t,
+            });
+          } else if (!uuid) {
+            // Account no longer exists. The share row is dangling and would
+            // violate the new CHECK regex; drop it.
+            await sequelize.query(`DELETE FROM "${table}" WHERE "id" = $1`, {
+              bind: [row.id],
+              transaction: t,
+            });
+          }
+        }
       }
 
       // ---------------------------------------------------------------
