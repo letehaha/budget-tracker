@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ACCOUNT_TYPES,
@@ -625,7 +626,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     userId,
   }: {
     connectionId: string;
-    systemAccountId: string;
+    systemAccountId: RecordId;
     userId: number;
   }): Promise<void> {
     // Set status to SYNCING

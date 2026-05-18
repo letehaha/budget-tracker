@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -9,9 +10,9 @@ import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 interface AddTransactionsToTagPayload {
-  tagId: string;
+  tagId: RecordId;
   userId: number;
-  transactionIds: string[];
+  transactionIds: RecordId[];
 }
 
 export const addTransactionsToTag = withTransaction(async (payload: AddTransactionsToTagPayload) => {

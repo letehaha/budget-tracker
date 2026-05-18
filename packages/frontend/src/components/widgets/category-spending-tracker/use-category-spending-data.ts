@@ -1,7 +1,7 @@
 import { getSpendingsByCategories } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useRootStore } from '@/stores';
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { TRANSACTION_TYPES, type RecordId } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed, type Ref } from 'vue';
@@ -78,8 +78,8 @@ export function useCategorySpendingData({
     const result: Record<string, CategorySpendingItem> = {};
 
     for (const catId of categoryIds.value) {
-      const expense = expenseData.value?.[catId];
-      const income = incomeData.value?.[catId];
+      const expense = expenseData.value?.[catId as RecordId];
+      const income = incomeData.value?.[catId as RecordId];
 
       result[catId] = {
         id: catId,

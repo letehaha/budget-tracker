@@ -1,4 +1,5 @@
 import { type FormattedCategory } from '@/common/types';
+import { type RecordId } from '@bt/shared/types';
 import { CATEGORY_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
@@ -12,7 +13,7 @@ import {
   toggleCategorySelection,
 } from './combobox-categories.helpers';
 
-const makeCategory = (overrides: Partial<FormattedCategory> & { id: string; name: string }): FormattedCategory => ({
+const makeCategory = (overrides: Partial<FormattedCategory> & { id: RecordId; name: string }): FormattedCategory => ({
   id: overrides.id,
   key: overrides.key ?? null,
   name: overrides.name,
@@ -35,22 +36,22 @@ const makeCategory = (overrides: Partial<FormattedCategory> & { id: string; name
 //   └─ Public ('12')
 // [internal] Transfers ('100')
 const buildTree = (): FormattedCategory[] => {
-  const fastFood = makeCategory({ id: '4', name: 'Fast Food', parentId: '3' });
-  const fineDining = makeCategory({ id: '5', name: 'Fine Dining', parentId: '3' });
-  const groceries = makeCategory({ id: '2', name: 'Groceries', parentId: '1' });
+  const fastFood = makeCategory({ id: '4' as RecordId, name: 'Fast Food', parentId: '3' as RecordId });
+  const fineDining = makeCategory({ id: '5' as RecordId, name: 'Fine Dining', parentId: '3' as RecordId });
+  const groceries = makeCategory({ id: '2' as RecordId, name: 'Groceries', parentId: '1' as RecordId });
   const restaurants = makeCategory({
-    id: '3',
+    id: '3' as RecordId,
     name: 'Restaurants',
-    parentId: '1',
+    parentId: '1' as RecordId,
     subCategories: [fastFood, fineDining],
   });
-  const food = makeCategory({ id: '1', name: 'Food', subCategories: [groceries, restaurants] });
+  const food = makeCategory({ id: '1' as RecordId, name: 'Food', subCategories: [groceries, restaurants] });
 
-  const gas = makeCategory({ id: '11', name: 'Gas', parentId: '10' });
-  const publicTransport = makeCategory({ id: '12', name: 'Public', parentId: '10' });
-  const transport = makeCategory({ id: '10', name: 'Transport', subCategories: [gas, publicTransport] });
+  const gas = makeCategory({ id: '11' as RecordId, name: 'Gas', parentId: '10' as RecordId });
+  const publicTransport = makeCategory({ id: '12' as RecordId, name: 'Public', parentId: '10' as RecordId });
+  const transport = makeCategory({ id: '10' as RecordId, name: 'Transport', subCategories: [gas, publicTransport] });
 
-  const transfers = makeCategory({ id: '100', name: 'Transfers', type: CATEGORY_TYPES.internal });
+  const transfers = makeCategory({ id: '100' as RecordId, name: 'Transfers', type: CATEGORY_TYPES.internal });
 
   return [food, transport, transfers];
 };
@@ -70,7 +71,7 @@ describe('collectDescendantIds', () => {
   });
 
   it('returns empty array for leaf categories', () => {
-    const leaf = makeCategory({ id: '99', name: 'Leaf' });
+    const leaf = makeCategory({ id: '99' as RecordId, name: 'Leaf' });
     expect(collectDescendantIds({ category: leaf })).toEqual([]);
   });
 });
@@ -118,10 +119,20 @@ describe('flattenCategories', () => {
 
   it('propagates the original root parent to grandchildren beyond depth 2', () => {
     // Food ('1') > Restaurants ('3') > Fast Food ('4') > Bao Place ('200')
-    const baoPlace = makeCategory({ id: '200', name: 'Bao Place', parentId: '4' });
-    const fastFood = makeCategory({ id: '4', name: 'Fast Food', parentId: '3', subCategories: [baoPlace] });
-    const restaurants = makeCategory({ id: '3', name: 'Restaurants', parentId: '1', subCategories: [fastFood] });
-    const food = makeCategory({ id: '1', name: 'Food', subCategories: [restaurants] });
+    const baoPlace = makeCategory({ id: '200' as RecordId, name: 'Bao Place', parentId: '4' as RecordId });
+    const fastFood = makeCategory({
+      id: '4' as RecordId,
+      name: 'Fast Food',
+      parentId: '3' as RecordId,
+      subCategories: [baoPlace],
+    });
+    const restaurants = makeCategory({
+      id: '3' as RecordId,
+      name: 'Restaurants',
+      parentId: '1' as RecordId,
+      subCategories: [fastFood],
+    });
+    const food = makeCategory({ id: '1' as RecordId, name: 'Food', subCategories: [restaurants] });
 
     const flat = flattenCategories({ categories: [food] });
     const grandchild = findFlat(flat, '200');

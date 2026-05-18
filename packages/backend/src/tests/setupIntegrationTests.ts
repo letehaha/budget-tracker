@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { RecordId } from '@bt/shared/types';
 import { until } from '@common/helpers';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { i18nextReady } from '@i18n/index';
@@ -289,7 +290,7 @@ beforeEach(async () => {
     if (!defaultCategory) {
       throw new Error('Setup: expected at least one seeded default category for test user');
     }
-    global.DEFAULT_CATEGORY_ID = defaultCategory.id;
+    global.DEFAULT_CATEGORY_ID = defaultCategory.id as RecordId;
 
     // Create better-auth records (ba_*) for test user
     // Since auth is mocked via MSW, we need to manually create these records

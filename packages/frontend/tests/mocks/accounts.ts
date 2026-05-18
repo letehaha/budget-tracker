@@ -1,4 +1,10 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  AccountWithRelinkStatus,
+  type RecordId,
+} from '@bt/shared/types';
 
 import { USER_CURRENCIES } from './currencies';
 import { USER } from './user';
@@ -10,7 +16,7 @@ export const uah2AccountName = 'Account UAH (2)';
 
 export const ACCOUNTS: AccountWithRelinkStatus[] = [
   {
-    id: '00000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-0000-0000-000000000001' as RecordId,
     name: eurAccountName,
     initialBalance: 0,
     refInitialBalance: 0,
@@ -29,7 +35,7 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     needsRelink: false,
   },
   {
-    id: '00000000-0000-0000-0000-000000000002',
+    id: '00000000-0000-0000-0000-000000000002' as RecordId,
     name: usdAccountName,
     initialBalance: 0,
     refInitialBalance: 0,
@@ -48,7 +54,7 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     needsRelink: false,
   },
   {
-    id: '00000000-0000-0000-0000-000000000003',
+    id: '00000000-0000-0000-0000-000000000003' as RecordId,
     name: uahAccountName,
     initialBalance: 0,
     refInitialBalance: 0,
@@ -67,7 +73,7 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     needsRelink: false,
   },
   {
-    id: '00000000-0000-0000-0000-000000000004',
+    id: '00000000-0000-0000-0000-000000000004' as RecordId,
     name: uah2AccountName,
     initialBalance: 0,
     refInitialBalance: 0,

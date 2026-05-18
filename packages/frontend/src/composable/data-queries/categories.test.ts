@@ -1,6 +1,6 @@
 import { loadCategoriesByAccount } from '@/api/categories';
 import { useNotificationCenter } from '@/components/notification-center';
-import { CATEGORY_TYPES, type CategoryModel } from '@bt/shared/types';
+import { CATEGORY_TYPES, type CategoryModel, type RecordId } from '@bt/shared/types';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,7 +34,7 @@ const i18n = createI18n({
 
 const MOCK_CATEGORIES: CategoryModel[] = [
   {
-    id: '00000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-0000-0000-000000000001' as RecordId,
     key: null,
     name: 'Food',
     icon: null,
@@ -44,7 +44,7 @@ const MOCK_CATEGORIES: CategoryModel[] = [
     userId: 42,
   },
   {
-    id: '00000000-0000-0000-0000-000000000002',
+    id: '00000000-0000-0000-0000-000000000002' as RecordId,
     key: null,
     name: 'Transport',
     icon: null,

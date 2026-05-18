@@ -80,7 +80,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import * as Combobox from '@/components/lib/ui/combobox';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useTagsStore } from '@/stores';
-import { TagModel } from '@bt/shared/types';
+import { TagModel, type RecordId } from '@bt/shared/types';
 import { isEqual } from 'lodash-es';
 import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -138,7 +138,7 @@ watch(isOpen, (open) => {
 const orderedTags = computed(() => {
   if (isOpen.value && sessionOrder.value.length) {
     const byId = new Map(baseSortedTags.value.map((t) => [t.id, t] as const));
-    return sessionOrder.value.map((id) => byId.get(id)!).filter(Boolean);
+    return sessionOrder.value.map((id) => byId.get(id as RecordId)!).filter(Boolean);
   }
   return baseSortedTags.value;
 });

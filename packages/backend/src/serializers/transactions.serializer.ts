@@ -6,6 +6,7 @@
  * Deserializers convert API decimal inputs to Money.
  */
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
 import type Tags from '@models/tags.model';
 import type TransactionGroups from '@models/transaction-groups.model';
@@ -79,16 +80,16 @@ interface CreateTransactionRequest {
   time?: string;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: string;
+  accountId: RecordId;
   destinationAccountId?: string;
   destinationTransactionId?: string;
-  categoryId?: string;
+  categoryId?: RecordId;
   accountType?: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
   refundForTxId?: string;
   refundForSplitId?: string;
   splits?: Array<{
-    categoryId: string;
+    categoryId: RecordId;
     amount: number; // decimal from API
     note?: string | null;
   }>;
@@ -107,16 +108,16 @@ interface CreateTransactionInternal {
   time?: Date;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: string;
+  accountId: RecordId;
   destinationAccountId?: string;
   destinationTransactionId?: string;
-  categoryId?: string;
+  categoryId?: RecordId;
   accountType: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
   refundsTxId?: string;
   refundsSplitId?: string;
   splits?: Array<{
-    categoryId: string;
+    categoryId: RecordId;
     amount: Money;
     note?: string | null;
   }>;

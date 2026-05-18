@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
@@ -56,7 +57,7 @@ const validateSplits = async ({
   }
 
   // Validate each split
-  const categoryIds = new Set<string>();
+  const categoryIds = new Set<RecordId>();
 
   for (let i = 0; i < splits.length; i++) {
     const split = splits[i]!;

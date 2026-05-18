@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
@@ -30,7 +31,7 @@ interface GetCashFlowParams {
   to: string;
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: string;
-  categoryIds?: string[];
+  categoryIds?: RecordId[];
 }
 
 /**
@@ -267,7 +268,7 @@ export const getCashFlow = async ({
   // Determine which categories to report in the breakdown
   // If specific categories selected, report those exact categories (not aggregated to root)
   // Otherwise, aggregate to root categories
-  let reportCategoryIds: string[];
+  let reportCategoryIds: RecordId[];
   // When specific categories are selected, aggregate to those categories instead of root
   const aggregateToSelectedCategories = categoryIds && categoryIds.length > 0;
 

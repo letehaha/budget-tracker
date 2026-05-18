@@ -1,5 +1,11 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, AccountModel, TransactionModel } from '@bt/shared/types';
+import {
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  AccountModel,
+  TransactionModel,
+  type RecordId,
+} from '@bt/shared/types';
 import {
   USER_CATEGORIES,
   buildExternalExpenseTransaction,
@@ -398,7 +404,7 @@ describe('prepareTxUpdationParams', () => {
       // picking a category, dereferencing `category.id` would throw a TypeError. The
       // dialog should still submit; the backend keeps the existing column.
       const transferTx = buildSystemTransferExpenseTransaction({
-        categoryId: null as unknown as string,
+        categoryId: null as unknown as RecordId,
       });
       const formMock: UI_FORM_STRUCT = {
         ...buildBaseFormMock(transferTx),

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
@@ -41,7 +42,7 @@ type AccountWithRelinkStatus = Accounts.default & {
  */
 async function attachBankProviderTypes(accounts: AccountWithRelinkStatus[]): Promise<void> {
   const connectionIds = Array.from(
-    new Set(accounts.map((a) => a.bankDataProviderConnectionId).filter((id): id is string => typeof id === 'string')),
+    new Set(accounts.map((a) => a.bankDataProviderConnectionId).filter((id): id is RecordId => typeof id === 'string')),
   );
   if (!connectionIds.length) return;
 

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { ListExternalAccountsResponseData } from '@controllers/bank-data-providers/connections/list-external-accounts';
 import * as connectProviderService from '@services/bank-data-providers/connection/connect-provider';
@@ -89,7 +90,7 @@ export function connectSelectedAccounts<R extends boolean | undefined = false>({
   return makeRequest<
     {
       syncedAccounts: {
-        id: string;
+        id: RecordId;
         externalId: string;
         name: string;
         balance: number;

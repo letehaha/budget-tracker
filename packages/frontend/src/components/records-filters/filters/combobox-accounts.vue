@@ -134,7 +134,7 @@ import { Collapsible, CollapsibleContent } from '@/components/lib/ui/collapsible
 import * as Combobox from '@/components/lib/ui/combobox';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useAccountsStore } from '@/stores';
-import { AccountModel } from '@bt/shared/types';
+import { AccountModel, type RecordId } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { isEqual } from 'lodash-es';
 import { CheckIcon, ChevronDown, MinusIcon, SearchIcon, XIcon } from 'lucide-vue-next';
@@ -318,7 +318,7 @@ const toggleGroup = (groupId: string) => {
 
   if (allSelected) {
     const groupIdSet = new Set(groupAccountIds);
-    selectedAccountIds.value = selectedAccountIds.value.filter((id) => !groupIdSet.has(id));
+    selectedAccountIds.value = selectedAccountIds.value.filter((id) => !groupIdSet.has(id as RecordId));
   } else {
     const currentSet = new Set(selectedAccountIds.value);
     const toAdd = groupAccountIds.filter((id) => !currentSet.has(id));

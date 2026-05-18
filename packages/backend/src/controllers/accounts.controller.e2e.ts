@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
@@ -30,7 +31,7 @@ async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T
   }
 }
 
-async function createExpenseTransactions({ accountId, count }: { accountId: string; count: number }) {
+async function createExpenseTransactions({ accountId, count }: { accountId: RecordId; count: number }) {
   for (const index in Array(count).fill(0)) {
     await helpers.createTransaction({
       payload: {

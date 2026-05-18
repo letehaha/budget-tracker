@@ -12,7 +12,7 @@ import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import type { BulkTransferScanItem } from '@bt/shared/types/endpoints';
-import type { TransactionModel } from '@bt/shared/types';
+import type { TransactionModel, RecordId } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import type { Period } from '@/composable/use-period-navigation';
 import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
@@ -144,7 +144,7 @@ async function freshScan() {
 // Link mutation
 const linkMutation = useMutation({
   mutationFn: ({ expenseId, incomeId }: { expenseId: string; incomeId: string }) =>
-    linkTransactions({ ids: [[expenseId, incomeId]] }),
+    linkTransactions({ ids: [[expenseId as RecordId, incomeId as RecordId]] }),
   onMutate: async ({ expenseId, incomeId }) => {
     const previous = { items: [...allItems.value], total: totalCount.value };
 
@@ -191,8 +191,8 @@ const linkMutation = useMutation({
 const skipMutation = useMutation({
   mutationFn: ({ expenseId, incomeId }: { expenseId: string; incomeId: string }) =>
     dismissTransferSuggestion({
-      expenseTransactionId: expenseId,
-      incomeTransactionId: incomeId,
+      expenseTransactionId: expenseId as RecordId,
+      incomeTransactionId: incomeId as RecordId,
     }),
   onMutate: async ({ expenseId, incomeId }) => {
     const previous = { items: [...allItems.value], total: totalCount.value };

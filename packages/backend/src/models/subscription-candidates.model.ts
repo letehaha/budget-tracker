@@ -63,7 +63,7 @@ export default class SubscriptionCandidates extends Model {
     allowNull: false,
     defaultValue: [],
   })
-  sampleTransactionIds!: string[];
+  sampleTransactionIds!: RecordId[];
 
   @Column({
     type: DataType.INTEGER,

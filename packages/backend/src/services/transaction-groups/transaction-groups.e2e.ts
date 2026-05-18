@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
@@ -6,7 +7,7 @@ import * as helpers from '@tests/helpers';
 
 describe('Transaction Groups API', () => {
   // Helper to create N transactions for a given account
-  const createTransactions = async ({ accountId, count }: { accountId: string; count: number }) => {
+  const createTransactions = async ({ accountId, count }: { accountId: RecordId; count: number }) => {
     const txs: { id: string }[] = [];
     for (let i = 0; i < count; i++) {
       const [tx] = await helpers.createTransaction({

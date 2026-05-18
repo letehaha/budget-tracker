@@ -100,7 +100,7 @@ describe('POST /holdings (create holding)', () => {
 
   it('fails if required fields are missing', async () => {
     // Missing portfolioId
-    const payloadMissingPortfolioId = { securityId: vooSecurity.id } as Parameters<
+    const payloadMissingPortfolioId = { securityId: vooSecurity.id } as unknown as Parameters<
       typeof helpers.createHolding
     >[0]['payload'];
 
@@ -112,7 +112,7 @@ describe('POST /holdings (create holding)', () => {
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
 
     // Missing securityId
-    const payloadMissingSecurityId = { portfolioId: investmentPortfolio.id } as Parameters<
+    const payloadMissingSecurityId = { portfolioId: investmentPortfolio.id } as unknown as Parameters<
       typeof helpers.createHolding
     >[0]['payload'];
 

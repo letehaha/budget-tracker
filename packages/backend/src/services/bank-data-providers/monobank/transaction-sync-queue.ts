@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
@@ -20,7 +21,7 @@ import { MonobankApiClient } from './api-client';
 
 interface TransactionSyncJobData extends SentryTraceData {
   userId: number;
-  accountId: string;
+  accountId: RecordId;
   connectionId: string;
   externalAccountId: string;
   apiToken: string;
@@ -428,7 +429,7 @@ function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Date; to:
  */
 export async function queueTransactionSync(params: {
   userId: number;
-  accountId: string;
+  accountId: RecordId;
   connectionId: string;
   externalAccountId: string;
   apiToken: string;

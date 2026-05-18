@@ -1,6 +1,6 @@
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
-import { UserModel } from '@bt/shared/types';
+import { UserModel, type RecordId } from '@bt/shared/types';
 import { createTestingPinia } from '@pinia/testing';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { mount } from '@vue/test-utils';
@@ -55,7 +55,7 @@ const demoUser: UserModel = {
   middleName: '',
   avatar: '',
   totalBalance: 0,
-  defaultCategoryId: '00000000-0000-0000-0000-000000000001',
+  defaultCategoryId: '00000000-0000-0000-0000-000000000001' as RecordId,
   role: 'demo',
 };
 
@@ -68,7 +68,7 @@ const regularUser: UserModel = {
   middleName: '',
   avatar: '',
   totalBalance: 0,
-  defaultCategoryId: '00000000-0000-0000-0000-000000000001',
+  defaultCategoryId: '00000000-0000-0000-0000-000000000001' as RecordId,
   role: 'common',
 };
 

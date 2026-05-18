@@ -1,5 +1,5 @@
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import type { TagModel, TransactionModel } from '@bt/shared/types';
+import type { TagModel, TransactionModel, RecordId } from '@bt/shared/types';
 import type { InfiniteData, QueryClient } from '@tanstack/vue-query';
 import { toRaw } from 'vue';
 
@@ -52,7 +52,7 @@ export const buildOptimisticTransaction = ({
   if (form.tagIds !== undefined) {
     updatedTransaction.tags = toRaw(form.tagIds).map(
       (id): TagModel => ({
-        id,
+        id: id as RecordId,
         userId: rawTransaction.userId,
         name: '',
         color: '',

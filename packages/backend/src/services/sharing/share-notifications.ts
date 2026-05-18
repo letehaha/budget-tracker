@@ -1,5 +1,6 @@
 import {
   NOTIFICATION_TYPES,
+  RecordId,
   RESOURCE_TYPES,
   ResourceType,
   ShareInvitationNotificationPayload,
@@ -28,7 +29,7 @@ import { formatHouseholdLabel } from './sharing-utils';
 const snapshotUser = (user: Users | null | undefined) => snapshotShareUser(user, SHARE_SNAPSHOT_MISSING_USER_ID);
 
 interface InvitationContext {
-  invitationId: string;
+  invitationId: RecordId;
   /** Token is denormalized into the notification payload so the frontend can deep-link
    *  to the accept page without a separate lookup. */
   token: string;
@@ -86,8 +87,8 @@ const notifyInvitationAccepted = async ({
 }: {
   ownerUserId: number;
   recipient: Users;
-  shareId: string;
-  invitationId: string;
+  shareId: RecordId;
+  invitationId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
 }) => {
@@ -120,7 +121,7 @@ const notifyInvitationDeclined = async ({
 }: {
   ownerUserId: number;
   recipient: Users | null;
-  invitationId: string;
+  invitationId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
 }) => {
   const recipientSnapshot = snapshotUser(recipient);
@@ -154,7 +155,7 @@ const notifyInvitationExpired = async ({
 }: {
   ownerUserId: number;
   invitee: Users | null;
-  invitationId: string;
+  invitationId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
 }) => {
@@ -189,7 +190,7 @@ const notifyShareRevoked = async ({
 }: {
   recipientUserId: number;
   owner: Users | null;
-  shareId: string;
+  shareId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
 }) => {
@@ -226,7 +227,7 @@ export const notifyShareOwnerAccountDeleted = async ({
 }: {
   recipientUserId: number;
   owner: Users | null;
-  shareId: string;
+  shareId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
 }) => {
@@ -264,7 +265,7 @@ export const notifyInvitationSendFailed = async ({
   ownerUserId: number;
   invitee: Users | null;
   inviteeEmail: string;
-  invitationId: string;
+  invitationId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
 }) => {
   const payload: ShareInvitationSendFailedPayload = {
@@ -298,7 +299,7 @@ const notifyShareLeft = async ({
 }: {
   ownerUserId: number;
   recipient: Users | null;
-  shareId: string;
+  shareId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
 }) => {
@@ -378,8 +379,8 @@ const notifyHouseholdAccepted = async ({
 }: {
   ownerUserId: number;
   recipient: Users;
-  shareId: string;
-  invitationId: string;
+  shareId: RecordId;
+  invitationId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
 }) => {
@@ -410,7 +411,7 @@ const notifyHouseholdDeclined = async ({
 }: {
   ownerUserId: number;
   recipient: Users | null;
-  invitationId: string;
+  invitationId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
 }) => {
   const recipientSnapshot = snapshotUser(recipient);
@@ -440,7 +441,7 @@ const notifyHouseholdExpired = async ({
 }: {
   ownerUserId: number;
   invitee: Users | null;
-  invitationId: string;
+  invitationId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
 }) => {
@@ -471,7 +472,7 @@ export const notifyHouseholdRevoked = async ({
 }: {
   recipientUserId: number;
   owner: Users | null;
-  shareId: string;
+  shareId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
 }) => {
@@ -503,7 +504,7 @@ const notifyHouseholdLeft = async ({
 }: {
   ownerUserId: number;
   recipient: Users | null;
-  shareId: string;
+  shareId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
 }) => {
@@ -536,7 +537,7 @@ export const notifyHouseholdPermissionChanged = async ({
 }: {
   recipientUserId: number;
   owner: Users | null;
-  shareId: string;
+  shareId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
   permission: SharePermission;
   policy?: SharePolicy | null;
@@ -574,7 +575,7 @@ export const notifyHouseholdOwnerAccountDeleted = async ({
   recipientUserId: number;
   owner: Users | null;
   /** The household ResourceShares.id. */
-  shareId: string;
+  shareId: RecordId;
   /** Identifies the deleted account so the frontend can drop any cached references. */
   resource: { type: ResourceType; id: string; name: string };
 }) => {
@@ -612,7 +613,7 @@ export const notifyHouseholdMemberAccountDeleted = async ({
    * so the caller captures it just before the cascade.
    */
   memberSnapshot: { id: number; username: string; avatar: string | null };
-  shareId: string;
+  shareId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
 }) => {
   const payload: ShareLifecycleNotificationPayload = {
@@ -646,7 +647,7 @@ const notifyHouseholdInvitationSendFailed = async ({
   ownerUserId: number;
   invitee: Users | null;
   inviteeEmail: string;
-  invitationId: string;
+  invitationId: RecordId;
   resource: { type: ResourceType; id: string; name: string };
 }) => {
   const payload: ShareInvitationSendFailedPayload = {

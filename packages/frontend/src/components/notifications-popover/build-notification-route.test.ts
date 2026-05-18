@@ -1,5 +1,6 @@
 import type { NotificationStruct } from '@/api/notifications';
 import { ROUTES_NAMES } from '@/routes/constants';
+import type { RecordId } from '@bt/shared/types';
 import { NOTIFICATION_STATUSES, NOTIFICATION_TYPES, RESOURCE_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
@@ -7,7 +8,7 @@ import { buildNotificationRoute } from './build-notification-route';
 
 const baseNotification = (overrides: Partial<NotificationStruct>): NotificationStruct =>
   ({
-    id: 'n1',
+    id: 'n1' as RecordId,
     type: NOTIFICATION_TYPES.system,
     status: NOTIFICATION_STATUSES.unread,
     title: 'title',

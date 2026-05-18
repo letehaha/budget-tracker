@@ -5,6 +5,7 @@ import {
   ACCOUNT_TYPES,
   type AccountModel,
   SHARE_PERMISSIONS,
+  type RecordId,
 } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
@@ -12,7 +13,7 @@ import { getAccountDisplayLabel, isAccountArchived } from './account-display';
 
 const makeAccount = (overrides: Partial<AccountModel> = {}): AccountModel => ({
   type: ACCOUNT_TYPES.system,
-  id: '00000000-0000-0000-0000-000000000001',
+  id: '00000000-0000-0000-0000-000000000001' as RecordId,
   name: 'Cash',
   initialBalance: 0,
   refInitialBalance: 0,

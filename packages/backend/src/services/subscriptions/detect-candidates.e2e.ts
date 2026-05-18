@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { SUBSCRIPTION_FREQUENCIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
@@ -17,7 +18,7 @@ async function createRecurringTransactions({
   count = 4,
   intervalDays = 30,
 }: {
-  accountId: string;
+  accountId: RecordId;
   note: string;
   amount?: number;
   count?: number;

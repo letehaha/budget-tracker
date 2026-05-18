@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -23,14 +24,14 @@ import { Op } from 'sequelize';
 import { buildDateFilter } from './utils/build-date-filter';
 
 interface CategoryInfo {
-  id: string;
+  id: RecordId;
   name: string;
   color: string;
-  parentId: string | null;
+  parentId: RecordId | null;
 }
 
 interface SpendingByCategoryItem {
-  categoryId: string;
+  categoryId: RecordId;
   name: string;
   color: string;
   amount: number; // cents, positive (expenses only)
@@ -39,7 +40,7 @@ interface SpendingByCategoryItem {
 
 interface CategoryAmountEntry {
   amount: number;
-  children: Map<string, number>;
+  children: Map<RecordId, number>;
 }
 
 interface SpendingPeriod {
@@ -112,9 +113,9 @@ const getRootCategoryId = ({
   categoryId,
   categoryMap,
 }: {
-  categoryId: string;
+  categoryId: RecordId;
   categoryMap: Map<string, CategoryInfo>;
-}): string => {
+}): RecordId => {
   let current = categoryMap.get(categoryId);
   if (!current) return categoryId;
 
@@ -138,10 +139,10 @@ const getTopLevelTargetCategoryId = ({
   categoryMap,
   targetCategoryIds,
 }: {
-  categoryId: string;
+  categoryId: RecordId;
   categoryMap: Map<string, CategoryInfo>;
-  targetCategoryIds: Set<string>;
-}): string => {
+  targetCategoryIds: Set<RecordId>;
+}): RecordId => {
   let topLevel = categoryId;
   let current = categoryMap.get(categoryId);
 
@@ -173,7 +174,7 @@ const getEmptyResponse = (): SpendingStatsResponse => ({
 const buildCategoryMap = ({
   categories,
 }: {
-  categories: { id: string; name: string; color: string; parentId: string | null }[];
+  categories: { id: RecordId; name: string; color: string; parentId: RecordId | null }[];
 }): Map<string, CategoryInfo> => {
   const categoryMap = new Map<string, CategoryInfo>();
   categories.forEach((cat) => {
@@ -212,7 +213,7 @@ const buildSpendingsByCategory = ({
   categoryAmounts,
   categoryMap,
 }: {
-  categoryAmounts: Map<string, CategoryAmountEntry>;
+  categoryAmounts: Map<RecordId, CategoryAmountEntry>;
   categoryMap: Map<string, CategoryInfo>;
 }): SpendingByCategoryItem[] => {
   const result: SpendingByCategoryItem[] = [];
@@ -253,8 +254,8 @@ interface NormalizedTxData {
   time: Date;
   amount: number; // cents
   isExpense: boolean;
-  categoryId: string | null; // aggregation target (root or top-level target), null = skip category aggregation
-  originalCategoryId: string | null; // the actual leaf category
+  categoryId: RecordId | null; // aggregation target (root or top-level target), null = skip category aggregation
+  originalCategoryId: RecordId | null; // the actual leaf category
 }
 
 const determineDateRange = ({
@@ -299,7 +300,7 @@ const aggregateTransactionData = ({
   const periodData = new Map<number, { expense: number; income: number }>();
   buckets.forEach((_, index) => periodData.set(index, { expense: 0, income: 0 }));
 
-  const categoryAmounts = new Map<string, CategoryAmountEntry>();
+  const categoryAmounts = new Map<RecordId, CategoryAmountEntry>();
 
   for (const txData of txDataList) {
     const bucketIndex = findBucketIndex({ transactionTime: new Date(txData.time), buckets });
@@ -357,12 +358,12 @@ const getManualBudgetSpendingStats = async ({
 
   if (transactions.length === 0) return getEmptyResponse();
 
-  const allCategories = await Categories.findAll({
+  const allCategoriesRaw = (await Categories.findAll({
     where: { userId },
     attributes: ['id', 'name', 'color', 'parentId'],
     raw: true,
-  });
-  const categoryMap = buildCategoryMap({ categories: allCategories });
+  })) as unknown as { id: RecordId; name: string; color: string; parentId: RecordId | null }[];
+  const categoryMap = buildCategoryMap({ categories: allCategoriesRaw });
 
   const txDataList: NormalizedTxData[] = transactions.map((tx) => {
     const rootCatId = tx.categoryId ? getRootCategoryId({ categoryId: tx.categoryId, categoryMap }) : null;
@@ -411,17 +412,17 @@ const getCategoryBudgetSpendingStats = async ({
   });
 
   // Fetch all user categories for hierarchy
-  const allCategories = await Categories.findAll({
+  const allCategoriesRaw = (await Categories.findAll({
     where: { userId },
     attributes: ['id', 'name', 'color', 'parentId'],
     raw: true,
-  });
-  const categoryMap = buildCategoryMap({ categories: allCategories });
-  const targetCategoryIds = new Set(budgetCategoryIds);
+  })) as unknown as { id: RecordId; name: string; color: string; parentId: RecordId | null }[];
+  const categoryMap = buildCategoryMap({ categories: allCategoriesRaw });
+  const targetCategoryIds = new Set<RecordId>(budgetCategoryIds);
 
   // Expand target categories to include all descendants
-  const expandedCategoryIds = new Set<string>(budgetCategoryIds);
-  allCategories.forEach((cat) => {
+  const expandedCategoryIds = new Set<RecordId>(budgetCategoryIds);
+  allCategoriesRaw.forEach((cat) => {
     let current: CategoryInfo | undefined = categoryMap.get(cat.id);
     while (current) {
       if (targetCategoryIds.has(current.id)) {

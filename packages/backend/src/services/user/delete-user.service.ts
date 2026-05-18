@@ -1,5 +1,6 @@
 import {
   HouseholdSharePermission,
+  RecordId,
   RESOURCE_TYPES,
   SharePermission,
   TransactionCreatorSnapshot,
@@ -32,7 +33,7 @@ import { formatHouseholdLabel, toPositiveInt } from '../sharing/sharing-utils';
  */
 interface AccountDeleteNotificationTarget {
   recipientUserId: number;
-  shareId: string;
+  shareId: RecordId;
   resourceId: string;
   resourceName: string;
   permission: SharePermission;
@@ -41,14 +42,14 @@ interface AccountDeleteNotificationTarget {
 interface HouseholdRevokedTarget {
   /** Member who loses access (recipient of the household share). */
   recipientUserId: number;
-  shareId: string;
+  shareId: RecordId;
   permission: HouseholdSharePermission;
 }
 
 interface HouseholdOwnerNotifyTarget {
   /** Owner who gets notified that one of their household members is gone. */
   ownerUserId: number;
-  shareId: string;
+  shareId: RecordId;
 }
 
 interface DeleteUserInTxResult {
@@ -216,7 +217,12 @@ async function collectAccountDeleteNotificationTargets({
     where: { ownerUserId: deletingUser.id, resourceType: RESOURCE_TYPES.account },
     attributes: ['id', 'sharedWithUserId', 'resourceId', 'permission'],
     raw: true,
-  })) as Array<{ id: string; sharedWithUserId: number; resourceId: string; permission: SharePermission }>;
+  })) as unknown as Array<{
+    id: RecordId;
+    sharedWithUserId: number;
+    resourceId: RecordId;
+    permission: SharePermission;
+  }>;
 
   if (shares.length === 0) return [];
 
@@ -291,7 +297,7 @@ async function collectHouseholdRevokedTargets({
     },
     attributes: ['id', 'sharedWithUserId', 'permission'],
     raw: true,
-  })) as Array<{ id: string; sharedWithUserId: number; permission: HouseholdSharePermission }>;
+  })) as Array<{ id: RecordId; sharedWithUserId: number; permission: HouseholdSharePermission }>;
 
   return rows.map((row) => ({
     recipientUserId: row.sharedWithUserId,
@@ -318,7 +324,7 @@ async function collectHouseholdOwnerNotifyTargets({
     },
     attributes: ['id', 'ownerUserId'],
     raw: true,
-  })) as Array<{ id: string; ownerUserId: number }>;
+  })) as Array<{ id: RecordId; ownerUserId: number }>;
 
   return rows.map((row) => ({
     ownerUserId: row.ownerUserId,

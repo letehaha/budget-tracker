@@ -1,7 +1,8 @@
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 
 export interface SplitInput {
-  categoryId: string;
+  categoryId: RecordId;
   amount: Money;
   refAmount?: Money;
   note?: string | null;

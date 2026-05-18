@@ -1,4 +1,5 @@
 import { CATEGORIZATION_SOURCE, SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ConflictError, NotFoundError } from '@js/errors';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
@@ -9,8 +10,8 @@ import { Op } from 'sequelize';
 import { findSubscriptionOrThrow } from './helpers';
 
 interface LinkTransactionsParams {
-  subscriptionId: string;
-  transactionIds: string[];
+  subscriptionId: RecordId;
+  transactionIds: RecordId[];
   userId: number;
   matchSource: SUBSCRIPTION_MATCH_SOURCE;
 }

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
@@ -110,7 +111,7 @@ export async function createCategories({ userId }: { userId: number }): Promise<
   const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
 
   // Build map of category key -> id
-  const categoryMap = new Map<string, string>();
+  const categoryMap = new Map<string, RecordId>();
   translatedCategories.main.forEach((item, index) => {
     const createdCategory = categories[index];
     if (createdCategory) {

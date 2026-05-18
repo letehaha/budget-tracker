@@ -21,6 +21,7 @@ import {
   SUBSCRIPTION_TYPES,
   type SubscriptionMatchingRule,
   type SubscriptionModel,
+  type RecordId,
 } from '@bt/shared/types';
 import { AlertCircleIcon, ChevronDownIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -224,8 +225,8 @@ const handleSubmit = () => {
     frequency: form.value.frequency,
     startDate: form.value.startDate?.toISOString().split('T')[0] ?? new Date().toISOString().split('T')[0]!,
     endDate: form.value.endDate ? form.value.endDate.toISOString().split('T')[0]! : null,
-    accountId: form.value.accountId || null,
-    categoryId: form.value.categoryId || null,
+    accountId: (form.value.accountId || null) as RecordId | null,
+    categoryId: (form.value.categoryId || null) as RecordId | null,
     matchingRules: {
       rules: form.value.matchingRules.filter((r) => {
         // Filter out empty rules

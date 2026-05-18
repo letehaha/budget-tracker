@@ -6,6 +6,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionModel,
+  type RecordId,
 } from '@bt/shared/types';
 import {
   ACCOUNTS,
@@ -217,7 +218,7 @@ describe('components/modals/modify-record/helpers', () => {
       const sourceAccount = getUahAccount();
       const transaction = buildSystemTransferExpenseTransaction({
         accountId: sourceAccount.id,
-        categoryId: null as unknown as string,
+        categoryId: null as unknown as RecordId,
       });
 
       const result = prepopulateForm({
@@ -371,7 +372,7 @@ describe('components/modals/modify-record/helpers', () => {
     const destSystemAccount = getUah2Account();
     const destMonobankAccount = {
       ...getUah2Account(),
-      id: '00000000-0000-0000-0000-000000000099',
+      id: '00000000-0000-0000-0000-000000000099' as RecordId,
       type: ACCOUNT_TYPES.monobank,
     } as AccountModel;
 

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import { REDIS_KEY_PREFIX, redisClient } from '@root/redis-client';
 
@@ -20,7 +21,7 @@ export enum SyncStatus {
 }
 
 export interface AccountSyncStatus {
-  accountId: string;
+  accountId: RecordId;
   status: SyncStatus;
   startedAt: string | null;
   completedAt: string | null;
@@ -82,7 +83,7 @@ export async function setAccountSyncStatus({
   error = null,
   userId,
 }: {
-  accountId: string;
+  accountId: RecordId;
   status: SyncStatus;
   error?: string | null;
   userId: number;
@@ -135,7 +136,7 @@ export async function setAccountSyncStatus({
  * Get sync status for an account
  * Automatically clears stale PENDING/SYNCING statuses
  */
-export async function getAccountSyncStatus(accountId: string): Promise<AccountSyncStatus | null> {
+export async function getAccountSyncStatus(accountId: RecordId): Promise<AccountSyncStatus | null> {
   const defaultStatus = createDefaultStatus(accountId);
 
   if (!isRedisReady()) return defaultStatus;
@@ -162,7 +163,7 @@ export async function getAccountSyncStatus(accountId: string): Promise<AccountSy
 /**
  * Get sync status for multiple accounts - uses MGET for batch Redis lookup
  */
-export async function getMultipleAccountsSyncStatus(accountIds: string[]): Promise<AccountSyncStatus[]> {
+export async function getMultipleAccountsSyncStatus(accountIds: RecordId[]): Promise<AccountSyncStatus[]> {
   if (accountIds.length === 0) return [];
 
   if (!isRedisReady()) {
@@ -298,7 +299,7 @@ export async function clearAllSyncStatuses(): Promise<void> {
 /**
  * Create a default IDLE status for an account
  */
-function createDefaultStatus(accountId: string): AccountSyncStatus {
+function createDefaultStatus(accountId: RecordId): AccountSyncStatus {
   return {
     accountId,
     status: SyncStatus.IDLE,

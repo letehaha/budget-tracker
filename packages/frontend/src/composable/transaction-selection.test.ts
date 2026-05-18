@@ -1,12 +1,12 @@
-import { TransactionModel, TransactionSplitModel } from '@bt/shared/types';
+import { TransactionModel, TransactionSplitModel, type RecordId } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
 import { useTransactionSelection } from './transaction-selection';
 
 const buildTx = (overrides: Partial<TransactionModel>): TransactionModel =>
   ({
-    id: '00000000-0000-0000-0000-000000000001',
-    accountId: '00000000-0000-0000-0000-000000000100',
+    id: '00000000-0000-0000-0000-000000000001' as RecordId,
+    accountId: '00000000-0000-0000-0000-000000000100' as RecordId,
     splits: undefined,
     ...overrides,
   }) as TransactionModel;
@@ -14,10 +14,10 @@ const buildTx = (overrides: Partial<TransactionModel>): TransactionModel =>
 describe('useTransactionSelection', () => {
   it('default selectability — split parents are not selectable', () => {
     const splitParent = buildTx({
-      id: '00000000-0000-0000-0000-000000000001',
+      id: '00000000-0000-0000-0000-000000000001' as RecordId,
       splits: [
         {
-          id: '00000000-0000-0000-0000-000000000011',
+          id: '00000000-0000-0000-0000-000000000011' as RecordId,
           transactionId: '00000000-0000-0000-0000-000000000001',
           userId: 100,
           categoryId: '00000000-0000-0000-0000-000000000001',
@@ -27,7 +27,7 @@ describe('useTransactionSelection', () => {
         } as TransactionSplitModel,
       ],
     });
-    const regular = buildTx({ id: '00000000-0000-0000-0000-000000000002' });
+    const regular = buildTx({ id: '00000000-0000-0000-0000-000000000002' as RecordId });
     const { isTransactionSelectable } = useTransactionSelection({
       getTransactions: () => [splitParent, regular],
     });
@@ -38,12 +38,12 @@ describe('useTransactionSelection', () => {
 
   it('honors isExtraSelectable for callers that need an extra gate (e.g. shared-account lockout)', () => {
     const ownAccountTx = buildTx({
-      id: '00000000-0000-0000-0000-000000000001',
-      accountId: '00000000-0000-0000-0000-000000000100',
+      id: '00000000-0000-0000-0000-000000000001' as RecordId,
+      accountId: '00000000-0000-0000-0000-000000000100' as RecordId,
     });
     const sharedAccountTx = buildTx({
-      id: '00000000-0000-0000-0000-000000000002',
-      accountId: '00000000-0000-0000-0000-000000000200',
+      id: '00000000-0000-0000-0000-000000000002' as RecordId,
+      accountId: '00000000-0000-0000-0000-000000000200' as RecordId,
     });
 
     const { isTransactionSelectable } = useTransactionSelection({
@@ -57,16 +57,16 @@ describe('useTransactionSelection', () => {
 
   it('selectAll skips transactions blocked by isExtraSelectable', () => {
     const a = buildTx({
-      id: '00000000-0000-0000-0000-000000000001',
-      accountId: '00000000-0000-0000-0000-000000000100',
+      id: '00000000-0000-0000-0000-000000000001' as RecordId,
+      accountId: '00000000-0000-0000-0000-000000000100' as RecordId,
     });
     const b = buildTx({
-      id: '00000000-0000-0000-0000-000000000002',
-      accountId: '00000000-0000-0000-0000-000000000200',
+      id: '00000000-0000-0000-0000-000000000002' as RecordId,
+      accountId: '00000000-0000-0000-0000-000000000200' as RecordId,
     });
     const c = buildTx({
-      id: '00000000-0000-0000-0000-000000000003',
-      accountId: '00000000-0000-0000-0000-000000000100',
+      id: '00000000-0000-0000-0000-000000000003' as RecordId,
+      accountId: '00000000-0000-0000-0000-000000000100' as RecordId,
     });
 
     const { selectAll, selectedCount, isTransactionSelected } = useTransactionSelection({
@@ -84,12 +84,12 @@ describe('useTransactionSelection', () => {
 
   it('isAllSelected reflects the gated set, not the raw transaction list', () => {
     const a = buildTx({
-      id: '00000000-0000-0000-0000-000000000001',
-      accountId: '00000000-0000-0000-0000-000000000100',
+      id: '00000000-0000-0000-0000-000000000001' as RecordId,
+      accountId: '00000000-0000-0000-0000-000000000100' as RecordId,
     });
     const b = buildTx({
-      id: '00000000-0000-0000-0000-000000000002',
-      accountId: '00000000-0000-0000-0000-000000000200',
+      id: '00000000-0000-0000-0000-000000000002' as RecordId,
+      accountId: '00000000-0000-0000-0000-000000000200' as RecordId,
     });
 
     const { selectAll, isAllSelected } = useTransactionSelection({

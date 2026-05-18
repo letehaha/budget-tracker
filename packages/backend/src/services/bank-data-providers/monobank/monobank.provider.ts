@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
@@ -185,7 +186,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     userId,
   }: {
     connectionId: string;
-    systemAccountId: string;
+    systemAccountId: RecordId;
     userId: number;
   }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
     // Set status to QUEUED (jobs are queued, not actively syncing yet)
@@ -241,7 +242,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     to,
   }: {
     connectionId: string;
-    systemAccountId: string;
+    systemAccountId: RecordId;
     userId: number;
     from: Date;
     to: Date;

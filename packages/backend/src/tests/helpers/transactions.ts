@@ -1,4 +1,5 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import Transactions from '@models/transactions.model';
 import type { TransactionApiResponse } from '@root/serializers/transactions.serializer';
 import * as transactionsService from '@services/transactions';
@@ -62,7 +63,7 @@ interface SplitInput {
 }
 
 interface UpdateTransactionBasePayload {
-  id: string;
+  id: RecordId;
   payload?: Omit<Partial<ReturnType<typeof buildTransactionPayload>>, 'splits'> & {
     destinationAmount?: number;
     destinationAccountId?: string;

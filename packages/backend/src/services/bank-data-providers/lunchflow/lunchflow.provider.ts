@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ACCOUNT_TYPES,
@@ -265,7 +266,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     userId,
   }: {
     connectionId: string;
-    systemAccountId: string;
+    systemAccountId: RecordId;
     userId: number;
   }): Promise<void> {
     await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.SYNCING, userId });

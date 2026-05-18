@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { z } from 'zod';
 
@@ -10,10 +11,14 @@ import { z } from 'zod';
  * UUIDv7 (time-ordered), but rows inserted by the migration backfill via
  * `gen_random_uuid()` are v4, and the nil UUID is used as a test sentinel.
  *
+ * Returns a branded `RecordId` so downstream code is protected against
+ * arithmetic coercion and cross-string mixups. Use this validator anywhere
+ * an entity ID enters the system from the API surface.
+ *
  * Users, Currencies, ExchangeRates, and MerchantCategoryCodes still use
  * integer keys and are out of scope for this validator.
  */
-export const recordId = () => z.uuid();
+export const recordId = () => z.uuid().transform((v) => v as RecordId);
 export const recordArrayIds = () => z.array(recordId());
 
 /**
@@ -65,6 +70,7 @@ export const optionalCommaSeparatedIds = () => {
             .split(',')
             .map((id) => id.trim())
             .filter((id) => idSchema.safeParse(id).success)
+            .map((id) => id as RecordId)
         : undefined,
     );
 };
@@ -87,7 +93,7 @@ export const commaSeparatedRecordIds = z.string().transform((str, ctx) => {
     });
     return z.NEVER;
   }
-  return ids.filter((id): id is string => id !== null);
+  return ids.filter((id): id is RecordId => id !== null);
 });
 
 /**

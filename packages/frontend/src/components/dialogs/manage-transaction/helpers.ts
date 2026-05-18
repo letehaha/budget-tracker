@@ -148,7 +148,7 @@ export const prepopulateForm = ({
       refundedByTxs: undefined,
       refundsTx: undefined,
       // Extract tag IDs from transaction tags if present
-      tagIds: transaction.tags?.map((tag) => tag.id) ?? [],
+      tagIds: transaction.tags?.map((tag) => tag.id as string) ?? [],
     } as UI_FORM_STRUCT;
 
     // Convert transaction splits to form splits
