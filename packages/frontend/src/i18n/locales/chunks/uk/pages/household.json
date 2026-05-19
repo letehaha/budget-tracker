@@ -21,7 +21,7 @@
       },
       "invite": {
         "emailLabel": "Email",
-        "emailPlaceholder": "person@example.com",
+        "emailPlaceholder": "person{'@'}example.com",
         "permissionLabel": "Дозвіл",
         "writeScopeLabel": "Область запису",
         "submit": "Відправити запрошення в сім'ю",
@@ -47,7 +47,7 @@
         "title": "Сім'ї, до яких я належу",
         "description": "Чужі сім'ї, до яких ви приєдналися. Вихід призведе до втрати доступу до всіх рахунків, поділених цим способом.",
         "empty": "Ви ще не приєдналися до чужої сім'ї.",
-        "unnamedHousehold": "Сім'я @{handle}",
+        "unnamedHousehold": "Сім'я {'@'}{handle}",
         "loadError": "Не вдалося завантажити сім'ї, у яких ви є членом. Спробуйте пізніше."
       },
       "leave": {

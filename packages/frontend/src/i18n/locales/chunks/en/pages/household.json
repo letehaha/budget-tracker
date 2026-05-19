@@ -21,7 +21,7 @@
       },
       "invite": {
         "emailLabel": "Email",
-        "emailPlaceholder": "person@example.com",
+        "emailPlaceholder": "person{'@'}example.com",
         "permissionLabel": "Permission",
         "writeScopeLabel": "Write scope",
         "submit": "Send household invite",
@@ -47,7 +47,7 @@
         "title": "Households I'm in",
         "description": "Other people's households you've joined. Leaving drops your access to every account they shared this way.",
         "empty": "You haven't joined anyone else's household.",
-        "unnamedHousehold": "@{handle}'s household",
+        "unnamedHousehold": "{'@'}{handle}'s household",
         "loadError": "Couldn't load the households you're in. Try again later."
       },
       "leave": {
