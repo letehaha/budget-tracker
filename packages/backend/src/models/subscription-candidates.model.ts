@@ -39,7 +39,7 @@ export default class SubscriptionCandidates extends Model {
   detectedFrequency!: SUBSCRIPTION_FREQUENCIES;
 
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.BIGINT,
     allowNull: false,
     comment: 'Average amount in cents',
   })

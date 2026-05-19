@@ -42,7 +42,7 @@ export default class Subscriptions extends Model {
   type!: SUBSCRIPTION_TYPES;
 
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.BIGINT,
     allowNull: true,
   })
   expectedAmount!: number | null;

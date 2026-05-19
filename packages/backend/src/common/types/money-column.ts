@@ -11,7 +11,7 @@ import { Money } from './money';
  * Use with class getter/setter pairs and the moneyGet / moneySet helpers.
  *
  * @example
- * // INTEGER column storing cents:
+ * // BIGINT column storing cents:
  * @Column(MoneyColumn({ storage: 'cents' }))
  * get amount(): Money { return moneyGetCents(this, 'amount'); }
  * set amount(val: Money | number) { moneySetCents(this, 'amount', val); }
@@ -25,8 +25,10 @@ export function MoneyColumn(opts: MoneyColumnCentsOptions): MoneyColumnConfig;
 export function MoneyColumn(opts: MoneyColumnDecimalOptions): MoneyColumnConfig;
 export function MoneyColumn(opts: MoneyColumnOptions): MoneyColumnConfig {
   if (opts.storage === 'cents') {
+    // BIGINT (not INTEGER) so that low-denomination currencies (IDR, VND, etc.)
+    // or any large balance can exceed the 32-bit INTEGER ceiling without overflow.
     return {
-      type: DataType.INTEGER,
+      type: DataType.BIGINT,
       allowNull: opts.allowNull ?? false,
       defaultValue: opts.defaultValue ?? 0,
     };
@@ -50,7 +52,7 @@ interface ModelDataAccess {
   setDataValue(key: string, value: unknown): void;
 }
 
-/** Getter helper for INTEGER (cents) columns → returns Money */
+/** Getter helper for BIGINT (cents) columns → returns Money */
 export function moneyGetCents(model: ModelDataAccess, field: string): Money {
   const raw = model.getDataValue(field);
   if (raw === null || raw === undefined) return null as unknown as Money;
@@ -59,7 +61,7 @@ export function moneyGetCents(model: ModelDataAccess, field: string): Money {
   return Money.fromCents(raw as number);
 }
 
-/** Setter helper for INTEGER (cents) columns ← accepts Money or raw number */
+/** Setter helper for BIGINT (cents) columns ← accepts Money or raw number */
 export function moneySetCents(model: ModelDataAccess, field: string, val: Money | number | null): void {
   if (val === null) {
     model.setDataValue(field, null);

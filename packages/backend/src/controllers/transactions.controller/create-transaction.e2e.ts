@@ -63,6 +63,34 @@ describe('Create transaction controller', () => {
     expect(baseTx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
     expect(baseTx).toStrictEqual(transactions![0]);
   });
+  it('accepts transaction amounts above the legacy 32-bit INTEGER ceiling', async () => {
+    // Regression: SequelizeDatabaseError "value … is out of range for type integer".
+    // 25_000_000 decimal → 2_500_000_000 cents, above the old 2_147_483_647 cap.
+    // Common for low-denomination currencies (IDR, VND).
+    const LARGE_AMOUNT = 25_000_000;
+    const LARGE_COMMISSION = 50_000;
+
+    const account = await helpers.createAccount({ raw: true });
+
+    const txPayload = helpers.buildTransactionPayload({
+      accountId: account.id,
+      amount: LARGE_AMOUNT,
+      commissionRate: LARGE_COMMISSION,
+    });
+    const [baseTx] = await helpers.createTransaction({
+      payload: txPayload,
+      raw: true,
+    });
+
+    expect(baseTx.amount).toBe(LARGE_AMOUNT);
+    expect(baseTx.refAmount).toBe(LARGE_AMOUNT);
+    expect(baseTx.commissionRate).toBe(LARGE_COMMISSION);
+    expect(baseTx.refCommissionRate).toBe(LARGE_COMMISSION);
+
+    const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
+    // default account starts at 0 balance; expense subtracts LARGE_AMOUNT
+    expect(accountAfter.currentBalance).toBe(-LARGE_AMOUNT);
+  });
   it('should successfully create a transaction for account with currency different from base one', async () => {
     // Create account with non-default currency
     const currency = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
