@@ -14,7 +14,7 @@
 import type { RecordId } from '@bt/shared/types';
 import { v7 as uuidv7 } from 'uuid';
 
-export const NONEXISTENT_ID = '00000000-0000-0000-0000-000000000000' as RecordId;
+export { NONEXISTENT_ID } from '@bt/shared/types';
 
 export function generateRandomRecordId(): RecordId {
   return uuidv7() as RecordId;

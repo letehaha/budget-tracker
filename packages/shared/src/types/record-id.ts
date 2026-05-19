@@ -13,3 +13,9 @@
  * The brand is a compile-time fiction. At runtime, a RecordId is just a string.
  */
 export type RecordId = string & { readonly __brand: 'RecordId' };
+
+/**
+ * Fixed sentinel UUID guaranteed to never match a real row (zero-filled).
+ * Use for 404 / authorization checks where a missing record is intended.
+ */
+export const NONEXISTENT_ID = '00000000-0000-0000-0000-000000000000' as RecordId;

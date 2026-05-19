@@ -42,10 +42,8 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
     case NOTIFICATION_TYPES.shareAccepted: {
       const payload = notification.payload as ShareLifecycleNotificationPayload | undefined;
       if (payload?.resourceType !== RESOURCE_TYPES.account) return null;
-      const accountId = Number(payload.resourceId);
-      // Account ids are positive integers — reject zero/negative so an empty-string or
-      // legacy "0" resourceId doesn't deep-link to a non-existent account page.
-      if (!Number.isInteger(accountId) || accountId <= 0) return null;
+      const accountId = payload.resourceId;
+      if (!accountId) return null;
       return {
         kind: 'spa',
         to: { name: ROUTES_NAMES.account, params: { id: accountId } },
@@ -58,8 +56,8 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
       // when more resource types ship, branch the route per `resourceType`.
       const payload = notification.payload as ShareInvitationSendFailedPayload | undefined;
       if (payload?.resourceType !== RESOURCE_TYPES.account) return null;
-      const accountId = Number(payload.resourceId);
-      if (!Number.isInteger(accountId) || accountId <= 0) return null;
+      const accountId = payload.resourceId;
+      if (!accountId) return null;
       return {
         kind: 'spa',
         to: { name: ROUTES_NAMES.account, params: { id: accountId } },
