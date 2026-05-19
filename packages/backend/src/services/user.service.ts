@@ -5,6 +5,8 @@ import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import * as Currencies from '@models/currencies.model';
 import * as ExchangeRates from '@models/exchange-rates.model';
+import Holdings from '@models/investments/holdings.model';
+import Portfolios from '@models/investments/portfolios.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import * as Users from '@models/users.model';
@@ -253,6 +255,33 @@ export const deleteUserCurrency = withTransaction(
           accounts,
         },
       });
+    }
+
+    // Holdings own their currency too: refAmount lookups on investment txs
+    // require the link, so disconnect must not leave orphan investments behind.
+    const userPortfolios = await Portfolios.findAll({
+      where: { userId },
+      attributes: ['id'],
+      raw: true,
+    });
+
+    if (userPortfolios.length) {
+      const holdingInCurrency = await Holdings.findOne({
+        where: {
+          currencyCode,
+          portfolioId: userPortfolios.map((p) => p.id),
+        },
+        attributes: ['portfolioId'],
+      });
+
+      if (holdingInCurrency) {
+        throw new ValidationError({
+          message: t({
+            key: 'userCurrencies.cannotDeleteCurrencyWithInvestments',
+            variables: { currencyCode },
+          }),
+        });
+      }
     }
 
     const defaultCurrency = await UsersCurrencies.getCurrency({
