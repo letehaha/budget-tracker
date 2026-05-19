@@ -1,3 +1,4 @@
+import { types as pgTypes } from 'pg';
 import { Sequelize } from 'sequelize-typescript';
 
 import AccountGroupingModel from './accounts-groups/account-grouping.model';
@@ -45,6 +46,13 @@ import UserMerchantCategoryCodesModel from './user-merchant-category-codes.model
 import UserSettingsModel from './user-settings.model';
 import UsersCurrenciesModel from './users-currencies.model';
 import UsersModel from './users.model';
+
+// node-postgres returns BIGINT as string to preserve precision. Our cents
+// columns are BIGINT, but cent values stay far below JS Number's safe 2^53
+// ceiling (~$90T). Parse to Number so model getters, hooks, raw queries, and
+// API serializers all see numbers uniformly. pg only invokes the parser for
+// non-null values, so we don't need a null branch.
+pgTypes.setTypeParser(pgTypes.builtins.INT8, (val) => Number(val));
 
 const DBConfig: Record<string, unknown> = {
   host: process.env.APPLICATION_DB_HOST,

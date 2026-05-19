@@ -98,6 +98,29 @@ describe('Accounts controller', () => {
 
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
+
+    it('accepts balances above the legacy 32-bit INTEGER ceiling', async () => {
+      // Regression: SequelizeDatabaseError "value … is out of range for type integer".
+      // 25_000_000 decimal → 2_500_000_000 cents, comfortably above the old
+      // 2_147_483_647 cap; common for low-denomination currencies (IDR, VND).
+      const LARGE_BALANCE = 25_000_000;
+
+      const account = await helpers.createAccount({
+        payload: {
+          ...helpers.buildAccountPayload(),
+          initialBalance: LARGE_BALANCE,
+          creditLimit: LARGE_BALANCE,
+        },
+        raw: true,
+      });
+
+      expect(account.initialBalance).toStrictEqual(LARGE_BALANCE);
+      expect(account.refInitialBalance).toStrictEqual(LARGE_BALANCE);
+      expect(account.currentBalance).toStrictEqual(LARGE_BALANCE);
+      expect(account.refCurrentBalance).toStrictEqual(LARGE_BALANCE);
+      expect(account.creditLimit).toStrictEqual(LARGE_BALANCE);
+      expect(account.refCreditLimit).toStrictEqual(LARGE_BALANCE);
+    });
   });
   describe('update account', () => {
     it('should return 404 if try to update unexisting account', async () => {
