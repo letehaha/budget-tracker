@@ -176,6 +176,8 @@ const calculatePortfolioBalanceHistory = async ({
     exchangeRateMap.set(key, userRate ?? rate.rate);
   }
 
+  const missingRateCurrencies = new Set<string>();
+
   const getExchangeRate = (currencyCode: string, dateStr: string): number => {
     if (currencyCode === userBaseCurrency.currencyCode) {
       return 1;
@@ -199,7 +201,7 @@ const calculatePortfolioBalanceHistory = async ({
       return availableRates[0]![1];
     }
 
-    logger.warn('Exchange rate fallback to 1:1', { currencyCode, date: dateStr });
+    missingRateCurrencies.add(currencyCode);
     return 1;
   };
 
@@ -296,6 +298,15 @@ const calculatePortfolioBalanceHistory = async ({
     }
 
     portfolioValuesByDate.set(dateStr, Money.fromDecimal(totalValueForDate).toCents());
+  }
+
+  if (missingRateCurrencies.size > 0) {
+    logger.warn('Exchange rate fallback to 1:1', {
+      userId,
+      baseCurrency: userBaseCurrency.currencyCode,
+      currencies: Array.from(missingRateCurrencies),
+      dateRange: { from: minDate, to: maxDate },
+    });
   }
 
   return portfolioValuesByDate;
