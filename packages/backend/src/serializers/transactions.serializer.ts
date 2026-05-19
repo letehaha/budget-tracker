@@ -6,6 +6,7 @@
  * Deserializers convert API decimal inputs to Money.
  */
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
 import type Tags from '@models/tags.model';
 import type TransactionGroups from '@models/transaction-groups.model';
@@ -18,12 +19,12 @@ import type Transactions from '@models/transactions.model';
 
 interface TransactionSplitApiResponse {
   id: string;
-  categoryId: number;
+  categoryId: string;
   amount: number;
   refAmount: number;
   note: string | null;
   category?: {
-    id: number;
+    id: string;
     name: string;
     color: string;
     icon: string;
@@ -31,7 +32,7 @@ interface TransactionSplitApiResponse {
 }
 
 export interface TransactionApiResponse {
-  id: number;
+  id: string;
   amount: number;
   refAmount: number;
   commissionRate: number;
@@ -42,8 +43,8 @@ export interface TransactionApiResponse {
   userId: number;
   transactionType: string;
   paymentType: string;
-  accountId: number;
-  categoryId: number | null;
+  accountId: string;
+  categoryId: string | null;
   currencyCode: string;
   accountType: string;
   refCurrencyCode: string | null;
@@ -56,13 +57,13 @@ export interface TransactionApiResponse {
   updatedAt: Date;
   splits?: TransactionSplitApiResponse[];
   tags?: Array<{
-    id: number;
+    id: string;
     name: string;
     color: string;
     icon: string | null;
   }>;
   transactionGroups?: Array<{
-    id: number;
+    id: string;
     name: string;
   }>;
 }
@@ -79,20 +80,20 @@ interface CreateTransactionRequest {
   time?: string;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: number;
-  destinationAccountId?: number;
-  destinationTransactionId?: number;
-  categoryId?: number;
+  accountId: RecordId;
+  destinationAccountId?: string;
+  destinationTransactionId?: string;
+  categoryId?: RecordId;
   accountType?: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
-  refundForTxId?: number;
+  refundForTxId?: string;
   refundForSplitId?: string;
   splits?: Array<{
-    categoryId: number;
+    categoryId: RecordId;
     amount: number; // decimal from API
     note?: string | null;
   }>;
-  tagIds?: number[];
+  tagIds?: string[];
 }
 
 // ============================================================================
@@ -107,20 +108,20 @@ interface CreateTransactionInternal {
   time?: Date;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: number;
-  destinationAccountId?: number;
-  destinationTransactionId?: number;
-  categoryId?: number;
+  accountId: RecordId;
+  destinationAccountId?: string;
+  destinationTransactionId?: string;
+  categoryId?: RecordId;
   accountType: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
-  refundsTxId?: number;
+  refundsTxId?: string;
   refundsSplitId?: string;
   splits?: Array<{
-    categoryId: number;
+    categoryId: RecordId;
     amount: Money;
     note?: string | null;
   }>;
-  tagIds?: number[];
+  tagIds?: string[];
   userId: number;
 }
 
@@ -132,7 +133,7 @@ interface CreateTransactionInternal {
  * Serialize a transaction split from DB format to API response
  */
 function serializeTransactionSplit(
-  split: TransactionSplits & { category?: { id: number; name: string; color: string; icon: string } },
+  split: TransactionSplits & { category?: { id: string; name: string; color: string; icon: string } },
 ): TransactionSplitApiResponse {
   return {
     id: split.id,
@@ -188,7 +189,7 @@ export function serializeTransaction(
     ...(tx.splits && {
       splits: tx.splits.map((split) =>
         serializeTransactionSplit(
-          split as TransactionSplits & { category?: { id: number; name: string; color: string; icon: string } },
+          split as TransactionSplits & { category?: { id: string; name: string; color: string; icon: string } },
         ),
       ),
     }),

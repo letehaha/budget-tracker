@@ -14,7 +14,7 @@ import { Big } from 'big.js';
 
 interface UpdateTransactionParams {
   userId: number;
-  transactionId: number;
+  transactionId: string;
   category?: INVESTMENT_TRANSACTION_CATEGORY;
   date?: string;
   quantity?: string;

@@ -1,4 +1,5 @@
 import { NOTIFICATION_PRIORITIES, NOTIFICATION_STATUSES, NOTIFICATION_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as notificationsService from '@services/notifications';
 import { z } from 'zod';
@@ -40,7 +41,7 @@ export const getNotifications = createController(
 export const getNotificationById = createController(
   z.object({
     params: z.object({
-      id: z.uuidv7(),
+      id: recordId(),
     }),
   }),
   async ({ user, params }) => {
@@ -64,7 +65,7 @@ export const getUnreadCount = createController(z.object({}), async ({ user }) =>
 export const markAsRead = createController(
   z.object({
     params: z.object({
-      id: z.uuidv7(),
+      id: recordId(),
     }),
   }),
   async ({ user, params }) => {
@@ -88,7 +89,7 @@ export const markAllAsRead = createController(z.object({}), async ({ user }) => 
 export const dismissNotification = createController(
   z.object({
     params: z.object({
-      id: z.uuidv7(),
+      id: recordId(),
     }),
   }),
   async ({ user, params }) => {

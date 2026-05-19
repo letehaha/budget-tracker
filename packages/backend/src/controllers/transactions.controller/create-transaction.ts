@@ -1,10 +1,9 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { deserializeCreateTransaction, serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
-
-const recordId = () => z.number().int().positive().finite();
 
 // Amount fields now accept decimals (e.g., 100.50) - conversion to cents happens in deserializer
 const amountSchema = () => z.number().positive('Amount must be greater than 0').finite();
@@ -32,7 +31,7 @@ const schema = z.object({
       categoryId: z.union([recordId(), z.undefined()]),
       transferNature: z.nativeEnum(TRANSACTION_TRANSFER_NATURE),
       refundForTxId: recordId().optional(),
-      refundForSplitId: z.string().uuid().optional(),
+      refundForSplitId: recordId().optional(),
       splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').optional(),
       tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').optional(),
     })

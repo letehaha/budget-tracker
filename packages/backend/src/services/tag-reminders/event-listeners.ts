@@ -11,7 +11,7 @@ const MAX_WAIT_MS = 30_000; // 30 seconds max wait to prevent indefinite delays
  * Pending tag IDs grouped by userId for proper data isolation.
  * Using a Map ensures reminders are checked per-user.
  */
-const pendingTagIdsByUser = new Map<number, Set<number>>();
+const pendingTagIdsByUser = new Map<number, Set<string>>();
 
 /**
  * Process accumulated tag IDs and trigger reminder checks per user.
@@ -74,7 +74,7 @@ function handleTransactionsTagged(payload: TransactionsTaggedPayload): void {
   // Get or create the Set for this user
   let userTagIds = pendingTagIdsByUser.get(userId);
   if (!userTagIds) {
-    userTagIds = new Set<number>();
+    userTagIds = new Set<string>();
     pendingTagIdsByUser.set(userId, userTagIds);
   }
 

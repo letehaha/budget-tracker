@@ -19,7 +19,7 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const { addErrorNotification } = useNotificationCenter();
-const currentBudgetId = ref<number>(Number(route.params.id));
+const currentBudgetId = ref<string>(String(route.params.id));
 
 const {
   data: budgetItem,

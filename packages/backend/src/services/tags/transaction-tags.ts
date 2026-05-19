@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -9,9 +10,9 @@ import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 interface AddTransactionsToTagPayload {
-  tagId: number;
+  tagId: RecordId;
   userId: number;
-  transactionIds: number[];
+  transactionIds: RecordId[];
 }
 
 export const addTransactionsToTag = withTransaction(async (payload: AddTransactionsToTagPayload) => {
@@ -64,9 +65,9 @@ export const addTransactionsToTag = withTransaction(async (payload: AddTransacti
 });
 
 interface RemoveTransactionsFromTagPayload {
-  tagId: number;
+  tagId: string;
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
 }
 
 export const removeTransactionsFromTag = withTransaction(async (payload: RemoveTransactionsFromTagPayload) => {

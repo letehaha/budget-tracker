@@ -27,11 +27,11 @@ export const DOMAIN_EVENTS = {
  */
 export interface TransactionsSyncedPayload {
   userId: number;
-  accountId: number;
-  transactionIds: number[];
+  accountId: string;
+  transactionIds: string[];
 }
 
 export interface TransactionsTaggedPayload {
-  tagIds: number[];
+  tagIds: string[];
   userId: number;
 }

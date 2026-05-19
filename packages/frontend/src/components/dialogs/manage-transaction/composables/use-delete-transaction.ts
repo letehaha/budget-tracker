@@ -6,7 +6,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 interface DeleteTransactionParams {
-  transactionId: number;
+  transactionId: string;
 }
 
 export function useDeleteTransaction({ onSuccess }: { onSuccess: () => void }) {

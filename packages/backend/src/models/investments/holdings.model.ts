@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index, PrimaryKey } from 'sequelize-typescript';
@@ -45,14 +46,14 @@ export default class Holdings extends Model {
   @PrimaryKey
   @ForeignKey(() => Portfolios)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  portfolioId!: number;
+  @Column({ type: DataType.UUID, allowNull: false })
+  portfolioId!: RecordId;
 
   @PrimaryKey
   @ForeignKey(() => Securities)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  securityId!: number;
+  @Column({ type: DataType.UUID, allowNull: false })
+  securityId!: RecordId;
 
   /**
    * The `quantity` field represents the total number of units or shares

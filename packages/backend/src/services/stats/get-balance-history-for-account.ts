@@ -28,7 +28,7 @@ export const getBalanceHistoryForAccount = async ({
   accountId,
 }: {
   userId: number;
-  accountId: number;
+  accountId: string;
   from?: string;
   to?: string;
 }): Promise<Balances.default[]> => {

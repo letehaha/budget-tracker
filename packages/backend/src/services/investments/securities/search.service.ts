@@ -10,7 +10,7 @@ import { dataProviderFactory } from '../data-providers';
 interface SearchOptions {
   query: string;
   limit?: number;
-  portfolioId?: number;
+  portfolioId?: string;
   user: UserModel;
 }
 

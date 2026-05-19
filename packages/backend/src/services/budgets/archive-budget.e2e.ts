@@ -1,4 +1,5 @@
 import { BUDGET_STATUSES } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -110,7 +111,7 @@ describe('Archive Budget', () => {
 
   it('returns 404 when archiving a non-existent budget', async () => {
     const response = await helpers.archiveCustomBudget({
-      id: 999999,
+      id: NONEXISTENT_ID,
       isArchived: true,
       raw: false,
     });

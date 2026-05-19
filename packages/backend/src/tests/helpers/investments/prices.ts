@@ -10,7 +10,7 @@ export async function getSecuritiesPricesByDate<R extends boolean | undefined = 
   raw,
 }: {
   params?: {
-    securityId?: number;
+    securityId?: string;
     startDate?: Date;
     endDate?: Date;
   };

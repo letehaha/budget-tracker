@@ -14,7 +14,7 @@ import type { AccountShareContext } from '@services/sharing/get-shared-accounts.
 // ============================================================================
 
 export interface AccountApiResponse {
-  id: number;
+  id: string;
   name: string;
   initialBalance: number;
   refInitialBalance: number;
@@ -30,7 +30,7 @@ export interface AccountApiResponse {
   externalData: Record<string, unknown> | null;
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
-  bankDataProviderConnectionId: number | null;
+  bankDataProviderConnectionId: string | null;
   /** Provider type denormalized from the connection so the frontend can render the
    *  bank logo without a per-account connection-details lookup (which is owner-scoped
    *  and unreachable for share recipients). */

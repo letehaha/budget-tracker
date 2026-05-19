@@ -7,7 +7,7 @@ import { dataProviderFactory } from '@services/investments/data-providers';
 import { PriceData } from '@services/investments/data-providers/base-provider';
 import { subYears } from 'date-fns';
 
-const syncHistoricalPricesImpl = async (securityId: number): Promise<{ count: number }> => {
+const syncHistoricalPricesImpl = async (securityId: string): Promise<{ count: number }> => {
   logger.info(`Starting historical price sync for securityId: ${securityId}`);
 
   const security = await Securities.findByPk(securityId);
@@ -54,7 +54,7 @@ const syncHistoricalPricesImpl = async (securityId: number): Promise<{ count: nu
 };
 
 // Wrap with a lock to prevent multiple syncs for the same security at the same time
-const lockedSync = (securityId: number) =>
+const lockedSync = (securityId: string) =>
   withLock(`price-sync:security:${securityId}`, () => syncHistoricalPricesImpl(securityId))();
 
 export const syncHistoricalPrices = withTransaction(lockedSync);

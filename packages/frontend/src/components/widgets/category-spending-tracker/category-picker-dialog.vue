@@ -12,11 +12,11 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 
 const props = defineProps<{
-  disabledCategoryIds: number[];
+  disabledCategoryIds: string[];
 }>();
 
 const emit = defineEmits<{
-  select: [categoryId: number];
+  select: [categoryId: string];
 }>();
 
 const open = defineModel<boolean>('open', { default: false });
@@ -34,7 +34,7 @@ watch(open, (isOpen) => {
 
 interface FlatCategory extends FormattedCategory {
   depth: number;
-  rootParentId: number;
+  rootParentId: string;
   rootParentName: string;
 }
 
@@ -45,7 +45,7 @@ const flattenCategories = ({
 }: {
   categories: FormattedCategory[];
   depth?: number;
-  rootParent?: { id: number; name: string };
+  rootParent?: { id: string; name: string };
 }): FlatCategory[] => {
   const result: FlatCategory[] = [];
 
@@ -100,7 +100,7 @@ const shouldShowSeparator = ({ item, index }: { item: FlatCategory; index: numbe
   return filteredItems.value[index - 1]!.rootParentId !== item.rootParentId;
 };
 
-const handleSelect = ({ categoryId }: { categoryId: number }) => {
+const handleSelect = ({ categoryId }: { categoryId: string }) => {
   emit('select', categoryId);
   open.value = false;
 };

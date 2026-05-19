@@ -30,7 +30,7 @@ export interface CreateReminderPayload {
   notifyEmail?: boolean;
   preferredTime?: number;
   timezone?: string;
-  categoryId?: number | null;
+  categoryId?: string | null;
   notes?: string | null;
 }
 
@@ -44,7 +44,7 @@ interface UpdateReminderPayload {
   notifyEmail?: boolean;
   preferredTime?: number;
   timezone?: string;
-  categoryId?: number | null;
+  categoryId?: string | null;
   notes?: string | null;
   isActive?: boolean;
 }
@@ -104,7 +104,7 @@ export const markPeriodPaid = async ({
 }: {
   reminderId: string;
   periodId: string;
-  transactionId?: number | null;
+  transactionId?: string | null;
   notes?: string | null;
 }): Promise<PaymentReminderPeriodModel> => {
   const payload: Record<string, unknown> = {};

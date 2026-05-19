@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES, asCents } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -380,7 +381,7 @@ describe('Generic Detect Duplicates Service', () => {
       });
 
       // Check existing
-      expect(typeof match.existing.id).toBe('number');
+      expect(typeof match.existing.id).toBe('string');
       expect(match.existing.date).toBe('2024-01-15');
       expect(match.existing.amount).toBe(10050);
       expect(match.existing.note).toBe('Test note for matching');
@@ -590,7 +591,7 @@ describe('Generic Detect Duplicates Service', () => {
 
       const result = await detectDuplicates({
         userId: account.userId,
-        accountId: 999999, // Non-existent
+        accountId: generateRandomRecordId(), // Non-existent
         transactions,
       });
 

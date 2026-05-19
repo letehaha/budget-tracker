@@ -3,9 +3,9 @@ import type { SecuritySearchResult, SecuritySearchResultFormatted } from '@bt/sh
 
 export const searchSecurities = async (
   query: string,
-  portfolioId?: number,
+  portfolioId?: string,
 ): Promise<SecuritySearchResultFormatted[]> => {
-  const params: { query: string; portfolioId?: number } = { query };
+  const params: { query: string; portfolioId?: string } = { query };
   if (portfolioId !== undefined) {
     params.portfolioId = portfolioId;
   }

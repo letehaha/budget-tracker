@@ -10,7 +10,7 @@ const schema = z.object({
     id: recordId(),
   }),
   body: z.object({
-    toPortfolioId: z.number(),
+    toPortfolioId: recordId(),
     currencyCode: currencyCode(),
     amount: positiveAmountString(),
     date: dateString(),

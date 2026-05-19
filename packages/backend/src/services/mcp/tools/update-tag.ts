@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { updateTag } from '@services/tags/update-tag';
@@ -12,7 +13,7 @@ export function registerUpdateTag(server: McpServer) {
       description:
         'Update an existing tag by ID. Use when the user wants to rename, recolor, or change the icon/description of a tag. Returns the updated tag.',
       inputSchema: {
-        id: z.number().describe('ID of the tag to update.'),
+        id: recordId().describe('ID of the tag to update.'),
         name: z.string().optional().describe('New tag name (must be unique for this user).'),
         color: z.string().optional().describe('New hex color code for the tag (e.g. "#FF5733").'),
         icon: z.string().nullable().optional().describe('New icon identifier, or null to clear it.'),

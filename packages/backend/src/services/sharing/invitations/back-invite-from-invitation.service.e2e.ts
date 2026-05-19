@@ -4,6 +4,7 @@ import {
   SHARE_PERMISSIONS,
   TRANSACTIONS_WRITE_SCOPES,
 } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import ShareInvitations from '@models/share-invitations.model';
 import * as helpers from '@tests/helpers';
@@ -21,8 +22,6 @@ import { CustomResponse } from '@tests/helpers/common';
  * how `canUserAccessResource` resolves grants and works whether or not the original
  * invitation had a resolved `inviteeUserId` at create time.
  */
-
-const NON_EXISTENT_INVITATION_ID = '00000000-0000-0000-0000-000000000000';
 
 describe('Back-invite from accepted household invitation', () => {
   it('mirrors the household share — caller can back-invite the original sender', async () => {
@@ -158,7 +157,7 @@ describe('Back-invite from accepted household invitation', () => {
 
   it('rejects with 404 when the source invitation id does not exist', async () => {
     const res = (await helpers.backInviteFromShareInvitation({
-      sourceInvitationId: NON_EXISTENT_INVITATION_ID,
+      sourceInvitationId: NONEXISTENT_ID,
       permission: SHARE_PERMISSIONS.write,
       raw: false,
     })) as unknown as CustomResponse<unknown>;

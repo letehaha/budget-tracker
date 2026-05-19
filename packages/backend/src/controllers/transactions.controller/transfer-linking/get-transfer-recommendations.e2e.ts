@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -787,7 +788,7 @@ describe('getTransferRecommendations', () => {
 
       it('returns empty array for non-existent transactionId', async () => {
         const response = await helpers.getTransferRecommendations({
-          transactionId: 999999,
+          transactionId: generateRandomRecordId(),
           raw: true,
         });
 
@@ -798,7 +799,7 @@ describe('getTransferRecommendations', () => {
         const response = await helpers.getTransferRecommendations({
           transactionType: TRANSACTION_TYPES.expense,
           originAmount: 100,
-          accountId: 999999,
+          accountId: generateRandomRecordId(),
           raw: true,
         });
 
@@ -873,19 +874,19 @@ describe('getTransferRecommendations', () => {
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
-    it('fails when negative transactionId is provided', async () => {
+    it('fails when invalid transactionId is provided', async () => {
       const response = await helpers.getTransferRecommendations({
-        transactionId: -1,
+        transactionId: 'not-a-uuid' as unknown as string,
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
-    it('fails when negative accountId is provided', async () => {
+    it('fails when invalid accountId is provided', async () => {
       const response = await helpers.getTransferRecommendations({
         transactionType: TRANSACTION_TYPES.expense,
         originAmount: 100,
-        accountId: -1,
+        accountId: 'not-a-uuid' as unknown as string,
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);

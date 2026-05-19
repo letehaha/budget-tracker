@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -16,7 +17,7 @@ describe('Delete account group', () => {
   });
   it('returns successful response for non-existing record deletion', async () => {
     const result = await helpers.deleteAccountGroup({
-      groupId: 99999,
+      groupId: generateRandomRecordId(),
     });
 
     expect(result.statusCode).toBe(200);

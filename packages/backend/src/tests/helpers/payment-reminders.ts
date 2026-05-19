@@ -23,7 +23,7 @@ interface CreateReminderPayload {
   notifyEmail?: boolean;
   preferredTime?: number;
   timezone?: string;
-  categoryId?: number | null;
+  categoryId?: string | null;
   notes?: string | null;
 }
 
@@ -37,7 +37,7 @@ interface UpdateReminderPayload {
   notifyEmail?: boolean;
   preferredTime?: number;
   timezone?: string;
-  categoryId?: number | null;
+  categoryId?: string | null;
   notes?: string | null;
   isActive?: boolean;
 }
@@ -146,7 +146,7 @@ export async function markPaymentReminderPeriodPaid<R extends boolean | undefine
   reminderId: string;
   periodId: string;
   raw?: R;
-  transactionId?: number | null;
+  transactionId?: string | null;
   notes?: string | null;
 }) {
   const payload: Record<string, unknown> = {};

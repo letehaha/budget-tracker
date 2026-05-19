@@ -22,7 +22,7 @@ import { computed } from 'vue';
 
 const props = defineProps<{
   category?: CategoryModel;
-  categoryId?: number;
+  categoryId?: string;
   /**
    * Caller-supplied lookup map for the parent-walk that resolves an inherited icon.
    * Default is the global Pinia store, which only contains the caller's own categories —
@@ -30,7 +30,7 @@ const props = defineProps<{
    * owner's tree (the parent isn't in the recipient's store, so the walk silently fails
    * and the icon disappears). Pass the owner's map to fix that case.
    */
-  categoriesMap?: Record<number, CategoryModel>;
+  categoriesMap?: Record<string, CategoryModel>;
 }>();
 
 const { categoriesMap: storeCategoriesMap } = storeToRefs(useCategoriesStore());

@@ -4,9 +4,9 @@ import { PortfolioModel } from './portfolio-models';
 import { SecurityModel } from './security.model';
 
 export interface InvestmentTransactionModel {
-  id: number;
-  securityId: number;
-  portfolioId: number;
+  id: string;
+  securityId: string;
+  portfolioId: string;
   transactionType: TRANSACTION_TYPES;
   date: string;
   /**

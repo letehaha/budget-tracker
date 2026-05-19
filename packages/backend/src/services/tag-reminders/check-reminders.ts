@@ -140,15 +140,15 @@ export function getDateRangeForRealTimeReminder(): { from: Date; to: Date } {
 }
 
 interface CheckResult {
-  reminderId: number;
-  tagId: number;
+  reminderId: string;
+  tagId: string;
   tagName: string;
   userId: number;
   triggered: boolean;
   reason?: string;
   transactionCount?: number;
   totalAmount?: number;
-  transactionIds?: number[];
+  transactionIds?: string[];
 }
 
 /**

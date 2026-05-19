@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -77,8 +78,8 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should return validation error for non-existent connection', async () => {
         const result = await helpers.bankDataProviders.syncTransactionsForAccount({
-          connectionId: 99999,
-          accountId: 1,
+          connectionId: generateRandomRecordId(),
+          accountId: generateRandomRecordId(),
         });
 
         expect(result.status).toEqual(ERROR_CODES.NotFoundError);
@@ -93,7 +94,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
 
         const result = await helpers.bankDataProviders.syncTransactionsForAccount({
           connectionId,
-          accountId: 99999,
+          accountId: generateRandomRecordId(),
         });
 
         expect(result.status).toEqual(ERROR_CODES.NotFoundError);
@@ -510,8 +511,8 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
 
       it('should return validation error for non-existent connection', async () => {
         const result = await helpers.bankDataProviders.loadTransactionsForPeriod({
-          connectionId: 99999,
-          accountId: 1,
+          connectionId: generateRandomRecordId(),
+          accountId: generateRandomRecordId(),
           from: subDays(new Date(), 10).toISOString(),
           to: new Date().toISOString(),
         });
@@ -528,7 +529,7 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
 
         const result = await helpers.bankDataProviders.loadTransactionsForPeriod({
           connectionId,
-          accountId: 99999,
+          accountId: generateRandomRecordId(),
           from: subDays(new Date(), 10).toISOString(),
           to: new Date().toISOString(),
         });

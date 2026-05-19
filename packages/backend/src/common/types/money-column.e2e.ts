@@ -95,7 +95,7 @@ describe('MoneyColumn integration', () => {
         paymentType: 'creditCard',
         transferNature: 'not_transfer',
         time: new Date(),
-        categoryId: 1,
+        categoryId: global.DEFAULT_CATEGORY_ID,
         currencyCode: global.BASE_CURRENCY.code,
         accountType: 'system',
         refCurrencyCode: null,
@@ -401,9 +401,10 @@ describe('MoneyColumn integration', () => {
         raw: true,
       });
 
+      const testCategory = await helpers.addCustomCategory({ name: 'test-cat', color: '#000000', raw: true });
       const budget = await helpers.createCustomBudget({
         name: 'test-budget',
-        categoryIds: [1],
+        categoryIds: [testCategory.id],
         limitAmount: 1000,
         type: BUDGET_TYPES.category,
         raw: true,
@@ -413,7 +414,7 @@ describe('MoneyColumn integration', () => {
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 1.5,
-          categoryId: 1,
+          categoryId: testCategory.id,
           transactionType: TRANSACTION_TYPES.expense,
         }),
         raw: true,

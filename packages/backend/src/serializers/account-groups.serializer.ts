@@ -9,11 +9,11 @@ import type AccountGroup from '@models/accounts-groups/account-groups.model';
 import { type AccountApiResponse, serializeAccount } from './accounts.serializer';
 
 interface AccountGroupApiResponse {
-  id: number;
+  id: string;
   name: string;
   userId: number;
-  parentGroupId: number | null;
-  bankDataProviderConnectionId: number | null;
+  parentGroupId: string | null;
+  bankDataProviderConnectionId: string | null;
   accounts: AccountApiResponse[];
   childGroups: AccountGroupApiResponse[];
 }

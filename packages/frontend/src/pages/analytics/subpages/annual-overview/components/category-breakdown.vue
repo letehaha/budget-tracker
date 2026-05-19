@@ -73,7 +73,7 @@
 
 <script setup lang="ts">
 import { useFormatCurrency } from '@/composable';
-import type { endpointsTypes } from '@bt/shared/types';
+import type { endpointsTypes, RecordId } from '@bt/shared/types';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from 'lucide-vue-next';
 import { type Component, computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -110,7 +110,7 @@ const sortedCategories = computed<CategoryWithChange[]>(() => {
 
   return entries
     .map(([id, cat]) => {
-      const prevCat = props.previousPeriodData[Number(id)];
+      const prevCat = props.previousPeriodData[id as RecordId];
       let change: number | undefined;
 
       if (prevCat && prevCat.amount > 0) {

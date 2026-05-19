@@ -1,7 +1,8 @@
-import { CATEGORY_TYPES } from '@bt/shared/types';
+import { CATEGORY_TYPES, RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import MerchantCategoryCodes from './merchant-category-codes.model';
 import UserMerchantCategoryCodes from './user-merchant-category-codes.model';
@@ -13,14 +14,8 @@ import Users from './users.model';
   freezeTableName: true,
 })
 export default class Categories extends Model {
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
+  declare id: RecordId;
 
   @Column({ allowNull: false, type: DataType.STRING })
   name!: string;
@@ -48,8 +43,8 @@ export default class Categories extends Model {
   })
   type!: CATEGORY_TYPES;
 
-  @Column({ allowNull: true, type: DataType.INTEGER })
-  parentId!: number;
+  @Column({ allowNull: true, type: DataType.UUID })
+  parentId!: RecordId;
 
   @ForeignKey(() => Users)
   @Column({ type: DataType.INTEGER })
@@ -86,7 +81,7 @@ export interface CreateCategoryPayload {
   name?: string;
   icon?: string | null;
   color?: string;
-  parentId?: number;
+  parentId?: string;
   type?: CATEGORY_TYPES;
 }
 
@@ -117,7 +112,7 @@ export const createCategory = async ({ parentId, color, userId, ...params }: Cre
 
 export interface EditCategoryPayload {
   userId: number;
-  categoryId: number;
+  categoryId: string;
   name?: string;
   icon?: string | null;
   color?: string;
@@ -141,7 +136,7 @@ export const editCategory = async ({ userId, categoryId, ...params }: EditCatego
 
 export interface DeleteCategoryPayload {
   userId: number;
-  categoryId: number;
+  categoryId: string;
 }
 
 export const deleteCategory = async ({ userId, categoryId }: DeleteCategoryPayload) => {

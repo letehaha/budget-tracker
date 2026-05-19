@@ -17,7 +17,7 @@ import { CustomResponse } from '@tests/helpers/common';
  * enforce the row shape so the seeded rows can't drift from production rows.
  */
 
-type AccountResponse = { id: number; share?: { isOwner: boolean; permission: string; accessSource: string } };
+type AccountResponse = { id: string; share?: { isOwner: boolean; permission: string; accessSource: string } };
 
 const seedHouseholdMembership = async ({
   ownerUserId,
@@ -37,7 +37,7 @@ const seedHouseholdMembership = async ({
     acceptedAt: new Date(),
   });
 
-const getAccountAsUser = async ({ cookies, accountId }: { cookies: string; accountId: number }) =>
+const getAccountAsUser = async ({ cookies, accountId }: { cookies: string; accountId: string }) =>
   helpers.asUser({
     cookies,
     fn: () => helpers.getAccount({ id: accountId, raw: false }),

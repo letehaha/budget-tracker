@@ -1,12 +1,14 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('Transaction Groups API', () => {
   // Helper to create N transactions for a given account
-  const createTransactions = async ({ accountId, count }: { accountId: number; count: number }) => {
-    const txs: { id: number }[] = [];
+  const createTransactions = async ({ accountId, count }: { accountId: RecordId; count: number }) => {
+    const txs: { id: string }[] = [];
     for (let i = 0; i < count; i++) {
       const [tx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
@@ -81,11 +83,11 @@ describe('Transaction Groups API', () => {
       expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
     });
 
-    it('fails with invalid transaction IDs', async () => {
+    it('fails with malformed (non-UUID) transaction IDs', async () => {
       const response = await helpers.createTransactionGroup({
         payload: helpers.buildTransactionGroupPayload({
           name: 'Invalid',
-          transactionIds: [999999, 999998],
+          transactionIds: ['999999', '999998'],
         }),
         raw: false,
       });
@@ -181,7 +183,10 @@ describe('Transaction Groups API', () => {
     });
 
     it('returns 404 for non-existent group', async () => {
-      const response = await helpers.getTransactionGroupById({ id: 999999, raw: false });
+      const response = await helpers.getTransactionGroupById({
+        id: NONEXISTENT_ID,
+        raw: false,
+      });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
@@ -235,7 +240,7 @@ describe('Transaction Groups API', () => {
 
     it('returns 404 for non-existent group', async () => {
       const response = await helpers.updateTransactionGroup({
-        id: 999999,
+        id: NONEXISTENT_ID,
         payload: { name: 'Nope' },
         raw: false,
       });
@@ -273,7 +278,7 @@ describe('Transaction Groups API', () => {
     });
 
     it('returns 404 for non-existent group', async () => {
-      const response = await helpers.deleteTransactionGroup({ id: 999999, raw: false });
+      const response = await helpers.deleteTransactionGroup({ id: NONEXISTENT_ID, raw: false });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });

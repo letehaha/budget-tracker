@@ -46,7 +46,7 @@ const createAccountsForConnection = withTransaction(
     userId,
     accountExternalIds,
   }: {
-    connectionId: number;
+    connectionId: string;
     userId: number;
     accountExternalIds: string[];
   }): Promise<Accounts[]> => {
@@ -225,7 +225,7 @@ export const connectSelectedAccounts = async ({
   userId,
   accountExternalIds,
 }: {
-  connectionId: number;
+  connectionId: string;
   userId: number;
   accountExternalIds: string[];
 }): Promise<Accounts[]> => {

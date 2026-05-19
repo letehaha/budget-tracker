@@ -24,13 +24,13 @@ export const getPortfolios = async (): Promise<PortfolioModel[]> => {
   return result.data;
 };
 
-export const getPortfolio = async ({ portfolioId }: { portfolioId: number }): Promise<PortfolioModel> => {
+export const getPortfolio = async ({ portfolioId }: { portfolioId: string }): Promise<PortfolioModel> => {
   const result = await api.get(`/investments/portfolios/${portfolioId}`);
   return result;
 };
 
 type UpdatePortfolioParams = {
-  portfolioId: number;
+  portfolioId: string;
 } & Partial<Omit<CreatePortfolioRequest, 'portfolioType'> & { portfolioType: PORTFOLIO_TYPE }>;
 
 export const updatePortfolio = async ({ portfolioId, ...params }: UpdatePortfolioParams): Promise<PortfolioModel> => {
@@ -42,21 +42,21 @@ export const deletePortfolio = async ({
   portfolioId,
   force,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   force?: boolean;
 }): Promise<void> => {
   return api.delete(`/investments/portfolios/${portfolioId}`, { data: { force } });
 };
 
 interface CreatePortfolioTransferRequest {
-  toPortfolioId: number;
+  toPortfolioId: string;
   currencyCode: string;
   amount: string;
   date: string;
   description?: string;
 }
 
-type CreatePortfolioTransferParams = { fromPortfolioId: number } & CreatePortfolioTransferRequest;
+type CreatePortfolioTransferParams = { fromPortfolioId: string } & CreatePortfolioTransferRequest;
 
 export const createPortfolioTransfer = async ({
   fromPortfolioId,
@@ -67,13 +67,13 @@ export const createPortfolioTransfer = async ({
 };
 
 interface AccountToPortfolioTransferRequest {
-  accountId: number;
+  accountId: string;
   amount: string;
   date: string;
   description?: string;
 }
 
-type AccountToPortfolioTransferParams = { portfolioId: number } & AccountToPortfolioTransferRequest;
+type AccountToPortfolioTransferParams = { portfolioId: string } & AccountToPortfolioTransferRequest;
 
 export const accountToPortfolioTransfer = async ({
   portfolioId,
@@ -84,14 +84,14 @@ export const accountToPortfolioTransfer = async ({
 };
 
 interface PortfolioToAccountTransferRequest {
-  accountId: number;
+  accountId: string;
   amount: string;
   currencyCode: string;
   date: string;
   description?: string;
 }
 
-type PortfolioToAccountTransferParams = { portfolioId: number } & PortfolioToAccountTransferRequest;
+type PortfolioToAccountTransferParams = { portfolioId: string } & PortfolioToAccountTransferRequest;
 
 export const portfolioToAccountTransfer = async ({
   portfolioId,
@@ -110,7 +110,7 @@ interface ExchangeCurrencyRequest {
   description?: string;
 }
 
-type ExchangeCurrencyParams = { portfolioId: number } & ExchangeCurrencyRequest;
+type ExchangeCurrencyParams = { portfolioId: string } & ExchangeCurrencyRequest;
 
 export const exchangeCurrency = async ({
   portfolioId,
@@ -123,7 +123,7 @@ export const exchangeCurrency = async ({
 export const getPortfolioBalances = async ({
   portfolioId,
 }: {
-  portfolioId: number;
+  portfolioId: string;
 }): Promise<PortfolioBalanceModel[]> => {
   const result = await api.get(`/investments/portfolios/${portfolioId}/balance`);
   return result;
@@ -132,7 +132,7 @@ export const getPortfolioBalances = async ({
 export const getPortfolioTransfers = async ({
   portfolioId,
 }: {
-  portfolioId: number;
+  portfolioId: string;
 }): Promise<PortfolioTransferModel[]> => {
   const result = await api.get(`/investments/portfolios/${portfolioId}/transfers`);
   return result.data;
@@ -146,7 +146,7 @@ interface DirectCashTransactionRequest {
   description?: string | null;
 }
 
-type DirectCashTransactionParams = { portfolioId: number } & DirectCashTransactionRequest;
+type DirectCashTransactionParams = { portfolioId: string } & DirectCashTransactionRequest;
 
 export const createDirectCashTransaction = async ({
   portfolioId,
@@ -161,8 +161,8 @@ export const deletePortfolioTransfer = async ({
   transferId,
   deleteLinkedTransaction,
 }: {
-  portfolioId: number;
-  transferId: number;
+  portfolioId: string;
+  transferId: string;
   deleteLinkedTransaction?: boolean;
 }): Promise<void> => {
   const query: Record<string, string> = {};
@@ -176,20 +176,20 @@ export const linkTransactionToPortfolio = async ({
   transactionId,
   portfolioId,
 }: {
-  transactionId: number;
-  portfolioId: number;
+  transactionId: string;
+  portfolioId: string;
 }): Promise<PortfolioTransferModel> => {
   const result = await api.post(`/transactions/${transactionId}/link-to-portfolio`, { portfolioId });
   return result;
 };
 
-export const unlinkTransactionFromPortfolio = async ({ transactionId }: { transactionId: number }): Promise<void> => {
+export const unlinkTransactionFromPortfolio = async ({ transactionId }: { transactionId: string }): Promise<void> => {
   return api.post(`/transactions/${transactionId}/unlink-from-portfolio`);
 };
 
 interface TransactionPortfolioLinkResponse {
-  transferId: number;
-  portfolioId: number;
+  transferId: string;
+  portfolioId: string;
   portfolioName: string;
   transferType: 'deposit' | 'withdrawal';
   amount: string;
@@ -200,7 +200,7 @@ interface TransactionPortfolioLinkResponse {
 export const getTransactionPortfolioLink = async ({
   transactionId,
 }: {
-  transactionId: number;
+  transactionId: string;
 }): Promise<TransactionPortfolioLinkResponse> => {
   const result = await api.get(`/transactions/${transactionId}/portfolio-link`);
   return result;
@@ -210,7 +210,7 @@ export const getPortfolioSummary = async ({
   portfolioId,
   date,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   date?: string;
 }): Promise<PortfolioSummaryModel> => {
   const params = date ? { date } : {};

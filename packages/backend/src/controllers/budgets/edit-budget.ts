@@ -1,4 +1,4 @@
-import { recordId } from '@common/lib/zod/custom-types';
+import { recordId, recordArrayIds } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeBudget } from '@root/serializers';
@@ -12,7 +12,7 @@ const schema = z.object({
   body: z
     .object({
       name: z.string().min(1, 'Name is required').max(200, 'Name must not exceed 200 characters').trim().optional(),
-      categoryIds: z.array(z.number().int().positive()).optional(),
+      categoryIds: recordArrayIds().optional(),
       startDate: z.string().datetime().optional(),
       endDate: z.string().datetime().optional(),
       autoInclude: z.boolean().optional().default(false),

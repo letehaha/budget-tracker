@@ -1,4 +1,5 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { updateSubscription } from '@services/subscriptions';
@@ -38,8 +39,8 @@ export function registerUpdateSubscription(server: McpServer) {
           .describe('New expected payment amount as a decimal (e.g. 9.99)'),
         expectedCurrencyCode: z.string().nullable().optional().describe('New currency code for expectedAmount'),
         endDate: z.string().nullable().optional().describe('New end date (ISO 8601), or null to clear'),
-        accountId: z.number().nullable().optional().describe('New account ID, or null to clear'),
-        categoryId: z.number().nullable().optional().describe('New category ID, or null to clear'),
+        accountId: recordId().nullable().optional().describe('New account ID, or null to clear'),
+        categoryId: recordId().nullable().optional().describe('New category ID, or null to clear'),
         notes: z.string().nullable().optional().describe('New notes, or null to clear'),
         isActive: z.boolean().optional().describe('Active state (prefer toggle_subscription_active instead)'),
       },

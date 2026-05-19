@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { deletePortfolio } from '@services/investments/portfolios/delete.service';
@@ -12,7 +13,7 @@ export function registerDeletePortfolio(server: McpServer) {
       description:
         'Permanently delete a portfolio and, if force is true, all its holdings, transactions, and cash balances. Without force, deletion is blocked when the portfolio has any data. This action is irreversible — confirm with the user before calling. Obtain portfolioId from get_portfolios.',
       inputSchema: {
-        portfolioId: z.number().describe('Portfolio ID to delete (from get_portfolios)'),
+        portfolioId: recordId().describe('Portfolio ID to delete (from get_portfolios)'),
         force: z
           .boolean()
           .optional()

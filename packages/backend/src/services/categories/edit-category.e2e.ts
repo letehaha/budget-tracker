@@ -1,4 +1,5 @@
 import { CategoryModel } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -120,7 +121,7 @@ describe('Edit custom categories', () => {
 
   it('should return not found error for non-existent category', async () => {
     const res = await helpers.editCustomCategory({
-      categoryId: 9999,
+      categoryId: NONEXISTENT_ID,
       name: updatedCategory.name,
       raw: false,
     });

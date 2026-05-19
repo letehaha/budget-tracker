@@ -19,7 +19,7 @@ interface SecurityOption {
 }
 
 const props = defineProps<{
-  portfolioId: number;
+  portfolioId: string;
   securities: SecurityOption[];
   securityId?: string | null;
 }>();

@@ -6,8 +6,9 @@ import {
   NotificationType,
   NOTIFICATION_PRIORITIES,
   NOTIFICATION_STATUSES,
+  RecordId,
 } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, BeforeCreate } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import Users from './users.model';
@@ -21,15 +22,9 @@ export default class Notifications extends Model implements NotificationModel {
   @Column({
     type: DataType.UUID,
     primaryKey: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: string;
-
-  @BeforeCreate
-  static generateUUIDv7(instance: Notifications) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({

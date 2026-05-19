@@ -18,7 +18,7 @@ const frequencyValues = Object.values(SUBSCRIPTION_FREQUENCIES) as [
 
 const schema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: recordId(),
   }),
   body: z
     .object({

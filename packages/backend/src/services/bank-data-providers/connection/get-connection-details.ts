@@ -6,12 +6,12 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import { bankProviderRegistry } from '../registry';
 
 interface GetConnectionDetailsParams {
-  connectionId: number;
+  connectionId: string;
   userId: number;
 }
 
 export interface ConnectionDetailsResponse {
-  id: number;
+  id: string;
   providerType: string;
   providerName: string;
   isActive: boolean;
@@ -34,7 +34,7 @@ export interface ConnectionDetailsResponse {
     };
   };
   accounts: Array<{
-    id: number;
+    id: string;
     name: string;
     externalId: string;
     currentBalance: number;
@@ -50,6 +50,12 @@ export interface ConnectionDetailsResponse {
   };
   deactivationReason?: string | null;
 }
+
+const parseValidDate = (raw: unknown): Date | null => {
+  if (!raw) return null;
+  const parsed = new Date(raw as string);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
 
 export async function getConnectionDetails(params: GetConnectionDetailsParams): Promise<ConnectionDetailsResponse> {
   const { connectionId, userId } = params;
@@ -87,12 +93,6 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
   let consentInfo: ConnectionDetailsResponse['consent'] = undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const metadata = connection.metadata as any;
-
-  const parseValidDate = (raw: unknown): Date | null => {
-    if (!raw) return null;
-    const parsed = new Date(raw as string);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  };
 
   if (metadata?.consentValidUntil) {
     const validUntil = parseValidDate(metadata.consentValidUntil);

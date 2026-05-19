@@ -101,7 +101,7 @@ const groupedAccounts = computed(() =>
         acc.sharedWithMe.push(account);
       } else if (account.status === ACCOUNT_STATUSES.archived) {
         acc.archived.push(account);
-      } else if (typeof account.bankDataProviderConnectionId === 'number') {
+      } else if (account.bankDataProviderConnectionId) {
         acc.integrations.push(account);
       } else {
         acc.manual.push(account);

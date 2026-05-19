@@ -6,7 +6,7 @@ import { queueCategorizationJob } from './categorization-queue';
 const DEBOUNCE_MS = 4000;
 
 // Per-user buffers: accumulate transaction IDs across rapid sync events
-const pendingTransactions = new Map<number, number[]>();
+const pendingTransactions = new Map<number, string[]>();
 const debounceTimers = new Map<number, NodeJS.Timeout>();
 
 /**

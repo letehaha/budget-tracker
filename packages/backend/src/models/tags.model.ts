@@ -1,6 +1,8 @@
+import { RecordId } from '@bt/shared/types';
 import Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany, HasMany } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import TagReminders from './tag-reminders.model';
 import TransactionTags from './transaction-tags.model';
@@ -10,8 +12,8 @@ import TransactionTags from './transaction-tags.model';
   timestamps: true,
 })
 export default class Tags extends Model {
-  @Column({ primaryKey: true, autoIncrement: true, allowNull: false, type: DataType.INTEGER })
-  declare id: number;
+  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({ allowNull: false, type: DataType.INTEGER })

@@ -1,7 +1,7 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { deleteTransactionGroup } from '@services/transaction-groups';
-import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
@@ -12,7 +12,7 @@ export function registerDeleteTransactionGroup(server: McpServer) {
       description:
         'Permanently delete a transaction group. The transactions themselves are NOT deleted — only the grouping is removed. This action cannot be undone. Requires finance:delete scope.',
       inputSchema: {
-        id: z.number().describe('ID of the transaction group to delete'),
+        id: recordId().describe('ID of the transaction group to delete'),
       },
     },
     async (args, extra) => {

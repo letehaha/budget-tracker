@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { removeTransactionsFromGroup } from '@services/transaction-groups';
@@ -12,8 +13,8 @@ export function registerRemoveTransactionsFromGroup(server: McpServer) {
       description:
         'Remove transactions from a group. If removal would leave fewer than 2 transactions, pass force=true to dissolve the group entirely (transactions are kept). Requires finance:write scope.',
       inputSchema: {
-        groupId: z.number().describe('ID of the transaction group'),
-        transactionIds: z.array(z.number()).describe('IDs of transactions to remove from the group'),
+        groupId: recordId().describe('ID of the transaction group'),
+        transactionIds: z.array(recordId()).describe('IDs of transactions to remove from the group'),
         force: z
           .boolean()
           .optional()

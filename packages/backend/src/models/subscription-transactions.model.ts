@@ -1,4 +1,4 @@
-import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
+import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE, RecordId } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 
 import Subscriptions from './subscriptions.model';
@@ -16,16 +16,16 @@ export default class SubscriptionTransactions extends Model {
     allowNull: false,
     primaryKey: true,
   })
-  subscriptionId!: string;
+  subscriptionId!: RecordId;
 
   @ForeignKey(() => Transactions)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
     primaryKey: true,
     unique: true,
   })
-  transactionId!: number;
+  transactionId!: RecordId;
 
   @Column({
     type: DataType.ENUM(...Object.values(SUBSCRIPTION_MATCH_SOURCE)),

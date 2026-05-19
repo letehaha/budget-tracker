@@ -47,7 +47,7 @@ async function connectAccountsAndSync({
   mockedHistory,
   accountExternalIds,
 }: {
-  connectionId: number;
+  connectionId: string;
   mockedHistory: ReturnType<typeof getMockedWalutomatHistory>;
   accountExternalIds?: string[];
 }): Promise<{ account: Accounts; transactions: Transactions[] }> {

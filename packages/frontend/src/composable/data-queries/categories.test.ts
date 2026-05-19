@@ -1,6 +1,6 @@
 import { loadCategoriesByAccount } from '@/api/categories';
 import { useNotificationCenter } from '@/components/notification-center';
-import { CATEGORY_TYPES, type CategoryModel } from '@bt/shared/types';
+import { CATEGORY_TYPES, type CategoryModel, type RecordId } from '@bt/shared/types';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,7 +34,7 @@ const i18n = createI18n({
 
 const MOCK_CATEGORIES: CategoryModel[] = [
   {
-    id: 1,
+    id: '00000000-0000-0000-0000-000000000001' as RecordId,
     key: null,
     name: 'Food',
     icon: null,
@@ -44,7 +44,7 @@ const MOCK_CATEGORIES: CategoryModel[] = [
     userId: 42,
   },
   {
-    id: 2,
+    id: '00000000-0000-0000-0000-000000000002' as RecordId,
     key: null,
     name: 'Transport',
     icon: null,
@@ -59,7 +59,7 @@ const setup = ({
   accountId,
   enabled,
 }: {
-  accountId?: number | undefined;
+  accountId?: string | undefined;
   enabled?: boolean;
 } = {}) => {
   const addErrorNotification = vi.fn();
@@ -102,17 +102,17 @@ describe('useAccountCategories', () => {
     it('calls loadCategoriesByAccount with the given accountId', async () => {
       mockLoadCategoriesByAccount.mockResolvedValue(MOCK_CATEGORIES);
 
-      setup({ accountId: 10 });
+      setup({ accountId: '00000000-0000-0000-0000-000000000010' });
 
       await vi.waitFor(() => {
-        expect(mockLoadCategoriesByAccount).toHaveBeenCalledWith({ accountId: 10 });
+        expect(mockLoadCategoriesByAccount).toHaveBeenCalledWith({ accountId: '00000000-0000-0000-0000-000000000010' });
       });
     });
 
     it('exposes fetched categories via query.data', async () => {
       mockLoadCategoriesByAccount.mockResolvedValue(MOCK_CATEGORIES);
 
-      const { getResult } = setup({ accountId: 10 });
+      const { getResult } = setup({ accountId: '00000000-0000-0000-0000-000000000010' });
 
       await vi.waitFor(() => {
         expect(getResult().isSuccess.value).toBe(true);
@@ -124,7 +124,7 @@ describe('useAccountCategories', () => {
     it('does not call addErrorNotification on success', async () => {
       mockLoadCategoriesByAccount.mockResolvedValue(MOCK_CATEGORIES);
 
-      const { addErrorNotification, getResult } = setup({ accountId: 10 });
+      const { addErrorNotification, getResult } = setup({ accountId: '00000000-0000-0000-0000-000000000010' });
 
       await vi.waitFor(() => {
         expect(getResult().isSuccess.value).toBe(true);
@@ -138,7 +138,7 @@ describe('useAccountCategories', () => {
     it('sets isError to true when the API call fails', async () => {
       mockLoadCategoriesByAccount.mockRejectedValue(new Error('Network error'));
 
-      const { getResult } = setup({ accountId: 10 });
+      const { getResult } = setup({ accountId: '00000000-0000-0000-0000-000000000010' });
 
       await vi.waitFor(() => {
         expect(getResult().isError.value).toBe(true);
@@ -148,7 +148,7 @@ describe('useAccountCategories', () => {
     it('calls addErrorNotification exactly once when the API call fails', async () => {
       mockLoadCategoriesByAccount.mockRejectedValue(new Error('Network error'));
 
-      const { addErrorNotification, getResult } = setup({ accountId: 10 });
+      const { addErrorNotification, getResult } = setup({ accountId: '00000000-0000-0000-0000-000000000010' });
 
       await vi.waitFor(() => {
         expect(getResult().isError.value).toBe(true);
@@ -172,7 +172,7 @@ describe('useAccountCategories', () => {
     it('does not fetch when enabled is false', async () => {
       mockLoadCategoriesByAccount.mockResolvedValue(MOCK_CATEGORIES);
 
-      setup({ accountId: 10, enabled: false });
+      setup({ accountId: '00000000-0000-0000-0000-000000000010', enabled: false });
 
       await new Promise((resolve) => setTimeout(resolve, 50));
 

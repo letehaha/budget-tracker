@@ -1,6 +1,7 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, Length, BeforeCreate } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, BelongsTo, DataType, Length } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import Categories from './categories.model';
@@ -30,22 +31,16 @@ export default class TransactionSplits extends Model {
   @Column({
     type: DataType.UUID,
     primaryKey: true,
+    defaultValue: () => uuidv7(),
   })
-  declare id: string;
-
-  @BeforeCreate
-  static generateUUIDv7(instance: TransactionSplits) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  declare id: RecordId;
 
   @ForeignKey(() => Transactions)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
   })
-  transactionId!: number;
+  transactionId!: RecordId;
 
   @ForeignKey(() => Users)
   @Column({
@@ -56,10 +51,10 @@ export default class TransactionSplits extends Model {
 
   @ForeignKey(() => Categories)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
   })
-  categoryId!: number;
+  categoryId!: RecordId;
 
   /** Amount in account currency (same as transaction.amount) */
   @Column(MoneyColumn({ storage: 'cents' }))
@@ -100,9 +95,9 @@ export default class TransactionSplits extends Model {
 // Helper functions for working with splits
 
 export interface CreateSplitPayload {
-  transactionId: number;
+  transactionId: string;
   userId: number;
-  categoryId: number;
+  categoryId: string;
   amount: Money;
   refAmount: Money;
   note?: string | null;
@@ -117,7 +112,7 @@ export const deleteSplitsForTransaction = async ({
   transactionId,
   userId,
 }: {
-  transactionId: number;
+  transactionId: string;
   /**
    * Optional. When omitted (callers that have already authorized via the parent
    * transaction's account), all splits for the transaction are deleted regardless
@@ -126,7 +121,7 @@ export const deleteSplitsForTransaction = async ({
    */
   userId?: number;
 }) => {
-  const where: { transactionId: number; userId?: number } = { transactionId };
+  const where: { transactionId: string; userId?: number } = { transactionId };
   if (userId !== undefined) where.userId = userId;
   return TransactionSplits.destroy({ where });
 };

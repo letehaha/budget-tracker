@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { searchSecurities } from '@services/investments/securities/search.service';
 import { z } from 'zod';
@@ -7,7 +8,7 @@ export default createController(
     query: z.object({
       query: z.string().min(1, 'Search query cannot be empty.'),
       limit: z.coerce.number().int().positive().optional(),
-      portfolioId: z.coerce.number().int().positive().optional(),
+      portfolioId: recordId().optional(),
     }),
   }),
   async ({ user, query }) => {

@@ -18,11 +18,11 @@ interface Props {
   transactionType?: TRANSACTION_TYPES;
   disabled: boolean;
   /** Origin transaction ID (for recommendations when editing) */
-  originTransactionId?: number;
+  originTransactionId?: string;
   /** Origin transaction amount for recommendations */
   originAmount?: number | null;
   /** Origin account ID for recommendations */
-  originAccountId?: number | null;
+  originAccountId?: string | null;
 }
 
 const props = defineProps<Props>();

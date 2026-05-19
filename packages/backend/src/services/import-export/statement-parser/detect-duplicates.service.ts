@@ -7,7 +7,7 @@ import {
 
 interface DetectDuplicatesParams {
   userId: number;
-  accountId: number;
+  accountId: string;
   transactions: ExtractedTransaction[];
 }
 

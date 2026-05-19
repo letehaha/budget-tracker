@@ -1,5 +1,6 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
@@ -169,7 +170,7 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
 
   it('should fail to update non-existent transaction', async () => {
     const response = await helpers.updateInvestmentTransaction({
-      transactionId: 99999,
+      transactionId: generateRandomRecordId(),
       payload: {
         quantity: '3',
       },
@@ -181,7 +182,7 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
 
   it('should fail with invalid transaction ID', async () => {
     const response = await helpers.updateInvestmentTransaction({
-      transactionId: -1,
+      transactionId: 'invalid' as unknown as string,
       payload: {
         quantity: '3',
       },

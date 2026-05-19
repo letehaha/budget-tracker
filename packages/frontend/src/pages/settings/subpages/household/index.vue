@@ -145,7 +145,7 @@ const inviteMutation = useMutation({
     return createShareInvitation({
       inviteeEmail: inviteEmail.value.trim(),
       resourceType: RESOURCE_TYPES.household,
-      resourceId: myHouseholdId.value,
+      resourceId: String(myHouseholdId.value),
       permission: invitePermission.value.value,
       policy: showsWriteScope.value ? { transactionsWriteScope: inviteWriteScope.value.value } : null,
     });

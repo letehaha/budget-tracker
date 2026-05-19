@@ -148,10 +148,10 @@ const isInternalCategory = (category: FormattedCategory) => category.type === CA
 const props = withDefaults(
   defineProps<{
     categories: FormattedCategory[];
-    expandedCategories: number[];
+    expandedCategories: string[];
     maxLevel: number;
     currentLevel: number;
-    activeCategoryId: number | null | undefined;
+    activeCategoryId: string | null | undefined;
     showActions?: boolean;
   }>(),
   {
@@ -169,7 +169,7 @@ const emits = defineEmits<{
   'view-analytics': [category: FormattedCategory];
 }>();
 
-const menuOpenState = reactive<Record<number, boolean>>({});
+const menuOpenState = reactive<Record<string, boolean>>({});
 
 const canAddSubcategory = computed(() => props.currentLevel < props.maxLevel);
 

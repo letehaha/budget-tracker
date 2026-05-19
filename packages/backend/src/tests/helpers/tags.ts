@@ -53,7 +53,7 @@ export async function getTags<R extends boolean | undefined = undefined>({
   });
 }
 
-export async function getTagById<R extends boolean | undefined = undefined>({ id, raw }: { id: number; raw?: R }) {
+export async function getTagById<R extends boolean | undefined = undefined>({ id, raw }: { id: string; raw?: R }) {
   return makeRequest<TagModel, R>({
     method: 'get',
     url: `/tags/${id}`,
@@ -66,7 +66,7 @@ export async function updateTag<R extends boolean | undefined = undefined>({
   payload,
   raw,
 }: {
-  id: number;
+  id: string;
   payload: UpdateTagPayload;
   raw?: R;
 }) {
@@ -78,7 +78,7 @@ export async function updateTag<R extends boolean | undefined = undefined>({
   });
 }
 
-export async function deleteTag<R extends boolean | undefined = undefined>({ id, raw }: { id: number; raw?: R }) {
+export async function deleteTag<R extends boolean | undefined = undefined>({ id, raw }: { id: string; raw?: R }) {
   return makeRequest<void, R>({
     method: 'delete',
     url: `/tags/${id}`,
@@ -91,8 +91,8 @@ export async function addTransactionsToTag<R extends boolean | undefined = undef
   transactionIds,
   raw,
 }: {
-  tagId: number;
-  transactionIds: number[];
+  tagId: string;
+  transactionIds: string[];
   raw?: R;
 }) {
   return makeRequest<{ message: string; addedCount: number; skippedCount: number }, R>({
@@ -108,8 +108,8 @@ export async function removeTransactionsFromTag<R extends boolean | undefined = 
   transactionIds,
   raw,
 }: {
-  tagId: number;
-  transactionIds: number[];
+  tagId: string;
+  transactionIds: string[];
   raw?: R;
 }) {
   return makeRequest<{ message: string; removedCount: number }, R>({
@@ -143,7 +143,7 @@ export async function createTagReminder<R extends boolean | undefined = undefine
   payload,
   raw,
 }: {
-  tagId: number;
+  tagId: string;
   payload: CreateTagReminderPayload;
   raw?: R;
 }) {
@@ -159,7 +159,7 @@ export async function getRemindersForTag<R extends boolean | undefined = undefin
   tagId,
   raw,
 }: {
-  tagId: number;
+  tagId: string;
   raw?: R;
 }) {
   return makeRequest<TagReminderModel[], R>({
@@ -186,8 +186,8 @@ export async function getReminderById<R extends boolean | undefined = undefined>
   id,
   raw,
 }: {
-  tagId: number;
-  id: number;
+  tagId: string;
+  id: string;
   raw?: R;
 }) {
   return makeRequest<TagReminderModel, R>({
@@ -203,8 +203,8 @@ export async function updateTagReminder<R extends boolean | undefined = undefine
   payload,
   raw,
 }: {
-  tagId: number;
-  id: number;
+  tagId: string;
+  id: string;
   payload: UpdateTagReminderPayload;
   raw?: R;
 }) {
@@ -221,8 +221,8 @@ export async function deleteTagReminder<R extends boolean | undefined = undefine
   id,
   raw,
 }: {
-  tagId: number;
-  id: number;
+  tagId: string;
+  id: string;
   raw?: R;
 }) {
   return makeRequest<void, R>({

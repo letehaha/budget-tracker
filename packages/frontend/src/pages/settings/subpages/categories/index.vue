@@ -111,8 +111,8 @@ const { addErrorNotification, addSuccessNotification } = useNotificationCenter()
 const { formattedCategories } = storeToRefs(categoriesStore);
 
 const MAX_CATEGORIES_NESTING = 3;
-const expandedCategories = ref<number[]>([]);
-const selectedCategoryId = ref<number | null>(null);
+const expandedCategories = ref<string[]>([]);
+const selectedCategoryId = ref<string | null>(null);
 
 const dialogState = reactive<{
   isOpen: boolean;

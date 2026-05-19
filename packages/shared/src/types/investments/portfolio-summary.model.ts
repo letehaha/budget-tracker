@@ -1,5 +1,5 @@
 export interface PortfolioSummaryModel {
-  portfolioId: number;
+  portfolioId: string;
   portfolioName: string;
   totalCurrentValue: string;
   totalCostBasis: string;

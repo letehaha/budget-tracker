@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
@@ -13,8 +14,11 @@ export function registerLinkTransfer(server: McpServer) {
       description:
         'Link two existing transactions as a transfer pair. The two transactions must be in different accounts and have opposite types (one income, one expense). Provide baseTxId (the source/expense side) and oppositeTxId (the destination/income side).',
       inputSchema: {
-        baseTxId: z.number().describe('ID of the base (source) transaction — typically the expense side'),
-        oppositeTxId: z.number().describe('ID of the opposite (destination) transaction — typically the income side'),
+        baseTxId: recordId().describe('ID of the base (source) transaction — typically the expense side'),
+        oppositeTxId: z
+          .string()
+          .uuid()
+          .describe('ID of the opposite (destination) transaction — typically the income side'),
       },
     },
     async (args, extra) => {

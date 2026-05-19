@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { deleteCategory } from '@services/categories/delete-category';
@@ -12,9 +13,10 @@ export function registerDeleteCategory(server: McpServer) {
       description:
         'Permanently delete a category by ID. This is destructive — if the category has linked transactions you must supply replaceWithCategoryId to reassign them first, otherwise the call will fail. Cannot delete a parent category that still has subcategories. Only call when the user explicitly confirms deletion.',
       inputSchema: {
-        categoryId: z.number().describe('ID of the category to delete.'),
+        categoryId: recordId().describe('ID of the category to delete.'),
         replaceWithCategoryId: z
-          .number()
+          .string()
+          .uuid()
           .optional()
           .describe(
             'ID of the category to reassign linked transactions to. Required when the category has transactions.',

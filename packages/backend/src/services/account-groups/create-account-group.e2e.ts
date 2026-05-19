@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -93,7 +94,7 @@ describe('Create account group', () => {
   it('fails when non-existent parentGroupId provided', async () => {
     const response = await helpers.createAccountGroup({
       name: 'level-1',
-      parentGroupId: 99999,
+      parentGroupId: generateRandomRecordId(),
     });
 
     expect(response.statusCode).toBe(404);

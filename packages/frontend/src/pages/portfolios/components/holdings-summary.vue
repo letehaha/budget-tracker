@@ -62,7 +62,7 @@ import { useHoldings } from '@/composable/data-queries/holdings';
 import { LayoutListIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-vue-next';
 import { computed, ref, toRef } from 'vue';
 
-const props = defineProps<{ portfolioId: number }>();
+const props = defineProps<{ portfolioId: string }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { data: holdings, isLoading, error, invalidate } = useHoldings(portfolioId);

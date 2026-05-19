@@ -31,14 +31,14 @@ export const useFiltersFromQuery = () => {
 
     if (query.categoryIds) {
       filters.categoryIds = Array.isArray(query.categoryIds)
-        ? query.categoryIds.map((id) => Number(id))
-        : [Number(query.categoryIds)];
+        ? (query.categoryIds as string[])
+        : [query.categoryIds as string];
     }
 
     if (query.accountIds) {
       const accountIds = Array.isArray(query.accountIds)
-        ? query.accountIds.map((id) => Number(id))
-        : [Number(query.accountIds)];
+        ? (query.accountIds as string[])
+        : [query.accountIds as string];
 
       filters.accounts = (storeAccounts.value ?? []).filter((account) => accountIds.includes(account.id));
     }

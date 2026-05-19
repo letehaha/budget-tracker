@@ -271,7 +271,7 @@ import InstructionsDialog from './enable-banking/instructions-dialog.vue';
 const emit = defineEmits<{
   connected: [];
   cancel: [];
-  authStarted: [connectionId: number];
+  authStarted: [connectionId: string];
 }>();
 
 const { t } = useI18n();
@@ -300,7 +300,7 @@ const selectedBankName = computed(() => selectedBank.value?.name || '');
 
 // Step 4 data
 const authUrl = ref('');
-const connectionId = ref<number | null>(null);
+const connectionId = ref<string | null>(null);
 
 // Step 5 data
 const availableAccounts = ref<AvailableAccount[]>([]);
@@ -404,7 +404,7 @@ const openAuthUrl = () => {
 };
 
 // This method should be called from the parent after OAuth callback
-const loadAccounts = async (connId: number) => {
+const loadAccounts = async (connId: string) => {
   try {
     isLoading.value = true;
     connectionId.value = connId;

@@ -1,6 +1,8 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import Securities from './securities.model';
 
@@ -26,14 +28,14 @@ import Securities from './securities.model';
 export default class SecurityPricing extends Model {
   @Column({
     primaryKey: true,
-    autoIncrement: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @ForeignKey(() => Securities)
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  securityId!: number;
+  @Column({ type: DataType.UUID, allowNull: false })
+  securityId!: RecordId;
 
   /**
    * The date for which this pricing information is applicable. This field is crucial for tracking

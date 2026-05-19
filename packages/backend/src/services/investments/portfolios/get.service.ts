@@ -5,7 +5,7 @@ import { withTransaction } from '@services/common/with-transaction';
 
 interface GetPortfolioParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
 }
 
 const getPortfolioImpl = async ({ userId, portfolioId }: GetPortfolioParams) => {

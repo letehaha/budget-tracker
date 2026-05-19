@@ -22,7 +22,7 @@ const alsoExcludeFromStats = ref(true);
 const isLoading = ref(false);
 
 const isArchived = computed(() => props.account.status === ACCOUNT_STATUSES.archived);
-const hasBankConnection = computed(() => typeof props.account.bankDataProviderConnectionId === 'number');
+const hasBankConnection = computed(() => Boolean(props.account.bankDataProviderConnectionId));
 
 const archiveAccount = async () => {
   isLoading.value = true;

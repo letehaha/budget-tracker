@@ -37,11 +37,11 @@ import { CircleOffIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 
 defineProps<{
-  categoryIds: number[];
+  categoryIds: string[];
 }>();
 
 const emit = defineEmits<{
-  remove: [payload: { categoryId: number }];
+  remove: [payload: { categoryId: string }];
 }>();
 
 const categoriesStore = useCategoriesStore();

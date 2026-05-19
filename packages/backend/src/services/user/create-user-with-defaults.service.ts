@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { requestContext } from '@common/request-context';
@@ -105,7 +106,7 @@ export async function seedUserDefaults({ userId, locale: providedLocale }: { use
 
   const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
 
-  const categoryKeyToId = new Map<string, { id: number; color: string }>();
+  const categoryKeyToId = new Map<string, { id: RecordId; color: string }>();
   translatedCategories.main.forEach((item, index) => {
     const createdCategory = categories[index];
     if (createdCategory) {
@@ -115,7 +116,7 @@ export async function seedUserDefaults({ userId, locale: providedLocale }: { use
 
   const subcats: Array<{
     name: string;
-    parentId: number;
+    parentId: string;
     color: string;
     icon?: string;
     userId: number;

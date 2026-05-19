@@ -40,7 +40,7 @@ import { TrendingDownIcon, TrendingUpIcon } from 'lucide-vue-next';
 import { computed, toRef } from 'vue';
 
 const props = defineProps<{
-  portfolioId: number;
+  portfolioId: string;
   currencies: UserCurrencyModel[];
 }>();
 

@@ -33,7 +33,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @returns Connection model instance
    * @throws NotFoundError if connection not found
    */
-  protected async getConnection(connectionId: number): Promise<BankDataProviderConnections> {
+  protected async getConnection(connectionId: string): Promise<BankDataProviderConnections> {
     return findOrThrowNotFound({
       query: BankDataProviderConnections.findByPk(connectionId),
       message: t({ key: 'errors.connectionIdNotFound', variables: { connectionId } }),
@@ -44,7 +44,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * Update last sync timestamp for a connection
    * @param connectionId - Connection ID to update
    */
-  protected async updateLastSync(connectionId: number): Promise<void> {
+  protected async updateLastSync(connectionId: string): Promise<void> {
     await BankDataProviderConnections.update({ lastSyncAt: new Date() }, { where: { id: connectionId } });
   }
 
@@ -54,7 +54,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @returns Account model instance
    * @throws NotFoundError if account not found
    */
-  protected async getSystemAccount(systemAccountId: number): Promise<Accounts> {
+  protected async getSystemAccount(systemAccountId: string): Promise<Accounts> {
     return findOrThrowNotFound({
       query: Accounts.findByPk(systemAccountId),
       message: t({ key: 'errors.accountIdNotFound', variables: { accountId: systemAccountId } }),
@@ -66,7 +66,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param connectionId - Connection ID
    * @returns Decrypted credentials object
    */
-  protected async getDecryptedCredentials(connectionId: number): Promise<Record<string, unknown>> {
+  protected async getDecryptedCredentials(connectionId: string): Promise<Record<string, unknown>> {
     const connection = await this.getConnection(connectionId);
     return connection.getDecryptedCredentials();
   }
@@ -101,13 +101,13 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param credentials - Provider-specific credentials
    * @returns Connection ID
    */
-  abstract connect(userId: number, credentials: unknown): Promise<number>;
+  abstract connect(userId: number, credentials: unknown): Promise<string>;
 
   /**
    * Disconnect and remove a provider connection
    * @param connectionId - Connection to disconnect
    */
-  abstract disconnect(connectionId: number): Promise<void>;
+  abstract disconnect(connectionId: string): Promise<void>;
 
   /**
    * Validate credentials by testing connection to provider
@@ -121,14 +121,14 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param connectionId - Connection to update
    * @param newCredentials - New credentials to store
    */
-  abstract refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void>;
+  abstract refreshCredentials(connectionId: string, newCredentials: unknown): Promise<void>;
 
   /**
    * Fetch list of accounts from provider (without saving to DB)
    * @param connectionId - Connection to fetch accounts from
    * @returns List of provider accounts
    */
-  abstract fetchAccounts(connectionId: number): Promise<ProviderAccount[]>;
+  abstract fetchAccounts(connectionId: string): Promise<ProviderAccount[]>;
 
   /**
    * Fetch transactions for a specific account (without saving to DB)
@@ -137,7 +137,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param dateRange - Optional date range to filter transactions
    * @returns List of transactions
    */
-  abstract fetchTransactions(connectionId: number, accountExternalId: string, dateRange?: any): Promise<any[]>;
+  abstract fetchTransactions(connectionId: string, accountExternalId: string, dateRange?: any): Promise<any[]>;
 
   /**
    * Sync transactions for a specific account to our database
@@ -151,8 +151,8 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
     systemAccountId,
     userId,
   }: {
-    connectionId: number;
-    systemAccountId: number;
+    connectionId: string;
+    systemAccountId: string;
     userId: number;
   }): Promise<void | { jobGroupId: string; totalBatches: number; estimatedMinutes: number }>;
 
@@ -162,14 +162,14 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param accountExternalId - Provider's account ID
    * @returns Current balance
    */
-  abstract fetchBalance(connectionId: number, accountExternalId: string): Promise<any>;
+  abstract fetchBalance(connectionId: string, accountExternalId: string): Promise<any>;
 
   /**
    * Refresh balance for a specific account in our system
    * @param connectionId - Connection ID
    * @param systemAccountId - Our internal account ID
    */
-  abstract refreshBalance(connectionId: number, systemAccountId: number): Promise<void>;
+  abstract refreshBalance(connectionId: string, systemAccountId: string): Promise<void>;
 
   /**
    * Set up webhook for real-time updates (if supported)
@@ -177,7 +177,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param connectionId - Connection to set up webhook for
    * @param webhookUrl - URL to receive webhook notifications
    */
-  setupWebhook?(connectionId: number, webhookUrl: string): Promise<void>;
+  setupWebhook?(connectionId: string, webhookUrl: string): Promise<void>;
 
   /**
    * Handle incoming webhook payload (if supported)

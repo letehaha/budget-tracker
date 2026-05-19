@@ -38,7 +38,7 @@ const queryClient = useQueryClient();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 const budgetData = ref();
-const currentBudgetId = ref<number>(Number(route.params.id));
+const currentBudgetId = ref<string>(route.params.id as string);
 const isEditDialogOpen = ref(false);
 
 const { data: budgetStats } = useQuery({

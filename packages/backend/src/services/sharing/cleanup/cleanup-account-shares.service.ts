@@ -1,4 +1,4 @@
-import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SharePermission } from '@bt/shared/types';
+import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SharePermission, RecordId } from '@bt/shared/types';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
@@ -13,7 +13,7 @@ export interface AccountShareCleanupResult {
    *  are deleted because the post-commit step has nothing to read otherwise. */
   recipients: Array<{
     sharedWithUserId: number;
-    shareId: string;
+    shareId: RecordId;
     permission: SharePermission;
   }>;
   /**
@@ -24,7 +24,7 @@ export interface AccountShareCleanupResult {
    */
   householdRecipients: Array<{
     sharedWithUserId: number;
-    shareId: string;
+    shareId: RecordId;
   }>;
   /** How many pending invitations were flipped to `revoked`. */
   revokedInvitationCount: number;
@@ -47,17 +47,17 @@ export const cleanupAccountSharesInTx = withTransaction(
     accountId,
     ownerUserId,
   }: {
-    accountId: number;
+    accountId: string;
     ownerUserId: number;
   }): Promise<AccountShareCleanupResult> => {
-    const resourceId = String(accountId);
+    const resourceId = accountId;
 
     const [shares, householdShares] = await Promise.all([
       ResourceShares.findAll({
         where: { ownerUserId, resourceType: RESOURCE_TYPES.account, resourceId },
         attributes: ['id', 'sharedWithUserId', 'permission'],
         raw: true,
-      }) as unknown as Promise<Array<{ id: string; sharedWithUserId: number; permission: SharePermission }>>,
+      }) as unknown as Promise<Array<{ id: RecordId; sharedWithUserId: number; permission: SharePermission }>>,
       // Household memberships of the same owner survive the account delete — pull the
       // accepted ones so we can notify those members that one of the household-shared
       // accounts is gone.
@@ -70,7 +70,7 @@ export const cleanupAccountSharesInTx = withTransaction(
         },
         attributes: ['id', 'sharedWithUserId'],
         raw: true,
-      }) as unknown as Promise<Array<{ id: string; sharedWithUserId: number }>>,
+      }) as unknown as Promise<Array<{ id: RecordId; sharedWithUserId: number }>>,
     ]);
 
     const recipients = shares.map((s) => ({
@@ -118,9 +118,9 @@ export const notifyAccountDeleteRecipients = async ({
   recipients: AccountShareCleanupResult['recipients'];
   householdRecipients: AccountShareCleanupResult['householdRecipients'];
   owner: Users | null;
-  account: { id: number; name: string };
+  account: { id: string; name: string };
 }): Promise<number> => {
-  const resource = { type: RESOURCE_TYPES.account, id: String(account.id), name: account.name } as const;
+  const resource = { type: RESOURCE_TYPES.account, id: account.id, name: account.name } as const;
   const perResourceNotified = await fanOutNotifications({
     targets: recipients,
     notify: (r) =>

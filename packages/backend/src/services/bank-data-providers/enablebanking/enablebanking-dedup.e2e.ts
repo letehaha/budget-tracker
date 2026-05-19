@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { BANK_PROVIDER_TYPE, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import Transactions from '@models/transactions.model';
@@ -37,7 +38,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
    * Caller is expected to have already configured fixed transactions
    * (or accept the default auto-generated set).
    */
-  async function setupConnectionWithAccount(): Promise<{ connectionId: number; accountId: number }> {
+  async function setupConnectionWithAccount(): Promise<{ connectionId: string; accountId: RecordId }> {
     const connectResult = await helpers.bankDataProviders.connectProvider({
       providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
       credentials: helpers.enablebanking.mockCredentials(),
@@ -299,12 +300,12 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       counterpartyIban,
       categoryId,
     }: {
-      accountId: number;
+      accountId: RecordId;
       amount: number;
       time: string;
       isExpense?: boolean;
       counterpartyIban?: string;
-      categoryId?: number;
+      categoryId?: RecordId;
     }) {
       let resolvedCategoryId = categoryId;
       if (resolvedCategoryId === undefined) {
@@ -312,7 +313,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         if (existing.length > 0) {
           resolvedCategoryId = existing[0]!.categoryId;
         } else {
-          const userCategory = (await helpers.getCategoriesList()) as { id: number }[];
+          const userCategory = (await helpers.getCategoriesList()) as { id: RecordId }[];
           resolvedCategoryId = userCategory[0]!.id;
         }
       }
@@ -379,7 +380,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       const finalTxs = await helpers.getTransactions({ accountIds: [accountId], raw: true });
       expect(finalTxs.length).toBe(1);
       expect(finalTxs[0]!.id).toBe(canonicalTx.id);
-      expect(finalTxs.find((t: { id: number }) => t.id === orphan.id)).toBeUndefined();
+      expect(finalTxs.find((t: { id: string }) => t.id === orphan.id)).toBeUndefined();
     });
 
     it('does not merge orphans that have child relations (tags) — preserves user data', async () => {
@@ -587,7 +588,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       const canonicalCategoryId = canonicalRows[0]!.categoryId;
 
       // Pick a user-defined category that is different from the canonical's.
-      const userCategories = (await helpers.getCategoriesList()) as { id: number }[];
+      const userCategories = (await helpers.getCategoriesList()) as { id: RecordId }[];
       const otherCategory = userCategories.find((c) => c.id !== canonicalCategoryId);
       expect(otherCategory).toBeDefined();
 

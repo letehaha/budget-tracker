@@ -73,7 +73,7 @@ export async function getPortfolio<R extends boolean | undefined = false>({
   portfolioId,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _getPortfolio>>, R>({
@@ -88,7 +88,7 @@ export async function getPortfolioBalance<R extends boolean | undefined = false>
   currencyCode,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   currencyCode?: string;
   raw?: R;
 }) {
@@ -105,7 +105,7 @@ export async function updatePortfolio<R extends boolean | undefined = false>({
   payload,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   payload: Partial<ReturnType<typeof buildPortfolioPayload>>;
   raw?: R;
 }) {
@@ -122,7 +122,7 @@ export async function deletePortfolio<R extends boolean | undefined = false>({
   force,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   force?: boolean;
   raw?: R;
 }) {
@@ -143,7 +143,7 @@ export async function updatePortfolioBalance<R extends boolean | undefined = fal
   setTotalCash,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   currencyCode: string;
   availableCashDelta?: string;
   totalCashDelta?: string;
@@ -170,7 +170,7 @@ export async function getPortfolioSummary<R extends boolean | undefined = false>
   date,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   date?: string;
   raw?: R;
 }) {

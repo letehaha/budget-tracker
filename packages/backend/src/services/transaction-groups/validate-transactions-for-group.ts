@@ -14,7 +14,7 @@ export async function validateTransactionsForGroup({
   transactionIds,
   userId,
 }: {
-  transactionIds: number[];
+  transactionIds: string[];
   userId: number;
 }): Promise<void> {
   // Use count() instead of findAll() — we only need the count, not full rows

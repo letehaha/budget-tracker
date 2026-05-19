@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
@@ -83,7 +84,7 @@ export async function setupCurrencies({ userId }: { userId: number }): Promise<v
   }
 }
 
-export async function createCategories({ userId }: { userId: number }): Promise<Map<string, number>> {
+export async function createCategories({ userId }: { userId: number }): Promise<Map<string, string>> {
   const locale = 'en';
   const translatedCategories = getTranslatedCategories({ locale });
 
@@ -110,7 +111,7 @@ export async function createCategories({ userId }: { userId: number }): Promise<
   const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
 
   // Build map of category key -> id
-  const categoryMap = new Map<string, number>();
+  const categoryMap = new Map<string, RecordId>();
   translatedCategories.main.forEach((item, index) => {
     const createdCategory = categories[index];
     if (createdCategory) {
@@ -121,7 +122,7 @@ export async function createCategories({ userId }: { userId: number }): Promise<
   // Create subcategories
   const subcats: Array<{
     name: string;
-    parentId: number;
+    parentId: string;
     color: string;
     userId: number;
     type: string;
@@ -226,7 +227,7 @@ export async function createBudgets({
   categoryMap,
 }: {
   userId: number;
-  categoryMap: Map<string, number>;
+  categoryMap: Map<string, string>;
 }): Promise<void> {
   // Create budgets based on config
   for (const budgetConfig of DEMO_CONFIG.budgets) {
@@ -253,8 +254,8 @@ export async function createSubscriptions({
   referenceDate,
 }: {
   userId: number;
-  accountId: number;
-  categoryId: number | null;
+  accountId: string;
+  categoryId: string | null;
   referenceDate: Date;
 }): Promise<void> {
   const startBase = subMonths(referenceDate, 8);
@@ -285,10 +286,10 @@ export async function setupDashboardSettings({
   categoryMap,
 }: {
   userId: number;
-  categoryMap: Map<string, number>;
+  categoryMap: Map<string, string>;
 }): Promise<void> {
   const selectedCategoryIds = DEMO_WATCHLIST_CATEGORY_KEYS.map((key) => categoryMap.get(key)).filter(
-    (id): id is number => id !== undefined,
+    (id): id is string => id !== undefined,
   );
 
   const settings: SettingsSchema = {

@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
@@ -99,7 +100,7 @@ describe('Remove account from group', () => {
 
   it('fails when trying to remove non-existing account', async () => {
     const result = await helpers.removeAccountFromGroup({
-      accountIds: [9999],
+      accountIds: [generateRandomRecordId()],
       groupId: group.id,
     });
 

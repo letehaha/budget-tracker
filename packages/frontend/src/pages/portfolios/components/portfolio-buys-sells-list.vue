@@ -58,7 +58,7 @@ import { format } from 'date-fns';
 import { ArrowDownIcon, ArrowUpIcon, CircleDollarSignIcon } from 'lucide-vue-next';
 import { type Component, computed, ref, toRef } from 'vue';
 
-const props = defineProps<{ portfolioId: number }>();
+const props = defineProps<{ portfolioId: string }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();

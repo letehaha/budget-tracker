@@ -38,7 +38,7 @@ describe('Add Transactions to Budget', () => {
         amount: 200,
         transactionType: TRANSACTION_TYPES.expense,
         time: '2025-03-02T12:00:00Z',
-        categoryId: 1,
+        categoryId: global.DEFAULT_CATEGORY_ID,
       }),
       raw: true,
     });

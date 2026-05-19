@@ -102,7 +102,7 @@ import PortfolioBuysSellsList from './portfolio-buys-sells-list.vue';
 import PortfolioCashOverview from './portfolio-cash-overview.vue';
 import PortfolioCashTransactionsList from './portfolio-cash-transactions-list.vue';
 
-const props = defineProps<{ portfolioId: number; portfolio: PortfolioModel }>();
+const props = defineProps<{ portfolioId: string; portfolio: PortfolioModel }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { t } = useI18n();

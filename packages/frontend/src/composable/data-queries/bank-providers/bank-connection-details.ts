@@ -9,7 +9,7 @@ export const useBankConnectionDetails = ({
   connectionId,
   queryOptions = {},
 }: {
-  connectionId: MaybeRef<number>;
+  connectionId: MaybeRef<string>;
   queryOptions?: Partial<Parameters<typeof useQuery<ConnectionDetails, Error>>[0]>;
 }) => {
   return useQuery({

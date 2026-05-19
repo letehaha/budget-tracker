@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getTransactions } from '@services/investments/transactions/get.service';
@@ -13,8 +14,8 @@ export function registerGetInvestmentTransactions(server: McpServer) {
       description:
         'Investment transaction history: buy, sell, dividend, transfer, tax, fee, cancel, other. Each transaction includes amount, quantity, price, fees, date, category, and the embedded security. Distinct from search_transactions, which covers regular (non-investment) spending. Default: 20 most recent across all portfolios.',
       inputSchema: {
-        portfolioId: z.number().optional().describe('Restrict to a specific portfolio'),
-        securityId: z.number().optional().describe('Restrict to a specific security'),
+        portfolioId: recordId().optional().describe('Restrict to a specific portfolio'),
+        securityId: recordId().optional().describe('Restrict to a specific security'),
         category: z
           .enum([
             INVESTMENT_TRANSACTION_CATEGORY.buy,

@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { addTransactionsToBudget } from '@services/budgets/add-transactions-to-budget';
@@ -12,8 +13,8 @@ export function registerAddTransactionsToBudget(server: McpServer) {
       description:
         'Manually link one or more transactions to a manual-type budget. Category-type budgets do not support manual linking. Returns a success message on completion.',
       inputSchema: {
-        budgetId: z.number().describe('ID of the budget to link transactions to'),
-        transactionIds: z.array(z.number()).describe('IDs of the transactions to add to the budget'),
+        budgetId: recordId().describe('ID of the budget to link transactions to'),
+        transactionIds: z.array(recordId()).describe('IDs of the transactions to add to the budget'),
       },
     },
     async (args, extra) => {

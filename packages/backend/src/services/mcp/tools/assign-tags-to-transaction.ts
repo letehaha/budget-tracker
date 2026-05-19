@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { addTransactionsToTag } from '@services/tags/transaction-tags';
@@ -12,8 +13,8 @@ export function registerAssignTagsToTransaction(server: McpServer) {
       description:
         'Assign one or more tags to a transaction. Use when the user wants to label a transaction with existing tags. Already-assigned tags are silently skipped. Returns counts of added and skipped tags.',
       inputSchema: {
-        tagId: z.number().describe('ID of the tag to assign.'),
-        transactionIds: z.array(z.number()).describe('List of transaction IDs to tag.'),
+        tagId: recordId().describe('ID of the tag to assign.'),
+        transactionIds: z.array(recordId()).describe('List of transaction IDs to tag.'),
       },
     },
     async (args, extra) => {

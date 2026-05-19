@@ -94,7 +94,7 @@ onMounted(async () => {
 
   try {
     // Complete OAuth flow
-    await completeEnableBankingOAuth(Number(connectionId), code, state);
+    await completeEnableBankingOAuth(connectionId, code, state);
 
     // Clear stored connection ID
     localStorage.removeItem('pendingEnableBankingConnectionId');

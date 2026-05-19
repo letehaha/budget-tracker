@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
@@ -136,7 +137,7 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
 
   it('should successfully delete non-existent transaction', async () => {
     const response = await helpers.deleteInvestmentTransaction({
-      transactionId: 99999,
+      transactionId: generateRandomRecordId(),
       raw: false,
     });
 
@@ -145,7 +146,7 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
 
   it('should fail with invalid transaction ID', async () => {
     const response = await helpers.deleteInvestmentTransaction({
-      transactionId: -1,
+      transactionId: 'invalid' as unknown as string,
       raw: false,
     });
 

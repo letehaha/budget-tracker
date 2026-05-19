@@ -13,8 +13,8 @@ const getHoldingsImpl = async ({
   date,
 }: {
   userId: number;
-  portfolioId?: number;
-  securityId?: number;
+  portfolioId?: string;
+  securityId?: string;
   date?: Date;
 }) => {
   if (!portfolioId) {

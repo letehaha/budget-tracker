@@ -202,7 +202,7 @@ interface TimelineItem {
   type: 'new' | 'duplicate' | 'existing';
   transactionIndex: number;
   /** For existing transactions, this is the actual transaction ID */
-  existingId?: number;
+  existingId?: string;
   date: string;
   description: string;
   amount: number;

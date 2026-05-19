@@ -10,14 +10,14 @@ export const findSubscriptionOrThrow = async ({ id, userId }: { id: string; user
   });
 };
 
-export const validateAccountOwnership = async ({ accountId, userId }: { accountId: number; userId: number }) => {
+export const validateAccountOwnership = async ({ accountId, userId }: { accountId: string; userId: number }) => {
   await findOrThrowNotFound({
     query: Accounts.getAccountById({ userId, id: accountId }),
     message: 'Account not found or does not belong to user.',
   });
 };
 
-export const validateCategoryOwnership = async ({ categoryId, userId }: { categoryId: number; userId: number }) => {
+export const validateCategoryOwnership = async ({ categoryId, userId }: { categoryId: string; userId: number }) => {
   await findOrThrowNotFound({
     query: Categories.findOne({ where: { id: categoryId, userId } }),
     message: 'Category not found or does not belong to user.',

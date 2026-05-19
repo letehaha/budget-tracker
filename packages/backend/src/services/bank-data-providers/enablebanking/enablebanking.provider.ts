@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ACCOUNT_TYPES,
@@ -75,7 +76,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * Start connection flow - returns authorization URL for user
    * Full connection is completed via handleOAuthCallback()
    */
-  async connect(userId: number, credentials: unknown): Promise<number> {
+  async connect(userId: number, credentials: unknown): Promise<string> {
     if (!this.isValidConnectionParams(credentials)) {
       throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.invalidCredentialsFormat' }) });
     }
@@ -148,7 +149,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * Get authorization URL for a pending connection
    * Used by frontend to redirect user to bank
    */
-  async getAuthorizationUrl(connectionId: number): Promise<string> {
+  async getAuthorizationUrl(connectionId: string): Promise<string> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
@@ -165,7 +166,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * Complete OAuth flow after user authorization
    * Should be called from callback endpoint
    */
-  async handleOAuthCallback(connectionId: number, callbackParams: OAuthCallbackParams): Promise<void> {
+  async handleOAuthCallback(connectionId: string, callbackParams: OAuthCallbackParams): Promise<void> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
@@ -251,7 +252,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     userId,
     newAccounts,
   }: {
-    connectionId: number;
+    connectionId: string;
     userId: number;
     newAccounts: EnableBankingAccount[];
   }): Promise<void> {
@@ -329,7 +330,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * Reauthorize an existing connection (renew consent without disconnecting)
    * Returns the new authorization URL for user to complete OAuth flow
    */
-  async reauthorize(connectionId: number): Promise<string> {
+  async reauthorize(connectionId: string): Promise<string> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
@@ -403,7 +404,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     return authResponse.url;
   }
 
-  async disconnect(connectionId: number): Promise<void> {
+  async disconnect(connectionId: string): Promise<void> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
@@ -443,7 +444,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     return await apiClient.testConnection();
   }
 
-  async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
+  async refreshCredentials(connectionId: string, newCredentials: unknown): Promise<void> {
     if (!this.isValidCredentials(newCredentials)) {
       throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.invalidCredentialsFormat' }) });
     }
@@ -474,7 +475,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   // Account Operations
   // ============================================================================
 
-  async fetchAccounts(connectionId: number): Promise<ProviderAccount[]> {
+  async fetchAccounts(connectionId: string): Promise<ProviderAccount[]> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
@@ -551,7 +552,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * @param accountExternalIdForHash - Stable identifier for hash generation (defaults to accountApiUid for backward compatibility)
    */
   async fetchTransactions(
-    connectionId: number,
+    connectionId: string,
     accountApiUid: string,
     dateRange?: DateRange,
     accountExternalIdForHash?: string,
@@ -624,8 +625,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     systemAccountId,
     userId,
   }: {
-    connectionId: number;
-    systemAccountId: number;
+    connectionId: string;
+    systemAccountId: RecordId;
     userId: number;
   }): Promise<void> {
     // Set status to SYNCING
@@ -697,7 +698,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       providerTransactions.sort((a, b) => a.date.getTime() - b.date.getTime());
 
       // Process each transaction and collect created/updated transaction IDs
-      const createdTransactionIds: number[] = [];
+      const createdTransactionIds: string[] = [];
       let updatedCount = 0;
 
       for (const tx of providerTransactions) {
@@ -807,7 +808,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   // Balance Operations
   // ============================================================================
 
-  async fetchBalance(connectionId: number, accountExternalId: string): Promise<ProviderBalance> {
+  async fetchBalance(connectionId: string, accountExternalId: string): Promise<ProviderBalance> {
     const credentials = await this.getValidatedCredentials(connectionId);
 
     if (!credentials.sessionId) {
@@ -838,7 +839,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     };
   }
 
-  async refreshBalance(connectionId: number, systemAccountId: number): Promise<void> {
+  async refreshBalance(connectionId: string, systemAccountId: string): Promise<void> {
     const account = await this.getSystemAccount(systemAccountId);
 
     if (!account.externalId) {
@@ -922,7 +923,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * Must be called with { transaction: null } awareness: the save bypasses the
    * current CLS transaction intentionally so the update survives a rollback.
    */
-  private async handleProviderError({ error, connectionId }: { error: unknown; connectionId: number }): Promise<never> {
+  private async handleProviderError({ error, connectionId }: { error: unknown; connectionId: string }): Promise<never> {
     if (error instanceof ForbiddenError) {
       try {
         const connection = await this.getConnection(connectionId);
@@ -990,7 +991,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   /**
    * Get and validate credentials
    */
-  private async getValidatedCredentials(connectionId: number): Promise<EnableBankingCredentials> {
+  private async getValidatedCredentials(connectionId: string): Promise<EnableBankingCredentials> {
     const credentials = (await this.getDecryptedCredentials(connectionId)) as unknown as EnableBankingCredentials;
 
     if (!this.isValidCredentials(credentials)) {
@@ -1013,7 +1014,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     connectionId,
     account,
   }: {
-    connectionId: number;
+    connectionId: string;
     account: Accounts;
   }): Promise<EnableBankingAccount | null> {
     const credentials = await this.getValidatedCredentials(connectionId);
@@ -1159,7 +1160,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     accountId,
     tx,
   }: {
-    accountId: number;
+    accountId: string;
     tx: ProviderTransaction;
   }): Promise<Transactions | null> {
     const entryReference = tx.metadata?.entryReference as string | undefined;
@@ -1240,7 +1241,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   async reconcileDuplicateTransactionsForAccount({
     accountId,
   }: {
-    accountId: number;
+    accountId: string;
   }): Promise<{ mergedCount: number; skippedCount: number }> {
     const account = await this.getSystemAccount(accountId);
     const allTxs = await Transactions.findAll({

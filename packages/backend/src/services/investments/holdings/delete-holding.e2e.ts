@@ -80,7 +80,7 @@ describe('DELETE /investments/holding (delete holding)', () => {
 
   it('fails if required fields are missing', async () => {
     // Missing portfolioId
-    const payloadMissingPortfolioId = { securityId: vooSecurity.id } as Parameters<
+    const payloadMissingPortfolioId = { securityId: vooSecurity.id } as unknown as Parameters<
       typeof helpers.deleteHolding
     >[0]['payload'];
     let response = await helpers.deleteHolding({
@@ -90,7 +90,7 @@ describe('DELETE /investments/holding (delete holding)', () => {
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
 
     // Missing securityId
-    const payloadMissingSecurityId = { portfolioId: investmentPortfolio.id } as Parameters<
+    const payloadMissingSecurityId = { portfolioId: investmentPortfolio.id } as unknown as Parameters<
       typeof helpers.deleteHolding
     >[0]['payload'];
     response = await helpers.deleteHolding({

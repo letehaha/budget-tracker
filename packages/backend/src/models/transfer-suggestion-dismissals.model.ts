@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 
 import Transactions from './transactions.model';
@@ -20,19 +21,19 @@ export default class TransferSuggestionDismissals extends Model {
 
   @ForeignKey(() => Transactions)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
     primaryKey: true,
   })
-  expenseTransactionId!: number;
+  expenseTransactionId!: RecordId;
 
   @ForeignKey(() => Transactions)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
     primaryKey: true,
   })
-  incomeTransactionId!: number;
+  incomeTransactionId!: RecordId;
 
   @Column({
     type: DataType.DATE,
@@ -57,8 +58,8 @@ export async function createDismissal({
   incomeTransactionId,
 }: {
   userId: number;
-  expenseTransactionId: number;
-  incomeTransactionId: number;
+  expenseTransactionId: string;
+  incomeTransactionId: string;
 }) {
   return TransferSuggestionDismissals.findOrCreate({
     where: { userId, expenseTransactionId, incomeTransactionId },
@@ -70,7 +71,7 @@ export async function getDismissalsForUser({
   expenseTransactionIds,
 }: {
   userId: number;
-  expenseTransactionIds?: number[];
+  expenseTransactionIds?: string[];
 }) {
   return TransferSuggestionDismissals.findAll({
     where: {

@@ -1,14 +1,15 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, RecordId } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import Users from '@models/users.model';
 import { encryptCredentials, decryptCredentials } from '@services/bank-data-providers/utils/credential-encryption';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType, HasMany } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 /**
  * Interface for BankDataProviderConnections attributes
  */
 interface BankDataProviderConnectionsAttributes {
-  id: number;
+  id: RecordId;
   userId: number;
   providerType: BANK_PROVIDER_TYPE;
   providerName: string;
@@ -44,13 +45,12 @@ export default class BankDataProviderConnections extends Model<BankDataProviderC
   accounts!: Accounts[];
 
   @Column({
-    unique: true,
     allowNull: false,
-    autoIncrement: true,
     primaryKey: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @ForeignKey(() => Users)
   @Column({

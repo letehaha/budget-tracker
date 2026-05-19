@@ -9,7 +9,7 @@ import { canUserAccessResource } from '@services/sharing/auth/can-user-access-re
 import { withTransaction } from '../common/with-transaction';
 
 export const removeAccountFromGroup = withTransaction(
-  async ({ accountIds, groupId, userId }: { accountIds: number[]; groupId: number; userId: number }): Promise<void> => {
+  async ({ accountIds, groupId, userId }: { accountIds: string[]; groupId: string; userId: number }): Promise<void> => {
     // Group must belong to the caller; this is also the authorization gate for the
     // destroy below — by scoping the `AccountGrouping` row deletion to a caller-owned
     // `groupId`, we cannot touch another user's grouping rows even when `accountId`

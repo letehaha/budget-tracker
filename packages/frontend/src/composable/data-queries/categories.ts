@@ -13,7 +13,7 @@ export const useAccountCategories = ({
   accountId,
   enabled,
 }: {
-  accountId: MaybeRefOrGetter<number | undefined>;
+  accountId: MaybeRefOrGetter<string | undefined>;
   enabled?: MaybeRefOrGetter<boolean>;
 }) => {
   const query = useQuery({
@@ -41,13 +41,13 @@ export const useAccountCategories = ({
 
   const formatted = computed<FormattedCategory[]>(() => buildCategiesObjectGraph(list.value));
 
-  const map = computed<Record<number, CategoryModel>>(() =>
+  const map = computed<Record<string, CategoryModel>>(() =>
     list.value.reduce(
       (acc, curr) => {
         acc[curr.id] = curr;
         return acc;
       },
-      {} as Record<number, CategoryModel>,
+      {} as Record<string, CategoryModel>,
     ),
   );
 

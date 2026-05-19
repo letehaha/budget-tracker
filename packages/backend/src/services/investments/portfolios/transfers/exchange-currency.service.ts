@@ -16,7 +16,7 @@ import {
 
 interface ExchangeCurrencyParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
   fromCurrencyCode: string;
   toCurrencyCode: string;
   fromAmount: string;

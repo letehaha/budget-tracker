@@ -27,7 +27,7 @@ async function provisionRecipient(): Promise<RecipientHandle> {
 }
 
 interface ShareAccountParams {
-  accountId: number;
+  accountId: string;
   recipient: RecipientHandle;
   permission: (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
   transactionsWriteScope?: 'own' | 'all';
@@ -775,7 +775,7 @@ describe('Shared account writes — S4', () => {
         cookies: recipient.cookies,
         fn: () => helpers.getTransactions({ raw: true, includeSplits: true }),
       });
-      const recipientTxView = (recipientView as Array<{ id: number; splits?: Array<{ categoryId: number }> }>).find(
+      const recipientTxView = (recipientView as Array<{ id: string; splits?: Array<{ categoryId: string }> }>).find(
         (t) => t.id === ownerTx.id,
       );
       expect(recipientTxView).toBeDefined();

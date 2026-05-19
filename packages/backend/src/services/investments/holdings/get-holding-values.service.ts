@@ -9,14 +9,14 @@ import { calculateAllGains } from '@services/investments/gains/gains-calculator.
 import { Op, WhereOptions, fn, col } from 'sequelize';
 
 interface GetHoldingValuesParams {
-  portfolioId: number;
+  portfolioId: string;
   date?: Date; // If not provided, uses latest available prices
   userId?: number; // For reference currency conversion
 }
 
 interface HoldingValue {
-  portfolioId: number;
-  securityId: number;
+  portfolioId: string;
+  securityId: string;
   quantity: string;
   costBasis: string;
   refCostBasis: string;
@@ -76,7 +76,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       acc[transaction.securityId]!.push(transaction);
       return acc;
     },
-    {} as Record<number, InvestmentTransaction[]>,
+    {} as Record<string, InvestmentTransaction[]>,
   );
 
   // Build price query - fetch only the latest price per security
@@ -94,7 +94,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     attributes: ['securityId', [fn('MAX', col('date')), 'date']],
     group: ['securityId'],
     raw: true,
-  })) as unknown as Array<{ securityId: number; date: string }>;
+  })) as unknown as Array<{ securityId: string; date: string }>;
 
   // Step 2: Fetch only those specific price rows (exactly 1 per security)
   const prices =
@@ -110,7 +110,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       : [];
 
   const pricesBySecurityId = Object.fromEntries(prices.map((price) => [price.securityId, price])) as Record<
-    number,
+    string,
     SecurityPricing
   >;
 

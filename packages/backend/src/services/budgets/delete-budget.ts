@@ -3,11 +3,11 @@ import Budgets from '@models/budget.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteBudgetPayload {
-  id: number;
+  id: string;
   userId?: number;
 }
 
-export const deleteBudget = withTransaction(async ({ id, userId }: { id: number; userId: number }) => {
+export const deleteBudget = withTransaction(async ({ id, userId }: { id: string; userId: number }) => {
   const result = await deleteBudgetModel({ id, userId });
   return result;
 });

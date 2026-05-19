@@ -1,4 +1,6 @@
+import { RecordId } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import Categories from './categories.model';
 import MerchantCategoryCodes from './merchant-category-codes.model';
@@ -11,17 +13,16 @@ import Users from './users.model';
 })
 export default class UserMerchantCategoryCodes extends Model {
   @Column({
-    unique: true,
     allowNull: false,
-    autoIncrement: true,
     primaryKey: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @ForeignKey(() => Categories)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  categoryId!: number;
+  @Column({ allowNull: false, type: DataType.UUID })
+  categoryId!: RecordId;
 
   @ForeignKey(() => MerchantCategoryCodes)
   @Column({ allowNull: false, type: DataType.INTEGER })
@@ -39,9 +40,9 @@ export const getByPassedParams = async ({
 }: {
   mccId?: number;
   userId?: number;
-  categoryId?: number;
+  categoryId?: string;
 }) => {
-  const where: Record<string, number> = {};
+  const where: Record<string, number | string> = {};
 
   if (mccId) where.mccId = mccId;
   if (userId) where.userId = userId;

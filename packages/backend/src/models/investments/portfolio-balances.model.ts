@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index, PrimaryKey } from 'sequelize-typescript';
@@ -13,8 +14,8 @@ export default class PortfolioBalances extends Model {
   @PrimaryKey
   @ForeignKey(() => Portfolios)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  portfolioId!: number;
+  @Column({ type: DataType.UUID, allowNull: false })
+  portfolioId!: RecordId;
 
   @PrimaryKey
   @ForeignKey(() => Currencies)

@@ -15,7 +15,7 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-const props = defineProps<{ portfolioId: number }>();
+const props = defineProps<{ portfolioId: string }>();
 const emit = defineEmits(['updated']);
 
 const isOpen = ref(false);

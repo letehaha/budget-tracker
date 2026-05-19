@@ -59,7 +59,7 @@ export const linkTransactions = withTransaction(
     ignoreBaseTxTypeValidation,
   }: {
     userId: number;
-    ids: [baseTxId: number, oppositeTxId: number][];
+    ids: [baseTxId: string, oppositeTxId: string][];
     ignoreBaseTxTypeValidation?: boolean;
   }): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default][]> => {
     try {

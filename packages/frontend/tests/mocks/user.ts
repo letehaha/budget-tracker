@@ -1,4 +1,4 @@
-import { USER_ROLES, UserModel, UserRole } from '@bt/shared/types';
+import { USER_ROLES, UserModel, UserRole, type RecordId } from '@bt/shared/types';
 
 export const USER: UserModel = {
   id: 1,
@@ -9,7 +9,7 @@ export const USER: UserModel = {
   middleName: '',
   avatar: '',
   totalBalance: 0,
-  defaultCategoryId: 3131,
+  defaultCategoryId: '00000000-0000-0000-0000-000000003131' as RecordId,
   role: USER_ROLES.common as UserRole,
 };
 

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
 import { Table, Column, Model, BelongsToMany, Length, DataType } from 'sequelize-typescript';
 
@@ -49,7 +50,7 @@ export default class Users extends Model {
   middleName!: string;
 
   @Column({ allowNull: true, type: DataType.STRING })
-  authUserId!: string;
+  authUserId!: RecordId;
 
   @Length({ max: 2000 })
   @Column({ allowNull: true, type: DataType.STRING })
@@ -62,8 +63,8 @@ export default class Users extends Model {
   })
   totalBalance!: number;
 
-  @Column({ allowNull: true, type: DataType.NUMBER })
-  defaultCategoryId!: number;
+  @Column({ allowNull: true, type: DataType.UUID })
+  defaultCategoryId!: RecordId;
 
   @Column({
     allowNull: false,
@@ -164,7 +165,7 @@ export const updateUserById = async ({
   middleName?: string;
   avatar?: string;
   totalBalance?: number;
-  defaultCategoryId?: number;
+  defaultCategoryId?: RecordId;
 }): Promise<UserModel | null> => {
   const where = { id };
   const updateFields: Record<string, unknown> = {};

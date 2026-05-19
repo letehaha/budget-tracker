@@ -1,4 +1,5 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { deserializeCreateTransaction, serializeTransactionTuple } from '@root/serializers';
@@ -14,7 +15,7 @@ export function registerCreateTransaction(server: McpServer) {
       description:
         'Create a new transaction (income, expense, or transfer). Requires accountId, amount (decimal), transactionType, paymentType, and transferNature. For transfers, also provide destinationAccountId and destinationAmount. Use splits to categorize portions of the amount.',
       inputSchema: {
-        accountId: z.number().describe('ID of the account the transaction belongs to'),
+        accountId: recordId().describe('ID of the account the transaction belongs to'),
         amount: z.number().describe('Transaction amount as a decimal (e.g. 12.50)'),
         transactionType: z
           .enum([TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense])
@@ -37,29 +38,30 @@ export function registerCreateTransaction(server: McpServer) {
             TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
           ])
           .describe('Transfer type. Use not_transfer for regular income/expense'),
-        categoryId: z.number().optional().describe('Category ID to assign to this transaction'),
+        categoryId: recordId().optional().describe('Category ID to assign to this transaction'),
         time: z.string().optional().describe('Transaction date/time as ISO 8601 string. Defaults to now'),
         note: z.string().optional().describe('Optional note or description for the transaction'),
-        destinationAccountId: z.number().optional().describe('For transfers: destination account ID'),
+        destinationAccountId: recordId().optional().describe('For transfers: destination account ID'),
         destinationAmount: z
           .number()
           .optional()
           .describe('For transfers: amount received in destination account (decimal)'),
         destinationTransactionId: z
-          .number()
+          .string()
+          .uuid()
           .optional()
           .describe('For transfers: link to an existing destination transaction instead of creating one'),
         splits: z
           .array(
             z.object({
-              categoryId: z.number().describe('Category ID for this split portion'),
+              categoryId: recordId().describe('Category ID for this split portion'),
               amount: z.number().describe('Amount for this split portion (decimal)'),
               note: z.string().optional().nullable().describe('Optional note for this split'),
             }),
           )
           .optional()
           .describe('Split the transaction across multiple categories'),
-        tagIds: z.array(z.number()).optional().describe('Tag IDs to assign to this transaction'),
+        tagIds: z.array(recordId()).optional().describe('Tag IDs to assign to this transaction'),
       },
     },
     async (args, extra) => {

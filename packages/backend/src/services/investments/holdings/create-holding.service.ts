@@ -12,8 +12,8 @@ import { syncHistoricalPrices } from '@services/investments/securities-price/his
 
 interface CreateHoldingParams {
   userId: number;
-  portfolioId: number;
-  securityId: number;
+  portfolioId: string;
+  securityId: string;
 }
 
 const createHoldingImpl = async ({ userId, portfolioId, securityId }: CreateHoldingParams) => {

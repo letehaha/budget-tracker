@@ -27,7 +27,7 @@ export default createController(schema, async ({ user, params, body }) => {
   const { name, icon, color } = body;
 
   const data = await categoriesService.editCategory({
-    categoryId: Number(categoryId),
+    categoryId,
     userId,
     name,
     icon,

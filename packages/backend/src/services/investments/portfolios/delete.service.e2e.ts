@@ -1,5 +1,6 @@
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
@@ -46,7 +47,7 @@ describe('Delete Portfolio Service E2E', () => {
 
       it('should handle non-existent portfolio gracefully', async () => {
         const deleteResponse = await helpers.deletePortfolio({
-          portfolioId: 99999,
+          portfolioId: generateRandomRecordId(),
         });
 
         expect(deleteResponse.statusCode).toBe(200);
@@ -56,7 +57,7 @@ describe('Delete Portfolio Service E2E', () => {
     describe('Validation errors', () => {
       it('should return ValidationError for invalid portfolio ID', async () => {
         const deleteResponse = await helpers.deletePortfolio({
-          portfolioId: 'invalid' as unknown as number,
+          portfolioId: 'invalid' as unknown as string,
         });
 
         expect(deleteResponse.statusCode).toBe(ERROR_CODES.ValidationError);

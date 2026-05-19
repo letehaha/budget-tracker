@@ -22,7 +22,7 @@ interface UpdateReminderParams {
   notifyEmail?: boolean;
   preferredTime?: number;
   timezone?: string;
-  categoryId?: number | null;
+  categoryId?: string | null;
   notes?: string | null;
   isActive?: boolean;
 }

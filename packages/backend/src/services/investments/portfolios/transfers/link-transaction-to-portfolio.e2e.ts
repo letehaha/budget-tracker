@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -41,7 +42,7 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
     });
 
     expect(transfer).toMatchObject({
-      id: expect.any(Number),
+      id: expect.any(String),
       fromAccountId: account.id,
       toPortfolioId: portfolio.id,
       fromPortfolioId: null,
@@ -93,7 +94,7 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
     });
 
     expect(transfer).toMatchObject({
-      id: expect.any(Number),
+      id: expect.any(String),
       fromPortfolioId: portfolio.id,
       toAccountId: account.id,
       fromAccountId: null,
@@ -115,7 +116,7 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
 
   it('should return 404 for non-existent transaction', async () => {
     const response = await helpers.linkTransactionToPortfolio({
-      transactionId: 999999,
+      transactionId: generateRandomRecordId(),
       payload: { portfolioId: portfolio.id },
     });
 
@@ -133,7 +134,7 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
 
     const response = await helpers.linkTransactionToPortfolio({
       transactionId: tx!.id,
-      payload: { portfolioId: 999999 },
+      payload: { portfolioId: generateRandomRecordId() },
     });
 
     expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);

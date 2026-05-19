@@ -10,7 +10,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { useCategoriesStore, useTagsStore } from '@/stores';
-import { TagModel, endpointsTypes } from '@bt/shared/types';
+import { TagModel, endpointsTypes, type RecordId } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -18,8 +18,8 @@ import { useI18n } from 'vue-i18n';
 type TagMode = endpointsTypes.BulkUpdateTagMode;
 
 export interface BulkEditFormValues {
-  categoryId?: number;
-  tagIds?: number[];
+  categoryId?: RecordId;
+  tagIds?: string[];
   tagMode?: TagMode;
   note?: string;
 }
@@ -48,7 +48,7 @@ const isOpen = computed({
 
 const form = reactive({
   category: null as FormattedCategory | null,
-  tagIds: [] as number[],
+  tagIds: [] as string[],
   tagMode: 'add' as TagMode,
   note: '',
 });

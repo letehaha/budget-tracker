@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -63,7 +64,7 @@ describe('Update account group', () => {
   it('fails when tries to update unexisting record', async () => {
     const response = await helpers.updateAccountGroup({
       name: 'foo',
-      groupId: 999,
+      groupId: generateRandomRecordId(),
     });
 
     expect(response.statusCode).toBe(404);
@@ -137,7 +138,7 @@ describe('Update account group', () => {
 
     const updation = await helpers.updateAccountGroup({
       name: 'test1',
-      parentGroupId: 9999,
+      parentGroupId: generateRandomRecordId(),
       groupId: group.id,
     });
 

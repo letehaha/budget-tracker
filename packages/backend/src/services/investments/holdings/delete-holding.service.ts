@@ -7,8 +7,8 @@ import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteParams {
   userId: number;
-  portfolioId: number;
-  securityId: number;
+  portfolioId: string;
+  securityId: string;
 }
 
 const deleteHoldingImpl = async ({ userId, portfolioId, securityId }: DeleteParams) => {

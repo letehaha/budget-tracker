@@ -27,9 +27,9 @@ const props = defineProps<{
   /** Current form's currency code */
   currentCurrencyCode?: string;
   /** Current account ID (for recommendations) */
-  currentAccountId?: number | null;
+  currentAccountId?: string | null;
   /** Current transaction ID (for recommendations when editing) */
-  currentTransactionId?: number;
+  currentTransactionId?: string;
 }>();
 
 const emit = defineEmits<{

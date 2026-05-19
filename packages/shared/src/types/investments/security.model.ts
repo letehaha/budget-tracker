@@ -4,7 +4,7 @@ import { InvestmentTransactionModel } from './investment-transaction.model';
 import { SecurityPricingModel } from './security-pricing.model';
 
 export interface SecurityModel {
-  id: number;
+  id: string;
   /**
    * The name of the security, typically the official name of the stock, bond,
    * or other financial instrument.

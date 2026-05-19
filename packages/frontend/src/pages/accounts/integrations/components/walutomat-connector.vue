@@ -171,7 +171,7 @@ const showInstructions = ref(false);
 // Step 1 data
 const apiKey = ref('');
 const privateKey = ref('');
-const connectionId = ref<number | null>(null);
+const connectionId = ref<string | null>(null);
 
 // Step 2 data
 const availableAccounts = ref<AvailableAccount[]>([]);

@@ -63,11 +63,7 @@ const resolveOwnedResource = async ({
   resourceId: string;
 }): Promise<ResolvedResource> => {
   if (resourceType === RESOURCE_TYPES.account) {
-    const numericId = toPositiveInt(resourceId);
-    if (numericId === null) {
-      throw new NotFoundError({ message: 'Account not found' });
-    }
-    const account = await Accounts.findOne({ where: { id: numericId } });
+    const account = await Accounts.findOne({ where: { id: resourceId } });
     if (!account) {
       throw new NotFoundError({ message: 'Account not found' });
     }

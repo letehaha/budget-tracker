@@ -1,5 +1,6 @@
 import type { ParsedTransactionRow, TransactionImportDetails } from '@bt/shared/types';
 import { ImportSource, asCents } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
@@ -162,7 +163,7 @@ describe('Execute Import endpoint', () => {
       const existingCategories = await helpers.getCategoriesList();
 
       // Use the first available category, or create one if none exist
-      let categoryId: number;
+      let categoryId: string;
       if (existingCategories.length > 0) {
         categoryId = existingCategories[0]!.id;
       } else {
@@ -1184,7 +1185,7 @@ describe('Execute Import endpoint', () => {
         payload: {
           validRows,
           accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: 999999 }, // Non-existent
+            'CSV Account': { action: 'link-existing', accountId: generateRandomRecordId() }, // Non-existent
           },
           categoryMapping: {},
           skipDuplicateIndices: [],
@@ -1211,7 +1212,7 @@ describe('Execute Import endpoint', () => {
             'CSV Account': { action: 'link-existing', accountId: account.id },
           },
           categoryMapping: {
-            'Some Category': { action: 'link-existing', categoryId: 999999 }, // Non-existent
+            'Some Category': { action: 'link-existing', categoryId: generateRandomRecordId() }, // Non-existent
           },
           skipDuplicateIndices: [],
         },
@@ -1246,7 +1247,7 @@ describe('Execute Import endpoint', () => {
       const existingCategories = await helpers.getCategoriesList();
 
       // Use the first available category, or create one if none exist
-      let categoryId: number;
+      let categoryId: string;
       if (existingCategories.length > 0) {
         categoryId = existingCategories[0]!.id;
       } else {
@@ -1283,8 +1284,8 @@ describe('Execute Import endpoint', () => {
 
       expect(result.summary.imported).toBe(1);
       expect(result.newTransactionIds).toHaveLength(1);
-      expect(typeof result.newTransactionIds[0]).toBe('number');
-      expect(result.newTransactionIds[0]).toBeGreaterThan(0);
+      expect(typeof result.newTransactionIds[0]).toBe('string');
+      expect(result.newTransactionIds[0]).toBeTruthy();
 
       // Verify transaction was actually created in the database
       const transactions = await helpers.getTransactions({ raw: true });

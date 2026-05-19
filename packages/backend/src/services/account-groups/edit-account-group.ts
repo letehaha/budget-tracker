@@ -10,7 +10,7 @@ export const updateAccountGroup = withTransaction(
     userId,
     ...updates
   }: {
-    groupId: number;
+    groupId: string;
     userId: number;
   } & Partial<Pick<AccountGroup, 'name' | 'parentGroupId'>>): Promise<AccountGroup[]> => {
     await findOrThrowNotFound({

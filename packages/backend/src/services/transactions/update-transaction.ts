@@ -53,8 +53,7 @@ const validateTransaction = async (
   prevData: Transactions.default,
   ctx: UpdateAuthContext,
 ) => {
-  if (+newData.id !== +prevData.id)
-    throw new ValidationError({ message: t({ key: 'transactions.idCannotBeChanged' }) });
+  if (newData.id !== prevData.id) throw new ValidationError({ message: t({ key: 'transactions.idCannotBeChanged' }) });
 
   // Check the account type, not the transaction type
   // A system transaction in a monobank account should be treated as external.
@@ -167,7 +166,7 @@ const makeBasicBaseTxUpdation = async (
     // changing accountId is allowed in Phase 1; recipients are blocked at the entry).
     const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
       userId: ctx.callerUserId,
-      id: Number(newData.accountId),
+      id: newData.accountId!,
     });
 
     baseTransactionUpdateParams.currencyCode = baseTxCurrency.code;
@@ -305,7 +304,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     await Transactions.default.findAll({
       where: { transferId: prevData.transferId },
     })
-  ).find((item) => Number(item.id) !== Number(newData.id));
+  ).find((item) => item.id !== newData.id);
 
   if (!oppositeTx) {
     throw new NotFoundError({
@@ -380,7 +379,7 @@ const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
     await Transactions.default.findAll({
       where: { transferId: prevData.transferId },
     })
-  ).find((item) => Number(item.id) !== Number(newData.id));
+  ).find((item) => item.id !== newData.id);
 
   if (notBaseTransaction) {
     await assertTxWriteAccess({

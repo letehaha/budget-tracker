@@ -13,7 +13,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  save: [payload: { name: string; limitAmount: number; categoryIds: number[] }];
+  save: [payload: { name: string; limitAmount: number; categoryIds: string[] }];
 }>();
 
 const { t } = useI18n();
@@ -21,7 +21,7 @@ const { t } = useI18n();
 const formData = ref({
   name: '',
   limitAmount: 0,
-  categoryIds: [] as number[],
+  categoryIds: [] as string[],
   startDate: null as Date | null,
   endDate: null as Date | null,
 });

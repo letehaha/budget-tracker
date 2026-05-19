@@ -33,7 +33,7 @@ export const usePortfolios = (queryOptions = {}) => {
 };
 
 // Individual portfolio composable
-export const usePortfolio = (portfolioId: MaybeRef<number | undefined>, queryOptions = {}) => {
+export const usePortfolio = (portfolioId: MaybeRef<string | undefined>, queryOptions = {}) => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -68,7 +68,7 @@ export const useDeletePortfolio = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (portfolioId: number) => deletePortfolio({ portfolioId }),
+    mutationFn: (portfolioId: string) => deletePortfolio({ portfolioId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
     },

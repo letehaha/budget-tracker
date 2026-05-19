@@ -6,18 +6,18 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'https://localhost:8100';
 export { API_BASE_URL, BASE_URL };
 
 /**
- * Extract a numeric entity ID from API responses, handling shapes:
+ * Extract an entity ID (UUID string) from API responses, handling shapes:
  *   { response: { id } } | { response: [{ id }] } | { id }
  */
-export function extractId(apiResult: unknown): number {
+export function extractId(apiResult: unknown): string {
   if (!apiResult || typeof apiResult !== 'object') {
     throw new Error(`Invalid API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
   }
-  const r = apiResult as { response?: { id?: number } | { id?: number }[]; id?: number };
+  const r = apiResult as { response?: { id?: string } | { id?: string }[]; id?: string };
   const resp = r.response;
   const id = Array.isArray(resp) ? resp[0]?.id : (resp?.id ?? r.id);
-  if (typeof id !== 'number' || id <= 0) {
-    throw new Error(`Failed to extract numeric ID from API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
+  if (typeof id !== 'string' || id.length === 0) {
+    throw new Error(`Failed to extract ID from API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
   }
   return id;
 }
@@ -219,7 +219,7 @@ export async function setPortfolioCash({
   amount,
 }: {
   request: APIRequestContext;
-  portfolioId: number;
+  portfolioId: string;
   currencyCode: string;
   amount: string;
 }) {
@@ -238,14 +238,14 @@ async function apiGet({ request, path }: { request: APIRequestContext; path: str
   return response.json();
 }
 
-const categoryIdCache = new WeakMap<APIRequestContext, number>();
+const categoryIdCache = new WeakMap<APIRequestContext, string>();
 
-async function resolveDefaultCategoryId({ request }: { request: APIRequestContext }): Promise<number> {
+async function resolveDefaultCategoryId({ request }: { request: APIRequestContext }): Promise<string> {
   const cached = categoryIdCache.get(request);
   if (cached !== undefined) return cached;
 
   const result = await apiGet({ request, path: '/api/v1/categories' });
-  const categories: Array<{ id: number }> = result.response ?? result;
+  const categories: Array<{ id: string }> = result.response ?? result;
   if (!Array.isArray(categories) || categories.length === 0) {
     throw new Error('No categories available for the test user');
   }
@@ -281,10 +281,10 @@ export async function createTransaction({
   transferNature = 'not_transfer',
 }: {
   request: APIRequestContext;
-  accountId: number;
+  accountId: string;
   amount: number;
   transactionType?: 'expense' | 'income';
-  categoryId?: number;
+  categoryId?: string;
   transferNature?: 'not_transfer' | 'transfer_between_user_accounts' | 'transfer_out_wallet';
 }) {
   const resolvedCategoryId = categoryId ?? (await resolveDefaultCategoryId({ request }));
@@ -303,7 +303,7 @@ export async function createTransaction({
   });
 }
 
-export async function getTransaction({ request, id }: { request: APIRequestContext; id: number }) {
+export async function getTransaction({ request, id }: { request: APIRequestContext; id: string }) {
   return apiGet({ request, path: `/api/v1/transactions/${id}` });
 }
 
@@ -312,7 +312,7 @@ export async function linkTransactions({
   ids,
 }: {
   request: APIRequestContext;
-  ids: [baseTxId: number, oppositeTxId: number][];
+  ids: [baseTxId: string, oppositeTxId: string][];
 }) {
   return apiPut({
     request,
@@ -327,8 +327,8 @@ export async function linkTransactionToPortfolio({
   portfolioId,
 }: {
   request: APIRequestContext;
-  transactionId: number;
-  portfolioId: number;
+  transactionId: string;
+  portfolioId: string;
 }) {
   return apiPost({
     request,
@@ -347,7 +347,7 @@ export async function createTransactionGroup({
 }: {
   request: APIRequestContext;
   name: string;
-  transactionIds: number[];
+  transactionIds: string[];
   note?: string | null;
 }) {
   return apiPost({
@@ -363,8 +363,8 @@ export async function addTransactionsToGroup({
   transactionIds,
 }: {
   request: APIRequestContext;
-  groupId: number;
-  transactionIds: number[];
+  groupId: string;
+  transactionIds: string[];
 }) {
   return apiPost({
     request,
@@ -416,7 +416,7 @@ export async function markReminderPeriodPaid({
   request: APIRequestContext;
   reminderId: string;
   periodId: string;
-  transactionId?: number;
+  transactionId?: string;
 }) {
   return apiPost({
     request,
@@ -436,7 +436,7 @@ export async function createShareInvitation({
 }: {
   request: APIRequestContext;
   inviteeEmail: string;
-  resourceId: number;
+  resourceId: number | string;
   permission: 'read' | 'write' | 'manage';
   policy?: { transactionsWriteScope?: 'all' | 'own' } | null;
 }): Promise<{ token: string }> {
@@ -501,7 +501,7 @@ export async function createHolding({
   searchResult,
 }: {
   request: APIRequestContext;
-  portfolioId: number;
+  portfolioId: string;
   searchResult: {
     symbol: string;
     name: string;

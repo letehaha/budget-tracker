@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
 import * as Transactions from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
@@ -8,7 +9,7 @@ const MAX_IDS = 50;
 
 interface GetTransactionsByIdsParams {
   userId: number;
-  ids: number[];
+  ids: RecordId[];
 }
 
 export const getTransactionsByIds = withTransaction(async ({ userId, ids }: GetTransactionsByIdsParams) => {

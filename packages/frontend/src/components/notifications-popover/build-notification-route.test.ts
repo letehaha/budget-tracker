@@ -1,13 +1,14 @@
 import type { NotificationStruct } from '@/api/notifications';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { NOTIFICATION_STATUSES, NOTIFICATION_TYPES, RESOURCE_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
+import { NONEXISTENT_ID, NOTIFICATION_STATUSES, NOTIFICATION_TYPES, RESOURCE_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
 import { buildNotificationRoute } from './build-notification-route';
 
 const baseNotification = (overrides: Partial<NotificationStruct>): NotificationStruct =>
   ({
-    id: 'n1',
+    id: 'n1' as RecordId,
     type: NOTIFICATION_TYPES.system,
     status: NOTIFICATION_STATUSES.unread,
     title: 'title',
@@ -58,13 +59,13 @@ describe('buildNotificationRoute', () => {
   });
 
   describe('share_accepted', () => {
-    it('returns SPA route to account with numeric id when resourceType=account', () => {
+    it('returns SPA route to account with UUID id when resourceType=account', () => {
       const route = buildNotificationRoute(
         baseNotification({
           type: NOTIFICATION_TYPES.shareAccepted,
           payload: {
             resourceType: RESOURCE_TYPES.account,
-            resourceId: '99',
+            resourceId: NONEXISTENT_ID,
             resourceName: 'Joint',
             counterpartUser: { id: 2, username: 'bob', avatar: null },
           },
@@ -73,33 +74,17 @@ describe('buildNotificationRoute', () => {
 
       expect(route).toEqual({
         kind: 'spa',
-        to: { name: ROUTES_NAMES.account, params: { id: 99 } },
+        to: { name: ROUTES_NAMES.account, params: { id: NONEXISTENT_ID } },
       });
     });
 
-    it('returns null when resourceId is not a valid integer', () => {
+    it('returns null when resourceId is empty', () => {
       const route = buildNotificationRoute(
         baseNotification({
           type: NOTIFICATION_TYPES.shareAccepted,
           payload: {
             resourceType: RESOURCE_TYPES.account,
-            resourceId: 'not-a-number',
-            resourceName: 'Joint',
-            counterpartUser: { id: 2, username: 'bob', avatar: null },
-          },
-        }),
-      );
-
-      expect(route).toBeNull();
-    });
-
-    it.each(['0', ''])('returns null when resourceId coerces to 0 (input %j)', (resourceId) => {
-      const route = buildNotificationRoute(
-        baseNotification({
-          type: NOTIFICATION_TYPES.shareAccepted,
-          payload: {
-            resourceType: RESOURCE_TYPES.account,
-            resourceId,
+            resourceId: '',
             resourceName: 'Joint',
             counterpartUser: { id: 2, username: 'bob', avatar: null },
           },

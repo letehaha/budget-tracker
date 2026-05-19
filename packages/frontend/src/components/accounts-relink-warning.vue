@@ -111,7 +111,7 @@ const { accountsNeedingRelink } = storeToRefs(accountsStore);
 
 // Get unique connection IDs from accounts needing relink
 const uniqueConnectionIds = computed(() => {
-  const ids = new Set<number>();
+  const ids = new Set<string>();
   for (const account of accountsNeedingRelink.value) {
     if (account.bankDataProviderConnectionId) {
       ids.add(account.bankDataProviderConnectionId);

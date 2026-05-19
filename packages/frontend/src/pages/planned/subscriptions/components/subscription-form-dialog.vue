@@ -21,6 +21,7 @@ import {
   SUBSCRIPTION_TYPES,
   type SubscriptionMatchingRule,
   type SubscriptionModel,
+  type RecordId,
 } from '@bt/shared/types';
 import { AlertCircleIcon, ChevronDownIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
@@ -61,7 +62,7 @@ const FREQUENCY_OPTIONS = [
 const accountOptions = computed(() => [
   {
     label: t('planned.subscriptions.form.noAccount'),
-    value: 0,
+    value: null,
   },
   ...accountsStore.activeAccounts.map((a) => ({
     label: `${a.name} (${a.currencyCode})`,
@@ -77,8 +78,8 @@ interface FormState {
   frequency: SUBSCRIPTION_FREQUENCIES;
   startDate: Date | null;
   endDate: Date | null;
-  accountId: number | null;
-  categoryId: number | null;
+  accountId: string | null;
+  categoryId: string | null;
   matchingRules: SubscriptionMatchingRule[];
   notes: string;
 }
@@ -133,7 +134,7 @@ const selectedCategory = computed(() => {
 });
 
 const selectedAccount = computed(() => {
-  return accountOptions.value.find((a) => a.value === (form.value.accountId ?? 0)) ?? null;
+  return accountOptions.value.find((a) => a.value === form.value.accountId) ?? null;
 });
 
 const selectedCurrency = computed(() => {
@@ -224,8 +225,8 @@ const handleSubmit = () => {
     frequency: form.value.frequency,
     startDate: form.value.startDate?.toISOString().split('T')[0] ?? new Date().toISOString().split('T')[0]!,
     endDate: form.value.endDate ? form.value.endDate.toISOString().split('T')[0]! : null,
-    accountId: form.value.accountId || null,
-    categoryId: form.value.categoryId || null,
+    accountId: (form.value.accountId || null) as RecordId | null,
+    categoryId: (form.value.categoryId || null) as RecordId | null,
     matchingRules: {
       rules: form.value.matchingRules.filter((r) => {
         // Filter out empty rules

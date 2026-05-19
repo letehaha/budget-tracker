@@ -176,11 +176,11 @@ onMounted(() => {
   // Initialize category selection from query params if present
   if (route.query.categoryIds) {
     const categoryIds = Array.isArray(route.query.categoryIds)
-      ? route.query.categoryIds.map((id) => Number(id))
-      : [Number(route.query.categoryIds)];
+      ? route.query.categoryIds.filter((id): id is string => id !== null)
+      : [route.query.categoryIds as string];
 
-    // Only set valid category IDs (filter out NaN)
-    const validIds = categoryIds.filter((id) => !isNaN(id));
+    // Only set valid category IDs
+    const validIds = categoryIds.filter(Boolean);
     if (validIds.length > 0) {
       selectedCategoryIds.value = validIds;
     }
@@ -195,7 +195,7 @@ const svgRef = ref<SVGSVGElement | null>(null);
 const tooltipRef = ref<HTMLDivElement | null>(null);
 
 // Category multi-select state with session persistence
-const selectedCategoryIds = useSessionStorage<number[]>('trends-comparison-categories', []);
+const selectedCategoryIds = useSessionStorage<string[]>('trends-comparison-categories', []);
 
 const tooltip = reactive({
   visible: false,
@@ -207,7 +207,7 @@ const tooltip = reactive({
   momChange: undefined as number | undefined,
   categoryName: undefined as string | undefined,
   categoryColor: undefined as string | undefined,
-  categoryId: undefined as number | undefined,
+  categoryId: undefined as string | undefined,
   isAverage: false,
   // Navigation data
   periodStart: undefined as string | undefined,
@@ -867,7 +867,7 @@ const renderChart = () => {
 };
 
 // Get category ID and all its children IDs
-function getCategoryWithChildrenIds(categoryId: number): number[] {
+function getCategoryWithChildrenIds(categoryId: string): string[] {
   const ids = [categoryId];
   // Find all categories where parentId matches the given category
   const children = categories.value.filter((cat) => cat.parentId === categoryId);
@@ -886,7 +886,7 @@ function navigateToTransactions({
 }: {
   periodStart: string;
   periodEnd: string;
-  categoryId?: number;
+  categoryId?: string;
 }) {
   const query: Record<string, string | string[]> = {
     start: periodStart,
@@ -989,7 +989,7 @@ function handleStackedMouseLeave() {
 }
 
 // Handle bar click - navigate on desktop, show tooltip on touch
-function handleBarClick(_event: MouseEvent, d: PeriodWithChange, categoryId?: number) {
+function handleBarClick(_event: MouseEvent, d: PeriodWithChange, categoryId?: string) {
   // Skip if user is interacting with tooltip
   if (isTooltipInteracting.value) return;
 

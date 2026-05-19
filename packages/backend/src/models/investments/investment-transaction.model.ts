@@ -1,8 +1,9 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, RecordId } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import Portfolios from './portfolios.model';
 import Securities from './securities.model';
@@ -38,21 +39,21 @@ export default class InvestmentTransaction extends Model {
     primaryKey: true,
     unique: true,
     allowNull: false,
-    autoIncrement: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @ForeignKey(() => Securities)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  securityId!: number;
+  @Column({ type: DataType.UUID, allowNull: false })
+  securityId!: RecordId;
 
   // New portfolioId field for portfolio migration
   @ForeignKey(() => Portfolios)
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  portfolioId!: number;
+  @Column({ type: DataType.UUID, allowNull: false })
+  portfolioId!: RecordId;
 
   /**
    * The transaction type representing cash flow direction:

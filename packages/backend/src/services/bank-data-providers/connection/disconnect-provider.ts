@@ -22,7 +22,7 @@ interface DisconnectProviderInTxResult {
    *  to the post-commit fan-out so recipients learn about the cascade. Empty when
    *  `removeAssociatedAccounts === false` or none of the destroyed accounts were shared. */
   cleanups: Array<{
-    account: { id: number; name: string };
+    account: { id: string; name: string };
     recipients: AccountShareCleanupResult['recipients'];
     householdRecipients: AccountShareCleanupResult['householdRecipients'];
   }>;
@@ -34,7 +34,7 @@ const disconnectProviderInTx = withTransaction(
     userId,
     removeAssociatedAccounts = false,
   }: {
-    connectionId: number;
+    connectionId: string;
     userId: number;
     removeAssociatedAccounts?: boolean;
   }): Promise<DisconnectProviderInTxResult> => {
@@ -114,7 +114,7 @@ const disconnectProviderInTx = withTransaction(
  * notification failure can't re-open a destroyed account.
  */
 export const disconnectProvider = async (params: {
-  connectionId: number;
+  connectionId: string;
   userId: number;
   removeAssociatedAccounts?: boolean;
 }): Promise<void> => {

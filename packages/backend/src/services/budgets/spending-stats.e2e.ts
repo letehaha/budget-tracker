@@ -1,4 +1,5 @@
 import { BUDGET_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -484,13 +485,13 @@ describe('Get budget spending stats', () => {
 
   describe('Error handling', () => {
     it('returns 404 for non-existent budget', async () => {
-      const response = await helpers.getSpendingStats({ id: 999999, raw: false });
+      const response = await helpers.getSpendingStats({ id: NONEXISTENT_ID, raw: false });
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
 
     it('returns validation error for invalid budget id', async () => {
       const response = await helpers.getSpendingStats({
-        id: 'invalid' as unknown as number,
+        id: 'invalid' as unknown as string,
         raw: false,
       });
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);

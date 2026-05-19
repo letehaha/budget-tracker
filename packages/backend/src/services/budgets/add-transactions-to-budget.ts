@@ -9,9 +9,9 @@ import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 interface AddTransactionsPayload {
-  budgetId: number;
+  budgetId: string;
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
 }
 
 export const addTransactionsToBudget = withTransaction(async (payload: AddTransactionsPayload) => {

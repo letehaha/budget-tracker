@@ -39,7 +39,7 @@ async function connectAccountsAndSync({
   connectionId,
   mockedTransactions,
 }: {
-  connectionId: number;
+  connectionId: string;
   mockedTransactions: ReturnType<typeof getMockedLunchFlowTransactions>;
 }): Promise<{ account: Accounts; transactions: Transactions[] }> {
   global.mswMockServer.use(getLunchFlowTransactionsMock({ response: mockedTransactions }), getLunchFlowBalanceMock());

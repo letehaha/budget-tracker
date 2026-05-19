@@ -13,7 +13,7 @@ import {
 import { withTransaction } from '../common/with-transaction';
 
 interface GetTransactionByIdParams {
-  id: number;
+  id: string;
   userId: number;
   includeSplits?: boolean;
   /** Defaults to `read`. Pass `write` from update/delete callers so the auth check happens once here instead of being re-run in the caller. */
@@ -144,7 +144,7 @@ export const getWritableTransactionById = withTransaction(
     userId,
     includeSplits,
   }: {
-    id: number;
+    id: string;
     userId: number;
     includeSplits?: boolean;
   }): Promise<{ tx: Transactions.default; ctx: WritableTransactionAuthContext }> => {

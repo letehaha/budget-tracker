@@ -14,7 +14,7 @@ interface SyncResult {
   failedAccounts: number;
   skippedAccounts: number;
   accountResults: Array<{
-    accountId: number;
+    accountId: string;
     accountName: string;
     status: 'success' | 'failed' | 'skipped';
     error?: string;
@@ -32,7 +32,7 @@ const syncLimiter = new Bottleneck({
  */
 async function syncSingleAccount(account: AccountWithConnection, userId: number): Promise<void> {
   await syncTransactionsForAccount({
-    connectionId: account.bankDataProviderConnectionId as number,
+    connectionId: account.bankDataProviderConnectionId as string,
     userId,
     accountId: account.id,
   });

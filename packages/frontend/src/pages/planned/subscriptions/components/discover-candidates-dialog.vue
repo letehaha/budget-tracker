@@ -11,7 +11,7 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
-import { SUBSCRIPTION_TYPES, type SubscriptionModel } from '@bt/shared/types';
+import { SUBSCRIPTION_TYPES, type SubscriptionModel, type RecordId } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { formatDistanceToNow } from 'date-fns';
 import { SearchIcon } from 'lucide-vue-next';
@@ -41,7 +41,7 @@ const prefillValues = ref<SubscriptionModel | null>(null);
 const pendingAcceptCandidateId = ref<string | null>(null);
 const linkingId = ref<string | null>(null);
 const isTransactionsDialogOpen = ref(false);
-const previewTransactionIds = ref<number[]>([]);
+const previewTransactionIds = ref<string[]>([]);
 
 const {
   data: detectionResult,
@@ -99,7 +99,7 @@ const { mutate: doLink, isPending: isLinking } = useMutation({
 const handleAccept = ({ candidate }: { candidate: SubscriptionCandidate }) => {
   pendingAcceptCandidateId.value = candidate.id;
   prefillValues.value = {
-    id: '',
+    id: '' as RecordId,
     userId: 0,
     name: candidate.suggestedName,
     type: SUBSCRIPTION_TYPES.subscription,
@@ -108,7 +108,7 @@ const handleAccept = ({ candidate }: { candidate: SubscriptionCandidate }) => {
     frequency: candidate.detectedFrequency,
     startDate: new Date().toISOString().split('T')[0]!,
     endDate: null,
-    accountId: candidate.accountId,
+    accountId: candidate.accountId as RecordId | null,
     categoryId: null,
     matchingRules: {
       rules: [
@@ -131,7 +131,7 @@ const handleDismiss = ({ candidate }: { candidate: SubscriptionCandidate }) => {
   doDismiss({ id: candidate.id });
 };
 
-const handleViewTransactions = ({ transactionIds }: { transactionIds: number[] }) => {
+const handleViewTransactions = ({ transactionIds }: { transactionIds: string[] }) => {
   previewTransactionIds.value = transactionIds;
   isTransactionsDialogOpen.value = true;
 };

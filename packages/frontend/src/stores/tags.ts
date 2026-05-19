@@ -15,7 +15,7 @@ export const useTagsStore = defineStore('tags', () => {
         acc[tag.id] = tag;
         return acc;
       },
-      {} as Record<number, TagModel>,
+      {} as Record<string, TagModel>,
     ),
   );
 
@@ -39,7 +39,7 @@ export const useTagsStore = defineStore('tags', () => {
     return newTag;
   };
 
-  const updateTag = async ({ id, payload }: { id: number; payload: tagsApi.UpdateTagPayload }) => {
+  const updateTag = async ({ id, payload }: { id: string; payload: tagsApi.UpdateTagPayload }) => {
     const updatedTag = await tagsApi.updateTag({ id, payload });
     const index = tags.value.findIndex((t) => t.id === id);
     if (index !== -1) {
@@ -48,18 +48,18 @@ export const useTagsStore = defineStore('tags', () => {
     return updatedTag;
   };
 
-  const deleteTag = async ({ id }: { id: number }) => {
+  const deleteTag = async ({ id }: { id: string }) => {
     await tagsApi.deleteTag({ id });
     tags.value = tags.value.filter((t) => t.id !== id);
   };
 
-  const getTagById = (id: number) => tagsMap.value[id];
+  const getTagById = (id: string) => tagsMap.value[id];
 
-  const addTransactionsToTag = async ({ tagId, transactionIds }: { tagId: number; transactionIds: number[] }) => {
+  const addTransactionsToTag = async ({ tagId, transactionIds }: { tagId: string; transactionIds: string[] }) => {
     return tagsApi.addTransactionsToTag({ tagId, transactionIds });
   };
 
-  const removeTransactionsFromTag = async ({ tagId, transactionIds }: { tagId: number; transactionIds: number[] }) => {
+  const removeTransactionsFromTag = async ({ tagId, transactionIds }: { tagId: string; transactionIds: string[] }) => {
     return tagsApi.removeTransactionsFromTag({ tagId, transactionIds });
   };
 

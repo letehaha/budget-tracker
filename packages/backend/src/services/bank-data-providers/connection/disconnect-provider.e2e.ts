@@ -1,4 +1,5 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
@@ -16,7 +17,7 @@ describe('Disconnect provider', () => {
     // connections, letting the controller report "Connection removed
     // successfully" regardless. It now throws NotFoundError.
     const response = await helpers.bankDataProviders.disconnectProvider({
-      connectionId: 999_999,
+      connectionId: generateRandomRecordId(),
     });
 
     expect(response.statusCode).toBe(404);

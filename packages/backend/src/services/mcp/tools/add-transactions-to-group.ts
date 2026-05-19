@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { addTransactionsToGroup } from '@services/transaction-groups';
@@ -12,8 +13,8 @@ export function registerAddTransactionsToGroup(server: McpServer) {
       description:
         'Add one or more transactions to an existing transaction group. Transfer pairs are auto-included. Returns the updated group with all its transactions. Requires finance:write scope.',
       inputSchema: {
-        groupId: z.number().describe('ID of the transaction group to add transactions to'),
-        transactionIds: z.array(z.number()).describe('IDs of transactions to add to the group'),
+        groupId: recordId().describe('ID of the transaction group to add transactions to'),
+        transactionIds: z.array(recordId()).describe('IDs of transactions to add to the group'),
       },
     },
     async (args, extra) => {

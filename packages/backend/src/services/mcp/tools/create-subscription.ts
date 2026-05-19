@@ -1,4 +1,5 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createSubscription } from '@services/subscriptions';
@@ -40,8 +41,8 @@ export function registerCreateSubscription(server: McpServer) {
           .optional()
           .describe('Currency code for expectedAmount (e.g. "USD", "EUR")'),
         endDate: z.string().nullable().optional().describe('End date if the subscription is finite (ISO 8601)'),
-        accountId: z.number().nullable().optional().describe('Account ID to associate with this subscription'),
-        categoryId: z.number().nullable().optional().describe('Category ID to associate with this subscription'),
+        accountId: recordId().nullable().optional().describe('Account ID to associate with this subscription'),
+        categoryId: recordId().nullable().optional().describe('Category ID to associate with this subscription'),
         notes: z.string().nullable().optional().describe('Additional notes about the subscription'),
       },
     },

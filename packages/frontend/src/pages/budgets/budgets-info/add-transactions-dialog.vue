@@ -25,11 +25,11 @@ const { addErrorNotification } = useNotificationCenter();
 const budgetData = ref();
 const queryClient = useQueryClient();
 
-const pickedTransactionsIds = reactive<Set<number>>(new Set());
+const pickedTransactionsIds = reactive<Set<string>>(new Set());
 const { handleSelection, resetSelection, isShiftKeyPressed } = useShiftMultiSelect(pickedTransactionsIds);
 
 const isAddingTransactionModalVisible = ref<boolean>(false);
-const currentBudgetId = ref<number>(Number(route.params.id));
+const currentBudgetId = ref<string>(String(route.params.id));
 const isTransactionsPicked = computed(() => !!pickedTransactionsIds.size);
 const { data: budgetItem, isLoading } = useQuery({
   queryFn: () => loadBudgetById(currentBudgetId.value),

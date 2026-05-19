@@ -21,7 +21,7 @@ export async function findPortfolioOrThrow({
   userId,
   role,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   userId: number;
   role: 'source' | 'destination' | 'generic';
 }): Promise<Portfolios> {
@@ -42,7 +42,7 @@ export async function findAccountOrThrow({
   userId,
   role,
 }: {
-  accountId: number;
+  accountId: string;
   userId: number;
   role: 'source' | 'destination';
 }): Promise<NonNullable<Awaited<ReturnType<typeof Accounts.getAccountById>>>> {

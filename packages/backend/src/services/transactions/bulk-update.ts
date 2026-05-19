@@ -11,16 +11,16 @@ import { withTransaction } from '../common/with-transaction';
 
 interface BulkUpdateParams {
   userId: number;
-  transactionIds: number[];
-  categoryId?: number;
-  tagIds?: number[];
+  transactionIds: string[];
+  categoryId?: string;
+  tagIds?: string[];
   tagMode?: endpointsTypes.BulkUpdateTagMode;
   note?: string;
 }
 
 interface BulkUpdateResult {
   updatedCount: number;
-  updatedIds: number[];
+  updatedIds: string[];
 }
 
 export const bulkUpdate = withTransaction(
@@ -97,7 +97,7 @@ export const bulkUpdate = withTransaction(
     }
 
     // Build update payload for non-relationship fields
-    const updatePayload: { categoryId?: number; note?: string } = {};
+    const updatePayload: { categoryId?: string; note?: string } = {};
     if (hasCategory) {
       updatePayload.categoryId = categoryId;
     }

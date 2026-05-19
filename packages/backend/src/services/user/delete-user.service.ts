@@ -1,5 +1,6 @@
 import {
   HouseholdSharePermission,
+  RecordId,
   RESOURCE_TYPES,
   SharePermission,
   TransactionCreatorSnapshot,
@@ -32,7 +33,7 @@ import { formatHouseholdLabel, toPositiveInt } from '../sharing/sharing-utils';
  */
 interface AccountDeleteNotificationTarget {
   recipientUserId: number;
-  shareId: string;
+  shareId: RecordId;
   resourceId: string;
   resourceName: string;
   permission: SharePermission;
@@ -41,14 +42,14 @@ interface AccountDeleteNotificationTarget {
 interface HouseholdRevokedTarget {
   /** Member who loses access (recipient of the household share). */
   recipientUserId: number;
-  shareId: string;
+  shareId: RecordId;
   permission: HouseholdSharePermission;
 }
 
 interface HouseholdOwnerNotifyTarget {
   /** Owner who gets notified that one of their household members is gone. */
   ownerUserId: number;
-  shareId: string;
+  shareId: RecordId;
 }
 
 interface DeleteUserInTxResult {
@@ -99,7 +100,7 @@ const deleteUserInTx = withTransaction(async ({ userId }: { userId: number }): P
     where: { userId },
     attributes: ['id'],
     raw: true,
-  })) as Array<{ id: number }>;
+  })) as Array<{ id: string }>;
   await convertCrossUserTransfersForAccountIds({
     accountIds: userOwnedAccountRows.map((row) => row.id),
     ownerUserId: userId,
@@ -216,25 +217,28 @@ async function collectAccountDeleteNotificationTargets({
     where: { ownerUserId: deletingUser.id, resourceType: RESOURCE_TYPES.account },
     attributes: ['id', 'sharedWithUserId', 'resourceId', 'permission'],
     raw: true,
-  })) as Array<{ id: string; sharedWithUserId: number; resourceId: string; permission: SharePermission }>;
+  })) as unknown as Array<{
+    id: RecordId;
+    sharedWithUserId: number;
+    resourceId: RecordId;
+    permission: SharePermission;
+  }>;
 
   if (shares.length === 0) return [];
 
-  const accountIds = [
-    ...new Set(shares.map((s) => toPositiveInt(s.resourceId)).filter((n): n is number => n !== null)),
-  ];
+  const accountIds = [...new Set(shares.map((s) => s.resourceId))];
   const accountRows = (await Accounts.default.findAll({
     where: { id: { [Op.in]: accountIds } },
     attributes: ['id', 'name'],
     raw: true,
-  })) as Array<{ id: number; name: string }>;
+  })) as Array<{ id: string; name: string }>;
   const namesById = new Map(accountRows.map((a) => [a.id, a.name]));
 
   return shares.map((share) => ({
     recipientUserId: share.sharedWithUserId,
     shareId: share.id,
     resourceId: share.resourceId,
-    resourceName: namesById.get(toPositiveInt(share.resourceId) ?? -1) ?? 'Shared account',
+    resourceName: namesById.get(share.resourceId) ?? 'Shared account',
     permission: share.permission,
   }));
 }
@@ -293,7 +297,7 @@ async function collectHouseholdRevokedTargets({
     },
     attributes: ['id', 'sharedWithUserId', 'permission'],
     raw: true,
-  })) as Array<{ id: string; sharedWithUserId: number; permission: HouseholdSharePermission }>;
+  })) as Array<{ id: RecordId; sharedWithUserId: number; permission: HouseholdSharePermission }>;
 
   return rows.map((row) => ({
     recipientUserId: row.sharedWithUserId,
@@ -320,7 +324,7 @@ async function collectHouseholdOwnerNotifyTargets({
     },
     attributes: ['id', 'ownerUserId'],
     raw: true,
-  })) as Array<{ id: string; ownerUserId: number }>;
+  })) as Array<{ id: RecordId; ownerUserId: number }>;
 
   return rows.map((row) => ({
     ownerUserId: row.ownerUserId,
@@ -426,12 +430,13 @@ async function stampCreatorSnapshotForOutboundTransactions({ deletingUser }: { d
     }) as unknown as Promise<Array<{ resourceId: string }>>,
   ]);
 
-  const accessibleAccountIds = new Set<number>();
+  // Per-resource account shares: resourceId is a UUID account ID (string).
+  const accessibleAccountIds = new Set<string>();
   for (const row of perResourceRows) {
-    const id = toPositiveInt(row.resourceId);
-    if (id !== null) accessibleAccountIds.add(id);
+    if (row.resourceId) accessibleAccountIds.add(row.resourceId);
   }
 
+  // Household shares: resourceId is the granting user's integer userId stored as a string.
   const householdGrantorIds = householdRows
     .map((row) => toPositiveInt(row.resourceId))
     .filter((id): id is number => id !== null);
@@ -440,7 +445,7 @@ async function stampCreatorSnapshotForOutboundTransactions({ deletingUser }: { d
       where: { userId: { [Op.in]: householdGrantorIds } },
       attributes: ['id'],
       raw: true,
-    })) as Array<{ id: number }>;
+    })) as Array<{ id: string }>;
     for (const account of grantorAccounts) accessibleAccountIds.add(account.id);
   }
 

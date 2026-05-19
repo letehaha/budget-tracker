@@ -25,7 +25,7 @@ const form = reactive({
   excludeFromStats: false,
 });
 
-const updateExcludeFromStats = async ({ id, excludeFromStats }: { id: number; excludeFromStats: boolean }) => {
+const updateExcludeFromStats = async ({ id, excludeFromStats }: { id: string; excludeFromStats: boolean }) => {
   try {
     await accountsStore.editAccount({ id, excludeFromStats });
 

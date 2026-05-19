@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
@@ -75,7 +76,7 @@ export const updateUser = withTransaction(
     middleName?: string;
     avatar?: string;
     totalBalance?: number;
-    defaultCategoryId?: number;
+    defaultCategoryId?: RecordId;
   }) => {
     const user = await Users.updateUserById({
       id,

@@ -1,4 +1,5 @@
 import { ACCOUNT_STATUSES, API_ERROR_CODES, API_RESPONSE_STATUS, BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
+import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -52,7 +53,7 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       expect(connectResult).toHaveProperty('connectionId');
-      expect(connectResult.connectionId).toBeGreaterThan(0);
+      expect(connectResult.connectionId).toBeDefined();
 
       const connectionId = connectResult.connectionId;
 
@@ -62,7 +63,7 @@ describe('Monobank Data Provider E2E', () => {
       expect(Array.isArray(connections)).toBe(true);
       expect(connections.length).toBeGreaterThan(0);
 
-      const connection = connections.find((c: { id: number }) => c.id === connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionId);
       expect(connection).toBeDefined();
       expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.MONOBANK);
       expect(connection?.providerName).toBe('My Monobank Connection');
@@ -126,7 +127,7 @@ describe('Monobank Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: number; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: { externalId: string; id: string; name: string; currentBalance: number; currencyCode: string }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -137,7 +138,7 @@ describe('Monobank Data Provider E2E', () => {
 
       // Verify connections list now shows updated account count
       const { connections: updatedConnections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const updatedConnection = updatedConnections.find((c: { id: number }) => c.id === connectionId);
+      const updatedConnection = updatedConnections.find((c: { id: string }) => c.id === connectionId);
       expect(updatedConnection?.accountsCount).toBe(accountIdsToConnect.length);
     });
   });
@@ -204,7 +205,7 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       expect(result).toHaveProperty('connectionId');
-      expect(result.connectionId).toBeGreaterThan(0);
+      expect(typeof result.connectionId).toBe('string');
     });
 
     it('should fail with invalid credentials', async () => {
@@ -229,7 +230,7 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
       expect(connection?.providerName).toBe(customName);
     });
 
@@ -263,7 +264,7 @@ describe('Monobank Data Provider E2E', () => {
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
 
       expect(connections.length).toBeGreaterThanOrEqual(1);
-      expect(connections.find((c: { id: number }) => c.id === result.connectionId)).toBeDefined();
+      expect(connections.find((c: { id: string }) => c.id === result.connectionId)).toBeDefined();
     });
 
     it('should return connections with correct structure', async () => {
@@ -293,7 +294,7 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
 
       expect(connection?.accountsCount).toBe(0);
     });
@@ -327,7 +328,7 @@ describe('Monobank Data Provider E2E', () => {
   describe('Step 4: List external accounts', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.listExternalAccounts({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
       });
 
       expect(result.status).toEqual(ERROR_CODES.NotFoundError);
@@ -438,7 +439,7 @@ describe('Monobank Data Provider E2E', () => {
 
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
         accountExternalIds: ['account-1'],
       });
 
@@ -600,7 +601,7 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       const { connections: connectionsBefore } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connectionBefore = connectionsBefore.find((c: { id: number }) => c.id === connectionResult.connectionId);
+      const connectionBefore = connectionsBefore.find((c: { id: string }) => c.id === connectionResult.connectionId);
       expect(connectionBefore?.lastSyncAt).toBeNull();
 
       const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
@@ -615,7 +616,7 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       const { connections: connectionsAfter } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connectionAfter = connectionsAfter.find((c: { id: number }) => c.id === connectionResult.connectionId);
+      const connectionAfter = connectionsAfter.find((c: { id: string }) => c.id === connectionResult.connectionId);
       expect(connectionAfter?.lastSyncAt).not.toBeNull();
     });
 
@@ -808,7 +809,7 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === connectionResult.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionResult.connectionId);
       expect(connection?.accountsCount).toBe(2);
     });
   });
@@ -817,7 +818,7 @@ describe('Monobank Data Provider E2E', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.makeRequest({
         method: 'get',
-        url: '/bank-data-providers/connections/99999',
+        url: `/bank-data-providers/connections/${NONEXISTENT_ID}`,
       });
 
       expect(result.status).toEqual(ERROR_CODES.NotFoundError);
@@ -875,7 +876,7 @@ describe('Monobank Data Provider E2E', () => {
 
       details.accounts.forEach(
         (account: {
-          id: number;
+          id: string;
           name: string;
           externalId: string;
           currentBalance: number;
@@ -936,7 +937,7 @@ describe('Monobank Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
 
       expect(connection).toBeDefined();
       expect(connection?.isActive).toBe(true);
@@ -986,8 +987,8 @@ describe('Monobank Data Provider E2E', () => {
       batchIndex: number;
       totalBatches: number;
       userId: number;
-      accountId: number;
-      connectionId: number;
+      accountId: string;
+      connectionId: string;
       externalAccountId: string;
     }): Job =>
       ({
@@ -1013,7 +1014,7 @@ describe('Monobank Data Provider E2E', () => {
     // a `setAccountSyncStatus(SYNCING)` and the next status read, flipping
     // the assertion. Wait for the real sync to reach a terminal state so
     // its writes are settled before manipulating state by hand.
-    const waitForBackgroundSyncToSettle = async (accountId: number, timeoutMs = 10_000): Promise<void> => {
+    const waitForBackgroundSyncToSettle = async (accountId: string, timeoutMs = 10_000): Promise<void> => {
       const start = Date.now();
       while (Date.now() - start < timeoutMs) {
         const raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));

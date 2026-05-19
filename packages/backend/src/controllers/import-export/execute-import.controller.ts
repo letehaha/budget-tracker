@@ -1,4 +1,5 @@
 import type { Cents } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { executeImport } from '@services/import-export/csv-import/execute-import';
 import { z } from 'zod';
@@ -16,12 +17,12 @@ const parsedTransactionRowSchema = z.object({
 
 const accountMappingValueSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('create-new') }),
-  z.object({ action: z.literal('link-existing'), accountId: z.number() }),
+  z.object({ action: z.literal('link-existing'), accountId: recordId() }),
 ]);
 
 const categoryMappingValueSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('create-new') }),
-  z.object({ action: z.literal('link-existing'), categoryId: z.number() }),
+  z.object({ action: z.literal('link-existing'), categoryId: recordId() }),
 ]);
 
 export const executeImportController = createController(
@@ -31,8 +32,8 @@ export const executeImportController = createController(
       accountMapping: z.record(z.string(), accountMappingValueSchema),
       categoryMapping: z.record(z.string(), categoryMappingValueSchema),
       skipDuplicateIndices: z.array(z.number()),
-      defaultAccountId: z.number().optional(),
-      defaultCategoryId: z.number().optional(),
+      defaultAccountId: recordId().optional(),
+      defaultCategoryId: recordId().optional(),
     }),
   }),
   async ({ user, body }) => {

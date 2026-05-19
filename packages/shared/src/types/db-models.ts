@@ -28,6 +28,7 @@ import {
   TransactionsWriteScope,
   UserRole,
 } from './enums';
+import { RecordId } from './record-id';
 
 export interface UserModel {
   id: number;
@@ -38,8 +39,8 @@ export interface UserModel {
   middleName: string;
   avatar: string;
   totalBalance: number;
-  defaultCategoryId: number;
-  authUserId?: string;
+  defaultCategoryId: RecordId;
+  authUserId?: RecordId;
   /** User role for access control. Defaults to 'common' for regular users. */
   role: UserRole;
   /** @deprecated Use role === 'admin' instead */
@@ -48,7 +49,7 @@ export interface UserModel {
 
 export interface CategoryModel {
   color: string;
-  id: number;
+  id: RecordId;
   icon: null | string;
   /**
    * Stable, locale-independent identifier for seeded default categories (kebab-case).
@@ -56,7 +57,7 @@ export interface CategoryModel {
    */
   key: null | string;
   name: string;
-  parentId: null | number;
+  parentId: RecordId | null;
   type: CATEGORY_TYPES;
   userId: number;
 }
@@ -74,7 +75,7 @@ export interface AccountExternalData {
       systemBalance: number;
       externalBalance: number;
       difference: number;
-      adjustmentTransactionId: number | null;
+      adjustmentTransactionId: RecordId | null;
     };
   };
   // Allow any additional custom fields
@@ -105,7 +106,7 @@ export interface AccountShareInfo {
 
 export interface AccountModel {
   type: ACCOUNT_TYPES;
-  id: number;
+  id: RecordId;
   name: string;
   initialBalance: number;
   refInitialBalance: number;
@@ -116,11 +117,11 @@ export interface AccountModel {
   accountCategory: ACCOUNT_CATEGORIES;
   currencyCode: string;
   userId: number;
-  externalId?: string;
+  externalId?: RecordId;
   externalData?: AccountExternalData | null;
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
-  bankDataProviderConnectionId?: number;
+  bankDataProviderConnectionId?: RecordId;
   /**
    * Provider type denormalized from the connection so the account list / card can render
    * the bank logo without a per-account `GET /connections/:id` round-trip. Safe to expose
@@ -142,10 +143,10 @@ export interface AccountWithRelinkStatus extends AccountModel {
 }
 
 export interface BalanceModel {
-  id: number;
+  id: RecordId;
   date: Date;
   amount: number;
-  accountId: number;
+  accountId: RecordId;
   account: Omit<AccountModel, 'systemType'>;
 }
 
@@ -158,16 +159,16 @@ export interface CategorizationMeta {
   /** Rule ID for user_rule categorization */
   ruleId?: number;
   /** Subscription ID for subscription_rule categorization */
-  subscriptionId?: string;
+  subscriptionId?: RecordId;
   /** ISO timestamp when categorization was applied */
   categorizedAt?: string;
 }
 
 export interface TransactionSplitModel {
-  id: string;
-  transactionId: number;
+  id: RecordId;
+  transactionId: RecordId;
   userId: number;
-  categoryId: number;
+  categoryId: RecordId;
   amount: number;
   refAmount: number;
   note: string | null;
@@ -188,7 +189,7 @@ export interface TransactionCreatorSnapshot {
 }
 
 export interface TransactionModel {
-  id: number;
+  id: RecordId;
   amount: number;
   // Amount in base currency
   refAmount: number;
@@ -201,8 +202,8 @@ export interface TransactionModel {
   creatorSnapshot: TransactionCreatorSnapshot | null;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: number;
-  categoryId: number;
+  accountId: RecordId;
+  categoryId: RecordId;
   currencyCode: string;
   accountType: ACCOUNT_TYPES;
   refCurrencyCode: string;
@@ -210,13 +211,13 @@ export interface TransactionModel {
   // is transaction transfer?
   transferNature: TRANSACTION_TRANSFER_NATURE;
   // (hash, used to connect two transactions)
-  transferId: string;
+  transferId: RecordId;
 
   originalId: string; // Stores the original id from external source
   externalData: object; // JSON of any addition fields
   // balance: number;
   // hold: boolean;
-  // receiptId: string;
+  // receiptId: RecordId;
   commissionRate: number; // should be comission calculated as refAmount
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
@@ -228,7 +229,7 @@ export interface TransactionModel {
   /** Optional tags associated with the transaction (loaded when includeTags=true) */
   tags?: TagModel[];
   /** Transaction groups this transaction belongs to (loaded when includeGroups=true) */
-  transactionGroups?: Array<{ id: number; name: string }>;
+  transactionGroups?: Array<{ id: RecordId; name: string }>;
   /** Timestamp when the record was created (defaults to transaction time for existing records) */
   createdAt: Date;
   /** Timestamp when the record was last updated */
@@ -244,7 +245,7 @@ export interface CurrencyModel {
 }
 
 export interface UserCurrencyModel {
-  id: number;
+  id: RecordId;
   userId: number;
   currencyCode: string;
   exchangeRate: number;
@@ -266,7 +267,7 @@ export interface UserExchangeRatesModel extends ExchangeRatesModel {
 }
 
 export interface BudgetModel {
-  id: number;
+  id: RecordId;
   userId: number;
   status: string;
   name: string;
@@ -280,7 +281,7 @@ export interface BudgetModel {
    * Use for CREATE/UPDATE requests - the backend will expand parent IDs to include children.
    * Not populated in GET responses (use `categories` array instead).
    */
-  categoryIds?: number[];
+  categoryIds?: string[];
   /**
    * Full category objects for category-based budgets.
    * Populated in GET responses when budget has associated categories.
@@ -290,7 +291,7 @@ export interface BudgetModel {
 }
 
 export interface TagModel {
-  id: number;
+  id: RecordId;
   userId: number;
   name: string;
   color: string;
@@ -312,9 +313,9 @@ export interface AmountThresholdSettings {
 export type TagReminderSettings = AmountThresholdSettings | Record<string, unknown>;
 
 export interface TagReminderModel {
-  id: number;
+  id: RecordId;
   userId: number;
-  tagId: number;
+  tagId: RecordId;
   type: TagReminderType;
   /** Frequency preset. Null means real-time trigger (immediate when tagged) */
   frequency: TagReminderFrequency | null;
@@ -334,7 +335,7 @@ export interface TagReminderModel {
  * Using discriminated union pattern for type safety.
  */
 export interface BudgetAlertPayload {
-  budgetId: number;
+  budgetId: RecordId;
   budgetName: string;
   thresholdPercent: number;
   currentSpent: number;
@@ -355,7 +356,7 @@ export interface ChangelogNotificationPayload {
 }
 
 export interface TagReminderNotificationPayload {
-  tagId: number;
+  tagId: RecordId;
   tagName: string;
   tagColor?: string | null;
   tagIcon?: string | null;
@@ -372,7 +373,7 @@ export interface TagReminderNotificationPayload {
   transactionCount?: number;
   currencyCode?: string;
   /** IDs of transactions that triggered this reminder */
-  transactionIds?: number[];
+  transactionIds?: string[];
 }
 
 /**
@@ -380,7 +381,7 @@ export interface TagReminderNotificationPayload {
  * The recipient's perspective uses `owner` fields; the owner's perspective uses `recipient` fields.
  */
 export interface ShareInvitationNotificationPayload {
-  invitationId: string;
+  invitationId: RecordId;
   /** Single-use token used to deep-link to the accept/decline page (`/shared-with-me/invitations/:token`).
    * Required so the frontend notification handler can navigate without an extra lookup. */
   token: string;
@@ -402,8 +403,8 @@ export interface ShareInvitationNotificationPayload {
 }
 
 export interface ShareLifecycleNotificationPayload {
-  shareId?: string;
-  invitationId?: string;
+  shareId?: RecordId;
+  invitationId?: RecordId;
   resourceType: ResourceType;
   resourceId: string;
   resourceName: string;
@@ -425,7 +426,7 @@ export interface ShareLifecycleNotificationPayload {
  * UI without having to remember the API response.
  */
 export interface ShareInvitationSendFailedPayload {
-  invitationId: string;
+  invitationId: RecordId;
   resourceType: ResourceType;
   resourceId: string;
   resourceName: string;
@@ -449,7 +450,7 @@ export type NotificationPayload =
   | Record<string, unknown>;
 
 export interface NotificationModel {
-  id: string;
+  id: RecordId;
   userId: number;
   type: NotificationType;
   title: string;
@@ -479,7 +480,7 @@ export interface SubscriptionMatchingRules {
 }
 
 export interface SubscriptionModel {
-  id: string;
+  id: RecordId;
   userId: number;
   name: string;
   type: SUBSCRIPTION_TYPES;
@@ -489,8 +490,8 @@ export interface SubscriptionModel {
   frequency: SUBSCRIPTION_FREQUENCIES;
   startDate: string;
   endDate: string | null;
-  accountId: number | null;
-  categoryId: number | null;
+  accountId: RecordId | null;
+  categoryId: RecordId | null;
   matchingRules: SubscriptionMatchingRules;
   isActive: boolean;
   notes: string | null;
@@ -499,37 +500,37 @@ export interface SubscriptionModel {
 }
 
 export interface SubscriptionTransactionModel {
-  subscriptionId: string;
-  transactionId: number;
+  subscriptionId: RecordId;
+  transactionId: RecordId;
   matchSource: SUBSCRIPTION_MATCH_SOURCE;
   matchedAt: Date;
   status: SUBSCRIPTION_LINK_STATUS;
 }
 
 export interface SubscriptionCandidateModel {
-  id: string;
+  id: RecordId;
   userId: number;
   suggestedName: string;
   detectedFrequency: SUBSCRIPTION_FREQUENCIES;
   /** Average amount in cents */
   averageAmount: number;
   currencyCode: string;
-  accountId: number | null;
-  sampleTransactionIds: number[];
+  accountId: RecordId | null;
+  sampleTransactionIds: string[];
   occurrenceCount: number;
   confidenceScore: number;
   medianIntervalDays: number;
   status: SUBSCRIPTION_CANDIDATE_STATUS;
-  subscriptionId: string | null;
+  subscriptionId: RecordId | null;
   detectedAt: Date;
   lastOccurrenceAt: Date | null;
   resolvedAt: Date | null;
 }
 
 export interface PaymentReminderModel {
-  id: string;
+  id: RecordId;
   userId: number;
-  subscriptionId: string | null;
+  subscriptionId: RecordId | null;
   name: string;
   /** Amount in cents, null means no expected amount */
   expectedAmount: number | null;
@@ -545,7 +546,7 @@ export interface PaymentReminderModel {
   preferredTime: number;
   /** IANA timezone string */
   timezone: string;
-  categoryId: number | null;
+  categoryId: RecordId | null;
   notes: string | null;
   isActive: boolean;
   createdAt: Date;
@@ -553,20 +554,20 @@ export interface PaymentReminderModel {
 }
 
 export interface PaymentReminderPeriodModel {
-  id: string;
-  reminderId: string;
+  id: RecordId;
+  reminderId: RecordId;
   dueDate: string;
   status: PaymentReminderStatus;
   paidAt: Date | null;
-  transactionId: number | null;
+  transactionId: RecordId | null;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface PaymentReminderNotificationModel {
-  id: string;
-  periodId: string;
+  id: RecordId;
+  periodId: RecordId;
   remindBeforePreset: RemindBeforePreset;
   sentAt: Date;
   emailSent: boolean;
@@ -593,7 +594,7 @@ export interface SharePolicy {
  * Inactive (acceptedAt IS NULL) until the recipient accepts the invitation.
  */
 export interface ResourceShareModel {
-  id: string;
+  id: RecordId;
   ownerUserId: number;
   sharedWithUserId: number;
   resourceType: ResourceType;
@@ -612,7 +613,7 @@ export interface ResourceShareModel {
  * want a separate audit trail.
  */
 export interface ShareInvitationModel {
-  id: string;
+  id: RecordId;
   ownerUserId: number;
   inviteeEmail: string;
   /**

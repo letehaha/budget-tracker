@@ -1,5 +1,6 @@
-import { AccountModel, CategoryModel, TransactionModel, UserModel } from './db-models';
+import { AccountModel, CategoryModel, TransactionModel } from './db-models';
 import { ACCOUNT_STATUSES, ACCOUNT_TYPES, FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TYPES } from './enums';
+import { RecordId } from './record-id';
 
 export type BodyPayload = {
   [key: string | number]: string | number | boolean | undefined;
@@ -49,7 +50,7 @@ export interface GetSpendingCategoriesPayload extends QueryPayload {
 
 export type SpendingStructure = { name: string; color: string; amount: number };
 export type GetSpendingsByCategoriesReturnType = {
-  [categoryId: number]: SpendingStructure;
+  [categoryId: RecordId]: SpendingStructure;
 };
 
 export interface GetTransactionsQuery extends QueryPayload {
@@ -63,7 +64,7 @@ export interface GetTransactionsQuery extends QueryPayload {
   from?: number;
   type?: TRANSACTION_TYPES;
   accountType?: ACCOUNT_TYPES;
-  accountId?: number;
+  accountId?: AccountModel['id'];
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
   transferFilter?: FILTER_OPERATION;
@@ -73,7 +74,7 @@ export interface GetTransactionsQuery extends QueryPayload {
 export type GetTransactionsResponse = TransactionModel[];
 
 export interface SplitInput {
-  categoryId: number;
+  categoryId: RecordId;
   amount: number;
   note?: string | null;
 }
@@ -88,17 +89,17 @@ export interface CreateTransactionBody {
   categoryId?: TransactionModel['categoryId'];
   destinationAccountId?: TransactionModel['accountId'];
   destinationAmount?: TransactionModel['amount'];
-  destinationTransactionId?: number;
+  destinationTransactionId?: RecordId;
   commissionRate?: TransactionModel['commissionRate'];
   transferNature?: TransactionModel['transferNature'];
   // When transaction is being created, it can be marked as a refund for another transaction
-  refundForTxId?: number;
+  refundForTxId?: RecordId;
   // When refunding a split specifically (required when original tx has splits)
-  refundForSplitId?: string;
+  refundForSplitId?: RecordId;
   // Optional splits for multi-category transactions
   splits?: SplitInput[];
   // Optional tag IDs to associate with the transaction
-  tagIds?: number[];
+  tagIds?: string[];
 }
 
 export interface UpdateTransactionBody {
@@ -114,17 +115,17 @@ export interface UpdateTransactionBody {
   categoryId?: TransactionModel['categoryId'];
   transferNature?: TransactionModel['transferNature'];
   // Pass tx id if you want to mark which tx it refunds
-  refundsTxId?: number | null;
+  refundsTxId?: RecordId | null;
   // When refunding a split specifically (required when original tx has splits)
-  refundsSplitId?: string | null;
+  refundsSplitId?: RecordId | null;
   // Pass tx ids that will refund the source tx (with optional splitId for each)
-  refundedByTxIds?: number[] | null;
+  refundedByTxIds?: string[] | null;
   // Mapping of refundTxId -> splitId for split-specific refunds
-  refundedBySplitIds?: Record<number, string> | null;
+  refundedBySplitIds?: Record<string, string> | null;
   // Optional splits for multi-category transactions (null to clear all splits)
   splits?: SplitInput[] | null;
   // Optional tag IDs to associate with the transaction (null to clear all tags)
-  tagIds?: number[] | null;
+  tagIds?: string[] | null;
 }
 
 export interface UnlinkTransferTransactionsBody {
@@ -133,22 +134,22 @@ export interface UnlinkTransferTransactionsBody {
 // Array of income/expense pairs to link between each other. It's better to pass
 // exactly exactly as described in the type, but in fact doesn't really matter
 export interface LinkTransactionsBody {
-  ids: [baseTxId: number, destinationTxId: number][];
+  ids: [baseTxId: RecordId, destinationTxId: RecordId][];
 }
 
 export type BulkUpdateTagMode = 'add' | 'replace' | 'remove';
 
 export interface BulkUpdateTransactionsBody {
-  transactionIds: number[];
-  categoryId?: number;
-  tagIds?: number[];
+  transactionIds: string[];
+  categoryId?: RecordId;
+  tagIds?: string[];
   tagMode?: BulkUpdateTagMode;
   note?: string;
 }
 
 export interface BulkUpdateTransactionsResponse {
   updatedCount: number;
-  updatedIds: number[];
+  updatedIds: string[];
 }
 
 // Backward compatibility aliases
@@ -167,7 +168,7 @@ export type EditCategoryBody = Partial<Pick<CategoryModel, 'name' | 'color' | 'i
 export type EditCategoryResponse = CategoryModel[];
 
 export interface DeleteCategoryBody {
-  replaceWithCategoryId?: number;
+  replaceWithCategoryId?: RecordId;
 }
 
 export interface DeleteCategoryConflictResponse {
@@ -190,7 +191,7 @@ export interface GetCashFlowPayload extends QueryPayload {
 
 // Category breakdown within a period
 export interface CashFlowCategoryData {
-  categoryId: number;
+  categoryId: RecordId;
   name: string;
   color: string;
   // Separate amounts by transaction type for proper filtering
@@ -256,14 +257,14 @@ export interface GetCumulativeResponse {
 // Either transactionId OR (transactionType + originAmount + accountId) must be provided
 export interface GetRefundRecommendationsQuery extends QueryPayload {
   // Option 1: Provide transaction ID - backend derives everything
-  transactionId?: number;
+  transactionId?: RecordId;
   // Option 2: Provide form data for new transactions
   // The transaction type to search for (opposite of current tx)
   transactionType?: TRANSACTION_TYPES;
   // Origin transaction amount (in decimal, not cents)
   originAmount?: number;
   // Account ID to derive currency for refAmount calculation
-  accountId?: number;
+  accountId?: RecordId;
 }
 
 export type GetRefundRecommendationsResponse = TransactionModel[];
@@ -296,13 +297,13 @@ export interface BulkTransferScanResponse {
 
 // Transfer Suggestion Dismissals
 export interface DismissTransferSuggestionBody {
-  expenseTransactionId: number;
-  incomeTransactionId: number;
+  expenseTransactionId: RecordId;
+  incomeTransactionId: RecordId;
 }
 
 // Budget Spending Stats
 export interface BudgetSpendingByCategoryItem {
-  categoryId: number;
+  categoryId: RecordId;
   name: string;
   color: string;
   amount: number; // decimal, positive (expenses only)

@@ -43,7 +43,7 @@ describe('Get Transaction Portfolio Link (GET /transactions/:transactionId/portf
     });
 
     expect(link).toMatchObject({
-      transferId: expect.any(Number),
+      transferId: expect.any(String),
       portfolioId: portfolio.id,
       portfolioName: 'Investment Portfolio',
       transferType: 'deposit',
@@ -75,7 +75,7 @@ describe('Get Transaction Portfolio Link (GET /transactions/:transactionId/portf
     });
 
     expect(link).toMatchObject({
-      transferId: expect.any(Number),
+      transferId: expect.any(String),
       portfolioId: portfolio.id,
       portfolioName: 'Investment Portfolio',
       transferType: 'withdrawal',

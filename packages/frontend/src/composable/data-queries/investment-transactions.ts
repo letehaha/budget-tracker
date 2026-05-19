@@ -16,7 +16,7 @@ export const useCreateInvestmentTransaction = () => {
   return useMutation({
     mutationFn: createInvestmentTransaction,
     onSuccess: (_, variables) => {
-      const { portfolioId } = variables as { portfolioId: number };
+      const { portfolioId } = variables as { portfolioId: string };
       // Invalidate holdings and portfolio queries to refetch data
       queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.holdingsList, portfolioId] });
       queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioDetails, portfolioId] });
@@ -41,7 +41,7 @@ export const useDeleteInvestmentTransaction = () => {
 };
 
 export const usePortfolioInvestmentTransactions = (
-  portfolioId: MaybeRef<number | undefined>,
+  portfolioId: MaybeRef<string | undefined>,
   page: Ref<number>,
   limit: Ref<number>,
 ) => {
@@ -63,8 +63,8 @@ export const usePortfolioInvestmentTransactions = (
 };
 
 export const useGetHoldingTransactions = (
-  portfolioId: MaybeRef<number | undefined>,
-  securityId: MaybeRef<number | undefined>,
+  portfolioId: MaybeRef<string | undefined>,
+  securityId: MaybeRef<string | undefined>,
   page: Ref<number>,
   limit: Ref<number>,
 ) => {

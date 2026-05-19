@@ -8,7 +8,7 @@ import { Op } from 'sequelize';
 
 interface UpdatePortfolioParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
   name?: string;
   portfolioType?: PORTFOLIO_TYPE;
   description?: string | null;

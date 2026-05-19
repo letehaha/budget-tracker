@@ -12,7 +12,7 @@ export const createAccountGroup = withTransaction(
   }: {
     userId: number;
     name: string;
-    parentGroupId?: number | null;
+    parentGroupId?: string | null;
   }): Promise<AccountGroup> => {
     if (parentGroupId) {
       await findOrThrowNotFound({

@@ -1,4 +1,5 @@
 import { API_RESPONSE_STATUS } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -34,7 +35,7 @@ describe('GET /transactions/by-ids', () => {
 
   it('should return empty array when no IDs match', async () => {
     const result = await helpers.getTransactionsByIds({
-      ids: [999999],
+      ids: [generateRandomRecordId()],
       raw: true,
     });
 

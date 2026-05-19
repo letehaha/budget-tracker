@@ -1,4 +1,5 @@
 import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
@@ -54,7 +55,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       expect(connectResult).toHaveProperty('connectionId');
-      expect(connectResult.connectionId).toBeGreaterThan(0);
+      expect(connectResult.connectionId).toBeDefined();
 
       const connectionId = connectResult.connectionId;
 
@@ -81,7 +82,7 @@ describe('Enable Banking Data Provider E2E', () => {
           state,
         },
         raw: true,
-      })) as { success: boolean; connectionId: number };
+      })) as { success: boolean; connectionId: string };
 
       expect(oauthResult.connectionId).toBe(connectionId);
 
@@ -143,7 +144,7 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: number; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: { externalId: string; id: string; name: string; currentBalance: number; currencyCode: string }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -197,7 +198,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       expect(result).toHaveProperty('connectionId');
-      expect(result.connectionId).toBeGreaterThan(0);
+      expect(result.connectionId).toBeDefined();
 
       // Verify connection is pending (not active)
       const { connection } = await helpers.bankDataProviders.getConnectionDetails({
@@ -378,7 +379,7 @@ describe('Enable Banking Data Provider E2E', () => {
         method: 'post',
         url: '/bank-data-providers/enablebanking/oauth-callback',
         payload: {
-          connectionId: 99999,
+          connectionId: generateRandomRecordId(),
           code: helpers.enablebanking.mockAuthCode,
           state: 'some-state',
         },
@@ -411,7 +412,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
 
-      const enableBankingConnection = connections.find((c: { id: number }) => c.id === connectResult.connectionId);
+      const enableBankingConnection = connections.find((c: { id: string }) => c.id === connectResult.connectionId);
       expect(enableBankingConnection).toBeDefined();
       expect(enableBankingConnection?.providerType).toBe(BANK_PROVIDER_TYPE.ENABLE_BANKING);
       expect(enableBankingConnection?.isActive).toBe(true);
@@ -437,7 +438,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === connectResult.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectResult.connectionId);
 
       expect(connection?.accountsCount).toBe(0);
     });
@@ -471,7 +472,7 @@ describe('Enable Banking Data Provider E2E', () => {
   describe('Step 5: List external accounts', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.listExternalAccounts({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
       });
 
       expect(result.status).toEqual(ERROR_CODES.NotFoundError);
@@ -641,14 +642,14 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(transactions.length).toBeGreaterThan(0);
 
       // Verify transactions belong to the correct account
-      transactions.forEach((tx: { accountId: number }) => {
+      transactions.forEach((tx: { accountId: string }) => {
         expect(tx.accountId).toBe(createdAccountId);
       });
     });
 
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
         accountExternalIds: ['account-1'],
       });
 
@@ -781,7 +782,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       const { connections: connectionsBefore } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connectionBefore = connectionsBefore.find((c: { id: number }) => c.id === connectResult.connectionId);
+      const connectionBefore = connectionsBefore.find((c: { id: string }) => c.id === connectResult.connectionId);
       expect(connectionBefore?.lastSyncAt).toBeNull();
 
       await helpers.bankDataProviders.connectSelectedAccounts({
@@ -791,7 +792,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       const { connections: connectionsAfter } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connectionAfter = connectionsAfter.find((c: { id: number }) => c.id === connectResult.connectionId);
+      const connectionAfter = connectionsAfter.find((c: { id: string }) => c.id === connectResult.connectionId);
       expect(connectionAfter?.lastSyncAt).not.toBeNull();
     });
 
@@ -872,7 +873,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === connectResult.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectResult.connectionId);
       expect(connection?.accountsCount).toBe(2);
     });
   });
@@ -949,7 +950,7 @@ describe('Enable Banking Data Provider E2E', () => {
 
       details.accounts.forEach(
         (account: {
-          id: number;
+          id: string;
           name: string;
           externalId: string;
           currentBalance: number;
@@ -1020,7 +1021,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
 
       expect(connection).toBeDefined();
       expect(connection?.isActive).toBe(false); // Not active until OAuth
@@ -1261,8 +1262,8 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(connection.accounts.length).toBe(2);
 
       // Accounts in connection should have stable externalIds
-      const connAccount1 = connection.accounts.find((a: { id: number }) => a.id === account1Id);
-      const connAccount2 = connection.accounts.find((a: { id: number }) => a.id === account2Id);
+      const connAccount1 = connection.accounts.find((a: { id: string }) => a.id === account1Id);
+      const connAccount2 = connection.accounts.find((a: { id: string }) => a.id === account2Id);
       expect(connAccount1?.externalId).toBe(MOCK_IDENTIFICATION_HASH_1);
       expect(connAccount2?.externalId).toBe(MOCK_IDENTIFICATION_HASH_2);
     });
@@ -1447,7 +1448,7 @@ describe('Enable Banking Data Provider E2E', () => {
       const balanceHistory = await helpers.getBalanceHistory({ raw: true });
 
       // Should have at least one balance record for this account
-      const accountBalances = balanceHistory.filter((b: { accountId: number }) => b.accountId === accountId);
+      const accountBalances = balanceHistory.filter((b: { accountId: string }) => b.accountId === accountId);
       expect(accountBalances.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -1483,7 +1484,7 @@ describe('Enable Banking Data Provider E2E', () => {
         raw: true,
       });
       const accountBalancesBefore = balanceHistoryBefore.filter(
-        (b: { accountId: number }) => b.accountId === accountId,
+        (b: { accountId: string }) => b.accountId === accountId,
       );
       const balanceCountBefore = accountBalancesBefore.length;
 
@@ -1508,7 +1509,7 @@ describe('Enable Banking Data Provider E2E', () => {
       const balanceHistoryAfter = await helpers.getBalanceHistory({
         raw: true,
       });
-      const accountBalancesAfter = balanceHistoryAfter.filter((b: { accountId: number }) => b.accountId === accountId);
+      const accountBalancesAfter = balanceHistoryAfter.filter((b: { accountId: string }) => b.accountId === accountId);
 
       // Balance history SHOULD be maintained after transaction sync
       // On the same day, the existing record is updated (not a new one created)
@@ -1549,7 +1550,7 @@ describe('Enable Banking Data Provider E2E', () => {
         raw: true,
       });
       const accountBalancesBefore = balanceHistoryBefore.filter(
-        (b: { accountId: number }) => b.accountId === accountId,
+        (b: { accountId: string }) => b.accountId === accountId,
       );
       const balanceCountBefore = accountBalancesBefore.length;
 
@@ -1585,7 +1586,7 @@ describe('Enable Banking Data Provider E2E', () => {
       const balanceHistoryAfter = await helpers.getBalanceHistory({
         raw: true,
       });
-      const accountBalancesAfter = balanceHistoryAfter.filter((b: { accountId: number }) => b.accountId === accountId);
+      const accountBalancesAfter = balanceHistoryAfter.filter((b: { accountId: string }) => b.accountId === accountId);
 
       // Balance history SHOULD be maintained after refresh/resync
       // On the same day, the existing record is updated (not a new one created)
@@ -1800,8 +1801,8 @@ describe('Enable Banking Data Provider E2E', () => {
      * Returns connectionId and the linked system accountId.
      */
     async function setupActiveConnection(): Promise<{
-      connectionId: number;
-      accountId: number;
+      connectionId: string;
+      accountId: string;
     }> {
       const connectResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
@@ -1932,8 +1933,8 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(connectionAfter.isActive).toBe(false);
 
       // Verify consentValidUntil is reset to approximately current time (not a future consent date)
-      const dbConnection = await BankDataProviderConnections.findByPk(connectionId);
-      const metadata = dbConnection!.metadata as { consentValidUntil: string };
+      const connection = await BankDataProviderConnections.findByPk(connectionId);
+      const metadata = connection!.metadata as { consentValidUntil: string };
       const consentValidUntil = new Date(metadata.consentValidUntil);
       expect(consentValidUntil.getTime()).toBeGreaterThanOrEqual(syncStartedAt.getTime() - 1000);
       expect(consentValidUntil.getTime()).toBeLessThanOrEqual(Date.now() + 500);
@@ -2024,8 +2025,8 @@ describe('Enable Banking Data Provider E2E', () => {
 
         await helpers.bankDataProviders.listExternalAccounts({ connectionId });
 
-        const dbConnection = await BankDataProviderConnections.findByPk(connectionId);
-        const metadata = dbConnection!.metadata as {
+        const connection = await BankDataProviderConnections.findByPk(connectionId);
+        const metadata = connection!.metadata as {
           consentValidUntil: string;
         };
         const consentValidUntil = new Date(metadata.consentValidUntil);
@@ -2060,8 +2061,8 @@ describe('Enable Banking Data Provider E2E', () => {
 
   describe('getConnectionDetails resilience to malformed stored data', () => {
     async function setupActiveConnection(): Promise<{
-      connectionId: number;
-      accountId: number;
+      connectionId: string;
+      accountId: string;
     }> {
       const connectResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,

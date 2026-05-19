@@ -7,7 +7,7 @@ import { withTransaction } from '@services/common/with-transaction';
 
 interface DeletePortfolioParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
   force?: boolean;
 }
 

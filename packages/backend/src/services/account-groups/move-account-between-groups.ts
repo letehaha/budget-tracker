@@ -10,8 +10,8 @@ export const moveAccountGroup = withTransaction(
     newParentGroupId,
     userId,
   }: {
-    groupId: number;
-    newParentGroupId: number | null;
+    groupId: string;
+    newParentGroupId: string | null;
     userId: number;
   }): Promise<[number, AccountGroup[]]> => {
     if (newParentGroupId !== null) {

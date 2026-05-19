@@ -4,6 +4,7 @@ import {
   CATEGORIZATION_SOURCE,
   FILTER_OPERATION,
   PAYMENT_TYPES,
+  RecordId,
   SORT_DIRECTIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -45,6 +46,7 @@ import {
   BelongsToMany,
   HasMany,
 } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
   const include: Includeable[] = [];
@@ -61,7 +63,7 @@ const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
 };
 
 export interface TransactionsAttributes {
-  id: number;
+  id: string;
   amount: Money;
   /** Amount in user's base currency */
   refAmount: Money;
@@ -70,8 +72,8 @@ export interface TransactionsAttributes {
   userId: number;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: number;
-  categoryId: number;
+  accountId: string;
+  categoryId: string;
   currencyCode: string;
   accountType: ACCOUNT_TYPES;
   refCurrencyCode: string;
@@ -104,14 +106,8 @@ export interface TransactionsAttributes {
   freezeTableName: true,
 })
 export default class Transactions extends Model {
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
+  declare id: RecordId;
 
   @Column(MoneyColumn({ storage: 'cents' }))
   get amount(): Money {
@@ -187,15 +183,15 @@ export default class Transactions extends Model {
   paymentType!: PAYMENT_TYPES;
 
   @ForeignKey(() => Accounts)
-  @Column({ allowNull: true, type: DataType.INTEGER })
-  accountId!: number;
+  @Column({ allowNull: true, type: DataType.UUID })
+  accountId!: RecordId;
 
   @BelongsTo(() => Accounts)
   account!: Accounts;
 
   @ForeignKey(() => Categories)
-  @Column({ allowNull: true, type: DataType.INTEGER })
-  categoryId!: number;
+  @Column({ allowNull: true, type: DataType.UUID })
+  categoryId!: RecordId;
 
   @BelongsTo(() => Categories)
   category!: Categories;
@@ -224,7 +220,7 @@ export default class Transactions extends Model {
 
   // (hash, used to connect two transactions)
   @Column({ allowNull: true, defaultValue: null, type: DataType.STRING })
-  transferId!: string;
+  transferId!: RecordId;
 
   // Stores the original id from external source
   @Column({
@@ -416,7 +412,7 @@ export default class Transactions extends Model {
   @AfterDestroy
   static async autoDissolveEmptyGroups(instance: Transactions) {
     // After CASCADE removes the join row, check only the groups this transaction belonged to.
-    const affectedGroupIds = (instance as unknown as Record<string, unknown>)._affectedGroupIds as number[] | undefined;
+    const affectedGroupIds = (instance as unknown as Record<string, unknown>)._affectedGroupIds as string[] | undefined;
 
     if (!affectedGroupIds || affectedGroupIds.length === 0) return;
 
@@ -489,13 +485,13 @@ export const findWithFilters = async ({
   limit?: number;
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
-  accountIds?: number[];
+  accountIds?: string[];
   /** Filter: exclude transactions from these account IDs */
-  excludeAccountIds?: number[];
-  budgetIds?: number[];
-  excludedBudgetIds?: number[];
-  tagIds?: number[];
-  excludedTagIds?: number[];
+  excludeAccountIds?: string[];
+  budgetIds?: string[];
+  excludedBudgetIds?: string[];
+  tagIds?: string[];
+  excludedTagIds?: string[];
   /**
    * Creator scope. Optional because the public-facing read-path uses an account-scoped
    * query (see `services/sharing/get-accessible-account-ids.service.ts`) so it can
@@ -522,7 +518,7 @@ export const findWithFilters = async ({
   refAmountGte?: Money;
   /** Filter: refAmount <= this value - for cross-currency matching */
   refAmountLte?: Money;
-  categoryIds?: number[];
+  categoryIds?: string[];
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
   categorizationSource?: CATEGORIZATION_SOURCE;
@@ -696,8 +692,8 @@ export const findWithFilters = async ({
 
     if (excludedTransactionIds.length > 0) {
       // Merge with existing id exclusions if any
-      if (whereClause.id && (whereClause.id as Record<symbol, number[]>)[Op.notIn]) {
-        const existingExclusions = (whereClause.id as Record<symbol, number[]>)[Op.notIn] as number[];
+      if (whereClause.id && (whereClause.id as Record<symbol, string[]>)[Op.notIn]) {
+        const existingExclusions = (whereClause.id as Record<symbol, string[]>)[Op.notIn] as string[];
         whereClause.id = {
           ...(whereClause.id as object),
           [Op.notIn]: [...new Set([...existingExclusions, ...excludedTransactionIds])],
@@ -776,7 +772,7 @@ export const getTransactionById = ({
   userId,
   includeSplits,
 }: {
-  id: number;
+  id: string;
   userId: number;
   includeSplits?: boolean;
 }): Promise<Transactions | null> => {
@@ -793,7 +789,7 @@ export const getTransactionsByTransferId = ({
   accountIds,
 }: {
   transferId: string;
-  accountIds: number[];
+  accountIds: string[];
 }) => {
   if (accountIds.length === 0) return Promise.resolve([] as Transactions[]);
   return Transactions.findAll({
@@ -860,7 +856,7 @@ export const createTransaction = async ({ userId, ...rest }: CreateTransactionPa
 };
 
 export interface UpdateTransactionByIdParams {
-  id: number;
+  id: string;
   userId: number;
   amount?: Money;
   refAmount?: Money;
@@ -868,8 +864,8 @@ export interface UpdateTransactionByIdParams {
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
-  accountId?: number;
-  categoryId?: number;
+  accountId?: string;
+  categoryId?: string;
   currencyCode?: string;
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
@@ -904,8 +900,8 @@ export const updateTransactions = (
     time?: Date;
     transactionType?: TRANSACTION_TYPES;
     paymentType?: PAYMENT_TYPES;
-    accountId?: number;
-    categoryId?: number;
+    accountId?: string;
+    categoryId?: string;
     accountType?: ACCOUNT_TYPES;
     currencyCode?: string;
     refCurrencyCode?: string;
@@ -924,7 +920,7 @@ export const updateTransactions = (
   });
 };
 
-export const deleteTransactionById = async ({ id, userId }: { id: number; userId: number }) => {
+export const deleteTransactionById = async ({ id, userId }: { id: string; userId: number }) => {
   const tx = await getTransactionById({ id, userId });
 
   if (!tx) return true;

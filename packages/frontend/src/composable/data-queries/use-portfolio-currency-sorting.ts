@@ -12,7 +12,7 @@ import { type MaybeRefOrGetter, computed } from 'vue';
  * - sort the user's currencies (non-zero balances first, descending, then alphabetically)
  * - format currency labels with the available cash balance appended
  */
-export const usePortfolioCurrencySorting = (portfolioId: MaybeRefOrGetter<number>) => {
+export const usePortfolioCurrencySorting = (portfolioId: MaybeRefOrGetter<string>) => {
   const { currencies } = storeToRefs(useCurrenciesStore());
   const { formatAmountByCurrencyCode } = useFormatCurrency();
   const { data: portfolioBalances } = usePortfolioBalances(portfolioId);

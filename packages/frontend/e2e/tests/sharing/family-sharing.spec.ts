@@ -7,6 +7,7 @@ import {
   createShareInvitation,
   createTransaction,
   completeOnboarding,
+  extractId,
   signInViaApi,
 } from '../../helpers/api-client';
 import { loginViaUI } from '../../helpers/auth';
@@ -14,32 +15,17 @@ import { type TestCredentials, buildTestCredentials, signUpAndVerify } from '../
 
 const CURRENCY = 'USD';
 
-/**
- * Pulls an entity ID out of the controller-factory response shape `{ status, response }` —
- * tolerates raw rows, single-object responses, and array responses (where the row of
- * interest is at index 0).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractId(apiResult: any): number {
-  const resp = apiResult.response;
-  const id = Array.isArray(resp) ? resp[0]?.id : (resp?.id ?? apiResult.id);
-  if (!id || id <= 0) {
-    throw new Error(`Failed to extract valid ID: ${JSON.stringify(apiResult).slice(0, 200)}`);
-  }
-  return id;
-}
-
 let owner: TestCredentials;
 let recipient: TestCredentials;
 let ownerApi: APIRequestContext;
 let recipientApi: APIRequestContext;
-let acctWriteAll: { id: number; name: string };
-let acctWriteOwn: { id: number; name: string };
-let acctRead: { id: number; name: string };
+let acctWriteAll: { id: string; name: string };
+let acctWriteOwn: { id: string; name: string };
+let acctRead: { id: string; name: string };
 let ownerExclusiveCategoryName: string;
-let ownerExclusiveCategoryId: number;
+let ownerExclusiveCategoryId: string;
 let recipientExclusiveCategoryName: string;
-let recipientOwnAcct: { id: number; name: string };
+let recipientOwnAcct: { id: string; name: string };
 
 test.describe.configure({ mode: 'serial' });
 
@@ -122,7 +108,7 @@ test.describe('Family sharing — recipient view', () => {
       amount: 25,
       transactionType: 'expense',
     });
-    expect(extractId(txOnAll)).toBeGreaterThan(0);
+    expect(extractId(txOnAll)).toBeTruthy();
 
     const txOnOwn = await createTransaction({
       request: ownerApi,
@@ -130,7 +116,7 @@ test.describe('Family sharing — recipient view', () => {
       amount: 25,
       transactionType: 'expense',
     });
-    expect(extractId(txOnOwn)).toBeGreaterThan(0);
+    expect(extractId(txOnOwn)).toBeTruthy();
 
     // Three invitations, each accepted, so the recipient sees three shares with different policies.
     const inv1 = await createShareInvitation({
@@ -343,7 +329,7 @@ test.describe('Family sharing — recipient view', () => {
       categoryId: ownerExclusiveCategoryId,
     });
     const recipientTxId = extractId(recipientTx);
-    expect(recipientTxId).toBeGreaterThan(0);
+    expect(recipientTxId).toBeTruthy();
 
     await page.goto(`/account/${acctWriteOwn.id}`);
 
@@ -389,7 +375,7 @@ test.describe('Family sharing — recipient view', () => {
       amount: 7,
       transactionType: 'expense',
     });
-    expect(extractId(seedTx)).toBeGreaterThan(0);
+    expect(extractId(seedTx)).toBeTruthy();
     await page.reload();
 
     // Match formatted amount, not raw "7" — that single digit collides with calendar cells,

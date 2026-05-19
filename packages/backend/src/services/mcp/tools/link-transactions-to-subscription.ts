@@ -1,4 +1,5 @@
 import { SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { linkTransactionsToSubscription } from '@services/subscriptions';
@@ -13,8 +14,8 @@ export function registerLinkTransactionsToSubscription(server: McpServer) {
       description:
         'Link one or more transactions to a subscription to mark them as payment instances. Use matchSource="manual" for user-initiated linking. If the subscription has a categoryId and matchSource="rule", the category is applied to the transactions automatically. Requires finance:write scope.',
       inputSchema: {
-        subscriptionId: z.string().describe('UUID of the subscription'),
-        transactionIds: z.array(z.number()).describe('IDs of transactions to link to the subscription'),
+        subscriptionId: recordId().describe('UUID of the subscription'),
+        transactionIds: z.array(recordId()).describe('IDs of transactions to link to the subscription'),
         matchSource: z
           .enum([SUBSCRIPTION_MATCH_SOURCE.manual, SUBSCRIPTION_MATCH_SOURCE.rule, SUBSCRIPTION_MATCH_SOURCE.ai])
           .describe('How the match was determined: manual, rule, or ai'),

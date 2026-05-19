@@ -19,7 +19,7 @@ const emit = defineEmits<{
   accept: [candidate: SubscriptionCandidate];
   dismiss: [candidate: SubscriptionCandidate];
   link: [candidate: SubscriptionCandidate];
-  'view-transactions': [transactionIds: number[]];
+  'view-transactions': [transactionIds: string[]];
 }>();
 
 const { t } = useI18n();

@@ -52,7 +52,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  'category-click': [payload: { categoryId: number }];
+  'category-click': [payload: { categoryId: string }];
 }>();
 
 const { formatBaseCurrency } = useFormatCurrency();
@@ -60,7 +60,7 @@ const isTouch = useMediaQuery('(pointer: coarse)');
 
 const chartContainerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
-const selectedCategoryId = ref<number | null>(null);
+const selectedCategoryId = ref<string | null>(null);
 
 const centerLabel = reactive({
   name: '',

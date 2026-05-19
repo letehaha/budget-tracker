@@ -6,6 +6,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
@@ -24,7 +25,7 @@ async function shareAccountWithRecipient({
   recipient,
   permission = SHARE_PERMISSIONS.read,
 }: {
-  accountId: number;
+  accountId: string;
   recipient: helpers.SecondUserHandle;
   permission?: (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
 }) {
@@ -161,7 +162,7 @@ describe('Account delete: family-sharing cleanup (S8)', () => {
 
   describe('error paths', () => {
     it('returns 404 when the account does not exist', async () => {
-      const res = await helpers.deleteAccount({ id: 999_999_999, raw: false });
+      const res = await helpers.deleteAccount({ id: generateRandomRecordId(), raw: false });
       expect(res.statusCode).toBe(404);
     });
   });

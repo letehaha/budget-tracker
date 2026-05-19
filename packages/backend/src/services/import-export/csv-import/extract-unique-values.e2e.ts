@@ -4,6 +4,7 @@ import {
   CurrencyOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -639,7 +640,7 @@ describe('Extract Unique Values endpoint', () => {
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
             transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.existingAccount, accountId: 999999 },
+            account: { option: AccountOptionValue.existingAccount, accountId: generateRandomRecordId() },
           },
         },
         raw: false,
@@ -658,7 +659,10 @@ describe('Extract Unique Values endpoint', () => {
           columnMapping: {
             date: 'Date',
             amount: 'Amount',
-            category: { option: CategoryOptionValue.existingCategory, categoryId: 999999 },
+            category: {
+              option: CategoryOptionValue.existingCategory,
+              categoryId: generateRandomRecordId(),
+            },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
             transactionType: { option: TransactionTypeOptionValue.amountSign },
             account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },

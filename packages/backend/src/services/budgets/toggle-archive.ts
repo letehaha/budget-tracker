@@ -5,7 +5,7 @@ import Budgets from '@models/budget.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 export const toggleBudgetArchive = withTransaction(
-  async ({ id, userId, isArchived }: { id: number; userId: number; isArchived: boolean }) => {
+  async ({ id, userId, isArchived }: { id: string; userId: number; isArchived: boolean }) => {
     const budget = await findOrThrowNotFound({
       query: Budgets.findOne({ where: { id, userId } }),
       message: t({ key: 'budgets.budgetNotFound' }),

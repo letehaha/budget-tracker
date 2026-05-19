@@ -80,18 +80,18 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import * as Combobox from '@/components/lib/ui/combobox';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useTagsStore } from '@/stores';
-import { TagModel } from '@bt/shared/types';
+import { TagModel, type RecordId } from '@bt/shared/types';
 import { isEqual } from 'lodash-es';
 import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
-  tagIds: number[];
+  tagIds: string[];
 }>();
 
 const emit = defineEmits<{
-  'update:tagIds': [value: number[]];
+  'update:tagIds': [value: string[]];
 }>();
 
 const searchTerm = ref('');
@@ -104,7 +104,7 @@ const dropdownSide = computed(() => (isMobile.value ? 'top' : 'bottom'));
 
 const tagsCount = computed(() => tags.value.length);
 
-const selectedTagIds = ref<number[]>([]);
+const selectedTagIds = ref<string[]>([]);
 
 // Sync internal state when props change (and differ from current state)
 watch(
@@ -124,7 +124,7 @@ const baseSortedTags = computed(() => {
   return [...tags.value].sort((a, b) => a.name.localeCompare(b.name));
 });
 
-const sessionOrder = ref<number[]>([]);
+const sessionOrder = ref<string[]>([]);
 
 watch(isOpen, (open) => {
   if (open) {
@@ -138,7 +138,7 @@ watch(isOpen, (open) => {
 const orderedTags = computed(() => {
   if (isOpen.value && sessionOrder.value.length) {
     const byId = new Map(baseSortedTags.value.map((t) => [t.id, t] as const));
-    return sessionOrder.value.map((id) => byId.get(id)!).filter(Boolean);
+    return sessionOrder.value.map((id) => byId.get(id as RecordId)!).filter(Boolean);
   }
   return baseSortedTags.value;
 });
@@ -149,7 +149,7 @@ const displayedTags = computed(() => {
   return orderedTags.value.filter((t) => t.name.toLowerCase().includes(term));
 });
 
-const isTagSelected = (tagId: number) => selectedTagIds.value.includes(tagId);
+const isTagSelected = (tagId: string) => selectedTagIds.value.includes(tagId);
 
 const pickTag = (tag: TagModel) => {
   const isSelected = isTagSelected(tag.id);

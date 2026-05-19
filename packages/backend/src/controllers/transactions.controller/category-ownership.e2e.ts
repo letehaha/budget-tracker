@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -43,7 +44,7 @@ describe('Transaction categoryId ownership validation', () => {
       const res = await helpers.createTransaction({
         payload: {
           ...helpers.buildTransactionPayload({ accountId: account.id }),
-          categoryId: 999999,
+          categoryId: generateRandomRecordId(),
         },
       });
 
@@ -105,7 +106,7 @@ describe('Transaction categoryId ownership validation', () => {
 
       const res = await helpers.updateTransaction({
         id: tx.id,
-        payload: { categoryId: 999999 },
+        payload: { categoryId: generateRandomRecordId() },
       });
 
       expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);

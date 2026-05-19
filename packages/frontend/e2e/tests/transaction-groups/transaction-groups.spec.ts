@@ -1,28 +1,23 @@
 import { test, expect } from '@playwright/test';
 
-import { completeOnboarding, createAccount, createTransaction, createTransactionGroup } from '../../helpers/api-client';
+import {
+  completeOnboarding,
+  createAccount,
+  createTransaction,
+  createTransactionGroup,
+  extractId,
+} from '../../helpers/api-client';
 import { loginViaUI } from '../../helpers/auth';
 import { buildTestCredentials, signUpAndVerify } from '../../helpers/test-setup';
 
 const CURRENCY = 'USD';
 const creds = buildTestCredentials({ prefix: 'tg' });
 
-/** Extract entity ID from API response, handling `{ response: { id } }`, `{ response: [{ id }] }`, and `{ id }` shapes */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const extractId = (apiResult: any): number => {
-  const resp = apiResult.response;
-  const id = Array.isArray(resp) ? resp[0]?.id : (resp?.id ?? apiResult.id);
-  if (!id || id <= 0) {
-    throw new Error(`Failed to extract valid ID from API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
-  }
-  return id;
-};
-
-let accountId: number;
+let accountId: string;
 // Transaction IDs used across tests
-const txIds: number[] = [];
+const txIds: string[] = [];
 // Extra transactions for "add to existing group" tests
-const extraTxIds: number[] = [];
+const extraTxIds: string[] = [];
 
 let dataSeeded = false;
 

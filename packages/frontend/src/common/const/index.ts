@@ -28,7 +28,7 @@ const OUT_OF_WALLET_ACCOUNT_NAME_KEY = 'common.outOfWallet';
 
 type OutOfWalletAccountModel = AccountModel & {
   _isOutOfWallet?: boolean;
-  id: number;
+  id: string;
 };
 
 /**

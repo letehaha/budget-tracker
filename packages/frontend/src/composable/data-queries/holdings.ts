@@ -3,7 +3,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, unref } from 'vue';
 
-export const useHoldings = (portfolioId: MaybeRef<number | undefined>, queryOptions = {}) => {
+export const useHoldings = (portfolioId: MaybeRef<string | undefined>, queryOptions = {}) => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -37,7 +37,7 @@ export const useDeleteHolding = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (holdingId: number) => deleteHolding(holdingId),
+    mutationFn: (holdingId: string) => deleteHolding(holdingId),
     onSuccess: () => {
       // holdings query key includes portfolioId, but we don't have it here; just invalidate all holdings queries
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingsList });

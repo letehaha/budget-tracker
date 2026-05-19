@@ -4,6 +4,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionModel,
+  type RecordId,
 } from '@bt/shared/types';
 import { faker } from '@faker-js/faker';
 
@@ -20,7 +21,7 @@ const buildCommonTxBody = (overrides: Partial<TransactionModel> = {}): Transacti
   const refAmount = amount * currency.exchangeRate;
 
   return {
-    id: faker.number.int({ min: 1, max: 100000 }),
+    id: faker.string.uuid() as RecordId,
     amount,
     refAmount,
     note: '',
@@ -34,7 +35,7 @@ const buildCommonTxBody = (overrides: Partial<TransactionModel> = {}): Transacti
     accountType: ACCOUNT_TYPES.system,
     refCurrencyCode: USER_BASE_CURRENCY.currency!.code,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-    transferId: '',
+    transferId: '' as RecordId,
     originalId: '',
     externalData: {} as object,
     commissionRate: 0,
@@ -62,7 +63,7 @@ export const buildSystemExpenseTransaction = (overrides: Partial<TransactionMode
 
 export const buildSystemTransferExpenseTransaction = (overrides: Partial<TransactionModel> = {}): TransactionModel =>
   buildSystemExpenseTransaction({
-    transferId: faker.string.uuid(),
+    transferId: faker.string.uuid() as RecordId,
     transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
     ...overrides,
   });

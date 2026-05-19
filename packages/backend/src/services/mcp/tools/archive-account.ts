@@ -1,4 +1,5 @@
 import { ACCOUNT_STATUSES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { updateAccount } from '@services/accounts.service';
@@ -13,7 +14,7 @@ export function registerArchiveAccount(server: McpServer) {
       description:
         'Archive or unarchive a user account. Archiving removes the account from groups and unlinks subscriptions. Set archived=false to restore an archived account to active status.',
       inputSchema: {
-        accountId: z.number().describe('ID of the account to archive or unarchive.'),
+        accountId: recordId().describe('ID of the account to archive or unarchive.'),
         archived: z.boolean().describe('true to archive the account, false to unarchive (restore to active status).'),
       },
     },

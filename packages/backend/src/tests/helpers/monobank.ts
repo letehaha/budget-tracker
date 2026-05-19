@@ -84,7 +84,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
     (c: { providerType: string }) => c.providerType === BANK_PROVIDER_TYPE.MONOBANK,
   );
 
-  let connectionId: number;
+  let connectionId: string;
   let account: Accounts | null;
 
   if (existingConnection) {

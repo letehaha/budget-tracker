@@ -12,7 +12,10 @@ export function registerDeleteInvestmentTransaction(server: McpServer) {
       description:
         'Permanently delete an investment transaction. The holding and portfolio cash balance are automatically recalculated after deletion. This action is irreversible — confirm with the user before calling. Obtain transactionId from get_investment_transactions.',
       inputSchema: {
-        transactionId: z.number().describe('Investment transaction ID to delete (from get_investment_transactions)'),
+        transactionId: z
+          .string()
+          .uuid()
+          .describe('Investment transaction ID to delete (from get_investment_transactions)'),
       },
     },
     async (args, extra) => {

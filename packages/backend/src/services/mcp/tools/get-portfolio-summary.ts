@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getPortfolioSummary } from '@services/investments/portfolios/get-portfolio-summary.service';
@@ -12,7 +13,7 @@ export function registerGetPortfolioSummary(server: McpServer) {
       description:
         "Portfolio-level aggregates for a single portfolio: total current market value, total cost basis, realized and unrealized gains (value and percent), cash balances, and total portfolio value (holdings + cash). All monetary values are decimals in the user's base currency.",
       inputSchema: {
-        portfolioId: z.number().describe('Portfolio ID (from get_portfolios)'),
+        portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
         date: z
           .string()
           .optional()

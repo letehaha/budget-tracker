@@ -68,10 +68,8 @@ type ResourceOwnerResolver = (resourceId: string) => Promise<number | null>;
 
 const RESOURCE_OWNER_RESOLVERS: Record<ResourceType, ResourceOwnerResolver> = {
   [RESOURCE_TYPES.account]: async (resourceId) => {
-    const numericId = toPositiveInt(resourceId);
-    if (numericId === null) return null;
     const account = (await Accounts.findOne({
-      where: { id: numericId },
+      where: { id: resourceId },
       attributes: ['userId'],
       raw: true,
     })) as { userId: number } | null;
@@ -89,10 +87,8 @@ type ResourceNameResolver = (resourceId: string) => Promise<string | null>;
 
 const RESOURCE_NAME_RESOLVERS: Record<ResourceType, ResourceNameResolver> = {
   [RESOURCE_TYPES.account]: async (resourceId) => {
-    const numericId = toPositiveInt(resourceId);
-    if (numericId === null) return null;
     const account = (await Accounts.findOne({
-      where: { id: numericId },
+      where: { id: resourceId },
       attributes: ['name'],
       raw: true,
     })) as { name: string } | null;

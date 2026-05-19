@@ -28,7 +28,7 @@ export const getTransactions = async (params: GetTransactionsParams) => {
   const { userId, accountIds, ...rest } = params;
   const accessible = await getAccessibleAccountIdsForUser({ userId });
 
-  let scopedAccountIds: number[];
+  let scopedAccountIds: string[];
   if (accountIds && accountIds.length > 0) {
     const accessibleSet = new Set(accessible);
     scopedAccountIds = accountIds.filter((id) => accessibleSet.has(id));

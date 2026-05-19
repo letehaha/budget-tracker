@@ -27,8 +27,8 @@ const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
 };
 
 interface LinkAccountToBankConnectionPayload {
-  accountId: number;
-  connectionId: number;
+  accountId: string;
+  connectionId: string;
   externalAccountId: string;
   userId: number;
 }

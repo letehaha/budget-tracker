@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { TRANSACTION_TYPES, ACCOUNT_TYPES, RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
@@ -8,6 +8,7 @@ import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.
 import { subDays, startOfMonth, startOfDay } from 'date-fns';
 import { Op } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
 import Transactions, { TransactionsAttributes } from './transactions.model';
@@ -15,7 +16,7 @@ import Transactions, { TransactionsAttributes } from './transactions.model';
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
   endDate: Date;
-  accountIds: number[];
+  accountIds: string[];
 }
 
 @Table({ timestamps: true, tableName: 'Balances', freezeTableName: true })
@@ -23,10 +24,10 @@ export default class Balances extends Model {
   @Column({
     allowNull: false,
     primaryKey: true,
-    autoIncrement: true,
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: () => uuidv7(),
   })
-  declare id: number;
+  declare id: RecordId;
 
   @Column({
     allowNull: false,
@@ -50,8 +51,8 @@ export default class Balances extends Model {
   }
 
   @ForeignKey(() => Accounts)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  accountId!: number;
+  @Column({ allowNull: false, type: DataType.UUID })
+  accountId!: RecordId;
 
   @BelongsTo(() => Accounts)
   account!: Accounts;
@@ -249,7 +250,7 @@ export default class Balances extends Model {
     date,
     amount,
   }: {
-    accountId: number;
+    accountId: string;
     date: Date;
     amount: Money;
   }) {
@@ -429,7 +430,7 @@ export default class Balances extends Model {
     date,
     refBalance,
   }: {
-    accountId: number;
+    accountId: string;
     date: Date;
     refBalance: Money;
   }) {

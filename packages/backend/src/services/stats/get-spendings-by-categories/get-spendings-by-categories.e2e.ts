@@ -132,7 +132,7 @@ describe('[Stats] Spendings by categories', () => {
     const data = await helpers.getSpendingsByCategories({ raw: true });
 
     expect(data).toEqual({
-      '1': {
+      [category.id]: {
         name: category.name,
         color: category.color,
         amount: 200,
@@ -155,7 +155,7 @@ describe('[Stats] Spendings by categories', () => {
     const rootCategories = categoriesList.filter((c) => !c.parentId).slice(0, CATEGORIES_AMOUNT_FOR_EACH_NESTING_LEVEL);
 
     // Prepare nested 1-level categories
-    const excludedIds = new Set<number>([]);
+    const excludedIds = new Set<string>([]);
     const firstLevelNestedCategories = categoriesList.filter((c) => {
       if (c.parentId) {
         if (rootCategories.some((e) => e.id === c.parentId) && !excludedIds.has(c.parentId)) {
@@ -263,12 +263,12 @@ describe('[Stats] Spendings by categories', () => {
     // 1 transaction is being refunded by income with value 100, so 600 - (200 - 100) = 500
     // Transfers are ignored
     expect(spendingsByCategories).toEqual({
-      '1': {
+      [rootCategories[0]!.id]: {
         name: rootCategories[0]!.name,
         color: rootCategories[0]!.color,
         amount: 400,
       },
-      '2': {
+      [rootCategories[1]!.id]: {
         name: rootCategories[1]!.name,
         color: rootCategories[1]!.color,
         amount: 500,
@@ -374,13 +374,13 @@ describe('[Stats] Spendings by categories', () => {
     });
 
     expect(spendingsByCategories).toEqual({
-      '1': {
+      [rootCategories[0]!.id]: {
         name: rootCategories[0]!.name,
         color: rootCategories[0]!.color,
         // 400 (initial) + 400 (expense eur 500 - uah income refund 100) + 1000 (uah expense)
         amount: 400 + 400 + 1000,
       },
-      '2': {
+      [rootCategories[1]!.id]: {
         name: rootCategories[1]!.name,
         color: rootCategories[1]!.color,
         amount: 500,

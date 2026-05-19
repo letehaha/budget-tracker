@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { editCategory } from '@services/categories/edit-category';
@@ -12,7 +13,7 @@ export function registerUpdateCategory(server: McpServer) {
       description:
         'Update an existing category by ID. Use when the user wants to rename, recolor, or change the icon of a category. Returns the updated category records.',
       inputSchema: {
-        categoryId: z.number().describe('ID of the category to update.'),
+        categoryId: recordId().describe('ID of the category to update.'),
         name: z.string().optional().describe('New category name.'),
         color: z.string().optional().describe('New hex color code (e.g. "#4CAF50").'),
         icon: z.string().nullable().optional().describe('New icon identifier, or null to clear it.'),

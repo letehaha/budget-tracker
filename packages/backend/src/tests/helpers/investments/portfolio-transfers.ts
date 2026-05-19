@@ -20,7 +20,7 @@ export function buildPortfolioTransferPayload({
   date = new Date().toISOString().slice(0, 10),
   description = 'Test portfolio transfer',
 }: {
-  toPortfolioId: number;
+  toPortfolioId: string;
   currencyCode: string;
   amount?: string;
   date?: string;
@@ -40,7 +40,7 @@ export async function createPortfolioTransfer<R extends boolean | undefined = fa
   payload,
   raw,
 }: {
-  fromPortfolioId: number;
+  fromPortfolioId: string;
   payload: ReturnType<typeof buildPortfolioTransferPayload>;
   raw?: R;
 }) {
@@ -57,7 +57,7 @@ export async function listPortfolioTransfers<R extends boolean | undefined = fal
   raw,
   ...payload
 }: {
-  portfolioId: number;
+  portfolioId: string;
   dateFrom?: string;
   dateTo?: string;
   limit?: number;
@@ -88,9 +88,9 @@ export async function accountToPortfolioTransfer<R extends boolean | undefined =
   payload,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   payload: {
-    accountId: number;
+    accountId: string;
     amount: string;
     date: string;
     description?: string | null;
@@ -110,14 +110,14 @@ export async function portfolioToAccountTransfer<R extends boolean | undefined =
   payload,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   payload: {
-    accountId: number;
+    accountId: string;
     amount: string;
     currencyCode: string;
     date: string;
     description?: string | null;
-    existingTransactionId?: number;
+    existingTransactionId?: string;
   };
   raw?: R;
 }) {
@@ -135,8 +135,8 @@ export async function deletePortfolioTransfer<R extends boolean | undefined = fa
   deleteLinkedTransaction,
   raw,
 }: {
-  portfolioId: number;
-  transferId: number;
+  portfolioId: string;
+  transferId: string;
   deleteLinkedTransaction?: boolean;
   raw?: R;
 }) {
@@ -154,7 +154,7 @@ export async function directCashTransaction<R extends boolean | undefined = fals
   payload,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   payload: {
     type: 'deposit' | 'withdrawal';
     amount: string;
@@ -177,8 +177,8 @@ export async function linkTransactionToPortfolio<R extends boolean | undefined =
   payload,
   raw,
 }: {
-  transactionId: number;
-  payload: { portfolioId: number };
+  transactionId: string;
+  payload: { portfolioId: string };
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _linkTransactionToPortfolio>>, R>({
@@ -193,7 +193,7 @@ export async function unlinkTransactionFromPortfolio<R extends boolean | undefin
   transactionId,
   raw,
 }: {
-  transactionId: number;
+  transactionId: string;
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _unlinkTransactionFromPortfolio>>, R>({
@@ -233,7 +233,7 @@ export async function exchangeCurrency<R extends boolean | undefined = false>({
   payload,
   raw,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   payload: ReturnType<typeof buildExchangeCurrencyPayload>;
   raw?: R;
 }) {
@@ -249,7 +249,7 @@ export async function getTransactionPortfolioLink<R extends boolean | undefined 
   transactionId,
   raw,
 }: {
-  transactionId: number;
+  transactionId: string;
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _getTransactionPortfolioLink>>, R>({

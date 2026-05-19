@@ -42,7 +42,7 @@ const simulateOAuthCallback = async ({
   state,
   code = MOCK_AUTH_CODE,
 }: {
-  connectionId: number;
+  connectionId: string;
   state: string;
   code?: string;
 }) => {
@@ -55,7 +55,7 @@ const simulateOAuthCallback = async ({
 /**
  * Helper to reauthorize a connection
  */
-const reauthorizeConnection = (connectionId: number) => {
+const reauthorizeConnection = (connectionId: string) => {
   return helpers.makeRequest({
     method: 'post',
     url: `/bank-data-providers/connections/${connectionId}/reauthorize`,
@@ -82,7 +82,7 @@ const mockCredentials = () => ({
  * Get mock OAuth state from connection metadata
  * Helper to extract state from a pending connection
  */
-const getConnectionState = async (connectionId: number): Promise<string> => {
+const getConnectionState = async (connectionId: string): Promise<string> => {
   // We need to access the database model directly to get metadata
   // since it's not exposed in the API response
   const BankDataProviderConnections = (await import('@models/bank-data-provider-connections.model')).default;

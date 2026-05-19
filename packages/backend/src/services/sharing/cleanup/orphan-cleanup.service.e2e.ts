@@ -1,4 +1,5 @@
 import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SHARE_PERMISSIONS } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
@@ -11,8 +12,6 @@ import * as helpers from '@tests/helpers';
  * `share-invitations-expire` test precedent — crons have no HTTP surface) against a mix
  * of orphaned and live rows, and asserts only the orphans are pruned.
  */
-
-const NONEXISTENT_ACCOUNT_ID = '999999999';
 
 describe('Share resource orphan cleanup', () => {
   describe('cleanupOrphanShares — direct call', () => {
@@ -38,7 +37,7 @@ describe('Share resource orphan cleanup', () => {
         ownerUserId: account.userId,
         sharedWithUserId: recipientApp.id,
         resourceType: RESOURCE_TYPES.account,
-        resourceId: NONEXISTENT_ACCOUNT_ID,
+        resourceId: NONEXISTENT_ID,
         permission: SHARE_PERMISSIONS.read,
         acceptedAt: new Date(),
       });
@@ -73,7 +72,7 @@ describe('Share resource orphan cleanup', () => {
         inviteeEmail: recipient.email,
         inviteeUserId: null,
         resourceType: RESOURCE_TYPES.account,
-        resourceId: NONEXISTENT_ACCOUNT_ID,
+        resourceId: NONEXISTENT_ID,
         permission: SHARE_PERMISSIONS.read,
         policy: null,
         token: `orphan-token-${Date.now()}`,
@@ -147,7 +146,7 @@ describe('Share resource orphan cleanup', () => {
         ownerUserId: account.userId,
         sharedWithUserId: recipientApp.id,
         resourceType: RESOURCE_TYPES.account,
-        resourceId: NONEXISTENT_ACCOUNT_ID,
+        resourceId: NONEXISTENT_ID,
         permission: SHARE_PERMISSIONS.read,
         acceptedAt: new Date(),
       });

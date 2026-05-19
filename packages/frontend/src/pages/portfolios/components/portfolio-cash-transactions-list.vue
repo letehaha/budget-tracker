@@ -111,7 +111,7 @@ import { ArrowDownIcon, ArrowUpIcon, RefreshCwIcon, Trash2Icon } from 'lucide-vu
 import { ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps<{ portfolioId: number; portfolio: PortfolioModel }>();
+const props = defineProps<{ portfolioId: string; portfolio: PortfolioModel }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { t } = useI18n();

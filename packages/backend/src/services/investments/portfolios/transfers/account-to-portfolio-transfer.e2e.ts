@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -38,7 +39,7 @@ describe('Account to Portfolio Transfer (POST /investments/portfolios/:id/transf
     });
 
     expect(transfer).toMatchObject({
-      id: expect.any(Number),
+      id: expect.any(String),
       fromAccountId: account.id,
       toPortfolioId: portfolio.id,
       fromPortfolioId: null,
@@ -187,7 +188,7 @@ describe('Account to Portfolio Transfer (POST /investments/portfolios/:id/transf
 
   it('should reject non-existent portfolio', async () => {
     const response = await helpers.accountToPortfolioTransfer({
-      portfolioId: 999999,
+      portfolioId: generateRandomRecordId(),
       payload: {
         accountId: account.id,
         amount: '100',
@@ -202,7 +203,7 @@ describe('Account to Portfolio Transfer (POST /investments/portfolios/:id/transf
     const response = await helpers.accountToPortfolioTransfer({
       portfolioId: portfolio.id,
       payload: {
-        accountId: 999999,
+        accountId: generateRandomRecordId(),
         amount: '100',
         date: '2025-06-15',
       },
@@ -249,7 +250,7 @@ describe('Account to Portfolio Transfer (POST /investments/portfolios/:id/transf
       raw: true,
     });
 
-    expect(transfer.id).toEqual(expect.any(Number));
+    expect(transfer.id).toEqual(expect.any(String));
 
     // Portfolio should still receive the funds
     const [balance] = await helpers.getPortfolioBalance({

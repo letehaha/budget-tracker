@@ -84,7 +84,7 @@ const form = reactive<{
 });
 
 // Portfolio balance data for currency sorting
-const sourcePortfolioId = computed(() => form.fromPortfolio?.id ?? 0);
+const sourcePortfolioId = computed(() => form.fromPortfolio?.id ?? '');
 const { sortedCurrencies, currencyLabel } = usePortfolioCurrencySorting(sourcePortfolioId);
 
 // Computed values for easier access

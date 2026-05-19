@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getPortfolioBalances } from '@services/investments/portfolios/balances';
@@ -12,7 +13,7 @@ export function registerGetPortfolioBalances(server: McpServer) {
       description:
         "Cash balances held in a portfolio, broken down per currency. Each entry includes totalCash and availableCash in the original currency plus their ref* equivalents converted to the user's base currency. Useful for answering 'how much cash do I have to invest'.",
       inputSchema: {
-        portfolioId: z.number().describe('Portfolio ID (from get_portfolios)'),
+        portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
         currencyCode: z
           .string()
           .optional()

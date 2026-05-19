@@ -5,7 +5,7 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UpdateConnectionNameParams {
-  connectionId: number;
+  connectionId: string;
   userId: number;
   providerName: string;
 }

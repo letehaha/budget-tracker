@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
 import TransactionGroupItems from '@models/transaction-group-items.model';
 import TransactionGroups from '@models/transaction-groups.model';
@@ -11,7 +12,7 @@ interface CreateTransactionGroupPayload {
   userId: number;
   name: string;
   note?: string | null;
-  transactionIds: number[];
+  transactionIds: RecordId[];
 }
 
 export const createTransactionGroup = withTransaction(async (payload: CreateTransactionGroupPayload) => {

@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { removeTransactionsFromBudget } from '@services/budgets/remove-transactions-from-budget';
@@ -12,8 +13,8 @@ export function registerRemoveTransactionsFromBudget(server: McpServer) {
       description:
         'Unlink one or more transactions from a budget. Does not delete the transactions themselves. Returns nothing on success.',
       inputSchema: {
-        budgetId: z.number().describe('ID of the budget to unlink transactions from'),
-        transactionIds: z.array(z.number()).describe('IDs of the transactions to remove from the budget'),
+        budgetId: recordId().describe('ID of the budget to unlink transactions from'),
+        transactionIds: z.array(recordId()).describe('IDs of the transactions to remove from the budget'),
       },
     },
     async (args, extra) => {

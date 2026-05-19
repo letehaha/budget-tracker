@@ -21,7 +21,7 @@ export function aggregateBalanceTrendData(data: BalanceHistoryEntity[]) {
   }
 
   // Initialize an object to store the filled data per account.
-  const filledDataPerAccount: Record<number, Record<string, number>> = {};
+  const filledDataPerAccount: Record<string, Record<string, number>> = {};
 
   // For each account, find the earliest transaction and fill that
   // transaction's amount for all prior dates in our dataset.
@@ -61,7 +61,7 @@ export function aggregateBalanceTrendData(data: BalanceHistoryEntity[]) {
   // aggregate amount for each date in the dataset.
   const aggregatedData = Object.keys(filledDataPerAccount).reduce(
     (acc, accountId) => {
-      const accountData = filledDataPerAccount[Number(accountId)]!;
+      const accountData = filledDataPerAccount[accountId]!;
       for (const [date, amount] of Object.entries(accountData)) {
         acc[date] = (acc[date] || 0) + (amount as number);
       }

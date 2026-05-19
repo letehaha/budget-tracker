@@ -10,7 +10,7 @@ import { calculateCashDelta } from './cash-balance-utils';
 
 interface DeleteTransactionParams {
   userId: number;
-  transactionId: number;
+  transactionId: string;
 }
 
 const deleteInvestmentTransactionImpl = async ({ userId, transactionId }: DeleteTransactionParams) => {

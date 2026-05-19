@@ -162,7 +162,7 @@ const { accountsRecord } = storeToRefs(accountsStore);
 
 const emit = defineEmits<{
   'record-click': [[value: TransactionModel, oppositeTx: TransactionModel | undefined]];
-  'selection-change': [{ value: boolean; id: number; index: number }];
+  'selection-change': [{ value: boolean; id: string; index: number }];
 }>();
 
 const transaction = reactive(props.tx);

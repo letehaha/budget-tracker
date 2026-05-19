@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createTransactionGroup } from '@services/transaction-groups';
@@ -14,7 +15,7 @@ export function registerCreateTransactionGroup(server: McpServer) {
       inputSchema: {
         name: z.string().describe('Display name for the group'),
         transactionIds: z
-          .array(z.number())
+          .array(recordId())
           .describe('IDs of transactions to include in the group (minimum 2, maximum 50)'),
         note: z.string().optional().describe('Optional note or description for the group'),
       },

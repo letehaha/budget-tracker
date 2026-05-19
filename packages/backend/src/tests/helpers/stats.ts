@@ -13,13 +13,13 @@ export async function getBalanceHistory<R extends boolean | undefined = undefine
 }: {
   from?: string;
   to?: string;
-  accountId?: number;
+  accountId?: string;
   raw?: R;
 } = {}) {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
   if (to) params.append('to', to);
-  if (accountId) params.append('accountId', accountId.toString());
+  if (accountId) params.append('accountId', accountId);
 
   const result = await helpers.makeRequest<BalanceModel[], R>({
     method: 'get',
@@ -35,7 +35,7 @@ export const getSpendingsByCategories = async ({
   from,
   to,
   categoryIds,
-}: { raw?: boolean; from?: string; to?: string; categoryIds?: number[] } = {}) => {
+}: { raw?: boolean; from?: string; to?: string; categoryIds?: string[] } = {}) => {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
   if (to) params.append('to', to);
@@ -95,7 +95,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   from: string;
   to: string;
   granularity: endpointsTypes.CashFlowGranularity;
-  categoryIds?: number[];
+  categoryIds?: string[];
   raw?: R;
 }) {
   const params = new URLSearchParams();

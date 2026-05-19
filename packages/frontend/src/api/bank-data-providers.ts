@@ -22,7 +22,7 @@ export interface BankProvider {
 }
 
 export interface BankConnection {
-  id: number;
+  id: string;
   providerType: BANK_PROVIDER_TYPE;
   providerName: string;
   isActive: boolean;
@@ -33,7 +33,7 @@ export interface BankConnection {
 }
 
 interface BankConnectionDetails {
-  id: number;
+  id: string;
   providerType: BANK_PROVIDER_TYPE;
   providerName: string;
   isActive: boolean;
@@ -56,7 +56,7 @@ interface BankConnectionDetails {
     };
   };
   accounts: Array<{
-    id: number;
+    id: string;
     name: string;
     externalId: string;
     currentBalance: number;
@@ -83,7 +83,7 @@ export interface AvailableAccount {
 }
 
 interface SyncedAccount {
-  id: number;
+  id: string;
   externalId: string;
   name: string;
   balance: number;
@@ -100,7 +100,7 @@ export const listConnections = async (): Promise<BankConnection[]> => {
   return response.connections;
 };
 
-export const getConnectionDetails = async (connectionId: number): Promise<BankConnectionDetails> => {
+export const getConnectionDetails = async (connectionId: string): Promise<BankConnectionDetails> => {
   const response = await api.get<{ connection: BankConnectionDetails }>(
     `/bank-data-providers/connections/${connectionId}`,
   );
@@ -111,7 +111,7 @@ export const connectProvider = async (
   providerType: BANK_PROVIDER_TYPE,
   credentials: Record<string, unknown>,
   providerName?: string,
-): Promise<{ connectionId: number; authUrl?: string; message: string }> => {
+): Promise<{ connectionId: string; authUrl?: string; message: string }> => {
   const response = await api.post(`/bank-data-providers/${providerType}/connect`, {
     credentials,
     providerName,
@@ -123,7 +123,7 @@ export const disconnectProvider = async ({
   connectionId,
   removeAssociatedAccounts = false,
 }: {
-  connectionId: number;
+  connectionId: string;
   removeAssociatedAccounts?: boolean;
 }): Promise<{ message: string }> => {
   const response = await api.delete(`/bank-data-providers/connections/${connectionId}`, {
@@ -132,20 +132,20 @@ export const disconnectProvider = async ({
   return response;
 };
 
-export const reauthorizeConnection = async (connectionId: number): Promise<{ authUrl: string; message: string }> => {
+export const reauthorizeConnection = async (connectionId: string): Promise<{ authUrl: string; message: string }> => {
   const response = await api.post(`/bank-data-providers/connections/${connectionId}/reauthorize`);
   return response;
 };
 
 export const updateConnectionDetails = async (
-  connectionId: number,
+  connectionId: string,
   details: { providerName?: string; credentials?: Record<string, unknown> },
 ): Promise<{ message: string; connection: BankConnectionDetails }> => {
   const response = await api.patch(`/bank-data-providers/connections/${connectionId}`, details);
   return response;
 };
 
-export const getAvailableAccounts = async (connectionId: number): Promise<AvailableAccount[]> => {
+export const getAvailableAccounts = async (connectionId: string): Promise<AvailableAccount[]> => {
   const response = await api.get<{ accounts: AvailableAccount[] }>(
     `/bank-data-providers/connections/${connectionId}/available-accounts`,
   );
@@ -153,7 +153,7 @@ export const getAvailableAccounts = async (connectionId: number): Promise<Availa
 };
 
 export const syncSelectedAccounts = async (
-  connectionId: number,
+  connectionId: string,
   accountExternalIds: string[],
 ): Promise<{ syncedAccounts: SyncedAccount[]; message: string }> => {
   const response = await api.post(`/bank-data-providers/connections/${connectionId}/sync-selected-accounts`, {
@@ -170,8 +170,8 @@ interface SyncJobResult {
 }
 
 export const syncTransactions = async (
-  connectionId: number,
-  accountId: number,
+  connectionId: string,
+  accountId: string,
 ): Promise<{ message: string } | SyncJobResult> => {
   const response = await api.post(`/bank-data-providers/connections/${connectionId}/sync-transactions`, {
     accountId,
@@ -180,8 +180,8 @@ export const syncTransactions = async (
 };
 
 export const loadTransactionsForPeriod = async (
-  connectionId: number,
-  accountId: number,
+  connectionId: string,
+  accountId: string,
   from: string,
   to: string,
 ): Promise<SyncJobResult> => {
@@ -252,7 +252,7 @@ export const getEnableBankingBanks = async (appId: string, privateKey: string, c
 };
 
 export const completeEnableBankingOAuth = async (
-  connectionId: number,
+  connectionId: string,
   code: string,
   state: string,
 ): Promise<{ success: boolean; message: string }> => {
@@ -274,7 +274,7 @@ export enum SyncStatus {
 }
 
 export interface AccountSyncStatus {
-  accountId: number;
+  accountId: string;
   accountName: string;
   providerType: string;
   status: SyncStatus;
@@ -304,7 +304,7 @@ interface SyncResult {
   failedAccounts: number;
   skippedAccounts: number;
   accountResults: Array<{
-    accountId: number;
+    accountId: string;
     accountName: string;
     status: 'success' | 'failed' | 'skipped';
     error?: string;
@@ -319,7 +319,7 @@ interface CheckSyncResponse {
   failedAccounts?: number;
   skippedAccounts?: number;
   accountResults?: Array<{
-    accountId: number;
+    accountId: string;
     accountName: string;
     status: 'success' | 'failed' | 'skipped';
     error?: string;

@@ -3,7 +3,7 @@ import * as helpers from '@tests/helpers';
 import { Response } from 'express';
 
 interface BaseCreationPayload {
-  parentId?: number;
+  parentId?: string;
   name?: string;
   color?: string;
 }
@@ -29,7 +29,7 @@ export async function addCustomCategory({
 }
 
 interface BaseUpdationPayload {
-  categoryId: number;
+  categoryId: string;
   name?: string;
   color?: string;
   icon?: string | null;
@@ -71,7 +71,7 @@ const compactParams = <T extends Record<string, unknown>>(params: T | undefined)
 };
 
 export const getCategoriesList = async (params?: {
-  accountId?: number;
+  accountId?: string;
   includeAccessible?: boolean;
 }): Promise<CategoryModel[]> => {
   const result = await helpers.makeRequest({
@@ -84,7 +84,7 @@ export const getCategoriesList = async (params?: {
   return result;
 };
 
-export const getCategoriesListResponse = async (params?: { accountId?: number; includeAccessible?: boolean }) => {
+export const getCategoriesListResponse = async (params?: { accountId?: string; includeAccessible?: boolean }) => {
   return helpers.makeRequest({
     method: 'get',
     url: '/categories',
@@ -92,25 +92,19 @@ export const getCategoriesListResponse = async (params?: { accountId?: number; i
   });
 };
 
+export async function deleteCustomCategory({ raw, ...params }: { categoryId?: string; raw?: false }): Promise<Response>;
 export async function deleteCustomCategory({
   raw,
   ...params
 }: {
-  categoryId?: number | string;
-  raw?: false;
-}): Promise<Response>;
-export async function deleteCustomCategory({
-  raw,
-  ...params
-}: {
-  categoryId?: number | string;
+  categoryId?: string;
   raw?: true;
 }): Promise<CategoryModel[]>;
 export async function deleteCustomCategory({
   categoryId,
   raw = true,
 }: {
-  categoryId?: number | string;
+  categoryId?: string;
   raw?: boolean;
 }): Promise<Response | CategoryModel[]> {
   const result = await helpers.makeRequest({

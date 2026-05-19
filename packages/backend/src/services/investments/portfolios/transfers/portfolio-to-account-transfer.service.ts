@@ -21,13 +21,13 @@ import {
 
 interface PortfolioToAccountTransferParams {
   userId: number;
-  portfolioId: number;
-  accountId: number;
+  portfolioId: string;
+  accountId: string;
   amount: string;
   currencyCode: string;
   date: string;
   description?: string | null;
-  existingTransactionId?: number;
+  existingTransactionId?: string;
 }
 
 const portfolioToAccountTransferImpl = async ({
@@ -48,7 +48,7 @@ const portfolioToAccountTransferImpl = async ({
 
   const refAmount = await computeRefAmount({ amount, currencyCode, userId, date });
 
-  let linkedTransactionId: number;
+  let linkedTransactionId: string;
 
   if (existingTransactionId) {
     // Link to an existing income transaction

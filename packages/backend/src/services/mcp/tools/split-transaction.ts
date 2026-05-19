@@ -1,4 +1,5 @@
 import { SHARE_PERMISSIONS } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -15,11 +16,11 @@ export function registerSplitTransaction(server: McpServer) {
       description:
         'Split a transaction across multiple categories. Provide the transactionId and an array of splits whose amounts sum to the transaction total. Replaces any existing splits on the transaction.',
       inputSchema: {
-        transactionId: z.number().describe('ID of the transaction to split'),
+        transactionId: recordId().describe('ID of the transaction to split'),
         splits: z
           .array(
             z.object({
-              categoryId: z.number().describe('Category ID for this split portion'),
+              categoryId: recordId().describe('Category ID for this split portion'),
               amount: z.number().describe('Amount for this split portion (decimal)'),
               note: z.string().optional().nullable().describe('Optional note for this split'),
             }),

@@ -10,8 +10,8 @@ import { Op, WhereOptions } from 'sequelize';
 
 interface GetTransactionsParams {
   userId: number;
-  portfolioId?: number;
-  securityId?: number;
+  portfolioId?: string;
+  securityId?: string;
   category?: INVESTMENT_TRANSACTION_CATEGORY;
   startDate?: string;
   endDate?: string;

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
@@ -12,9 +13,9 @@ export const resolveTransferPairs = async ({
   transactionIds,
   userId,
 }: {
-  transactionIds: number[];
+  transactionIds: RecordId[];
   userId: number;
-}): Promise<number[]> => {
+}): Promise<RecordId[]> => {
   // Get transferIds from the provided transactions that are common transfers
   const transferTxs = await Transactions.findAll({
     where: {
@@ -42,5 +43,5 @@ export const resolveTransferPairs = async ({
     raw: true,
   });
 
-  return [...transactionIds, ...oppositeTransactions.map((tx) => tx.id)];
+  return [...transactionIds, ...oppositeTransactions.map((tx) => tx.id as RecordId)];
 };

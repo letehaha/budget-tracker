@@ -15,8 +15,8 @@ export const addAccountToGroup = withTransaction(
     groupId,
     userId,
   }: {
-    accountId: number;
-    groupId: number;
+    accountId: string;
+    groupId: string;
     userId: number;
   }): Promise<AccountGrouping> => {
     // Grouping is the caller's personal sidebar organization, not a write on the account
@@ -43,7 +43,7 @@ export const addAccountToGroup = withTransaction(
       where: { userId },
       attributes: ['id'],
       raw: true,
-    })) as unknown as { id: number }[];
+    })) as unknown as { id: string }[];
     const callerGroupIds = callerGroups.map((g) => g.id);
 
     if (callerGroupIds.length > 0) {

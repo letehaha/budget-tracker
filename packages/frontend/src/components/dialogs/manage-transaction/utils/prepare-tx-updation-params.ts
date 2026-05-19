@@ -1,5 +1,5 @@
 import { editTransaction } from '@/api';
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel, type RecordId } from '@bt/shared/types';
 import type { SplitInput } from '@bt/shared/types/endpoints';
 
 import { getDestinationAccount, getDestinationAmount, getTxTypeFromFormType, isOutOfWalletAccount } from '../helpers';
@@ -68,12 +68,12 @@ export const prepareTxUpdationParams = ({
     // Make sure that only one non-nullish field is being sent to the API
     if (form.refundsTx && form.refundedByTxs === null) {
       editionParams.refundsTxId = form.refundsTx ? form.refundsTx.transaction.id : null;
-      editionParams.refundsSplitId = form.refundsTx?.splitId ?? null;
+      editionParams.refundsSplitId = (form.refundsTx?.splitId ?? null) as RecordId | null;
     } else if (form.refundsTx === null && form.refundedByTxs) {
       editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.transaction.id) : null;
       // Build splitId mapping for refunded-by transactions
       if (form.refundedByTxs) {
-        const splitMapping: Record<number, string> = {};
+        const splitMapping: Record<string, string> = {};
         form.refundedByTxs.forEach((r) => {
           if (r.splitId) {
             splitMapping[r.transaction.id] = r.splitId;
@@ -91,11 +91,11 @@ export const prepareTxUpdationParams = ({
       editionParams.refundedBySplitIds = null;
     } else {
       editionParams.refundsTxId = form.refundsTx ? form.refundsTx.transaction.id : undefined;
-      editionParams.refundsSplitId = form.refundsTx?.splitId ?? undefined;
+      editionParams.refundsSplitId = (form.refundsTx?.splitId ?? undefined) as RecordId | undefined;
       editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.transaction.id) : undefined;
       // Build splitId mapping for refunded-by transactions
       if (form.refundedByTxs) {
-        const splitMapping: Record<number, string> = {};
+        const splitMapping: Record<string, string> = {};
         form.refundedByTxs.forEach((r) => {
           if (r.splitId) {
             splitMapping[r.transaction.id] = r.splitId;
@@ -209,8 +209,8 @@ export const prepareTxUpdationParams = ({
   // Check if tags have changed
   const tagsChanged =
     originalTagIds.length !== formTagIds.length ||
-    !originalTagIds.every((id) => formTagIds.includes(id)) ||
-    !formTagIds.every((id) => originalTagIds.includes(id));
+    !originalTagIds.every((id) => formTagIds.includes(id as unknown as string)) ||
+    !formTagIds.every((id) => originalTagIds.includes(id as unknown as RecordId));
 
   if (tagsChanged) {
     // Send empty array to clear tags, or the new array of tag IDs

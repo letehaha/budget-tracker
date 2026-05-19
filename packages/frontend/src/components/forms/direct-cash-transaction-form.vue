@@ -38,7 +38,7 @@ interface Emit {
 }
 
 const props = defineProps<{
-  portfolioId: number;
+  portfolioId: string;
   portfolio: PortfolioModel;
   disabled?: boolean;
 }>();
