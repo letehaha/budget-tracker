@@ -12,6 +12,7 @@ import {
   findAccountOrThrow,
   findCurrencyOrThrow,
   findPortfolioOrThrow,
+  getUserBaseCurrencyCode,
   validatePositiveAmount,
 } from './transfer-validations';
 
@@ -41,7 +42,8 @@ const accountToPortfolioTransferImpl = async ({
   await findCurrencyOrThrow({ currencyCode });
 
   const txAmount = Money.fromDecimal(amount);
-  const refAmount = await computeRefAmount({ amount, currencyCode, userId, date });
+  const refCurrencyCode = await getUserBaseCurrencyCode({ userId });
+  const refAmount = await computeRefAmount({ amount, currencyCode, userId, date, baseCurrencyCode: refCurrencyCode });
 
   // Create expense Transaction on the account
   const newTx = await Transactions.createTransaction({
@@ -53,6 +55,7 @@ const accountToPortfolioTransferImpl = async ({
     accountId,
     accountType: account.type,
     currencyCode,
+    refCurrencyCode,
     transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
     time: new Date(date),
     note: description || undefined,

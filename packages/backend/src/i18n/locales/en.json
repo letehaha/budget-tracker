@@ -49,6 +49,7 @@
     "linkCannotFind": "Cannot find base or opposite transactions",
     "invalidTagIds": "One or more tag IDs are invalid or do not belong to this user",
     "cannotEditPortfolioLinkedTransaction": "Cannot edit a transaction linked to a portfolio. Unlink it first.",
+    "refFieldsRequiredForTransferToPortfolio": "Reference currency and reference amount must be set for portfolio-transfer transactions.",
     "splits": {
       "splitsOnTransfer": "Cannot add splits to transfer transactions",
       "splitLimitExceeded": "Maximum {{max}} splits allowed per transaction",

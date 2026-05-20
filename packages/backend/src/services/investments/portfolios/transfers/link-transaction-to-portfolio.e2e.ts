@@ -63,10 +63,11 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
     expect(balance!.availableCash).toBeNumericEqual(500);
     expect(balance!.totalCash).toBeNumericEqual(500);
 
-    // Transaction should be marked as transfer_to_portfolio
+    // Transaction should be marked as transfer_to_portfolio and carry the user's base currency
     const transactions = await helpers.getTransactions({ raw: true });
     const updatedTx = transactions.find((t) => t.id === expenseTx!.id);
     expect(updatedTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
+    expect(updatedTx!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
   });
 
   it('should link an income transaction to a portfolio (portfolio → account withdrawal)', async () => {
@@ -112,6 +113,40 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
 
     expect(balance!.availableCash).toBeNumericEqual(700);
     expect(balance!.totalCash).toBeNumericEqual(700);
+
+    // Linked tx should carry the user's base currency, not the account currency
+    const transactions = await helpers.getTransactions({ raw: true });
+    const updatedTx = transactions.find((t) => t.id === incomeTx!.id);
+    expect(updatedTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
+    expect(updatedTx!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
+  });
+
+  it('should stamp base currency on refCurrencyCode when account currency differs', async () => {
+    const { account: eurAccount } = await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
+
+    const [eurExpenseTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: eurAccount.id,
+        amount: 250,
+        transactionType: TRANSACTION_TYPES.expense,
+      }),
+      raw: true,
+    });
+
+    await helpers.linkTransactionToPortfolio({
+      transactionId: eurExpenseTx!.id,
+      payload: { portfolioId: portfolio.id },
+      raw: true,
+    });
+
+    // The underlying transaction must record the user's base currency (NOT EUR) in
+    // refCurrencyCode. A regression that re-uses account.currencyCode would silently
+    // pass any same-currency test, so this assertion is the load-bearing one.
+    const transactions = await helpers.getTransactions({ raw: true });
+    const updatedTx = transactions.find((t) => t.id === eurExpenseTx!.id);
+    expect(updatedTx!.currencyCode).toBe('EUR');
+    expect(updatedTx!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
+    expect(updatedTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
   });
 
   it('should return 404 for non-existent transaction', async () => {
