@@ -3,19 +3,12 @@
  * This modular system allows easy addition/removal of currency rate data providers
  * with configurable priority for fallback behavior.
  */
+import { EXCHANGE_RATE_PROVIDER_TYPE } from '@bt/shared/types';
 
-// ============================================================================
-// Provider Types and Enums
-// ============================================================================
-
-/**
- * Identifies the exchange rate provider type
- */
-export enum EXCHANGE_RATE_PROVIDER_TYPE {
-  CURRENCY_RATES_API = 'currency-rates-api',
-  FRANKFURTER = 'frankfurter',
-  API_LAYER = 'api-layer',
-}
+// Re-exported so service-internal modules can keep importing from `./types`.
+// The model imports the enum directly from `@bt/shared/types` to avoid a
+// model → service layer dependency.
+export { EXCHANGE_RATE_PROVIDER_TYPE };
 
 // ============================================================================
 // Provider Configuration
