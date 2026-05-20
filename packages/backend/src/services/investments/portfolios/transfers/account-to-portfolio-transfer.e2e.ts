@@ -83,6 +83,7 @@ describe('Account to Portfolio Transfer (POST /investments/portfolios/:id/transf
     expect(tx.transactionType).toBe(TRANSACTION_TYPES.expense);
     expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
     expect(tx.amount).toBeNumericEqual(200);
+    expect(tx.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
 
     // Verify the PortfolioTransfer record points to the transaction
     expect(transfer.transactionId).toBe(tx.id);
@@ -236,6 +237,18 @@ describe('Account to Portfolio Transfer (POST /investments/portfolios/:id/transf
     });
     expect(eurBalance!.availableCash).toBeNumericEqual(300);
     expect(eurBalance!.totalCash).toBeNumericEqual(300);
+
+    // The underlying expense Transaction must record the user's base currency
+    // (NOT the account's currency) in refCurrencyCode. This is the core invariant
+    // the fix establishes — without an asserted cross-currency scenario, a regression
+    // that re-sets refCurrencyCode back to account.currencyCode would silently pass.
+    const transactions = await helpers.getTransactions({
+      accountIds: [eurAccount.id],
+      raw: true,
+    });
+    expect(transactions.length).toBe(1);
+    expect(transactions[0]!.currencyCode).toBe('EUR');
+    expect(transactions[0]!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
   });
 
   it('should allow transfer exceeding account balance (soft tracking)', async () => {

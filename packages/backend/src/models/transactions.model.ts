@@ -13,6 +13,7 @@ import {
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
@@ -281,19 +282,38 @@ export default class Transactions extends Model {
   declare createdAt: Date;
   declare updatedAt: Date;
 
-  // User should set all of requiredFields for transfer transaction
   @BeforeCreate
   @BeforeUpdate
   static validateTransferRelatedFields(instance: Transactions) {
     const { transferNature, transferId, refAmount, refCurrencyCode } = instance;
 
-    const requiredFields = [transferId, refCurrencyCode, refAmount];
-
-    if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
-      if (requiredFields.some((item) => item === undefined)) {
-        throw new ValidationError({
-          message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,
-        });
+    switch (transferNature) {
+      case TRANSACTION_TRANSFER_NATURE.common_transfer: {
+        const requiredFields = [transferId, refCurrencyCode, refAmount];
+        if (requiredFields.some((item) => item === undefined)) {
+          throw new ValidationError({
+            message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,
+          });
+        }
+        return;
+      }
+      case TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio: {
+        // Single-leg transfer: no paired transferId, but ref fields must still be set so
+        // downstream aggregations can find the row. `refAmount == null` matches both null
+        // and undefined returned by the Money getter when the underlying cents are null.
+        if (!refCurrencyCode || refAmount == null) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.refFieldsRequiredForTransferToPortfolio' }),
+          });
+        }
+        return;
+      }
+      case TRANSACTION_TRANSFER_NATURE.not_transfer:
+      case TRANSACTION_TRANSFER_NATURE.transfer_out_wallet:
+        return;
+      default: {
+        const _exhaustiveCheck: never = transferNature;
+        throw new Error(`Unhandled transferNature in validateTransferRelatedFields: ${_exhaustiveCheck}`);
       }
     }
   }

@@ -91,6 +91,7 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
     expect(tx.transactionType).toBe(TRANSACTION_TYPES.income);
     expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
     expect(tx.amount).toBeNumericEqual(200);
+    expect(tx.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
 
     // Verify the PortfolioTransfer record points to the transaction
     expect(transfer.transactionId).toBe(tx.id);
@@ -131,9 +132,51 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
     expect(transactions.length).toBe(1);
     expect(transactions[0]!.id).toBe(incomeTx!.id);
     expect(transactions[0]!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
+    // Linking re-stamps refCurrencyCode to the user's current base currency so
+    // downstream aggregations stay correct even when the original tx pre-dates
+    // a base-currency switch. The @BeforeUpdate validator also requires it.
+    expect(transactions[0]!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
 
     // Verify the PortfolioTransfer record points to the existing transaction
     expect(transfer.transactionId).toBe(incomeTx!.id);
+  });
+
+  it('should set refCurrencyCode to base currency when account currency differs from base', async () => {
+    const { account: eurAccount } = await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
+
+    // Seed portfolio with EUR cash so the withdrawal has something to draw from
+    await helpers.updatePortfolioBalance({
+      portfolioId: portfolio.id,
+      currencyCode: 'EUR',
+      setAvailableCash: '500',
+      setTotalCash: '500',
+    });
+
+    const transfer = await helpers.portfolioToAccountTransfer({
+      portfolioId: portfolio.id,
+      payload: {
+        accountId: eurAccount.id,
+        amount: '200',
+        currencyCode: 'EUR',
+        date: '2025-06-15',
+      },
+      raw: true,
+    });
+
+    expect(transfer.currencyCode).toBe('EUR');
+
+    // The income Transaction on the destination account must carry the user's
+    // base currency in refCurrencyCode (NOT the account/EUR currency). A
+    // regression that re-sets refCurrencyCode back to account.currencyCode
+    // would silently pass any same-currency test, so this assertion is the
+    // load-bearing one.
+    const transactions = await helpers.getTransactions({
+      accountIds: [eurAccount.id],
+      raw: true,
+    });
+    expect(transactions.length).toBe(1);
+    expect(transactions[0]!.currencyCode).toBe('EUR');
+    expect(transactions[0]!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
   });
 
   it('should reject linking a non-income transaction', async () => {
