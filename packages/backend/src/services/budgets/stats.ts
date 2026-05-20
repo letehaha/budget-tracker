@@ -9,6 +9,7 @@ import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { buildDateFilter } from './utils/build-date-filter';
+import { fetchBudgetRefundPairs } from './utils/refund-pairs';
 
 interface StatsResponse {
   summary: {
@@ -49,17 +50,22 @@ const getManualBudgetStats = async ({
     message: t({ key: 'budgets.budgetNotFound' }),
   });
 
-  const transactions: Pick<Transactions.default, 'time' | 'amount' | 'refAmount' | 'transactionType'>[] =
-    await Transactions.findWithFilters({
-      userId,
-      excludeTransfer: true,
-      budgetIds: [budgetId],
-      from: 0,
-      limit: Infinity,
-      attributes: ['time', 'amount', 'refAmount', 'transactionType'],
-    });
+  const transactions: Pick<
+    Transactions.default,
+    'id' | 'time' | 'amount' | 'refAmount' | 'transactionType' | 'refundLinked'
+  >[] = await Transactions.findWithFilters({
+    userId,
+    excludeTransfer: true,
+    budgetIds: [budgetId],
+    from: 0,
+    limit: Infinity,
+    attributes: ['id', 'time', 'amount', 'refAmount', 'transactionType', 'refundLinked'],
+  });
 
-  return aggregateTransactionStats({ transactions, limitAmount: budgetDetails.limitAmount?.toCents() ?? null });
+  const limitAmount = budgetDetails.limitAmount?.toCents() ?? null;
+  const result = aggregateTransactionStats({ transactions, limitAmount });
+  await applyRefundAdjustments({ countedTransactions: transactions, result, limitAmount });
+  return result;
 };
 
 /**
@@ -117,13 +123,13 @@ const getCategoryBudgetStats = async ({
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           ...dateFilter,
         },
-        attributes: ['id', 'time', 'transactionType'],
+        attributes: ['id', 'time', 'transactionType', 'refundLinked'],
       },
     ],
   });
 
   const result = getResponseInitialState();
-  const countedTransactionIds = new Set<string>();
+  const countedTransactions: { id: string; refundLinked: boolean }[] = [];
 
   // Process primary category transactions (only those WITHOUT splits)
   for (const tx of primaryCategoryTransactions) {
@@ -134,7 +140,7 @@ const getCategoryBudgetStats = async ({
       continue;
     }
 
-    countedTransactionIds.add(tx.id);
+    countedTransactions.push({ id: tx.id, refundLinked: tx.refundLinked });
     const isExpense = tx.transactionType === TRANSACTION_TYPES.expense;
 
     if (isExpense) {
@@ -153,7 +159,7 @@ const getCategoryBudgetStats = async ({
     const transaction = split.get('transaction') as Transactions.default;
     if (!transaction) continue;
 
-    countedTransactionIds.add(transaction.id);
+    countedTransactions.push({ id: transaction.id, refundLinked: transaction.refundLinked });
     const isExpense = transaction.transactionType === TRANSACTION_TYPES.expense;
 
     if (isExpense) {
@@ -167,12 +173,17 @@ const getCategoryBudgetStats = async ({
     updateDateRange(result, transaction.time);
   }
 
-  result.summary.transactionsCount = countedTransactionIds.size;
+  const uniqueCountedIds = new Set(countedTransactions.map((tx) => tx.id));
+  result.summary.transactionsCount = uniqueCountedIds.size;
 
-  if (budgetDetails.limitAmount) {
+  const limitAmount = budgetDetails.limitAmount?.toCents() ?? null;
+
+  if (limitAmount !== null) {
     const netSpending = Math.max(0, -result.summary.balance);
-    result.summary.utilizationRate = (netSpending / budgetDetails.limitAmount.toCents()) * 100;
+    result.summary.utilizationRate = (netSpending / limitAmount) * 100;
   }
+
+  await applyRefundAdjustments({ countedTransactions, result, limitAmount });
 
   return result;
 };
@@ -187,6 +198,51 @@ const updateDateRange = (result: StatsResponse, time: Date) => {
   }
   if (!result.summary.lastTransactionDate || txDate > result.summary.lastTransactionDate) {
     result.summary.lastTransactionDate = txDate;
+  }
+};
+
+/**
+ * Nets out refund pairs from actualIncome/actualExpense so a refund-income doesn't inflate
+ * income and the matching expense reflects net spend (matching the global "Expenses Structure"
+ * widget). For each refund where a side is in the budget, we subtract `refundTx.refAmount`
+ * from that side. Balance and utilizationRate are recomputed from the adjusted totals.
+ */
+const applyRefundAdjustments = async ({
+  countedTransactions,
+  result,
+  limitAmount,
+}: {
+  countedTransactions: { id: string; refundLinked: boolean }[];
+  result: StatsResponse;
+  limitAmount: number | null;
+}): Promise<void> => {
+  const pairs = await fetchBudgetRefundPairs({ countedTransactions });
+  if (pairs.length === 0) return;
+
+  for (const pair of pairs) {
+    const adjustment = pair.refundTx.refAmount.toCents();
+
+    if (pair.originalInBudget) {
+      if (pair.originalTx.transactionType === TRANSACTION_TYPES.expense) {
+        result.summary.actualExpense -= adjustment;
+      } else {
+        result.summary.actualIncome -= adjustment;
+      }
+    }
+
+    if (pair.refundInBudget) {
+      if (pair.refundTx.transactionType === TRANSACTION_TYPES.expense) {
+        result.summary.actualExpense -= adjustment;
+      } else {
+        result.summary.actualIncome -= adjustment;
+      }
+    }
+  }
+
+  result.summary.balance = result.summary.actualIncome - result.summary.actualExpense;
+  if (limitAmount !== null) {
+    const netSpending = Math.max(0, -result.summary.balance);
+    result.summary.utilizationRate = (netSpending / limitAmount) * 100;
   }
 };
 
@@ -218,7 +274,7 @@ const aggregateTransactionStats = ({
 
   result.summary.transactionsCount = transactions.length;
 
-  if (limitAmount) {
+  if (limitAmount !== null) {
     const netSpending = Math.max(0, -result.summary.balance);
     result.summary.utilizationRate = (netSpending / limitAmount) * 100;
   }

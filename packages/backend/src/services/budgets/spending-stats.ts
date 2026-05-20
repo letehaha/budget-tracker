@@ -22,6 +22,7 @@ import {
 import { Op } from 'sequelize';
 
 import { buildDateFilter } from './utils/build-date-filter';
+import { fetchBudgetRefundPairs, type RefundPair } from './utils/refund-pairs';
 
 interface CategoryInfo {
   id: RecordId;
@@ -256,6 +257,8 @@ interface NormalizedTxData {
   isExpense: boolean;
   categoryId: RecordId | null; // aggregation target (root or top-level target), null = skip category aggregation
   originalCategoryId: RecordId | null; // the actual leaf category
+  /** When true, subtract `amount` instead of adding. Used to net out refund pairs. */
+  negative?: boolean;
 }
 
 const determineDateRange = ({
@@ -303,24 +306,36 @@ const aggregateTransactionData = ({
   const categoryAmounts = new Map<RecordId, CategoryAmountEntry>();
 
   for (const txData of txDataList) {
+    const sign = txData.negative ? -1 : 1;
+    const signedAmount = txData.amount * sign;
+
     const bucketIndex = findBucketIndex({ transactionTime: new Date(txData.time), buckets });
     if (bucketIndex !== -1) {
       const period = periodData.get(bucketIndex)!;
       if (txData.isExpense) {
-        period.expense += txData.amount;
+        period.expense += signedAmount;
       } else {
-        period.income += txData.amount;
+        period.income += signedAmount;
       }
     }
 
     if (txData.isExpense && txData.categoryId !== null) {
+      // For refund subtractions, only adjust an existing bucket — never create a new
+      // negative-amount entry for a category that wasn't part of the forward aggregation.
+      if (txData.negative && !categoryAmounts.has(txData.categoryId)) continue;
+
       const entry = categoryAmounts.get(txData.categoryId) ?? { amount: 0, children: new Map() };
-      entry.amount += txData.amount;
+      entry.amount += signedAmount;
       if (txData.originalCategoryId !== null && txData.originalCategoryId !== txData.categoryId) {
-        entry.children.set(
-          txData.originalCategoryId,
-          (entry.children.get(txData.originalCategoryId) ?? 0) + txData.amount,
-        );
+        const existingChild = entry.children.get(txData.originalCategoryId);
+        if (txData.negative) {
+          // Same guard as above for the child bucket.
+          if (existingChild !== undefined) {
+            entry.children.set(txData.originalCategoryId, existingChild + signedAmount);
+          }
+        } else {
+          entry.children.set(txData.originalCategoryId, (existingChild ?? 0) + signedAmount);
+        }
       }
       categoryAmounts.set(txData.categoryId, entry);
     }
@@ -330,6 +345,52 @@ const aggregateTransactionData = ({
     spendingsByCategory: buildSpendingsByCategory({ categoryAmounts, categoryMap }),
     spendingOverTime: buildSpendingOverTime({ buckets, granularity, periodData }),
   };
+};
+
+/**
+ * Builds negative `NormalizedTxData` entries from refund pairs so `aggregateTransactionData`
+ * nets them out of the period income/expense and per-category expense aggregations. For each
+ * side of a pair that's in the budget, we subtract `refundTx.refAmount` — matching the global
+ * "Expenses Structure" widget's refund handling.
+ */
+const buildRefundAdjustments = ({
+  pairs,
+  resolveCategoryBucket,
+}: {
+  pairs: RefundPair[];
+  resolveCategoryBucket: (categoryId: RecordId) => RecordId | null;
+}): NormalizedTxData[] => {
+  const adjustments: NormalizedTxData[] = [];
+
+  for (const pair of pairs) {
+    const adjustmentAmount = pair.refundTx.refAmount.toCents();
+
+    const pushSide = ({
+      tx,
+      overrideCategoryId,
+    }: {
+      tx: RefundPair['originalTx'];
+      overrideCategoryId: RecordId | null;
+    }) => {
+      const isExpense = tx.transactionType === TRANSACTION_TYPES.expense;
+      const targetCategoryId = overrideCategoryId ?? tx.categoryId;
+      const resolved = isExpense ? resolveCategoryBucket(targetCategoryId) : null;
+      adjustments.push({
+        time: tx.time,
+        amount: adjustmentAmount,
+        isExpense,
+        categoryId: resolved,
+        originalCategoryId: isExpense ? targetCategoryId : null,
+        negative: true,
+      });
+    };
+
+    // splitId only applies to the original side — splits belong to the original tx.
+    if (pair.originalInBudget) pushSide({ tx: pair.originalTx, overrideCategoryId: pair.splitCategoryId });
+    if (pair.refundInBudget) pushSide({ tx: pair.refundTx, overrideCategoryId: null });
+  }
+
+  return adjustments;
 };
 
 /**
@@ -353,7 +414,7 @@ const getManualBudgetSpendingStats = async ({
     budgetIds: [budgetId],
     from: 0,
     limit: Infinity,
-    attributes: ['time', 'refAmount', 'transactionType', 'categoryId'],
+    attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked'],
   });
 
   if (transactions.length === 0) return getEmptyResponse();
@@ -376,8 +437,14 @@ const getManualBudgetSpendingStats = async ({
     };
   });
 
+  const refundPairs = await fetchBudgetRefundPairs({ countedTransactions: transactions });
+  const refundAdjustments = buildRefundAdjustments({
+    pairs: refundPairs,
+    resolveCategoryBucket: (categoryId) => getRootCategoryId({ categoryId, categoryMap }),
+  });
+
   return aggregateTransactionData({
-    txDataList,
+    txDataList: [...txDataList, ...refundAdjustments],
     budgetStartDate: budgetDetails.startDate,
     budgetEndDate: budgetDetails.endDate,
     categoryMap,
@@ -460,12 +527,13 @@ const getCategoryBudgetSpendingStats = async ({
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           ...dateFilter,
         },
-        attributes: ['id', 'time', 'transactionType'],
+        attributes: ['id', 'time', 'transactionType', 'refundLinked'],
       },
     ],
   });
 
   const txDataList: NormalizedTxData[] = [];
+  const countedTransactions: { id: string; refundLinked: boolean }[] = [];
 
   // Process primary category transactions (only those WITHOUT splits)
   for (const tx of primaryCategoryTransactions) {
@@ -485,6 +553,7 @@ const getCategoryBudgetSpendingStats = async ({
       categoryId: topLevelCatId,
       originalCategoryId: tx.categoryId!,
     });
+    countedTransactions.push({ id: tx.id, refundLinked: tx.refundLinked });
   }
 
   // Process splits
@@ -505,12 +574,19 @@ const getCategoryBudgetSpendingStats = async ({
       categoryId: topLevelCatId,
       originalCategoryId: split.categoryId,
     });
+    countedTransactions.push({ id: transaction.id, refundLinked: transaction.refundLinked });
   }
 
   if (txDataList.length === 0) return getEmptyResponse();
 
+  const refundPairs = await fetchBudgetRefundPairs({ countedTransactions });
+  const refundAdjustments = buildRefundAdjustments({
+    pairs: refundPairs,
+    resolveCategoryBucket: (categoryId) => getTopLevelTargetCategoryId({ categoryId, categoryMap, targetCategoryIds }),
+  });
+
   return aggregateTransactionData({
-    txDataList,
+    txDataList: [...txDataList, ...refundAdjustments],
     budgetStartDate: budgetDetails.startDate,
     budgetEndDate: budgetDetails.endDate,
     categoryMap,
