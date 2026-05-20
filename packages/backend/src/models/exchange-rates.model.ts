@@ -1,3 +1,4 @@
+import { EXCHANGE_RATE_PROVIDER_TYPE } from '@bt/shared/types';
 import { Op } from 'sequelize';
 import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 
@@ -24,6 +25,13 @@ export default class ExchangeRates extends Model {
 
   @Column({ allowNull: false, defaultValue: 1, type: DataType.FLOAT })
   rate!: number;
+
+  @Column({
+    allowNull: false,
+    type: DataType.STRING(32),
+    defaultValue: EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN,
+  })
+  source!: EXCHANGE_RATE_PROVIDER_TYPE;
 }
 
 export async function getRatesForCurrenciesPairs(

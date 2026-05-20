@@ -41,6 +41,24 @@ export enum BANK_PROVIDER_TYPE {
   WALUTOMAT = 'walutomat',
 }
 
+/**
+ * Identifies the exchange rate provider that supplied a given rate.
+ * Persisted as the `source` column on the `ExchangeRates` table.
+ *
+ * NOTE: keep in sync with the CHECK constraint in
+ * `packages/backend/src/migrations/20260520000000-add-source-to-exchange-rates.ts`.
+ */
+export enum EXCHANGE_RATE_PROVIDER_TYPE {
+  CURRENCY_RATES_API = 'currency-rates-api',
+  FRANKFURTER = 'frankfurter',
+  API_LAYER = 'api-layer',
+  /**
+   * Catch-all for rows whose origin cannot be determined.
+   * Used as the DB default — never set explicitly by a provider.
+   */
+  UNKNOWN = 'unknown',
+}
+
 export enum ACCOUNT_STATUSES {
   active = 'active',
   archived = 'archived',
