@@ -13,7 +13,6 @@ export default createController(
   async ({ user, params }) => {
     const stats = await getBudgetStats({ userId: user.id, budgetId: params.id });
 
-    // Serialize: convert cents to decimal for API response
     return { data: serializeBudgetStats(stats) };
   },
 );

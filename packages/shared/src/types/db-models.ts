@@ -83,16 +83,18 @@ export interface AccountExternalData {
 }
 
 /**
- * Account share block (PRD F14). Present on every user-facing list/detail account
- * response — describes whether the requester owns the account or accesses it via an
- * accepted share, plus the owner's display info.
+ * Resource share block emitted on user-facing list/detail responses for any shareable
+ * resource (accounts, budgets, …). Describes whether the requester owns the resource
+ * or accesses it via an accepted share, plus the owner's display info.
  *
- * `accessSource` tells the frontend which kind of grant is in effect so it can
- * pick the right label and management entry point: per-resource shares keep the
- * existing "Shared by X" affordances, while household membership routes users
- * into Settings → Household for management.
+ * `accessSource` tells the frontend which kind of grant is in effect so it can pick
+ * the right label and management entry point: per-resource shares keep the "Shared
+ * by X" affordances, while household membership routes users into Settings → Household
+ * for management. (Budgets never carry `'household'` — they're explicit-share only —
+ * but the union stays open so a future selective-share extension doesn't force a type
+ * widening.)
  */
-export interface AccountShareInfo {
+export interface ResourceShareInfo {
   isOwner: boolean;
   owner: {
     id: number;
@@ -129,7 +131,7 @@ export interface AccountModel {
    */
   bankProviderType?: BANK_PROVIDER_TYPE | null;
   /** Present on user-facing list/detail responses; absent on internal serializations. */
-  share?: AccountShareInfo;
+  share?: ResourceShareInfo;
 }
 
 /**
@@ -230,6 +232,15 @@ export interface TransactionModel {
   tags?: TagModel[];
   /** Transaction groups this transaction belongs to (loaded when includeGroups=true) */
   transactionGroups?: Array<{ id: RecordId; name: string }>;
+  /** Recipient who attached this tx to a shared budget. Present (possibly `null`) on
+   *  budget-scoped tx fetches; absent elsewhere. `null` ⇒ owner-attached, no chip in
+   *  the UI. Non-null ⇒ the budget recipient who clicked Attach for this row. */
+  addedBy?: { id: number; username: string; avatar: string | null } | null;
+  /** Whether the caller has write access to this row. Set by list endpoints so the UI
+   *  can render an inert details dialog (vs an edit form) when the row is visible —
+   *  typically via a budget share — but not editable. Absent on write-result payloads
+   *  and internal fetches; absent ⇒ "unknown / fall back to opportunistic UI". */
+  canEdit?: boolean;
   /** Timestamp when the record was created (defaults to transaction time for existing records) */
   createdAt: Date;
   /** Timestamp when the record was last updated */
@@ -288,6 +299,8 @@ export interface BudgetModel {
    * Read-only - for mutations, use `categoryIds`.
    */
   categories?: CategoryModel[];
+  /** Present on user-facing list/detail responses; absent on internal serializations. */
+  share?: ResourceShareInfo;
 }
 
 export interface TagModel {

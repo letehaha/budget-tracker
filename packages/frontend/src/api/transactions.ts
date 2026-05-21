@@ -56,6 +56,14 @@ export const loadTransactionsByTransferId = async (transferId: string): Promise<
   return api.get(`/transactions/transfer/${transferId}`);
 };
 
+/** Single-tx fetch used by the edit dialog when the parent account isn't in the
+ *  caller's local `accountsRecord` (typically the budget-share-only case). The list
+ *  endpoints skip `canEdit` to keep the common path cheap; this lookup exposes it
+ *  for free from the already-resolved access result on the server. */
+export const loadTransactionById = async ({ id }: { id: string }): Promise<TransactionModel | null> => {
+  return api.get(`/transactions/${id}`);
+};
+
 export const loadTransactionsByIds = async ({ ids }: { ids: string[] }): Promise<TransactionModel[]> => {
   return api.get('/transactions/by-ids', { ids: ids.join(',') });
 };

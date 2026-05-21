@@ -1,34 +1,67 @@
 import { BUDGET_STATUSES, BudgetModel } from '@bt/shared/types';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
+import Users from '@models/users.model';
 import { Op } from 'sequelize';
 
 import { withTransaction } from './common/with-transaction';
+import {
+  BudgetShareContext,
+  buildOwnerBudgetShareContext,
+  getSharedBudgetById,
+  getSharedBudgetsForUser,
+} from './sharing/get-shared-budgets.service';
 
+type BudgetWithCategories = Budgets & {
+  categories: Pick<Categories, 'id' | 'name' | 'color' | 'parentId'>[];
+};
+
+type BudgetWithShareContext = BudgetWithCategories & { _shareContext?: BudgetShareContext };
+
+const includeCategories = {
+  model: Categories,
+  as: 'categories',
+  attributes: ['id', 'name', 'color', 'parentId'],
+};
+
+const filterByStatus = ({ statuses }: { statuses?: BUDGET_STATUSES[] }) =>
+  statuses?.length ? { status: { [Op.in]: statuses } } : {};
+
+/**
+ * Returns every budget the caller can read: budgets they own (with an owner share
+ * context) merged with budgets shared with them (with a recipient share context).
+ *
+ * Status filter and category hydration are pushed down into both halves so the shared
+ * branch loads in a single query instead of re-fetching post-load.
+ */
 export const getBudgets = withTransaction(
-  async ({ userId, statuses }: { userId: number; statuses?: BUDGET_STATUSES[] }) => {
-    const where: Record<string, unknown> = { userId };
+  async ({ userId, statuses }: { userId: number; statuses?: BUDGET_STATUSES[] }): Promise<BudgetWithShareContext[]> => {
+    const statusWhere = filterByStatus({ statuses });
+    const [ownedBudgets, sharedBudgets, ownerUser] = await Promise.all([
+      Budgets.findAll({
+        where: { userId, ...statusWhere },
+        include: [includeCategories],
+      }),
+      getSharedBudgetsForUser({
+        userId,
+        where: statusWhere,
+        include: [includeCategories],
+      }),
+      Users.findByPk(userId),
+    ]);
 
-    if (statuses?.length) {
-      where.status = { [Op.in]: statuses };
-    }
+    const ownerContext = ownerUser ? await buildOwnerBudgetShareContext({ ownerUser }) : null;
 
-    const budgets = await Budgets.findAll({
-      where,
-      include: [
-        {
-          model: Categories,
-          as: 'categories',
-          attributes: ['id', 'name', 'color', 'parentId'],
-        },
-      ],
+    const ownedWithContext: BudgetWithShareContext[] = ownedBudgets.map((budget) => {
+      if (ownerContext) {
+        Object.assign(budget, { _shareContext: ownerContext });
+      }
+      return budget as BudgetWithShareContext;
     });
 
-    return budgets;
+    return [...ownedWithContext, ...(sharedBudgets as BudgetWithShareContext[])];
   },
 );
-
-type BudgetByIdReturnType = Budgets & { categories: Pick<Categories, 'id' | 'name' | 'color' | 'parentId'>[] };
 
 export const getBudgetById = withTransaction(
   async ({
@@ -37,18 +70,23 @@ export const getBudgetById = withTransaction(
   }: {
     userId: BudgetModel['userId'];
     id: BudgetModel['id'];
-  }): Promise<BudgetByIdReturnType | null> => {
-    const budget = await Budgets.findOne({
+  }): Promise<BudgetWithShareContext | null> => {
+    const owned = await Budgets.findOne({
       where: { userId, id },
-      include: [
-        {
-          model: Categories,
-          as: 'categories',
-          attributes: ['id', 'name', 'color', 'parentId'],
-        },
-      ],
+      include: [includeCategories],
     });
 
-    return budget;
+    if (owned) {
+      const ownerUser = await Users.findByPk(userId);
+      if (ownerUser) {
+        Object.assign(owned, { _shareContext: await buildOwnerBudgetShareContext({ ownerUser }) });
+      }
+      return owned as BudgetWithShareContext;
+    }
+
+    // Not owned — fall through to the shared lookup. `getSharedBudgetById` runs the
+    // central auth check and returns the budget with a recipient share context attached.
+    const shared = await getSharedBudgetById({ userId, id, include: [includeCategories] });
+    return (shared as BudgetWithShareContext | null) ?? null;
   },
 );

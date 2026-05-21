@@ -289,7 +289,7 @@ describe('Shared account writes — S4', () => {
       expect(res.statusCode).toBe(200);
     });
 
-    it('returns 404 to a non-recipient updating a transaction on a shared account', async () => {
+    it('returns 403 to a non-recipient updating a transaction on a shared account', async () => {
       const account = await helpers.createAccount({ raw: true });
       const [ownerTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
@@ -302,10 +302,12 @@ describe('Shared account writes — S4', () => {
         fn: () => helpers.updateTransaction({ id: ownerTx.id, payload: { amount: 200 } }),
       });
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+      // Tx exists but the caller has no write claim — surface "forbidden" rather than
+      // the misleading "not found". UUID ids make existence-leak via 403 vs 404 moot.
+      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
     });
 
-    it('returns 404 to a read-only recipient attempting an update', async () => {
+    it('returns 403 to a read-only recipient attempting an update', async () => {
       const account = await helpers.createAccount({ raw: true });
       const [ownerTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
@@ -319,7 +321,7 @@ describe('Shared account writes — S4', () => {
         fn: () => helpers.updateTransaction({ id: ownerTx.id, payload: { amount: 200 } }),
       });
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
     });
 
     it("blocks a write/all recipient from changing the transaction's accountId", async () => {
@@ -436,7 +438,7 @@ describe('Shared account writes — S4', () => {
       expect(res.statusCode).toBe(200);
     });
 
-    it('returns 404 to a non-recipient deleting a transaction', async () => {
+    it('returns 403 to a non-recipient deleting a transaction', async () => {
       const account = await helpers.createAccount({ raw: true });
       const [ownerTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
@@ -449,10 +451,10 @@ describe('Shared account writes — S4', () => {
         fn: () => helpers.deleteTransaction({ id: ownerTx.id }),
       });
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
     });
 
-    it('returns 404 to a read-only recipient attempting delete', async () => {
+    it('returns 403 to a read-only recipient attempting delete', async () => {
       const account = await helpers.createAccount({ raw: true });
       const [ownerTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
@@ -466,7 +468,7 @@ describe('Shared account writes — S4', () => {
         fn: () => helpers.deleteTransaction({ id: ownerTx.id }),
       });
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
     });
 
     /**

@@ -9,7 +9,8 @@
       },
       "sections": {
         "account": "Рахунки",
-        "household": "Сім'ї"
+        "household": "Сім'ї",
+        "budget": "Бюджети, поділені з вами"
       },
       "sharedBy": "Надав доступ {handle}",
       "viaHousehold": "Через домогосподарство {handle}",

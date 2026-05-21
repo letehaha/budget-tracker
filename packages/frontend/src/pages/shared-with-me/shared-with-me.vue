@@ -8,7 +8,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { RESOURCE_TYPES, type ResourceType, SHARE_INVITATION_STATUSES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { HomeIcon, LandmarkIcon, LogOutIcon, MailIcon, UsersIcon } from 'lucide-vue-next';
+import { HomeIcon, LandmarkIcon, LogOutIcon, MailIcon, UsersIcon, WalletIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -18,6 +18,12 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const queryClient = useQueryClient();
 const route = useRoute();
 const router = useRouter();
+
+const ICON_BY_RESOURCE_TYPE: Record<ResourceType, typeof LandmarkIcon> = {
+  [RESOURCE_TYPES.account]: LandmarkIcon,
+  [RESOURCE_TYPES.household]: HomeIcon,
+  [RESOURCE_TYPES.budget]: WalletIcon,
+};
 
 const sharesQuery = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.sharedWithMe,
@@ -55,6 +61,7 @@ const groupedShares = computed(() => {
   const groups: Record<ResourceType, DisplayableRow[]> = {
     [RESOURCE_TYPES.account]: [],
     [RESOURCE_TYPES.household]: [],
+    [RESOURCE_TYPES.budget]: [],
   };
   for (const row of sharesQuery.data.value ?? []) {
     (groups[row.resourceType] ??= []).push({ ...row, route: routeForRow(row) });
@@ -74,8 +81,10 @@ const leaveMutation = useMutation({
   onSuccess: () => {
     addSuccessNotification(t('pages.sharedWithMe.leaveSuccess'));
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.sharedWithMe });
-    // The recipient's accounts list also drops this row.
+    // The recipient's resource lists also drop this row. Invalidating both is a no-op for
+    // the bucket the row didn't live in, so we don't need to branch on `resourceType`.
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
     leaveOpen.value = false;
     leaveTarget.value = null;
   },
@@ -102,6 +111,9 @@ const routeForRow = (row: SharedWithMeRow) => {
     // membership and leave from a single place. The shared-with-me page itself still
     // offers a Leave action inline, so the link is purely an entry to the manage UI.
     return { name: ROUTES_NAMES.settingsHousehold };
+  }
+  if (row.resourceType === RESOURCE_TYPES.budget) {
+    return { name: ROUTES_NAMES.plannedBudgetDetails, params: { id: row.resourceId } };
   }
   return null;
 };
@@ -192,10 +204,7 @@ const isEverythingEmpty = computed(() => !pendingReceivedInvitations.value.lengt
                   <div
                     class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full"
                   >
-                    <component
-                      :is="row.resourceType === RESOURCE_TYPES.household ? HomeIcon : LandmarkIcon"
-                      class="size-5"
-                    />
+                    <component :is="ICON_BY_RESOURCE_TYPE[row.resourceType]" class="size-5" />
                   </div>
                   <div class="min-w-0">
                     <p class="truncate text-sm font-medium">

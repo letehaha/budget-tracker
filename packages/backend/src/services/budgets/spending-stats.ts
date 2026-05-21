@@ -21,6 +21,7 @@ import {
 } from 'date-fns';
 import { Op } from 'sequelize';
 
+import { authorizeBudgetRead } from './authorize-budget-access';
 import { buildDateFilter } from './utils/build-date-filter';
 import { fetchBudgetRefundPairs, type RefundPair } from './utils/refund-pairs';
 
@@ -393,54 +394,150 @@ const buildRefundAdjustments = ({
   return adjustments;
 };
 
+/** Synthetic categoryId used to bucket recipients' null-key (custom) categories in the
+ *  shared-budget spending breakdown. Owner-side customs stay as their own rows; only
+ *  recipient-side null-key categories fold here, per the MVP decision (cross-user custom
+ *  alignment is a deferred follow-up). Carries a unique non-UUID shape so it can't collide
+ *  with a real `Categories.id`. Cast to `RecordId` so it slots into the existing maps
+ *  without widening every signature to `string | RecordId`. */
+const OTHER_CATEGORY_ID = '__shared_budget_other__' as RecordId;
+
+/** Build a categoryId -> canonical categoryId map for shared-budget aggregation.
+ *
+ *  Strategy (per the "merge by Categories.key" decision):
+ *    - Owner's category: maps to itself (no change).
+ *    - Recipient's seeded category whose `key` matches an owner category: maps to the
+ *      owner's matching id, so owner + recipient contributions land in the same bucket
+ *      and the breakdown displays owner's name/color.
+ *    - Recipient's seeded category whose `key` has no owner counterpart: maps to itself
+ *      (rendered with the recipient's own name/color — uncommon since seeded keys are
+ *      consistent across users by construction).
+ *    - Recipient's null-key (custom) category: maps to `OTHER_CATEGORY_ID`. The breakdown
+ *      shows a single "Other" row aggregating all such contributions.
+ */
+const buildSharedBudgetMergeMap = ({
+  categories,
+  ownerUserId,
+}: {
+  categories: { id: RecordId; key: string | null; userId: number }[];
+  ownerUserId: number;
+}): Map<RecordId, RecordId> => {
+  const ownerKeyToId = new Map<string, RecordId>();
+  for (const cat of categories) {
+    if (cat.userId === ownerUserId && cat.key !== null) {
+      ownerKeyToId.set(cat.key, cat.id);
+    }
+  }
+
+  const mergeMap = new Map<RecordId, RecordId>();
+  for (const cat of categories) {
+    if (cat.userId === ownerUserId) {
+      mergeMap.set(cat.id, cat.id);
+    } else if (cat.key !== null && ownerKeyToId.has(cat.key)) {
+      mergeMap.set(cat.id, ownerKeyToId.get(cat.key)!);
+    } else if (cat.key === null) {
+      mergeMap.set(cat.id, OTHER_CATEGORY_ID);
+    } else {
+      // Recipient seeded category with a key the owner doesn't have — render under the
+      // recipient's own name/color rather than burying it in "Other".
+      mergeMap.set(cat.id, cat.id);
+    }
+  }
+  return mergeMap;
+};
+
 /**
- * Manual budget: fetch transactions via budgetIds, group by root category
+ * Manual budget: fetch transactions via the BudgetTransactions junction (no userId
+ * filter, so recipient contributions count) and group by root category.
+ *
+ * Shared-budget category breakdown merges by `Categories.key`: a recipient's seeded
+ * category folds into the owner's matching one (display shows owner's name/color); a
+ * recipient's custom (null-key) category buckets under a synthetic "Other" row. See
+ * `buildSharedBudgetMergeMap` for the full strategy. For non-shared budgets, the merge
+ * map is identity-only and behaviour matches the pre-share implementation.
  */
 const getManualBudgetSpendingStats = async ({
-  userId,
+  userId: ownerUserId,
   budgetId,
 }: {
   userId: number;
   budgetId: string;
 }): Promise<SpendingStatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
-    query: Budgets.findOne({ where: { id: budgetId, userId } }),
+    query: Budgets.findOne({ where: { id: budgetId, userId: ownerUserId } }),
     message: t({ key: 'budgets.budgetNotFound' }),
   });
 
   const transactions = await Transactions.findWithFilters({
-    userId,
     excludeTransfer: true,
     budgetIds: [budgetId],
     from: 0,
     limit: Infinity,
-    attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked'],
+    attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked', 'userId'],
   });
 
   if (transactions.length === 0) return getEmptyResponse();
 
+  // Contributors = owner (always, even with no own tx) + every userId that authored a
+  // tx attached to this budget. Owner's tree must be loaded so the merge map has key->id
+  // targets to fold recipients into; recipient trees are loaded so the parent walk works.
+  const contributingUserIds = new Set<number>([ownerUserId]);
+  for (const tx of transactions) contributingUserIds.add(tx.userId);
+
   const allCategoriesRaw = (await Categories.findAll({
-    where: { userId },
-    attributes: ['id', 'name', 'color', 'parentId'],
+    where: { userId: { [Op.in]: Array.from(contributingUserIds) } },
+    attributes: ['id', 'name', 'color', 'parentId', 'key', 'userId'],
     raw: true,
-  })) as unknown as { id: RecordId; name: string; color: string; parentId: RecordId | null }[];
+  })) as unknown as {
+    id: RecordId;
+    name: string;
+    color: string;
+    parentId: RecordId | null;
+    key: string | null;
+    userId: number;
+  }[];
+
+  const mergeMap = buildSharedBudgetMergeMap({ categories: allCategoriesRaw, ownerUserId });
+  const canonicalize = (id: RecordId): RecordId => mergeMap.get(id) ?? id;
+
   const categoryMap = buildCategoryMap({ categories: allCategoriesRaw });
+  categoryMap.set(OTHER_CATEGORY_ID, {
+    id: OTHER_CATEGORY_ID,
+    name: 'Other',
+    color: '#6B7280',
+    parentId: null,
+  });
+
+  const canonicalChildId = (id: RecordId | null): RecordId | null => {
+    if (id === null) return null;
+    const canonical = canonicalize(id);
+    // Recipient's null-key custom categories collapse to `OTHER` at the canonical
+    // step. Returning `null` here keeps them out of the child-row breakdown — they
+    // would otherwise render as an "Other" subcategory under a (possibly keyed)
+    // parent, which would be confusing alongside a top-level "Other" row.
+    return canonical === OTHER_CATEGORY_ID ? null : canonical;
+  };
 
   const txDataList: NormalizedTxData[] = transactions.map((tx) => {
-    const rootCatId = tx.categoryId ? getRootCategoryId({ categoryId: tx.categoryId, categoryMap }) : null;
+    const rootCatId = tx.categoryId
+      ? canonicalize(getRootCategoryId({ categoryId: tx.categoryId, categoryMap }))
+      : null;
     return {
       time: tx.time,
       amount: tx.refAmount.toCents(),
       isExpense: tx.transactionType === TRANSACTION_TYPES.expense,
       categoryId: rootCatId,
-      originalCategoryId: tx.categoryId,
+      // Apply the merge map to the child id too — otherwise we'd render duplicate
+      // "Groceries" rows under "Food" (one each for owner's and recipient's
+      // categoryId, both meaning the same thing).
+      originalCategoryId: canonicalChildId(tx.categoryId),
     };
   });
 
   const refundPairs = await fetchBudgetRefundPairs({ countedTransactions: transactions });
   const refundAdjustments = buildRefundAdjustments({
     pairs: refundPairs,
-    resolveCategoryBucket: (categoryId) => getRootCategoryId({ categoryId, categoryMap }),
+    resolveCategoryBucket: (categoryId) => canonicalize(getRootCategoryId({ categoryId, categoryMap })),
   });
 
   return aggregateTransactionData({
@@ -600,14 +697,19 @@ export const getBudgetSpendingStats = async ({
   userId: number;
   budgetId: string;
 }): Promise<SpendingStatsResponse> => {
+  // Share-aware auth: recipient sees the same numbers the owner would (per PRD
+  // visibility decision). Downstream queries scope against the owner's userId so
+  // a recipient's unrelated transactions don't filter the result.
+  const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+
   const budgetDetails = await findOrThrowNotFound({
-    query: Budgets.findOne({ where: { id: budgetId, userId }, attributes: ['type'] }),
+    query: Budgets.findOne({ where: { id: budgetId, userId: ownerUserId }, attributes: ['type'] }),
     message: t({ key: 'budgets.budgetNotFound' }),
   });
 
   if (budgetDetails.type === BUDGET_TYPES.category) {
-    return getCategoryBudgetSpendingStats({ userId, budgetId });
+    return getCategoryBudgetSpendingStats({ userId: ownerUserId, budgetId });
   }
 
-  return getManualBudgetSpendingStats({ userId, budgetId });
+  return getManualBudgetSpendingStats({ userId: ownerUserId, budgetId });
 };

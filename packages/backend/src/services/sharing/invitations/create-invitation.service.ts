@@ -12,6 +12,7 @@ import {
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
+import Budgets from '@models/budget.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { getBaseCurrency } from '@models/users-currencies.model';
@@ -77,6 +78,28 @@ const resolveOwnedResource = async ({
       resourceName: account.name,
     };
   }
+  if (resourceType === RESOURCE_TYPES.budget) {
+    const budget = await Budgets.findOne({ where: { id: resourceId } });
+    if (!budget) {
+      throw new NotFoundError({ message: 'Budget not found' });
+    }
+    if (budget.userId !== ownerUserId) {
+      // Don't leak existence — anyone other than the owner sees a 404.
+      throw new NotFoundError({ message: 'Budget not found' });
+    }
+    // Budgets are denominated in the owner's base currency (limitAmount + spending
+    // stats), not a per-budget currency. Recipient base currency is locked against
+    // this at accept-time.
+    const ownerBaseCurrency = await getBaseCurrency({ userId: ownerUserId });
+    if (!ownerBaseCurrency) {
+      throw new ValidationError({ message: 'Set your base currency before sharing a budget.' });
+    }
+    return {
+      ownerUserId: budget.userId,
+      ownerCurrencyCode: ownerBaseCurrency.currencyCode,
+      resourceName: budget.name,
+    };
+  }
   if (resourceType === RESOURCE_TYPES.household) {
     // A household is identified by its owner — the inviter can only invite people to
     // their own household, so `resourceId` must match `ownerUserId` exactly. Anything
@@ -115,11 +138,19 @@ const resolveOwnedResource = async ({
 const buildCleanPolicy = ({
   permission,
   policy,
+  resourceType,
 }: {
   permission: SharePermission;
   policy: SharePolicy | null | undefined;
+  resourceType: ResourceType;
 }): SharePolicy | null => {
   if (permission === SHARE_PERMISSIONS.read) {
+    return null;
+  }
+  // Budgets have no per-tx policy in MVP — `write` here means "attach own transactions",
+  // nothing else. Storing a `transactionsWriteScope` here would leak meaningless data into
+  // the row that a future reader could mistake for a real policy. Return null.
+  if (resourceType === RESOURCE_TYPES.budget) {
     return null;
   }
   const scope = policy?.transactionsWriteScope ?? TRANSACTIONS_WRITE_SCOPES.all;
@@ -201,7 +232,7 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
     throw new ValidationError({ message: 'You cannot share a resource with yourself.' });
   }
 
-  const policy = buildCleanPolicy({ permission, policy: params.policy });
+  const policy = buildCleanPolicy({ permission, policy: params.policy, resourceType });
   const expiresAt = new Date(Date.now() + SHARING_LIMITS.invitationExpirationDays * 24 * 60 * 60 * 1000);
   const token = generateInvitationToken();
 
@@ -286,57 +317,74 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
     return { invitation: result.invitation, emailDelivered: true };
   }
 
-  const owner = await Users.findByPk(params.ownerUserId);
-  if (!owner) {
-    // Owner row missing for an authenticated owner — data-integrity issue. Continue with
-    // a generic display name so the email still goes out, but report for investigation.
-    // Stable `code` for Sentry/dashboard grouping (logger.error auto-captures to Sentry).
+  // Post-commit side effects. Wrap so a transient Users lookup or notify failure can't
+  // reject the API call — the invitation row is already committed and the email-send
+  // outcome already has its own internal error handling. Anything that escapes here
+  // would otherwise present as a 500 to the caller despite a successfully created row.
+  try {
+    const owner = await Users.findByPk(params.ownerUserId);
+    if (!owner) {
+      // Owner row missing for an authenticated owner — data-integrity issue. Continue with
+      // a generic display name so the email still goes out, but report for investigation.
+      // Stable `code` for Sentry/dashboard grouping (logger.error auto-captures to Sentry).
+      logger.error(
+        {
+          message: 'Owner not found when sending invitation email',
+          error: new Error(`Users.findByPk returned null for ownerUserId=${params.ownerUserId}`),
+        },
+        {
+          code: 'SHARE_OWNER_USER_MISSING_FOR_EMAIL',
+          ownerUserId: params.ownerUserId,
+          invitationId: result.invitation.id,
+        },
+      );
+    }
+    const ownerDisplayName = owner?.username ?? FALLBACK_OWNER_DISPLAY_NAME;
+    // Surface the email outcome up the call stack so the UI can warn when the row was
+    // created but the email actually failed (Resend down, etc.). `'skipped'` (Resend not
+    // configured in dev/test) counts as delivered for the user-facing flag — there's no
+    // failure for them to see.
+    const outcome = await sendInvitationEmail({
+      toEmail: result.resolvedInvitee.email,
+      ownerDisplayName,
+      resourceType: result.invitation.resourceType,
+      resourceName: result.resourceName,
+      permission: result.invitation.permission,
+      policy: result.invitation.policy,
+      token: result.invitation.token,
+      expiresAt: new Date(result.invitation.expiresAt),
+    });
+
+    if (outcome.status === 'failed') {
+      // The API response already carries `emailDelivered: false`, but a single in-flight toast
+      // is easy to miss. Drop a durable owner notification so the failed delivery surfaces in
+      // the notification center even if the page is dismissed before the toast renders.
+      const invitee = await Users.findByPk(result.resolvedInvitee.userId);
+      const notify = LIFECYCLE_NOTIFIERS.invitationSendFailed[result.invitation.resourceType];
+      await notify({
+        ownerUserId: params.ownerUserId,
+        invitee,
+        inviteeEmail: result.resolvedInvitee.email,
+        invitationId: result.invitation.id,
+        resource: {
+          type: result.invitation.resourceType,
+          id: String(result.invitation.resourceId),
+          name: result.resourceName,
+        },
+      });
+    }
+
+    return { invitation: result.invitation, emailDelivered: outcome.status !== 'failed' };
+  } catch (error) {
     logger.error(
+      { message: '[createInvitation] Post-commit fan-out failed', error: error as Error },
       {
-        message: 'Owner not found when sending invitation email',
-        error: new Error(`Users.findByPk returned null for ownerUserId=${params.ownerUserId}`),
-      },
-      {
-        code: 'SHARE_OWNER_USER_MISSING_FOR_EMAIL',
+        code: 'SHARE_INVITATION_POST_COMMIT_FAILED',
         ownerUserId: params.ownerUserId,
         invitationId: result.invitation.id,
+        resourceType: result.invitation.resourceType,
       },
     );
+    return { invitation: result.invitation, emailDelivered: false };
   }
-  const ownerDisplayName = owner?.username ?? FALLBACK_OWNER_DISPLAY_NAME;
-  // Surface the email outcome up the call stack so the UI can warn when the row was
-  // created but the email actually failed (Resend down, etc.). `'skipped'` (Resend not
-  // configured in dev/test) counts as delivered for the user-facing flag — there's no
-  // failure for them to see.
-  const outcome = await sendInvitationEmail({
-    toEmail: result.resolvedInvitee.email,
-    ownerDisplayName,
-    resourceType: result.invitation.resourceType,
-    resourceName: result.resourceName,
-    permission: result.invitation.permission,
-    policy: result.invitation.policy,
-    token: result.invitation.token,
-    expiresAt: new Date(result.invitation.expiresAt),
-  });
-
-  if (outcome.status === 'failed') {
-    // The API response already carries `emailDelivered: false`, but a single in-flight toast
-    // is easy to miss. Drop a durable owner notification so the failed delivery surfaces in
-    // the notification center even if the page is dismissed before the toast renders.
-    const invitee = await Users.findByPk(result.resolvedInvitee.userId);
-    const notify = LIFECYCLE_NOTIFIERS.invitationSendFailed[result.invitation.resourceType];
-    await notify({
-      ownerUserId: params.ownerUserId,
-      invitee,
-      inviteeEmail: result.resolvedInvitee.email,
-      invitationId: result.invitation.id,
-      resource: {
-        type: result.invitation.resourceType,
-        id: String(result.invitation.resourceId),
-        name: result.resourceName,
-      },
-    });
-  }
-
-  return { invitation: result.invitation, emailDelivered: outcome.status !== 'failed' };
 };

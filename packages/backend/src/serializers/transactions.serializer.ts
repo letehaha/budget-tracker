@@ -66,6 +66,16 @@ export interface TransactionApiResponse {
     id: string;
     name: string;
   }>;
+  /** Recipient who attached this tx to a shared budget. Present (and possibly `null`)
+   *  only on budget-scoped fetches; absent on the global tx list and on detail lookups
+   *  outside a budget context. `null` means owner-attached (no chip needed in the UI). */
+  addedBy?: { id: number; username: string; avatar: string | null } | null;
+  /** Whether the caller has write access to this row. The frontend uses this to render
+   *  an inert "Transaction Details" dialog (disabled fields, hidden submit/delete) when
+   *  the caller can see the tx — typically via a budget share — but has no write claim
+   *  on the parent account. Absent on paths that don't compute it (single-tx writes,
+   *  internal fetches). */
+  canEdit?: boolean;
 }
 
 // ============================================================================
@@ -160,6 +170,8 @@ export function serializeTransaction(
     splits?: TransactionSplits[];
     tags?: Tags[];
     transactionGroups?: TransactionGroups[];
+    addedBy?: { id: number; username: string; avatar: string | null } | null;
+    canEdit?: boolean;
   },
 ): TransactionApiResponse {
   return {
@@ -207,6 +219,14 @@ export function serializeTransaction(
         name: group.name,
       })),
     }),
+    // `addedBy` is included whenever the upstream service attached it (budget-scoped
+    // fetches). `null` is a meaningful value — "owner-attached" — and must be sent so
+    // the frontend can distinguish "no metadata yet" from "tx is owned by the budget
+    // owner". Use a property-existence check rather than truthiness to preserve null.
+    ...('addedBy' in tx ? { addedBy: tx.addedBy ?? null } : {}),
+    // `canEdit` is omitted on paths that don't compute it (write returns, internal
+    // fetches). Property-existence check so an explicit `false` survives serialization.
+    ...('canEdit' in tx ? { canEdit: tx.canEdit ?? false } : {}),
   };
 }
 
@@ -214,7 +234,15 @@ export function serializeTransaction(
  * Serialize multiple transactions
  */
 export function serializeTransactions(
-  txs: Array<Transactions & { splits?: TransactionSplits[]; tags?: Tags[]; transactionGroups?: TransactionGroups[] }>,
+  txs: Array<
+    Transactions & {
+      splits?: TransactionSplits[];
+      tags?: Tags[];
+      transactionGroups?: TransactionGroups[];
+      addedBy?: { id: number; username: string; avatar: string | null } | null;
+      canEdit?: boolean;
+    }
+  >,
 ): TransactionApiResponse[] {
   return txs.map(serializeTransaction);
 }

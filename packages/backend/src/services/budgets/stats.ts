@@ -8,6 +8,7 @@ import * as Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
+import { authorizeBudgetRead } from './authorize-budget-access';
 import { buildDateFilter } from './utils/build-date-filter';
 import { fetchBudgetRefundPairs } from './utils/refund-pairs';
 
@@ -37,14 +38,18 @@ export const getResponseInitialState = (): StatsResponse => ({
 
 /**
  * Calculate stats for manual budgets using BudgetTransactions junction table.
+ *
+ * Junction-only scope on the transaction lookup: any row in `BudgetTransactions` for
+ * this budget is counted, regardless of `Transactions.userId`. This is what lets a
+ * `write` recipient's attached transactions contribute to the shared-budget totals
+ * (income/expense/balance/utilization). The caller's authorization happens upstream
+ * via `authorizeBudgetRead`, so we trust the budgetId scope here.
+ *
+ * Category budgets keep the legacy owner-only filter — recipients can't manually
+ * attach to a category budget (it'd trip `cannotManuallyLinkToCategoryBudget`), so
+ * widening that path would be a no-op today.
  */
-const getManualBudgetStats = async ({
-  userId,
-  budgetId,
-}: {
-  userId: number;
-  budgetId: string;
-}): Promise<StatsResponse> => {
+const getManualBudgetStats = async ({ budgetId }: { budgetId: string }): Promise<StatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId),
     message: t({ key: 'budgets.budgetNotFound' }),
@@ -54,7 +59,6 @@ const getManualBudgetStats = async ({
     Transactions.default,
     'id' | 'time' | 'amount' | 'refAmount' | 'transactionType' | 'refundLinked'
   >[] = await Transactions.findWithFilters({
-    userId,
     excludeTransfer: true,
     budgetIds: [budgetId],
     from: 0,
@@ -284,15 +288,20 @@ const aggregateTransactionStats = ({
 
 export const getBudgetStats = withTransaction(
   async ({ userId, budgetId }: { userId: number; budgetId: string }): Promise<StatsResponse> => {
+    // Share-aware auth: recipient sees the same numbers the owner would (per PRD
+    // visibility decision). Downstream queries scope against the owner's userId so
+    // a recipient's unrelated transactions don't filter the result.
+    const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+
     const budgetDetails = await findOrThrowNotFound({
       query: Budgets.findByPk(budgetId, { attributes: ['type'] }),
       message: t({ key: 'budgets.budgetNotFound' }),
     });
 
     if (budgetDetails.type === BUDGET_TYPES.category) {
-      return getCategoryBudgetStats({ userId, budgetId });
+      return getCategoryBudgetStats({ userId: ownerUserId, budgetId });
     }
 
-    return getManualBudgetStats({ userId, budgetId });
+    return getManualBudgetStats({ budgetId });
   },
 );

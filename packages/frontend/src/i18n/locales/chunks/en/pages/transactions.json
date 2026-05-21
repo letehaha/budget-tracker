@@ -160,6 +160,7 @@
     },
     "transfer": {
       "hiddenAccount": "Hidden account"
-    }
+    },
+    "addedByTooltip": "This transaction was attached to the budget by {handle}"
   }
 }

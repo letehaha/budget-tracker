@@ -1,6 +1,8 @@
+import { SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeTransaction, serializeTransactions } from '@root/serializers';
+import { isPermissionAtLeast } from '@services/sharing/auth/permission-rank';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
@@ -24,8 +26,26 @@ export const getTransactionById = createController(
       includeSplits,
     });
 
-    // Serialize: convert cents to decimal for API response
-    return { data: fetched ? serializeTransaction(fetched.tx) : null };
+    if (!fetched) return { data: null };
+
+    // Compute write-access from the already-resolved access result — no extra DB work.
+    // The FE uses this on dialog open when the parent account isn't in its local
+    // `accountsRecord` (typically the budget-share-only case) to choose between the
+    // editable form and the read-only details view.
+    const { tx, access } = fetched;
+    let canEdit = false;
+    if (access.isOwner) {
+      canEdit = true;
+    } else if (isPermissionAtLeast({ granted: access.effectivePermission, required: SHARE_PERMISSIONS.write })) {
+      const ownScopeBlocks =
+        access.policy?.transactionsWriteScope === TRANSACTIONS_WRITE_SCOPES.own && tx.userId !== userId;
+      canEdit = !ownScopeBlocks;
+    }
+
+    // Mutate the tx instance so the serializer's property-existence check picks it up.
+    Object.assign(tx, { canEdit });
+
+    return { data: serializeTransaction(tx) };
   },
 );
 

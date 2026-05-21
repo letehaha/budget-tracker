@@ -160,6 +160,7 @@
     },
     "transfer": {
       "hiddenAccount": "Прихований рахунок"
-    }
+    },
+    "addedByTooltip": "Цю транзакцію додав до бюджету {handle}"
   }
 }

@@ -8,6 +8,21 @@ import { appName, appUrl, buildEmailShell, escapeHtml, fromEmail, resend } from 
 const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   account: 'account',
   household: 'household',
+  budget: 'budget',
+};
+
+// Owners managing a resource land on the dashboard surface that lists that
+// resource type. Mirrors the deep-link strategy in share-invitation-email.ts.
+const RESOURCE_OWNER_MANAGE_PATHS: Record<ResourceType, string> = {
+  account: '/accounts',
+  budget: '/budgets',
+  household: '/settings/household',
+};
+
+const RESOURCE_OWNER_MANAGE_CTA: Record<ResourceType, string> = {
+  account: 'Manage your accounts',
+  budget: 'Manage your budgets',
+  household: 'Manage your household',
 };
 
 interface SendShareRevokedEmailParams {
@@ -81,12 +96,13 @@ export const sendShareLeftEmail = async ({
     return null;
   }
 
-  const accountsUrl = `${appUrl}/accounts`;
+  const manageUrl = `${appUrl}${RESOURCE_OWNER_MANAGE_PATHS[resourceType]}`;
   const html = buildShareLeftHtml({
     recipientDisplayName,
     resourceTypeLabel: RESOURCE_TYPE_LABELS[resourceType],
     resourceName,
-    accountsUrl,
+    manageUrl,
+    manageCtaLabel: RESOURCE_OWNER_MANAGE_CTA[resourceType],
   });
 
   try {
@@ -142,17 +158,20 @@ const buildShareLeftHtml = ({
   recipientDisplayName,
   resourceTypeLabel,
   resourceName,
-  accountsUrl,
+  manageUrl,
+  manageCtaLabel,
 }: {
   recipientDisplayName: string;
   resourceTypeLabel: string;
   resourceName: string;
-  accountsUrl: string;
+  manageUrl: string;
+  manageCtaLabel: string;
 }) => {
   const safeRecipient = escapeHtml(recipientDisplayName);
   const safeResourceType = escapeHtml(resourceTypeLabel);
   const safeResourceName = escapeHtml(resourceName);
-  const safeUrl = escapeHtml(accountsUrl);
+  const safeUrl = escapeHtml(manageUrl);
+  const safeCta = escapeHtml(manageCtaLabel);
   const article = safeResourceType.match(/^[aeiou]/i) ? 'an' : 'a';
 
   return buildEmailShell({
@@ -163,7 +182,7 @@ const buildShareLeftHtml = ({
             <p style="margin: 0; font-size: 13px; color: #6b7280;">No action needed — they no longer see the resource. You can invite them again or share with someone else.</p>
           </td></tr>
           <tr><td style="padding: 24px 40px 0 40px;">
-            <a href="${safeUrl}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">Manage your accounts</a>
+            <a href="${safeUrl}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">${safeCta}</a>
           </td></tr>
           <tr><td style="padding: 32px 40px 36px 40px;">&nbsp;</td></tr>`,
   });

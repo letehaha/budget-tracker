@@ -16,7 +16,13 @@ import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 export const useAccountAccess = (account: MaybeRefOrGetter<AccountModel | undefined | null>) => {
   const share = computed(() => toValue(account)?.share);
 
-  const isOwner = computed(() => share.value?.isOwner ?? true);
+  // `share` absent (legacy / internal callers) → owned. `share` present but `isOwner`
+  // falsy → recipient. Defaulting to owner inside an attached share block would surface
+  // owner-only UI to recipients on any future field drift.
+  const isOwner = computed(() => {
+    if (!share.value) return true;
+    return share.value.isOwner === true;
+  });
 
   // True only when the account is shared *with* the caller. Owner-side `share` blocks
   // (`isOwner === true`) don't count — the caller IS the owner.

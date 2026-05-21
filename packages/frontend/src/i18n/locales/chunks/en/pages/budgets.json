@@ -34,6 +34,7 @@
       "deleteSuccess": "Budget deleted successfully!",
       "deleteError": "Unexpected error!",
       "updateSuccess": "Budget updated successfully!",
+      "updateError": "Failed to update budget",
       "unlinkTransactionsSuccess": "Transactions unlinked successfully!",
       "deleteDialog": {
         "title": "Do you want to delete this budget?",
@@ -75,7 +76,8 @@
       "limitLabel": "Budget limit",
       "limitPlaceholder": "Enter limit amount (optional)",
       "startDateLabel": "Start date",
-      "endDateLabel": "End date"
+      "endDateLabel": "End date",
+      "notSet": "Not set"
     },
     "addTransactionsDialog": {
       "title": "Add Transactions to Budget",
@@ -91,6 +93,7 @@
       "transactionsCount": "{count} transactions",
       "noTransactions": "No transactions yet",
       "noTransactionsDescription": "Transactions matching your tracked categories will appear here automatically.",
+      "transactionsLoadError": "Failed to load transactions",
       "categoryBreakdown": "Category Breakdown",
       "edit": "Edit",
       "editTitle": "Edit Budget",
@@ -104,6 +107,9 @@
     "manualBudget": {
       "edit": "Edit",
       "editTitle": "Edit Budget"
+    },
+    "share": {
+      "sharedByBadge": "Shared by {handle}"
     }
   }
 }
