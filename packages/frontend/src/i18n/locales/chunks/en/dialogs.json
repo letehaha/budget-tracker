@@ -73,6 +73,7 @@
     "manageTransaction": {
       "addTitle": "Add Transaction",
       "editTitle": "Edit Transaction",
+      "detailsTitle": "Transaction Details",
       "title": "Manage transaction",
       "description": "Create or edit a transaction",
       "linkSection": {
@@ -383,6 +384,23 @@
       "error": "Could not send invitation. Please try again.",
       "emailSendFailedWarning": "Invitation saved, but the email could not be sent. The recipient may not have received a notification — try again later."
     },
+    "shareBudgetDialog": {
+      "title": "Share budget",
+      "description": "Invite someone to view this budget and contribute their own transactions to it. {name}.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Recipient email",
+      "permissionLabel": "Permission",
+      "permissions": {
+        "read": "View only",
+        "write": "Attach own transactions",
+        "manage": "Manage"
+      },
+      "cancel": "Cancel",
+      "send": "Send invitation",
+      "success": "Invitation sent.",
+      "error": "Couldn't send invitation.",
+      "emailSendFailedWarning": "Invitation created, but the email couldn't be delivered."
+    },
     "shareInvitationDialog": {
       "titlePending": "{owner} wants to share with you",
       "titleAccepted": "Invitation accepted",
@@ -416,6 +434,7 @@
       "decline": "Decline",
       "close": "Close",
       "goToAccount": "Go to account",
+      "goToBudget": "Go to budget",
       "updateBaseCurrency": "Update base currency",
       "acceptSuccess": "You're now part of this shared resource.",
       "acceptError": "Couldn't accept the invitation. Try again.",

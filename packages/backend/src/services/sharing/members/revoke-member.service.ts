@@ -7,6 +7,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 import { canUserAccessResource, resolveResourceName } from '../auth/can-user-access-resource.service';
+import { sweepRecipientBudgetTransactions } from '../cleanup/cleanup-budget-shares.service';
 import { getEmailForUser } from '../find-user-by-email.service';
 import { convertCrossUserTransfersToOutOfWallet } from '../household/convert-cross-user-transfers.service';
 import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
@@ -88,6 +89,17 @@ const revokeMemberImpl = async (params: RevokeMemberParams): Promise<RevokeMembe
     await convertCrossUserTransfersToOutOfWallet({
       userIdA: access.ownerUserId,
       userIdB: memberUserId,
+    });
+  }
+
+  // Budget revoke: sweep the recipient's attached `BudgetTransactions` rows so the
+  // budget's contents stay consistent with who currently has access. Owner-attached
+  // rows (metadata null) and the recipient's underlying `Transactions` rows are
+  // untouched — only their link to the budget goes.
+  if (resourceType === RESOURCE_TYPES.budget) {
+    await sweepRecipientBudgetTransactions({
+      budgetId: resourceIdStr,
+      recipientUserId: memberUserId,
     });
   }
 

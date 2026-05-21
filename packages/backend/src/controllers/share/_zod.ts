@@ -6,4 +6,8 @@ import { z } from 'zod';
  * shareable resource type is a single-file change instead of editing every controller's
  * Zod schema.
  */
-export const shareableResourceTypeEnum = z.enum([RESOURCE_TYPES.account, RESOURCE_TYPES.household] as const);
+export const shareableResourceTypeEnum = z.enum([
+  RESOURCE_TYPES.account,
+  RESOURCE_TYPES.household,
+  RESOURCE_TYPES.budget,
+] as const);

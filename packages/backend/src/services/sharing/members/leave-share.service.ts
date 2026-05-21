@@ -7,6 +7,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
+import { sweepRecipientBudgetTransactions } from '../cleanup/cleanup-budget-shares.service';
 import { getEmailForUser } from '../find-user-by-email.service';
 import { convertCrossUserTransfersToOutOfWallet } from '../household/convert-cross-user-transfers.service';
 import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
@@ -89,6 +90,16 @@ const leaveShareImpl = async (params: LeaveShareParams): Promise<LeaveShareImplR
     await convertCrossUserTransfersToOutOfWallet({
       userIdA: ownerUserId,
       userIdB: callerUserId,
+    });
+  }
+
+  // Budget leave: sweep this recipient's attached `BudgetTransactions` rows so the
+  // budget's contents stay consistent with who currently has access. Mirrors the
+  // revoke-member sweep.
+  if (resourceType === RESOURCE_TYPES.budget) {
+    await sweepRecipientBudgetTransactions({
+      budgetId: resourceIdStr,
+      recipientUserId: callerUserId,
     });
   }
 

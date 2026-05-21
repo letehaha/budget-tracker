@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
@@ -228,9 +229,48 @@ const isCategoriesReady = computed(
 
 const canMutateCurrentTx = computed(() => canMutateTx(transaction.value, currentUser.value?.id));
 
-const isFormFieldsDisabled = computed(
-  () => isLoading.value || !isInitialRefundsDataLoaded.value || !canMutateCurrentTx.value,
+// Lazy server-side write-access check, used only when the parent account isn't in the
+// caller's local `accountsRecord` — typically when the row is visible via a budget
+// share but the account itself isn't shared with the caller. `useAccountAccess` can't
+// decide that case (it has nothing to read), and the bulk list path intentionally
+// skips `canEdit` to keep common reads cheap. Returns `null` until resolved.
+const isAccountLocallyKnown = computed(() => {
+  if (!transaction.value) return true;
+  return !!accountsRecord.value[transaction.value.accountId];
+});
+const lazyCanEdit = ref<boolean | null>(null);
+watch(
+  transaction,
+  async (tx) => {
+    lazyCanEdit.value = null;
+    if (!tx) return;
+    if (isAccountLocallyKnown.value) return;
+    try {
+      const detail = await loadTransactionById({ id: tx.id });
+      // Pessimistic default: only unlock the form when the server explicitly says
+      // `canEdit: true`. A null detail (caller had no read claim) or a missing field
+      // both fall through to read-only — submitting under uncertainty would 403.
+      lazyCanEdit.value = detail?.canEdit === true;
+    } catch {
+      lazyCanEdit.value = false;
+    }
+  },
+  { immediate: true },
 );
+
+// Read-only when the row is editable in principle (some claim) but the lazy check has
+// either resolved to "no write" or is still in flight. While loading, we prefer the
+// pessimistic "details" view so the user doesn't see an edit button flicker, then
+// disappear. For account-locally-known txs we trust the synchronous local check.
+const isReadOnly = computed(() => {
+  if (!transaction.value) return false;
+  if (isAccountLocallyKnown.value) return false;
+  if (lazyCanEdit.value === null) return true;
+  return !lazyCanEdit.value;
+});
+const isMutable = computed(() => canMutateCurrentTx.value && !isReadOnly.value);
+
+const isFormFieldsDisabled = computed(() => isLoading.value || !isInitialRefundsDataLoaded.value || !isMutable.value);
 
 const currentTxType = computed(() => form.value.type);
 const isTransferTx = computed(() => currentTxType.value === FORM_TYPES.transfer);
@@ -429,7 +469,7 @@ const canDelete = computed(() =>
     transaction: transaction.value,
     oppositeTransaction: oppositeTransaction.value,
     accounts: accountsRecord.value,
-    canMutate: canMutateCurrentTx.value,
+    canMutate: isMutable.value,
   }),
 );
 
@@ -561,7 +601,13 @@ onUnmounted(() => {
     <div class="mb-4 flex items-center justify-between px-6 py-3">
       <DialogTitle>
         <span class="text-2xl">
-          {{ isFormCreation ? $t('dialogs.manageTransaction.addTitle') : $t('dialogs.manageTransaction.editTitle') }}
+          {{
+            isReadOnly
+              ? $t('dialogs.manageTransaction.detailsTitle')
+              : isFormCreation
+                ? $t('dialogs.manageTransaction.addTitle')
+                : $t('dialogs.manageTransaction.editTitle')
+          }}
         </span>
       </DialogTitle>
 
@@ -759,6 +805,7 @@ onUnmounted(() => {
             {{ $t('dialogs.manageTransaction.form.deleteButton') }}
           </Button>
           <Button
+            v-if="!isReadOnly"
             class="ml-auto min-w-30"
             :aria-label="
               isFormCreation

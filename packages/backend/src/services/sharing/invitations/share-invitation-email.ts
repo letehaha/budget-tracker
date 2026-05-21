@@ -1,4 +1,5 @@
 import {
+  RESOURCE_TYPES,
   ResourceType,
   SHARE_PERMISSIONS,
   SharePermission,
@@ -20,6 +21,7 @@ const PERMISSION_LABELS: Record<SharePermission, string> = {
 const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   account: 'account',
   household: 'household',
+  budget: 'budget',
 };
 
 const policySummary = ({ permission, policy }: { permission: SharePermission; policy: SharePolicy | null }) => {
@@ -81,9 +83,11 @@ export const sendInvitationEmail = async ({
   }
 
   // Query-param deep-link — dashboard layout watches for `invitation_token` and pops
-  // the share-invitation dialog. `/accounts` is a stable landing page; the dialog
-  // overlays whatever route the user ended up on.
-  const acceptUrl = `${appUrl}/accounts?invitation_token=${encodeURIComponent(token)}`;
+  // the share-invitation dialog. The landing path matches the resource flavour so the
+  // recipient lands somewhere they expect to see this share even before opening the
+  // dialog; the dialog itself overlays whatever route the user ended up on.
+  const landingPath = resourceType === RESOURCE_TYPES.budget ? '/budgets' : '/accounts';
+  const acceptUrl = `${appUrl}${landingPath}?invitation_token=${encodeURIComponent(token)}`;
   const summaryLine = policySummary({ permission, policy });
   const html = buildEmailHtml({
     ownerDisplayName,

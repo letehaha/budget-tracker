@@ -1,5 +1,6 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { authorizeBudgetRead } from '@root/services/budgets/authorize-budget-access';
 import * as getCategoryBudgetTransactionsService from '@services/budgets/get-category-budget-transactions';
 import { z } from 'zod';
 
@@ -14,8 +15,11 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, params, query }) => {
+  // Share-aware auth: recipient sees owner's transactions on the budget (per PRD
+  // visibility decision), not a recipient-userId slice.
+  const { ownerUserId } = await authorizeBudgetRead({ userId: user.id, budgetId: params.id });
   const result = await getCategoryBudgetTransactionsService.getCategoryBudgetTransactions({
-    userId: user.id,
+    userId: ownerUserId,
     budgetId: params.id,
     from: query.from,
     limit: query.limit,

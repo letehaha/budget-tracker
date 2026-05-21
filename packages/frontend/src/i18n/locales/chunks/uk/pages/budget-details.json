@@ -40,7 +40,8 @@
       "transactionsLinked": "{count} транзакція прив'язана до цього бюджету | {count} транзакції прив'язані до цього бюджету | {count} транзакцій прив'язано до цього бюджету",
       "tabs": {
         "statistics": "Статистика",
-        "transactions": "Транзакції"
+        "transactions": "Транзакції",
+        "sharing": "Поділ"
       },
       "statistics": {
         "tabs": {
@@ -58,6 +59,46 @@
         "expenses": "Витрати",
         "incomeLabel": "Дохід:",
         "expensesLabel": "Витрати:"
+      },
+      "sharing": {
+        "title": "Поділ",
+        "description": "Керуйте тим, хто може бачити цей бюджет та вносити в нього свій внесок.",
+        "inviteAnother": "Запросити користувача",
+        "membersHeading": "Учасники",
+        "pendingHeading": "Запрошення в очікуванні",
+        "loadError": "Не вдалося завантажити учасників.",
+        "permissions": {
+          "read": "Лише перегляд",
+          "write": "Прив'язувати власні транзакції",
+          "manage": "Керувати"
+        },
+        "member": {
+          "you": "ви",
+          "roleOwner": "Власник",
+          "roleRecipient": "Учасник",
+          "ownerHint": "Повний контроль над цим бюджетом",
+          "updateSuccess": "Дозвіл оновлено.",
+          "updateError": "Не вдалося оновити дозвіл.",
+          "revoke": "Скасувати доступ",
+          "revokeConfirm": "Скасувати",
+          "revokeTitle": "Скасувати доступ?",
+          "revokeDescription": "{user} втратить доступ до {budget}.",
+          "revokeSuccess": "Доступ скасовано.",
+          "revokeError": "Не вдалося скасувати доступ."
+        },
+        "pending": {
+          "empty": "Немає запрошень в очікуванні.",
+          "resend": "Надіслати ще раз",
+          "resendSuccess": "Запрошення надіслано повторно.",
+          "resendError": "Не вдалося надіслати запрошення повторно.",
+          "resendDeliveryFailed": "Надіслано, але листа не вдалося доставити.",
+          "cancel": "Скасувати",
+          "cancelConfirm": "Скасувати запрошення",
+          "cancelTitle": "Скасувати запрошення?",
+          "cancelDescription": "Запрошення на адресу {email} буде скасовано.",
+          "cancelSuccess": "Запрошення скасовано.",
+          "cancelError": "Не вдалося скасувати запрошення."
+        }
       }
     }
   }

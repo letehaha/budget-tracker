@@ -6,11 +6,11 @@ import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore, useCategoriesStore, useUserStore } from '@/stores';
-import { RESOURCE_TYPES } from '@bt/shared/types';
+import { RESOURCE_TYPES, ResourceType } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { CheckCircleIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -47,7 +47,16 @@ const { isDemo } = storeToRefs(useUserStore());
 
 type ChildState = 'pending' | 'accepted' | 'declined' | 'error';
 const childState = ref<ChildState>('pending');
-const acceptedAccountId = ref<string | null>(null);
+/**
+ * Captured at accept-time so the "go to resource" button can route to the right page
+ * even after the dialog rerenders. `null` while pending; populated to the just-accepted
+ * resource on success. Account / budget are routed to their respective detail pages;
+ * other resource types fall through to a generic "close" action.
+ */
+const acceptedResource = ref<{ type: ResourceType; id: string } | null>(null);
+const acceptedAccountId = computed(() =>
+  acceptedResource.value?.type === RESOURCE_TYPES.account ? acceptedResource.value.id : null,
+);
 
 const permissionLabel = (permission: InvitationLike['permission']) => resolvePermissionLabel(permission, t);
 
@@ -55,12 +64,18 @@ const acceptMutation = useMutation({
   mutationFn: () => acceptShareInvitation(props.invitation.token),
   onSuccess: async (data) => {
     childState.value = 'accepted';
-    if (data.share.resourceType === RESOURCE_TYPES.account) {
-      acceptedAccountId.value = data.share.resourceId;
-    }
+    acceptedResource.value = { type: data.share.resourceType, id: data.share.resourceId };
     addSuccessNotification(t('dialogs.shareInvitationDialog.acceptSuccess'));
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsReceived });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
+    if (data.share.resourceType === RESOURCE_TYPES.budget) {
+      // Newly accepted budget surfaces in the owned+shared budget list — invalidate the
+      // list query and the per-budget detail query (in case the user opens the budget
+      // before the list refetches).
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsListItem });
+    } else {
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
+    }
     // Refetch accounts and reload categories in parallel — the newly accessible accounts
     // carry transactions whose categoryId points at the owner's category tree, which the
     // categories store only pulls in on (re)load. Without this, tx rows render with broken
@@ -96,13 +111,29 @@ const declineMutation = useMutation({
   },
 });
 
-const goToAccount = () => {
-  if (acceptedAccountId.value !== null) {
-    router.push({ name: ROUTES_NAMES.account, params: { id: acceptedAccountId.value } });
+const goToResource = () => {
+  const accepted = acceptedResource.value;
+  if (!accepted) {
+    emit('close');
+    return;
+  }
+  if (accepted.type === RESOURCE_TYPES.account) {
+    router.push({ name: ROUTES_NAMES.account, params: { id: accepted.id } });
+    return;
+  }
+  if (accepted.type === RESOURCE_TYPES.budget) {
+    router.push({ name: ROUTES_NAMES.plannedBudgetDetails, params: { id: accepted.id } });
     return;
   }
   emit('close');
 };
+
+const goToResourceLabel = computed(() => {
+  if (acceptedResource.value?.type === RESOURCE_TYPES.budget) {
+    return t('dialogs.shareInvitationDialog.goToBudget');
+  }
+  return t('dialogs.shareInvitationDialog.goToAccount');
+});
 
 const closeDialog = () => emit('close');
 </script>
@@ -186,8 +217,8 @@ const closeDialog = () => emit('close');
       </div>
 
       <div class="flex shrink-0 pt-4 sm:justify-end">
-        <Button class="w-full" @click="goToAccount">
-          {{ $t('dialogs.shareInvitationDialog.goToAccount') }}
+        <Button class="w-full" @click="goToResource">
+          {{ goToResourceLabel }}
         </Button>
       </div>
     </template>

@@ -212,6 +212,10 @@ export const NOTIFICATION_TYPES = {
   shareLeft: 'share_left',
   shareExpired: 'share_expired',
   shareOwnerAccountDeleted: 'share_owner_account_deleted',
+  /** Recipient-side: owner deleted a budget that was shared with the recipient. Distinct
+   *  from `shareRevoked` because the resource itself is gone — there's nothing to
+   *  re-share, and any deep-link will 404. */
+  shareOwnerBudgetDeleted: 'share_owner_budget_deleted',
   // Household membership lifecycle. Mirrors the per-resource set except for
   // the deleted-resource analog (a household has no single resource to delete)
   // and adds `householdMemberAccountDeleted` to distinguish system cascades
@@ -353,10 +357,17 @@ export type PreferredTimeSlot = (typeof PREFERRED_TIME_SLOTS)[number];
  *   grantor. A household row is stored on `ResourceShares` with
  *   `resourceId = ownerUserId::text`; the per-row CHECK constraint enforces
  *   that shape so service-layer bugs cannot poison the table.
+ * - `budget`: a single budget is shared. Recipients see the budget's metadata,
+ *   stats, and linked transactions in full. `write` recipients can attach /
+ *   detach **their own** transactions on manual budgets only — they cannot
+ *   edit budget metadata, archive, or manage other recipients (all `manage`-
+ *   only). Household membership does NOT auto-grant budget access; budgets
+ *   are explicit-share only.
  */
 export const RESOURCE_TYPES = {
   account: 'account',
   household: 'household',
+  budget: 'budget',
 } as const;
 
 export type ResourceType = (typeof RESOURCE_TYPES)[keyof typeof RESOURCE_TYPES];
@@ -370,11 +381,15 @@ export type ResourceType = (typeof RESOURCE_TYPES)[keyof typeof RESOURCE_TYPES];
  * - `share`: a per-resource `ResourceShares` row grants access directly.
  * - `household`: access derives from a household-membership row (the grantor
  *   shared every account they own with the caller).
+ * - `budget`: indirect read-only visibility — caller has an accepted budget share
+ *   and the resource is a transaction attached to that budget. Confers `read` only;
+ *   write paths still require an account-level share.
  */
 export const ACCESS_SOURCES = {
   owner: 'owner',
   share: 'share',
   household: 'household',
+  budget: 'budget',
 } as const;
 
 export type AccessSource = (typeof ACCESS_SOURCES)[keyof typeof ACCESS_SOURCES];

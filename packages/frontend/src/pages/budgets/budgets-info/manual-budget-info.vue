@@ -9,6 +9,9 @@ import ActionButton from '@/components/lib/ui/action-button/action-button.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useBudgetAccess } from '@/composable/use-budget-access';
+import BudgetSharingPanel from '@/pages/budgets/components/budget-sharing-panel.vue';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { cloneDeep } from 'lodash-es';
 import {
@@ -18,9 +21,10 @@ import {
   CalendarIcon,
   PencilIcon,
   Trash2Icon,
+  UsersIcon,
   WalletIcon,
 } from 'lucide-vue-next';
-import { computed, ref, watchEffect } from 'vue';
+import { computed, ref, toRef, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -56,7 +60,11 @@ const { data: budgetItem, isLoading } = useQuery({
 const { stats, formatDate, transactionDateRange, getBudgetTimeStatus, utilizationColor, utilizationTextColor } =
   useBudgetDetails({ budgetStats, budgetData });
 
-const { mutate, isPending: isBudgetDataUpdating } = useMutation({
+// Share-derived auth on this budget. `canManage` gates the Edit/Archive/Sharing panel;
+// `isOwner` gates Delete. Recipients on `read`/`write` see neither set of buttons.
+const { isOwner, canManage, isSharedWithCaller, ownerHandle } = useBudgetAccess(toRef(() => budgetItem.value));
+
+const { mutateAsync: editBudgetAsync, isPending: isBudgetDataUpdating } = useMutation({
   mutationFn: editBudget,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
@@ -65,24 +73,33 @@ const { mutate, isPending: isBudgetDataUpdating } = useMutation({
 });
 
 const handleSaveFromDialog = async () => {
-  await mutate({
-    budgetId: currentBudgetId.value,
-    payload: {
-      name: budgetData.value.name,
-      limitAmount: budgetData.value.limitAmount,
-    },
-  });
-  addSuccessNotification(t('budgets.list.updateSuccess'));
-  isEditDialogOpen.value = false;
+  try {
+    await editBudgetAsync({
+      budgetId: currentBudgetId.value,
+      payload: {
+        name: budgetData.value.name,
+        limitAmount: budgetData.value.limitAmount,
+      },
+    });
+    addSuccessNotification(t('budgets.list.updateSuccess'));
+    isEditDialogOpen.value = false;
+  } catch (err) {
+    console.error(err);
+    addErrorNotification(t('budgets.list.updateError'));
+  }
 };
 
 const handleDeleteBudget = async () => {
   try {
     await deleteBudgetApi(currentBudgetId.value);
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+    // Shared recipients see this budget in their shared-with-me list; clear that cache
+    // too so it doesn't linger after the owner deletes the row.
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.sharedWithMe });
     addSuccessNotification(t('budgets.list.deleteSuccess'));
-    router.push('/budgets');
-  } catch {
+    router.push({ name: ROUTES_NAMES.plannedBudgets });
+  } catch (err) {
+    console.error(err);
     addErrorNotification(t('budgets.list.deleteError'));
   }
 };
@@ -90,10 +107,16 @@ const handleDeleteBudget = async () => {
 const { isBudgetArchived, handleToggleArchive } = useArchiveToggle({ budgetData, budgetId: currentBudgetId });
 
 const activeTab = ref('statistics');
-const tabItems = computed(() => [
-  { value: 'statistics', label: t('pages.budgetDetails.tabs.statistics') },
-  { value: 'transactions', label: t('pages.budgetDetails.tabs.transactions') },
-]);
+const tabItems = computed(() => {
+  const items = [
+    { value: 'statistics', label: t('pages.budgetDetails.tabs.statistics') },
+    { value: 'transactions', label: t('pages.budgetDetails.tabs.transactions') },
+  ];
+  if (canManage.value) {
+    items.push({ value: 'sharing', label: t('pages.budgetDetails.tabs.sharing') });
+  }
+  return items;
+});
 
 watchEffect(() => {
   if (!isLoading.value && budgetItem.value) {
@@ -114,6 +137,13 @@ watchEffect(() => {
           <div>
             <div class="flex items-center gap-3">
               <h1 class="text-2xl font-semibold tracking-tight">{{ budgetData.name }}</h1>
+              <span
+                v-if="isSharedWithCaller"
+                class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+              >
+                <UsersIcon class="size-3" />
+                {{ $t('budgets.share.sharedByBadge', { handle: `@${ownerHandle}` }) }}
+              </span>
               <span
                 v-if="isBudgetArchived"
                 class="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
@@ -146,12 +176,12 @@ watchEffect(() => {
               <span v-else-if="transactionDateRange.first">{{ transactionDateRange.first }}</span>
               <span v-else-if="transactionDateRange.last">{{ transactionDateRange.last }}</span>
             </div>
-            <p v-else class="text-muted-foreground mt-1 text-sm">{{ t('pages.budgetDetails.noTransactionsYet') }}</p>
+            <p v-else class="text-muted-foreground mt-1 text-sm">{{ $t('pages.budgetDetails.noTransactionsYet') }}</p>
           </div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex items-center gap-2">
+        <div v-if="canManage" class="flex items-center gap-2">
           <ActionButton
             :action="handleToggleArchive"
             :label="isBudgetArchived ? t('budgets.list.unarchive') : t('budgets.list.archive')"
@@ -186,34 +216,35 @@ watchEffect(() => {
               />
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="text-muted-foreground mb-1.5 block text-sm font-medium">
+                  <span class="text-muted-foreground mb-1.5 block text-sm font-medium">
                     {{ $t('budgets.settings.startDateLabel') }}
-                  </label>
+                  </span>
                   <div
                     class="border-input bg-muted/50 text-muted-foreground flex h-10 items-center rounded-md border px-3 text-sm"
                   >
-                    {{ formatDate(budgetData.startDate) || 'Not set' }}
+                    {{ formatDate(budgetData.startDate) || $t('budgets.settings.notSet') }}
                   </div>
                 </div>
                 <div>
-                  <label class="text-muted-foreground mb-1.5 block text-sm font-medium">
+                  <span class="text-muted-foreground mb-1.5 block text-sm font-medium">
                     {{ $t('budgets.settings.endDateLabel') }}
-                  </label>
+                  </span>
                   <div
                     class="border-input bg-muted/50 text-muted-foreground flex h-10 items-center rounded-md border px-3 text-sm"
                   >
-                    {{ formatDate(budgetData.endDate) || 'Not set' }}
+                    {{ formatDate(budgetData.endDate) || $t('budgets.settings.notSet') }}
                   </div>
                 </div>
               </div>
               <Button @click="handleSaveFromDialog" :disabled="isBudgetDataUpdating" class="w-full">
-                <template v-if="isBudgetDataUpdating">{{ t('common.actions.saving') }}</template>
-                <template v-else>{{ t('common.actions.saveChanges') }}</template>
+                <template v-if="isBudgetDataUpdating">{{ $t('common.actions.saving') }}</template>
+                <template v-else>{{ $t('common.actions.saveChanges') }}</template>
               </Button>
             </div>
           </ResponsiveDialog>
 
           <AlertDialog
+            v-if="isOwner"
             :title="$t('budgets.list.deleteDialog.title')"
             accept-variant="destructive"
             @accept="handleDeleteBudget"
@@ -247,18 +278,22 @@ watchEffect(() => {
     <BudgetStatistics v-if="activeTab === 'statistics'" :budget-id="currentBudgetId" />
 
     <!-- Transactions Tab -->
-    <div v-else>
+    <div v-else-if="activeTab === 'transactions'">
       <div class="mb-4 flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-medium">{{ t('pages.budgetDetails.transactions') }}</h2>
+          <h2 class="text-lg font-medium">{{ $t('pages.budgetDetails.transactions') }}</h2>
           <p class="text-muted-foreground text-sm">
-            {{ t('pages.budgetDetails.transactionsLinked', stats.transactionsCount) }}
+            {{ $t('pages.budgetDetails.transactionsLinked', stats.transactionsCount) }}
           </p>
         </div>
       </div>
 
-      <TransactionsList :budgetId="currentBudgetId" :isBudgetDataUpdating="isBudgetDataUpdating" />
+      <TransactionsList :budget-id="currentBudgetId" :is-budget-data-updating="isBudgetDataUpdating" />
     </div>
+
+    <!-- Sharing Tab — owners + manage recipients only. Recipients on read/write see the
+         "shared by @owner" badge in the header instead and never see this tab. -->
+    <BudgetSharingPanel v-else-if="activeTab === 'sharing' && canManage && budgetItem" :budget="budgetItem" />
   </div>
 
   <!-- Loading State -->

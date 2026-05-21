@@ -37,14 +37,18 @@ export const getResponseInitialState = (): StatsResponse => ({
 
 /**
  * Calculate stats for manual budgets using BudgetTransactions junction table.
+ *
+ * Junction-only scope on the transaction lookup: any row in `BudgetTransactions` for
+ * this budget is counted, regardless of `Transactions.userId`. This is what lets a
+ * `write` recipient's attached transactions contribute to the shared-budget totals
+ * (income/expense/balance/utilization). The caller's authorization happens upstream
+ * via `authorizeBudgetRead`, so we trust the budgetId scope here.
+ *
+ * Category budgets keep the legacy owner-only filter — recipients can't manually
+ * attach to a category budget (it'd trip `cannotManuallyLinkToCategoryBudget`), so
+ * widening that path would be a no-op today.
  */
-const getManualBudgetStats = async ({
-  userId,
-  budgetId,
-}: {
-  userId: number;
-  budgetId: string;
-}): Promise<StatsResponse> => {
+const getManualBudgetStats = async ({ budgetId }: { budgetId: string }): Promise<StatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId),
     message: t({ key: 'budgets.budgetNotFound' }),
@@ -54,7 +58,6 @@ const getManualBudgetStats = async ({
     Transactions.default,
     'id' | 'time' | 'amount' | 'refAmount' | 'transactionType' | 'refundLinked'
   >[] = await Transactions.findWithFilters({
-    userId,
     excludeTransfer: true,
     budgetIds: [budgetId],
     from: 0,
@@ -293,6 +296,6 @@ export const getBudgetStats = withTransaction(
       return getCategoryBudgetStats({ userId, budgetId });
     }
 
-    return getManualBudgetStats({ userId, budgetId });
+    return getManualBudgetStats({ budgetId });
   },
 );

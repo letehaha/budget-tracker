@@ -8,6 +8,7 @@ import { appName, appUrl, buildEmailShell, escapeHtml, fromEmail, resend } from 
 const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   account: 'account',
   household: 'household',
+  budget: 'budget',
 };
 
 interface SendShareRevokedEmailParams {

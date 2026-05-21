@@ -83,6 +83,14 @@
             <span class="text-sm tracking-wider whitespace-nowrap">
               {{ category ? category.name : t('common.ui.other') }}
             </span>
+            <ResponsiveTooltip
+              v-if="addedByTooltip"
+              :content="addedByTooltip"
+              content-class-name="max-w-56"
+              :delay-duration="100"
+            >
+              <UsersIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" :aria-label="addedByTooltip" />
+            </ResponsiveTooltip>
             <SplitIndicator :transaction="transaction" />
             <RefundIndicator :transaction="transaction" />
             <TagsIndicator :transaction="transaction" />
@@ -120,14 +128,15 @@
 
 <script lang="ts" setup>
 import CategoryCircle from '@/components/common/category-circle.vue';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { useOppositeTxRecord } from '@/composable/data-queries/opposite-tx-record';
 import { useTransactionPortfolioLink } from '@/composable/data-queries/portfolio-transfers';
 import { formatUIAmount } from '@/js/helpers';
-import { useAccountsStore, useCategoriesStore } from '@/stores';
+import { useAccountsStore, useCategoriesStore, useUserStore } from '@/stores';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRight, BriefcaseIcon } from 'lucide-vue-next';
+import { ArrowRight, BriefcaseIcon, UsersIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -159,6 +168,7 @@ const props = withDefaults(
 const { categoriesMap } = storeToRefs(useCategoriesStore());
 const accountsStore = useAccountsStore();
 const { accountsRecord } = storeToRefs(accountsStore);
+const { user: currentUser } = storeToRefs(useUserStore());
 
 const emit = defineEmits<{
   'record-click': [[value: TransactionModel, oppositeTx: TransactionModel | undefined]];
@@ -201,6 +211,16 @@ const isLoadingGroupedTransfer = computed(() => {
 
 const category = computed(() => categoriesMap.value[transaction.categoryId]);
 const accountFrom = computed(() => accountsRecord.value[transaction.accountId]);
+
+// Budget-scoped fetches enrich each tx with `addedBy = { id, username }` describing who
+// attached the row to the budget (recipient via metadata.addedByUserId, else the budget
+// owner). The icon is only meaningful when the attacher is someone other than the
+// viewer — otherwise it reads "Added by yourself", which is noise.
+const addedByTooltip = computed(() => {
+  const addedBy = transaction.addedBy;
+  if (!addedBy || addedBy.id === currentUser.value?.id) return undefined;
+  return t('transactions.addedByTooltip', { handle: `@${addedBy.username}` });
+});
 const accountTo = computed(() =>
   oppositeTransferTransaction.value ? accountsRecord.value[oppositeTransferTransaction.value.accountId] : undefined,
 );

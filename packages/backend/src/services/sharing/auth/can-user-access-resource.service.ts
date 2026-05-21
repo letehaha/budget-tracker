@@ -10,6 +10,7 @@ import {
 import { UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
+import Budgets from '@models/budget.model';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
 import { Op } from 'sequelize';
@@ -81,6 +82,14 @@ const RESOURCE_OWNER_RESOLVERS: Record<ResourceType, ResourceOwnerResolver> = {
   // `canUserAccessResource` itself; this resolver only feeds the shape-checking
   // branch.
   [RESOURCE_TYPES.household]: async (resourceId) => toPositiveInt(resourceId),
+  [RESOURCE_TYPES.budget]: async (resourceId) => {
+    const budget = (await Budgets.findOne({
+      where: { id: resourceId },
+      attributes: ['userId'],
+      raw: true,
+    })) as { userId: number } | null;
+    return budget?.userId ?? null;
+  },
 };
 
 type ResourceNameResolver = (resourceId: string) => Promise<string | null>;
@@ -107,6 +116,14 @@ const RESOURCE_NAME_RESOLVERS: Record<ResourceType, ResourceNameResolver> = {
       raw: true,
     })) as { username: string } | null;
     return owner ? formatHouseholdLabel(owner.username) : null;
+  },
+  [RESOURCE_TYPES.budget]: async (resourceId) => {
+    const budget = (await Budgets.findOne({
+      where: { id: resourceId },
+      attributes: ['name'],
+      raw: true,
+    })) as { name: string } | null;
+    return budget?.name ?? null;
   },
 };
 
@@ -229,6 +246,15 @@ export const canUserAccessResource = async ({
       ownerUserId,
       accessSource: ACCESS_SOURCES.share,
     };
+  }
+
+  // Budgets are explicit-share only — they do NOT inherit access from a household
+  // membership. (Decision: per-resource selective sharing for households is the
+  // future direction; "all-or-nothing" auto-grant is the wrong primitive for budgets,
+  // so we don't wire the fallthrough at all.) Stop here when no per-resource share
+  // exists for a budget request.
+  if (resourceType === RESOURCE_TYPES.budget) {
+    return denied(ownerUserId);
   }
 
   // No per-resource share — check household membership. The household resourceId
