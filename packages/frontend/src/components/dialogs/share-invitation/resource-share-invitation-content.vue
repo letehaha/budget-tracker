@@ -4,6 +4,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import DemoRestricted from '@/components/demo/demo-restricted.vue';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
+import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore, useCategoriesStore, useUserStore } from '@/stores';
 import { RESOURCE_TYPES, ResourceType } from '@bt/shared/types';
@@ -86,7 +87,7 @@ const acceptMutation = useMutation({
       await Promise.all([accountsStore.refetchAccounts(), categoriesStore.loadCategories()]);
     } catch (refreshErr) {
       addErrorNotification(t('dialogs.shareInvitationDialog.acceptDataRefreshFailed'));
-      console.error(refreshErr);
+      captureException({ error: refreshErr, context: { source: 'shareInvitationAcceptDataRefresh' } });
     }
     emit('accepted', { acceptedAccountId: acceptedAccountId.value });
   },

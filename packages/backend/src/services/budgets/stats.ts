@@ -8,6 +8,7 @@ import * as Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
+import { authorizeBudgetRead } from './authorize-budget-access';
 import { buildDateFilter } from './utils/build-date-filter';
 import { fetchBudgetRefundPairs } from './utils/refund-pairs';
 
@@ -287,13 +288,18 @@ const aggregateTransactionStats = ({
 
 export const getBudgetStats = withTransaction(
   async ({ userId, budgetId }: { userId: number; budgetId: string }): Promise<StatsResponse> => {
+    // Share-aware auth: recipient sees the same numbers the owner would (per PRD
+    // visibility decision). Downstream queries scope against the owner's userId so
+    // a recipient's unrelated transactions don't filter the result.
+    const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+
     const budgetDetails = await findOrThrowNotFound({
       query: Budgets.findByPk(budgetId, { attributes: ['type'] }),
       message: t({ key: 'budgets.budgetNotFound' }),
     });
 
     if (budgetDetails.type === BUDGET_TYPES.category) {
-      return getCategoryBudgetStats({ userId, budgetId });
+      return getCategoryBudgetStats({ userId: ownerUserId, budgetId });
     }
 
     return getManualBudgetStats({ budgetId });

@@ -17,6 +17,7 @@ import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
 import { useBudgetAccess } from '@/composable/use-budget-access';
+import { captureException } from '@/lib/sentry';
 import BudgetSharingPanel from '@/pages/budgets/components/budget-sharing-panel.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
@@ -95,7 +96,7 @@ const {
       from: 0,
       limit: transactionsFrom.value + transactionsLimit.value,
     }),
-  queryKey: ['budget-category-transactions', currentBudgetId, transactionsFrom],
+  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetCategoryTransactions, currentBudgetId, transactionsFrom],
   staleTime: 30_000,
 });
 
@@ -125,7 +126,7 @@ const handleSaveFromDialog = async (payload: { name: string; limitAmount: number
     addSuccessNotification(t('budgets.list.updateSuccess'));
     isEditDialogOpen.value = false;
   } catch (err) {
-    console.error(err);
+    captureException({ error: err, context: { source: 'categoryBudgetEdit', budgetId: currentBudgetId.value } });
     addErrorNotification(t('budgets.list.updateError'));
   }
 };
@@ -140,7 +141,7 @@ const handleDeleteBudget = async () => {
     addSuccessNotification(t('budgets.list.deleteSuccess'));
     router.push({ name: ROUTES_NAMES.plannedBudgets });
   } catch (err) {
-    console.error(err);
+    captureException({ error: err, context: { source: 'categoryBudgetDelete', budgetId: currentBudgetId.value } });
     addErrorNotification(t('budgets.list.deleteError'));
   }
 };
@@ -446,7 +447,7 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
                   <div class="text-right">
                     <span
                       class="text-sm font-medium tabular-nums"
-                      :class="tx.transactionType === 'expense' ? 'text-app-expense-color' : 'text-success-text'"
+                      :class="tx.transactionType === 'expense' ? 'text-app-expense-color' : 'text-app-income-color'"
                     >
                       {{ tx.transactionType === 'expense' ? '-' : '+'
                       }}{{ formatBaseCurrency(tx.effectiveRefAmount || tx.refAmount) }}

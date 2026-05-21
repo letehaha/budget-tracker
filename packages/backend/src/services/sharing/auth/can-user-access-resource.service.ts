@@ -184,9 +184,11 @@ export const canUserAccessResource = async ({
     // can only happen when a caller bypasses the type system (a `string` cast) or
     // when a new resource type was added to the union but not to the map.
     //
-    // Outside production we throw — silent-deny would mask a real bug. In production
-    // we log+deny because failing an unrelated request hard is worse than the missing
-    // grant.
+    // Throwing in all environments — silent-deny in prod would mask a real bug, and
+    // since `resourceType` reaches this function only after Zod-validation against the
+    // enum, a missing resolver always means a code error (never user input). A clear
+    // 500 is more actionable for users (and ops) than the owner seeing a confusing 404
+    // on every request for their own resource.
     const message = `Unsupported resourceType=${resourceType} — register a RESOURCE_OWNER_RESOLVERS entry`;
     logger.error(
       { message, error: new Error(message) },
@@ -197,10 +199,7 @@ export const canUserAccessResource = async ({
         userId,
       },
     );
-    if (process.env.NODE_ENV !== 'production') {
-      throw new UnexpectedError({ message });
-    }
-    return denied(null);
+    throw new UnexpectedError({ message });
   }
 
   const resourceIdStr = String(resourceId);

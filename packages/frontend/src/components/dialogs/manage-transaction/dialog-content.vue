@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
+import { captureException } from '@/lib/sentry';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -251,8 +252,13 @@ watch(
       // `canEdit: true`. A null detail (caller had no read claim) or a missing field
       // both fall through to read-only — submitting under uncertainty would 403.
       lazyCanEdit.value = detail?.canEdit === true;
-    } catch {
+    } catch (error) {
+      // Form degrades to read-only on failure — the visible state change tells the
+      // user the form is locked. Sentry capture surfaces transient failures (auth
+      // expiry, server crash, network drop) so ops can distinguish them from a real
+      // permission denial. A toast would be noisy on flaky networks.
       lazyCanEdit.value = false;
+      captureException({ error, context: { source: 'lazyCanEditProbe', transactionId: tx.id } });
     }
   },
   { immediate: true },

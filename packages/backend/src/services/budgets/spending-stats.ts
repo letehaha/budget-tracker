@@ -21,6 +21,7 @@ import {
 } from 'date-fns';
 import { Op } from 'sequelize';
 
+import { authorizeBudgetRead } from './authorize-budget-access';
 import { buildDateFilter } from './utils/build-date-filter';
 import { fetchBudgetRefundPairs, type RefundPair } from './utils/refund-pairs';
 
@@ -696,14 +697,19 @@ export const getBudgetSpendingStats = async ({
   userId: number;
   budgetId: string;
 }): Promise<SpendingStatsResponse> => {
+  // Share-aware auth: recipient sees the same numbers the owner would (per PRD
+  // visibility decision). Downstream queries scope against the owner's userId so
+  // a recipient's unrelated transactions don't filter the result.
+  const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+
   const budgetDetails = await findOrThrowNotFound({
-    query: Budgets.findOne({ where: { id: budgetId, userId }, attributes: ['type'] }),
+    query: Budgets.findOne({ where: { id: budgetId, userId: ownerUserId }, attributes: ['type'] }),
     message: t({ key: 'budgets.budgetNotFound' }),
   });
 
   if (budgetDetails.type === BUDGET_TYPES.category) {
-    return getCategoryBudgetSpendingStats({ userId, budgetId });
+    return getCategoryBudgetSpendingStats({ userId: ownerUserId, budgetId });
   }
 
-  return getManualBudgetSpendingStats({ userId, budgetId });
+  return getManualBudgetSpendingStats({ userId: ownerUserId, budgetId });
 };

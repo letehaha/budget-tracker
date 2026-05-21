@@ -79,12 +79,25 @@ describe('useBudgetAccess', () => {
     });
   });
 
+  describe('share present without isOwner', () => {
+    it('defaults to recipient when share block is attached but isOwner is missing', () => {
+      const budget = buildBudget({
+        share: { ...buildShare(), isOwner: undefined as unknown as boolean },
+      });
+      const { isOwner, isSharedWithCaller, canManage, canWrite } = useBudgetAccess(ref(budget));
+      expect(isOwner.value).toBe(false);
+      expect(isSharedWithCaller.value).toBe(true);
+      expect(canManage.value).toBe(false);
+      expect(canWrite.value).toBe(false);
+    });
+  });
+
   describe('null / undefined budget', () => {
     it('returns owner-defaulted state when budget is null', () => {
       const { isOwner, isSharedWithCaller, canManage, canWrite, ownerHandle } = useBudgetAccess(ref(null));
-      // share absent ⇒ `?? true` fallback ⇒ owner-side defaults (matches useAccountAccess
-      // behaviour). The UI gates on `canManage`/`canWrite` only when a budget is loaded,
-      // so this default doesn't unlock anything in practice.
+      // share absent ⇒ owner-side defaults (matches useAccountAccess behaviour). The UI
+      // gates on `canManage`/`canWrite` only when a budget is loaded, so this default
+      // doesn't unlock anything in practice.
       expect(isOwner.value).toBe(true);
       expect(isSharedWithCaller.value).toBe(false);
       expect(ownerHandle.value).toBeNull();

@@ -1,4 +1,4 @@
-import BudgetTransactions from '@models/budget-transactions.model';
+import BudgetTransactions, { type BudgetTransactionMetadata } from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import * as Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
@@ -140,7 +140,7 @@ const attachAddedByMetadata = async <T extends { id: string }>({
       attributes: ['transactionId', 'budgetId', 'metadata'],
       raw: true,
     }) as unknown as Promise<
-      Array<{ transactionId: string; budgetId: string; metadata: { addedByUserId?: number } | null }>
+      Array<{ transactionId: string; budgetId: string; metadata: BudgetTransactionMetadata | null }>
     >,
     Budgets.findAll({
       where: { id: { [Op.in]: budgetIds } },

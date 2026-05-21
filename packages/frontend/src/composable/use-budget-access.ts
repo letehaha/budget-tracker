@@ -12,12 +12,17 @@ import { type MaybeRefOrGetter, computed, toValue } from 'vue';
  *  - Delete is owner-only and never exposed through this composable (use `isOwner`).
  *
  * `share` absent (legacy / internal callers) is treated as owned — same fallback as
- * `useAccountAccess`.
+ * `useAccountAccess`. When `share` IS present but `isOwner` is missing/falsy the caller
+ * is treated as a recipient — defaulting to owner inside an attached share block would
+ * surface owner-only UI to recipients on any future field drift.
  */
 export const useBudgetAccess = (budget: MaybeRefOrGetter<BudgetModel | undefined | null>) => {
   const share = computed(() => toValue(budget)?.share);
 
-  const isOwner = computed(() => share.value?.isOwner ?? true);
+  const isOwner = computed(() => {
+    if (!share.value) return true;
+    return share.value.isOwner === true;
+  });
 
   /**
    * True only when the budget is shared *with* the caller. Owner-side `share` blocks

@@ -10,6 +10,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useBudgetAccess } from '@/composable/use-budget-access';
+import { captureException } from '@/lib/sentry';
 import BudgetSharingPanel from '@/pages/budgets/components/budget-sharing-panel.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
@@ -68,6 +69,9 @@ const { mutateAsync: editBudgetAsync, isPending: isBudgetDataUpdating } = useMut
   mutationFn: editBudget,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+    queryClient.invalidateQueries({
+      queryKey: [VUE_QUERY_CACHE_KEYS.budgetsListItem, currentBudgetId.value],
+    });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetStats });
   },
 });
@@ -84,7 +88,7 @@ const handleSaveFromDialog = async () => {
     addSuccessNotification(t('budgets.list.updateSuccess'));
     isEditDialogOpen.value = false;
   } catch (err) {
-    console.error(err);
+    captureException({ error: err, context: { source: 'manualBudgetEdit', budgetId: currentBudgetId.value } });
     addErrorNotification(t('budgets.list.updateError'));
   }
 };
@@ -99,7 +103,7 @@ const handleDeleteBudget = async () => {
     addSuccessNotification(t('budgets.list.deleteSuccess'));
     router.push({ name: ROUTES_NAMES.plannedBudgets });
   } catch (err) {
-    console.error(err);
+    captureException({ error: err, context: { source: 'manualBudgetDelete', budgetId: currentBudgetId.value } });
     addErrorNotification(t('budgets.list.deleteError'));
   }
 };
