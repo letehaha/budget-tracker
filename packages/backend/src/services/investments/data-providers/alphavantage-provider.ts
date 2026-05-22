@@ -6,6 +6,7 @@ import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
 
 import {
   BaseSecurityDataProvider,
+  BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -159,14 +160,18 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
    * Fetch prices for multiple securities efficiently with rate limiting.
    * Alpha Vantage has a 25 requests/day and 5 requests/minute limit.
    */
-  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
+  public async fetchPricesForSecurities(
+    securities: SecurityPriceFetchInput[],
+    forDate: Date,
+  ): Promise<Map<string, BulkPriceData>> {
     const ALPHA_VANTAGE_DAILY_LIMIT = 25;
     const ALPHA_VANTAGE_MINUTE_LIMIT = 5;
     const MINUTE_DELAY = 60 * 1000 + 1000; // 61 seconds to be safe
     const REQUEST_DELAY = 12 * 1000; // 12 seconds between requests to stay under 5/minute
 
+    const result = new Map<string, BulkPriceData>();
     if (securities.length === 0) {
-      return [];
+      return result;
     }
 
     logger.info(`Alpha Vantage: Starting fetch for ${securities.length} securities`);
@@ -181,11 +186,10 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
       );
     }
 
-    const fetchedPrices: PriceData[] = [];
     let requestsThisMinute = 0;
     let lastRequestTime = 0;
 
-    for (const { providerSymbol } of toProcess) {
+    for (const { providerSymbol, securityId } of toProcess) {
       try {
         // Rate limiting: respect 5 requests per minute
         if (requestsThisMinute >= ALPHA_VANTAGE_MINUTE_LIMIT) {
@@ -216,7 +220,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
 
         if (historicalPrices[0]) {
           const priceData = historicalPrices[0];
-          fetchedPrices.push(priceData);
+          result.set(securityId, { ...priceData, securityId });
           logger.info(
             `Fetched price for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`,
           );
@@ -231,8 +235,8 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
       }
     }
 
-    logger.info(`Alpha Vantage fetch complete: ${fetchedPrices.length}/${toProcess.length} securities fetched`);
-    return fetchedPrices;
+    logger.info(`Alpha Vantage fetch complete: ${result.size}/${toProcess.length} securities fetched`);
+    return result;
   }
 
   /**

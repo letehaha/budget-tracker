@@ -5,6 +5,7 @@ import { isAxiosError } from 'axios';
 import { AlphaVantageDataProvider } from './alphavantage-provider';
 import {
   BaseSecurityDataProvider,
+  BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -171,10 +172,13 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
    * Routes bulk price fetching to the best provider for each symbol.
    * Phase 1: Fetch from primary providers. Phase 2: Retry failed symbols with fallbacks.
    */
-  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
+  public async fetchPricesForSecurities(
+    securities: SecurityPriceFetchInput[],
+    forDate: Date,
+  ): Promise<Map<string, BulkPriceData>> {
     const securitiesByProvider = this.groupSecuritiesByProvider(securities);
 
-    const allResults: PriceData[] = [];
+    const allResults = new Map<string, BulkPriceData>();
     const failedSecurities: SecurityPriceFetchInput[] = [];
 
     // Phase 1: Fetch from primary providers concurrently
@@ -182,25 +186,23 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
       const provider = this.providers.get(providerName);
       if (!provider) {
         logger.info(`Provider ${providerName} not available, skipping ${securityList.length} symbols`);
-        return { fetched: [] as PriceData[], failed: securityList };
+        return { fetched: new Map<string, BulkPriceData>(), failed: securityList };
       }
 
       try {
         logger.info(`Fetching prices for ${securityList.length} symbols from ${providerName}`);
         const res = await provider.fetchPricesForSecurities(securityList, forDate);
-        // Detect partial failures: providerSymbols requested but not returned.
-        const fetchedKeys = new Set<ProviderSymbol>(res.map((p) => p.providerSymbol));
-        const failed = securityList.filter((s) => !fetchedKeys.has(s.providerSymbol));
+        const failed = securityList.filter((s) => !res.has(s.securityId));
         return { fetched: res, failed };
       } catch (error) {
         logger.error({ message: `Provider ${providerName} failed for bulk fetch:`, error: error as Error });
-        return { fetched: [] as PriceData[], failed: securityList };
+        return { fetched: new Map<string, BulkPriceData>(), failed: securityList };
       }
     });
 
     const results = await Promise.all(fetchPromises);
     for (const { fetched, failed } of results) {
-      allResults.push(...fetched);
+      for (const [id, price] of fetched) allResults.set(id, price);
       failedSecurities.push(...failed);
     }
 
@@ -224,8 +226,9 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
 
           try {
             const prices = await fallbackProvider.fetchPricesForSecurities([security], forDate);
-            if (prices.length > 0) {
-              allResults.push(...prices);
+            const price = prices.get(security.securityId);
+            if (price) {
+              allResults.set(security.securityId, price);
               fetched = true;
               logger.info(`Fallback ${fallbackName} succeeded for ${security.symbol}`);
               break;
@@ -275,7 +278,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
     }
 
     logger.info(
-      `Composite provider fetched ${allResults.length}/${securities.length} prices from ${securitiesByProvider.size} providers`,
+      `Composite provider fetched ${allResults.size}/${securities.length} prices from ${securitiesByProvider.size} providers`,
     );
     return allResults;
   }

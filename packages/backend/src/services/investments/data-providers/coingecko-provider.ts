@@ -5,6 +5,7 @@ import { subYears } from 'date-fns';
 
 import {
   BaseSecurityDataProvider,
+  BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -219,23 +220,32 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
   }
 
   /**
-   * Batch latest-price fetch via `/simple/price?ids=…`. `PriceData.providerSymbol`
-   * carries the CoinGecko slug so the daily-sync map — keyed on
-   * `Security.providerSymbol` — can resolve the row back. Display ticker is
-   * NEVER used for matching here because crypto tickers aren't unique.
+   * Batch latest-price fetch via `/simple/price?ids=…`. Each returned row
+   * carries `securityId` echoed from the matching input so the caller can
+   * resolve back to the Security row without matching on CoinGecko's slug
+   * (crypto tickers aren't unique and a slug-keyed lookup would collide if
+   * the same coin were ever tracked under two provider rows).
    */
-  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
-    if (securities.length === 0) return [];
+  public async fetchPricesForSecurities(
+    securities: SecurityPriceFetchInput[],
+    forDate: Date,
+  ): Promise<Map<string, BulkPriceData>> {
+    const result = new Map<string, BulkPriceData>();
+    if (securities.length === 0) return result;
 
     const cryptoOnly = securities.filter((s) => s.assetClass === ASSET_CLASS.crypto);
-    if (cryptoOnly.length === 0) return [];
+    if (cryptoOnly.length === 0) return result;
 
     logger.info(`CoinGecko: fetching latest prices for ${cryptoOnly.length} coins`);
 
-    const results: PriceData[] = [];
+    // Map by lowercased slug — CoinGecko's /simple/price echoes ids in lowercase
+    // even when callers send uppercased ones.
+    const inputsBySlug = new Map(cryptoOnly.map((s) => [s.providerSymbol.toLowerCase(), s]));
+
     for (let i = 0; i < cryptoOnly.length; i += SIMPLE_PRICE_BATCH_SIZE) {
       const batch = cryptoOnly.slice(i, i + SIMPLE_PRICE_BATCH_SIZE);
       const ids = batch.map((s) => s.providerSymbol).join(',');
+      const batchSlugs = batch.map((s) => s.providerSymbol);
 
       try {
         const response = await this.client.simple.price.get({
@@ -251,13 +261,26 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
             logger.warn(`CoinGecko returned no USD price for ${id} in batch fetch`);
             continue;
           }
+          const input = inputsBySlug.get(id.toLowerCase());
+          if (!input) {
+            // CoinGecko returned a coin we didn't ask for. Drop it — without a matching
+            // input we can't attribute it to a Security row. Error level: indicates an
+            // API quirk (alias resolution) or slug-mismatch bug, neither of which
+            // should occur in steady state. Include the requested batch so operators
+            // can see which input failed to round-trip.
+            logger.error(
+              `CoinGecko returned unrequested coin "${id}" in batch fetch. Requested slugs: ${batchSlugs.join(', ')}`,
+            );
+            continue;
+          }
           const priceAsOf = entry.last_updated_at ? new Date(entry.last_updated_at * 1000) : forDate;
-          results.push({
+          result.set(input.securityId, {
             providerSymbol: toProviderSymbol(id),
             date: forDate,
             priceClose: entry.usd,
             priceAsOf,
             providerName: SECURITY_PROVIDER.coingecko,
+            securityId: input.securityId,
           });
         }
       } catch (error) {
@@ -271,7 +294,7 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
       }
     }
 
-    logger.info(`CoinGecko fetch complete: ${results.length}/${cryptoOnly.length} prices fetched`);
-    return results;
+    logger.info(`CoinGecko fetch complete: ${result.size}/${cryptoOnly.length} prices fetched`);
+    return result;
   }
 }

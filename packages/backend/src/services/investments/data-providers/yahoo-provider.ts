@@ -8,6 +8,7 @@ import YahooFinance from 'yahoo-finance2';
 
 import {
   BaseSecurityDataProvider,
+  BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -179,18 +180,21 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
     }
   }
 
-  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
-    if (securities.length === 0) return [];
+  public async fetchPricesForSecurities(
+    securities: SecurityPriceFetchInput[],
+    forDate: Date,
+  ): Promise<Map<string, BulkPriceData>> {
+    const result = new Map<string, BulkPriceData>();
+    if (securities.length === 0) return result;
 
     logger.info(`Yahoo: Starting fetch for ${securities.length} securities`);
 
-    const fetchedPrices: PriceData[] = [];
     const REQUEST_DELAY = 150; // 150ms between requests to avoid throttling
 
     for (const security of securities) {
-      const { providerSymbol } = security;
+      const { providerSymbol, securityId } = security;
       try {
-        if (fetchedPrices.length > 0) {
+        if (result.size > 0) {
           await sleep({ ms: REQUEST_DELAY });
         }
 
@@ -198,7 +202,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
         const nextDay = new Date(forDate.getTime() + 24 * 60 * 60 * 1000);
         const prices = await this.getHistoricalPrices(providerSymbol, { startDate: forDate, endDate: nextDay });
         if (prices[0]) {
-          fetchedPrices.push(prices[0]);
+          result.set(securityId, { ...prices[0], securityId });
           logger.info(
             `Fetched price for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}: ${prices[0].priceClose}`,
           );
@@ -213,8 +217,8 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
       }
     }
 
-    logger.info(`Yahoo fetch complete: ${fetchedPrices.length}/${securities.length} securities fetched`);
-    return fetchedPrices;
+    logger.info(`Yahoo fetch complete: ${result.size}/${securities.length} securities fetched`);
+    return result;
   }
 
   /**

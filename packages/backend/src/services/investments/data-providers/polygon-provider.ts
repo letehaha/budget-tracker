@@ -14,6 +14,7 @@ import { formatDate, subYears } from 'date-fns';
 
 import {
   BaseSecurityDataProvider,
+  BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -193,9 +194,13 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
    * Fetch prices for multiple securities efficiently using batch daily prices API.
    * Makes a single API call to get all daily prices, then filters for requested symbols.
    */
-  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
+  public async fetchPricesForSecurities(
+    securities: SecurityPriceFetchInput[],
+    forDate: Date,
+  ): Promise<Map<string, BulkPriceData>> {
+    const result = new Map<string, BulkPriceData>();
     if (securities.length === 0) {
-      return [];
+      return result;
     }
 
     logger.info(`Polygon: Starting batch fetch for ${securities.length} securities using getDailyPrices`);
@@ -205,7 +210,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
 
     if (allDailyPrices.length === 0) {
       logger.info(`No daily prices available for date: ${forDate.toISOString().split('T')[0]}`);
-      return [];
+      return result;
     }
 
     // Create a map for quick lookup of prices by provider-native id
@@ -213,8 +218,6 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
     allDailyPrices.forEach((price) => {
       priceMap.set(price.providerSymbol, price);
     });
-
-    const fetchedPrices: PriceData[] = [];
 
     for (const security of securities) {
       const priceData = priceMap.get(security.providerSymbol);
@@ -226,12 +229,12 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
         continue;
       }
 
-      fetchedPrices.push(priceData);
+      result.set(security.securityId, { ...priceData, securityId: security.securityId });
       logger.info(`Fetched price for ${security.providerSymbol}: ${priceData.priceClose}`);
     }
 
-    logger.info(`Polygon batch fetch complete: ${fetchedPrices.length}/${securities.length} securities fetched`);
-    return fetchedPrices;
+    logger.info(`Polygon batch fetch complete: ${result.size}/${securities.length} securities fetched`);
+    return result;
   }
 
   private mapAssetClass(polygonType?: TickerTypes): ASSET_CLASS {

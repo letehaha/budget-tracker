@@ -4,6 +4,7 @@ import { logger } from '@js/utils';
 
 import {
   BaseSecurityDataProvider,
+  BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -163,14 +164,18 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
    * FMP free tier has 250 requests/day limit.
    * Paid tiers have much higher limits (300-3000 requests/minute).
    */
-  public async fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]> {
+  public async fetchPricesForSecurities(
+    securities: SecurityPriceFetchInput[],
+    forDate: Date,
+  ): Promise<Map<string, BulkPriceData>> {
     const FMP_FREE_DAILY_LIMIT = 250;
     const FMP_MINUTE_LIMIT = 5; // Conservative limit for free tier
     const MINUTE_DELAY = 60 * 1000 + 1000; // 61 seconds to be safe
     const REQUEST_DELAY = 12 * 1000; // 12 seconds between requests for free tier
 
+    const result = new Map<string, BulkPriceData>();
     if (securities.length === 0) {
-      return [];
+      return result;
     }
 
     logger.info(`FMP: Starting fetch for ${securities.length} securities`);
@@ -182,11 +187,10 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
       logger.warn(`FMP daily limit reached: processing ${toProcess.length} of ${securities.length} securities`);
     }
 
-    const fetchedPrices: PriceData[] = [];
     let requestsThisMinute = 0;
     let lastRequestTime = 0;
 
-    for (const { providerSymbol } of toProcess) {
+    for (const { providerSymbol, securityId } of toProcess) {
       try {
         // Rate limiting: respect free tier limits
         if (requestsThisMinute >= FMP_MINUTE_LIMIT) {
@@ -217,7 +221,7 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
         });
         if (historicalPrices[0]) {
           const priceData = historicalPrices[0];
-          fetchedPrices.push(priceData);
+          result.set(securityId, { ...priceData, securityId });
           logger.info(
             `Fetched price for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`,
           );
@@ -232,8 +236,8 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
       }
     }
 
-    logger.info(`FMP fetch complete: ${fetchedPrices.length}/${toProcess.length} securities fetched`);
-    return fetchedPrices;
+    logger.info(`FMP fetch complete: ${result.size}/${toProcess.length} securities fetched`);
+    return result;
   }
 
   /**

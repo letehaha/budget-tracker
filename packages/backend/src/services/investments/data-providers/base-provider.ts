@@ -21,11 +21,12 @@ export const toProviderSymbol = (value: string): ProviderSymbol => value as Prov
 
 /**
  * Represents normalized price data for a single security on a specific date.
+ * Returned by single-security methods (`getLatestPrice`, `getHistoricalPrices`)
+ * where the caller already knows which Security it asked for. For bulk fetches
+ * see {@link BulkPriceData}, which carries the originating `securityId`.
  *
  * `providerSymbol` is the provider-native identifier (Yahoo ticker, CoinGecko
- * coin slug, etc.). Callers match it against `Security.providerSymbol` rather
- * than the human-facing ticker, because crypto symbols are not unique on
- * CoinGecko and a daily-sync map keyed on display symbol would miscount.
+ * coin slug, etc.).
  */
 export interface PriceData {
   providerSymbol: ProviderSymbol;
@@ -33,6 +34,20 @@ export interface PriceData {
   priceClose: number;
   priceAsOf?: Date;
   providerName: SECURITY_PROVIDER;
+}
+
+/**
+ * A {@link PriceData} that carries the caller's `securityId` echoed from the
+ * matching {@link SecurityPriceFetchInput}. Returned by
+ * {@link BaseSecurityDataProvider.fetchPricesForSecurities}.
+ *
+ * Threading `securityId` through avoids matching by `(providerName,
+ * providerSymbol)` — that pair can collide across the DB (two Securities
+ * sharing a symbol under different providers) and also breaks under the
+ * composite's fallback path (intended provider ≠ actual fetcher).
+ */
+export interface BulkPriceData extends PriceData {
+  securityId: string;
 }
 
 /**
@@ -59,6 +74,11 @@ export interface HistoricalPriceOptions {
 /**
  * Minimal info needed to fetch a price for a security.
  *
+ * - `securityId` — opaque caller-supplied identifier (the Securities row UUID).
+ *   Threaded through to each returned `PriceData.securityId` so callers can
+ *   resolve outputs back to inputs without string-matching on
+ *   `(providerName, providerSymbol)`. Required because that pair can collide
+ *   across the DB and isn't preserved through the composite's fallback path.
  * - `symbol` — human-facing ticker (e.g. "AAPL", "BTC").
  * - `providerSymbol` — provider-native id used in API calls. Equals `symbol`
  *   for stock providers; is the slug (e.g. "bitcoin") for CoinGecko. Required
@@ -68,6 +88,7 @@ export interface HistoricalPriceOptions {
  *   check know that crypto trades 24/7.
  */
 export interface SecurityPriceFetchInput {
+  securityId: string;
   symbol: string;
   providerSymbol: ProviderSymbol;
   assetClass: ASSET_CLASS;
@@ -105,15 +126,24 @@ export abstract class BaseSecurityDataProvider {
   abstract getLatestPrice(providerSymbol: ProviderSymbol): Promise<PriceData>;
 
   /**
-   * Fetch prices for multiple securities for a specific date.
-   * This method only handles fetching and normalizing price data.
-   * Database operations should be handled by the calling service.
+   * Fetch prices for multiple securities for a specific date. This method only
+   * handles fetching and normalizing price data; database operations should be
+   * handled by the calling service.
    *
-   * @param securities - Securities to fetch prices for (symbol + assetClass)
+   * Returns a `Map<securityId, BulkPriceData>` so the caller can look results
+   * up by the same UUID it supplied without doing its own re-join. Securities
+   * that did not produce a price (delisted, market closed, provider error)
+   * are simply absent from the map — callers should diff input ids against
+   * map keys to detect partial failures.
+   *
+   * @param securities - Securities to fetch prices for
    * @param forDate - The date to fetch prices for
-   * @returns Array of fetched price data
+   * @returns Map keyed by `securityId` containing successfully fetched prices.
    */
-  abstract fetchPricesForSecurities(securities: SecurityPriceFetchInput[], forDate: Date): Promise<PriceData[]>;
+  abstract fetchPricesForSecurities(
+    securities: SecurityPriceFetchInput[],
+    forDate: Date,
+  ): Promise<Map<string, BulkPriceData>>;
 
   // TODO: processSearchToSecurity method, because each security after search can provide different schema
   // and it should be processed uniquely when adding security from the search

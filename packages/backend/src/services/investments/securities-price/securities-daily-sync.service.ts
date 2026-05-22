@@ -9,7 +9,7 @@ import { endOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
 import { dataProviderFactory } from '../data-providers';
-import { ProviderSymbol, toProviderSymbol } from '../data-providers/base-provider';
+import { toProviderSymbol } from '../data-providers/base-provider';
 import { partitionByMarketStatus } from '../data-providers/utils';
 
 const SECURITIES_PRICES_SYNC_LOCK_KEY = 'lock:sync:securities-prices';
@@ -78,38 +78,23 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
   // Step 2: Use composite provider to fetch all prices efficiently
   const compositeProvider = dataProviderFactory.getProvider(SECURITY_PROVIDER.composite);
 
-  // Key the lookup map on `providerSymbol` (provider-native id), not the display
-  // ticker — crypto display tickers are not unique on CoinGecko.
-  //
-  // The DB unique constraint is `(providerName, providerSymbol)`, so two Security rows
-  // CAN share a providerSymbol (e.g. "AAPL" stored once under yahoo and once under fmp).
-  // A single-key map would silently overwrite one with the other. Detect that here and
-  // log loudly — one of those rows will not get its price updated this run.
-  const securitiesMapByProviderSymbol = new Map<ProviderSymbol, Securities>();
-  for (const security of securitiesFromDb) {
-    const key = toProviderSymbol(security.providerSymbol);
-    const existing = securitiesMapByProviderSymbol.get(key);
-    if (existing) {
-      logger.error(
-        `Sync map collision: providerSymbol "${security.providerSymbol}" maps to multiple Securities ` +
-          `(kept ${existing.id} [${existing.providerName}], dropping ${security.id} [${security.providerName}]). ` +
-          `One row will not be updated until the map is keyed by (providerName, providerSymbol).`,
-      );
-      continue;
-    }
-    securitiesMapByProviderSymbol.set(key, security);
-  }
-  const providerSymbols = [...securitiesMapByProviderSymbol.keys()];
-  const securitiesInputs = [...securitiesMapByProviderSymbol.values()].map((s) => ({
+  // `securitiesById` is only used to recover symbol text for error logging in
+  // the individual-upsert fallback path. The composite returns a Map keyed by
+  // securityId, so primary-flow matching needs no lookup table.
+  const securitiesById = new Map<string, Securities>(securitiesFromDb.map((s) => [s.id, s]));
+  const securitiesInputs = securitiesFromDb.map((s) => ({
+    securityId: s.id,
     symbol: s.symbol ?? s.providerSymbol,
     providerSymbol: toProviderSymbol(s.providerSymbol),
     assetClass: s.assetClass,
   }));
 
-  logger.info(`Fetching prices for ${securitiesMapByProviderSymbol.size} securities using composite provider`);
+  logger.info(`Fetching prices for ${securitiesById.size} securities using composite provider`);
 
   try {
-    // Let composite provider handle all routing, grouping, and bulk fetching internally
+    // Composite returns a Map keyed by securityId; the type guarantees every
+    // value carries the originating securityId, so no defensive guards are
+    // needed when consuming it.
     const fetchedPrices = await compositeProvider.fetchPricesForSecurities(securitiesInputs, yesterday);
 
     const securityPricesToUpsert: {
@@ -122,25 +107,26 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     let securitiesIdsToPatch: string[] = [];
 
     // Step 3: Store fetched prices and update timestamps
-    for (const priceData of fetchedPrices) {
-      const securityData = securitiesMapByProviderSymbol.get(priceData.providerSymbol);
-      if (!securityData) {
-        logger.warn(
-          `No security found for providerSymbol "${priceData.providerSymbol}" (from ${priceData.providerName}). ` +
-            `Price will be dropped.`,
+    for (const [securityId, priceData] of fetchedPrices) {
+      if (!securitiesById.has(securityId)) {
+        // Composite returned a securityId we didn't ask for. This should be
+        // impossible — composite only fetches inputs we supplied — so it
+        // signals a provider bug or data corruption.
+        logger.error(
+          `Composite returned unrequested securityId "${securityId}" ` +
+            `(providerSymbol "${priceData.providerSymbol}" from ${priceData.providerName}). Dropping.`,
         );
         continue;
       }
 
-      // Store the price
       securityPricesToUpsert.push({
-        securityId: securityData.id,
+        securityId,
         date: priceData.date,
         priceClose: priceData.priceClose.toString(),
         source: priceData.providerName,
       });
 
-      securitiesIdsToPatch.push(securityData.id);
+      securitiesIdsToPatch.push(securityId);
     }
 
     const failedPricesUpdates: typeof securityPricesToUpsert = [];
@@ -174,7 +160,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
             failedPricesUpdates.push(priceData);
             result.failedUpdates++;
 
-            const security = [...securitiesMapByProviderSymbol.values()].find((s) => s.id === priceData.securityId);
+            const security = securitiesById.get(priceData.securityId);
 
             const errorMessage = individualError instanceof Error ? individualError.message : 'Unknown error';
 
@@ -198,8 +184,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     }
 
     // Step 4: Handle securities that didn't get price data from provider
-    const fetchedProviderSymbols = new Set<ProviderSymbol>(fetchedPrices.map((p) => p.providerSymbol));
-    const missedInputs = securitiesInputs.filter((s) => !fetchedProviderSymbols.has(s.providerSymbol));
+    const missedInputs = securitiesInputs.filter((s) => !fetchedPrices.has(s.securityId));
 
     if (missedInputs.length > 0) {
       const { expectedClosed, actuallyMissing } = partitionByMarketStatus({
@@ -211,9 +196,8 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
         result.skippedClosedMarket = expectedClosed.length;
         // Advance pricingLastSyncedAt for closed-market symbols so they don't dominate
         // the staleness queue on every weekend/holiday run.
-        for (const { providerSymbol } of expectedClosed) {
-          const id = securitiesMapByProviderSymbol.get(providerSymbol)?.id;
-          if (id !== undefined) securitiesIdsToPatch.push(id);
+        for (const { securityId } of expectedClosed) {
+          securitiesIdsToPatch.push(securityId);
         }
         logger.info(
           `${expectedClosed.length} symbols skipped (markets closed on ${yesterday.toISOString()}): ${expectedClosed.map((s) => s.symbol).join(', ')}`,
@@ -225,13 +209,20 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
           `${actuallyMissing.length} symbols had no price data from provider: ${actuallyMissing.map((s) => s.symbol).join(', ')}`,
         );
 
-        for (const { symbol, providerSymbol } of actuallyMissing) {
+        // Advance `pricingLastSyncedAt` so a permanently-delisted or otherwise
+        // unfetchable security doesn't dominate the staleness-prioritised queue
+        // run after run. Without this, a single broken security at the head of
+        // the queue would be retried on every sync while the rest of the table
+        // also gets processed but stays "fresher" — slowly creating an
+        // ever-growing backlog of work that always fails first.
+        for (const { securityId, symbol } of actuallyMissing) {
           result.failedUpdates++;
           result.errors.push({
-            securityId: securitiesMapByProviderSymbol.get(providerSymbol)?.id || '',
+            securityId,
             symbol,
             error: 'No price data returned from provider',
           });
+          securitiesIdsToPatch.push(securityId);
         }
       }
     }
@@ -250,7 +241,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     }
   } catch (error) {
     // Handle total failure
-    result.failedUpdates = providerSymbols.length;
+    result.failedUpdates = securitiesInputs.length;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     logger.error({
@@ -258,12 +249,10 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
       error: error as Error,
     });
 
-    // Add error for all providerSymbols
-    for (const providerSymbol of providerSymbols) {
-      const security = securitiesMapByProviderSymbol.get(providerSymbol);
+    for (const input of securitiesInputs) {
       result.errors.push({
-        securityId: security?.id || '',
-        symbol: security?.symbol ?? providerSymbol,
+        securityId: input.securityId,
+        symbol: input.symbol,
         error: errorMessage,
       });
     }
