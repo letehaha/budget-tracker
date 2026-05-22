@@ -46,10 +46,41 @@ describe('Get Transaction Portfolio Link (GET /transactions/:transactionId/portf
       transferId: expect.any(String),
       portfolioId: portfolio.id,
       portfolioName: 'Investment Portfolio',
+      isPortfolioDeleted: false,
       transferType: 'deposit',
       amount: expect.toBeNumericEqual('500'),
       currencyCode: account.currencyCode,
       date: expect.any(String),
+    });
+  });
+
+  it('should still surface link with isPortfolioDeleted=true after the portfolio is soft-deleted', async () => {
+    const [expenseTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 500,
+        transactionType: TRANSACTION_TYPES.expense,
+      }),
+      raw: true,
+    });
+
+    await helpers.linkTransactionToPortfolio({
+      transactionId: expenseTx!.id,
+      payload: { portfolioId: portfolio.id },
+      raw: true,
+    });
+
+    await helpers.deletePortfolio({ portfolioId: portfolio.id });
+
+    const link = await helpers.getTransactionPortfolioLink({
+      transactionId: expenseTx!.id,
+      raw: true,
+    });
+
+    expect(link).toMatchObject({
+      portfolioId: portfolio.id,
+      portfolioName: 'Investment Portfolio',
+      isPortfolioDeleted: true,
     });
   });
 
@@ -78,6 +109,7 @@ describe('Get Transaction Portfolio Link (GET /transactions/:transactionId/portf
       transferId: expect.any(String),
       portfolioId: portfolio.id,
       portfolioName: 'Investment Portfolio',
+      isPortfolioDeleted: false,
       transferType: 'withdrawal',
       amount: expect.toBeNumericEqual('300'),
       currencyCode: account.currencyCode,

@@ -1,6 +1,7 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
+import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import { withLock } from '@services/common/lock';
@@ -47,6 +48,16 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
         where: {
           excluded: false, // Only exclude securities marked as excluded
         },
+        // Chain through Portfolios so paranoid filtering drops holdings whose
+        // parent portfolio is soft-deleted (trash) — otherwise we'd waste sync
+        // budget on prices nobody needs.
+        include: [
+          {
+            model: Portfolios,
+            required: true,
+            attributes: [],
+          },
+        ],
       },
     ],
     group: ['Securities.id'], // Deduplicate securities held by multiple users

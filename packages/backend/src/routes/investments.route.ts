@@ -16,6 +16,7 @@ import getPortfolioSummaryController from '@controllers/investments/portfolios/g
 import listPortfolioTransfersController from '@controllers/investments/portfolios/list-portfolio-transfers';
 import listPortfoliosController from '@controllers/investments/portfolios/list-portfolios';
 import portfolioToAccountTransferController from '@controllers/investments/portfolios/portfolio-to-account-transfer';
+import restorePortfolioController from '@controllers/investments/portfolios/restore-portfolio';
 import updatePortfolioController from '@controllers/investments/portfolios/update-portfolio';
 import updatePortfolioBalanceController from '@controllers/investments/portfolios/update-portfolio-balance';
 import getPricesController from '@controllers/investments/prices/get-prices.controller';
@@ -128,6 +129,14 @@ router.delete(
   checkBaseCurrencyLock,
   validateEndpoint(deletePortfolioController.schema),
   deletePortfolioController.handler,
+);
+
+router.post(
+  '/portfolios/:id/restore',
+  blockDemoUsers,
+  checkBaseCurrencyLock,
+  validateEndpoint(restorePortfolioController.schema),
+  restorePortfolioController.handler,
 );
 
 router.post(

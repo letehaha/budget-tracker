@@ -95,6 +95,32 @@ jest.mock('@coingecko/coingecko-typescript', () => {
   return { __esModule: true, default: MockCoingecko };
 });
 
+/**
+ * Guard against stale local `.env.test`. The data-provider factory only
+ * registers a provider when its API key is present in `process.env`, so a
+ * missing key silently turns the corresponding provider into a no-op and any
+ * test that expects results from it fails with a misleading "empty array"
+ * assertion — costing hours to diagnose.
+ *
+ * CI generates a fresh `.env.test` from `check-source-code.yml`; local files
+ * are gitignored and easily drift. We fail loud here so the fix is obvious.
+ */
+const REQUIRED_TEST_ENV_VARS = [
+  'FMP_API_KEY',
+  'POLYGON_API_KEY',
+  'ALPHA_VANTAGE_API_KEY',
+  'COINGECKO_API_KEY',
+] as const;
+
+const missingEnvVars = REQUIRED_TEST_ENV_VARS.filter((key) => !process.env[key]);
+if (missingEnvVars.length > 0) {
+  throw new Error(
+    `Missing required test env vars: ${missingEnvVars.join(', ')}. ` +
+      `Add them to <repo-root>/.env.test (any non-empty value, e.g. "test"). ` +
+      `CI sets these automatically via .github/workflows/check-source-code.yml.`,
+  );
+}
+
 beforeAll(async () => {
   mswMockServer.listen({ onUnhandledRequest: 'bypass' });
   // Wait for i18next to fully load all locale files before tests run

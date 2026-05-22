@@ -24,6 +24,15 @@ export const getPortfolios = async (): Promise<PortfolioModel[]> => {
   return result.data;
 };
 
+export const getDeletedPortfolios = async (): Promise<PortfolioModel[]> => {
+  const result = await api.get('/investments/portfolios', { onlyDeleted: true });
+  return result.data;
+};
+
+export const restorePortfolio = async ({ portfolioId }: { portfolioId: string }): Promise<PortfolioModel> => {
+  return api.post(`/investments/portfolios/${portfolioId}/restore`);
+};
+
 export const getPortfolio = async ({ portfolioId }: { portfolioId: string }): Promise<PortfolioModel> => {
   const result = await api.get(`/investments/portfolios/${portfolioId}`);
   return result;
@@ -191,6 +200,8 @@ interface TransactionPortfolioLinkResponse {
   transferId: string;
   portfolioId: string;
   portfolioName: string;
+  /** True when the linked portfolio is currently in the trash. */
+  isPortfolioDeleted: boolean;
   transferType: 'deposit' | 'withdrawal';
   amount: string;
   currencyCode: string;

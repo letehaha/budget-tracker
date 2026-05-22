@@ -1,4 +1,12 @@
-import { createPortfolio, deletePortfolio, getPortfolio, getPortfolios, updatePortfolio } from '@/api/portfolios';
+import {
+  createPortfolio,
+  deletePortfolio,
+  getDeletedPortfolios,
+  getPortfolio,
+  getPortfolios,
+  restorePortfolio,
+  updatePortfolio,
+} from '@/api/portfolios';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, unref } from 'vue';
@@ -63,7 +71,7 @@ export const useUpdatePortfolio = () => {
   });
 };
 
-// Portfolio deletion composable
+// Portfolio deletion composable (soft-delete by default)
 export const useDeletePortfolio = () => {
   const queryClient = useQueryClient();
 
@@ -71,6 +79,50 @@ export const useDeletePortfolio = () => {
     mutationFn: (portfolioId: string) => deletePortfolio({ portfolioId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosTrashList });
+    },
+  });
+};
+
+// Soft-deleted (trash) listing
+export const useDeletedPortfolios = (queryOptions = {}) => {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryFn: getDeletedPortfolios,
+    queryKey: VUE_QUERY_CACHE_KEYS.portfoliosTrashList,
+    staleTime: 1000 * 60 * 5,
+    ...queryOptions,
+  });
+
+  return {
+    ...query,
+    invalidate: () => queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosTrashList }),
+  };
+};
+
+// Restore from trash
+export const useRestorePortfolio = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (portfolioId: string) => restorePortfolio({ portfolioId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosTrashList });
+    },
+  });
+};
+
+// Permanent (force) delete from trash
+export const usePermanentlyDeletePortfolio = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (portfolioId: string) => deletePortfolio({ portfolioId, force: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosTrashList });
     },
   });
 };

@@ -191,6 +191,8 @@
         </DemoRestricted>
       </div>
     </template>
+
+    <PortfoliosTrash v-if="!isDemo" />
   </PageWrapper>
 </template>
 
@@ -211,6 +213,7 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { cn } from '@/lib/utils';
 import PortfolioCardBalance from '@/pages/investments/components/portfolio-card-balance.vue';
+import PortfoliosTrash from '@/pages/investments/components/portfolios-trash.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useCurrenciesStore, useUserStore } from '@/stores';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
