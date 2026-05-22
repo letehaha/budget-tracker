@@ -3,6 +3,7 @@ export enum SECURITY_PROVIDER {
   alphavantage = 'alphavantage',
   fmp = 'fmp',
   yahoo = 'yahoo',
+  coingecko = 'coingecko',
   // custom provider that uses others for different operations because each provider
   // has limitations on a free plan
   composite = 'composite',
@@ -20,11 +21,10 @@ export enum ASSET_CLASS {
 /**
  * Asset classes the product currently supports for user-facing search and
  * holding creation. Anything else is filtered from search results and rejected
- * by the createHolding endpoint. Crypto, bonds/mutual funds (fixed income),
- * options, cash, and "other" require dedicated UX/data flows that don't exist
- * yet.
+ * by the createHolding endpoint. Bonds/mutual funds (fixed income), options,
+ * cash, and "other" require dedicated UX/data flows that don't exist yet.
  */
-export const SUPPORTED_ASSET_CLASSES: readonly ASSET_CLASS[] = [ASSET_CLASS.stocks] as const;
+export const SUPPORTED_ASSET_CLASSES: readonly ASSET_CLASS[] = [ASSET_CLASS.stocks, ASSET_CLASS.crypto] as const;
 
 export enum INVESTMENT_TRANSACTION_CATEGORY {
   buy = 'buy',

@@ -116,8 +116,10 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
         return [];
       }
 
+      const symbol = tickerDetails.results.ticker || query;
       const result: SecuritySearchResult = {
-        symbol: tickerDetails.results.ticker || query,
+        symbol,
+        providerSymbol: symbol,
         name: tickerDetails.results.name || 'Unknown',
         assetClass: this.mapAssetClass(tickerDetails.results.type as TickerTypes),
         providerName: this.providerName,

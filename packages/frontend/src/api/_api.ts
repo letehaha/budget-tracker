@@ -256,7 +256,7 @@ class ApiCaller {
         });
       }
 
-      throw new errors.ApiErrorResponseError(response.statusText, response);
+      throw new errors.ApiErrorResponseError(response.message, response);
     }
 
     return undefined;

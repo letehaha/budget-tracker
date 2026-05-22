@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -7,6 +7,7 @@ import { ValidationError } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
@@ -41,13 +42,20 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
   const holding = await findOrThrowNotFound({
     query: Holdings.findOne({
       where: { portfolioId, securityId },
-      include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
+      include: [
+        { model: Portfolios, as: 'portfolio', where: { userId }, required: true },
+        { model: Securities, as: 'security', required: true },
+      ],
     }),
     message: t({ key: 'investments.holdingNotFoundAddSecurity' }),
   });
 
-  // Disallow selling more shares than currently owned
-  if (category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
+  // Crypto holdings often drift from the on-chain truth (staking rewards, gas
+  // fees, missed transfers), so we trust the user and let the position go
+  // negative — a follow-up "adjust to zero" flow will reconcile the leftover.
+  // Stocks have exact share counts, so we keep the strict check.
+  const isCrypto = holding.security?.assetClass === ASSET_CLASS.crypto;
+  if (category === INVESTMENT_TRANSACTION_CATEGORY.sell && !isCrypto) {
     const currentQty = new Big(holding.quantity.toDecimalString(10));
     if (new Big(quantity).gt(currentQty)) {
       throw new ValidationError({

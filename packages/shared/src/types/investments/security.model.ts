@@ -13,9 +13,20 @@ export interface SecurityModel {
 
   /**
    * The trading symbol or ticker associated with the security, used to uniquely
-   * identify it on stock exchanges.
+   * identify it on stock exchanges. NOT globally unique on its own — for
+   * crypto, many coins share a symbol (e.g. "BTC"). Use providerSymbol +
+   * providerName as the canonical identifier.
    */
   symbol: string | null;
+
+  /**
+   * The native identifier used by the data provider to address this security
+   * in its API. For stock providers (Yahoo, Polygon, …) this equals `symbol`.
+   * For CoinGecko this is the coin slug (e.g. "bitcoin" for BTC), since
+   * CoinGecko symbols are not unique. Together with `providerName` it forms
+   * the canonical lookup key for a Security row.
+   */
+  providerSymbol: string;
 
   /**
    * The CUSIP number (Committee on Uniform Securities Identification Procedures) is a unique identifier
@@ -115,6 +126,13 @@ export interface SecurityModel {
  */
 export interface SecuritySearchResult {
   symbol: string;
+  /**
+   * Native id used by the provider to address this security in its API.
+   * Equals `symbol` for stock providers; is the coin slug for CoinGecko
+   * (e.g. "bitcoin"). Required so the backend can dedupe and look up by
+   * (providerName, providerSymbol) instead of the non-unique ticker.
+   */
+  providerSymbol: string;
   name: string;
   assetClass: ASSET_CLASS;
   providerName: SECURITY_PROVIDER; // The provider that sourced this security data.
@@ -122,8 +140,19 @@ export interface SecuritySearchResult {
   exchangeMic?: string;
   exchangeName?: string;
   currencyCode: string;
+  cryptoCurrencyCode?: string;
   cusip?: string;
   isin?: string;
+  /**
+   * Optional context for the frontend: did the user's query match the
+   * security's ticker exactly, or only partially? Used to render a divider
+   * between exact and partial matches in the search dropdown.
+   */
+  matchType?: 'exact' | 'partial';
+  /**
+   * Optional market cap rank (crypto only) so the UI can show e.g. "#42".
+   */
+  marketCapRank?: number | null;
 }
 
 /**

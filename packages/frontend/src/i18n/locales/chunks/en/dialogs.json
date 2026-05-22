@@ -31,7 +31,7 @@
     "createPortfolio": {
       "title": "Create Portfolio",
       "description": "Create a new investment portfolio to track your holdings and transactions.",
-      "assetSupportNotice": "Only stocks are supported for now. Crypto, bonds & other securities are coming soon — {roadmapLink}, or {feedbackLink}.",
+      "assetSupportNotice": "Currently supports stocks, ETFs and crypto. Bonds, options & other securities are on the {roadmapLink} — share what you need via {feedbackLink}.",
       "assetSupportRoadmapLink": "vote for what's next",
       "assetSupportFeedbackLink": "request a feature",
       "form": {
@@ -269,6 +269,22 @@
       "searchError": "Failed to search securities.",
       "addedIndicator": "(Added)",
       "noResults": "No results.",
+      "emptyState": {
+        "title": "Search for a symbol",
+        "description": "Type a ticker or name to find stocks or crypto you can add to this portfolio."
+      },
+      "noResultsHint": "Try a different ticker, full name, or switch the filter above.",
+      "clearSearch": "Clear search",
+      "endOfList": "That's all",
+      "assetClass": {
+        "crypto": "Crypto"
+      },
+      "filters": {
+        "all": "All",
+        "stocks": "Stocks",
+        "crypto": "Crypto"
+      },
+      "marketCapRank": "#{rank}",
       "notifications": {
         "success": "Holding added.",
         "error": "Failed to add holding."

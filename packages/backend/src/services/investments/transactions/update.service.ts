@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -7,6 +7,7 @@ import { ValidationError } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
@@ -42,6 +43,7 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   const holding = await findOrThrowNotFound({
     query: Holdings.findOne({
       where: { portfolioId, securityId },
+      include: [{ model: Securities, as: 'security', required: true }],
     }),
     message: t({ key: 'investments.holdingNotFound' }),
   });
@@ -50,7 +52,10 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   const finalCategory = updateFields.category ?? transaction.category;
   const finalQuantity = updateFields.quantity ?? transaction.quantity.toDecimalString(INVESTMENT_DECIMAL_SCALE);
 
-  if (finalCategory === INVESTMENT_TRANSACTION_CATEGORY.sell) {
+  // Crypto holdings can legitimately go negative (staking/fee/missed-transfer
+  // drift); we keep the strict check for stocks only.
+  const isCrypto = holding.security?.assetClass === ASSET_CLASS.crypto;
+  if (finalCategory === INVESTMENT_TRANSACTION_CATEGORY.sell && !isCrypto) {
     // Calculate what the quantity would be after removing this transaction's effect
     // then check if we have enough for the new quantity
     let adjustedHoldingQuantity = holding.quantity.toBig();

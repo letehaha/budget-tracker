@@ -41,7 +41,7 @@ watch(searchTerm, (v) => {
 
 const query = useQuery({
   queryKey: ['sec-search-admin', debounced],
-  queryFn: () => searchSecurities(debounced.value),
+  queryFn: () => searchSecurities({ query: debounced.value }),
   enabled: () => debounced.value.length >= 1,
 });
 

@@ -16,10 +16,7 @@ export default class SecurityCurrencyCache extends Model {
   @Column({ type: DataType.STRING, allowNull: false })
   declare currencyCode: string;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(SECURITY_PROVIDER)),
-    allowNull: false,
-  })
+  @Column({ type: DataType.STRING, allowNull: false })
   declare providerName: SECURITY_PROVIDER;
 
   @Column({ type: DataType.DATE, allowNull: false })

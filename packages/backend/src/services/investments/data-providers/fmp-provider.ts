@@ -47,6 +47,7 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
 
       const results: SecuritySearchResult[] = filteredSearch.with.map((result) => ({
         symbol: result.symbol,
+        providerSymbol: result.symbol,
         name: result.name,
         assetClass: this.mapToAssetClass(result.symbol),
         providerName: this.providerName,

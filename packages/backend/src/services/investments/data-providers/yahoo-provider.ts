@@ -57,6 +57,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
 
         results.push({
           symbol,
+          providerSymbol: symbol,
           name,
           assetClass: this.mapTypeToAssetClass('typeDisp' in q ? String(q.typeDisp) : undefined),
           providerName: this.providerName,

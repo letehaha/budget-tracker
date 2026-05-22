@@ -27,6 +27,9 @@ export default class Securities extends Model {
   @Column({ type: DataType.STRING, allowNull: true })
   symbol!: string | null;
 
+  @Column({ type: DataType.STRING, allowNull: false })
+  providerSymbol!: string;
+
   @Index
   @Column({ type: DataType.STRING, allowNull: true })
   cusip!: string | null;
@@ -59,16 +62,10 @@ export default class Securities extends Model {
   @Column({ type: DataType.STRING, allowNull: true })
   exchangeName!: string | null;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(SECURITY_PROVIDER)),
-    allowNull: false,
-  })
+  @Column({ type: DataType.STRING, allowNull: false })
   providerName!: SECURITY_PROVIDER;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(ASSET_CLASS)),
-    allowNull: false,
-  })
+  @Column({ type: DataType.STRING, allowNull: false })
   assetClass!: ASSET_CLASS;
 
   @Column({ type: DataType.DATE, allowNull: false })

@@ -31,6 +31,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
 
       const results: SecuritySearchResult[] = searchResponse['bestMatches'].map((match: Record<string, string>) => ({
         symbol: match['1. symbol']!,
+        providerSymbol: match['1. symbol']!,
         name: match['2. name']!,
         assetClass: this.mapToAssetClass(match['3. type']!),
         providerName: this.providerName,

@@ -3,6 +3,7 @@
  * which data provider is best suited for different operations
  */
 import { SECURITY_PROVIDER } from '@bt/shared/types';
+import { ASSET_CLASS } from '@bt/shared/types/investments';
 
 type ExchangeRegion = 'US' | 'EU' | 'GLOBAL';
 
@@ -60,12 +61,22 @@ export function getSearchProviderPreference(): {
 }
 
 /**
- * Gets provider preference for historical price operations
+ * Gets provider preference for historical price operations. Passing
+ * `assetClass: ASSET_CLASS.crypto` short-circuits to CoinGecko regardless
+ * of the symbol shape (CoinGecko coin slugs like "bitcoin" don't fit any
+ * existing region regex).
  */
-export function getHistoricalPriceProviderPreference(symbol: string): {
+export function getHistoricalPriceProviderPreference(
+  symbol: string,
+  assetClass?: ASSET_CLASS,
+): {
   primary: SECURITY_PROVIDER;
   fallbacks: SECURITY_PROVIDER[];
 } {
+  if (assetClass === ASSET_CLASS.crypto) {
+    return { primary: SECURITY_PROVIDER.coingecko, fallbacks: [] };
+  }
+
   const region = getExchangeRegion(symbol);
 
   if (region === 'US') {
@@ -82,12 +93,19 @@ export function getHistoricalPriceProviderPreference(symbol: string): {
 }
 
 /**
- * Gets provider preference for latest price operations
+ * Gets provider preference for latest price operations.
  */
-export function getLatestPriceProviderPreference(symbol: string): {
+export function getLatestPriceProviderPreference(
+  symbol: string,
+  assetClass?: ASSET_CLASS,
+): {
   primary: SECURITY_PROVIDER;
   fallbacks: SECURITY_PROVIDER[];
 } {
+  if (assetClass === ASSET_CLASS.crypto) {
+    return { primary: SECURITY_PROVIDER.coingecko, fallbacks: [] };
+  }
+
   const region = getExchangeRegion(symbol);
 
   if (region === 'US') {

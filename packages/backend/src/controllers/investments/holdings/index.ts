@@ -16,6 +16,7 @@ import { z } from 'zod';
 // Zod schema for SecuritySearchResult (matching the shared type)
 const SecuritySearchResultSchema = z.object({
   symbol: z.string(),
+  providerSymbol: z.string(),
   name: z.string(),
   assetClass: z.nativeEnum(ASSET_CLASS),
   providerName: z.nativeEnum(SECURITY_PROVIDER),
@@ -23,8 +24,11 @@ const SecuritySearchResultSchema = z.object({
   exchangeMic: z.string().optional(),
   exchangeName: z.string().optional(),
   currencyCode: z.string(),
+  cryptoCurrencyCode: z.string().optional(),
   cusip: z.string().optional(),
   isin: z.string().optional(),
+  matchType: z.enum(['exact', 'partial']).optional(),
+  marketCapRank: z.number().nullable().optional(),
 }) satisfies z.ZodType<SecuritySearchResult>;
 
 export const createHoldingController = createController(

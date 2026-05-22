@@ -32,13 +32,19 @@ const addSecurityFromSearchImpl = async ({
   // Step 1: Create or update the security using existing service
   await addOrUpdateFromProvider([searchResult]);
 
-  // Step 2: Get the created/updated security from database
+  // Step 2: Get the created/updated security from database via the canonical
+  // (providerName, providerSymbol) tuple — symbol alone is not unique across providers.
   const security = await Securities.findOne({
-    where: { symbol: searchResult.symbol },
+    where: {
+      providerName: searchResult.providerName,
+      providerSymbol: searchResult.providerSymbol,
+    },
   });
 
   if (!security) {
-    throw new Error(`Failed to create/find security with symbol: ${searchResult.symbol}`);
+    throw new Error(
+      `Failed to create/find security with providerSymbol: ${searchResult.providerSymbol} (provider: ${searchResult.providerName})`,
+    );
   }
 
   // Step 3: Fetch and store the latest price immediately (unless skipped)
@@ -48,7 +54,7 @@ const addSecurityFromSearchImpl = async ({
     try {
       const provider = dataProviderFactory.getProvider(searchResult.providerName);
       // TODO: conside using composite provider here
-      const priceData = await provider.getLatestPrice(searchResult.symbol);
+      const priceData = await provider.getLatestPrice(searchResult.providerSymbol);
 
       // Store the price in SecurityPricing table
       await SecurityPricing.create({
