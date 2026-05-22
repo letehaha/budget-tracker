@@ -71,6 +71,30 @@ jest.mock('yahoo-finance2', () => {
   return { __esModule: true, default: MockYahooFinance };
 });
 
+// Mock the official CoinGecko TypeScript SDK globally. The composite provider
+// fans out to CoinGecko on every search, so without this mock every search
+// e2e test would either hit the live API or fail. Methods are no-ops by
+// default (empty results); crypto-specific tests override them per-suite.
+jest.mock('@coingecko/coingecko-typescript', () => {
+  const MockCoingecko = jest.fn().mockImplementation(() => ({
+    search: {
+      get: jest.fn<any>().mockResolvedValue({ coins: [] }),
+    },
+    simple: {
+      price: {
+        get: jest.fn<any>().mockResolvedValue({}),
+      },
+    },
+    coins: {
+      marketChart: {
+        get: jest.fn<any>().mockResolvedValue({ prices: [] }),
+        getRange: jest.fn<any>().mockResolvedValue({ prices: [] }),
+      },
+    },
+  }));
+  return { __esModule: true, default: MockCoingecko };
+});
+
 beforeAll(async () => {
   mswMockServer.listen({ onUnhandledRequest: 'bypass' });
   // Wait for i18next to fully load all locale files before tests run

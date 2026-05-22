@@ -1,4 +1,4 @@
-import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -541,6 +541,78 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
       } finally {
         jest.useRealTimers();
       }
+    });
+  });
+
+  describe('Provider-symbol Collision', () => {
+    it('updates both Securities rows when two securities share a providerSymbol under different providers', async () => {
+      // The DB allows two Security rows to share `providerSymbol` as long as
+      // their `providerName` differs (uniqueness is on the pair). Before this
+      // refactor the daily-sync built a map keyed only by providerSymbol, so
+      // one of these two rows was silently dropped. This test pins the fix in
+      // place: both rows must end up with a SecurityPricing entry and an
+      // advanced pricingLastSyncedAt.
+
+      // beforeEach already created an AAPL row via the FMP search path, so it
+      // has `providerName = fmp`. Add a SECOND AAPL row directly with
+      // `providerName = yahoo` — the colliding pair.
+      const colliderAaplYahoo = await Securities.create({
+        symbol: 'AAPL',
+        providerSymbol: 'AAPL',
+        currencyCode: 'USD',
+        providerName: SECURITY_PROVIDER.yahoo,
+        assetClass: ASSET_CLASS.stocks,
+        name: 'Apple Inc. (Yahoo dup)',
+      });
+
+      // Sanity-check the precondition: two rows, same providerSymbol, distinct providerName.
+      const fmpAapl = await Securities.findOne({
+        where: { providerSymbol: 'AAPL', providerName: SECURITY_PROVIDER.fmp },
+      });
+      expect(fmpAapl).not.toBeNull();
+      expect(fmpAapl!.id).not.toBe(colliderAaplYahoo.id);
+
+      await helpers.createHolding({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: colliderAaplYahoo.id,
+        },
+      });
+
+      // Wait for any background work from createHolding to settle, then
+      // reset price-fetch mocks so the assertion below sees only the sync run.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      mockedYahooChart.mockReset();
+      await SecurityPricing.destroy({ where: { securityId: colliderAaplYahoo.id } });
+
+      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      mockedYahooChart.mockResolvedValue({
+        quotes: [{ date: new Date(yesterday), close: 185.92, adjclose: 185.92 }],
+      });
+
+      const response = await helpers.triggerSecuritiesSync();
+      expect(response.statusCode).toBe(200);
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // BOTH AAPL rows must have a SecurityPricing entry. Before the fix, only
+      // one would — the second would be silently dropped by the symbol-keyed map.
+      const fmpPrices = await SecurityPricing.findAll({ where: { securityId: fmpAapl!.id } });
+      const yahooPrices = await SecurityPricing.findAll({ where: { securityId: colliderAaplYahoo.id } });
+
+      expect(fmpPrices.length).toBeGreaterThan(0);
+      expect(yahooPrices.length).toBeGreaterThan(0);
+
+      // Both rows' pricingLastSyncedAt must advance — otherwise the dropped
+      // security would re-enter the priority queue every run.
+      const securities = await helpers.getAllSecurities({ raw: true });
+      const fmpRow = securities.find((s) => s.id === fmpAapl!.id)!;
+      const yahooRow = securities.find((s) => s.id === colliderAaplYahoo.id)!;
+
+      expect(fmpRow.pricingLastSyncedAt).not.toBeNull();
+      expect(yahooRow.pricingLastSyncedAt).not.toBeNull();
+      expect(isToday(new Date(fmpRow.pricingLastSyncedAt!))).toBe(true);
+      expect(isToday(new Date(yahooRow.pricingLastSyncedAt!))).toBe(true);
     });
   });
 

@@ -504,6 +504,7 @@ export async function createHolding({
   portfolioId: string;
   searchResult: {
     symbol: string;
+    providerSymbol?: string;
     name: string;
     assetClass: string;
     providerName: string;
@@ -513,9 +514,13 @@ export async function createHolding({
     exchangeName?: string;
   };
 }) {
+  const { providerSymbol, ...rest } = searchResult;
   return apiPost({
     request,
     path: '/api/v1/investments/holding',
-    data: { portfolioId, searchResult },
+    data: {
+      portfolioId,
+      searchResult: { ...rest, providerSymbol: providerSymbol ?? rest.symbol },
+    },
   });
 }

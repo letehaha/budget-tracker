@@ -1,4 +1,4 @@
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -172,5 +172,83 @@ describe('POST /transaction (create investment transaction)', () => {
     });
 
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+  });
+
+  describe('crypto sell oversell', () => {
+    let btcSecurity: Securities;
+
+    beforeEach(async () => {
+      btcSecurity = await Securities.create({
+        symbol: 'BTC',
+        providerSymbol: 'bitcoin',
+        name: 'Bitcoin',
+        assetClass: ASSET_CLASS.crypto,
+        providerName: SECURITY_PROVIDER.coingecko,
+        currencyCode: 'USD',
+      });
+
+      await helpers.createHolding({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: btcSecurity.id,
+        },
+      });
+    });
+
+    it('allows selling crypto with no prior holdings (drift correction)', async () => {
+      const response = await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: btcSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: '0.5',
+          price: '60000',
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const transaction = helpers.extractResponse(response);
+      expect(transaction.quantity).toBeNumericEqual(0.5);
+
+      const [holding] = await helpers.getHoldings({
+        portfolioId: investmentPortfolio.id,
+        payload: { securityId: btcSecurity.id },
+        raw: true,
+      });
+      expect(holding!.quantity).toBeNumericEqual(-0.5);
+    });
+
+    it('allows selling more crypto than owned (staking/fee drift)', async () => {
+      // Buy 1 BTC first
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: btcSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          quantity: '1',
+          price: '50000',
+        },
+      });
+
+      // Now sell 1.5 BTC even though only 1 is tracked
+      const response = await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: btcSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: '1.5',
+          price: '60000',
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const [holding] = await helpers.getHoldings({
+        portfolioId: investmentPortfolio.id,
+        payload: { securityId: btcSecurity.id },
+        raw: true,
+      });
+      expect(holding!.quantity).toBeNumericEqual(-0.5);
+    });
   });
 });

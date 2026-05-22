@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -439,6 +439,60 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
         raw: true,
       });
       expect(holding!.quantity).toBeNumericEqual(15); // 2 + 10 + 3 (all buys now)
+    });
+  });
+
+  describe('crypto sell oversell', () => {
+    let btcSecurity: Securities;
+    let cryptoBuy: InvestmentTransaction;
+
+    beforeEach(async () => {
+      btcSecurity = await Securities.create({
+        symbol: 'BTC',
+        providerSymbol: 'bitcoin',
+        name: 'Bitcoin',
+        assetClass: ASSET_CLASS.crypto,
+        providerName: SECURITY_PROVIDER.coingecko,
+        currencyCode: 'USD',
+      });
+
+      await helpers.createHolding({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: btcSecurity.id,
+        },
+      });
+
+      cryptoBuy = await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: btcSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          quantity: '1',
+          price: '50000',
+        },
+        raw: true,
+      });
+    });
+
+    it('allows updating a crypto buy to a sell of larger quantity', async () => {
+      const response = await helpers.updateInvestmentTransaction({
+        transactionId: cryptoBuy.id,
+        payload: {
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: '2',
+        },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const [holding] = await helpers.getHoldings({
+        portfolioId: portfolio.id,
+        payload: { securityId: btcSecurity.id },
+        raw: true,
+      });
+      expect(holding!.quantity).toBeNumericEqual(-2);
     });
   });
 });

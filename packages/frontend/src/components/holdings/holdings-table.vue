@@ -22,6 +22,7 @@ import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{ holdings: HoldingModel[]; loading?: boolean; error?: boolean; portfolioId: string }>();
+const emit = defineEmits<{ (e: 'addSymbol'): void }>();
 
 const isTransactionModalOpen = ref(false);
 const selectedHolding = ref<HoldingModel | null>(null);
@@ -226,7 +227,7 @@ const theadBgStyles = 'bg-muted';
       </div>
       <p class="text-foreground mb-2 font-medium">{{ $t('portfolioDetail.holdingsTable.empty') }}</p>
       <p class="text-muted-foreground mb-4 text-sm">{{ $t('portfolioDetail.holdingsTable.emptyDescription') }}</p>
-      <Button variant="outline" @click="openTransactionModal()">
+      <Button variant="outline" @click="emit('addSymbol')">
         <PlusIcon class="mr-2 size-4" />
         {{ $t('portfolioDetail.holdingsTable.addFirstHolding') }}
       </Button>
@@ -343,13 +344,13 @@ const theadBgStyles = 'bg-muted';
                 {{ formatCurrency(Number(h.marketValue || 0), h.currencyCode) }}
               </td>
               <td :class="[cellStyles, 'px-3 text-right']">
-                <div :class="getGainColorClass({ gainPercent: getUnrealizedGain(h).percent })" class="tabular-nums">
+                <div :class="getGainColorClass({ gainValue: getUnrealizedGain(h).value })" class="tabular-nums">
                   <div class="font-semibold">{{ formatCurrency(getUnrealizedGain(h).value, h.currencyCode) }}</div>
                   <div class="text-xs">{{ getUnrealizedGain(h).percent.toFixed(2) }}%</div>
                 </div>
               </td>
               <td :class="[cellStyles, 'px-3 text-right']">
-                <div :class="getGainColorClass({ gainPercent: getRealizedGain(h).percent })" class="tabular-nums">
+                <div :class="getGainColorClass({ gainValue: getRealizedGain(h).value })" class="tabular-nums">
                   <div class="font-semibold">{{ formatCurrency(getRealizedGain(h).value, h.currencyCode) }}</div>
                   <div class="text-xs">{{ getRealizedGain(h).percent.toFixed(2) }}%</div>
                 </div>

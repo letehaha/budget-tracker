@@ -42,7 +42,7 @@
             <h2 class="text-3xl font-semibold tracking-tight">
               {{ formatCurrency(Number(summary.totalPortfolioValue), summary.currencyCode) }}
             </h2>
-            <div :class="getGainColorClass({ gainPercent: getTotalGainPercent() })" class="flex items-center gap-1.5">
+            <div :class="getGainColorClass({ gainValue: getTotalGainValue() })" class="flex items-center gap-1.5">
               <component :is="getTotalGainValue() >= 0 ? TrendingUpIcon : TrendingDownIcon" class="size-4" />
               <span class="text-sm font-medium">
                 {{ getTotalGainValue() >= 0 ? '+' : '' }}{{ formatCurrency(getTotalGainValue(), summary.currencyCode) }}
@@ -74,7 +74,7 @@
             <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               {{ $t('portfolioDetail.balance.metrics.unrealized') }}
             </p>
-            <div :class="getGainColorClass({ gainPercent: Number(summary.unrealizedGainPercent) })">
+            <div :class="getGainColorClass({ gainValue: Number(summary.unrealizedGainValue) })">
               <p class="text-base font-semibold">
                 {{ Number(summary.unrealizedGainValue) >= 0 ? '+' : ''
                 }}{{ formatCurrency(Number(summary.unrealizedGainValue), summary.currencyCode) }}
@@ -91,7 +91,7 @@
             <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               {{ $t('portfolioDetail.balance.metrics.realized') }}
             </p>
-            <div :class="getGainColorClass({ gainPercent: Number(summary.realizedGainPercent) })">
+            <div :class="getGainColorClass({ gainValue: Number(summary.realizedGainValue) })">
               <p class="text-base font-semibold">
                 {{ Number(summary.realizedGainValue) >= 0 ? '+' : ''
                 }}{{ formatCurrency(Number(summary.realizedGainValue), summary.currencyCode) }}
@@ -108,7 +108,7 @@
             <p class="text-muted-foreground text-xs font-medium tracking-wide whitespace-nowrap uppercase">
               {{ $t('portfolioDetail.balance.metrics.totalReturn') }}
             </p>
-            <div :class="getGainColorClass({ gainPercent: getTotalGainPercent() })">
+            <div :class="getGainColorClass({ gainValue: getTotalGainValue() })">
               <p class="text-base font-semibold">
                 {{ getTotalGainValue() >= 0 ? '+' : '' }}{{ formatCurrency(getTotalGainValue(), summary.currencyCode) }}
               </p>

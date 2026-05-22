@@ -9,6 +9,7 @@ import { endOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
 import { dataProviderFactory } from '../data-providers';
+import { toProviderSymbol } from '../data-providers/base-provider';
 import { partitionByMarketStatus } from '../data-providers/utils';
 
 const SECURITIES_PRICES_SYNC_LOCK_KEY = 'lock:sync:securities-prices';
@@ -34,7 +35,9 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
   const yesterday = endOfDay(subDays(new Date(), 1));
   logger.info('Starting securities prices daily price sync');
 
-  // Step 1: Query ALL securities with holdings, prioritized by staleness
+  // Step 1: Query ALL securities with holdings, prioritized by staleness.
+  // `providerSymbol` is the canonical id since crypto display symbols are not unique;
+  // a security may still have a NULL legacy `symbol`, but `providerSymbol` is NOT NULL.
   const securitiesFromDb = await Securities.findAll({
     include: [
       {
@@ -46,9 +49,6 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
         },
       },
     ],
-    where: {
-      symbol: { [Op.ne]: null }, // Only securities with symbols
-    },
     group: ['Securities.id'], // Deduplicate securities held by multiple users
     order: [['pricingLastSyncedAt', 'ASC NULLS FIRST']], // Prioritize oldest/never-synced first
     raw: false, // Need model instances to update pricingLastSyncedAt
@@ -78,17 +78,23 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
   // Step 2: Use composite provider to fetch all prices efficiently
   const compositeProvider = dataProviderFactory.getProvider(SECURITY_PROVIDER.composite);
 
-  const securitiesMapBySymbol = new Map(securitiesFromDb.filter((s) => s.symbol).map((s) => [s.symbol!, s]));
-  const symbols = [...securitiesMapBySymbol.keys()];
-  const securitiesInputs = [...securitiesMapBySymbol.values()].map((s) => ({
-    symbol: s.symbol!,
+  // `securitiesById` is only used to recover symbol text for error logging in
+  // the individual-upsert fallback path. The composite returns a Map keyed by
+  // securityId, so primary-flow matching needs no lookup table.
+  const securitiesById = new Map<string, Securities>(securitiesFromDb.map((s) => [s.id, s]));
+  const securitiesInputs = securitiesFromDb.map((s) => ({
+    securityId: s.id,
+    symbol: s.symbol ?? s.providerSymbol,
+    providerSymbol: toProviderSymbol(s.providerSymbol),
     assetClass: s.assetClass,
   }));
 
-  logger.info(`Fetching prices for ${securitiesMapBySymbol.size} symbols using composite provider`);
+  logger.info(`Fetching prices for ${securitiesById.size} securities using composite provider`);
 
   try {
-    // Let composite provider handle all routing, grouping, and bulk fetching internally
+    // Composite returns a Map keyed by securityId; the type guarantees every
+    // value carries the originating securityId, so no defensive guards are
+    // needed when consuming it.
     const fetchedPrices = await compositeProvider.fetchPricesForSecurities(securitiesInputs, yesterday);
 
     const securityPricesToUpsert: {
@@ -101,22 +107,26 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     let securitiesIdsToPatch: string[] = [];
 
     // Step 3: Store fetched prices and update timestamps
-    for (const priceData of fetchedPrices) {
-      const securityData = securitiesMapBySymbol.get(priceData.symbol);
-      if (!securityData) {
-        logger.warn(`No security ID found for symbol: ${priceData.symbol}`);
+    for (const [securityId, priceData] of fetchedPrices) {
+      if (!securitiesById.has(securityId)) {
+        // Composite returned a securityId we didn't ask for. This should be
+        // impossible — composite only fetches inputs we supplied — so it
+        // signals a provider bug or data corruption.
+        logger.error(
+          `Composite returned unrequested securityId "${securityId}" ` +
+            `(providerSymbol "${priceData.providerSymbol}" from ${priceData.providerName}). Dropping.`,
+        );
         continue;
       }
 
-      // Store the price
       securityPricesToUpsert.push({
-        securityId: securityData.id,
+        securityId,
         date: priceData.date,
         priceClose: priceData.priceClose.toString(),
         source: priceData.providerName,
       });
 
-      securitiesIdsToPatch.push(securityData.id);
+      securitiesIdsToPatch.push(securityId);
     }
 
     const failedPricesUpdates: typeof securityPricesToUpsert = [];
@@ -150,7 +160,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
             failedPricesUpdates.push(priceData);
             result.failedUpdates++;
 
-            const security = [...securitiesMapBySymbol.values()].find((s) => s.id === priceData.securityId);
+            const security = securitiesById.get(priceData.securityId);
 
             const errorMessage = individualError instanceof Error ? individualError.message : 'Unknown error';
 
@@ -174,8 +184,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     }
 
     // Step 4: Handle securities that didn't get price data from provider
-    const fetchedSymbols = new Set(fetchedPrices.map((p) => p.symbol));
-    const missedInputs = securitiesInputs.filter((s) => !fetchedSymbols.has(s.symbol));
+    const missedInputs = securitiesInputs.filter((s) => !fetchedPrices.has(s.securityId));
 
     if (missedInputs.length > 0) {
       const { expectedClosed, actuallyMissing } = partitionByMarketStatus({
@@ -187,9 +196,8 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
         result.skippedClosedMarket = expectedClosed.length;
         // Advance pricingLastSyncedAt for closed-market symbols so they don't dominate
         // the staleness queue on every weekend/holiday run.
-        for (const { symbol } of expectedClosed) {
-          const id = securitiesMapBySymbol.get(symbol)?.id;
-          if (id !== undefined) securitiesIdsToPatch.push(id);
+        for (const { securityId } of expectedClosed) {
+          securitiesIdsToPatch.push(securityId);
         }
         logger.info(
           `${expectedClosed.length} symbols skipped (markets closed on ${yesterday.toISOString()}): ${expectedClosed.map((s) => s.symbol).join(', ')}`,
@@ -201,13 +209,20 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
           `${actuallyMissing.length} symbols had no price data from provider: ${actuallyMissing.map((s) => s.symbol).join(', ')}`,
         );
 
-        for (const { symbol } of actuallyMissing) {
+        // Advance `pricingLastSyncedAt` so a permanently-delisted or otherwise
+        // unfetchable security doesn't dominate the staleness-prioritised queue
+        // run after run. Without this, a single broken security at the head of
+        // the queue would be retried on every sync while the rest of the table
+        // also gets processed but stays "fresher" — slowly creating an
+        // ever-growing backlog of work that always fails first.
+        for (const { securityId, symbol } of actuallyMissing) {
           result.failedUpdates++;
           result.errors.push({
-            securityId: securitiesMapBySymbol.get(symbol)?.id || '',
+            securityId,
             symbol,
             error: 'No price data returned from provider',
           });
+          securitiesIdsToPatch.push(securityId);
         }
       }
     }
@@ -226,7 +241,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     }
   } catch (error) {
     // Handle total failure
-    result.failedUpdates = symbols.length;
+    result.failedUpdates = securitiesInputs.length;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     logger.error({
@@ -234,11 +249,10 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
       error: error as Error,
     });
 
-    // Add error for all symbols
-    for (const symbol of symbols) {
+    for (const input of securitiesInputs) {
       result.errors.push({
-        securityId: securitiesMapBySymbol.get(symbol)?.id || '',
-        symbol,
+        securityId: input.securityId,
+        symbol: input.symbol,
         error: errorMessage,
       });
     }

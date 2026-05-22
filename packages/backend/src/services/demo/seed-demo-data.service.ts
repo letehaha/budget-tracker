@@ -398,9 +398,10 @@ export async function setupInvestments({
 
     for (const sec of DEMO_SECURITIES) {
       const [security, created] = await Securities.findOrCreate({
-        where: { symbol: sec.symbol },
+        where: { providerName: SECURITY_PROVIDER.yahoo, providerSymbol: sec.symbol },
         defaults: {
           symbol: sec.symbol,
+          providerSymbol: sec.symbol,
           name: sec.name,
           assetClass: sec.assetClass,
           currencyCode: sec.currencyCode,

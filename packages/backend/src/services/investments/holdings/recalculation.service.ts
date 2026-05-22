@@ -1,15 +1,19 @@
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import Securities from '@models/investments/securities.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Big } from 'big.js';
 
 const recalculateHoldingImpl = async (holdingId: { portfolioId: string; securityId: string }) => {
   const holding = await findOrThrowNotFound({
-    query: Holdings.findOne({ where: holdingId }),
+    query: Holdings.findOne({
+      where: holdingId,
+      include: [{ model: Securities, as: 'security', required: true }],
+    }),
     message: t({ key: 'investments.holdingNotFoundForRecalculation' }),
   });
 
@@ -62,8 +66,10 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: string; security
     }
   }
 
-  // Cap quantity at 0 (no negative holdings) but preserve cost basis calculations
-  holding.quantity = Money.fromDecimal(totalQuantity.lt(0) ? '0' : totalQuantity.toFixed(10));
+  // Crypto holdings may legitimately go negative (staking/fee drift) until the
+  // user reconciles via a "mark as zero" adjustment; stocks always cap at zero.
+  const allowNegativeQuantity = holding.security?.assetClass === ASSET_CLASS.crypto;
+  holding.quantity = Money.fromDecimal(!allowNegativeQuantity && totalQuantity.lt(0) ? '0' : totalQuantity.toFixed(10));
   holding.costBasis = Money.fromDecimal(totalCostBasis.lt(0) ? '0' : totalCostBasis.toFixed(10));
   holding.refCostBasis = Money.fromDecimal(totalRefCostBasis.lt(0) ? '0' : totalRefCostBasis.toFixed(10));
   await holding.save();

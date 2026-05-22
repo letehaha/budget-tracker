@@ -1,16 +1,20 @@
 import { api } from '@/api/_api';
-import type { SecuritySearchResult, SecuritySearchResultFormatted } from '@bt/shared/types/investments';
+import {
+  type ASSET_CLASS,
+  type SecuritySearchResult,
+  type SecuritySearchResultFormatted,
+} from '@bt/shared/types/investments';
 
-export const searchSecurities = async (
-  query: string,
-  portfolioId?: string,
-): Promise<SecuritySearchResultFormatted[]> => {
-  const params: { query: string; portfolioId?: string } = { query };
-  if (portfolioId !== undefined) {
-    params.portfolioId = portfolioId;
-  }
-  const res: SecuritySearchResultFormatted[] = await api.get('/investments/securities/search', params);
-  return res;
+export const searchSecurities = async ({
+  query,
+  portfolioId,
+  assetClass,
+}: {
+  query: string;
+  portfolioId?: string;
+  assetClass?: ASSET_CLASS;
+}): Promise<SecuritySearchResultFormatted[]> => {
+  return api.get('/investments/securities/search', { query, portfolioId, assetClass });
 };
 
 interface PriceUploadInfo {

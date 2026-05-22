@@ -72,6 +72,7 @@ export async function bulkUploadSecurityPrices<R extends boolean | undefined = f
 export function buildSecuritySearchResult(overrides?: Partial<SecuritySearchResult>): SecuritySearchResult {
   return {
     symbol: 'TEST',
+    providerSymbol: 'TEST',
     name: 'Test Security',
     assetClass: ASSET_CLASS.stocks,
     providerName: SECURITY_PROVIDER.fmp,
