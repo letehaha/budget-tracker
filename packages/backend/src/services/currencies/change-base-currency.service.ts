@@ -194,9 +194,12 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       transaction: dbTransaction,
     });
 
-    // Pre-fetch portfolios once for steps 4, 6, 7
+    // Pre-fetch portfolios once for steps 4, 6, 7. Include soft-deleted ones
+    // (paranoid:false) so refAmounts stay consistent if the user later
+    // restores a portfolio that was in the trash during a base-currency switch.
     const portfolios = await Portfolios.findAll({
       where: { userId },
+      paranoid: false,
       transaction: dbTransaction,
     });
     const portfolioIds = portfolios.map((p) => p.id);

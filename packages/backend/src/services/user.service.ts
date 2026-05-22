@@ -259,8 +259,11 @@ export const deleteUserCurrency = withTransaction(
 
     // Holdings own their currency too: refAmount lookups on investment txs
     // require the link, so disconnect must not leave orphan investments behind.
+    // Include soft-deleted portfolios (trash) so a user can't remove a currency
+    // whose holdings would resurface broken when the portfolio is restored.
     const userPortfolios = await Portfolios.findAll({
       where: { userId },
+      paranoid: false,
       attributes: ['id'],
       raw: true,
     });

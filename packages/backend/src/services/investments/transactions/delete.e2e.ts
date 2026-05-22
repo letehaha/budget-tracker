@@ -220,4 +220,34 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
     const stillLinked = await UsersCurrencies.findOne({ where: { currencyCode: 'EUR' } });
     expect(stillLinked).not.toBeNull();
   });
+
+  it('should still block currency removal when the holding belongs to a soft-deleted (trashed) portfolio', async () => {
+    // Guard for the paranoid:false bypass in user.service.deleteUserCurrency.
+    // Without it, a user could remove a currency while a portfolio in trash
+    // still references it — restoring the portfolio later would surface broken
+    // holding rows with no UsersCurrencies link.
+    const [eurSecurity] = await helpers.seedSecurities([{ symbol: 'SAP', name: 'SAP SE', currencyCode: 'EUR' }]);
+
+    const eurPortfolio = await helpers.createPortfolio({
+      payload: helpers.buildPortfolioPayload({ name: 'EUR Portfolio Trash' }),
+      raw: true,
+    });
+
+    await helpers.createHolding({
+      payload: { portfolioId: eurPortfolio.id, securityId: eurSecurity!.id },
+    });
+
+    await helpers.deletePortfolio({ portfolioId: eurPortfolio.id });
+
+    const response = await makeRequest({
+      method: 'delete',
+      url: '/user/currency',
+      payload: { currencyCode: 'EUR' },
+    });
+
+    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const stillLinked = await UsersCurrencies.findOne({ where: { currencyCode: 'EUR' } });
+    expect(stillLinked).not.toBeNull();
+  });
 });

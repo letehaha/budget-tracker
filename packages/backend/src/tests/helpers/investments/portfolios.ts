@@ -7,6 +7,7 @@ import { deletePortfolio as _deletePortfolio } from '@services/investments/portf
 import { getPortfolioSummary as _getPortfolioSummary } from '@services/investments/portfolios/get-portfolio-summary.service';
 import { getPortfolio as _getPortfolio } from '@services/investments/portfolios/get.service';
 import { listPortfolios as _listPortfolios } from '@services/investments/portfolios/list.service';
+import { restorePortfolio as _restorePortfolio } from '@services/investments/portfolios/restore.service';
 import { updatePortfolio as _updatePortfolio } from '@services/investments/portfolios/update.service';
 
 import { makeRequest } from '../common';
@@ -46,6 +47,7 @@ export async function createPortfolio<R extends boolean | undefined = false>({
 export async function listPortfolios<R extends boolean | undefined = false>({
   portfolioType,
   isEnabled,
+  onlyDeleted,
   limit,
   offset,
   page,
@@ -53,6 +55,7 @@ export async function listPortfolios<R extends boolean | undefined = false>({
 }: {
   portfolioType?: PORTFOLIO_TYPE;
   isEnabled?: boolean;
+  onlyDeleted?: boolean;
   limit?: number;
   offset?: number;
   page?: number;
@@ -64,7 +67,7 @@ export async function listPortfolios<R extends boolean | undefined = false>({
   >({
     method: 'get',
     url: '/investments/portfolios',
-    payload: removeUndefinedKeys({ portfolioType, isEnabled, limit, offset, page }),
+    payload: removeUndefinedKeys({ portfolioType, isEnabled, onlyDeleted, limit, offset, page }),
     raw,
   });
 }
@@ -130,6 +133,20 @@ export async function deletePortfolio<R extends boolean | undefined = false>({
     method: 'delete',
     url: `/investments/portfolios/${portfolioId}`,
     payload: removeUndefinedKeys({ force }),
+    raw,
+  });
+}
+
+export async function restorePortfolio<R extends boolean | undefined = false>({
+  portfolioId,
+  raw,
+}: {
+  portfolioId: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _restorePortfolio>>, R>({
+    method: 'post',
+    url: `/investments/portfolios/${portfolioId}/restore`,
     raw,
   });
 }

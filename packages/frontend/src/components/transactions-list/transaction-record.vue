@@ -67,9 +67,13 @@
               <div class="h-4 w-16 animate-pulse rounded bg-white/10" />
             </template>
             <template v-else>
-              <span class="line-clamp-1 text-sm tracking-wider">
+              <span
+                class="line-clamp-1 text-sm tracking-wider"
+                :class="{ 'text-muted-foreground line-through': isPortfolioDeleted }"
+              >
                 {{ portfolioName }}
               </span>
+              <DeletedBadge v-if="isPortfolioDeleted" />
             </template>
           </div>
         </template>
@@ -128,6 +132,7 @@
 
 <script lang="ts" setup>
 import CategoryCircle from '@/components/common/category-circle.vue';
+import DeletedBadge from '@/components/common/deleted-badge.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { useOppositeTxRecord } from '@/composable/data-queries/opposite-tx-record';
@@ -190,6 +195,7 @@ const isPortfolioLinked = computed(
 const portfolioLinkId = computed(() => (isPortfolioLinked.value ? transaction.id : undefined));
 const { data: portfolioLinkData, isLoading: isLoadingPortfolioLink } = useTransactionPortfolioLink(portfolioLinkId);
 const portfolioName = computed(() => portfolioLinkData.value?.portfolioName ?? '');
+const isPortfolioDeleted = computed(() => portfolioLinkData.value?.isPortfolioDeleted ?? false);
 
 // Show grouped transfer display when we have both sides
 const shouldShowGroupedTransfer = computed(() => {

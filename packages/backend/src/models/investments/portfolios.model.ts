@@ -10,6 +10,7 @@ import PortfolioBalances from './portfolio-balances.model';
 
 @Table({
   timestamps: true,
+  paranoid: true,
   tableName: 'Portfolios',
 })
 export default class Portfolios extends Model {
@@ -49,6 +50,9 @@ export default class Portfolios extends Model {
 
   @Column({ type: DataType.DATE, allowNull: false })
   declare updatedAt: Date;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  declare deletedAt: Date | null;
 
   // Associations
   @BelongsTo(() => Users)
