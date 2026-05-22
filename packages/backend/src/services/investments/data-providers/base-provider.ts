@@ -1,15 +1,34 @@
 import type { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
 
 /**
+ * Branded type for provider-native security identifiers (Yahoo/Polygon/FMP/
+ * AlphaVantage ticker, CoinGecko coin slug). Prevents accidental assignment
+ * of `Security.symbol` (display ticker) where a provider-native id is required —
+ * the two are NOT interchangeable for CoinGecko (`"BTC"` vs `"bitcoin"`), and
+ * the price-sync map relies on matching against the provider-native id.
+ *
+ * Cast at the boundary (DB row → call site, or external API response →
+ * `PriceData`) via {@link toProviderSymbol}.
+ */
+export type ProviderSymbol = string & { readonly __brand: 'ProviderSymbol' };
+
+/**
+ * Boundary cast from a plain string (Security row field, external SDK response)
+ * into a {@link ProviderSymbol}. Caller is asserting the string is the
+ * provider-native id, not the display ticker.
+ */
+export const toProviderSymbol = (value: string): ProviderSymbol => value as ProviderSymbol;
+
+/**
  * Represents normalized price data for a single security on a specific date.
  *
- * `symbol` here is the **provider-native identifier** (Yahoo ticker, CoinGecko
- * coin slug, etc.) — callers match it against `Security.providerSymbol` rather
+ * `providerSymbol` is the provider-native identifier (Yahoo ticker, CoinGecko
+ * coin slug, etc.). Callers match it against `Security.providerSymbol` rather
  * than the human-facing ticker, because crypto symbols are not unique on
  * CoinGecko and a daily-sync map keyed on display symbol would miscount.
  */
 export interface PriceData {
-  symbol: string;
+  providerSymbol: ProviderSymbol;
   date: Date;
   priceClose: number;
   priceAsOf?: Date;
@@ -50,7 +69,7 @@ export interface HistoricalPriceOptions {
  */
 export interface SecurityPriceFetchInput {
   symbol: string;
-  providerSymbol: string;
+  providerSymbol: ProviderSymbol;
   assetClass: ASSET_CLASS;
 }
 
@@ -61,11 +80,11 @@ export abstract class BaseSecurityDataProvider {
    * Fetches the historical price data (OHLC) for a single security.
    * This is used for backfilling missing data or displaying charts.
    * Most providers return full available data by default.
-   * @param symbol The ticker symbol of the security.
+   * @param providerSymbol The provider-native identifier of the security.
    * @param options Optional date range parameters. If not provided, returns all available data.
    * @returns A promise that resolves to an array of historical price data.
    */
-  abstract getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]>;
+  abstract getHistoricalPrices(providerSymbol: ProviderSymbol, options?: HistoricalPriceOptions): Promise<PriceData[]>;
 
   /**
    * Searches for securities based on a query string (symbol or name).
@@ -80,10 +99,10 @@ export abstract class BaseSecurityDataProvider {
   /**
    * Fetches the latest/current price for a single security.
    * This is used for immediate price display and current portfolio valuation.
-   * @param symbol The ticker symbol of the security.
+   * @param providerSymbol The provider-native identifier of the security.
    * @returns A promise that resolves to the latest price data.
    */
-  abstract getLatestPrice(symbol: string): Promise<PriceData>;
+  abstract getLatestPrice(providerSymbol: ProviderSymbol): Promise<PriceData>;
 
   /**
    * Fetch prices for multiple securities for a specific date.

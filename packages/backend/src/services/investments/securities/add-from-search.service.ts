@@ -5,6 +5,7 @@ import SecurityPricing from '@models/investments/security-pricing.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { dataProviderFactory } from '../data-providers';
+import { toProviderSymbol } from '../data-providers/base-provider';
 import { addOrUpdateFromProvider } from '../securities-manage';
 
 interface AddSecurityFromSearchParams {
@@ -54,7 +55,7 @@ const addSecurityFromSearchImpl = async ({
     try {
       const provider = dataProviderFactory.getProvider(searchResult.providerName);
       // TODO: conside using composite provider here
-      const priceData = await provider.getLatestPrice(searchResult.providerSymbol);
+      const priceData = await provider.getLatestPrice(toProviderSymbol(searchResult.providerSymbol));
 
       // Store the price in SecurityPricing table
       await SecurityPricing.create({

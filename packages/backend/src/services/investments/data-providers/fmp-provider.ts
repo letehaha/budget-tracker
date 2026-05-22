@@ -2,7 +2,14 @@ import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared
 import { sleep } from '@common/helpers';
 import { logger } from '@js/utils';
 
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData, SecurityPriceFetchInput } from './base-provider';
+import {
+  BaseSecurityDataProvider,
+  HistoricalPriceOptions,
+  PriceData,
+  ProviderSymbol,
+  SecurityPriceFetchInput,
+  toProviderSymbol,
+} from './base-provider';
 import { FmpClient, FmpSearchResult } from './clients';
 
 export class FmpDataProvider extends BaseSecurityDataProvider {
@@ -71,14 +78,14 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
   /**
    * Get latest price for a security
    */
-  public async getLatestPrice(symbol: string): Promise<PriceData> {
+  public async getLatestPrice(providerSymbol: ProviderSymbol): Promise<PriceData> {
     try {
-      logger.info(`Fetching latest price for: ${symbol}`);
+      logger.info(`Fetching latest price for: ${providerSymbol}`);
 
-      const quotes = await this.client.getQuote(symbol);
+      const quotes = await this.client.getQuote(providerSymbol);
 
       if (!Array.isArray(quotes) || quotes.length === 0) {
-        throw new Error(`No quote data found for symbol: ${symbol}`);
+        throw new Error(`No quote data found for symbol: ${providerSymbol}`);
       }
 
       const quote = quotes[0]!;
@@ -86,19 +93,19 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
       const latestTradingDay = new Date(quote.timestamp * 1000);
 
       const result: PriceData = {
-        symbol: quote.symbol,
+        providerSymbol: toProviderSymbol(quote.symbol),
         date: latestTradingDay,
         priceClose,
         priceAsOf: latestTradingDay, // Price is as of the previous close date
         providerName: SECURITY_PROVIDER.fmp,
       };
 
-      logger.info(`Latest price for ${symbol}: ${priceClose} on ${latestTradingDay.toISOString()}`);
+      logger.info(`Latest price for ${providerSymbol}: ${priceClose} on ${latestTradingDay.toISOString()}`);
       return result;
     } catch (error) {
-      logger.error({ message: `Failed to fetch latest price for ${symbol}:`, error: error as Error });
+      logger.error({ message: `Failed to fetch latest price for ${providerSymbol}:`, error: error as Error });
       throw new Error(
-        `Failed to fetch latest price for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to fetch latest price for ${providerSymbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         { cause: error },
       );
     }
@@ -107,27 +114,30 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
   /**
    * Get historical prices for a security within a date range
    */
-  public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
+  public async getHistoricalPrices(
+    providerSymbol: ProviderSymbol,
+    options?: HistoricalPriceOptions,
+  ): Promise<PriceData[]> {
     try {
       const startDate = options?.startDate;
       const endDate = options?.endDate;
 
       logger.info(
-        `Fetching historical prices for: ${symbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
+        `Fetching historical prices for: ${providerSymbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
       );
 
       // If no date range specified, FMP typically returns recent data by default
       const fromDate = startDate?.toISOString().split('T')[0];
       const toDate = endDate?.toISOString().split('T')[0];
 
-      const historicalResponse = await this.client.getHistoricalPrices(symbol, fromDate, toDate);
+      const historicalResponse = await this.client.getHistoricalPrices(providerSymbol, fromDate, toDate);
 
       if (!historicalResponse.historical || !Array.isArray(historicalResponse.historical)) {
-        throw new Error(`No historical data found for symbol: ${symbol}`);
+        throw new Error(`No historical data found for symbol: ${providerSymbol}`);
       }
 
       const results: PriceData[] = historicalResponse.historical.map((dailyData) => ({
-        symbol,
+        providerSymbol,
         date: new Date(dailyData.date),
         priceClose: dailyData.price,
         priceAsOf: new Date(dailyData.date),
@@ -137,12 +147,12 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
       // Sort by date ascending
       const sorted = results.toSorted((a, b) => a.date.getTime() - b.date.getTime());
 
-      logger.info(`Found ${sorted.length} historical prices for ${symbol} in date range`);
+      logger.info(`Found ${sorted.length} historical prices for ${providerSymbol} in date range`);
       return sorted;
     } catch (error) {
-      logger.error({ message: `Failed to fetch historical prices for ${symbol}:`, error: error as Error });
+      logger.error({ message: `Failed to fetch historical prices for ${providerSymbol}:`, error: error as Error });
       throw new Error(
-        `Failed to fetch historical prices for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to fetch historical prices for ${providerSymbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         { cause: error },
       );
     }
@@ -163,21 +173,20 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
       return [];
     }
 
-    const symbols = securities.map((s) => s.symbol);
-    logger.info(`FMP: Starting fetch for ${symbols.length} securities`);
+    logger.info(`FMP: Starting fetch for ${securities.length} securities`);
 
     // Apply daily limit
-    const symbolsToProcess = symbols.length > FMP_FREE_DAILY_LIMIT ? symbols.slice(0, FMP_FREE_DAILY_LIMIT) : symbols;
+    const toProcess = securities.length > FMP_FREE_DAILY_LIMIT ? securities.slice(0, FMP_FREE_DAILY_LIMIT) : securities;
 
-    if (symbolsToProcess.length < symbols.length) {
-      logger.warn(`FMP daily limit reached: processing ${symbolsToProcess.length} of ${symbols.length} securities`);
+    if (toProcess.length < securities.length) {
+      logger.warn(`FMP daily limit reached: processing ${toProcess.length} of ${securities.length} securities`);
     }
 
     const fetchedPrices: PriceData[] = [];
     let requestsThisMinute = 0;
     let lastRequestTime = 0;
 
-    for (const symbol of symbolsToProcess) {
+    for (const { providerSymbol } of toProcess) {
       try {
         // Rate limiting: respect free tier limits
         if (requestsThisMinute >= FMP_MINUTE_LIMIT) {
@@ -202,23 +211,28 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
         lastRequestTime = Date.now();
         requestsThisMinute++;
 
-        const historicalPrices = await this.getHistoricalPrices(symbol, { startDate: forDate, endDate: forDate });
+        const historicalPrices = await this.getHistoricalPrices(providerSymbol, {
+          startDate: forDate,
+          endDate: forDate,
+        });
         if (historicalPrices[0]) {
           const priceData = historicalPrices[0];
           fetchedPrices.push(priceData);
-          logger.info(`Fetched price for ${symbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`);
+          logger.info(
+            `Fetched price for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`,
+          );
         } else {
-          logger.info(`No price data found for ${symbol} on ${forDate.toISOString().split('T')[0]}`);
+          logger.info(`No price data found for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         // Per-symbol failures are expected (delisted, unsupported by provider, etc.).
         // The composite provider aggregates and reports if ALL providers fail.
-        logger.info(`Failed to fetch price for ${symbol}: ${errorMessage}`);
+        logger.info(`Failed to fetch price for ${providerSymbol}: ${errorMessage}`);
       }
     }
 
-    logger.info(`FMP fetch complete: ${fetchedPrices.length}/${symbolsToProcess.length} securities fetched`);
+    logger.info(`FMP fetch complete: ${fetchedPrices.length}/${toProcess.length} securities fetched`);
     return fetchedPrices;
   }
 

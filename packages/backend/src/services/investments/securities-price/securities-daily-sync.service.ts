@@ -9,6 +9,7 @@ import { endOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
 import { dataProviderFactory } from '../data-providers';
+import { ProviderSymbol, toProviderSymbol } from '../data-providers/base-provider';
 import { partitionByMarketStatus } from '../data-providers/utils';
 
 const SECURITIES_PRICES_SYNC_LOCK_KEY = 'lock:sync:securities-prices';
@@ -77,17 +78,17 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
   // Step 2: Use composite provider to fetch all prices efficiently
   const compositeProvider = dataProviderFactory.getProvider(SECURITY_PROVIDER.composite);
 
-  // Key the lookup map on `providerSymbol`, not the display ticker. `PriceData.symbol`
-  // carries the provider-native id (e.g. "bitcoin" from CoinGecko), so a map keyed on
-  // the human-facing symbol would silently drop every crypto result.
+  // Key the lookup map on `providerSymbol` (provider-native id), not the display
+  // ticker — crypto display tickers are not unique on CoinGecko.
   //
   // The DB unique constraint is `(providerName, providerSymbol)`, so two Security rows
   // CAN share a providerSymbol (e.g. "AAPL" stored once under yahoo and once under fmp).
   // A single-key map would silently overwrite one with the other. Detect that here and
   // log loudly — one of those rows will not get its price updated this run.
-  const securitiesMapByProviderSymbol = new Map<string, Securities>();
+  const securitiesMapByProviderSymbol = new Map<ProviderSymbol, Securities>();
   for (const security of securitiesFromDb) {
-    const existing = securitiesMapByProviderSymbol.get(security.providerSymbol);
+    const key = toProviderSymbol(security.providerSymbol);
+    const existing = securitiesMapByProviderSymbol.get(key);
     if (existing) {
       logger.error(
         `Sync map collision: providerSymbol "${security.providerSymbol}" maps to multiple Securities ` +
@@ -96,12 +97,12 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
       );
       continue;
     }
-    securitiesMapByProviderSymbol.set(security.providerSymbol, security);
+    securitiesMapByProviderSymbol.set(key, security);
   }
   const providerSymbols = [...securitiesMapByProviderSymbol.keys()];
   const securitiesInputs = [...securitiesMapByProviderSymbol.values()].map((s) => ({
     symbol: s.symbol ?? s.providerSymbol,
-    providerSymbol: s.providerSymbol,
+    providerSymbol: toProviderSymbol(s.providerSymbol),
     assetClass: s.assetClass,
   }));
 
@@ -122,10 +123,10 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
 
     // Step 3: Store fetched prices and update timestamps
     for (const priceData of fetchedPrices) {
-      const securityData = securitiesMapByProviderSymbol.get(priceData.symbol);
+      const securityData = securitiesMapByProviderSymbol.get(priceData.providerSymbol);
       if (!securityData) {
         logger.warn(
-          `No security found for providerSymbol "${priceData.symbol}" (from ${priceData.providerName}). ` +
+          `No security found for providerSymbol "${priceData.providerSymbol}" (from ${priceData.providerName}). ` +
             `Price will be dropped.`,
         );
         continue;
@@ -197,7 +198,7 @@ const securitiesPricesSyncImpl = async (): Promise<SecuritiesPricesSyncResult> =
     }
 
     // Step 4: Handle securities that didn't get price data from provider
-    const fetchedProviderSymbols = new Set(fetchedPrices.map((p) => p.symbol));
+    const fetchedProviderSymbols = new Set<ProviderSymbol>(fetchedPrices.map((p) => p.providerSymbol));
     const missedInputs = securitiesInputs.filter((s) => !fetchedProviderSymbols.has(s.providerSymbol));
 
     if (missedInputs.length > 0) {

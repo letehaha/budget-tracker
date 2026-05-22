@@ -5,7 +5,7 @@ import SecurityPricing from '@models/investments/security-pricing.model';
 import { withLock } from '@services/common/lock';
 import { withTransaction } from '@services/common/with-transaction';
 import { dataProviderFactory } from '@services/investments/data-providers';
-import { PriceData } from '@services/investments/data-providers/base-provider';
+import { PriceData, toProviderSymbol } from '@services/investments/data-providers/base-provider';
 import { subYears } from 'date-fns';
 
 // CoinGecko Demo tier only serves up to 1 year of history. Stocks (Yahoo etc.)
@@ -34,7 +34,7 @@ const syncHistoricalPricesImpl = async (securityId: string): Promise<{ count: nu
     `Fetching historical prices for ${security.symbol ?? security.providerSymbol} (${security.assetClass}, ${yearsBack}yr) using composite provider`,
   );
 
-  const prices: PriceData[] = await compositeProvider.getHistoricalPrices(security.providerSymbol, {
+  const prices: PriceData[] = await compositeProvider.getHistoricalPrices(toProviderSymbol(security.providerSymbol), {
     startDate,
     endDate,
     assetClass: security.assetClass,

@@ -3,7 +3,14 @@ import Coingecko from '@coingecko/coingecko-typescript';
 import { logger } from '@js/utils';
 import { subYears } from 'date-fns';
 
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData, SecurityPriceFetchInput } from './base-provider';
+import {
+  BaseSecurityDataProvider,
+  HistoricalPriceOptions,
+  PriceData,
+  ProviderSymbol,
+  SecurityPriceFetchInput,
+  toProviderSymbol,
+} from './base-provider';
 
 /**
  * CoinGecko Demo tier serves at most 1 year of daily/hourly history (5-minutely
@@ -124,7 +131,7 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
     }
   }
 
-  public async getLatestPrice(providerSymbol: string): Promise<PriceData> {
+  public async getLatestPrice(providerSymbol: ProviderSymbol): Promise<PriceData> {
     try {
       logger.info(`Fetching latest CoinGecko price for: ${providerSymbol}`);
       const response = await this.client.simple.price.get({
@@ -141,7 +148,7 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
       const priceAsOf = entry.last_updated_at ? new Date(entry.last_updated_at * 1000) : new Date();
 
       return {
-        symbol: providerSymbol,
+        providerSymbol,
         date: priceAsOf,
         priceClose: entry.usd,
         priceAsOf,
@@ -156,7 +163,10 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
     }
   }
 
-  public async getHistoricalPrices(providerSymbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
+  public async getHistoricalPrices(
+    providerSymbol: ProviderSymbol,
+    options?: HistoricalPriceOptions,
+  ): Promise<PriceData[]> {
     try {
       const endDate = options?.endDate ?? new Date();
       const requestedStart = options?.startDate ?? subYears(endDate, DEMO_MAX_HISTORY_YEARS);
@@ -189,7 +199,7 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
         .map(([ts, price]) => {
           const date = new Date(ts);
           return {
-            symbol: providerSymbol,
+            providerSymbol,
             date,
             priceClose: price,
             priceAsOf: date,
@@ -209,8 +219,8 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
   }
 
   /**
-   * Batch latest-price fetch via `/simple/price?ids=…`. PriceData.symbol is set
-   * to the CoinGecko `providerSymbol` (slug) so the daily-sync map — keyed on
+   * Batch latest-price fetch via `/simple/price?ids=…`. `PriceData.providerSymbol`
+   * carries the CoinGecko slug so the daily-sync map — keyed on
    * `Security.providerSymbol` — can resolve the row back. Display ticker is
    * NEVER used for matching here because crypto tickers aren't unique.
    */
@@ -243,7 +253,7 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
           }
           const priceAsOf = entry.last_updated_at ? new Date(entry.last_updated_at * 1000) : forDate;
           results.push({
-            symbol: id,
+            providerSymbol: toProviderSymbol(id),
             date: forDate,
             priceClose: entry.usd,
             priceAsOf,

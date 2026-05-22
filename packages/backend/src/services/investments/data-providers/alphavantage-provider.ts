@@ -4,7 +4,14 @@ import { logger } from '@js/utils';
 import alpha from 'alphavantage';
 import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
 
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData, SecurityPriceFetchInput } from './base-provider';
+import {
+  BaseSecurityDataProvider,
+  HistoricalPriceOptions,
+  PriceData,
+  ProviderSymbol,
+  SecurityPriceFetchInput,
+  toProviderSymbol,
+} from './base-provider';
 
 export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
   readonly providerName = SECURITY_PROVIDER.alphavantage;
@@ -57,14 +64,14 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
   /**
    * Get latest price for a security
    */
-  public async getLatestPrice(symbol: string): Promise<PriceData> {
+  public async getLatestPrice(providerSymbol: ProviderSymbol): Promise<PriceData> {
     try {
-      logger.info(`Fetching latest price for: ${symbol}`);
+      logger.info(`Fetching latest price for: ${providerSymbol}`);
 
-      const quoteResponse = await this.client.data.quote(symbol);
+      const quoteResponse = await this.client.data.quote(providerSymbol);
 
       if (!quoteResponse || !quoteResponse['Global Quote']) {
-        throw new Error(`No quote data found for symbol: ${symbol}`);
+        throw new Error(`No quote data found for symbol: ${providerSymbol}`);
       }
 
       const quote = quoteResponse['Global Quote'];
@@ -72,19 +79,19 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
       const latestTradingDay = new Date(quote['07. latest trading day']);
 
       const result: PriceData = {
-        symbol: quote['01. symbol'],
+        providerSymbol: toProviderSymbol(quote['01. symbol']),
         date: latestTradingDay,
         priceClose,
         priceAsOf: new Date(), // Current timestamp
         providerName: SECURITY_PROVIDER.alphavantage,
       };
 
-      logger.info(`Latest price for ${symbol}: ${priceClose} on ${latestTradingDay.toISOString()}`);
+      logger.info(`Latest price for ${providerSymbol}: ${priceClose} on ${latestTradingDay.toISOString()}`);
       return result;
     } catch (error) {
-      logger.error({ message: `Failed to fetch latest price for ${symbol}:`, error: error as Error });
+      logger.error({ message: `Failed to fetch latest price for ${providerSymbol}:`, error: error as Error });
       throw new Error(
-        `Failed to fetch latest price for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to fetch latest price for ${providerSymbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         { cause: error },
       );
     }
@@ -93,20 +100,23 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
   /**
    * Get historical prices for a security within a date range
    */
-  public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
+  public async getHistoricalPrices(
+    providerSymbol: ProviderSymbol,
+    options?: HistoricalPriceOptions,
+  ): Promise<PriceData[]> {
     try {
       const startDate = options?.startDate;
       const endDate = options?.endDate;
 
       logger.info(
-        `Fetching historical prices for: ${symbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
+        `Fetching historical prices for: ${providerSymbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
       );
 
       // Alpha Vantage TIME_SERIES_DAILY gives us historical data
-      const timeSeriesResponse = await this.client.data.daily(symbol, 'full');
+      const timeSeriesResponse = await this.client.data.daily(providerSymbol, 'full');
 
       if (!timeSeriesResponse || !timeSeriesResponse['Time Series (Daily)']) {
-        throw new Error(`No historical data found for symbol: ${symbol}`);
+        throw new Error(`No historical data found for symbol: ${providerSymbol}`);
       }
 
       const timeSeries = timeSeriesResponse['Time Series (Daily)'];
@@ -120,7 +130,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
         // If date range specified, check if date is within range
         if (!startDate || !endDate || isWithinInterval(date, { start: startDate, end: endDate })) {
           results.push({
-            symbol,
+            providerSymbol,
             date,
             priceClose: parseFloat((dailyData as Record<string, string>)['4. close']!),
             priceAsOf: new Date(), // Current timestamp
@@ -133,13 +143,13 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
       const sorted = results.toSorted((a, b) => a.date.getTime() - b.date.getTime());
 
       logger.info(
-        `Found ${sorted.length} historical prices for ${symbol}${startDate && endDate ? ' in date range' : ''}`,
+        `Found ${sorted.length} historical prices for ${providerSymbol}${startDate && endDate ? ' in date range' : ''}`,
       );
       return sorted;
     } catch (error) {
-      logger.error({ message: `Failed to fetch historical prices for ${symbol}:`, error: error as Error });
+      logger.error({ message: `Failed to fetch historical prices for ${providerSymbol}:`, error: error as Error });
       throw new Error(
-        `Failed to fetch historical prices for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to fetch historical prices for ${providerSymbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         { cause: error },
       );
     }
@@ -159,16 +169,15 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
       return [];
     }
 
-    const symbols = securities.map((s) => s.symbol);
-    logger.info(`Alpha Vantage: Starting fetch for ${symbols.length} securities`);
+    logger.info(`Alpha Vantage: Starting fetch for ${securities.length} securities`);
 
     // Apply daily limit
-    const symbolsToProcess =
-      symbols.length > ALPHA_VANTAGE_DAILY_LIMIT ? symbols.slice(0, ALPHA_VANTAGE_DAILY_LIMIT) : symbols;
+    const toProcess =
+      securities.length > ALPHA_VANTAGE_DAILY_LIMIT ? securities.slice(0, ALPHA_VANTAGE_DAILY_LIMIT) : securities;
 
-    if (symbolsToProcess.length < symbols.length) {
+    if (toProcess.length < securities.length) {
       logger.warn(
-        `Alpha Vantage daily limit reached: processing ${symbolsToProcess.length} of ${symbols.length} securities`,
+        `Alpha Vantage daily limit reached: processing ${toProcess.length} of ${securities.length} securities`,
       );
     }
 
@@ -176,7 +185,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
     let requestsThisMinute = 0;
     let lastRequestTime = 0;
 
-    for (const symbol of symbolsToProcess) {
+    for (const { providerSymbol } of toProcess) {
       try {
         // Rate limiting: respect 5 requests per minute
         if (requestsThisMinute >= ALPHA_VANTAGE_MINUTE_LIMIT) {
@@ -200,7 +209,7 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
         lastRequestTime = Date.now();
         requestsThisMinute++;
 
-        const historicalPrices = await this.getHistoricalPrices(symbol, {
+        const historicalPrices = await this.getHistoricalPrices(providerSymbol, {
           startDate: startOfDay(forDate),
           endDate: endOfDay(forDate),
         });
@@ -208,19 +217,21 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
         if (historicalPrices[0]) {
           const priceData = historicalPrices[0];
           fetchedPrices.push(priceData);
-          logger.info(`Fetched price for ${symbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`);
+          logger.info(
+            `Fetched price for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`,
+          );
         } else {
-          logger.info(`No price data found for ${symbol} on ${forDate.toISOString().split('T')[0]}`);
+          logger.info(`No price data found for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         // Per-symbol failures are expected (delisted, unsupported by provider, etc.).
         // The composite provider aggregates and reports if ALL providers fail.
-        logger.info(`Failed to fetch price for ${symbol}: ${errorMessage}`);
+        logger.info(`Failed to fetch price for ${providerSymbol}: ${errorMessage}`);
       }
     }
 
-    logger.info(`Alpha Vantage fetch complete: ${fetchedPrices.length}/${symbolsToProcess.length} securities fetched`);
+    logger.info(`Alpha Vantage fetch complete: ${fetchedPrices.length}/${toProcess.length} securities fetched`);
     return fetchedPrices;
   }
 

@@ -7,6 +7,7 @@ import {
   BaseSecurityDataProvider,
   HistoricalPriceOptions,
   PriceData,
+  ProviderSymbol,
   SearchOptions,
   SecurityPriceFetchInput,
 } from './base-provider';
@@ -127,14 +128,14 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
    * to CoinGecko regardless of symbol shape; otherwise falls back to the
    * existing symbol-classification rules.
    */
-  public async getLatestPrice(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData> {
-    const preference = getLatestPriceProviderPreference(symbol, options?.assetClass);
+  public async getLatestPrice(providerSymbol: ProviderSymbol, options?: HistoricalPriceOptions): Promise<PriceData> {
+    const preference = getLatestPriceProviderPreference(providerSymbol, options?.assetClass);
 
     return this.executeWithFallback(
       preference.primary,
       preference.fallbacks,
-      (provider) => provider.getLatestPrice(symbol),
-      `latest price for ${symbol}`,
+      (provider) => provider.getLatestPrice(providerSymbol),
+      `latest price for ${providerSymbol}`,
     );
   }
 
@@ -143,21 +144,24 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
    * crypto, only CoinGecko is queried; for stocks the existing region-based
    * fallback chain still applies.
    */
-  public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
-    const preference = getHistoricalPriceProviderPreference(symbol, options?.assetClass);
+  public async getHistoricalPrices(
+    providerSymbol: ProviderSymbol,
+    options?: HistoricalPriceOptions,
+  ): Promise<PriceData[]> {
+    const preference = getHistoricalPriceProviderPreference(providerSymbol, options?.assetClass);
 
     const result = await this.executeWithFallback(
       preference.primary,
       preference.fallbacks,
       async (provider): Promise<PriceData[]> => {
-        const prices = await provider.getHistoricalPrices(symbol, options);
+        const prices = await provider.getHistoricalPrices(providerSymbol, options);
         // Add the actual provider information to each price data point
         return prices.map((price) => ({
           ...price,
           providerName: provider.providerName,
         }));
       },
-      `historical prices for ${symbol}`,
+      `historical prices for ${providerSymbol}`,
     );
 
     return result;
@@ -185,9 +189,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
         logger.info(`Fetching prices for ${securityList.length} symbols from ${providerName}`);
         const res = await provider.fetchPricesForSecurities(securityList, forDate);
         // Detect partial failures: providerSymbols requested but not returned.
-        // PriceData.symbol carries the provider-native id (slug for crypto), so
-        // we match against providerSymbol here, not the display ticker.
-        const fetchedKeys = new Set(res.map((p) => p.symbol));
+        const fetchedKeys = new Set<ProviderSymbol>(res.map((p) => p.providerSymbol));
         const failed = securityList.filter((s) => !fetchedKeys.has(s.providerSymbol));
         return { fetched: res, failed };
       } catch (error) {
