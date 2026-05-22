@@ -33,7 +33,7 @@
             </button>
           </div>
 
-          <AddSymbolsDialog :portfolio-id="portfolioId" @updated="invalidate">
+          <AddSymbolsDialog v-model:open="isAddSymbolsOpen" :portfolio-id="portfolioId" @updated="invalidate">
             <UiButton size="sm">
               <PlusIcon class="mr-1 size-4" />
               {{ $t('portfolioDetail.holdings.addButton') }}
@@ -48,6 +48,7 @@
         :loading="isLoading"
         :error="!!error"
         :portfolio-id="portfolioId"
+        @add-symbol="isAddSymbolsOpen = true"
       />
     </CardContent>
   </Card>
@@ -67,6 +68,7 @@ const portfolioId = toRef(props, 'portfolioId');
 
 const { data: holdings, isLoading, error, invalidate } = useHoldings(portfolioId);
 
+const isAddSymbolsOpen = ref(false);
 const filterText = ref('');
 
 const filteredHoldings = computed(() => {

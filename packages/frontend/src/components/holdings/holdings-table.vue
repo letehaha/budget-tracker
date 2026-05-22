@@ -22,6 +22,7 @@ import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{ holdings: HoldingModel[]; loading?: boolean; error?: boolean; portfolioId: string }>();
+const emit = defineEmits<{ (e: 'addSymbol'): void }>();
 
 const isTransactionModalOpen = ref(false);
 const selectedHolding = ref<HoldingModel | null>(null);
@@ -226,7 +227,7 @@ const theadBgStyles = 'bg-muted';
       </div>
       <p class="text-foreground mb-2 font-medium">{{ $t('portfolioDetail.holdingsTable.empty') }}</p>
       <p class="text-muted-foreground mb-4 text-sm">{{ $t('portfolioDetail.holdingsTable.emptyDescription') }}</p>
-      <Button variant="outline" @click="openTransactionModal()">
+      <Button variant="outline" @click="emit('addSymbol')">
         <PlusIcon class="mr-2 size-4" />
         {{ $t('portfolioDetail.holdingsTable.addFirstHolding') }}
       </Button>

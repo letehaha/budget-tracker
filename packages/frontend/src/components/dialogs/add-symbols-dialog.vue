@@ -21,7 +21,7 @@ const { t } = useI18n();
 const props = defineProps<{ portfolioId: string }>();
 const emit = defineEmits(['updated']);
 
-const isOpen = ref(false);
+const isOpen = defineModel<boolean>('open', { default: false });
 const isFeedbackOpen = ref(false);
 const tooltipKey = ref(0);
 const searchTerm = ref('');
