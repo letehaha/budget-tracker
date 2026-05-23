@@ -131,6 +131,8 @@ import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { currentTheme } from '@/common/utils/color-theme';
 import ComboboxCategories from '@/components/common/combobox-categories.vue';
 import { useFormatCurrency } from '@/composable';
+import { getChartColors } from '@/composable/charts/chart-colors';
+import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
@@ -402,17 +404,15 @@ const getChangeColorClass = (change: number): string => {
   }
 };
 
-// Colors from CSS variables
 const getColors = () => {
-  const root = document.documentElement;
-  const style = getComputedStyle(root);
+  const { grid, text, card } = getChartColors();
   return {
+    grid,
+    text,
     bar: singleBarColor.value,
-    grid: style.getPropertyValue('--border').trim() || 'rgb(39, 39, 42)',
-    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(161, 161, 170)',
-    // Average line uses a more prominent color for better visibility
-    averageLine: 'rgb(234, 179, 8)', // amber-500 - stands out against most backgrounds
-    averageLabelBg: style.getPropertyValue('--card').trim() || 'rgb(24, 24, 27)',
+    // Average line uses a prominent color for visibility across themes
+    averageLine: 'rgb(234, 179, 8)', // amber-500
+    averageLabelBg: card,
     positive: 'rgb(34, 197, 94)', // green-500
     negative: 'rgb(239, 68, 68)', // red-500
   };
@@ -433,16 +433,7 @@ const formatPeriodLabel = (periodStart: string): string => {
   return format(date, 'MMM yy');
 };
 
-const formatAxisValue = (value: number): string => {
-  const symbol = getCurrencySymbol();
-  const absValue = Math.abs(value);
-  if (absValue >= 1000000) {
-    return `${symbol}${(value / 1000000).toFixed(1)}M`;
-  } else if (absValue >= 1000) {
-    return `${symbol}${(value / 1000).toFixed(0)}K`;
-  }
-  return `${symbol}${value}`;
-};
+const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: getCurrencySymbol() });
 
 const renderChart = () => {
   if (!svgRef.value || !containerRef.value || chartData.value.length === 0) return;

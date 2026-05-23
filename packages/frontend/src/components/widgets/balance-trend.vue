@@ -130,6 +130,8 @@ import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import SelectField from '@/components/fields/select-field.vue';
 import { useFormatCurrency } from '@/composable';
+import { getChartColors } from '@/composable/charts/chart-colors';
+import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import {
   SPIKE_DEFAULTS,
@@ -513,26 +515,12 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleEscapeKey);
 });
 
-// Get colors from CSS variables
 const getColors = () => {
-  const style = getComputedStyle(document.documentElement);
-  return {
-    primary: style.getPropertyValue('--primary').trim() || 'rgb(139, 92, 246)',
-    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(163, 160, 155)',
-    grid: style.getPropertyValue('--border').trim() || 'rgb(42, 40, 37)',
-  };
+  const { grid, text, primary } = getChartColors();
+  return { grid, text, primary };
 };
 
-const formatAxisValue = (value: number): string => {
-  const symbol = getCurrencySymbol();
-  const absValue = Math.abs(value);
-  if (absValue >= 1000000) {
-    return `${symbol}${(value / 1000000).toFixed(1)}M`;
-  } else if (absValue >= 1000) {
-    return `${symbol}${(value / 1000).toFixed(0)}k`;
-  }
-  return `${symbol}${value}`;
-};
+const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: getCurrencySymbol() });
 
 const renderChart = () => {
   if (!svgRef.value || !containerRef.value || chartData.value.length === 0) return;
