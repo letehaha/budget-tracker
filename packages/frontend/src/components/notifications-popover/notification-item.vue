@@ -194,10 +194,14 @@ const handleDismiss = (event: Event) => {
       <div class="min-w-0 flex-1">
         <div class="flex items-start justify-between gap-2">
           <p
-            :class="[
-              'line-clamp-2 text-sm',
-              notification.status === NOTIFICATION_STATUSES.unread ? 'font-semibold' : 'font-medium',
-            ]"
+            :class="
+              notification.type === NOTIFICATION_TYPES.changelog
+                ? 'text-muted-foreground line-clamp-2 text-xs'
+                : [
+                    'line-clamp-2 text-sm',
+                    notification.status === NOTIFICATION_STATUSES.unread ? 'font-semibold' : 'font-medium',
+                  ]
+            "
           >
             {{ getTitle(notification) }}
           </p>
@@ -213,6 +217,7 @@ const handleDismiss = (event: Event) => {
         <ChangelogContent
           v-if="notification.type === NOTIFICATION_TYPES.changelog"
           :payload="notification.payload as ChangelogNotificationPayload"
+          :unread="notification.status === NOTIFICATION_STATUSES.unread"
         />
         <TagReminderContent
           v-else-if="notification.type === NOTIFICATION_TYPES.tagReminder"
