@@ -101,15 +101,17 @@ If you found significant slop:
 ```
 ### <Area name>
 
-- **Finding**: <one terse sentence describing the slop>
+- **Finding #1**: <one terse sentence describing the slop>
   - **Refactor**: <one terse sentence describing how to fix it>
   - **Gain**: <one terse sentence: what improvement this brings>
   - **Cons**: <one terse sentence, or "none">
   - **Where**: <file:line> (and additional file:line references if the slop spans multiple locations)
   - **Type**: <duplication | reinvented-wheel | over-engineering | defensive | dead-code | comment | perf | other>
 
-- **Finding**: ...
+- **Finding #2**: ...
 ```
+
+Number findings sequentially starting from `#1` within your area. The orchestrator may renumber globally when aggregating multiple investigator reports, but always emit numbers in your own output so standalone runs are referenceable.
 
 If the area is clean:
 
