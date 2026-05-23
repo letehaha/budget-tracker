@@ -55,7 +55,8 @@ import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import type { endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 type MetricType = 'expenses' | 'income' | 'savings';
@@ -373,24 +374,7 @@ function handleMouseLeave() {
   tooltip.visible = false;
 }
 
-let resizeObserver: ResizeObserver | null = null;
-
-onMounted(() => {
-  renderChart();
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
-});
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
+useResizeObserver(containerRef, renderChart);
 
 watch([() => props.currentPeriodData, () => props.previousPeriodData, () => props.metric, currentTheme], renderChart, {
   deep: true,

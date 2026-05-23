@@ -59,7 +59,8 @@ import { currentTheme } from '@/common/utils/color-theme';
 import { useFormatCurrency } from '@/composable';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import * as d3 from 'd3';
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { reactive, ref, watch } from 'vue';
 
 import type { ProjectionDataPoint } from '../composables/use-projection-calc';
 
@@ -394,25 +395,7 @@ const sampleDataForRendering = (data: ProjectionDataPoint[]): ProjectionDataPoin
   return sampled;
 };
 
-// ResizeObserver for responsive chart
-let resizeObserver: ResizeObserver | null = null;
-
-onMounted(() => {
-  renderChart();
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
-});
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
+useResizeObserver(containerRef, renderChart);
 
 watch([() => props.data, () => props.indicatorLabel, currentTheme], renderChart, { deep: true });
 </script>

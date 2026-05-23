@@ -55,7 +55,8 @@ import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-p
 import { useDateLocale } from '@/composable/use-date-locale';
 import type { endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { ChartType } from './chart-type-switcher.vue';
@@ -486,25 +487,7 @@ function handleMouseLeave() {
   tooltip.visible = false;
 }
 
-// ResizeObserver for responsive chart
-let resizeObserver: ResizeObserver | null = null;
-
-onMounted(() => {
-  renderChart();
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
-});
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
+useResizeObserver(containerRef, renderChart);
 
 watch([() => props.data, () => props.chartType, () => props.showMovingAverage, locale, currentTheme], renderChart, {
   deep: true,
