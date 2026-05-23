@@ -43,8 +43,12 @@
 
 <script lang="ts" setup>
 import { completeEnableBankingOAuth } from '@/api/bank-data-providers';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useSyncStatus } from '@/composable/use-sync-status';
 import { ROUTES_NAMES } from '@/routes/constants';
+import { useAccountsStore } from '@/stores/accounts';
+import { useQueryClient } from '@tanstack/vue-query';
 import { CheckCircle2Icon, InfoIcon } from '@lucide/vue';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -54,6 +58,9 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
+const queryClient = useQueryClient();
+const syncStatus = useSyncStatus();
+const accountsStore = useAccountsStore();
 
 const isProcessing = ref(true);
 const error = ref('');
@@ -98,6 +105,17 @@ onMounted(async () => {
 
     // Clear stored connection ID
     localStorage.removeItem('pendingEnableBankingConnectionId');
+
+    // Refresh global UI state so the sidebar's "needs reauth" triangle, the
+    // account details banner, and the connection details view all reflect the
+    // newly-reactivated connection without requiring a manual page reload.
+    await Promise.all([
+      syncStatus.fetchStatus(),
+      queryClient.invalidateQueries({
+        predicate: (query) => (query.queryKey as string[]).includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange),
+      }),
+      accountsStore.refetchAccounts(),
+    ]);
 
     success.value = true;
     addSuccessNotification(t('pages.integrations.notifications.connectionEstablished'));
