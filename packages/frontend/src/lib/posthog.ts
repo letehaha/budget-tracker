@@ -40,6 +40,10 @@ type AnalyticsEvent =
   | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }
   | { event: 'ai_settings_visited' }
   | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } }
+  // Dashboard customization
+  | { event: 'dashboard_edit_opened' }
+  | { event: 'dashboard_layout_saved'; properties: { widget_count: number } }
+  | { event: 'dashboard_widget_config_saved'; properties: { widget_id: string } }
   // Feedback
   | { event: 'feedback_button_clicked' }
   | { event: 'feedback_button_hovered' }
