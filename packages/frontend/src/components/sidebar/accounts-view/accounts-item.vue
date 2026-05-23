@@ -20,13 +20,9 @@ const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props
 
 const { isSharedWithCaller, ownerHandle, isHouseholdGranted } = useAccountAccess(toRef(() => props.account));
 
-const { connectionsNeedingReauth } = useSyncStatus();
+const { isAccountNeedingReauth } = useSyncStatus();
 
-const needsReauth = computed(() => {
-  const connectionId = props.account.bankDataProviderConnectionId;
-  if (!connectionId) return false;
-  return connectionsNeedingReauth.value.some((conn) => conn.connectionId === connectionId);
-});
+const needsReauth = computed(() => isAccountNeedingReauth(props.account));
 </script>
 
 <template>

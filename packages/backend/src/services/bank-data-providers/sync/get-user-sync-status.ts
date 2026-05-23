@@ -1,4 +1,5 @@
-import { ACCOUNT_STATUSES, type ConnectionNeedingReauth } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, type ConnectionNeedingReauth, DEACTIVATION_REASON } from '@bt/shared/types';
+import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { Op, literal } from 'sequelize';
@@ -41,41 +42,50 @@ export async function getUserBankAccounts(userId: number): Promise<AccountWithCo
  * because `getUserBankAccounts` filters by `isActive: true` — but the user needs
  * to see them to know they should reconnect.
  *
- * Filters by `metadata.deactivationReason === 'auth_failure'` so connections the
+ * Filters by `metadata.deactivationReason === AUTH_FAILURE` so connections the
  * user disconnected manually stay hidden.
+ *
+ * Wrapped in try/catch so a JSONB query failure degrades to an empty list
+ * instead of taking down the whole sync-status response — the regular sync
+ * status is more important than the reauth banner.
  */
 async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNeedingReauth[]> {
-  const connections = await BankDataProviderConnections.findAll({
-    where: {
-      userId,
-      isActive: false,
-      // Raw JSONB path query — Sequelize's nested object form is unreliable
-      // across dialect versions for JSONB, so use the Postgres ->> operator
-      // directly to compare the text value of metadata.deactivationReason.
-      [Op.and]: [literal(`metadata->>'deactivationReason' = 'auth_failure'`)],
-    },
-    include: [
-      {
-        model: Accounts,
-        as: 'accounts',
-        where: { status: ACCOUNT_STATUSES.active },
-        required: false,
+  try {
+    const connections = await BankDataProviderConnections.findAll({
+      where: {
+        userId,
+        isActive: false,
+        // Raw JSONB path query — Sequelize's nested object form is unreliable
+        // across dialect versions for JSONB, so use the Postgres ->> operator
+        // directly to compare the text value of metadata.deactivationReason.
+        [Op.and]: [literal(`metadata->>'deactivationReason' = '${DEACTIVATION_REASON.AUTH_FAILURE}'`)],
       },
-    ],
-    order: [['updatedAt', 'DESC']],
-  });
+      include: [
+        {
+          model: Accounts,
+          as: 'accounts',
+          where: { status: ACCOUNT_STATUSES.active },
+          required: false,
+        },
+      ],
+      order: [['updatedAt', 'DESC']],
+    });
 
-  return connections.map((conn) => {
-    const metadata = (conn.metadata ?? {}) as Record<string, unknown>;
-    return {
-      connectionId: conn.id,
-      providerType: conn.providerType,
-      providerName: conn.providerName,
-      bankName: typeof metadata.bankName === 'string' ? metadata.bankName : null,
-      accountsCount: conn.accounts?.length ?? 0,
-      deactivatedAt: conn.updatedAt ? new Date(conn.updatedAt).toISOString() : null,
-    };
-  });
+    return connections.map((conn) => {
+      const metadata = (conn.metadata ?? {}) as Record<string, unknown>;
+      return {
+        connectionId: conn.id,
+        providerType: conn.providerType,
+        providerName: conn.providerName,
+        bankName: typeof metadata.bankName === 'string' ? metadata.bankName : null,
+        accountsCount: conn.accounts?.length ?? 0,
+        deactivatedAt: conn.updatedAt?.toISOString() ?? null,
+      };
+    });
+  } catch (error) {
+    logger.error({ message: 'Failed to load connectionsNeedingReauth', error: error as Error }, { userId });
+    return [];
+  }
 }
 
 /**

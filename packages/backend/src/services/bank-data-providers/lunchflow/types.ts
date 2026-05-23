@@ -2,7 +2,7 @@
  * LunchFlow-specific types for the provider implementation.
  * LunchFlow API returns monetary amounts as decimals (not cents).
  */
-import type { Decimal } from '@bt/shared/types';
+import type { Decimal, DeactivationReason } from '@bt/shared/types';
 
 /**
  * LunchFlow API credentials required for authentication
@@ -17,7 +17,7 @@ export interface LunchFlowCredentials {
 export interface LunchFlowMetadata {
   accountCount?: number;
   consecutiveAuthFailures?: number;
-  deactivationReason?: 'auth_failure' | null;
+  deactivationReason?: DeactivationReason | null;
 }
 
 /**

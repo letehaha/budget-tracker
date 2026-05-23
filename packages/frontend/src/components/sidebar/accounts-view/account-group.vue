@@ -27,25 +27,9 @@ watch(
   { immediate: true },
 );
 
-const { connectionsNeedingReauth } = useSyncStatus();
+const { groupHasReauthAccount } = useSyncStatus();
 
-// Walk the group tree (direct accounts + nested child groups) so a mixed-content
-// group still surfaces a warning when any descendant account is on an expired
-// connection — important because groups can hold both bank-linked and manual
-// accounts side by side.
-function groupHasReauthAccount(group: AccountGroups, reauthIds: Set<string>): boolean {
-  const directHit = group.accounts.some(
-    (account) => account.bankDataProviderConnectionId && reauthIds.has(account.bankDataProviderConnectionId),
-  );
-  if (directHit) return true;
-  return group.childGroups.some((child) => groupHasReauthAccount(child, reauthIds));
-}
-
-const needsReauth = computed(() => {
-  const reauthIds = new Set(connectionsNeedingReauth.value.map((conn) => conn.connectionId));
-  if (reauthIds.size === 0) return false;
-  return groupHasReauthAccount(props.group, reauthIds);
-});
+const needsReauth = computed(() => groupHasReauthAccount(props.group));
 </script>
 
 <template>

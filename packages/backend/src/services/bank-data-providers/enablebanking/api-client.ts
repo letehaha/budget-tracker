@@ -37,50 +37,78 @@ interface PSUContext {
 }
 
 /**
- * JSON.stringify that swallows circular-reference errors so logging never
- * masks the original API failure.
+ * JSON.stringify that falls back to `String(value)` when serialization throws
+ * (circular references, BigInt members, throwing toJSON, etc.). Logs a warning
+ * on the fallback path so a degraded serialization is at least visible —
+ * silently returning "[object Object]" would destroy debugging info in Sentry.
  */
-function safeStringify(value: unknown): string {
+export function safeStringify(value: unknown): string {
   try {
     return JSON.stringify(value);
-  } catch {
+  } catch (err) {
+    logger.warn(`[EnableBankingApiClient] safeStringify fallback: ${err instanceof Error ? err.message : String(err)}`);
     return String(value);
   }
 }
 
 /**
+ * Reason an ASPSP_ERROR was classified as an auth failure. Captured in logs so
+ * we can audit which branch fired (regression-proofing the regex).
+ */
+type AspspAuthFailureReason = 'nested-code' | 'nested-status' | 'keyword-match';
+
+/**
+ * Strict keyword pattern for cases where Enable Banking strips `error_data`
+ * (seen in dev) but the wrapper / nested message still describes an auth or
+ * consent failure. Each alternative is anchored to phrases that strongly
+ * imply auth state — bare words like "forbidden" or "unauthorized" were
+ * intentionally removed to avoid promoting unrelated 400s (e.g. "Operation
+ * forbidden by bank during maintenance") into connection deactivations.
+ */
+const ASPSP_AUTH_FAILURE_KEYWORDS =
+  /refresh.?token|token.*(?:expired|invalid|revoked)|session.*(?:expired|invalid|revoked)|consent.*(?:expired|invalid|revoked|withdrawn)|reauthorization|reauthenticate|access.*(?:token|not\s+allowed)|forbidden.*authenticated|authenticated.*forbidden|psd2.*consent/;
+
+/**
  * Detect when an Enable Banking ASPSP_ERROR (HTTP 400) actually represents an
  * upstream session/token/consent failure. Matches on either:
- *   - nested HTTP code/status of 401 or 403 (string "403 FORBIDDEN" or numeric)
- *   - keywords in the wrapper or nested message indicating expired/invalid auth
+ *   - nested HTTP code/status of 401 or 403 (string "401"/"403 FORBIDDEN" or numeric)
+ *   - strict keyword pattern in the wrapper or nested message
  *
- * Promoting these to ForbiddenError lets the existing handleProviderError flow
- * deactivate the connection and surface a "reconnect" prompt to the user.
+ * Returns `{ matched: false }` when no signal is found so the caller can log
+ * which branch matched and audit misclassifications in Sentry.
  */
-function isAspspAuthFailure({
+export function classifyAspspError({
   detail,
   aspspMessage,
 }: {
   detail: Record<string, unknown>;
   aspspMessage?: string;
-}): boolean {
+}): { matched: true; reason: AspspAuthFailureReason } | { matched: false } {
   const errorData = (detail.error_data ?? {}) as Record<string, unknown>;
 
   const nestedCode = errorData.code;
-  if (typeof nestedCode === 'string' && /^\s*(401|403)\b/.test(nestedCode)) return true;
-  if (typeof nestedCode === 'number' && (nestedCode === 401 || nestedCode === 403)) return true;
+  if (typeof nestedCode === 'string' && /^\s*(?:401|403)\b/.test(nestedCode)) {
+    return { matched: true, reason: 'nested-code' };
+  }
+  if (typeof nestedCode === 'number' && (nestedCode === 401 || nestedCode === 403)) {
+    return { matched: true, reason: 'nested-code' };
+  }
 
   const nestedStatus = errorData.status;
-  if (typeof nestedStatus === 'number' && (nestedStatus === 401 || nestedStatus === 403)) return true;
+  if (typeof nestedStatus === 'number' && (nestedStatus === 401 || nestedStatus === 403)) {
+    return { matched: true, reason: 'nested-status' };
+  }
+  if (typeof nestedStatus === 'string' && /^\s*(?:401|403)\b/.test(nestedStatus)) {
+    return { matched: true, reason: 'nested-status' };
+  }
 
   const nestedMessage = typeof errorData.message === 'string' ? errorData.message : '';
   const combined = `${aspspMessage ?? ''} ${nestedMessage}`.toLowerCase();
-  // "forbidden" / "access ... not allowed" cover the case where Enable Banking
-  // strips the upstream error_data (seen in dev) but keeps the wrapper message
-  // "Forbidden, authenticated but access to resource is not allowed".
-  return /refresh.?token|token.*(expired|invalid)|session.*(expired|invalid)|consent.*(expired|invalid|revoked)|reauthorization|unauthorized|\bforbidden\b|access.*not allowed/.test(
-    combined,
-  );
+  if (ASPSP_AUTH_FAILURE_KEYWORDS.test(combined)) {
+    return { matched: true, reason: 'keyword-match' };
+  }
+
+  return { matched: false };
 }
 
 export class EnableBankingApiClient {
@@ -142,28 +170,25 @@ export class EnableBankingApiClient {
       const aspspError = typeof data.error === 'string' ? data.error : undefined;
       const aspspMessage = typeof detail.message === 'string' ? detail.message : undefined;
       const aspspErrorName = typeof detail.error_name === 'string' ? detail.error_name : undefined;
-      const aspspErrorDataStr =
-        detail.error_data != null
-          ? typeof detail.error_data === 'string'
-            ? detail.error_data
-            : safeStringify(detail.error_data)
-          : undefined;
+      let aspspErrorDataStr: string | undefined;
+      if (typeof detail.error_data === 'string') {
+        aspspErrorDataStr = detail.error_data;
+      } else if (detail.error_data != null) {
+        aspspErrorDataStr = safeStringify(detail.error_data);
+      }
 
       // Prefer real upstream message over the generic wrapper "Error interacting with ASPSP".
       const message = aspspMessage || (typeof data.message === 'string' ? data.message : error.message);
 
+      const errorDetails = { aspspError, aspspErrorName, aspspMessage, aspspErrorDataStr };
       const errorContext = {
         status,
         httpMethod,
         httpUrl,
         message,
-        aspspError,
-        aspspErrorName,
-        aspspMessage,
-        aspspErrorDataStr,
+        ...errorDetails,
         rawData: safeStringify(data),
       };
-      const errorDetails = { aspspError, aspspErrorName, aspspMessage, aspspErrorDataStr };
 
       logger.error(`[EnableBankingApiClient] ${method} failed:`, errorContext);
 
@@ -171,11 +196,21 @@ export class EnableBankingApiClient {
       // Enable Banking surfaces it as 400 ASPSP_ERROR — promote to ForbiddenError
       // so the provider's handleProviderError marks the connection inactive and
       // the UI prompts the user to reconnect.
-      if (status === 400 && aspspError === 'ASPSP_ERROR' && isAspspAuthFailure({ detail, aspspMessage })) {
-        throw new ForbiddenError({
-          message: t({ key: 'bankDataProviders.enableBanking.sessionExpiredReconnect' }),
-          details: errorDetails,
-        });
+      if (status === 400 && aspspError === 'ASPSP_ERROR') {
+        const classification = classifyAspspError({ detail, aspspMessage });
+        if (classification.matched) {
+          // Audit log so we can review classifications in Sentry — the wrong
+          // call here either silently lets a broken connection keep failing
+          // (false negative) or kills a working one (false positive).
+          logger.warn(
+            `[EnableBankingApiClient] Classified ASPSP_ERROR as auth failure (reason=${classification.reason})`,
+            errorContext,
+          );
+          throw new ForbiddenError({
+            message: t({ key: 'bankDataProviders.enableBanking.sessionExpiredReconnect' }),
+            details: errorDetails,
+          });
+        }
       }
 
       if (status === 401 || status === 403) {

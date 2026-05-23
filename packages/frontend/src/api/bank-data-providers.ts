@@ -1,5 +1,7 @@
 import { api } from '@/api/_api';
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, type ConnectionNeedingReauth } from '@bt/shared/types';
+
+export type { ConnectionNeedingReauth };
 
 export interface BankProvider {
   type: BANK_PROVIDER_TYPE;
@@ -290,15 +292,6 @@ interface SyncStatusSummary {
   completed: number;
   failed: number;
   idle: number;
-}
-
-export interface ConnectionNeedingReauth {
-  connectionId: string;
-  providerType: string;
-  providerName: string;
-  bankName: string | null;
-  accountsCount: number;
-  deactivatedAt: string | null;
 }
 
 export interface SyncStatusResponse {

@@ -1,12 +1,17 @@
 <script lang="ts" setup>
 import { cn } from '@/lib/utils';
-import type { Component } from 'vue';
 import { nextTick, onMounted, ref, watch } from 'vue';
-import { pillTabsContainerVariants, pillTabsIndicatorVariants, pillTabsTriggerVariants, type PillTabsSize } from '.';
+import {
+  type PillTabItem,
+  type PillTabsSize,
+  pillTabsContainerVariants,
+  pillTabsIndicatorVariants,
+  pillTabsTriggerVariants,
+} from '.';
 
 const props = withDefaults(
   defineProps<{
-    items: { value: string; label: string; icon?: Component; iconClass?: string }[];
+    items: PillTabItem[];
     modelValue: string;
     size?: PillTabsSize;
     disabled?: boolean;

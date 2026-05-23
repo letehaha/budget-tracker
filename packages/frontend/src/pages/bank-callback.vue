@@ -109,13 +109,21 @@ onMounted(async () => {
     // Refresh global UI state so the sidebar's "needs reauth" triangle, the
     // account details banner, and the connection details view all reflect the
     // newly-reactivated connection without requiring a manual page reload.
-    await Promise.all([
+    // Use Promise.allSettled so a cache-refresh failure doesn't override the
+    // success state and bounce the user back to the "OAuth failed" screen —
+    // the server-side reconnect already succeeded by this point.
+    const refreshResults = await Promise.allSettled([
       syncStatus.fetchStatus(),
       queryClient.invalidateQueries({
         predicate: (query) => (query.queryKey as string[]).includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange),
       }),
       accountsStore.refetchAccounts(),
     ]);
+    for (const result of refreshResults) {
+      if (result.status === 'rejected') {
+        console.error('Post-OAuth cache refresh failed:', result.reason);
+      }
+    }
 
     success.value = true;
     addSuccessNotification(t('pages.integrations.notifications.connectionEstablished'));
