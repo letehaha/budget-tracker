@@ -21,6 +21,7 @@ interface ApiRequestConfig {
   };
   body?: string;
   credentials: RequestCredentials;
+  signal?: AbortSignal;
 }
 
 interface ApiCall {
@@ -33,6 +34,8 @@ interface ApiCall {
     needRaw?: boolean;
     /** When true, suppresses error toast notifications for failed requests */
     silent?: boolean;
+    /** AbortSignal forwarded to fetch — lets callers cancel in-flight requests. */
+    signal?: AbortSignal;
   };
 }
 
@@ -171,6 +174,10 @@ class ApiCaller {
       config.body = JSON.stringify(opts.data);
     }
 
+    if (opts.options?.signal) {
+      config.signal = opts.options.signal;
+    }
+
     let result: Response;
 
     const { addNotification } = useNotificationCenter();
@@ -187,6 +194,11 @@ class ApiCaller {
     try {
       result = await fetch(url, config);
     } catch (e) {
+      // Caller-initiated abort (signal) — rethrow silently so the caller can
+      // discard the in-flight request without showing a network error toast.
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        throw e;
+      }
       if (e instanceof TypeError && e.toString().includes('Failed to fetch')) {
         const message = t('errors.api.failedToFetch', 'Failed to connect to server');
         if (!isSilent) {

@@ -91,7 +91,7 @@ import DeletePortfolioDialog from '@/components/dialogs/delete-portfolio-dialog.
 import EditPortfolioDialog from '@/components/dialogs/edit-portfolio-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { usePortfolio } from '@/composable/data-queries/portfolios';
-import { isNotFoundError } from '@/js/errors';
+import { isResourceMissingError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AlertCircleIcon, BriefcaseIcon, ChevronLeftIcon, PencilIcon, Trash2Icon } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -107,7 +107,7 @@ const portfolioId = computed(() => String(route.params.portfolioId));
 
 const { data: portfolio, isLoading, isError, error, refetch } = usePortfolio(portfolioId, { retry: false });
 
-const isNotFound = computed(() => isError.value && isNotFoundError(error.value));
+const isNotFound = computed(() => isError.value && isResourceMissingError(error.value));
 
 const handleDeletion = () => {
   router.push({ name: ROUTES_NAMES.investments });

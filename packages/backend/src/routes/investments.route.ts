@@ -1,4 +1,9 @@
 import {
+  estimateCostController as importEstimateCostController,
+  executeImportController as importExecuteController,
+  extractController as importExtractController,
+} from '@controllers/investment-transactions-parser';
+import {
   createHoldingController,
   deleteHoldingController,
   getHoldingsController,
@@ -221,6 +226,28 @@ router.put(
   checkBaseCurrencyLock,
   validateEndpoint(updateInvestmentTransactionController.schema),
   updateInvestmentTransactionController.handler,
+);
+
+/**
+ * AI-powered investment transactions import (crypto v1, stocks future).
+ * Pipeline mirrors the bank-statement parser:
+ *   estimate-cost → extract → (user reviews + edits in UI) → execute.
+ */
+router.post(
+  '/transactions-import/estimate-cost',
+  validateEndpoint(importEstimateCostController.schema),
+  importEstimateCostController.handler,
+);
+router.post(
+  '/transactions-import/extract',
+  validateEndpoint(importExtractController.schema),
+  importExtractController.handler,
+);
+router.post(
+  '/transactions-import/execute',
+  checkBaseCurrencyLock,
+  validateEndpoint(importExecuteController.schema),
+  importExecuteController.handler,
 );
 
 export default router;

@@ -29,5 +29,6 @@ export * from './investments/securities';
 export * from './investments/prices';
 export * from './investments/holdings';
 export * from './investments/transactions';
+export * from './investments/transactions-import';
 export * from './investments/portfolios';
 export * from './investments/portfolio-transfers';

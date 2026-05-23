@@ -56,7 +56,8 @@
       "title": "Holdings",
       "subtitle": "{count} symbols",
       "filterPlaceholder": "Filter by symbol or name...",
-      "addButton": "Add Symbol"
+      "addButton": "Add Symbol",
+      "importButton": "Import transactions"
     },
     "holdingsTable": {
       "loadError": "Could not load holdings",
@@ -83,7 +84,8 @@
       },
       "tryAgainLater": "Please try again later",
       "emptyDescription": "Add your first transaction to start tracking your investments",
-      "addFirstHolding": "Add first holding"
+      "addFirstHolding": "Add first holding",
+      "importTransactions": "Or import from a file"
     },
     "transactionsList": {
       "title": "Transactions",

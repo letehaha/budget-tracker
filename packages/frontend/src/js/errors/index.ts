@@ -19,6 +19,37 @@ export const isNotFoundError = (error: unknown): error is ApiErrorResponseError 
   error instanceof ApiErrorResponseError && error.data?.code === API_ERROR_CODES.notFound;
 
 /**
+ * Detects whether every Zod validation failure on the response originated from
+ * a URL path/query param (e.g. `params.id`) rather than the request body.
+ * A request that fails purely on URL params never reaches the resource, which
+ * is UX-equivalent to a 404 for that URL.
+ */
+const isPurelyUrlParamValidationError = (error: ApiErrorResponseError): boolean => {
+  if (error.data?.code !== API_ERROR_CODES.validationError) return false;
+  const validationErrors = (error.data as unknown as Record<string, unknown>)?.validationErrors;
+  if (!Array.isArray(validationErrors) || validationErrors.length === 0) return false;
+  return validationErrors.every((v) => {
+    const path = (v as { path?: unknown }).path;
+    return Array.isArray(path) && (path[0] === 'params' || path[0] === 'query');
+  });
+};
+
+/**
+ * Treats both a real NotFound and a URL-param validation failure as "resource
+ * unavailable for this URL." Page-level resource fetches (e.g. `/portfolios/:id`)
+ * should use this to render an empty/not-found state for any URL that can't
+ * resolve to a real record — including malformed IDs typed into the address bar.
+ *
+ * Body-level validation errors (mutations, form submits) are NOT covered here —
+ * those should keep producing field-level error UI, not a "not found" page.
+ */
+export const isResourceMissingError = (error: unknown): error is ApiErrorResponseError => {
+  if (!(error instanceof ApiErrorResponseError)) return false;
+  if (error.data?.code === API_ERROR_CODES.notFound) return true;
+  return isPurelyUrlParamValidationError(error);
+};
+
+/**
  * Extracts the first validation error message from an ApiErrorResponseError.
  * Returns undefined if the error is not a validation error or has no messages.
  */

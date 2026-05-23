@@ -124,5 +124,10 @@ Other instructions:
     - Instead, **describe the problem to the user** and ask what to do next.
     - This applies to debugging, unexpected behavior, failing builds, type errors you can't resolve, etc.
     - Burning tokens on a long chain of guesses almost never helps. Asking the user is always better.
+13. **Frontend Responsive Design: Container Width, Not Screen Width**
+    - Most pages render inside a layout with a persistent sidebar, so the **content container is much narrower than the viewport** (e.g., a 768px screen leaves ~500px for content). Viewport-based breakpoints (`md:`, `lg:`, `@media (min-width: 768px)`, `window.innerWidth`, etc.) therefore fire at the wrong moments and produce broken layouts.
+    - **Default to container-based responsiveness**: use Tailwind's container queries (`@container` + `@sm:`, `@md:`, `@lg:` variants), CSS `@container` queries, or `ResizeObserver` on the component's wrapper. Mark the nearest layout wrapper with `@container` so children can react to its actual width.
+    - Only use screen/viewport breakpoints when the change genuinely depends on the **viewport itself** — sidebar collapse, mobile nav switch, top-level page shell. Inside a page, prefer container queries.
+    - When in doubt, ask: "would this breakpoint behave correctly if the sidebar collapsed/expanded?" If no — it should be a container query.
 
 Always use the caveman skill

@@ -4,3 +4,4 @@ export * from './holding.model';
 export * from './investment-transaction.model';
 export * from './security-pricing.model';
 export * from './portfolio-models';
+export * from './transactions-import';
