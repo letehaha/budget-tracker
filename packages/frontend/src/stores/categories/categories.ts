@@ -8,7 +8,7 @@ import { CategoryModel } from '@bt/shared/types';
 import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
-import { buildCategiesObjectGraph } from './helpers';
+import { buildCategoriesObjectGraph } from './helpers';
 
 export const useCategoriesStore = defineStore('categories', () => {
   const notificationStore = useNotificationCenter();
@@ -40,7 +40,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     return categories.value.filter((c) => c.userId === callerUserId);
   });
 
-  const formattedCategories = computed<FormattedCategory[]>(() => buildCategiesObjectGraph(ownCategories.value));
+  const formattedCategories = computed<FormattedCategory[]>(() => buildCategoriesObjectGraph(ownCategories.value));
   const categoriesMap = computed(() =>
     categories.value.reduce(
       (acc, curr) => {

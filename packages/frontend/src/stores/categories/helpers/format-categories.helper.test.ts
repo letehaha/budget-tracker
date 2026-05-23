@@ -1,6 +1,6 @@
 import { CATEGORY_TYPES, type RecordId } from '@bt/shared/types';
 
-import { buildCategiesObjectGraph } from './format-categories.helper';
+import { buildCategoriesObjectGraph } from './format-categories.helper';
 
 const uuid = (n: number) => `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
 
@@ -50,6 +50,6 @@ describe('Categories formatting helper', () => {
       ],
     ],
   ])('%s', (description, value, expected) => {
-    expect(buildCategiesObjectGraph(value)).toStrictEqual(expected);
+    expect(buildCategoriesObjectGraph(value)).toStrictEqual(expected);
   });
 });
