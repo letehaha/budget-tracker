@@ -226,7 +226,6 @@ const fitToLatestData = computed<boolean>(() => {
   return (cfg?.fitToLatestData as boolean | undefined) ?? true;
 });
 
-// D3 chart refs
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
 const tooltipRef = ref<HTMLDivElement | null>(null);
@@ -837,7 +836,6 @@ const balancesDiff = computed<number>(() => {
   return Number(percentage);
 });
 
-// ResizeObserver for responsive chart
 useResizeObserver(containerRef, renderChart);
 
 // flush: 'post' so the watcher runs after Vue has applied DOM updates from the

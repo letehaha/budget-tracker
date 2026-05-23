@@ -139,10 +139,10 @@ import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { useSessionStorage } from '@vueuse/core';
+import { useResizeObserver, useSessionStorage } from '@vueuse/core';
 import * as d3 from 'd3';
 import { storeToRefs } from 'pinia';
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -1025,49 +1025,12 @@ function handleTooltipMouseLeave() {
   isTooltipInteracting.value = false;
 }
 
-// ResizeObserver for responsive chart
-let resizeObserver: ResizeObserver | null = null;
+useResizeObserver(containerRef, renderChart);
 
-// Setup resize observer when container becomes available
-const setupResizeObserver = () => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
-};
-
-onMounted(() => {
-  renderChart();
-  setupResizeObserver();
+// flush: 'post' waits for the v-else SVG container to mount after data loads,
+// so renderChart sees the correct container dimensions on the first paint.
+watch([chartData, () => props.metric, locale, selectedCategoryIds, currentTheme], renderChart, {
+  deep: true,
+  flush: 'post',
 });
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
-
-// Watch containerRef to set up observer when it becomes available
-// (container is inside v-else block that appears after data loads)
-watch(containerRef, (newVal) => {
-  if (newVal) {
-    setupResizeObserver();
-  }
-});
-
-watch(
-  [chartData, () => props.metric, locale, selectedCategoryIds, currentTheme],
-  () => {
-    // Use nextTick to ensure DOM is updated before rendering
-    // (SVG container is in v-else block that appears when data loads)
-    nextTick(renderChart);
-  },
-  { deep: true },
-);
 </script>
