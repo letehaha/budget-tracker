@@ -78,7 +78,7 @@
 <script setup lang="ts">
 import { createCategory, editCategory } from '@/api';
 import { type FormattedCategory } from '@/common/types';
-import { removeNullishValues } from '@/common/utils/remove-keys';
+import { isNil, omitBy } from 'lodash-es';
 import TagIcon from '@/components/common/icons/tag-icon.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import ColorSelectField from '@/components/fields/color-select-field.vue';
@@ -211,12 +211,15 @@ const handleSubmit = async () => {
       let params: CreateParams = { name: form.name.trim() };
 
       if (props.parentCategory) {
-        params = removeNullishValues({
-          ...params,
-          icon: props.parentCategory.icon,
-          color: props.parentCategory.color,
-          parentId: props.parentCategory.id,
-        }) as CreateParams;
+        params = omitBy(
+          {
+            ...params,
+            icon: props.parentCategory.icon,
+            color: props.parentCategory.color,
+            parentId: props.parentCategory.id,
+          },
+          isNil,
+        ) as CreateParams;
       } else {
         // Top-level category - use selected color and icon
         params.color = form.color;

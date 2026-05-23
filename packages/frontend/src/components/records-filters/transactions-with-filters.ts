@@ -1,11 +1,10 @@
 import { loadTransactions } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { removeValuesFromObject } from '@/common/utils/remove-values-from-object';
 import { DEFAULT_FILTERS, FiltersStruct } from '@/components/records-filters/const';
 import { FILTER_OPERATION } from '@bt/shared/types';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/vue-query';
 import isDate from 'date-fns/isDate';
-import { isEqual } from 'lodash-es';
+import { isEqual, isNil, omitBy } from 'lodash-es';
 import { MaybeRef, computed, ref } from 'vue';
 
 const filterOrUndefined = (value: FILTER_OPERATION) => (value === FILTER_OPERATION.all ? undefined : value);
@@ -49,27 +48,30 @@ export const useTransactionsWithFilters = ({
     const from = pageParam * limit;
 
     return loadTransactions(
-      removeValuesFromObject({
-        limit,
-        from,
-        transactionType: filter.transactionType ?? undefined,
-        endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
-        startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
-        amountGte: filter.amountGte,
-        amountLte: filter.amountLte,
-        noteSearch: filter.noteIncludes,
-        transferFilter: filterOrUndefined(filter.transferFilter),
-        refundFilter: filterOrUndefined(filter.refundFilter),
-        accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
-        categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
-        tagIds: filter.tagIds.length ? filter.tagIds : undefined,
-        categorizationSource: filter.categorizationSource ?? undefined,
-        budgetIds: staticFilters.budgetIds ?? undefined,
-        excludedBudgetIds: staticFilters.excludedBudgetIds ?? undefined,
-        includeSplits: true,
-        includeTags: true,
-        includeGroups: true,
-      } as Parameters<typeof loadTransactions>[0]),
+      omitBy(
+        {
+          limit,
+          from,
+          transactionType: filter.transactionType ?? undefined,
+          endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
+          startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
+          amountGte: filter.amountGte,
+          amountLte: filter.amountLte,
+          noteSearch: filter.noteIncludes,
+          transferFilter: filterOrUndefined(filter.transferFilter),
+          refundFilter: filterOrUndefined(filter.refundFilter),
+          accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
+          categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
+          tagIds: filter.tagIds.length ? filter.tagIds : undefined,
+          categorizationSource: filter.categorizationSource ?? undefined,
+          budgetIds: staticFilters.budgetIds ?? undefined,
+          excludedBudgetIds: staticFilters.excludedBudgetIds ?? undefined,
+          includeSplits: true,
+          includeTags: true,
+          includeGroups: true,
+        },
+        isNil,
+      ) as Parameters<typeof loadTransactions>[0],
     );
   };
 
