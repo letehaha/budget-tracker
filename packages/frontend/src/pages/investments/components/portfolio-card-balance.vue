@@ -36,7 +36,7 @@
 import { usePortfolioSummary } from '@/composable/data-queries/portfolio-summary';
 import { useFormatCurrency } from '@/composable/formatters';
 import type { UserCurrencyModel } from '@bt/shared/types';
-import { TrendingDownIcon, TrendingUpIcon } from 'lucide-vue-next';
+import { TrendingDownIcon, TrendingUpIcon } from '@lucide/vue';
 import { computed, toRef } from 'vue';
 
 const props = defineProps<{

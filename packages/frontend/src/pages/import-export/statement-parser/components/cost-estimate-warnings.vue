@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import { ROUTES_NAMES } from '@/routes';
-import { AlertTriangleIcon, InfoIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, InfoIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

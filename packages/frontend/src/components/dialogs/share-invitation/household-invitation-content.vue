@@ -15,7 +15,7 @@ import {
   type TransactionsWriteScope,
 } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
-import { CheckCircleIcon } from 'lucide-vue-next';
+import { CheckCircleIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

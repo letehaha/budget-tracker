@@ -113,7 +113,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { cn } from '@/lib/utils';
 import { TagModel } from '@bt/shared/types';
-import { ChevronsUpDownIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon } from '@lucide/vue';
 import { defineAsyncComponent, ref } from 'vue';
 
 const IconPickerDropdown = defineAsyncComponent(() => import('@/components/common/icons/icon-picker-dropdown.vue'));

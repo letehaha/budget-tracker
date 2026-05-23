@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { cn } from '@/lib/utils';
 import type { OnboardingTask } from '@/stores/onboarding';
-import { CheckIcon, CircleIcon } from 'lucide-vue-next';
+import { CheckIcon, CircleIcon } from '@lucide/vue';
 
 const props = defineProps<{
   task: OnboardingTask;

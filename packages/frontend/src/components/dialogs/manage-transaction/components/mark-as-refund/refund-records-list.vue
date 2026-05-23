@@ -11,7 +11,7 @@ import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
 import { isDate } from 'date-fns';
 import { isEqual, isNil, omitBy } from 'lodash-es';
-import { CircleAlert, ListFilterIcon, SparklesIcon } from 'lucide-vue-next';
+import { CircleAlert, ListFilterIcon, SparklesIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface RecordListModalProps {

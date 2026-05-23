@@ -103,7 +103,7 @@ import TransactionsList from '@/components/transactions-list/transactions-list.v
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 import { useInfiniteQuery } from '@tanstack/vue-query';
-import { AlertTriangleIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';

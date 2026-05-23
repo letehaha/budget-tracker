@@ -6,7 +6,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { invalidateTransactionGroupQueries } from '@/composable/data-queries/transaction-groups';
 import { getApiErrorMessage } from '@/js/errors';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
-import { CheckIcon, SearchIcon } from 'lucide-vue-next';
+import { CheckIcon, SearchIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

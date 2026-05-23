@@ -2,7 +2,7 @@
 import * as Popover from '@/components/lib/ui/popover';
 import * as ScrollArea from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
-import { InfoIcon } from 'lucide-vue-next';
+import { InfoIcon } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();

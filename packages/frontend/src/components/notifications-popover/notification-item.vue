@@ -28,7 +28,7 @@ import {
   UserXIcon,
   WalletIcon,
   XIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 import ChangelogContent from './changelog-content.vue';

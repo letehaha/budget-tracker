@@ -66,7 +66,7 @@ import { Card } from '@/components/lib/ui/card';
 import { getCurrencyIcon } from '@/js/helpers/currencyImage';
 import { cn } from '@/lib/utils';
 import { useCurrenciesStore } from '@/stores';
-import { InfoIcon } from 'lucide-vue-next';
+import { InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 
 import type { CurrencyWithExchangeRate } from './types';

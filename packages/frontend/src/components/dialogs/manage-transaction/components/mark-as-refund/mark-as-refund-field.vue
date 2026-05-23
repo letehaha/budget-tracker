@@ -3,7 +3,7 @@ import { Button } from '@/components/lib/ui/button';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, TransactionSplitModel } from '@bt/shared/types';
-import { SplitIcon, XIcon } from 'lucide-vue-next';
+import { SplitIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';

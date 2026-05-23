@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChangelogNotificationPayload } from '@bt/shared/types';
-import { ExternalLinkIcon } from 'lucide-vue-next';
+import { ExternalLinkIcon } from '@lucide/vue';
 
 withDefaults(
   defineProps<{

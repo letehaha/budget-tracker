@@ -20,7 +20,7 @@ import { ROUTES_NAMES } from '@/routes';
 import { PAYMENT_REMINDER_STATUSES, type PaymentReminderStatus } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { useElementSize } from '@vueuse/core';
-import { BellRingIcon, CheckIcon, EllipsisVerticalIcon, PlusIcon, SkipForwardIcon, Trash2Icon } from 'lucide-vue-next';
+import { BellRingIcon, CheckIcon, EllipsisVerticalIcon, PlusIcon, SkipForwardIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

@@ -7,7 +7,7 @@
 
 <script lang="ts" setup>
 import { Button } from '@/components/lib/ui/button';
-import { KeyRoundIcon } from 'lucide-vue-next';
+import { KeyRoundIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

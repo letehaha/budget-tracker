@@ -76,7 +76,7 @@ import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { ChartPieIcon } from 'lucide-vue-next';
+import { ChartPieIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { type Ref, computed, inject } from 'vue';
 import { useRouter } from 'vue-router';

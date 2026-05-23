@@ -41,7 +41,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { useFormatCurrency } from '@/composable';
 import { useMediaQuery, useResizeObserver } from '@vueuse/core';
 import * as d3 from 'd3';
-import { ExternalLinkIcon } from 'lucide-vue-next';
+import { ExternalLinkIcon } from '@lucide/vue';
 import { nextTick, reactive, ref, watch } from 'vue';
 
 import type { ChartDataItem } from './use-expenses-structure-data';

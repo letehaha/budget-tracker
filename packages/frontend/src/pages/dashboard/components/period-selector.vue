@@ -40,7 +40,7 @@ import {
   subMonths,
   subYears,
 } from 'date-fns';
-import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { CalendarIcon, ChevronLeft, ChevronRight } from '@lucide/vue';
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

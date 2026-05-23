@@ -149,7 +149,7 @@ import { useQuery } from '@tanstack/vue-query';
 import { useResizeObserver } from '@vueuse/core';
 import * as d3 from 'd3';
 import { differenceInDays, endOfDay, format, isSameMonth, min, startOfDay, subDays } from 'date-fns';
-import { ChartLineIcon } from 'lucide-vue-next';
+import { ChartLineIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
 import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue';

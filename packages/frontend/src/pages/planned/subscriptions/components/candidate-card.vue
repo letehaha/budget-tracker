@@ -2,7 +2,7 @@
 import type { SubscriptionCandidate } from '@/api/subscription-candidates';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { useFormatCurrency } from '@/composable/formatters';
-import { CheckIcon, LinkIcon, RepeatIcon, XIcon } from 'lucide-vue-next';
+import { CheckIcon, LinkIcon, RepeatIcon, XIcon } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 import { formatFrequency } from '../utils';

@@ -127,7 +127,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { InfoIcon } from 'lucide-vue-next';
+import { InfoIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

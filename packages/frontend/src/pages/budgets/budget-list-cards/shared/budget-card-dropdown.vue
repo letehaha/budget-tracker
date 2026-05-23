@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
 import Button from '@/components/lib/ui/button/Button.vue';
-import { ArchiveIcon, ArchiveRestoreIcon, MoreVerticalIcon, PencilIcon, Trash2Icon } from 'lucide-vue-next';
+import { ArchiveIcon, ArchiveRestoreIcon, MoreVerticalIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
 
 defineProps<{
   budgetId: string;

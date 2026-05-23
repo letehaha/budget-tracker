@@ -93,7 +93,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { usePortfolio } from '@/composable/data-queries/portfolios';
 import { isResourceMissingError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { AlertCircleIcon, BriefcaseIcon, ChevronLeftIcon, PencilIcon, Trash2Icon } from 'lucide-vue-next';
+import { AlertCircleIcon, BriefcaseIcon, ChevronLeftIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 

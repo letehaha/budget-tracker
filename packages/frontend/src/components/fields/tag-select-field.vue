@@ -79,7 +79,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/pop
 import { cn } from '@/lib/utils';
 import { useTagsStore } from '@/stores';
 import { TagModel } from '@bt/shared/types';
-import { ChevronsUpDownIcon, XIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

@@ -260,7 +260,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/pop
 import { Slider } from '@/components/lib/ui/slider';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { useFormatCurrency } from '@/composable';
-import { PercentIcon, SlidersHorizontalIcon } from 'lucide-vue-next';
+import { PercentIcon, SlidersHorizontalIcon } from '@lucide/vue';
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

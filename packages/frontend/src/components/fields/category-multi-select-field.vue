@@ -89,7 +89,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/pop
 import { cn } from '@/lib/utils';
 import { useCategoriesStore } from '@/stores';
 import { CATEGORY_TYPES } from '@bt/shared/types';
-import { ChevronsUpDownIcon, SearchIcon, XIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon, SearchIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

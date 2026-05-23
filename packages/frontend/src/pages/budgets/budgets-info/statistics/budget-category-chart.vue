@@ -76,7 +76,7 @@ import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
-import { ChevronRightIcon } from 'lucide-vue-next';
+import { ChevronRightIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { useResizeObserver } from '@vueuse/core';
 import { computed, nextTick, reactive, ref, watch } from 'vue';

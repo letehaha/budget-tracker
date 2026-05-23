@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
-import { GroupIcon, ListOrderedIcon, PencilIcon, PlusIcon, ListPlusIcon, ChevronDownIcon } from 'lucide-vue-next';
+import { GroupIcon, ListOrderedIcon, PencilIcon, PlusIcon, ListPlusIcon, ChevronDownIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

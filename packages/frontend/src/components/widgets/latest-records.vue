@@ -7,7 +7,7 @@ import TransactionsList from '@/components/transactions-list/transactions-list.v
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
-import { ListIcon } from 'lucide-vue-next';
+import { ListIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
 import { computed, inject } from 'vue';

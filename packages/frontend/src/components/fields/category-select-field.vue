@@ -242,7 +242,7 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { cn } from '@/lib/utils';
 import { CATEGORY_TYPES, type CategoryModel } from '@bt/shared/types';
 import { createReusableTemplate } from '@vueuse/core';
-import { ChevronDownIcon, InfoIcon, XIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, InfoIcon, XIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 defineOptions({ inheritAttrs: false });

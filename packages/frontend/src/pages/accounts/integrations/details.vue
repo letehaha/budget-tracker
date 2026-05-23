@@ -580,7 +580,7 @@ import { ROUTES_NAMES } from '@/routes';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from 'lucide-vue-next';
+import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';

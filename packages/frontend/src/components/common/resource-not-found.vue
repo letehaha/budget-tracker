@@ -19,7 +19,7 @@
 
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { SearchXIcon } from 'lucide-vue-next';
+import { SearchXIcon } from '@lucide/vue';
 import type { RouteLocationRaw } from 'vue-router';
 import { RouterLink } from 'vue-router';
 

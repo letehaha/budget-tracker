@@ -127,7 +127,7 @@ import { usePortfolioSummary } from '@/composable/data-queries/portfolio-summary
 import { useFormatCurrency } from '@/composable/formatters';
 import { getGainColorClass } from '@/composable/gain-color';
 import { useCurrenciesStore } from '@/stores/currencies';
-import { TrendingDownIcon, TrendingUpIcon } from 'lucide-vue-next';
+import { TrendingDownIcon, TrendingUpIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { toRef } from 'vue';
 

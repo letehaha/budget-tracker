@@ -141,7 +141,7 @@ import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useUserStore } from '@/stores';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRight, BriefcaseIcon, UsersIcon } from 'lucide-vue-next';
+import { ArrowRight, BriefcaseIcon, UsersIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';

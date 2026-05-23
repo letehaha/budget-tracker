@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Card from '@/components/lib/ui/card/Card.vue';
 import { useFormatCurrency } from '@/composable';
-import { TrendingDownIcon, TrendingUpIcon, WalletIcon } from 'lucide-vue-next';
+import { TrendingDownIcon, TrendingUpIcon, WalletIcon } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();

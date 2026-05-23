@@ -2,7 +2,7 @@
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { PlusIcon } from 'lucide-vue-next';
+import { PlusIcon } from '@lucide/vue';
 import { ref } from 'vue';
 
 import BudgetCreation from './budget-creation.vue';

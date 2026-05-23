@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { format } from 'date-fns';
-import { GroupIcon } from 'lucide-vue-next';
+import { GroupIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

@@ -37,7 +37,7 @@
 import FileDropzone from '@/components/common/file-dropzone.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useImportExportStore } from '@/stores/import-export';
-import { LoaderIcon } from 'lucide-vue-next';
+import { LoaderIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

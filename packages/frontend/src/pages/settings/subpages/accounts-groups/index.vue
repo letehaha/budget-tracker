@@ -25,7 +25,7 @@
 import CreateAccountGroupDialog from '@/components/dialogs/account-groups/create-account-group-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
-import { PlusIcon } from 'lucide-vue-next';
+import { PlusIcon } from '@lucide/vue';
 
 import AccountsGroupsTable from './table.vue';
 </script>

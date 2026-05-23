@@ -4,7 +4,7 @@ import { Button } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import type { InvestmentImportTransaction } from '@bt/shared/types/investments';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { Trash2Icon, TriangleAlertIcon } from 'lucide-vue-next';
+import { Trash2Icon, TriangleAlertIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const TOOLTIP_CLASS = 'max-w-xs';

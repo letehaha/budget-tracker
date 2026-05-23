@@ -4,7 +4,7 @@ import * as Popover from '@/components/lib/ui/popover';
 import { useLogout } from '@/composable/actions/logout';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useUserStore } from '@/stores';
-import { ChevronUpIcon, LogOutIcon, UserIcon } from 'lucide-vue-next';
+import { ChevronUpIcon, LogOutIcon, UserIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';

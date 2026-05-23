@@ -5,7 +5,7 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import { RESOURCE_TYPES } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { UsersIcon } from 'lucide-vue-next';
+import { UsersIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 import HouseholdInvitationContent from './share-invitation/household-invitation-content.vue';

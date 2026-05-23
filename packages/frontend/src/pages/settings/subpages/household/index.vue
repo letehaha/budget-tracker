@@ -32,7 +32,7 @@ import {
   type TransactionsWriteScope,
 } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { LogOutIcon, MailIcon, RotateCwIcon, UserMinusIcon, XIcon } from 'lucide-vue-next';
+import { LogOutIcon, MailIcon, RotateCwIcon, UserMinusIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

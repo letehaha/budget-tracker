@@ -63,7 +63,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
 import { useFormatCurrency } from '@/composable';
-import { ChevronDownIcon } from 'lucide-vue-next';
+import { ChevronDownIcon } from '@lucide/vue';
 import { useElementSize } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

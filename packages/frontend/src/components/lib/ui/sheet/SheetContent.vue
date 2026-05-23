@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from '@/components/lib/ui/button/Button.vue';
 import { cn } from '@/lib/utils';
-import { XIcon } from 'lucide-vue-next';
+import { XIcon } from '@lucide/vue';
 import {
   DialogClose,
   DialogContent,

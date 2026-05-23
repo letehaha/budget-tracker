@@ -23,7 +23,7 @@
 -->
 <script setup lang="ts">
 import { useActionState } from '@/composable/use-action-state';
-import { CheckIcon, Loader2Icon, XIcon } from 'lucide-vue-next';
+import { CheckIcon, Loader2Icon, XIcon } from '@lucide/vue';
 import {
   type Component,
   type ComponentPublicInstance,

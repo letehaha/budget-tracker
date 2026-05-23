@@ -70,7 +70,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { useTagsStore } from '@/stores';
 import { TagModel } from '@bt/shared/types';
-import { BellIcon, ChevronRightIcon, PlusIcon } from 'lucide-vue-next';
+import { BellIcon, ChevronRightIcon, PlusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { onMounted, reactive } from 'vue';
 

@@ -14,7 +14,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { SUBSCRIPTION_TYPES, type SubscriptionModel, type RecordId } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { formatDistanceToNow } from 'date-fns';
-import { SearchIcon } from 'lucide-vue-next';
+import { SearchIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

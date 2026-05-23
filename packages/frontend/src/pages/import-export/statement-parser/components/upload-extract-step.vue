@@ -137,7 +137,7 @@ import ApiKeySourceBadge from '@/components/common/api-key-source-badge.vue';
 import FileDropzone from '@/components/common/file-dropzone.vue';
 import { Button } from '@/components/lib/ui/button';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import { CalculatorIcon, Loader2Icon, SparklesIcon } from 'lucide-vue-next';
+import { CalculatorIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
 import { computed, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

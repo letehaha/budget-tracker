@@ -61,7 +61,7 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
-import { KeyIcon, Loader2Icon, SparklesIcon } from 'lucide-vue-next';
+import { KeyIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
 import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 

@@ -70,7 +70,7 @@
 <script setup lang="ts">
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import { ROUTES_NAMES } from '@/routes';
-import { ArrowRightIcon, FileUpIcon, LandmarkIcon, WalletIcon } from 'lucide-vue-next';
+import { ArrowRightIcon, FileUpIcon, LandmarkIcon, WalletIcon } from '@lucide/vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();

@@ -45,7 +45,7 @@
 import { completeEnableBankingOAuth } from '@/api/bank-data-providers';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { CheckCircle2Icon, InfoIcon } from 'lucide-vue-next';
+import { CheckCircle2Icon, InfoIcon } from '@lucide/vue';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';

@@ -82,7 +82,7 @@ import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useTagsStore } from '@/stores';
 import { TagModel, type RecordId } from '@bt/shared/types';
 import { isEqual } from 'lodash-es';
-import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
+import { CheckIcon, ChevronDown, SearchIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 

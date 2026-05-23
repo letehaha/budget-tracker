@@ -9,7 +9,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { invalidateTransactionGroupQueries } from '@/composable/data-queries/transaction-groups';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format } from 'date-fns';
-import { EllipsisVerticalIcon, PencilIcon, Trash2Icon, XIcon } from 'lucide-vue-next';
+import { EllipsisVerticalIcon, PencilIcon, Trash2Icon, XIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import EditGroupDialog from './edit-group-dialog.vue';

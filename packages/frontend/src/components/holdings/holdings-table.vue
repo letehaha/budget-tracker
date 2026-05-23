@@ -17,7 +17,7 @@ import {
   PackageOpenIcon,
   PlusIcon,
   ReceiptIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 

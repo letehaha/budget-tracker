@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { CirclePauseIcon, PlusIcon, RepeatIcon, SearchIcon, Trash2Icon } from 'lucide-vue-next';
+import { CirclePauseIcon, PlusIcon, RepeatIcon, SearchIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

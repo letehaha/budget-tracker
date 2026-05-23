@@ -163,7 +163,7 @@ import PageWrapper from '@/components/common/page-wrapper.vue';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import { CheckIcon, ChevronDownIcon, LockIcon } from 'lucide-vue-next';
+import { CheckIcon, ChevronDownIcon, LockIcon } from '@lucide/vue';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import AccountSelectionStep from './components/account-selection-step.vue';

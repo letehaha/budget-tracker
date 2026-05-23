@@ -175,7 +175,7 @@
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useImportExportStore } from '@/stores/import-export';
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-vue-next';
+import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();

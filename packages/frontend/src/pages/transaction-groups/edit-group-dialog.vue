@@ -5,7 +5,7 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
-import { SaveIcon } from 'lucide-vue-next';
+import { SaveIcon } from '@lucide/vue';
 import { reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

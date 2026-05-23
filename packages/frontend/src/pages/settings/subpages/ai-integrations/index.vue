@@ -207,15 +207,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useClipboard } from '@vueuse/core';
 import { format, formatDistanceToNow } from 'date-fns';
-import {
-  BotIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  CopyIcon,
-  ExternalLinkIcon,
-  PlugIcon,
-  SparklesIcon,
-} from 'lucide-vue-next';
+import { BotIcon, CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, PlugIcon, SparklesIcon } from '@lucide/vue';
 import { ref } from 'vue';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 

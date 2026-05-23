@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { ROUTES_NAMES } from '@/routes';
-import { SettingsIcon } from 'lucide-vue-next';
+import { SettingsIcon } from '@lucide/vue';
 
 import AccountsView from './accounts-view/index.vue';
 import FeedbackDialog from './feedback-dialog.vue';

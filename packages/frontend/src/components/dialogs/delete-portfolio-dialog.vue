@@ -33,7 +33,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useDeletePortfolio } from '@/composable/data-queries/portfolios';
 import { ApiErrorResponseError } from '@/js/errors';
-import { Trash2Icon } from 'lucide-vue-next';
+import { Trash2Icon } from '@lucide/vue';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

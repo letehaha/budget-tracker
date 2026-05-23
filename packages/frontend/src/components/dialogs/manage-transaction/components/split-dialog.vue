@@ -5,7 +5,7 @@ import CategorySelectField from '@/components/fields/category-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { formatUIAmount } from '@/js/helpers';
-import { PlusIcon, SplitIcon, XIcon } from 'lucide-vue-next';
+import { PlusIcon, SplitIcon, XIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

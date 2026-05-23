@@ -15,7 +15,7 @@ import TransactionsList from '@/components/transactions-list/transactions-list.v
 import { useShiftMultiSelect } from '@/composable/shift-multi-select';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
-import { AlertTriangleIcon, LinkIcon, PlusIcon, WalletIcon, XIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, LinkIcon, PlusIcon, WalletIcon, XIcon } from '@lucide/vue';
 import { computed, inject, nextTick, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';

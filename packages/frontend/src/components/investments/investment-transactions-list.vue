@@ -5,7 +5,7 @@ import { useFormatCurrency } from '@/composable/formatters';
 import type { InvestmentTransactionModel } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { format } from 'date-fns';
-import { PlusIcon, Trash2Icon } from 'lucide-vue-next';
+import { PlusIcon, Trash2Icon } from '@lucide/vue';
 
 const props = defineProps<{
   transactions: InvestmentTransactionModel[];

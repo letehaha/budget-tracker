@@ -10,7 +10,7 @@ import type { TransactionModel } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import { useLocalStorage } from '@vueuse/core';
 import { format } from 'date-fns';
-import { ArrowDownIcon, ArrowRightIcon } from 'lucide-vue-next';
+import { ArrowDownIcon, ArrowRightIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 import SuggestionMatchRow from './suggestion-match-row.vue';

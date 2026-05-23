@@ -137,7 +137,7 @@ import {
   PencilIcon,
   PlusIcon,
   Trash2Icon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 

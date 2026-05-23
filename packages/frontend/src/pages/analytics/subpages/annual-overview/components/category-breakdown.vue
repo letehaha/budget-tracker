@@ -74,7 +74,7 @@
 <script setup lang="ts">
 import { useFormatCurrency } from '@/composable';
 import type { endpointsTypes, RecordId } from '@bt/shared/types';
-import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from 'lucide-vue-next';
+import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from '@lucide/vue';
 import { type Component, computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

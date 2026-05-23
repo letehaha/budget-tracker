@@ -16,7 +16,7 @@ import type { TransactionModel, RecordId } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import type { Period } from '@/composable/use-period-navigation';
 import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
-import { SearchXIcon, SparklesIcon } from 'lucide-vue-next';
+import { SearchXIcon, SparklesIcon } from '@lucide/vue';
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { createReusableTemplate } from '@vueuse/core';

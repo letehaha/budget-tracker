@@ -7,7 +7,7 @@ import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_STATUSES } from '@bt/shared/types';
-import { CircleCheckIcon, InfoIcon } from 'lucide-vue-next';
+import { CircleCheckIcon, InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 

@@ -90,7 +90,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { useCategoriesStore, useOnboardingStore } from '@/stores';
-import { ChevronsUpDownIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon } from '@lucide/vue';
 import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
