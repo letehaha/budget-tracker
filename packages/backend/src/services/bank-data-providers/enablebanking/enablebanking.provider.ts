@@ -3,6 +3,7 @@ import type { RecordId } from '@bt/shared/types';
 import {
   ACCOUNT_TYPES,
   BANK_PROVIDER_TYPE,
+  DEACTIVATION_REASON,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -223,6 +224,12 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       state: undefined, // Clear state after successful auth
       consentValidFrom: consentValidFrom.toISOString(),
       consentValidUntil: consentValidUntil.toISOString(),
+      // Clear the "needs reauth" markers — successful OAuth means the prior
+      // auth failure is resolved. Without this, the connection would still
+      // appear in `connectionsNeedingReauth` whenever it's later marked
+      // inactive for any reason (manual disconnect, future failure path).
+      deactivationReason: null,
+      consecutiveAuthFailures: 0,
     };
     connection.metadata = updatedMetadata;
     connection.isActive = true;
@@ -933,6 +940,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         const updatedMetadata: EnableBankingMetadata = {
           ...metadata,
           consentValidUntil: new Date().toISOString(),
+          // Marks the deactivation as upstream-driven (vs. user-initiated) so
+          // the sync-status endpoint surfaces it in the "needs reauth" list.
+          deactivationReason: DEACTIVATION_REASON.AUTH_FAILURE,
         };
         connection.metadata = updatedMetadata as unknown as object;
         // { transaction: null } bypasses the current CLS transaction so this write

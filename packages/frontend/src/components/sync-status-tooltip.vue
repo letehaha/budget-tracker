@@ -23,6 +23,40 @@
       <p class="text-xs opacity-80">{{ $t('syncStatusTooltip.syncStuckDescription') }}</p>
     </div>
 
+    <!-- Connections needing reauth: connection was auto-deactivated after the
+         bank rejected the session/refresh token, so the user must reconnect. -->
+    <div v-if="connectionsNeedingReauth.length > 0" class="mb-3 space-y-2">
+      <div class="text-destructive-text flex items-center gap-2 text-xs font-medium">
+        <AlertTriangleIcon class="size-4 shrink-0" />
+        {{ $t('syncStatusTooltip.needsReauthTitle') }}
+      </div>
+      <p class="text-muted-foreground text-[10px]">{{ $t('syncStatusTooltip.needsReauthDescription') }}</p>
+      <div class="space-y-2">
+        <div
+          v-for="connection in connectionsNeedingReauth"
+          :key="connection.connectionId"
+          class="border-destructive/40 bg-destructive/5 flex items-center gap-2 rounded border p-2"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-xs font-medium">
+              {{ connection.bankName || connection.providerName }}
+            </div>
+            <div class="text-muted-foreground text-[10px]">
+              {{ getProviderName(connection.providerType) }} ·
+              {{ $t('syncStatusTooltip.affectedAccounts', connection.accountsCount) }}
+            </div>
+          </div>
+          <Button as-child size="sm" variant="destructive" class="shrink-0">
+            <RouterLink
+              :to="{ name: ROUTES_NAMES.accountIntegrationDetails, params: { connectionId: connection.connectionId } }"
+            >
+              {{ $t('syncStatusTooltip.reconnectButton') }}
+            </RouterLink>
+          </Button>
+        </div>
+      </div>
+    </div>
+
     <!-- In-progress: progress bar -->
     <div v-if="isSyncing" class="mb-3 space-y-2">
       <div class="flex items-center justify-between text-xs">
@@ -48,7 +82,7 @@
 
     <!-- Empty state: no bank accounts -->
     <div
-      v-if="!isSyncing && accountStatuses.length === 0"
+      v-if="!isSyncing && accountStatuses.length === 0 && connectionsNeedingReauth.length === 0"
       class="text-muted-foreground flex flex-col items-center gap-2 py-4 text-center text-sm"
     >
       <Building2 class="size-10 opacity-50" />
@@ -168,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import { type AccountSyncStatus, SyncStatus } from '@/api/bank-data-providers';
+import { type AccountSyncStatus, type ConnectionNeedingReauth, SyncStatus } from '@/api/bank-data-providers';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
@@ -192,6 +226,7 @@ const { t } = useI18n();
 
 const props = defineProps<{
   accountStatuses: AccountSyncStatus[];
+  connectionsNeedingReauth: ConnectionNeedingReauth[];
   syncProgress: { current: number; total: number; percentage: number };
   lastSyncTimestamp: number | null;
   isLoading?: boolean;

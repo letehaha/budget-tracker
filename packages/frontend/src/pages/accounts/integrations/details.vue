@@ -120,8 +120,13 @@
         </Collapsible>
       </Card>
 
-      <!-- Auth Failure Banner (for LunchFlow and other API key providers) -->
-      <Card v-if="isDeactivatedDueToAuth" class="border-destructive mb-6">
+      <!-- Auth Failure Banner (for LunchFlow and other API key providers).
+           Excluded for Enable Banking because OAuth providers can't re-supply
+           credentials inline — they reconnect via the Connection Validity card. -->
+      <Card
+        v-if="isDeactivatedDueToAuth && connectionDetails.providerType !== BANK_PROVIDER_TYPE.ENABLE_BANKING"
+        class="border-destructive mb-6"
+      >
         <CardContent class="p-6">
           <div class="space-y-4">
             <div class="text-destructive-text bg-destructive/20 rounded-lg p-4">
@@ -191,7 +196,6 @@
         class="mb-6"
         :class="{
           'border-yellow-500': connectionDetails.consent.isExpiringSoon,
-          'border-destructive': connectionDetails.consent.isExpired,
         }"
       >
         <Collapsible v-model:open="isConnectionValidityOpen">
@@ -229,12 +233,15 @@
                 <!-- Expiration Warning -->
                 <div
                   v-if="connectionDetails.consent.isExpired"
-                  class="text-destructive-text bg-destructive/20 rounded-lg p-4"
+                  class="border-destructive/40 bg-destructive/5 text-destructive-text flex items-start gap-3 rounded-lg border p-4"
                 >
-                  <p class="font-semibold">{{ $t('pages.integrations.details.connectionValidity.expiredTitle') }}</p>
-                  <p class="mt-1 text-sm">
-                    {{ $t('pages.integrations.details.connectionValidity.expiredDescription') }}
-                  </p>
+                  <AlertTriangleIcon class="mt-0.5 size-5 shrink-0" />
+                  <div class="space-y-1">
+                    <p class="font-semibold">{{ $t('pages.integrations.details.connectionValidity.expiredTitle') }}</p>
+                    <p class="text-muted-foreground text-sm">
+                      {{ $t('pages.integrations.details.connectionValidity.expiredDescription') }}
+                    </p>
+                  </div>
                 </div>
                 <div
                   v-else-if="connectionDetails.consent.isExpiringSoon"
@@ -580,7 +587,7 @@ import { ROUTES_NAMES } from '@/routes';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from '@lucide/vue';
+import { AlertTriangleIcon, ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';

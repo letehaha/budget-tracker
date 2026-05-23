@@ -1,6 +1,8 @@
 import * as bankDataProvidersApi from '@/api/bank-data-providers';
 import type { SyncStatusResponse } from '@/api/bank-data-providers';
+import type { AccountGroups } from '@/common/types/models';
 import { getCurrentLocale, loadChunks } from '@/i18n';
+import type { AccountModel } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -94,6 +96,36 @@ export function useSyncStatus() {
   const accountStatuses = computed(() => {
     return syncStatusData.value?.accounts || [];
   });
+
+  const connectionsNeedingReauth = computed(() => {
+    return syncStatusData.value?.connectionsNeedingReauth || [];
+  });
+
+  // Built once per reactivity tick so per-account / per-group lookups stay O(1)
+  // — three different sidebar/details components query this for every render.
+  const reauthConnectionIdsSet = computed(() => new Set(connectionsNeedingReauth.value.map((c) => c.connectionId)));
+
+  function isAccountNeedingReauth(account: Pick<AccountModel, 'bankDataProviderConnectionId'>): boolean {
+    const id = account.bankDataProviderConnectionId;
+    return id !== null && id !== undefined && reauthConnectionIdsSet.value.has(id);
+  }
+
+  function isConnectionNeedingReauth(connectionId: string | null | undefined): boolean {
+    return connectionId !== null && connectionId !== undefined && reauthConnectionIdsSet.value.has(connectionId);
+  }
+
+  // Walk the group tree (direct accounts + nested child groups) so a mixed-
+  // content group still surfaces a warning when any descendant account is on
+  // an expired connection — important because groups can hold both bank-linked
+  // and manual accounts side by side. Tolerant of undefined arrays so a
+  // partial cache payload doesn't crash the sidebar.
+  function groupHasReauthAccount(group: AccountGroups): boolean {
+    if (reauthConnectionIdsSet.value.size === 0) return false;
+    const accounts = group.accounts ?? [];
+    if (accounts.some((account) => isAccountNeedingReauth(account))) return true;
+    const childGroups = group.childGroups ?? [];
+    return childGroups.some((child) => groupHasReauthAccount(child));
+  }
 
   const syncingSummaryText = computed(() => {
     if (!syncStatusData.value || !isSyncing.value) return '';
@@ -276,6 +308,10 @@ export function useSyncStatus() {
     timeSinceLastSync,
     needsConfirmation,
     accountStatuses,
+    connectionsNeedingReauth,
+    isAccountNeedingReauth,
+    isConnectionNeedingReauth,
+    groupHasReauthAccount,
     syncingSummaryText,
     showSuccessMessage,
     isConnected,

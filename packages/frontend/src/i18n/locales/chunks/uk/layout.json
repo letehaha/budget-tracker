@@ -27,7 +27,8 @@
       "newAccountsGroup": "Нова група рахунків",
       "collapseNavigation": "Згорнути навігацію",
       "viaHousehold": "Через сім'ю {handle}",
-      "sharedBy": "Поділено з {handle}"
+      "sharedBy": "Поділено з {handle}",
+      "needsReauthTooltip": "З'єднання закінчилось. Перепідключіться, щоб продовжити синхронізацію."
     }
   },
   "header": {
@@ -82,6 +83,10 @@
     "connectButton": "Підключити",
     "retrySyncButton": "Повторити синхронізацію",
     "manageConnectionsButton": "Керувати з'єднаннями",
+    "needsReauthTitle": "З'єднання потребують перепідключення",
+    "needsReauthDescription": "Ці сеанси банку закінчилися. Перепідключіться, щоб продовжити синхронізацію.",
+    "reconnectButton": "Перепідключитися",
+    "affectedAccounts": "1 рахунок | {count} рахунки | {count} рахунків",
     "timeAgo": {
       "justNow": "Щойно",
       "secondsAgo": "{count} секунду тому | {count} секунди тому | {count} секунд тому",

@@ -2,6 +2,8 @@
  * Authentication, Authorization & Session Types
  * https://enablebanking.com/docs/api/reference/
  */
+import type { DeactivationReason } from '@bt/shared/types';
+
 import { EnableBankingAccount } from './accounts';
 import { ASPSP } from './aspsp';
 import { AccountIdentification } from './common';
@@ -60,6 +62,14 @@ export interface EnableBankingMetadata {
   consentValidFrom?: string;
   /** Maximum consent validity allowed by bank (in seconds) */
   bankMaxConsentValidity?: number;
+  /** Consecutive auth-failure counter, kept by the base provider's auth tracking. */
+  consecutiveAuthFailures?: number;
+  /**
+   * Why the connection was deactivated. `DEACTIVATION_REASON.AUTH_FAILURE`
+   * signals the UI to prompt the user to reconnect; `null`/absent means the
+   * connection was disconnected manually.
+   */
+  deactivationReason?: DeactivationReason | null;
 }
 
 /**

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { DEACTIVATION_REASON, type DeactivationReason } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ForbiddenError } from '@js/errors';
@@ -15,7 +16,7 @@ import { IBankDataProvider, ProviderAccount, ProviderMetadata } from './types';
  */
 interface AuthTrackingMetadata {
   consecutiveAuthFailures?: number;
-  deactivationReason?: 'auth_failure' | null | string;
+  deactivationReason?: DeactivationReason | null;
 }
 
 /**
@@ -120,7 +121,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
 
       if (failures >= AUTH_FAILURE_DEACTIVATION_THRESHOLD) {
         connection.isActive = false;
-        metadata.deactivationReason = 'auth_failure';
+        metadata.deactivationReason = DEACTIVATION_REASON.AUTH_FAILURE;
         logger.warn(
           `[${this.metadata.name}] Connection ${connectionId} deactivated after ${failures} consecutive auth failures`,
         );

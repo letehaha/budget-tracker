@@ -1,12 +1,17 @@
 <script lang="ts" setup>
 import { cn } from '@/lib/utils';
-import type { Component } from 'vue';
 import { nextTick, onMounted, ref, watch } from 'vue';
-import { pillTabsContainerVariants, pillTabsIndicatorVariants, pillTabsTriggerVariants, type PillTabsSize } from '.';
+import {
+  type PillTabItem,
+  type PillTabsSize,
+  pillTabsContainerVariants,
+  pillTabsIndicatorVariants,
+  pillTabsTriggerVariants,
+} from '.';
 
 const props = withDefaults(
   defineProps<{
-    items: { value: string; label: string; icon?: Component }[];
+    items: PillTabItem[];
     modelValue: string;
     size?: PillTabsSize;
     disabled?: boolean;
@@ -65,7 +70,7 @@ watch(
       "
       @click="emit('update:modelValue', item.value)"
     >
-      <component :is="item.icon" v-if="item.icon" class="mr-1.5 inline size-4 align-[-3px]" />
+      <component :is="item.icon" v-if="item.icon" :class="cn('mr-1.5 inline size-4 align-[-3px]', item.iconClass)" />
       {{ item.label }}
     </button>
   </div>

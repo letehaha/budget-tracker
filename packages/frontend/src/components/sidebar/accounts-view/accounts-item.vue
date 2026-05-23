@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable';
 import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
+import { useSyncStatus } from '@/composable/use-sync-status';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AccountModel } from '@bt/shared/types';
-import { HomeIcon, UsersIcon } from '@lucide/vue';
-import { toRef } from 'vue';
+import { AlertTriangleIcon, HomeIcon, UsersIcon } from '@lucide/vue';
+import { computed, toRef } from 'vue';
 
 const props = defineProps<{
   account: AccountModel;
@@ -17,6 +19,10 @@ const { formatCompactAmount, formatAmountByCurrencyCode } = useFormatCurrency();
 const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 
 const { isSharedWithCaller, ownerHandle, isHouseholdGranted } = useAccountAccess(toRef(() => props.account));
+
+const { isAccountNeedingReauth } = useSyncStatus();
+
+const needsReauth = computed(() => isAccountNeedingReauth(props.account));
 </script>
 
 <template>
@@ -42,6 +48,13 @@ const { isSharedWithCaller, ownerHandle, isHouseholdGranted } = useAccountAccess
             />
           </DesktopOnlyTooltip>
           <span class="truncate text-sm">{{ account.name }}</span>
+          <ResponsiveTooltip
+            v-if="needsReauth"
+            :content="$t('sidebar.accountsView.needsReauthTooltip')"
+            content-class-name="max-w-64"
+          >
+            <AlertTriangleIcon class="text-destructive-text size-3.5 shrink-0" />
+          </ResponsiveTooltip>
         </div>
         <DesktopOnlyTooltip :content="formatAmountByCurrencyCode(displayBalance, account.currencyCode)">
           <span

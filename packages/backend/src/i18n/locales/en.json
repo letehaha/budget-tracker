@@ -196,6 +196,7 @@
       "noActiveSessionGeneric": "No active session",
       "noBalanceInfo": "No balance information available",
       "authenticationFailed": "Enable Banking authentication failed: {{message}}",
+      "sessionExpiredReconnect": "Bank session expired. Please reconnect your bank account to continue syncing.",
       "apiBadRequestError": "Enable Banking API error: {{message}}",
       "apiGeneralError": "Enable Banking API error: {{message}}",
       "redirectUriNotAllowed": "Your Enable Banking application is missing the required redirect URL. Please log in to the Enable Banking dashboard, edit your application, and add this URL to the allowed redirect URLs: {{redirectUrl}}"

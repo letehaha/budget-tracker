@@ -42,6 +42,18 @@ export enum BANK_PROVIDER_TYPE {
 }
 
 /**
+ * Why a bank-data-provider connection was deactivated. Stored on
+ * `BankDataProviderConnections.metadata.deactivationReason`. Drives the
+ * "needs reauth" UI surfacing — only `AUTH_FAILURE` deactivations are
+ * shown to the user, manual disconnects stay hidden.
+ */
+export const DEACTIVATION_REASON = {
+  AUTH_FAILURE: 'auth_failure',
+} as const;
+
+export type DeactivationReason = (typeof DEACTIVATION_REASON)[keyof typeof DEACTIVATION_REASON];
+
+/**
  * Identifies the exchange rate provider that supplied a given rate.
  * Persisted as the `source` column on the `ExchangeRates` table.
  *

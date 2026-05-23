@@ -39,11 +39,26 @@ export interface SyncAccountStatus {
 }
 
 /**
+ * Bank connection that was auto-deactivated due to upstream auth failure
+ * (expired session, revoked consent, invalid refresh token, etc.).
+ * The user must reconnect via the integration details page to resume syncing.
+ */
+export interface ConnectionNeedingReauth {
+  connectionId: string;
+  providerType: string;
+  providerName: string;
+  bankName: string | null;
+  accountsCount: number;
+  deactivatedAt: string | null;
+}
+
+/**
  * Payload for SYNC_STATUS_CHANGED event
  */
 export interface SyncStatusChangedPayload {
   lastSyncAt: number | null;
   accounts: SyncAccountStatus[];
+  connectionsNeedingReauth: ConnectionNeedingReauth[];
   summary: {
     total: number;
     syncing: number;

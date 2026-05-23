@@ -1,4 +1,4 @@
-import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE, DEACTIVATION_REASON } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -2211,6 +2211,226 @@ describe('Enable Banking Data Provider E2E', () => {
 
       expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
       expect(result.status).toEqual(ERROR_CODES.BadGateway);
+    });
+  });
+
+  describe('ASPSP_ERROR auth-failure classification', () => {
+    /**
+     * Helper to create a fully-active connection with one linked account.
+     * Duplicated from the 403 suite intentionally — keeps this block
+     * standalone and the dep injection trivial to follow.
+     */
+    async function setupActiveConnection(): Promise<{
+      connectionId: string;
+      accountId: string;
+    }> {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
+        raw: true,
+      });
+
+      return {
+        connectionId: connectResult.connectionId,
+        accountId: syncedAccounts[0]!.id,
+      };
+    }
+
+    it('promotes wrapped-400 ASPSP_ERROR with nested 403 to ForbiddenError + deactivates with auth_failure marker', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/transactions', () => {
+          return new HttpResponse(
+            JSON.stringify({
+              error: 'ASPSP_ERROR',
+              message: 'Error interacting with ASPSP',
+              detail: {
+                message: 'Upstream session rejected',
+                error_data: { code: '403 FORBIDDEN' },
+              },
+            }),
+            { status: 400 },
+          );
+        }),
+      );
+
+      const syncResult = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      expect(syncResult.status).toEqual(ERROR_CODES.Forbidden);
+
+      const connection = await BankDataProviderConnections.findByPk(connectionId);
+      const metadata = connection!.metadata as { deactivationReason?: string };
+      expect(connection!.isActive).toBe(false);
+      expect(metadata.deactivationReason).toBe(DEACTIVATION_REASON.AUTH_FAILURE);
+
+      // And the connection now appears in connectionsNeedingReauth
+      const status = await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+      });
+      expect(status.body.response.connectionsNeedingReauth).toEqual(
+        expect.arrayContaining([expect.objectContaining({ connectionId })]),
+      );
+    });
+
+    it('promotes wrapped-400 with auth keyword in wrapper message only (no nested error_data)', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/transactions', () => {
+          return new HttpResponse(
+            JSON.stringify({
+              error: 'ASPSP_ERROR',
+              message: 'Error interacting with ASPSP',
+              detail: {
+                message: 'Forbidden, authenticated but access to resource is not allowed',
+              },
+            }),
+            { status: 400 },
+          );
+        }),
+      );
+
+      const syncResult = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      expect(syncResult.status).toEqual(ERROR_CODES.Forbidden);
+
+      const connection = await BankDataProviderConnections.findByPk(connectionId);
+      const metadata = connection!.metadata as { deactivationReason?: string };
+      expect(connection!.isActive).toBe(false);
+      expect(metadata.deactivationReason).toBe(DEACTIVATION_REASON.AUTH_FAILURE);
+    });
+
+    it('does NOT deactivate connection for generic ASPSP_ERROR without auth signal', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/transactions', () => {
+          return new HttpResponse(
+            JSON.stringify({
+              error: 'ASPSP_ERROR',
+              message: 'Error interacting with ASPSP',
+              detail: {
+                message: 'Invalid IBAN format',
+                error_data: { code: '400 BAD REQUEST' },
+              },
+            }),
+            { status: 400 },
+          );
+        }),
+      );
+
+      const syncResult = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      expect(syncResult.status).toEqual(ERROR_CODES.BadRequest);
+
+      const connection = await BankDataProviderConnections.findByPk(connectionId);
+      const metadata = connection!.metadata as { deactivationReason?: string | null };
+      expect(connection!.isActive).toBe(true);
+      // OAuth callback clears the field to null on success; the contract is
+      // "not set to AUTH_FAILURE", not "field absent".
+      expect(metadata.deactivationReason ?? null).toBeNull();
+    });
+
+    it('successful OAuth reconnect clears deactivationReason and removes connection from reauth list', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      // Trigger an auth failure via wrapped 400 to deactivate the connection
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/transactions', () => {
+          return new HttpResponse(
+            JSON.stringify({
+              error: 'ASPSP_ERROR',
+              detail: {
+                message: 'Session expired',
+                error_data: { code: '403 FORBIDDEN' },
+              },
+            }),
+            { status: 400 },
+          );
+        }),
+      );
+
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      const inactive = await BankDataProviderConnections.findByPk(connectionId);
+      expect(inactive!.isActive).toBe(false);
+      expect((inactive!.metadata as { deactivationReason?: string }).deactivationReason).toBe(
+        DEACTIVATION_REASON.AUTH_FAILURE,
+      );
+
+      // Reauthorize → returns a new auth URL and keeps connection inactive until OAuth completes
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/reauthorize`,
+      });
+
+      // Complete OAuth callback with fresh state
+      const newState = await helpers.enablebanking.getConnectionState(connectionId);
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state: newState,
+        },
+      });
+
+      const reactivated = await BankDataProviderConnections.findByPk(connectionId);
+      expect(reactivated!.isActive).toBe(true);
+      const reactivatedMetadata = reactivated!.metadata as {
+        deactivationReason?: string | null;
+        consecutiveAuthFailures?: number;
+      };
+      expect(reactivatedMetadata.deactivationReason).toBeNull();
+      expect(reactivatedMetadata.consecutiveAuthFailures).toBe(0);
+
+      // And the connection no longer appears in connectionsNeedingReauth
+      const status = await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+      });
+      expect(
+        status.body.response.connectionsNeedingReauth.some(
+          (c: { connectionId: string }) => c.connectionId === connectionId,
+        ),
+      ).toBe(false);
     });
   });
 });
