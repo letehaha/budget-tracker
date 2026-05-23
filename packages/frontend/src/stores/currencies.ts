@@ -1,4 +1,4 @@
-import { getAllCurrencies, loadUserBaseCurrency, loadUserCurrencies, setBaseUserCurrency } from '@/api/currencies';
+import { getAllCurrencies, loadUserBaseCurrency, loadUserCurrencies } from '@/api/currencies';
 import { CurrencyModel, UserCurrencyModel } from '@bt/shared/types';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -58,15 +58,6 @@ export const useCurrenciesStore = defineStore('currencies', () => {
     }
   };
 
-  const setBaseCurrency = async (currencyCode: string) => {
-    const result: UserCurrencyModel = await setBaseUserCurrency(currencyCode);
-
-    if (result) {
-      baseCurrency.value = result;
-      currencies.value.push(result);
-    }
-  };
-
   return {
     currencies,
     baseCurrency,
@@ -76,7 +67,6 @@ export const useCurrenciesStore = defineStore('currencies', () => {
     isBaseCurrencyExists,
     loadCurrencies,
     loadBaseCurrency,
-    setBaseCurrency,
     getCurrency,
   };
 });

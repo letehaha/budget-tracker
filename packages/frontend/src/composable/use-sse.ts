@@ -7,7 +7,7 @@ import {
   type SyncStatusChangedPayload,
 } from '@bt/shared/types';
 import { EventSourceMessage, fetchEventSource } from '@microsoft/fetch-event-source';
-import { onUnmounted, ref } from 'vue';
+import { ref } from 'vue';
 
 // Re-export types for consumers of this composable
 export { SSE_EVENT_TYPES, type AiCategorizationProgressPayload, type SyncStatusChangedPayload };
@@ -21,6 +21,7 @@ const API_VER = import.meta.env.VITE_APP_API_VER;
 
 // Global state for SSE connection
 let abortController: AbortController | null = null;
+let connectPromise: Promise<void> | null = null;
 const isConnected = ref(false);
 const isConnecting = ref(false);
 
@@ -43,22 +44,10 @@ async function connect(): Promise<void> {
     return;
   }
 
-  // If connection is in progress, wait for it (with timeout)
-  if (isConnecting.value) {
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        clearInterval(checkConnection);
-        resolve(); // Resolve anyway after timeout
-      }, 10000); // 10 second timeout
-
-      const checkConnection = setInterval(() => {
-        if (isConnected.value || !isConnecting.value) {
-          clearInterval(checkConnection);
-          clearTimeout(timeout);
-          resolve();
-        }
-      }, 100);
-    });
+  // If a connect attempt is already in flight, return the same promise so concurrent
+  // callers all settle together instead of racing or spawning extra requests.
+  if (connectPromise) {
+    return connectPromise;
   }
 
   isConnecting.value = true;
@@ -66,8 +55,7 @@ async function connect(): Promise<void> {
 
   const url = `${API_HTTP}${API_VER}/sse/events`;
 
-  // Return a promise that resolves when connection opens
-  return new Promise((resolve, reject) => {
+  connectPromise = new Promise<void>((resolve, reject) => {
     let settled = false;
 
     // Start the connection in the background (don't await - it never resolves while open)
@@ -157,7 +145,11 @@ async function connect(): Promise<void> {
       isConnected.value = false;
       isConnecting.value = false;
     });
+  }).finally(() => {
+    connectPromise = null;
   });
+
+  return connectPromise;
 }
 
 /**
@@ -189,15 +181,12 @@ function on<T extends SSEEventPayload>(eventType: SSEEventType, handler: SSEEven
 }
 
 /**
- * Composable for SSE functionality
+ * Composable for SSE functionality.
+ *
+ * Note: no per-component unmount cleanup — the connection is global and may be
+ * used by other components. Call `disconnect()` explicitly (e.g. on logout).
  */
 export function useSSE() {
-  // Auto-cleanup on component unmount
-  onUnmounted(() => {
-    // Note: We don't disconnect here because the connection is global
-    // and may be used by other components
-  });
-
   return {
     connect,
     disconnect,

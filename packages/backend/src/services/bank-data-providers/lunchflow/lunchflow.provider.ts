@@ -438,58 +438,6 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   }
 
   // ============================================================================
-  // Auth Failure Handling
-  // ============================================================================
-
-  /**
-   * Handle auth errors with retry tracking.
-   * After 2 consecutive auth failures, deactivate the connection.
-   */
-  private async handleAuthError({ connectionId, error }: { connectionId: string; error: unknown }): Promise<void> {
-    const isForbiddenError = error instanceof ForbiddenError;
-    if (!isForbiddenError) return;
-
-    try {
-      const connection = await this.getConnection(connectionId);
-      const metadata = (connection.metadata as LunchFlowMetadata) || {};
-      const failures = (metadata.consecutiveAuthFailures || 0) + 1;
-      metadata.consecutiveAuthFailures = failures;
-
-      if (failures >= 2) {
-        connection.isActive = false;
-        metadata.deactivationReason = 'auth_failure';
-        logger.warn(`[LunchFlow] Connection ${connectionId} deactivated after ${failures} consecutive auth failures`);
-      }
-
-      connection.metadata = metadata as any;
-      await connection.save();
-    } catch (metaError) {
-      logger.error({
-        message: '[LunchFlow] Failed to update auth failure metadata:',
-        error: metaError as Error,
-      });
-    }
-  }
-
-  /**
-   * Reset consecutive auth failure counter on successful API call
-   */
-  private async resetAuthFailures(connectionId: string): Promise<void> {
-    try {
-      const connection = await this.getConnection(connectionId);
-      const metadata = (connection.metadata as LunchFlowMetadata) || {};
-
-      if (metadata.consecutiveAuthFailures && metadata.consecutiveAuthFailures > 0) {
-        metadata.consecutiveAuthFailures = 0;
-        connection.metadata = metadata as any;
-        await connection.save();
-      }
-    } catch {
-      // Non-critical, ignore
-    }
-  }
-
-  // ============================================================================
   // Helper Methods
   // ============================================================================
 

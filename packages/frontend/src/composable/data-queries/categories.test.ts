@@ -18,7 +18,7 @@ vi.mock('@/components/notification-center', () => ({
 }));
 
 vi.mock('@/stores/categories/helpers', () => ({
-  buildCategiesObjectGraph: vi.fn((list: CategoryModel[]) => list),
+  buildCategoriesObjectGraph: vi.fn((list: CategoryModel[]) => list),
 }));
 
 const mockLoadCategoriesByAccount = vi.mocked(loadCategoriesByAccount);

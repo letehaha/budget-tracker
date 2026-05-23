@@ -10,13 +10,7 @@ export const useUserStore = defineStore('user', () => {
   const role = computed(() => user.value?.role ?? null);
 
   const loadUser = async () => {
-    try {
-      const result = await loadUserData();
-
-      user.value = result;
-    } catch (e) {
-      console.log(e);
-    }
+    user.value = await loadUserData();
   };
 
   return {

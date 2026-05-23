@@ -1,10 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
+import { ForbiddenError } from '@js/errors';
+import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
 import { IBankDataProvider, ProviderAccount, ProviderMetadata } from './types';
+
+/**
+ * Shape of connection-metadata fields used by the shared auth-failure
+ * tracking. Provider-specific metadata interfaces should include these
+ * fields (and may add their own).
+ */
+interface AuthTrackingMetadata {
+  consecutiveAuthFailures?: number;
+  deactivationReason?: 'auth_failure' | null | string;
+}
+
+/**
+ * After this many consecutive auth failures the connection is auto-deactivated
+ * to stop us hammering the upstream with bad credentials.
+ */
+const AUTH_FAILURE_DEACTIVATION_THRESHOLD = 2;
 
 /**
  * Abstract base class for all bank data providers.
@@ -69,6 +87,73 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
   protected async getDecryptedCredentials(connectionId: string): Promise<Record<string, unknown>> {
     const connection = await this.getConnection(connectionId);
     return connection.getDecryptedCredentials();
+  }
+
+  // ============================================================================
+  // Auth Failure Tracking
+  // ============================================================================
+
+  /**
+   * Whether a thrown error represents an auth failure for this provider.
+   * Default treats any `ForbiddenError` as an auth failure. Providers whose
+   * upstream returns auth failures via different mechanisms (e.g. HTTP 401/403
+   * wrapped in a custom error class) should override this.
+   */
+  protected isAuthError(error: unknown): boolean {
+    return error instanceof ForbiddenError;
+  }
+
+  /**
+   * Increment the connection's consecutive auth-failure counter and deactivate
+   * the connection once the threshold is reached. Called by providers in the
+   * catch branch of an authenticated call. No-ops for non-auth errors so call
+   * sites can pass any caught error.
+   */
+  protected async handleAuthError({ connectionId, error }: { connectionId: string; error: unknown }): Promise<void> {
+    if (!this.isAuthError(error)) return;
+
+    try {
+      const connection = await this.getConnection(connectionId);
+      const metadata = ((connection.metadata as AuthTrackingMetadata) || {}) as AuthTrackingMetadata;
+      const failures = (metadata.consecutiveAuthFailures || 0) + 1;
+      metadata.consecutiveAuthFailures = failures;
+
+      if (failures >= AUTH_FAILURE_DEACTIVATION_THRESHOLD) {
+        connection.isActive = false;
+        metadata.deactivationReason = 'auth_failure';
+        logger.warn(
+          `[${this.metadata.name}] Connection ${connectionId} deactivated after ${failures} consecutive auth failures`,
+        );
+      }
+
+      connection.metadata = metadata as any;
+      await connection.save();
+    } catch (metaError) {
+      logger.error({
+        message: `[${this.metadata.name}] Failed to update auth failure metadata:`,
+        error: metaError as Error,
+      });
+    }
+  }
+
+  /**
+   * Reset the consecutive auth-failure counter after a successful call.
+   * Failures here are swallowed because the recorded count is non-critical:
+   * we'd rather risk an extra deactivation than fail a working request.
+   */
+  protected async resetAuthFailures(connectionId: string): Promise<void> {
+    try {
+      const connection = await this.getConnection(connectionId);
+      const metadata = ((connection.metadata as AuthTrackingMetadata) || {}) as AuthTrackingMetadata;
+
+      if (metadata.consecutiveAuthFailures && metadata.consecutiveAuthFailures > 0) {
+        metadata.consecutiveAuthFailures = 0;
+        connection.metadata = metadata as any;
+        await connection.save();
+      }
+    } catch {
+      // Non-critical, ignore
+    }
   }
 
   /**

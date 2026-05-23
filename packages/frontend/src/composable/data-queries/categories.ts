@@ -3,7 +3,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { QUERY_CACHE_STALE_TIME } from '@/common/const/vue-query';
 import type { FormattedCategory } from '@/common/types';
 import { useNotificationCenter } from '@/components/notification-center';
-import { buildCategiesObjectGraph } from '@/stores/categories/helpers';
+import { buildCategoriesObjectGraph } from '@/stores/categories/helpers';
 import type { CategoryModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, toValue, watch } from 'vue';
@@ -39,7 +39,7 @@ export const useAccountCategories = ({
 
   const list = computed<CategoryModel[]>(() => query.data.value ?? []);
 
-  const formatted = computed<FormattedCategory[]>(() => buildCategiesObjectGraph(list.value));
+  const formatted = computed<FormattedCategory[]>(() => buildCategoriesObjectGraph(list.value));
 
   const map = computed<Record<string, CategoryModel>>(() =>
     list.value.reduce(

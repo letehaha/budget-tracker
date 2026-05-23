@@ -3,6 +3,7 @@
  * Provides common functionality and enforces the provider interface.
  */
 import { logger } from '@js/utils';
+import { isAxiosError } from 'axios';
 import { format, startOfDay } from 'date-fns';
 
 import {
@@ -141,6 +142,44 @@ export abstract class BaseExchangeRateProvider implements IExchangeRateProvider 
    */
   protected getBaseCurrency(params: FetchRatesParams | FetchRatesRangeParams): string {
     return params.baseCurrency || DEFAULT_BASE_CURRENCY;
+  }
+
+  /**
+   * Classify a fetch error and log it at the appropriate level. Axios errors
+   * are inspected for the well-known network codes (timeout, refused) and the
+   * common HTTP statuses (404 = no data, 5xx = upstream outage); everything
+   * else is logged as unexpected. Providers call this from the catch branch
+   * of their fetch methods and don't need to repeat the boilerplate.
+   */
+  protected handleFetchError({ error, date }: { error: unknown; date: string }): void {
+    if (isAxiosError(error)) {
+      const statusCode = error.response?.status;
+
+      if (error.code === 'ECONNABORTED') {
+        this.logError('Request timeout', { date });
+        return;
+      }
+
+      if (error.code === 'ECONNREFUSED') {
+        this.logError('Service unavailable (connection refused)', { date });
+        return;
+      }
+
+      if (statusCode === 404) {
+        this.logInfo(`No data available for ${date}`);
+        return;
+      }
+
+      if (statusCode && statusCode >= 500) {
+        this.logError(`Server error ${statusCode}`, { date });
+        return;
+      }
+    }
+
+    this.logError('Unexpected error fetching rates', {
+      error: error instanceof Error ? error.message : String(error),
+      date,
+    });
   }
 
   /**

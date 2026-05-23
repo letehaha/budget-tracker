@@ -78,7 +78,8 @@ import { TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
 import { ChevronRightIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const props = defineProps<{
@@ -214,19 +215,7 @@ const renderChart = () => {
     });
 };
 
-let resizeObserver: ResizeObserver | null = null;
-
-const setupResizeObserver = () => {
-  if (resizeObserver) resizeObserver.disconnect();
-  if (chartContainerRef.value) {
-    resizeObserver = new ResizeObserver(() => renderChart());
-    resizeObserver.observe(chartContainerRef.value);
-  }
-};
-
-onUnmounted(() => {
-  if (resizeObserver) resizeObserver.disconnect();
-});
+useResizeObserver(chartContainerRef, renderChart);
 
 watch(
   [() => props.data, chartContainerRef],
@@ -234,7 +223,6 @@ watch(
     if (newData.length > 0 && container) {
       expandedCategories.value = getDefaultExpanded();
       await nextTick();
-      setupResizeObserver();
       renderChart();
     }
   },

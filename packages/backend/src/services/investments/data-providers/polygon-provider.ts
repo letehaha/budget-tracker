@@ -182,11 +182,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
       logger.info(`Latest price for ${providerSymbol}: ${result.priceClose} on ${result.date.toISOString()}`);
       return result;
     } catch (error) {
-      logger.error({ message: `Failed to fetch latest price for ${providerSymbol}`, error: error as Error });
-      throw new Error(
-        `Failed to fetch latest price for ${providerSymbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { cause: error },
-      );
+      throw this.formatProviderError({ operation: `Failed to fetch latest price for ${providerSymbol}`, error });
     }
   }
 

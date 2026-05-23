@@ -52,7 +52,6 @@ watch(
   async (value) => {
     if (value) {
       await rootStore.fetchInitialData();
-      await rootStore.syncFinancialData();
 
       // Initialize SSE for real-time updates (AI categorization, etc.)
       initializeAiCategorizationEvents();
