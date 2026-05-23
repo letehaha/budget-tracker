@@ -233,13 +233,33 @@ class ApiCaller {
       return undefined;
     }
 
-    const {
-      status,
-      response,
-    }: {
+    let parsed: {
       status: API_RESPONSE_STATUS;
       response: ApiBaseError | ApiValidResponse;
-    } = await result.json();
+    };
+
+    try {
+      parsed = await result.json();
+    } catch {
+      // Response body is not JSON. Happens for raw infrastructure errors that
+      // never reach our `apiResponseMiddleware` envelope — e.g. body-parser's
+      // 413 Payload Too Large (plain text) or a gateway HTML 5xx page.
+      // Without this, `result.json()` throws a SyntaxError that escapes to the
+      // caller and surfaces as "Unexpected token <".
+      const message =
+        result.status === 413
+          ? t('errors.api.payloadTooLarge', 'The request is too large. Please try importing fewer items at a time')
+          : `${result.status} ${result.statusText}`.trim() ||
+            t('errors.api.unexpectedError', 'An unexpected error occurred');
+
+      throw new errors.ApiErrorResponseError(message, {
+        code: result.status === 413 ? API_ERROR_CODES.payloadTooLarge : API_ERROR_CODES.unexpected,
+        message,
+        statusText: result.statusText,
+      });
+    }
+
+    const { status, response } = parsed;
 
     if (status === API_RESPONSE_STATUS.success) {
       return response;
