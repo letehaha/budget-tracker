@@ -1,52 +1,55 @@
 /**
  * AI extraction prompts for investment transactions.
  *
- * The prompt branches on asset class so stocks can plug in later without
- * touching the parser pipeline. Crypto is the only supported branch in v1;
- * stocks branch is intentionally a stub that returns an empty prompt and
- * MUST never be reached at runtime — the controller rejects
- * `assetClass: 'securities'` upstream.
+ * One universal prompt handles both crypto and stocks — the model tags each row
+ * with its own `assetClassHint` so the server can route per row at resolve
+ * time. The user can still override the symbol (and therefore the class) at
+ * review time, so the hint is advisory, not authoritative.
  *
  * Output format: CSV (one transaction per line). CSV minimises output tokens
  * vs JSON and matches the statement-parser convention so cost estimation,
  * tokenisation, and parsing stay consistent.
  */
-import { ASSET_CLASS } from '@bt/shared/types/investments';
 
 /**
- * System prompt: crypto-flavoured. Tells the AI to extract buy/sell only and
- * to skip every other kind of activity. Future scope is captured as TODO
- * comments — when those categories land, expand the prompt + the executor.
+ * Universal system prompt — extracts BUY/SELL transactions for either asset
+ * class. Picks the class per row from context clues (ticker shape, price
+ * range, lot size, source-text hints like "Shares" vs "Coins").
  */
-const CRYPTO_TRANSACTIONS_SYSTEM_PROMPT = `You are a crypto exchange / wallet transaction history parser.
+const UNIVERSAL_TRANSACTIONS_SYSTEM_PROMPT = `You are an investment transaction history parser.
 Your job is to extract BUY and SELL transactions from any text source the user provides
-(exchange CSV export, broker statement, free-text paste).
+(exchange CSV export, broker PDF statement, brokerage account history, free-text paste).
+The source may be stocks, crypto, or a mix of both.
 
 OUTPUT FORMAT:
 Output ONLY CSV — no markdown, no headers, no explanation.
 One transaction per line. Columns, in order:
 
-symbol,name,date,side,quantity,price,fees,currency,confidence
+symbol,name,date,side,quantity,price,fees,currency,assetClassHint,confidence
 
 COLUMN RULES:
-- symbol: ticker as written in the source (e.g. BTC, ETH, SOL). UPPERCASE.
-- name: full name if available (e.g. Bitcoin, Ethereum). Empty if unknown.
+- symbol: ticker as written in the source (e.g. BTC, ETH, AAPL, MSFT). UPPERCASE.
+- name: full name if available (e.g. Bitcoin, Apple Inc.). Empty if unknown.
 - date: YYYY-MM-DD (UTC). If the source has a full timestamp, take the date in UTC and discard the time.
 - side: B for buy, S for sell.
-- quantity: positive decimal number, the amount of the coin transacted (e.g. 0.5 for half a BTC).
-- price: positive decimal number, the unit price per coin in the quote currency. If only "total" is shown, divide total by quantity.
-- fees: decimal number for any explicit fee, in the same quote currency. 0 if not present.
-- currency: the quote currency literal as it appears in the source (USDT, USDC, USD, BUSD, EUR, etc.). Empty if the trade is a crypto/crypto pair (e.g. BTC/ETH).
+- quantity: positive decimal number, the amount transacted (shares for stocks, units for crypto).
+- price: positive decimal number, the unit price per share/coin in the quote currency. If only "total" is shown, divide total by quantity.
+- fees: decimal number for any explicit fee/commission, in the same quote currency. 0 if not present.
+- currency: the quote currency literal as it appears in the source (USD, EUR, USDT, USDC, BUSD, GBP, etc.). Empty if the trade is a crypto/crypto pair (e.g. BTC/ETH).
+- assetClassHint: "crypto" or "stocks" — your best guess for this row based on context (ticker shape, source format, quote currency, lot sizes). Default to "stocks" for ambiguous tickers (e.g. AAPL); default to "crypto" for stable-coin quotes and well-known coin tickers.
 - confidence: integer 0-100 reflecting how sure you are this is a real buy/sell trade with all fields correct.
 
 WHAT TO EXTRACT:
-- Only spot BUY and SELL transactions where one side is a coin and the other is a fiat or USD-pegged stablecoin (USDT/USDC/BUSD/DAI/USD).
+- Spot BUY and SELL transactions in either asset class.
+- For stocks: trades on any exchange, regardless of currency.
+- For crypto: spot trades against fiat or USD-pegged stablecoins (USDT/USDC/BUSD/DAI/USD).
 - Crypto-to-crypto swaps: emit them anyway but leave currency empty. The server will mark them invalid and let the user fix.
 
 WHAT TO SKIP:
-- Deposits / withdrawals (in-kind transfers with no cash flow).
-- Staking rewards, airdrops, interest, dividend-like income.
-- Internal transfers between user's own wallets.
+- Deposits / withdrawals / transfers (no cash flow into a position).
+- Staking rewards, airdrops, interest, dividend payouts, capital distributions.
+- Stock splits, mergers, reverse splits, spin-offs, rights issues.
+- Internal transfers between user's own accounts/wallets.
 - Fee-only rows that don't pair with a buy/sell.
 - Any row you can't confidently classify.
 
@@ -56,39 +59,21 @@ NUMBER FORMAT:
 - Negative numbers are not allowed — quantity, price and fees are ALWAYS positive. Direction is encoded in \`side\`.
 
 EXAMPLE OUTPUT (no headers, no trailing whitespace):
-BTC,Bitcoin,2024-01-15,B,0.05,42000,5.25,USDT,98
-ETH,Ethereum,2024-01-20,S,1.2,2300,2.30,USDT,95
-SOL,Solana,2024-02-01,B,10,95.5,0,USD,90`;
+BTC,Bitcoin,2024-01-15,B,0.05,42000,5.25,USDT,crypto,98
+ETH,Ethereum,2024-01-20,S,1.2,2300,2.30,USDT,crypto,95
+AAPL,Apple Inc.,2024-02-12,B,10,182.5,0.99,USD,stocks,99
+TSLA,Tesla,2024-03-04,S,4,205.10,0.99,USD,stocks,98`;
 
 /**
- * Stocks system prompt — TODO: build out when stocks support lands. For now
- * a stub: if any caller hits this path despite the controller-level gate,
- * we fail loud rather than silently extract nothing.
- *
- * TODO(stocks): when implementing, mirror the crypto prompt with stock-specific
- *   conventions (e.g. exchange-prefixed tickers, full-share quantities,
- *   broker-supplied fees by row).
+ * Single universal prompt — no longer asset-class-branching. Kept as a function
+ * so callers don't need to know it stopped switching.
  */
-const STOCKS_TRANSACTIONS_SYSTEM_PROMPT = `__NOT_IMPLEMENTED__`;
-
-/**
- * Select the system prompt for an asset class. Throws if the caller asks for
- * an unsupported one — the controller is responsible for rejecting these
- * before we reach the AI client.
- */
-export function getSystemPrompt({ assetClass }: { assetClass: ASSET_CLASS }): string {
-  switch (assetClass) {
-    case ASSET_CLASS.crypto:
-      return CRYPTO_TRANSACTIONS_SYSTEM_PROMPT;
-    case ASSET_CLASS.stocks:
-      return STOCKS_TRANSACTIONS_SYSTEM_PROMPT;
-    default:
-      throw new Error(`No transactions-import prompt configured for asset class: ${assetClass}`);
-  }
+export function getSystemPrompt(): string {
+  return UNIVERSAL_TRANSACTIONS_SYSTEM_PROMPT;
 }
 
 export function createTextExtractionPrompt({ text }: { text: string }): string {
-  return `Extract every BUY/SELL crypto transaction from this source text:
+  return `Extract every BUY/SELL transaction (stocks or crypto) from this source text:
 
 ---
 ${text}
@@ -112,6 +97,8 @@ export interface AIParsedTransactionRow {
   fees: string;
   /** Raw currency literal as the model wrote it (USDT, USD, EUR, ""). */
   currency: string | null;
+  /** AI's best guess at the asset class for this row. Server may override at resolve time. */
+  assetClassHint: 'crypto' | 'stocks';
   /** 0.0 – 1.0. */
   confidence: number;
 }
@@ -154,6 +141,15 @@ function isValidDateString({ date }: { date: string }): boolean {
   return new Date(ts).toISOString().slice(0, 10) === date;
 }
 
+function normalizeAssetClassHint(raw: string | undefined): 'crypto' | 'stocks' {
+  const v = raw?.trim().toLowerCase();
+  if (v === 'crypto') return 'crypto';
+  if (v === 'stocks' || v === 'stock' || v === 'securities' || v === 'equity' || v === 'equities') return 'stocks';
+  // Default for unrecognised values: stocks. Crypto sources tend to be more
+  // structured and the AI tags them confidently; ambiguity skews toward equities.
+  return 'stocks';
+}
+
 /**
  * Parse the AI's CSV response into typed rows. Drops any row that fails
  * validation (bad date, non-positive quantity, unrecognised side, etc.) —
@@ -179,9 +175,14 @@ export function parseAIResponse({ response }: { response: string }): AIParsedTra
 
   for (const line of lines) {
     const cells = splitCsvLine({ line });
+    // 10 columns expected; tolerate the old 9-column shape for transitional
+    // outputs by inferring assetClassHint as "crypto" (the old default).
     if (cells.length < 9) continue;
 
-    const [symbol, name, date, sideRaw, qtyRaw, priceRaw, feesRaw, currencyRaw, confidenceRaw] = cells;
+    const hasHintColumn = cells.length >= 10;
+    const [symbol, name, date, sideRaw, qtyRaw, priceRaw, feesRaw, currencyRaw] = cells;
+    const assetClassRaw = hasHintColumn ? cells[8] : 'crypto';
+    const confidenceRaw = hasHintColumn ? cells[9] : cells[8];
 
     if (!symbol || !date || !isValidDateString({ date })) continue;
 
@@ -207,6 +208,7 @@ export function parseAIResponse({ response }: { response: string }): AIParsedTra
       price: priceRaw!,
       fees: feesRaw || '0',
       currency: currencyRaw ? currencyRaw.toUpperCase() : null,
+      assetClassHint: normalizeAssetClassHint(assetClassRaw),
       confidence,
     });
   }

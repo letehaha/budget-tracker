@@ -4,11 +4,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import SecuritySearchCell from '@/pages/portfolios/components/transactions-import/security-search-cell.vue';
-import {
-  ASSET_CLASS,
-  type InvestmentImportHolding,
-  type InvestmentImportTransaction,
-} from '@bt/shared/types/investments';
+import type { InvestmentImportHolding, InvestmentImportTransaction } from '@bt/shared/types/investments';
 import { CircleDollarSignIcon, CoinsIcon, InfoIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-vue-next';
 
 import HoldingTransactionsTable from './holding-transactions-table.vue';
@@ -62,7 +58,6 @@ const emit = defineEmits<{
         <SecuritySearchCell
           :model-value="holding.resolvedSecurity"
           :blocked-provider-symbols="blockedProviderSymbols"
-          :asset-class="ASSET_CLASS.crypto"
           @update:model-value="(val) => (holding.resolvedSecurity = val)"
         />
       </div>
@@ -70,7 +65,6 @@ const emit = defineEmits<{
         <SecuritySearchCell
           :model-value="holding.resolvedSecurity"
           :blocked-provider-symbols="blockedProviderSymbols"
-          :asset-class="ASSET_CLASS.crypto"
           @update:model-value="(val) => (holding.resolvedSecurity = val)"
         />
       </div>
@@ -112,8 +106,8 @@ const emit = defineEmits<{
         <DesktopOnlyTooltip
           v-if="unskippedDuplicateCount > 0"
           :content="
-            $t('investmentsImport.review.tooltips.parentRowDuplicates', {
-              count: unskippedDuplicateCount,
+            $t('investmentsImport.review.tooltips.parentRowDuplicates', unskippedDuplicateCount, {
+              named: { count: unskippedDuplicateCount },
             })
           "
           :content-class-name="TOOLTIP_CLASS"
@@ -125,8 +119,12 @@ const emit = defineEmits<{
             {{ unskippedDuplicateCount }}
           </span>
         </DesktopOnlyTooltip>
-        <span class="text-muted-foreground text-sm">
-          {{ holding.transactions.length }} {{ $t('investmentsImport.review.txns') }}
+        <span class="text-muted-foreground text-sm whitespace-nowrap">
+          {{
+            $t('investmentsImport.review.txns', holding.transactions.length, {
+              named: { count: holding.transactions.length },
+            })
+          }}
         </span>
       </div>
 

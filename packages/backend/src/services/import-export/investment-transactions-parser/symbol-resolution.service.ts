@@ -70,12 +70,15 @@ export function normaliseCurrency({ raw }: { raw: string | null | undefined }): 
   return null;
 }
 
+interface SymbolWithHint {
+  symbol: string;
+  assetClassHint: 'crypto' | 'stocks';
+}
+
 interface ResolveSymbolsParams {
   userId: number;
-  /** Unique uppercased symbols the AI returned (e.g. ["BTC", "ETH", "SOL"]). */
-  symbols: string[];
-  /** Drives provider selection — crypto goes to CoinGecko, stocks to FMP/Yahoo. */
-  assetClass: ASSET_CLASS;
+  /** Unique uppercased symbols + their AI-tagged asset class. */
+  symbolsWithHints: SymbolWithHint[];
   /** Used to set `hasExistingHolding: true` when the resolved security already
    * lives in this portfolio — that drives the "will merge" indicator in the UI. */
   defaultPortfolioId: string;
@@ -96,6 +99,39 @@ interface SymbolResolutionResult {
   warnings: string[];
 }
 
+const hintToAssetClass = ({ hint }: { hint: 'crypto' | 'stocks' }): ASSET_CLASS =>
+  hint === 'crypto' ? ASSET_CLASS.crypto : ASSET_CLASS.stocks;
+
+function buildResolvedRef({ security }: { security: Securities }): ResolvedSecurityRef {
+  return {
+    securityId: security.id,
+    providerSymbol: security.providerSymbol,
+    symbol: security.symbol ?? '',
+    name: security.name ?? '',
+    assetClass: security.assetClass,
+    providerName: security.providerName,
+    currencyCode: security.currencyCode,
+    exchangeName: security.exchangeName ?? undefined,
+    cryptoCurrencyCode: security.cryptoCurrencyCode ?? undefined,
+    alreadyInDb: true,
+  };
+}
+
+function buildResolvedRefFromProvider({ hit }: { hit: SecuritySearchResult }): ResolvedSecurityRef {
+  return {
+    securityId: null,
+    providerSymbol: hit.providerSymbol,
+    symbol: hit.symbol.toUpperCase(),
+    name: hit.name,
+    assetClass: hit.assetClass,
+    providerName: hit.providerName,
+    currencyCode: hit.currencyCode,
+    exchangeName: hit.exchangeName,
+    cryptoCurrencyCode: hit.cryptoCurrencyCode,
+    alreadyInDb: false,
+  };
+}
+
 /**
  * Lookup priority for each parsed symbol:
  *
@@ -103,23 +139,30 @@ interface SymbolResolutionResult {
  *      Use it — covers the most common "incremental import" case where the
  *      user has been tracking BTC for months and just dropped in a new CSV.
  *
- *   2. Otherwise ask the provider (CoinGecko for crypto). If exactly one exact-
- *      symbol match comes back and it has a market-cap rank (i.e. real coin,
- *      not a dust token), take it. Otherwise leave unresolved — there's no
- *      safe way to pick BTC vs Wrapped-BTC vs the dozens of scam tokens that
- *      share the BTC ticker without showing the user.
+ *   2. Otherwise ask the provider matching the row's assetClass hint (CoinGecko
+ *      for crypto, composite for stocks). If exactly one exact-symbol match
+ *      comes back and it has a market-cap rank (crypto) or any exact match
+ *      (stocks), take it. Otherwise leave unresolved — there's no safe way to
+ *      auto-pick between dozens of scam tokens / exchanges that share a
+ *      ticker without showing the user the candidates.
  */
 export async function resolveSymbols({
   userId,
-  symbols,
-  assetClass,
+  symbolsWithHints,
   defaultPortfolioId,
 }: ResolveSymbolsParams): Promise<SymbolResolutionResult> {
   const out = new Map<string, ResolvedSymbol>();
   const warnings: string[] = [];
-  if (symbols.length === 0) return { bySymbol: out, warnings };
+  if (symbolsWithHints.length === 0) return { bySymbol: out, warnings };
 
-  const uniqUpper = Array.from(new Set(symbols.map((s) => s.toUpperCase())));
+  // Dedupe by ticker — if the AI tagged the same ticker with conflicting
+  // hints across rows (rare), prefer the first hint we saw.
+  const hintBySymbol = new Map<string, 'crypto' | 'stocks'>();
+  for (const { symbol, assetClassHint } of symbolsWithHints) {
+    const upper = symbol.toUpperCase();
+    if (!hintBySymbol.has(upper)) hintBySymbol.set(upper, assetClassHint);
+  }
+  const uniqUpper = Array.from(hintBySymbol.keys());
 
   // Step 1: securities the user already holds anywhere — keyed by ticker.
   //
@@ -138,8 +181,10 @@ export async function resolveSymbols({
     });
     if (userHoldings.length > 0) {
       const securityIds = Array.from(new Set(userHoldings.map((h) => h.securityId)));
+      // No assetClass filter here — when the user has been tracking AAPL the
+      // stocks lookup should hit it even if the AI tagged the row as crypto.
       const securities = await Securities.findAll({
-        where: { id: securityIds, assetClass, symbol: uniqUpper },
+        where: { id: securityIds, symbol: uniqUpper },
       });
       const portfoliosBySecurityId = new Map<string, Set<string>>();
       for (const h of userHoldings) {
@@ -150,6 +195,12 @@ export async function resolveSymbols({
       for (const sec of securities) {
         const ticker = sec.symbol?.toUpperCase();
         if (!ticker) continue;
+        // Only auto-attach when the user's existing security matches the AI's
+        // class hint — otherwise the user's AAPL stock would silently absorb a
+        // crypto row tagged AAPL (and vice versa). When the hint disagrees we
+        // fall through to the provider lookup, where the right asset class
+        // wins.
+        if (sec.assetClass !== hintToAssetClass({ hint: hintBySymbol.get(ticker)! })) continue;
         const portfolios = portfoliosBySecurityId.get(sec.id) ?? new Set<string>();
         const inDefault = portfolios.has(defaultPortfolioId);
         const existing = userByTicker.get(ticker);
@@ -163,13 +214,14 @@ export async function resolveSymbols({
   }
 
   // Step 2: provider search for the symbols that didn't resolve from the user's
-  // own securities. Stocks go through this path too once supported.
+  // own securities. Route each ticker to the provider matching its asset class.
   const unresolvedTickers = uniqUpper.filter((t) => !userByTicker.has(t));
   const providerHits = new Map<string, SecuritySearchResult[]>();
   if (unresolvedTickers.length > 0) {
     const provider = dataProviderFactory.getProvider();
     await Promise.all(
       unresolvedTickers.map(async (ticker) => {
+        const assetClass = hintToAssetClass({ hint: hintBySymbol.get(ticker)! });
         try {
           const results = await provider.searchSecurities(ticker, { assetClass });
           providerHits.set(
@@ -194,13 +246,7 @@ export async function resolveSymbols({
     if (fromUser) {
       out.set(ticker, {
         parsedSymbol: ticker,
-        resolvedSecurity: {
-          securityId: fromUser.security.id,
-          providerSymbol: fromUser.security.providerSymbol,
-          symbol: fromUser.security.symbol ?? ticker,
-          name: fromUser.security.name ?? ticker,
-          alreadyInDb: true,
-        },
+        resolvedSecurity: buildResolvedRef({ security: fromUser.security }),
         resolvedConfidence: 'auto',
         hasExistingHolding: fromUser.hasExistingHolding,
       });
@@ -209,37 +255,33 @@ export async function resolveSymbols({
 
     const hits = providerHits.get(ticker) ?? [];
     // Only count hits that *exactly* match the parsed ticker — partial matches
-    // are too noisy for an auto-pick (e.g. searching "OP" surfaces Polygon
-    // results for every coin whose name contains "Op…").
+    // are too noisy for an auto-pick (e.g. searching "OP" surfaces results for
+    // every security whose name contains "Op…").
     const exact = hits.filter((h) => h.symbol.toUpperCase() === ticker);
-    const ranked = exact
-      .filter((h) => h.marketCapRank != null)
-      .toSorted(
-        (a, b) => (a.marketCapRank ?? Number.POSITIVE_INFINITY) - (b.marketCapRank ?? Number.POSITIVE_INFINITY),
-      );
+    const assetClass = hintToAssetClass({ hint: hintBySymbol.get(ticker)! });
 
-    if (ranked.length === 1) {
-      const hit = ranked[0]!;
-      out.set(ticker, {
-        parsedSymbol: ticker,
-        resolvedSecurity: {
-          securityId: null,
-          providerSymbol: hit.providerSymbol,
-          symbol: hit.symbol.toUpperCase(),
-          name: hit.name,
-          alreadyInDb: false,
-        },
-        resolvedConfidence: 'auto',
-        hasExistingHolding: false,
-      });
-      continue;
+    // Crypto auto-pick: rank by market cap, take the unique top.
+    // Stocks auto-pick: take the single exact match if there's exactly one.
+    let pick: SecuritySearchResult | null = null;
+    let ambiguous = false;
+    if (assetClass === ASSET_CLASS.crypto) {
+      const ranked = exact
+        .filter((h) => h.marketCapRank != null)
+        .toSorted(
+          (a, b) => (a.marketCapRank ?? Number.POSITIVE_INFINITY) - (b.marketCapRank ?? Number.POSITIVE_INFINITY),
+        );
+      if (ranked.length === 1) pick = ranked[0]!;
+      else if (ranked.length > 1) ambiguous = true;
+    } else {
+      if (exact.length === 1) pick = exact[0]!;
+      else if (exact.length > 1) ambiguous = true;
     }
 
-    if (ranked.length > 1) {
+    if (pick) {
       out.set(ticker, {
         parsedSymbol: ticker,
-        resolvedSecurity: null,
-        resolvedConfidence: 'ambiguous',
+        resolvedSecurity: buildResolvedRefFromProvider({ hit: pick }),
+        resolvedConfidence: 'auto',
         hasExistingHolding: false,
       });
       continue;
@@ -248,7 +290,7 @@ export async function resolveSymbols({
     out.set(ticker, {
       parsedSymbol: ticker,
       resolvedSecurity: null,
-      resolvedConfidence: 'unmapped',
+      resolvedConfidence: ambiguous ? 'ambiguous' : 'unmapped',
       hasExistingHolding: false,
     });
   }
@@ -257,9 +299,8 @@ export async function resolveSymbols({
 }
 
 /**
- * For tests / future stocks branch: provider preference matrix lookup.
- * Returns the SECURITY_PROVIDER that should be used for an asset class —
- * exported so e2e tests can assert wiring without spinning up the composite.
+ * Provider-preference matrix lookup. Exported so e2e tests can assert wiring
+ * without spinning up the composite provider directly.
  */
 export function providerForAssetClass({ assetClass }: { assetClass: ASSET_CLASS }): SECURITY_PROVIDER {
   if (assetClass === ASSET_CLASS.crypto) return SECURITY_PROVIDER.coingecko;

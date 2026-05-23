@@ -4,7 +4,6 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { CustomError, UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils';
 import {
-  assertSupportedImportAssetClass,
   detectInvestmentDuplicates,
   extractInvestmentTransactionsWithAI,
   normaliseCurrency,
@@ -20,9 +19,11 @@ import { z } from 'zod';
  *
  * The endpoint runs in three logical phases:
  *   1. File validate + text extract (reuses statement-parser helpers).
- *   2. AI extracts a flat list of transaction rows.
+ *   2. AI extracts a flat list of transaction rows (universal — both crypto
+ *      and stocks, each row carries its own assetClassHint).
  *   3. Server groups rows by symbol → holding rows, resolves each symbol to a
- *      Security candidate, normalises currency, and flags possible duplicates.
+ *      Security candidate via the provider matching the row's class hint,
+ *      normalises currency, and flags possible duplicates.
  *
  * Response shape is the hierarchical `InvestmentImportExtractionResult` the
  * review UI consumes.
@@ -31,7 +32,6 @@ export const extractController = createController(
   z.object({
     body: z.object({
       fileBase64: z.string().min(1, 'File content is required'),
-      assetClass: z.enum([ASSET_CLASS.crypto, ASSET_CLASS.stocks]),
       defaultPortfolioId: recordId(),
     }),
   }),
@@ -53,16 +53,12 @@ export const extractController = createController(
 async function extractHandler({
   userId,
   fileBase64,
-  assetClass,
   defaultPortfolioId,
 }: {
   userId: number;
   fileBase64: string;
-  assetClass: ASSET_CLASS;
   defaultPortfolioId: string;
 }) {
-  assertSupportedImportAssetClass({ assetClass });
-
   const rawBuffer = Buffer.from(fileBase64, 'base64');
   const validation = validateFileBuffer({ buffer: rawBuffer });
   if (!validation.valid || !validation.fileBuffer || !validation.fileType) {
@@ -84,7 +80,6 @@ async function extractHandler({
   const aiResult = await extractInvestmentTransactionsWithAI({
     userId,
     text: textResult.text!,
-    assetClass,
   });
 
   if (!aiResult.success) {
@@ -102,10 +97,22 @@ async function extractHandler({
     else bySymbol.set(row.symbol, [row]);
   }
 
+  // For symbol resolution, pick the most-common assetClassHint per ticker.
+  // If the AI hinted both within a single ticker, majority wins and crypto
+  // breaks ties (matches the legacy crypto-first behaviour).
+  const symbolsWithHints = Array.from(bySymbol.entries()).map(([symbol, rows]) => {
+    let crypto = 0;
+    let stocks = 0;
+    for (const r of rows) {
+      if (r.assetClassHint === 'crypto') crypto += 1;
+      else stocks += 1;
+    }
+    return { symbol, assetClassHint: (stocks > crypto ? 'stocks' : 'crypto') as 'crypto' | 'stocks' };
+  });
+
   const resolution = await resolveSymbols({
     userId,
-    symbols: Array.from(bySymbol.keys()),
-    assetClass,
+    symbolsWithHints,
     defaultPortfolioId,
   });
 
@@ -120,7 +127,8 @@ async function extractHandler({
     securityId: string;
     date: string;
     side: 'buy' | 'sell';
-    quantity: string;
+    price: string;
+    amount: string;
   }> = [];
 
   for (const [symbol, rows] of bySymbol) {
@@ -130,8 +138,24 @@ async function extractHandler({
     // counting invalid rows, and surfacing them as warnings should not call
     // normaliseCurrency four times per row.
     const normalisedCurrencies = rows.map((r) => normaliseCurrency({ raw: r.currency }));
-    const currencyCode = normalisedCurrencies.find((c) => c !== null) ?? null;
+    let currencyCode = normalisedCurrencies.find((c) => c !== null) ?? null;
     const invalidCount = normalisedCurrencies.filter((c) => c === null).length;
+
+    // For stocks the AI usually emits the native quote currency (USD, EUR, …)
+    // already normalised. If every row's quote currency was unrecognised but
+    // the resolved security has its own native currency, fall back to that —
+    // saves the user from picking something the server already knows.
+    //
+    // NOT applied for crypto: crypto/crypto pairs come in with empty quote
+    // currency on purpose and must stay null so the UI prompts the user to
+    // fix the pair.
+    if (
+      !currencyCode &&
+      resolved?.resolvedSecurity?.currencyCode &&
+      resolved.resolvedSecurity.assetClass !== ASSET_CLASS.crypto
+    ) {
+      currencyCode = resolved.resolvedSecurity.currencyCode.toUpperCase();
+    }
 
     if (invalidCount > 0) {
       warnings.push(`Symbol "${symbol}" had ${invalidCount} row(s) with unsupported quote currency.`);
@@ -148,7 +172,8 @@ async function extractHandler({
           securityId: resolved.resolvedSecurity.securityId,
           date: row.date,
           side: row.side,
-          quantity: row.quantity,
+          price: row.price,
+          amount,
         });
       }
       return {

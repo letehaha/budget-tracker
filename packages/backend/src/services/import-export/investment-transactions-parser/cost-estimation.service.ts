@@ -4,7 +4,6 @@
  * shape, but token counts come from the same tokeniser.
  */
 import { AI_FEATURE, type StatementCostEstimate, type StatementFileType } from '@bt/shared/types';
-import { ASSET_CLASS } from '@bt/shared/types/investments';
 import { resolveAIConfiguration } from '@services/ai';
 import { getModelInfo } from '@services/ai/models-config';
 import { estimateTokenCount } from '@services/import-export/statement-parser/text-extractor';
@@ -23,7 +22,6 @@ interface CostEstimationParams {
   text: string;
   pageCount: number;
   fileType: StatementFileType;
-  assetClass: ASSET_CLASS;
 }
 
 interface CostEstimationError {
@@ -41,7 +39,6 @@ export async function estimateInvestmentExtractionCost({
   text,
   pageCount,
   fileType,
-  assetClass,
 }: CostEstimationParams): Promise<CostEstimationResultType> {
   const aiConfig = await resolveAIConfiguration({
     userId,
@@ -69,7 +66,7 @@ export async function estimateInvestmentExtractionCost({
     };
   }
 
-  const systemPrompt = getSystemPrompt({ assetClass });
+  const systemPrompt = getSystemPrompt();
   const systemPromptTokens = estimateTokenCount({ text: systemPrompt });
   const userPromptTokens = estimateTokenCount({ text: createTextExtractionPrompt({ text }) });
   const estimatedInputTokens = systemPromptTokens + userPromptTokens;

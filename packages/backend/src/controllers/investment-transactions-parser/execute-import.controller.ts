@@ -1,11 +1,8 @@
-import { ASSET_CLASS } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { UnexpectedError } from '@js/errors';
-import {
-  assertSupportedImportAssetClass,
-  executeInvestmentImport,
-} from '@services/import-export/investment-transactions-parser';
+import { executeInvestmentImport } from '@services/import-export/investment-transactions-parser';
 import { z } from 'zod';
 
 const decimalString = z.string().regex(/^-?\d+(\.\d+)?$/, 'Must be a decimal number string');
@@ -18,6 +15,11 @@ const resolvedSecuritySchema = z
     providerSymbol: z.string().min(1),
     symbol: z.string().min(1),
     name: z.string().min(1),
+    assetClass: z.nativeEnum(ASSET_CLASS),
+    providerName: z.nativeEnum(SECURITY_PROVIDER),
+    currencyCode: z.string().min(1),
+    exchangeName: z.string().optional(),
+    cryptoCurrencyCode: z.string().optional(),
     alreadyInDb: z.boolean(),
   })
   .nullable();
@@ -49,19 +51,18 @@ const holdingSchema = z.object({
  * Persist a reviewed batch of parsed investment transactions.
  * The request body is the same shape the extract endpoint returned, with the
  * user's edits (and any deletions) applied. Server re-validates every row.
+ * Each holding carries its own asset class via `resolvedSecurity.assetClass`,
+ * so mixed batches (stocks + crypto in the same import) are allowed.
  */
 export const executeImportController = createController(
   z.object({
     body: z.object({
-      assetClass: z.enum([ASSET_CLASS.crypto, ASSET_CLASS.stocks]),
       holdings: z.array(holdingSchema).min(1),
       skipTempIds: z.array(z.string().min(1)),
     }),
   }),
   async ({ user, body }) => {
-    const { assetClass, holdings, skipTempIds } = body;
-
-    assertSupportedImportAssetClass({ assetClass });
+    const { holdings, skipTempIds } = body;
 
     // Server-side defense in depth: refuse to commit if any holding is invalid.
     // The UI already blocks this case, but the API contract still has to enforce it.
@@ -94,7 +95,6 @@ export const executeImportController = createController(
 
     const result = await executeInvestmentImport({
       userId: user.id,
-      assetClass,
       holdings,
       skipTempIds,
     });

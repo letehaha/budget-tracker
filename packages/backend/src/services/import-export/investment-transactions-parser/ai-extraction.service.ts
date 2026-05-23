@@ -4,7 +4,6 @@
  * call the resolved model, parse the CSV response, return typed rows.
  */
 import { AI_FEATURE } from '@bt/shared/types';
-import { ASSET_CLASS } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import { createAIClient } from '@services/ai';
 import { generateText } from 'ai';
@@ -19,7 +18,6 @@ import {
 interface AIExtractionParams {
   userId: number;
   text: string;
-  assetClass: ASSET_CLASS;
 }
 
 interface AIExtractionError {
@@ -45,7 +43,6 @@ type AIExtractionResultType =
 export async function extractInvestmentTransactionsWithAI({
   userId,
   text,
-  assetClass,
 }: AIExtractionParams): Promise<AIExtractionResultType> {
   const aiClient = await createAIClient({
     userId,
@@ -63,7 +60,7 @@ export async function extractInvestmentTransactionsWithAI({
   }
 
   try {
-    const systemPrompt = getSystemPrompt({ assetClass });
+    const systemPrompt = getSystemPrompt();
     const { text: responseText, usage } = await generateText({
       model: aiClient.model,
       system: systemPrompt,

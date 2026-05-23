@@ -7,11 +7,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent } from '@/components/lib/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import {
-  ASSET_CLASS,
-  type InvestmentImportExtractionResult,
-  type InvestmentImportHolding,
-} from '@bt/shared/types/investments';
+import type { InvestmentImportExtractionResult, InvestmentImportHolding } from '@bt/shared/types/investments';
 import type { StatementCostEstimate } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
 import { ClipboardIcon, FileTextIcon, Loader2Icon, SparklesIcon } from 'lucide-vue-next';
@@ -68,7 +64,6 @@ const estimate = useMutation({
     if (!fileBase64.value) throw new Error('No file selected');
     return estimateInvestmentImportCost({
       fileBase64: fileBase64.value,
-      assetClass: ASSET_CLASS.crypto,
     });
   },
   onSuccess: (result) => {
@@ -103,7 +98,6 @@ const extract = useMutation({
     return extractInvestmentTransactions(
       {
         fileBase64: fileBase64.value,
-        assetClass: ASSET_CLASS.crypto,
         defaultPortfolioId: props.portfolioId,
       },
       { signal: extractAbort.value.signal },

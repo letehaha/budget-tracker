@@ -10,14 +10,7 @@
  * The user edits both levels and commits.
  */
 import type { StatementFileType } from '../statement-parser';
-import type { ASSET_CLASS } from './enums';
-
-/**
- * Asset classes the import endpoint will accept. v1 supports crypto only;
- * `securities` is reserved for the upcoming stocks parser and currently
- * returns NOT_IMPLEMENTED.
- */
-export type InvestmentImportAssetClass = ASSET_CLASS.crypto | ASSET_CLASS.stocks;
+import type { ASSET_CLASS, SECURITY_PROVIDER } from './enums';
 
 /**
  * Result of resolving an AI-parsed symbol to a CoinGecko/FMP/etc security.
@@ -27,15 +20,31 @@ export type InvestmentImportAssetClass = ASSET_CLASS.crypto | ASSET_CLASS.stocks
  */
 export type SymbolResolutionConfidence = 'auto' | 'ambiguous' | 'unmapped';
 
+/**
+ * Identity of a security the user has picked (or the server auto-matched) for
+ * a holding row. Carries every field the executor needs to upsert the row
+ * later, so no extra provider lookup is required at execute time. Mirrors the
+ * essential subset of `SecuritySearchResult` (see `security.model.ts`).
+ */
 export interface ResolvedSecurityRef {
   /** Existing Security.id if the security already lives in our DB. */
   securityId: string | null;
-  /** Canonical provider symbol (CoinGecko coin slug for crypto). */
+  /** Canonical provider symbol (CoinGecko coin slug for crypto, ticker for stocks). */
   providerSymbol: string;
   /** Display ticker. */
   symbol: string;
   /** Display name. */
   name: string;
+  /** Asset class — drives which provider handles this row at execute time. */
+  assetClass: ASSET_CLASS;
+  /** Provider that authoritatively owns this security identity (CoinGecko, FMP, …). */
+  providerName: SECURITY_PROVIDER;
+  /** Native trade/quote currency for the security (e.g. USD for AAPL, USD for BTC). */
+  currencyCode: string;
+  /** Exchange name when known (NASDAQ, NYSE, "CoinGecko" for crypto). Optional. */
+  exchangeName?: string;
+  /** Crypto-specific code (e.g. "BTC") — only populated when assetClass is crypto. */
+  cryptoCurrencyCode?: string;
   /** Whether the security row already exists in DB (vs has to be created at execute). */
   alreadyInDb: boolean;
 }
@@ -126,20 +135,18 @@ export interface InvestmentImportError {
 
 export interface InvestmentImportEstimateCostRequest {
   fileBase64: string;
-  assetClass: InvestmentImportAssetClass;
 }
 
 export interface InvestmentImportExtractRequest {
   fileBase64: string;
-  assetClass: InvestmentImportAssetClass;
   /** Pre-selected by the entry point (portfolio page) — server uses this as the
    * default `portfolioId` on every parsed holding row. */
   defaultPortfolioId: string;
 }
 
 export interface InvestmentImportExecuteRequest {
-  assetClass: InvestmentImportAssetClass;
-  /** The (validated, possibly user-edited) holdings to commit. */
+  /** The (validated, possibly user-edited) holdings to commit. Each holding's
+   * asset class lives on `resolvedSecurity.assetClass`. */
   holdings: InvestmentImportHolding[];
   /** tempIds of transactions the user opted to skip (possible duplicates). */
   skipTempIds: string[];

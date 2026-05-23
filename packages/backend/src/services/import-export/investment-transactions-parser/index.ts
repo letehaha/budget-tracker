@@ -3,7 +3,6 @@
  * Main entry point for AI-powered investment transactions import.
  * Supports PDF, CSV, and TXT files.
  */
-export { assertSupportedImportAssetClass } from './asset-class-guard';
 export { extractInvestmentTransactionsWithAI } from './ai-extraction.service';
 export { estimateInvestmentExtractionCost } from './cost-estimation.service';
 export { detectInvestmentDuplicates } from './detect-duplicates.service';

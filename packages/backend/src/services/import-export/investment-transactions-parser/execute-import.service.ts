@@ -2,18 +2,21 @@
  * Commit a reviewed batch of parsed investment transactions to the DB.
  *
  * For each holding row:
- *   1. Ensure the Security exists (create from the provider snapshot if not).
+ *   1. Ensure the Security exists (create from the resolvedSecurity snapshot if not).
  *   2. Ensure the Holding for (portfolio, security) exists — create or merge.
  *   3. Insert each child transaction via the canonical
  *      `createInvestmentTransaction` service so cash balance, refAmount, and
  *      holding recalculation all run.
+ *
+ * Each holding now carries its own asset class (via `resolvedSecurity.assetClass`).
+ * The batch may mix stocks and crypto freely — no top-level assetClass.
  *
  * Wrapping the whole thing in one transaction would deadlock against
  * `createInvestmentTransaction`'s own withTransaction usage — and partial
  * imports are a legitimate outcome anyway (one bad row shouldn't bin the rest).
  * Instead we collect per-row errors and return them.
  */
-import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import type { InvestmentImportExecuteResponse, InvestmentImportHolding } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
@@ -24,11 +27,8 @@ import { addOrUpdateFromProvider } from '@services/investments/securities-manage
 import { syncHistoricalPrices } from '@services/investments/securities-price/historical-sync.service';
 import { createInvestmentTransaction } from '@services/investments/transactions/create.service';
 
-import { providerForAssetClass } from './symbol-resolution.service';
-
 interface ExecuteImportParams {
   userId: number;
-  assetClass: ASSET_CLASS;
   holdings: InvestmentImportHolding[];
   /** tempIds of transactions the user opted to skip (possible duplicates). */
   skipTempIds: string[];
@@ -36,12 +36,10 @@ interface ExecuteImportParams {
 
 export async function executeInvestmentImport({
   userId,
-  assetClass,
   holdings,
   skipTempIds,
 }: ExecuteImportParams): Promise<InvestmentImportExecuteResponse> {
   const skipSet = new Set(skipTempIds);
-  const providerName = providerForAssetClass({ assetClass });
 
   let createdSecurities = 0;
   let createdHoldings = 0;
@@ -87,29 +85,33 @@ export async function executeInvestmentImport({
       continue;
     }
 
+    const resolvedSecurity = holding.resolvedSecurity;
+    const { providerName } = resolvedSecurity;
+
     // 1. Resolve or create Security.
     let security: Securities | null = null;
-    if (holding.resolvedSecurity.securityId) {
-      security = await Securities.findByPk(holding.resolvedSecurity.securityId);
+    if (resolvedSecurity.securityId) {
+      security = await Securities.findByPk(resolvedSecurity.securityId);
     }
     if (!security) {
-      // Build a minimal SecuritySearchResult from the resolved provider data.
-      // The provider-specific name/exchange details aren't needed for crypto.
+      // Build a SecuritySearchResult from the full resolvedSecurity snapshot —
+      // it carries every field the upsert needs (assetClass, providerName,
+      // currencyCode, exchangeName, cryptoCurrencyCode). No more hardcoded
+      // CoinGecko-specific fallbacks.
       await addOrUpdateFromProvider([
         {
-          symbol: holding.resolvedSecurity.symbol.toUpperCase(),
-          providerSymbol: holding.resolvedSecurity.providerSymbol,
-          name: holding.resolvedSecurity.name,
-          assetClass,
+          symbol: resolvedSecurity.symbol.toUpperCase(),
+          providerSymbol: resolvedSecurity.providerSymbol,
+          name: resolvedSecurity.name,
+          assetClass: resolvedSecurity.assetClass,
           providerName,
-          currencyCode: holding.currencyCode,
-          cryptoCurrencyCode:
-            assetClass === ASSET_CLASS.crypto ? holding.resolvedSecurity.symbol.toUpperCase() : undefined,
-          exchangeName: assetClass === ASSET_CLASS.crypto ? 'CoinGecko' : undefined,
+          currencyCode: resolvedSecurity.currencyCode,
+          cryptoCurrencyCode: resolvedSecurity.cryptoCurrencyCode,
+          exchangeName: resolvedSecurity.exchangeName,
         },
       ]);
       security = await Securities.findOne({
-        where: { providerName, providerSymbol: holding.resolvedSecurity.providerSymbol },
+        where: { providerName, providerSymbol: resolvedSecurity.providerSymbol },
       });
       if (!security) {
         const reason = `Skipped "${holding.parsedSymbol}": failed to create security row.`;

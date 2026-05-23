@@ -7,11 +7,7 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useAllCurrencies } from '@/composable/data-queries/currencies';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import {
-  ASSET_CLASS,
-  type InvestmentImportHolding,
-  type InvestmentImportTransaction,
-} from '@bt/shared/types/investments';
+import type { InvestmentImportHolding, InvestmentImportTransaction } from '@bt/shared/types/investments';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { CircleDollarSignIcon, CoinsIcon, InfoIcon, Loader2Icon, TriangleAlertIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
@@ -156,7 +152,6 @@ function unskippedDuplicateCount(h: InvestmentImportHolding): number {
 const execute = useMutation({
   mutationFn: () =>
     executeInvestmentImport({
-      assetClass: ASSET_CLASS.crypto,
       holdings: holdings.value,
       skipTempIds: Array.from(skipTempIds.value),
     }),

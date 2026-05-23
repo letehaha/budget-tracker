@@ -8,6 +8,7 @@ import { VALID_GEMINI_API_KEY } from '@tests/mocks/gemini/mock-api';
 import { HttpResponse, http } from 'msw';
 
 import { dataProviderFactory } from '../../../services/investments/data-providers/provider-factory';
+import { DUPLICATE_DATE_WINDOW_DAYS } from './detect-duplicates.service';
 
 /**
  * Direct DB insert of a crypto Security row. Used by tests that need an
@@ -38,7 +39,7 @@ async function createCryptoSecurity({
 
 /**
  * Build a single CSV row in the format the AI prompt asks for.
- * symbol,name,date,side,quantity,price,fees,currency,confidence
+ * symbol,name,date,side,quantity,price,fees,currency,assetClassHint,confidence
  */
 const csvRow = ({
   symbol,
@@ -49,6 +50,7 @@ const csvRow = ({
   price,
   fees = '0',
   currency = 'USDT',
+  assetClassHint = 'crypto',
   confidence = 95,
 }: {
   symbol: string;
@@ -59,8 +61,9 @@ const csvRow = ({
   price: string;
   fees?: string;
   currency?: string;
+  assetClassHint?: 'crypto' | 'stocks';
   confidence?: number;
-}) => `${symbol},${name},${date},${side},${quantity},${price},${fees},${currency},${confidence}`;
+}) => `${symbol},${name},${date},${side},${quantity},${price},${fees},${currency},${assetClassHint},${confidence}`;
 
 /**
  * MSW handler that returns a fixed CSV from Gemini's generateContent endpoint.
@@ -87,6 +90,83 @@ function geminiCsvHandler({ csv }: { csv: string }) {
 /** Encode a string source file as base64 for the upload endpoint. */
 function encodeFile({ text }: { text: string }): string {
   return Buffer.from(text, 'utf-8').toString('base64');
+}
+
+/** Shift a YYYY-MM-DD string by `days`. UTC-anchored to avoid DST drift. */
+function addDays({ date, days }: { date: string; days: number }): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Fixed reference values for the date-window dedup tests. Every test in that
+ * group seeds an existing BTC buy at these values and varies only the
+ * *imported* row to exercise one boundary at a time. Quantity * price = 2100,
+ * so any imported row with a different qty must adjust price to match amount.
+ */
+const DEDUP_BASE_DATE = '2024-01-15';
+const DEDUP_BASE_QUANTITY = '0.05';
+const DEDUP_BASE_PRICE = '42000';
+
+/**
+ * Set up a portfolio + existing BTC buy at the DEDUP_BASE_* values, then run
+ * the import-extract for a single row whose date is offset by `dayOffset` from
+ * DEDUP_BASE_DATE (and optionally with overridden quantity/price). Returns
+ * the imported row's `possibleDuplicateOf` so tests can just assert on it.
+ */
+async function runBtcDedupExtract({
+  dayOffset,
+  importedQuantity = DEDUP_BASE_QUANTITY,
+  importedPrice = DEDUP_BASE_PRICE,
+}: {
+  dayOffset: number;
+  importedQuantity?: string;
+  importedPrice?: string;
+}) {
+  const portfolio = await helpers.createPortfolio({
+    payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
+    raw: true,
+  });
+
+  const btc = await createCryptoSecurity({ symbol: 'BTC', name: 'Bitcoin', providerSymbol: 'bitcoin' });
+  await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: btc.id } });
+  await helpers.createInvestmentTransaction({
+    payload: {
+      portfolioId: portfolio.id,
+      securityId: btc.id,
+      category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+      date: DEDUP_BASE_DATE,
+      quantity: DEDUP_BASE_QUANTITY,
+      price: DEDUP_BASE_PRICE,
+    },
+  });
+
+  installCoingeckoMock({
+    coins: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', market_cap_rank: 1 }],
+  });
+
+  const importedDate = addDays({ date: DEDUP_BASE_DATE, days: dayOffset });
+  const csv = csvRow({
+    symbol: 'BTC',
+    date: importedDate,
+    side: 'B',
+    quantity: importedQuantity,
+    price: importedPrice,
+  });
+  global.mswMockServer.use(geminiCsvHandler({ csv }));
+
+  const result = await helpers.investmentImportExtract({
+    payload: {
+      fileBase64: encodeFile({
+        text: `BTC BUY ${dayOffset} days from base (qty=${importedQuantity}, px=${importedPrice})`,
+      }),
+      defaultPortfolioId: portfolio.id,
+    },
+    raw: true,
+  });
+
+  return result.holdings[0]!.transactions[0]!.possibleDuplicateOf;
 }
 
 const mockedCoingecko = jest.mocked(Coingecko);
@@ -158,7 +238,6 @@ describe('Investment transactions AI import — E2E', () => {
       const result = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'Binance export\nBTC 0.05 @ 42000 USDT on 2024-01-15' }),
-          assetClass: ASSET_CLASS.crypto,
           defaultPortfolioId: portfolio.id,
         },
         raw: true,
@@ -199,7 +278,6 @@ describe('Investment transactions AI import — E2E', () => {
       const result = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'ETH 1 @ 2000 USDT' }),
-          assetClass: ASSET_CLASS.crypto,
           defaultPortfolioId: portfolio.id,
         },
         raw: true,
@@ -248,7 +326,6 @@ describe('Investment transactions AI import — E2E', () => {
       const result = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'BTC 0.05 @ 42000 USDT 2024-01-15' }),
-          assetClass: ASSET_CLASS.crypto,
           defaultPortfolioId: portfolio.id,
         },
         raw: true,
@@ -258,21 +335,51 @@ describe('Investment transactions AI import — E2E', () => {
       expect(tx.possibleDuplicateOf).not.toBeNull();
     });
 
-    it('rejects assetClass=securities with a helpful message', async () => {
+    it('resolves a stocks row against a pre-existing stocks holding', async () => {
       const portfolio = await helpers.createPortfolio({
         payload: helpers.buildPortfolioPayload({ name: 'Stocks' }),
         raw: true,
       });
 
-      const response = await helpers.investmentImportExtract({
-        payload: {
-          fileBase64: encodeFile({ text: 'any text' }),
-          assetClass: ASSET_CLASS.stocks,
-          defaultPortfolioId: portfolio.id,
-        },
+      // Seed AAPL (FMP/stocks) and attach a holding so the resolver finds it
+      // via the user's own securities in Step 1 — no provider lookup needed.
+      const [aapl] = await helpers.seedSecurities([{ symbol: 'AAPL', name: 'Apple Inc.' }]);
+      await helpers.createHolding({
+        payload: { portfolioId: portfolio.id, securityId: aapl!.id },
       });
 
-      expect(response.statusCode).not.toBe(200);
+      const csv = csvRow({
+        symbol: 'AAPL',
+        name: 'Apple Inc.',
+        date: '2024-05-01',
+        side: 'B',
+        quantity: '10',
+        price: '180.25',
+        currency: 'USD',
+        assetClassHint: 'stocks',
+      });
+      global.mswMockServer.use(geminiCsvHandler({ csv }));
+
+      const result = await helpers.investmentImportExtract({
+        payload: {
+          fileBase64: encodeFile({ text: 'AAPL 10 @ 180.25 USD on 2024-05-01' }),
+          defaultPortfolioId: portfolio.id,
+        },
+        raw: true,
+      });
+
+      expect(result.holdings).toHaveLength(1);
+      const holding = result.holdings[0]!;
+      expect(holding.parsedSymbol).toBe('AAPL');
+      expect(holding.resolvedSecurity).toMatchObject({
+        securityId: aapl!.id,
+        symbol: 'AAPL',
+        assetClass: ASSET_CLASS.stocks,
+        alreadyInDb: true,
+      });
+      expect(holding.resolvedConfidence).toBe('auto');
+      expect(holding.hasExistingHolding).toBe(true);
+      expect(holding.currencyCode).toBe('USD');
     });
 
     it('fails with NO_AI_CONFIGURED when the AI key is unavailable', async () => {
@@ -286,7 +393,6 @@ describe('Investment transactions AI import — E2E', () => {
       const response = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'BTC 0.05 @ 42000 USDT' }),
-          assetClass: ASSET_CLASS.crypto,
           defaultPortfolioId: portfolio.id,
         },
       });
@@ -306,7 +412,6 @@ describe('Investment transactions AI import — E2E', () => {
       const response = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'no transactions in here' }),
-          assetClass: ASSET_CLASS.crypto,
           defaultPortfolioId: portfolio.id,
         },
       });
@@ -331,7 +436,6 @@ describe('Investment transactions AI import — E2E', () => {
       const result = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'BTC 0.1 @ 20 ETH (crypto/crypto pair)' }),
-          assetClass: ASSET_CLASS.crypto,
           defaultPortfolioId: portfolio.id,
         },
         raw: true,
@@ -364,7 +468,6 @@ describe('Investment transactions AI import — E2E', () => {
       const result = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'multi BTC/ETH csv' }),
-          assetClass: ASSET_CLASS.crypto,
           defaultPortfolioId: portfolio.id,
         },
         raw: true,
@@ -406,7 +509,6 @@ describe('Investment transactions AI import — E2E', () => {
       const result = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'BTC SELL same day same qty' }),
-          assetClass: ASSET_CLASS.crypto,
           defaultPortfolioId: portfolio.id,
         },
         raw: true,
@@ -414,18 +516,59 @@ describe('Investment transactions AI import — E2E', () => {
 
       expect(result.holdings[0]!.transactions[0]!.possibleDuplicateOf).toBeNull();
     });
+
+    // Date-window dedup boundary tests. All cases use the same seeded BUY
+    // (DEDUP_BASE_DATE / DEDUP_BASE_QUANTITY / DEDUP_BASE_PRICE) and vary
+    // only the imported row. Dates are derived from DUPLICATE_DATE_WINDOW_DAYS
+    // so widening or narrowing the window changes what these tests exercise
+    // without requiring any code changes here.
+    it(`flags a duplicate when the imported row is exactly +DUPLICATE_DATE_WINDOW_DAYS (${DUPLICATE_DATE_WINDOW_DAYS}) days later`, async () => {
+      const possibleDuplicateOf = await runBtcDedupExtract({ dayOffset: DUPLICATE_DATE_WINDOW_DAYS });
+      expect(possibleDuplicateOf).not.toBeNull();
+    });
+
+    it(`flags a duplicate when the imported row is exactly -DUPLICATE_DATE_WINDOW_DAYS (${DUPLICATE_DATE_WINDOW_DAYS}) days earlier (window is symmetric)`, async () => {
+      const possibleDuplicateOf = await runBtcDedupExtract({ dayOffset: -DUPLICATE_DATE_WINDOW_DAYS });
+      expect(possibleDuplicateOf).not.toBeNull();
+    });
+
+    it('flags a duplicate when the imported row is just 1 day off (regression for the original bug)', async () => {
+      const possibleDuplicateOf = await runBtcDedupExtract({ dayOffset: 1 });
+      expect(possibleDuplicateOf).not.toBeNull();
+    });
+
+    it(`does NOT flag a duplicate when the imported row is DUPLICATE_DATE_WINDOW_DAYS + 1 (${DUPLICATE_DATE_WINDOW_DAYS + 1}) days apart`, async () => {
+      const possibleDuplicateOf = await runBtcDedupExtract({ dayOffset: DUPLICATE_DATE_WINDOW_DAYS + 1 });
+      expect(possibleDuplicateOf).toBeNull();
+    });
+
+    it('does NOT flag a duplicate when price differs (even with same amount + date in window)', async () => {
+      // Existing: 0.05 @ 42000 → amount 2100. Imported: 0.1 @ 21000 → amount 2100
+      // (same total cash, different unit price). Imported date sits at the
+      // window boundary to also assert the price-strictness inside the window.
+      const possibleDuplicateOf = await runBtcDedupExtract({
+        dayOffset: DUPLICATE_DATE_WINDOW_DAYS,
+        importedQuantity: '0.1',
+        importedPrice: '21000',
+      });
+      expect(possibleDuplicateOf).toBeNull();
+    });
   });
 
   describe('estimate-cost', () => {
-    it('rejects assetClass=securities', async () => {
-      const response = await helpers.investmentImportEstimateCost({
+    it('returns a cost estimate for a valid file (no assetClass needed)', async () => {
+      const estimate = await helpers.investmentImportEstimateCost({
         payload: {
-          fileBase64: encodeFile({ text: 'any text' }),
-          assetClass: ASSET_CLASS.stocks,
+          fileBase64: encodeFile({
+            text: 'Coinbase export\nBTC,2024-01-15,B,0.05,42000,USDT\nAAPL,2024-05-01,B,10,180.25,USD',
+          }),
         },
+        raw: true,
       });
 
-      expect(response.statusCode).not.toBe(200);
+      expect(estimate.estimatedInputTokens).toBeGreaterThan(0);
+      expect(estimate.estimatedOutputTokens).toBeGreaterThan(0);
+      expect(estimate.modelId).toBeTruthy();
     });
   });
 
@@ -438,7 +581,6 @@ describe('Investment transactions AI import — E2E', () => {
 
       const result = await helpers.investmentImportExecute({
         payload: {
-          assetClass: ASSET_CLASS.crypto,
           holdings: [
             {
               tempId: 'holding-1',
@@ -449,6 +591,11 @@ describe('Investment transactions AI import — E2E', () => {
                 providerSymbol: 'solana',
                 symbol: 'SOL',
                 name: 'Solana',
+                assetClass: ASSET_CLASS.crypto,
+                providerName: SECURITY_PROVIDER.coingecko,
+                currencyCode: 'USD',
+                cryptoCurrencyCode: 'SOL',
+                exchangeName: 'CoinGecko',
                 alreadyInDb: false,
               },
               resolvedConfidence: 'auto',
@@ -524,7 +671,6 @@ describe('Investment transactions AI import — E2E', () => {
 
       const result = await helpers.investmentImportExecute({
         payload: {
-          assetClass: ASSET_CLASS.crypto,
           holdings: [
             {
               tempId: 'holding-1',
@@ -535,6 +681,11 @@ describe('Investment transactions AI import — E2E', () => {
                 providerSymbol: btc!.providerSymbol,
                 symbol: 'BTC',
                 name: 'Bitcoin',
+                assetClass: btc!.assetClass,
+                providerName: btc!.providerName,
+                currencyCode: btc!.currencyCode,
+                exchangeName: btc!.exchangeName ?? undefined,
+                cryptoCurrencyCode: btc!.cryptoCurrencyCode ?? undefined,
                 alreadyInDb: true,
               },
               resolvedConfidence: 'auto',
@@ -580,7 +731,6 @@ describe('Investment transactions AI import — E2E', () => {
 
       const result = await helpers.investmentImportExecute({
         payload: {
-          assetClass: ASSET_CLASS.crypto,
           holdings: [
             {
               tempId: 'h-1',
@@ -591,6 +741,11 @@ describe('Investment transactions AI import — E2E', () => {
                 providerSymbol: btc!.providerSymbol,
                 symbol: 'BTC',
                 name: 'Bitcoin',
+                assetClass: btc!.assetClass,
+                providerName: btc!.providerName,
+                currencyCode: btc!.currencyCode,
+                exchangeName: btc!.exchangeName ?? undefined,
+                cryptoCurrencyCode: btc!.cryptoCurrencyCode ?? undefined,
                 alreadyInDb: true,
               },
               resolvedConfidence: 'auto',
@@ -638,7 +793,6 @@ describe('Investment transactions AI import — E2E', () => {
 
       const response = await helpers.investmentImportExecute({
         payload: {
-          assetClass: ASSET_CLASS.crypto,
           holdings: [
             {
               tempId: 'h-1',
@@ -680,7 +834,6 @@ describe('Investment transactions AI import — E2E', () => {
 
       const response = await helpers.investmentImportExecute({
         payload: {
-          assetClass: ASSET_CLASS.crypto,
           holdings: [
             {
               tempId: 'h-1',
@@ -691,6 +844,11 @@ describe('Investment transactions AI import — E2E', () => {
                 providerSymbol: btc!.providerSymbol,
                 symbol: 'BTC',
                 name: 'Bitcoin',
+                assetClass: btc!.assetClass,
+                providerName: btc!.providerName,
+                currencyCode: btc!.currencyCode,
+                exchangeName: btc!.exchangeName ?? undefined,
+                cryptoCurrencyCode: btc!.cryptoCurrencyCode ?? undefined,
                 alreadyInDb: true,
               },
               resolvedConfidence: 'auto',
@@ -733,7 +891,6 @@ describe('Investment transactions AI import — E2E', () => {
 
       const result = await helpers.investmentImportExecute({
         payload: {
-          assetClass: ASSET_CLASS.crypto,
           holdings: [
             {
               tempId: 'h-1',
@@ -744,6 +901,11 @@ describe('Investment transactions AI import — E2E', () => {
                 providerSymbol: btc!.providerSymbol,
                 symbol: 'BTC',
                 name: 'Bitcoin',
+                assetClass: btc!.assetClass,
+                providerName: btc!.providerName,
+                currencyCode: btc!.currencyCode,
+                exchangeName: btc!.exchangeName ?? undefined,
+                cryptoCurrencyCode: btc!.cryptoCurrencyCode ?? undefined,
                 alreadyInDb: true,
               },
               resolvedConfidence: 'auto',
@@ -790,6 +952,11 @@ describe('Investment transactions AI import — E2E', () => {
           providerSymbol: btc!.providerSymbol,
           symbol: 'BTC',
           name: 'Bitcoin',
+          assetClass: btc!.assetClass,
+          providerName: btc!.providerName,
+          currencyCode: btc!.currencyCode,
+          exchangeName: btc!.exchangeName ?? undefined,
+          cryptoCurrencyCode: btc!.cryptoCurrencyCode ?? undefined,
           alreadyInDb: true,
         },
         resolvedConfidence: 'auto' as const,
@@ -812,7 +979,6 @@ describe('Investment transactions AI import — E2E', () => {
 
       const response = await helpers.investmentImportExecute({
         payload: {
-          assetClass: ASSET_CLASS.crypto,
           holdings: [
             { tempId: 'h-1', ...baseHolding, transactions: [{ ...baseHolding.transactions[0]!, tempId: 'tx-1' }] },
             { tempId: 'h-2', ...baseHolding, transactions: [{ ...baseHolding.transactions[0]!, tempId: 'tx-2' }] },

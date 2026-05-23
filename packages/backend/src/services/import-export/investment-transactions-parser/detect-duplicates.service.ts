@@ -2,26 +2,36 @@
  * Possible-duplicate detection for investment transactions.
  *
  * Run server-side at extract time *only for already-resolved securities* —
- * unresolved holdings can't be looked up yet. For each (portfolio, security,
- * date, side) tuple, find existing transactions whose quantity is within a
- * tight tolerance and surface them so the review UI can flag the row.
+ * unresolved holdings can't be looked up yet. For each (portfolio, security)
+ * pair, look for existing transactions on the same `side` whose `price` AND
+ * `amount` match exactly (decimal-equal — formatting variants like "0.5" vs
+ * "0.50000000" still match) AND whose `date` is within ±3 days of the parsed
+ * row.
  *
- * Why per-row tolerance instead of exact: exchange CSVs round quantities at
- * arbitrary precision (Binance: 0.001 ETH vs 0.00100000 ETH for the same
- * trade). Exact-match would miss those.
+ * Why a date window instead of an exact match: brokers and exchanges report
+ * the same trade with slightly different date stamps depending on
+ * settlement/timezone (e.g. a trade executed late on Friday in NY may post
+ * as Monday in another export). ±3 days catches typical cross-source skew
+ * without producing false positives on independent trades.
+ *
+ * Why strict on price + amount instead of quantity-with-tolerance: amount
+ * is the strongest "is this the same trade?" signal — fees can vary across
+ * sources but the executed price and total cash impact don't. If both match
+ * exactly, it's the same trade.
  */
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
 import { Big } from 'big.js';
+import { Op } from 'sequelize';
 
-/** ±0.01% — tight enough to avoid false positives on day-trading, loose enough
- * to absorb formatting differences between two exports of the same trade. */
-export const DUPLICATE_QUANTITY_TOLERANCE = 0.0001;
+/** Days on either side of a parsed row's date that we consider "the same trade." */
+export const DUPLICATE_DATE_WINDOW_DAYS = 3;
 
-/** Stringify the dedup-group key tuple. Hoisted out of the function body to
- * satisfy `consistent-function-scoping` — it doesn't close over anything. */
-function groupKey(r: { portfolioId: string; securityId: string; date: string }): string {
-  return `${r.portfolioId}|${r.securityId}|${r.date}`;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** Stringify the dedup-group key tuple. Hoisted to satisfy `consistent-function-scoping`. */
+function groupKey(r: { portfolioId: string; securityId: string }): string {
+  return `${r.portfolioId}|${r.securityId}`;
 }
 
 interface DuplicateCandidate {
@@ -35,23 +45,38 @@ interface ParsedRowForDedup {
   tempId: string;
   portfolioId: string;
   securityId: string;
+  /** YYYY-MM-DD. */
   date: string;
   side: 'buy' | 'sell';
-  quantity: string;
+  /** Decimal string. */
+  price: string;
+  /** Decimal string (`quantity * price + fees`). */
+  amount: string;
 }
 
 /**
- * Quantity-comparison helper. Exported for unit testing — the tolerance math
- * is the only non-trivial logic here.
+ * Decimal-equal comparison via Big.eq — handles formatting variants like
+ * "0.5" vs "0.50000000" while staying strict on actual value. Exported for unit
+ * testing.
  */
-export function quantitiesMatch({ a, b, tolerance }: { a: string; b: string; tolerance: number }): boolean {
-  const left = new Big(a);
-  const right = new Big(b);
-  if (left.eq(0) && right.eq(0)) return true;
-  if (left.eq(0) || right.eq(0)) return false;
-  const diff = left.minus(right).abs();
-  const denominator = left.abs();
-  return diff.div(denominator).toNumber() <= tolerance;
+export function decimalsEqual({ a, b }: { a: string; b: string }): boolean {
+  return new Big(a).eq(new Big(b));
+}
+
+/**
+ * Absolute day difference between two YYYY-MM-DD strings. Both values are
+ * interpreted as UTC midnight; that avoids the off-by-one DST drift we'd get
+ * if we let Date parse local time. Exported for unit testing.
+ */
+export function dayDiff({ a, b }: { a: string; b: string }): number {
+  const ms = Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`);
+  return Math.abs(Math.round(ms / MS_PER_DAY));
+}
+
+function shiftDate({ date, days }: { date: string; days: number }): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 /**
@@ -68,8 +93,9 @@ export async function detectInvestmentDuplicates({
 }): Promise<DuplicateCandidate[]> {
   if (rows.length === 0) return [];
 
-  // Group rows by (portfolioId, securityId, date) so we can hit the DB once
-  // per group rather than once per row.
+  // Group rows by (portfolioId, securityId) so we can hit the DB once per
+  // group rather than once per row. Date no longer participates in the key
+  // because we look across a ±3-day window.
   const groups = new Map<string, ParsedRowForDedup[]>();
   for (const row of rows) {
     const key = groupKey(row);
@@ -82,11 +108,20 @@ export async function detectInvestmentDuplicates({
 
   for (const [, groupRows] of groups) {
     const sample = groupRows[0]!;
+    // Span: from `min(date) - 3d` to `max(date) + 3d` covers every row in
+    // the group with a single DB hit. Sorting via toSorted to keep the
+    // helper pure.
+    const sortedDates = groupRows.map((r) => r.date).toSorted();
+    const earliest = sortedDates[0]!;
+    const latest = sortedDates[sortedDates.length - 1]!;
+    const windowStart = shiftDate({ date: earliest, days: -DUPLICATE_DATE_WINDOW_DAYS });
+    const windowEnd = shiftDate({ date: latest, days: DUPLICATE_DATE_WINDOW_DAYS });
+
     const existingTxs = await InvestmentTransaction.findAll({
       where: {
         portfolioId: sample.portfolioId,
         securityId: sample.securityId,
-        date: sample.date,
+        date: { [Op.between]: [windowStart, windowEnd] },
       },
       include: [
         {
@@ -97,7 +132,7 @@ export async function detectInvestmentDuplicates({
           required: true,
         },
       ],
-      attributes: ['id', 'transactionType', 'quantity'],
+      attributes: ['id', 'transactionType', 'price', 'amount', 'date'],
     });
 
     if (existingTxs.length === 0) continue;
@@ -106,11 +141,10 @@ export async function detectInvestmentDuplicates({
       const match = existingTxs.find((existing) => {
         const existingSide = existing.transactionType === 'expense' ? 'buy' : 'sell';
         if (existingSide !== row.side) return false;
-        return quantitiesMatch({
-          a: existing.quantity.toDecimalString(10),
-          b: row.quantity,
-          tolerance: DUPLICATE_QUANTITY_TOLERANCE,
-        });
+        if (dayDiff({ a: existing.date, b: row.date }) > DUPLICATE_DATE_WINDOW_DAYS) return false;
+        if (!decimalsEqual({ a: existing.price.toDecimalString(10), b: row.price })) return false;
+        if (!decimalsEqual({ a: existing.amount.toDecimalString(10), b: row.amount })) return false;
+        return true;
       });
 
       if (match) {

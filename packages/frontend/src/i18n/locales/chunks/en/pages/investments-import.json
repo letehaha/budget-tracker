@@ -26,7 +26,7 @@
       "alreadyPicked": "already picked",
       "duplicateSecurity": "Same security is picked on another row",
       "willMerge": "Will merge into existing holding",
-      "txns": "transactions",
+      "txns": "{count} transaction | {count} transactions",
       "expand": "Expand",
       "collapse": "Collapse",
       "deleteHolding": "Delete holding",
@@ -52,7 +52,7 @@
       "tooltips": {
         "security": "We picked a security automatically based on the AI-extracted ticker. Click the field to override the match if it's wrong.",
         "currency": "Currency the cash side of the trade was settled in (e.g. USD, EUR). It does not change how the holding is stored — amounts are normalized to your base currency using historical exchange rates at the trade date.",
-        "parentRowDuplicates": "{count} {count, plural, one {possible duplicate} other {possible duplicates}} in this holding will be imported as new transactions unless skipped."
+        "parentRowDuplicates": "{count} possible duplicate in this holding will be imported as a new transaction unless skipped. | {count} possible duplicates in this holding will be imported as new transactions unless skipped."
       }
     },
     "done": {

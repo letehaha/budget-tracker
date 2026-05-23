@@ -3,12 +3,14 @@ import { searchSecurities } from '@/api/securities';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
+import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { ASSET_CLASS, type ResolvedSecurityRef, type SecuritySearchResult } from '@bt/shared/types/investments';
 import { useQuery } from '@tanstack/vue-query';
 import { ChevronDownIcon, SearchIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -16,13 +18,22 @@ const props = defineProps<{
   modelValue: ResolvedSecurityRef | null;
   /** Securities already selected on OTHER holding rows. Disables them in the dropdown. */
   blockedProviderSymbols: string[];
-  /** Crypto / stocks — narrows the provider search. */
-  assetClass: ASSET_CLASS;
 }>();
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: ResolvedSecurityRef | null): void;
 }>();
+
+const { t } = useI18n();
+
+type AssetClassFilter = 'all' | ASSET_CLASS.stocks | ASSET_CLASS.crypto;
+const assetClassFilter = ref<AssetClassFilter>('all');
+
+const assetClassItems = computed(() => [
+  { value: 'all', label: t('dialogs.addSymbols.filters.all') },
+  { value: ASSET_CLASS.stocks, label: t('dialogs.addSymbols.filters.stocks') },
+  { value: ASSET_CLASS.crypto, label: t('dialogs.addSymbols.filters.crypto') },
+]);
 
 const isOpen = ref(false);
 const searchTerm = ref('');
@@ -38,11 +49,15 @@ watch(searchTerm, (v) => {
 
 const blockedSet = computed(() => new Set(props.blockedProviderSymbols));
 
+const apiAssetClass = computed<ASSET_CLASS | undefined>(() =>
+  assetClassFilter.value === 'all' ? undefined : assetClassFilter.value,
+);
+
 const query = useQuery({
   queryKey: computed(
-    () => [...VUE_QUERY_CACHE_KEYS.investmentImportSecuritySearch, debounced.value, props.assetClass] as const,
+    () => [...VUE_QUERY_CACHE_KEYS.investmentImportSecuritySearch, debounced.value, assetClassFilter.value] as const,
   ),
-  queryFn: () => searchSecurities({ query: debounced.value, assetClass: props.assetClass }),
+  queryFn: () => searchSecurities({ query: debounced.value, assetClass: apiAssetClass.value }),
   enabled: () => debounced.value.length >= 1,
 });
 
@@ -52,6 +67,11 @@ function pickResult(result: SecuritySearchResult) {
     providerSymbol: result.providerSymbol,
     symbol: result.symbol,
     name: result.name,
+    assetClass: result.assetClass,
+    providerName: result.providerName,
+    currencyCode: result.currencyCode,
+    exchangeName: result.exchangeName,
+    cryptoCurrencyCode: result.cryptoCurrencyCode,
     alreadyInDb: false,
   });
   isOpen.value = false;
@@ -85,7 +105,7 @@ const hasResults = computed(() => (query.data.value ?? []).length > 0);
     </Popover.PopoverTrigger>
 
     <Popover.PopoverContent class="w-[360px] p-0" align="start">
-      <div class="border-b p-2">
+      <div class="space-y-2 border-b p-2">
         <InputField
           v-model="searchTerm"
           type="text"
@@ -97,6 +117,8 @@ const hasResults = computed(() => (query.data.value ?? []).length > 0);
             <SearchIcon class="text-muted-foreground size-4" />
           </template>
         </InputField>
+
+        <PillTabs v-model="assetClassFilter" :items="assetClassItems" size="sm" />
       </div>
 
       <ScrollArea class="max-h-[280px]">
@@ -121,6 +143,12 @@ const hasResults = computed(() => (query.data.value ?? []).length > 0);
               <span class="min-w-0 flex-1">
                 <span class="font-medium">{{ r.symbol }}</span>
                 <span class="text-muted-foreground ml-2 truncate text-xs">{{ r.name }}</span>
+              </span>
+              <span
+                v-if="r.assetClass === ASSET_CLASS.crypto && assetClassFilter === 'all'"
+                class="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium uppercase"
+              >
+                {{ $t('dialogs.addSymbols.assetClass.crypto') }}
               </span>
               <span v-if="blockedSet.has(r.providerSymbol)" class="text-muted-foreground text-[10px]">
                 {{ $t('investmentsImport.review.alreadyPicked') }}

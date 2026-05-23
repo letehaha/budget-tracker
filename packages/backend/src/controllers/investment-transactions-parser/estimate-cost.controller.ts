@@ -1,10 +1,6 @@
-import { ASSET_CLASS } from '@bt/shared/types/investments';
 import { createController } from '@controllers/helpers/controller-factory';
 import { UnexpectedError } from '@js/errors';
-import {
-  assertSupportedImportAssetClass,
-  estimateInvestmentExtractionCost,
-} from '@services/import-export/investment-transactions-parser';
+import { estimateInvestmentExtractionCost } from '@services/import-export/investment-transactions-parser';
 import { extractTextFromFile, validateFileBuffer } from '@services/import-export/statement-parser';
 import { z } from 'zod';
 
@@ -18,13 +14,10 @@ export const estimateCostController = createController(
   z.object({
     body: z.object({
       fileBase64: z.string().min(1, 'File content is required'),
-      assetClass: z.enum([ASSET_CLASS.crypto, ASSET_CLASS.stocks]),
     }),
   }),
   async ({ user, body }) => {
-    const { fileBase64, assetClass } = body;
-
-    assertSupportedImportAssetClass({ assetClass });
+    const { fileBase64 } = body;
 
     const rawBuffer = Buffer.from(fileBase64, 'base64');
     const validation = validateFileBuffer({ buffer: rawBuffer });
@@ -60,7 +53,6 @@ export const estimateCostController = createController(
       text: textResult.text!,
       pageCount: textResult.pageCount!,
       fileType: validation.fileType,
-      assetClass,
     });
 
     if (!costResult.success) {
