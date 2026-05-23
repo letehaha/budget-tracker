@@ -1,4 +1,5 @@
-import { onBeforeUnmount, ref } from 'vue';
+import { useEventListener } from '@vueuse/core';
+import { ref } from 'vue';
 
 /**
  * Composable for handling shift-click multi-selection functionality
@@ -13,25 +14,16 @@ export function useShiftMultiSelect<K>(selectedItems: Set<K>, onUpdate?: () => v
   // Track last clicked index
   let lastClickedIndex: number | null = null;
 
-  // Set up event listeners for shift key
-  const handleKeyDown = (e: KeyboardEvent) => {
+  useEventListener(window, 'keydown', (e: KeyboardEvent) => {
     if (e.key === 'Shift') {
       isShiftKeyPressed.value = true;
     }
-  };
+  });
 
-  const handleKeyUp = (e: KeyboardEvent) => {
+  useEventListener(window, 'keyup', (e: KeyboardEvent) => {
     if (e.key === 'Shift') {
       isShiftKeyPressed.value = false;
     }
-  };
-
-  window.addEventListener('keydown', handleKeyDown);
-  window.addEventListener('keyup', handleKeyUp);
-
-  onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleKeyDown);
-    window.removeEventListener('keyup', handleKeyUp);
   });
 
   /**
