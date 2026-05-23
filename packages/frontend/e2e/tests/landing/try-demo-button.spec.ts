@@ -32,8 +32,11 @@ test.describe('Landing page - Try Demo button', () => {
     // The button does `window.location.href = '/dashboard'` after the POST
     // /api/v1/demo succeeds. If the demo cookie isn't set, the SPA's auth
     // guard would bounce us to /sign-in — which would fail this assertion.
+    // We don't wait on `networkidle` here: the dashboard opens a long-lived
+    // SSE stream as soon as the user is authenticated, so the network never
+    // goes idle for the 500ms `networkidle` requires.
     await page.waitForURL(/\/(dashboard|welcome)/, { timeout: 30_000 });
-    await page.waitForLoadState('networkidle', { timeout: 30_000 });
+    await page.waitForLoadState('load', { timeout: 30_000 });
     expect(page.url()).toMatch(/\/(dashboard|welcome)/);
 
     expect(cspViolations, `CSP blocked Astro hydration scripts:\n${cspViolations.join('\n')}`).toHaveLength(0);
