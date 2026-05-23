@@ -6,7 +6,7 @@
  *
  * Priority: 2 (secondary fallback)
  */
-import axios, { isAxiosError } from 'axios';
+import axios from 'axios';
 
 import { BaseExchangeRateProvider } from '../base-provider';
 import {
@@ -199,39 +199,5 @@ export class FrankfurterProvider extends BaseExchangeRateProvider {
       this.handleFetchError({ error, date: `${formattedStartDate}..${formattedEndDate}` });
       return [];
     }
-  }
-
-  /**
-   * Handle fetch errors with appropriate logging
-   */
-  private handleFetchError({ error, date }: { error: unknown; date: string }): void {
-    if (isAxiosError(error)) {
-      const statusCode = error.response?.status;
-
-      if (error.code === 'ECONNABORTED') {
-        this.logError('Request timeout', { date });
-        return;
-      }
-
-      if (error.code === 'ECONNREFUSED') {
-        this.logError('Service unavailable (connection refused)', { date });
-        return;
-      }
-
-      if (statusCode === 404) {
-        this.logInfo(`No data available for ${date}`);
-        return;
-      }
-
-      if (statusCode && statusCode >= 500) {
-        this.logError(`Server error ${statusCode}`, { date });
-        return;
-      }
-    }
-
-    this.logError('Unexpected error fetching rates', {
-      error: error instanceof Error ? error.message : String(error),
-      date,
-    });
   }
 }
