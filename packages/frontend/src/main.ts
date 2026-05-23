@@ -1,7 +1,8 @@
 import '@/styles/global.css';
 import './registerServiceWorker';
 
-import { identifyCurrentTheme, patchMetaViewportMaxScaleForiOS } from '@/common/utils';
+import { identifyCurrentTheme } from '@/common/utils/color-theme';
+import { patchMetaViewportMaxScaleForiOS } from '@/common/utils/meta-viewport-max-scale';
 import { i18n, initializeLocale, loadChunks } from '@/i18n';
 import { initPostHog, trackPageviews } from '@/lib/posthog';
 import { queryClient } from '@/lib/query-client';

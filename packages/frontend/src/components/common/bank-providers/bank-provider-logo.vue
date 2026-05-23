@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { Themes, currentTheme } from '@/common/utils';
+import { Themes, currentTheme } from '@/common/utils/color-theme';
 import { cn } from '@/lib/utils';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 
