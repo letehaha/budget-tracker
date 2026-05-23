@@ -156,11 +156,7 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
         providerName: SECURITY_PROVIDER.coingecko,
       };
     } catch (error) {
-      logger.error({ message: `Failed to fetch CoinGecko price for ${providerSymbol}`, error: error as Error });
-      throw new Error(
-        `Failed to fetch CoinGecko price for ${providerSymbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { cause: error },
-      );
+      throw this.formatProviderError({ operation: `Failed to fetch CoinGecko price for ${providerSymbol}`, error });
     }
   }
 
@@ -208,14 +204,10 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
           };
         });
     } catch (error) {
-      logger.error({
-        message: `Failed to fetch CoinGecko historical prices for ${providerSymbol}`,
-        error: error as Error,
+      throw this.formatProviderError({
+        operation: `Failed to fetch CoinGecko historical prices for ${providerSymbol}`,
+        error,
       });
-      throw new Error(
-        `Failed to fetch CoinGecko historical prices for ${providerSymbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { cause: error },
-      );
     }
   }
 

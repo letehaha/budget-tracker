@@ -1,4 +1,5 @@
 import type { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import { logger } from '@js/utils';
 
 /**
  * Branded type for provider-native security identifiers (Yahoo/Polygon/FMP/
@@ -147,4 +148,18 @@ export abstract class BaseSecurityDataProvider {
 
   // TODO: processSearchToSecurity method, because each security after search can provide different schema
   // and it should be processed uniquely when adding security from the search
+
+  /**
+   * Logs the error and returns a new Error wrapping it with the operation
+   * description, so leaf provider methods can `throw this.formatProviderError(...)`
+   * from a catch branch instead of repeating the same log + Error.cause boilerplate.
+   * The wrapped Error preserves the original via `cause` so upstream
+   * (composite provider, callers) can still inspect the underlying failure.
+   */
+  protected formatProviderError({ operation, error }: { operation: string; error: unknown }): Error {
+    logger.error({ message: `${operation}:`, error: error as Error });
+    return new Error(`${operation}: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+      cause: error,
+    });
+  }
 }
