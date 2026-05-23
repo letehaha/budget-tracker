@@ -108,7 +108,7 @@ const onBudgetTypeChange = (type: BUDGET_TYPES) => {
       <RadioGroup
         :model-value="form.type"
         class="grid grid-cols-2 gap-3"
-        @update:model-value="(v: string) => onBudgetTypeChange(v as BUDGET_TYPES)"
+        @update:model-value="(v) => onBudgetTypeChange(v as BUDGET_TYPES)"
       >
         <Label
           :class="
