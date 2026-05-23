@@ -933,6 +933,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         const updatedMetadata: EnableBankingMetadata = {
           ...metadata,
           consentValidUntil: new Date().toISOString(),
+          // Marks the deactivation as upstream-driven (vs. user-initiated) so
+          // the sync-status endpoint surfaces it in the "needs reauth" list.
+          deactivationReason: 'auth_failure',
         };
         connection.metadata = updatedMetadata as unknown as object;
         // { transaction: null } bypasses the current CLS transaction so this write

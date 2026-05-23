@@ -95,6 +95,10 @@ export function useSyncStatus() {
     return syncStatusData.value?.accounts || [];
   });
 
+  const connectionsNeedingReauth = computed(() => {
+    return syncStatusData.value?.connectionsNeedingReauth || [];
+  });
+
   const syncingSummaryText = computed(() => {
     if (!syncStatusData.value || !isSyncing.value) return '';
 
@@ -276,6 +280,7 @@ export function useSyncStatus() {
     timeSinceLastSync,
     needsConfirmation,
     accountStatuses,
+    connectionsNeedingReauth,
     syncingSummaryText,
     showSuccessMessage,
     isConnected,

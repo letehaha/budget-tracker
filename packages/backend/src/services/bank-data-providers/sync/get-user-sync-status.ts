@@ -1,7 +1,7 @@
-import { ACCOUNT_STATUSES } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, type ConnectionNeedingReauth } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 
 import {
   type AccountSyncStatus,
@@ -36,11 +36,55 @@ export async function getUserBankAccounts(userId: number): Promise<AccountWithCo
 }
 
 /**
+ * Get connections that were auto-deactivated due to an upstream auth failure
+ * (expired session, revoked consent). These don't appear in regular sync status
+ * because `getUserBankAccounts` filters by `isActive: true` — but the user needs
+ * to see them to know they should reconnect.
+ *
+ * Filters by `metadata.deactivationReason === 'auth_failure'` so connections the
+ * user disconnected manually stay hidden.
+ */
+async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNeedingReauth[]> {
+  const connections = await BankDataProviderConnections.findAll({
+    where: {
+      userId,
+      isActive: false,
+      // Raw JSONB path query — Sequelize's nested object form is unreliable
+      // across dialect versions for JSONB, so use the Postgres ->> operator
+      // directly to compare the text value of metadata.deactivationReason.
+      [Op.and]: [literal(`metadata->>'deactivationReason' = 'auth_failure'`)],
+    },
+    include: [
+      {
+        model: Accounts,
+        as: 'accounts',
+        where: { status: ACCOUNT_STATUSES.active },
+        required: false,
+      },
+    ],
+    order: [['updatedAt', 'DESC']],
+  });
+
+  return connections.map((conn) => {
+    const metadata = (conn.metadata ?? {}) as Record<string, unknown>;
+    return {
+      connectionId: conn.id,
+      providerType: conn.providerType,
+      providerName: conn.providerName,
+      bankName: typeof metadata.bankName === 'string' ? metadata.bankName : null,
+      accountsCount: conn.accounts?.length ?? 0,
+      deactivatedAt: conn.updatedAt ? new Date(conn.updatedAt).toISOString() : null,
+    };
+  });
+}
+
+/**
  * Get sync status for all user's bank accounts
  */
 export async function getUserAccountsSyncStatus(userId: number): Promise<{
   lastSyncAt: number | null;
   accounts: Array<AccountSyncStatus & { accountName: string; providerType: string }>;
+  connectionsNeedingReauth: ConnectionNeedingReauth[];
   summary: {
     total: number;
     syncing: number;
@@ -53,9 +97,10 @@ export async function getUserAccountsSyncStatus(userId: number): Promise<{
   const accounts = await getUserBankAccounts(userId);
   const accountIds = accounts.map((a) => a.id);
 
-  const [statuses, lastSyncAt] = await Promise.all([
+  const [statuses, lastSyncAt, connectionsNeedingReauth] = await Promise.all([
     getMultipleAccountsSyncStatus(accountIds),
     getLastAutoSync(userId),
+    getConnectionsNeedingReauth(userId),
   ]);
 
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
@@ -93,6 +138,7 @@ export async function getUserAccountsSyncStatus(userId: number): Promise<{
   return {
     lastSyncAt,
     accounts: enrichedStatuses,
+    connectionsNeedingReauth,
     summary,
   };
 }

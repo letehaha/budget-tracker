@@ -205,7 +205,12 @@
         "analyticsSoon": "Analytics (soon)"
       },
       "integrations": {
-        "connectedVia": "Connected via"
+        "connectedVia": "Connected via",
+        "reauthBanner": {
+          "title": "Connection expired",
+          "description": "Your bank session expired. Auto-sync is paused until you reconnect.",
+          "reconnectLink": "Reconnect now"
+        }
       },
       "sharing": {
         "title": "Sharing",

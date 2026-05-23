@@ -292,9 +292,19 @@ interface SyncStatusSummary {
   idle: number;
 }
 
+export interface ConnectionNeedingReauth {
+  connectionId: string;
+  providerType: string;
+  providerName: string;
+  bankName: string | null;
+  accountsCount: number;
+  deactivatedAt: string | null;
+}
+
 export interface SyncStatusResponse {
   lastSyncAt: number | null;
   accounts: AccountSyncStatus[];
+  connectionsNeedingReauth: ConnectionNeedingReauth[];
   summary: SyncStatusSummary;
 }
 

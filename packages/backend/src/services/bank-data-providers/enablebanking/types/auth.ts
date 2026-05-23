@@ -60,6 +60,12 @@ export interface EnableBankingMetadata {
   consentValidFrom?: string;
   /** Maximum consent validity allowed by bank (in seconds) */
   bankMaxConsentValidity?: number;
+  /**
+   * Why the connection was deactivated. `'auth_failure'` indicates upstream
+   * auth/consent expiry and signals the UI to prompt the user to reconnect;
+   * any other (or absent) value means the connection was disconnected manually.
+   */
+  deactivationReason?: 'auth_failure' | string;
 }
 
 /**

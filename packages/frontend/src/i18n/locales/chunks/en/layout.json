@@ -27,7 +27,8 @@
       "newAccountsGroup": "New accounts group",
       "collapseNavigation": "Collapse navigation",
       "viaHousehold": "Shared via {handle}'s household",
-      "sharedBy": "Shared by {handle}"
+      "sharedBy": "Shared by {handle}",
+      "needsReauthTooltip": "Connection expired. Reconnect to resume syncing."
     }
   },
   "header": {
@@ -82,6 +83,10 @@
     "connectButton": "Connect",
     "retrySyncButton": "Retry sync",
     "manageConnectionsButton": "Manage connections",
+    "needsReauthTitle": "Connections need reconnecting",
+    "needsReauthDescription": "These bank sessions expired. Reconnect to resume syncing.",
+    "reconnectButton": "Reconnect",
+    "affectedAccounts": "1 account | {count} accounts",
     "timeAgo": {
       "justNow": "Just now",
       "secondsAgo": "{count} second ago | {count} seconds ago",

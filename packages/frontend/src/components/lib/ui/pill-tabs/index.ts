@@ -32,7 +32,7 @@ export const pillTabsIndicatorVariants = cva(
 );
 
 export const pillTabsTriggerVariants = cva(
-  'focus-visible:bg-background/50 relative z-1 rounded-md transition-colors focus-visible:outline-none',
+  'focus-visible:bg-background/50 relative z-1 rounded-md whitespace-nowrap transition-colors focus-visible:outline-none',
   {
     variants: {
       size: {

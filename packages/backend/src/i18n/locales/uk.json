@@ -199,6 +199,7 @@
       "noActiveSessionGeneric": "Немає активної сесії",
       "noBalanceInfo": "Інформація про баланс недоступна",
       "authenticationFailed": "Автентифікація Enable Banking не вдалася: {{message}}",
+      "sessionExpiredReconnect": "Сесія банку закінчилася. Будь ласка, повторно підключіть свій банківський рахунок, щоб продовжити синхронізацію.",
       "apiBadRequestError": "Помилка API Enable Banking: {{message}}",
       "apiGeneralError": "Помилка API Enable Banking: {{message}}",
       "redirectUriNotAllowed": "У вашому застосунку Enable Banking відсутній необхідний URL переадресації. Будь ласка, увійдіть до панелі Enable Banking, відредагуйте свій застосунок і додайте цей URL до дозволених URL переадресації: {{redirectUrl}}"

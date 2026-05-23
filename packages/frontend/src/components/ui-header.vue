@@ -87,6 +87,7 @@
             <Popover.PopoverContent class="w-auto p-0" align="end">
               <SyncStatusTooltip
                 :account-statuses="syncStatus.accountStatuses.value"
+                :connections-needing-reauth="syncStatus.connectionsNeedingReauth.value"
                 :sync-progress="syncStatus.syncProgress.value"
                 :last-sync-timestamp="syncStatus.lastSyncTimestamp.value"
                 :is-loading="syncStatus.isLoading.value"

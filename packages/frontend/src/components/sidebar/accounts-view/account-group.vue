@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { AccountGroups } from '@/common/types/models';
 import AccountGroupName from '@/components/common/account-group-name.vue';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
-import { ChevronRightIcon, FolderIcon } from '@lucide/vue';
-import { inject, ref, watch } from 'vue';
+import { useSyncStatus } from '@/composable/use-sync-status';
+import { AlertTriangleIcon, ChevronRightIcon, FolderIcon } from '@lucide/vue';
+import { computed, inject, ref, watch } from 'vue';
 
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
@@ -24,6 +26,26 @@ watch(
   },
   { immediate: true },
 );
+
+const { connectionsNeedingReauth } = useSyncStatus();
+
+// Walk the group tree (direct accounts + nested child groups) so a mixed-content
+// group still surfaces a warning when any descendant account is on an expired
+// connection — important because groups can hold both bank-linked and manual
+// accounts side by side.
+function groupHasReauthAccount(group: AccountGroups, reauthIds: Set<string>): boolean {
+  const directHit = group.accounts.some(
+    (account) => account.bankDataProviderConnectionId && reauthIds.has(account.bankDataProviderConnectionId),
+  );
+  if (directHit) return true;
+  return group.childGroups.some((child) => groupHasReauthAccount(child, reauthIds));
+}
+
+const needsReauth = computed(() => {
+  const reauthIds = new Set(connectionsNeedingReauth.value.map((conn) => conn.connectionId));
+  if (reauthIds.size === 0) return false;
+  return groupHasReauthAccount(props.group, reauthIds);
+});
 </script>
 
 <template>
@@ -34,6 +56,13 @@ watch(
           <ChevronRightIcon :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isOpen }]" />
           <FolderIcon v-if="!group.bankDataProviderConnectionId" class="text-muted-foreground size-4 shrink-0" />
           <AccountGroupName :group="group" class="min-w-0 text-sm" />
+          <ResponsiveTooltip
+            v-if="needsReauth"
+            :content="$t('sidebar.accountsView.needsReauthTooltip')"
+            content-class-name="max-w-64"
+          >
+            <AlertTriangleIcon class="text-destructive-text size-4 shrink-0" />
+          </ResponsiveTooltip>
           <span class="text-muted-foreground ml-auto text-xs tabular-nums">
             {{ group.accounts.length }}
           </span>

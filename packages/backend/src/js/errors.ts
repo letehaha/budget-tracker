@@ -29,8 +29,16 @@ export class CustomError extends Error {
 }
 
 export class BadRequestError extends CustomError {
-  constructor({ code = API_ERROR_CODES.BadRequest, message }: { code?: API_ERROR_CODES; message: string }) {
-    super(ERROR_CODES.BadRequest, code, message);
+  constructor({
+    code = API_ERROR_CODES.BadRequest,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(ERROR_CODES.BadRequest, code, message, details);
   }
 }
 

@@ -6,7 +6,7 @@ import { pillTabsContainerVariants, pillTabsIndicatorVariants, pillTabsTriggerVa
 
 const props = withDefaults(
   defineProps<{
-    items: { value: string; label: string; icon?: Component }[];
+    items: { value: string; label: string; icon?: Component; iconClass?: string }[];
     modelValue: string;
     size?: PillTabsSize;
     disabled?: boolean;
@@ -65,7 +65,7 @@ watch(
       "
       @click="emit('update:modelValue', item.value)"
     >
-      <component :is="item.icon" v-if="item.icon" class="mr-1.5 inline size-4 align-[-3px]" />
+      <component :is="item.icon" v-if="item.icon" :class="cn('mr-1.5 inline size-4 align-[-3px]', item.iconClass)" />
       {{ item.label }}
     </button>
   </div>
