@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import { useFeatureModels } from '@/composable/data-queries/use-feature-models';
 import { AIFeatureStatus, AI_FEATURE } from '@bt/shared/types';
-import { ChevronDownIcon, LightbulbIcon, Loader2Icon } from 'lucide-vue-next';
+import { ChevronDownIcon, LightbulbIcon, Loader2Icon } from '@lucide/vue';
 import { ref } from 'vue';
 
 import ModelSelectorCard from '../shared/model-selector-card.vue';

@@ -29,7 +29,7 @@
 import { ThemePreference, Themes, currentTheme, setThemePreference, themePreference } from '@/common/utils/color-theme';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
-import { MonitorIcon, MoonStarIcon, SunIcon } from 'lucide-vue-next';
+import { MonitorIcon, MoonStarIcon, SunIcon } from '@lucide/vue';
 import type { Component } from 'vue';
 
 interface ThemeOption {

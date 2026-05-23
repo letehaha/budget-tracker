@@ -14,7 +14,7 @@
 <script lang="ts" setup>
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/lib/ui/tooltip';
 import { TransactionModel } from '@bt/shared/types';
-import { RotateCcwIcon } from 'lucide-vue-next';
+import { RotateCcwIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

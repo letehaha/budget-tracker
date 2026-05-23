@@ -8,7 +8,7 @@ import { type Period } from '@/composable/use-period-navigation';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
 import { differenceInDays, startOfDay, subDays } from 'date-fns';
-import { CalendarIcon } from 'lucide-vue-next';
+import { CalendarIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

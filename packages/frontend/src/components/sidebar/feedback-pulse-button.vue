@@ -2,7 +2,7 @@
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { differenceInDays } from 'date-fns';
-import { MessageSquareIcon } from 'lucide-vue-next';
+import { MessageSquareIcon } from '@lucide/vue';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 defineProps<{ label: string }>();

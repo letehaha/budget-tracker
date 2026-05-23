@@ -166,7 +166,7 @@ import { SPIKE_DEFAULTS } from '@/composable/charts/use-spike-detection';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useFormValidation } from '@/composable/form-validator';
 import { between, integer, required } from '@/js/helpers/validators';
-import { ArrowLeftIcon, ChevronRightIcon, InfoIcon, SettingsIcon } from 'lucide-vue-next';
+import { ArrowLeftIcon, ChevronRightIcon, InfoIcon, SettingsIcon } from '@lucide/vue';
 import type { Ref } from 'vue';
 import { computed, inject, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

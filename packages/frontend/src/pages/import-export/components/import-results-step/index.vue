@@ -102,7 +102,7 @@
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useImportExportStore } from '@/stores/import-export';
-import { AlertCircleIcon, CheckCircleIcon } from 'lucide-vue-next';
+import { AlertCircleIcon, CheckCircleIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

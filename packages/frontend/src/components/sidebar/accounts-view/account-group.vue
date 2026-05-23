@@ -3,7 +3,7 @@ import type { AccountGroups } from '@/common/types/models';
 import AccountGroupName from '@/components/common/account-group-name.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
-import { ChevronRightIcon, FolderIcon } from 'lucide-vue-next';
+import { ChevronRightIcon, FolderIcon } from '@lucide/vue';
 import { inject, ref, watch } from 'vue';
 
 import AccountGroupsList from './account-groups-list.vue';

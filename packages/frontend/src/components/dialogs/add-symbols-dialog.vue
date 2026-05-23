@@ -12,7 +12,7 @@ import { useCreateHolding } from '@/composable/data-queries/holdings';
 import { cn } from '@/lib/utils';
 import { ASSET_CLASS, type SecuritySearchResult } from '@bt/shared/types/investments';
 import { useQuery } from '@tanstack/vue-query';
-import { AlertTriangleIcon, CheckCheckIcon, SearchIcon, SearchXIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, CheckCheckIcon, SearchIcon, SearchXIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

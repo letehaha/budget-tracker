@@ -137,7 +137,7 @@ import { useAccountsStore } from '@/stores';
 import { AccountModel, type RecordId } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { isEqual } from 'lodash-es';
-import { CheckIcon, ChevronDown, MinusIcon, SearchIcon, XIcon } from 'lucide-vue-next';
+import { CheckIcon, ChevronDown, MinusIcon, SearchIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import ComboboxAccountItem from './combobox-account-item.vue';

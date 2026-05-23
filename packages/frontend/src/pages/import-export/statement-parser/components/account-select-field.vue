@@ -4,7 +4,7 @@ import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Select from '@/components/lib/ui/select';
 import type { AccountModel } from '@bt/shared/types';
-import { InfoIcon, XIcon } from 'lucide-vue-next';
+import { InfoIcon, XIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

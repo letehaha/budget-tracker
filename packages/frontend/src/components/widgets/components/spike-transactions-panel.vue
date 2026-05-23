@@ -104,7 +104,7 @@ import TransactionRecordSkeleton from '@/components/transactions-list/transactio
 import { formatLargeNumber } from '@/js/helpers';
 import type { TransactionModel } from '@bt/shared/types/db-models';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types/enums';
-import { XIcon } from 'lucide-vue-next';
+import { XIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

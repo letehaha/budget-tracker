@@ -16,7 +16,7 @@ import { useFormatCurrency } from '@/composable/formatters';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { CheckIcon, Link2Icon } from 'lucide-vue-next';
+import { CheckIcon, Link2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{

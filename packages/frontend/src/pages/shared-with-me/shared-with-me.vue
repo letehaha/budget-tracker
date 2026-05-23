@@ -8,7 +8,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { RESOURCE_TYPES, type ResourceType, SHARE_INVITATION_STATUSES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { HomeIcon, LandmarkIcon, LogOutIcon, MailIcon, UsersIcon, WalletIcon } from 'lucide-vue-next';
+import { HomeIcon, LandmarkIcon, LogOutIcon, MailIcon, UsersIcon, WalletIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';

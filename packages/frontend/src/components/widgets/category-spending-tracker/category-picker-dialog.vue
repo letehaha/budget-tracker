@@ -4,7 +4,7 @@ import CategoryCircle from '@/components/common/category-circle.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { CATEGORY_TYPES } from '@bt/shared/types';
-import { SearchIcon, XIcon } from 'lucide-vue-next';
+import { SearchIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

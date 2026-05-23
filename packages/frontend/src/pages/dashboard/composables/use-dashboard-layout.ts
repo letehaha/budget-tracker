@@ -1,6 +1,7 @@
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { DEFAULT_DASHBOARD_LAYOUT, WIDGET_REGISTRY } from '@/components/widgets/widget-registry';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useLocalStorage } from '@vueuse/core';
 import { cloneDeep } from 'lodash-es';
 import { computed, ref, watch } from 'vue';
@@ -42,6 +43,7 @@ export function useDashboardLayout() {
   const enterEditMode = () => {
     draftWidgets.value = cloneDeep(activeWidgets.value);
     isEditMode.value = true;
+    trackAnalyticsEvent({ event: 'dashboard_edit_opened' });
   };
 
   const saveLayout = async () => {
@@ -51,6 +53,10 @@ export function useDashboardLayout() {
     await mutateAsync({
       ...currentSettings,
       dashboard: { widgets: draftWidgets.value },
+    });
+    trackAnalyticsEvent({
+      event: 'dashboard_layout_saved',
+      properties: { widget_count: draftWidgets.value.length },
     });
     isEditMode.value = false;
   };
@@ -102,6 +108,10 @@ export function useDashboardLayout() {
       await mutateAsync({
         ...currentSettings,
         dashboard: { widgets },
+      });
+      trackAnalyticsEvent({
+        event: 'dashboard_widget_config_saved',
+        properties: { widget_id: widgetId },
       });
     }
   };

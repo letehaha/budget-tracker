@@ -28,7 +28,7 @@ import {
   type SharePermission,
 } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { MailIcon, RotateCwIcon, Trash2Icon, UserIcon, UserPlusIcon, XIcon } from 'lucide-vue-next';
+import { MailIcon, RotateCwIcon, Trash2Icon, UserIcon, UserPlusIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';

@@ -9,7 +9,7 @@ import { NotificationType, useNotificationCenter } from '@/components/notificati
 import FeedbackDialog from '@/components/sidebar/feedback-dialog.vue';
 import { useCreatePortfolio } from '@/composable/data-queries/portfolios';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
-import { AlertTriangleIcon, CheckIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, CheckIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

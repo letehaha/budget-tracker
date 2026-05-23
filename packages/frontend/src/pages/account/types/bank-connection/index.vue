@@ -16,7 +16,7 @@ import SharingPanel from '@/pages/account/components/sharing-panel/sharing-panel
 import { ROUTES_NAMES } from '@/routes';
 import { AccountModel, SHARE_PERMISSIONS, TransactionModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { ExternalLinkIcon } from 'lucide-vue-next';
+import { ExternalLinkIcon } from '@lucide/vue';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 

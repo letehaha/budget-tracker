@@ -8,7 +8,7 @@ import { useFormValidation } from '@/composable';
 import * as validators from '@/js/helpers/validators';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
-import { PencilIcon } from 'lucide-vue-next';
+import { PencilIcon } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

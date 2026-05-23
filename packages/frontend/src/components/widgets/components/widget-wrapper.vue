@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { cn } from '@/lib/utils';
-import { Loader2Icon } from 'lucide-vue-next';
+import { Loader2Icon } from '@lucide/vue';
 import { inject } from 'vue';
 
 withDefaults(

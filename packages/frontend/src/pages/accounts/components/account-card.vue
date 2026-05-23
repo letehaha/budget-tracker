@@ -42,7 +42,7 @@ import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AccountModel } from '@bt/shared/types';
-import { HomeIcon, UsersIcon } from 'lucide-vue-next';
+import { HomeIcon, UsersIcon } from '@lucide/vue';
 import { toRef } from 'vue';
 
 const props = defineProps<{ account: AccountModel }>();

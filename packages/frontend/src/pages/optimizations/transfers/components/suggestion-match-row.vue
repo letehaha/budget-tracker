@@ -4,7 +4,7 @@ import { Button } from '@/components/lib/ui/button';
 import { cn } from '@/lib/utils';
 import type { BulkTransferScanMatch } from '@bt/shared/types/endpoints';
 import type { TransactionModel } from '@bt/shared/types';
-import { EyeOffIcon, LinkIcon, LoaderCircleIcon } from 'lucide-vue-next';
+import { EyeOffIcon, LinkIcon, LoaderCircleIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 const props = defineProps<{

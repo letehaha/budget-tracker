@@ -128,7 +128,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { PORTFOLIO_TRASH_RETENTION_DAYS } from '@bt/shared/types/investments';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronDownIcon, Trash2Icon, Undo2Icon } from 'lucide-vue-next';
+import { ChevronDownIcon, Trash2Icon, Undo2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

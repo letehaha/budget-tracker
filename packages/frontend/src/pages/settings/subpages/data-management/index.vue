@@ -73,6 +73,6 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { ROUTES_NAMES } from '@/routes';
-import { ArrowRightIcon, FileSpreadsheetIcon, SparklesIcon } from 'lucide-vue-next';
+import { ArrowRightIcon, FileSpreadsheetIcon, SparklesIcon } from '@lucide/vue';
 import { RouterLink } from 'vue-router';
 </script>

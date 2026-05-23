@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
-import { KeyRoundIcon, Loader2Icon, LockIcon, MonitorSmartphoneIcon } from 'lucide-vue-next';
+import { KeyRoundIcon, Loader2Icon, LockIcon, MonitorSmartphoneIcon } from '@lucide/vue';
 import { ref } from 'vue';
 
 import ActiveSessions from './components/active-sessions.vue';

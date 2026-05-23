@@ -71,7 +71,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useImportExportStore } from '@/stores/import-export';
 import { API_ERROR_CODES, AccountOptionValue, CategoryOptionValue } from '@bt/shared/types';
-import { ChevronRightIcon } from 'lucide-vue-next';
+import { ChevronRightIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

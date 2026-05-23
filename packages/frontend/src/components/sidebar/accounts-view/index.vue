@@ -11,7 +11,7 @@ import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { ChevronsUpDownIcon, PlusIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon, PlusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { Ref, computed, provide, ref } from 'vue';
 

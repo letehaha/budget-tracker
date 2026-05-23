@@ -93,7 +93,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
-import { PlusIcon } from 'lucide-vue-next';
+import { PlusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

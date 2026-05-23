@@ -23,7 +23,7 @@ import {
 } from '@bt/shared/types';
 import { minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
-import { SplitIcon } from 'lucide-vue-next';
+import { SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';

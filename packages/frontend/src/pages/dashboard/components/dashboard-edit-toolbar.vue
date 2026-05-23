@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { Button } from '@/components/lib/ui/button';
-import { SettingsIcon } from 'lucide-vue-next';
+import { SettingsIcon } from '@lucide/vue';
 
 defineProps<{
   isEditMode: boolean;

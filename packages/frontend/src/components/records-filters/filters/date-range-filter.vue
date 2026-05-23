@@ -25,7 +25,7 @@ import { Button } from '@/components/lib/ui/button';
 import { DateSelector, type DateSelectorPreset } from '@/components/lib/ui/date-selector';
 import { type Period } from '@/composable/use-period-navigation';
 import { endOfDay, endOfMonth, startOfDay, startOfMonth, subMonths } from 'date-fns';
-import { CalendarIcon, XIcon } from 'lucide-vue-next';
+import { CalendarIcon, XIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

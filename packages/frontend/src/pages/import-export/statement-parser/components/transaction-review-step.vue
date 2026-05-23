@@ -187,7 +187,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import { ArrowLeftIcon, BanIcon, CheckCircleIcon, Loader2Icon, XCircleIcon } from 'lucide-vue-next';
+import { ArrowLeftIcon, BanIcon, CheckCircleIcon, Loader2Icon, XCircleIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 const store = useStatementParserStore();

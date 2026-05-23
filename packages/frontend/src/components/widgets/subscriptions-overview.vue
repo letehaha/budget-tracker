@@ -11,7 +11,7 @@ import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
 import { parseISO } from 'date-fns';
-import { RepeatIcon } from 'lucide-vue-next';
+import { RepeatIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
 import { computed, inject } from 'vue';

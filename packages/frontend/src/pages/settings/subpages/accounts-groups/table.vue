@@ -16,7 +16,7 @@ import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
 import { AccountModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ChevronRight, EditIcon, SaveIcon, Trash2Icon, UngroupIcon } from 'lucide-vue-next';
+import { ChevronRight, EditIcon, SaveIcon, Trash2Icon, UngroupIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

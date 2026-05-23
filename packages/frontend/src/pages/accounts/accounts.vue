@@ -80,7 +80,7 @@ import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-i
 import { useAccountsStore } from '@/stores';
 import { ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
-import { LandmarkIcon, LinkIcon, PlusIcon } from 'lucide-vue-next';
+import { LandmarkIcon, LinkIcon, PlusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 

@@ -6,7 +6,7 @@ import { useFormatCurrency } from '@/composable/formatters';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { format } from 'date-fns';
-import { GripVerticalIcon, PencilIcon, PlusIcon, Trash2Icon, SaveIcon } from 'lucide-vue-next';
+import { GripVerticalIcon, PencilIcon, PlusIcon, Trash2Icon, SaveIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
 import { computed, inject, ref, watch } from 'vue';

@@ -96,7 +96,7 @@ import { Checkbox } from '@/components/lib/ui/checkbox';
 import * as Popover from '@/components/lib/ui/popover';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useCategoriesStore } from '@/stores';
-import { CheckIcon, ChevronDownIcon, MinusIcon, SearchIcon, XIcon } from 'lucide-vue-next';
+import { CheckIcon, ChevronDownIcon, MinusIcon, SearchIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 

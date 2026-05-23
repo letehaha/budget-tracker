@@ -99,7 +99,7 @@ import { useSyncStatus } from '@/composable/use-sync-status';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores/accounts';
-import { AlertTriangleIcon, ChevronRightIcon, ExternalLinkIcon, LinkIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, ChevronRightIcon, ExternalLinkIcon, LinkIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, watch } from 'vue';
 

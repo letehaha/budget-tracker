@@ -101,7 +101,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useChangeBaseCurrency } from '@/composable/data-queries/currencies';
 import { ApiErrorResponseError } from '@/js/errors';
 import { API_ERROR_CODES, type BaseCurrencyBlocker } from '@bt/shared/types';
-import { ChevronDownIcon, InfoIcon, TriangleAlertIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, InfoIcon, TriangleAlertIcon } from '@lucide/vue';
 import { reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

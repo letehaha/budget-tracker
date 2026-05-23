@@ -55,7 +55,7 @@ import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '@bt/shared/types';
-import { AlertTriangleIcon, Loader2Icon, MessageSquareTextIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, Loader2Icon, MessageSquareTextIcon } from '@lucide/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

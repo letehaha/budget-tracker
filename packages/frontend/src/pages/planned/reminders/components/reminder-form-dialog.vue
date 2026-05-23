@@ -15,7 +15,7 @@ import {
 } from '@bt/shared/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { ChevronDownIcon, MailIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, MailIcon } from '@lucide/vue';
 import { format } from 'date-fns';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

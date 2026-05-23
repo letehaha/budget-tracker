@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ChangelogNotificationPayload } from '@bt/shared/types';
-import { ExternalLinkIcon } from 'lucide-vue-next';
+import { ExternalLinkIcon } from '@lucide/vue';
 
-defineProps<{
-  payload: ChangelogNotificationPayload;
-}>();
+withDefaults(
+  defineProps<{
+    payload: ChangelogNotificationPayload;
+    unread?: boolean;
+  }>(),
+  { unread: false },
+);
 
 const handleLinkClick = (event: Event, url: string) => {
   event.stopPropagation();
@@ -14,7 +18,7 @@ const handleLinkClick = (event: Event, url: string) => {
 
 <template>
   <div>
-    <p v-if="payload.releaseName" class="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
+    <p v-if="payload.releaseName" :class="['line-clamp-2 text-sm', unread ? 'font-semibold' : 'font-medium']">
       {{ payload.releaseName }}
     </p>
     <button

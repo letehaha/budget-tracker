@@ -10,7 +10,7 @@ import {
   useUnreadNotificationsCount,
 } from '@/composable/data-queries/notifications';
 import { NOTIFICATION_STATUSES } from '@bt/shared/types';
-import { BellIcon, BellOffIcon, Loader2Icon } from 'lucide-vue-next';
+import { BellIcon, BellOffIcon, Loader2Icon } from '@lucide/vue';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

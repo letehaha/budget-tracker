@@ -20,7 +20,7 @@ import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_TYPES, AccountModel, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
-import { ArrowRightLeftIcon, MoreVerticalIcon, PencilIcon, ScaleIcon, Share2Icon } from 'lucide-vue-next';
+import { ArrowRightLeftIcon, MoreVerticalIcon, PencilIcon, ScaleIcon, Share2Icon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

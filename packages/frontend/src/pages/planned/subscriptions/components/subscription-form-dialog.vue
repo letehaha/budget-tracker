@@ -23,7 +23,7 @@ import {
   type SubscriptionModel,
   type RecordId,
 } from '@bt/shared/types';
-import { AlertCircleIcon, ChevronDownIcon } from 'lucide-vue-next';
+import { AlertCircleIcon, ChevronDownIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

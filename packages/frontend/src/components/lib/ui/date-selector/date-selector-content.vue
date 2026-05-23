@@ -3,7 +3,7 @@ import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { type Period } from '@/composable/use-period-navigation';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

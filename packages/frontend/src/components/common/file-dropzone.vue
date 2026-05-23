@@ -2,7 +2,7 @@
 import { Button } from '@/components/lib/ui/button';
 import { formatBytes } from '@/common/utils/format-bytes';
 import { cn } from '@/lib/utils';
-import { FileTextIcon, FileUpIcon, XIcon } from 'lucide-vue-next';
+import { FileTextIcon, FileUpIcon, XIcon } from '@lucide/vue';
 import { computed, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 

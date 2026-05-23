@@ -17,7 +17,7 @@
 <script lang="ts" setup>
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/lib/ui/tooltip';
 import { TransactionModel } from '@bt/shared/types';
-import { SplitIcon } from 'lucide-vue-next';
+import { SplitIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

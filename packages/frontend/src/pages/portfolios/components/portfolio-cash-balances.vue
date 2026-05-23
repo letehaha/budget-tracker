@@ -92,7 +92,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/lib/ui/card';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { ArrowRightLeftIcon, EllipsisVerticalIcon, PlusIcon, RefreshCwIcon, WalletIcon } from 'lucide-vue-next';
+import { ArrowRightLeftIcon, EllipsisVerticalIcon, PlusIcon, RefreshCwIcon, WalletIcon } from '@lucide/vue';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 

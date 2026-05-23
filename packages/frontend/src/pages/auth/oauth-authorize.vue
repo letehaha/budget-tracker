@@ -101,7 +101,7 @@ import { Checkbox } from '@/components/lib/ui/checkbox';
 import { Separator } from '@/components/lib/ui/separator';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { cn } from '@/lib/utils';
-import { AlertTriangleIcon, CheckCircleIcon, ShieldCheckIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, CheckCircleIcon, ShieldCheckIcon } from '@lucide/vue';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';

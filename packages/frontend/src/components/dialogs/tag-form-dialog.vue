@@ -140,7 +140,7 @@ import {
   TagReminderModel,
   TagReminderType,
 } from '@bt/shared/types';
-import { ChevronRightIcon, PlusIcon } from 'lucide-vue-next';
+import { ChevronRightIcon, PlusIcon } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

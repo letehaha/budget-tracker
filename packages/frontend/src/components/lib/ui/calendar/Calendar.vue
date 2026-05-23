@@ -3,7 +3,7 @@ import { buttonVariants } from '@/components/lib/ui/button';
 import { i18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { useVModel } from '@vueuse/core';
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import { DatePicker } from 'v-calendar';
 import { computed, nextTick, onMounted, ref, useSlots } from 'vue';
 

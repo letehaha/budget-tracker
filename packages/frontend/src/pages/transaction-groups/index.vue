@@ -8,7 +8,7 @@ import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.v
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { invalidateTransactionGroupQueries } from '@/composable/data-queries/transaction-groups';
 import { useQueryClient, useQuery } from '@tanstack/vue-query';
-import { Trash2Icon, CalendarIcon, HashIcon } from 'lucide-vue-next';
+import { Trash2Icon, CalendarIcon, HashIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { format } from 'date-fns';
 

@@ -5,7 +5,7 @@ import { Card } from '@/components/lib/ui/card';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import SecuritySearchCell from '@/pages/portfolios/components/transactions-import/security-search-cell.vue';
 import type { InvestmentImportHolding, InvestmentImportTransaction } from '@bt/shared/types/investments';
-import { CircleDollarSignIcon, CoinsIcon, InfoIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-vue-next';
+import { CircleDollarSignIcon, CoinsIcon, InfoIcon, Trash2Icon, TriangleAlertIcon } from '@lucide/vue';
 
 import HoldingTransactionsTable from './holding-transactions-table.vue';
 

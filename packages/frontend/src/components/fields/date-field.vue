@@ -68,7 +68,7 @@ import * as Popover from '@/components/lib/ui/popover';
 import { useSafariDetection } from '@/composable/detect-safari';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarClockIcon } from 'lucide-vue-next';
+import { CalendarClockIcon } from '@lucide/vue';
 import { ref, watch } from 'vue';
 
 defineOptions({ inheritAttrs: false });

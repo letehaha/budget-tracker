@@ -147,7 +147,7 @@ import {
   PlusIcon,
   RefreshCcw,
   SparklesIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';

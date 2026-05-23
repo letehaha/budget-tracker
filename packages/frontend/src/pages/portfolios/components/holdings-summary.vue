@@ -69,7 +69,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/lib/ui/card';
 import { useHoldings } from '@/composable/data-queries/holdings';
 import { ROUTES_NAMES } from '@/routes';
-import { FileUpIcon, LayoutListIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-vue-next';
+import { FileUpIcon, LayoutListIcon, PlusIcon, SearchIcon, XIcon } from '@lucide/vue';
 import { computed, ref, toRef } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 

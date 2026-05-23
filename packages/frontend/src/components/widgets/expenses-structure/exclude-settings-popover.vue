@@ -94,7 +94,7 @@ import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { useCategoriesStore } from '@/stores';
 import { CATEGORY_TYPES } from '@bt/shared/types';
-import { CircleOffIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-vue-next';
+import { CircleOffIcon, SearchIcon, SettingsIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, ref, watch } from 'vue';
 

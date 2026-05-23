@@ -33,7 +33,7 @@ import CategoryCircle from '@/components/common/category-circle.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import { useCategoriesStore } from '@/stores';
-import { CircleOffIcon, XIcon } from 'lucide-vue-next';
+import { CircleOffIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 
 defineProps<{

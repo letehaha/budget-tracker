@@ -22,7 +22,7 @@ import { ROUTES_NAMES } from '@/routes';
 import { PAYMENT_REMINDER_STATUSES, type PaymentReminderPeriodModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format, parseISO } from 'date-fns';
-import { CheckIcon, LinkIcon, PencilIcon, SkipForwardIcon, Trash2Icon, UndoIcon, UnlinkIcon } from 'lucide-vue-next';
+import { CheckIcon, LinkIcon, PencilIcon, SkipForwardIcon, Trash2Icon, UndoIcon, UnlinkIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';

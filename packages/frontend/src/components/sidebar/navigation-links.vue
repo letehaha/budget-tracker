@@ -16,7 +16,7 @@ import {
   SparklesIcon,
   TrendingUpIcon,
   WalletIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 

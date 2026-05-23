@@ -4,7 +4,7 @@ import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { cn } from '@/lib/utils';
 import type { OnboardingTask } from '@/stores/onboarding';
 import { useOnboardingStore } from '@/stores/onboarding';
-import { ChevronLeftIcon } from 'lucide-vue-next';
+import { ChevronLeftIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

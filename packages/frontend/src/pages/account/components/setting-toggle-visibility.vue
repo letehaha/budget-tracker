@@ -6,7 +6,7 @@ import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { debounce } from 'lodash-es';
-import { InfoIcon } from 'lucide-vue-next';
+import { InfoIcon } from '@lucide/vue';
 import { reactive, toRef, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 

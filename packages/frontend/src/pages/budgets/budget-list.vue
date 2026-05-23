@@ -9,7 +9,7 @@ import { BUDGET_STATUSES, BUDGET_TYPES, BudgetModel } from '@bt/shared/types';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { useLocalStorage } from '@vueuse/core';
 import { differenceInDays, isPast, isWithinInterval } from 'date-fns';
-import { ArchiveRestoreIcon, TagsIcon, WalletIcon } from 'lucide-vue-next';
+import { ArchiveRestoreIcon, TagsIcon, WalletIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

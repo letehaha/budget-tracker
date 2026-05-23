@@ -11,7 +11,7 @@ import { getApiErrorMessage } from '@/js/errors';
 import type { InvestmentImportExtractionResult, InvestmentImportHolding } from '@bt/shared/types/investments';
 import type { StatementCostEstimate } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
-import { ClipboardIcon, FileTextIcon, Loader2Icon, SparklesIcon } from 'lucide-vue-next';
+import { ClipboardIcon, FileTextIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

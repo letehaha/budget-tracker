@@ -6,7 +6,7 @@ import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { formatUIAmount } from '@/js/helpers';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, TransactionModel, TransactionSplitModel } from '@bt/shared/types';
-import { CheckIcon, SplitIcon } from 'lucide-vue-next';
+import { CheckIcon, SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
 

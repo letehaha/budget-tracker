@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useNotificationCenter } from '@/components/notification-center';
 import { cn } from '@/lib/utils';
-import { CheckIcon, CopyIcon } from 'lucide-vue-next';
+import { CheckIcon, CopyIcon } from '@lucide/vue';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

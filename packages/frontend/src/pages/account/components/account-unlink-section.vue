@@ -5,7 +5,7 @@ import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
-import { Unlink } from 'lucide-vue-next';
+import { Unlink } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

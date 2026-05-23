@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable';
-import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from 'lucide-vue-next';
+import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

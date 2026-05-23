@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import * as Tooltip from '@/components/lib/ui/tooltip';
-import { InfoIcon } from 'lucide-vue-next';
+import { InfoIcon } from '@lucide/vue';
 
 defineProps<{
   usingUserKey: boolean;
