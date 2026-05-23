@@ -30,8 +30,8 @@ export const DUPLICATE_DATE_WINDOW_DAYS = 3;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Stringify the dedup-group key tuple. Hoisted to satisfy `consistent-function-scoping`. */
-function groupKey(r: { portfolioId: string; securityId: string }): string {
-  return `${r.portfolioId}|${r.securityId}`;
+function groupKey({ portfolioId, securityId }: { portfolioId: string; securityId: string }): string {
+  return `${portfolioId}|${securityId}`;
 }
 
 interface DuplicateCandidate {

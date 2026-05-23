@@ -164,6 +164,27 @@ const execute = useMutation({
       text: t('investmentsImport.notifications.imported', { count: result.createdTransactions }),
       type: NotificationType.success,
     });
+
+    // Surface the partial-import counters and warnings the backend already
+    // builds. Without this the toast says "Imported N transactions" while
+    // silently dropping N skippedHoldings / failedTransactions / warning
+    // strings, leaving the user to wonder why their import shrank.
+    const hadIssues = result.skippedHoldings > 0 || result.failedTransactions > 0 || (result.warnings?.length ?? 0) > 0;
+    if (hadIssues) {
+      const lines: string[] = [];
+      if (result.skippedHoldings > 0) {
+        lines.push(t('investmentsImport.notifications.skippedHoldings', { count: result.skippedHoldings }));
+      }
+      if (result.failedTransactions > 0) {
+        lines.push(t('investmentsImport.notifications.failedTransactions', { count: result.failedTransactions }));
+      }
+      if (result.warnings && result.warnings.length > 0) lines.push(...result.warnings);
+      addNotification({
+        text: lines.join('\n'),
+        type: NotificationType.warning,
+      });
+    }
+
     emit('imported');
   },
   onError: (err: Error) => {

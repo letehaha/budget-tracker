@@ -216,7 +216,8 @@
     "clickOrDrag": "Click or drag a file here",
     "dropHere": "Drop file to upload",
     "removeFile": "Remove file",
-    "fileTooLarge": "File is too large. Max size is {max}."
+    "fileTooLarge": "File is too large. Max size is {max}.",
+    "onlyFirstFileTaken": "Multiple files dropped — only the first was used."
   },
   "demo": {
     "loadingOverlay": {

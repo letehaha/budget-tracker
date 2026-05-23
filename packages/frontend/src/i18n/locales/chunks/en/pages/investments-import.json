@@ -66,7 +66,10 @@
     "notifications": {
       "imported": "Imported {count} transactions",
       "extractFailed": "Could not extract transactions from the file.",
-      "importFailed": "Could not import transactions."
+      "importFailed": "Could not import transactions.",
+      "skippedHoldings": "Holdings skipped: {count}",
+      "failedTransactions": "Transactions failed: {count}",
+      "estimateFailed": "Failed to estimate import cost"
     }
   }
 }

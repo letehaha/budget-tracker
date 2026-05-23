@@ -1,8 +1,10 @@
 import { ASSET_CLASS, type InvestmentImportExtractionResult } from '@bt/shared/types/investments';
 import { recordId } from '@common/lib/zod/custom-types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { createController } from '@controllers/helpers/controller-factory';
 import { CustomError, UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils';
+import Portfolios from '@models/investments/portfolios.model';
 import {
   detectInvestmentDuplicates,
   extractInvestmentTransactionsWithAI,
@@ -40,11 +42,12 @@ export const extractController = createController(
       return await extractHandler({ userId: user.id, ...body });
     } catch (err) {
       if (err instanceof CustomError) throw err;
-      // Catch-all so debugging doesn't require reading server logs — the generic
-      // UnexpectedError below would otherwise swallow the cause string.
+      // Don't echo the raw error string to the client — provider 401s, DB
+      // connection messages, and stack-trace fragments would leak through.
+      // The full error is logged for server-side debugging.
       logger.error({ message: 'Investment txn import extract failed', error: err as Error });
       throw new UnexpectedError({
-        message: `Investment transactions import failed: ${(err as Error).message}`,
+        message: 'Investment transactions import failed. Check server logs for details.',
       });
     }
   },
@@ -59,6 +62,16 @@ async function extractHandler({
   fileBase64: string;
   defaultPortfolioId: string;
 }) {
+  // Check portfolio ownership BEFORE burning AI tokens. Without this guard a
+  // user could pass an arbitrary portfolio id and we'd happily run extraction
+  // and resolution against it (and bill the AI call). The error becomes a 404
+  // via NotFoundError, which the frontend's `isResourceMissingError` already
+  // routes to its not-found state.
+  await findOrThrowNotFound({
+    query: Portfolios.findOne({ where: { id: defaultPortfolioId, userId } }),
+    message: 'Portfolio not found.',
+  });
+
   const rawBuffer = Buffer.from(fileBase64, 'base64');
   const validation = validateFileBuffer({ buffer: rawBuffer });
   if (!validation.valid || !validation.fileBuffer || !validation.fileType) {
@@ -120,6 +133,15 @@ async function extractHandler({
   // each group — if the AI returned mixed quote currencies within a single
   // symbol we keep the first one and let the user fix in the UI.
   const warnings: string[] = [...resolution.warnings];
+
+  // Surface rows the AI parser silently dropped. Without this warning the
+  // user would see N transactions in the review step having uploaded a file
+  // that contained more — and assume the source had only N trades.
+  if (aiResult.result.droppedRowCount > 0) {
+    warnings.push(
+      `AI emitted ${aiResult.result.droppedRowCount} row(s) we couldn't parse (bad date, side, or numbers) — they were skipped.`,
+    );
+  }
   const holdings: InvestmentImportExtractionResult['holdings'] = [];
   const rowsForDedup: Array<{
     tempId: string;

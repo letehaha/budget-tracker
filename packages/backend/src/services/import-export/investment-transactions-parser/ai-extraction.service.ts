@@ -29,6 +29,9 @@ interface AIExtractionError {
 interface AIExtractionResult {
   rows: AIParsedTransactionRow[];
   tokenCount: { input: number; output: number };
+  /** Lines the AI emitted that we couldn't parse. The controller surfaces a
+   * warning when this is > 0 so the user knows the import is partial. */
+  droppedRowCount: number;
 }
 
 type AIExtractionResultType =
@@ -67,7 +70,7 @@ export async function extractInvestmentTransactionsWithAI({
       prompt: createTextExtractionPrompt({ text }),
     });
 
-    const rows = parseAIResponse({ response: responseText });
+    const { rows, droppedRowCount } = parseAIResponse({ response: responseText });
 
     if (rows.length === 0) {
       return {
@@ -84,6 +87,7 @@ export async function extractInvestmentTransactionsWithAI({
       success: true,
       result: {
         rows,
+        droppedRowCount,
         tokenCount: {
           input: usage?.inputTokens ?? 0,
           output: usage?.outputTokens ?? 0,

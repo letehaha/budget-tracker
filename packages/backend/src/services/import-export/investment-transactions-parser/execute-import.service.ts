@@ -88,63 +88,80 @@ export async function executeInvestmentImport({
     const resolvedSecurity = holding.resolvedSecurity;
     const { providerName } = resolvedSecurity;
 
-    // 1. Resolve or create Security.
+    // Steps 1+2 below all run unguarded queries (`addOrUpdateFromProvider`,
+    // `addUserCurrencies`, `Holdings.create`) that can throw on FK violations,
+    // unique-key collisions from concurrent imports, or provider lookups that
+    // hit a transient error. Without this wrapper a single throw would abort
+    // the entire batch and leave the user with prior holdings half-committed
+    // and a generic 500 — instead we skip just this holding and continue.
     let security: Securities | null = null;
-    if (resolvedSecurity.securityId) {
-      security = await Securities.findByPk(resolvedSecurity.securityId);
-    }
-    if (!security) {
-      // Build a SecuritySearchResult from the full resolvedSecurity snapshot —
-      // it carries every field the upsert needs (assetClass, providerName,
-      // currencyCode, exchangeName, cryptoCurrencyCode). No more hardcoded
-      // CoinGecko-specific fallbacks.
-      await addOrUpdateFromProvider([
-        {
-          symbol: resolvedSecurity.symbol.toUpperCase(),
-          providerSymbol: resolvedSecurity.providerSymbol,
-          name: resolvedSecurity.name,
-          assetClass: resolvedSecurity.assetClass,
-          providerName,
-          currencyCode: resolvedSecurity.currencyCode,
-          cryptoCurrencyCode: resolvedSecurity.cryptoCurrencyCode,
-          exchangeName: resolvedSecurity.exchangeName,
-        },
-      ]);
-      security = await Securities.findOne({
-        where: { providerName, providerSymbol: resolvedSecurity.providerSymbol },
-      });
-      if (!security) {
-        const reason = `Skipped "${holding.parsedSymbol}": failed to create security row.`;
-        logger.error(reason);
-        warnings.push(reason);
-        skippedHoldings += 1;
-        continue;
+    try {
+      // 1. Resolve or create Security.
+      if (resolvedSecurity.securityId) {
+        security = await Securities.findByPk(resolvedSecurity.securityId);
       }
-      createdSecurities += 1;
-      newSecurityIds.add(security.id);
-    }
+      if (!security) {
+        // Build a SecuritySearchResult from the full resolvedSecurity snapshot —
+        // it carries every field the upsert needs (assetClass, providerName,
+        // currencyCode, exchangeName, cryptoCurrencyCode). No more hardcoded
+        // CoinGecko-specific fallbacks.
+        await addOrUpdateFromProvider([
+          {
+            symbol: resolvedSecurity.symbol.toUpperCase(),
+            providerSymbol: resolvedSecurity.providerSymbol,
+            name: resolvedSecurity.name,
+            assetClass: resolvedSecurity.assetClass,
+            providerName,
+            currencyCode: resolvedSecurity.currencyCode,
+            cryptoCurrencyCode: resolvedSecurity.cryptoCurrencyCode,
+            exchangeName: resolvedSecurity.exchangeName,
+          },
+        ]);
+        security = await Securities.findOne({
+          where: { providerName, providerSymbol: resolvedSecurity.providerSymbol },
+        });
+        if (!security) {
+          throw new Error('Provider upsert completed but the security row was not created.');
+        }
+        createdSecurities += 1;
+        newSecurityIds.add(security.id);
+      }
 
-    // 2. Resolve or create Holding for (portfolio, security).
-    await addUserCurrencies([{ userId, currencyCode: holding.currencyCode }]);
+      // 2. Resolve or create Holding for (portfolio, security).
+      await addUserCurrencies([{ userId, currencyCode: holding.currencyCode }]);
 
-    let dbHolding = await Holdings.findOne({
-      where: { portfolioId: holding.portfolioId, securityId: security.id },
-    });
-    if (dbHolding) {
-      mergedHoldings += 1;
-    } else {
-      dbHolding = await Holdings.create({
-        portfolioId: holding.portfolioId,
-        securityId: security.id,
-        currencyCode: holding.currencyCode,
-        quantity: '0',
-        costBasis: '0',
-        refCostBasis: '0',
-        value: '0',
-        refValue: '0',
+      const existingHolding = await Holdings.findOne({
+        where: { portfolioId: holding.portfolioId, securityId: security.id },
       });
-      createdHoldings += 1;
+      if (existingHolding) {
+        mergedHoldings += 1;
+      } else {
+        await Holdings.create({
+          portfolioId: holding.portfolioId,
+          securityId: security.id,
+          currencyCode: holding.currencyCode,
+          quantity: '0',
+          costBasis: '0',
+          refCostBasis: '0',
+          value: '0',
+          refValue: '0',
+        });
+        createdHoldings += 1;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error({
+        message: `Failed to set up holding for "${holding.parsedSymbol}"`,
+        error: error as Error,
+      });
+      warnings.push(`Skipped "${holding.parsedSymbol}": ${message}`);
+      skippedHoldings += 1;
+      continue;
     }
+
+    // Defensive — the catch above already `continue`s on failure, but narrow
+    // `security` to non-null for the per-transaction loop below.
+    if (!security) continue;
 
     // 3. Insert child transactions one by one through the canonical service
     // — it handles refAmount, recalculation, and cash-balance updates.

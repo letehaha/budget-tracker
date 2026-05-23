@@ -1,5 +1,6 @@
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Securities from '@models/investments/securities.model';
@@ -887,7 +888,7 @@ describe('Investment transactions AI import — E2E', () => {
 
       const [btc] = await helpers.seedSecurities([{ symbol: 'BTC', name: 'Bitcoin' }]);
 
-      const fakePortfolioId = '00000000-0000-0000-0000-000000000000';
+      const fakePortfolioId = generateRandomRecordId();
 
       const result = await helpers.investmentImportExecute({
         payload: {

@@ -141,7 +141,7 @@ function isValidDateString({ date }: { date: string }): boolean {
   return new Date(ts).toISOString().slice(0, 10) === date;
 }
 
-function normalizeAssetClassHint(raw: string | undefined): 'crypto' | 'stocks' {
+function normalizeAssetClassHint({ raw }: { raw: string | undefined }): 'crypto' | 'stocks' {
   const v = raw?.trim().toLowerCase();
   if (v === 'crypto') return 'crypto';
   if (v === 'stocks' || v === 'stock' || v === 'securities' || v === 'equity' || v === 'equities') return 'stocks';
@@ -152,11 +152,15 @@ function normalizeAssetClassHint(raw: string | undefined): 'crypto' | 'stocks' {
 
 /**
  * Parse the AI's CSV response into typed rows. Drops any row that fails
- * validation (bad date, non-positive quantity, unrecognised side, etc.) —
- * the AI returns garbage often enough that surfacing partial successes is
- * better than failing the whole import.
+ * validation (bad date, non-positive quantity, unrecognised side, etc.) and
+ * returns the drop count alongside the survivors — surfacing partial
+ * successes is better than failing the whole import, but only if the caller
+ * tells the user some rows were dropped.
  */
-export function parseAIResponse({ response }: { response: string }): AIParsedTransactionRow[] {
+export function parseAIResponse({ response }: { response: string }): {
+  rows: AIParsedTransactionRow[];
+  droppedRowCount: number;
+} {
   let csv = response.trim();
 
   // Strip markdown fences if the model added them despite instructions.
@@ -165,9 +169,10 @@ export function parseAIResponse({ response }: { response: string }): AIParsedTra
   if (csv.endsWith('```')) csv = csv.slice(0, -3);
   csv = csv.trim();
 
-  if (!csv) return [];
+  if (!csv) return { rows: [], droppedRowCount: 0 };
 
   const rows: AIParsedTransactionRow[] = [];
+  let droppedRowCount = 0;
   const lines = csv
     .split('\n')
     .map((l) => l.trim())
@@ -177,24 +182,42 @@ export function parseAIResponse({ response }: { response: string }): AIParsedTra
     const cells = splitCsvLine({ line });
     // 10 columns expected; tolerate the old 9-column shape for transitional
     // outputs by inferring assetClassHint as "crypto" (the old default).
-    if (cells.length < 9) continue;
+    if (cells.length < 9) {
+      droppedRowCount += 1;
+      continue;
+    }
 
     const hasHintColumn = cells.length >= 10;
     const [symbol, name, date, sideRaw, qtyRaw, priceRaw, feesRaw, currencyRaw] = cells;
     const assetClassRaw = hasHintColumn ? cells[8] : 'crypto';
     const confidenceRaw = hasHintColumn ? cells[9] : cells[8];
 
-    if (!symbol || !date || !isValidDateString({ date })) continue;
+    if (!symbol || !date || !isValidDateString({ date })) {
+      droppedRowCount += 1;
+      continue;
+    }
 
     const side = sideRaw?.toUpperCase() === 'S' ? 'sell' : sideRaw?.toUpperCase() === 'B' ? 'buy' : null;
-    if (!side) continue;
+    if (!side) {
+      droppedRowCount += 1;
+      continue;
+    }
 
     const quantity = Number(qtyRaw);
     const price = Number(priceRaw);
     const fees = Number(feesRaw ?? '0');
-    if (!Number.isFinite(quantity) || quantity <= 0) continue;
-    if (!Number.isFinite(price) || price < 0) continue;
-    if (!Number.isFinite(fees) || fees < 0) continue;
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      droppedRowCount += 1;
+      continue;
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      droppedRowCount += 1;
+      continue;
+    }
+    if (!Number.isFinite(fees) || fees < 0) {
+      droppedRowCount += 1;
+      continue;
+    }
 
     const confidenceInt = Number.parseInt(confidenceRaw ?? '80', 10);
     const confidence = Math.min(100, Math.max(0, Number.isFinite(confidenceInt) ? confidenceInt : 80)) / 100;
@@ -208,10 +231,10 @@ export function parseAIResponse({ response }: { response: string }): AIParsedTra
       price: priceRaw!,
       fees: feesRaw || '0',
       currency: currencyRaw ? currencyRaw.toUpperCase() : null,
-      assetClassHint: normalizeAssetClassHint(assetClassRaw),
+      assetClassHint: normalizeAssetClassHint({ raw: assetClassRaw }),
       confidence,
     });
   }
 
-  return rows;
+  return { rows, droppedRowCount };
 }

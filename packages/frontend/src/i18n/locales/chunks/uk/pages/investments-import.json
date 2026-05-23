@@ -66,7 +66,10 @@
     "notifications": {
       "imported": "Імпортовано {count} транзакцій",
       "extractFailed": "Не вдалося витягти транзакції з файлу.",
-      "importFailed": "Не вдалося імпортувати транзакції."
+      "importFailed": "Не вдалося імпортувати транзакції.",
+      "skippedHoldings": "Пропущено холдингів: {count}",
+      "failedTransactions": "Невдалих транзакцій: {count}",
+      "estimateFailed": "Не вдалося оцінити вартість імпорту"
     }
   }
 }

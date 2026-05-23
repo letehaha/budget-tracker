@@ -48,7 +48,12 @@ function validate(file: File): string | null {
   if (props.maxSize !== undefined && file.size > props.maxSize) {
     return t('fileDropzone.fileTooLarge', { max: formatBytes({ bytes: props.maxSize }) });
   }
-  return props.validator ? props.validator(file) : null;
+  if (!props.validator) return null;
+  const result = props.validator(file);
+  // Only treat truthy non-empty strings as rejections — a misbehaving
+  // validator that returns `undefined` (or `""`) used to slip past the
+  // truthy check and silently accept the file. Require an explicit message.
+  return typeof result === 'string' && result.length > 0 ? result : null;
 }
 
 function commit(file: File) {
@@ -81,8 +86,14 @@ function onDragLeave() {
 function onDrop(e: DragEvent) {
   isDragging.value = false;
   if (props.disabled) return;
-  const file = e.dataTransfer?.files?.[0];
-  if (file) commit(file);
+  const files = e.dataTransfer?.files;
+  if (!files || files.length === 0) return;
+  // Multi-file drop: tell the user we're only taking the first, otherwise
+  // dragging three CSVs and seeing only one accepted looks like a bug.
+  if (files.length > 1) {
+    emit('error', t('fileDropzone.onlyFirstFileTaken'));
+  }
+  commit(files[0]!);
 }
 
 function clear() {
