@@ -100,6 +100,8 @@ export function setupMiddleware(app: Express) {
         // Statement parser endpoints need 10MB for base64 encoded files (max 10MB = ~13.3MB base64)
         `${API_PREFIX}/import/text-source/estimate-cost`,
         `${API_PREFIX}/import/text-source/extract`,
+        // Investment import execute carries full per-holding tx arrays — easily multi-MB for large CSVs.
+        `${API_PREFIX}/investments/transactions-import/execute`,
       ],
     };
 

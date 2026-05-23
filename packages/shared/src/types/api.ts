@@ -17,6 +17,7 @@ export enum API_ERROR_CODES {
   locked = 'LOCKED',
   baseCurrencyChangeInProgress = 'BASE_CURRENCY_CHANGE_IN_PROGRESS',
   badGateway = 'BAD_GATEWAY',
+  payloadTooLarge = 'PAYLOAD_TOO_LARGE',
 
   // auth
   unauthorized = 'UNAUTHENTICATED',

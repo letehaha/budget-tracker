@@ -27,6 +27,7 @@ describe('shouldRetryQuery', () => {
     API_ERROR_CODES.categoryHasTransactions,
     API_ERROR_CODES.locked,
     API_ERROR_CODES.baseCurrencyChangeInProgress,
+    API_ERROR_CODES.payloadTooLarge,
   ])('does not retry ApiErrorResponseError with non-retryable code %s', (code) => {
     expect(shouldRetryQuery(0, apiError(code))).toBe(false);
   });

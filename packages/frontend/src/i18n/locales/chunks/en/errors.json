@@ -3,7 +3,8 @@
     "api": {
       "failedToFetch": "Failed to fetch data from the server.",
       "unexpectedError": "Unexpected error.",
-      "sessionExpired": "Your session has expired. Please sign in again"
+      "sessionExpired": "Your session has expired. Please sign in again",
+      "payloadTooLarge": "The request is too large. Please try importing fewer items at a time"
     }
   }
 }
