@@ -146,12 +146,13 @@ import { ROUTES_NAMES } from '@/routes/constants';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
+import { useResizeObserver } from '@vueuse/core';
 import * as d3 from 'd3';
 import { differenceInDays, endOfDay, format, isSameMonth, min, startOfDay, subDays } from 'date-fns';
 import { ChartLineIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
-import { computed, inject, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -837,61 +838,22 @@ const balancesDiff = computed<number>(() => {
 });
 
 // ResizeObserver for responsive chart
-let resizeObserver: ResizeObserver | null = null;
+useResizeObserver(containerRef, renderChart);
 
-const setupResizeObserver = () => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
-};
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
-
-// Watch for data changes and re-render chart
-// Use flush: 'post' to ensure DOM is updated before rendering
+// flush: 'post' so the watcher runs after Vue has applied DOM updates from the
+// new data, then renderChart can read the correct container dimensions.
 watch(
   [chartData, () => actualDataPeriod.value, currentTheme],
-  async () => {
+  () => {
     closeSpikePanel();
-    await nextTick();
-    setupResizeObserver();
     renderChart();
   },
   { deep: true, flush: 'post' },
 );
 
-// Re-render chart when spike settings change (after Accept / save)
-watch(spikePoints, () => {
+watch([spikePoints, chartXAxisEnd], () => {
   renderChart();
 });
-
-// Re-render chart when the x-axis end date changes (toggle "Fit to latest data")
-watch(chartXAxisEnd, () => {
-  renderChart();
-});
-
-// Also watch for when container becomes available (after loading state)
-watch(
-  () => containerRef.value,
-  async (newVal) => {
-    if (newVal) {
-      await nextTick();
-      setupResizeObserver();
-      renderChart();
-    }
-  },
-);
 </script>
 
 <style scoped>
