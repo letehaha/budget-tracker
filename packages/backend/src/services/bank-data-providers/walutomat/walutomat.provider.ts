@@ -478,52 +478,13 @@ export class WalutomatProvider extends BaseBankDataProvider {
     });
   }
 
-  // ============================================================================
-  // Auth Failure Handling
-  // ============================================================================
-
-  private async handleAuthError({ connectionId, error }: { connectionId: string; error: unknown }): Promise<void> {
-    const isAuthError =
-      error instanceof ForbiddenError ||
-      (error instanceof WalutomatHttpError && (error.statusCode === 401 || error.statusCode === 403));
-
-    if (!isAuthError) return;
-
-    try {
-      const connection = await this.getConnection(connectionId);
-      const metadata = (connection.metadata as WalutomatMetadata) || {};
-      const failures = (metadata.consecutiveAuthFailures || 0) + 1;
-      metadata.consecutiveAuthFailures = failures;
-
-      if (failures >= 2) {
-        connection.isActive = false;
-        metadata.deactivationReason = 'auth_failure';
-        logger.warn(`[Walutomat] Connection ${connectionId} deactivated after ${failures} consecutive auth failures`);
-      }
-
-      connection.metadata = metadata as any;
-      await connection.save();
-    } catch (metaError) {
-      logger.error({
-        message: '[Walutomat] Failed to update auth failure metadata:',
-        error: metaError as Error,
-      });
-    }
-  }
-
-  private async resetAuthFailures(connectionId: string): Promise<void> {
-    try {
-      const connection = await this.getConnection(connectionId);
-      const metadata = (connection.metadata as WalutomatMetadata) || {};
-
-      if (metadata.consecutiveAuthFailures && metadata.consecutiveAuthFailures > 0) {
-        metadata.consecutiveAuthFailures = 0;
-        connection.metadata = metadata as any;
-        await connection.save();
-      }
-    } catch {
-      // Non-critical, ignore
-    }
+  // Walutomat surfaces 401/403 via its own HTTP error class as well as
+  // ForbiddenError, so widen the base detection.
+  protected override isAuthError(error: unknown): boolean {
+    return (
+      super.isAuthError(error) ||
+      (error instanceof WalutomatHttpError && (error.statusCode === 401 || error.statusCode === 403))
+    );
   }
 
   // ============================================================================
