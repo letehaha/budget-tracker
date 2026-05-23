@@ -56,7 +56,8 @@
       "title": "Утримання",
       "subtitle": "{count} символів",
       "filterPlaceholder": "Фільтрувати за символом або назвою...",
-      "addButton": "Додати символ"
+      "addButton": "Додати символ",
+      "importButton": "Імпортувати транзакції"
     },
     "holdingsTable": {
       "loadError": "Не вдалося завантажити утримання",
@@ -83,7 +84,8 @@
       },
       "tryAgainLater": "Спробуйте пізніше",
       "emptyDescription": "Додайте першу транзакцію, щоб почати відстежувати інвестиції",
-      "addFirstHolding": "Додати перший актив"
+      "addFirstHolding": "Додати перший актив",
+      "importTransactions": "Або імпортуйте з файлу"
     },
     "transactionsList": {
       "title": "Транзакції",

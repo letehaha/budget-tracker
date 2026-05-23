@@ -28,6 +28,17 @@ export const FEATURE_RECOMMENDATIONS: Record<AI_FEATURE, AI_MODEL_ID[]> = {
     AI_MODEL_ID['openai/gpt-4o-mini'], // Cheaper option with decent vision
     AI_MODEL_ID['openai/gpt-4o'], // Good vision capabilities for image-based extraction
   ],
+  [AI_FEATURE.investmentTransactionsParsing]: [
+    // Same shape as statement parsing — token-efficient text extraction
+    AI_MODEL_ID['google/gemini-3-flash-preview'],
+    AI_MODEL_ID['google/gemini-2.5-flash'],
+    AI_MODEL_ID['google/gemini-2.5-pro'],
+    AI_MODEL_ID['anthropic/claude-haiku-4-5'],
+    AI_MODEL_ID['anthropic/claude-3-7-sonnet-latest'],
+    AI_MODEL_ID['anthropic/claude-3-5-haiku-latest'],
+    AI_MODEL_ID['openai/gpt-4o-mini'],
+    AI_MODEL_ID['openai/gpt-4o'],
+  ],
 };
 
 /**
@@ -37,4 +48,5 @@ export const FEATURE_RECOMMENDATIONS: Record<AI_FEATURE, AI_MODEL_ID[]> = {
 export const FEATURE_DEFAULTS: Record<AI_FEATURE, AI_MODEL_ID> = {
   [AI_FEATURE.categorization]: AI_MODEL_ID['google/gemma-4-31b-it'],
   [AI_FEATURE.statementParsing]: AI_MODEL_ID['google/gemini-3-flash-preview'],
+  [AI_FEATURE.investmentTransactionsParsing]: AI_MODEL_ID['google/gemini-3-flash-preview'],
 };

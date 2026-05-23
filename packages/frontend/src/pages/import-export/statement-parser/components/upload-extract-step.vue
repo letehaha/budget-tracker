@@ -1,47 +1,12 @@
 <template>
   <div class="space-y-6">
-    <!-- File Upload Area -->
-    <div
-      class="rounded-lg border-2 border-dashed p-8 text-center transition-colors"
-      :class="{
-        'border-primary bg-primary/5': isDragging,
-        'border-muted-foreground/30 hover:border-primary/50': !isDragging,
-      }"
-      @dragover.prevent="isDragging = true"
-      @dragleave.prevent="isDragging = false"
-      @drop.prevent="handleDrop"
+    <FileDropzone
+      v-model="pickedFile"
+      accept=".pdf,.csv,.txt,application/pdf,text/csv,text/plain"
+      @error="(msg) => (fileError = msg)"
     >
-      <input
-        ref="fileInput"
-        type="file"
-        accept=".pdf,.csv,.txt,application/pdf,text/csv,text/plain"
-        class="hidden"
-        @change="handleFileSelect"
-      />
-
-      <div v-if="!store.uploadedFile" class="space-y-4">
-        <FileIcon class="text-muted-foreground mx-auto size-12" />
-        <div>
-          <p class="text-muted-foreground">{{ $t('pages.statementParser.uploadExtract.dragDropText') }}</p>
-          <Button variant="outline" class="mt-2" @click="fileInput?.click()">
-            {{ $t('pages.statementParser.uploadExtract.browseButton') }}
-          </Button>
-        </div>
-        <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.uploadExtract.supportedFormats') }}</p>
-      </div>
-
-      <div v-else class="space-y-2">
-        <component :is="getFileIcon()" class="text-primary mx-auto size-12" />
-        <p class="font-medium">{{ store.uploadedFile.name }}</p>
-        <p class="text-muted-foreground text-sm">
-          {{ t('pages.statementParser.uploadExtract.fileSize', { size: (store.uploadedFile.size / 1024).toFixed(1) }) }}
-        </p>
-        <Button variant="ghost-destructive" size="sm" @click="clearFile">
-          <XIcon class="mr-1 size-4" />
-          {{ $t('pages.statementParser.uploadExtract.removeButton') }}
-        </Button>
-      </div>
-    </div>
+      <template #hint>{{ $t('pages.statementParser.uploadExtract.supportedFormats') }}</template>
+    </FileDropzone>
 
     <div v-if="fileError" class="bg-destructive/10 text-destructive-text rounded-lg p-3">
       {{ fileError }}
@@ -169,18 +134,11 @@
 
 <script setup lang="ts">
 import ApiKeySourceBadge from '@/components/common/api-key-source-badge.vue';
+import FileDropzone from '@/components/common/file-dropzone.vue';
 import { Button } from '@/components/lib/ui/button';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import {
-  CalculatorIcon,
-  FileIcon,
-  FileSpreadsheetIcon,
-  FileTextIcon,
-  Loader2Icon,
-  SparklesIcon,
-  XIcon,
-} from 'lucide-vue-next';
-import { onUnmounted, ref } from 'vue';
+import { CalculatorIcon, Loader2Icon, SparklesIcon } from 'lucide-vue-next';
+import { computed, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { validateStatementFile } from '../utils/file-validation';
@@ -189,13 +147,25 @@ import CostEstimateWarnings from './cost-estimate-warnings.vue';
 const { t } = useI18n();
 const store = useStatementParserStore();
 
-const fileInput = ref<HTMLInputElement | null>(null);
-const isDragging = ref(false);
 const fileError = ref<string | null>(null);
 const extractionStatus = ref('Extracting...');
 const extractionProgress = ref(0);
 
-// Progress animation interval
+// Validation runs async, so we keep the dropzone reflecting the store's
+// authoritative file (only updated after validation passes). The setter
+// delegates to validateAndSetFile / store.reset.
+const pickedFile = computed<File | null>({
+  get: () => store.uploadedFile,
+  set: (file) => {
+    if (file === null) {
+      store.reset();
+      fileError.value = null;
+      return;
+    }
+    void validateAndSetFile(file);
+  },
+});
+
 let progressInterval: ReturnType<typeof setInterval> | null = null;
 let statusTimeouts: ReturnType<typeof setTimeout>[] = [];
 
@@ -216,40 +186,14 @@ function startProgressAnimation() {
   extractionProgress.value = 0;
   const startTime = Date.now();
 
-  // Expected duration ~60s, but we'll cap progress at 95% until complete
-  // Progress curve: fast at start, slower as it progresses
   progressInterval = setInterval(() => {
-    const elapsed = (Date.now() - startTime) / 1000; // seconds
+    const elapsed = (Date.now() - startTime) / 1000;
 
-    // Logarithmic progress curve that slows down over time
-    // Reaches ~50% at 15s, ~70% at 30s, ~85% at 45s, ~92% at 60s
-    // Never exceeds 95% until extraction completes
+    // Logarithmic progress curve that slows down over time.
+    // Caps at 95% so we never claim done before the server says so.
     const progress = Math.min(95, 100 * (1 - Math.exp(-elapsed / 25)));
     extractionProgress.value = Math.round(progress);
   }, 200);
-}
-
-function getFileIcon() {
-  if (!store.uploadedFile) return FileIcon;
-  const ext = store.uploadedFile.name.toLowerCase().split('.').pop();
-  if (ext === 'pdf') return FileTextIcon;
-  if (ext === 'csv') return FileSpreadsheetIcon;
-  return FileTextIcon;
-}
-
-function handleFileSelect(event: Event) {
-  const input = event.target as HTMLInputElement;
-  if (input.files?.[0]) {
-    validateAndSetFile(input.files[0]);
-  }
-}
-
-function handleDrop(event: DragEvent) {
-  isDragging.value = false;
-  const file = event.dataTransfer?.files[0];
-  if (file) {
-    validateAndSetFile(file);
-  }
 }
 
 async function validateAndSetFile(file: File) {
@@ -264,14 +208,6 @@ async function validateAndSetFile(file: File) {
   await store.setFile({ file });
 }
 
-function clearFile() {
-  store.reset();
-  fileError.value = null;
-  if (fileInput.value) {
-    fileInput.value.value = '';
-  }
-}
-
 async function handleEstimate() {
   await store.estimateCost();
 }
@@ -280,8 +216,7 @@ async function handleExtract() {
   extractionStatus.value = t('pages.statementParser.uploadExtract.status.sendingFile');
   startProgressAnimation();
 
-  // Status updates with extended timings for AI processing
-  // AI extraction typically takes 20-60 seconds
+  // AI extraction typically takes 20-60 seconds — show progressive status messages.
   const statusUpdates = [
     { delay: 3000, message: t('pages.statementParser.uploadExtract.status.readingDocument') },
     { delay: 8000, message: t('pages.statementParser.uploadExtract.status.analyzingStructure') },
@@ -304,7 +239,6 @@ async function handleExtract() {
 
   try {
     await store.extract();
-    // On success, jump to 100%
     extractionProgress.value = 100;
   } finally {
     cleanupProgressAnimation();

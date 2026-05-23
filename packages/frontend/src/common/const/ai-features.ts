@@ -23,6 +23,10 @@ const AI_FEATURE_DISPLAY_INFO: Record<AI_FEATURE, AIFeatureDisplayInfoKeys> = {
     nameKey: 'common.aiFeatures.statementParsing.name',
     descriptionKey: 'common.aiFeatures.statementParsing.description',
   },
+  [AI_FEATURE.investmentTransactionsParsing]: {
+    nameKey: 'common.aiFeatures.investmentTransactionsParsing.name',
+    descriptionKey: 'common.aiFeatures.investmentTransactionsParsing.description',
+  },
 };
 
 /**

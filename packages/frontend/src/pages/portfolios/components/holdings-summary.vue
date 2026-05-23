@@ -33,6 +33,13 @@
             </button>
           </div>
 
+          <RouterLink :to="{ name: ROUTES_NAMES.portfolioTransactionsImport, params: { portfolioId } }">
+            <UiButton size="sm" variant="outline">
+              <FileUpIcon class="mr-1 size-4" />
+              {{ $t('portfolioDetail.holdings.importButton') }}
+            </UiButton>
+          </RouterLink>
+
           <AddSymbolsDialog v-model:open="isAddSymbolsOpen" :portfolio-id="portfolioId" @updated="invalidate">
             <UiButton size="sm">
               <PlusIcon class="mr-1 size-4" />
@@ -49,6 +56,7 @@
         :error="!!error"
         :portfolio-id="portfolioId"
         @add-symbol="isAddSymbolsOpen = true"
+        @import-transactions="goToImport"
       />
     </CardContent>
   </Card>
@@ -60,16 +68,23 @@ import HoldingsTable from '@/components/holdings/holdings-table.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/lib/ui/card';
 import { useHoldings } from '@/composable/data-queries/holdings';
-import { LayoutListIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-vue-next';
+import { ROUTES_NAMES } from '@/routes';
+import { FileUpIcon, LayoutListIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-vue-next';
 import { computed, ref, toRef } from 'vue';
+import { RouterLink, useRouter } from 'vue-router';
 
 const props = defineProps<{ portfolioId: string }>();
 const portfolioId = toRef(props, 'portfolioId');
+const router = useRouter();
 
 const { data: holdings, isLoading, error, invalidate } = useHoldings(portfolioId);
 
 const isAddSymbolsOpen = ref(false);
 const filterText = ref('');
+
+function goToImport() {
+  router.push({ name: ROUTES_NAMES.portfolioTransactionsImport, params: { portfolioId: portfolioId.value } });
+}
 
 const filteredHoldings = computed(() => {
   if (!holdings.value) return null;

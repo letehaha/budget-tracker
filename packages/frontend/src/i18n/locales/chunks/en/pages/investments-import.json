@@ -1,0 +1,75 @@
+{
+  "investmentsImport": {
+    "title": "Import transactions",
+    "description": "Upload an exchange CSV, a broker PDF, or paste your transaction history. AI will extract buys and sells. You'll review before anything is imported.",
+    "backToPortfolio": "Back to portfolio",
+    "upload": {
+      "fileTab": "File",
+      "pasteTab": "Paste text",
+      "fileHintFormats": "CSV, TXT, or PDF",
+      "pastePlaceholder": "Paste your transactions list here...",
+      "estimatedCost": "Estimated cost",
+      "model": "Model",
+      "estimateButton": "Estimate cost",
+      "extractButton": "Extract",
+      "extracting": "Extracting…"
+    },
+    "review": {
+      "warningsTitle": "Warnings",
+      "empty": "AI didn't find any transactions in this file.",
+      "pickSecurity": "Pick security...",
+      "pickCurrency": "Currency...",
+      "searchPlaceholder": "Search by symbol...",
+      "searching": "Searching...",
+      "startTyping": "Start typing to search",
+      "noResults": "No matches",
+      "alreadyPicked": "already picked",
+      "duplicateSecurity": "Same security is picked on another row",
+      "willMerge": "Will merge into existing holding",
+      "txns": "{count} transaction | {count} transactions",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "deleteHolding": "Delete holding",
+      "deleteTransaction": "Delete transaction",
+      "buy": "Buy",
+      "sell": "Sell",
+      "possibleDup": "Possible duplicate",
+      "skipping": "Skipping",
+      "duplicateBadgeTooltip": "This looks like a possible duplicate of an existing transaction. Click to skip it — otherwise a new transaction will be created alongside the existing one (no merge or override).",
+      "back": "Back",
+      "commit": "Import",
+      "cols": {
+        "date": "Date",
+        "side": "Type",
+        "qty": "Quantity",
+        "price": "Price",
+        "fees": "Fees",
+        "amount": "Amount",
+        "security": "Security",
+        "currency": "Currency",
+        "txCount": "Transactions"
+      },
+      "tooltips": {
+        "security": "We picked a security automatically based on the AI-extracted ticker. Click the field to override the match if it's wrong.",
+        "currency": "Currency the cash side of the trade was settled in (e.g. USD, EUR). It does not change how the holding is stored — amounts are normalized to your base currency using historical exchange rates at the trade date.",
+        "parentRowDuplicates": "{count} possible duplicate in this holding will be imported as a new transaction unless skipped. | {count} possible duplicates in this holding will be imported as new transactions unless skipped."
+      }
+    },
+    "done": {
+      "title": "Import complete",
+      "transactions": "Transactions added",
+      "holdingsCreated": "Holdings created",
+      "holdingsMerged": "Holdings updated",
+      "skipped": "Skipped duplicates",
+      "close": "Close"
+    },
+    "notifications": {
+      "imported": "Imported {count} transactions",
+      "extractFailed": "Could not extract transactions from the file.",
+      "importFailed": "Could not import transactions.",
+      "skippedHoldings": "Holdings skipped: {count}",
+      "failedTransactions": "Transactions failed: {count}",
+      "estimateFailed": "Failed to estimate import cost"
+    }
+  }
+}

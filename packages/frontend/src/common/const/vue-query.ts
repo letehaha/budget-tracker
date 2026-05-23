@@ -102,6 +102,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   holdingsList: [securityPriceChange, 'holdings'] as const,
   holdingTransactions: [securityPriceChange, 'holding-transactions'] as const,
 
+  // transactions import (AI-parsed)
+  investmentImportSecuritySearch: ['investment-import', 'security-search'] as const,
+
   // bank integrations
   bankProviders: [bankConnectionChange, 'bank-providers'] as const,
   bankConnectionDetails: [bankConnectionChange, 'bank-connection-details'] as const,
