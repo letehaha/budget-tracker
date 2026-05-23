@@ -47,7 +47,7 @@
     "cron": "^3.2.1",
     "csv-parse": "^6.1.0",
     "currency-codes": "2.1.0",
-    "date-fns": "3.6.0",
+    "date-fns": "4.3.0",
     "dotenv": "^16.4.7",
     "express": "4.22.1",
     "i18next": "^25.7.3",
