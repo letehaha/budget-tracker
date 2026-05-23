@@ -6,10 +6,7 @@
     "upload": {
       "fileTab": "File",
       "pasteTab": "Paste text",
-      "fileHintPrimary": "Click or drag a file here",
       "fileHintFormats": "CSV, TXT, or PDF",
-      "dropHere": "Drop file to upload",
-      "removeFile": "Remove file",
       "pastePlaceholder": "Paste your transactions list here...",
       "estimatedCost": "Estimated cost",
       "model": "Model",

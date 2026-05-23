@@ -6,10 +6,7 @@
     "upload": {
       "fileTab": "Файл",
       "pasteTab": "Вставити текст",
-      "fileHintPrimary": "Натисніть або перетягніть файл сюди",
       "fileHintFormats": "CSV, TXT або PDF",
-      "dropHere": "Відпустіть файл для завантаження",
-      "removeFile": "Прибрати файл",
       "pastePlaceholder": "Вставте список своїх транзакцій тут...",
       "estimatedCost": "Приблизна вартість",
       "model": "Модель",

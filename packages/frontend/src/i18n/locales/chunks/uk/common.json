@@ -212,6 +212,12 @@
     "BTC": "Біткоїн",
     "ETH": "Етеріум"
   },
+  "fileDropzone": {
+    "clickOrDrag": "Натисніть або перетягніть файл сюди",
+    "dropHere": "Відпустіть файл для завантаження",
+    "removeFile": "Прибрати файл",
+    "fileTooLarge": "Файл занадто великий. Максимальний розмір — {max}."
+  },
   "demo": {
     "loadingOverlay": {
       "messages": [

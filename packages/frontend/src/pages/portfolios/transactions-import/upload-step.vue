@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { estimateInvestmentImportCost, extractInvestmentTransactions } from '@/api/investment-transactions-import';
 import type { StatementCostEstimateFailure } from '@/api/import-export';
+import FileDropzone from '@/components/common/file-dropzone.vue';
 import { TextareaField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent } from '@/components/lib/ui/card';
@@ -13,8 +14,8 @@ import {
 } from '@bt/shared/types/investments';
 import type { StatementCostEstimate } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
-import { ClipboardIcon, FileTextIcon, FileUpIcon, Loader2Icon, SparklesIcon, XIcon } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { ClipboardIcon, FileTextIcon, Loader2Icon, SparklesIcon } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{ portfolioId: string }>();
@@ -26,70 +27,30 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 
-const BYTES_PER_KB = 1024;
-const BYTES_PER_MB = 1024 * 1024;
-
 type InputMode = 'file' | 'paste';
 const inputMode = ref<InputMode>('file');
 const uploadedFile = ref<File | null>(null);
 const pastedText = ref('');
 const fileBase64 = ref<string | null>(null);
-const isDragging = ref(false);
 
 const costEstimate = ref<StatementCostEstimate | null>(null);
 const estimateError = ref<string | null>(null);
 
-async function setFile({ file }: { file: File }) {
-  uploadedFile.value = file;
+watch(uploadedFile, (file) => {
   pastedText.value = '';
   costEstimate.value = null;
   estimateError.value = null;
-  return new Promise<void>((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      fileBase64.value = result.split(',')[1] || result;
-      resolve();
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function onFileChange(e: Event) {
-  const target = e.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (file) void setFile({ file });
-}
-
-function onDrop(e: DragEvent) {
-  isDragging.value = false;
-  if (extract.isPending.value) return;
-  const file = e.dataTransfer?.files?.[0];
-  if (file) void setFile({ file });
-}
-
-function onDragOver(e: DragEvent) {
-  e.preventDefault();
-  if (extract.isPending.value) return;
-  isDragging.value = true;
-}
-
-function onDragLeave() {
-  isDragging.value = false;
-}
-
-function clearFile() {
-  uploadedFile.value = null;
-  fileBase64.value = null;
-  costEstimate.value = null;
-  estimateError.value = null;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < BYTES_PER_KB) return `${bytes} B`;
-  if (bytes < BYTES_PER_MB) return `${(bytes / BYTES_PER_KB).toFixed(1)} KB`;
-  return `${(bytes / BYTES_PER_MB).toFixed(1)} MB`;
-}
+  if (!file) {
+    fileBase64.value = null;
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const result = reader.result as string;
+    fileBase64.value = result.split(',')[1] || result;
+  };
+  reader.readAsDataURL(file);
+});
 
 function encodePastedText() {
   fileBase64.value = btoa(unescape(encodeURIComponent(pastedText.value)));
@@ -162,6 +123,10 @@ const extract = useMutation({
   },
 });
 
+function onDropzoneError(message: string) {
+  addNotification({ text: message, type: NotificationType.error });
+}
+
 onBeforeUnmount(() => abortExtract());
 </script>
 
@@ -193,74 +158,15 @@ onBeforeUnmount(() => abortExtract());
 
     <!-- Body -->
     <CardContent class="space-y-4 p-5">
-      <!-- File picker -->
-      <div v-if="inputMode === 'file'" class="space-y-3">
-        <label
-          for="investmentsImport-file"
-          :class="[
-            'group relative flex h-48 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed text-sm transition-all',
-            extract.isPending.value ? 'border-input pointer-events-none opacity-60' : 'cursor-pointer',
-            isDragging
-              ? 'border-primary bg-primary/10 scale-[1.01]'
-              : 'border-input hover:border-primary/60 hover:bg-primary/5',
-          ]"
-          @dragover="onDragOver"
-          @dragleave="onDragLeave"
-          @drop.prevent="onDrop"
-        >
-          <div
-            :class="[
-              'flex size-14 items-center justify-center rounded-2xl transition-all',
-              isDragging
-                ? 'bg-primary/20 ring-primary/40 scale-110 ring-2'
-                : 'bg-primary/10 ring-primary/10 ring-1 group-hover:scale-105',
-            ]"
-          >
-            <FileUpIcon class="text-primary size-7" />
-          </div>
-          <div class="space-y-1 text-center">
-            <p class="text-sm font-medium">
-              {{
-                isDragging ? $t('investmentsImport.upload.dropHere') : $t('investmentsImport.upload.fileHintPrimary')
-              }}
-            </p>
-            <p class="text-muted-foreground text-xs">{{ $t('investmentsImport.upload.fileHintFormats') }}</p>
-          </div>
-        </label>
-        <input
-          id="investmentsImport-file"
-          type="file"
-          class="hidden"
-          accept=".csv,.txt,.pdf,text/csv,text/plain,application/pdf"
-          :disabled="extract.isPending.value"
-          @change="onFileChange"
-        />
-
-        <!-- Selected file row -->
-        <div
-          v-if="uploadedFile"
-          class="border-border/60 bg-muted/30 flex items-center justify-between gap-3 rounded-lg border p-3"
-        >
-          <div class="flex min-w-0 items-center gap-3">
-            <div class="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-lg">
-              <FileTextIcon class="text-primary size-4" />
-            </div>
-            <div class="min-w-0">
-              <p class="truncate text-sm font-medium">{{ uploadedFile.name }}</p>
-              <p class="text-muted-foreground text-xs">{{ formatBytes(uploadedFile.size) }}</p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            :disabled="extract.isPending.value"
-            :aria-label="$t('investmentsImport.upload.removeFile')"
-            @click="clearFile"
-          >
-            <XIcon class="size-4" />
-          </Button>
-        </div>
-      </div>
+      <FileDropzone
+        v-if="inputMode === 'file'"
+        v-model="uploadedFile"
+        accept=".csv,.txt,.pdf,text/csv,text/plain,application/pdf"
+        :disabled="extract.isPending.value"
+        @error="onDropzoneError"
+      >
+        <template #hint>{{ $t('investmentsImport.upload.fileHintFormats') }}</template>
+      </FileDropzone>
 
       <div v-else>
         <TextareaField

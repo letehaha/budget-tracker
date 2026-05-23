@@ -212,6 +212,12 @@
     "BTC": "Bitcoin",
     "ETH": "Ethereum"
   },
+  "fileDropzone": {
+    "clickOrDrag": "Click or drag a file here",
+    "dropHere": "Drop file to upload",
+    "removeFile": "Remove file",
+    "fileTooLarge": "File is too large. Max size is {max}."
+  },
   "demo": {
     "loadingOverlay": {
       "messages": [
