@@ -12,7 +12,10 @@ export default createController(
       category: z.nativeEnum(INVESTMENT_TRANSACTION_CATEGORY),
       date: z.string().date(),
       quantity: numericString(),
-      price: numericString(),
+      // Zero price = legitimate position change with no cash consideration
+      // (staking, airdrops, balance adjustments, burns). The category (buy/sell)
+      // tells us direction; price=0 records that no cash crossed the boundary.
+      price: numericString({ allowZero: true }),
       fees: numericString({ allowZero: true }).optional().default('0'),
       name: z.string().optional(),
     }),

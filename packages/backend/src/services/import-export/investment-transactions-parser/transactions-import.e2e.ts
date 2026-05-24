@@ -990,5 +990,131 @@ describe('Investment transactions AI import — E2E', () => {
 
       expect(response.statusCode).not.toBe(200);
     });
+
+    it('imports a multi-holding batch with zero-price rows and a negative-going crypto position', async () => {
+      // Three patterns that previously broke the import pipeline:
+      //   - zero-price SELL  (lost / burned tokens — proceeds = 0)
+      //   - zero-price BUY   (staking reward / airdrop — basis untouched)
+      //   - long → short → still-short  (crypto drift: basis must stay zero)
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Yahoo import' }),
+        raw: true,
+      });
+
+      const coin02 = await createCryptoSecurity({ symbol: 'COIN02', name: 'Coin Two', providerSymbol: 'coin-02' });
+      const coin04 = await createCryptoSecurity({ symbol: 'COIN04', name: 'Coin Four', providerSymbol: 'coin-04' });
+      const coin05 = await createCryptoSecurity({ symbol: 'COIN05', name: 'Coin Five', providerSymbol: 'coin-05' });
+
+      const buildHolding = ({
+        tempId,
+        security,
+        transactions,
+      }: {
+        tempId: string;
+        security: Securities;
+        transactions: Array<{
+          tempId: string;
+          date: string;
+          side: 'buy' | 'sell';
+          quantity: string;
+          price: string;
+        }>;
+      }) => ({
+        tempId,
+        parsedSymbol: security.symbol!,
+        parsedName: security.name,
+        resolvedSecurity: {
+          securityId: security.id,
+          providerSymbol: security.providerSymbol,
+          symbol: security.symbol!,
+          name: security.name!,
+          assetClass: security.assetClass,
+          providerName: security.providerName,
+          currencyCode: security.currencyCode,
+          exchangeName: security.exchangeName ?? undefined,
+          cryptoCurrencyCode: security.cryptoCurrencyCode ?? undefined,
+          alreadyInDb: true,
+        },
+        resolvedConfidence: 'auto' as const,
+        portfolioId: portfolio.id,
+        currencyCode: security.currencyCode,
+        hasExistingHolding: false,
+        transactions: transactions.map((tx) => ({
+          ...tx,
+          fees: '0',
+          amount: (Number(tx.quantity) * Number(tx.price)).toFixed(10),
+          possibleDuplicateOf: null,
+        })),
+      });
+
+      const result = await helpers.investmentImportExecute({
+        payload: {
+          holdings: [
+            buildHolding({
+              tempId: 'h-coin02',
+              security: coin02,
+              transactions: [
+                { tempId: 't1', date: '2024-01-01', side: 'buy', quantity: '1.0', price: '100' },
+                // Zero-price SELL — burned/lost tokens with no proceeds.
+                { tempId: 't2', date: '2024-02-01', side: 'sell', quantity: '0.1', price: '0' },
+              ],
+            }),
+            buildHolding({
+              tempId: 'h-coin04',
+              security: coin04,
+              transactions: [
+                { tempId: 't3', date: '2024-01-01', side: 'buy', quantity: '1.0', price: '100' },
+                // Zero-price BUY — staking reward, airdrop, or "missing tokens" adjustment.
+                { tempId: 't4', date: '2024-02-01', side: 'buy', quantity: '0.5', price: '0' },
+              ],
+            }),
+            buildHolding({
+              tempId: 'h-coin05',
+              security: coin05,
+              transactions: [
+                { tempId: 't5', date: '2024-01-01', side: 'buy', quantity: '0.5', price: '50000' },
+                // Oversell — qty drops to -0.5; allowed for crypto.
+                { tempId: 't6', date: '2024-02-01', side: 'sell', quantity: '1.0', price: '60000' },
+                // Buy that does NOT cross back to long — qty stays at -0.3.
+                { tempId: 't7', date: '2024-03-01', side: 'buy', quantity: '0.2', price: '100000' },
+              ],
+            }),
+          ],
+          skipTempIds: [],
+        },
+        raw: true,
+      });
+
+      expect(result.createdTransactions).toBe(7);
+      expect(result.failedTransactions).toBe(0);
+      expect(result.warnings).toEqual([]);
+
+      // COIN02 — zero-price SELL just reduces qty; basis scales by remaining qty.
+      const [h02] = await helpers.getHoldings({
+        portfolioId: portfolio.id,
+        payload: { securityId: coin02.id },
+        raw: true,
+      });
+      expect(h02!.quantity).toBeNumericEqual(0.9);
+      expect(h02!.costBasis).toBeNumericEqual(90); // 100 * (0.9 / 1.0)
+
+      // COIN04 — zero-price BUY grows position at zero cost; basis stays put.
+      const [h04] = await helpers.getHoldings({
+        portfolioId: portfolio.id,
+        payload: { securityId: coin04.id },
+        raw: true,
+      });
+      expect(h04!.quantity).toBeNumericEqual(1.5);
+      expect(h04!.costBasis).toBeNumericEqual(100);
+
+      // COIN05 — net-short position: basis must be zero (no long to attribute cost to).
+      const [h05] = await helpers.getHoldings({
+        portfolioId: portfolio.id,
+        payload: { securityId: coin05.id },
+        raw: true,
+      });
+      expect(h05!.quantity).toBeNumericEqual(-0.3);
+      expect(h05!.costBasis).toBeNumericEqual(0);
+    });
   });
 });
