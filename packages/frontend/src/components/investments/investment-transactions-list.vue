@@ -130,18 +130,20 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransa
                 }}
               </div>
               <div class="text-center">
-                <DeleteInvestmentTransactionDialog :transaction-id="transactions[virtualRow.index]!.id">
-                  <DesktopOnlyTooltip :content="$t('portfolioDetail.transactionsList.deleteTransaction.tooltip')">
-                    <UiButton
-                      variant="ghost-destructive"
-                      size="icon"
-                      class="size-7"
-                      :aria-label="$t('portfolioDetail.transactionsList.deleteTransaction.tooltip')"
-                    >
-                      <Trash2Icon class="size-3.5" />
-                    </UiButton>
-                  </DesktopOnlyTooltip>
-                </DeleteInvestmentTransactionDialog>
+                <DesktopOnlyTooltip :content="$t('portfolioDetail.transactionsList.deleteTransaction.tooltip')">
+                  <span class="inline-flex">
+                    <DeleteInvestmentTransactionDialog :transaction-id="transactions[virtualRow.index]!.id">
+                      <UiButton
+                        variant="ghost-destructive"
+                        size="icon"
+                        class="size-7"
+                        :aria-label="$t('portfolioDetail.transactionsList.deleteTransaction.tooltip')"
+                      >
+                        <Trash2Icon class="size-3.5" />
+                      </UiButton>
+                    </DeleteInvestmentTransactionDialog>
+                  </span>
+                </DesktopOnlyTooltip>
               </div>
             </div>
           </template>
