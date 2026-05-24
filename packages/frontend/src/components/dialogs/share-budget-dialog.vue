@@ -1,18 +1,13 @@
 <script setup lang="ts">
-import { createShareInvitation } from '@/api/share';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DemoRestricted from '@/components/demo/demo-restricted.vue';
 import { InputField, SelectField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
-import { useNotificationCenter } from '@/components/notification-center';
-import { ApiErrorResponseError } from '@/js/errors';
+import { useShareInvitationDialog } from '@/composable/use-share-invitation-dialog';
 import { useUserStore } from '@/stores';
-import { type BudgetModel, RESOURCE_TYPES, SHARE_PERMISSIONS, type SharePermission } from '@bt/shared/types';
-import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import { type BudgetModel, RESOURCE_TYPES } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { computed, ref } from 'vue';
 
 /**
  * Per-budget share invitation dialog. Mirrors `share-account-dialog.vue` but drops:
@@ -32,9 +27,6 @@ const emit = defineEmits<{
   'update:open': [value: boolean];
 }>();
 
-const { t } = useI18n();
-const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
-const queryClient = useQueryClient();
 const { isDemo } = storeToRefs(useUserStore());
 
 const internalOpen = ref(false);
@@ -46,59 +38,12 @@ const isOpen = computed({
   },
 });
 
-interface PermissionOption {
-  label: string;
-  value: SharePermission;
-}
-
-const permissionOptions = computed<PermissionOption[]>(() => [
-  { label: t('dialogs.shareBudgetDialog.permissions.read'), value: SHARE_PERMISSIONS.read },
-  { label: t('dialogs.shareBudgetDialog.permissions.write'), value: SHARE_PERMISSIONS.write },
-  { label: t('dialogs.shareBudgetDialog.permissions.manage'), value: SHARE_PERMISSIONS.manage },
-]);
-
-const email = ref('');
-const permission = ref<PermissionOption>(permissionOptions.value[0]!);
-
-watch(isOpen, (open) => {
-  if (open) {
-    email.value = '';
-    permission.value = permissionOptions.value[0]!;
-  }
+const { email, permission, permissionOptions, canSubmit, mutation, submit } = useShareInvitationDialog({
+  resourceType: RESOURCE_TYPES.budget,
+  resourceId: computed(() => props.budget.id),
+  isOpen,
+  i18nNamespace: 'dialogs.shareBudgetDialog',
 });
-
-const isEmailValid = computed(() => /.+@.+\..+/.test(email.value.trim()));
-const canSubmit = computed(() => isEmailValid.value && !mutation.isPending.value);
-
-const mutation = useMutation({
-  mutationFn: () =>
-    createShareInvitation({
-      inviteeEmail: email.value.trim(),
-      resourceType: RESOURCE_TYPES.budget,
-      resourceId: props.budget.id,
-      permission: permission.value.value,
-      // No `policy` for budgets in MVP — backend ignores it for budget resources.
-      policy: null,
-    }),
-  onSuccess: (data) => {
-    if (data.emailDelivered === false) {
-      addErrorNotification(t('dialogs.shareBudgetDialog.emailSendFailedWarning'));
-    } else {
-      addSuccessNotification(t('dialogs.shareBudgetDialog.success'));
-    }
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.shareInvitationsSent });
-    isOpen.value = false;
-  },
-  onError: (err: unknown) => {
-    const message = err instanceof ApiErrorResponseError ? err.data?.message : undefined;
-    addErrorNotification(message || t('dialogs.shareBudgetDialog.error'));
-  },
-});
-
-const submit = () => {
-  if (!canSubmit.value) return;
-  mutation.mutate();
-};
 </script>
 
 <template>
