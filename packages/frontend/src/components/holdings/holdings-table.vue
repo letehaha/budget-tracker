@@ -4,6 +4,7 @@ import InvestmentTransactionForm from '@/components/forms/investment-transaction
 import InvestmentTransactionsList from '@/components/investments/investment-transactions-list.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Dialog from '@/components/lib/ui/dialog';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useGetHoldingTransactionsInfinite } from '@/composable/data-queries/investment-transactions';
 import { useDeleteHolding } from '@/composable/data-queries/holdings';
@@ -198,7 +199,10 @@ const confirmDeleteHolding = async () => {
       fallbackKey: 'portfolioDetail.holdingsTable.deleteHolding.error',
     });
     addErrorNotification(message);
-    captureException(err);
+    captureException({
+      error: err,
+      context: { source: 'confirmDeleteHolding', portfolioId: props.portfolioId, securityId: target.securityId },
+    });
   } finally {
     deleteConfirmOpen.value = false;
     holdingPendingDelete.value = null;
@@ -398,15 +402,17 @@ const theadBgStyles = 'bg-muted';
                 </div>
               </td>
               <td :class="[cellStyles, 'py-1 pr-2 text-right']">
-                <Button
-                  variant="ghost-destructive"
-                  size="icon"
-                  class="size-8"
-                  :aria-label="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')"
-                  @click="openDeleteConfirm(h)"
-                >
-                  <Trash2Icon class="size-4" />
-                </Button>
+                <DesktopOnlyTooltip :content="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')">
+                  <Button
+                    variant="ghost-destructive"
+                    size="icon"
+                    class="size-8"
+                    :aria-label="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')"
+                    @click="openDeleteConfirm(h)"
+                  >
+                    <Trash2Icon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
               </td>
             </tr>
             <!-- Expanded transactions section -->

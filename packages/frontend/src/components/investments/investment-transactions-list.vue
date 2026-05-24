@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import DeleteInvestmentTransactionDialog from '@/components/dialogs/delete-investment-transaction-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { useFormatCurrency } from '@/composable/formatters';
 import type { InvestmentTransactionModel } from '@bt/shared/types';
@@ -132,9 +133,16 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransa
               </div>
               <div class="text-center">
                 <DeleteInvestmentTransactionDialog :transaction-id="transactions[virtualRow.index]!.id">
-                  <UiButton variant="ghost-destructive" size="icon" class="size-7">
-                    <Trash2Icon class="size-3.5" />
-                  </UiButton>
+                  <DesktopOnlyTooltip :content="$t('portfolioDetail.transactionsList.deleteTransaction.tooltip')">
+                    <UiButton
+                      variant="ghost-destructive"
+                      size="icon"
+                      class="size-7"
+                      :aria-label="$t('portfolioDetail.transactionsList.deleteTransaction.tooltip')"
+                    >
+                      <Trash2Icon class="size-3.5" />
+                    </UiButton>
+                  </DesktopOnlyTooltip>
                 </DeleteInvestmentTransactionDialog>
               </div>
             </div>

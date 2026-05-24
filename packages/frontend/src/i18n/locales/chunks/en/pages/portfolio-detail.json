@@ -116,6 +116,9 @@
         "fee": "Fee",
         "cancel": "Cancel",
         "other": "Other"
+      },
+      "deleteTransaction": {
+        "tooltip": "Delete transaction"
       }
     }
   }
