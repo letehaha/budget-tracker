@@ -18,6 +18,10 @@ export const createHolding = async (payload: CreateHoldingRequest): Promise<Hold
   return res;
 };
 
-export const deleteHolding = async (holdingId: string): Promise<void> => {
-  await api.delete('/investments/holding', { data: { holdingId } });
+export const deleteHolding = async (payload: {
+  portfolioId: string;
+  securityId: string;
+  force?: boolean;
+}): Promise<void> => {
+  await api.delete('/investments/holding', { data: payload });
 };

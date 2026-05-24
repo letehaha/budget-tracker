@@ -6,8 +6,10 @@ import {
   getPortfolioInvestmentTransactions,
 } from '@/api/investment-transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { MaybeRef, Ref, computed, toRef } from 'vue';
+
+import { invalidatePortfolioState } from './invalidate-portfolio-state';
 
 // Composable for creating an investment transaction
 export const useCreateInvestmentTransaction = () => {
@@ -17,11 +19,7 @@ export const useCreateInvestmentTransaction = () => {
     mutationFn: createInvestmentTransaction,
     onSuccess: (_, variables) => {
       const { portfolioId } = variables as { portfolioId: string };
-      // Invalidate holdings and portfolio queries to refetch data
-      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.holdingsList, portfolioId] });
-      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioDetails, portfolioId] });
-      // Invalidate holding-transactions queries to refresh transaction lists
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingTransactions });
+      invalidatePortfolioState({ queryClient, portfolioId });
     },
   });
 };
@@ -32,10 +30,8 @@ export const useDeleteInvestmentTransaction = () => {
   return useMutation({
     mutationFn: deleteInvestmentTransaction,
     onSuccess: () => {
-      // Invalidate all related queries to refetch data
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingTransactions });
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingsList });
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioDetails });
+      // Delete by transactionId doesn't carry portfolioId; broaden invalidation across all portfolios.
+      invalidatePortfolioState({ queryClient });
     },
   });
 };
@@ -62,29 +58,27 @@ export const usePortfolioInvestmentTransactions = (
   });
 };
 
-export const useGetHoldingTransactions = (
+export const useGetHoldingTransactionsInfinite = (
   portfolioId: MaybeRef<string | undefined>,
   securityId: MaybeRef<string | undefined>,
-  page: Ref<number>,
-  limit: Ref<number>,
+  pageSize = 30,
 ) => {
   const portfolioIdRef = toRef(portfolioId);
   const securityIdRef = toRef(securityId);
 
-  const offset = computed(() => (page.value - 1) * limit.value);
-
-  return useQuery<HoldingTransactionsResponse | undefined>({
-    queryKey: [...VUE_QUERY_CACHE_KEYS.holdingTransactions, portfolioIdRef, securityIdRef, page, limit],
-    queryFn: () => {
-      if (!portfolioIdRef.value || !securityIdRef.value) {
-        return Promise.resolve(undefined);
-      }
-      return getHoldingTransactions({
-        portfolioId: portfolioIdRef.value,
-        securityId: securityIdRef.value,
-        limit: limit.value,
-        offset: offset.value,
-      });
+  return useInfiniteQuery<HoldingTransactionsResponse>({
+    queryKey: [...VUE_QUERY_CACHE_KEYS.holdingTransactions, 'infinite', portfolioIdRef, securityIdRef, pageSize],
+    queryFn: ({ pageParam = 0 }) =>
+      getHoldingTransactions({
+        portfolioId: portfolioIdRef.value!,
+        securityId: securityIdRef.value!,
+        limit: pageSize,
+        offset: pageParam as number,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const loadedSoFar = lastPage.offset + lastPage.transactions.length;
+      return loadedSoFar < lastPage.total ? loadedSoFar : undefined;
     },
     enabled: computed(() => !!portfolioIdRef.value && !!securityIdRef.value),
   });

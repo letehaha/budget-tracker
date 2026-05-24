@@ -78,6 +78,14 @@
         "empty": "No transactions found.",
         "addFirstButton": "Add first Transaction"
       },
+      "deleteHolding": {
+        "ariaLabel": "Delete holding",
+        "title": "Delete holding",
+        "description": "This will permanently delete the {symbol} holding and all of its transactions. This action cannot be undone.",
+        "confirmLabel": "Delete holding",
+        "success": "Holding deleted.",
+        "error": "Failed to delete the holding."
+      },
       "addTransactionDialog": {
         "title": "Add Transaction",
         "description": "Add a new transaction to your portfolio."
@@ -90,6 +98,7 @@
     "transactionsList": {
       "title": "Transactions",
       "addButton": "Add transaction",
+      "loadingMore": "Loading more transactions…",
       "headers": {
         "date": "Date",
         "type": "Type",

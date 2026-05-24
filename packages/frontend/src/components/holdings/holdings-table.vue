@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import InvestmentTransactionForm from '@/components/forms/investment-transaction-form.vue';
 import InvestmentTransactionsList from '@/components/investments/investment-transactions-list.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Dialog from '@/components/lib/ui/dialog';
-import { useGetHoldingTransactions } from '@/composable/data-queries/investment-transactions';
+import { useNotificationCenter } from '@/components/notification-center';
+import { useGetHoldingTransactionsInfinite } from '@/composable/data-queries/investment-transactions';
+import { useDeleteHolding } from '@/composable/data-queries/holdings';
 import { useFormatCurrency } from '@/composable/formatters';
 import { getGainColorClass } from '@/composable/gain-color';
 import { useCurrenciesStore } from '@/stores/currencies';
@@ -17,12 +20,17 @@ import {
   PackageOpenIcon,
   PlusIcon,
   ReceiptIcon,
+  Trash2Icon,
 } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{ holdings: HoldingModel[]; loading?: boolean; error?: boolean; portfolioId: string }>();
 const emit = defineEmits<{ (e: 'addSymbol'): void; (e: 'importTransactions'): void }>();
+
+const { t } = useI18n();
+const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
 const isTransactionModalOpen = ref(false);
 const selectedHolding = ref<HoldingModel | null>(null);
@@ -42,7 +50,6 @@ const { currencies } = storeToRefs(useCurrenciesStore());
 const formatCurrency = (amount: number, currencyCode: string) => {
   const userCurrency = currencies.value.find((c) => c.currency?.code === currencyCode.toUpperCase());
   if (!userCurrency) {
-    // Fallback or default formatting if currency not found
     return amount.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -105,12 +112,9 @@ const sortedHoldings = computed(() => {
 });
 
 const getPrice = (holding: HoldingModel) => {
-  // Use the directly calculated latestPrice if available
   if (holding.latestPrice) {
     return Number(holding.latestPrice);
   }
-
-  // Fallback: calculate from marketValue (preferred) or value and quantity
   const quantity = Number(holding.quantity);
   const marketValue = Number(holding.marketValue || 0);
   return quantity > 0 && marketValue > 0 ? marketValue / quantity : 0;
@@ -141,32 +145,59 @@ const getRealizedGain = (holding: HoldingModel) => {
 };
 
 const expandedHoldingId = ref<string | undefined>(undefined);
-const currentPage = ref(1);
-const limit = ref(10);
 
-const { data: transactionsResponse, isFetching: isLoadingTransactions } = useGetHoldingTransactions(
-  props.portfolioId,
-  expandedHoldingId,
-  currentPage,
-  limit,
-);
+const {
+  data: transactionsPages,
+  hasNextPage,
+  isFetchingNextPage,
+  fetchNextPage,
+  isFetching: isLoadingTransactions,
+} = useGetHoldingTransactionsInfinite(props.portfolioId, expandedHoldingId);
 
-const handlePageChange = (newPage: number) => {
-  currentPage.value = newPage;
-};
+const flatTransactions = computed(() => transactionsPages.value?.pages.flatMap((p) => p.transactions) ?? []);
+const hasNoTransactions = computed(() => !isLoadingTransactions.value && flatTransactions.value.length === 0);
 
 const toggleExpand = (securityId: string) => {
   if (expandedHoldingId.value === securityId) {
     expandedHoldingId.value = undefined;
   } else {
-    currentPage.value = 1;
     expandedHoldingId.value = securityId;
+  }
+};
+
+// Delete holding flow
+const deleteHoldingMutation = useDeleteHolding();
+const deleteConfirmOpen = ref(false);
+const holdingPendingDelete = ref<HoldingModel | null>(null);
+
+const openDeleteConfirm = (holding: HoldingModel) => {
+  holdingPendingDelete.value = holding;
+  deleteConfirmOpen.value = true;
+};
+
+const confirmDeleteHolding = async () => {
+  const target = holdingPendingDelete.value;
+  if (!target) return;
+  try {
+    await deleteHoldingMutation.mutateAsync({
+      portfolioId: props.portfolioId,
+      securityId: target.securityId,
+      force: true,
+    });
+    addSuccessNotification(t('portfolioDetail.holdingsTable.deleteHolding.success'));
+    if (expandedHoldingId.value === target.securityId) {
+      expandedHoldingId.value = undefined;
+    }
+  } catch {
+    addErrorNotification(t('portfolioDetail.holdingsTable.deleteHolding.error'));
+  } finally {
+    deleteConfirmOpen.value = false;
+    holdingPendingDelete.value = null;
   }
 };
 
 const cellStyles = 'py-0.5';
 const theadCellStyles = 'py-2';
-
 const theadBgStyles = 'bg-muted';
 </script>
 
@@ -175,7 +206,6 @@ const theadBgStyles = 'bg-muted';
     <!-- Loading State with Skeleton -->
     <div v-if="loading" class="py-8">
       <div class="space-y-1">
-        <!-- Skeleton Header -->
         <div class="flex items-center gap-4 border-b pb-2">
           <div class="h-4 w-8"></div>
           <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
@@ -187,7 +217,6 @@ const theadBgStyles = 'bg-muted';
           <div class="bg-muted h-8 w-20 animate-pulse rounded"></div>
           <div class="bg-muted h-8 w-20 animate-pulse rounded"></div>
         </div>
-        <!-- Skeleton Rows -->
         <div v-for="i in 5" :key="i" class="flex items-center gap-4 py-3">
           <div class="bg-muted h-8 w-8 animate-pulse rounded"></div>
           <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
@@ -197,12 +226,10 @@ const theadBgStyles = 'bg-muted';
           <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
           <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
           <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
-          <!-- Unrealized Gain - double height for value + percentage -->
           <div class="flex h-10 flex-col justify-center gap-1">
             <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
             <div class="bg-muted h-3 w-16 animate-pulse rounded"></div>
           </div>
-          <!-- Realized Gain - double height for value + percentage -->
           <div class="flex h-10 flex-col justify-center gap-1">
             <div class="bg-muted h-4 w-20 animate-pulse rounded"></div>
             <div class="bg-muted h-3 w-16 animate-pulse rounded"></div>
@@ -238,9 +265,9 @@ const theadBgStyles = 'bg-muted';
       </div>
     </div>
 
-    <!-- Holdings Table: single scroll container with sticky th cells (article pattern) -->
+    <!-- Holdings Table -->
     <div v-else class="relative overflow-x-auto">
-      <table class="w-full min-w-225">
+      <table class="w-full min-w-235">
         <thead class="text-muted-foreground">
           <tr class="text-xs font-medium tracking-wider uppercase">
             <th :class="[theadCellStyles, theadBgStyles, 'w-10 text-left']"></th>
@@ -320,6 +347,7 @@ const theadBgStyles = 'bg-muted';
                 <ArrowDownIcon v-if="sortKey === 'realizedGain' && sortDir === 'desc'" class="size-3" />
               </button>
             </th>
+            <th :class="[theadCellStyles, theadBgStyles, 'w-10 text-right']"></th>
           </tr>
         </thead>
         <tbody class="divide-border divide-y">
@@ -360,12 +388,23 @@ const theadBgStyles = 'bg-muted';
                   <div class="text-xs">{{ getRealizedGain(h).percent.toFixed(2) }}%</div>
                 </div>
               </td>
+              <td :class="[cellStyles, 'py-1 pr-2 text-right']">
+                <Button
+                  variant="ghost-destructive"
+                  size="icon"
+                  class="size-8"
+                  :aria-label="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')"
+                  @click="openDeleteConfirm(h)"
+                >
+                  <Trash2Icon class="size-4" />
+                </Button>
+              </td>
             </tr>
-            <!-- Expanded Transaction Details -->
+            <!-- Expanded transactions section -->
             <tr v-if="expandedHoldingId === h.securityId" class="bg-muted/20">
-              <td colspan="10" class="p-0">
+              <td colspan="11" class="p-0">
                 <div class="border-primary/20 ml-4 border-l-2">
-                  <div v-if="isLoadingTransactions && !transactionsResponse" class="p-6 text-center">
+                  <div v-if="isLoadingTransactions && flatTransactions.length === 0" class="p-6 text-center">
                     <div
                       class="border-primary/20 mx-auto mb-3 size-8 animate-spin rounded-full border-2 border-t-transparent"
                     ></div>
@@ -374,15 +413,14 @@ const theadBgStyles = 'bg-muted';
                     </p>
                   </div>
                   <InvestmentTransactionsList
-                    v-else-if="transactionsResponse?.transactions?.length"
-                    :transactions="transactionsResponse.transactions"
-                    :total="transactionsResponse.total"
-                    :limit="transactionsResponse.limit"
-                    :page="currentPage"
-                    @page-change="handlePageChange"
+                    v-else-if="flatTransactions.length > 0"
+                    :transactions="flatTransactions"
+                    :has-next-page="!!hasNextPage"
+                    :is-fetching-next-page="isFetchingNextPage"
+                    :fetch-next-page="fetchNextPage"
                     @add-transaction="openTransactionModal(h)"
                   />
-                  <div v-else class="p-6 text-center">
+                  <div v-else-if="hasNoTransactions" class="p-6 text-center">
                     <div class="bg-muted mx-auto mb-3 flex size-10 items-center justify-center rounded-full">
                       <ReceiptIcon class="text-muted-foreground size-5" />
                     </div>
@@ -414,9 +452,11 @@ const theadBgStyles = 'bg-muted';
           class="mt-4"
           :portfolio-id="portfolioId"
           :securities="
-            holdings.map((h) => ({
-              value: String(h.securityId),
-              label: h.security?.name ? `${h.security.name} (${h.security.symbol})` : (h.security?.symbol ?? 'Unknown'),
+            holdings.map((hh) => ({
+              value: String(hh.securityId),
+              label: hh.security?.name
+                ? `${hh.security.name} (${hh.security.symbol})`
+                : (hh.security?.symbol ?? 'Unknown'),
             }))
           "
           :security-id="selectedHolding?.securityId ? String(selectedHolding.securityId) : undefined"
@@ -425,5 +465,22 @@ const theadBgStyles = 'bg-muted';
         />
       </Dialog.DialogContent>
     </Dialog.Dialog>
+
+    <ResponsiveAlertDialog
+      v-model:open="deleteConfirmOpen"
+      :confirm-label="$t('portfolioDetail.holdingsTable.deleteHolding.confirmLabel')"
+      confirm-variant="destructive"
+      :confirm-disabled="deleteHoldingMutation.isPending.value"
+      @confirm="confirmDeleteHolding"
+    >
+      <template #title>{{ $t('portfolioDetail.holdingsTable.deleteHolding.title') }}</template>
+      <template #description>
+        <i18n-t keypath="portfolioDetail.holdingsTable.deleteHolding.description" tag="span">
+          <template #symbol>
+            <strong>{{ holdingPendingDelete?.security?.symbol ?? '' }}</strong>
+          </template>
+        </i18n-t>
+      </template>
+    </ResponsiveAlertDialog>
   </div>
 </template>

@@ -2,6 +2,7 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotAllowedError } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 
@@ -9,9 +10,15 @@ interface DeleteParams {
   userId: number;
   portfolioId: string;
   securityId: string;
+  /**
+   * When true, also deletes every InvestmentTransaction for this
+   * (portfolioId, securityId) and bypasses the non-zero quantity guard.
+   * Used by the holdings table trash action after the user confirms.
+   */
+  force?: boolean;
 }
 
-const deleteHoldingImpl = async ({ userId, portfolioId, securityId }: DeleteParams) => {
+const deleteHoldingImpl = async ({ userId, portfolioId, securityId, force = false }: DeleteParams) => {
   await findOrThrowNotFound({
     query: Portfolios.findOne({ where: { id: portfolioId, userId } }),
     message: t({ key: 'investments.portfolioNotFound' }),
@@ -23,10 +30,14 @@ const deleteHoldingImpl = async ({ userId, portfolioId, securityId }: DeletePara
 
   if (!holding) return;
 
-  // Business Rule: Prevent deletion if there's an active position.
-  // The user must sell or transfer all shares first.
-  // TODO: improve this logic and let user delete even active positions. We just
-  // need to confirm that user wants this, and if so - remove holding with(out) all transactions?
+  if (force) {
+    await InvestmentTransaction.destroy({ where: { portfolioId, securityId } });
+    await holding.destroy();
+    return;
+  }
+
+  // Default: refuse to delete an active position. The UI uses `force` after a
+  // confirm dialog so the user explicitly opts into transaction cleanup.
   if (!holding.quantity.isZero()) {
     throw new NotAllowedError({
       message: t({ key: 'investments.cannotDeleteHoldingWithActivePosition' }),
