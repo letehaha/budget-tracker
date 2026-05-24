@@ -129,12 +129,11 @@
       >
         <CardContent class="p-6">
           <div class="space-y-4">
-            <div class="text-destructive-text bg-destructive/20 rounded-lg p-4">
-              <p class="font-semibold">{{ $t('pages.integrations.authFailure.title') }}</p>
+            <Callout variant="destructive" :title="$t('pages.integrations.authFailure.title')">
               <p class="mt-1 text-sm">
                 {{ $t('pages.integrations.authFailure.description') }}
               </p>
-            </div>
+            </Callout>
             <div class="flex gap-3">
               <UiButton variant="default" @click="isUpdateCredentialsDialogOpen = true">
                 {{ $t('pages.integrations.authFailure.updateButton') }}
@@ -231,18 +230,15 @@
             <CardContent class="pt-0 max-sm:px-4 max-sm:pb-4">
               <div class="space-y-4">
                 <!-- Expiration Warning -->
-                <div
+                <Callout
                   v-if="connectionDetails.consent.isExpired"
-                  class="border-destructive/40 bg-destructive/5 text-destructive-text flex items-start gap-3 rounded-lg border p-4"
+                  variant="destructive"
+                  :title="$t('pages.integrations.details.connectionValidity.expiredTitle')"
                 >
-                  <AlertTriangleIcon class="mt-0.5 size-5 shrink-0" />
-                  <div class="space-y-1">
-                    <p class="font-semibold">{{ $t('pages.integrations.details.connectionValidity.expiredTitle') }}</p>
-                    <p class="text-muted-foreground text-sm">
-                      {{ $t('pages.integrations.details.connectionValidity.expiredDescription') }}
-                    </p>
-                  </div>
-                </div>
+                  <p class="text-muted-foreground text-sm">
+                    {{ $t('pages.integrations.details.connectionValidity.expiredDescription') }}
+                  </p>
+                </Callout>
                 <div
                   v-else-if="connectionDetails.consent.isExpiringSoon"
                   class="rounded-lg bg-yellow-100 p-4 text-yellow-800"
@@ -569,6 +565,7 @@ import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import {
@@ -587,7 +584,7 @@ import { ROUTES_NAMES } from '@/routes';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { AlertTriangleIcon, ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from '@lucide/vue';
+import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';

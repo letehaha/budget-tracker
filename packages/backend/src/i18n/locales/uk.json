@@ -118,7 +118,6 @@
   },
   "investments": {
     "portfolioNotFound": "Портфель не знайдено",
-    "portfolioNameExists": "Портфель з такою назвою вже існує",
     "portfolioIdRequired": "ID портфеля обов'язковий.",
     "holdingNotFound": "Актив не знайдено",
     "holdingNotFoundAddSecurity": "Актив не знайдено. Будь ласка, спочатку додайте цінний папір до портфеля.",

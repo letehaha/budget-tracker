@@ -1,6 +1,9 @@
+import { CSV_FORBIDDEN_HEADERS, MAX_CSV_ROWS } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { parse } from 'csv-parse/sync';
+
+export { MAX_CSV_ROWS };
 
 interface CSVParseResult {
   headers: string[];
@@ -9,9 +12,8 @@ interface CSVParseResult {
   totalRows: number;
 }
 
-export const MAX_CSV_ROWS = 50_000;
 const DELIMITER_DETECTION_SAMPLE_BYTES = 16 * 1024;
-const FORBIDDEN_HEADER_NAMES = new Set(['__proto__', 'prototype', 'constructor']);
+const FORBIDDEN_HEADER_NAMES = new Set<string>(CSV_FORBIDDEN_HEADERS);
 
 /**
  * Detects the most likely CSV delimiter by testing common delimiters

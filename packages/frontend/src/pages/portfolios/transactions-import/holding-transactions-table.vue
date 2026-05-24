@@ -8,8 +8,12 @@ import { Trash2Icon, TriangleAlertIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const TOOLTIP_CLASS = 'max-w-xs';
-const COMPACT_ROW_HEIGHT_PX = 168;
-const WIDE_ROW_HEIGHT_PX = 44;
+// Rough first-paint estimates. Real heights come from `measureElement` once
+// rows mount — needed because the compact row has variable height (the
+// possible-duplicate / delete action bar only renders on rows flagged as
+// duplicates).
+const COMPACT_ROW_ESTIMATE_PX = 260;
+const WIDE_ROW_ESTIMATE_PX = 44;
 const MAX_LIST_HEIGHT_PX = 520;
 
 type TransactionSide = InvestmentImportTransaction['side'];
@@ -24,8 +28,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'toggleSkip', tempId: string): void;
-  (e: 'deleteTransaction', tempId: string): void;
+  (e: 'toggle-skip', tempId: string): void;
+  (e: 'delete-transaction', tempId: string): void;
 }>();
 
 const scrollRef = ref<HTMLElement | null>(null);
@@ -34,13 +38,17 @@ const virtualizer = useVirtualizer(
   computed(() => ({
     count: props.transactions.length,
     getScrollElement: () => scrollRef.value,
-    estimateSize: () => (props.compact ? COMPACT_ROW_HEIGHT_PX : WIDE_ROW_HEIGHT_PX),
+    estimateSize: () => (props.compact ? COMPACT_ROW_ESTIMATE_PX : WIDE_ROW_ESTIMATE_PX),
     overscan: 6,
   })),
 );
 
 const virtualRows = computed(() => virtualizer.value.getVirtualItems());
 const totalSize = computed(() => virtualizer.value.getTotalSize());
+
+function measureRow(el: Element | null) {
+  if (el) virtualizer.value.measureElement(el as HTMLElement);
+}
 
 function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
   const out: string[] = [];
@@ -75,13 +83,14 @@ function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
         <div
           v-for="virtualRow in virtualRows"
           :key="transactions[virtualRow.index]!.tempId"
+          :ref="(el) => measureRow(el as Element | null)"
+          :data-index="virtualRow.index"
           :style="{
             position: 'absolute',
             top: 0,
             left: 0,
             width: '100%',
             transform: `translateY(${virtualRow.start}px)`,
-            height: `${virtualRow.size}px`,
             padding: '4px 0',
           }"
         >
@@ -136,7 +145,7 @@ function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
                   size="sm"
                   :variant="skipTempIds.has(transactions[virtualRow.index]!.tempId) ? 'secondary' : 'soft-destructive'"
                   class="h-7 gap-1 px-2 text-xs"
-                  @click="emit('toggleSkip', transactions[virtualRow.index]!.tempId)"
+                  @click="emit('toggle-skip', transactions[virtualRow.index]!.tempId)"
                 >
                   <TriangleAlertIcon class="size-3.5" />
                   {{
@@ -150,7 +159,7 @@ function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
                 <Button
                   variant="ghost-destructive"
                   size="icon-sm"
-                  @click="emit('deleteTransaction', transactions[virtualRow.index]!.tempId)"
+                  @click="emit('delete-transaction', transactions[virtualRow.index]!.tempId)"
                 >
                   <Trash2Icon class="size-4" />
                 </Button>
@@ -227,7 +236,7 @@ function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
                   size="sm"
                   :variant="skipTempIds.has(transactions[virtualRow.index]!.tempId) ? 'secondary' : 'soft-destructive'"
                   class="h-8 gap-1 text-xs"
-                  @click="emit('toggleSkip', transactions[virtualRow.index]!.tempId)"
+                  @click="emit('toggle-skip', transactions[virtualRow.index]!.tempId)"
                 >
                   <TriangleAlertIcon class="size-3.5" />
                   {{
@@ -242,7 +251,7 @@ function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
                 <Button
                   variant="ghost-destructive"
                   size="icon-sm"
-                  @click="emit('deleteTransaction', transactions[virtualRow.index]!.tempId)"
+                  @click="emit('delete-transaction', transactions[virtualRow.index]!.tempId)"
                 >
                   <Trash2Icon class="size-4" />
                 </Button>

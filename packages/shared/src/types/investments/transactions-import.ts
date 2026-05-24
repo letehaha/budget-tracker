@@ -10,7 +10,43 @@
  * The user edits both levels and commits.
  */
 import type { StatementFileType } from '../statement-parser';
-import type { ASSET_CLASS, SECURITY_PROVIDER } from './enums';
+import type { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } from './enums';
+
+/**
+ * String-literal union over `INVESTMENT_TRANSACTION_CATEGORY` values. Used on
+ * the import wire because it accepts both plain string literals (`'buy'`) and
+ * enum members (`INVESTMENT_TRANSACTION_CATEGORY.buy`), which keeps test
+ * fixtures and JSON payloads ergonomic.
+ */
+export type InvestmentImportTransactionSide = `${INVESTMENT_TRANSACTION_CATEGORY}`;
+
+/**
+ * Narrow trade-only subset of the side union. The executor only fully models
+ * buy/sell today (cost basis, quantity check, cash delta direction); non-trade
+ * categories ride the same wire shape but require their own handling. Guards
+ * on this subset prevent silent misclassification at the seam.
+ */
+export type InvestmentImportTradeSide = Extract<InvestmentImportTransactionSide, 'buy' | 'sell'>;
+
+/** Type guard: is this side value one the executor can handle as a trade? */
+export function isTradeSide(side: InvestmentImportTransactionSide): side is InvestmentImportTradeSide {
+  return side === 'buy' || side === 'sell';
+}
+
+/**
+ * Sentinel value used in `InvestmentColumnMapping.sideValueMapping` to mark a
+ * raw CSV side value as "drop these rows silently." Two use cases:
+ *
+ *   1. CSV cells with bogus content (escaping artefacts, free-text notes that
+ *      leaked into the side column).
+ *   2. Action types we don't model yet — cash deposits/withdrawals are the
+ *      common ones brokers ship in the same export as trades.
+ *
+ * Skip-mapped rows don't appear in the holdings result and don't fill the
+ * invalid-rows warnings list either — they were deliberate.
+ */
+export const INVESTMENT_IMPORT_SIDE_SKIP = 'skip' as const;
+export type InvestmentImportSideSkip = typeof INVESTMENT_IMPORT_SIDE_SKIP;
 
 /**
  * Result of resolving an AI-parsed symbol to a CoinGecko/FMP/etc security.
@@ -54,8 +90,12 @@ export interface InvestmentImportTransaction {
   tempId: string;
   /** YYYY-MM-DD, UTC (server collapses any AI-returned time-of-day). */
   date: string;
-  /** Direction of the trade. */
-  side: 'buy' | 'sell';
+  /**
+   * Action category — buy/sell for trades, plus dividend/transfer/tax/fee/etc.
+   * for non-trade rows that brokers often include in CSV exports. AI extraction
+   * still only emits buy/sell; CSV import can produce any category.
+   */
+  side: InvestmentImportTransactionSide;
   /** Decimal string (Money convention). */
   quantity: string;
   /** Decimal string. */
@@ -102,6 +142,46 @@ export interface InvestmentImportHolding {
   transactions: InvestmentImportTransaction[];
 }
 
+/**
+ * Per-CSV-import column mapping. Each field carries the CSV header name to
+ * read for that field; `null` means the field isn't represented in the CSV
+ * (server will fall back to defaults or surface the row as invalid).
+ *
+ * `sideValueMapping` translates the raw cell values in the side column (e.g.
+ * `B`/`S`, `Buy`/`Sell`, `Compra`/`Venta`) into the canonical
+ * `InvestmentImportTransactionSide` values. Built at column-mapping time by
+ * showing the user the unique values found in the side column.
+ */
+export interface InvestmentColumnMapping {
+  symbol: string;
+  date: string;
+  side: string;
+  quantity: string;
+  price: string;
+  fees: string | null;
+  currency: string | null;
+  /** Optional column with full security name (e.g. "Apple Inc."). */
+  name: string | null;
+  /**
+   * Fallback currency for rows where the currency column is unmapped or empty.
+   * null = no fallback (row's currencyCode stays null and may be inferred from
+   * the resolved security downstream).
+   */
+  defaultCurrency: string | null;
+  /**
+   * Default asset class hint applied to every row. Broker CSVs are usually
+   * single-class (stocks-only or crypto-only) so a per-mapping default is
+   * enough — user picks at mapping time.
+   */
+  defaultAssetClassHint: 'crypto' | 'stocks';
+  /**
+   * Maps raw CSV side-cell values to canonical sides. Case-sensitive lookup.
+   * The `INVESTMENT_IMPORT_SIDE_SKIP` sentinel marks rows we should drop
+   * silently (unsupported action types, garbage cell content).
+   */
+  sideValueMapping: Record<string, InvestmentImportTransactionSide | InvestmentImportSideSkip>;
+}
+
 export interface InvestmentImportExtractionResult {
   /** Hierarchical: one row per parsed security with child transactions. */
   holdings: InvestmentImportHolding[];
@@ -137,12 +217,23 @@ export interface InvestmentImportEstimateCostRequest {
   fileBase64: string;
 }
 
-export interface InvestmentImportExtractRequest {
+export interface InvestmentImportExtractAiRequest {
+  /** Discriminator. Omit (or set to 'ai') for AI extraction. */
+  source?: 'ai';
   fileBase64: string;
   /** Pre-selected by the entry point (portfolio page) — server uses this as the
    * default `portfolioId` on every parsed holding row. */
   defaultPortfolioId: string;
 }
+
+export interface InvestmentImportExtractCsvRequest {
+  source: 'csv';
+  fileBase64: string;
+  defaultPortfolioId: string;
+  columnMapping: InvestmentColumnMapping;
+}
+
+export type InvestmentImportExtractRequest = InvestmentImportExtractAiRequest | InvestmentImportExtractCsvRequest;
 
 export interface InvestmentImportExecuteRequest {
   /** The (validated, possibly user-edited) holdings to commit. Each holding's

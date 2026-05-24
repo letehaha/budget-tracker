@@ -115,7 +115,6 @@
   },
   "investments": {
     "portfolioNotFound": "Portfolio not found",
-    "portfolioNameExists": "Portfolio with this name already exists",
     "portfolioIdRequired": "Portfolio ID is required.",
     "holdingNotFound": "Holding not found",
     "holdingNotFoundAddSecurity": "Holding not found. Please add the security to the portfolio first.",

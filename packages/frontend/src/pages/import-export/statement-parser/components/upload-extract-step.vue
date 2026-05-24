@@ -8,9 +8,9 @@
       <template #hint>{{ $t('pages.statementParser.uploadExtract.supportedFormats') }}</template>
     </FileDropzone>
 
-    <div v-if="fileError" class="bg-destructive/10 text-destructive-text rounded-lg p-3">
+    <Callout v-if="fileError" variant="destructive">
       {{ fileError }}
-    </div>
+    </Callout>
 
     <!-- Cost Estimate Section -->
     <div v-if="store.uploadedFile && !store.costEstimate && !store.estimateError" class="flex justify-center">
@@ -26,12 +26,12 @@
       </Button>
     </div>
 
-    <div v-if="store.estimateError" class="bg-destructive/10 text-destructive-text rounded-lg p-3">
+    <Callout v-if="store.estimateError" variant="destructive">
       {{ store.estimateError }}
       <Button variant="ghost" size="sm" class="mt-2" @click="handleEstimate">
         {{ $t('pages.statementParser.uploadExtract.tryAgain') }}
       </Button>
-    </div>
+    </Callout>
 
     <div v-if="store.costEstimate" class="space-y-4">
       <CostEstimateWarnings
@@ -101,9 +101,9 @@
       </div>
     </div>
 
-    <div v-if="store.extractionError" class="bg-destructive/10 text-destructive-text rounded-lg p-3">
+    <Callout v-if="store.extractionError" variant="destructive">
       {{ store.extractionError }}
-    </div>
+    </Callout>
 
     <!-- Extraction Results Preview -->
     <div v-if="store.extractionResult" class="space-y-4">
@@ -136,6 +136,7 @@
 import ApiKeySourceBadge from '@/components/common/api-key-source-badge.vue';
 import FileDropzone from '@/components/common/file-dropzone.vue';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import { CalculatorIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
 import { computed, onUnmounted, ref } from 'vue';

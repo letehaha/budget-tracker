@@ -5,6 +5,6 @@
  */
 export { extractInvestmentTransactionsWithAI } from './ai-extraction.service';
 export { estimateInvestmentExtractionCost } from './cost-estimation.service';
-export { detectInvestmentDuplicates } from './detect-duplicates.service';
+export { parseInvestmentCsv } from './csv-parser.service';
 export { executeInvestmentImport } from './execute-import.service';
-export { normaliseCurrency, resolveSymbols } from './symbol-resolution.service';
+export { groupRowsIntoHoldings } from './group-rows-into-holdings.service';

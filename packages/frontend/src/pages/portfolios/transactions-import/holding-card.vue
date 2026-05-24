@@ -42,7 +42,9 @@ const emit = defineEmits<{
       !isValid || isDuplicateSecurity ? 'border-destructive-text/60 ring-destructive-text/20 ring-1' : '',
     ]"
   >
-    <div class="grid grid-cols-1 gap-3 p-4 @md/import:grid-cols-[1fr_160px_140px_180px] @md/import:items-center">
+    <div
+      class="grid grid-cols-1 gap-3 p-4 @md/import:grid-cols-[minmax(0,250px)_160px_minmax(0,1fr)_auto] @md/import:items-center"
+    >
       <!-- Security cell (with label on mobile) -->
       <div class="@md/import:hidden">
         <label class="text-muted-foreground mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase">
@@ -57,6 +59,7 @@ const emit = defineEmits<{
         </label>
         <SecuritySearchCell
           :model-value="holding.resolvedSecurity"
+          :parsed-symbol="holding.parsedSymbol"
           :blocked-provider-symbols="blockedProviderSymbols"
           @update:model-value="(val) => (holding.resolvedSecurity = val)"
         />
@@ -64,6 +67,7 @@ const emit = defineEmits<{
       <div class="hidden @md/import:block">
         <SecuritySearchCell
           :model-value="holding.resolvedSecurity"
+          :parsed-symbol="holding.parsedSymbol"
           :blocked-provider-symbols="blockedProviderSymbols"
           @update:model-value="(val) => (holding.resolvedSecurity = val)"
         />

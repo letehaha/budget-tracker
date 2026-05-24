@@ -26,29 +26,52 @@ interface CreateTxParams {
   price: string;
   fees: string;
   name?: string;
+  /**
+   * Optional pre-loaded holding (with `security` and `portfolio` includes) +
+   * a flag indicating the caller has already verified portfolio ownership.
+   * Used by the bulk import loop to skip a portfolio query + a holding query
+   * per row. Without this the function fetches both itself, as before.
+   */
+  preloadedHolding?: Holdings;
 }
 
 const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
-  const { portfolioId, securityId, userId, category, quantity, price, fees, date } = params;
+  const { portfolioId, securityId, userId, category, quantity, price, fees, date, preloadedHolding } = params;
 
-  // Verify portfolio exists and user owns it
-  await findOrThrowNotFound({
-    query: Portfolios.findOne({
-      where: { id: portfolioId, userId },
-    }),
-    message: t({ key: 'investments.portfolioNotFound' }),
-  });
+  let holding: Holdings;
+  if (preloadedHolding) {
+    // Caller has already verified ownership and loaded the holding with its
+    // `portfolio` + `security` includes — the import loop hits the same
+    // (portfolioId, securityId) for every row of a holding, so re-fetching
+    // here would be wasted work. Defense in depth: re-verify that the
+    // preloaded portfolio actually belongs to this user. A future caller that
+    // forgets the ownership check upstream would silently grant cross-tenant
+    // writes without this guard.
+    if (!preloadedHolding.portfolio || preloadedHolding.portfolio.userId !== userId) {
+      throw new ValidationError({
+        message: 'preloadedHolding ownership mismatch — portfolio does not belong to the calling user.',
+      });
+    }
+    holding = preloadedHolding;
+  } else {
+    await findOrThrowNotFound({
+      query: Portfolios.findOne({
+        where: { id: portfolioId, userId },
+      }),
+      message: t({ key: 'investments.portfolioNotFound' }),
+    });
 
-  const holding = await findOrThrowNotFound({
-    query: Holdings.findOne({
-      where: { portfolioId, securityId },
-      include: [
-        { model: Portfolios, as: 'portfolio', where: { userId }, required: true },
-        { model: Securities, as: 'security', required: true },
-      ],
-    }),
-    message: t({ key: 'investments.holdingNotFoundAddSecurity' }),
-  });
+    holding = await findOrThrowNotFound({
+      query: Holdings.findOne({
+        where: { portfolioId, securityId },
+        include: [
+          { model: Portfolios, as: 'portfolio', where: { userId }, required: true },
+          { model: Securities, as: 'security', required: true },
+        ],
+      }),
+      message: t({ key: 'investments.holdingNotFoundAddSecurity' }),
+    });
+  }
 
   // Crypto holdings often drift from the on-chain truth (staking rewards, gas
   // fees, missed transfers), so we trust the user and let the position go

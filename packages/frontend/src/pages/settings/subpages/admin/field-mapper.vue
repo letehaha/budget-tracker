@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Callout } from '@/components/lib/ui/callout';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -110,15 +111,9 @@ watch(
       </select>
     </div>
 
-    <div
-      v-if="isMappingComplete"
-      class="bg-success/20 text-success-text border-success/20 flex items-center gap-2 rounded border p-2 text-sm"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-      </svg>
+    <Callout v-if="isMappingComplete" variant="success">
       {{ $t('settings.admin.priceUpload.fieldMapper.mappingComplete') }}
-    </div>
+    </Callout>
     <div v-else class="text-muted-foreground flex items-center gap-2 text-xs">
       {{ $t('settings.admin.priceUpload.fieldMapper.mappingIncomplete') }}
     </div>

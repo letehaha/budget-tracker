@@ -16,7 +16,7 @@
  * imports are a legitimate outcome anyway (one bad row shouldn't bin the rest).
  * Instead we collect per-row errors and return them.
  */
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { INVESTMENT_TRANSACTION_CATEGORY, isTradeSide } from '@bt/shared/types/investments';
 import type { InvestmentImportExecuteResponse, InvestmentImportHolding } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
@@ -95,6 +95,7 @@ export async function executeInvestmentImport({
     // the entire batch and leave the user with prior holdings half-committed
     // and a generic 500 — instead we skip just this holding and continue.
     let security: Securities | null = null;
+    let preloadedHoldingRef: Holdings | null = null;
     try {
       // 1. Resolve or create Security.
       if (resolvedSecurity.securityId) {
@@ -130,10 +131,19 @@ export async function executeInvestmentImport({
       // 2. Resolve or create Holding for (portfolio, security).
       await addUserCurrencies([{ userId, currencyCode: holding.currencyCode }]);
 
-      const existingHolding = await Holdings.findOne({
+      // Load with the same includes `createInvestmentTransaction` would —
+      // `security` for the crypto/stocks branch and `portfolio` for ownership.
+      // Loading once here lets the per-row inner loop skip those queries.
+      const holdingIncludes = [
+        { model: Portfolios, as: 'portfolio' as const, where: { userId }, required: true },
+        { model: Securities, as: 'security' as const, required: true },
+      ];
+
+      let loadedHolding = await Holdings.findOne({
         where: { portfolioId: holding.portfolioId, securityId: security.id },
+        include: holdingIncludes,
       });
-      if (existingHolding) {
+      if (loadedHolding) {
         mergedHoldings += 1;
       } else {
         await Holdings.create({
@@ -147,7 +157,14 @@ export async function executeInvestmentImport({
           refValue: '0',
         });
         createdHoldings += 1;
+        loadedHolding = await Holdings.findOne({
+          where: { portfolioId: holding.portfolioId, securityId: security.id },
+          include: holdingIncludes,
+        });
       }
+      // Stash on the local `holding` ref so the per-tx loop below picks it up
+      // without restructuring the existing variable scope.
+      preloadedHoldingRef = loadedHolding;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logger.error({
@@ -171,17 +188,35 @@ export async function executeInvestmentImport({
         continue;
       }
 
+      // Non-trade categories (dividend, transfer, tax, fee, cancel, other) ride
+      // the same wire shape but `createInvestmentTransaction` only models
+      // buy/sell properly today — running them through would silently
+      // misclassify the row's transactionType (everything-not-buy becomes
+      // income, which is wrong for fee/tax). Surface them as failures with a
+      // clear reason instead.
+      if (!isTradeSide(tx.side)) {
+        const reason = `Skipped "${holding.parsedSymbol}" ${tx.side} on ${tx.date}: non-trade categories are not yet supported.`;
+        logger.warn(reason);
+        warnings.push(reason);
+        failedTransactions += 1;
+        continue;
+      }
+
       try {
+        // `preloadedHoldingRef` skips a portfolio + holding lookup per row.
+        // tx.side is now narrowed to 'buy' | 'sell' — identical string values
+        // to the matching INVESTMENT_TRANSACTION_CATEGORY members.
         await createInvestmentTransaction({
           userId,
           portfolioId: holding.portfolioId,
           securityId: security.id,
-          category: tx.side === 'buy' ? INVESTMENT_TRANSACTION_CATEGORY.buy : INVESTMENT_TRANSACTION_CATEGORY.sell,
+          category: tx.side as INVESTMENT_TRANSACTION_CATEGORY,
           date: tx.date,
           quantity: tx.quantity,
           price: tx.price,
           fees: tx.fees,
           name: '',
+          preloadedHolding: preloadedHoldingRef ?? undefined,
         });
         createdTransactions += 1;
       } catch (error) {

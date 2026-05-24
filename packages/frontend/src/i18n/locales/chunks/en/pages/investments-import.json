@@ -12,7 +12,14 @@
       "model": "Model",
       "estimateButton": "Estimate cost",
       "extractButton": "Extract",
-      "extracting": "Extracting…"
+      "extracting": "Extracting…",
+      "modeAi": "AI Import",
+      "modeCsv": "CSV Import",
+      "modeAiHint": "Upload any file — AI extracts your transactions automatically. Costs tokens.",
+      "modeCsvHint": "Upload a CSV from your broker and map columns manually. No AI used.",
+      "csvHintFormats": "CSV files only.",
+      "parsingCsv": "Parsing…",
+      "continueToMapping": "Continue to mapping"
     },
     "review": {
       "warningsTitle": "Warnings",
@@ -21,6 +28,7 @@
       "pickCurrency": "Currency...",
       "searchPlaceholder": "Search by symbol...",
       "searching": "Searching...",
+      "parsedSymbolHint": "We couldn't auto-match {symbol} — pick the right security below.",
       "startTyping": "Start typing to search",
       "noResults": "No matches",
       "alreadyPicked": "already picked",
@@ -69,7 +77,59 @@
       "importFailed": "Could not import transactions.",
       "skippedHoldings": "Holdings skipped: {count}",
       "failedTransactions": "Transactions failed: {count}",
-      "estimateFailed": "Failed to estimate import cost"
+      "estimateFailed": "Failed to estimate import cost",
+      "csvParseFailed": "Could not parse the CSV. Check the file format and try again."
+    },
+    "columnMapping": {
+      "rowsAndDelimiter": "{rows} rows · delimiter '{delimiter}'",
+      "backToUpload": "Back",
+      "previewTitle": "Preview",
+      "requiredTitle": "Required columns",
+      "optionalTitle": "Optional columns",
+      "defaultsTitle": "Defaults",
+      "sideValueMappingTitle": "Side value mapping",
+      "sideValueMappingHint": "Tell us what each value in the side column means.",
+      "sideValueMappingEmpty": "No values found in this column yet.",
+      "selectColumn": "Select column…",
+      "notMapped": "Not mapped",
+      "pickCategory": "Pick category…",
+      "cashMovementsNote": "Cash deposits and withdrawals aren't supported yet. Pick 'Skip these rows' for those side values to leave them out of the import.",
+      "extractButton": "Continue to review",
+      "extracting": "Extracting…",
+      "fields": {
+        "symbol": "Symbol",
+        "date": "Date",
+        "side": "Side / Action",
+        "quantity": "Quantity",
+        "price": "Price",
+        "fees": "Fees",
+        "currency": "Currency",
+        "name": "Name",
+        "defaultCurrency": "Default currency",
+        "defaultAssetClass": "Default asset class"
+      },
+      "tooltips": {
+        "fees": "Column with commission/fees per transaction. If not mapped, fees default to 0.",
+        "currency": "Quote currency column (e.g. USD, EUR, USDT). Determines the cash side of each trade. Falls back to the Default currency below when empty or unmapped.",
+        "name": "Optional security display name (e.g. 'Apple Inc.'). Used for display in the review step only — ticker remains the authoritative identifier.",
+        "defaultCurrency": "Used when the Currency column above is empty or not mapped.",
+        "defaultAssetClass": "Hint for matching your symbols to securities. Pick the class that matches most rows in your file — you can override per security in the review step."
+      }
+    },
+    "categories": {
+      "buy": "Buy",
+      "sell": "Sell",
+      "dividend": "Dividend",
+      "transfer": "Transfer",
+      "tax": "Tax",
+      "fee": "Fee",
+      "cancel": "Cancel",
+      "other": "Other",
+      "skip": "Skip these rows"
+    },
+    "assetClasses": {
+      "stocks": "Stocks",
+      "crypto": "Crypto"
     }
   }
 }

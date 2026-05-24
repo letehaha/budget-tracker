@@ -18,6 +18,13 @@ const props = defineProps<{
   modelValue: ResolvedSecurityRef | null;
   /** Securities already selected on OTHER holding rows. Disables them in the dropdown. */
   blockedProviderSymbols: string[];
+  /**
+   * Raw symbol the parser pulled from the source file. Surfaces in the picker
+   * so users staring at "Pick security…" know what they're meant to find,
+   * and pre-fills the search box when they open the popover for the first
+   * time on a still-unresolved row.
+   */
+  parsedSymbol?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -38,6 +45,20 @@ const assetClassItems = computed(() => [
 const isOpen = ref(false);
 const searchTerm = ref('');
 const debounced = ref('');
+
+// First time the popover opens for an unresolved row, seed the search box
+// with the parsed symbol so the user doesn't have to retype it. We only do
+// this once (`hasPrefilled`) — re-opening later keeps whatever the user typed.
+const hasPrefilled = ref(false);
+watch(isOpen, (open) => {
+  if (!open) return;
+  if (hasPrefilled.value) return;
+  if (props.modelValue) return;
+  if (!props.parsedSymbol) return;
+  searchTerm.value = props.parsedSymbol;
+  debounced.value = props.parsedSymbol;
+  hasPrefilled.value = true;
+});
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 watch(searchTerm, (v) => {
@@ -106,12 +127,20 @@ const hasResults = computed(() => (query.data.value ?? []).length > 0);
 
     <Popover.PopoverContent class="w-[360px] p-0" align="start">
       <div class="space-y-2 border-b p-2">
+        <!-- Hint with the raw symbol the parser saw, so users don't pick blind. -->
+        <p v-if="parsedSymbol && !modelValue" class="text-muted-foreground px-1 text-xs">
+          <i18n-t keypath="investmentsImport.review.parsedSymbolHint" tag="span">
+            <template #symbol>
+              <code class="bg-muted text-foreground rounded px-1 py-0.5 font-mono text-[11px]">{{ parsedSymbol }}</code>
+            </template>
+          </i18n-t>
+        </p>
+
         <InputField
           v-model="searchTerm"
           type="text"
           :placeholder="$t('investmentsImport.review.searchPlaceholder')"
           autofocus
-          leading-icon-css-class="px-3"
         >
           <template #iconLeading>
             <SearchIcon class="text-muted-foreground size-4" />

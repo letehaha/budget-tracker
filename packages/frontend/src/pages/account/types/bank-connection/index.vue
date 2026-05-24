@@ -2,6 +2,7 @@
 import { type BankConnection, listConnections } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import { type PillTabItem, PillTabs } from '@/components/lib/ui/pill-tabs';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
@@ -94,27 +95,22 @@ const tabItems = computed<PillTabItem[]>(() => {
 
     <Tabs.TabsContent v-if="isOwner" value="integrations">
       <div class="grid gap-4 pt-6 text-sm">
-        <div
+        <Callout
           v-if="needsReauth && currentConnection"
-          class="border-destructive/40 bg-destructive/5 flex items-start gap-3 rounded-lg border p-4"
+          variant="destructive"
+          :title="$t('pages.account.integrations.reauthBanner.title')"
         >
-          <AlertTriangleIcon class="text-destructive-text mt-0.5 size-5 shrink-0" />
-          <div class="flex-1 space-y-1">
-            <p class="text-destructive-text font-medium">
-              {{ $t('pages.account.integrations.reauthBanner.title') }}
-            </p>
-            <p class="text-muted-foreground text-xs">
-              {{ $t('pages.account.integrations.reauthBanner.description') }}
-            </p>
-            <RouterLink
-              :to="{ name: ROUTES_NAMES.accountIntegrationDetails, params: { connectionId: currentConnection.id } }"
-              class="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
-            >
-              {{ $t('pages.account.integrations.reauthBanner.reconnectLink') }}
-              <ExternalLinkIcon class="size-3" />
-            </RouterLink>
-          </div>
-        </div>
+          <p class="text-muted-foreground text-xs">
+            {{ $t('pages.account.integrations.reauthBanner.description') }}
+          </p>
+          <RouterLink
+            :to="{ name: ROUTES_NAMES.accountIntegrationDetails, params: { connectionId: currentConnection.id } }"
+            class="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
+          >
+            {{ $t('pages.account.integrations.reauthBanner.reconnectLink') }}
+            <ExternalLinkIcon class="size-3" />
+          </RouterLink>
+        </Callout>
 
         <div class="flex items-center justify-between gap-2">
           <span>{{ t('pages.account.integrations.connectedVia') }}</span>

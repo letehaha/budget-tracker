@@ -4,12 +4,13 @@ import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import FeedbackDialog from '@/components/sidebar/feedback-dialog.vue';
 import { useCreatePortfolio } from '@/composable/data-queries/portfolios';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
-import { AlertTriangleIcon, CheckIcon } from '@lucide/vue';
+import { CheckIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -83,10 +84,7 @@ const createPortfolio = async () => {
     <template #description> {{ $t('dialogs.createPortfolio.description') }} </template>
 
     <form class="mt-4 grid gap-6" @submit.prevent="createPortfolio">
-      <div
-        class="bg-warning/10 border-warning/20 text-warning-text flex items-start gap-3 rounded-lg border p-3 text-sm"
-      >
-        <AlertTriangleIcon class="text-warning mt-0.5 size-4 shrink-0" />
+      <Callout>
         <i18n-t keypath="dialogs.createPortfolio.assetSupportNotice" tag="p">
           <template #roadmapLink>
             <a
@@ -108,7 +106,7 @@ const createPortfolio = async () => {
             </button>
           </template>
         </i18n-t>
-      </div>
+      </Callout>
 
       <FeedbackDialog v-model:open="isFeedbackOpen" triggerless default-type="feature_request" />
 
