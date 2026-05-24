@@ -80,16 +80,29 @@ const serviceImpl = async ({
       order: [['date', 'DESC']],
       limit,
       offset,
+      attributes: [
+        'id',
+        'securityId',
+        'portfolioId',
+        'category',
+        'date',
+        'quantity',
+        'price',
+        'fees',
+        'amount',
+        'currencyCode',
+      ],
       include: [
         {
           model: Portfolios,
           as: 'portfolio',
-          attributes: ['id', 'name'], // Only fetch needed fields
-          where: { userId }, // Ensure user can only see their own portfolios
+          attributes: ['id', 'name'],
+          where: { userId }, // INNER JOIN enforces user scoping
         },
         {
           model: Securities,
           as: 'security',
+          attributes: ['id', 'symbol', 'name', 'currencyCode', 'assetClass'],
         },
       ],
     }),
