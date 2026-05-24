@@ -21,6 +21,19 @@ import type { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } 
 export type InvestmentImportTransactionSide = `${INVESTMENT_TRANSACTION_CATEGORY}`;
 
 /**
+ * Narrow trade-only subset of the side union. The executor only fully models
+ * buy/sell today (cost basis, quantity check, cash delta direction); non-trade
+ * categories ride the same wire shape but require their own handling. Guards
+ * on this subset prevent silent misclassification at the seam.
+ */
+export type InvestmentImportTradeSide = Extract<InvestmentImportTransactionSide, 'buy' | 'sell'>;
+
+/** Type guard: is this side value one the executor can handle as a trade? */
+export function isTradeSide(side: InvestmentImportTransactionSide): side is InvestmentImportTradeSide {
+  return side === 'buy' || side === 'sell';
+}
+
+/**
  * Sentinel value used in `InvestmentColumnMapping.sideValueMapping` to mark a
  * raw CSV side value as "drop these rows silently." Two use cases:
  *
@@ -167,18 +180,6 @@ export interface InvestmentColumnMapping {
    * silently (unsupported action types, garbage cell content).
    */
   sideValueMapping: Record<string, InvestmentImportTransactionSide | InvestmentImportSideSkip>;
-}
-
-/**
- * Response for `POST /investments/transactions-import/parse-csv`. Mirrors the
- * bank-import `parseCSV` output. Used by the column-mapping UI to populate
- * dropdowns and show a preview.
- */
-export interface InvestmentImportParseCsvResponse {
-  headers: string[];
-  preview: Record<string, string>[];
-  detectedDelimiter: string;
-  totalRows: number;
 }
 
 export interface InvestmentImportExtractionResult {

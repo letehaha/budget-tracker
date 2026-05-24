@@ -5,6 +5,21 @@
 import type { Cents } from './money';
 
 /**
+ * Maximum data rows accepted from a single CSV upload. Same cap applied on the
+ * client (pre-flight in the investments column-mapping step) and on the server
+ * (bank- and investment-import parsers). Bumping this in one place reflects
+ * everywhere.
+ */
+export const MAX_CSV_ROWS = 50_000;
+
+/**
+ * CSV header names we refuse to accept — they would alias `Object.prototype`
+ * keys when used as object indices downstream. Shared so client and server
+ * stay in sync.
+ */
+export const CSV_FORBIDDEN_HEADERS = ['__proto__', 'prototype', 'constructor'] as const;
+
+/**
  * Import source types for imported transactions
  */
 export enum ImportSource {

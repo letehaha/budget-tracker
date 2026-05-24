@@ -8,13 +8,13 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { getApiErrorMessage } from '@/js/errors';
+import { cn } from '@/lib/utils';
 import {
   INVESTMENT_IMPORT_SIDE_SKIP,
   INVESTMENT_TRANSACTION_CATEGORY,
   type InvestmentColumnMapping,
   type InvestmentImportExtractionResult,
   type InvestmentImportHolding,
-  type InvestmentImportParseCsvResponse,
   type InvestmentImportSideSkip,
   type InvestmentImportTransactionSide,
 } from '@bt/shared/types/investments';
@@ -23,11 +23,13 @@ import { AlertTriangleIcon, ArrowLeftIcon, InfoIcon, Loader2Icon, SparklesIcon }
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import type { InvestmentImportParseCsvResult } from './parse-csv-local';
+
 const props = defineProps<{
   portfolioId: string;
   fileBase64: string;
   fileName: string;
-  parseResult: InvestmentImportParseCsvResponse;
+  parseResult: InvestmentImportParseCsvResult;
   /**
    * Previously-built mapping for this same file. Set by the page orchestrator
    * when the user returns to this step from review — so column picks and
@@ -134,9 +136,13 @@ const currencyOptions = computed<CurrencyOption[]>(() =>
     value: c.code,
   })),
 );
-function currencyObject(code: string | null): CurrencyOption | null {
-  if (!code) return null;
-  return currencyOptions.value.find((o) => o.value === code) ?? null;
+
+// Generic option-by-value lookup. Replaces four near-identical helpers
+// (objectFor/categoryObject/currencyObject/assetClassObject) — they all
+// did `options.find(o => o.value === value) ?? null`.
+function optionFor<V, O extends { value: V }>(value: V | null | undefined, options: readonly O[]): O | null {
+  if (value === null || value === undefined) return null;
+  return options.find((o) => o.value === value) ?? null;
 }
 
 // Side value mapping is keyed by the raw CSV cell value. Computed from the
@@ -198,20 +204,6 @@ const assetClassOptions = computed<{ label: string; value: 'crypto' | 'stocks' }
   { label: t('investmentsImport.assetClasses.crypto'), value: 'crypto' },
 ]);
 
-function objectFor(value: string | null, options: ColumnOption[]): ColumnOption | null {
-  if (!value) return null;
-  return options.find((o) => o.value === value) ?? null;
-}
-
-function categoryObject(value: SideMappingValue | undefined): CategoryOption | null {
-  if (!value) return null;
-  return categoryOptions.value.find((o) => o.value === value) ?? null;
-}
-
-function assetClassObject(value: 'crypto' | 'stocks') {
-  return assetClassOptions.value.find((o) => o.value === value) ?? null;
-}
-
 const requiredFilled = computed(
   () =>
     !!symbolColumn.value &&
@@ -247,13 +239,8 @@ const invalidSideValues = computed<Set<string>>(() => {
 const INVALID_FIELD_CLASS = '[&_button]:border-destructive-text [&_button]:ring-destructive-text/30 [&_button]:ring-1';
 
 function fieldErrorClass(invalid: boolean): string {
-  return invalid ? INVALID_FIELD_CLASS : '';
+  return cn(invalid && INVALID_FIELD_CLASS);
 }
-
-// Backend caps preview at 50 rows; display all of them so the user can
-// scroll vertically and spot non-trade junk rows (cash transactions, fees)
-// that often live at the top of broker exports.
-const previewRows = computed(() => props.parseResult.preview);
 
 function buildMapping(): InvestmentColumnMapping {
   return {
@@ -367,7 +354,7 @@ const extract = useMutation({
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, idx) in previewRows" :key="idx" class="hover:bg-muted/30">
+              <tr v-for="(row, idx) in parseResult.preview" :key="idx" class="hover:bg-muted/30">
                 <!-- Row index matches the backend's 1-based data-row numbering,
                      so "row 89 invalid" maps to the cell labelled 89 here. -->
                 <td
@@ -395,7 +382,7 @@ const extract = useMutation({
         <div class="@container/mapping">
           <div class="grid grid-cols-1 gap-3 @sm/mapping:grid-cols-2 @lg/mapping:grid-cols-3">
             <SelectField
-              :model-value="objectFor(symbolColumn, columnOptions)"
+              :model-value="optionFor(symbolColumn, columnOptions)"
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.symbol')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
@@ -404,7 +391,7 @@ const extract = useMutation({
               @update:model-value="(o: ColumnOption | null) => (symbolColumn = o?.value ?? null)"
             />
             <SelectField
-              :model-value="objectFor(dateColumn, columnOptions)"
+              :model-value="optionFor(dateColumn, columnOptions)"
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.date')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
@@ -413,7 +400,7 @@ const extract = useMutation({
               @update:model-value="(o: ColumnOption | null) => (dateColumn = o?.value ?? null)"
             />
             <SelectField
-              :model-value="objectFor(sideColumn, columnOptions)"
+              :model-value="optionFor(sideColumn, columnOptions)"
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.side')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
@@ -422,7 +409,7 @@ const extract = useMutation({
               @update:model-value="(o: ColumnOption | null) => (sideColumn = o?.value ?? null)"
             />
             <SelectField
-              :model-value="objectFor(quantityColumn, columnOptions)"
+              :model-value="optionFor(quantityColumn, columnOptions)"
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.quantity')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
@@ -431,7 +418,7 @@ const extract = useMutation({
               @update:model-value="(o: ColumnOption | null) => (quantityColumn = o?.value ?? null)"
             />
             <SelectField
-              :model-value="objectFor(priceColumn, columnOptions)"
+              :model-value="optionFor(priceColumn, columnOptions)"
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.price')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
@@ -459,7 +446,7 @@ const extract = useMutation({
                 </DesktopOnlyTooltip>
               </div>
               <SelectField
-                :model-value="objectFor(feesColumn, columnOptions)"
+                :model-value="optionFor(feesColumn, columnOptions)"
                 :values="columnOptions"
                 :placeholder="$t('investmentsImport.columnMapping.notMapped')"
                 @update:model-value="(o: ColumnOption | null) => (feesColumn = o?.value ?? null)"
@@ -476,7 +463,7 @@ const extract = useMutation({
                 </DesktopOnlyTooltip>
               </div>
               <SelectField
-                :model-value="objectFor(currencyColumn, columnOptions)"
+                :model-value="optionFor(currencyColumn, columnOptions)"
                 :values="columnOptions"
                 :placeholder="$t('investmentsImport.columnMapping.notMapped')"
                 @update:model-value="(o: ColumnOption | null) => (currencyColumn = o?.value ?? null)"
@@ -493,7 +480,7 @@ const extract = useMutation({
                 </DesktopOnlyTooltip>
               </div>
               <SelectField
-                :model-value="objectFor(nameColumn, columnOptions)"
+                :model-value="optionFor(nameColumn, columnOptions)"
                 :values="columnOptions"
                 :placeholder="$t('investmentsImport.columnMapping.notMapped')"
                 @update:model-value="(o: ColumnOption | null) => (nameColumn = o?.value ?? null)"
@@ -519,7 +506,7 @@ const extract = useMutation({
                 </DesktopOnlyTooltip>
               </div>
               <SelectField
-                :model-value="currencyObject(defaultCurrency)"
+                :model-value="optionFor(defaultCurrency, currencyOptions)"
                 :values="currencyOptions"
                 with-search
                 :placeholder="$t('investmentsImport.columnMapping.fields.defaultCurrency')"
@@ -537,7 +524,7 @@ const extract = useMutation({
                 </DesktopOnlyTooltip>
               </div>
               <SelectField
-                :model-value="assetClassObject(defaultAssetClassHint)"
+                :model-value="optionFor(defaultAssetClassHint, assetClassOptions)"
                 :values="assetClassOptions"
                 @update:model-value="(o) => (defaultAssetClassHint = o?.value ?? 'stocks')"
               />
@@ -569,19 +556,21 @@ const extract = useMutation({
           <div
             v-for="value in uniqueSideValues"
             :key="value"
-            :class="[
-              'flex items-center gap-3 rounded-md border p-2',
-              invalidSideValues.has(value)
-                ? 'border-destructive-text/60 bg-destructive/5'
-                : 'border-border/60 bg-muted/20',
-            ]"
+            :class="
+              cn(
+                'flex items-center gap-3 rounded-md border p-2',
+                invalidSideValues.has(value)
+                  ? 'border-destructive-text/60 bg-destructive/5'
+                  : 'border-border/60 bg-muted/20',
+              )
+            "
             :data-mapping-invalid="invalidSideValues.has(value) ? 'true' : null"
           >
             <code class="bg-background min-w-[80px] rounded px-2 py-1 text-xs">{{ value }}</code>
             <span class="text-muted-foreground text-xs">→</span>
             <div class="min-w-0 flex-1">
               <SelectField
-                :model-value="categoryObject(sideValueMapping[value])"
+                :model-value="optionFor(sideValueMapping[value], categoryOptions)"
                 :values="categoryOptions"
                 :placeholder="$t('investmentsImport.columnMapping.pickCategory')"
                 :class="fieldErrorClass(invalidSideValues.has(value))"

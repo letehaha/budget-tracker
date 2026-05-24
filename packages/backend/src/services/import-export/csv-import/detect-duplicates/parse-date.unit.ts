@@ -41,6 +41,25 @@ describe('parseDate', () => {
     expect(parseDate('15.01.2024')).toBe('2024-01-15');
   });
 
+  it('parses unambiguous DD/MM/YYYY where day > 12 as European', () => {
+    // Only EU interpretation is a valid calendar date — must NOT be silently
+    // mis-parsed as US (month=15 is invalid).
+    expect(parseDate('15/03/2024')).toBe('2024-03-15');
+  });
+
+  it('ties ambiguous DD/MM vs MM/DD inputs to US (documented behaviour)', () => {
+    // 01/02/2024 could be Jan 2 (US) or Feb 1 (EU). The service ties to US;
+    // changing this means changing the import contract for existing users.
+    expect(parseDate('01/02/2024')).toBe('2024-01-02');
+  });
+
+  it('rejects roll-over dates (e.g. 2024-01-32) instead of silently snapping forward', () => {
+    // `new Date('2024-01-32')` rolls over to Feb 1 — a silent wrong-date bug.
+    // Must return null so the invalid-rows warning surfaces the bad input.
+    expect(parseDate('2024-01-32')).toBeNull();
+    expect(parseDate('01/32/2024')).toBeNull();
+  });
+
   it('returns null for empty / nonsense input', () => {
     expect(parseDate('')).toBeNull();
     expect(parseDate('not-a-date')).toBeNull();

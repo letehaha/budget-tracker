@@ -25,38 +25,31 @@ export function parseDate(dateStr: string): string | null {
     }
   }
 
-  // Try US format (MM/DD/YYYY or MM-DD-YYYY)
-  const usMatch = dateStr.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  if (usMatch) {
-    const [, month, day, year] = usMatch;
-    if (isValidDate(Number(year), Number(month), Number(day))) {
-      return `${year}-${month!.padStart(2, '0')}-${day!.padStart(2, '0')}`;
+  // Day-first vs month-first slash/dash/dot format. Both regexes match the same
+  // strings — when only one interpretation is a valid calendar date (e.g.
+  // 15/03/2024 → can't be month 15), we use that one. When BOTH could be valid
+  // (e.g. 01/02/2024 — could be Jan 2 US or Feb 1 EU), we tie-break to US
+  // because every broker we've shipped support for so far has been US-format.
+  // This documented behaviour is locked in by parse-date.unit.ts.
+  const slashOrDashMatch = dateStr.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+  if (slashOrDashMatch) {
+    const [, a, b, yearStr] = slashOrDashMatch;
+    const year = Number(yearStr);
+    const usValid = isValidDate(year, Number(a), Number(b));
+    const euValid = isValidDate(year, Number(b), Number(a));
+    if (usValid) {
+      // Tie-break: when both interpretations parse, prefer US.
+      return `${yearStr}-${a!.padStart(2, '0')}-${b!.padStart(2, '0')}`;
+    }
+    if (euValid) {
+      return `${yearStr}-${b!.padStart(2, '0')}-${a!.padStart(2, '0')}`;
     }
   }
 
-  // Try European format (DD/MM/YYYY or DD.MM.YYYY)
-  const euMatch = dateStr.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
-  if (euMatch) {
-    const [, day, month, year] = euMatch;
-    if (isValidDate(Number(year), Number(month), Number(day))) {
-      return `${year}-${month!.padStart(2, '0')}-${day!.padStart(2, '0')}`;
-    }
-  }
-
-  // Try parsing with Date constructor as fallback
-  const parsed = new Date(dateStr);
-  if (!isNaN(parsed.getTime())) {
-    const year = parsed.getFullYear();
-    const month = String(parsed.getMonth() + 1).padStart(2, '0');
-    const day = String(parsed.getDate()).padStart(2, '0');
-
-    // Validate reasonable date range (1900 to current year + 1)
-    const currentYear = new Date().getFullYear();
-    if (year >= 1900 && year <= currentYear + 1) {
-      return `${year}-${month}-${day}`;
-    }
-  }
-
+  // No `new Date()` fallback. Its silent roll-over behaviour ("2024-01-32" →
+  // Feb 1) is worse than returning null — a missed row is visible in the
+  // invalid-rows warning, a wrong date is invisible. Brokers emit one of the
+  // formats above; anything else should fail loudly.
   return null;
 }
 

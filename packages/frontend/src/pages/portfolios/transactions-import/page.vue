@@ -5,15 +5,12 @@ import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import { usePortfolio } from '@/composable/data-queries/portfolios';
 import { isResourceMissingError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
-import type {
-  InvestmentColumnMapping,
-  InvestmentImportHolding,
-  InvestmentImportParseCsvResponse,
-} from '@bt/shared/types/investments';
+import type { InvestmentColumnMapping, InvestmentImportHolding } from '@bt/shared/types/investments';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import ColumnMappingStep from './column-mapping-step.vue';
+import type { InvestmentImportParseCsvResult } from './parse-csv-local';
 import ReviewStep from './review-step.vue';
 import UploadStep from './upload-step.vue';
 
@@ -37,7 +34,7 @@ const extractedWarnings = ref<string[]>([]);
 const csvContext = ref<{
   fileBase64: string;
   fileName: string;
-  parseResult: InvestmentImportParseCsvResponse;
+  parseResult: InvestmentImportParseCsvResult;
 } | null>(null);
 
 // Last mapping the user built in the CSV column-mapping step. Held here so
@@ -55,7 +52,7 @@ function onExtracted(payload: {
   step.value = 'review';
 }
 
-function onCsvParsed(payload: { fileBase64: string; fileName: string; parseResult: InvestmentImportParseCsvResponse }) {
+function onCsvParsed(payload: { fileBase64: string; fileName: string; parseResult: InvestmentImportParseCsvResult }) {
   csvContext.value = payload;
   // New CSV file — drop any persisted mapping; its column names may not exist
   // in the new file's headers and we'd rather auto-pick than show stale picks.

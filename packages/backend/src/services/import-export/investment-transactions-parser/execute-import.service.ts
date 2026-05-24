@@ -16,7 +16,7 @@
  * imports are a legitimate outcome anyway (one bad row shouldn't bin the rest).
  * Instead we collect per-row errors and return them.
  */
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { INVESTMENT_TRANSACTION_CATEGORY, isTradeSide } from '@bt/shared/types/investments';
 import type { InvestmentImportExecuteResponse, InvestmentImportHolding } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
@@ -188,10 +188,24 @@ export async function executeInvestmentImport({
         continue;
       }
 
+      // Non-trade categories (dividend, transfer, tax, fee, cancel, other) ride
+      // the same wire shape but `createInvestmentTransaction` only models
+      // buy/sell properly today — running them through would silently
+      // misclassify the row's transactionType (everything-not-buy becomes
+      // income, which is wrong for fee/tax). Surface them as failures with a
+      // clear reason instead.
+      if (!isTradeSide(tx.side)) {
+        const reason = `Skipped "${holding.parsedSymbol}" ${tx.side} on ${tx.date}: non-trade categories are not yet supported.`;
+        logger.warn(reason);
+        warnings.push(reason);
+        failedTransactions += 1;
+        continue;
+      }
+
       try {
-        // tx.side is the InvestmentImportTransactionSide string-union, which is
-        // the set of enum values — safe to cast since the values are identical.
         // `preloadedHoldingRef` skips a portfolio + holding lookup per row.
+        // tx.side is now narrowed to 'buy' | 'sell' — identical string values
+        // to the matching INVESTMENT_TRANSACTION_CATEGORY members.
         await createInvestmentTransaction({
           userId,
           portfolioId: holding.portfolioId,

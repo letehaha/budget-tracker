@@ -13,8 +13,12 @@
  * Output is the hierarchical `InvestmentImportExtractionResult['holdings']`
  * shape consumed by the review UI.
  */
-import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
-import type { InvestmentImportExtractionResult, InvestmentImportTransactionSide } from '@bt/shared/types/investments';
+import { ASSET_CLASS, isTradeSide } from '@bt/shared/types/investments';
+import type {
+  InvestmentImportExtractionResult,
+  InvestmentImportTradeSide,
+  InvestmentImportTransactionSide,
+} from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import { Big } from 'big.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -98,7 +102,7 @@ export async function groupRowsIntoHoldings({
     portfolioId: string;
     securityId: string;
     date: string;
-    side: 'buy' | 'sell';
+    side: InvestmentImportTradeSide;
     price: string;
     amount: string;
   }> = [];
@@ -133,15 +137,13 @@ export async function groupRowsIntoHoldings({
       // Dedup is only meaningful for trades — dividends/fees/etc. don't have a
       // price-based "is this the same event?" signal. Restrict the dedup batch
       // to buy/sell and rely on the same-value comparison in detect-duplicates.
-      const isTrade =
-        row.side === INVESTMENT_TRANSACTION_CATEGORY.buy || row.side === INVESTMENT_TRANSACTION_CATEGORY.sell;
-      if (isTrade && resolved?.resolvedSecurity?.securityId) {
+      if (isTradeSide(row.side) && resolved?.resolvedSecurity?.securityId) {
         rowsForDedup.push({
           tempId,
           portfolioId: defaultPortfolioId,
           securityId: resolved.resolvedSecurity.securityId,
           date: row.date,
-          side: row.side as 'buy' | 'sell',
+          side: row.side,
           price: row.price,
           amount,
         });

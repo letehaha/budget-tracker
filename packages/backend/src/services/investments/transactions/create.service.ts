@@ -43,7 +43,15 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
     // Caller has already verified ownership and loaded the holding with its
     // `portfolio` + `security` includes — the import loop hits the same
     // (portfolioId, securityId) for every row of a holding, so re-fetching
-    // here would be wasted work.
+    // here would be wasted work. Defense in depth: re-verify that the
+    // preloaded portfolio actually belongs to this user. A future caller that
+    // forgets the ownership check upstream would silently grant cross-tenant
+    // writes without this guard.
+    if (!preloadedHolding.portfolio || preloadedHolding.portfolio.userId !== userId) {
+      throw new ValidationError({
+        message: 'preloadedHolding ownership mismatch — portfolio does not belong to the calling user.',
+      });
+    }
     holding = preloadedHolding;
   } else {
     await findOrThrowNotFound({

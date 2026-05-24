@@ -7,6 +7,7 @@
  * row tokenisation + delimiter detection (fully domain-agnostic). This file
  * adds the investment-specific column mapping + per-field validation on top.
  */
+import { MAX_CSV_ROWS } from '@bt/shared/types';
 import {
   INVESTMENT_IMPORT_SIDE_SKIP,
   type InvestmentColumnMapping,
@@ -18,7 +19,7 @@ import { ValidationError } from '@js/errors';
 import { Big } from 'big.js';
 import { parse } from 'csv-parse/sync';
 
-import { MAX_CSV_ROWS, parseCSV } from '../csv-import/csv-parser.service';
+import { parseCSV } from '../csv-import/csv-parser.service';
 import { parseDate } from '../csv-import/detect-duplicates/parse-date';
 import type { NormalizedInvestmentRow } from './group-rows-into-holdings.service';
 import { normaliseCurrency } from './symbol-resolution.service';
@@ -33,6 +34,13 @@ interface ParseInvestmentCsvResult {
   rows: NormalizedInvestmentRow[];
   invalidRows: InvalidRow[];
   totalRows: number;
+  /**
+   * Count of rows the user explicitly mapped to the SKIP sentinel. Surfaced as
+   * a warning so the user can confirm e.g. their cash-movement rows got
+   * dropped on purpose — without this they'd see fewer transactions than
+   * their file contains with no breadcrumb why.
+   */
+  skippedRowsCount: number;
 }
 
 /**
@@ -136,47 +144,50 @@ export function parseInvestmentCsv({
   columnMapping: InvestmentColumnMapping;
 }): ParseInvestmentCsvResult {
   // Reuse the bank-import generic parseCSV to validate the file shape (empty
-  // file, missing headers, forbidden header names, row cap). It returns
-  // headers + a 50-row preview which we don't need here — we re-parse the
-  // full content below to walk every row.
-  parseCSV({ fileContent, previewLimit: 0 });
+  // file, missing headers, forbidden header names, row cap) and discover the
+  // delimiter + header row. We then re-parse the full content below to walk
+  // every row — the helper's preview-only output is shape-validated but trims
+  // at `previewLimit`.
+  const { detectedDelimiter, headers } = parseCSV({ fileContent, previewLimit: 1 });
 
-  // Re-parse with the same delimiter the generic helper would have detected
-  // so per-row indexing matches. Run delimiter detection from the file itself
-  // by letting csv-parse auto-detect via a comma-sweep below, mirroring the
-  // bank-import flow.
-  const headerResult = parseCSV({ fileContent, previewLimit: 1 });
-  const detectedDelimiter = headerResult.detectedDelimiter;
-  const headers = headerResult.headers;
-
-  // Validate every required mapping column actually exists in the headers.
-  // Without this guard a typo in the column-mapping UI would silently produce
-  // empty-string fields and we'd fail every row with "bad date / bad number".
-  const requiredColumns: (keyof InvestmentColumnMapping)[] = ['symbol', 'date', 'side', 'quantity', 'price'];
-  for (const key of requiredColumns) {
-    const header = columnMapping[key];
-    if (typeof header === 'string' && header && !headers.includes(header)) {
+  // Validate every mapped column actually exists in the headers. Without this
+  // guard a typo in the column-mapping UI would silently produce empty-string
+  // fields and we'd fail every row with "bad date / bad number".
+  const mappedColumns: { key: keyof InvestmentColumnMapping; header: string | null }[] = [
+    { key: 'symbol', header: columnMapping.symbol },
+    { key: 'date', header: columnMapping.date },
+    { key: 'side', header: columnMapping.side },
+    { key: 'quantity', header: columnMapping.quantity },
+    { key: 'price', header: columnMapping.price },
+    { key: 'fees', header: columnMapping.fees },
+    { key: 'currency', header: columnMapping.currency },
+    { key: 'name', header: columnMapping.name },
+  ];
+  for (const { key, header } of mappedColumns) {
+    if (header && !headers.includes(header)) {
       throw new ValidationError({
         message: `Column "${header}" (mapped as ${key}) was not found in the CSV headers.`,
       });
     }
   }
-  for (const optional of ['fees', 'currency', 'name'] as const) {
-    const header = columnMapping[optional];
-    if (header && !headers.includes(header)) {
-      throw new ValidationError({
-        message: `Column "${header}" (mapped as ${optional}) was not found in the CSV headers.`,
-      });
-    }
-  }
 
-  const records = parse(fileContent, {
-    delimiter: detectedDelimiter,
-    skipEmptyLines: true,
-    relaxColumnCount: true,
-    trim: true,
-    columns: false,
-  }) as string[][];
+  // Wrap the full-content parse: csv-parse throws on mid-file structural
+  // issues (unterminated quote, etc.) that parseCSV's preview-only scan can
+  // miss. Surface as ValidationError with the underlying message so the user
+  // sees something more useful than "Check server logs".
+  let records: string[][];
+  try {
+    records = parse(fileContent, {
+      delimiter: detectedDelimiter,
+      skipEmptyLines: true,
+      relaxColumnCount: true,
+      trim: true,
+      columns: false,
+    }) as string[][];
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new ValidationError({ message: `Failed to parse CSV: ${message}` });
+  }
 
   // First row is header (already validated by parseCSV above). Walk data rows.
   const dataRows = records.slice(1);
@@ -190,6 +201,7 @@ export function parseInvestmentCsv({
 
   const rows: NormalizedInvestmentRow[] = [];
   const invalidRows: InvalidRow[] = [];
+  let skippedRowsCount = 0;
 
   dataRows.forEach((dataRow, dataRowIdx) => {
     const rowIndex = dataRowIdx + 1;
@@ -215,9 +227,14 @@ export function parseInvestmentCsv({
       invalidRows.push({ rowIndex, reason: `Unmapped side value "${sideRaw}"` });
       return;
     }
-    // User explicitly marked this side value as "skip" — drop the row silently.
-    // It doesn't appear in the holdings result and doesn't fill `invalidRows`.
-    if (side === INVESTMENT_IMPORT_SIDE_SKIP) return;
+    // User explicitly marked this side value as "skip" — drop the row, but
+    // count it so the controller can surface "N rows skipped on purpose" as a
+    // warning. Without the count the user sees fewer transactions than their
+    // file contained with no clue why.
+    if (side === INVESTMENT_IMPORT_SIDE_SKIP) {
+      skippedRowsCount += 1;
+      return;
+    }
 
     const quantityRaw = readCell({ row: dataRow, header: columnMapping.quantity, headers });
     const quantity = parseDecimal(quantityRaw);
@@ -271,5 +288,5 @@ export function parseInvestmentCsv({
     });
   });
 
-  return { rows, invalidRows, totalRows };
+  return { rows, invalidRows, totalRows, skippedRowsCount };
 }

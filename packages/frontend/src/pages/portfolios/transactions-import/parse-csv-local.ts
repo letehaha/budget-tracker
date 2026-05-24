@@ -12,19 +12,17 @@
  * column-mapping step doesn't need to care whether parsing happened locally
  * or remotely.
  */
-import type { InvestmentImportParseCsvResponse } from '@bt/shared/types/investments';
+import { CSV_FORBIDDEN_HEADERS, MAX_CSV_ROWS } from '@bt/shared/types';
 
-/**
- * Headers that would mutate the prototype chain when used as object keys.
- * Same list the backend used to enforce — frontend now owns this validation.
- */
-const FORBIDDEN_HEADERS = ['__proto__', 'prototype', 'constructor'];
+/** Frontend-only counterpart of the backend `parse-csv` response shape. */
+export interface InvestmentImportParseCsvResult {
+  headers: string[];
+  preview: Record<string, string>[];
+  detectedDelimiter: string;
+  totalRows: number;
+}
 
-/**
- * Same cap the backend extract endpoint still enforces. Mirrored client-side
- * so we surface the error before the user spends time on column mapping.
- */
-const MAX_CSV_ROWS = 50_000;
+const FORBIDDEN_HEADERS = new Set<string>(CSV_FORBIDDEN_HEADERS);
 
 export class CsvParseLocalError extends Error {
   constructor(
@@ -36,7 +34,7 @@ export class CsvParseLocalError extends Error {
   }
 }
 
-export async function parseCsvLocally({ fileText }: { fileText: string }): Promise<InvestmentImportParseCsvResponse> {
+export async function parseCsvLocally({ fileText }: { fileText: string }): Promise<InvestmentImportParseCsvResult> {
   if (!fileText.trim()) {
     throw new CsvParseLocalError('CSV file is empty.', 'EMPTY');
   }
@@ -68,7 +66,7 @@ export async function parseCsvLocally({ fileText }: { fileText: string }): Promi
           return;
         }
 
-        if (headers.some((h) => FORBIDDEN_HEADERS.includes(h))) {
+        if (headers.some((h) => FORBIDDEN_HEADERS.has(h))) {
           reject(new CsvParseLocalError('CSV header uses a forbidden name (e.g. __proto__).', 'FORBIDDEN_HEADER'));
           return;
         }

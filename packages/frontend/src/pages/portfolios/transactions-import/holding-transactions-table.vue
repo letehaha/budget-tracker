@@ -28,8 +28,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'toggleSkip', tempId: string): void;
-  (e: 'deleteTransaction', tempId: string): void;
+  (e: 'toggle-skip', tempId: string): void;
+  (e: 'delete-transaction', tempId: string): void;
 }>();
 
 const scrollRef = ref<HTMLElement | null>(null);
@@ -145,7 +145,7 @@ function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
                   size="sm"
                   :variant="skipTempIds.has(transactions[virtualRow.index]!.tempId) ? 'secondary' : 'soft-destructive'"
                   class="h-7 gap-1 px-2 text-xs"
-                  @click="emit('toggleSkip', transactions[virtualRow.index]!.tempId)"
+                  @click="emit('toggle-skip', transactions[virtualRow.index]!.tempId)"
                 >
                   <TriangleAlertIcon class="size-3.5" />
                   {{
@@ -159,7 +159,7 @@ function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
                 <Button
                   variant="ghost-destructive"
                   size="icon-sm"
-                  @click="emit('deleteTransaction', transactions[virtualRow.index]!.tempId)"
+                  @click="emit('delete-transaction', transactions[virtualRow.index]!.tempId)"
                 >
                   <Trash2Icon class="size-4" />
                 </Button>
@@ -236,7 +236,7 @@ function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
                   size="sm"
                   :variant="skipTempIds.has(transactions[virtualRow.index]!.tempId) ? 'secondary' : 'soft-destructive'"
                   class="h-8 gap-1 text-xs"
-                  @click="emit('toggleSkip', transactions[virtualRow.index]!.tempId)"
+                  @click="emit('toggle-skip', transactions[virtualRow.index]!.tempId)"
                 >
                   <TriangleAlertIcon class="size-3.5" />
                   {{
@@ -251,7 +251,7 @@ function rowBackgroundClasses(tx: InvestmentImportTransaction): string[] {
                 <Button
                   variant="ghost-destructive"
                   size="icon-sm"
-                  @click="emit('deleteTransaction', transactions[virtualRow.index]!.tempId)"
+                  @click="emit('delete-transaction', transactions[virtualRow.index]!.tempId)"
                 >
                   <Trash2Icon class="size-4" />
                 </Button>

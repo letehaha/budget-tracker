@@ -40,11 +40,13 @@ const columnMappingSchema = z.object({
   ),
 });
 
-// `source` is optional on the AI branch (defaults to 'ai') so existing callers
-// that don't know about the discriminator keep working. CSV branch must set
-// `source: 'csv'` explicitly — that's how the union picks it.
+// Discriminated union on `source` — Zod produces a clean
+// "you forgot columnMapping" error when source='csv' is missing fields,
+// rather than the combined per-branch errors a plain `z.union` would emit.
+// `source` itself defaults to 'ai' so existing callers that don't know about
+// the discriminator keep working.
 const aiBody = z.object({
-  source: z.literal('ai').optional().default('ai'),
+  source: z.literal('ai'),
   fileBase64: z.string().min(1, 'File content is required'),
   defaultPortfolioId: recordId(),
 });
@@ -56,6 +58,11 @@ const csvBody = z.object({
   columnMapping: columnMappingSchema,
 });
 
+const extractBodySchema = z.preprocess(
+  (val) => (val && typeof val === 'object' && !('source' in val) ? { ...val, source: 'ai' } : val),
+  z.discriminatedUnion('source', [aiBody, csvBody]),
+);
+
 /**
  * Extract investment transactions — either via AI from any supported file
  * (CSV/PDF/TXT) or via direct CSV parsing with a user-supplied column mapping.
@@ -66,9 +73,7 @@ const csvBody = z.object({
  */
 export const extractController = createController(
   z.object({
-    // Tried CSV first so requests with `source: 'csv'` + columnMapping pick
-    // that branch even though the AI branch happens to accept all its fields.
-    body: z.union([csvBody, aiBody]),
+    body: extractBodySchema,
   }),
   async ({ user, body }) => {
     try {
@@ -86,7 +91,7 @@ export const extractController = createController(
   },
 );
 
-type ExtractBody = z.infer<typeof aiBody> | z.infer<typeof csvBody>;
+type ExtractBody = z.infer<typeof extractBodySchema>;
 
 async function extractHandler({ userId, body }: { userId: number; body: ExtractBody }) {
   // Check portfolio ownership BEFORE doing any work. Without this guard a user
@@ -165,7 +170,7 @@ async function extractFromAi({ userId, body }: { userId: number; body: z.infer<t
 async function extractFromCsv({ userId, body }: { userId: number; body: z.infer<typeof csvBody> }) {
   const fileContent = Buffer.from(body.fileBase64, 'base64').toString('utf-8');
 
-  const { rows, invalidRows, totalRows } = parseInvestmentCsv({
+  const { rows, invalidRows, totalRows, skippedRowsCount } = parseInvestmentCsv({
     fileContent,
     columnMapping: body.columnMapping,
   });
@@ -182,6 +187,12 @@ async function extractFromCsv({ userId, body }: { userId: number; body: z.infer<
       .join('; ');
     const suffix = invalidRows.length > 5 ? ` (+ ${invalidRows.length - 5} more)` : '';
     extraWarnings.push(`${invalidRows.length} of ${totalRows} CSV row(s) were skipped — ${sample}${suffix}.`);
+  }
+  if (skippedRowsCount > 0) {
+    // Separate from invalidRows because these are deliberate, not failures.
+    // Without this warning the user wonders why their 500-row file produced
+    // only 300 transactions.
+    extraWarnings.push(`${skippedRowsCount} row(s) were skipped because their side value was mapped to "Skip".`);
   }
 
   const { holdings, warnings } = await groupRowsIntoHoldings({

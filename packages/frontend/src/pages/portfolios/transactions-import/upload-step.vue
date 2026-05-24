@@ -8,18 +8,14 @@ import { Card, CardContent } from '@/components/lib/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getApiErrorMessage } from '@/js/errors';
-import type {
-  InvestmentImportExtractionResult,
-  InvestmentImportHolding,
-  InvestmentImportParseCsvResponse,
-} from '@bt/shared/types/investments';
+import type { InvestmentImportExtractionResult, InvestmentImportHolding } from '@bt/shared/types/investments';
 import type { StatementCostEstimate } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
 import { ClipboardIcon, FileSpreadsheetIcon, FileTextIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { CsvParseLocalError, parseCsvLocally } from './parse-csv-local';
+import { CsvParseLocalError, parseCsvLocally, type InvestmentImportParseCsvResult } from './parse-csv-local';
 
 /** Decode the DataURL-stored base64 back to a UTF-8 string for client-side CSV parsing. */
 function base64ToUtf8(b64: string): string {
@@ -34,7 +30,7 @@ const emit = defineEmits<{
   (e: 'extracted', payload: { holdings: InvestmentImportHolding[]; warnings: string[] }): void;
   (
     e: 'csvParsed',
-    payload: { fileBase64: string; fileName: string; parseResult: InvestmentImportParseCsvResponse },
+    payload: { fileBase64: string; fileName: string; parseResult: InvestmentImportParseCsvResult },
   ): void;
 }>();
 
@@ -166,7 +162,7 @@ const parseCsv = useMutation({
     const fileText = base64ToUtf8(fileBase64.value);
     return parseCsvLocally({ fileText });
   },
-  onSuccess: (result: InvestmentImportParseCsvResponse) => {
+  onSuccess: (result: InvestmentImportParseCsvResult) => {
     emit('csvParsed', {
       fileBase64: fileBase64.value!,
       fileName: uploadedFile.value?.name ?? 'import.csv',
