@@ -223,6 +223,33 @@ const requiredFilled = computed(
     uniqueSideValues.value.every((v) => !!sideValueMapping.value[v]),
 );
 
+// Stays false until the user first tries to submit. Once true, empty required
+// fields render in their invalid state. Validity is still computed live, so
+// the highlight clears as soon as the user fills the field.
+const submitAttempted = ref(false);
+
+const invalidFields = computed(() => ({
+  symbol: submitAttempted.value && !symbolColumn.value,
+  date: submitAttempted.value && !dateColumn.value,
+  side: submitAttempted.value && !sideColumn.value,
+  quantity: submitAttempted.value && !quantityColumn.value,
+  price: submitAttempted.value && !priceColumn.value,
+}));
+
+const invalidSideValues = computed<Set<string>>(() => {
+  if (!submitAttempted.value) return new Set();
+  return new Set(uniqueSideValues.value.filter((v) => !sideValueMapping.value[v]));
+});
+
+// Tailwind classes that paint the SelectField trigger red. Applied via
+// arbitrary-variant `[&_button]` so we don't have to fork SelectField for
+// this one visual state.
+const INVALID_FIELD_CLASS = '[&_button]:border-destructive-text [&_button]:ring-destructive-text/30 [&_button]:ring-1';
+
+function fieldErrorClass(invalid: boolean): string {
+  return invalid ? INVALID_FIELD_CLASS : '';
+}
+
 // Backend caps preview at 50 rows; display all of them so the user can
 // scroll vertically and spot non-trade junk rows (cash transactions, fees)
 // that often live at the top of broker exports.
@@ -244,9 +271,22 @@ function buildMapping(): InvestmentColumnMapping {
   };
 }
 
+function onContinueClick() {
+  if (!requiredFilled.value) {
+    submitAttempted.value = true;
+    // Defer to next frame so newly-applied invalid classes are in the DOM
+    // before we query for them.
+    requestAnimationFrame(() => {
+      const firstInvalid = document.querySelector<HTMLElement>('[data-mapping-invalid="true"]');
+      firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return;
+  }
+  extract.mutate();
+}
+
 const extract = useMutation({
   mutationFn: async () => {
-    if (!requiredFilled.value) throw new Error('Mapping incomplete');
     const mapping = buildMapping();
     const result = await extractInvestmentTransactions({
       source: 'csv',
@@ -359,6 +399,8 @@ const extract = useMutation({
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.symbol')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
+              :class="fieldErrorClass(invalidFields.symbol)"
+              :data-mapping-invalid="invalidFields.symbol ? 'true' : null"
               @update:model-value="(o: ColumnOption | null) => (symbolColumn = o?.value ?? null)"
             />
             <SelectField
@@ -366,6 +408,8 @@ const extract = useMutation({
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.date')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
+              :class="fieldErrorClass(invalidFields.date)"
+              :data-mapping-invalid="invalidFields.date ? 'true' : null"
               @update:model-value="(o: ColumnOption | null) => (dateColumn = o?.value ?? null)"
             />
             <SelectField
@@ -373,6 +417,8 @@ const extract = useMutation({
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.side')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
+              :class="fieldErrorClass(invalidFields.side)"
+              :data-mapping-invalid="invalidFields.side ? 'true' : null"
               @update:model-value="(o: ColumnOption | null) => (sideColumn = o?.value ?? null)"
             />
             <SelectField
@@ -380,6 +426,8 @@ const extract = useMutation({
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.quantity')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
+              :class="fieldErrorClass(invalidFields.quantity)"
+              :data-mapping-invalid="invalidFields.quantity ? 'true' : null"
               @update:model-value="(o: ColumnOption | null) => (quantityColumn = o?.value ?? null)"
             />
             <SelectField
@@ -387,6 +435,8 @@ const extract = useMutation({
               :values="columnOptions"
               :label="$t('investmentsImport.columnMapping.fields.price')"
               :placeholder="$t('investmentsImport.columnMapping.selectColumn')"
+              :class="fieldErrorClass(invalidFields.price)"
+              :data-mapping-invalid="invalidFields.price ? 'true' : null"
               @update:model-value="(o: ColumnOption | null) => (priceColumn = o?.value ?? null)"
             />
           </div>
@@ -519,7 +569,13 @@ const extract = useMutation({
           <div
             v-for="value in uniqueSideValues"
             :key="value"
-            class="border-border/60 bg-muted/20 flex items-center gap-3 rounded-md border p-2"
+            :class="[
+              'flex items-center gap-3 rounded-md border p-2',
+              invalidSideValues.has(value)
+                ? 'border-destructive-text/60 bg-destructive/5'
+                : 'border-border/60 bg-muted/20',
+            ]"
+            :data-mapping-invalid="invalidSideValues.has(value) ? 'true' : null"
           >
             <code class="bg-background min-w-[80px] rounded px-2 py-1 text-xs">{{ value }}</code>
             <span class="text-muted-foreground text-xs">→</span>
@@ -528,6 +584,7 @@ const extract = useMutation({
                 :model-value="categoryObject(sideValueMapping[value])"
                 :values="categoryOptions"
                 :placeholder="$t('investmentsImport.columnMapping.pickCategory')"
+                :class="fieldErrorClass(invalidSideValues.has(value))"
                 @update:model-value="
                   (o: CategoryOption | null) => {
                     if (o) sideValueMapping[value] = o.value;
@@ -547,7 +604,7 @@ const extract = useMutation({
       <Button variant="ghost" size="sm" :disabled="extract.isPending.value" @click="emit('back')">
         {{ $t('investmentsImport.columnMapping.backToUpload') }}
       </Button>
-      <Button :disabled="!requiredFilled || extract.isPending.value" @click="extract.mutate()">
+      <Button :disabled="extract.isPending.value" @click="onContinueClick">
         <Loader2Icon v-if="extract.isPending.value" class="mr-1 size-4 animate-spin" />
         <SparklesIcon v-else class="mr-1 size-4" />
         {{

@@ -57,7 +57,8 @@
       "subtitle": "{count} символів",
       "filterPlaceholder": "Фільтрувати за символом або назвою...",
       "addButton": "Додати символ",
-      "importButton": "Імпортувати транзакції"
+      "importButton": "Імпортувати транзакції",
+      "importButtonShort": "Імпорт"
     },
     "holdingsTable": {
       "loadError": "Не вдалося завантажити утримання",

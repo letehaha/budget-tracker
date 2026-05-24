@@ -57,7 +57,8 @@
       "subtitle": "{count} symbols",
       "filterPlaceholder": "Filter by symbol or name...",
       "addButton": "Add Symbol",
-      "importButton": "Import transactions"
+      "importButton": "Import transactions",
+      "importButtonShort": "Import"
     },
     "holdingsTable": {
       "loadError": "Could not load holdings",

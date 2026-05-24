@@ -36,7 +36,8 @@
           <RouterLink :to="{ name: ROUTES_NAMES.portfolioTransactionsImport, params: { portfolioId } }">
             <UiButton size="sm" variant="outline">
               <FileUpIcon class="mr-1 size-4" />
-              {{ $t('portfolioDetail.holdings.importButton') }}
+              <span class="md:hidden">{{ $t('portfolioDetail.holdings.importButtonShort') }}</span>
+              <span class="hidden md:inline">{{ $t('portfolioDetail.holdings.importButton') }}</span>
             </UiButton>
           </RouterLink>
 
