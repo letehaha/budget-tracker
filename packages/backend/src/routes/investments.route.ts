@@ -229,9 +229,13 @@ router.put(
 );
 
 /**
- * AI-powered investment transactions import (crypto v1, stocks future).
- * Pipeline mirrors the bank-statement parser:
- *   estimate-cost → extract → (user reviews + edits in UI) → execute.
+ * Investment transactions import. Two paths share the review + execute stages:
+ *   - AI:  estimate-cost → extract({ source: 'ai' }) → execute
+ *   - CSV: (frontend parses locally via papaparse) → extract({ source: 'csv', columnMapping }) → execute
+ *
+ * `extract` is the merged endpoint; the body's discriminator decides whether
+ * the file is fed through the AI provider or parsed via the codebase CSV
+ * parser using a user-supplied column mapping.
  */
 router.post(
   '/transactions-import/estimate-cost',

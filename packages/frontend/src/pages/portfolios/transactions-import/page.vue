@@ -5,10 +5,15 @@ import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import { usePortfolio } from '@/composable/data-queries/portfolios';
 import { isResourceMissingError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
-import type { InvestmentImportHolding } from '@bt/shared/types/investments';
+import type {
+  InvestmentColumnMapping,
+  InvestmentImportHolding,
+  InvestmentImportParseCsvResponse,
+} from '@bt/shared/types/investments';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import ColumnMappingStep from './column-mapping-step.vue';
 import ReviewStep from './review-step.vue';
 import UploadStep from './upload-step.vue';
 
@@ -21,20 +26,59 @@ const { data: portfolio, isLoading, isError, error } = usePortfolio(portfolioId,
 
 const isNotFound = computed(() => isError.value && isResourceMissingError(error.value));
 
-type Step = 'upload' | 'review';
+type Step = 'upload' | 'columnMapping' | 'review';
 const step = ref<Step>('upload');
 
 const extractedHoldings = ref<InvestmentImportHolding[]>([]);
 const extractedWarnings = ref<string[]>([]);
 
-function onExtracted(payload: { holdings: InvestmentImportHolding[]; warnings: string[] }) {
+// CSV-path context. Set when the upload step parses a CSV; consumed by the
+// column-mapping step. Stays null on the AI path.
+const csvContext = ref<{
+  fileBase64: string;
+  fileName: string;
+  parseResult: InvestmentImportParseCsvResponse;
+} | null>(null);
+
+// Last mapping the user built in the CSV column-mapping step. Held here so
+// returning to that step from review preserves every dropdown pick.
+const lastColumnMapping = ref<InvestmentColumnMapping | null>(null);
+
+function onExtracted(payload: {
+  holdings: InvestmentImportHolding[];
+  warnings: string[];
+  mapping?: InvestmentColumnMapping;
+}) {
   extractedHoldings.value = payload.holdings;
   extractedWarnings.value = payload.warnings;
+  if (payload.mapping) lastColumnMapping.value = payload.mapping;
   step.value = 'review';
+}
+
+function onCsvParsed(payload: { fileBase64: string; fileName: string; parseResult: InvestmentImportParseCsvResponse }) {
+  csvContext.value = payload;
+  // New CSV file — drop any persisted mapping; its column names may not exist
+  // in the new file's headers and we'd rather auto-pick than show stale picks.
+  lastColumnMapping.value = null;
+  step.value = 'columnMapping';
 }
 
 function goBackToUpload() {
   step.value = 'upload';
+  csvContext.value = null;
+  lastColumnMapping.value = null;
+}
+
+// Back-from-review behaves differently per path:
+//   - CSV: return to the column-mapping step with the previously-built mapping
+//     restored, so the user can tweak picks without redoing the upload.
+//   - AI:  no intermediate step; fall back to the upload entry point.
+function onBackFromReview() {
+  if (csvContext.value) {
+    step.value = 'columnMapping';
+  } else {
+    goBackToUpload();
+  }
 }
 
 function onImported() {
@@ -82,13 +126,28 @@ function onImported() {
 
       <!-- Happy path -->
       <template v-else-if="portfolio">
-        <UploadStep v-if="step === 'upload'" :portfolio-id="portfolioId" @extracted="onExtracted" />
+        <UploadStep
+          v-if="step === 'upload'"
+          :portfolio-id="portfolioId"
+          @extracted="onExtracted"
+          @csv-parsed="onCsvParsed"
+        />
+        <ColumnMappingStep
+          v-else-if="step === 'columnMapping' && csvContext"
+          :portfolio-id="portfolioId"
+          :file-base64="csvContext.fileBase64"
+          :file-name="csvContext.fileName"
+          :parse-result="csvContext.parseResult"
+          :initial-mapping="lastColumnMapping"
+          @extracted="onExtracted"
+          @back="goBackToUpload"
+        />
         <ReviewStep
           v-else
           :portfolio-id="portfolioId"
           :initial-holdings="extractedHoldings"
           :initial-warnings="extractedWarnings"
-          @back="goBackToUpload"
+          @back="onBackFromReview"
           @imported="onImported"
         />
       </template>

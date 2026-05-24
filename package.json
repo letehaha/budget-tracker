@@ -38,6 +38,8 @@
     "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
+    "@emnapi/core": "1.10.0",
+    "@emnapi/runtime": "1.10.0",
     "@vue/compiler-sfc": "^3.5.13",
     "husky": "9.1.7",
     "knip": "^5.85.0",

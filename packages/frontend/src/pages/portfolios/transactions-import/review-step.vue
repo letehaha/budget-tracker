@@ -2,7 +2,6 @@
 import { executeInvestmentImport } from '@/api/investment-transactions-import';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { Button } from '@/components/lib/ui/button';
-import { Card, CardContent } from '@/components/lib/ui/card';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useAllCurrencies } from '@/composable/data-queries/currencies';
@@ -201,17 +200,18 @@ const execute = useMutation({
 
 <template>
   <div class="space-y-4">
-    <Card v-if="warnings.length > 0" class="border-warning/40 bg-warning/10">
-      <CardContent class="p-4 text-sm">
-        <p class="text-warning-text mb-1 flex items-center gap-2 font-medium">
-          <TriangleAlertIcon class="size-4" />
-          {{ $t('investmentsImport.review.warningsTitle') }}
-        </p>
-        <ul class="list-inside list-disc space-y-0.5 text-sm">
+    <div
+      v-if="warnings.length > 0"
+      class="bg-warning/10 border-warning/20 text-warning-text flex items-start gap-3 rounded-lg border p-3 text-sm"
+    >
+      <TriangleAlertIcon class="text-warning mt-0.5 size-4 shrink-0" />
+      <div class="min-w-0 flex-1">
+        <p class="mb-1 font-medium">{{ $t('investmentsImport.review.warningsTitle') }}</p>
+        <ul class="list-inside list-disc space-y-0.5">
           <li v-for="(w, i) in warnings" :key="i">{{ w }}</li>
         </ul>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
 
     <div v-if="holdings.length === 0" class="text-muted-foreground py-10 text-center text-sm">
       {{ $t('investmentsImport.review.empty') }}

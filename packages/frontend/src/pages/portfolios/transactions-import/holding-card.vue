@@ -57,6 +57,7 @@ const emit = defineEmits<{
         </label>
         <SecuritySearchCell
           :model-value="holding.resolvedSecurity"
+          :parsed-symbol="holding.parsedSymbol"
           :blocked-provider-symbols="blockedProviderSymbols"
           @update:model-value="(val) => (holding.resolvedSecurity = val)"
         />
@@ -64,6 +65,7 @@ const emit = defineEmits<{
       <div class="hidden @md/import:block">
         <SecuritySearchCell
           :model-value="holding.resolvedSecurity"
+          :parsed-symbol="holding.parsedSymbol"
           :blocked-provider-symbols="blockedProviderSymbols"
           @update:model-value="(val) => (holding.resolvedSecurity = val)"
         />

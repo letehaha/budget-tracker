@@ -5,10 +5,21 @@
 export function parseDate(dateStr: string): string | null {
   if (!dateStr) return null;
 
-  // Try ISO format first (YYYY-MM-DD)
-  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  // Try ISO and ISO-like formats (year-first): YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD.
+  // Brokers commonly emit YYYY/MM/DD on the trade-date column; without this
+  // pattern we'd drop every row in their exports.
+  const isoMatch = dateStr.match(/^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch;
+    if (isValidDate(Number(year), Number(month), Number(day))) {
+      return `${year}-${month!.padStart(2, '0')}-${day!.padStart(2, '0')}`;
+    }
+  }
+
+  // Compact 8-digit YYYYMMDD (e.g. "20250131" from Yahoo Finance exports).
+  const compactMatch = dateStr.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (compactMatch) {
+    const [, year, month, day] = compactMatch;
     if (isValidDate(Number(year), Number(month), Number(day))) {
       return `${year}-${month}-${day}`;
     }
