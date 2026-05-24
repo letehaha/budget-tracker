@@ -5,7 +5,9 @@
       "types": {
         "buy": "Купівля",
         "sell": "Продаж",
-        "dividend": "Дивіденди"
+        "dividend": "Дивіденди",
+        "fee": "Комісія",
+        "tax": "Податок"
       },
       "securityLabel": "Цінний папір",
       "securityPlaceholder": "Виберіть цінний папір",
@@ -13,6 +15,7 @@
       "quantityPlaceholder": "0.00",
       "priceLabel": "Ціна за акцію",
       "pricePlaceholder": "0.00",
+      "priceHelp": "Вкажіть 0 для стейкінг-винагород, аірдропів або коригування балансу.",
       "feesLabel": "Комісії (необов'язково)",
       "feesPlaceholder": "0.00",
       "dateLabel": "Дата транзакції",
