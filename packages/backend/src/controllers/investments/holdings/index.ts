@@ -96,12 +96,16 @@ export const getHoldingsController = createController(
 
 export const deleteHoldingController = createController(
   z.object({
-    body: z.object({ portfolioId: recordId(), securityId: recordId() }),
+    body: z.object({
+      portfolioId: recordId(),
+      securityId: recordId(),
+      force: z.boolean().optional(),
+    }),
   }),
   async ({ user, body }) => {
     const { id: userId } = user;
-    const { portfolioId, securityId } = body;
-    await deleteHolding({ userId, portfolioId, securityId });
+    const { portfolioId, securityId, force } = body;
+    await deleteHolding({ userId, portfolioId, securityId, force });
     return { statusCode: 200 };
   },
 );

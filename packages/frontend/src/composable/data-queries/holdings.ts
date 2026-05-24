@@ -3,6 +3,8 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, unref } from 'vue';
 
+import { invalidatePortfolioState } from './invalidate-portfolio-state';
+
 export const useHoldings = (portfolioId: MaybeRef<string | undefined>, queryOptions = {}) => {
   const queryClient = useQueryClient();
 
@@ -26,21 +28,19 @@ export const useCreateHolding = () => {
 
   return useMutation({
     mutationFn: (payload: CreateHoldingRequest) => createHolding(payload),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.holdingsList, variables.portfolioId] });
+    onSuccess: () => {
+      invalidatePortfolioState({ queryClient });
     },
   });
 };
 
-/** @public */
 export const useDeleteHolding = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (holdingId: string) => deleteHolding(holdingId),
+    mutationFn: (payload: { portfolioId: string; securityId: string; force?: boolean }) => deleteHolding(payload),
     onSuccess: () => {
-      // holdings query key includes portfolioId, but we don't have it here; just invalidate all holdings queries
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingsList });
+      invalidatePortfolioState({ queryClient });
     },
   });
 };
