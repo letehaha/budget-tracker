@@ -29,7 +29,7 @@ interface UseShareInvitationDialogOptions {
   resourceType: ResourceType;
   resourceId: MaybeRefOrGetter<RecordId | string>;
   /** The dialog's open ref. Used to reset the form on open and to close on success. */
-  isOpen: Ref<boolean>;
+  isOpen: Ref<boolean | undefined>;
   /**
    * i18n namespace owned by the calling dialog (e.g. `'dialogs.shareAccountDialog'`).
    * Composable reads `<ns>.permissions.{read,write,manage}`, `<ns>.success`, `<ns>.error`,

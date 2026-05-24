@@ -10,8 +10,9 @@ import { useUserStore } from '@/stores';
 import { useOnboardingStore } from '@/stores/onboarding';
 import { type AccountModel, RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
+import { useVModel } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
@@ -27,14 +28,7 @@ const { t } = useI18n();
 const { isDemo } = storeToRefs(useUserStore());
 const onboardingStore = useOnboardingStore();
 
-const isOpen = computed({
-  get: () => props.open ?? internalOpen.value,
-  set: (value) => {
-    internalOpen.value = value;
-    emit('update:open', value);
-  },
-});
-const internalOpen = ref(false);
+const isOpen = useVModel(props, 'open', emit, { passive: true });
 
 const {
   email,

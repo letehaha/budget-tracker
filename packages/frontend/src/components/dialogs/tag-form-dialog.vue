@@ -141,6 +141,7 @@ import {
   TagReminderType,
 } from '@bt/shared/types';
 import { ChevronRightIcon, PlusIcon } from '@lucide/vue';
+import { useVModel } from '@vueuse/core';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -155,15 +156,8 @@ const emit = defineEmits<{
   'update:open': [value: boolean];
 }>();
 
-const isOpen = computed({
-  get: () => props.open ?? internalOpen.value,
-  set: (value: boolean) => {
-    internalOpen.value = value;
-    emit('update:open', value);
-  },
-});
+const isOpen = useVModel(props, 'open', emit, { passive: true });
 
-const internalOpen = ref(false);
 const isSubmitting = ref(false);
 const activeTab = ref('details');
 

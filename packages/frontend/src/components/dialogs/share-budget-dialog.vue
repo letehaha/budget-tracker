@@ -6,8 +6,9 @@ import { Button } from '@/components/lib/ui/button';
 import { useShareInvitationDialog } from '@/composable/use-share-invitation-dialog';
 import { useUserStore } from '@/stores';
 import { type BudgetModel, RESOURCE_TYPES } from '@bt/shared/types';
+import { useVModel } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 
 /**
  * Per-budget share invitation dialog. Mirrors `share-account-dialog.vue` but drops:
@@ -29,14 +30,7 @@ const emit = defineEmits<{
 
 const { isDemo } = storeToRefs(useUserStore());
 
-const internalOpen = ref(false);
-const isOpen = computed({
-  get: () => props.open ?? internalOpen.value,
-  set: (value) => {
-    internalOpen.value = value;
-    emit('update:open', value);
-  },
-});
+const isOpen = useVModel(props, 'open', emit, { passive: true });
 
 const { email, permission, permissionOptions, canSubmit, mutation, submit } = useShareInvitationDialog({
   resourceType: RESOURCE_TYPES.budget,
