@@ -203,6 +203,89 @@ describe('POST /transaction (create investment transaction)', () => {
     expect(holding!.costBasis).toBeNumericEqual(0);
   });
 
+  it('accepts a zero-price buy with numeric (not string) price payload', async () => {
+    // The frontend InputField with type="number" emits a JS number, so the
+    // payload sends `price: 0` rather than `price: "0"`. Both must be valid —
+    // the zod schema is a union of string/number on numericString.
+    const response = await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        quantity: 2,
+        price: 0,
+        fees: 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+    });
+
+    expect(response.statusCode).toBe(201);
+    const tx = helpers.extractResponse(response);
+    expect(tx.price).toBeNumericEqual(0);
+    expect(tx.quantity).toBeNumericEqual(2);
+  });
+
+  it('creates a fee transaction', async () => {
+    // FEE category records a standalone broker/exchange fee against the holding
+    // without changing the share count. Quantity must still be > 0 (the "size"
+    // of the fee), and amount = qty * price + fees.
+    const response = await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.fee,
+        quantity: '1',
+        price: '10',
+        fees: '0',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const tx = helpers.extractResponse(response);
+    expect(tx.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.fee);
+    expect(tx.price).toBeNumericEqual(10);
+  });
+
+  it('creates a tax transaction', async () => {
+    // TAX category records a standalone tax withholding event. Same shape as
+    // FEE — quantity * price + fees = amount, no share-count change.
+    const response = await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.tax,
+        quantity: '1',
+        price: '5',
+        fees: '0',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const tx = helpers.extractResponse(response);
+    expect(tx.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.tax);
+    expect(tx.price).toBeNumericEqual(5);
+  });
+
+  it('creates a dividend transaction', async () => {
+    // DIVIDEND category records cash income earned by the position (e.g. a
+    // stock dividend payout). No share count change; cash goes up.
+    const response = await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.dividend,
+        quantity: '1',
+        price: '25',
+        fees: '0',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const tx = helpers.extractResponse(response);
+    expect(tx.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.dividend);
+    expect(tx.price).toBeNumericEqual(25);
+  });
+
   describe('crypto sell oversell', () => {
     let btcSecurity: Securities;
 
@@ -222,6 +305,46 @@ describe('POST /transaction (create investment transaction)', () => {
           securityId: btcSecurity.id,
         },
       });
+    });
+
+    it('records a crypto staking reward as a zero-price buy', async () => {
+      // Real-world flow: user stakes ETH/SOL/etc. and earns more of the same
+      // token over time. The position quantity grows, no cash leaves the
+      // account, and average cost basis dilutes — which is exactly what a BUY
+      // with price=0 produces. This test locks the supported pattern in so a
+      // future regression on the zero-price validator gets caught.
+      const buyResponse = await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: btcSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          quantity: '0.5',
+          price: '50000',
+        },
+      });
+      expect(buyResponse.statusCode).toBe(201);
+
+      // Stake reward: +0.01 BTC, no cash impact.
+      const stakeResponse = await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: btcSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          quantity: '0.01',
+          price: '0',
+        },
+      });
+      expect(stakeResponse.statusCode).toBe(201);
+
+      const [holding] = await helpers.getHoldings({
+        portfolioId: investmentPortfolio.id,
+        payload: { securityId: btcSecurity.id },
+        raw: true,
+      });
+      expect(holding!.quantity).toBeNumericEqual(0.51);
+      // Cost basis unchanged from the original buy — the staked tokens cost
+      // nothing, so the average cost per token drops naturally.
+      expect(holding!.costBasis).toBeNumericEqual(25000);
     });
 
     it('allows selling crypto with no prior holdings (drift correction)', async () => {

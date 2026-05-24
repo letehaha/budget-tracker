@@ -165,6 +165,24 @@ When a button uses `size="icon"` or `size="icon-sm"` (no visible label) and perf
 
 `DesktopOnlyTooltip` automatically skips rendering the tooltip on touch devices (no hover capability), so no extra mobile handling is needed.
 
+#### Tooltip + slot-based dialog trigger
+
+When the tooltipped button is the slot trigger for `ResponsiveDialog` / `ResponsiveAlertDialog`, nesting `DialogTrigger > DesktopOnlyTooltip > Button` silently breaks the click (reka-ui `as-child` can't merge through the tooltip's fragment root). Order: tooltip outside, `<span class="inline-flex">` wrapper, dialog inside.
+
+```vue
+<DesktopOnlyTooltip content="Delete">
+  <span class="inline-flex">
+    <DeleteFooDialog :foo-id="id">
+      <UiButton size="icon" variant="ghost-destructive" aria-label="Delete">
+        <Trash2Icon class="size-4" />
+      </UiButton>
+    </DeleteFooDialog>
+  </span>
+</DesktopOnlyTooltip>
+```
+
+Not needed for plain `Button @click` with `v-model:open` — only slot-triggered dialogs.
+
 ### Dialogs & modals
 
 - Use **`ResponsiveDialog`** (`@/components/common/responsive-dialog.vue`) for general-purpose modals (forms, detail views)

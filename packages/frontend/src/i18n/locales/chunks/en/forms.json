@@ -5,7 +5,9 @@
       "types": {
         "buy": "Buy",
         "sell": "Sell",
-        "dividend": "Dividend"
+        "dividend": "Dividend",
+        "fee": "Fee",
+        "tax": "Tax"
       },
       "securityLabel": "Security",
       "securityPlaceholder": "Select a security",
@@ -13,6 +15,7 @@
       "quantityPlaceholder": "0.00",
       "priceLabel": "Price per Share",
       "pricePlaceholder": "0.00",
+      "priceHelp": "Use 0 for staking rewards, airdrops or balance adjustments.",
       "feesLabel": "Fees (optional)",
       "feesPlaceholder": "0.00",
       "dateLabel": "Transaction Date",

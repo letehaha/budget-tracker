@@ -26,7 +26,6 @@
     "@ai-sdk/google": "^3.0.1",
     "@ai-sdk/groq": "^3.0.1",
     "@ai-sdk/openai": "^3.0.1",
-    "@anthropic-ai/sdk": "^0.71.2",
     "@better-auth/oauth-provider": "^1.5.6",
     "@better-auth/passkey": "^1.5.6",
     "@coingecko/coingecko-typescript": "^5.1.1",
