@@ -9,6 +9,8 @@ import { useGetHoldingTransactionsInfinite } from '@/composable/data-queries/inv
 import { useDeleteHolding } from '@/composable/data-queries/holdings';
 import { useFormatCurrency } from '@/composable/formatters';
 import { getGainColorClass } from '@/composable/gain-color';
+import { getApiErrorMessage } from '@/js/errors';
+import { captureException } from '@/lib/sentry';
 import { useCurrenciesStore } from '@/stores/currencies';
 import type { HoldingModel } from '@bt/shared/types/investments';
 import {
@@ -188,8 +190,15 @@ const confirmDeleteHolding = async () => {
     if (expandedHoldingId.value === target.securityId) {
       expandedHoldingId.value = undefined;
     }
-  } catch {
-    addErrorNotification(t('portfolioDetail.holdingsTable.deleteHolding.error'));
+  } catch (err) {
+    const message = getApiErrorMessage({
+      e: err,
+      t,
+      conflictKey: 'portfolioDetail.holdingsTable.deleteHolding.error',
+      fallbackKey: 'portfolioDetail.holdingsTable.deleteHolding.error',
+    });
+    addErrorNotification(message);
+    captureException(err);
   } finally {
     deleteConfirmOpen.value = false;
     holdingPendingDelete.value = null;

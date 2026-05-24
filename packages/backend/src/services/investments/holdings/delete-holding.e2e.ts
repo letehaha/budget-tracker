@@ -1,3 +1,4 @@
+import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
@@ -154,6 +155,119 @@ describe('DELETE /investments/holding (delete holding)', () => {
     // The created VOO transaction is definitely gone (id no longer exists)
     const remainingVooTxn = await InvestmentTransaction.findByPk(vooBuy.id);
     expect(remainingVooTxn).toBeNull();
+  });
+
+  it('force-delete restores portfolio cash to pre-purchase state', async () => {
+    const currencyCode = vooSecurity.currencyCode;
+    await helpers.createHolding({
+      payload: { portfolioId: investmentPortfolio.id, securityId: vooSecurity.id },
+    });
+    await helpers.updatePortfolioBalance({
+      portfolioId: investmentPortfolio.id,
+      currencyCode,
+      setAvailableCash: '10000',
+      setTotalCash: '10000',
+    });
+
+    await helpers.createInvestmentTransaction({
+      payload: helpers.buildInvestmentTransactionPayload({
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        quantity: '10',
+        price: '500',
+        fees: '5',
+      }),
+      raw: true,
+    });
+
+    const [balanceAfterBuy] = await helpers.getPortfolioBalance({
+      portfolioId: investmentPortfolio.id,
+      currencyCode,
+      raw: true,
+    });
+    expect(balanceAfterBuy!.availableCash).toBeNumericEqual(4995); // 10000 - (10*500 + 5)
+    expect(balanceAfterBuy!.totalCash).toBeNumericEqual(4995);
+
+    await helpers.deleteHolding({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        force: true,
+      },
+      raw: false,
+    });
+
+    const [balanceAfterDelete] = await helpers.getPortfolioBalance({
+      portfolioId: investmentPortfolio.id,
+      currencyCode,
+      raw: true,
+    });
+    expect(balanceAfterDelete!.availableCash).toBeNumericEqual(10000);
+    expect(balanceAfterDelete!.totalCash).toBeNumericEqual(10000);
+  });
+
+  it('force-delete cascades when quantity nets to zero from paired buy + sell', async () => {
+    await helpers.createHolding({
+      payload: { portfolioId: investmentPortfolio.id, securityId: vooSecurity.id },
+    });
+
+    await helpers.createInvestmentTransaction({
+      payload: helpers.buildInvestmentTransactionPayload({
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        quantity: '10',
+        price: '100',
+      }),
+      raw: true,
+    });
+    await helpers.createInvestmentTransaction({
+      payload: helpers.buildInvestmentTransactionPayload({
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+        quantity: '10',
+        price: '110',
+      }),
+      raw: true,
+    });
+
+    const holdingBefore = await Holdings.findOne({
+      where: { portfolioId: investmentPortfolio.id, securityId: vooSecurity.id },
+    });
+    expect(holdingBefore!.quantity.isZero()).toBe(true);
+
+    const response = await helpers.deleteHolding({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        force: true,
+      },
+      raw: false,
+    });
+    expect(response.statusCode).toBe(200);
+
+    const holdingAfter = await Holdings.findOne({
+      where: { portfolioId: investmentPortfolio.id, securityId: vooSecurity.id },
+    });
+    expect(holdingAfter).toBeNull();
+    const txnsAfter = await InvestmentTransaction.findAll({
+      where: { portfolioId: investmentPortfolio.id, securityId: vooSecurity.id },
+    });
+    expect(txnsAfter).toHaveLength(0);
+  });
+
+  it('force-delete is idempotent when holding does not exist', async () => {
+    const response = await helpers.deleteHolding({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        force: true,
+      },
+      raw: false,
+    });
+    expect(response.statusCode).toBe(200);
   });
 
   it('fails if required fields are missing', async () => {
