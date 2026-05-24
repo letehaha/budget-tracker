@@ -1,6 +1,4 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
-import { t } from '@i18n/index';
-import { ConflictError } from '@js/errors';
 import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 
@@ -19,19 +17,9 @@ const createPortfolioImpl = async ({
   description = null,
   isEnabled = true,
 }: CreatePortfolioParams) => {
-  // Check if portfolio with same name already exists for this user
-  const existingPortfolio = await Portfolios.findOne({
-    where: {
-      userId,
-      name: name.trim(),
-    },
-  });
-
-  if (existingPortfolio) {
-    throw new ConflictError({ message: t({ key: 'investments.portfolioNameExists' }) });
-  }
-
-  // Create the portfolio
+  // Duplicate names are allowed — the (userId, name) DB constraint was dropped
+  // because it collided with soft-delete and the product call is to not bother
+  // the user about it.
   const portfolio = await Portfolios.create({
     userId,
     name: name.trim(),

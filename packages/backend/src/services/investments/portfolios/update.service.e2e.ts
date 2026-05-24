@@ -106,26 +106,26 @@ describe('Update Portfolio Service E2E', () => {
         expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
       });
 
-      it('should return 409 when name conflicts with existing portfolio', async () => {
-        // Create first portfolio
+      it('allows updating a portfolio to a name another portfolio already uses', async () => {
+        // Mirrors the create-side test — duplicate names are intentionally
+        // permitted now (uniqueness constraint dropped in
+        // 20260524000000-drop-portfolios-unique-name).
         const firstResponse = await helpers.createPortfolio({
           payload: { name: 'First Portfolio' },
         });
         expect(firstResponse.statusCode).toBe(200);
 
-        // Create second portfolio
         const secondResponse = await helpers.createPortfolio({
           payload: { name: 'Second Portfolio' },
         });
         const secondPortfolio = helpers.extractResponse(secondResponse);
 
-        // Try to update second portfolio with first portfolio's name
         const response = await helpers.updatePortfolio({
           portfolioId: secondPortfolio.id,
           payload: { name: 'First Portfolio' },
         });
 
-        expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
+        expect(response.statusCode).toBe(200);
       });
     });
 

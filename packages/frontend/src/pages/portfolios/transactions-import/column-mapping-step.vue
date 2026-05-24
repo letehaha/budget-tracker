@@ -308,6 +308,15 @@ const extract = useMutation({
           <table class="w-full min-w-max text-xs">
             <thead>
               <tr>
+                <!-- Corner cell — sticky in both axes so it stays put while the
+                     user scrolls the preview. Higher z-index than the regular
+                     stickies underneath it. -->
+                <th
+                  class="bg-muted border-border/60 text-muted-foreground sticky top-0 left-0 z-20 border-r border-b px-2 py-2 text-left font-medium whitespace-nowrap"
+                  scope="col"
+                >
+                  #
+                </th>
                 <th
                   v-for="header in parseResult.headers"
                   :key="header"
@@ -319,6 +328,13 @@ const extract = useMutation({
             </thead>
             <tbody>
               <tr v-for="(row, idx) in previewRows" :key="idx" class="hover:bg-muted/30">
+                <!-- Row index matches the backend's 1-based data-row numbering,
+                     so "row 89 invalid" maps to the cell labelled 89 here. -->
+                <td
+                  class="bg-card border-border/60 text-muted-foreground sticky left-0 z-10 border-r border-b px-2 py-1.5 text-right whitespace-nowrap tabular-nums"
+                >
+                  {{ idx + 1 }}
+                </td>
                 <td
                   v-for="header in parseResult.headers"
                   :key="header"
