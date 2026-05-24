@@ -65,7 +65,10 @@ function isTransactionValid(tx: InvestmentImportTransaction): boolean {
   const price = Number(tx.price);
   const fees = Number(tx.fees);
   if (!Number.isFinite(qty) || qty <= 0) return false;
-  if (!Number.isFinite(price) || price <= 0) return false;
+  // Zero price is legitimate for staking rewards, airdrops, balance adjustments,
+  // burns/lost-token writeoffs — they are real position changes with no cash
+  // consideration. The source's BUY/SELL classification is authoritative.
+  if (!Number.isFinite(price) || price < 0) return false;
   if (!Number.isFinite(fees) || fees < 0) return false;
   return tx.side === 'buy' || tx.side === 'sell';
 }

@@ -34,27 +34,49 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: string; security
     const amount = tx.amount.toBig();
     const refAmount = tx.refAmount.toBig();
 
+    // Invariant: cost basis represents the cost of the *current long position*.
+    // While running quantity is ≤ 0 (allowed for crypto drift), there is no
+    // long position, so cost basis must stay zero. Otherwise, average-cost
+    // tracking on the long portion. Without this invariant, the previous code
+    // silently inflated cost basis: a SELL while qty was negative produced a
+    // negative `quantity / totalQuantity` proportion and *added* to cost
+    // instead of reducing it (seen as a $1.27M cost basis on 0.28 BTC after a
+    // realistic Yahoo CSV import).
     switch (tx.category) {
-      case INVESTMENT_TRANSACTION_CATEGORY.buy:
-        totalQuantity = totalQuantity.plus(quantity);
-        totalCostBasis = totalCostBasis.plus(amount);
-        totalRefCostBasis = totalRefCostBasis.plus(refAmount);
+      case INVESTMENT_TRANSACTION_CATEGORY.buy: {
+        const newQuantity = totalQuantity.plus(quantity);
+        if (newQuantity.lte(0)) {
+          // Buy that doesn't bring the position out of short — no long position
+          // to attribute cost to.
+          totalCostBasis = new Big(0);
+          totalRefCostBasis = new Big(0);
+        } else if (totalQuantity.lte(0)) {
+          // Buy crosses from short/zero into a long position. Only the portion
+          // above zero counts as a new long basis; the rest just covered the short.
+          const longProportion = newQuantity.div(quantity);
+          totalCostBasis = amount.times(longProportion);
+          totalRefCostBasis = refAmount.times(longProportion);
+        } else {
+          totalCostBasis = totalCostBasis.plus(amount);
+          totalRefCostBasis = totalRefCostBasis.plus(refAmount);
+        }
+        totalQuantity = newQuantity;
         break;
+      }
 
       case INVESTMENT_TRANSACTION_CATEGORY.sell: {
-        let costBasisReduction = new Big(0);
-        let refCostBasisReduction = new Big(0);
-
-        // Only calculate proportional reduction if there's a position to sell from.
-        // If selling from a zero-quantity position, the cost basis reduction is zero.
-        if (!totalQuantity.eq(0)) {
-          const proportion = quantity.div(totalQuantity);
-          costBasisReduction = totalCostBasis.times(proportion);
-          refCostBasisReduction = totalRefCostBasis.times(proportion);
+        if (totalQuantity.gt(0)) {
+          const newQuantity = totalQuantity.minus(quantity);
+          if (newQuantity.lte(0)) {
+            totalCostBasis = new Big(0);
+            totalRefCostBasis = new Big(0);
+          } else {
+            const remainingProportion = newQuantity.div(totalQuantity);
+            totalCostBasis = totalCostBasis.times(remainingProportion);
+            totalRefCostBasis = totalRefCostBasis.times(remainingProportion);
+          }
         }
-
-        totalCostBasis = totalCostBasis.minus(costBasisReduction);
-        totalRefCostBasis = totalRefCostBasis.minus(refCostBasisReduction);
+        // Sell from zero/short position doesn't touch cost basis.
         totalQuantity = totalQuantity.minus(quantity);
         break;
       }

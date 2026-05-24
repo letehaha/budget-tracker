@@ -40,18 +40,19 @@ COLUMN RULES:
 - confidence: integer 0-100 reflecting how sure you are this is a real buy/sell trade with all fields correct.
 
 WHAT TO EXTRACT:
+- EVERY row the source explicitly classifies as a BUY or SELL — always emit it, regardless of any comment, note, memo, or description attached to that row. The source's own classification column (e.g. "Transaction Type", "Side", "Action", "BUY"/"SELL") is AUTHORITATIVE. Do NOT reclassify or drop such rows based on free-text fields like "staking", "balance adjustment", "missing tokens", "airdrop", "drift", or similar — if the row is tagged BUY or SELL by the source, it is a position change and must be emitted.
 - Spot BUY and SELL transactions in either asset class.
 - For stocks: trades on any exchange, regardless of currency.
 - For crypto: spot trades against fiat or USD-pegged stablecoins (USDT/USDC/BUSD/DAI/USD).
 - Crypto-to-crypto swaps: emit them anyway but leave currency empty. The server will mark them invalid and let the user fix.
 
-WHAT TO SKIP:
-- Deposits / withdrawals / transfers (no cash flow into a position).
-- Staking rewards, airdrops, interest, dividend payouts, capital distributions.
+WHAT TO SKIP (ONLY when the row is NOT explicitly tagged BUY or SELL by the source):
+- Standalone deposits / withdrawals / cash transfers that carry no buy/sell classification.
+- Standalone staking-reward / airdrop / interest / dividend / capital-distribution entries emitted as their own event type (e.g. an event row whose type column reads "DIVIDEND" or "STAKING" — not a BUY/SELL row that merely mentions staking in a comment).
 - Stock splits, mergers, reverse splits, spin-offs, rights issues.
 - Internal transfers between user's own accounts/wallets.
 - Fee-only rows that don't pair with a buy/sell.
-- Any row you can't confidently classify.
+- Rows where neither side (buy/sell) nor quantity can be determined from the source.
 
 NUMBER FORMAT:
 - Use a dot as the decimal separator.
