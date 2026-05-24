@@ -17,9 +17,8 @@ export const useCreateInvestmentTransaction = () => {
 
   return useMutation({
     mutationFn: createInvestmentTransaction,
-    onSuccess: (_, variables) => {
-      const { portfolioId } = variables as { portfolioId: string };
-      invalidatePortfolioState({ queryClient, portfolioId });
+    onSuccess: () => {
+      invalidatePortfolioState({ queryClient });
     },
   });
 };
@@ -30,7 +29,6 @@ export const useDeleteInvestmentTransaction = () => {
   return useMutation({
     mutationFn: deleteInvestmentTransaction,
     onSuccess: () => {
-      // Delete by transactionId doesn't carry portfolioId; broaden invalidation across all portfolios.
       invalidatePortfolioState({ queryClient });
     },
   });

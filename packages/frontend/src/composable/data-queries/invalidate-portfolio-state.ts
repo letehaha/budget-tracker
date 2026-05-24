@@ -1,5 +1,7 @@
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import type { QueryClient } from '@tanstack/vue-query';
+
+import { invalidateTransferRelatedQueries } from './portfolio-transfers';
 
 /**
  * Invalidate every query whose result depends on a portfolio's holdings,
@@ -8,27 +10,16 @@ import type { QueryClient } from '@tanstack/vue-query';
  * cost basis, market value, cash balances, transfers, and the dashboard
  * widgets that roll them up are all derived state and must refetch.
  *
- * Pass `portfolioId` to scope the holdings/details/balances/summary keys
- * to a single portfolio (cheaper); omit it to invalidate across all
- * portfolios — needed when the caller (e.g. delete-transaction mutation)
- * does not know which portfolio the change belongs to.
+ * Implementation: every holdings/portfolio cache key is co-prefixed with
+ * `securityPriceChange`, so a single prefix invalidation covers all of
+ * them plus the widget/analytics queries that share the prefix. Mutating
+ * a holding also shifts portfolio cash, which flows through the same
+ * caches as portfolio transfers (account widgets, analytics, records).
+ *
+ * TanStack only refetches *active* queries, so the broad scope doesn't
+ * trigger refetches for portfolios the user isn't currently viewing.
  */
-export const invalidatePortfolioState = ({
-  queryClient,
-  portfolioId,
-}: {
-  queryClient: QueryClient;
-  portfolioId?: string;
-}) => {
-  const scopedOrAll = <T extends readonly unknown[]>(base: T) =>
-    portfolioId ? ([...base, portfolioId] as const) : base;
-
-  queryClient.invalidateQueries({ queryKey: scopedOrAll(VUE_QUERY_CACHE_KEYS.holdingsList) });
-  queryClient.invalidateQueries({ queryKey: scopedOrAll(VUE_QUERY_CACHE_KEYS.portfolioDetails) });
-  queryClient.invalidateQueries({ queryKey: scopedOrAll(VUE_QUERY_CACHE_KEYS.portfolioSummary) });
-  queryClient.invalidateQueries({ queryKey: scopedOrAll(VUE_QUERY_CACHE_KEYS.portfolioBalances) });
-  queryClient.invalidateQueries({ queryKey: scopedOrAll(VUE_QUERY_CACHE_KEYS.portfolioTransfers) });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingTransactions });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioInvestmentTransactions });
+export const invalidatePortfolioState = ({ queryClient }: { queryClient: QueryClient }) => {
+  queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
+  invalidateTransferRelatedQueries(queryClient);
 };

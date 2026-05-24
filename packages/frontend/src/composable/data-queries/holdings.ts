@@ -28,8 +28,8 @@ export const useCreateHolding = () => {
 
   return useMutation({
     mutationFn: (payload: CreateHoldingRequest) => createHolding(payload),
-    onSuccess: (_, variables) => {
-      invalidatePortfolioState({ queryClient, portfolioId: variables.portfolioId });
+    onSuccess: () => {
+      invalidatePortfolioState({ queryClient });
     },
   });
 };
@@ -39,8 +39,8 @@ export const useDeleteHolding = () => {
 
   return useMutation({
     mutationFn: (payload: { portfolioId: string; securityId: string; force?: boolean }) => deleteHolding(payload),
-    onSuccess: (_, variables) => {
-      invalidatePortfolioState({ queryClient, portfolioId: variables.portfolioId });
+    onSuccess: () => {
+      invalidatePortfolioState({ queryClient });
     },
   });
 };
