@@ -2,13 +2,14 @@
 import { executeInvestmentImport } from '@/api/investment-transactions-import';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useAllCurrencies } from '@/composable/data-queries/currencies';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import type { InvestmentImportHolding, InvestmentImportTransaction } from '@bt/shared/types/investments';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
-import { CircleDollarSignIcon, CoinsIcon, InfoIcon, Loader2Icon, TriangleAlertIcon } from '@lucide/vue';
+import { CircleDollarSignIcon, CoinsIcon, InfoIcon, Loader2Icon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -200,18 +201,11 @@ const execute = useMutation({
 
 <template>
   <div class="space-y-4">
-    <div
-      v-if="warnings.length > 0"
-      class="bg-warning/10 border-warning/20 text-warning-text flex items-start gap-3 rounded-lg border p-3 text-sm"
-    >
-      <TriangleAlertIcon class="text-warning mt-0.5 size-4 shrink-0" />
-      <div class="min-w-0 flex-1">
-        <p class="mb-1 font-medium">{{ $t('investmentsImport.review.warningsTitle') }}</p>
-        <ul class="list-inside list-disc space-y-0.5">
-          <li v-for="(w, i) in warnings" :key="i">{{ w }}</li>
-        </ul>
-      </div>
-    </div>
+    <Callout v-if="warnings.length > 0" :title="$t('investmentsImport.review.warningsTitle')">
+      <ul class="list-inside list-disc space-y-0.5">
+        <li v-for="(w, i) in warnings" :key="i">{{ w }}</li>
+      </ul>
+    </Callout>
 
     <div v-if="holdings.length === 0" class="text-muted-foreground py-10 text-center text-sm">
       {{ $t('investmentsImport.review.empty') }}

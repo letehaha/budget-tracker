@@ -1,39 +1,26 @@
 <template>
   <div class="space-y-4">
     <!-- Token-based processing time warning -->
-    <div
-      v-if="tokenWarningLevel"
-      class="flex items-start gap-3 rounded-lg p-3"
-      :class="{
-        'bg-warning/10 text-warning-foreground': tokenWarningLevel === 'medium',
-        'bg-destructive/10 text-destructive-text': tokenWarningLevel === 'high' || tokenWarningLevel === 'extreme',
-      }"
-    >
-      <AlertTriangleIcon class="mt-0.5 size-5 shrink-0" />
-      <div class="space-y-1">
-        <p class="text-sm font-medium">{{ tokenWarningTitle }}</p>
-        <p class="text-sm opacity-90">{{ tokenWarningDescription }}</p>
-      </div>
-    </div>
+    <Callout v-if="tokenWarningLevel" :variant="tokenCalloutVariant" :title="tokenWarningTitle">
+      <p class="opacity-90">{{ tokenWarningDescription }}</p>
+    </Callout>
 
     <!-- Free API access warning -->
-    <div v-if="!usingUserKey" class="bg-muted/50 flex items-start gap-3 rounded-lg border p-3">
-      <InfoIcon class="text-warning-text mt-0.5 size-5 shrink-0" />
-      <div class="space-y-1">
-        <p class="text-warning-text text-sm">
-          {{ $t('pages.statementParser.uploadExtract.freeApiWarning') }}
-        </p>
-        <router-link :to="{ name: ROUTES_NAMES.settingsAiKeys }" class="text-primary text-sm hover:underline">
-          {{ $t('pages.statementParser.uploadExtract.addApiKeyLink') }}
-        </router-link>
-      </div>
-    </div>
+    <Callout v-if="!usingUserKey" variant="info" :icon="InfoIcon">
+      <p class="text-warning-text">
+        {{ $t('pages.statementParser.uploadExtract.freeApiWarning') }}
+      </p>
+      <router-link :to="{ name: ROUTES_NAMES.settingsAiKeys }" class="text-primary text-sm hover:underline">
+        {{ $t('pages.statementParser.uploadExtract.addApiKeyLink') }}
+      </router-link>
+    </Callout>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Callout } from '@/components/lib/ui/callout';
 import { ROUTES_NAMES } from '@/routes';
-import { AlertTriangleIcon, InfoIcon } from '@lucide/vue';
+import { InfoIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -61,6 +48,10 @@ const tokenWarningLevel = computed<TokenWarningLevel>(() => {
   if (tokens >= TOKEN_THRESHOLDS.MEDIUM) return 'medium';
   return null;
 });
+
+const tokenCalloutVariant = computed<'warning' | 'destructive'>(() =>
+  tokenWarningLevel.value === 'high' || tokenWarningLevel.value === 'extreme' ? 'destructive' : 'warning',
+);
 
 const tokenWarningTitle = computed(() => {
   switch (tokenWarningLevel.value) {

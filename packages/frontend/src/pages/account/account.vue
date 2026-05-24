@@ -18,36 +18,32 @@
         <Header :account="account" />
 
         <!-- Account re-link warning banner -->
-        <div
+        <Callout
           v-if="account.needsRelink"
-          class="bg-destructive/10 border-destructive/20 mx-6 mb-4 flex items-start gap-3 rounded-lg border p-4"
+          variant="destructive"
+          :title="t('pages.account.relinkWarning.title')"
+          class="mx-6 mb-4"
         >
-          <AlertTriangleIcon class="text-destructive-text mt-0.5 size-5 shrink-0" />
-          <div class="space-y-2">
-            <p class="text-destructive-text text-sm font-medium">{{ t('pages.account.relinkWarning.title') }}</p>
-            <p class="text-muted-foreground text-xs">
-              {{ t('pages.account.relinkWarning.description') }}
-              <span class="text-foreground font-medium"
-                >"{{ t('pages.account.relinkWarning.connectionValidity') }}"</span
-              >
-              {{ t('pages.account.relinkWarning.in') }}
-              <router-link
-                v-if="account.bankDataProviderConnectionId"
-                :to="{
-                  name: ROUTES_NAMES.accountIntegrationDetails,
-                  params: { connectionId: account.bankDataProviderConnectionId },
-                }"
-                class="text-primary hover:text-primary/80 inline-flex items-center gap-0.5 font-medium underline underline-offset-2"
-              >
-                {{ t('pages.account.relinkWarning.connectionSettings') }}
-              </router-link>
-              <template v-else>{{ t('pages.account.relinkWarning.settings') }}</template
-              >{{ t('pages.account.relinkWarning.ifPersists') }}
-              <span class="text-foreground font-medium">"{{ t('pages.account.relinkWarning.unlink') }}"</span>
-              {{ t('pages.account.relinkWarning.belowThenLink') }}
-            </p>
-          </div>
-        </div>
+          <p class="text-muted-foreground text-xs">
+            {{ t('pages.account.relinkWarning.description') }}
+            <span class="text-foreground font-medium">"{{ t('pages.account.relinkWarning.connectionValidity') }}"</span>
+            {{ t('pages.account.relinkWarning.in') }}
+            <router-link
+              v-if="account.bankDataProviderConnectionId"
+              :to="{
+                name: ROUTES_NAMES.accountIntegrationDetails,
+                params: { connectionId: account.bankDataProviderConnectionId },
+              }"
+              class="text-primary hover:text-primary/80 inline-flex items-center gap-0.5 font-medium underline underline-offset-2"
+            >
+              {{ t('pages.account.relinkWarning.connectionSettings') }}
+            </router-link>
+            <template v-else>{{ t('pages.account.relinkWarning.settings') }}</template
+            >{{ t('pages.account.relinkWarning.ifPersists') }}
+            <span class="text-foreground font-medium">"{{ t('pages.account.relinkWarning.unlink') }}"</span>
+            {{ t('pages.account.relinkWarning.belowThenLink') }}
+          </p>
+        </Callout>
 
         <Separator />
 
@@ -95,6 +91,7 @@ import { loadTransactions } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import * as Card from '@/components/lib/ui/card';
+import { Callout } from '@/components/lib/ui/callout';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { Separator } from '@/components/lib/ui/separator';
@@ -103,7 +100,6 @@ import TransactionsList from '@/components/transactions-list/transactions-list.v
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 import { useInfiniteQuery } from '@tanstack/vue-query';
-import { AlertTriangleIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';

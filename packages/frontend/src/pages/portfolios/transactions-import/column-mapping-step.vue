@@ -2,6 +2,7 @@
 import { extractInvestmentTransactions } from '@/api/investment-transactions-import';
 import SelectField from '@/components/fields/select-field.vue';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { Card, CardContent } from '@/components/lib/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/lib/ui/scroll-area';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -19,7 +20,7 @@ import {
   type InvestmentImportTransactionSide,
 } from '@bt/shared/types/investments';
 import { useMutation } from '@tanstack/vue-query';
-import { AlertTriangleIcon, ArrowLeftIcon, InfoIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
+import { ArrowLeftIcon, InfoIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -358,7 +359,7 @@ const extract = useMutation({
                 <!-- Row index matches the backend's 1-based data-row numbering,
                      so "row 89 invalid" maps to the cell labelled 89 here. -->
                 <td
-                  class="bg-card border-border/60 text-muted-foreground sticky left-0 z-10 border-r border-b px-2 py-1.5 text-right whitespace-nowrap tabular-nums"
+                  class="bg-card border-border/60 text-muted-foreground sticky left-0 border-r border-b px-2 py-1.5 text-right whitespace-nowrap tabular-nums"
                 >
                   {{ idx + 1 }}
                 </td>
@@ -542,12 +543,9 @@ const extract = useMutation({
         <p class="text-muted-foreground mb-3 text-xs">
           {{ $t('investmentsImport.columnMapping.sideValueMappingHint') }}
         </p>
-        <div
-          class="bg-warning/10 border-warning/20 text-warning-text mb-3 flex items-start gap-3 rounded-lg border p-3 text-sm"
-        >
-          <AlertTriangleIcon class="text-warning mt-0.5 size-4 shrink-0" />
+        <Callout class="mb-3">
           <p>{{ $t('investmentsImport.columnMapping.cashMovementsNote') }}</p>
-        </div>
+        </Callout>
 
         <div v-if="uniqueSideValues.length === 0" class="text-muted-foreground text-sm">
           {{ $t('investmentsImport.columnMapping.sideValueMappingEmpty') }}
@@ -566,7 +564,7 @@ const extract = useMutation({
             "
             :data-mapping-invalid="invalidSideValues.has(value) ? 'true' : null"
           >
-            <code class="bg-background min-w-[80px] rounded px-2 py-1 text-xs">{{ value }}</code>
+            <code class="bg-background min-w-20 rounded px-2 py-1 text-xs">{{ value }}</code>
             <span class="text-muted-foreground text-xs">→</span>
             <div class="min-w-0 flex-1">
               <SelectField

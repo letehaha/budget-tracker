@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Callout } from '@/components/lib/ui/callout';
 import { useFormatCurrency } from '@/composable';
 import { format } from 'date-fns';
 import { computed, ref, toRef } from 'vue';
@@ -88,35 +89,18 @@ function formatPercentage(percent: number): string {
     </p>
 
     <!-- Warning banner for significant differences -->
-    <div
+    <Callout
       v-if="hasSignificantDifferences"
-      class="bg-warning/10 text-warning-text border-warning/30 flex items-start gap-2 rounded border p-3 text-xs"
+      :title="$t('settings.admin.priceUpload.preview.warnings.significantDifferences')"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="size-4 shrink-0"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-        />
-      </svg>
-      <div>
-        <div class="font-medium">{{ $t('settings.admin.priceUpload.preview.warnings.significantDifferences') }}</div>
-        <div class="text-muted-foreground mt-1">
-          {{
-            $t('settings.admin.priceUpload.preview.warnings.differencesDetails', {
-              count: significantDifferencesCount,
-            })
-          }}
-        </div>
+      <div class="text-muted-foreground mt-1">
+        {{
+          $t('settings.admin.priceUpload.preview.warnings.differencesDetails', {
+            count: significantDifferencesCount,
+          })
+        }}
       </div>
-    </div>
+    </Callout>
 
     <!-- Filter checkbox -->
     <label v-if="hasSignificantDifferences" class="flex items-center gap-2 text-xs">

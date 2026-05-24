@@ -3,6 +3,7 @@ import { bulkUploadPrices, getPriceUploadInfo, searchSecurities } from '@/api/se
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useIsAdmin } from '@/composable';
@@ -561,8 +562,7 @@ if (!isAdmin.value) {
 
           <!-- Step 6: Result -->
           <div v-if="currentStep === 'result'" class="space-y-4">
-            <div class="bg-success/20 text-success-text border-success/20 rounded border p-4">
-              <h3 class="mb-2 font-medium">{{ $t('settings.admin.priceUpload.result.title') }}</h3>
+            <Callout variant="success" :title="$t('settings.admin.priceUpload.result.title')">
               <div class="space-y-1 text-sm">
                 <div>
                   {{
@@ -589,7 +589,7 @@ if (!isAdmin.value) {
                   }}
                 </div>
               </div>
-            </div>
+            </Callout>
 
             <div class="flex justify-end gap-2">
               <Button variant="outline" @click="isOpen = false">{{

@@ -15,13 +15,9 @@
     </div>
 
     <!-- Stuck-sync banner -->
-    <div v-if="syncStuck" class="bg-destructive/10 text-destructive-text mb-3 space-y-1 rounded-md p-3 text-sm">
-      <div class="flex items-center gap-2 font-medium">
-        <AlertTriangleIcon class="size-5 shrink-0" />
-        {{ $t('syncStatusTooltip.syncStuckTitle') }}
-      </div>
+    <Callout v-if="syncStuck" variant="destructive" :title="$t('syncStatusTooltip.syncStuckTitle')" class="mb-3">
       <p class="text-xs opacity-80">{{ $t('syncStatusTooltip.syncStuckDescription') }}</p>
-    </div>
+    </Callout>
 
     <!-- Connections needing reauth: connection was auto-deactivated after the
          bank rejected the session/refresh token, so the user must reconnect. -->
@@ -205,6 +201,7 @@
 import { type AccountSyncStatus, type ConnectionNeedingReauth, SyncStatus } from '@/api/bank-data-providers';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { ROUTES_NAMES } from '@/routes/constants';
 import type { AiCategorizationProgressPayload } from '@bt/shared/types';

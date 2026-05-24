@@ -6,6 +6,7 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
@@ -23,7 +24,7 @@ import {
   type SubscriptionModel,
   type RecordId,
 } from '@bt/shared/types';
-import { AlertCircleIcon, ChevronDownIcon } from '@lucide/vue';
+import { ChevronDownIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -252,10 +253,9 @@ const handleSubmit = () => {
 <template>
   <form :id="formId" class="grid gap-4" @submit.prevent="handleSubmit">
     <!-- Form Error -->
-    <div v-if="formError" class="bg-destructive/10 text-destructive-text flex items-start gap-2 rounded-md p-3 text-sm">
-      <AlertCircleIcon class="mt-0.5 size-4 shrink-0" />
+    <Callout v-if="formError" variant="destructive">
       <span>{{ formError }}</span>
-    </div>
+    </Callout>
 
     <!-- Name -->
     <div class="flex items-start gap-3">

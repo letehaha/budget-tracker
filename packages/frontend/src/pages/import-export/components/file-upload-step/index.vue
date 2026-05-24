@@ -17,9 +17,9 @@
       <template #hint>{{ t('pages.importExport.csvImport.fileUpload.maxSize') }}</template>
     </FileDropzone>
 
-    <div v-if="error" class="bg-destructive/10 text-destructive-text mt-4 rounded-lg p-3 text-sm">
+    <Callout v-if="error" variant="destructive" class="mt-4">
       {{ error }}
-    </div>
+    </Callout>
 
     <div v-if="selectedFile" class="mt-6 flex justify-end">
       <UiButton @click="handleUpload" :disabled="isUploading">
@@ -36,6 +36,7 @@
 <script setup lang="ts">
 import FileDropzone from '@/components/common/file-dropzone.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import { useImportExportStore } from '@/stores/import-export';
 import { LoaderIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
