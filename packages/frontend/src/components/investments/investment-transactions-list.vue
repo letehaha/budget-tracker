@@ -8,7 +8,7 @@ import type { InvestmentTransactionModel } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { format } from 'date-fns';
 import { PlusIcon, Trash2Icon } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref, toRef } from 'vue';
 
 const props = defineProps<{
   transactions: InvestmentTransactionModel[];
@@ -36,8 +36,6 @@ const getCategoryClasses = (category: INVESTMENT_TRANSACTION_CATEGORY) => {
   return map[category] ?? 'bg-slate-500/10 text-slate-600';
 };
 
-// Reactive refs the composable expects
-import { computed, toRef } from 'vue';
 const itemsRef = computed(() => props.transactions);
 const hasNextPageRef = toRef(() => props.hasNextPage);
 const isFetchingNextPageRef = toRef(() => props.isFetchingNextPage);

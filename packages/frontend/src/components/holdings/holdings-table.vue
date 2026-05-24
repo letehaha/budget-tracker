@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import InvestmentTransactionForm from '@/components/forms/investment-transaction-form.vue';
-import InvestmentTransactionsList from '@/components/investments/investment-transactions-list.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Dialog from '@/components/lib/ui/dialog';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useGetHoldingTransactionsInfinite } from '@/composable/data-queries/investment-transactions';
 import { useDeleteHolding } from '@/composable/data-queries/holdings';
 import { useFormatCurrency } from '@/composable/formatters';
 import { getGainColorClass } from '@/composable/gain-color';
@@ -22,12 +20,14 @@ import {
   ChevronRightIcon,
   PackageOpenIcon,
   PlusIcon,
-  ReceiptIcon,
   Trash2Icon,
 } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import HoldingTransactionsSection from './holding-transactions-section.vue';
+import { useHoldingRowExpansion } from './composables/use-holding-row-expansion';
 
 const props = defineProps<{ holdings: HoldingModel[]; loading?: boolean; error?: boolean; portfolioId: string }>();
 const emit = defineEmits<{ (e: 'addSymbol'): void; (e: 'importTransactions'): void }>();
@@ -147,26 +147,7 @@ const getRealizedGain = (holding: HoldingModel) => {
   };
 };
 
-const expandedHoldingId = ref<string | undefined>(undefined);
-
-const {
-  data: transactionsPages,
-  hasNextPage,
-  isFetchingNextPage,
-  fetchNextPage,
-  isFetching: isLoadingTransactions,
-} = useGetHoldingTransactionsInfinite(props.portfolioId, expandedHoldingId);
-
-const flatTransactions = computed(() => transactionsPages.value?.pages.flatMap((p) => p.transactions) ?? []);
-const hasNoTransactions = computed(() => !isLoadingTransactions.value && flatTransactions.value.length === 0);
-
-const toggleExpand = (securityId: string) => {
-  if (expandedHoldingId.value === securityId) {
-    expandedHoldingId.value = undefined;
-  } else {
-    expandedHoldingId.value = securityId;
-  }
-};
+const { isExpanded, toggleExpand, collapseIfMatches } = useHoldingRowExpansion();
 
 // Delete holding flow
 const deleteHoldingMutation = useDeleteHolding();
@@ -188,9 +169,7 @@ const confirmDeleteHolding = async () => {
       force: true,
     });
     addSuccessNotification(t('portfolioDetail.holdingsTable.deleteHolding.success'));
-    if (expandedHoldingId.value === target.securityId) {
-      expandedHoldingId.value = undefined;
-    }
+    collapseIfMatches(target.securityId);
   } catch (err) {
     const message = getApiErrorMessage({
       e: err,
@@ -368,7 +347,7 @@ const theadBgStyles = 'bg-muted';
             <tr class="hover:bg-muted/30 text-sm transition-colors">
               <td :class="[cellStyles, 'py-1']">
                 <Button variant="ghost" size="icon" class="size-8" @click="toggleExpand(h.securityId)">
-                  <ChevronDownIcon v-if="expandedHoldingId === h.securityId" class="size-4" />
+                  <ChevronDownIcon v-if="isExpanded(h.securityId)" class="size-4" />
                   <ChevronRightIcon v-else class="size-4" />
                 </Button>
               </td>
@@ -416,38 +395,13 @@ const theadBgStyles = 'bg-muted';
               </td>
             </tr>
             <!-- Expanded transactions section -->
-            <tr v-if="expandedHoldingId === h.securityId" class="bg-muted/20">
+            <tr v-if="isExpanded(h.securityId)" class="bg-muted/20">
               <td colspan="11" class="p-0">
-                <div class="border-primary/20 ml-4 border-l-2">
-                  <div v-if="isLoadingTransactions && flatTransactions.length === 0" class="p-6 text-center">
-                    <div
-                      class="border-primary/20 mx-auto mb-3 size-8 animate-spin rounded-full border-2 border-t-transparent"
-                    ></div>
-                    <p class="text-muted-foreground text-sm">
-                      {{ $t('portfolioDetail.holdingsTable.transactions.loading') }}
-                    </p>
-                  </div>
-                  <InvestmentTransactionsList
-                    v-else-if="flatTransactions.length > 0"
-                    :transactions="flatTransactions"
-                    :has-next-page="!!hasNextPage"
-                    :is-fetching-next-page="isFetchingNextPage"
-                    :fetch-next-page="fetchNextPage"
-                    @add-transaction="openTransactionModal(h)"
-                  />
-                  <div v-else-if="hasNoTransactions" class="p-6 text-center">
-                    <div class="bg-muted mx-auto mb-3 flex size-10 items-center justify-center rounded-full">
-                      <ReceiptIcon class="text-muted-foreground size-5" />
-                    </div>
-                    <p class="text-muted-foreground mb-3 text-sm">
-                      {{ $t('portfolioDetail.holdingsTable.transactions.empty') }}
-                    </p>
-                    <Button variant="outline" size="sm" @click="openTransactionModal(h)">
-                      <PlusIcon class="mr-2 size-4" />
-                      {{ $t('portfolioDetail.holdingsTable.transactions.addFirstButton') }}
-                    </Button>
-                  </div>
-                </div>
+                <HoldingTransactionsSection
+                  :portfolio-id="portfolioId"
+                  :security-id="h.securityId"
+                  @add-transaction="openTransactionModal(h)"
+                />
               </td>
             </tr>
           </template>
