@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
+import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InvestmentTransactionForm from '@/components/forms/investment-transaction-form.vue';
 import { Button } from '@/components/lib/ui/button';
-import * as Dialog from '@/components/lib/ui/dialog';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useDeleteHolding } from '@/composable/data-queries/holdings';
@@ -409,31 +409,26 @@ const theadBgStyles = 'bg-muted';
       </table>
     </div>
 
-    <Dialog.Dialog v-model:open="isTransactionModalOpen">
-      <Dialog.DialogContent class="sm:max-w-106.25">
-        <Dialog.DialogHeader>
-          <Dialog.DialogTitle>{{ $t('portfolioDetail.holdingsTable.addTransactionDialog.title') }}</Dialog.DialogTitle>
-          <Dialog.DialogDescription>
-            {{ $t('portfolioDetail.holdingsTable.addTransactionDialog.description') }}
-          </Dialog.DialogDescription>
-        </Dialog.DialogHeader>
-        <InvestmentTransactionForm
-          class="mt-4"
-          :portfolio-id="portfolioId"
-          :securities="
-            holdings.map((hh) => ({
-              value: String(hh.securityId),
-              label: hh.security?.name
-                ? `${hh.security.name} (${hh.security.symbol})`
-                : (hh.security?.symbol ?? 'Unknown'),
-            }))
-          "
-          :security-id="selectedHolding?.securityId ? String(selectedHolding.securityId) : undefined"
-          @success="isTransactionModalOpen = false"
-          @cancel="isTransactionModalOpen = false"
-        />
-      </Dialog.DialogContent>
-    </Dialog.Dialog>
+    <ResponsiveDialog v-model:open="isTransactionModalOpen" dialog-content-class="sm:max-w-106.25">
+      <template #title>{{ $t('portfolioDetail.holdingsTable.addTransactionDialog.title') }}</template>
+      <template #description>
+        {{ $t('portfolioDetail.holdingsTable.addTransactionDialog.description') }}
+      </template>
+      <InvestmentTransactionForm
+        :portfolio-id="portfolioId"
+        :securities="
+          holdings.map((hh) => ({
+            value: String(hh.securityId),
+            label: hh.security?.name
+              ? `${hh.security.name} (${hh.security.symbol})`
+              : (hh.security?.symbol ?? 'Unknown'),
+          }))
+        "
+        :security-id="selectedHolding?.securityId ? String(selectedHolding.securityId) : undefined"
+        @success="isTransactionModalOpen = false"
+        @cancel="isTransactionModalOpen = false"
+      />
+    </ResponsiveDialog>
 
     <ResponsiveAlertDialog
       v-model:open="deleteConfirmOpen"

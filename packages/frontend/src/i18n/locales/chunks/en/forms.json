@@ -19,6 +19,8 @@
       "feesLabel": "Fees (optional)",
       "feesPlaceholder": "0.00",
       "dateLabel": "Transaction Date",
+      "noteLabel": "Note",
+      "notePlaceholder": "Optional. Add a note about this transaction",
       "cancelButton": "Cancel",
       "submitButton": "Create Transaction",
       "submitButtonLoading": "Creating...",

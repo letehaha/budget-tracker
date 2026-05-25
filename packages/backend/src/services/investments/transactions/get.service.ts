@@ -86,6 +86,7 @@ const serviceImpl = async ({
         'portfolioId',
         'category',
         'date',
+        'name',
         'quantity',
         'price',
         'fees',

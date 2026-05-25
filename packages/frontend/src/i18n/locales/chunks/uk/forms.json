@@ -19,6 +19,8 @@
       "feesLabel": "Комісії (необов'язково)",
       "feesPlaceholder": "0.00",
       "dateLabel": "Дата транзакції",
+      "noteLabel": "Нотатка",
+      "notePlaceholder": "Необов'язково. Додайте нотатку про цю транзакцію",
       "cancelButton": "Скасувати",
       "submitButton": "Створити транзакцію",
       "submitButtonLoading": "Створення...",

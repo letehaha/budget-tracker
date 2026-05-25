@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import DeleteInvestmentTransactionDialog from '@/components/dialogs/delete-investment-transaction-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -76,13 +77,17 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransa
 
     <!-- Sticky-header grid table; virtualized rows below. Max height capped to viewport. -->
     <div class="bg-muted text-muted-foreground rounded-t-md text-xs font-medium tracking-wider uppercase">
-      <div class="grid items-center gap-2 px-3 py-2" style="grid-template-columns: 6rem 7rem 1fr 1fr 1fr 1fr 2.25rem">
+      <div
+        class="grid items-center gap-2 px-3 py-2"
+        style="grid-template-columns: 6rem 7rem 1fr 1fr 1fr 1fr 1fr 2.25rem"
+      >
         <div class="text-left">{{ $t('portfolioDetail.transactionsList.headers.date') }}</div>
         <div class="text-left">{{ $t('portfolioDetail.transactionsList.headers.type') }}</div>
         <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.quantity') }}</div>
         <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.price') }}</div>
         <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.fees') }}</div>
         <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.amount') }}</div>
+        <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.note') }}</div>
         <div></div>
       </div>
     </div>
@@ -101,7 +106,7 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransa
           <template v-if="transactions[virtualRow.index]">
             <div
               class="hover:bg-muted/30 grid items-center gap-2 px-3 py-1.5 transition-colors"
-              style="grid-template-columns: 6rem 7rem 1fr 1fr 1fr 1fr 2.25rem"
+              style="grid-template-columns: 6rem 7rem 1fr 1fr 1fr 1fr 1fr 2.25rem"
             >
               <div class="tabular-nums">{{ formatDate(transactions[virtualRow.index]!.date) }}</div>
               <div>
@@ -143,6 +148,17 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransa
                     transactions[virtualRow.index]!.security!.currencyCode,
                   )
                 }}
+              </div>
+              <div class="min-w-0">
+                <ResponsiveTooltip
+                  v-if="transactions[virtualRow.index]!.name"
+                  :content="transactions[virtualRow.index]!.name!"
+                  content-class-name="max-w-[min(400px,100vw)] whitespace-normal break-words"
+                >
+                  <span class="text-muted-foreground block cursor-default truncate whitespace-nowrap">
+                    {{ transactions[virtualRow.index]!.name }}
+                  </span>
+                </ResponsiveTooltip>
               </div>
               <div class="text-center">
                 <DesktopOnlyTooltip :content="$t('portfolioDetail.transactionsList.deleteTransaction.tooltip')">

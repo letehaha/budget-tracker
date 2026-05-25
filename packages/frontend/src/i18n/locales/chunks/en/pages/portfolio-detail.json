@@ -103,6 +103,7 @@
       "headers": {
         "date": "Date",
         "type": "Type",
+        "note": "Note",
         "quantity": "Quantity",
         "price": "Price",
         "fees": "Fees",
