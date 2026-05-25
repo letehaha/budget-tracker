@@ -38,10 +38,18 @@ export default class SecurityPricing extends Model {
   securityId!: RecordId;
 
   /**
-   * The date for which this pricing information is applicable. This field is crucial for tracking
-   * the historical prices of securities and allows for analysis of price trends over time.
+   * The canonical timestamp this pricing row represents. The underlying
+   * Postgres column is `TIMESTAMP WITH TIME ZONE` (Sequelize's `DataType.DATE`
+   * maps to TIMESTAMPTZ — confusingly named; SQL `DATE` would be `DATEONLY`).
+   * The same column supports both daily and intraday cadences:
+   *
+   *   - Stocks: midnight UTC of the trading day (one row per security per day).
+   *   - Crypto: CoinGecko's `last_updated_at` from the batch fetch — the
+   *     moment their oracle updated the price. Hourly cron produces multiple
+   *     rows per day per coin; the unique (securityId, date) index naturally
+   *     dedupes consecutive runs that see the same upstream timestamp.
    */
-  @Column({ type: DataType.DATEONLY, allowNull: false })
+  @Column({ type: DataType.DATE, allowNull: false })
   date!: Date;
 
   /**

@@ -73,12 +73,16 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
       return [];
     }
 
-    return allPricing.results.map((price) => ({
-      providerSymbol: toProviderSymbol(price.T!),
-      date: new Date(price.t!),
-      priceClose: price.c!,
-      providerName: SECURITY_PROVIDER.polygon,
-    }));
+    return allPricing.results.map((price) => {
+      const priceDate = new Date(price.t!);
+      return {
+        providerSymbol: toProviderSymbol(price.T!),
+        date: priceDate,
+        priceClose: price.c!,
+        priceAsOf: priceDate,
+        providerName: SECURITY_PROVIDER.polygon,
+      };
+    });
   }
 
   public async getHistoricalPrices(
@@ -100,12 +104,16 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
     return (
       response.results
         ?.filter((bar) => bar.c && bar.t)
-        .map((bar) => ({
-          providerSymbol,
-          date: new Date(bar.t!),
-          priceClose: bar.c!,
-          providerName: SECURITY_PROVIDER.polygon,
-        })) || []
+        .map((bar) => {
+          const date = new Date(bar.t!);
+          return {
+            providerSymbol,
+            date,
+            priceClose: bar.c!,
+            priceAsOf: date,
+            providerName: SECURITY_PROVIDER.polygon,
+          };
+        }) || []
     );
   }
 

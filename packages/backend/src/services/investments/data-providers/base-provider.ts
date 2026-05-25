@@ -33,7 +33,13 @@ export interface PriceData {
   providerSymbol: ProviderSymbol;
   date: Date;
   priceClose: number;
-  priceAsOf?: Date;
+  /**
+   * The moment the upstream provider reports the price was valid. Always set
+   * by every leaf provider — required so the daily/intraday sync can use it as
+   * the stored row's timestamp without a fallback that would silently break
+   * `(securityId, date)` dedup across runs.
+   */
+  priceAsOf: Date;
   providerName: SECURITY_PROVIDER;
 }
 

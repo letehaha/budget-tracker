@@ -1,6 +1,8 @@
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER, TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import Balances from '@models/balances.model';
+import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import * as helpers from '@tests/helpers';
 import { format, subDays } from 'date-fns';
 
@@ -273,5 +275,108 @@ describe('[Stats] Combined balance history', () => {
     for (const entry of data) {
       expect(entry.accountsBalance).toBe(5000);
     }
+  });
+
+  describe('Portfolio crypto intraday bucketing', () => {
+    it('collapses same-UTC-day SecurityPricing rows onto one daily bucket, latest timestamp wins', async () => {
+      // Test strategy: compare two API calls against the same portfolio. The
+      // first call has only the LATE intraday row (price 67000) seeded — that's
+      // the expected daily-bucket value. The second call adds an EARLIER row
+      // (price 50000) on the same UTC day. If the new bucketing logic works,
+      // the late row still wins and both responses match. If bucketing broke
+      // (e.g. early row overwrites the late one), the second response would
+      // drop to the 50000-derived value. The investment transaction defaults
+      // to currencyCode='USD' regardless of the security's currency, so the
+      // exchange rate to AED applies in both calls and cancels out — we only
+      // care that the LATE price won the bucket, not its absolute base-currency
+      // value.
+      const pickedDay = subDays(new Date(), 5);
+      const pickedDayUtcMidnight = Date.UTC(
+        pickedDay.getUTCFullYear(),
+        pickedDay.getUTCMonth(),
+        pickedDay.getUTCDate(),
+      );
+      const dayKey = format(new Date(pickedDayUtcMidnight), 'yyyy-MM-dd');
+
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Crypto Portfolio' }),
+        raw: true,
+      });
+
+      const cryptoSecurity = await Securities.create({
+        symbol: 'BTC',
+        providerSymbol: 'bitcoin',
+        currencyCode: 'USD',
+        cryptoCurrencyCode: 'BTC',
+        providerName: SECURITY_PROVIDER.coingecko,
+        assetClass: ASSET_CLASS.crypto,
+        name: 'Bitcoin',
+      });
+
+      await helpers.createHolding({
+        payload: { portfolioId: portfolio.id, securityId: cryptoSecurity.id },
+      });
+
+      // Drain any background sync from createHolding (it may also seed rows
+      // via the new bucketing path) so the assertions below operate on
+      // exactly the two rows we control.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await SecurityPricing.destroy({ where: { securityId: cryptoSecurity.id } });
+
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: cryptoSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          date: dayKey,
+          quantity: '1',
+          price: '50000',
+          fees: '0',
+        },
+        raw: true,
+      });
+
+      const fromDate = format(subDays(new Date(), 8), 'yyyy-MM-dd');
+      const toDate = format(new Date(), 'yyyy-MM-dd');
+
+      // Phase 1: only the 22:00 row exists — baseline expected value.
+      await SecurityPricing.create({
+        securityId: cryptoSecurity.id,
+        date: new Date(pickedDayUtcMidnight + 22 * 60 * 60 * 1000),
+        priceClose: '67000',
+        source: SECURITY_PROVIDER.coingecko,
+      });
+
+      const baselineData = await helpers.getCombinedBalanceHistory({
+        from: fromDate,
+        to: toDate,
+        raw: true,
+      });
+      const baselineEntry = (baselineData as CombinedBalanceHistoryItem[]).find((e) => e.date === dayKey);
+      expect(baselineEntry).toBeDefined();
+      const baselinePortfolio = baselineEntry!.portfoliosBalance;
+
+      // Phase 2: add an EARLIER intraday row on the same UTC day. With correct
+      // bucketing (the new `formatDate(price.date)` key + last-write-wins on
+      // `pricesBySecurityAndDate.set`), the late row still wins → same value.
+      // With the OLD `String(price.date)` key, both rows would create distinct
+      // keys none of which match the daily `targetDate`, so the value would
+      // fall back to costBasis and diverge from baseline.
+      await SecurityPricing.create({
+        securityId: cryptoSecurity.id,
+        date: new Date(pickedDayUtcMidnight + 6 * 60 * 60 * 1000),
+        priceClose: '50000',
+        source: SECURITY_PROVIDER.coingecko,
+      });
+
+      const bothData = await helpers.getCombinedBalanceHistory({
+        from: fromDate,
+        to: toDate,
+        raw: true,
+      });
+      const bothEntry = (bothData as CombinedBalanceHistoryItem[]).find((e) => e.date === dayKey);
+      expect(bothEntry).toBeDefined();
+      expect(bothEntry!.portfoliosBalance).toBe(baselinePortfolio);
+    });
   });
 });

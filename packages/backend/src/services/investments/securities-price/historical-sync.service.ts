@@ -1,4 +1,5 @@
 import { ASSET_CLASS } from '@bt/shared/types/investments';
+import { NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
@@ -7,6 +8,8 @@ import { withTransaction } from '@services/common/with-transaction';
 import { dataProviderFactory } from '@services/investments/data-providers';
 import { PriceData, toProviderSymbol } from '@services/investments/data-providers/base-provider';
 import { subYears } from 'date-fns';
+
+import { bucketByUtcDay } from './pricing-anchor';
 
 // CoinGecko Demo tier only serves up to 1 year of history. Stocks (Yahoo etc.)
 // happily go back further, so keep the longer backfill for them. Extending the
@@ -19,8 +22,7 @@ const syncHistoricalPricesImpl = async (securityId: string): Promise<{ count: nu
 
   const security = await Securities.findByPk(securityId);
   if (!security) {
-    logger.error(`Security with ID ${securityId} not found.`);
-    return { count: 0 };
+    throw new NotFoundError({ message: `Security with ID ${securityId} not found` });
   }
 
   const endDate = new Date();
@@ -45,7 +47,9 @@ const syncHistoricalPricesImpl = async (securityId: string): Promise<{ count: nu
     return { count: 0 };
   }
 
-  const pricesToCreate = prices.map((price) => ({
+  const dailyPrices = bucketByUtcDay(prices);
+
+  const pricesToCreate = dailyPrices.map((price) => ({
     securityId: security.id,
     date: price.date,
     priceClose: price.priceClose.toString(),
@@ -61,9 +65,10 @@ const syncHistoricalPricesImpl = async (securityId: string): Promise<{ count: nu
   await security.save();
 
   logger.info(
-    `Successfully synced ${prices.length} historical price points for ${security.symbol ?? security.providerSymbol}.`,
+    `Submitted ${dailyPrices.length} historical price points (bucketed from ${prices.length} provider points; ` +
+      `existing rows were skipped via ignoreDuplicates) for ${security.symbol ?? security.providerSymbol}.`,
   );
-  return { count: prices.length };
+  return { count: dailyPrices.length };
 };
 
 // Wrap with a lock to prevent multiple syncs for the same security at the same time
