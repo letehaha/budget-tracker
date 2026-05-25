@@ -23,8 +23,12 @@
   "sidebar": {
     "accountsView": {
       "title": "Accounts",
+      "bankAccounts": "Bank Accounts",
       "newAccount": "New account",
       "newAccountsGroup": "New accounts group",
+      "portfolios": "Portfolios",
+      "newPortfolio": "New portfolio",
+      "noPortfolios": "No portfolios yet",
       "collapseNavigation": "Collapse navigation",
       "viaHousehold": "Shared via {handle}'s household",
       "sharedBy": "Shared by {handle}",
