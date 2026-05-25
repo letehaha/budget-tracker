@@ -49,17 +49,32 @@ describe('getSecurityLogoUrl', () => {
     expect(url).toContain('/ticker/VWRA.L');
   });
 
-  it('returns null for crypto without a provider-supplied URL', () => {
-    // Crypto without logoUrl shouldn't fall through to logo.dev (it's a stock
-    // dataset). Falling back would surface a 404 monogram, which we'd rather
-    // skip — caller renders an empty placeholder instead.
+  it('falls back to logo.dev crypto URL for crypto without a provider URL', () => {
+    // CoinGecko is the primary source; logo.dev's crypto dataset only covers
+    // popular coins, so unsupported tickers will 404 and the <img> error
+    // handler hides them. Still strictly better than rendering nothing.
     const url = getSecurityLogoUrl({
       symbol: 'BTC',
       assetClass: ASSET_CLASS.crypto,
       logoUrl: null,
     });
 
-    expect(url).toBeNull();
+    expect(url).toContain('https://img.logo.dev/crypto/btc');
+    expect(url).toContain('token=test-token');
+    expect(url).toContain('format=png');
+    expect(url).toContain('retina=true');
+  });
+
+  it('lowercases the symbol when building the logo.dev crypto URL', () => {
+    // logo.dev's crypto endpoint expects lowercase symbols (e.g. /crypto/eth).
+    const url = getSecurityLogoUrl({
+      symbol: 'ETH',
+      assetClass: ASSET_CLASS.crypto,
+      logoUrl: null,
+    });
+
+    expect(url).toContain('/crypto/eth');
+    expect(url).not.toContain('/crypto/ETH');
   });
 
   it('returns null for a stock with no symbol', () => {
