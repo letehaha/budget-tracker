@@ -95,6 +95,14 @@ export interface SecurityModel {
   exchangeName: string | null;
 
   /**
+   * Optional URL pointing to a logo/icon for this security. Populated for
+   * providers that surface image assets (e.g. CoinGecko returns thumb/small/large
+   * URLs in its search response). Stocks/ETFs are left null — the frontend
+   * derives a logo.dev URL from the ticker symbol on render.
+   */
+  logoUrl: string | null;
+
+  /**
    * The name of the data provider or the source from which the security's information is obtained.
    * Enumerated values represent various recognized data providers.
    *
@@ -143,6 +151,12 @@ export interface SecuritySearchResult {
   cryptoCurrencyCode?: string;
   cusip?: string;
   isin?: string;
+  /**
+   * Logo image URL surfaced by the provider, if any. CoinGecko returns this
+   * for crypto coins; stock providers leave it undefined (frontend derives
+   * a logo.dev URL from the ticker at render time).
+   */
+  logoUrl?: string | null;
   /**
    * Optional context for the frontend: did the user's query match the
    * security's ticker exactly, or only partially? Used to render a divider

@@ -26,6 +26,8 @@ import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import SecurityLogo from '@/components/common/security-logo.vue';
+
 import HoldingTransactionsSection from './holding-transactions-section.vue';
 import { useHoldingRowExpansion } from './composables/use-holding-row-expansion';
 
@@ -351,7 +353,12 @@ const theadBgStyles = 'bg-muted';
                   <ChevronRightIcon v-else class="size-4" />
                 </Button>
               </td>
-              <td :class="[cellStyles, 'px-3 font-semibold']">{{ h.security?.symbol }}</td>
+              <td :class="[cellStyles, 'px-3 font-semibold']">
+                <div class="flex items-center gap-2">
+                  <SecurityLogo v-if="h.security" :security="h.security" />
+                  <span>{{ h.security?.symbol }}</span>
+                </div>
+              </td>
               <td :class="[cellStyles, 'text-muted-foreground max-w-50 truncate px-3']">
                 {{ h.security?.name }}
               </td>

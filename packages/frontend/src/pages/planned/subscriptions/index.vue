@@ -169,7 +169,7 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
       >
         <!-- Name -->
         <div class="flex min-w-0 items-center gap-2">
-          <SubscriptionServiceLogo :name="subscription.name" size="sm" />
+          <SubscriptionServiceLogo :name="subscription.name" class="size-5" />
           <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
         </div>
 

@@ -62,6 +62,9 @@ export default class Securities extends Model {
   @Column({ type: DataType.STRING, allowNull: true })
   exchangeName!: string | null;
 
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  logoUrl!: string | null;
+
   @Column({ type: DataType.STRING, allowNull: false })
   providerName!: SECURITY_PROVIDER;
 

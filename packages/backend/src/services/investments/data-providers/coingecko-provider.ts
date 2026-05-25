@@ -46,6 +46,25 @@ const DERIVATIVE_TOKEN_NAME_PATTERN = /\b(wrapped|bridged|staked|peg(ged)?|synth
 const isDerivativeToken = (coin: { name?: string | null }): boolean =>
   coin.name ? DERIVATIVE_TOKEN_NAME_PATTERN.test(coin.name) : false;
 
+/**
+ * CoinGecko's /search response only types `thumb` (~25px) and `large` (~250px)
+ * — `small` (~50px) exists at the same path but isn't in the SDK type.
+ * `large` is way oversized for our 20-32px display targets (10-100KB per
+ * image vs 2-8KB for small), so we rewrite the path segment ourselves.
+ * Format: `https://coin-images.coingecko.com/coins/images/{id}/{size}/{file}`.
+ * If the URL doesn't match the expected shape (e.g. CoinGecko reshuffles the
+ * CDN), we fall back to the original — better an oversized image than none —
+ * but log it so we notice if the CDN scheme drifts.
+ */
+const COINGECKO_IMAGE_SIZE_SEGMENT = /\/(thumb|small|large)\//;
+const toSmallCoinGeckoImage = (url: string): string => {
+  if (COINGECKO_IMAGE_SIZE_SEGMENT.test(url)) {
+    return url.replace(COINGECKO_IMAGE_SIZE_SEGMENT, '/small/');
+  }
+  logger.warn(`CoinGecko image URL did not match expected size segment: ${url}`);
+  return url;
+};
+
 const compareByMarketCapRank = (a: { market_cap_rank?: number }, b: { market_cap_rank?: number }) =>
   (a.market_cap_rank ?? Number.POSITIVE_INFINITY) - (b.market_cap_rank ?? Number.POSITIVE_INFINITY);
 
@@ -103,6 +122,9 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
 
       const mapCoin = (coin: (typeof coins)[number], matchType: 'exact' | 'partial'): SecuritySearchResult => {
         const symbolUpper = (coin.symbol ?? '').toUpperCase();
+        // Prefer `large` so `toSmallCoinGeckoImage` can rewrite to /small/;
+        // fall back to `thumb` (which the rewrite also lands on /small/).
+        const rawLogo = coin.large ?? coin.thumb;
         return {
           symbol: symbolUpper,
           providerSymbol: coin.id!,
@@ -119,6 +141,7 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
           cryptoCurrencyCode: symbolUpper,
           cusip: undefined,
           isin: undefined,
+          logoUrl: rawLogo ? toSmallCoinGeckoImage(rawLogo) : null,
           matchType,
           marketCapRank: coin.market_cap_rank ?? null,
         };
