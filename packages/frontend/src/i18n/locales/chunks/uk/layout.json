@@ -23,8 +23,12 @@
   "sidebar": {
     "accountsView": {
       "title": "Рахунки",
+      "bankAccounts": "Банківські рахунки",
       "newAccount": "Новий рахунок",
       "newAccountsGroup": "Нова група рахунків",
+      "portfolios": "Портфелі",
+      "newPortfolio": "Новий портфель",
+      "noPortfolios": "Поки немає портфелів",
       "collapseNavigation": "Згорнути навігацію",
       "viaHousehold": "Через сім'ю {handle}",
       "sharedBy": "Поділено з {handle}",

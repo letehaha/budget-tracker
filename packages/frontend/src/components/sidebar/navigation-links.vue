@@ -37,7 +37,10 @@ const isAccountsRoute = computed(
     route.name === ROUTES_NAMES.accounts ||
     route.name === ROUTES_NAMES.account ||
     route.name === ROUTES_NAMES.accountIntegrations ||
-    route.name === ROUTES_NAMES.accountIntegrationDetails,
+    route.name === ROUTES_NAMES.accountIntegrationDetails ||
+    route.name === ROUTES_NAMES.investments ||
+    route.name === ROUTES_NAMES.portfolioDetail ||
+    route.name === ROUTES_NAMES.portfolioTransactionsImport,
 );
 
 watch(
@@ -144,21 +147,20 @@ watch(
             <span>{{ $t('navigation.bankIntegrations') }}</span>
           </ui-button>
         </router-link>
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <TrendingUpIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t('navigation.investments') }}</span>
+          </ui-button>
+        </router-link>
       </div>
     </CollapsibleContent>
   </Collapsible>
-
-  <router-link v-if="!bottomNav" v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">
-    <ui-button
-      variant="ghost"
-      as="span"
-      :class="[navItemBase, 'justify-start', isActive && navItemActive]"
-      size="default"
-    >
-      <TrendingUpIcon :class="[navIconBase, isActive && navIconActive]" />
-      <span> {{ $t('navigation.investments') }} </span>
-    </ui-button>
-  </router-link>
 
   <template v-if="bottomNav">
     <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">

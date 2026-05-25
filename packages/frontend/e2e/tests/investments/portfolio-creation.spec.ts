@@ -53,14 +53,14 @@ test.describe('Portfolio Creation', () => {
 
     await waitForSuccessToast({ page });
 
-    await expect(page.locator('a').filter({ hasText: 'My First Portfolio' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'My First Portfolio' })).toBeVisible({ timeout: 10_000 });
   });
 
   test('create second portfolio with type and description', async ({ page }) => {
     await page.goto('/investments');
     await page.waitForURL(/\/investments/, { timeout: 15_000 });
 
-    await expect(page.locator('a').filter({ hasText: 'My First Portfolio' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'My First Portfolio' })).toBeVisible({ timeout: 10_000 });
 
     const createBtn = page
       .getByRole('button')
@@ -85,15 +85,15 @@ test.describe('Portfolio Creation', () => {
 
     await waitForSuccessToast({ page });
 
-    await expect(page.locator('a').filter({ hasText: 'My First Portfolio' })).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('a').filter({ hasText: 'Retirement Fund' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'My First Portfolio' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'Retirement Fund' })).toBeVisible({ timeout: 10_000 });
   });
 
   test('submit button is disabled when name is empty', async ({ page }) => {
     await page.goto('/investments');
     await page.waitForURL(/\/investments/, { timeout: 15_000 });
 
-    await expect(page.locator('a').filter({ hasText: 'My First Portfolio' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'My First Portfolio' })).toBeVisible({ timeout: 10_000 });
 
     const createBtn = page
       .getByRole('button')

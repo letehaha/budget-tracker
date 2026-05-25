@@ -17,6 +17,8 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 
+const emit = defineEmits<{ created: [] }>();
+
 const isOpen = ref(false);
 const isFeedbackOpen = ref(false);
 
@@ -47,6 +49,7 @@ const resetForm = () => {
 const onPortfolioCreation = () => {
   isOpen.value = false;
   resetForm();
+  emit('created');
 };
 
 const createPortfolio = async () => {
