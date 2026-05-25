@@ -1,4 +1,5 @@
-import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import Coingecko from '@coingecko/coingecko-typescript';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
@@ -29,6 +30,23 @@ mockedFmpClient.mockImplementation(
       search: jest.fn(),
       getQuote: jest.fn(),
       getHistoricalPricesFull: jest.fn(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any,
+);
+
+const mockedCoingecko = jest.mocked(Coingecko);
+const mockedCoingeckoMarketChartGetRange = jest.fn<any>();
+mockedCoingecko.mockImplementation(
+  () =>
+    ({
+      search: { get: jest.fn<any>().mockResolvedValue({ coins: [] }) },
+      simple: { price: { get: jest.fn<any>().mockResolvedValue({}) } },
+      coins: {
+        marketChart: {
+          get: jest.fn<any>().mockResolvedValue({ prices: [] }),
+          getRange: mockedCoingeckoMarketChartGetRange,
+        },
+      },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
 );
@@ -404,6 +422,98 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
 
       // Should store 'polygon', not 'composite'
       expect(storedPrice?.source).toBe(SECURITY_PROVIDER.polygon);
+    });
+  });
+
+  describe('Crypto historical bucketing (bucketByUtcDay)', () => {
+    it('collapses multiple intraday provider points onto one UTC-midnight row per day, latest timestamp wins', async () => {
+      const cryptoSecurity = await Securities.create({
+        symbol: 'BTC',
+        providerSymbol: 'bitcoin',
+        currencyCode: 'USD',
+        cryptoCurrencyCode: 'BTC',
+        providerName: SECURITY_PROVIDER.coingecko,
+        assetClass: ASSET_CLASS.crypto,
+        name: 'Bitcoin',
+      });
+
+      // Three CoinGecko points on the same UTC calendar day (2024-06-15) with
+      // increasing timestamps. The latest must win and the stored row's `date`
+      // must be midnight UTC of that day.
+      const dayMidnightUtc = Date.UTC(2024, 5, 15);
+      mockedCoingeckoMarketChartGetRange.mockResolvedValue({
+        prices: [
+          [dayMidnightUtc + 6 * 60 * 60 * 1000, 60000], // 06:00 UTC
+          [dayMidnightUtc + 14 * 60 * 60 * 1000, 61500], // 14:00 UTC
+          [dayMidnightUtc + 22 * 60 * 60 * 1000, 67000], // 22:00 UTC — latest
+        ],
+      });
+
+      const response = await helpers.createHolding({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: cryptoSecurity.id,
+        },
+      });
+      expect(response.statusCode).toBe(201);
+
+      // Wait for background historical sync to finish.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      expect(mockedCoingeckoMarketChartGetRange).toHaveBeenCalled();
+
+      const storedPrices = await SecurityPricing.findAll({
+        where: { securityId: cryptoSecurity.id },
+        order: [['date', 'ASC']],
+      });
+
+      expect(storedPrices).toHaveLength(1);
+      const [row] = storedPrices;
+      expect(new Date(row!.date).getTime()).toBe(dayMidnightUtc);
+      expect(row!.priceClose.toNumber()).toBeCloseTo(67000, 5);
+      expect(row!.source).toBe(SECURITY_PROVIDER.coingecko);
+    });
+
+    it('keeps separate rows when provider points span multiple UTC days', async () => {
+      const cryptoSecurity = await Securities.create({
+        symbol: 'ETH',
+        providerSymbol: 'ethereum',
+        currencyCode: 'USD',
+        cryptoCurrencyCode: 'ETH',
+        providerName: SECURITY_PROVIDER.coingecko,
+        assetClass: ASSET_CLASS.crypto,
+        name: 'Ethereum',
+      });
+
+      const day1Utc = Date.UTC(2024, 5, 15);
+      const day2Utc = Date.UTC(2024, 5, 16);
+      mockedCoingeckoMarketChartGetRange.mockResolvedValue({
+        prices: [
+          [day1Utc + 6 * 60 * 60 * 1000, 3500],
+          [day1Utc + 22 * 60 * 60 * 1000, 3600], // latest for day 1
+          [day2Utc + 4 * 60 * 60 * 1000, 3700],
+          [day2Utc + 20 * 60 * 60 * 1000, 3800], // latest for day 2
+        ],
+      });
+
+      await helpers.createHolding({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: cryptoSecurity.id,
+        },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const storedPrices = await SecurityPricing.findAll({
+        where: { securityId: cryptoSecurity.id },
+        order: [['date', 'ASC']],
+      });
+
+      expect(storedPrices).toHaveLength(2);
+      expect(new Date(storedPrices[0]!.date).getTime()).toBe(day1Utc);
+      expect(storedPrices[0]!.priceClose.toNumber()).toBeCloseTo(3600, 5);
+      expect(new Date(storedPrices[1]!.date).getTime()).toBe(day2Utc);
+      expect(storedPrices[1]!.priceClose.toNumber()).toBeCloseTo(3800, 5);
     });
   });
 });

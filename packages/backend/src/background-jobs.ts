@@ -1,6 +1,7 @@
 import { logger } from '@js/utils/logger';
 import { shutdownPostHog } from '@js/utils/posthog';
 
+import { cryptoPricesSyncCron } from './crons/crypto-prices-sync';
 import { demoCleanupCron } from './crons/demo-cleanup';
 import { demoTemplateRefreshCron } from './crons/demo-template-refresh';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
@@ -31,6 +32,7 @@ export function initializeBackgroundJobs() {
 
     if (process.env.NODE_ENV === 'production') {
       securitiesDailySyncCron.startCron();
+      cryptoPricesSyncCron.startCron();
       tagRemindersCron.startCron();
       paymentRemindersCron.startCron();
       subscriptionCandidateDetectionCron.startCron();
@@ -45,6 +47,7 @@ export async function shutdownBackgroundJobs() {
   demoCleanupCron.stopCron();
   demoTemplateRefreshCron.stopCron();
   securitiesDailySyncCron.stopCron();
+  cryptoPricesSyncCron.stopCron();
   tagRemindersCron.stopCron();
   subscriptionCandidateDetectionCron.stopCron();
   shareInvitationsExpireCron.stopCron();

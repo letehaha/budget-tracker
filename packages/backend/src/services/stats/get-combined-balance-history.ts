@@ -20,6 +20,8 @@ export interface CombinedBalanceHistoryItem {
   totalBalance: number;
 }
 
+const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
+
 /**
  * Helper function to calculate portfolio balance history
  * Runs independently of accounts balance calculation
@@ -100,8 +102,11 @@ const calculatePortfolioBalanceHistory = async ({
         securityId: {
           [Op.in]: securityIds,
         },
+        // `date` is now TIMESTAMPTZ (crypto stores intraday timestamps). A
+        // raw `yyyy-MM-dd` upper bound would silently coerce to midnight UTC
+        // and drop same-day intraday rows; explicit endOfDay keeps them.
         date: {
-          [Op.between]: [dataFetchMinDate, maxDate],
+          [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(maxDate))],
         },
       },
       order: [
@@ -142,13 +147,14 @@ const calculatePortfolioBalanceHistory = async ({
     }),
   ]);
 
-  const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
-
-  // Build price lookup with O(1) access by security+date
+  // Build price lookup with O(1) access by security+date. `price.date` is a
+  // TIMESTAMPTZ Date (crypto carries intraday timestamps); format to
+  // yyyy-MM-dd so the key matches `targetDate` strings below and same-day
+  // intraday rows collapse onto the same daily bucket (last write wins).
   const pricesBySecurity = new Map<string, Array<{ date: string; price: number }>>();
-  const pricesBySecurityAndDate = new Map<string, number>(); // "securityId_date" -> price
+  const pricesBySecurityAndDate = new Map<string, number>();
   for (const price of securityPrices) {
-    const dateStr = String(price.date);
+    const dateStr = formatDate(price.date);
     const priceValue = price.priceClose.toNumber();
 
     if (!pricesBySecurity.has(price.securityId)) {
