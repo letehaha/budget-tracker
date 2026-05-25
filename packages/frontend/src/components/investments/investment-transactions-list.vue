@@ -4,8 +4,9 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { useFormatCurrency } from '@/composable/formatters';
+import { toLocalNumber } from '@/js/helpers';
 import type { InvestmentTransactionModel } from '@bt/shared/types';
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { format } from 'date-fns';
 import { PlusIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref, toRef } from 'vue';
@@ -21,6 +22,15 @@ defineEmits<{ (e: 'add-transaction'): void }>();
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const formatDate = (date: string) => format(new Date(date), 'dd/MM/yyyy');
+
+const formatQuantity = (quantity: string | null, assetClass: ASSET_CLASS | undefined) => {
+  if (quantity == null) return '';
+  const isCrypto = assetClass === ASSET_CLASS.crypto;
+  return toLocalNumber(quantity, {
+    minimumFractionDigits: isCrypto ? 0 : 2,
+    maximumFractionDigits: isCrypto ? 5 : 2,
+  });
+};
 
 const getCategoryClasses = (category: INVESTMENT_TRANSACTION_CATEGORY) => {
   const map: Record<INVESTMENT_TRANSACTION_CATEGORY, string> = {
@@ -103,7 +113,12 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransa
                 </span>
               </div>
               <div class="text-right tabular-nums">
-                {{ parseFloat(transactions[virtualRow.index]!.quantity as string).toFixed(2) }}
+                {{
+                  formatQuantity(
+                    transactions[virtualRow.index]!.quantity,
+                    transactions[virtualRow.index]!.security?.assetClass,
+                  )
+                }}
               </div>
               <div class="text-right tabular-nums">
                 {{
