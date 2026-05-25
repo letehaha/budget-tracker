@@ -113,7 +113,7 @@ const formatNextDate = (dateStr: string | null) => {
           :to="{ name: ROUTES_NAMES.plannedSubscriptionDetails, params: { id: payment.subscriptionId } }"
           class="hover:bg-muted/50 flex items-center gap-3 rounded-md px-3 py-1.5 transition-colors"
         >
-          <SubscriptionServiceLogo :name="payment.subscriptionName" size="sm" />
+          <SubscriptionServiceLogo :name="payment.subscriptionName" class="size-5" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">{{ payment.subscriptionName }}</p>
             <p class="text-muted-foreground text-xs">{{ formatNextDate(payment.nextPaymentDate) }}</p>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { searchSecurities } from '@/api/securities';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import SecurityLogo from '@/components/common/security-logo.vue';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
@@ -125,7 +126,7 @@ const hasResults = computed(() => (query.data.value ?? []).length > 0);
       </Button>
     </Popover.PopoverTrigger>
 
-    <Popover.PopoverContent class="w-[360px] p-0" align="start">
+    <Popover.PopoverContent class="w-90 p-0" align="start">
       <div class="space-y-2 border-b p-2">
         <!-- Hint with the raw symbol the parser saw, so users don't pick blind. -->
         <p v-if="parsedSymbol && !modelValue" class="text-muted-foreground px-1 text-xs">
@@ -150,7 +151,7 @@ const hasResults = computed(() => (query.data.value ?? []).length > 0);
         <PillTabs v-model="assetClassFilter" :items="assetClassItems" size="sm" />
       </div>
 
-      <ScrollArea class="max-h-[280px]">
+      <ScrollArea class="max-h-70">
         <div v-if="query.isFetching.value" class="text-muted-foreground p-3 text-center text-xs">
           {{ $t('investmentsImport.review.searching') }}
         </div>
@@ -169,6 +170,7 @@ const hasResults = computed(() => (query.data.value ?? []).length > 0);
               class="flex h-auto w-full items-center justify-between gap-2 rounded-none px-3 py-2 text-left font-normal"
               @click="pickResult(r)"
             >
+              <SecurityLogo :security="r" class="size-5" />
               <span class="min-w-0 flex-1">
                 <span class="font-medium">{{ r.symbol }}</span>
                 <span class="text-muted-foreground ml-2 truncate text-xs">{{ r.name }}</span>

@@ -80,6 +80,9 @@ describe('GET /investments/securities/search', () => {
       currencyCode: 'USD',
       exchangeName: 'NASDAQ Global Select',
     });
+    // Stock providers don't surface logo URLs — the frontend derives them
+    // from the ticker via logo.dev, so logoUrl is absent here.
+    expect(results[0]?.logoUrl).toBeFalsy();
 
     // Verify FMP client was called with correct parameters
     expect(mockedFmpSearch).toHaveBeenCalledWith('apple', 10);
@@ -292,10 +295,33 @@ describe('GET /investments/securities/search', () => {
     mockedCoingeckoSearch.mockResolvedValue({
       coins: [
         // Two coins with the exact ticker "ETH"; the lower market_cap_rank wins.
-        { id: 'ethereum', symbol: 'eth', name: 'Ethereum', market_cap_rank: 2 },
-        { id: 'scam-eth', symbol: 'eth', name: 'Scam ETH', market_cap_rank: 9999 },
+        {
+          id: 'ethereum',
+          symbol: 'eth',
+          name: 'Ethereum',
+          market_cap_rank: 2,
+          thumb: 'https://coin-images.coingecko.com/coins/images/279/thumb/ethereum.png',
+          small: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png',
+          large: 'https://coin-images.coingecko.com/coins/images/279/large/ethereum.png',
+        },
+        {
+          id: 'scam-eth',
+          symbol: 'eth',
+          name: 'Scam ETH',
+          market_cap_rank: 9999,
+          // CDN-unexpected shape: verifies toSmallCoinGeckoImage returns the
+          // original URL unchanged when the regex doesn't match.
+          large: 'https://example.com/scam-eth.png',
+        },
         // Partial-match coins (symbol != "ETH"), sorted by rank.
-        { id: 'ethereum-classic', symbol: 'etc', name: 'Ethereum Classic', market_cap_rank: 30 },
+        {
+          id: 'ethereum-classic',
+          symbol: 'etc',
+          name: 'Ethereum Classic',
+          market_cap_rank: 30,
+          // Only thumb — verifies the `large -> thumb` fallback chain in mapCoin.
+          thumb: 'https://coin-images.coingecko.com/coins/images/453/thumb/ethereum-classic.png',
+        },
         { id: 'ethereum-name-service', symbol: 'ens', name: 'Ethereum Name Service', market_cap_rank: 95 },
       ],
     });
@@ -311,11 +337,24 @@ describe('GET /investments/securities/search', () => {
     expect(ethereum?.symbol).toBe('ETH');
     expect(ethereum?.matchType).toBe('exact');
     expect(ethereum?.marketCapRank).toBe(2);
+    // The mapper rewrites the CoinGecko image path to /small/ regardless of
+    // which size the SDK exposed — saves ~10x bandwidth at our display size.
+    expect(ethereum?.logoUrl).toBe('https://coin-images.coingecko.com/coins/images/279/small/ethereum.png');
 
     // Partial-match coin appears with matchType = 'partial'
     const etc = cryptoResults.find((r) => r.providerSymbol === 'ethereum-classic');
     expect(etc?.matchType).toBe('partial');
     expect(etc?.symbol).toBe('ETC');
+    // ETC's mock omits `large` (only `thumb` set), but the rewrite still lands on /small/.
+    expect(etc?.logoUrl).toBe('https://coin-images.coingecko.com/coins/images/453/small/ethereum-classic.png');
+
+    // Coin lacking image fields surfaces a null logoUrl rather than undefined.
+    const ens = cryptoResults.find((r) => r.providerSymbol === 'ethereum-name-service');
+    expect(ens?.logoUrl ?? null).toBeNull();
+
+    // Non-CoinGecko-CDN URL bypasses the rewrite and passes through unchanged.
+    const scamEth = cryptoResults.find((r) => r.providerSymbol === 'scam-eth');
+    expect(scamEth?.logoUrl).toBe('https://example.com/scam-eth.png');
   });
 
   it('should mark securities as in portfolio when they exist in holdings', async () => {

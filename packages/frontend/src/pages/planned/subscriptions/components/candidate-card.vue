@@ -36,7 +36,7 @@ function confidenceClass({ score }: { score: number }): string {
   <div class="border-border flex flex-col gap-3 rounded-lg border p-4">
     <div class="flex items-start justify-between gap-2">
       <div class="flex min-w-0 items-start gap-2.5">
-        <SubscriptionServiceLogo :name="candidate.suggestedName" class="mt-0.5 size-8" size="md" />
+        <SubscriptionServiceLogo :name="candidate.suggestedName" class="mt-0.5 size-8" />
         <div class="min-w-0">
           <h4 class="truncate font-medium">{{ candidate.suggestedName }}</h4>
           <div class="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">

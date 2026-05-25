@@ -57,6 +57,7 @@ const addOrUpdateFromProviderImpl = async (
     exchangeMic: security.exchangeMic,
     exchangeAcronym: security.exchangeAcronym || null,
     exchangeName: security.exchangeName || null,
+    logoUrl: security.logoUrl ?? null,
     isBrokerageCash: false,
   }));
 
@@ -77,6 +78,10 @@ const addOrUpdateFromProviderImpl = async (
           exchangeMic: sec.exchangeMic,
           exchangeAcronym: sec.exchangeAcronym || null,
           exchangeName: sec.exchangeName || null,
+          // Preserve existing logoUrl when the provider doesn't supply one —
+          // stock providers leave the field undefined, and we don't want to
+          // wipe a value that another provider (e.g. CoinGecko) populated.
+          ...(sec.logoUrl !== undefined ? { logoUrl: sec.logoUrl } : {}),
         },
         { where: { providerName: sec.providerName, providerSymbol: sec.providerSymbol } },
       ),

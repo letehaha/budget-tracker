@@ -27,6 +27,7 @@ const SecuritySearchResultSchema = z.object({
   cryptoCurrencyCode: z.string().optional(),
   cusip: z.string().optional(),
   isin: z.string().optional(),
+  logoUrl: z.string().nullable().optional(),
   matchType: z.enum(['exact', 'partial']).optional(),
   marketCapRank: z.number().nullable().optional(),
 }) satisfies z.ZodType<SecuritySearchResult>;

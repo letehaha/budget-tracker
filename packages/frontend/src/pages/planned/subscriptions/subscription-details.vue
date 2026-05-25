@@ -216,7 +216,7 @@ const getMatchSourceClass = ({ source }: { source: string }): string =>
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
         <div class="flex items-center gap-3">
-          <SubscriptionServiceLogo :name="subscription.name" size="lg" />
+          <SubscriptionServiceLogo :name="subscription.name" class="size-10" />
           <h1 class="text-2xl font-semibold tracking-tight">{{ subscription.name }}</h1>
           <SubscriptionTypeBadge :type="subscription.type" size="md" />
           <span

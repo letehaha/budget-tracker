@@ -172,7 +172,7 @@ const onSectionHeaderClick = async (section: 'bank' | 'portfolios') => {
         <button
           ref="bankAccountsHeaderRef"
           type="button"
-          class="bg-card hover:bg-accent/50 sticky top-0 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
+          class="bg-card hover:bg-accent sticky top-0 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
           @click="onSectionHeaderClick('bank')"
         >
           <ChevronRightIcon
@@ -195,7 +195,7 @@ const onSectionHeaderClick = async (section: 'bank' | 'portfolios') => {
         <button
           ref="portfoliosHeaderRef"
           type="button"
-          class="bg-card hover:bg-accent/50 sticky top-9 bottom-0 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
+          class="bg-card hover:bg-accent sticky top-9 bottom-0 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
           @click="onSectionHeaderClick('portfolios')"
         >
           <ChevronRightIcon

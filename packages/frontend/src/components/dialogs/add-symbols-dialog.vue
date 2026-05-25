@@ -2,6 +2,7 @@
 import { searchSecurities } from '@/api/securities';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
+import SecurityLogo from '@/components/common/security-logo.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
@@ -164,7 +165,7 @@ async function addSymbol(sec: SecuritySearchResult) {
 
         <!-- Fixed-height container so the dialog body never grows or shrinks
              between loading, empty, results, and no-results states. -->
-        <div class="h-[280px] overflow-hidden">
+        <div class="h-70 overflow-hidden">
           <!-- ERROR -->
           <div
             v-if="query.error.value && !isSearchPending"
@@ -195,7 +196,7 @@ async function addSymbol(sec: SecuritySearchResult) {
           <div v-else-if="!hasQuery" class="flex h-full flex-col items-center justify-center gap-2 text-center">
             <SearchIcon class="text-muted-foreground size-8" />
             <p class="text-sm font-medium">{{ $t('dialogs.addSymbols.emptyState.title') }}</p>
-            <p class="text-muted-foreground max-w-[280px] text-xs">
+            <p class="text-muted-foreground max-w-70 text-xs">
               {{ $t('dialogs.addSymbols.emptyState.description') }}
             </p>
           </div>
@@ -204,7 +205,7 @@ async function addSymbol(sec: SecuritySearchResult) {
           <div v-else-if="!hasResults" class="flex h-full flex-col items-center justify-center gap-3 text-center">
             <SearchXIcon class="text-muted-foreground size-8" />
             <p class="text-sm font-medium">{{ $t('dialogs.addSymbols.noResults') }}</p>
-            <p class="text-muted-foreground max-w-[280px] text-xs">
+            <p class="text-muted-foreground max-w-70 text-xs">
               {{ $t('dialogs.addSymbols.noResultsHint') }}
             </p>
             <Button size="sm" variant="outline" @click="clearSearch">
@@ -230,6 +231,8 @@ async function addSymbol(sec: SecuritySearchResult) {
                   <span v-if="sec.isInPortfolio" class="text-muted-foreground text-xs">
                     <CheckCheckIcon class="text-success-text size-3" />
                   </span>
+
+                  <SecurityLogo :security="sec" class="size-5" />
 
                   {{ sec.symbol }}
 
