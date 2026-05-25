@@ -1,9 +1,10 @@
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import ExchangeRates from '@models/exchange-rates.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
@@ -65,6 +66,7 @@ const calculatePortfolioBalanceHistory = async ({
     quantity: number;
     costBasis: number;
     currencyCode: string;
+    assetClass: ASSET_CLASS;
   };
 
   const transactions: TransactionRow[] = await InvestmentTransaction.findAll({
@@ -83,7 +85,20 @@ const calculatePortfolioBalanceHistory = async ({
   });
 
   const securityIds = [...new Set(transactions.map((t: TransactionRow) => t.securityId))];
-  const currencyCodes = [...new Set(transactions.map((t: TransactionRow) => t.currencyCode))];
+
+  // Look up securities to get the *security's* native currency and asset class.
+  // Transactions store the cash-leg currency (often the brokerage's settlement
+  // currency, e.g. USD for an ASML.AS purchase), which is NOT the right currency
+  // for converting market value — prices are in the security's native currency.
+  type SecurityRow = Pick<Securities, 'id' | 'currencyCode' | 'assetClass'>;
+  const securities: SecurityRow[] = await Securities.findAll({
+    where: { id: { [Op.in]: securityIds } },
+    attributes: ['id', 'currencyCode', 'assetClass'],
+    raw: true,
+  });
+  const securitiesById = new Map(securities.map((s) => [s.id, s]));
+
+  const currencyCodes = [...new Set(securities.map((s) => s.currencyCode))];
 
   if (securityIds.length === 0) {
     return null;
@@ -243,20 +258,21 @@ const calculatePortfolioBalanceHistory = async ({
 
   const portfolioValuesByDate = new Map<string, number>();
 
-  // Process all portfolios, building up holdings state incrementally by date
-  // Each portfolio's transactions are already sorted by date ASC
+  // Process all portfolios, building up holdings state incrementally by date.
+  // Holdings tracking must mirror `recalculateHolding` (see
+  // services/investments/holdings/recalculation.service.ts) — otherwise an
+  // oversell mid-history (allowed for crypto drift) causes the holding to be
+  // dropped and reinflated by the next buy, ballooning quantity and market value.
   for (const dateStr of uniqueDates) {
     let totalValueForDate = 0;
 
     for (const portfolioId of portfolioIds) {
       const portfolioTxs = transactionsByPortfolio.get(portfolioId) ?? [];
 
-      // Build holdings by processing transactions up to this date
-      // Transactions are already ordered by date ASC, so we can process incrementally
       const holdings = new Map<string, HoldingState>();
 
       for (const tx of portfolioTxs) {
-        // Since transactions are sorted by date, once we pass the current date, stop
+        // Transactions are sorted by date ASC; stop once we pass the snapshot.
         if (tx.date > dateStr) break;
 
         const securityId = tx.securityId;
@@ -264,36 +280,53 @@ const calculatePortfolioBalanceHistory = async ({
         const totalAmount = tx.refAmount.toNumber() + tx.refFees.toNumber();
 
         if (!holdings.has(securityId)) {
+          const security = securitiesById.get(securityId);
           holdings.set(securityId, {
             quantity: 0,
             costBasis: 0,
-            currencyCode: tx.currencyCode,
+            currencyCode: security?.currencyCode ?? tx.currencyCode,
+            assetClass: security?.assetClass ?? ASSET_CLASS.other,
           });
         }
 
         const holding = holdings.get(securityId)!;
 
         if (tx.category === INVESTMENT_TRANSACTION_CATEGORY.buy) {
-          holding.quantity += quantity;
-          holding.costBasis += totalAmount;
+          const newQuantity = holding.quantity + quantity;
+          if (newQuantity <= 0) {
+            holding.costBasis = 0;
+          } else if (holding.quantity <= 0) {
+            // Buy crosses from short/zero into long — only the long portion is new basis.
+            const longProportion = newQuantity / quantity;
+            holding.costBasis = totalAmount * longProportion;
+          } else {
+            holding.costBasis += totalAmount;
+          }
+          holding.quantity = newQuantity;
         } else if (tx.category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
           if (holding.quantity > 0) {
-            const sellRatio = quantity / holding.quantity;
-            holding.costBasis *= 1 - sellRatio;
-            holding.quantity -= quantity;
+            const newQuantity = holding.quantity - quantity;
+            if (newQuantity <= 0) {
+              holding.costBasis = 0;
+            } else {
+              const remainingProportion = newQuantity / holding.quantity;
+              holding.costBasis *= remainingProportion;
+            }
           }
-        }
-
-        if (holding.quantity <= 0) {
-          holdings.delete(securityId);
+          holding.quantity -= quantity;
         }
       }
 
       for (const [securityId, holding] of holdings) {
+        // Stocks cap at zero; crypto can legitimately drift negative until reconciled.
+        const allowNegative = holding.assetClass === ASSET_CLASS.crypto;
+        const effectiveQuantity = !allowNegative && holding.quantity < 0 ? 0 : holding.quantity;
+        if (effectiveQuantity === 0) continue;
+
         const currentPrice = findPriceForDate(securityId, dateStr);
 
         if (currentPrice !== null) {
-          const marketValueInSecurityCurrency = holding.quantity * currentPrice;
+          const marketValueInSecurityCurrency = effectiveQuantity * currentPrice;
           const exchangeRate = getExchangeRate(holding.currencyCode, dateStr);
           const marketValueInBaseCurrency = Math.floor(marketValueInSecurityCurrency * exchangeRate);
           totalValueForDate += marketValueInBaseCurrency;
