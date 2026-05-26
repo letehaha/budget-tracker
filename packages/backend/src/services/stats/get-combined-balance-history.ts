@@ -8,6 +8,7 @@ import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
+import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
 import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
@@ -111,6 +112,13 @@ const calculatePortfolioBalanceHistory = async ({
   type SecurityPriceRow = Pick<SecurityPricing, 'securityId' | 'date' | 'priceClose'>;
   type ExchangeRateRow = Pick<UserExchangeRates, 'baseCode' | 'quoteCode' | 'date' | 'rate'>;
 
+  // Currencies we need a `USD → X` rate for: every security currency PLUS the
+  // user's base currency (used as the numerator in the cross-rate). USD itself
+  // is excluded because `findLatestUsdRate` short-circuits to 1 for it.
+  const usdRateQuoteCodes = [...new Set([userBaseCurrency.currencyCode, ...currencyCodes])].filter(
+    (code) => code !== API_LAYER_BASE_CURRENCY_CODE,
+  );
+
   const [securityPrices, userCustomExchangeRates, systemExchangeRates] = await Promise.all([
     SecurityPricing.findAll({
       where: {
@@ -144,18 +152,23 @@ const calculatePortfolioBalanceHistory = async ({
       attributes: ['baseCode', 'quoteCode', 'date', 'rate'],
       raw: true,
     }) as Promise<ExchangeRateRow[]>,
+    // System rates are stored only in one canonical direction:
+    // `baseCode = API_LAYER_BASE_CURRENCY_CODE (USD), quoteCode = X` (1 USD = N X).
+    // Query that direction for every currency we need to convert _from_ AND
+    // for the user's base currency, then compute the actual security→base
+    // cross-rate in `getExchangeRate` below. The cross-rate maths mirrors
+    // `services/user-exchange-rate/get-exchange-rate.service.ts` — keep the
+    // two implementations in sync if you touch either.
     ExchangeRates.findAll({
       where: {
-        baseCode: {
-          [Op.in]: currencyCodes,
-        },
-        quoteCode: userBaseCurrency.currencyCode,
+        baseCode: API_LAYER_BASE_CURRENCY_CODE,
+        quoteCode: { [Op.in]: usdRateQuoteCodes },
         date: {
           [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(maxDate))],
         },
       },
       order: [
-        ['baseCode', 'ASC'],
+        ['quoteCode', 'ASC'],
         ['date', 'ASC'],
       ],
       raw: true,
@@ -182,48 +195,87 @@ const calculatePortfolioBalanceHistory = async ({
     pricesBySecurityAndDate.set(`${price.securityId}_${dateStr}`, priceValue);
   }
 
-  const exchangeRateMap = new Map<string, number>();
-
-  // Build user rates map first for O(1) lookup
+  // User-set overrides — these are stored as `currencyCode → userBase` directly,
+  // not via USD pivot, so they short-circuit the cross-rate maths below.
   const userRatesMap = new Map<string, number>();
   for (const r of userCustomExchangeRates) {
     userRatesMap.set(`${r.baseCode}_${formatDate(r.date)}`, r.rate);
   }
 
+  // System rates indexed by `${quoteCode}_${dateStr}` — value is `1 USD = N quoteCode`.
+  // Same currency can be queried under multiple cross-pairs so this stays a single
+  // source of truth instead of one map per pair.
+  const usdRatesMap = new Map<string, number>();
+  // Per-currency sorted date list, ascending — used by `findLatestUsdRate` to walk
+  // backwards from the requested date when an exact match is missing (weekends,
+  // pre-historical-init dates).
+  const usdRateDatesByQuote = new Map<string, string[]>();
   for (const rate of systemExchangeRates) {
-    const key = `${rate.baseCode}_${formatDate(rate.date)}`;
-    // O(1) lookup instead of O(n) find
-    const userRate = userRatesMap.get(key);
-    exchangeRateMap.set(key, userRate ?? rate.rate);
+    const dateStr = formatDate(rate.date);
+    usdRatesMap.set(`${rate.quoteCode}_${dateStr}`, rate.rate);
+
+    const dates = usdRateDatesByQuote.get(rate.quoteCode);
+    if (dates) {
+      dates.push(dateStr);
+    } else {
+      usdRateDatesByQuote.set(rate.quoteCode, [dateStr]);
+    }
   }
 
   const missingRateCurrencies = new Set<string>();
+
+  // Look up `1 USD = ? quoteCode` for `dateStr`, falling back to the most
+  // recent prior rate if the exact day isn't present. Returns `null` if no
+  // rate at all is known for this currency.
+  const findLatestUsdRate = (quoteCode: string, dateStr: string): number | null => {
+    if (quoteCode === API_LAYER_BASE_CURRENCY_CODE) return 1;
+
+    const exact = usdRatesMap.get(`${quoteCode}_${dateStr}`);
+    if (exact !== undefined) return exact;
+
+    const dates = usdRateDatesByQuote.get(quoteCode);
+    if (!dates || dates.length === 0) return null;
+
+    let candidate: number | null = null;
+    for (const d of dates) {
+      if (d <= dateStr) {
+        candidate = usdRatesMap.get(`${quoteCode}_${d}`) ?? candidate;
+      } else {
+        break;
+      }
+    }
+    return candidate;
+  };
 
   const getExchangeRate = (currencyCode: string, dateStr: string): number => {
     if (currencyCode === userBaseCurrency.currencyCode) {
       return 1;
     }
 
-    const key = `${currencyCode}_${dateStr}`;
-    const rate = exchangeRateMap.get(key);
+    // User override (`currencyCode → userBase`) wins over the computed cross-rate.
+    const userOverride = userRatesMap.get(`${currencyCode}_${dateStr}`);
+    if (userOverride !== undefined) return userOverride;
 
-    if (rate) {
-      return rate;
+    // Cross-rate via USD pivot: value_in_userBase = value_in_currencyCode *
+    // (USD→userBase) / (USD→currencyCode).
+    const usdToCurrency = findLatestUsdRate(currencyCode, dateStr);
+    const usdToBase = findLatestUsdRate(userBaseCurrency.currencyCode, dateStr);
+
+    if (usdToCurrency == null || usdToBase == null) {
+      missingRateCurrencies.add(currencyCode);
+      return 1;
     }
 
-    const availableRates = Array.from(exchangeRateMap.entries())
-      .filter(([k]) => {
-        const parts = k.split('_');
-        return k.startsWith(`${currencyCode}_`) && parts[1] && parts[1] <= dateStr;
-      })
-      .toSorted((a, b) => b[0].localeCompare(a[0]));
-
-    if (availableRates.length > 0) {
-      return availableRates[0]![1];
+    // A stored zero rate is data corruption, not a missing-rate gap — only a
+    // bad DB write or an upstream provider bug can produce it. Surface it as
+    // an error (not the missing-rate warn) and refuse to divide by zero.
+    if (usdToCurrency === 0) {
+      logger.error(`Stored exchange rate is zero for USD->${currencyCode} on ${dateStr}; treating as missing.`);
+      missingRateCurrencies.add(currencyCode);
+      return 1;
     }
 
-    missingRateCurrencies.add(currencyCode);
-    return 1;
+    return usdToBase / usdToCurrency;
   };
 
   const findPriceForDate = (securityId: string, targetDate: string): number | null => {
