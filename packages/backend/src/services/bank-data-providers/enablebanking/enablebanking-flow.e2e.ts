@@ -17,6 +17,45 @@ import {
 } from '@tests/mocks/enablebanking/data';
 import { HttpResponse, http } from 'msw';
 
+/**
+ * Create a fully-active EnableBanking connection with one linked account.
+ * Shared across describe blocks that exercise post-setup state (session
+ * expiry, ASPSP errors, malformed-data resilience).
+ */
+async function setupActiveConnection(): Promise<{
+  connectionId: string;
+  accountId: string;
+}> {
+  const connectResult = await helpers.bankDataProviders.connectProvider({
+    providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+    credentials: helpers.enablebanking.mockCredentials(),
+    raw: true,
+  });
+
+  const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+  await helpers.makeRequest({
+    method: 'post',
+    url: '/bank-data-providers/enablebanking/oauth-callback',
+    payload: {
+      connectionId: connectResult.connectionId,
+      code: helpers.enablebanking.mockAuthCode,
+      state,
+    },
+  });
+
+  const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+    connectionId: connectResult.connectionId,
+    accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
+    raw: true,
+  });
+
+  return {
+    connectionId: connectResult.connectionId,
+    accountId: syncedAccounts[0]!.id,
+  };
+}
+
 describe('Enable Banking Data Provider E2E', () => {
   // Reset mock session counter before each test to ensure predictable behavior
   // The counter determines whether mock returns original or reconnected account UIDs
@@ -1152,6 +1191,60 @@ describe('Enable Banking Data Provider E2E', () => {
 
       expect(connection.isActive).toBe(true);
     });
+
+    it('should succeed when upstream deleteSession reports CLOSED_SESSION', async () => {
+      // Reauthorize calls DELETE /sessions/:id on the old session before
+      // starting a new OAuth flow. If the session is already gone (user
+      // disconnected from the bank's side, natural expiry, etc.), Enable
+      // Banking responds with HTTP 400 + `error: "CLOSED_SESSION"`. That's
+      // the same end-state we wanted, so reauthorize must keep going rather
+      // than fail the request and noise up Sentry.
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      global.mswMockServer.use(
+        http.delete('https://api.enablebanking.com/sessions/:sessionId', () => {
+          return new HttpResponse(
+            JSON.stringify({
+              code: 400,
+              message: 'Session is closed',
+              error: 'CLOSED_SESSION',
+              detail: null,
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } },
+          );
+        }),
+      );
+
+      const reauthorizeResult = (await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}/reauthorize`,
+        raw: true,
+      })) as { authUrl: string };
+
+      expect(reauthorizeResult.authUrl).toBeDefined();
+      expect(reauthorizeResult.authUrl).toContain('https://');
+
+      const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId: connectResult.connectionId,
+        raw: true,
+      });
+      expect(connection.isActive).toBe(false);
+    });
   });
 
   describe('Reauthorization with stable externalId', () => {
@@ -1796,44 +1889,6 @@ describe('Enable Banking Data Provider E2E', () => {
   });
 
   describe('403 session expiry handling', () => {
-    /**
-     * Helper to create a fully-active connection with one linked account.
-     * Returns connectionId and the linked system accountId.
-     */
-    async function setupActiveConnection(): Promise<{
-      connectionId: string;
-      accountId: string;
-    }> {
-      const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
-        credentials: helpers.enablebanking.mockCredentials(),
-        raw: true,
-      });
-
-      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
-
-      await helpers.makeRequest({
-        method: 'post',
-        url: '/bank-data-providers/enablebanking/oauth-callback',
-        payload: {
-          connectionId: connectResult.connectionId,
-          code: helpers.enablebanking.mockAuthCode,
-          state,
-        },
-      });
-
-      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
-        raw: true,
-      });
-
-      return {
-        connectionId: connectResult.connectionId,
-        accountId: syncedAccounts[0]!.id,
-      };
-    }
-
     it('should mark connection as inactive when transactions API returns 403', async () => {
       const { connectionId, accountId } = await setupActiveConnection();
 
@@ -2060,40 +2115,6 @@ describe('Enable Banking Data Provider E2E', () => {
   });
 
   describe('getConnectionDetails resilience to malformed stored data', () => {
-    async function setupActiveConnection(): Promise<{
-      connectionId: string;
-      accountId: string;
-    }> {
-      const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
-        credentials: helpers.enablebanking.mockCredentials(),
-        raw: true,
-      });
-
-      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
-
-      await helpers.makeRequest({
-        method: 'post',
-        url: '/bank-data-providers/enablebanking/oauth-callback',
-        payload: {
-          connectionId: connectResult.connectionId,
-          code: helpers.enablebanking.mockAuthCode,
-          state,
-        },
-      });
-
-      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
-        raw: true,
-      });
-
-      return {
-        connectionId: connectResult.connectionId,
-        accountId: syncedAccounts[0]!.id,
-      };
-    }
-
     it('should not crash when an account has a null currentBalance (legacy/historical rows)', async () => {
       const { connectionId, accountId } = await setupActiveConnection();
 
@@ -2215,45 +2236,6 @@ describe('Enable Banking Data Provider E2E', () => {
   });
 
   describe('ASPSP_ERROR auth-failure classification', () => {
-    /**
-     * Helper to create a fully-active connection with one linked account.
-     * Duplicated from the 403 suite intentionally — keeps this block
-     * standalone and the dep injection trivial to follow.
-     */
-    async function setupActiveConnection(): Promise<{
-      connectionId: string;
-      accountId: string;
-    }> {
-      const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
-        credentials: helpers.enablebanking.mockCredentials(),
-        raw: true,
-      });
-
-      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
-
-      await helpers.makeRequest({
-        method: 'post',
-        url: '/bank-data-providers/enablebanking/oauth-callback',
-        payload: {
-          connectionId: connectResult.connectionId,
-          code: helpers.enablebanking.mockAuthCode,
-          state,
-        },
-      });
-
-      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
-        raw: true,
-      });
-
-      return {
-        connectionId: connectResult.connectionId,
-        accountId: syncedAccounts[0]!.id,
-      };
-    }
-
     it('promotes wrapped-400 ASPSP_ERROR with nested 403 to ForbiddenError + deactivates with auth_failure marker', async () => {
       const { connectionId, accountId } = await setupActiveConnection();
 

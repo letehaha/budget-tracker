@@ -346,6 +346,18 @@ export class EnableBankingApiClient {
         headers: this.getAuthHeaders(psuContext),
       });
     } catch (error) {
+      // Already-closed = nothing to revoke. Swallow the 400 so handleApiError
+      // doesn't log + throw on every reauthorize that follows a stale session.
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const data = error.response?.data as { error?: unknown } | undefined;
+        if (status === 400 && data?.error === 'CLOSED_SESSION') {
+          logger.info(
+            `[EnableBankingApiClient] deleteSession: session ${sessionId} already closed upstream; treating as success`,
+          );
+          return;
+        }
+      }
       this.handleApiError(error, 'deleteSession');
     }
   }
