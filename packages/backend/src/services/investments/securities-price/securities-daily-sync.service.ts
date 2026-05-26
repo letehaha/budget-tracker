@@ -203,9 +203,14 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
     // be 1000 of securities, but bulk will fail, we will need to process all 1000
     // individually – it's too costly.
     try {
+      // No `validate: true`: Sequelize runs per-instance validation before
+      // injecting timestamps, so the explicit `@Column({ allowNull: false })`
+      // on SecurityPricing.createdAt/updatedAt always trips the allowNull
+      // validator with "createdAt cannot be null". The DB still enforces
+      // NOT NULL at INSERT and the Money setter validates priceClose, so
+      // dropping app-layer validation loses no real coverage.
       await SecurityPricing.bulkCreate(securityPricesToUpsert, {
         updateOnDuplicate: ['priceClose', 'source'],
-        validate: true,
       });
 
       result.successfulUpdates = securityPricesToUpsert.length;
