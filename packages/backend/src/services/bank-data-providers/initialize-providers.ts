@@ -3,6 +3,7 @@ import { logger } from '@js/utils/logger';
 import { EnableBankingProvider } from './enablebanking';
 import { LunchFlowProvider } from './lunchflow/lunchflow.provider';
 import { MonobankProvider } from './monobank';
+import { ensureMonobankQueueRecovery } from './monobank/transaction-sync-queue';
 import { bankProviderRegistry } from './registry';
 import { WalutomatProvider } from './walutomat';
 
@@ -28,6 +29,17 @@ export function initializeBankProviders(): void {
     logger.info(
       `[Bank Data Providers] Successfully initialized ${registeredTypes.length} provider(s): ${registeredTypes.join(', ')}`,
     );
+
+    // Monobank uses per-token BullMQ queues created lazily on enqueue.
+    // After a restart we need to re-bind workers to queues that still hold
+    // pending jobs in Redis, otherwise those jobs sit idle until that token
+    // is synced again. Skip in tests — each Jest worker starts clean and
+    // recovery would race with the test's own enqueue.
+    if (process.env.NODE_ENV !== 'test') {
+      ensureMonobankQueueRecovery().catch(() => {
+        // Already logged inside the recovery routine; keep startup non-fatal.
+      });
+    }
   } catch (error) {
     logger.error({ message: '[Bank Data Providers] Failed to initialize providers:', error: error as Error });
     throw error;
