@@ -1,14 +1,16 @@
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
 import type { PortfolioAnnualizedReturnModel } from '@bt/shared/types/investments/portfolio-annualized-return.model';
-import { Money } from '@common/types/money';
+import { logger } from '@js/utils';
+import ExchangeRates from '@models/exchange-rates.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
+import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
-import { differenceInDays, format, parseISO } from 'date-fns';
+import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
+import { differenceInDays, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
 /**
@@ -18,8 +20,12 @@ import { Op } from 'sequelize';
  */
 const MIN_HISTORY_DAYS = 180;
 
-/** Unit amount used to derive a currency→base rate from `calculateRefAmount`. */
-const FX_PROBE_UNITS = 10_000;
+/**
+ * Days of price/rate history to pre-fetch before the first trade so the
+ * "latest value on or before a date" fallback has prior trading-day data to
+ * walk back to across weekends/holidays.
+ */
+const FALLBACK_LOOKBACK_DAYS = 7;
 
 const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
 
@@ -60,6 +66,11 @@ interface HoldingState {
  * as return-without-new-capital. Buys/sells are NOT treated as returns because
  * the same day-close price is used for both the valuation and the share delta,
  * so a trade contributes ~0 to its own day's return.
+ *
+ * FX — all exchange rates are bulk-loaded once and converted in memory (mirrors
+ * `get-combined-balance-history`). Valuing each boundary with a per-date
+ * `calculateRefAmount` round-trip instead would issue dozens of serial DB
+ * queries per request; keep the two cross-rate implementations in sync.
  */
 const getPortfoliosAnnualizedReturnsImpl = async ({
   userId,
@@ -119,21 +130,74 @@ const getPortfoliosAnnualizedReturnsImpl = async ({
       })) as SecurityRow[])
     : [];
   const securitiesById = new Map(securities.map((s) => [String(s.id), s]));
+  const currencyCodes = [...new Set(securities.map((s) => s.currencyCode))];
 
-  // One price series per security, ascending by date, for O(log n)-ish fallback
-  // lookups ("latest price on or before a date" covers weekends/holidays).
+  // Earliest trade date bounds how far back rates need to be loaded.
+  let earliestDate: string | null = null;
+  for (const tx of transactions) {
+    if (earliestDate === null || tx.date < earliestDate) earliestDate = tx.date;
+  }
+  const dataFetchMinDate = earliestDate
+    ? format(subDays(parseISO(earliestDate), FALLBACK_LOOKBACK_DAYS), 'yyyy-MM-dd')
+    : today;
+
+  // Currencies we need a `USD → X` rate for: every security currency PLUS the
+  // user's base currency (the numerator in the cross-rate). USD itself is
+  // excluded because `findLatestUsdRate` short-circuits to 1 for it.
+  const usdRateQuoteCodes = [...new Set([baseCurrencyCode, ...currencyCodes])].filter(
+    (code) => code !== API_LAYER_BASE_CURRENCY_CODE,
+  );
+
   type SecurityPriceRow = Pick<SecurityPricing, 'securityId' | 'date' | 'priceClose'>;
-  const securityPrices: SecurityPriceRow[] = securityIds.length
-    ? ((await SecurityPricing.findAll({
-        where: { securityId: { [Op.in]: securityIds } },
-        order: [
-          ['securityId', 'ASC'],
-          ['date', 'ASC'],
-        ],
-        attributes: ['securityId', 'date', 'priceClose'],
-      })) as SecurityPriceRow[])
-    : [];
+  type UserRateRow = Pick<UserExchangeRates, 'baseCode' | 'quoteCode' | 'date' | 'rate'>;
+  type SystemRateRow = Pick<ExchangeRates, 'quoteCode' | 'date' | 'rate'>;
 
+  const [securityPrices, userCustomExchangeRates, systemExchangeRates] = await Promise.all([
+    securityIds.length
+      ? (SecurityPricing.findAll({
+          where: { securityId: { [Op.in]: securityIds } },
+          order: [
+            ['securityId', 'ASC'],
+            ['date', 'ASC'],
+          ],
+          attributes: ['securityId', 'date', 'priceClose'],
+        }) as Promise<SecurityPriceRow[]>)
+      : Promise.resolve([] as SecurityPriceRow[]),
+    // User-set overrides — stored directly as `currencyCode → userBase`.
+    currencyCodes.length
+      ? (UserExchangeRates.findAll({
+          where: {
+            userId,
+            baseCode: { [Op.in]: currencyCodes },
+            quoteCode: baseCurrencyCode,
+            date: { [Op.between]: [dataFetchMinDate, today] },
+          },
+          attributes: ['baseCode', 'quoteCode', 'date', 'rate'],
+          raw: true,
+        }) as Promise<UserRateRow[]>)
+      : Promise.resolve([] as UserRateRow[]),
+    // System rates are stored only as `baseCode = USD, quoteCode = X` (1 USD = N X).
+    // Query that direction for every currency we convert from AND the user's
+    // base currency, then derive the cross-rate in `getExchangeRate` below.
+    usdRateQuoteCodes.length
+      ? (ExchangeRates.findAll({
+          where: {
+            baseCode: API_LAYER_BASE_CURRENCY_CODE,
+            quoteCode: { [Op.in]: usdRateQuoteCodes },
+            date: { [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(today))] },
+          },
+          order: [
+            ['quoteCode', 'ASC'],
+            ['date', 'ASC'],
+          ],
+          attributes: ['quoteCode', 'date', 'rate'],
+          raw: true,
+        }) as Promise<SystemRateRow[]>)
+      : Promise.resolve([] as SystemRateRow[]),
+  ]);
+
+  // One price series per security, ascending by date, for fallback lookups
+  // ("latest price on or before a date" covers weekends/holidays).
   const pricesBySecurity = new Map<string, Array<{ date: string; price: number }>>();
   for (const row of securityPrices) {
     const dateStr = formatDate(row.date);
@@ -160,27 +224,66 @@ const getPortfoliosAnnualizedReturnsImpl = async ({
     return latest;
   };
 
-  // Memoized `1 unit of <currency>` → base-currency rate at a given date.
-  const fxCache = new Map<string, number>();
-  const getFxRate = async (currencyCode: string, dateStr: string): Promise<number> => {
+  // User overrides (`currencyCode → userBase`) win over the computed cross-rate.
+  const userRatesMap = new Map<string, number>();
+  for (const r of userCustomExchangeRates) {
+    userRatesMap.set(`${r.baseCode}_${formatDate(r.date)}`, r.rate);
+  }
+
+  // System rates indexed by `${quoteCode}_${dateStr}` — value is `1 USD = N quoteCode`.
+  const usdRatesMap = new Map<string, number>();
+  // Per-currency sorted (ascending) date list for the weekend/holiday fallback.
+  const usdRateDatesByQuote = new Map<string, string[]>();
+  for (const rate of systemExchangeRates) {
+    const dateStr = formatDate(rate.date);
+    usdRatesMap.set(`${rate.quoteCode}_${dateStr}`, rate.rate);
+    const dates = usdRateDatesByQuote.get(rate.quoteCode);
+    if (dates) dates.push(dateStr);
+    else usdRateDatesByQuote.set(rate.quoteCode, [dateStr]);
+  }
+
+  const missingRateCurrencies = new Set<string>();
+
+  // `1 USD = ? quoteCode` for `dateStr`, falling back to the most recent prior
+  // rate when the exact day is missing. `null` when nothing is known.
+  const findLatestUsdRate = (quoteCode: string, dateStr: string): number | null => {
+    if (quoteCode === API_LAYER_BASE_CURRENCY_CODE) return 1;
+    const exact = usdRatesMap.get(`${quoteCode}_${dateStr}`);
+    if (exact !== undefined) return exact;
+    const dates = usdRateDatesByQuote.get(quoteCode);
+    if (!dates || dates.length === 0) return null;
+    let candidate: number | null = null;
+    for (const d of dates) {
+      if (d <= dateStr) candidate = usdRatesMap.get(`${quoteCode}_${d}`) ?? candidate;
+      else break;
+    }
+    return candidate;
+  };
+
+  // Multiplier converting 1 unit of `currencyCode` into the user's base currency.
+  const getExchangeRate = (currencyCode: string, dateStr: string): number => {
     if (currencyCode === baseCurrencyCode) return 1;
-    const key = `${currencyCode}_${dateStr}`;
-    const cached = fxCache.get(key);
-    if (cached !== undefined) return cached;
-    const converted = await calculateRefAmount({
-      amount: Money.fromDecimal(FX_PROBE_UNITS),
-      userId,
-      date: dateStr,
-      baseCode: currencyCode,
-      quoteCode: baseCurrencyCode,
-    });
-    const rate = converted.toNumber() / FX_PROBE_UNITS;
-    fxCache.set(key, rate);
-    return rate;
+
+    const userOverride = userRatesMap.get(`${currencyCode}_${dateStr}`);
+    if (userOverride !== undefined) return userOverride;
+
+    // Cross-rate via USD pivot: base = currency * (USD→base) / (USD→currency).
+    const usdToCurrency = findLatestUsdRate(currencyCode, dateStr);
+    const usdToBase = findLatestUsdRate(baseCurrencyCode, dateStr);
+
+    if (usdToCurrency == null || usdToBase == null || usdToCurrency === 0) {
+      if (usdToCurrency === 0) {
+        logger.error(`Stored exchange rate is zero for USD->${currencyCode} on ${dateStr}; treating as missing.`);
+      }
+      missingRateCurrencies.add(currencyCode);
+      return 1;
+    }
+
+    return usdToBase / usdToCurrency;
   };
 
   // Market value (base currency) of a holdings map valued at `dateStr`.
-  const valueHoldings = async (holdings: Map<string, HoldingState>, dateStr: string): Promise<number> => {
+  const valueHoldings = (holdings: Map<string, HoldingState>, dateStr: string): number => {
     let total = 0;
     for (const [securityId, holding] of holdings) {
       const security = securitiesById.get(securityId);
@@ -198,7 +301,7 @@ const getPortfoliosAnnualizedReturnsImpl = async ({
         total += holding.costBasis;
         continue;
       }
-      const rate = await getFxRate(security?.currencyCode ?? baseCurrencyCode, dateStr);
+      const rate = getExchangeRate(security?.currencyCode ?? baseCurrencyCode, dateStr);
       total += effectiveQuantity * price * rate;
     }
     return total;
@@ -274,7 +377,7 @@ const getPortfoliosAnnualizedReturnsImpl = async ({
     for (const boundaryDate of boundaryDates) {
       // Close the open sub-period: value the (unchanged) holdings at this date.
       if (prevDate !== null && prevValue > 0) {
-        const valueBefore = await valueHoldings(holdings, boundaryDate);
+        const valueBefore = valueHoldings(holdings, boundaryDate);
         let dividendsInPeriod = 0;
         while (dividendIdx < dividends.length && dividends[dividendIdx]!.date <= boundaryDate) {
           if (dividends[dividendIdx]!.date > prevDate) dividendsInPeriod += dividends[dividendIdx]!.amount;
@@ -314,7 +417,7 @@ const getPortfoliosAnnualizedReturnsImpl = async ({
         holdings.set(tx.securityId, holding);
       }
 
-      prevValue = await valueHoldings(holdings, boundaryDate);
+      prevValue = valueHoldings(holdings, boundaryDate);
       prevDate = boundaryDate;
       if (prevValue > 0) started = true;
     }
@@ -333,6 +436,14 @@ const getPortfoliosAnnualizedReturnsImpl = async ({
       startDate,
       periodDays,
       currencyCode: baseCurrencyCode,
+    });
+  }
+
+  if (missingRateCurrencies.size > 0) {
+    logger.warn('Annualized return: exchange rate fallback to 1:1', {
+      userId,
+      baseCurrency: baseCurrencyCode,
+      currencies: Array.from(missingRateCurrencies),
     });
   }
 

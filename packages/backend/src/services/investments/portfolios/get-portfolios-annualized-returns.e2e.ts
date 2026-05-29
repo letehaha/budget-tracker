@@ -1,8 +1,11 @@
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
+import ExchangeRates from '@models/exchange-rates.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
+import UserExchangeRates from '@models/user-exchange-rates.model';
+import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
 import * as helpers from '@tests/helpers';
 import { format, parseISO, subDays } from 'date-fns';
 
@@ -289,6 +292,74 @@ describe('GET /investments/portfolios/annualized-returns', () => {
       // 100 → 120 over a year ≈ +20%/yr; 100 → 80 ≈ -20%/yr.
       expect(gain.annualizedReturn).toBeCloseTo(20, 0);
       expect(lose.annualizedReturn).toBeCloseTo(-20, 0);
+    });
+
+    it('applies FX conversion for a non-base-currency (USD) security', async () => {
+      // Base currency is AED; this security is in USD, so a real USD→AED
+      // cross-rate is applied at each valuation boundary (the other tests use
+      // AED securities, where the 1:1 rate hides any FX bug). The rate DIFFERS
+      // between the start and end of the period so the FX move is baked into
+      // the return: a 1:1 fallback would yield ~20%/yr (raw price move), but
+      // the real answer is higher because the dollar also rose against AED.
+      //
+      // valueHoldings values a USD holding as quantity * price * USD→AED rate:
+      //   start: 1 * $100 * 3 = 300 AED
+      //   today: 1 * $120 * 4 = 480 AED
+      //   TWR factor = 480 / 300 = 1.6 over exactly 365 days → ~60%/yr.
+      const startDate = daysAgo({ days: 365 });
+
+      const security = await Securities.create({
+        symbol: 'USDFX',
+        providerSymbol: 'USDFX',
+        currencyCode: 'USD',
+        providerName: SECURITY_PROVIDER.fmp,
+        assetClass: ASSET_CLASS.stocks,
+        name: 'USD FX Test Security',
+      });
+
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: security.id } });
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: security.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          date: startDate,
+          quantity: '1',
+          price: '100',
+        },
+        raw: true,
+      });
+      await seedPrices({
+        securityId: security.id,
+        points: [
+          { date: startDate, price: '100' },
+          { date: today(), price: '120' },
+        ],
+      });
+
+      // ExchangeRates survives test truncation (it is seed data), and the
+      // investment-transaction create flow lazily writes a USD→AED row via
+      // calculateRefAmount. Wipe both so only the two deterministic rates we
+      // seed below exist for this pair.
+      await ExchangeRates.destroy({ where: { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'AED' } });
+      await UserExchangeRates.destroy({ where: { userId: 1, baseCode: 'USD', quoteCode: 'AED' } });
+
+      // `date` is a DATE column; seed JS Dates the service normalizes to
+      // yyyy-MM-dd. USD→AED = 3 at the buy, 4 today.
+      await ExchangeRates.bulkCreate([
+        { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'AED', rate: 3, date: parseISO(startDate) },
+        { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'AED', rate: 4, date: parseISO(today()) },
+      ]);
+
+      const result = await helpers.getPortfoliosAnnualizedReturns({ raw: true });
+      const entry = result.find((r) => r.portfolioId === portfolio.id)!;
+
+      expect(entry.hasEnoughHistory).toBe(true);
+      expect(entry.periodDays).toBe(365);
+      // 300 AED → 480 AED over 365 days = +60%/yr. NOT the ~20% a 1:1 FX
+      // fallback (or an unconverted USD figure) would produce.
+      expect(entry.annualizedReturn).toBeCloseTo(60, 0);
+      expect(entry.currencyCode).toBe(global.BASE_CURRENCY_CODE);
     });
 
     it('does not inflate the return when a holding is unpriced at its buy date', async () => {
