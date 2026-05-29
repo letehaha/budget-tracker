@@ -3,14 +3,14 @@ import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, unref } from 'vue';
 
-const eventsKey = (dealId: string | undefined) => [...VUE_QUERY_CACHE_KEYS.ventureDealEvents, dealId];
+const eventsKey = (dealId: MaybeRef<string | undefined>) => [...VUE_QUERY_CACHE_KEYS.ventureDealEvents, dealId];
 
 export const useVentureEvents = (dealId: MaybeRef<string | undefined>, queryOptions = {}) => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryFn: () => listVentureEvents({ dealId: unref(dealId)! }),
-    queryKey: eventsKey(unref(dealId)),
+    queryKey: eventsKey(dealId),
     enabled: () => !!unref(dealId),
     staleTime: 1000 * 30,
     ...queryOptions,
