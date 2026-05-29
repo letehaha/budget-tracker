@@ -7,7 +7,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getErrorMessage } from '@/common/utils/error-message';
-import { fractionToPercentInput, percentInputToFraction } from '@/common/utils/percentage';
+import { fractionToPercentInput, isPercentInputValid, percentInputToFraction } from '@/common/utils/percentage';
 import { useCreateVentureDeal, useUpdateVentureDeal } from '@/composable/data-queries/venture/deals';
 import { useVenturePlatforms } from '@/composable/data-queries/venture/platforms';
 import { useCurrenciesStore } from '@/stores';
@@ -99,11 +99,6 @@ watch(
 
 const isPending = computed(() => createMutation.isPending.value || updateMutation.isPending.value);
 
-const isPercentValid = (val: string): boolean => {
-  const n = Number(val);
-  return Number.isFinite(n) && n >= 0 && n <= 100;
-};
-
 const isPositiveDecimal = (val: string | number): boolean => {
   const n = Number(val);
   return Number.isFinite(n) && n > 0;
@@ -115,10 +110,10 @@ const isFormValid = computed(
     form.currencyCode.length === 3 &&
     isPositiveDecimal(form.principal) &&
     /^\d{4}-\d{2}-\d{2}$/.test(form.investmentDate) &&
-    isPercentValid(form.entryFeePctPercent) &&
-    isPercentValid(form.mgmtFeePctPercent) &&
-    isPercentValid(form.carryPctPercent) &&
-    isPercentValid(form.hurdlePctPercent),
+    isPercentInputValid(form.entryFeePctPercent) &&
+    isPercentInputValid(form.mgmtFeePctPercent) &&
+    isPercentInputValid(form.carryPctPercent) &&
+    isPercentInputValid(form.hurdlePctPercent),
 );
 
 // `InputField type="number"` emits JS numbers, and Money fields come back from
@@ -321,7 +316,7 @@ const onSubmit = async () => {
         step="0.01"
         :label="$t('venture.deals.form.entryFeePctLabel')"
         :disabled="isPending"
-        :error="!isPercentValid(form.entryFeePctPercent) && $t('venture.deals.form.percentInvalid')"
+        :error="!isPercentInputValid(form.entryFeePctPercent) && $t('venture.deals.form.percentInvalid')"
       >
         <template #label-after>
           <ResponsiveTooltip
@@ -339,7 +334,7 @@ const onSubmit = async () => {
         step="0.01"
         :label="$t('venture.deals.form.mgmtFeePctLabel')"
         :disabled="isPending"
-        :error="!isPercentValid(form.mgmtFeePctPercent) && $t('venture.deals.form.percentInvalid')"
+        :error="!isPercentInputValid(form.mgmtFeePctPercent) && $t('venture.deals.form.percentInvalid')"
       >
         <template #label-after>
           <ResponsiveTooltip
@@ -357,7 +352,7 @@ const onSubmit = async () => {
         step="0.01"
         :label="$t('venture.deals.form.carryPctLabel')"
         :disabled="isPending"
-        :error="!isPercentValid(form.carryPctPercent) && $t('venture.deals.form.percentInvalid')"
+        :error="!isPercentInputValid(form.carryPctPercent) && $t('venture.deals.form.percentInvalid')"
       >
         <template #label-after>
           <ResponsiveTooltip
@@ -375,7 +370,7 @@ const onSubmit = async () => {
         step="0.01"
         :label="$t('venture.deals.form.hurdlePctLabel')"
         :disabled="isPending"
-        :error="!isPercentValid(form.hurdlePctPercent) && $t('venture.deals.form.percentInvalid')"
+        :error="!isPercentInputValid(form.hurdlePctPercent) && $t('venture.deals.form.percentInvalid')"
       >
         <template #label-after>
           <ResponsiveTooltip

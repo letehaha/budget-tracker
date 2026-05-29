@@ -3,11 +3,13 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import VentureDealForm from '@/components/forms/venture-deal-form.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent } from '@/components/lib/ui/card';
+import { VENTURE_DEAL_STATUS_META } from '@/common/const/venture-deal-status';
+import { formatShortDate } from '@/common/utils/date';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useVentureDeals } from '@/composable/data-queries/venture/deals';
 import { useVenturePlatforms } from '@/composable/data-queries/venture/platforms';
 import { ROUTES_NAMES } from '@/routes';
-import { VENTURE_DEAL_STATUS, type VentureDealModel } from '@bt/shared/types';
+import { type VentureDealModel } from '@bt/shared/types';
 import { PlusIcon, RocketIcon, SettingsIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
@@ -20,32 +22,6 @@ const platformsCount = computed(() => platformsData.value?.data?.length ?? 0);
 const createDialogOpen = ref(false);
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();
-
-const statusLabel = (status: VENTURE_DEAL_STATUS): string => {
-  const map: Record<VENTURE_DEAL_STATUS, string> = {
-    [VENTURE_DEAL_STATUS.outstanding]: 'venture.deals.status.outstanding',
-    [VENTURE_DEAL_STATUS.partial_exit]: 'venture.deals.status.partial_exit',
-    [VENTURE_DEAL_STATUS.fully_exited]: 'venture.deals.status.fully_exited',
-    [VENTURE_DEAL_STATUS.written_off]: 'venture.deals.status.written_off',
-  };
-  return map[status];
-};
-
-const statusClass = (status: VENTURE_DEAL_STATUS): string => {
-  const map: Record<VENTURE_DEAL_STATUS, string> = {
-    [VENTURE_DEAL_STATUS.outstanding]: 'bg-app-transfer-color/15 text-app-transfer-color border-app-transfer-color/30',
-    [VENTURE_DEAL_STATUS.partial_exit]: 'bg-app-income-color/15 text-app-income-color border-app-income-color/30',
-    [VENTURE_DEAL_STATUS.fully_exited]: 'bg-app-income-color/20 text-app-income-color border-app-income-color/40',
-    [VENTURE_DEAL_STATUS.written_off]: 'bg-destructive/15 text-destructive-text border-destructive/30',
-  };
-  return map[status];
-};
-
-const formatDate = (iso: string): string => {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-};
 
 const onDealCreated = () => {
   createDialogOpen.value = false;
@@ -111,10 +87,10 @@ const onDealCreated = () => {
             <span
               :class="[
                 'inline-flex shrink-0 items-center rounded-md border px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
-                statusClass(deal.status),
+                VENTURE_DEAL_STATUS_META[deal.status].cls,
               ]"
             >
-              {{ $t(statusLabel(deal.status)) }}
+              {{ $t(VENTURE_DEAL_STATUS_META[deal.status].label) }}
             </span>
           </div>
 
@@ -139,7 +115,7 @@ const onDealCreated = () => {
               <div class="text-muted-foreground text-[10px] tracking-wide uppercase">
                 {{ $t('venture.deals.investmentDate') }}
               </div>
-              <div class="text-muted-foreground mt-0.5 text-sm">{{ formatDate(deal.investmentDate) }}</div>
+              <div class="text-muted-foreground mt-0.5 text-sm">{{ formatShortDate(deal.investmentDate) }}</div>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatShortDate } from '@/common/utils/date';
 import { getErrorMessage } from '@/common/utils/error-message';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { Card, CardContent } from '@/components/lib/ui/card';
@@ -117,12 +118,6 @@ const primaryAmount = (event: VentureEventModel): { value: string; label: string
   return null;
 };
 
-const formatDate = (iso: string): string => {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-};
-
 const deleteTarget = ref<VentureEventModel | null>(null);
 const deleteOpen = ref(false);
 const deleteLinkedTx = ref(false);
@@ -186,7 +181,7 @@ const onConfirmDelete = async () => {
               >
                 {{ $t(eventTypeLabel(event.type)) }}
               </span>
-              <span class="text-muted-foreground text-xs">{{ formatDate(event.eventDate) }}</span>
+              <span class="text-muted-foreground text-xs">{{ formatShortDate(event.eventDate) }}</span>
               <span
                 v-if="event.cashFlowMode === VENTURE_CASH_FLOW_MODE.out_of_wallet"
                 class="border-border text-muted-foreground inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] tracking-wide uppercase"

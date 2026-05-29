@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { VENTURE_DEAL_STATUS_META } from '@/common/const/venture-deal-status';
+import { formatShortDate } from '@/common/utils/date';
 import { getErrorMessage } from '@/common/utils/error-message';
 import { formatFractionAsPercent } from '@/common/utils/percentage';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
@@ -12,7 +14,6 @@ import { useDeleteVentureDeal, useVentureDeal } from '@/composable/data-queries/
 import EventsTimeline from '@/pages/venture/components/events-timeline.vue';
 import MetricsSummary from '@/pages/venture/components/metrics-summary.vue';
 import { ROUTES_NAMES } from '@/routes';
-import { VENTURE_DEAL_STATUS } from '@bt/shared/types';
 import { ArrowLeftIcon, PencilIcon, PlusIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -32,38 +33,6 @@ const deleteOpen = ref(false);
 const createEventOpen = ref(false);
 
 const deleteMutation = useDeleteVentureDeal();
-
-const statusMeta = (status: VENTURE_DEAL_STATUS): { label: string; cls: string; dot: string } => {
-  const map: Record<VENTURE_DEAL_STATUS, { label: string; cls: string; dot: string }> = {
-    [VENTURE_DEAL_STATUS.outstanding]: {
-      label: 'venture.deals.status.outstanding',
-      cls: 'bg-app-transfer-color/15 text-app-transfer-color border-app-transfer-color/30',
-      dot: 'bg-app-transfer-color',
-    },
-    [VENTURE_DEAL_STATUS.partial_exit]: {
-      label: 'venture.deals.status.partial_exit',
-      cls: 'bg-app-income-color/15 text-app-income-color border-app-income-color/30',
-      dot: 'bg-app-income-color',
-    },
-    [VENTURE_DEAL_STATUS.fully_exited]: {
-      label: 'venture.deals.status.fully_exited',
-      cls: 'bg-app-income-color/20 text-app-income-color border-app-income-color/40',
-      dot: 'bg-app-income-color',
-    },
-    [VENTURE_DEAL_STATUS.written_off]: {
-      label: 'venture.deals.status.written_off',
-      cls: 'bg-destructive/15 text-destructive-text border-destructive/30',
-      dot: 'bg-destructive',
-    },
-  };
-  return map[status];
-};
-
-const formatDate = (iso: string): string => {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-};
 
 const onEditSaved = () => {
   editOpen.value = false;
@@ -109,11 +78,11 @@ const onDelete = async () => {
             <span
               :class="[
                 'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium tracking-wide uppercase',
-                statusMeta(deal.status).cls,
+                VENTURE_DEAL_STATUS_META[deal.status].cls,
               ]"
             >
-              <span :class="['size-1.5 rounded-full', statusMeta(deal.status).dot]" />
-              {{ $t(statusMeta(deal.status).label) }}
+              <span :class="['size-1.5 rounded-full', VENTURE_DEAL_STATUS_META[deal.status].dot]" />
+              {{ $t(VENTURE_DEAL_STATUS_META[deal.status].label) }}
             </span>
             <span v-if="deal.platform" class="text-muted-foreground text-xs">
               {{ deal.platform.name }}
@@ -167,11 +136,11 @@ const onDelete = async () => {
           </div>
           <div>
             <div class="text-muted-foreground text-xs">{{ $t('venture.deals.investmentDate') }}</div>
-            <div class="mt-0.5 text-sm">{{ formatDate(deal.investmentDate) }}</div>
+            <div class="mt-0.5 text-sm">{{ formatShortDate(deal.investmentDate) }}</div>
           </div>
           <div v-if="deal.expectedExitDate">
             <div class="text-muted-foreground text-xs">{{ $t('venture.deals.expectedExitDate') }}</div>
-            <div class="mt-0.5 text-sm">{{ formatDate(deal.expectedExitDate) }}</div>
+            <div class="mt-0.5 text-sm">{{ formatShortDate(deal.expectedExitDate) }}</div>
           </div>
         </div>
       </section>

@@ -53,3 +53,12 @@ export function percentInputToFraction(percentInput: string | number | null | un
   if (!Number.isFinite(num)) return '0';
   return (num / 100).toString();
 }
+
+/**
+ * True when `val` parses to a finite number in the inclusive range [0, 100].
+ * Use to validate percent-text inputs (entry fee, carry, hurdle, etc.).
+ */
+export function isPercentInputValid(val: string): boolean {
+  const n = Number(val);
+  return Number.isFinite(n) && n >= 0 && n <= 100;
+}

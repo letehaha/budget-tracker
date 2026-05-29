@@ -4,7 +4,7 @@ import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getErrorMessage } from '@/common/utils/error-message';
-import { fractionToPercentInput, percentInputToFraction } from '@/common/utils/percentage';
+import { fractionToPercentInput, isPercentInputValid, percentInputToFraction } from '@/common/utils/percentage';
 import { useCreateVenturePlatform, useUpdateVenturePlatform } from '@/composable/data-queries/venture/platforms';
 import type { VenturePlatformModel } from '@bt/shared/types';
 import { computed, reactive, watch } from 'vue';
@@ -64,18 +64,13 @@ watch(
 
 const isPending = computed(() => createMutation.isPending.value || updateMutation.isPending.value);
 
-const isPercentValid = (val: string): boolean => {
-  const num = Number(val);
-  return Number.isFinite(num) && num >= 0 && num <= 100;
-};
-
 const isFormValid = computed(
   () =>
     form.name.trim().length > 0 &&
-    isPercentValid(form.defaultEntryFeePctPercent) &&
-    isPercentValid(form.defaultMgmtFeePctPercent) &&
-    isPercentValid(form.defaultCarryPctPercent) &&
-    isPercentValid(form.defaultHurdlePctPercent),
+    isPercentInputValid(form.defaultEntryFeePctPercent) &&
+    isPercentInputValid(form.defaultMgmtFeePctPercent) &&
+    isPercentInputValid(form.defaultCarryPctPercent) &&
+    isPercentInputValid(form.defaultHurdlePctPercent),
 );
 
 const buildPayload = () => ({
@@ -143,7 +138,7 @@ const onSubmit = async () => {
         step="0.01"
         :label="$t('venture.platforms.form.entryFeeLabel')"
         :disabled="isPending"
-        :error="!isPercentValid(form.defaultEntryFeePctPercent) && $t('venture.platforms.form.percentInvalid')"
+        :error="!isPercentInputValid(form.defaultEntryFeePctPercent) && $t('venture.platforms.form.percentInvalid')"
       />
       <InputField
         v-model="form.defaultMgmtFeePctPercent"
@@ -151,7 +146,7 @@ const onSubmit = async () => {
         step="0.01"
         :label="$t('venture.platforms.form.mgmtFeeLabel')"
         :disabled="isPending"
-        :error="!isPercentValid(form.defaultMgmtFeePctPercent) && $t('venture.platforms.form.percentInvalid')"
+        :error="!isPercentInputValid(form.defaultMgmtFeePctPercent) && $t('venture.platforms.form.percentInvalid')"
       />
       <InputField
         v-model="form.defaultCarryPctPercent"
@@ -159,7 +154,7 @@ const onSubmit = async () => {
         step="0.01"
         :label="$t('venture.platforms.form.carryLabel')"
         :disabled="isPending"
-        :error="!isPercentValid(form.defaultCarryPctPercent) && $t('venture.platforms.form.percentInvalid')"
+        :error="!isPercentInputValid(form.defaultCarryPctPercent) && $t('venture.platforms.form.percentInvalid')"
       />
       <InputField
         v-model="form.defaultHurdlePctPercent"
@@ -167,7 +162,7 @@ const onSubmit = async () => {
         step="0.01"
         :label="$t('venture.platforms.form.hurdleLabel')"
         :disabled="isPending"
-        :error="!isPercentValid(form.defaultHurdlePctPercent) && $t('venture.platforms.form.percentInvalid')"
+        :error="!isPercentInputValid(form.defaultHurdlePctPercent) && $t('venture.platforms.form.percentInvalid')"
       />
     </div>
 
