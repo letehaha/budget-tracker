@@ -1,5 +1,6 @@
 import { CurrencyModel, UserModel } from '../db-models';
 import { VENTURE_DEAL_STATUS, VENTURE_SPV_SUBTYPE, VENTURE_VEHICLE_TYPE } from './enums';
+import { VentureEventModel } from './event.model';
 import { VenturePlatformModel } from './platform.model';
 
 export interface VentureDealModel {
@@ -21,12 +22,9 @@ export interface VentureDealModel {
   investmentDate: string;
   expectedExitDate: string | null;
   notes: string | null;
-  metaData: Record<string, unknown> | null;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date | null;
 
   user?: UserModel;
   platform?: VenturePlatformModel;
   currency?: CurrencyModel;
+  events?: VentureEventModel[];
 }

@@ -1,5 +1,6 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVentureEventLink } from '@root/serializers';
 import { linkTxsToEvent } from '@services/venture/linking/link-txs-to-event.service';
 import { z } from 'zod';
 
@@ -16,6 +17,6 @@ export default createController(
       eventId: params.id,
       transactionIds: body.transactionIds,
     });
-    return { data: links };
+    return { data: links.map(serializeVentureEventLink) };
   },
 );

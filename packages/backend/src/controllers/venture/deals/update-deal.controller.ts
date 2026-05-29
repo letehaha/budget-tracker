@@ -1,6 +1,7 @@
 import { VENTURE_DEAL_STATUS, VENTURE_SPV_SUBTYPE } from '@bt/shared/types/venture';
 import { dateString, decimalString, percentageFraction, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVentureDeal } from '@root/serializers';
 import { updateVentureDeal } from '@services/venture/deals/update.service';
 import { z } from 'zod';
 
@@ -32,6 +33,6 @@ export default createController(
   }),
   async ({ user, params, body }) => {
     const deal = await updateVentureDeal({ userId: user.id, dealId: params.id, ...body });
-    return { data: deal };
+    return { data: serializeVentureDeal(deal) };
   },
 );

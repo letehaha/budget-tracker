@@ -10,9 +10,6 @@ export interface VenturePlatformModel {
   defaultMgmtFeePct: string;
   defaultCarryPct: string;
   defaultHurdlePct: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date | null;
 
   user?: UserModel;
 }

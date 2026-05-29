@@ -1,5 +1,6 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVenturePlatform } from '@root/serializers';
 import { updateVenturePlatform } from '@services/venture/platforms/update.service';
 import { z } from 'zod';
 
@@ -34,6 +35,6 @@ export default createController(
       platformId: params.id,
       ...body,
     });
-    return { data: platform };
+    return { data: serializeVenturePlatform(platform) };
   },
 );

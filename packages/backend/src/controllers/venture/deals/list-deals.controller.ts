@@ -1,6 +1,7 @@
 import { VENTURE_DEAL_STATUS } from '@bt/shared/types/venture';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVentureDeals } from '@root/serializers';
 import { listVentureDeals } from '@services/venture/deals/list.service';
 import { z } from 'zod';
 
@@ -32,7 +33,7 @@ export default createController(
 
     return {
       data: {
-        data: deals,
+        data: serializeVentureDeals(deals),
         pagination: {
           limit: query.limit,
           offset: query.offset,

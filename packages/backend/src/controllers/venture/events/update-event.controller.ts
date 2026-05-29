@@ -1,5 +1,6 @@
 import { dateString, decimalString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVentureEvent } from '@root/serializers';
 import { updateVentureEvent } from '@services/venture/events/update.service';
 import { z } from 'zod';
 
@@ -24,6 +25,6 @@ export default createController(
   }),
   async ({ user, params, body }) => {
     const result = await updateVentureEvent({ userId: user.id, eventId: params.id, ...body });
-    return { data: result };
+    return { data: { event: serializeVentureEvent(result.event), recomputedEventIds: result.recomputedEventIds } };
   },
 );

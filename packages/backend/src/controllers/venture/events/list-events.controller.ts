@@ -1,5 +1,6 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVentureEvents } from '@root/serializers';
 import { listVentureEvents } from '@services/venture/events/list.service';
 import { z } from 'zod';
 
@@ -9,6 +10,6 @@ export default createController(
   }),
   async ({ user, params }) => {
     const events = await listVentureEvents({ userId: user.id, dealId: params.dealId });
-    return { data: events };
+    return { data: serializeVentureEvents(events) };
   },
 );

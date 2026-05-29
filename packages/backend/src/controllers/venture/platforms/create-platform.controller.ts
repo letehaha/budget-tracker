@@ -1,4 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVenturePlatform } from '@root/serializers';
 import { createVenturePlatform } from '@services/venture/platforms/create.service';
 import { z } from 'zod';
 
@@ -26,6 +27,6 @@ export default createController(
       userId: user.id,
       ...body,
     });
-    return { data: platform };
+    return { data: serializeVenturePlatform(platform) };
   },
 );

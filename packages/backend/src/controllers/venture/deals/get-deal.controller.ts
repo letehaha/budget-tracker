@@ -1,5 +1,6 @@
 import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVentureDeal } from '@root/serializers';
 import { getVentureDeal } from '@services/venture/deals/get.service';
 import { z } from 'zod';
 
@@ -18,6 +19,6 @@ export default createController(
       dealId: params.id,
       includeEvents: query?.includeEvents,
     });
-    return { data: deal };
+    return { data: serializeVentureDeal(deal) };
   },
 );

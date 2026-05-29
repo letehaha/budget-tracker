@@ -16,12 +16,10 @@ export interface VentureEventModel {
   quantityPct: string | null;
   lpNetAmountOverridden: boolean;
   gpCarryOverridden: boolean;
+  principalReturnedThisEvent: string | null;
   currencyCode: string;
   cashFlowMode: VENTURE_CASH_FLOW_MODE;
   notes: string | null;
-  metaData: Record<string, unknown> | null;
-  createdAt: Date;
-  updatedAt: Date;
 
   deal?: VentureDealModel;
   currency?: CurrencyModel;
@@ -35,9 +33,6 @@ export interface VentureEventLinkModel {
   amount: string;
   currencyCode: string;
   linkedAt: Date;
-  metaData: Record<string, unknown> | null;
-  createdAt: Date;
-  updatedAt: Date;
 
   event?: VentureEventModel;
   transaction?: TransactionModel;

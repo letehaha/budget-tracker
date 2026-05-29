@@ -1,6 +1,7 @@
 import { VENTURE_CASH_FLOW_MODE, VENTURE_EVENT_TYPE } from '@bt/shared/types/venture';
 import { dateString, decimalString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVentureEvent } from '@root/serializers';
 import { createVentureEvent } from '@services/venture/events/create.service';
 import { z } from 'zod';
 
@@ -26,6 +27,6 @@ export default createController(
       dealId: params.dealId,
       ...body,
     });
-    return { data: event };
+    return { data: serializeVentureEvent(event) };
   },
 );

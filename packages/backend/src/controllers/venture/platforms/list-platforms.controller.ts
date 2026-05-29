@@ -1,4 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVenturePlatforms } from '@root/serializers';
 import { listVenturePlatforms } from '@services/venture/platforms/list.service';
 import { z } from 'zod';
 
@@ -26,7 +27,7 @@ export default createController(
 
     return {
       data: {
-        data: platforms,
+        data: serializeVenturePlatforms(platforms),
         pagination: {
           limit: query.limit,
           offset: query.offset,

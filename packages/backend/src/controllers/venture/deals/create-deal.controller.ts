@@ -1,6 +1,7 @@
 import { VENTURE_CASH_FLOW_MODE, VENTURE_SPV_SUBTYPE, VENTURE_VEHICLE_TYPE } from '@bt/shared/types/venture';
 import { dateString, decimalString, percentageFraction, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { serializeVentureDeal } from '@root/serializers';
 import { createVentureDeal } from '@services/venture/deals/create.service';
 import { z } from 'zod';
 
@@ -32,6 +33,6 @@ export default createController(
   }),
   async ({ user, body }) => {
     const deal = await createVentureDeal({ userId: user.id, ...body });
-    return { data: deal };
+    return { data: serializeVentureDeal(deal) };
   },
 );
