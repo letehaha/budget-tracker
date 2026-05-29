@@ -3,6 +3,7 @@ import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withDeduplication } from '@services/common/with-deduplication';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
@@ -114,6 +115,21 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     SecurityPricing
   >;
 
+  // Resolve the user's base currency ONCE up front. Without this,
+  // `calculateRefAmount` looks it up on every holding (and its Redis cache
+  // can't help — the cache key includes each holding's amount, so it's a miss
+  // every time). That per-holding lookup was the N+1 flagged on
+  // GET /portfolios/*/summary. Passing the resolved code as `quoteCode` below
+  // is behaviour-identical: when omitted, calculateRefAmount falls back to this
+  // exact default currency. Left undefined if the user has no base currency —
+  // calculateRefAmount then takes its original (throwing) path, which the loop
+  // already tolerates.
+  let baseCurrencyCode: string | undefined;
+  if (userId) {
+    const userCurrency = await UsersCurrencies.getCurrency({ userId, isDefaultCurrency: true });
+    baseCurrencyCode = userCurrency?.currency.code;
+  }
+
   // Calculate market values for each holding
   const holdingValues: HoldingValue[] = [];
 
@@ -138,6 +154,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
           const refAmount = await calculateRefAmount({
             amount: Money.fromDecimal(marketValue),
             baseCode: holding.currencyCode,
+            quoteCode: baseCurrencyCode,
             userId,
             date: date || new Date(),
           });
