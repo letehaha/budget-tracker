@@ -27,6 +27,8 @@ const props = withDefaults(
     searchKeys?: NonEmptyArray<StringOrNumberKeys<T>>;
     placeholder?: string;
     disabled?: boolean;
+    /** Predicate to render an individual option as non-selectable. */
+    optionDisabled?: (value: T) => boolean;
     errorMessage?: string;
     label?: string;
   }>(),
@@ -35,6 +37,7 @@ const props = withDefaults(
     disabled: false,
     withSearch: false,
     searchKeys: undefined,
+    optionDisabled: undefined,
     errorMessage: undefined,
     labelKey: 'label',
     valueKey: 'value',
@@ -137,6 +140,7 @@ watch(
             v-for="item in debouncedFilteredValues"
             :key="getKeyFromItem(item as T)"
             :value="getKeyFromItem(item as T)"
+            :disabled="optionDisabled ? optionDisabled(item as T) : undefined"
           >
             <slot name="item" :item="item" :label="getLabelFromValue(item as T)">
               {{ getLabelFromValue(item as T) }}

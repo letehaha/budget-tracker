@@ -18,6 +18,7 @@ import exchangeCurrencyController from '@controllers/investments/portfolios/exch
 import getPortfolioController from '@controllers/investments/portfolios/get-portfolio';
 import getPortfolioBalanceController from '@controllers/investments/portfolios/get-portfolio-balance';
 import getPortfolioSummaryController from '@controllers/investments/portfolios/get-portfolio-summary.controller';
+import getPortfoliosAnnualizedReturnsController from '@controllers/investments/portfolios/get-portfolios-annualized-returns.controller';
 import listPortfolioTransfersController from '@controllers/investments/portfolios/list-portfolio-transfers';
 import listPortfoliosController from '@controllers/investments/portfolios/list-portfolios';
 import portfolioToAccountTransferController from '@controllers/investments/portfolios/portfolio-to-account-transfer';
@@ -51,6 +52,14 @@ router.use(authenticateSession);
 
 // Portfolio routes
 router.get('/portfolios', validateEndpoint(listPortfoliosController.schema), listPortfoliosController.handler);
+
+// Static path — must be registered before `/portfolios/:id` so it isn't
+// swallowed as `:id = "annualized-returns"`.
+router.get(
+  '/portfolios/annualized-returns',
+  validateEndpoint(getPortfoliosAnnualizedReturnsController.schema),
+  getPortfoliosAnnualizedReturnsController.handler,
+);
 
 router.get('/portfolios/:id', validateEndpoint(getPortfolioController.schema), getPortfolioController.handler);
 

@@ -38,6 +38,7 @@
         :selected-period="periodTabValue"
         :selected-indicator-id="selectedIndicatorId"
         :current-total-balance="currentTotalBalance"
+        :portfolio-returns="portfolioReturns"
         @update:initial-balance="initialBalance = $event"
         @update:monthly-contribution="handleManualContributionChange($event)"
         @update:time-horizon-years="timeHorizonYears = $event"
@@ -68,10 +69,17 @@ import { useElementSize } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { usePortfoliosAnnualizedReturns } from '@/composable/data-queries/portfolios-annualized-returns';
 import CalculatorInputs from './components/calculator-inputs.vue';
 import ProjectionChart from './components/projection-chart.vue';
 import SummaryCards from './components/summary-cards.vue';
-import { CUSTOM_INDICATOR_ID, getIndicatorById, MARKET_INDICATORS } from './composables/market-indicators';
+import {
+  CUSTOM_INDICATOR_ID,
+  getIndicatorById,
+  getPortfolioIdFromIndicatorId,
+  isPortfolioIndicatorId,
+  MARKET_INDICATORS,
+} from './composables/market-indicators';
 import { useProjectionCalc, type ProjectionParams } from './composables/use-projection-calc';
 import { useSeedData, type NetIncomePeriod } from './composables/use-seed-data';
 
@@ -112,6 +120,11 @@ const selectedIndicatorId = ref(MARKET_INDICATORS[0]!.id);
 
 // Seed data from backend
 const { currentTotalBalance, averageNetIncome } = useSeedData({ selectedPeriod });
+
+// User's own portfolios' historical annualized returns (TWR), offered as
+// "Annual return" choices alongside the static market indices.
+const { data: portfolioReturnsData } = usePortfoliosAnnualizedReturns();
+const portfolioReturns = computed(() => portfolioReturnsData.value ?? []);
 
 // Auto-seed initial balance from user's current balance (once).
 // `immediate` is needed so that cached vue-query data (already non-zero on
@@ -161,6 +174,11 @@ const handleManualContributionChange = (val: number) => {
 const indicatorLabel = computed(() => {
   if (selectedIndicatorId.value === CUSTOM_INDICATOR_ID) {
     return t('analytics.investmentCalculator.customIndicator');
+  }
+  if (isPortfolioIndicatorId({ id: selectedIndicatorId.value })) {
+    const portfolioId = getPortfolioIdFromIndicatorId({ id: selectedIndicatorId.value });
+    const portfolio = portfolioReturns.value.find((p) => p.portfolioId === portfolioId);
+    return portfolio?.portfolioName ?? t('analytics.investmentCalculator.customIndicator');
   }
   const indicator = getIndicatorById({ id: selectedIndicatorId.value });
   return indicator?.label ?? t('analytics.investmentCalculator.customIndicator');

@@ -6,6 +6,21 @@ interface MarketIndicator {
 
 export const CUSTOM_INDICATOR_ID = 'custom';
 
+/**
+ * Prefix for indicator options backed by one of the user's own portfolios
+ * (their tracked historical performance). The portfolio id is appended, e.g.
+ * `portfolio:9f3c...`, so it never collides with the static indicator ids.
+ */
+const PORTFOLIO_INDICATOR_PREFIX = 'portfolio:';
+
+export const makePortfolioIndicatorId = ({ portfolioId }: { portfolioId: string }): string =>
+  `${PORTFOLIO_INDICATOR_PREFIX}${portfolioId}`;
+
+export const isPortfolioIndicatorId = ({ id }: { id: string }): boolean => id.startsWith(PORTFOLIO_INDICATOR_PREFIX);
+
+export const getPortfolioIdFromIndicatorId = ({ id }: { id: string }): string =>
+  id.slice(PORTFOLIO_INDICATOR_PREFIX.length);
+
 export const MARKET_INDICATORS: MarketIndicator[] = [
   { id: 'sp500', label: 'S&P 500', avgAnnualReturn: 10 },
   { id: 'nasdaq', label: 'NASDAQ Composite', avgAnnualReturn: 12 },
