@@ -120,7 +120,6 @@ export interface AccountModel {
   currencyCode: string;
   userId: number;
   externalId?: RecordId;
-  externalData?: AccountExternalData | null;
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
   bankDataProviderConnectionId?: RecordId;

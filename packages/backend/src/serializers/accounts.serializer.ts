@@ -27,7 +27,6 @@ export interface AccountApiResponse {
   currencyCode: string;
   userId: number;
   externalId: string | null;
-  externalData: Record<string, unknown> | null;
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
   bankDataProviderConnectionId: string | null;
@@ -74,7 +73,6 @@ export function serializeAccount(
     currencyCode: account.currencyCode,
     userId: account.userId,
     externalId: isRecipient ? null : (account.externalId ?? null),
-    externalData: isRecipient ? null : (account.externalData ?? null),
     status: account.status,
     excludeFromStats: account.excludeFromStats,
     bankDataProviderConnectionId: isRecipient ? null : (account.bankDataProviderConnectionId ?? null),
