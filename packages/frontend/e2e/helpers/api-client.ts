@@ -591,3 +591,29 @@ export async function createHolding({
     },
   });
 }
+
+export async function createInvestmentTransaction({
+  request,
+  portfolioId,
+  securityId,
+  category,
+  date,
+  quantity,
+  price,
+  fees,
+}: {
+  request: APIRequestContext;
+  portfolioId: string;
+  securityId: string;
+  category: 'buy' | 'sell' | 'dividend' | 'transfer' | 'tax' | 'fee' | 'cancel' | 'other';
+  date: string;
+  quantity: string;
+  price: string;
+  fees?: string;
+}) {
+  return apiPost({
+    request,
+    path: '/api/v1/investments/transaction',
+    data: { portfolioId, securityId, category, date, quantity, price, ...(fees !== undefined && { fees }) },
+  });
+}
