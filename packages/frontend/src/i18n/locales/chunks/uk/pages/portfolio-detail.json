@@ -79,6 +79,7 @@
         "empty": "Транзакцій не знайдено.",
         "addFirstButton": "Додати першу транзакцію"
       },
+      "closedPositions": "Закриті позиції ({count})",
       "deleteHolding": {
         "ariaLabel": "Видалити актив",
         "title": "Видалити актив",
