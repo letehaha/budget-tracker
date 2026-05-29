@@ -109,14 +109,15 @@ describe('Shared resource visibility (S3)', () => {
     });
   });
 
-  // Owner-side bank-link metadata (externalId / externalData / connection FK) carries
+  // Owner-side bank-link metadata (externalId / connection FK) carries
   // PII (IBAN, owner name, address) and provider-internal identifiers like
   // identification_hash. Recipients have no use for it and shouldn't see it.
+  // externalData is no longer exposed via the API at all — verified directly
+  // against the DB row for the owner-side test.
   describe('owner-side bank-link metadata is redacted for recipients', () => {
     type SharedAccountResponse = {
       id: string;
       externalId: string | null;
-      externalData: Record<string, unknown> | null;
       bankDataProviderConnectionId: number | null;
       share?: { isOwner: boolean };
     };
@@ -137,7 +138,7 @@ describe('Shared resource visibility (S3)', () => {
       return account;
     }
 
-    it('redacts externalId, externalData, and bankDataProviderConnectionId on GET /accounts for the recipient', async () => {
+    it('redacts externalId and bankDataProviderConnectionId on GET /accounts for the recipient', async () => {
       const account = await createAccountWithBankMetadata();
       const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const invitation = await shareAccountReadOnly({ accountId: account.id, recipientEmail: recipient.email });
@@ -156,11 +157,10 @@ describe('Shared resource visibility (S3)', () => {
       expect(found!.share).toBeDefined();
       expect(found!.share!.isOwner).toBe(false);
       expect(found!.externalId).toBeNull();
-      expect(found!.externalData).toBeNull();
       expect(found!.bankDataProviderConnectionId).toBeNull();
     });
 
-    it('redacts externalId, externalData, and bankDataProviderConnectionId on GET /accounts/:id for the recipient', async () => {
+    it('redacts externalId and bankDataProviderConnectionId on GET /accounts/:id for the recipient', async () => {
       const account = await createAccountWithBankMetadata();
       const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const invitation = await shareAccountReadOnly({ accountId: account.id, recipientEmail: recipient.email });
@@ -178,7 +178,6 @@ describe('Shared resource visibility (S3)', () => {
       expect(body.share).toBeDefined();
       expect(body.share!.isOwner).toBe(false);
       expect(body.externalId).toBeNull();
-      expect(body.externalData).toBeNull();
       expect(body.bankDataProviderConnectionId).toBeNull();
     });
 
@@ -191,7 +190,10 @@ describe('Shared resource visibility (S3)', () => {
       expect(found!.share).toBeDefined();
       expect(found!.share!.isOwner).toBe(true);
       expect(found!.externalId).toBe(SENSITIVE_EXTERNAL_ID);
-      expect(found!.externalData).toEqual(SENSITIVE_EXTERNAL_DATA);
+
+      // externalData isn't exposed via the API — read it directly from the DB.
+      const ownerRow = await Accounts.findByPk(account.id);
+      expect(ownerRow!.externalData).toEqual(SENSITIVE_EXTERNAL_DATA);
     });
   });
 

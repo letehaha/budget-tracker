@@ -978,7 +978,9 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(disconnectedAccount.type).toBe(ACCOUNT_TYPES.system);
       expect(disconnectedAccount.bankDataProviderConnectionId).toBeNull();
       expect(disconnectedAccount.externalId).toBeNull();
-      expect(disconnectedAccount.externalData).toHaveProperty('connectionHistory');
+      // externalData isn't exposed via API — read it directly from the DB.
+      const disconnectedAccountRow = await Accounts.findByPk(accountId);
+      expect(disconnectedAccountRow!.externalData).toHaveProperty('connectionHistory');
 
       // Verify transactions were reset to system type too
       const resetTxs = await Transactions.findAll({
