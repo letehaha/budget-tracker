@@ -9,7 +9,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import Big from 'big.js';
 
-import { progressDealStatus } from '../deals-status/progress-status';
+import { syncDealFromEvents } from '../deals/sync-deal-from-events.service';
 import { linkTxsToEvent } from '../linking/link-txs-to-event.service';
 import { isCashFlowModeAllowed } from './event-helpers';
 import { prepareEventValues } from './prepare-event-values';
@@ -113,17 +113,7 @@ const createVentureEventImpl = async (params: CreateVentureEventParams) => {
     });
   }
 
-  // Recompute deal status from full event list (now includes the new event)
-  const allEvents = await VentureEvents.findAll({ where: { dealId } });
-  const newStatus = progressDealStatus({
-    events: allEvents.map((e) => ({
-      type: e.type,
-      navAfter: e.navAfter ? e.navAfter.toDecimalString(10) : null,
-    })),
-  });
-  if (newStatus !== deal.status) {
-    await deal.update({ status: newStatus });
-  }
+  await syncDealFromEvents({ userId, deal, mutatedAtDate: eventDate });
 
   return event.reload({
     include: [{ model: VentureEventLinks, as: 'links' }],

@@ -5,9 +5,8 @@ import VentureEventLinks from '@models/venture/venture-event-links.model';
 import VentureEvents from '@models/venture/venture-events.model';
 import { withTransaction } from '@services/common/with-transaction';
 
-import { progressDealStatus } from '../deals-status/progress-status';
+import { syncDealFromEvents } from '../deals/sync-deal-from-events.service';
 import { prepareEventValues } from './prepare-event-values';
-import { recomputeCascade } from './recompute-cascade';
 
 interface UpdateVentureEventParams {
   userId: number;
@@ -104,23 +103,11 @@ const updateVentureEventImpl = async (params: UpdateVentureEventParams) => {
   // Cascade only kicks in for carry-bearing event changes that shift principalRemaining,
   // OR when a non-carry cash event's grossAmount changed (capital_call/fee_payment affect costBasis).
   const earliestImpactedDate = previousEventDate < nextEventDate ? previousEventDate : nextEventDate;
-  const { recomputedEventIds } = await recomputeCascade({
+  const { recomputedEventIds } = await syncDealFromEvents({
     userId,
     deal,
     mutatedAtDate: earliestImpactedDate,
   });
-
-  // Refresh deal status based on the updated event list
-  const refreshedEvents = await VentureEvents.findAll({ where: { dealId: deal.id } });
-  const nextStatus = progressDealStatus({
-    events: refreshedEvents.map((e) => ({
-      type: e.type,
-      navAfter: e.navAfter ? e.navAfter.toDecimalString(10) : null,
-    })),
-  });
-  if (nextStatus !== deal.status) {
-    await deal.update({ status: nextStatus });
-  }
 
   const reloaded = await event.reload({
     include: [{ model: VentureEventLinks, as: 'links' }],

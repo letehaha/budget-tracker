@@ -3,23 +3,21 @@ import { Money } from '@common/types/money';
 import VentureDeals from '@models/venture/venture-deals.model';
 import VentureEvents from '@models/venture/venture-events.model';
 
-import { CARRY_BEARING_EVENT_TYPES } from './event-helpers';
-import { prepareEventValues } from './prepare-event-values';
+import { progressDealStatus } from '../deals-status/progress-status';
+import { CARRY_BEARING_EVENT_TYPES } from '../events/event-helpers';
+import { prepareEventValues } from '../events/prepare-event-values';
 
 /**
- * Cascading recompute: after a cash event is edited or deleted, the
- * `principalRemaining` chain shifts and downstream carry-bearing events'
- * auto-carry becomes stale. This walks events in chronological order,
- * recomputing carry for any that:
- *   - sit AFTER the mutated event's date (or were mutated by a delete),
- *   - are of type distribution/exit,
- *   - AND don't have `gpCarryOverridden=true` or `lpNetAmountOverridden=true`
- *     (user intent preserved).
+ * Single owner of "deal stays consistent with its events". Called by every
+ * event mutation path (create/update/delete) with the date of the earliest
+ * impacted event. Performs the cascade carry-recompute on downstream
+ * carry-bearing events, then recomputes status from the full event list,
+ * persisting the deal only if status changed.
  *
- * Returns list of recomputed event IDs so the caller can surface "Recomputed
- * N events" in the response.
+ * Loads the event list once and reuses it for both passes — the previous
+ * design ran two findAll calls per mutation (cascade + status).
  */
-export async function recomputeCascade({
+export async function syncDealFromEvents({
   userId,
   deal,
   mutatedAtDate,
@@ -28,7 +26,7 @@ export async function recomputeCascade({
   deal: VentureDeals;
   mutatedAtDate: string;
 }): Promise<{ recomputedEventIds: string[] }> {
-  const allEvents = await VentureEvents.findAll({
+  const events = await VentureEvents.findAll({
     where: { dealId: deal.id },
     order: [
       ['eventDate', 'ASC'],
@@ -38,15 +36,12 @@ export async function recomputeCascade({
 
   const recomputedEventIds: string[] = [];
 
-  for (const event of allEvents) {
-    // Only carry-bearing events need recompute
+  for (const event of events) {
     if (!CARRY_BEARING_EVENT_TYPES.includes(event.type)) continue;
-    // Only events at or after the mutation point
     if (event.eventDate < mutatedAtDate) continue;
-    // Preserve user overrides
     if (event.gpCarryOverridden || event.lpNetAmountOverridden) continue;
 
-    const priorEvents = allEvents.filter((e) => e.id !== event.id);
+    const priorEvents = events.filter((e) => e.id !== event.id);
 
     const prepared = await prepareEventValues({
       userId,
@@ -68,6 +63,16 @@ export async function recomputeCascade({
     });
 
     recomputedEventIds.push(event.id);
+  }
+
+  const nextStatus = progressDealStatus({
+    events: events.map((e) => ({
+      type: e.type,
+      navAfter: e.navAfter ? e.navAfter.toDecimalString(10) : null,
+    })),
+  });
+  if (nextStatus !== deal.status) {
+    await deal.update({ status: nextStatus });
   }
 
   return { recomputedEventIds };

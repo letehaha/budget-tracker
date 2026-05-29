@@ -5,9 +5,8 @@ import VentureEventLinks from '@models/venture/venture-event-links.model';
 import VentureEvents from '@models/venture/venture-events.model';
 import { withTransaction } from '@services/common/with-transaction';
 
-import { progressDealStatus } from '../deals-status/progress-status';
+import { syncDealFromEvents } from '../deals/sync-deal-from-events.service';
 import { unlinkTxFromEvent } from '../linking/unlink-tx-from-event.service';
-import { recomputeCascade } from './recompute-cascade';
 
 interface DeleteVentureEventParams {
   userId: number;
@@ -49,22 +48,11 @@ const deleteVentureEventImpl = async ({
 
   await event.destroy();
 
-  const { recomputedEventIds } = await recomputeCascade({
+  const { recomputedEventIds } = await syncDealFromEvents({
     userId,
     deal,
     mutatedAtDate: eventDateForCascade,
   });
-
-  const remainingEvents = await VentureEvents.findAll({ where: { dealId: deal.id } });
-  const nextStatus = progressDealStatus({
-    events: remainingEvents.map((e) => ({
-      type: e.type,
-      navAfter: e.navAfter ? e.navAfter.toDecimalString(10) : null,
-    })),
-  });
-  if (nextStatus !== deal.status) {
-    await deal.update({ status: nextStatus });
-  }
 
   return { success: true, recomputedEventIds };
 };
