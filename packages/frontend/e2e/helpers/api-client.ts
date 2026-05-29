@@ -212,6 +212,73 @@ export async function createPortfolio({ request, name }: { request: APIRequestCo
   return apiPost({ request, path: '/api/v1/investments/portfolios', data: { name } });
 }
 
+// ─── Venture ─────────────────────────────────────────────────────────
+
+export async function createVenturePlatform({
+  request,
+  payload,
+}: {
+  request: APIRequestContext;
+  payload: {
+    name: string;
+    defaultEntryFeePct?: string;
+    defaultCarryPct?: string;
+    defaultHurdlePct?: string;
+    defaultMgmtFeePct?: string;
+  };
+}) {
+  return apiPost({ request, path: '/api/v1/venture/platforms', data: payload });
+}
+
+export async function createVentureDeal({
+  request,
+  payload,
+}: {
+  request: APIRequestContext;
+  payload: {
+    name: string;
+    currencyCode: string;
+    principal: string;
+    investmentDate: string;
+    platformId?: string;
+    entryFeePct?: string;
+    carryPct?: string;
+    hurdlePct?: string;
+    mgmtFeePct?: string;
+  };
+}) {
+  return apiPost({ request, path: '/api/v1/venture/deals', data: payload });
+}
+
+export async function createVentureEvent({
+  request,
+  dealId,
+  payload,
+}: {
+  request: APIRequestContext;
+  dealId: string;
+  payload: {
+    type: string;
+    eventDate: string;
+    cashFlowMode: 'linked' | 'out_of_wallet' | 'none';
+    grossAmount?: string;
+    navAfter?: string;
+    transactionIds?: string[];
+    gpCarryOverride?: string;
+    lpNetAmountOverride?: string;
+  };
+}) {
+  return apiPost({ request, path: `/api/v1/venture/deals/${dealId}/events`, data: payload });
+}
+
+export async function getVentureDeal({ request, dealId }: { request: APIRequestContext; dealId: string }) {
+  const response = await request.get(`${API_BASE_URL}/api/v1/venture/deals/${dealId}`);
+  if (!response.ok()) {
+    throw new Error(`getVentureDeal failed: ${response.status()} ${await response.text()}`);
+  }
+  return response.json();
+}
+
 export async function setPortfolioCash({
   request,
   portfolioId,

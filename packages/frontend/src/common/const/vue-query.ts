@@ -153,4 +153,11 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // categories
   categoriesByAccount: ['categories-by-account'] as const,
+
+  // venture
+  venturePlatformsList: ['venture-platforms-list'] as const,
+  ventureDealsList: ['venture-deals-list'] as const,
+  ventureDealDetails: ['venture-deal-details'] as const,
+  ventureDealMetrics: ['venture-deal-metrics'] as const,
+  ventureDealEvents: ['venture-deal-events'] as const,
 });

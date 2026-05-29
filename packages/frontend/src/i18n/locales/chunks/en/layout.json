@@ -18,7 +18,8 @@
       "subscriptions": "Subscriptions",
       "budgets": "Budgets",
       "reminders": "Reminders"
-    }
+    },
+    "venture": "Venture"
   },
   "sidebar": {
     "accountsView": {

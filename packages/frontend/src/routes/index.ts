@@ -85,6 +85,24 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: '/venture',
+        name: ROUTES_NAMES.venture,
+        component: () => import('@/pages/venture/venture.vue'),
+        meta: { i18nChunks: ['pages/venture'] as I18nChunkName[] },
+      },
+      {
+        path: '/venture/platforms',
+        name: ROUTES_NAMES.venturePlatformsList,
+        component: () => import('@/pages/venture/platforms.vue'),
+        meta: { i18nChunks: ['pages/venture'] as I18nChunkName[] },
+      },
+      {
+        path: '/venture/deals/:dealId',
+        name: ROUTES_NAMES.ventureDealDetail,
+        component: () => import('@/pages/venture/deal-detail.vue'),
+        meta: { i18nChunks: ['pages/venture', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
         path: '/analytics',
         name: ROUTES_NAMES.analytics,
         component: () => import('@/pages/analytics/index.vue'),

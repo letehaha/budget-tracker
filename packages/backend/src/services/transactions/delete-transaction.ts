@@ -27,7 +27,8 @@ export const deleteTransaction = withTransaction(
         isOwner: ctx.isOwner,
         involvesTransfer:
           transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer ||
-          transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+          transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio ||
+          transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture,
         involvesRefund: Boolean(refundLinked),
       });
 
@@ -49,7 +50,10 @@ export const deleteTransaction = withTransaction(
       if (
         transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer ||
         // Out of wallet transaction shouldn't have transferId
-        (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet && !transferId)
+        (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet && !transferId) ||
+        // Venture-linked transactions are deleted directly; the venture event service
+        // is responsible for unlinking its own VentureEventLink before calling this.
+        transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture
       ) {
         await Transactions.deleteTransactionById({ id, userId: creatorUserId });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {

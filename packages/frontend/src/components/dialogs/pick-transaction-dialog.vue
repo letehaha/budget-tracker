@@ -14,9 +14,12 @@ const props = withDefaults(
   defineProps<{
     open: boolean;
     transactionType?: TRANSACTION_TYPES;
+    /** IDs to hide from the list (e.g. already-selected txs in a multi-pick flow). */
+    excludeIds?: TransactionModel['id'][];
   }>(),
   {
     transactionType: undefined,
+    excludeIds: () => [],
   },
 );
 
@@ -66,7 +69,12 @@ const handleSelect = ([tx]: [TransactionModel, TransactionModel | undefined]) =>
 };
 
 const parentRef = ref<HTMLElement | null>(null);
-const flatTransactions = computed(() => transactionsPages.value?.pages?.flat() ?? []);
+const flatTransactions = computed(() => {
+  const all = transactionsPages.value?.pages?.flat() ?? [];
+  if (props.excludeIds.length === 0) return all;
+  const skip = new Set(props.excludeIds);
+  return all.filter((tx) => !skip.has(tx.id));
+});
 
 const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   items: flatTransactions,
