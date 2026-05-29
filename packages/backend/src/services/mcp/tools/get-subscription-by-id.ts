@@ -1,5 +1,6 @@
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { slimSubscriptionDetailForMcp } from '@services/mcp/serializers';
 import { getSubscriptionById } from '@services/subscriptions';
 import { z } from 'zod';
 
@@ -21,7 +22,7 @@ export function registerGetSubscriptionById(server: McpServer) {
 
       const result = await getSubscriptionById({ id: args.id, userId });
 
-      return jsonContent({ data: result });
+      return jsonContent({ data: slimSubscriptionDetailForMcp(result) });
     },
   );
 }

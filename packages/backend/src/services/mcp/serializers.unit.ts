@@ -3,7 +3,12 @@ import { describe, expect, it } from '@jest/globals';
 import type { AccountApiResponse } from '@root/serializers/accounts.serializer';
 import type { TransactionApiResponse } from '@root/serializers/transactions.serializer';
 
-import { slimAccountsForMcp, slimTransactionsForMcp } from './serializers';
+import {
+  type SubscriptionDetailForMcp,
+  slimAccountsForMcp,
+  slimSubscriptionDetailForMcp,
+  slimTransactionsForMcp,
+} from './serializers';
 
 const fullAccount: AccountApiResponse = {
   id: 'acc-1',
@@ -154,6 +159,80 @@ describe('MCP serializers', () => {
       expect(slim).not.toHaveProperty('tags');
       expect(slim).not.toHaveProperty('splits');
       expect(slim).not.toHaveProperty('transactionGroups');
+    });
+  });
+
+  describe('slimSubscriptionDetailForMcp', () => {
+    // Cast mirrors the tool: the service hands back a loosely-typed toJSON blob
+    // carrying matchingRules/userId/timestamps/bare FKs and category color/icon.
+    const fullSubscription = {
+      id: 'sub-1',
+      userId: 42,
+      name: 'Netflix',
+      type: 'subscription',
+      expectedAmount: 15.99,
+      expectedCurrencyCode: 'USD',
+      frequency: 'monthly',
+      startDate: '2026-01-01',
+      endDate: null,
+      accountId: 'acc-1',
+      categoryId: 'cat-1',
+      matchingRules: { merchant: 'NETFLIX', amountTolerance: 0.1 },
+      isActive: true,
+      notes: 'family plan',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+      account: { id: 'acc-1', name: 'Checking', currencyCode: 'USD' },
+      category: { id: 'cat-1', name: 'Entertainment', color: '#fff', icon: 'tv' },
+      nextExpectedDate: '2026-02-01',
+      transactions: [
+        {
+          id: 'tx-1',
+          time: '2026-01-05T00:00:00.000Z',
+          amount: 15.99,
+          refAmount: 14.5,
+          commissionRate: 0,
+          cashbackAmount: 0,
+          note: 'Netflix',
+          userId: 42,
+          transactionType: 'expense',
+          paymentType: 'creditCard',
+          accountId: 'acc-1',
+          categoryId: 'cat-1',
+          currencyCode: 'USD',
+          externalData: { raw: 'BLOB' },
+          createdAt: '2026-01-05T00:00:00.000Z',
+          SubscriptionTransactions: { matchSource: 'auto', matchedAt: '2026-01-05T01:00:00.000Z', status: 'active' },
+        },
+      ],
+    } as unknown as SubscriptionDetailForMcp;
+
+    it('drops subscription-level internal fields and category color/icon', () => {
+      const slim = slimSubscriptionDetailForMcp(fullSubscription) as unknown as Record<string, unknown>;
+      for (const dropped of ['userId', 'matchingRules', 'accountId', 'categoryId', 'createdAt', 'updatedAt']) {
+        expect(slim).not.toHaveProperty(dropped);
+      }
+      expect(slim.category).toEqual({ id: 'cat-1', name: 'Entertainment' });
+      expect(slim.account).toEqual({ id: 'acc-1', name: 'Checking', currencyCode: 'USD' });
+    });
+
+    it('slims each linked transaction and surfaces junction match metadata', () => {
+      const slim = slimSubscriptionDetailForMcp(fullSubscription);
+      expect(slim.transactions).toEqual([
+        {
+          id: 'tx-1',
+          time: '2026-01-05T00:00:00.000Z',
+          amount: 15.99,
+          refAmount: 14.5,
+          currencyCode: 'USD',
+          note: 'Netflix',
+          transactionType: 'expense',
+          categoryId: 'cat-1',
+          accountId: 'acc-1',
+          matchSource: 'auto',
+          matchedAt: '2026-01-05T01:00:00.000Z',
+        },
+      ]);
     });
   });
 });
