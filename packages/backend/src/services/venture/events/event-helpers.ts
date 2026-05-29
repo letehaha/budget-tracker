@@ -98,3 +98,8 @@ export function isCashFlowModeAllowed({
   }
   return false;
 }
+
+/** Locates the deal's initial_investment event (or null) from a loaded event list. */
+export function findInitialInvestment(events: readonly VentureEvents[]): VentureEvents | null {
+  return events.find((e) => e.type === VENTURE_EVENT_TYPE.initial_investment) ?? null;
+}

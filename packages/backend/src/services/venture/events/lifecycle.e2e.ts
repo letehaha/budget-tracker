@@ -265,6 +265,15 @@ describe('Venture Investment Lifecycle E2E', () => {
       await helpers.createVentureEvent({
         dealId: deal.id,
         payload: {
+          type: VENTURE_EVENT_TYPE.initial_investment,
+          eventDate: '2026-03-24',
+          cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet,
+        },
+      });
+
+      await helpers.createVentureEvent({
+        dealId: deal.id,
+        payload: {
           type: VENTURE_EVENT_TYPE.writedown,
           eventDate: '2027-01-01',
           cashFlowMode: VENTURE_CASH_FLOW_MODE.none,
@@ -303,6 +312,15 @@ describe('Venture Investment Lifecycle E2E', () => {
         raw: true,
       });
 
+      await helpers.createVentureEvent({
+        dealId: deal.id,
+        payload: {
+          type: VENTURE_EVENT_TYPE.initial_investment,
+          eventDate: '2026-03-24',
+          cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet,
+        },
+      });
+
       const response = await helpers.createVentureEvent({
         dealId: deal.id,
         payload: {
@@ -311,6 +329,117 @@ describe('Venture Investment Lifecycle E2E', () => {
           cashFlowMode: VENTURE_CASH_FLOW_MODE.linked,
           navAfter: '5000',
         },
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('event dependency invariants', () => {
+    it('rejects non-initial event when deal has no initial_investment', async () => {
+      const deal = await helpers.createVentureDeal({
+        payload: { currencyCode: global.BASE_CURRENCY.code, principal: '10000', entryFeePct: '0' },
+        raw: true,
+      });
+
+      const response = await helpers.createVentureEvent({
+        dealId: deal.id,
+        payload: {
+          type: VENTURE_EVENT_TYPE.exit,
+          eventDate: '2027-01-01',
+          cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet,
+          grossAmount: '15000',
+          navAfter: '0',
+        },
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects event date before initial_investment date', async () => {
+      const deal = await helpers.createVentureDeal({
+        payload: { currencyCode: global.BASE_CURRENCY.code, principal: '10000', entryFeePct: '0' },
+        raw: true,
+      });
+
+      await helpers.createVentureEvent({
+        dealId: deal.id,
+        payload: {
+          type: VENTURE_EVENT_TYPE.initial_investment,
+          eventDate: '2026-06-01',
+          cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet,
+        },
+      });
+
+      const response = await helpers.createVentureEvent({
+        dealId: deal.id,
+        payload: {
+          type: VENTURE_EVENT_TYPE.nav_update,
+          eventDate: '2026-01-01',
+          cashFlowMode: VENTURE_CASH_FLOW_MODE.none,
+          navAfter: '11000',
+        },
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects deleting initial_investment while other events exist', async () => {
+      const deal = await helpers.createVentureDeal({
+        payload: { currencyCode: global.BASE_CURRENCY.code, principal: '10000', entryFeePct: '0' },
+        raw: true,
+      });
+
+      const initialRes = await helpers.createVentureEvent({
+        dealId: deal.id,
+        payload: {
+          type: VENTURE_EVENT_TYPE.initial_investment,
+          eventDate: '2026-03-24',
+          cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet,
+        },
+      });
+      const initial = helpers.extractResponse(initialRes);
+
+      await helpers.createVentureEvent({
+        dealId: deal.id,
+        payload: {
+          type: VENTURE_EVENT_TYPE.nav_update,
+          eventDate: '2026-09-01',
+          cashFlowMode: VENTURE_CASH_FLOW_MODE.none,
+          navAfter: '12000',
+        },
+      });
+
+      const response = await helpers.deleteVentureEvent({ eventId: initial.id });
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects moving initial_investment date past existing event dates', async () => {
+      const deal = await helpers.createVentureDeal({
+        payload: { currencyCode: global.BASE_CURRENCY.code, principal: '10000', entryFeePct: '0' },
+        raw: true,
+      });
+
+      const initialRes = await helpers.createVentureEvent({
+        dealId: deal.id,
+        payload: {
+          type: VENTURE_EVENT_TYPE.initial_investment,
+          eventDate: '2026-03-24',
+          cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet,
+        },
+      });
+      const initial = helpers.extractResponse(initialRes);
+
+      await helpers.createVentureEvent({
+        dealId: deal.id,
+        payload: {
+          type: VENTURE_EVENT_TYPE.nav_update,
+          eventDate: '2026-06-01',
+          cashFlowMode: VENTURE_CASH_FLOW_MODE.none,
+          navAfter: '12000',
+        },
+      });
+
+      const response = await helpers.updateVentureEvent({
+        eventId: initial.id,
+        payload: { eventDate: '2026-09-01' },
       });
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });

@@ -11,7 +11,7 @@ import Big from 'big.js';
 
 import { syncDealFromEvents } from '../deals/sync-deal-from-events.service';
 import { linkTxsToEvent } from '../linking/link-txs-to-event.service';
-import { isCashFlowModeAllowed } from './event-helpers';
+import { findInitialInvestment, isCashFlowModeAllowed } from './event-helpers';
 import { prepareEventValues } from './prepare-event-values';
 
 interface CreateVentureEventParams {
@@ -69,6 +69,24 @@ const createVentureEventImpl = async (params: CreateVentureEventParams) => {
   }
 
   const priorEvents = await VentureEvents.findAll({ where: { dealId } });
+
+  // Non-initial events presuppose that the deal has actually been entered into.
+  // Without an initial_investment, cost basis, NAV, and carry math have no
+  // anchor — surface that to the user before they can build an inconsistent
+  // event history (e.g. an Exit on a deal they never funded).
+  if (type !== VENTURE_EVENT_TYPE.initial_investment) {
+    const initial = findInitialInvestment(priorEvents);
+    if (!initial) {
+      throw new ValidationError({
+        message: 'Add an initial investment event first before recording other events on this deal.',
+      });
+    }
+    if (eventDate < initial.eventDate) {
+      throw new ValidationError({
+        message: `Event date (${eventDate}) cannot be before the initial investment date (${initial.eventDate}).`,
+      });
+    }
+  }
 
   const prepared = await prepareEventValues({
     userId,

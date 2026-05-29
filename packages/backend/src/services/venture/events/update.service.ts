@@ -1,11 +1,14 @@
+import { VENTURE_EVENT_TYPE } from '@bt/shared/types/venture';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { ValidationError } from '@js/errors';
 import VentureDeals from '@models/venture/venture-deals.model';
 import VentureEventLinks from '@models/venture/venture-event-links.model';
 import VentureEvents from '@models/venture/venture-events.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { syncDealFromEvents } from '../deals/sync-deal-from-events.service';
+import { findInitialInvestment } from './event-helpers';
 import { prepareEventValues } from './prepare-event-values';
 
 interface UpdateVentureEventParams {
@@ -65,6 +68,28 @@ const updateVentureEventImpl = async (params: UpdateVentureEventParams) => {
 
   // Pull all events for the deal so prepare can compute the carry chain
   const priorEvents = await VentureEvents.findAll({ where: { dealId: deal.id } });
+
+  // Maintain the chronology invariant: every event must sit on/after the
+  // initial_investment date. We check on every eventDate change — moving an
+  // initial earlier than later events, or pushing a later event before the
+  // initial, would both violate it.
+  if (params.eventDate !== undefined && params.eventDate !== previousEventDate) {
+    if (event.type === VENTURE_EVENT_TYPE.initial_investment) {
+      const conflicting = priorEvents.find((e) => e.id !== event.id && e.eventDate < params.eventDate!);
+      if (conflicting) {
+        throw new ValidationError({
+          message: `Initial investment date cannot be later than existing event on ${conflicting.eventDate}.`,
+        });
+      }
+    } else {
+      const initial = findInitialInvestment(priorEvents);
+      if (initial && params.eventDate < initial.eventDate) {
+        throw new ValidationError({
+          message: `Event date (${params.eventDate}) cannot be before the initial investment date (${initial.eventDate}).`,
+        });
+      }
+    }
+  }
 
   const prepared = await prepareEventValues({
     userId,

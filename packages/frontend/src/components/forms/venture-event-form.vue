@@ -46,11 +46,12 @@ const hasInitialInvestment = computed(() =>
   (existingEvents.value ?? []).some((e) => e.type === VENTURE_EVENT_TYPE.initial_investment),
 );
 
-const availableEventTypes = computed(() =>
-  Object.values(VENTURE_EVENT_TYPE).filter(
-    (evType) => evType !== VENTURE_EVENT_TYPE.initial_investment || !hasInitialInvestment.value,
-  ),
-);
+// Until the deal has an initial_investment, no other event type can exist
+// (backend enforces this; see services/venture/events/create.service.ts).
+const availableEventTypes = computed(() => {
+  if (!hasInitialInvestment.value) return [VENTURE_EVENT_TYPE.initial_investment];
+  return Object.values(VENTURE_EVENT_TYPE).filter((evType) => evType !== VENTURE_EVENT_TYPE.initial_investment);
+});
 
 // If events resolve after mount and reveal the deal already has an initial_investment,
 // the dropdown drops that option — bump the selection to a still-available type.

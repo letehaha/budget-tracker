@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import HintIcon from '@/components/common/hint-icon.vue';
+import DateField from '@/components/fields/date-field.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
@@ -8,11 +9,12 @@ import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getErrorMessage } from '@/common/utils/error-message';
 import { fractionToPercentInput, isPercentInputValid, percentInputToFraction } from '@/common/utils/percentage';
-import { isPositiveDecimal, isValidDate } from '@/common/utils/validators';
+import { isPositiveDecimal } from '@/common/utils/validators';
 import { useCreateVentureDeal, useUpdateVentureDeal } from '@/composable/data-queries/venture/deals';
 import { useVenturePlatforms } from '@/composable/data-queries/venture/platforms';
 import { useCurrenciesStore } from '@/stores';
 import { VENTURE_SPV_SUBTYPE, type VentureDealModel, type VenturePlatformModel } from '@bt/shared/types';
+import { format } from 'date-fns';
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -39,8 +41,14 @@ const platforms = computed<VenturePlatformModel[]>(() => platformsData.value?.da
 const currenciesStore = useCurrenciesStore();
 const userCurrencies = computed(() => currenciesStore.currencies);
 
-const today = new Date().toISOString().slice(0, 10);
 const NO_PLATFORM = '__none__';
+
+// Parse `YYYY-MM-DD` from API → local-midnight Date so the calendar shows the same day.
+const parseApiDate = (s: string): Date => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y!, m! - 1, d!);
+};
+const formatApiDate = (d: Date): string => format(d, 'yyyy-MM-dd');
 
 const form = reactive({
   name: '',
@@ -50,8 +58,8 @@ const form = reactive({
   entryFee: '',
   spvSubtype: VENTURE_SPV_SUBTYPE.multi_company as VENTURE_SPV_SUBTYPE,
   targetCompany: '',
-  investmentDate: today,
-  expectedExitDate: '',
+  investmentDate: new Date() as Date,
+  expectedExitDate: null as Date | null,
   notes: '',
   entryFeePctPercent: '0',
   mgmtFeePctPercent: '0',
@@ -85,8 +93,8 @@ watch(
     form.entryFee = d.entryFee;
     form.spvSubtype = d.spvSubtype ?? VENTURE_SPV_SUBTYPE.multi_company;
     form.targetCompany = d.targetCompany ?? '';
-    form.investmentDate = d.investmentDate;
-    form.expectedExitDate = d.expectedExitDate ?? '';
+    form.investmentDate = parseApiDate(d.investmentDate);
+    form.expectedExitDate = d.expectedExitDate ? parseApiDate(d.expectedExitDate) : null;
     form.notes = d.notes ?? '';
     form.entryFeePctPercent = fractionToPercentInput(d.entryFeePct);
     form.mgmtFeePctPercent = fractionToPercentInput(d.mgmtFeePct);
@@ -103,7 +111,8 @@ const isFormValid = computed(
     form.name.trim().length > 0 &&
     form.currencyCode.length === 3 &&
     isPositiveDecimal(form.principal) &&
-    isValidDate(form.investmentDate) &&
+    form.investmentDate instanceof Date &&
+    !Number.isNaN(form.investmentDate.getTime()) &&
     isPercentInputValid(form.entryFeePctPercent) &&
     isPercentInputValid(form.mgmtFeePctPercent) &&
     isPercentInputValid(form.carryPctPercent) &&
@@ -120,7 +129,7 @@ const buildPayload = () => ({
   name: toStr(form.name),
   currencyCode: form.currencyCode,
   principal: form.principal,
-  investmentDate: form.investmentDate,
+  investmentDate: formatApiDate(form.investmentDate),
   platformId: form.platformId === NO_PLATFORM ? null : form.platformId,
   spvSubtype: form.spvSubtype,
   targetCompany: toStr(form.targetCompany) || null,
@@ -129,7 +138,7 @@ const buildPayload = () => ({
   mgmtFeePct: percentInputToFraction(form.mgmtFeePctPercent),
   carryPct: percentInputToFraction(form.carryPctPercent),
   hurdlePct: percentInputToFraction(form.hurdlePctPercent),
-  expectedExitDate: toStr(form.expectedExitDate) || null,
+  expectedExitDate: form.expectedExitDate ? formatApiDate(form.expectedExitDate) : null,
   notes: toStr(form.notes) || null,
 });
 
@@ -255,22 +264,22 @@ const onSubmit = async () => {
     </div>
 
     <div class="grid grid-cols-2 gap-4">
-      <InputField
+      <DateField
         v-model="form.investmentDate"
-        type="date"
         :label="$t('venture.deals.form.investmentDateLabel')"
         :disabled="isPending"
       />
-      <InputField
-        v-model="form.expectedExitDate"
-        type="date"
+      <DateField
+        :model-value="form.expectedExitDate ?? undefined"
         :label="$t('venture.deals.form.expectedExitDateLabel')"
+        :calendar-options="{ minDate: form.investmentDate }"
         :disabled="isPending"
+        @update:model-value="(v: Date | null) => (form.expectedExitDate = v)"
       >
         <template #label-after>
           <HintIcon :content="$t('venture.deals.form.expectedExitDateHint')" />
         </template>
-      </InputField>
+      </DateField>
     </div>
 
     <div class="grid grid-cols-2 gap-4">
