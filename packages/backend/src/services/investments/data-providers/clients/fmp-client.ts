@@ -115,9 +115,13 @@ export class FmpClient {
       const data = await response.json();
       return data as T;
     } catch (error) {
-      logger.error(
-        { message: 'FMP API request failed:', error: error as Error },
-        { extra: { url: url.replace(this.apiKey, '***') } },
+      // Breadcrumb only (info, never Sentry). A failed FMP request is routinely
+      // recovered upstream — the composite falls back to another provider, and
+      // the optional add-holding price fetch swallows it — so the operation
+      // owner decides whether the failure is Sentry-worthy. Keep the redacted
+      // URL here for Loki/console debugging without paging on every recovery.
+      logger.info(
+        `FMP API request failed for ${url.replace(this.apiKey, '***')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       throw error;
     }
