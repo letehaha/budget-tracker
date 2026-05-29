@@ -11,12 +11,13 @@ import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
+import { useVentureDeals } from '@/composable/data-queries/venture/deals';
 import { waitForAnimationEnd } from '@/composable/wait-for-animation-end';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { ChevronRightIcon, ChevronsUpDownIcon, LayersIcon, PlusIcon, TrendingUpIcon } from '@lucide/vue';
+import { ChevronRightIcon, ChevronsUpDownIcon, LayersIcon, PlusIcon, RocketIcon, TrendingUpIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { Ref, computed, nextTick, provide, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -27,6 +28,7 @@ import AccountsList from './accounts-list.vue';
 import AccountsSkeleton from './accounts-skeleton.vue';
 import { useActiveAccountGroups } from './helpers/use-active-account-groups';
 import PortfoliosList from './portfolios-list.vue';
+import VenturesList from './ventures-list.vue';
 
 const accountsStore = useAccountsStore();
 const { activeAccounts, isAccountsFetched } = storeToRefs(accountsStore);
@@ -67,9 +69,13 @@ const { hasAnyOpen, collapseAll } = useSidebarNavCollapse();
 
 const isBankAccountsOpen = ref(true);
 const isPortfoliosOpen = ref(true);
+const isVenturesOpen = ref(true);
 
 const { data: portfolios } = usePortfolios();
 const portfoliosCount = computed(() => (portfolios.value ?? []).filter((p) => !p.deletedAt).length);
+
+const { data: ventureDeals } = useVentureDeals();
+const venturesCount = computed(() => (ventureDeals.value?.data ?? []).length);
 
 const route = useRoute();
 const isPortfolioRoute = computed(
@@ -83,10 +89,28 @@ watch(
   { immediate: true },
 );
 
+const isVentureRoute = computed(
+  () =>
+    route.name === ROUTES_NAMES.venture ||
+    route.name === ROUTES_NAMES.venturePlatformsList ||
+    route.name === ROUTES_NAMES.ventureDealDetail,
+);
+watch(
+  isVentureRoute,
+  (val) => {
+    if (val) isVenturesOpen.value = true;
+  },
+  { immediate: true },
+);
+
+type SidebarSection = 'bank' | 'portfolios' | 'ventures';
+
 const bankAccountsHeaderRef = ref<HTMLElement>();
 const portfoliosHeaderRef = ref<HTMLElement>();
+const venturesHeaderRef = ref<HTMLElement>();
 const bankCollapsibleWrapperRef = ref<HTMLElement>();
 const portfoliosCollapsibleWrapperRef = ref<HTMLElement>();
+const venturesCollapsibleWrapperRef = ref<HTMLElement>();
 const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
 
 const scrollSectionIntoView = async (sectionEl: HTMLElement | undefined) => {
@@ -100,21 +124,21 @@ const scrollSectionIntoView = async (sectionEl: HTMLElement | undefined) => {
   viewport.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
 };
 
-const onSectionHeaderClick = async (section: 'bank' | 'portfolios') => {
-  const wasOpen = section === 'bank' ? isBankAccountsOpen.value : isPortfoliosOpen.value;
+const sectionRefs = {
+  bank: { isOpen: isBankAccountsOpen, header: bankAccountsHeaderRef, wrapper: bankCollapsibleWrapperRef },
+  portfolios: { isOpen: isPortfoliosOpen, header: portfoliosHeaderRef, wrapper: portfoliosCollapsibleWrapperRef },
+  ventures: { isOpen: isVenturesOpen, header: venturesHeaderRef, wrapper: venturesCollapsibleWrapperRef },
+};
 
-  if (section === 'bank') {
-    isBankAccountsOpen.value = !isBankAccountsOpen.value;
-  } else {
-    isPortfoliosOpen.value = !isPortfoliosOpen.value;
-  }
+const onSectionHeaderClick = async (section: SidebarSection) => {
+  const refs = sectionRefs[section];
+  const wasOpen = refs.isOpen.value;
+
+  refs.isOpen.value = !wasOpen;
 
   if (!wasOpen) {
-    const wrapper = section === 'bank' ? bankCollapsibleWrapperRef.value : portfoliosCollapsibleWrapperRef.value;
-    await waitForAnimationEnd(wrapper, 'collapsible-down');
-
-    const target = section === 'bank' ? bankAccountsHeaderRef.value : portfoliosHeaderRef.value;
-    await scrollSectionIntoView(target);
+    await waitForAnimationEnd(refs.wrapper.value, 'collapsible-down');
+    await scrollSectionIntoView(refs.header.value);
   }
 };
 </script>
@@ -195,7 +219,8 @@ const onSectionHeaderClick = async (section: 'bank' | 'portfolios') => {
         <button
           ref="portfoliosHeaderRef"
           type="button"
-          class="bg-card hover:bg-accent sticky top-9 bottom-0 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
+          class="bg-card hover:bg-accent sticky top-9 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
+          :class="venturesCount ? 'bottom-9' : 'bottom-0'"
           @click="onSectionHeaderClick('portfolios')"
         >
           <ChevronRightIcon
@@ -216,6 +241,33 @@ const onSectionHeaderClick = async (section: 'bank' | 'portfolios') => {
             </CollapsibleContent>
           </Collapsible>
         </div>
+
+        <template v-if="venturesCount">
+          <button
+            ref="venturesHeaderRef"
+            type="button"
+            class="bg-card hover:bg-accent sticky top-[4.5rem] bottom-0 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
+            @click="onSectionHeaderClick('ventures')"
+          >
+            <ChevronRightIcon
+              :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isVenturesOpen }]"
+            />
+            <RocketIcon class="text-muted-foreground size-4 shrink-0" />
+            <span>{{ $t('sidebar.accountsView.ventures') }}</span>
+            <span class="text-muted-foreground ml-auto text-xs tabular-nums">
+              {{ venturesCount }}
+            </span>
+          </button>
+          <div ref="venturesCollapsibleWrapperRef">
+            <Collapsible v-model:open="isVenturesOpen">
+              <CollapsibleContent>
+                <div class="mt-0.5 mb-2">
+                  <VenturesList />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        </template>
       </template>
     </ScrollArea>
   </div>

@@ -5,9 +5,15 @@ import {
   listVentureDeals,
   updateVentureDeal,
 } from '@/api/venture/deals';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, unref } from 'vue';
+
+const invalidateAllVentureRelated = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({
+    predicate: (q) => Array.isArray(q.queryKey) && q.queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.ventureChange),
+  });
+};
 
 export const useVentureDeals = (queryOptions = {}) => {
   const queryClient = useQueryClient();
@@ -54,9 +60,7 @@ export const useCreateVentureDeal = () => {
 
   return useMutation({
     mutationFn: createVentureDeal,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.ventureDealsList });
-    },
+    onSuccess: () => invalidateAllVentureRelated(queryClient),
   });
 };
 
@@ -65,12 +69,7 @@ export const useUpdateVentureDeal = () => {
 
   return useMutation({
     mutationFn: (params: Parameters<typeof updateVentureDeal>[0]) => updateVentureDeal(params),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.ventureDealsList });
-      queryClient.invalidateQueries({
-        queryKey: [...VUE_QUERY_CACHE_KEYS.ventureDealDetails, variables.dealId],
-      });
-    },
+    onSuccess: () => invalidateAllVentureRelated(queryClient),
   });
 };
 
@@ -79,8 +78,6 @@ export const useDeleteVentureDeal = () => {
 
   return useMutation({
     mutationFn: (dealId: string) => deleteVentureDeal({ dealId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.ventureDealsList });
-    },
+    onSuccess: () => invalidateAllVentureRelated(queryClient),
   });
 };

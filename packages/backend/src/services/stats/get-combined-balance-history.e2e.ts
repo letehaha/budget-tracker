@@ -38,8 +38,9 @@ describe('[Stats] Combined balance history', () => {
     // Should have account balance data
     expect(record).toHaveProperty('accountsBalance');
     expect(record).toHaveProperty('portfoliosBalance', 0);
+    expect(record).toHaveProperty('venturesBalance', 0);
     expect(record).toHaveProperty('totalBalance');
-    expect(record.totalBalance).toBe(record.accountsBalance + record.portfoliosBalance);
+    expect(record.totalBalance).toBe(record.accountsBalance + record.portfoliosBalance + record.venturesBalance);
   });
 
   it('Returns correct combined balance data with date filtering', async () => {
@@ -697,6 +698,55 @@ describe('[Stats] Combined balance history', () => {
       expect(entry).toBeDefined();
       // Rate falls back to 1 -> 1 * 100 * 1 = 100 in user-base units.
       expect(entry!.portfoliosBalance).toBe(100);
+    });
+  });
+
+  describe('Venture deals', () => {
+    it('Reflects deal principal + entryFee in venturesBalance with no events', async () => {
+      const investmentDate = format(subDays(new Date(), 3), 'yyyy-MM-dd');
+      await helpers.createVentureDeal({
+        payload: {
+          principal: '10000',
+          entryFeePct: '0',
+          investmentDate,
+        },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({ raw: true })) as CombinedBalanceHistoryItem[];
+
+      expect(data.length).toBeGreaterThan(0);
+      const lastRecord = data[data.length - 1]!;
+      expect(lastRecord.venturesBalance).toBe(10000);
+      expect(lastRecord.totalBalance).toBe(
+        lastRecord.accountsBalance + lastRecord.portfoliosBalance + lastRecord.venturesBalance,
+      );
+    });
+
+    it('Returns zero venturesBalance on days before the investmentDate', async () => {
+      const investmentDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      await helpers.createVentureDeal({
+        payload: {
+          principal: '5000',
+          entryFeePct: '0',
+          investmentDate,
+        },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      const before = data.find((e) => e.date === format(subDays(new Date(), 3), 'yyyy-MM-dd'));
+      expect(before).toBeDefined();
+      expect(before!.venturesBalance).toBe(0);
+
+      const after = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
+      expect(after).toBeDefined();
+      expect(after!.venturesBalance).toBe(5000);
     });
   });
 });

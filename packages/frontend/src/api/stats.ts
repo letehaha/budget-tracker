@@ -66,6 +66,7 @@ export interface CombinedBalanceHistoryEntity {
   date: string;
   accountsBalance: number;
   portfoliosBalance: number;
+  venturesBalance: number;
   totalBalance: number;
 }
 

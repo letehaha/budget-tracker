@@ -8,10 +8,12 @@ import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
+import VentureDeals from '@models/venture/venture-deals.model';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
 import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
+import { calculateVentureBalanceHistory } from './calculate-venture-balance-history';
 import { getAggregatedBalanceHistory } from './get-balance-history';
 import { getCreditLimitAdjustment } from './get-credit-limit-adjustment';
 
@@ -19,6 +21,7 @@ export interface CombinedBalanceHistoryItem {
   date: string;
   accountsBalance: number;
   portfoliosBalance: number;
+  venturesBalance: number;
   totalBalance: number;
 }
 
@@ -436,21 +439,33 @@ export const getCombinedBalanceHistory = async ({
     // If 'from' is not provided, try to get the earliest investment transaction date
     let minDate = from;
     if (!minDate) {
-      const oldestTransaction = await InvestmentTransaction.findOne({
-        include: [
-          {
-            model: Portfolios,
-            // Filter out transactions for userId
-            where: { userId, isEnabled: true },
-            attributes: [],
-          },
-        ],
-        order: [['date', 'ASC']],
-        attributes: ['date'],
-        raw: true,
-      });
+      const [oldestTransaction, oldestDeal] = await Promise.all([
+        InvestmentTransaction.findOne({
+          include: [
+            {
+              model: Portfolios,
+              // Filter out transactions for userId
+              where: { userId, isEnabled: true },
+              attributes: [],
+            },
+          ],
+          order: [['date', 'ASC']],
+          attributes: ['date'],
+          raw: true,
+        }),
+        VentureDeals.findOne({
+          where: { userId },
+          order: [['investmentDate', 'ASC']],
+          attributes: ['investmentDate'],
+          raw: true,
+        }),
+      ]);
 
-      minDate = oldestTransaction?.date ? format(new Date(oldestTransaction.date), 'yyyy-MM-dd') : maxDate; // Fallback to maxDate if no transactions
+      const candidates: string[] = [];
+      if (oldestTransaction?.date) candidates.push(format(new Date(oldestTransaction.date), 'yyyy-MM-dd'));
+      if (oldestDeal?.investmentDate) candidates.push(oldestDeal.investmentDate);
+      candidates.sort();
+      minDate = candidates[0] ?? maxDate;
     }
 
     const uniqueDates = eachDayOfInterval({
@@ -458,16 +473,18 @@ export const getCombinedBalanceHistory = async ({
       end: parseISO(maxDate),
     }).map((date) => format(date, 'yyyy-MM-dd'));
 
-    const [accountsBalanceHistory, portfolioValuesByDate, creditLimitSum] = await Promise.all([
+    const [accountsBalanceHistory, portfolioValuesByDate, ventureValuesByDate, creditLimitSum] = await Promise.all([
       getAggregatedBalanceHistory({ userId, from: minDate, to: maxDate }),
       calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
+      calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
       includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
     ]);
 
     // If no data at all, return empty array
     if (
       (!accountsBalanceHistory || accountsBalanceHistory.length === 0) &&
-      (!portfolioValuesByDate || portfolioValuesByDate.size === 0)
+      (!portfolioValuesByDate || portfolioValuesByDate.size === 0) &&
+      (!ventureValuesByDate || ventureValuesByDate.size === 0)
     ) {
       return [];
     }
@@ -478,16 +495,18 @@ export const getCombinedBalanceHistory = async ({
       accountsBalanceByDate.set(item.date, item.amount);
     }
 
-    // Combine accounts and portfolio balances with O(1) lookups
+    // Combine accounts, portfolio, and venture balances with O(1) lookups
     const combinedHistory: CombinedBalanceHistoryItem[] = uniqueDates.map((dateStr) => {
       const accountsBalance = (accountsBalanceByDate.get(dateStr) ?? 0) - creditLimitSum;
       const portfoliosBalance = portfolioValuesByDate?.get(dateStr) ?? 0;
+      const venturesBalance = ventureValuesByDate?.get(dateStr) ?? 0;
 
       return {
         date: dateStr,
         accountsBalance,
         portfoliosBalance,
-        totalBalance: accountsBalance + portfoliosBalance,
+        venturesBalance,
+        totalBalance: accountsBalance + portfoliosBalance + venturesBalance,
       };
     });
 

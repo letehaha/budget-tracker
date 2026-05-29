@@ -1,7 +1,7 @@
 import { createVentureEvent, deleteVentureEvent, listVentureEvents } from '@/api/venture/events';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { type MaybeRefOrGetter, toValue, type MaybeRef, unref } from 'vue';
+import { type MaybeRefOrGetter, toValue } from 'vue';
 
 type DealIdSource = MaybeRefOrGetter<string | undefined>;
 
@@ -25,18 +25,17 @@ export const useVentureEvents = (dealId: DealIdSource, queryOptions = {}) => {
 };
 
 /**
- * Invalidates everything touched by an event mutation: events list, deal
- * details (status may have flipped), metrics, and any transaction-derived
- * queries (linked-mode events create/restore real transactions, so balances
- * and tx lists must refresh).
+ * Invalidates everything touched by an event mutation: every venture-prefixed
+ * query (events list, deal details, metrics, deals list, balance trend) plus
+ * any transaction-derived queries (linked-mode events create/restore real
+ * transactions, so balances and tx lists must refresh).
  */
-const invalidateAllForDeal = (queryClient: ReturnType<typeof useQueryClient>, dealId: string) => {
-  queryClient.invalidateQueries({ queryKey: eventsKey(dealId) });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.ventureDealsList });
-  queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.ventureDealDetails, dealId] });
-  queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.ventureDealMetrics, dealId] });
+const invalidateAllForDeal = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.invalidateQueries({
-    predicate: (q) => Array.isArray(q.queryKey) && q.queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange),
+    predicate: (q) =>
+      Array.isArray(q.queryKey) &&
+      (q.queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.ventureChange) ||
+        q.queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange)),
   });
 };
 
@@ -45,20 +44,15 @@ export const useCreateVentureEvent = () => {
 
   return useMutation({
     mutationFn: createVentureEvent,
-    onSuccess: (_data, variables) => {
-      invalidateAllForDeal(queryClient, variables.dealId);
-    },
+    onSuccess: () => invalidateAllForDeal(queryClient),
   });
 };
 
-export const useDeleteVentureEvent = (dealId: MaybeRef<string | undefined>) => {
+export const useDeleteVentureEvent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: deleteVentureEvent,
-    onSuccess: () => {
-      const id = unref(dealId);
-      if (id) invalidateAllForDeal(queryClient, id);
-    },
+    onSuccess: () => invalidateAllForDeal(queryClient),
   });
 };

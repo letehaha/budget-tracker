@@ -34,7 +34,7 @@ const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 
-const deleteMutation = useDeleteVentureEvent(dealIdRef);
+const deleteMutation = useDeleteVentureEvent();
 
 const sortedEvents = computed<VentureEventModel[]>(() => {
   if (!events.value) return [];

@@ -11,12 +11,14 @@
         "balanceTypes": {
           "total": "Загалом",
           "accounts": "Рахунки",
-          "portfolios": "Портфелі"
+          "portfolios": "Портфелі",
+          "ventures": "Венчури"
         },
         "tooltip": {
           "accounts": "Рахунки:",
           "portfolios": "Портфелі:",
-          "total": "Загалом:"
+          "total": "Загалом:",
+          "ventures": "Венчури:"
         },
         "today": "Сьогодні",
         "vsPreviousPeriod": "до попереднього періоду",

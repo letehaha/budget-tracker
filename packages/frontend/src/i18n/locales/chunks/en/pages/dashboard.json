@@ -11,12 +11,14 @@
         "balanceTypes": {
           "total": "Total",
           "accounts": "Accounts",
-          "portfolios": "Portfolios"
+          "portfolios": "Portfolios",
+          "ventures": "Ventures"
         },
         "tooltip": {
           "accounts": "Accounts:",
           "portfolios": "Portfolios:",
-          "total": "Total:"
+          "total": "Total:",
+          "ventures": "Ventures:"
         },
         "today": "Today",
         "vsPreviousPeriod": "vs previous period",
