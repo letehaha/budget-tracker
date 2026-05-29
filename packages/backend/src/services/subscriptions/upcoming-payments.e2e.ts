@@ -1,6 +1,6 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('GET /subscriptions/upcoming', () => {
   it('returns upcoming payments sorted by next payment date', async () => {

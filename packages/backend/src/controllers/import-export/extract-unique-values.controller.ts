@@ -7,7 +7,7 @@ import {
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { extractUniqueValues } from '@services/import-export/csv-import/extract-unique-values';
-import { z } from 'zod';
+import z from 'zod';
 
 const categoryOptionSchema = z.discriminatedUnion('option', [
   z.object({ option: z.literal(CategoryOptionValue.mapDataSourceColumn), columnName: z.string() }),

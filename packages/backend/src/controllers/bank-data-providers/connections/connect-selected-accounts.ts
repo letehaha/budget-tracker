@@ -1,7 +1,7 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { connectSelectedAccounts } from '@root/services/bank-data-providers/connection/connect-selected-accounts';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

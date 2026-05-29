@@ -1,6 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { getPriceUploadInfo } from '@root/services/investments/securities-price/get-price-upload-info.service';
-import { z } from 'zod';
+import z from 'zod';
 
 /**
  * POST /api/v1/investments/securities/price-upload-info

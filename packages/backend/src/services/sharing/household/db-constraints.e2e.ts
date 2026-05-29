@@ -1,9 +1,9 @@
 import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SHARE_PERMISSIONS } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import * as helpers from '@tests/helpers';
 import { randomBytes } from 'crypto';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Schema invariants. The migration adds CHECK constraints to `ResourceShares` and

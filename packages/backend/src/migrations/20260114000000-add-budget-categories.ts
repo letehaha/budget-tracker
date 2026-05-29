@@ -1,4 +1,4 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to add category-based budgeting support.
@@ -10,9 +10,9 @@ import { DataTypes, QueryInterface, Transaction } from 'sequelize';
  *
  * Existing budgets default to 'manual' type (backward compatible).
  */
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Add type column to Budgets table
@@ -41,7 +41,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Budgets',
+              table: 'Budgets',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -51,7 +51,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Categories',
+              table: 'Categories',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -64,7 +64,7 @@ module.exports = {
       // Composite primary key for the junction table
       await queryInterface.addConstraint('BudgetCategories', {
         fields: ['budgetId', 'categoryId'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'budget_categories_pkey',
         transaction: t,
       });
@@ -91,8 +91,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Drop BudgetCategories table

@@ -12,10 +12,10 @@
 
 import { BUDGET_TYPES, RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTION_TYPES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import BudgetTransactions from '@models/budget-transactions.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Shared scaffold helpers

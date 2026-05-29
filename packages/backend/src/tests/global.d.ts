@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 import type { RecordId } from '@bt/shared/types';
 import { Currencies } from '@bt/shared/types';
 import { SetupServerApi } from 'msw/node';

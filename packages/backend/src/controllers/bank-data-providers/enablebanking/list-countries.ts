@@ -2,7 +2,7 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { listCountries } from '@root/services/bank-data-providers/enablebanking/aspsp.service';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   body: z.object({

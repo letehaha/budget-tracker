@@ -5,8 +5,8 @@ import { ValidationError } from '@js/errors';
 import BudgetTransactions, { BudgetTransactionMetadata } from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 import { authorizeBudgetAccess } from './authorize-budget-access';
 

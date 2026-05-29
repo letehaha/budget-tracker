@@ -2,7 +2,7 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/refund-transactions.model';
 import * as Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { withTransaction } from '../common/with-transaction';
 

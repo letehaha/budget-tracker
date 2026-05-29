@@ -1,4 +1,5 @@
 import { ASSET_CLASS } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { NotFoundError } from '@js/errors';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/securities.model';
@@ -7,7 +8,7 @@ import { withLock } from '@services/common/lock';
 import { withTransaction } from '@services/common/with-transaction';
 import { dataProviderFactory } from '@services/investments/data-providers';
 import { PriceData, toProviderSymbol } from '@services/investments/data-providers/base-provider';
-import { subYears } from 'date-fns';
+import { format, subYears } from 'date-fns';
 
 import { bucketByUtcDay } from './pricing-anchor';
 
@@ -51,9 +52,9 @@ const syncHistoricalPricesImpl = async (securityId: string): Promise<{ count: nu
 
   const pricesToCreate = dailyPrices.map((price) => ({
     securityId: security.id,
-    date: price.date,
-    priceClose: price.priceClose.toString(),
-    source: price.providerName,
+    date: format(price.date, 'yyyy-MM-dd'),
+    priceClose: Money.fromDecimal(price.priceClose),
+    source: price.providerName ?? null,
   }));
 
   await SecurityPricing.bulkCreate(pricesToCreate, {

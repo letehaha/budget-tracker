@@ -1,5 +1,5 @@
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 import { randomBytes } from 'crypto';
-import { QueryInterface, Transaction } from 'sequelize';
 
 interface UserRow {
   id: number;
@@ -86,7 +86,7 @@ function parseFullName(input: string | null | undefined): {
  * fields are only set when they're NULL.
  */
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

@@ -1,3 +1,4 @@
+import { Money } from '@common/types/money';
 import Currencies from '@models/currencies.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -48,7 +49,7 @@ const directCashTransactionImpl = async ({
     toAccountId: null,
     fromPortfolioId: isDeposit ? null : portfolioId,
     toPortfolioId: isDeposit ? portfolioId : null,
-    amount,
+    amount: Money.fromDecimal(amount),
     refAmount,
     currencyCode,
     date,

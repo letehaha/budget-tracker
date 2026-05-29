@@ -1,6 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { format, subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 describe('get exchange rates', () => {
   // Use the seed data date (10 days ago from migration time, approximated to 15 days ago to be safe)

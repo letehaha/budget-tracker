@@ -1,7 +1,7 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from '@jest/globals';
 import ExchangeRates from '@models/exchange-rates.model';
 import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { CURRENCY_RATES_API_ENDPOINT_REGEX, FRANKFURTER_ENDPOINT_REGEX } from './fetch-exchange-rates-for-date';
 import { initializeHistoricalRates, providerAvailabilityConfig } from './initialize-historical-rates.service';

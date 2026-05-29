@@ -55,9 +55,9 @@ export const createReminder = withTransaction(async (params: CreateReminderParam
     });
 
     finalName = subscription.name;
-    // Subscription model stores expectedAmount as raw cents (INTEGER, no MoneyColumn).
-    // Wrap in Money.fromCents so moneySetCents stores it correctly.
-    finalAmount = subscription.expectedAmount != null ? subscription.expectedAmount / 100 : null;
+    // Subscription stores expectedAmount via Money (cents column). Convert to decimals here
+    // because the params API accepts `number` and we later wrap in Money.fromDecimal.
+    finalAmount = subscription.expectedAmount != null ? subscription.expectedAmount.toNumber() : null;
     finalCurrency = subscription.expectedCurrencyCode;
     finalFrequency = subscription.frequency;
   }
@@ -75,7 +75,7 @@ export const createReminder = withTransaction(async (params: CreateReminderParam
     userId,
     subscriptionId: subscriptionId || null,
     name: finalName,
-    expectedAmount: finalAmount != null ? Money.fromDecimal(finalAmount) : null,
+    expectedAmount: (finalAmount != null ? Money.fromDecimal(finalAmount) : null) as Money,
     currencyCode: finalCurrency,
     frequency: finalFrequency,
     anchorDay,

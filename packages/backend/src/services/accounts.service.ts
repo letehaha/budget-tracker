@@ -10,6 +10,7 @@ import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
+import { Op } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import {
   cleanupAccountSharesInTx,
@@ -23,7 +24,6 @@ import {
   getSharedAccountsForUser,
 } from '@services/sharing/get-shared-accounts.service';
 import { convertCrossUserTransfersForAccountIds } from '@services/sharing/household/convert-cross-user-transfers.service';
-import { Op } from 'sequelize';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
 import { withTransaction } from './common/with-transaction';

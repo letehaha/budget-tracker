@@ -1,8 +1,8 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. Create PaymentReminders table
@@ -17,14 +17,14 @@ module.exports = {
           userId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { model: 'Users', key: 'id' },
+            references: { table: 'Users', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
           subscriptionId: {
             type: DataTypes.UUID,
             allowNull: true,
-            references: { model: 'Subscriptions', key: 'id' },
+            references: { table: 'Subscriptions', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -79,7 +79,7 @@ module.exports = {
           categoryId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: { model: 'Categories', key: 'id' },
+            references: { table: 'Categories', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -118,7 +118,7 @@ module.exports = {
           reminderId: {
             type: DataTypes.UUID,
             allowNull: false,
-            references: { model: 'PaymentReminders', key: 'id' },
+            references: { table: 'PaymentReminders', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -138,7 +138,7 @@ module.exports = {
           transactionId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: { model: 'Transactions', key: 'id' },
+            references: { table: 'Transactions', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -172,7 +172,7 @@ module.exports = {
           periodId: {
             type: DataTypes.UUID,
             allowNull: false,
-            references: { model: 'PaymentReminderPeriods', key: 'id' },
+            references: { table: 'PaymentReminderPeriods', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -226,7 +226,7 @@ module.exports = {
       // Unique constraint: prevent duplicate notifications for same period+preset
       await queryInterface.addConstraint('PaymentReminderNotifications', {
         fields: ['periodId', 'remindBeforePreset'],
-        type: 'unique',
+        type: 'UNIQUE',
         name: 'uq_payment_reminder_notifications_period_preset',
         transaction: t,
       });
@@ -264,8 +264,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.dropTable('PaymentReminderNotifications', { transaction: t });

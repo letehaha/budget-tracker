@@ -9,12 +9,12 @@
  */
 
 import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SHARE_PERMISSIONS } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import BudgetTransactions from '@models/budget-transactions.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Scaffold helpers

@@ -1,7 +1,7 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { ZodOnboardingStateUpdateSchema } from '@models/user-settings.model';
 import * as onboardingService from '@services/user-settings/onboarding';
-import { z } from 'zod';
+import z from 'zod';
 
 /**
  * GET /user/settings/onboarding

@@ -2,9 +2,9 @@ import BudgetTransactions, { type BudgetTransactionMetadata } from '@models/budg
 import Budgets from '@models/budget.model';
 import * as Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
+import { Op } from '@sequelize/core';
 import { getAccessibleAccountIdsForUser } from '@services/sharing/auth/get-accessible-account-ids.service';
 import { getAccessibleBudgetIdsForUser } from '@services/sharing/auth/get-accessible-budget-ids.service';
-import { Op } from 'sequelize';
 
 type FindWithFiltersParams = Parameters<typeof Transactions.findWithFilters>[0];
 

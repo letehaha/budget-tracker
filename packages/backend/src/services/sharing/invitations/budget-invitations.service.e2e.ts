@@ -7,12 +7,12 @@
 
 import { ACCESS_SOURCES, RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
+import { describe, expect, it } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Scaffold helpers

@@ -1,9 +1,9 @@
 import type { RecordId } from '@bt/shared/types';
 import { BANK_PROVIDER_TYPE, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { FixedTransaction, MOCK_IDENTIFICATION_HASH_1 } from '@tests/mocks/enablebanking/data';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * E2E tests for the Enable Banking transaction dedup improvements.

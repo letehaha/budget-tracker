@@ -1,6 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -8,6 +7,7 @@ import Securities from '@models/investments/securities.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import * as helpers from '@tests/helpers';
 import { makeRequest } from '@tests/helpers/common';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('DELETE /investments/transaction/:transactionId (delete investment transaction)', () => {
   let portfolio: Portfolios;

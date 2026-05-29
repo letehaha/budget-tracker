@@ -1,35 +1,37 @@
 import { UnwrapArray } from '@common/types';
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
-
-import Users from '../users.model';
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table, Unique } from '@sequelize/core/decorators-legacy';
 
 @Table({
   timestamps: false,
   tableName: 'BinanceUserSettings',
   freezeTableName: true,
 })
-export default class BinanceUserSettings extends Model {
-  @Column({
-    unique: true,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-    type: DataType.INTEGER,
-  })
-  declare id: number;
+export default class BinanceUserSettings extends Model<
+  InferAttributes<BinanceUserSettings>,
+  InferCreationAttributes<BinanceUserSettings>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  @Unique
+  declare id: CreationOptional<number>;
 
-  @Column({ allowNull: false, type: DataType.STRING })
-  apiKey!: string;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare apiKey: string;
 
-  @Column({ allowNull: false, type: DataType.STRING })
-  secretKey!: string;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare secretKey: string;
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.NUMBER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 }
 
-export const getByUserId = async ({ userId }) => {
+export const getByUserId = async ({ userId }: { userId: number }) => {
   const mcc = await BinanceUserSettings.findOne({
     where: { userId },
   });
@@ -66,7 +68,7 @@ export const addSettings = async ({
     userSettings = await BinanceUserSettings.create({
       ...settingsData,
       userId,
-    });
+    } as { apiKey: string; secretKey: string; userId: number });
   }
 
   return userSettings;

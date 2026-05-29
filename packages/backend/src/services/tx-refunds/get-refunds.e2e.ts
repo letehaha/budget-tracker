@@ -1,7 +1,7 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('getRefundTransactions', () => {
   describe('success cases', () => {
@@ -62,7 +62,7 @@ describe('getRefundTransactions', () => {
       });
 
       const response = await helpers.getRefundTransactions({
-        categoryId: categoryId,
+        categoryId: categoryId ?? undefined,
       });
 
       expect(response.statusCode).toBe(200);
@@ -162,7 +162,7 @@ describe('getRefundTransactions', () => {
 
       const response = await helpers.getRefundTransactions(
         {
-          categoryId,
+          categoryId: categoryId ?? undefined,
           transactionType: TRANSACTION_TYPES.expense,
           accountId: account.id,
         },

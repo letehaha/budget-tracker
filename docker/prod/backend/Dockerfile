@@ -1,13 +1,11 @@
 # 🏗️ Stage 1️⃣: Build
-FROM node:23.11.0-alpine AS build-stage
+FROM oven/bun:1-alpine AS build-stage
 
 WORKDIR /app
 
-# Install build dependencies for native modules (node-gyp)
-RUN apk add --no-cache python3 make g++
-
 # Copy root-level package files
 COPY package*.json ./
+COPY bun.lock* ./
 COPY post-install.sh ./
 RUN chmod +x ./post-install.sh
 
@@ -15,7 +13,7 @@ RUN chmod +x ./post-install.sh
 COPY packages/backend/package*.json ./packages/backend/
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm ci
+RUN bun install
 
 # Copy the rest of the code needed for build
 COPY tsconfig.json ./
@@ -25,54 +23,47 @@ COPY docker/prod ./docker/prod
 
 # Build the backend
 WORKDIR /app/packages/backend
-RUN npm run build
+RUN bun run build
 
 # 🚀 Stage 2️⃣: Production
-FROM node:23.11.0-alpine AS production
+FROM oven/bun:1-alpine AS production
 
 WORKDIR /app
 
-# Install build dependencies for native modules (node-gyp)
-RUN apk add --no-cache python3 make g++
-
 # Create non-root user for security
-RUN addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -s /bin/sh -D nodejs
+RUN addgroup -g 1001 bunjs && adduser -u 1001 -G bunjs -s /bin/sh -D bunjs
 
-# COPY --chown sets ownership during the copy itself, avoiding a slow
-# `chown -R /app` over the ~50k-file node_modules tree at the end.
-# node_modules created by `npm ci` below stays root-owned but world-readable,
-# which is all the nodejs runtime needs.
-COPY --chown=nodejs:nodejs package*.json ./
-COPY --chown=nodejs:nodejs post-install.sh ./
+# Copy only production dependencies
+COPY package*.json ./
+COPY bun.lock* ./
+COPY post-install.sh ./
 RUN chmod +x ./post-install.sh
 
-COPY --chown=nodejs:nodejs packages/backend/package*.json ./packages/backend/
-RUN npm ci
+COPY packages/backend/package*.json ./packages/backend/
+RUN bun install --production
 
-# Remove build dependencies to reduce image size
-RUN apk del python3 make g++
-
-COPY --from=build-stage --chown=nodejs:nodejs /app/tsconfig.json ./
+COPY --from=build-stage /app/tsconfig.json ./
 
 # Copy built backend code and shared files
-COPY --from=build-stage --chown=nodejs:nodejs /app/packages/backend/dist ./packages/backend/dist
-COPY --from=build-stage --chown=nodejs:nodejs /app/packages/backend/package.json ./packages/backend/package.json
+COPY --from=build-stage /app/packages/backend/dist ./packages/backend/dist
+COPY --from=build-stage /app/packages/backend/package.json ./packages/backend/package.json
 
-# Copy .sequelizerc and config folder
-COPY --from=build-stage --chown=nodejs:nodejs /app/packages/backend/.sequelizerc ./packages/backend/.sequelizerc
-COPY --from=build-stage --chown=nodejs:nodejs /app/packages/backend/config ./packages/backend/config
-COPY --from=build-stage --chown=nodejs:nodejs /app/packages/backend/src/migrations ./packages/backend/src/migrations
-COPY --from=build-stage --chown=nodejs:nodejs /app/packages/backend/src/resources ./packages/backend/src/resources
+# Copy migration files and runner for production migrations
+COPY --from=build-stage /app/packages/backend/src/migrations ./packages/backend/src/migrations
+COPY --from=build-stage /app/packages/backend/src/resources ./packages/backend/src/resources
 
 # Copy and prepare entrypoint script
 COPY docker/prod/backend/docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
 
+# Set ownership to non-root user
+RUN chown -R bunjs:bunjs /app
+
 # Set working directory to backend
 WORKDIR /app/packages/backend
 
 # Switch to non-root user
-USER nodejs
+USER bunjs
 
 # Set environment to production
 ENV NODE_ENV=production
@@ -84,4 +75,4 @@ ENV SENTRY_RELEASE=$SENTRY_RELEASE
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Run the compiled app
-CMD ["node", "--enable-source-maps", "dist/app.js"]
+CMD ["bun", "dist/app.js"]

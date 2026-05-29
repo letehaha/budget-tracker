@@ -13,7 +13,7 @@ import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { formatHouseholdLabel, toPositiveInt } from '../sharing-utils';
 import { isPermissionAtLeast } from './permission-rank';

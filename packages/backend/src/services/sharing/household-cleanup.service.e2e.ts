@@ -1,8 +1,8 @@
 import { NOTIFICATION_TYPES, RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Cleanup + notification lifecycle for household memberships.

@@ -1,7 +1,15 @@
 import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index, PrimaryKey } from 'sequelize-typescript';
+import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, BelongsTo, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 import Currencies from '../currencies.model';
 import Portfolios from './portfolios.model';
@@ -10,20 +18,25 @@ import Portfolios from './portfolios.model';
   timestamps: true,
   tableName: 'PortfolioBalances',
 })
-export default class PortfolioBalances extends Model {
+export default class PortfolioBalances extends Model<
+  InferAttributes<PortfolioBalances>,
+  InferCreationAttributes<PortfolioBalances>
+> {
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @ForeignKey(() => Portfolios)
+  @NotNull
   @Index
-  @Column({ type: DataType.UUID, allowNull: false })
-  portfolioId!: RecordId;
+  declare portfolioId: RecordId;
 
+  @Attribute(DataTypes.STRING(3))
   @PrimaryKey
-  @ForeignKey(() => Currencies)
+  @NotNull
   @Index
-  @Column({ type: DataType.STRING(3), allowNull: false })
-  currencyCode!: string;
+  declare currencyCode: string;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
   get availableCash(): Money {
     return moneyGetDecimal(this, 'availableCash');
   }
@@ -31,7 +44,9 @@ export default class PortfolioBalances extends Model {
     moneySetDecimal(this, 'availableCash', val, 10);
   }
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
   get totalCash(): Money {
     return moneyGetDecimal(this, 'totalCash');
   }
@@ -39,7 +54,9 @@ export default class PortfolioBalances extends Model {
     moneySetDecimal(this, 'totalCash', val, 10);
   }
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
   get refAvailableCash(): Money {
     return moneyGetDecimal(this, 'refAvailableCash');
   }
@@ -47,7 +64,9 @@ export default class PortfolioBalances extends Model {
     moneySetDecimal(this, 'refAvailableCash', val, 10);
   }
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
   get refTotalCash(): Money {
     return moneyGetDecimal(this, 'refTotalCash');
   }
@@ -55,16 +74,18 @@ export default class PortfolioBalances extends Model {
     moneySetDecimal(this, 'refTotalCash', val, 10);
   }
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare createdAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare updatedAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare updatedAt: CreationOptional<Date>;
 
   // Associations
-  @BelongsTo(() => Portfolios)
-  portfolio?: Portfolios;
+  @BelongsTo(() => Portfolios, 'portfolioId')
+  declare portfolio?: NonAttribute<Portfolios>;
 
-  @BelongsTo(() => Currencies)
-  currency?: Currencies;
+  @BelongsTo(() => Currencies, 'currencyCode')
+  declare currency?: NonAttribute<Currencies>;
 }

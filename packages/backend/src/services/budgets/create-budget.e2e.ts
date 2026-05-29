@@ -1,7 +1,7 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Create Budget', () => {
   const budgetName = 'Test Budget';

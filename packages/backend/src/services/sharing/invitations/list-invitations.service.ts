@@ -1,7 +1,8 @@
 import { SHARE_INVITATION_STATUSES, ShareInvitationModel } from '@bt/shared/types';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
-import { Op, WhereOptions } from 'sequelize';
+import { Op } from '@sequelize/core';
+import type { WhereOptions } from '@sequelize/core';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';

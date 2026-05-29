@@ -3,8 +3,8 @@ import BudgetTransactions from '@models/budget-transactions.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
+import { Op, fn, where, literal } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import Sequelize from 'sequelize';
 
 import { fanOutNotifications } from '../fan-out-notifications';
 import { notifyShareOwnerBudgetDeleted } from '../share-notifications';
@@ -89,7 +89,7 @@ export const sweepRecipientBudgetTransactions = async ({
   BudgetTransactions.destroy({
     where: {
       budgetId,
-      [Sequelize.Op.and]: [Sequelize.where(Sequelize.literal(`"metadata"->>'addedByUserId'`), String(recipientUserId))],
+      [Op.and]: [where(literal(`"metadata"->>'addedByUserId'`), String(recipientUserId))],
     },
   });
 

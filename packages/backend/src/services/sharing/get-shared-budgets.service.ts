@@ -1,6 +1,6 @@
 import Budgets from '@models/budget.model';
 import Users from '@models/users.model';
-import type { Includeable, WhereOptions } from 'sequelize';
+import type { Includeable, WhereOptions } from '@sequelize/core';
 
 import { ShareContext, buildOwnerContext, loadSharedByIdFor, loadSharedFor } from './share-context-resolver';
 import { budgetShareable } from './shareables/budget.shareable';

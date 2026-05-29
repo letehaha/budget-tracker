@@ -2,7 +2,7 @@ import { ACCOUNT_STATUSES, type ConnectionNeedingReauth, DEACTIVATION_REASON } f
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import { Op, literal } from 'sequelize';
+import { Op, literal } from '@sequelize/core';
 
 import {
   type AccountSyncStatus,

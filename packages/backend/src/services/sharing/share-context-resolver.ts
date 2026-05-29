@@ -9,8 +9,8 @@ import {
 import { logger } from '@js/utils/logger';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
-import type { FindOptions, Includeable, Model, ModelStatic, WhereOptions } from 'sequelize';
-import { Op } from 'sequelize';
+import type { FindOptions, Includeable, Model, ModelStatic, WhereOptions } from '@sequelize/core';
+import { Op } from '@sequelize/core';
 
 import { canUserAccessResource } from './auth/can-user-access-resource.service';
 import { ShareUserSnapshot, snapshotShareUser } from './share-user-snapshot';

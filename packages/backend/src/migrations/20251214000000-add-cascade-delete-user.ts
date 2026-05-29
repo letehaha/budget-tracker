@@ -1,4 +1,4 @@
-import { QueryInterface, Transaction } from 'sequelize';
+import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to add ON DELETE CASCADE for userId foreign keys that are missing it.
@@ -9,9 +9,9 @@ import { QueryInterface, Transaction } from 'sequelize';
  * - BinanceUserSettings.userId
  * - UserMerchantCategoryCodes.userId
  */
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. AccountGroups.userId - add CASCADE
@@ -20,7 +20,7 @@ module.exports = {
       });
       await queryInterface.addConstraint('AccountGroups', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'AccountGroups_userId_fkey',
         references: {
           table: 'Users',
@@ -37,7 +37,7 @@ module.exports = {
       });
       await queryInterface.addConstraint('BinanceUserSettings', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'BinanceUserSettings_userId_fkey',
         references: {
           table: 'Users',
@@ -54,7 +54,7 @@ module.exports = {
       });
       await queryInterface.addConstraint('UserMerchantCategoryCodes', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'UserMerchantCategoryCodes_userId_fkey',
         references: {
           table: 'Users',
@@ -72,8 +72,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. AccountGroups.userId - remove CASCADE (revert to NO ACTION)
@@ -82,7 +82,7 @@ module.exports = {
       });
       await queryInterface.addConstraint('AccountGroups', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'AccountGroups_userId_fkey',
         references: {
           table: 'Users',
@@ -99,7 +99,7 @@ module.exports = {
       });
       await queryInterface.addConstraint('BinanceUserSettings', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'BinanceUserSettings_userId_fkey',
         references: {
           table: 'Users',
@@ -116,7 +116,7 @@ module.exports = {
       });
       await queryInterface.addConstraint('UserMerchantCategoryCodes', {
         fields: ['userId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'UserMerchantCategoryCodes_userId_fkey',
         references: {
           table: 'Users',

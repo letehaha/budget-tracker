@@ -1,9 +1,9 @@
 import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Transaction Groups API', () => {
   // Helper to create N transactions for a given account

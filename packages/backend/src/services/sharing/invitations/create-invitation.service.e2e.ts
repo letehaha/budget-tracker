@@ -7,12 +7,12 @@ import {
   TRANSACTIONS_WRITE_SCOPES,
 } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
+import { describe, expect, it } from 'vitest';
 
 describe('Share invitations: create + list', () => {
   describe('happy path', () => {

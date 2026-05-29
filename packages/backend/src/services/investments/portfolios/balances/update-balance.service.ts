@@ -51,10 +51,10 @@ const updatePortfolioBalanceImpl = async ({
     balance = await PortfolioBalances.create({
       portfolioId,
       currencyCode,
-      availableCash: '0',
-      totalCash: '0',
-      refAvailableCash: '0',
-      refTotalCash: '0',
+      availableCash: Money.zero(),
+      totalCash: Money.zero(),
+      refAvailableCash: Money.zero(),
+      refTotalCash: Money.zero(),
     });
   }
 
@@ -95,8 +95,8 @@ const updatePortfolioBalanceImpl = async ({
 
   // Update the balance
   await balance.update({
-    availableCash: newAvailableCash,
-    totalCash: newTotalCash,
+    availableCash: Money.fromDecimal(newAvailableCash),
+    totalCash: Money.fromDecimal(newTotalCash),
     refAvailableCash,
     refTotalCash,
   });

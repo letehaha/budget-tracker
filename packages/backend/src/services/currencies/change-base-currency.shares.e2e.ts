@@ -1,8 +1,8 @@
 import { API_ERROR_CODES, RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import ResourceShares from '@models/resource-shares.model';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Verifies the active-share guard on `POST /user/currencies/change-base`. Both ends of

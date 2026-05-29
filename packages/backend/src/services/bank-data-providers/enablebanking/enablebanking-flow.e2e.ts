@@ -1,6 +1,5 @@
 import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE, DEACTIVATION_REASON } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { connection as dbConnection } from '@models/index';
@@ -16,6 +15,7 @@ import {
   getAllMockAccountUIDs,
 } from '@tests/mocks/enablebanking/data';
 import { HttpResponse, http } from 'msw';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Create a fully-active EnableBanking connection with one linked account.
@@ -991,7 +991,7 @@ describe('Enable Banking Data Provider E2E', () => {
         (account: {
           id: string;
           name: string;
-          externalId: string;
+          externalId: string | null;
           currentBalance: number;
           currencyCode: string;
           type: string;
@@ -1754,8 +1754,8 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(initialTxDate).toBe(valueDate);
 
       // Verify externalData has only value_date, no booking_date
-      expect(initialTx.externalData.valueDate).toBe(valueDate);
-      expect(initialTx.externalData.bookingDate).toBeUndefined();
+      expect(initialTx.externalData!.valueDate).toBe(valueDate);
+      expect(initialTx.externalData!.bookingDate).toBeUndefined();
 
       // Step 4: Update mock to return same transaction with booking_date added
       const updatedTransactions: FixedTransaction[] = [
@@ -1796,8 +1796,8 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(updatedTx.id).toBe(initialTx.id);
 
       // Verify externalData now has both dates
-      expect(updatedTx.externalData.valueDate).toBe(valueDate);
-      expect(updatedTx.externalData.bookingDate).toBe(bookingDate);
+      expect(updatedTx.externalData!.valueDate).toBe(valueDate);
+      expect(updatedTx.externalData!.bookingDate).toBe(bookingDate);
     });
 
     it('should not create duplicates when syncing transactions with same entry_reference', async () => {

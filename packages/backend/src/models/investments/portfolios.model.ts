@@ -1,6 +1,25 @@
 import { RecordId } from '@bt/shared/types';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, Index } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  HasMany,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+  Unique,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Users from '../users.model';
@@ -13,57 +32,63 @@ import PortfolioBalances from './portfolio-balances.model';
   paranoid: true,
   tableName: 'Portfolios',
 })
-export default class Portfolios extends Model {
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class Portfolios extends Model<InferAttributes<Portfolios>, InferCreationAttributes<Portfolios>> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @Unique
+  declare id: CreationOptional<RecordId>;
 
-  @Column({ type: DataType.STRING, allowNull: false })
-  name!: string;
+  @BeforeCreate
+  static generateUUIDv7(instance: Portfolios) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
-  @ForeignKey(() => Users)
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare name: string;
+
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  userId!: number;
+  declare userId: number;
 
+  @Attribute(DataTypes.STRING)
+  @NotNull
   @Index
-  @Column({
-    type: DataType.ENUM(...Object.values(PORTFOLIO_TYPE)),
-    allowNull: false,
-    defaultValue: PORTFOLIO_TYPE.investment,
-  })
-  portfolioType!: PORTFOLIO_TYPE;
+  @Default(PORTFOLIO_TYPE.investment)
+  declare portfolioType: CreationOptional<PORTFOLIO_TYPE>;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
+  @Attribute(DataTypes.TEXT)
+  declare description: string | null;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isEnabled!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(true)
+  declare isEnabled: CreationOptional<boolean>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare createdAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare updatedAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare updatedAt: CreationOptional<Date>;
 
-  @Column({ type: DataType.DATE, allowNull: true })
+  @Attribute(DataTypes.DATE)
   declare deletedAt: Date | null;
 
   // Associations
-  @BelongsTo(() => Users)
-  user?: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
-  @HasMany(() => PortfolioBalances)
-  balances?: PortfolioBalances[];
+  @HasMany(() => PortfolioBalances, 'portfolioId')
+  declare balances?: NonAttribute<PortfolioBalances[]>;
 
-  @HasMany(() => Holdings)
-  holdings?: Holdings[];
+  @HasMany(() => Holdings, 'portfolioId')
+  declare holdings?: NonAttribute<Holdings[]>;
 
-  @HasMany(() => InvestmentTransaction)
-  investmentTransactions?: InvestmentTransaction[];
+  @HasMany(() => InvestmentTransaction, 'portfolioId')
+  declare investmentTransactions?: NonAttribute<InvestmentTransaction[]>;
 }

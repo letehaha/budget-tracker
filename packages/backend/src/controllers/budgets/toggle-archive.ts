@@ -2,7 +2,7 @@ import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeBudget } from '@root/serializers';
 import { toggleBudgetArchive } from '@root/services/budgets/toggle-archive';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

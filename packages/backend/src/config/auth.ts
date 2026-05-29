@@ -4,22 +4,22 @@ import { OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import { createSessionHooks } from '@config/auth-hooks/session-hooks';
 import { logger } from '@js/utils/logger';
 import { identifyUser, trackSignup } from '@js/utils/posthog';
-import { captureException } from '@js/utils/sentry';
-import { sendEmail } from '@services/email/send-email';
-import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
+import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
 import { jwt } from 'better-auth/plugins';
+import type { BetterAuthPlugin } from 'better-auth/types';
 import { Pool } from 'pg';
+import { Resend } from 'resend';
 
-// Fail-fast: AUTH_ORIGIN must be set in production. Without it, OAuth error
-// redirects, login/consent pages, and trusted origins all fall back to
-// localhost:8100, which would break the auth flow on the live site.
-if (process.env.NODE_ENV === 'production' && !process.env.AUTH_ORIGIN) {
-  throw new Error(
-    'AUTH_ORIGIN env var is required in production (used by trustedOrigins, OAuth pages, passkey origin, and error redirects).',
-  );
-}
+// Initialize Resend for transactional emails
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+// Track emails that were recently verified via changeEmail flow
+// This prevents duplicate verification emails (better-auth bug workaround)
+// See: https://github.com/better-auth/better-auth/issues/3742
+const recentlyChangedEmails = new Map<string, number>();
+const EMAIL_CHANGE_CACHE_TTL = 60_000; // 1 minute
 
 // Create a separate pg Pool for better-auth
 // This is required because better-auth uses raw SQL queries
@@ -30,8 +30,8 @@ const pool = new Pool({
   password: process.env.APPLICATION_DB_PASSWORD,
   // In test environment, use per-worker database (same as Sequelize)
   database:
-    process.env.NODE_ENV === 'test' && process.env.JEST_WORKER_ID
-      ? `${process.env.APPLICATION_DB_DATABASE}-${process.env.JEST_WORKER_ID}`
+    process.env.NODE_ENV === 'test' && (process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID)
+      ? `${process.env.APPLICATION_DB_DATABASE}-${process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID}`
       : process.env.APPLICATION_DB_DATABASE,
 });
 
@@ -50,6 +50,54 @@ export const auth = betterAuth({
   // Custom table names with ba_ prefix to avoid conflicts
   user: {
     modelName: 'ba_user',
+    // Enable email change for legacy users migration
+    changeEmail: {
+      enabled: true,
+      // Send verification to the NEW email address (not the old one)
+      // This is critical for legacy @app.migrated users who can't receive emails at their current address
+      sendChangeEmailConfirmation: async ({ newEmail, url }) => {
+        if (!resend) {
+          logger.warn('Email change verification skipped: RESEND_API_KEY not configured');
+          return;
+        }
+
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const appName = process.env.AUTH_RP_NAME || 'MoneyMatter';
+
+        try {
+          const result = await resend.emails.send({
+            from: `${appName} <${fromEmail}>`,
+            to: newEmail, // Send to NEW email, not current
+            subject: `Verify your new ${appName} email`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2>Verify your new email</h2>
+                <p>You requested to change your email address to this one. Click the button below to confirm:</p>
+                <p style="margin: 24px 0;">
+                  <a href="${url}" style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                    Verify Email
+                  </a>
+                </p>
+                <p style="color: #666; font-size: 14px;">
+                  Or copy and paste this link: <br/>
+                  <a href="${url}" style="color: #0070f3;">${url}</a>
+                </p>
+                <p style="color: #999; font-size: 12px; margin-top: 32px;">
+                  If you didn't request this change, you can safely ignore this email.
+                </p>
+              </div>
+            `,
+          });
+          logger.info(`Email change verification sent to ${newEmail}, resendId: ${result.data?.id}`);
+
+          // Track this email to prevent duplicate verification email
+          recentlyChangedEmails.set(newEmail, Date.now());
+        } catch (error) {
+          logger.error({ message: 'Failed to send email change verification', error: error as Error });
+          throw error;
+        }
+      },
+    },
   },
   session: {
     modelName: 'ba_session',
@@ -81,11 +129,12 @@ export const auth = betterAuth({
   // Email and password authentication
   emailAndPassword: {
     enabled: true,
+    // Require email verification for new signups (not legacy @app.migrated users)
     requireEmailVerification: Boolean(process.env.RESEND_API_KEY),
-    // Cost 12 follows OWASP 2026 guidance.
+    // Use bcrypt compatible with existing password hashes
     password: {
       hash: async (password: string) => {
-        const salt = bcrypt.genSaltSync(12);
+        const salt = bcrypt.genSaltSync(10);
         return bcrypt.hashSync(password, salt);
       },
       verify: async ({ password, hash }: { password: string; hash: string }) => {
@@ -99,11 +148,25 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
+      if (!resend) {
+        logger.warn('Email verification skipped: RESEND_API_KEY not configured');
+        return;
+      }
+
+      // Check if this email was recently changed via changeEmail flow
+      // If so, skip sending duplicate verification (better-auth bug workaround)
+      const changedAt = recentlyChangedEmails.get(user.email);
+      if (changedAt && Date.now() - changedAt < EMAIL_CHANGE_CACHE_TTL) {
+        logger.info(`Skipping duplicate verification email for ${user.email} (recently changed)`);
+        recentlyChangedEmails.delete(user.email); // Clean up
+        return;
+      }
+
       const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
       const appName = process.env.AUTH_RP_NAME || 'MoneyMatter';
 
       try {
-        const result = await sendEmail({
+        const result = await resend.emails.send({
           from: `${appName} <${fromEmail}>`,
           to: user.email,
           subject: `Verify your ${appName} email`,
@@ -126,9 +189,7 @@ export const auth = betterAuth({
             </div>
           `,
         });
-        if (result) {
-          logger.info(`Verification email sent to ${user.email}, resendId: ${result.data?.id}`);
-        }
+        logger.info(`Verification email sent to ${user.email}, resendId: ${result.data?.id}`);
       } catch (error) {
         logger.error({ message: 'Failed to send verification email', error: error as Error });
         throw error;
@@ -165,10 +226,7 @@ export const auth = betterAuth({
       // 'claudeai' is a no-op scope required as a workaround: Claude.ai adds it to
       // client registration requests and better-auth rejects unknown scopes with 400.
       // See: https://github.com/anthropics/claude-ai-mcp/issues/111
-      // finance:write and finance:delete gate mutation tools. They're accepted by the
-      // consent flow but not advertised in public metadata until the first tool using
-      // them ships — see oauth-metadata.route.ts and the static .well-known mirrors.
-      scopes: ['finance:read', 'finance:write', 'finance:delete', 'profile:read', 'offline_access', 'claudeai'],
+      scopes: ['finance:read', 'profile:read', 'offline_access', 'claudeai'],
       accessTokenExpiresIn: 72 * 60 * 60, // 72 hours
       refreshTokenExpiresIn: 60 * 24 * 60 * 60, // 60 days
       allowDynamicClientRegistration: true,
@@ -198,7 +256,7 @@ export const auth = betterAuth({
           modelName: 'ba_passkey',
         },
       },
-    }),
+    }) as unknown as BetterAuthPlugin,
   ],
 
   // Enable rate limiting in production only. Disable in test/dev/preview
@@ -225,105 +283,19 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        // After a new auth user is created, create the matching app user.
-        //
-        // Better-auth commits ba_user/ba_account BEFORE this hook fires, so
-        // failures here have two distinct shapes:
-        //
-        //   1. App-user creation fails (no Users row at all). The user is
-        //      unusable: they can't retry signup (email taken in ba_user) and
-        //      can't sign in (no app user → 401). We delete the orphan
-        //      ba_user (cascades to ba_account/ba_session) and re-throw so
-        //      the signup endpoint returns 5xx and the client can retry.
-        //
-        //   2. Default seeding fails AFTER the user row exists. The account
-        //      is usable; categories/tags can be reconciled manually. We log
-        //      to Sentry and return — better than locking out a working
-        //      account because of a non-critical seed step.
+        // After a new auth user is created, create the app user profile
         after: async (user) => {
-          // Trim user.name at the source so whitespace-only values (e.g. " ")
-          // are treated as missing — without this they're truthy and skip
-          // the email-prefix fallback, producing a generic "user" slug.
-          const trimmedName = typeof user.name === 'string' ? user.name.trim() : '';
-          // `username` becomes the slug; `fullName` becomes firstName/lastName.
-          // We deliberately don't pass the email-prefix or "user" fallbacks as
-          // fullName — those aren't real human names and would clutter the
-          // display fields.
-          const usernameSource = trimmedName || user.email?.split('@')[0] || 'user';
-          let appUser: Awaited<ReturnType<typeof createAppUserWithUniqueUsername>>;
-
           try {
             logger.info(`Creating app user profile for auth user: ${user.id}`);
-            appUser = await createAppUserWithUniqueUsername({
-              username: usernameSource,
-              fullName: trimmedName || null,
+
+            const appUser = await createUserWithDefaults({
+              username: user.name || user.email?.split('@')[0] || 'user',
               authUserId: user.id,
             });
+
             logger.info(`Successfully created app user profile with id: ${appUser.id}`);
-          } catch (error) {
-            logger.error({
-              message: 'Failed to create app user — rolling back ba_user',
-              error: error as Error,
-            });
-            captureException({
-              error,
-              context: {
-                stage: 'createAppUserWithUniqueUsername',
-                authUserId: user.id,
-                email: user.email,
-                requestedName: user.name,
-                errorName: error instanceof Error ? error.name : 'unknown',
-              },
-            });
 
-            // Compensating delete so the email is freed and the user can
-            // retry signup. ba_account / ba_session cascade via FK.
-            try {
-              await pool.query('DELETE FROM ba_user WHERE id = $1', [user.id]);
-            } catch (rollbackError) {
-              // Critical: original signup failed AND we couldn't free the
-              // email. The user is locked out until ops intervenes. Log to
-              // both Sentry (production) and the local logger (so non-prod
-              // environments without DSN still surface the issue).
-              logger.error({
-                message: 'CRITICAL: failed to roll back orphaned ba_user; user locked out',
-                error: rollbackError as Error,
-              });
-              captureException({
-                error: rollbackError,
-                context: {
-                  stage: 'rollbackOrphanBaUser',
-                  authUserId: user.id,
-                  email: user.email,
-                  originalError: error instanceof Error ? error.message : String(error),
-                },
-              });
-            }
-
-            throw error;
-          }
-
-          try {
-            await seedUserDefaults({ userId: appUser.id });
-          } catch (error) {
-            logger.error({
-              message: 'Failed to seed default categories/tags for new user (non-fatal)',
-              error: error as Error,
-            });
-            captureException({
-              error,
-              context: {
-                stage: 'seedUserDefaults',
-                authUserId: user.id,
-                appUserId: appUser.id,
-                errorName: error instanceof Error ? error.name : 'unknown',
-              },
-            });
-            // Do NOT re-throw: the user has a usable app account, partial
-            // seed state is recoverable manually.
-          }
-
-          try {
+            // Track signup in PostHog
             identifyUser({
               userId: appUser.id,
               properties: {
@@ -343,11 +315,9 @@ export const auth = betterAuth({
               username: appUser.username,
               method: 'email',
             });
-          } catch (analyticsError) {
-            logger.warn('Analytics tracking failed during signup (non-fatal)', {
-              error: analyticsError instanceof Error ? analyticsError.message : String(analyticsError),
-              authUserId: user.id,
-            });
+          } catch (error) {
+            logger.error({ message: 'Failed to create app user profile', error: error as Error });
+            throw error;
           }
         },
       },

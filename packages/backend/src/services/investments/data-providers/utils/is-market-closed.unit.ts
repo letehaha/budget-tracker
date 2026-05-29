@@ -1,5 +1,5 @@
 import { ASSET_CLASS } from '@bt/shared/types/investments';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { isMarketClosedOn, partitionByMarketStatus } from './is-market-closed';
 

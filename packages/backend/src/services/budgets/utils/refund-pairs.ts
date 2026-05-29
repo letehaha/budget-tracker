@@ -4,7 +4,7 @@ import { Money } from '@common/types/money';
 import RefundTransactions from '@models/refund-transactions.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 interface RefundTxData {
   id: string;

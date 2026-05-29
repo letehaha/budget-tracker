@@ -18,6 +18,7 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
+import { Op, literal, where } from '@sequelize/core';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -29,7 +30,6 @@ import {
 import { createTransaction } from '@services/transactions';
 import crypto from 'crypto';
 import { addDays, startOfDay, subDays } from 'date-fns';
-import { Op, Sequelize } from 'sequelize';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
@@ -880,7 +880,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // Update account balance
     await account.update({
-      currentBalance: balance,
+      currentBalance: Money.fromCents(balance),
       refCurrentBalance: refBalance,
     });
 
@@ -1181,7 +1181,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       const byEntryRef = await Transactions.findOne({
         where: {
           accountId,
-          [Op.and]: [Sequelize.where(Sequelize.literal(`"externalData"->>'entryReference'`), entryReference)],
+          [Op.and]: [where(literal(`"externalData"->>'entryReference'`), entryReference)],
         },
       });
       if (byEntryRef) return byEntryRef;
@@ -1214,14 +1214,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     if (!counterpartyIban) return null;
 
-    const fingerprintConditions: ReturnType<typeof Sequelize.where>[] = [
-      Sequelize.where(
-        Sequelize.literal(`"externalData"->>'${isExpense ? 'creditorAccount' : 'debtorAccount'}'`),
-        counterpartyIban,
-      ),
+    const fingerprintConditions: ReturnType<typeof where>[] = [
+      where(literal(`"externalData"->>'${isExpense ? 'creditorAccount' : 'debtorAccount'}'`), counterpartyIban),
       // Only consider rows that have no entryReference yet — anything with
       // one already would have been handled by step (1).
-      Sequelize.where(Sequelize.literal(`"externalData"->>'entryReference'`), { [Op.is]: null as unknown as null }),
+      where(literal(`"externalData"->>'entryReference'`), { [Op.is]: null as unknown as null }),
     ];
 
     return Transactions.findOne({

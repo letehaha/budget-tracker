@@ -13,8 +13,8 @@ import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
+import { Op, QueryTypes } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op, QueryTypes } from 'sequelize';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';

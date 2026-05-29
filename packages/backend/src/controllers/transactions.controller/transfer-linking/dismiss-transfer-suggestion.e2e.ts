@@ -1,9 +1,9 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { startOfDay, subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 describe('dismissTransferSuggestion', () => {
   const today = startOfDay(new Date());

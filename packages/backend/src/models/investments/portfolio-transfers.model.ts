@@ -1,7 +1,24 @@
 import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index } from 'sequelize-typescript';
+import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from '../accounts.model';
@@ -14,42 +31,44 @@ import Portfolios from './portfolios.model';
   timestamps: true,
   tableName: 'PortfolioTransfers',
 })
-export default class PortfolioTransfers extends Model {
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class PortfolioTransfers extends Model<
+  InferAttributes<PortfolioTransfers>,
+  InferCreationAttributes<PortfolioTransfers>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<RecordId>;
 
-  @ForeignKey(() => Users)
+  @BeforeCreate
+  static generateUUIDv7(instance: PortfolioTransfers) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
+
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
   @Index
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  userId!: number;
+  declare userId: number;
 
-  @ForeignKey(() => Accounts)
+  @Attribute(DataTypes.UUID)
   @Index
-  @Column({ type: DataType.UUID, allowNull: true })
-  fromAccountId!: RecordId | null;
+  declare fromAccountId: RecordId | null;
 
-  @ForeignKey(() => Portfolios)
+  @Attribute(DataTypes.UUID)
   @Index
-  @Column({ type: DataType.UUID, allowNull: true })
-  toPortfolioId!: RecordId | null;
+  declare toPortfolioId: RecordId | null;
 
-  @ForeignKey(() => Portfolios)
+  @Attribute(DataTypes.UUID)
   @Index
-  @Column({ type: DataType.UUID, allowNull: true })
-  fromPortfolioId!: RecordId | null;
+  declare fromPortfolioId: RecordId | null;
 
-  @ForeignKey(() => Accounts)
+  @Attribute(DataTypes.UUID)
   @Index
-  @Column({ type: DataType.UUID, allowNull: true })
-  toAccountId!: RecordId | null;
+  declare toAccountId: RecordId | null;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
   get amount(): Money {
     return moneyGetDecimal(this, 'amount');
   }
@@ -57,7 +76,8 @@ export default class PortfolioTransfers extends Model {
     moneySetDecimal(this, 'amount', val, 10);
   }
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
   get refAmount(): Money {
     return moneyGetDecimal(this, 'refAmount');
   }
@@ -65,49 +85,31 @@ export default class PortfolioTransfers extends Model {
     moneySetDecimal(this, 'refAmount', val, 10);
   }
 
-  @ForeignKey(() => Currencies)
+  @Attribute(DataTypes.STRING(3))
+  @NotNull
   @Index
-  @Column({ type: DataType.STRING(3), allowNull: false })
-  currencyCode!: string;
+  declare currencyCode: string;
 
+  @Attribute(DataTypes.DATEONLY)
+  @NotNull
   @Index
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  date!: string;
+  declare date: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
+  @Attribute(DataTypes.TEXT)
+  declare description: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare createdAt: Date;
+  @Attribute(DataTypes.JSONB)
+  declare metaData: Record<string, unknown> | null;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare updatedAt: Date;
-
-  // Associations
-  @BelongsTo(() => Users)
-  user?: Users;
-
-  @BelongsTo(() => Accounts, 'fromAccountId')
-  fromAccount?: Accounts;
-
-  @BelongsTo(() => Accounts, 'toAccountId')
-  toAccount?: Accounts;
-
-  @BelongsTo(() => Portfolios, 'fromPortfolioId')
-  fromPortfolio?: Portfolios;
-
-  @BelongsTo(() => Portfolios, 'toPortfolioId')
-  toPortfolio?: Portfolios;
-
-  @BelongsTo(() => Currencies, 'currencyCode')
-  currency?: Currencies;
-
-  @ForeignKey(() => Currencies)
+  @Attribute(DataTypes.UUID)
   @Index
-  @Column({ type: DataType.STRING(3), allowNull: true, defaultValue: null })
-  toCurrencyCode!: string | null;
+  declare transactionId: RecordId | null;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute({ type: DataTypes.STRING(3), defaultValue: null })
+  @Index
+  declare toCurrencyCode: string | null;
+
+  @Attribute(DataTypes.DECIMAL(20, 10))
   get toAmount(): Money | null {
     const raw = this.getDataValue('toAmount');
     if (raw === null || raw === undefined) return null;
@@ -121,7 +123,7 @@ export default class PortfolioTransfers extends Model {
     moneySetDecimal(this, 'toAmount', val, 10);
   }
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute(DataTypes.DECIMAL(20, 10))
   get refToAmount(): Money | null {
     const raw = this.getDataValue('refToAmount');
     if (raw === null || raw === undefined) return null;
@@ -135,17 +137,31 @@ export default class PortfolioTransfers extends Model {
     moneySetDecimal(this, 'refToAmount', val, 10);
   }
 
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+
+  // Associations
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
+
+  @BelongsTo(() => Accounts, 'fromAccountId')
+  declare fromAccount?: NonAttribute<Accounts>;
+
+  @BelongsTo(() => Accounts, 'toAccountId')
+  declare toAccount?: NonAttribute<Accounts>;
+
+  @BelongsTo(() => Portfolios, 'fromPortfolioId')
+  declare fromPortfolio?: NonAttribute<Portfolios>;
+
+  @BelongsTo(() => Portfolios, 'toPortfolioId')
+  declare toPortfolio?: NonAttribute<Portfolios>;
+
+  @BelongsTo(() => Currencies, 'currencyCode')
+  declare currency?: NonAttribute<Currencies>;
+
   @BelongsTo(() => Currencies, 'toCurrencyCode')
-  toCurrency?: Currencies;
+  declare toCurrency?: NonAttribute<Currencies>;
 
-  @Column({ type: DataType.JSONB, allowNull: true, defaultValue: null })
-  metaData!: Record<string, unknown> | null;
-
-  @ForeignKey(() => Transactions)
-  @Index
-  @Column({ type: DataType.UUID, allowNull: true, defaultValue: null, onDelete: 'SET NULL' })
-  transactionId!: RecordId | null;
-
-  @BelongsTo(() => Transactions)
-  transaction?: Transactions;
+  @BelongsTo(() => Transactions, 'transactionId')
+  declare transaction?: NonAttribute<Transactions>;
 }

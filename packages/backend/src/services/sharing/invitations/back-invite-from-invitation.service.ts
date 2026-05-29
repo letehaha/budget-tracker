@@ -4,8 +4,8 @@ import { logger } from '@js/utils/logger';
 import { connection } from '@models/index';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
+import { Op, QueryTypes } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op, QueryTypes } from 'sequelize';
 
 import { getEmailForUser } from '../find-user-by-email.service';
 import { createInvitation } from './create-invitation.service';

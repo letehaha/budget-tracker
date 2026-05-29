@@ -1,7 +1,7 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeRefundTransactions } from '@root/serializers';
 import * as service from '@services/tx-refunds/get-refund-for-transaction-by-id.service';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   query: z.object({

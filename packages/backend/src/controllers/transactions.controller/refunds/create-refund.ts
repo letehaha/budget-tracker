@@ -1,7 +1,7 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { createSingleRefund } from '@services/tx-refunds/create-single-refund.service';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   body: z.object({

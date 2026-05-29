@@ -1,10 +1,10 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 
-jest.mock('@js/utils/logger', () => ({
+vi.mock('@js/utils/logger', () => ({
   logger: {
-    warn: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
   },
 }));
 

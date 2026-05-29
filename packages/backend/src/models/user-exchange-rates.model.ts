@@ -1,11 +1,10 @@
 import { UserExchangeRatesModel } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
-import { Op } from 'sequelize';
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, Op } from '@sequelize/core';
+import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 import * as Currencies from './currencies.model';
 import * as UsersCurrencies from './users-currencies.model';
-import Users from './users.model';
 
 type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 
@@ -16,24 +15,37 @@ type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
   tableName: 'UserExchangeRates',
   freezeTableName: true,
 })
-export default class UserExchangeRates extends Model {
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER, primaryKey: true })
-  userId!: number;
+export default class UserExchangeRates extends Model<
+  InferAttributes<UserExchangeRates>,
+  InferCreationAttributes<UserExchangeRates>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @ForeignKey(() => Currencies.default)
-  @Column({ allowNull: false, type: DataType.STRING(3), primaryKey: true })
-  baseCode!: string;
+  @Attribute(DataTypes.STRING(3))
+  @PrimaryKey
+  @NotNull
+  @Index
+  declare baseCode: string;
 
-  @ForeignKey(() => Currencies.default)
-  @Column({ allowNull: false, type: DataType.STRING(3), primaryKey: true })
-  quoteCode!: string;
+  @Attribute(DataTypes.STRING(3))
+  @PrimaryKey
+  @NotNull
+  @Index
+  declare quoteCode: string;
 
-  @Column({ allowNull: true, defaultValue: 1, type: DataType.NUMBER })
-  rate!: number;
+  @Attribute(DataTypes.FLOAT)
+  @Default(1)
+  declare rate: number | null;
 
-  @Column({ allowNull: false, type: DataType.DATE, primaryKey: true })
-  date!: Date;
+  @Attribute(DataTypes.DATE)
+  @PrimaryKey
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare date: CreationOptional<Date>;
 
   // TODO:
   // 1. Add date fields to UserExchangeRates: "effectiveFrom", "effectiveTo"
@@ -54,14 +66,14 @@ export async function getRates({
 }: {
   userId: UserExchangeRatesAttributes['userId'];
   pair: ExchangeRatePair;
-});
+}): Promise<UserExchangeRates[]>;
 export async function getRates({
   userId,
   pairs,
 }: {
   userId: UserExchangeRatesAttributes['userId'];
   pairs: ExchangeRatePair[];
-});
+}): Promise<UserExchangeRates[]>;
 export async function getRates({
   userId,
   pair,

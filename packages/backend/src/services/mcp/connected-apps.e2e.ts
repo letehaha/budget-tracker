@@ -1,5 +1,4 @@
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
-import { afterEach, describe, expect, it } from '@jest/globals';
 import { app } from '@root/app';
 import { CustomResponse } from '@tests/helpers';
 import * as mcpHelpers from '@tests/helpers/mcp';

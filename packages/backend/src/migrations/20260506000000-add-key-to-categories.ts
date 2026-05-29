@@ -1,4 +1,5 @@
-import { DataTypes, QueryInterface, QueryTypes, Transaction } from 'sequelize';
+import { DataTypes, QueryTypes } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Adds a stable `key` column to `Categories` and best-effort backfills it for existing
@@ -401,7 +402,7 @@ const SUB_VALUES_LITERAL = Object.values(NAME_TO_KEY_PER_LOCALE)
   .join(', ');
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -471,7 +472,7 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.removeColumn('Categories', 'key');
   },
 };

@@ -1,7 +1,7 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { cryptoPricesSyncCron } from '@crons/crypto-prices-sync';
 import { securitiesDailySyncCron } from '@crons/securities-daily-sync';
-import { z } from 'zod';
+import z from 'zod';
 
 const summarize = (result: PromiseSettledResult<unknown>): { ok: boolean; error?: string } => {
   if (result.status === 'fulfilled') return { ok: true };

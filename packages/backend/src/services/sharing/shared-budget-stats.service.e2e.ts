@@ -14,9 +14,9 @@
  */
 
 import { type RecordId, RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Categories from '@models/categories.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Scaffold helpers (mirrors shared-budget-writes.service.e2e.ts)

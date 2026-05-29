@@ -5,17 +5,17 @@ import {
   SHARE_PERMISSIONS,
   SHARING_LIMITS,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
+import { Op } from '@sequelize/core';
 import { generateInvitationToken } from '@services/sharing/invitations/generate-invitation-token';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
-import { Op } from 'sequelize';
 import request from 'supertest';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Force-flip a user's base currency by directly mutating UsersCurrencies. The real

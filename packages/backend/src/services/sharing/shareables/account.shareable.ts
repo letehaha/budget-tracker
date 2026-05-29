@@ -2,7 +2,7 @@ import { ACCESS_SOURCES, RESOURCE_TYPES, SharePermission, SharePolicy } from '@b
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import ResourceShares from '@models/resource-shares.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import {
   SHARE_SOURCE_PRIORITY,

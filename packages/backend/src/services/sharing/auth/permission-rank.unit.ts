@@ -1,5 +1,5 @@
 import { SHARE_PERMISSIONS } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { isPermissionAtLeast } from './permission-rank';
 

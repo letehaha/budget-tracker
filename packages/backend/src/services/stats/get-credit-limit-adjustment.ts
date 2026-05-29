@@ -1,5 +1,5 @@
 import Accounts from '@models/accounts.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 /**
  * Calculates the total credit limit in base currency (cents) for all accounts

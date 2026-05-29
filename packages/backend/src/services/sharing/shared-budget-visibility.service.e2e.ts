@@ -9,10 +9,10 @@
 
 import { ACCESS_SOURCES, BUDGET_TYPES, RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTION_TYPES } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { CustomResponse } from '@tests/helpers/common';
+import { describe, expect, it } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Shared test scaffold helpers

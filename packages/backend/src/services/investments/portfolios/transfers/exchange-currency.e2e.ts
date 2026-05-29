@@ -1,8 +1,8 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Exchange Currency', () => {
   it('should exchange currency within a portfolio', async () => {

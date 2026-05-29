@@ -7,8 +7,8 @@ import {
 import { ConflictError, NotFoundError } from '@js/errors';
 import Notifications from '@models/notifications.model';
 import ShareInvitations from '@models/share-invitations.model';
+import { and, where, literal } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Sequelize } from 'sequelize';
 
 interface CancelInvitationParams {
   invitationId: string;
@@ -50,9 +50,9 @@ const cancelInvitationImpl = async (params: CancelInvitationParams): Promise<{ i
   await Notifications.update(
     { status: NOTIFICATION_STATUSES.dismissed },
     {
-      where: Sequelize.and(
+      where: and(
         { type: NOTIFICATION_TYPES.shareInvitationReceived },
-        Sequelize.where(Sequelize.literal(`"payload"->>'invitationId'`), invitationId),
+        where(literal(`"payload"->>'invitationId'`), invitationId),
       ),
     },
   );

@@ -12,6 +12,7 @@ import Tags from '@models/tags.model';
 import { deleteSplitsForTransaction } from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
+import { Op } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import {
@@ -20,7 +21,6 @@ import {
 } from '@services/sharing/auth/authorize-account-write.service';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import * as refundsService from '@services/tx-refunds';
-import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { calcTransferTransactionRefAmount, createOppositeTransaction } from './create-transaction';
@@ -124,6 +124,7 @@ const makeBasicBaseTxUpdation = async (
   });
 
   // Check the account type, not the transaction type
+  // accountId is null only for portfolio-linked transactions, which don't flow through this service.
   const account = await Accounts.getAccountById({
     userId: ctx.accountOwnerUserId,
     id: prevData.accountId,
@@ -154,7 +155,7 @@ const makeBasicBaseTxUpdation = async (
     accountId: newData.accountId,
     categoryId: newData.categoryId,
     transferNature: newData.transferNature,
-    currencyCode: prevData.currencyCode,
+    currencyCode: prevData.currencyCode!,
     refundLinked: prevData.refundLinked,
   };
 
@@ -215,7 +216,7 @@ const makeBasicBaseTxUpdation = async (
           where: {
             userId: newData.userId,
             id: {
-              [Op.in]: newData.refundedByTxIds,
+              [Op.in]: newData.refundedByTxIds!,
             },
           },
           attributes: ['refAmount'],
@@ -332,7 +333,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     time,
     paymentType,
     categoryId,
-    currencyCode: oppositeTx.currencyCode,
+    currencyCode: oppositeTx.currencyCode!,
   });
 
   // If accountId was changed to a new one
@@ -571,7 +572,7 @@ export const updateTransaction = withTransaction(
             categoryOwnerUserId: ctx.accountOwnerUserId,
             splits: payload.splits,
             transactionAmount: baseTransaction.amount,
-            transactionCurrencyCode: baseTransaction.currencyCode,
+            transactionCurrencyCode: baseTransaction.currencyCode!,
             transactionTime: baseTransaction.time,
             transferNature: baseTransaction.transferNature,
           });
@@ -585,7 +586,7 @@ export const updateTransaction = withTransaction(
       if (payload.tagIds !== undefined) {
         if (payload.tagIds === null || payload.tagIds.length === 0) {
           // Clear all tags
-          await baseTransaction.$set('tags', []);
+          await baseTransaction.setTags([]);
         } else {
           // Validate that all tagIds belong to the current user
           const userTags = await Tags.findAll({
@@ -600,7 +601,7 @@ export const updateTransaction = withTransaction(
           }
 
           // Set new tags
-          await baseTransaction.$set('tags', payload.tagIds);
+          await baseTransaction.setTags(payload.tagIds);
 
           if (payload.tagIds?.length) {
             // Emit event for real-time reminders check (handled by event listener)

@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import Tags from '@models/tags.model';
 import Users from '@models/users.model';
 import * as userService from '@services/user.service';
 import { makeAuthRequest } from '@tests/helpers';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Signup-flow integration tests.
@@ -393,7 +393,7 @@ describe('Signup flow', () => {
 
   describe('Stage-1: app-user creation failure (rollback)', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should rollback ba_user when app-user creation fails so signup can be retried', async () => {
@@ -410,9 +410,7 @@ describe('Signup flow', () => {
       // To simulate failure deterministically (since slugify now caps the
       // input length and the DB rejects nothing for normal inputs), we spy
       // on userService.createUser and force it to reject.
-      const spy = jest
-        .spyOn(userService, 'createUser')
-        .mockRejectedValue(new Error('forced failure for rollback test'));
+      const spy = vi.spyOn(userService, 'createUser').mockRejectedValue(new Error('forced failure for rollback test'));
 
       const email = 'rollback-target@test.local';
 
@@ -441,7 +439,7 @@ describe('Signup flow', () => {
 
   describe('Stage-2: seeding failure (keep usable account)', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should still return 200 and keep the app user', async () => {
@@ -451,8 +449,8 @@ describe('Signup flow', () => {
       // the partial state.
       // Spy on the underlying model's bulkCreate (the barrel export at
       // `@services/tags` produces non-configurable namespace properties
-      // that jest.spyOn can't replace).
-      const spy = jest.spyOn(Tags, 'bulkCreate').mockRejectedValue(new Error('forced seed failure for test'));
+      // that vi.spyOn can't replace).
+      const spy = vi.spyOn(Tags, 'bulkCreate').mockRejectedValue(new Error('forced seed failure for test'));
 
       const res = await makeAuthRequest({
         method: 'post',

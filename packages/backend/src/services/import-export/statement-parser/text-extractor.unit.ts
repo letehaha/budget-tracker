@@ -1,21 +1,21 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-jest.mock('unpdf', () => ({
-  getDocumentProxy: jest.fn(),
-  extractText: jest.fn(),
+vi.mock('unpdf', () => ({
+  getDocumentProxy: vi.fn(),
+  extractText: vi.fn(),
 }));
 
 import { extractText, getDocumentProxy } from 'unpdf';
 
 import { estimateTokenCount, extractTextFromFile } from './text-extractor';
 
-const mockedGetDocumentProxy = jest.mocked(getDocumentProxy);
-const mockedExtractText = jest.mocked(extractText);
+const mockedGetDocumentProxy = vi.mocked(getDocumentProxy);
+const mockedExtractText = vi.mocked(extractText);
 
 const FAKE_PDF_PROXY = { numPages: 3 } as unknown as Awaited<ReturnType<typeof getDocumentProxy>>;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockedGetDocumentProxy.mockResolvedValue(FAKE_PDF_PROXY);
 });
 

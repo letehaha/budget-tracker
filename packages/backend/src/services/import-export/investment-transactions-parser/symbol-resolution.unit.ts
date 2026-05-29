@@ -1,5 +1,5 @@
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { normaliseCurrency, providerForAssetClass } from './symbol-resolution.service';
 

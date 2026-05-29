@@ -1,4 +1,5 @@
-import { QueryInterface, QueryTypes, Transaction } from 'sequelize';
+import { QueryTypes } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Big-bang migration that converts integer primary keys (and the foreign keys
@@ -147,7 +148,7 @@ const translateIdArray = (value: unknown, map: Map<number, string>): string[] | 
 };
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const sequelize = queryInterface.sequelize;
     const t: Transaction = await sequelize.transaction();
 

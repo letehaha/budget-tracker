@@ -14,6 +14,7 @@ import { logger } from '@js/utils';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
+import { and, literal, Op, where } from '@sequelize/core';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -24,7 +25,6 @@ import {
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
-import { Op, Sequelize } from 'sequelize';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
@@ -348,9 +348,9 @@ export class WalutomatProvider extends BaseBankDataProvider {
         // Secondary dedup: check externalData.originalSource.originalId
         // Covers the unlink→relink flow where originalId was cleared
         const existingByOriginalSource = await Transactions.findOne({
-          where: Sequelize.and(
+          where: and(
             { accountId: account.id, originalId: null },
-            Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), item.transactionId),
+            where(literal(`"externalData"#>>'{originalSource,originalId}'`), item.transactionId),
           ),
         });
 
@@ -474,7 +474,7 @@ export class WalutomatProvider extends BaseBankDataProvider {
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
     await account.update({
-      currentBalance: balance.amount,
+      currentBalance: Money.fromCents(balance.amount),
     });
   }
 
@@ -509,8 +509,8 @@ export class WalutomatProvider extends BaseBankDataProvider {
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           originalId: { [Op.not]: null },
           [Op.or]: [
-            Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'MARKET_FX'),
-            Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'DIRECT_FX'),
+            where(literal(`"externalData"->>'operationType'`), 'MARKET_FX'),
+            where(literal(`"externalData"->>'operationType'`), 'DIRECT_FX'),
           ],
         },
       });

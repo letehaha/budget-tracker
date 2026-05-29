@@ -1,5 +1,5 @@
 import { Money } from '@common/types/money';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { calculateRefAmountFromParams } from './calculate-ref-amount.utils';
 

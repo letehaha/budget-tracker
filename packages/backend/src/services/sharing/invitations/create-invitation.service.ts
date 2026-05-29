@@ -17,8 +17,8 @@ import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 import { findUserByEmail } from '../find-user-by-email.service';
 import { getMaxPendingInvitationsPerResource } from '../limits';

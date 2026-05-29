@@ -1,7 +1,7 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { disconnectProvider } from '@root/services/bank-data-providers/connection/disconnect-provider';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

@@ -1,11 +1,11 @@
 import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { shareResourceOrphanCleanupCron } from '@root/crons/share-resource-orphan-cleanup';
 import { cleanupOrphanShares } from '@services/sharing/cleanup/cleanup-orphan-shares.service';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Orphan-cleanup safety net. Runs the daily sweep directly (per the `tag-reminders` /

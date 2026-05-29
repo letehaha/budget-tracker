@@ -5,9 +5,9 @@ import { logger } from '@js/utils/logger';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import * as Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { deletePortfolioTransfer } from '@services/investments/portfolios/transfers';
 import { assertSharedWritePhase1Guards } from '@services/sharing/auth/authorize-account-write.service';
-import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { getWritableTransactionById } from './get-by-id';
@@ -108,7 +108,9 @@ const unlinkRefundTransaction = withTransaction(async (id: string) => {
 
   if (!refundTx) return undefined;
 
-  const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter((i) => Boolean(i) && i !== id);
+  const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter(
+    (i): i is number => i != null && i !== id,
+  );
 
   if (transactionIdsToUpdate.length) {
     await Transactions.default.update(

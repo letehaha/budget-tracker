@@ -5,11 +5,11 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { invalidateAppUserCache } from '@middlewares/better-auth';
 import { ExchangeRatePair } from '@models/user-exchange-rates.model';
+import { UniqueConstraintError } from '@sequelize/core';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
 import { deleteUser as deleteUserService } from '@services/user/delete-user.service';
-import { UniqueConstraintError } from 'sequelize';
-import { z } from 'zod';
+import z from 'zod';
 
 export const getUser = createController(z.object({}), async ({ user }) => {
   const userData = await userService.getUser(user.id);
@@ -59,7 +59,9 @@ export const updateUser = createController(
       });
 
       // Invalidate cached user so the next request picks up the new username/role
-      invalidateAppUserCache({ authUserId: user.authUserId });
+      if (user.authUserId) {
+        invalidateAppUserCache({ authUserId: user.authUserId });
+      }
 
       return { data: userData };
     } catch (error) {

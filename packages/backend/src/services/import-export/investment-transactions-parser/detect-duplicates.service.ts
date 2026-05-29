@@ -21,8 +21,8 @@
  */
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
+import { Op } from '@sequelize/core';
 import { Big } from 'big.js';
-import { Op } from 'sequelize';
 
 /** Days on either side of a parsed row's date that we consider "the same trade." */
 export const DUPLICATE_DATE_WINDOW_DAYS = 3;

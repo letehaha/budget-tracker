@@ -1,4 +1,5 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { findSubscriptionOrThrow, validateAccountOwnership, validateCategoryOwnership } from './helpers';
@@ -31,7 +32,13 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     await validateCategoryOwnership({ categoryId: fields.categoryId, userId });
   }
 
-  await subscription.update(fields);
+  const { expectedAmount, ...restFields } = fields;
+  const updates: Parameters<typeof subscription.update>[0] = { ...restFields };
+  if (expectedAmount !== undefined) {
+    updates.expectedAmount = (expectedAmount !== null ? Money.fromCents(expectedAmount) : null) as Money;
+  }
+
+  await subscription.update(updates);
 
   return subscription.toJSON();
 });

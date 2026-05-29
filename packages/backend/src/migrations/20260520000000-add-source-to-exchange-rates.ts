@@ -1,4 +1,5 @@
-import { QueryInterface, DataTypes } from 'sequelize';
+import type { AbstractQueryInterface } from '@sequelize/core';
+import { DataTypes } from '@sequelize/core';
 
 const TABLE = 'ExchangeRates';
 const COLUMN = 'source';
@@ -29,7 +30,7 @@ const CURRENCY_RATES_API_EXCLUSIVE_QUOTES = ['UAH', 'EGP', 'GEL', 'KZT', 'LBP', 
 const API_LAYER_ROW_COUNT_THRESHOLD = 100;
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
       await queryInterface.addColumn(
         TABLE,
@@ -114,7 +115,7 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
       await queryInterface.sequelize.query(`ALTER TABLE "${TABLE}" DROP CONSTRAINT IF EXISTS "${CHECK_CONSTRAINT}";`, {
         transaction,

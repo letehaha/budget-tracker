@@ -2,7 +2,7 @@ import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as subscriptionsService from '@services/subscriptions';
-import { z } from 'zod';
+import z from 'zod';
 
 import { matchingRuleSchema } from './shared-schemas';
 

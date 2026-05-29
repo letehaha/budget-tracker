@@ -2,9 +2,9 @@ import { SHARE_INVITATION_STATUSES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 import { resolveResourceName } from '@services/sharing/auth/can-user-access-resource.service';
-import { Op } from 'sequelize';
 
 import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 

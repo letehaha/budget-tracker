@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { QueryInterface, Transaction } from 'sequelize';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 const ENUM_SECURITY_PROVIDER = 'enum_security_provider';
 const ENUM_ASSET_CLASS = 'enum_asset_class';
@@ -7,7 +7,7 @@ const ENUM_ASSET_CLASS = 'enum_asset_class';
 const UNIQUE_PROVIDER_SYMBOL_INDEX = 'securities_provider_name_provider_symbol_unique_idx';
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -63,7 +63,7 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

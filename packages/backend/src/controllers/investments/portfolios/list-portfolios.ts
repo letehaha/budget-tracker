@@ -2,7 +2,7 @@ import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { booleanQuery } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { listPortfolios } from '@services/investments/portfolios/list.service';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

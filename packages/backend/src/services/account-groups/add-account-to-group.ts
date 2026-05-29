@@ -4,8 +4,8 @@ import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
+import { Op } from '@sequelize/core';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
-import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 

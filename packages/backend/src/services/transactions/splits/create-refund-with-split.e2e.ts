@@ -1,8 +1,8 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Tests for creating a transaction that refunds a specific split

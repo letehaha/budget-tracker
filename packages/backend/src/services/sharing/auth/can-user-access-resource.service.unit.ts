@@ -1,6 +1,6 @@
 import { SHARE_PERMISSIONS } from '@bt/shared/types';
-import { afterEach, describe, expect, it } from '@jest/globals';
 import { UnexpectedError } from '@js/errors';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { canUserAccessResource } from './can-user-access-resource.service';
 

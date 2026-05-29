@@ -1,8 +1,8 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.createTable(
@@ -18,7 +18,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -58,7 +58,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'TransactionGroups',
+              table: 'TransactionGroups',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -68,7 +68,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Transactions',
+              table: 'Transactions',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -80,7 +80,7 @@ module.exports = {
 
       await queryInterface.addConstraint('TransactionGroupItems', {
         fields: ['groupId', 'transactionId'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'transaction_group_items_pkey',
         transaction: t,
       });
@@ -97,8 +97,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       const itemsExists = await queryInterface.tableExists('TransactionGroupItems');

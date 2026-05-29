@@ -4,28 +4,29 @@
  * stable defaults for env vars that are read at module-evaluation time elsewhere
  * (e.g., `APPLICATION_JWT_SECRET` in `common/utils/encryption.ts`).
  */
+import { vi } from 'vitest';
 
 if (!process.env.APPLICATION_JWT_SECRET) {
   process.env.APPLICATION_JWT_SECRET = 'unit-test-secret';
 }
 
 // Mock the redis-client module to prevent actual Redis connections in unit tests
-jest.mock('@root/redis-client', () => ({
+vi.mock('@root/redis-client', () => ({
   redisClient: {
-    get: jest.fn().mockResolvedValue(null),
-    set: jest.fn().mockResolvedValue('OK'),
-    setex: jest.fn().mockResolvedValue('OK'),
-    del: jest.fn().mockResolvedValue(1),
-    keys: jest.fn().mockResolvedValue([]),
-    mget: jest.fn().mockResolvedValue([]),
-    incr: jest.fn().mockResolvedValue(1),
-    expire: jest.fn().mockResolvedValue(1),
-    ttl: jest.fn().mockResolvedValue(-1),
-    ping: jest.fn().mockResolvedValue('PONG'),
-    quit: jest.fn().mockResolvedValue('OK'),
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+    keys: vi.fn().mockResolvedValue([]),
+    mget: vi.fn().mockResolvedValue([]),
+    incr: vi.fn().mockResolvedValue(1),
+    expire: vi.fn().mockResolvedValue(1),
+    ttl: vi.fn().mockResolvedValue(-1),
+    ping: vi.fn().mockResolvedValue('PONG'),
+    quit: vi.fn().mockResolvedValue('OK'),
     status: 'ready',
-    on: jest.fn(),
-    connect: jest.fn().mockResolvedValue(undefined),
+    on: vi.fn(),
+    connect: vi.fn().mockResolvedValue(undefined),
   },
   redisReady: Promise.resolve(),
   REDIS_KEY_PREFIX: undefined,

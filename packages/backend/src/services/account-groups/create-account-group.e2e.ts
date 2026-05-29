@@ -1,6 +1,6 @@
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T> }): Promise<T> {
   const original = global.APP_AUTH_COOKIES;

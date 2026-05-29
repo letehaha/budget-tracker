@@ -7,15 +7,15 @@ import * as Currencies from '@models/currencies.model';
 import * as ExchangeRates from '@models/exchange-rates.model';
 import * as UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies, { getBaseCurrency } from '@models/users-currencies.model';
+import { Op } from '@sequelize/core';
 import {
   API_LAYER_BASE_CURRENCY_CODE,
   fetchExchangeRatesForDate,
 } from '@services/exchange-rates/fetch-exchange-rates-for-date';
 import { endOfDay, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
 
 // Round to 5 precision
-const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;
+const formatRate = (rate: number | null) => Math.trunc((rate ?? 0) * 100000) / 100000;
 
 const exchangeRateCache = new CacheClient<ExchangeRateReturnType>({
   logPrefix: 'ExchangeRate',
@@ -62,7 +62,7 @@ export async function getExchangeRate({
 
   // When currencies are different, make sure that base_code currency is linked
   // to user's currencies, since usually quite is always a user_default_currency
-  const userCurrency = await findOrThrowNotFound({
+  const userCurrency = (await findOrThrowNotFound({
     query: UsersCurrencies.findOne({
       where: { userId },
       attributes: ['liveRateUpdate'],
@@ -76,7 +76,7 @@ export async function getExchangeRate({
       raw: true,
     }),
     message: t({ key: 'currencies.currencyNotConnected' }),
-  });
+  })) as { liveRateUpdate: boolean };
 
   const userDefaultCurrency = await getBaseCurrency({ userId });
 

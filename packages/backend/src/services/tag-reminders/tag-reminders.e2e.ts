@@ -1,10 +1,10 @@
 import { NOTIFICATION_TYPES, TAG_REMINDER_FREQUENCIES, TAG_REMINDER_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import TagReminders from '@models/tag-reminders.model';
 import Users from '@models/users.model';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   checkRealTimeReminders,

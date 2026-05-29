@@ -1,4 +1,5 @@
-import { QueryInterface, QueryTypes } from 'sequelize';
+import type { AbstractQueryInterface } from '@sequelize/core';
+import { QueryTypes } from '@sequelize/core';
 
 /**
  * Widen `SecurityPricings.date` from DATE to TIMESTAMP WITH TIME ZONE.
@@ -25,7 +26,7 @@ import { QueryInterface, QueryTypes } from 'sequelize';
  * deployments this is manageable. For very large datasets, plan the window.
  */
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.query(
       `ALTER TABLE "SecurityPricings"
          ALTER COLUMN "date" TYPE TIMESTAMP WITH TIME ZONE
@@ -33,7 +34,7 @@ module.exports = {
     );
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Preflight: any non-midnight-UTC rows (crypto intraday) would silently
     // collapse to their UTC calendar date below and then collide on the unique
     // (securityId, date) index, producing a generic constraint violation. Fail

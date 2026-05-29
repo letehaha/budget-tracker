@@ -1,6 +1,6 @@
 import { CATEGORY_TYPES, CategoryModel } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { buildCategoryList } from './build-category-list';
 

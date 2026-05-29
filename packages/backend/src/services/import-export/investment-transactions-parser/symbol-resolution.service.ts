@@ -167,7 +167,7 @@ export async function resolveSymbols({
   // Step 1: securities the user already holds anywhere — keyed by ticker.
   //
   // Two queries instead of one big nested include: easier to keep the
-  // sequelize-typescript association aliases correct, and the working set is
+  // @sequelize/core association aliases correct, and the working set is
   // small (one row per symbol the AI returned).
   const userPortfolios = await Portfolios.findAll({ where: { userId }, attributes: ['id'] });
   const userPortfolioIds = userPortfolios.map((p) => p.id);

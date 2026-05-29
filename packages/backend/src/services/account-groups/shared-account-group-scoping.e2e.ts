@@ -1,7 +1,7 @@
 import { RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Recipient-side grouping of shared accounts (F7 — Settings tab → Account group).

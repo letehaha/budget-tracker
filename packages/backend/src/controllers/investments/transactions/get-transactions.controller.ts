@@ -2,7 +2,7 @@ import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { getTransactions } from '@services/investments/transactions/get.service';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   params: z.object({}).optional(),

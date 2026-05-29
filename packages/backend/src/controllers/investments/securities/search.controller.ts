@@ -2,7 +2,7 @@ import { ASSET_CLASS } from '@bt/shared/types/investments';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { searchSecurities } from '@services/investments/securities/search.service';
-import { z } from 'zod';
+import z from 'zod';
 
 export default createController(
   z.object({

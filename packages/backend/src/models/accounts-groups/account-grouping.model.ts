@@ -1,5 +1,13 @@
 import { RecordId } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from '../accounts.model';
@@ -25,31 +33,29 @@ import AccountGroup from './account-groups.model';
     },
   ],
 })
-export default class AccountGrouping extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class AccountGrouping extends Model<
+  InferAttributes<AccountGrouping>,
+  InferCreationAttributes<AccountGrouping>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @Default(() => uuidv7())
+  declare id: CreationOptional<RecordId>;
 
-  @ForeignKey(() => Accounts)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-  })
-  accountId!: RecordId;
+  @Attribute(DataTypes.UUID)
+  @NotNull
+  @Index
+  declare accountId: RecordId;
 
-  @ForeignKey(() => AccountGroup)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-  })
-  groupId!: RecordId;
+  @Attribute(DataTypes.UUID)
+  @NotNull
+  @Index
+  declare groupId: RecordId;
 
-  @BelongsTo(() => Accounts)
-  account!: Accounts;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => AccountGroup)
-  group!: AccountGroup;
+  // In Sequelize v7, BelongsTo associations are auto-created by BelongsToMany on AccountGroups model
+  declare account?: NonAttribute<Accounts>;
+  declare group?: NonAttribute<AccountGroup>;
 }

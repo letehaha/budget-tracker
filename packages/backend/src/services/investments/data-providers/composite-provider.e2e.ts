@@ -1,55 +1,47 @@
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
 import alpha from 'alphavantage';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import YahooFinance from 'yahoo-finance2';
 
 import { FmpClient, type FmpSearchResult } from './clients/fmp-client';
 import { dataProviderFactory } from './provider-factory';
 
 // Get mock instances (these are set up globally in setupIntegrationTests.ts)
-const mockedRestClient = jest.mocked(restClient);
+const mockedRestClient = vi.mocked(restClient);
 const mockPolygonApi = mockedRestClient.getMockImplementation()!('test');
-const mockedPolygonGroupedDaily = jest.mocked(mockPolygonApi.stocks.aggregatesGroupedDaily);
+const mockedPolygonGroupedDaily = vi.mocked(mockPolygonApi.stocks.aggregatesGroupedDaily);
 
-const mockedAlpha = jest.mocked(alpha);
+const mockedAlpha = vi.mocked(alpha);
 const mockAlphaVantage = mockedAlpha.getMockImplementation()!({ key: 'test' });
-const mockedAlphaSearch = jest.mocked(mockAlphaVantage.data.search);
+const mockedAlphaSearch = vi.mocked(mockAlphaVantage.data.search);
 
-const mockedFmpClient = jest.mocked(FmpClient);
+const mockedFmpClient = vi.mocked(FmpClient);
 // Create properly typed mock functions
-const mockedFmpSearch = jest.fn<() => Promise<FmpSearchResult[]>>();
+const mockedFmpSearch = vi.fn<() => Promise<FmpSearchResult[]>>();
 
 // Configure the constructor to return our mock instance
-mockedFmpClient.mockImplementation(
-  () =>
-    ({
-      search: mockedFmpSearch,
-      getQuote: jest.fn(),
-      getHistoricalPrices: jest.fn(),
-      getHistoricalPricesFull: jest.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
-);
+mockedFmpClient.mockImplementation(function (this: Record<string, unknown>) {
+  this.search = mockedFmpSearch;
+  this.getQuote = vi.fn();
+  this.getHistoricalPrices = vi.fn();
+  this.getHistoricalPricesFull = vi.fn();
+} as unknown as typeof FmpClient);
 
 // Yahoo is the primary search provider. Override constructor to use shared mocks
 // so individual tests can control Yahoo behaviour.
-const mockedYahooFinance = jest.mocked(YahooFinance);
-const mockedYahooSearch = jest.fn<any>();
-const mockedYahooQuote = jest.fn<any>();
-const mockedYahooChart = jest.fn<any>();
+const mockedYahooFinance = vi.mocked(YahooFinance);
+const mockedYahooSearch = vi.fn<any>();
+const mockedYahooQuote = vi.fn<any>();
+const mockedYahooChart = vi.fn<any>();
 
-mockedYahooFinance.mockImplementation(
-  () =>
-    ({
-      search: mockedYahooSearch,
-      quote: mockedYahooQuote,
-      chart: mockedYahooChart,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
-);
+mockedYahooFinance.mockImplementation(function (this: Record<string, unknown>) {
+  this.search = mockedYahooSearch;
+  this.quote = mockedYahooQuote;
+  this.chart = mockedYahooChart;
+} as unknown as typeof YahooFinance);
 
 /**
  * Shared setup: clear factory cache and reset Yahoo mocks to "reject" so that
@@ -57,7 +49,7 @@ mockedYahooFinance.mockImplementation(
  * override per-test.
  */
 function resetProviderMocks() {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   dataProviderFactory.clearCache();
 
   // Yahoo rejects by default → composite falls back to FMP for search

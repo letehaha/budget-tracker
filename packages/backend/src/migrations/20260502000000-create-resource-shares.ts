@@ -1,4 +1,5 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 const RESOURCE_TYPES = ['account'] as const;
 const SHARE_PERMISSIONS = ['read', 'write', 'manage'] as const;
@@ -7,7 +8,7 @@ const INVITATION_STATUSES = ['pending', 'accepted', 'declined', 'revoked', 'expi
 const inClause = (values: readonly string[]) => values.map((v) => `'${v}'`).join(', ');
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -242,7 +243,7 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

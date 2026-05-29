@@ -5,7 +5,7 @@ import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/refund-transactions.model';
 import * as TransactionSplits from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { withTransaction } from '../common/with-transaction';
 
@@ -156,7 +156,7 @@ export const createSingleRefund = withTransaction(
 
         // Calculate the total refunded amount
         const totalRefundedAmount = existingRefunds.reduce((sum, refund) => {
-          return sum + Math.abs(refund.refundTransaction.refAmount.toNumber());
+          return sum + Math.abs(refund.refundTransaction!.refAmount.toNumber());
         }, Math.abs(refundTx.refAmount.toNumber()));
 
         // Check if the new refund would exceed the target amount (split or transaction)

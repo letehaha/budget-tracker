@@ -1,36 +1,52 @@
 import { RecordId } from '@bt/shared/types';
-import Transactions from '@models/transactions.model';
-import Users from '@models/users.model';
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, BeforeCreate, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
-import TransactionGroupItems from './transaction-group-items.model';
+import type Transactions from './transactions.model';
 
 @Table({
   tableName: 'TransactionGroups',
   timestamps: true,
 })
-export default class TransactionGroups extends Model {
-  @Column({ primaryKey: true, allowNull: false, type: DataType.UUID, defaultValue: () => uuidv7() })
-  declare id: RecordId;
+export default class TransactionGroups extends Model<
+  InferAttributes<TransactionGroups>,
+  InferCreationAttributes<TransactionGroups>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  declare id: CreationOptional<RecordId>;
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  userId!: number;
+  @BeforeCreate
+  static generateUUIDv7(instance: TransactionGroups) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
-  @Column({ allowNull: false, type: DataType.STRING(100) })
-  name!: string;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @Column({ allowNull: true, type: DataType.STRING(500) })
-  note!: string | null;
+  @Attribute(DataTypes.STRING(100))
+  @NotNull
+  declare name: string;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  @Attribute(DataTypes.STRING(500))
+  declare note: string | null;
 
-  @BelongsToMany(() => Transactions, {
-    through: { model: () => TransactionGroupItems, unique: false },
-    foreignKey: 'groupId',
-    otherKey: 'transactionId',
-  })
-  transactions!: Transactions[];
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+
+  // Inverse of Transactions.@BelongsToMany(TransactionGroups) — auto-created by Sequelize v7
+  declare transactions?: NonAttribute<Transactions[]>;
 }

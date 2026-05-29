@@ -1,7 +1,7 @@
 import { SUBSCRIPTION_LINK_STATUS } from '@bt/shared/types';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 import { findSubscriptionOrThrow } from './helpers';
 

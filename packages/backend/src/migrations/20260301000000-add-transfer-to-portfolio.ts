@@ -1,7 +1,7 @@
-import { QueryInterface, DataTypes, Op } from 'sequelize';
+import { AbstractQueryInterface, DataTypes, Op } from '@sequelize/core';
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // PostgreSQL doesn't allow ALTER TYPE ADD VALUE inside a transaction
     await queryInterface.sequelize.query(
       `ALTER TYPE "enum_transfer_nature" ADD VALUE IF NOT EXISTS 'transfer_to_portfolio';`,
@@ -18,7 +18,7 @@ module.exports = {
       allowNull: true,
       defaultValue: null,
       references: {
-        model: 'Transactions',
+        table: 'Transactions',
         key: 'id',
       },
       onDelete: 'SET NULL',
@@ -31,7 +31,7 @@ module.exports = {
 
     await queryInterface.addConstraint('PortfolioTransfers', {
       fields: ['fromAccountId', 'toPortfolioId', 'fromPortfolioId', 'toAccountId'],
-      type: 'check',
+      type: 'CHECK',
       name: 'portfolio_transfers_valid_direction_check',
       where: {
         [Op.or]: [
@@ -85,13 +85,13 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Restore original check constraint (without deposit/withdrawal)
     await queryInterface.removeConstraint('PortfolioTransfers', 'portfolio_transfers_valid_direction_check');
 
     await queryInterface.addConstraint('PortfolioTransfers', {
       fields: ['fromAccountId', 'toPortfolioId', 'fromPortfolioId', 'toAccountId'],
-      type: 'check',
+      type: 'CHECK',
       name: 'portfolio_transfers_valid_direction_check',
       where: {
         [Op.or]: [
@@ -133,7 +133,7 @@ module.exports = {
     );
 
     // Recreate enum without 'transfer_to_portfolio'
-    const t = await queryInterface.sequelize.transaction();
+    const t = await queryInterface.sequelize.startUnmanagedTransaction();
     try {
       await queryInterface.sequelize.query(
         `CREATE TYPE "enum_transfer_nature_new" AS ENUM ('not_transfer', 'transfer_between_user_accounts', 'transfer_out_wallet');`,

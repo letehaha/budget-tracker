@@ -1,8 +1,8 @@
 import { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/securities.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 const dedupKey = (providerName: string, providerSymbol: string) => `${providerName}:${providerSymbol}`;
 

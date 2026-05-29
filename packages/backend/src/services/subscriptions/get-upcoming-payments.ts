@@ -1,9 +1,8 @@
 import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_TYPES } from '@bt/shared/types';
-import { Money } from '@common/types/money';
 import Categories from '@models/categories.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
+import { InferAttributes, Op } from '@sequelize/core';
 
 import { computeNextExpectedDate } from './get-subscriptions';
 
@@ -38,7 +37,10 @@ export const getUpcomingPayments = async ({ userId, limit = 5, type }: GetUpcomi
 
   return subscriptions
     .map((sub) => {
-      const plain = sub.toJSON();
+      const plain = sub.toJSON() as InferAttributes<Subscriptions> & {
+        transactions?: { id: number; time: Date }[];
+        category?: { id: number; name: string; color: string } | null;
+      };
       const nextPaymentDate = computeNextExpectedDate({
         startDate: plain.startDate,
         frequency: plain.frequency,
@@ -48,7 +50,7 @@ export const getUpcomingPayments = async ({ userId, limit = 5, type }: GetUpcomi
       return {
         subscriptionId: plain.id,
         subscriptionName: plain.name,
-        expectedAmount: Money.fromCents(plain.expectedAmount!).toNumber(),
+        expectedAmount: plain.expectedAmount!.toNumber(),
         expectedCurrencyCode: plain.expectedCurrencyCode,
         nextPaymentDate,
         frequency: plain.frequency,

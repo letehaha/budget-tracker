@@ -1,13 +1,13 @@
-import { QueryInterface, DataTypes } from 'sequelize';
+import { AbstractQueryInterface, DataTypes } from '@sequelize/core';
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.addColumn('PortfolioTransfers', 'toCurrencyCode', {
       type: DataTypes.STRING(3),
       allowNull: true,
       defaultValue: null,
       references: {
-        model: 'Currencies',
+        table: 'Currencies',
         key: 'code',
       },
       onDelete: 'RESTRICT',
@@ -27,7 +27,7 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.removeColumn('PortfolioTransfers', 'refToAmount');
     await queryInterface.removeColumn('PortfolioTransfers', 'toAmount');
     await queryInterface.removeColumn('PortfolioTransfers', 'toCurrencyCode');

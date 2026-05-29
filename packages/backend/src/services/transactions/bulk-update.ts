@@ -4,8 +4,8 @@ import { NotFoundError, ValidationError } from '@js/errors';
 import Categories from '@models/categories.model';
 import Tags from '@models/tags.model';
 import * as Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
-import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 
@@ -145,16 +145,16 @@ export const bulkUpdate = withTransaction(
         switch (tagMode) {
           case 'replace':
             // Replace all existing tags with new ones
-            await tx.$set('tags', tagIds);
+            await tx.setTags(tagIds);
             break;
           case 'remove':
             // Remove specified tags from existing ones
-            await tx.$remove('tags', tagIds);
+            await tx.removeTags(tagIds);
             break;
           case 'add':
           default:
             // Add tags to existing ones
-            await tx.$add('tags', tagIds);
+            await tx.addTags(tagIds);
             break;
         }
       }

@@ -33,14 +33,15 @@ import { RecordId } from './record-id';
 export interface UserModel {
   id: number;
   username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  middleName: string;
-  avatar: string;
+  email: string | null;
+  password?: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  middleName: string | null;
+  avatar: string | null;
   totalBalance: number;
-  defaultCategoryId: RecordId;
-  authUserId?: RecordId;
+  defaultCategoryId: RecordId | null;
+  authUserId?: RecordId | null;
   /** User role for access control. Defaults to 'common' for regular users. */
   role: UserRole;
   /** @deprecated Use role === 'admin' instead */
@@ -71,7 +72,7 @@ export interface AccountExternalData {
   bankConnection?: {
     linkedAt: string; // ISO date string
     linkingStrategy: 'forward-only' | 'full-reconciliation';
-    balanceReconciliation: {
+    balanceReconciliation?: {
       systemBalance: number;
       externalBalance: number;
       difference: number;

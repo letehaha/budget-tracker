@@ -2,7 +2,7 @@ import { RESOURCE_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import ResourceShares from '@models/resource-shares.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { toPositiveInt } from '../sharing-utils';
 

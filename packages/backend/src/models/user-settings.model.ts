@@ -6,9 +6,26 @@ import {
   NOTIFICATION_TYPES,
   RecordId,
 } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
-import { z } from 'zod';
+import z from 'zod';
 
 import Users from './users.model';
 
@@ -131,43 +148,39 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
   freezeTableName: true,
   timestamps: true, // To include `createdAt` and `updatedAt`
 })
-export default class UserSettings extends Model {
-  @Column({
-    primaryKey: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class UserSettings extends Model<InferAttributes<UserSettings>, InferCreationAttributes<UserSettings>> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  declare id: CreationOptional<RecordId>;
 
-  @ForeignKey(() => Users)
-  @Column({
-    allowNull: false,
-    type: DataType.INTEGER,
-  })
-  userId!: number;
+  @BeforeCreate
+  static generateUUIDv7(instance: UserSettings) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
-  @BelongsTo(() => Users)
-  user!: Users;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @Column({
-    type: DataType.JSONB,
-    allowNull: false,
-    defaultValue: DEFAULT_SETTINGS,
-  })
-  settings!: SettingsSchema;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
-  @Column({
-    allowNull: false,
-    type: DataType.DATE,
-    defaultValue: DataType.NOW,
-  })
-  declare createdAt: Date;
+  @Attribute(DataTypes.JSONB)
+  @NotNull
+  @Default(DEFAULT_SETTINGS)
+  declare settings: CreationOptional<SettingsSchema>;
 
-  @Column({
-    allowNull: false,
-    type: DataType.DATE,
-    defaultValue: DataType.NOW,
-  })
-  declare updatedAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare createdAt: CreationOptional<Date>;
+
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare updatedAt: CreationOptional<Date>;
 }

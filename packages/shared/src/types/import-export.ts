@@ -174,7 +174,7 @@ export interface DuplicateMatch {
     date: string;
     amount: Cents;
     note: string;
-    accountId: string;
+    accountId: string | null;
   };
   matchType: 'originalId' | 'exact' | 'fuzzy';
   confidence: number; // 0-100

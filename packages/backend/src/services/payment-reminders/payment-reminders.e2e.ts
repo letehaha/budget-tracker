@@ -5,10 +5,10 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import * as helpers from '@tests/helpers';
 import { addMonths, addWeeks, addYears, format } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 import { checkPaymentReminders } from './check-reminders';
 
@@ -68,8 +68,8 @@ describe('Payment Reminders', () => {
       expect(reminder.timezone).toBe('UTC');
       expect(reminder.anchorDay).toBe(15);
       expect(reminder.periods).toHaveLength(1);
-      expect(reminder.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
-      expect(reminder.periods[0]!.dueDate).toBe(futureDate({ monthsAhead: 1, day: 15 }));
+      expect(reminder.periods![0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+      expect(reminder.periods![0]!.dueDate).toBe(futureDate({ monthsAhead: 1, day: 15 }));
     });
 
     it('creates a recurring reminder with all fields', async () => {
@@ -344,7 +344,7 @@ describe('Payment Reminders', () => {
       });
 
       // Mark the first period as paid to generate a second one
-      const firstPeriod = reminder.periods[0]!;
+      const firstPeriod = reminder.periods![0]!;
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
         periodId: firstPeriod.id,
@@ -388,7 +388,7 @@ describe('Payment Reminders', () => {
 
       const period = await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -416,7 +416,7 @@ describe('Payment Reminders', () => {
 
       const period = await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         transactionId: tx.id,
         raw: true,
       });
@@ -435,7 +435,7 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -460,7 +460,7 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -482,13 +482,13 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
       const res = await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: false,
       });
 
@@ -516,7 +516,7 @@ describe('Payment Reminders', () => {
       // Pay first period with this transaction
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         transactionId: tx.id,
         raw: true,
       });
@@ -550,7 +550,7 @@ describe('Payment Reminders', () => {
 
       const period = await helpers.skipPaymentReminderPeriod({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -567,7 +567,7 @@ describe('Payment Reminders', () => {
 
       await helpers.skipPaymentReminderPeriod({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -591,13 +591,13 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
       const res = await helpers.skipPaymentReminderPeriod({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: false,
       });
 
@@ -613,13 +613,13 @@ describe('Payment Reminders', () => {
 
       await helpers.skipPaymentReminderPeriod({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
       const res = await helpers.skipPaymentReminderPeriod({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: false,
       });
 
@@ -647,14 +647,14 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         transactionId: tx.id,
         raw: true,
       });
 
       const period = await helpers.unlinkPaymentReminderTransaction({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -683,7 +683,7 @@ describe('Payment Reminders', () => {
       // Mark first period as paid
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -723,7 +723,7 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -748,7 +748,7 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -773,7 +773,7 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -798,7 +798,7 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -823,7 +823,7 @@ describe('Payment Reminders', () => {
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -899,7 +899,7 @@ describe('Payment Reminders', () => {
         fn: () =>
           helpers.markPaymentReminderPeriodPaid({
             reminderId: reminder.id,
-            periodId: reminder.periods[0]!.id,
+            periodId: reminder.periods![0]!.id,
             raw: false,
           }),
       });
@@ -933,13 +933,13 @@ describe('Payment Reminders', () => {
 
       await helpers.skipPaymentReminderPeriod({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
       const res = await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: false,
       });
 
@@ -961,7 +961,7 @@ describe('Payment Reminders', () => {
       // Try to mark reminder2's period using reminder1's ID
       const res = await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder1.id,
-        periodId: reminder2.periods[0]!.id,
+        periodId: reminder2.periods![0]!.id,
         raw: false,
       });
 
@@ -977,7 +977,7 @@ describe('Payment Reminders', () => {
       });
 
       // Set the period's due date to the past so checkPaymentReminders marks it overdue
-      await PaymentReminderPeriods.update({ dueDate: '2025-01-01' }, { where: { id: reminder.periods[0]!.id } });
+      await PaymentReminderPeriods.update({ dueDate: '2025-01-01' }, { where: { id: reminder.periods![0]!.id } });
 
       // Run the cron to mark the period as overdue
       await checkPaymentReminders();
@@ -1016,7 +1016,7 @@ describe('Payment Reminders', () => {
 
       const res = await helpers.skipPaymentReminderPeriod({
         reminderId: reminder1.id,
-        periodId: reminder2.periods[0]!.id,
+        periodId: reminder2.periods![0]!.id,
         raw: false,
       });
 
@@ -1039,7 +1039,7 @@ describe('Payment Reminders', () => {
 
       const res = await helpers.unlinkPaymentReminderTransaction({
         reminderId: reminder1.id,
-        periodId: reminder2.periods[0]!.id,
+        periodId: reminder2.periods![0]!.id,
         raw: false,
       });
 
@@ -1056,14 +1056,14 @@ describe('Payment Reminders', () => {
       // Mark as paid without a transaction
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
       // Unlink should succeed even though no transaction is linked
       const period = await helpers.unlinkPaymentReminderTransaction({
         reminderId: reminder.id,
-        periodId: reminder.periods[0]!.id,
+        periodId: reminder.periods![0]!.id,
         raw: true,
       });
 
@@ -1122,7 +1122,7 @@ describe('Payment Reminders', () => {
 
       expect(reminder.frequency).toBeNull();
       expect(reminder.periods).toHaveLength(1);
-      const periodId = reminder.periods[0]!.id;
+      const periodId = reminder.periods![0]!.id;
 
       // 2. Mark the only period as paid
       await helpers.markPaymentReminderPeriodPaid({
@@ -1140,7 +1140,9 @@ describe('Payment Reminders', () => {
 
       // 4. Should now have 2 periods: the paid one + a new upcoming one
       expect(updated.periods).toHaveLength(2);
-      const upcoming = updated.periods.find((p: { status: string }) => p.status === PAYMENT_REMINDER_STATUSES.upcoming);
+      const upcoming = updated.periods!.find(
+        (p: { status: string }) => p.status === PAYMENT_REMINDER_STATUSES.upcoming,
+      );
       expect(upcoming).toBeDefined();
     });
 
@@ -1160,7 +1162,7 @@ describe('Payment Reminders', () => {
       });
 
       expect(updated.periods).toHaveLength(1);
-      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+      expect(updated.periods![0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
     });
 
     it('removes upcoming period when recurring with paid period is changed to one-time', async () => {
@@ -1172,7 +1174,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
 
-      const periodId = reminder.periods[0]!.id;
+      const periodId = reminder.periods![0]!.id;
 
       // 2. Mark as paid — this auto-creates a next upcoming period
       await helpers.markPaymentReminderPeriodPaid({
@@ -1190,7 +1192,7 @@ describe('Payment Reminders', () => {
 
       // 4. Should only have the paid period; the auto-created upcoming one is removed
       expect(updated.periods).toHaveLength(1);
-      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.paid);
+      expect(updated.periods![0]!.status).toBe(PAYMENT_REMINDER_STATUSES.paid);
     });
 
     it('keeps upcoming period when recurring with no paid periods is changed to one-time', async () => {
@@ -1210,7 +1212,7 @@ describe('Payment Reminders', () => {
       });
 
       expect(updated.periods).toHaveLength(1);
-      expect(updated.periods[0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+      expect(updated.periods![0]!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
     });
   });
 
@@ -1263,7 +1265,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
 
-      const periodId = reminder.periods[0]!.id;
+      const periodId = reminder.periods![0]!.id;
 
       // Delete the reminder
       await helpers.deletePaymentReminder({ id: reminder.id });
@@ -1282,7 +1284,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
 
-      const periodId = reminder.periods[0]!.id;
+      const periodId = reminder.periods![0]!.id;
 
       await helpers.markPaymentReminderPeriodPaid({
         reminderId: reminder.id,
@@ -1307,7 +1309,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
 
-      const periodId = reminder.periods[0]!.id;
+      const periodId = reminder.periods![0]!.id;
 
       await helpers.skipPaymentReminderPeriod({
         reminderId: reminder.id,
@@ -1331,7 +1333,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
 
-      const periodId = reminder.periods[0]!.id;
+      const periodId = reminder.periods![0]!.id;
 
       const res = await helpers.revertPaymentReminderPeriod({
         reminderId: reminder.id,
@@ -1350,7 +1352,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
 
-      const firstPeriodId = reminder.periods[0]!.id;
+      const firstPeriodId = reminder.periods![0]!.id;
 
       // Mark as paid — this auto-creates the next upcoming period
       await helpers.markPaymentReminderPeriodPaid({
@@ -1387,7 +1389,7 @@ describe('Payment Reminders', () => {
         raw: true,
       });
 
-      const periodId = reminder.periods[0]!.id;
+      const periodId = reminder.periods![0]!.id;
 
       // Move the period to the past and mark as paid to simulate the scenario
       await PaymentReminderPeriods.update(

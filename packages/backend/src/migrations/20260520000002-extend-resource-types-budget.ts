@@ -1,4 +1,4 @@
-import { QueryInterface, Transaction } from 'sequelize';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Extends the polymorphic share-table `resourceType` shape CHECK constraints to admit
@@ -29,7 +29,7 @@ const RESOURCE_TYPE_SHAPE_PRE_BUDGET = `
 `;
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -62,7 +62,7 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

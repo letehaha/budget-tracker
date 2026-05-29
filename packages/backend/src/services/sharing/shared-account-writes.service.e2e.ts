@@ -1,7 +1,7 @@
 import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES, TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 /**
  * S4 — Write paths on shared accounts. Covers create/update/delete authorization on

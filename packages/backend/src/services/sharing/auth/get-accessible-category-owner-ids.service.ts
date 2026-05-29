@@ -2,7 +2,7 @@ import { RESOURCE_TYPES } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
 import ResourceShares from '@models/resource-shares.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { getAccessibleAccountIdsForUser } from './get-accessible-account-ids.service';
 import { getAccessibleBudgetIdsForUser } from './get-accessible-budget-ids.service';

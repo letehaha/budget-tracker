@@ -37,7 +37,7 @@ export const getRefund = withTransaction(
       });
 
       const haveNoAccess =
-        refundLink.originalTransaction.userId !== userId || refundLink.refundTransaction.userId !== userId;
+        refundLink.originalTransaction!.userId !== userId || refundLink.refundTransaction!.userId !== userId;
 
       if (haveNoAccess) {
         logger.warn('User tried to access transactions that that dont belong to him.');

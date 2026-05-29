@@ -3,7 +3,7 @@ import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { deserializeCreateTransaction, serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
-import { z } from 'zod';
+import z from 'zod';
 
 // Amount fields now accept decimals (e.g., 100.50) - conversion to cents happens in deserializer
 const amountSchema = () => z.number().positive('Amount must be greater than 0').finite();

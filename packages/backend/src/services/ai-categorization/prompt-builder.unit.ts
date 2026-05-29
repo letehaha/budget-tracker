@@ -1,6 +1,5 @@
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { Money } from '@common/types/money';
-import { describe, expect, it } from '@jest/globals';
 
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
 import { CategoryForCategorization, TransactionForCategorization } from './types';

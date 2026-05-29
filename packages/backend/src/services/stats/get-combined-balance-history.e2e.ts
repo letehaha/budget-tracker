@@ -1,14 +1,14 @@
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER, TRANSACTION_TYPES } from '@bt/shared/types';
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import Balances from '@models/balances.model';
 import ExchangeRates from '@models/exchange-rates.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
+import { Op } from '@sequelize/core';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
 import * as helpers from '@tests/helpers';
 import { format, subDays } from 'date-fns';
-import { Op } from 'sequelize';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CombinedBalanceHistoryItem } from './get-combined-balance-history';
 

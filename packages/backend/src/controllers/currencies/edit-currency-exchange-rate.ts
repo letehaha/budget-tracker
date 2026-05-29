@@ -1,7 +1,7 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import cc from 'currency-codes';
-import { z } from 'zod';
+import z from 'zod';
 
 const isValidCurrencyCode = (code: string) => cc.code(code) !== undefined;
 

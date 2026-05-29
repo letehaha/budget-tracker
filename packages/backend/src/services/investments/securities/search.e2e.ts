@@ -1,25 +1,26 @@
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FmpClient, type FmpSearchResult } from '../data-providers/clients/fmp-client';
 import { dataProviderFactory } from '../data-providers/provider-factory';
 
 // Get the globally mocked FMP client (set up in setupIntegrationTests.ts)
-const mockedFmpClient = jest.mocked(FmpClient);
-const mockedFmpSearch = jest.fn<() => Promise<FmpSearchResult[]>>();
+const mockedFmpClient = vi.mocked(FmpClient);
+const mockedFmpSearch = vi.fn<() => Promise<FmpSearchResult[]>>();
 
 // Configure the FMP client mock to return our controlled search function
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-mockedFmpClient.mockImplementation(() => ({ search: mockedFmpSearch }) as any);
+mockedFmpClient.mockImplementation(function (this: Record<string, unknown>) {
+  this.search = mockedFmpSearch;
+} as unknown as typeof FmpClient);
 
 // CoinGecko global mock (registered in setupIntegrationTests.ts). We rebind a
 // fresh implementation before every test so a prior test overriding the mock
 // can't leak into subsequent searches.
-const mockedCoingecko = jest.mocked(Coingecko);
-const mockedCoingeckoSearch = jest.fn<() => Promise<{ coins: unknown[] }>>();
+const mockedCoingecko = vi.mocked(Coingecko);
+const mockedCoingeckoSearch = vi.fn<() => Promise<{ coins: unknown[] }>>();
 
 const installEmptyCoingeckoMock = () => {
   mockedCoingeckoSearch.mockReset();
@@ -28,11 +29,11 @@ const installEmptyCoingeckoMock = () => {
     () =>
       ({
         search: { get: mockedCoingeckoSearch },
-        simple: { price: { get: jest.fn<any>().mockResolvedValue({}) } },
+        simple: { price: { get: vi.fn<any>().mockResolvedValue({}) } },
         coins: {
           marketChart: {
-            get: jest.fn<any>().mockResolvedValue({ prices: [] }),
-            getRange: jest.fn<any>().mockResolvedValue({ prices: [] }),
+            get: vi.fn<any>().mockResolvedValue({ prices: [] }),
+            getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
           },
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,7 +43,7 @@ const installEmptyCoingeckoMock = () => {
 
 describe('GET /investments/securities/search', () => {
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Re-bind FMP and CoinGecko mocks so previous-test overrides don't leak.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockedFmpClient.mockImplementation(() => ({ search: mockedFmpSearch }) as any);
@@ -379,8 +380,9 @@ describe('GET /investments/securities/search', () => {
 
     // Re-establish mock binding after seedSecurities (which resets the mock and clears cache)
     dataProviderFactory.clearCache();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockedFmpClient.mockImplementation(() => ({ search: mockedFmpSearch }) as any);
+    mockedFmpClient.mockImplementation(function (this: Record<string, unknown>) {
+      this.search = mockedFmpSearch;
+    } as unknown as typeof FmpClient);
 
     // Mock FMP client response with AAPL and GOOG
     mockedFmpSearch.mockResolvedValue([

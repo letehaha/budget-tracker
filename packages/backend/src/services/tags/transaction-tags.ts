@@ -5,9 +5,9 @@ import { ValidationError } from '@js/errors';
 import Tags from '@models/tags.model';
 import TransactionTags from '@models/transaction-tags.model';
 import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 interface AddTransactionsToTagPayload {
   tagId: RecordId;

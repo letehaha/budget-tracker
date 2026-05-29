@@ -1,4 +1,5 @@
 import { BANK_PROVIDER_TYPE, ExternalMonobankTransactionResponse, asCents } from '@bt/shared/types';
+import { until } from '@common/helpers';
 import { faker } from '@faker-js/faker';
 import Accounts from '@models/accounts.model';
 import Transactions from '@models/transactions.model';
@@ -123,8 +124,15 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
       });
       account = await Accounts.findByPk(syncedAccounts[0]!.id);
 
-      // Wait for auto-sync to complete via BullMQ
-      await helpers.sleep(2000);
+      // Wait for auto-sync to complete via BullMQ — poll until all expected transactions are synced
+      const pollAccountId = account!.id;
+      await until(
+        async () => {
+          const txs = await getTransactions();
+          return txs.filter((t: { accountId: number }) => t.accountId === pollAccountId).length >= amount;
+        },
+        { timeout: 30000, interval: 500 },
+      );
 
       const transactions = await getTransactions();
       return { account: account!, transactions };
@@ -148,8 +156,15 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
     });
     account = await Accounts.findByPk(syncedAccounts[0]!.id);
 
-    // Wait for auto-sync to complete via BullMQ
-    await helpers.sleep(2000);
+    // Wait for auto-sync to complete via BullMQ — poll until monobank account has transactions
+    const accountIdForPoll = account!.id;
+    await until(
+      async () => {
+        const txs = await getTransactions();
+        return txs.some((t: { accountId: number }) => t.accountId === accountIdForPoll);
+      },
+      { timeout: 15000, interval: 300 },
+    );
 
     const transactions = await getTransactions();
     return { account: account!, transactions };
@@ -169,8 +184,15 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
     raw: true,
   });
 
-  // Let server some time to process transactions via queues
-  await helpers.sleep(2000);
+  // Wait for BullMQ worker to process all expected transactions for this specific account
+  const targetAccountId = account.id;
+  await until(
+    async () => {
+      const txs = await getTransactions();
+      return txs.filter((t: { accountId: number }) => t.accountId === targetAccountId).length >= amount;
+    },
+    { timeout: 30000, interval: 500 },
+  );
 
   const transactions = await getTransactions();
 

@@ -7,7 +7,24 @@ import {
   SharePermission,
   SharePolicy,
 } from '@bt/shared/types';
-import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  NotNull,
+  PrimaryKey,
+  Table,
+  Unique,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Users from './users.model';
@@ -17,120 +34,98 @@ import Users from './users.model';
   timestamps: true,
   freezeTableName: true,
 })
-export default class ShareInvitations extends Model implements ShareInvitationModel {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class ShareInvitations
+  extends Model<InferAttributes<ShareInvitations>, InferCreationAttributes<ShareInvitations>>
+  implements ShareInvitationModel
+{
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  declare id: CreationOptional<RecordId>;
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  ownerUserId!: number;
+  @BeforeCreate
+  static generateUUIDv7(instance: ShareInvitations) {
+    if (!instance.id) {
+      instance.id = uuidv7();
+    }
+  }
 
-  @Column({
-    type: DataType.STRING(320),
-    allowNull: false,
-  })
-  inviteeEmail!: string;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare ownerUserId: number;
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: true,
-  })
-  inviteeUserId!: number | null;
+  @Attribute(DataTypes.STRING(320))
+  @NotNull
+  declare inviteeEmail: string;
 
-  @Column({
-    type: DataType.STRING(32),
-    allowNull: false,
-  })
-  resourceType!: ResourceType;
+  @Attribute(DataTypes.INTEGER)
+  declare inviteeUserId: number | null;
 
-  @Column({
-    type: DataType.STRING(255),
-    allowNull: false,
-  })
-  resourceId!: string;
+  @Attribute(DataTypes.STRING(32))
+  @NotNull
+  declare resourceType: ResourceType;
 
-  @Column({
-    type: DataType.STRING(32),
-    allowNull: false,
-  })
-  permission!: SharePermission;
+  @Attribute(DataTypes.STRING(255))
+  @NotNull
+  declare resourceId: string;
 
-  @Column({
-    type: DataType.JSONB,
-    allowNull: true,
-  })
-  policy!: SharePolicy | null;
+  @Attribute(DataTypes.STRING(32))
+  @NotNull
+  declare permission: SharePermission;
 
-  @Column({
-    type: DataType.STRING(64),
-    allowNull: false,
-    unique: true,
-  })
-  token!: string;
+  @Attribute(DataTypes.JSONB)
+  declare policy: SharePolicy | null;
 
-  @Column({
-    type: DataType.STRING(32),
-    allowNull: false,
-    defaultValue: SHARE_INVITATION_STATUSES.pending,
-  })
-  status!: ShareInvitationStatus;
+  @Attribute(DataTypes.STRING(64))
+  @NotNull
+  @Unique
+  declare token: string;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-  })
-  expiresAt!: Date;
+  @Attribute(DataTypes.STRING(32))
+  @NotNull
+  @Default(SHARE_INVITATION_STATUSES.pending)
+  declare status: CreationOptional<ShareInvitationStatus>;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  acceptedAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare expiresAt: Date;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  declinedAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare acceptedAt: Date | null;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  revokedAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare declinedAt: Date | null;
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  })
-  resendCount!: number;
+  @Attribute(DataTypes.DATE)
+  declare revokedAt: Date | null;
+
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Default(0)
+  declare resendCount: CreationOptional<number>;
 
   /**
    * ISO timestamp strings for resends within the rolling 24h rate-limit window. Pruned to
    * the window on every resend so length is naturally bounded by the limit (Phase 1: 3).
    */
-  @Column({
-    type: DataType.JSONB,
-    allowNull: false,
-    defaultValue: [],
-  })
-  recentResendsAt!: string[];
+  @Attribute(DataTypes.JSONB)
+  @NotNull
+  @Default([])
+  declare recentResendsAt: CreationOptional<string[]>;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare createdAt: CreationOptional<Date>;
+
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare updatedAt: CreationOptional<Date>;
 
   @BelongsTo(() => Users, 'ownerUserId')
-  owner!: Users;
+  declare owner?: NonAttribute<Users>;
 
   @BelongsTo(() => Users, 'inviteeUserId')
-  invitee!: Users | null;
+  declare invitee?: NonAttribute<Users | null>;
 }

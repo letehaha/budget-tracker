@@ -1,8 +1,8 @@
 import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTION_TYPES } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import * as helpers from '@tests/helpers';
 import { CustomResponse } from '@tests/helpers/common';
+import { describe, expect, it } from 'vitest';
 
 /** Owner shares an account with a recipient and the recipient accepts. */
 async function shareAccountReadOnly({ accountId, recipientEmail }: { accountId: string; recipientEmail: string }) {

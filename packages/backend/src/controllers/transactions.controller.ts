@@ -4,7 +4,7 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { serializeTransaction, serializeTransactions } from '@root/serializers';
 import { isPermissionAtLeast } from '@services/sharing/auth/permission-rank';
 import * as transactionsService from '@services/transactions';
-import { z } from 'zod';
+import z from 'zod';
 
 export const getTransactionById = createController(
   z.object({

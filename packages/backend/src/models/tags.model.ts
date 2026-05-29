@@ -1,46 +1,58 @@
-import { RecordId } from '@bt/shared/types';
-import Transactions from '@models/transactions.model';
-import Users from '@models/users.model';
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany, HasMany } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, BeforeCreate, HasMany, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import TagReminders from './tag-reminders.model';
-import TransactionTags from './transaction-tags.model';
+import type Transactions from './transactions.model';
 
 @Table({
   tableName: 'Tags',
   timestamps: true,
 })
-export default class Tags extends Model {
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
-  declare id: RecordId;
+export default class Tags extends Model<InferAttributes<Tags>, InferCreationAttributes<Tags>> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<string>;
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  userId!: number;
+  @BeforeCreate
+  static generateUUIDv7(instance: Tags) {
+    if (!instance.id) {
+      instance.id = uuidv7();
+    }
+  }
 
-  @Column({ allowNull: false, type: DataType.STRING(100) })
-  name!: string;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @Column({ allowNull: false, type: DataType.STRING(7) })
-  color!: string;
+  @Attribute(DataTypes.STRING(100))
+  @NotNull
+  declare name: string;
 
-  @Column({ allowNull: true, type: DataType.STRING(50) })
-  icon!: string | null;
+  @Attribute(DataTypes.STRING(7))
+  @NotNull
+  declare color: string;
 
-  @Column({ allowNull: true, type: DataType.TEXT })
-  description!: string | null;
+  @Attribute(DataTypes.STRING(50))
+  declare icon: string | null;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  @Attribute(DataTypes.TEXT)
+  declare description: string | null;
 
-  @BelongsToMany(() => Transactions, {
-    through: { model: () => TransactionTags, unique: false },
-    foreignKey: 'tagId',
-    otherKey: 'transactionId',
-  })
-  transactions!: Transactions[];
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @HasMany(() => TagReminders, { foreignKey: 'tagId' })
-  reminders!: TagReminders[];
+  // Inverse of Transactions.@BelongsToMany(Tags) — auto-created by Sequelize v7
+  declare transactions?: NonAttribute<Transactions[]>;
+
+  @HasMany(() => TagReminders, 'tagId')
+  declare reminders?: NonAttribute<TagReminders[]>;
 }

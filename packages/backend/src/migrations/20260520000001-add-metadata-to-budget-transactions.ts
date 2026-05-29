@@ -1,7 +1,8 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import { DataTypes } from '@sequelize/core';
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -29,7 +30,7 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

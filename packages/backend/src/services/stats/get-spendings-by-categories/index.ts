@@ -4,11 +4,11 @@ import { UnwrapPromise } from '@common/types';
 import RefundTransactions from '@models/refund-transactions.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import {
   AccessibleCategoryInfo,
   getAccessibleCategoryMap,
 } from '@services/categories/get-accessible-category-map.service';
-import { Op } from 'sequelize';
 
 import { getExpensesHistory } from '../get-expenses-history';
 
@@ -300,6 +300,7 @@ function groupAndAdjustData(params: {
       wantedCategoryId = baseTx.transactionType === TRANSACTION_TYPES.expense ? baseTx.categoryId : refundTx.categoryId;
     }
 
+    if (wantedCategoryId === null) continue;
     const groupId = getGroupId(wantedCategoryId);
     if (groupId === null) continue;
 

@@ -25,7 +25,7 @@ const sessionCounters: Record<string, number> = {};
 /**
  * Get the current Jest worker ID
  */
-const getWorkerId = (): string => process.env.JEST_WORKER_ID || '1';
+const getWorkerId = (): string => process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID || '1';
 
 /**
  * Reset session counter for the current worker (call this before tests that need fresh state)

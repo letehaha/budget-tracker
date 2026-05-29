@@ -1,4 +1,4 @@
-import { QueryInterface, Transaction } from 'sequelize';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 const RESOURCE_TYPE_SHAPE = `
   ("resourceType" = 'account' AND "resourceId" ~ '^[0-9]+$')
@@ -18,7 +18,7 @@ const NO_SELF_SHARE = `
 `;
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -78,7 +78,7 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

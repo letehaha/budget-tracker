@@ -5,12 +5,12 @@ import {
   SHARE_PERMISSIONS,
   SHARING_LIMITS,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { expireOverdueInvitations } from '@services/sharing/invitations/expire-invitations.service';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
+import { describe, expect, it } from 'vitest';
 
 /** Owner-side scaffold reused across resend / cancel tests. */
 async function setupPendingInvitation() {

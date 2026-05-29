@@ -1,8 +1,8 @@
 import { PORTFOLIO_TRASH_RETENTION_DAYS } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Portfolios from '@models/investments/portfolios.model';
+import { Op } from '@sequelize/core';
 import { subDays } from 'date-fns';
-import { Op } from 'sequelize';
 
 import { deletePortfolio } from './delete.service';
 

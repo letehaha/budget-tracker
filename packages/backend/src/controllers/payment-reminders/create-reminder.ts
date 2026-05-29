@@ -8,7 +8,7 @@ import {
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { createReminder } from '@services/payment-reminders/create-reminder';
-import { z } from 'zod';
+import z from 'zod';
 
 const remindBeforePresetValues = Object.values(REMIND_BEFORE_PRESETS) as [RemindBeforePreset, ...RemindBeforePreset[]];
 const frequencyValues = Object.values(SUBSCRIPTION_FREQUENCIES) as [

@@ -1,10 +1,10 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const { createPortfolio, buildPortfolioPayload } = helpers;
 const { createInvestmentTransaction, getInvestmentTransactions } = helpers;

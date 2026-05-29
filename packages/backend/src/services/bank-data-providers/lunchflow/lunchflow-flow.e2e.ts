@@ -7,9 +7,9 @@ import {
   asDecimal,
 } from '@bt/shared/types';
 import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
+import { Op } from '@sequelize/core';
 import * as helpers from '@tests/helpers';
 import { buildTransactionPayload } from '@tests/helpers/transactions';
 import {
@@ -27,7 +27,7 @@ import {
 } from '@tests/mocks/lunchflow/mock-api';
 import { addDays, subDays } from 'date-fns';
 import { HttpResponse, http } from 'msw';
-import { Op } from 'sequelize';
+import { describe, expect, it } from 'vitest';
 
 /**
  * E2E tests for LunchFlow Data Provider

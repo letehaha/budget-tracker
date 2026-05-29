@@ -1,8 +1,8 @@
-import { DataTypes, QueryInterface, QueryTypes, Transaction } from 'sequelize';
+import { AbstractQueryInterface, DataTypes, QueryTypes, Transaction } from '@sequelize/core';
 
 export default {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const transaction: Transaction = await queryInterface.sequelize.transaction();
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const transaction: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // ============================================================================
@@ -21,7 +21,7 @@ export default {
       );
 
       // Check if UserExchangeRates exists and backup if needed
-      const tableNames = await queryInterface.showAllTables();
+      const tableNames = (await queryInterface.listTables()).map((t) => t.tableName);
       if (tableNames.includes('UserExchangeRates')) {
         await queryInterface.sequelize.query('DROP TABLE IF EXISTS "UserExchangeRates_backup_20250918"', {
           transaction,
@@ -84,7 +84,7 @@ export default {
             type: DataTypes.STRING(3),
             allowNull: false,
             references: {
-              model: 'CurrenciesNew',
+              table: 'CurrenciesNew',
               key: 'code',
             },
             onUpdate: 'CASCADE',
@@ -94,7 +94,7 @@ export default {
             type: DataTypes.STRING(3),
             allowNull: false,
             references: {
-              model: 'CurrenciesNew',
+              table: 'CurrenciesNew',
               key: 'code',
             },
             onUpdate: 'CASCADE',
@@ -116,7 +116,7 @@ export default {
       // Add composite primary key constraint
       await queryInterface.addConstraint('ExchangeRatesNew', {
         fields: ['baseCode', 'quoteCode', 'date'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'ExchangeRatesNew_pkey',
         transaction,
       });
@@ -273,7 +273,7 @@ export default {
 
       await queryInterface.addConstraint('UsersCurrencies', {
         fields: ['currencyCode'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'UsersCurrencies_currencyCode_fkey',
         references: {
           table: 'CurrenciesNew',
@@ -341,7 +341,7 @@ export default {
 
         await queryInterface.addConstraint('Accounts', {
           fields: ['currencyCode'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'Accounts_currencyCode_fkey',
           references: { table: 'CurrenciesNew', field: 'code' },
           onDelete: 'CASCADE',
@@ -382,7 +382,7 @@ export default {
         if (existingTransactionsConstraints.length === 0) {
           await queryInterface.addConstraint('Transactions', {
             fields: ['currencyCode'],
-            type: 'foreign key',
+            type: 'FOREIGN KEY',
             name: 'Transactions_currencyCode_fkey',
             references: { table: 'CurrenciesNew', field: 'code' },
             onDelete: 'CASCADE',
@@ -413,7 +413,7 @@ export default {
           if (existingRefCurrencyConstraints.length === 0) {
             await queryInterface.addConstraint('Transactions', {
               fields: ['refCurrencyCode'],
-              type: 'foreign key',
+              type: 'FOREIGN KEY',
               name: 'Transactions_refCurrencyCode_fkey',
               references: { table: 'CurrenciesNew', field: 'code' },
               onDelete: 'SET NULL',
@@ -458,7 +458,7 @@ export default {
 
         await queryInterface.addConstraint('PortfolioBalances', {
           fields: ['currencyCode'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'PortfolioBalances_currencyCode_fkey',
           references: { table: 'CurrenciesNew', field: 'code' },
           onDelete: 'CASCADE',
@@ -501,7 +501,7 @@ export default {
 
         await queryInterface.addConstraint('PortfolioTransfers', {
           fields: ['currencyCode'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'PortfolioTransfers_currencyCode_fkey',
           references: { table: 'CurrenciesNew', field: 'code' },
           onDelete: 'CASCADE',
@@ -524,7 +524,7 @@ export default {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-              model: 'Users',
+              table: 'Users',
               key: 'id',
             },
             onUpdate: 'CASCADE',
@@ -534,7 +534,7 @@ export default {
             type: DataTypes.STRING(3),
             allowNull: false,
             references: {
-              model: 'CurrenciesNew',
+              table: 'CurrenciesNew',
               key: 'code',
             },
             onUpdate: 'CASCADE',
@@ -544,7 +544,7 @@ export default {
             type: DataTypes.STRING(3),
             allowNull: false,
             references: {
-              model: 'CurrenciesNew',
+              table: 'CurrenciesNew',
               key: 'code',
             },
             onUpdate: 'CASCADE',
@@ -567,7 +567,7 @@ export default {
       // Add composite primary key
       await queryInterface.addConstraint('UserExchangeRatesNew', {
         fields: ['userId', 'baseCode', 'quoteCode', 'date'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'UserExchangeRatesNew_pkey',
         transaction,
       });
@@ -729,8 +729,8 @@ export default {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const transaction: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const transaction: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       console.log('🔄 Starting migration rollback...');
@@ -739,7 +739,7 @@ export default {
       // STEP 1: Verify backup tables exist
       // ============================================================================
       console.log('📋 Step 1: Checking backup tables...');
-      const tableNames = await queryInterface.showAllTables();
+      const tableNames = (await queryInterface.listTables()).map((t) => t.tableName);
       const backupTablesExist = ['Currencies_backup_20250918', 'ExchangeRates_backup_20250918'].every((table) =>
         tableNames.includes(table),
       );
@@ -1166,7 +1166,7 @@ export default {
       console.log('  - Adding Currencies primary key...');
       await queryInterface.addConstraint('Currencies', {
         fields: ['id'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'Currencies_pkey',
         transaction,
       });
@@ -1176,7 +1176,7 @@ export default {
       console.log('  - Adding ExchangeRates primary key...');
       await queryInterface.addConstraint('ExchangeRates', {
         fields: ['id'],
-        type: 'primary key',
+        type: 'PRIMARY KEY',
         name: 'ExchangeRates_pkey',
         transaction,
       });
@@ -1187,7 +1187,7 @@ export default {
         console.log('  - Adding UserExchangeRates primary key...');
         await queryInterface.addConstraint('UserExchangeRates', {
           fields: ['id'],
-          type: 'primary key',
+          type: 'PRIMARY KEY',
           name: 'UserExchangeRates_pkey',
           transaction,
         });
@@ -1198,7 +1198,7 @@ export default {
       console.log('  - Adding UsersCurrencies foreign key constraint...');
       await queryInterface.addConstraint('UsersCurrencies', {
         fields: ['currencyId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'UsersCurrencies_currencyId_fkey',
         references: {
           table: 'Currencies',
@@ -1215,7 +1215,7 @@ export default {
       );
       await queryInterface.addConstraint('ExchangeRates', {
         fields: ['baseId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'ExchangeRates_baseId_fkey',
         references: {
           table: 'Currencies',
@@ -1232,7 +1232,7 @@ export default {
       );
       await queryInterface.addConstraint('ExchangeRates', {
         fields: ['quoteId'],
-        type: 'foreign key',
+        type: 'FOREIGN KEY',
         name: 'ExchangeRates_quoteId_fkey',
         references: {
           table: 'Currencies',
@@ -1248,7 +1248,7 @@ export default {
         console.log('  - Adding Accounts currencyId foreign key constraint...');
         await queryInterface.addConstraint('Accounts', {
           fields: ['currencyId'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'Accounts_currencyId_fkey',
           references: { table: 'Currencies', field: 'id' },
           onDelete: 'CASCADE',
@@ -1262,7 +1262,7 @@ export default {
         console.log('  - Adding Transactions currencyId foreign key constraint...');
         await queryInterface.addConstraint('Transactions', {
           fields: ['currencyId'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'Transactions_currencyId_fkey',
           references: { table: 'Currencies', field: 'id' },
           onDelete: 'CASCADE',
@@ -1276,7 +1276,7 @@ export default {
         console.log('  - Adding PortfolioBalances currencyId foreign key constraint...');
         await queryInterface.addConstraint('PortfolioBalances', {
           fields: ['currencyId'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'PortfolioBalances_currencyId_fkey',
           references: { table: 'Currencies', field: 'id' },
           onDelete: 'CASCADE',
@@ -1290,7 +1290,7 @@ export default {
         console.log('  - Adding PortfolioTransfers currencyId foreign key constraint...');
         await queryInterface.addConstraint('PortfolioTransfers', {
           fields: ['currencyId'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'PortfolioTransfers_currencyId_fkey',
           references: { table: 'Currencies', field: 'id' },
           onDelete: 'CASCADE',
@@ -1304,7 +1304,7 @@ export default {
         console.log('  - Adding UserExchangeRates baseId foreign key constraint...');
         await queryInterface.addConstraint('UserExchangeRates', {
           fields: ['baseId'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'UserExchangeRates_baseId_fkey',
           references: {
             table: 'Currencies',
@@ -1319,7 +1319,7 @@ export default {
         console.log('  - Adding UserExchangeRates quoteId foreign key constraint...');
         await queryInterface.addConstraint('UserExchangeRates', {
           fields: ['quoteId'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'UserExchangeRates_quoteId_fkey',
           references: {
             table: 'Currencies',
@@ -1334,7 +1334,7 @@ export default {
         console.log('  - Adding UserExchangeRates userId foreign key constraint...');
         await queryInterface.addConstraint('UserExchangeRates', {
           fields: ['userId'],
-          type: 'foreign key',
+          type: 'FOREIGN KEY',
           name: 'UserExchangeRates_userId_fkey',
           references: {
             table: 'Users',

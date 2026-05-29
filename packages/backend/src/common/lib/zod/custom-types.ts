@@ -1,6 +1,6 @@
 import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { z } from 'zod';
+import z from 'zod';
 
 /**
  * Canonical record ID validator. Entity primary keys and in-scope foreign

@@ -1,4 +1,4 @@
-import { QueryInterface, Transaction } from 'sequelize';
+import { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to add role and createdAt columns to Users table.
@@ -15,9 +15,9 @@ import { QueryInterface, Transaction } from 'sequelize';
  * without registration.
  */
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Step 1: Add role column if it doesn't exist (using raw SQL for reliability)
@@ -82,8 +82,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Remove indexes first

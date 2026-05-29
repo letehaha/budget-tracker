@@ -1,8 +1,6 @@
 import { RecordId } from '@bt/shared/types';
-import Budgets from '@models/budget.model';
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
-
-import Transactions from './transactions.model';
+import { DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import { Attribute, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 /**
  * Per-row metadata captured at attach-time. Owner-attached rows leave the column
@@ -19,15 +17,22 @@ export interface BudgetTransactionMetadata {
 }
 
 @Table({ tableName: 'BudgetTransactions', timestamps: false })
-export default class BudgetTransactions extends Model {
-  @ForeignKey(() => Budgets)
-  @Column({ primaryKey: true, allowNull: false, type: DataType.UUID })
-  budgetId!: RecordId;
+export default class BudgetTransactions extends Model<
+  InferAttributes<BudgetTransactions>,
+  InferCreationAttributes<BudgetTransactions>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  @Index
+  declare budgetId: RecordId;
 
-  @ForeignKey(() => Transactions)
-  @Column({ primaryKey: true, allowNull: false, type: DataType.UUID })
-  transactionId!: RecordId;
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  @Index
+  declare transactionId: RecordId;
 
-  @Column({ allowNull: true, type: DataType.JSONB })
-  metadata!: BudgetTransactionMetadata | null;
+  @Attribute(DataTypes.JSONB)
+  declare metadata: BudgetTransactionMetadata | null;
 }

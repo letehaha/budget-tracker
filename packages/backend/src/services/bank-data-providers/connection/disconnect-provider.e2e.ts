@@ -1,8 +1,8 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
+import { describe, expect, it } from 'vitest';
 
 /**
  * E2E tests for DELETE /bank-data-providers/connections/:connectionId.

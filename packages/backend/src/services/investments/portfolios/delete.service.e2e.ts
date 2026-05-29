@@ -1,13 +1,13 @@
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
 import Portfolios from '@models/investments/portfolios.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Delete Portfolio Service E2E', () => {
   describe('DELETE /investments/portfolios/:id', () => {

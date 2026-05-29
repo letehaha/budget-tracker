@@ -1,6 +1,23 @@
-import { RecordId } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, BelongsToMany, DataType } from 'sequelize-typescript';
 // AccountGroup.model.ts
+import { RecordId } from '@bt/shared/types';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BelongsTo,
+  BelongsToMany,
+  Default,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from '../accounts.model';
@@ -25,53 +42,46 @@ import AccountGrouping from './account-grouping.model';
   timestamps: true,
   freezeTableName: true,
 })
-export default class AccountGroup extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
+export default class AccountGroup extends Model<InferAttributes<AccountGroup>, InferCreationAttributes<AccountGroup>> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @Default(() => uuidv7())
+  declare id: CreationOptional<RecordId>;
+
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
+
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare name: string;
+
+  @Attribute(DataTypes.UUID)
+  declare parentGroupId: RecordId | null;
+
+  @Attribute(DataTypes.UUID)
+  @Index
+  declare bankDataProviderConnectionId: RecordId | null;
+
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
+
+  @BelongsTo(() => BankDataProviderConnections, 'bankDataProviderConnectionId')
+  declare bankDataProviderConnection?: NonAttribute<BankDataProviderConnections>;
+
+  // Self-referencing associations cannot use decorators in Sequelize v7
+  // They are defined programmatically in models/index.ts after initialization
+  declare parentGroup?: NonAttribute<AccountGroup>;
+  declare childGroups?: NonAttribute<AccountGroup[]>;
+
+  @BelongsToMany(() => Accounts, {
+    through: () => AccountGrouping,
+    foreignKey: 'groupId',
+    otherKey: 'accountId',
   })
-  declare id: RecordId;
-
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  userId!: number;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  name!: string;
-
-  @ForeignKey(() => AccountGroup)
-  @Column({
-    type: DataType.UUID,
-    allowNull: true,
-  })
-  parentGroupId!: RecordId | null;
-
-  @ForeignKey(() => BankDataProviderConnections)
-  @Column({
-    type: DataType.UUID,
-    allowNull: true,
-  })
-  bankDataProviderConnectionId!: RecordId | null;
-
-  @BelongsTo(() => Users)
-  user!: Users;
-
-  @BelongsTo(() => BankDataProviderConnections)
-  bankDataProviderConnection!: BankDataProviderConnections;
-
-  @BelongsTo(() => AccountGroup, 'parentGroupId')
-  parentGroup!: AccountGroup;
-
-  @HasMany(() => AccountGroup, 'parentGroupId')
-  childGroups!: AccountGroup[];
-
-  @BelongsToMany(() => Accounts, () => AccountGrouping)
-  accounts!: Accounts[];
+  declare accounts?: NonAttribute<Accounts[]>;
 }

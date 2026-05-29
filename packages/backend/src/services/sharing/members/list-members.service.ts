@@ -2,7 +2,7 @@ import { ResourceType, SHARE_PERMISSIONS, SharePermission, SharePolicy } from '@
 import { NotFoundError } from '@js/errors';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { canUserAccessResource, resolveResourceName } from '../auth/can-user-access-resource.service';
 import { ShareUserSnapshot, snapshotShareUser } from '../share-user-snapshot';

@@ -1,24 +1,48 @@
 import { CATEGORY_TYPES, RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
-import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsToMany,
+  Default,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import MerchantCategoryCodes from './merchant-category-codes.model';
 import UserMerchantCategoryCodes from './user-merchant-category-codes.model';
-import Users from './users.model';
 
 @Table({
   timestamps: false,
   tableName: 'Categories',
   freezeTableName: true,
 })
-export default class Categories extends Model {
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
-  declare id: RecordId;
+export default class Categories extends Model<InferAttributes<Categories>, InferCreationAttributes<Categories>> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  declare id: CreationOptional<RecordId>;
 
-  @Column({ allowNull: false, type: DataType.STRING })
-  name!: string;
+  @BeforeCreate
+  static assignId(instance: Categories) {
+    if (!instance.id) instance.id = uuidv7() as RecordId;
+  }
+
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare name: string;
 
   /**
    * Stable, locale-independent identifier for seeded default categories (kebab-case).
@@ -26,35 +50,35 @@ export default class Categories extends Model {
    * by stats/sharing features to merge equivalent categories across users. The canonical
    * set of values lives in `default-categories.ts`.
    */
-  @Column({ allowNull: true, type: DataType.STRING(100) })
-  key!: string | null;
+  @Attribute(DataTypes.STRING(100))
+  declare key: string | null;
 
   // Lucide-icons icon name
-  @Column({ allowNull: true, type: DataType.STRING(50) })
-  icon!: string | null;
+  @Attribute(DataTypes.STRING(50))
+  declare icon: string | null;
 
-  @Column({ allowNull: false, type: DataType.STRING })
-  color!: string;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare color: string;
 
-  @Column({
-    allowNull: false,
-    defaultValue: CATEGORY_TYPES.custom,
-    type: DataType.ENUM({ values: Object.values(CATEGORY_TYPES) }),
-  })
-  type!: CATEGORY_TYPES;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  @Default(CATEGORY_TYPES.custom)
+  declare type: CreationOptional<CATEGORY_TYPES>;
 
-  @Column({ allowNull: true, type: DataType.UUID })
-  parentId!: RecordId;
+  @Attribute(DataTypes.UUID)
+  declare parentId: RecordId | null;
 
-  @ForeignKey(() => Users)
-  @Column({ type: DataType.INTEGER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @Index
+  declare userId: number;
 
   @BelongsToMany(() => MerchantCategoryCodes, {
-    as: 'merchantCodes',
     through: () => UserMerchantCategoryCodes,
+    foreignKey: 'categoryId',
+    otherKey: 'mccId',
   })
-  categoryId!: number;
+  declare merchantCodes?: NonAttribute<MerchantCategoryCodes[]>;
 }
 
 export const getCategories = async ({ userId }: { userId: number }) => {
@@ -78,7 +102,7 @@ export const getCategoriesForUsers = async ({ userIds }: { userIds: number[] }) 
 
 export interface CreateCategoryPayload {
   userId: number;
-  name?: string;
+  name: string;
   icon?: string | null;
   color?: string;
   parentId?: string;
@@ -98,6 +122,10 @@ export const createCategory = async ({ parentId, color, userId, ...params }: Cre
     }
 
     if (!color) color = parent.get('color');
+  }
+
+  if (!color) {
+    throw new ValidationError({ message: 'Color is required when parentId is not provided.' });
   }
 
   const category = await Categories.create({

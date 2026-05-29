@@ -2,9 +2,9 @@ import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import Transactions from '@models/transactions.model';
+import { literal, Op, where } from '@sequelize/core';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
 import { addDays, subDays } from 'date-fns';
-import { Op, Sequelize } from 'sequelize';
 
 /**
  * Date window (in days) for matching cross-provider transactions.
@@ -60,8 +60,8 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
       accountType: ACCOUNT_TYPES.walutomat,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       [Op.or]: [
-        Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'PAYIN'),
-        Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'PAYOUT'),
+        where(literal(`"externalData"->>'operationType'`), 'PAYIN'),
+        where(literal(`"externalData"->>'operationType'`), 'PAYOUT'),
       ],
     },
   });
@@ -73,7 +73,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
   const accountsWithIban = await Accounts.findAll({
     where: {
       userId,
-      [Op.and]: [Sequelize.where(Sequelize.literal(`"externalData"->>'iban'`), { [Op.not]: null })],
+      [Op.and]: [where(literal(`"externalData"->>'iban'`), { [Op.not]: null })],
     },
   });
 

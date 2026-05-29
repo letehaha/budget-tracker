@@ -1,5 +1,4 @@
 import { API_ERROR_CODES, RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Users from '@models/users.model';
 import { extractCookies, makeAuthRequest } from '@tests/helpers';
 import {
@@ -15,6 +14,7 @@ import {
   updateShareMember,
 } from '@tests/helpers/share';
 import { registerMockSession } from '@tests/mocks/better-auth';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Provision a fresh demo user via `POST /demo`, register the session with the better-auth

@@ -7,11 +7,11 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 /**
  * S8 — Account-deletion cleanup. Verifies that deleting an account drops any associated

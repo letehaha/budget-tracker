@@ -3,7 +3,7 @@ import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeRefundTransactions } from '@root/serializers';
 import { type GetRefundTransactionsParams, getRefundTransactions } from '@services/tx-refunds/get-refunds.service';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   query: z.object({

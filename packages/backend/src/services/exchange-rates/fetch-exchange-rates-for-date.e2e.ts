@@ -1,9 +1,9 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
 import { connection } from '@models/index';
 import * as helpers from '@tests/helpers';
 import { getCurrencyRatesApiResponseMock, getFrankfurterResponseMock } from '@tests/mocks/exchange-rates/data';
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
 import { format, startOfDay } from 'date-fns';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   API_LAYER_ENDPOINT_REGEX,

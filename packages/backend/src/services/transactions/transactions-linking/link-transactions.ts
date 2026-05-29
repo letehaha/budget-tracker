@@ -4,8 +4,8 @@ import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
+import { Op } from '@sequelize/core';
 import { assertTxWriteAccess } from '@services/sharing/auth/authorize-account-write.service';
-import { Op } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
 // Natures that indicate a transaction is already linked as a transfer.

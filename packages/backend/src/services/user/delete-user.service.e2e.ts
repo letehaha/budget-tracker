@@ -7,7 +7,6 @@ import {
 } from '@bt/shared/types';
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
 import { authPool } from '@config/auth';
-import { describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
@@ -20,6 +19,7 @@ import UserSettings from '@models/user-settings.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('User deletion (DELETE /user/delete)', () => {
   it('should delete user and all related data via CASCADE', async () => {

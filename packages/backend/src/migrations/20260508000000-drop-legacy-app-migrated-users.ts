@@ -1,7 +1,7 @@
-import { QueryInterface } from 'sequelize';
+import type { AbstractQueryInterface } from '@sequelize/core';
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Drop synthetic '@app.migrated' users left over from the pre-better-auth
     // system. They were only reachable via the legacy username-login flow
     // (now removed) and have been locked out since. CASCADE handles related

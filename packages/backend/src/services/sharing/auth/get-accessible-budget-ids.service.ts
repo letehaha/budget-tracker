@@ -1,7 +1,7 @@
 import { RESOURCE_TYPES } from '@bt/shared/types';
 import Budgets from '@models/budget.model';
 import ResourceShares from '@models/resource-shares.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 /**
  * Returns the union of budget ids the user has read access to:

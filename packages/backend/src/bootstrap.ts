@@ -4,6 +4,10 @@ import { initPostHog } from '@js/utils/posthog';
 import { initSentry } from '@js/utils/sentry';
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables first
 const envPath = path.join(__dirname, `../../../.env.${process.env.NODE_ENV}`);

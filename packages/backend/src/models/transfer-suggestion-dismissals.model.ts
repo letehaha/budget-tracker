@@ -1,5 +1,13 @@
 import { RecordId } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, BelongsTo, Default, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 import Transactions from './transactions.model';
 import Users from './users.model';
@@ -10,46 +18,38 @@ import Users from './users.model';
   timestamps: false,
   // userId is the leading column of the composite PK, so a separate index is redundant
 })
-export default class TransferSuggestionDismissals extends Model {
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    primaryKey: true,
-  })
-  userId!: number;
+export default class TransferSuggestionDismissals extends Model<
+  InferAttributes<TransferSuggestionDismissals>,
+  InferCreationAttributes<TransferSuggestionDismissals>
+> {
+  @Attribute(DataTypes.INTEGER)
+  @PrimaryKey
+  @NotNull
+  declare userId: number;
 
-  @ForeignKey(() => Transactions)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-    primaryKey: true,
-  })
-  expenseTransactionId!: RecordId;
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  declare expenseTransactionId: RecordId;
 
-  @ForeignKey(() => Transactions)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-    primaryKey: true,
-  })
-  incomeTransactionId!: RecordId;
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  declare incomeTransactionId: RecordId;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-    defaultValue: DataType.NOW,
-  })
-  declare createdAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare createdAt: CreationOptional<Date>;
 
-  @BelongsTo(() => Users)
-  user!: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
   @BelongsTo(() => Transactions, 'expenseTransactionId')
-  expenseTransaction!: Transactions;
+  declare expenseTransaction?: NonAttribute<Transactions>;
 
   @BelongsTo(() => Transactions, 'incomeTransactionId')
-  incomeTransaction!: Transactions;
+  declare incomeTransaction?: NonAttribute<Transactions>;
 }
 
 export async function createDismissal({

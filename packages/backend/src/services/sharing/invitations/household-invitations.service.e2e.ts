@@ -5,13 +5,13 @@ import {
   SHARE_INVITATION_STATUSES,
   SHARE_PERMISSIONS,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import * as helpers from '@tests/helpers';
 import { CustomResponse, ErrorResponse } from '@tests/helpers/common';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Force-flip a user's base currency by directly mutating UsersCurrencies. The real

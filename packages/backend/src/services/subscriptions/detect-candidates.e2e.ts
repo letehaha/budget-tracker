@@ -1,11 +1,11 @@
 import type { RecordId } from '@bt/shared/types';
 import { SUBSCRIPTION_FREQUENCIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { buildTransactionPayload } from '@tests/helpers/transactions';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Helper to create a series of monthly transactions with the same note,

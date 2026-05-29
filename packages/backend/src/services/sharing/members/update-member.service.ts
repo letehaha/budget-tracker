@@ -11,8 +11,8 @@ import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 import { canUserAccessResource, resolveResourceName } from '../auth/can-user-access-resource.service';
 import { notifyHouseholdPermissionChanged } from '../share-notifications';

@@ -1,8 +1,8 @@
-import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.createTable(
@@ -12,7 +12,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
-            references: { model: 'Users', key: 'id' },
+            references: { table: 'Users', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -20,7 +20,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
-            references: { model: 'Transactions', key: 'id' },
+            references: { table: 'Transactions', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -28,7 +28,7 @@ module.exports = {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
-            references: { model: 'Transactions', key: 'id' },
+            references: { table: 'Transactions', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -48,7 +48,7 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.dropTable('TransferSuggestionDismissals');
   },
 };

@@ -1,8 +1,8 @@
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { addDays, subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 describe('Edit Budget', () => {
   const baseBudgetMockData = {

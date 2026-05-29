@@ -3,7 +3,7 @@ import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as categoriesService from '@root/services/categories/create-category';
 import * as onboardingService from '@services/user-settings/onboarding';
-import { z } from 'zod';
+import z from 'zod';
 
 const CreateCategoryPayloadSchema = z
   .object({

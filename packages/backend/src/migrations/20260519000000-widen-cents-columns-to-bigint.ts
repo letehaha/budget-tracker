@@ -1,4 +1,4 @@
-import { QueryInterface } from 'sequelize';
+import type { AbstractQueryInterface } from '@sequelize/core';
 
 // Cents columns were originally INTEGER (32-bit signed, max ~2.14B). That
 // overflows for accounts denominated in low-unit currencies (IDR, VND, etc.)
@@ -30,7 +30,7 @@ const CENTS_COLUMNS: [string, string][] = [
 ];
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
       for (const [table, column] of CENTS_COLUMNS) {
         await queryInterface.sequelize.query(`ALTER TABLE "${table}" ALTER COLUMN "${column}" TYPE BIGINT`, {
@@ -40,7 +40,7 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
       for (const [table, column] of CENTS_COLUMNS) {
         // Narrowing back to INTEGER will fail if any row exceeds 2.14B — that

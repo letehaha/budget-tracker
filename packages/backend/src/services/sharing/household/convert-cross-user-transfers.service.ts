@@ -3,7 +3,7 @@ import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 interface AccountInfo {
   id: string;

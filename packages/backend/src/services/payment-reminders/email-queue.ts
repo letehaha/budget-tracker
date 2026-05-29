@@ -28,8 +28,8 @@ const redisConnection = {
 
 // Namespace queue by Jest worker ID in test environment
 const queueName =
-  process.env.NODE_ENV === 'test' && process.env.JEST_WORKER_ID
-    ? `payment-reminder-emails-worker-${process.env.JEST_WORKER_ID}`
+  process.env.NODE_ENV === 'test' && (process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID)
+    ? `payment-reminder-emails-worker-${process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID}`
     : 'payment-reminder-emails';
 
 const reminderEmailQueue = new Queue<ReminderEmailJobData>(queueName, {

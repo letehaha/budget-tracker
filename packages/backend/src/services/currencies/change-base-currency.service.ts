@@ -20,10 +20,10 @@ import Portfolios from '@models/investments/portfolios.model';
 import ResourceShares from '@models/resource-shares.model';
 import Transactions from '@models/transactions.model';
 import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.model';
+import { Op, QueryTypes, Transaction as SequelizeTransaction } from '@sequelize/core';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withLock } from '@services/common/lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
-import { Op, QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
 
 /**
  * What is covered:
@@ -324,6 +324,7 @@ async function rebuildTransactions(params: {
   logger.info(`Recalculating ${transactions.length} transactions for user ${userId}`);
 
   for (const tx of transactions) {
+    if (!tx.currencyCode) continue;
     // Calculate new refAmount using the transaction's original date
     const newRefAmount = await localCalculateRefAmount({
       amount: tx.amount,
@@ -391,7 +392,7 @@ async function recalculateAccounts(params: {
           CASE WHEN "transactionType" = :income THEN "refAmount" ELSE -"refAmount" END
         ), 0) AS "refBalanceSum"
       FROM "Transactions"
-      WHERE "accountId" IN (:accountIds)
+      WHERE "accountId" = ANY(:accountIds)
       GROUP BY "accountId"`,
       {
         replacements: {

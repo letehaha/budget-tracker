@@ -2,7 +2,7 @@ import { NOTIFICATION_PRIORITIES, NOTIFICATION_STATUSES, NOTIFICATION_TYPES } fr
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as notificationsService from '@services/notifications';
-import { z } from 'zod';
+import z from 'zod';
 
 const notificationTypeValues = Object.values(NOTIFICATION_TYPES) as [
   (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES],

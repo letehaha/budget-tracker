@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import Portfolios from '@models/investments/portfolios.model';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('Portfolio Summary with Cash (GET /investments/portfolios/:id/summary)', () => {
   let portfolio: Portfolios;

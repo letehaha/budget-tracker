@@ -1,8 +1,8 @@
-import { DataTypes, QueryInterface, QueryTypes, Transaction } from 'sequelize';
+import { DataTypes, AbstractQueryInterface, QueryTypes, Transaction } from '@sequelize/core';
 
-module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+export default {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. Add bankDataProviderConnectionId column to AccountGroups
@@ -13,7 +13,7 @@ module.exports = {
           type: DataTypes.INTEGER,
           allowNull: true,
           references: {
-            model: 'BankDataProviderConnections',
+            table: 'BankDataProviderConnections',
             key: 'id',
           },
           onDelete: 'SET NULL',
@@ -79,8 +79,8 @@ module.exports = {
     }
   },
 
-  down: async (queryInterface: QueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+  down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Delete AccountGroups that were created for bank connections

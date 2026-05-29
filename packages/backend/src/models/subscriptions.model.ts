@@ -1,5 +1,24 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules, RecordId } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, DataType } from 'sequelize-typescript';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  BelongsToMany,
+  Default,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
@@ -13,114 +32,91 @@ import Users from './users.model';
   timestamps: true,
   freezeTableName: true,
 })
-export default class Subscriptions extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class Subscriptions extends Model<
+  InferAttributes<Subscriptions>,
+  InferCreationAttributes<Subscriptions>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<string>;
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  userId!: number;
+  @BeforeCreate
+  static generateUUIDv7(instance: Subscriptions) {
+    if (!instance.id) {
+      instance.id = uuidv7();
+    }
+  }
 
-  @Column({
-    type: DataType.STRING(200),
-    allowNull: false,
-  })
-  name!: string;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare userId: number;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(SUBSCRIPTION_TYPES)),
-    allowNull: false,
-    defaultValue: SUBSCRIPTION_TYPES.subscription,
-  })
-  type!: SUBSCRIPTION_TYPES;
+  @Attribute(DataTypes.STRING(200))
+  @NotNull
+  declare name: string;
 
-  @Column({
-    type: DataType.BIGINT,
-    allowNull: true,
-  })
-  expectedAmount!: number | null;
+  @Attribute(DataTypes.ENUM({ values: Object.values(SUBSCRIPTION_TYPES) }))
+  @NotNull
+  @Default(SUBSCRIPTION_TYPES.subscription)
+  declare type: CreationOptional<SUBSCRIPTION_TYPES>;
 
-  @Column({
-    type: DataType.STRING(3),
-    allowNull: true,
-  })
-  expectedCurrencyCode!: string | null;
+  @Attribute(DataTypes.BIGINT)
+  get expectedAmount(): Money {
+    return moneyGetCents(this, 'expectedAmount');
+  }
+  set expectedAmount(val: Money | number | null) {
+    moneySetCents(this, 'expectedAmount', val);
+  }
 
-  @Column({
-    type: DataType.ENUM(...Object.values(SUBSCRIPTION_FREQUENCIES)),
-    allowNull: false,
-  })
-  frequency!: SUBSCRIPTION_FREQUENCIES;
+  @Attribute(DataTypes.STRING(3))
+  declare expectedCurrencyCode: string | null;
 
-  @Column({
-    type: DataType.DATEONLY,
-    allowNull: false,
-  })
-  startDate!: string;
+  @Attribute(DataTypes.ENUM({ values: Object.values(SUBSCRIPTION_FREQUENCIES) }))
+  @NotNull
+  declare frequency: SUBSCRIPTION_FREQUENCIES;
 
-  @Column({
-    type: DataType.DATEONLY,
-    allowNull: true,
-  })
-  endDate!: string | null;
+  @Attribute(DataTypes.DATEONLY)
+  @NotNull
+  declare startDate: string;
 
-  @ForeignKey(() => Accounts)
-  @Column({
-    type: DataType.UUID,
-    allowNull: true,
-  })
-  accountId!: RecordId | null;
+  @Attribute(DataTypes.DATEONLY)
+  declare endDate: string | null;
 
-  @ForeignKey(() => Categories)
-  @Column({
-    type: DataType.UUID,
-    allowNull: true,
-  })
-  categoryId!: RecordId | null;
+  @Attribute(DataTypes.UUID)
+  declare accountId: string | null;
 
-  @Column({
-    type: DataType.JSONB,
-    allowNull: false,
-    defaultValue: { rules: [] },
-  })
-  matchingRules!: SubscriptionMatchingRules;
+  @Attribute(DataTypes.UUID)
+  declare categoryId: string | null;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: true,
-  })
-  isActive!: boolean;
+  @Attribute(DataTypes.JSONB)
+  @NotNull
+  @Default({ rules: [] })
+  declare matchingRules: CreationOptional<SubscriptionMatchingRules>;
 
-  @Column({
-    type: DataType.TEXT,
-    allowNull: true,
-  })
-  notes!: string | null;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(true)
+  declare isActive: CreationOptional<boolean>;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  @Attribute(DataTypes.TEXT)
+  declare notes: string | null;
 
-  @BelongsTo(() => Users)
-  user!: Users;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => Accounts)
-  account!: Accounts;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
-  @BelongsTo(() => Categories)
-  category!: Categories;
+  @BelongsTo(() => Accounts, 'accountId')
+  declare account?: NonAttribute<Accounts>;
+
+  @BelongsTo(() => Categories, 'categoryId')
+  declare category?: NonAttribute<Categories>;
 
   @BelongsToMany(() => Transactions, {
-    through: { model: () => SubscriptionTransactions, unique: false },
+    through: () => SubscriptionTransactions,
     foreignKey: 'subscriptionId',
     otherKey: 'transactionId',
   })
-  transactions!: Transactions[];
+  declare transactions?: NonAttribute<Transactions[]>;
 }

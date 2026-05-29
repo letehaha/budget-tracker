@@ -5,9 +5,9 @@ import {
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Extract Unique Values endpoint', () => {
   describe('successful extraction with data source columns', () => {

@@ -1,10 +1,10 @@
 import type { ExtractedTransaction, TransactionImportDetails } from '@bt/shared/types';
 import { ImportSource, TRANSACTION_TYPES } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('Statement Parser - Execute Import endpoint', () => {
   /**

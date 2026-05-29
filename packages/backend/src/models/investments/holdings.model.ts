@@ -1,7 +1,15 @@
 import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index, PrimaryKey } from 'sequelize-typescript';
+import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import { Attribute, BelongsTo, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 import Portfolios from './portfolios.model';
 import Securities from './securities.model';
@@ -42,18 +50,18 @@ import Securities from './securities.model';
   timestamps: true,
   tableName: 'Holdings',
 })
-export default class Holdings extends Model {
+export default class Holdings extends Model<InferAttributes<Holdings>, InferCreationAttributes<Holdings>> {
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @ForeignKey(() => Portfolios)
+  @NotNull
   @Index
-  @Column({ type: DataType.UUID, allowNull: false })
-  portfolioId!: RecordId;
+  declare portfolioId: RecordId;
 
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @ForeignKey(() => Securities)
+  @NotNull
   @Index
-  @Column({ type: DataType.UUID, allowNull: false })
-  securityId!: RecordId;
+  declare securityId: RecordId;
 
   /**
    * The `quantity` field represents the total number of units or shares
@@ -65,7 +73,9 @@ export default class Holdings extends Model {
    * Changes in quantity are driven by investment transactions such as buying or
    * selling shares of the security.
    */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
   get quantity(): Money {
     return moneyGetDecimal(this, 'quantity');
   }
@@ -93,14 +103,19 @@ export default class Holdings extends Model {
    * It needs to be recalculated when there are new investment transactions that
    * affect the quantity or value of holding.
    */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
   get costBasis(): Money {
     return moneyGetDecimal(this, 'costBasis');
   }
   set costBasis(val: Money | string | number) {
     moneySetDecimal(this, 'costBasis', val, 10);
   }
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+
+  @Attribute(DataTypes.DECIMAL(20, 10))
+  @NotNull
+  @Default('0')
   get refCostBasis(): Money {
     return moneyGetDecimal(this, 'refCostBasis');
   }
@@ -108,8 +123,10 @@ export default class Holdings extends Model {
     moneySetDecimal(this, 'refCostBasis', val, 10);
   }
 
-  @Column({ type: DataType.STRING, allowNull: false, defaultValue: 'USD' })
-  currencyCode!: string;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  @Default('USD')
+  declare currencyCode: string;
 
   /**
    * Indicates whether a particular holding should be excluded from certain
@@ -117,18 +134,22 @@ export default class Holdings extends Model {
    * various reasons, depending on the specific needs or preferences of the user
    * or the application's functionality.
    */
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
-  excluded!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare excluded: CreationOptional<boolean>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare createdAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare createdAt: CreationOptional<Date>;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare updatedAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => Securities)
-  security?: Securities;
+  @BelongsTo(() => Securities, 'securityId')
+  declare security?: NonAttribute<Securities>;
 
-  @BelongsTo(() => Portfolios)
-  portfolio?: Portfolios;
+  @BelongsTo(() => Portfolios, 'portfolioId')
+  declare portfolio?: NonAttribute<Portfolios>;
 }

@@ -1,7 +1,7 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import Portfolios from '@models/investments/portfolios.model';
+import { FindOptions, InferAttributes, Op, WhereOptions } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import { FindOptions, Op, WhereOptions } from 'sequelize';
 
 interface ListPortfoliosParams {
   userId: number;
@@ -39,7 +39,7 @@ const listPortfoliosImpl = async ({
     where.deletedAt = { [Op.not]: null };
   }
 
-  const options: FindOptions<Portfolios> = {
+  const options: FindOptions<InferAttributes<Portfolios>> = {
     where,
     order: onlyDeleted ? [['deletedAt', 'DESC']] : [['createdAt', 'DESC']],
     paranoid: !onlyDeleted,

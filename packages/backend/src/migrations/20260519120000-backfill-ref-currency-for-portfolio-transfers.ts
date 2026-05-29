@@ -1,4 +1,5 @@
-import { QueryInterface, QueryTypes } from 'sequelize';
+import { QueryTypes } from '@sequelize/core';
+import type { AbstractQueryInterface } from '@sequelize/core';
 
 // account→portfolio and portfolio→account transfer services historically created
 // the linked Transaction without populating `refCurrencyCode`. The numerical
@@ -25,7 +26,7 @@ import { QueryInterface, QueryTypes } from 'sequelize';
 // log, the new `@BeforeUpdate` validator would later reject any update to
 // those rows with no breadcrumb pointing back to this migration.
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
       const [orphanRow] = await queryInterface.sequelize.query<{ count: string }>(
         `

@@ -1,8 +1,8 @@
 import { ACCESS_SOURCES, RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import ResourceShares from '@models/resource-shares.model';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Shared resource visibility for household memberships.

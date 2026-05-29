@@ -1,55 +1,87 @@
-import { TagReminderFrequency, TagReminderSettings, TagReminderType, RecordId } from '@bt/shared/types';
+import { TagReminderFrequency, TagReminderSettings, TagReminderType } from '@bt/shared/types';
 import Tags from '@models/tags.model';
 import Users from '@models/users.model';
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 @Table({
   tableName: 'TagReminders',
   timestamps: true,
 })
-export default class TagReminders extends Model {
-  @Column({ primaryKey: true, allowNull: false, type: DataType.UUID, defaultValue: () => uuidv7() })
-  declare id: RecordId;
+export default class TagReminders extends Model<InferAttributes<TagReminders>, InferCreationAttributes<TagReminders>> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<string>;
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  userId!: number;
+  @BeforeCreate
+  static generateUUIDv7(instance: TagReminders) {
+    if (!instance.id) {
+      instance.id = uuidv7();
+    }
+  }
 
-  @ForeignKey(() => Tags)
-  @Column({ allowNull: false, type: DataType.UUID })
-  tagId!: RecordId;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  @Column({ allowNull: false, type: DataType.STRING(20) })
-  type!: TagReminderType;
+  @Attribute(DataTypes.UUID)
+  @NotNull
+  @Index
+  declare tagId: string;
+
+  @Attribute(DataTypes.STRING(20))
+  @NotNull
+  declare type: TagReminderType;
 
   /** Frequency preset. Null means real-time trigger (immediate when tagged) */
-  @Column({ allowNull: true, type: DataType.STRING(15) })
-  frequency!: TagReminderFrequency | null;
+  @Attribute(DataTypes.STRING(15))
+  declare frequency: TagReminderFrequency | null;
 
   /** Day of month to check (1-31). Only for monthly/quarterly/yearly. Null = 1st */
-  @Column({ allowNull: true, type: DataType.SMALLINT })
-  dayOfMonth!: number | null;
+  @Attribute(DataTypes.SMALLINT)
+  declare dayOfMonth: number | null;
 
   /** Type-specific settings (e.g., amountThreshold for amount_threshold type) */
-  @Column({ allowNull: false, type: DataType.JSONB, defaultValue: {} })
-  settings!: TagReminderSettings;
+  @Attribute(DataTypes.JSONB)
+  @NotNull
+  @Default({})
+  declare settings: CreationOptional<TagReminderSettings>;
 
-  @Column({ allowNull: false, type: DataType.BOOLEAN, defaultValue: true })
-  isEnabled!: boolean;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(true)
+  declare isEnabled: CreationOptional<boolean>;
 
-  @Column({ allowNull: true, type: DataType.DATE })
-  lastCheckedAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare lastCheckedAt: Date | null;
 
-  @Column({ allowNull: true, type: DataType.DATE })
-  lastTriggeredAt!: Date | null;
+  @Attribute(DataTypes.DATE)
+  declare lastTriggeredAt: Date | null;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-  @BelongsTo(() => Tags, { foreignKey: 'tagId', onDelete: 'CASCADE' })
-  tag!: Tags;
+  @BelongsTo(() => Tags, 'tagId')
+  declare tag?: NonAttribute<Tags>;
 
-  @BelongsTo(() => Users, { foreignKey: 'userId', onDelete: 'CASCADE' })
-  user!: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 }

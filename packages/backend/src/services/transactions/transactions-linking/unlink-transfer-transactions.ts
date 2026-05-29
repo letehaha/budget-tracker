@@ -2,8 +2,8 @@ import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
+import { Op } from '@sequelize/core';
 import { assertTxWriteAccess } from '@services/sharing/auth/authorize-account-write.service';
-import { Op } from 'sequelize';
 
 export const unlinkTransferTransactions = withTransaction(
   async (payload: { userId: number; transferIds: string[] }): Promise<Transactions.default[]> => {

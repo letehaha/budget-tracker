@@ -1,12 +1,12 @@
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Securities from '@models/investments/securities.model';
 import * as helpers from '@tests/helpers';
 import { VALID_GEMINI_API_KEY } from '@tests/mocks/gemini/mock-api';
 import { HttpResponse, http } from 'msw';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { dataProviderFactory } from '../../../services/investments/data-providers/provider-factory';
 import { DUPLICATE_DATE_WINDOW_DAYS } from './detect-duplicates.service';
@@ -170,7 +170,7 @@ async function runBtcDedupExtract({
   return result.holdings[0]!.transactions[0]!.possibleDuplicateOf;
 }
 
-const mockedCoingecko = jest.mocked(Coingecko);
+const mockedCoingecko = vi.mocked(Coingecko);
 
 /** Install a CoinGecko mock that returns the given coin list for any search. */
 function installCoingeckoMock({
@@ -179,19 +179,19 @@ function installCoingeckoMock({
   coins: Array<{ id: string; symbol: string; name: string; market_cap_rank: number }>;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const searchGet = jest.fn<any>().mockResolvedValue({ coins });
+  const searchGet = vi.fn<any>().mockResolvedValue({ coins });
   mockedCoingecko.mockImplementation(
     () =>
       ({
         search: { get: searchGet },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        simple: { price: { get: jest.fn<any>().mockResolvedValue({}) } },
+        simple: { price: { get: vi.fn<any>().mockResolvedValue({}) } },
         coins: {
           marketChart: {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            get: jest.fn<any>().mockResolvedValue({ prices: [] }),
+            get: vi.fn<any>().mockResolvedValue({ prices: [] }),
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            getRange: jest.fn<any>().mockResolvedValue({ prices: [] }),
+            getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
           },
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,7 +206,7 @@ describe('Investment transactions AI import — E2E', () => {
   beforeEach(() => {
     originalGeminiKey = process.env.GEMINI_API_KEY;
     process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     dataProviderFactory.clearCache();
   });
 

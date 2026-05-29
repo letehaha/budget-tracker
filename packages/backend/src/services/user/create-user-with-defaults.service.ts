@@ -4,11 +4,11 @@ import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { requestContext } from '@common/request-context';
 import { i18nextReady } from '@i18n/index';
 import { logger } from '@js/utils/logger';
+import { UniqueConstraintError } from '@sequelize/core';
 import * as categoriesService from '@services/categories.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
 import { randomBytes } from 'crypto';
-import { UniqueConstraintError } from 'sequelize';
 
 import { parseFullName } from './parse-full-name';
 import { slugifyUsername } from './slugify-username';

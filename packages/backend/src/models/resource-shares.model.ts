@@ -1,5 +1,21 @@
 import { ResourceShareModel, ResourceType, SharePermission, SharePolicy, RecordId } from '@bt/shared/types';
-import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Default,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Users from './users.model';
@@ -9,64 +25,61 @@ import Users from './users.model';
   timestamps: true,
   freezeTableName: true,
 })
-export default class ResourceShares extends Model implements ResourceShareModel {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class ResourceShares
+  extends Model<InferAttributes<ResourceShares>, InferCreationAttributes<ResourceShares>>
+  implements ResourceShareModel
+{
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  declare id: CreationOptional<RecordId>;
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  ownerUserId!: number;
+  @BeforeCreate
+  static generateUUIDv7(instance: ResourceShares) {
+    if (!instance.id) {
+      instance.id = uuidv7();
+    }
+  }
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  sharedWithUserId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare ownerUserId: number;
 
-  @Column({
-    type: DataType.STRING(32),
-    allowNull: false,
-  })
-  resourceType!: ResourceType;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  declare sharedWithUserId: number;
 
-  @Column({
-    type: DataType.STRING(255),
-    allowNull: false,
-  })
-  resourceId!: string;
+  @Attribute(DataTypes.STRING(32))
+  @NotNull
+  declare resourceType: ResourceType;
 
-  @Column({
-    type: DataType.STRING(32),
-    allowNull: false,
-  })
-  permission!: SharePermission;
+  @Attribute(DataTypes.STRING(255))
+  @NotNull
+  declare resourceId: string;
 
-  @Column({
-    type: DataType.JSONB,
-    allowNull: true,
-  })
-  policy!: SharePolicy | null;
+  @Attribute(DataTypes.STRING(32))
+  @NotNull
+  declare permission: SharePermission;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  acceptedAt!: Date | null;
+  @Attribute(DataTypes.JSONB)
+  declare policy: SharePolicy | null;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  @Attribute(DataTypes.DATE)
+  declare acceptedAt: Date | null;
+
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare createdAt: CreationOptional<Date>;
+
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  @Default(DataTypes.NOW)
+  declare updatedAt: CreationOptional<Date>;
 
   @BelongsTo(() => Users, 'ownerUserId')
-  owner!: Users;
+  declare owner?: NonAttribute<Users>;
 
   @BelongsTo(() => Users, 'sharedWithUserId')
-  sharedWithUser!: Users;
+  declare sharedWithUser?: NonAttribute<Users>;
 }

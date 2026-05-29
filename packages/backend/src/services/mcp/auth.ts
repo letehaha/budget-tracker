@@ -103,7 +103,7 @@ async function verifyAccessToken({ token }: { token: string }): Promise<McpAuthI
     expiresAt: tokenRecord.expiresAt ? new Date(tokenRecord.expiresAt).getTime() / 1000 : undefined,
     extra: {
       userId: user.id,
-      authUserId: user.authUserId,
+      authUserId: user.authUserId!,
       username: user.username,
     },
   };

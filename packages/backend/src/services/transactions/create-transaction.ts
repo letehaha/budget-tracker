@@ -199,7 +199,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     userId: destOwnerUserId,
     amount: destinationAmount,
     refAmount: oppositeRefAmount,
-    note: baseTransaction.note,
+    note: baseTransaction.note ?? undefined,
     time: new Date(baseTransaction.time),
     transactionType:
       transactionType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
@@ -411,7 +411,7 @@ export const createTransaction = withTransaction(
           });
         }
 
-        await baseTransaction!.$set('tags', tagIds);
+        await baseTransaction!.setTags(tagIds);
 
         // Emit event for real-time reminders check (handled by event listener)
         eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds, userId });

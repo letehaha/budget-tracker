@@ -1,7 +1,23 @@
 import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
-import { Table, Column, Model, ForeignKey, BelongsTo, DataType, Length } from 'sequelize-typescript';
+import { moneyGetCents, moneySetCents } from '@common/types/money-column';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BelongsTo,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Categories from './categories.model';
@@ -13,51 +29,45 @@ import Users from './users.model';
   timestamps: false,
   freezeTableName: true,
   indexes: [
-    {
-      fields: ['transactionId'],
-    },
-    {
-      fields: ['userId'],
-    },
-    {
-      fields: ['categoryId'],
-    },
+    // Composite index for efficient category-based queries within transactions
     {
       fields: ['transactionId', 'categoryId'],
     },
   ],
 })
-export default class TransactionSplits extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class TransactionSplits extends Model<
+  InferAttributes<TransactionSplits>,
+  InferCreationAttributes<TransactionSplits>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<RecordId>;
 
-  @ForeignKey(() => Transactions)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-  })
-  transactionId!: RecordId;
+  @BeforeCreate
+  static generateUUIDv7(instance: TransactionSplits) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
-  @ForeignKey(() => Users)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  userId!: number;
+  @Attribute(DataTypes.UUID)
+  @NotNull
+  @Index
+  declare transactionId: RecordId;
 
-  @ForeignKey(() => Categories)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-  })
-  categoryId!: RecordId;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 
-  /** Amount in account currency (same as transaction.amount) */
-  @Column(MoneyColumn({ storage: 'cents' }))
+  @Attribute(DataTypes.UUID)
+  @NotNull
+  @Index
+  declare categoryId: RecordId;
+
+  // Amount in account currency (same as transaction.amount), stored as amount*100
+  @Attribute(DataTypes.BIGINT)
+  @NotNull
   get amount(): Money {
     return moneyGetCents(this, 'amount');
   }
@@ -65,8 +75,9 @@ export default class TransactionSplits extends Model {
     moneySetCents(this, 'amount', val);
   }
 
-  /** Amount in base currency (same as transaction.refAmount) */
-  @Column(MoneyColumn({ storage: 'cents' }))
+  // Amount in base currency (same as transaction.refAmount), stored as amount*100
+  @Attribute(DataTypes.BIGINT)
+  @NotNull
   get refAmount(): Money {
     return moneyGetCents(this, 'refAmount');
   }
@@ -75,21 +86,17 @@ export default class TransactionSplits extends Model {
   }
 
   // Optional per-split note, max 100 chars
-  @Length({ max: 100 })
-  @Column({
-    type: DataType.STRING(100),
-    allowNull: true,
-  })
-  note!: string | null;
+  @Attribute(DataTypes.STRING(100))
+  declare note: string | null;
 
-  @BelongsTo(() => Transactions)
-  transaction!: Transactions;
+  @BelongsTo(() => Transactions, 'transactionId')
+  declare transaction?: NonAttribute<Transactions>;
 
-  @BelongsTo(() => Users)
-  user!: Users;
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
 
-  @BelongsTo(() => Categories)
-  category!: Categories;
+  @BelongsTo(() => Categories, 'categoryId')
+  declare category?: NonAttribute<Categories>;
 }
 
 // Helper functions for working with splits

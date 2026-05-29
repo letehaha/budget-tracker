@@ -1,22 +1,22 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // Mock BullMQ before importing anything that touches it
-jest.mock('bullmq', () => ({
-  Queue: jest.fn().mockImplementation(() => ({
-    add: jest.fn().mockResolvedValue({ id: 'test-job-id' } as never),
-    on: jest.fn(),
+vi.mock('bullmq', () => ({
+  Queue: vi.fn().mockImplementation(() => ({
+    add: vi.fn().mockResolvedValue({ id: 'test-job-id' } as never),
+    on: vi.fn(),
   })),
-  Worker: jest.fn().mockImplementation(() => ({
-    on: jest.fn(),
+  Worker: vi.fn().mockImplementation(() => ({
+    on: vi.fn(),
   })),
 }));
 
-jest.mock('./categorization-service', () => ({
-  categorizeTransactions: jest.fn(),
+vi.mock('./categorization-service', () => ({
+  categorizeTransactions: vi.fn(),
 }));
 
-jest.mock('./categorization-queue', () => ({
-  queueCategorizationJob: jest.fn().mockResolvedValue('test-job-id' as never),
+vi.mock('./categorization-queue', () => ({
+  queueCategorizationJob: vi.fn().mockResolvedValue('test-job-id' as never),
 }));
 
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
@@ -24,19 +24,19 @@ import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { queueCategorizationJob } from './categorization-queue';
 import { flushAllPendingCategorizationBuffers, registerAiCategorizationListeners } from './event-listeners';
 
-const mockedQueueCategorizationJob = queueCategorizationJob as jest.MockedFunction<typeof queueCategorizationJob>;
+const mockedQueueCategorizationJob = vi.mocked(queueCategorizationJob);
 
 describe('event-listeners debounce', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.clearAllMocks();
+    vi.useFakeTimers();
+    vi.clearAllMocks();
     registerAiCategorizationListeners();
   });
 
   afterEach(async () => {
     await flushAllPendingCategorizationBuffers();
     eventBus.removeAllListeners(DOMAIN_EVENTS.TRANSACTIONS_SYNCED);
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('does not queue immediately on event — waits for debounce', () => {
@@ -56,7 +56,7 @@ describe('event-listeners debounce', () => {
       transactionIds: [100, 101],
     });
 
-    jest.advanceTimersByTime(4000);
+    vi.advanceTimersByTime(4000);
 
     expect(mockedQueueCategorizationJob).toHaveBeenCalledTimes(1);
     expect(mockedQueueCategorizationJob).toHaveBeenCalledWith({
@@ -72,7 +72,7 @@ describe('event-listeners debounce', () => {
       transactionIds: [100, 101],
     });
 
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
 
     eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_SYNCED, {
       userId: 1,
@@ -80,7 +80,7 @@ describe('event-listeners debounce', () => {
       transactionIds: [200, 201, 202],
     });
 
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
 
     eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_SYNCED, {
       userId: 1,
@@ -89,11 +89,11 @@ describe('event-listeners debounce', () => {
     });
 
     // Not yet — timer resets on each event
-    jest.advanceTimersByTime(3999);
+    vi.advanceTimersByTime(3999);
     expect(mockedQueueCategorizationJob).not.toHaveBeenCalled();
 
     // Now the 4s after the last event fires
-    jest.advanceTimersByTime(1);
+    vi.advanceTimersByTime(1);
 
     expect(mockedQueueCategorizationJob).toHaveBeenCalledTimes(1);
     expect(mockedQueueCategorizationJob).toHaveBeenCalledWith({
@@ -115,7 +115,7 @@ describe('event-listeners debounce', () => {
       transactionIds: [200],
     });
 
-    jest.advanceTimersByTime(4000);
+    vi.advanceTimersByTime(4000);
 
     expect(mockedQueueCategorizationJob).toHaveBeenCalledTimes(2);
     expect(mockedQueueCategorizationJob).toHaveBeenCalledWith({
@@ -135,7 +135,7 @@ describe('event-listeners debounce', () => {
       transactionIds: [],
     });
 
-    jest.advanceTimersByTime(4000);
+    vi.advanceTimersByTime(4000);
 
     expect(mockedQueueCategorizationJob).not.toHaveBeenCalled();
   });
@@ -147,7 +147,7 @@ describe('event-listeners debounce', () => {
       transactionIds: [100],
     });
 
-    jest.advanceTimersByTime(4000);
+    vi.advanceTimersByTime(4000);
 
     expect(mockedQueueCategorizationJob).toHaveBeenCalledTimes(1);
     expect(mockedQueueCategorizationJob).toHaveBeenCalledWith({
@@ -162,7 +162,7 @@ describe('event-listeners debounce', () => {
       transactionIds: [200, 201],
     });
 
-    jest.advanceTimersByTime(4000);
+    vi.advanceTimersByTime(4000);
 
     expect(mockedQueueCategorizationJob).toHaveBeenCalledTimes(2);
     expect(mockedQueueCategorizationJob).toHaveBeenLastCalledWith({
@@ -190,7 +190,7 @@ describe('event-listeners debounce', () => {
     expect(mockedQueueCategorizationJob).toHaveBeenCalledTimes(2);
 
     // Advancing timers should NOT trigger another flush
-    jest.advanceTimersByTime(4000);
+    vi.advanceTimersByTime(4000);
     expect(mockedQueueCategorizationJob).toHaveBeenCalledTimes(2);
   });
 
@@ -204,8 +204,8 @@ describe('event-listeners debounce', () => {
     });
 
     // Should not throw — error is caught and logged
-    jest.advanceTimersByTime(4000);
-    await jest.runAllTimersAsync();
+    vi.advanceTimersByTime(4000);
+    await vi.runAllTimersAsync();
 
     expect(mockedQueueCategorizationJob).toHaveBeenCalledTimes(1);
   });

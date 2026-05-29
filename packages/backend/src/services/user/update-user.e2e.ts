@@ -1,6 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
 import Users from '@models/users.model';
 import { makeRequest } from '@tests/helpers/common';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Integration tests for PUT /user/update — focused on the username field.

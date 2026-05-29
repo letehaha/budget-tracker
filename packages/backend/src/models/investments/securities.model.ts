@@ -1,6 +1,24 @@
 import { RecordId } from '@bt/shared/types';
-import { SECURITY_PROVIDER, ASSET_CLASS } from '@bt/shared/types/investments';
-import { Table, Column, Model, DataType, HasMany, Index, BeforeCreate, BeforeUpdate } from 'sequelize-typescript';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+  NonAttribute,
+} from '@sequelize/core';
+import {
+  Attribute,
+  BeforeCreate,
+  BeforeUpdate,
+  Default,
+  HasMany,
+  Index,
+  NotNull,
+  PrimaryKey,
+  Table,
+} from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Holdings from './holdings.model';
@@ -12,79 +30,91 @@ import SecurityPricing from './security-pricing.model';
   freezeTableName: true,
   timestamps: true,
 })
-export default class Securities extends Model {
-  @Column({
-    primaryKey: true,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class Securities extends Model<InferAttributes<Securities>, InferCreationAttributes<Securities>> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  declare id: CreationOptional<RecordId>;
 
-  @Column({ type: DataType.STRING, allowNull: true })
-  name!: string | null;
+  @BeforeCreate
+  static generateUUIDv7(instance: Securities) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
+  @Attribute(DataTypes.STRING)
+  declare name: string | null;
+
+  @Attribute(DataTypes.STRING)
   @Index
-  @Column({ type: DataType.STRING, allowNull: true })
-  symbol!: string | null;
+  declare symbol: string | null;
 
-  @Column({ type: DataType.STRING, allowNull: false })
-  providerSymbol!: string;
-
+  @Attribute(DataTypes.STRING)
   @Index
-  @Column({ type: DataType.STRING, allowNull: true })
-  cusip!: string | null;
+  declare providerSymbol: string | null;
 
+  @Attribute(DataTypes.STRING)
   @Index
-  @Column({ type: DataType.STRING, allowNull: true })
-  isin!: string | null;
+  declare cusip: string | null;
 
-  @Column({ type: DataType.STRING, allowNull: true })
-  sharesPerContract!: string | null;
+  @Attribute(DataTypes.STRING)
+  @Index
+  declare isin: string | null;
 
-  @Column({ type: DataType.STRING, allowNull: false })
-  currencyCode!: string;
+  @Attribute(DataTypes.STRING)
+  declare sharesPerContract: string | null;
 
-  @Column({ type: DataType.STRING, allowNull: true })
-  cryptoCurrencyCode!: string | null;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare currencyCode: string;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  pricingLastSyncedAt!: Date | null;
+  @Attribute(DataTypes.STRING)
+  declare cryptoCurrencyCode: string | null;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
-  isBrokerageCash!: boolean;
+  @Attribute(DataTypes.DATE)
+  declare pricingLastSyncedAt: Date | null;
 
-  @Column({ type: DataType.STRING, allowNull: true })
-  exchangeAcronym!: string | null;
+  @Attribute(DataTypes.BOOLEAN)
+  @NotNull
+  @Default(false)
+  declare isBrokerageCash: CreationOptional<boolean>;
 
-  @Column({ type: DataType.STRING, allowNull: true })
-  exchangeMic!: string | null;
+  @Attribute(DataTypes.STRING)
+  declare exchangeAcronym: string | null;
 
-  @Column({ type: DataType.STRING, allowNull: true })
-  exchangeName!: string | null;
+  @Attribute(DataTypes.STRING)
+  declare exchangeMic: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  logoUrl!: string | null;
+  @Attribute(DataTypes.STRING)
+  declare exchangeName: string | null;
 
-  @Column({ type: DataType.STRING, allowNull: false })
-  providerName!: SECURITY_PROVIDER;
+  @Attribute(DataTypes.STRING(255))
+  declare logoUrl: string | null;
 
-  @Column({ type: DataType.STRING, allowNull: false })
-  assetClass!: ASSET_CLASS;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare providerName: SECURITY_PROVIDER;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare createdAt: Date;
+  @Attribute(DataTypes.STRING)
+  @NotNull
+  declare assetClass: ASSET_CLASS;
 
-  @Column({ type: DataType.DATE, allowNull: false })
-  declare updatedAt: Date;
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare createdAt: CreationOptional<Date>;
 
-  @HasMany(() => Holdings)
-  holdings?: Holdings[];
+  @Attribute(DataTypes.DATE)
+  @NotNull
+  declare updatedAt: CreationOptional<Date>;
 
-  @HasMany(() => InvestmentTransactions)
-  investmentTransactions?: InvestmentTransactions[];
+  @HasMany(() => Holdings, 'securityId')
+  declare holdings?: NonAttribute<Holdings[]>;
 
-  @HasMany(() => SecurityPricing)
-  pricing?: SecurityPricing[];
+  @HasMany(() => InvestmentTransactions, 'securityId')
+  declare investmentTransactions?: NonAttribute<InvestmentTransactions[]>;
+
+  @HasMany(() => SecurityPricing, 'securityId')
+  declare pricing?: NonAttribute<SecurityPricing[]>;
 
   @BeforeCreate
   @BeforeUpdate

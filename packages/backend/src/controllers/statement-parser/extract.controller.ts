@@ -6,7 +6,7 @@ import {
   extractTransactionsWithAI,
   validateFileBuffer,
 } from '@services/import-export/statement-parser';
-import { z } from 'zod';
+import z from 'zod';
 
 /**
  * Extract transactions from a statement file using AI

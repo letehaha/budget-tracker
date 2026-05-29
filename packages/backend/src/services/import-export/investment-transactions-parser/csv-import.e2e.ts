@@ -16,9 +16,9 @@ import {
   type InvestmentColumnMapping,
   SECURITY_PROVIDER,
 } from '@bt/shared/types/investments';
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import Securities from '@models/investments/securities.model';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { dataProviderFactory } from '../../../services/investments/data-providers/provider-factory';
 

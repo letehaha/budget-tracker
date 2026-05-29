@@ -1,7 +1,6 @@
 import { ACCOUNT_STATUSES, API_ERROR_CODES, API_RESPONSE_STATUS, BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { Money } from '@common/types/money';
-import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
@@ -15,6 +14,7 @@ import {
   setAccountSyncStatus,
 } from '@root/services/bank-data-providers/sync/sync-status-tracker';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
+import { Op } from '@sequelize/core';
 import * as helpers from '@tests/helpers';
 import {
   INVALID_MONOBANK_TOKEN,
@@ -24,7 +24,7 @@ import {
 } from '@tests/mocks/monobank/mock-api';
 import { Job } from 'bullmq';
 import { HttpResponse, http } from 'msw';
-import { Op } from 'sequelize';
+import { describe, expect, it } from 'vitest';
 
 /**
  * E2E tests for Monobank Data Provider using the new unified connection flow
@@ -878,7 +878,7 @@ describe('Monobank Data Provider E2E', () => {
         (account: {
           id: string;
           name: string;
-          externalId: string;
+          externalId: string | null;
           currentBalance: number;
           currencyCode: string;
           type: string;

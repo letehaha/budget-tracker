@@ -126,7 +126,7 @@ const portfolioToAccountTransferImpl = async ({
     toAccountId: accountId,
     fromAccountId: null,
     toPortfolioId: null,
-    amount,
+    amount: Money.fromDecimal(amount),
     refAmount,
     currencyCode,
     date,

@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('Delete Account', () => {
   describe('Account deletion with account groups', () => {

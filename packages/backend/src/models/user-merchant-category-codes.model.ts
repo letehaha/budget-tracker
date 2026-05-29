@@ -1,36 +1,43 @@
 import { RecordId } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import { Attribute, BeforeCreate, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
-
-import Categories from './categories.model';
-import MerchantCategoryCodes from './merchant-category-codes.model';
-import Users from './users.model';
 
 @Table({
   timestamps: false,
   tableName: 'UserMerchantCategoryCodes',
   freezeTableName: true,
 })
-export default class UserMerchantCategoryCodes extends Model {
-  @Column({
-    allowNull: false,
-    primaryKey: true,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
-  declare id: RecordId;
+export default class UserMerchantCategoryCodes extends Model<
+  InferAttributes<UserMerchantCategoryCodes>,
+  InferCreationAttributes<UserMerchantCategoryCodes>
+> {
+  @Attribute(DataTypes.UUID)
+  @PrimaryKey
+  @NotNull
+  declare id: CreationOptional<RecordId>;
 
-  @ForeignKey(() => Categories)
-  @Column({ allowNull: false, type: DataType.UUID })
-  categoryId!: RecordId;
+  @BeforeCreate
+  static generateUUIDv7(instance: UserMerchantCategoryCodes) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
-  @ForeignKey(() => MerchantCategoryCodes)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  mccId!: number;
+  @Attribute(DataTypes.UUID)
+  @NotNull
+  @Index
+  declare categoryId: RecordId;
 
-  @ForeignKey(() => Users)
-  @Column({ allowNull: false, type: DataType.INTEGER })
-  userId!: number;
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare mccId: number;
+
+  @Attribute(DataTypes.INTEGER)
+  @NotNull
+  @Index
+  declare userId: number;
 }
 
 export const getByPassedParams = async ({
@@ -55,7 +62,15 @@ export const getByPassedParams = async ({
   return mcc;
 };
 
-export const createEntry = async ({ mccId, userId, categoryId }) => {
+export const createEntry = async ({
+  mccId,
+  userId,
+  categoryId,
+}: {
+  mccId: number;
+  userId: number;
+  categoryId: number;
+}) => {
   const userMcc = await UserMerchantCategoryCodes.create({
     mccId,
     userId,

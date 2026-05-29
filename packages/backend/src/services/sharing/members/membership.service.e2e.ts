@@ -5,11 +5,11 @@ import {
   SharePermission,
   TRANSACTIONS_WRITE_SCOPES,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Common scaffold: owner creates an account, invites the recipient at `permission`, and

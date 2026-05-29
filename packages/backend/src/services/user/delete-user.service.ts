@@ -12,7 +12,7 @@ import * as Accounts from '@models/accounts.model';
 import ResourceShares from '@models/resource-shares.model';
 import Transactions from '@models/transactions.model';
 import * as Users from '@models/users.model';
-import { Op } from 'sequelize';
+import { Op } from '@sequelize/core';
 
 import { transactionSyncQueue } from '../bank-data-providers/monobank/transaction-sync-queue';
 import { REDIS_KEYS as SYNC_REDIS_KEYS, clearAccountSyncStatus } from '../bank-data-providers/sync/sync-status-tracker';

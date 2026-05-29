@@ -1,7 +1,7 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import * as tagsService from '@services/tags';
 import * as onboardingService from '@services/user-settings/onboarding';
-import { z } from 'zod';
+import z from 'zod';
 
 const schema = z.object({
   body: z.object({

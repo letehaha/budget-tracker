@@ -6,8 +6,8 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { describe, expect, it } from 'vitest';
 
 describe('[Stats] Spendings by categories – categoryIds filter', () => {
   it('Returns spending grouped by selected categories instead of root', async () => {

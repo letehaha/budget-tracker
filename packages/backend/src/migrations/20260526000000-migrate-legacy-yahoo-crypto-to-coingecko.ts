@@ -1,4 +1,5 @@
-import { QueryInterface, QueryTypes, Transaction } from 'sequelize';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import { QueryTypes } from '@sequelize/core';
 
 /**
  * Convert legacy Yahoo-format crypto Securities (BTC-USD, ETH-USD, etc.) to
@@ -57,7 +58,7 @@ const LEGACY_YAHOO_CRYPTO_TO_COINGECKO_SLUG: Record<string, string> = {
 };
 
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const t: Transaction = await queryInterface.sequelize.transaction();
 
     try {

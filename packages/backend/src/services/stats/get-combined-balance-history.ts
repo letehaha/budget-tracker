@@ -8,9 +8,9 @@ import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
+import { Op } from '@sequelize/core';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
 import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
-import { Op } from 'sequelize';
 
 import { getAggregatedBalanceHistory } from './get-balance-history';
 import { getCreditLimitAdjustment } from './get-credit-limit-adjustment';
@@ -199,6 +199,7 @@ const calculatePortfolioBalanceHistory = async ({
   // not via USD pivot, so they short-circuit the cross-rate maths below.
   const userRatesMap = new Map<string, number>();
   for (const r of userCustomExchangeRates) {
+    if (r.rate == null) continue;
     userRatesMap.set(`${r.baseCode}_${formatDate(r.date)}`, r.rate);
   }
 
@@ -439,7 +440,7 @@ export const getCombinedBalanceHistory = async ({
       const oldestTransaction = await InvestmentTransaction.findOne({
         include: [
           {
-            model: Portfolios,
+            association: 'portfolio',
             // Filter out transactions for userId
             where: { userId, isEnabled: true },
             attributes: [],

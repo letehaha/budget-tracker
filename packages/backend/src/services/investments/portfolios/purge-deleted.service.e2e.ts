@@ -1,9 +1,9 @@
 import { PORTFOLIO_TRASH_RETENTION_DAYS } from '@bt/shared/types/investments';
-import { describe, expect, it } from '@jest/globals';
 import Portfolios from '@models/investments/portfolios.model';
 import { purgeDeletedPortfolios } from '@services/investments/portfolios/purge-deleted.service';
 import * as helpers from '@tests/helpers';
 import { subDays } from 'date-fns';
+import { describe, expect, it } from 'vitest';
 
 describe('Purge Deleted Portfolios Service E2E', () => {
   it('should purge portfolios soft-deleted past the retention window and leave fresh trash + live portfolios alone', async () => {

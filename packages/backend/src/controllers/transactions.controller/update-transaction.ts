@@ -5,7 +5,7 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { removeUndefinedKeys } from '@js/helpers';
 import { serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
-import { z } from 'zod';
+import z from 'zod';
 
 // Amount fields now accept decimals (e.g., 100.50) - conversion to cents happens in controller
 const amountSchema = () => z.number().positive('Amount must be greater than 0').finite();

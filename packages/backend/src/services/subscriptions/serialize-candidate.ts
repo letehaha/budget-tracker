@@ -1,4 +1,3 @@
-import { Money } from '@common/types/money';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import Subscriptions from '@models/subscriptions.model';
 
@@ -31,7 +30,7 @@ export function serializeCandidate({
   userSubscriptions,
 }: {
   candidate: SubscriptionCandidates;
-  userSubscriptions: Subscriptions[];
+  userSubscriptions: Pick<Subscriptions, 'id' | 'name'>[];
 }): SerializedCandidate {
   const json = candidate.toJSON() as SubscriptionCandidates;
 
@@ -53,7 +52,7 @@ export function serializeCandidate({
     id: json.id,
     suggestedName: json.suggestedName,
     detectedFrequency: json.detectedFrequency,
-    averageAmount: Money.fromCents(json.averageAmount).toNumber(),
+    averageAmount: json.averageAmount.toNumber(),
     currencyCode: json.currencyCode,
     accountId: json.accountId,
     sampleTransactionIds: json.sampleTransactionIds,

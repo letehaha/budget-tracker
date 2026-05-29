@@ -3,8 +3,8 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
+import { literal, Op, where } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
-import Sequelize, { Op } from 'sequelize';
 
 import { authorizeBudgetAccess } from './authorize-budget-access';
 
@@ -46,7 +46,7 @@ export const removeTransactionsFromBudget = withTransaction(async (payload: Remo
   // recipient's tx into the budget) still gets blocked.
   //
   // SQL: `metadata->>'addedByUserId' = '<userId>'`. The pattern follows the codebase's
-  // `Sequelize.where(Sequelize.literal(...))` convention for JSONB filters (see
+  // `where(literal(...))` convention for JSONB filters (see
   // bank-data-providers/* and cancel-invitation.service.ts).
   //
   // The destroy returns the number of rows actually removed — we surface this so the
@@ -56,7 +56,7 @@ export const removeTransactionsFromBudget = withTransaction(async (payload: Remo
     where: {
       budgetId,
       transactionId: { [Op.in]: transactionIds },
-      [Op.and]: [Sequelize.where(Sequelize.literal(`"metadata"->>'addedByUserId'`), String(userId))],
+      [Op.and]: [where(literal(`"metadata"->>'addedByUserId'`), String(userId))],
     },
   });
   return { removedCount };
