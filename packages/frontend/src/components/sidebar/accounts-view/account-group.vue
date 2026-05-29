@@ -6,7 +6,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { AlertTriangleIcon, ChevronRightIcon, FolderIcon } from '@lucide/vue';
-import { computed, inject, ref, watch } from 'vue';
+import { computed, inject } from 'vue';
 
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
@@ -18,14 +18,10 @@ const props = defineProps<{
 
 const accountGroupsContext = inject<ReturnType<typeof useActiveAccountGroups>>('accountGroupsContext');
 
-const isOpen = ref(false);
-watch(
-  () => accountGroupsContext!.openGroupIds.value,
-  (openGroupIds) => {
-    isOpen.value = openGroupIds.has(props.group.id);
-  },
-  { immediate: true },
-);
+const isOpen = computed({
+  get: () => accountGroupsContext!.isGroupOpen(props.group.id),
+  set: (val) => accountGroupsContext!.setGroupOpen(props.group.id, val),
+});
 
 const { groupHasReauthAccount } = useSyncStatus();
 
