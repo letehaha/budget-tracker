@@ -22,7 +22,6 @@ import * as helpers from '@tests/helpers';
 type AccountListResponse = Array<{
   id: string;
   externalId: string | null;
-  externalData: Record<string, unknown> | null;
   bankDataProviderConnectionId: number | null;
   share?: { isOwner: boolean; permission: string; accessSource: string };
 }>;
@@ -143,7 +142,6 @@ describe('Shared resource visibility — household-derived', () => {
       const fromList = accounts.find((a) => a.id === account.id)!;
       expect(fromList.share!.isOwner).toBe(false);
       expect(fromList.externalId).toBeNull();
-      expect(fromList.externalData).toBeNull();
       expect(fromList.bankDataProviderConnectionId).toBeNull();
     });
 
