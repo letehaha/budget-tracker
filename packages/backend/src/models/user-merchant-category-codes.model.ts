@@ -1,5 +1,7 @@
+import { RecordId } from '@bt/shared/types';
 import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
-import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table, Unique } from '@sequelize/core/decorators-legacy';
+import { Attribute, BeforeCreate, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 @Table({
   timestamps: false,
@@ -10,16 +12,22 @@ export default class UserMerchantCategoryCodes extends Model<
   InferAttributes<UserMerchantCategoryCodes>,
   InferCreationAttributes<UserMerchantCategoryCodes>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  @Unique
-  declare id: CreationOptional<number>;
+  @NotNull
+  declare id: CreationOptional<RecordId>;
 
-  @Attribute(DataTypes.INTEGER)
+  @BeforeCreate
+  static generateUUIDv7(instance: UserMerchantCategoryCodes) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
+
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare categoryId: number;
+  declare categoryId: RecordId;
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
@@ -39,9 +47,9 @@ export const getByPassedParams = async ({
 }: {
   mccId?: number;
   userId?: number;
-  categoryId?: number;
+  categoryId?: string;
 }) => {
-  const where: Record<string, number> = {};
+  const where: Record<string, number | string> = {};
 
   if (mccId) where.mccId = mccId;
   if (userId) where.userId = userId;

@@ -12,18 +12,18 @@
       >
         <div class="mb-1 font-medium">{{ tooltip.period }}</div>
         <div class="flex items-center gap-2">
-          <span class="bg-success-text inline-block size-2.5 rounded-full"></span>
+          <span class="bg-app-income-color inline-block size-2.5 rounded-full"></span>
           <span>{{ t('analytics.cashFlow.income') }}:</span>
           <span class="font-medium">{{ formatBaseCurrency(tooltip.income) }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="bg-destructive-text inline-block size-2.5 rounded-full"></span>
+          <span class="bg-app-expense-color inline-block size-2.5 rounded-full"></span>
           <span>{{ t('analytics.cashFlow.expenses') }}:</span>
           <span class="font-medium">{{ formatBaseCurrency(tooltip.expenses) }}</span>
         </div>
         <div class="border-border mt-1 border-t pt-1">
           <span class="mr-2">{{ t('analytics.cashFlow.netFlow') }}:</span>
-          <span :class="tooltip.netFlow >= 0 ? 'text-success-text' : 'text-destructive-text'" class="font-medium">
+          <span :class="tooltip.netFlow >= 0 ? 'text-app-income-color' : 'text-app-expense-color'" class="font-medium">
             {{ formatBaseCurrency(tooltip.netFlow) }}
           </span>
         </div>
@@ -33,11 +33,11 @@
     <!-- Legend -->
     <div class="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm">
       <div class="flex items-center gap-2">
-        <span class="bg-success-text inline-block size-3 rounded-sm"></span>
+        <span class="bg-app-income-color inline-block size-3 rounded-sm"></span>
         <span class="text-muted-foreground">{{ t('analytics.cashFlow.income') }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="bg-destructive-text inline-block size-3 rounded-sm"></span>
+        <span class="bg-app-expense-color inline-block size-3 rounded-sm"></span>
         <span class="text-muted-foreground">{{ t('analytics.cashFlow.expenses') }}</span>
       </div>
       <div v-if="showMovingAverage" class="flex items-center gap-2">
@@ -49,12 +49,16 @@
 </template>
 
 <script setup lang="ts">
+import { currentTheme } from '@/common/utils/color-theme';
 import { useFormatCurrency } from '@/composable';
+import { getChartColors } from '@/composable/charts/chart-colors';
+import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
 import type { endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { ChartType } from './chart-type-switcher.vue';
@@ -100,15 +104,13 @@ const getMargins = ({ width, shouldRotate }: { width: number; shouldRotate: bool
   };
 };
 
-// Colors from CSS variables
 const getColors = () => {
-  const root = document.documentElement;
-  const style = getComputedStyle(root);
+  const { grid, text, appIncome, appExpense } = getChartColors();
   return {
-    income: style.getPropertyValue('--success-text').trim() || 'rgb(46, 204, 113)',
-    expenses: style.getPropertyValue('--destructive-text').trim() || 'rgb(239, 68, 68)',
-    grid: style.getPropertyValue('--border').trim() || 'rgb(39, 39, 42)',
-    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(161, 161, 170)',
+    grid,
+    text,
+    income: appIncome,
+    expenses: appExpense,
     movingAverage: 'rgb(59, 130, 246)', // blue-500
   };
 };
@@ -317,16 +319,7 @@ const renderChart = () => {
   }
 };
 
-const formatAxisValue = (value: number): string => {
-  const symbol = getCurrencySymbol();
-  const absValue = Math.abs(value);
-  if (absValue >= 1000000) {
-    return `${symbol}${(value / 1000000).toFixed(1)}M`;
-  } else if (absValue >= 1000) {
-    return `${symbol}${(value / 1000).toFixed(0)}K`;
-  }
-  return `${symbol}${value}`;
-};
+const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: getCurrencySymbol() });
 
 const renderStackedBars = (
   g: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -485,25 +478,9 @@ function handleMouseLeave() {
   tooltip.visible = false;
 }
 
-// ResizeObserver for responsive chart
-let resizeObserver: ResizeObserver | null = null;
+useResizeObserver(containerRef, renderChart);
 
-onMounted(() => {
-  renderChart();
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
+watch([() => props.data, () => props.chartType, () => props.showMovingAverage, locale, currentTheme], renderChart, {
+  deep: true,
 });
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
-
-watch([() => props.data, () => props.chartType, () => props.showMovingAverage, locale], renderChart, { deep: true });
 </script>

@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronLeftIcon } from 'lucide-vue-next';
+import { ChevronLeftIcon } from '@lucide/vue';
 import type { RouteLocationRaw } from 'vue-router';
 import { RouterLink } from 'vue-router';
 

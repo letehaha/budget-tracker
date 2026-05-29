@@ -3,14 +3,10 @@
     <router-view />
 
     <notifications-center />
-
-    <!-- Dialog for legacy users to migrate to email-based auth -->
-    <LegacyAccountMigrationDialog v-if="isLoggedIn" />
   </main>
 </template>
 
 <script setup lang="ts">
-import LegacyAccountMigrationDialog from '@/components/banners/legacy-account-migration-dialog.vue';
 import NotificationsCenter from '@/components/notification-center/notifications-center.vue';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useAiCategorizationEvents } from '@/composable/use-ai-categorization-events';
@@ -56,7 +52,6 @@ watch(
   async (value) => {
     if (value) {
       await rootStore.fetchInitialData();
-      await rootStore.syncFinancialData();
 
       // Initialize SSE for real-time updates (AI categorization, etc.)
       initializeAiCategorizationEvents();

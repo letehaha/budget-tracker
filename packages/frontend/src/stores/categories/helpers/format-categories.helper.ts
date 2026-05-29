@@ -15,7 +15,7 @@ const sortCategoriesWithInternalLast = (categories: FormattedCategory[]): Format
   });
 };
 
-export const buildCategiesObjectGraph = (items: CategoryModel[]): FormattedCategory[] => {
+export const buildCategoriesObjectGraph = (items: CategoryModel[]): FormattedCategory[] => {
   const itemsById: Record<string, FormattedCategory> = {};
   const roots: FormattedCategory[] = [];
   const tempItems: FormattedCategory[] = items.map((item) => {

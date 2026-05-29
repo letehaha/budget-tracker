@@ -1,4 +1,5 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import Transactions from '@models/transactions.model';
 import type { TransactionApiResponse } from '@root/serializers/transactions.serializer';
 import * as transactionsService from '@services/transactions';
@@ -16,7 +17,7 @@ export const buildTransactionPayload = (
     Partial<Pick<endpointsTypes.CreateTransactionBody, BuildTxPartialField>>,
 ): endpointsTypes.CreateTransactionBody => ({
   amount: 1000,
-  categoryId: 1,
+  categoryId: global.DEFAULT_CATEGORY_ID,
   transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
   paymentType: PAYMENT_TYPES.creditCard,
   time: startOfDay(new Date()).toISOString(),
@@ -56,19 +57,19 @@ export async function createTransaction({
 }
 
 interface SplitInput {
-  categoryId: number;
+  categoryId: string;
   amount: number;
   note?: string | null;
 }
 
 interface UpdateTransactionBasePayload {
-  id: number;
+  id: RecordId;
   payload?: Omit<Partial<ReturnType<typeof buildTransactionPayload>>, 'splits'> & {
     destinationAmount?: number;
-    destinationAccountId?: number;
-    destinationTransactionId?: number;
-    refundsTxId?: number | null;
-    refundedByTxIds?: number[] | null;
+    destinationAccountId?: string;
+    destinationTransactionId?: string;
+    refundsTxId?: string | null;
+    refundedByTxIds?: string[] | null;
     splits?: SplitInput[] | null;
   };
 }
@@ -92,7 +93,7 @@ export function updateTransaction({ raw = false, id, payload = {} }) {
   });
 }
 
-export function deleteTransaction({ id }: { id?: number } = {}): Promise<Response> {
+export function deleteTransaction({ id }: { id?: string } = {}): Promise<Response> {
   return makeRequest({
     method: 'delete',
     url: `/transactions/${id}`,
@@ -195,7 +196,7 @@ export function getTransactionsByIds<R extends boolean | undefined = undefined>(
   ids,
   raw,
 }: {
-  ids: number[];
+  ids: string[];
   raw?: R;
 }) {
   return makeRequest<TransactionApiResponse[], R>({
@@ -206,18 +207,34 @@ export function getTransactionsByIds<R extends boolean | undefined = undefined>(
   });
 }
 
+export function getTransactionById<R extends boolean | undefined = undefined>({
+  id,
+  includeSplits,
+  raw,
+}: {
+  id: string;
+  includeSplits?: boolean;
+  raw?: R;
+}) {
+  return makeRequest<TransactionApiResponse | null, R>({
+    method: 'get',
+    url: `/transactions/${id}${includeSplits ? '?includeSplits=true' : ''}`,
+    raw,
+  });
+}
+
 // Bulk update helpers
 interface BulkUpdateTransactionsPayload {
-  transactionIds: number[];
-  categoryId?: number;
-  tagIds?: number[];
+  transactionIds: string[];
+  categoryId?: string;
+  tagIds?: string[];
   tagMode?: 'add' | 'replace' | 'remove';
   note?: string;
 }
 
 interface BulkUpdateResult {
   updatedCount: number;
-  updatedIds: number[];
+  updatedIds: string[];
 }
 
 export function bulkUpdateTransactions<R extends boolean | undefined = undefined>({

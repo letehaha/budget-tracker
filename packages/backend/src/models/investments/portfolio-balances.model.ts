@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
@@ -21,11 +22,11 @@ export default class PortfolioBalances extends Model<
   InferAttributes<PortfolioBalances>,
   InferCreationAttributes<PortfolioBalances>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
   @Index
-  declare portfolioId: number;
+  declare portfolioId: RecordId;
 
   @Attribute(DataTypes.STRING(3))
   @PrimaryKey

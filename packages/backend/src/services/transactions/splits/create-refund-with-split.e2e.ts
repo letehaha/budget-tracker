@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -123,7 +124,7 @@ describe('Create transaction that refunds a specific split', () => {
         amount: 4000,
         transactionType: TRANSACTION_TYPES.income,
       }),
-      refundForSplitId: '11111111-1111-1111-1111-111111111111', // splitId without txId
+      refundForSplitId: generateRandomRecordId(), // splitId without txId
     };
 
     const refundResponse = await helpers.createTransaction({
@@ -240,7 +241,7 @@ describe('Create transaction that refunds a specific split', () => {
       amount: 4000,
       transactionType: TRANSACTION_TYPES.income,
       refundForTxId: expenseTx.id,
-      refundForSplitId: '00000000-0000-0000-0000-000000000000', // Non-existent UUID
+      refundForSplitId: NONEXISTENT_ID,
     });
 
     const refundResponse = await helpers.createTransaction({

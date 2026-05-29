@@ -23,7 +23,7 @@ import { useFormValidation } from '@/composable/form-validator';
 import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES, TransactionModel, UserCurrencyModel } from '@bt/shared/types';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { minValue, required } from '@vuelidate/validators';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
@@ -84,7 +84,7 @@ const form = reactive<{
 });
 
 // Portfolio balance data for currency sorting
-const sourcePortfolioId = computed(() => form.fromPortfolio?.id ?? 0);
+const sourcePortfolioId = computed(() => form.fromPortfolio?.id ?? '');
 const { sortedCurrencies, currencyLabel } = usePortfolioCurrencySorting(sourcePortfolioId);
 
 // Computed values for easier access

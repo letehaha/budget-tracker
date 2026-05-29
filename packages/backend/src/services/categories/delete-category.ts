@@ -6,7 +6,7 @@ import Transactions, * as TransactionsModel from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
-  replaceWithCategoryId?: number;
+  replaceWithCategoryId?: string;
 }
 
 export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayload) => {

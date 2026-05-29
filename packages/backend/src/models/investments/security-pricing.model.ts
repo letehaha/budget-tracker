@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
@@ -10,13 +11,14 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsTo,
   Index,
   NotNull,
   PrimaryKey,
   Table,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import Securities from './securities.model';
 
@@ -43,23 +45,37 @@ export default class SecurityPricing extends Model<
   InferAttributes<SecurityPricing>,
   InferCreationAttributes<SecurityPricing>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  declare id: CreationOptional<RecordId>;
 
-  @Attribute(DataTypes.INTEGER)
+  @BeforeCreate
+  static generateUUIDv7(instance: SecurityPricing) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
+
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare securityId: number;
+  declare securityId: RecordId;
 
   /**
-   * The date for which this pricing information is applicable. This field is crucial for tracking
-   * the historical prices of securities and allows for analysis of price trends over time.
+   * The canonical timestamp this pricing row represents. The underlying
+   * Postgres column is `TIMESTAMP WITH TIME ZONE` (Sequelize's `DataType.DATE`
+   * maps to TIMESTAMPTZ — confusingly named; SQL `DATE` would be `DATEONLY`).
+   * The same column supports both daily and intraday cadences:
+   *
+   *   - Stocks: midnight UTC of the trading day (one row per security per day).
+   *   - Crypto: CoinGecko's `last_updated_at` from the batch fetch — the
+   *     moment their oracle updated the price. Hourly cron produces multiple
+   *     rows per day per coin; the unique (securityId, date) index naturally
+   *     dedupes consecutive runs that see the same upstream timestamp.
    */
-  @Attribute(DataTypes.DATEONLY)
+  @Attribute(DataTypes.DATE)
   @NotNull
-  declare date: string;
+  declare date: Date;
 
   /**
    * The closing price of the security on the specified date. Closing prices are typically used in

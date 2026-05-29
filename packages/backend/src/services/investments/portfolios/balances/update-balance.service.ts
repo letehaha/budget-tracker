@@ -10,7 +10,7 @@ import { Big } from 'big.js';
 
 interface UpdatePortfolioBalanceParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
   currencyCode: string;
   availableCashDelta?: string; // Amount to add/subtract from available cash
   totalCashDelta?: string; // Amount to add/subtract from total cash

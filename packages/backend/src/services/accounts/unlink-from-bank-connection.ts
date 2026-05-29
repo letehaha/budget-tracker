@@ -6,7 +6,7 @@ import Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UnlinkAccountFromBankConnectionPayload {
-  accountId: number;
+  accountId: string;
   userId: number;
 }
 

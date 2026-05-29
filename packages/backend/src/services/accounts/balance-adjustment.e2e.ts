@@ -1,4 +1,5 @@
 import { CATEGORY_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, asDecimal } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -72,7 +73,7 @@ describe('Balance Adjustment', () => {
 
   it('returns 404 when account does not belong to user', async () => {
     const res = await helpers.balanceAdjustment({
-      id: 999999,
+      id: generateRandomRecordId(),
       payload: { targetBalance: asDecimal(100) },
     });
 

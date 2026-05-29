@@ -1,10 +1,31 @@
-import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE, DEACTIVATION_REASON } from '@bt/shared/types';
 import { redisClient } from '@root/redis-client';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
 import { describe, expect, it } from 'vitest';
 
 import { REDIS_KEYS, SyncStatus } from './sync-status-tracker';
+
+/**
+ * Seed a deactivated connection by mutating the metadata directly on the DB
+ * row. Mirrors the state the auth-failure flow produces in production without
+ * having to wire up a 403 mock here.
+ */
+async function deactivateConnection({
+  connectionId,
+  deactivationReason,
+}: {
+  connectionId: string;
+  deactivationReason: string | null;
+}) {
+  const BankDataProviderConnections = (await import('@models/bank-data-provider-connections.model')).default;
+  const conn = (await BankDataProviderConnections.findByPk(connectionId))!;
+  const metadata = (conn.metadata ?? {}) as Record<string, unknown>;
+  await conn.update({
+    isActive: false,
+    metadata: { ...metadata, deactivationReason },
+  });
+}
 
 describe('Sync Flow E2E', () => {
   describe('Sync Status Tracking', () => {
@@ -408,6 +429,131 @@ describe('Sync Flow E2E', () => {
       const parsed = JSON.parse(completedStatus!);
       expect(parsed.status).toBe('completed');
       expect(parsed.completedAt).not.toBeNull();
+    });
+  });
+
+  describe('connectionsNeedingReauth', () => {
+    it('returns an empty list when no connections need reauth', async () => {
+      const response = await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.response.connectionsNeedingReauth).toEqual([]);
+    });
+
+    it('surfaces auth_failure-deactivated connections in the response', async () => {
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      await deactivateConnection({
+        connectionId: connectionResult.connectionId,
+        deactivationReason: DEACTIVATION_REASON.AUTH_FAILURE,
+      });
+
+      const response = await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.response.connectionsNeedingReauth).toHaveLength(1);
+
+      const reauth = response.body.response.connectionsNeedingReauth[0];
+      expect(reauth).toMatchObject({
+        connectionId: connectionResult.connectionId,
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        accountsCount: 1,
+      });
+      expect(typeof reauth.deactivatedAt).toBe('string');
+    });
+
+    it('does not surface manually-disconnected connections (no auth_failure marker)', async () => {
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      // Inactive but no deactivationReason set — represents a manual disconnect
+      await deactivateConnection({
+        connectionId: connectionResult.connectionId,
+        deactivationReason: null,
+      });
+
+      const response = await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.response.connectionsNeedingReauth).toEqual([]);
+    });
+
+    it('accountsCount only counts active accounts (archived ones excluded)', async () => {
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: externalAccounts.slice(0, 2).map((a: { externalId: string }) => a.externalId),
+        raw: true,
+      });
+
+      // Archive one of the two synced accounts
+      await helpers.updateAccount({
+        id: syncedAccounts[0]!.id,
+        payload: { status: ACCOUNT_STATUSES.archived },
+        raw: true,
+      });
+
+      await deactivateConnection({
+        connectionId: connectionResult.connectionId,
+        deactivationReason: DEACTIVATION_REASON.AUTH_FAILURE,
+      });
+
+      const response = await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.response.connectionsNeedingReauth).toHaveLength(1);
+      expect(response.body.response.connectionsNeedingReauth[0].accountsCount).toBe(1);
     });
   });
 });

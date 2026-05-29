@@ -1,35 +1,56 @@
+import { RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotAllowedError } from '@js/errors';
-import { logger } from '@js/utils';
+import { NotFoundError } from '@js/errors';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
-import Accounts from '@models/accounts.model';
+import { Op } from '@sequelize/core';
+import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 
 import { withTransaction } from '../common/with-transaction';
 
 export const addAccountToGroup = withTransaction(
-  async ({ accountId, groupId }: { accountId: number; groupId: number }): Promise<AccountGrouping> => {
-    const existingAccount = await findOrThrowNotFound({
-      query: Accounts.findByPk(accountId),
-      message: t({ key: 'accountGroups.accountNotFound' }),
+  async ({
+    accountId,
+    groupId,
+    userId,
+  }: {
+    accountId: string;
+    groupId: string;
+    userId: number;
+  }): Promise<AccountGrouping> => {
+    // Grouping is the caller's personal sidebar organization, not a write on the account
+    // itself — a `read` recipient may organize a shared account into their own group.
+    const access = await canUserAccessResource({
+      userId,
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: accountId,
+      requiredPermission: SHARE_PERMISSIONS.read,
     });
+    if (!access.granted) {
+      throw new NotFoundError({ message: t({ key: 'accountGroups.accountNotFound' }) });
+    }
 
-    const existingGroup = await findOrThrowNotFound({
-      query: AccountGroup.findByPk(groupId),
+    await findOrThrowNotFound({
+      query: AccountGroup.findOne({ where: { id: groupId, userId } }),
       message: t({ key: 'accountGroups.accountGroupNotFound' }),
     });
 
-    if (existingAccount.userId !== existingGroup.userId) {
-      logger.error('Tried to add account to a group with different userId in both.', {
-        accountId,
-        groupId,
-      });
-      throw new NotAllowedError({ message: t({ key: 'accountGroups.operationNotAllowed' }) });
-    }
+    // Scope the "single group per account" rule per-user: only drop existing groupings
+    // whose group belongs to the caller. Owner's grouping rows (different `userId` on
+    // `AccountGroup`) are untouched so each side organizes their account list independently.
+    const callerGroups = (await AccountGroup.findAll({
+      where: { userId },
+      attributes: ['id'],
+      raw: true,
+    })) as unknown as { id: string }[];
+    const callerGroupIds = callerGroups.map((g) => g.id);
 
-    // Remove all other account linkings
-    await AccountGrouping.destroy({ where: { accountId } });
+    if (callerGroupIds.length > 0) {
+      await AccountGrouping.destroy({
+        where: { accountId, groupId: { [Op.in]: callerGroupIds } },
+      });
+    }
 
     return AccountGrouping.create({ accountId, groupId });
   },

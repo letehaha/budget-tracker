@@ -190,7 +190,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/lib/ui/dialog';
-import { ChevronDownIcon, InfoIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, InfoIcon } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();

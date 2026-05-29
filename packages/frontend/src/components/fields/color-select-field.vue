@@ -4,7 +4,7 @@
       <label
         :class="
           cn(
-            'border-input bg-background ring-offset-background focus-within:ring-ring relative flex h-10 w-full cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-offset-2',
+            'border-input bg-input-background ring-offset-background focus-within:ring-ring relative flex h-10 w-full cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-offset-2',
           )
         "
       >

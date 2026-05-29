@@ -81,7 +81,7 @@ export async function addAccountToGroup<R extends boolean | undefined = undefine
   raw,
   accountId,
   groupId,
-}: Parameters<typeof accountGroupService.addAccountToGroup>[0] & {
+}: Omit<Parameters<typeof accountGroupService.addAccountToGroup>[0], 'userId'> & {
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof accountGroupService.addAccountToGroup>>, R>({

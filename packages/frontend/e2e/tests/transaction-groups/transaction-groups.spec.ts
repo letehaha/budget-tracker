@@ -1,28 +1,23 @@
 import { test, expect } from '@playwright/test';
 
-import { completeOnboarding, createAccount, createTransaction, createTransactionGroup } from '../../helpers/api-client';
+import {
+  completeOnboarding,
+  createAccount,
+  createTransaction,
+  createTransactionGroup,
+  extractId,
+} from '../../helpers/api-client';
 import { loginViaUI } from '../../helpers/auth';
 import { buildTestCredentials, signUpAndVerify } from '../../helpers/test-setup';
 
 const CURRENCY = 'USD';
 const creds = buildTestCredentials({ prefix: 'tg' });
 
-/** Extract entity ID from API response, handling `{ response: { id } }`, `{ response: [{ id }] }`, and `{ id }` shapes */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const extractId = (apiResult: any): number => {
-  const resp = apiResult.response;
-  const id = Array.isArray(resp) ? resp[0]?.id : (resp?.id ?? apiResult.id);
-  if (!id || id <= 0) {
-    throw new Error(`Failed to extract valid ID from API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
-  }
-  return id;
-};
-
-let accountId: number;
+let accountId: string;
 // Transaction IDs used across tests
-const txIds: number[] = [];
+const txIds: string[] = [];
 // Extra transactions for "add to existing group" tests
-const extraTxIds: number[] = [];
+const extraTxIds: string[] = [];
 
 let dataSeeded = false;
 
@@ -94,13 +89,13 @@ test.describe('Transaction Groups', () => {
     await checkboxes.nth(1).click();
     await checkboxes.nth(2).click();
 
-    // Open the Group popover (desktop)
+    // Open the Group dropdown (desktop)
     const groupButton = page.locator('button').filter({ hasText: /group/i }).first();
     await expect(groupButton).toBeVisible();
     await groupButton.click();
 
     // Click "Create New Group"
-    const createOption = page.locator('button').filter({ hasText: /create new group/i });
+    const createOption = page.getByRole('menuitem', { name: /create new group/i });
     await expect(createOption).toBeVisible();
     await createOption.click();
 
@@ -132,8 +127,9 @@ test.describe('Transaction Groups', () => {
     const groupRow = page.locator('.border-dashed').filter({ hasText: 'E2E Test Group' });
     await expect(groupRow).toBeVisible({ timeout: 10_000 });
 
-    // Should show "3" somewhere in the count text
-    await expect(groupRow.getByText('3')).toBeVisible();
+    // Match the count <p> specifically so we don't collide with dates that start with "3"
+    // (e.g. "30 Apr 2026", which previously caused a strict-mode locator violation).
+    await expect(groupRow.getByText('3 transactions')).toBeVisible();
   });
 
   // ─── 3. Click on group row opens group detail dialog ────────────────
@@ -253,13 +249,13 @@ test.describe('Transaction Groups', () => {
     // Need to find ungrouped transactions - pick the first available checkbox
     await checkboxes.nth(0).click();
 
-    // Open Group popover
+    // Open Group dropdown
     const groupButton = page.locator('button').filter({ hasText: /group/i }).first();
     await expect(groupButton).toBeVisible();
     await groupButton.click();
 
     // Click "Add to Existing Group"
-    const addOption = page.locator('button').filter({ hasText: /add to existing/i });
+    const addOption = page.getByRole('menuitem', { name: /add to existing/i });
     await expect(addOption).toBeVisible();
     await addOption.click();
 
@@ -516,13 +512,13 @@ test.describe('Transaction Groups', () => {
     const checkboxes = page.locator('[aria-haspopup="true"] label');
     await checkboxes.nth(0).click();
 
-    // Open Group popover
+    // Open Group dropdown
     const groupButton = page.locator('button').filter({ hasText: /group/i }).first();
     await expect(groupButton).toBeVisible();
     await groupButton.click();
 
     // "Create New Group" should be disabled when only 1 is selected
-    const createOption = page.locator('button').filter({ hasText: /create new group/i });
+    const createOption = page.getByRole('menuitem', { name: /create new group/i });
     await expect(createOption).toBeDisabled();
   });
 
@@ -538,13 +534,10 @@ test.describe('Transaction Groups', () => {
     const checkboxes = page.locator('[aria-haspopup="true"] label');
     await checkboxes.nth(0).click();
 
-    // Open Group popover > Add to existing
+    // Open Group dropdown > Add to existing
     const groupButton = page.locator('button').filter({ hasText: /group/i }).first();
     await groupButton.click();
-    await page
-      .locator('button')
-      .filter({ hasText: /add to existing/i })
-      .click();
+    await page.getByRole('menuitem', { name: /add to existing/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 5_000 });

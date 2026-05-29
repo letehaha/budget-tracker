@@ -32,6 +32,8 @@ interface ExecuteImportParams {
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
+  defaultAccountId?: string;
+  defaultCategoryId?: string;
 }
 
 /**
@@ -44,6 +46,8 @@ async function executeImportImpl({
   accountMapping,
   categoryMapping,
   skipDuplicateIndices,
+  defaultAccountId,
+  defaultCategoryId,
 }: ExecuteImportParams): Promise<ExecuteImportResponse> {
   const batchId = uuidv4();
   const importedAt = new Date();
@@ -77,6 +81,7 @@ async function executeImportImpl({
     userId,
     rowsToImport,
     accountMapping,
+    defaultAccountId,
   });
 
   // Create categories that need to be created
@@ -99,7 +104,7 @@ async function executeImportImpl({
 
   // Create transactions
   const errors: ImportError[] = [];
-  const newTransactionIds: number[] = [];
+  const newTransactionIds: string[] = [];
 
   for (const row of rowsToImport) {
     try {
@@ -112,7 +117,7 @@ async function executeImportImpl({
         continue;
       }
 
-      const categoryId = row.categoryName ? categoryNameToId.get(row.categoryName) : null;
+      const categoryId = row.categoryName ? categoryNameToId.get(row.categoryName) : defaultCategoryId;
 
       // Calculate refAmount
       // Note: row.amount is already in cents (from parseAmount in detect-duplicates)
@@ -185,14 +190,16 @@ interface CreateAccountsParams {
   userId: number;
   rowsToImport: ParsedTransactionRow[];
   accountMapping: AccountMappingConfig;
+  defaultAccountId?: string;
 }
 
 async function createAccountsIfNeeded({
   userId,
   rowsToImport,
   accountMapping,
-}: CreateAccountsParams): Promise<Map<string, number>> {
-  const accountNameToId = new Map<string, number>();
+  defaultAccountId,
+}: CreateAccountsParams): Promise<Map<string, string>> {
+  const accountNameToId = new Map<string, string>();
 
   // Get unique account names from rows
   const uniqueAccountNames = new Set(rowsToImport.map((r) => r.accountName));
@@ -201,6 +208,19 @@ async function createAccountsIfNeeded({
     const mapping = accountMapping[accountName];
 
     if (!mapping) {
+      // Fallback: when the user picked "single existing account" for the whole import,
+      // accountName is empty for every row and per-name mapping is empty. Use defaultAccountId.
+      if (defaultAccountId !== undefined) {
+        const account = await Accounts.getAccountById({ userId, id: defaultAccountId });
+        if (!account) {
+          throw new ValidationError({
+            message: `Account with ID ${defaultAccountId} not found`,
+          });
+        }
+        accountNameToId.set(accountName, account.id);
+        continue;
+      }
+
       throw new ValidationError({
         message: `No mapping found for account "${accountName}"`,
       });
@@ -266,8 +286,8 @@ async function createCategoriesIfNeeded({
   userId,
   rowsToImport,
   categoryMapping,
-}: CreateCategoriesParams): Promise<Map<string, number>> {
-  const categoryNameToId = new Map<string, number>();
+}: CreateCategoriesParams): Promise<Map<string, string>> {
+  const categoryNameToId = new Map<string, string>();
 
   // Get unique category names from rows (excluding empty/null)
   const uniqueCategoryNames = new Set(rowsToImport.filter((r) => r.categoryName).map((r) => r.categoryName!));

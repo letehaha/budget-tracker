@@ -1,15 +1,30 @@
+import type { RecordId } from '@bt/shared/types';
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   BUDGET_STATUSES,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import {
+  ASSET_CLASS,
+  INVESTMENT_TRANSACTION_CATEGORY,
+  PORTFOLIO_TYPE,
+  SECURITY_PROVIDER,
+} from '@bt/shared/types/investments';
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
+import { connection } from '@models/index';
+import Holdings from '@models/investments/holdings.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import PortfolioBalances from '@models/investments/portfolio-balances.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import Subscriptions from '@models/subscriptions.model';
 import UserSettings, { DEFAULT_SETTINGS, type SettingsSchema } from '@models/user-settings.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
@@ -18,7 +33,8 @@ import { createBudget } from '@services/budgets/create-budget';
 import * as categoriesService from '@services/categories.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
-import { format, subMonths, setDate } from 'date-fns';
+import { Big } from 'big.js';
+import { format, setDate, subDays, subMonths } from 'date-fns';
 import { v7 as uuidv7 } from 'uuid';
 
 // Demo data configuration based on PRD
@@ -69,7 +85,7 @@ export async function setupCurrencies({ userId }: { userId: number }): Promise<v
   }
 }
 
-export async function createCategories({ userId }: { userId: number }): Promise<Map<string, number>> {
+export async function createCategories({ userId }: { userId: number }): Promise<Map<string, string>> {
   const locale = 'en';
   const translatedCategories = getTranslatedCategories({ locale });
 
@@ -78,13 +94,25 @@ export async function createCategories({ userId }: { userId: number }): Promise<
     name: item.name,
     type: item.type,
     color: item.color,
+    key: item.key,
     userId,
   }));
+
+  // The column allows NULL (user-created custom categories don't have a key), but the
+  // seed path always should guard against future drift in `getTranslatedCategories`
+  // that would silently produce keyless defaults. Log to Sentry in prod and continue;
+  // throw in dev/test so bugs surface loudly during development.
+  const mainMissingKey = defaultCategories.find((c) => !c.key);
+  if (mainMissingKey) {
+    const message = `Seed integrity bug: default category "${mainMissingKey.name}" is missing 'key'`;
+    logger.error(message);
+    if (process.env.NODE_ENV !== 'production') throw new Error(message);
+  }
 
   const categories = await categoriesService.bulkCreate({ data: defaultCategories }, { returning: true });
 
   // Build map of category key -> id
-  const categoryMap = new Map<string, number>();
+  const categoryMap = new Map<string, RecordId>();
   translatedCategories.main.forEach((item, index) => {
     const createdCategory = categories[index];
     if (createdCategory) {
@@ -95,10 +123,11 @@ export async function createCategories({ userId }: { userId: number }): Promise<
   // Create subcategories
   const subcats: Array<{
     name: string;
-    parentId: number;
+    parentId: string;
     color: string;
     userId: number;
     type: string;
+    key: string;
   }> = [];
 
   translatedCategories.subcategories.forEach((subcat) => {
@@ -113,10 +142,18 @@ export async function createCategories({ userId }: { userId: number }): Promise<
           parentId,
           color: parentCategory.color,
           userId,
+          key: subItem.key,
         });
       });
     }
   });
+
+  const subMissingKey = subcats.find((s) => !s.key);
+  if (subMissingKey) {
+    const message = `Seed integrity bug: default subcategory "${subMissingKey.name}" is missing 'key'`;
+    logger.error(message);
+    if (process.env.NODE_ENV !== 'production') throw new Error(message);
+  }
 
   if (subcats.length > 0) {
     const createdSubcats = await categoriesService.bulkCreate({ data: subcats }, { returning: true });
@@ -191,7 +228,7 @@ export async function createBudgets({
   categoryMap,
 }: {
   userId: number;
-  categoryMap: Map<string, number>;
+  categoryMap: Map<string, string>;
 }): Promise<void> {
   // Create budgets based on config
   for (const budgetConfig of DEMO_CONFIG.budgets) {
@@ -218,8 +255,8 @@ export async function createSubscriptions({
   referenceDate,
 }: {
   userId: number;
-  accountId: number;
-  categoryId: number | null;
+  accountId: string;
+  categoryId: string | null;
   referenceDate: Date;
 }): Promise<void> {
   const startBase = subMonths(referenceDate, 8);
@@ -250,23 +287,23 @@ export async function setupDashboardSettings({
   categoryMap,
 }: {
   userId: number;
-  categoryMap: Map<string, number>;
+  categoryMap: Map<string, string>;
 }): Promise<void> {
   const selectedCategoryIds = DEMO_WATCHLIST_CATEGORY_KEYS.map((key) => categoryMap.get(key)).filter(
-    (id): id is number => id !== undefined,
+    (id): id is string => id !== undefined,
   );
 
   const settings: SettingsSchema = {
     ...DEFAULT_SETTINGS,
     dashboard: {
       widgets: [
-        { widgetId: 'balance-trend', colSpan: 1, rowSpan: 1 },
+        { widgetId: 'balance-trend', colSpan: 2, rowSpan: 1 },
+        { widgetId: 'latest-records', colSpan: 1, rowSpan: 1 },
         { widgetId: 'cash-flow', colSpan: 1, rowSpan: 1 },
+        { widgetId: 'spending-categories', colSpan: 1, rowSpan: 1 },
         { widgetId: 'category-spending-tracker', colSpan: 1, rowSpan: 1, config: { selectedCategoryIds } },
-        { widgetId: 'latest-records', colSpan: 1, rowSpan: 2 },
         { widgetId: 'credit-utilization', colSpan: 1, rowSpan: 1 },
         { widgetId: 'subscriptions-overview', colSpan: 1, rowSpan: 1 },
-        { widgetId: 'spending-categories', colSpan: 1, rowSpan: 1 },
       ],
     },
   };
@@ -277,4 +314,188 @@ export async function setupDashboardSettings({
   });
 
   logger.info(`Configured demo dashboard with spending watchlist (${selectedCategoryIds.length} categories)`);
+}
+
+interface DemoSecurityConfig {
+  symbol: string;
+  name: string;
+  assetClass: ASSET_CLASS;
+  currencyCode: string;
+  exchangeAcronym: string;
+  exchangeMic: string;
+  exchangeName: string;
+  currentPrice: number;
+  purchasePrice: number;
+  quantity: number;
+  purchaseDaysAgo: number;
+}
+
+const DEMO_SECURITIES: DemoSecurityConfig[] = [
+  {
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    assetClass: ASSET_CLASS.stocks,
+    currencyCode: 'USD',
+    exchangeAcronym: 'NASDAQ',
+    exchangeMic: 'XNAS',
+    exchangeName: 'NASDAQ',
+    currentPrice: 185.5,
+    purchasePrice: 150.0,
+    quantity: 10,
+    purchaseDaysAgo: 120,
+  },
+  {
+    symbol: 'VOO',
+    name: 'Vanguard S&P 500 ETF',
+    assetClass: ASSET_CLASS.stocks,
+    currencyCode: 'USD',
+    exchangeAcronym: 'NYSEARCA',
+    exchangeMic: 'ARCX',
+    exchangeName: 'NYSE Arca',
+    currentPrice: 480.25,
+    purchasePrice: 410.0,
+    quantity: 5,
+    purchaseDaysAgo: 180,
+  },
+  {
+    symbol: 'MSFT',
+    name: 'Microsoft Corporation',
+    assetClass: ASSET_CLASS.stocks,
+    currencyCode: 'USD',
+    exchangeAcronym: 'NASDAQ',
+    exchangeMic: 'XNAS',
+    exchangeName: 'NASDAQ',
+    currentPrice: 415.75,
+    purchasePrice: 370.0,
+    quantity: 8,
+    purchaseDaysAgo: 90,
+  },
+];
+
+const DEMO_INVESTMENT_STARTING_CASH = 5000;
+
+export async function setupInvestments({
+  userId,
+  referenceDate,
+}: {
+  userId: number;
+  referenceDate: Date;
+}): Promise<void> {
+  const transaction = await connection.sequelize.transaction();
+
+  try {
+    const portfolio = await Portfolios.create(
+      {
+        userId,
+        name: 'Growth Portfolio',
+        portfolioType: PORTFOLIO_TYPE.investment,
+        description: 'Demo portfolio of US equities and ETFs',
+        isEnabled: true,
+      },
+      { transaction },
+    );
+
+    const pricingDate = format(referenceDate, 'yyyy-MM-dd');
+
+    for (const sec of DEMO_SECURITIES) {
+      const [security, created] = await Securities.findOrCreate({
+        where: { providerName: SECURITY_PROVIDER.yahoo, providerSymbol: sec.symbol },
+        defaults: {
+          symbol: sec.symbol,
+          providerSymbol: sec.symbol,
+          name: sec.name,
+          assetClass: sec.assetClass,
+          currencyCode: sec.currencyCode,
+          providerName: SECURITY_PROVIDER.yahoo,
+          exchangeAcronym: sec.exchangeAcronym,
+          exchangeMic: sec.exchangeMic,
+          exchangeName: sec.exchangeName,
+          pricingLastSyncedAt: referenceDate,
+          isBrokerageCash: false,
+        },
+        transaction,
+      });
+
+      // Securities is a shared reference table. If a row for the same symbol
+      // already exists (e.g. seeded by a real user sync), findOrCreate silently
+      // reuses it and `defaults` are not applied. Surface metadata drift so
+      // demo inconsistencies are at least visible in logs.
+      if (!created && security.exchangeMic !== sec.exchangeMic) {
+        logger.warn(
+          `Demo security ${sec.symbol}: existing exchangeMic=${security.exchangeMic} differs from demo config exchangeMic=${sec.exchangeMic}. Using existing row.`,
+        );
+      }
+
+      await SecurityPricing.findOrCreate({
+        where: { securityId: security.id, date: pricingDate },
+        defaults: {
+          securityId: security.id,
+          date: pricingDate,
+          priceClose: sec.currentPrice.toFixed(10),
+          priceAsOf: referenceDate,
+          source: 'demo',
+        },
+        transaction,
+      });
+
+      const quantityStr = new Big(sec.quantity).toFixed(10);
+      const costBasisStr = new Big(sec.purchasePrice).times(sec.quantity).toFixed(10);
+
+      await Holdings.create(
+        {
+          portfolioId: portfolio.id,
+          securityId: security.id,
+          currencyCode: sec.currencyCode,
+          quantity: quantityStr,
+          costBasis: costBasisStr,
+          refCostBasis: costBasisStr,
+          excluded: false,
+        },
+        { transaction },
+      );
+
+      const buyDate = format(subDays(referenceDate, sec.purchaseDaysAgo), 'yyyy-MM-dd');
+      await InvestmentTransaction.create(
+        {
+          portfolioId: portfolio.id,
+          securityId: security.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          date: buyDate,
+          name: `Bought ${sec.quantity} shares of ${sec.symbol}`,
+          amount: costBasisStr,
+          refAmount: costBasisStr,
+          fees: '0',
+          refFees: '0',
+          quantity: quantityStr,
+          price: sec.purchasePrice.toFixed(10),
+          refPrice: sec.purchasePrice.toFixed(10),
+          currencyCode: sec.currencyCode,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        },
+        { transaction },
+      );
+    }
+
+    const remainingCash = new Big(DEMO_INVESTMENT_STARTING_CASH).toFixed(10);
+
+    // Demo base currency is USD, so ref amounts mirror direct amounts 1:1.
+    await PortfolioBalances.create(
+      {
+        portfolioId: portfolio.id,
+        currencyCode: 'USD',
+        availableCash: remainingCash,
+        totalCash: remainingCash,
+        refAvailableCash: remainingCash,
+        refTotalCash: remainingCash,
+      },
+      { transaction },
+    );
+
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+
+  logger.info(`Created demo portfolio with ${DEMO_SECURITIES.length} holdings for user ${userId}`);
 }

@@ -7,7 +7,7 @@ import { removeAccountFromGroup } from '@services/account-groups/remove-account-
 import { withTransaction } from '../common/with-transaction';
 
 export const deleteAccountGroup = withTransaction(
-  async ({ groupId, userId }: { groupId: number; userId: number }): Promise<void> => {
+  async ({ groupId, userId }: { groupId: string; userId: number }): Promise<void> => {
     try {
       const group = await AccountGroup.findOne({ where: { id: groupId, userId } });
 
@@ -26,7 +26,7 @@ export const deleteAccountGroup = withTransaction(
 
       if (groupAccountMappings.length > 0) {
         const accountIds = groupAccountMappings.map((mapping) => mapping.accountId);
-        await removeAccountFromGroup({ accountIds, groupId });
+        await removeAccountFromGroup({ accountIds, groupId, userId });
       }
 
       await group.destroy();

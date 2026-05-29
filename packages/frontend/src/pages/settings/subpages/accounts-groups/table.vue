@@ -16,7 +16,7 @@ import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
 import { AccountModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ChevronRight, EditIcon, SaveIcon, Trash2Icon, UngroupIcon } from 'lucide-vue-next';
+import { ChevronRight, EditIcon, SaveIcon, Trash2Icon, UngroupIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -31,7 +31,7 @@ const openNameEditor = ref<Record<number, boolean>>({});
 const toggledListItem = ref<Record<number, boolean>>({});
 const deletedElements = ref<AccountModel[] | null>(null);
 const queryClient = useQueryClient();
-const toggledAccountId = ref<number>();
+const toggledAccountId = ref<string>();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const { addSuccessNotification } = useNotificationCenter();
@@ -105,7 +105,6 @@ const updateGroup = async (group: AccountGroups, index: number) => {
 
 const deleteAccount = async (group: AccountGroups) => {
   await deleteAccountMutation({
-    userId: group.userId,
     groupId: group.id,
   });
 };
@@ -116,7 +115,7 @@ const onRowClick = (group: AccountGroups, index: number) => {
   }
 };
 
-const unlinkAccountFromGroup = (id: number) => {
+const unlinkAccountFromGroup = (id: string) => {
   toggledAccountId.value = id;
   if (selectedGroup.value) {
     unlinkAccount({ accountIds: [id], groupId: selectedGroup.value.id });

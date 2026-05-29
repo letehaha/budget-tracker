@@ -1,22 +1,37 @@
 <script setup lang="ts">
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import DeleteInvestmentTransactionDialog from '@/components/dialogs/delete-investment-transaction-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { useFormatCurrency } from '@/composable/formatters';
+import { toLocalNumber } from '@/js/helpers';
 import type { InvestmentTransactionModel } from '@bt/shared/types';
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { format } from 'date-fns';
-import { PlusIcon, Trash2Icon } from 'lucide-vue-next';
+import { PlusIcon, Trash2Icon } from '@lucide/vue';
+import { computed, ref, toRef } from 'vue';
 
 const props = defineProps<{
   transactions: InvestmentTransactionModel[];
-  total: number;
-  limit: number;
-  page: number;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  fetchNextPage: () => unknown;
 }>();
 
-const emit = defineEmits(['page-change', 'add-transaction']);
+defineEmits<{ (e: 'add-transaction'): void }>();
+
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const formatDate = (date: string) => format(new Date(date), 'dd/MM/yyyy');
+
+const formatQuantity = (quantity: string | null, assetClass: ASSET_CLASS | undefined) => {
+  if (quantity == null) return '';
+  const isCrypto = assetClass === ASSET_CLASS.crypto;
+  return toLocalNumber(quantity, {
+    minimumFractionDigits: isCrypto ? 0 : 2,
+    maximumFractionDigits: isCrypto ? 5 : 2,
+  });
+};
 
 const getCategoryClasses = (category: INVESTMENT_TRANSACTION_CATEGORY) => {
   const map: Record<INVESTMENT_TRANSACTION_CATEGORY, string> = {
@@ -31,59 +46,143 @@ const getCategoryClasses = (category: INVESTMENT_TRANSACTION_CATEGORY) => {
   };
   return map[category] ?? 'bg-slate-500/10 text-slate-600';
 };
+
+const itemsRef = computed(() => props.transactions);
+const hasNextPageRef = toRef(() => props.hasNextPage);
+const isFetchingNextPageRef = toRef(() => props.isFetchingNextPage);
+
+const parentRef = ref<HTMLElement | null>(null);
+
+const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransactionModel>({
+  items: itemsRef,
+  hasNextPage: hasNextPageRef,
+  isFetchingNextPage: isFetchingNextPageRef,
+  fetchNextPage: async () => props.fetchNextPage(),
+  parentRef,
+  estimateSize: () => 36,
+  overscan: 8,
+  getItemKey: (index) => itemsRef.value[index]?.id ?? index,
+});
 </script>
 
 <template>
   <div class="p-4">
     <div class="mb-3 flex items-center justify-between">
       <h4 class="text-sm font-semibold">{{ $t('portfolioDetail.transactionsList.title') }}</h4>
-      <UiButton variant="outline" size="sm" @click="emit('add-transaction')">
+      <UiButton variant="outline" size="sm" @click="$emit('add-transaction')">
         <PlusIcon class="mr-1.5 size-3.5" />
         {{ $t('portfolioDetail.transactionsList.addButton') }}
       </UiButton>
     </div>
-    <table class="w-full text-sm">
-      <thead class="bg-muted text-muted-foreground">
-        <tr class="text-xs font-medium tracking-wider uppercase">
-          <th class="px-3 py-2 text-left">{{ $t('portfolioDetail.transactionsList.headers.date') }}</th>
-          <th class="px-3 py-2 text-left">{{ $t('portfolioDetail.transactionsList.headers.type') }}</th>
-          <th class="px-3 py-2 text-right">{{ $t('portfolioDetail.transactionsList.headers.quantity') }}</th>
-          <th class="px-3 py-2 text-right">{{ $t('portfolioDetail.transactionsList.headers.price') }}</th>
-          <th class="px-3 py-2 text-right">{{ $t('portfolioDetail.transactionsList.headers.fees') }}</th>
-          <th class="px-3 py-2 text-right">{{ $t('portfolioDetail.transactionsList.headers.amount') }}</th>
-          <th class="w-10 px-3 py-2"></th>
-        </tr>
-      </thead>
-      <tbody class="divide-border divide-y">
-        <tr v-for="tx in props.transactions" :key="tx.id" class="hover:bg-muted/30 transition-colors">
-          <td class="px-3 py-1.5 tabular-nums">{{ formatDate(tx.date) }}</td>
-          <td class="px-3 py-1.5">
-            <span
-              :class="getCategoryClasses(tx.category)"
-              class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+
+    <!-- Sticky-header grid table; virtualized rows below. Max height capped to viewport. -->
+    <div class="bg-muted text-muted-foreground rounded-t-md text-xs font-medium tracking-wider uppercase">
+      <div
+        class="grid items-center gap-2 px-3 py-2"
+        style="grid-template-columns: 6rem 7rem 1fr 1fr 1fr 1fr 1fr 2.25rem"
+      >
+        <div class="text-left">{{ $t('portfolioDetail.transactionsList.headers.date') }}</div>
+        <div class="text-left">{{ $t('portfolioDetail.transactionsList.headers.type') }}</div>
+        <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.quantity') }}</div>
+        <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.price') }}</div>
+        <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.fees') }}</div>
+        <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.amount') }}</div>
+        <div class="text-right">{{ $t('portfolioDetail.transactionsList.headers.note') }}</div>
+        <div></div>
+      </div>
+    </div>
+
+    <div
+      ref="parentRef"
+      class="divide-border relative max-h-[min(60vh,540px)] divide-y overflow-y-auto rounded-b-md border-x border-b text-sm"
+    >
+      <div :style="{ height: `${totalSize}px`, position: 'relative', width: '100%' }">
+        <div
+          v-for="virtualRow in virtualRows"
+          :key="String(virtualRow.key)"
+          class="absolute top-0 left-0 w-full"
+          :style="{ transform: `translateY(${virtualRow.start}px)` }"
+        >
+          <template v-if="transactions[virtualRow.index]">
+            <div
+              class="hover:bg-muted/30 grid items-center gap-2 px-3 py-1.5 transition-colors"
+              style="grid-template-columns: 6rem 7rem 1fr 1fr 1fr 1fr 1fr 2.25rem"
             >
-              {{ $t(`portfolioDetail.transactionsList.categories.${tx.category}`) }}
-            </span>
-          </td>
-          <td class="px-3 py-1.5 text-right tabular-nums">{{ parseFloat(tx.quantity as string).toFixed(2) }}</td>
-          <td class="px-3 py-1.5 text-right tabular-nums">
-            {{ formatAmountByCurrencyCode(parseFloat(tx.price as string), tx.security!.currencyCode) }}
-          </td>
-          <td class="px-3 py-1.5 text-right tabular-nums">
-            {{ formatAmountByCurrencyCode(parseFloat(tx.fees as string), tx.security!.currencyCode) }}
-          </td>
-          <td class="px-3 py-1.5 text-right font-medium tabular-nums">
-            {{ formatAmountByCurrencyCode(parseFloat(tx.amount as string), tx.security!.currencyCode) }}
-          </td>
-          <td class="px-3 py-1.5 text-center">
-            <DeleteInvestmentTransactionDialog :transaction-id="tx.id">
-              <UiButton variant="ghost-destructive" size="icon" class="size-7">
-                <Trash2Icon class="size-3.5" />
-              </UiButton>
-            </DeleteInvestmentTransactionDialog>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+              <div class="tabular-nums">{{ formatDate(transactions[virtualRow.index]!.date) }}</div>
+              <div>
+                <span
+                  :class="getCategoryClasses(transactions[virtualRow.index]!.category)"
+                  class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                >
+                  {{ $t(`portfolioDetail.transactionsList.categories.${transactions[virtualRow.index]!.category}`) }}
+                </span>
+              </div>
+              <div class="text-right tabular-nums">
+                {{
+                  formatQuantity(
+                    transactions[virtualRow.index]!.quantity,
+                    transactions[virtualRow.index]!.security?.assetClass,
+                  )
+                }}
+              </div>
+              <div class="text-right tabular-nums">
+                {{
+                  formatAmountByCurrencyCode(
+                    parseFloat(transactions[virtualRow.index]!.price as string),
+                    transactions[virtualRow.index]!.security!.currencyCode,
+                  )
+                }}
+              </div>
+              <div class="text-right tabular-nums">
+                {{
+                  formatAmountByCurrencyCode(
+                    parseFloat(transactions[virtualRow.index]!.fees as string),
+                    transactions[virtualRow.index]!.security!.currencyCode,
+                  )
+                }}
+              </div>
+              <div class="text-right font-medium tabular-nums">
+                {{
+                  formatAmountByCurrencyCode(
+                    parseFloat(transactions[virtualRow.index]!.amount as string),
+                    transactions[virtualRow.index]!.security!.currencyCode,
+                  )
+                }}
+              </div>
+              <div class="min-w-0">
+                <ResponsiveTooltip
+                  v-if="transactions[virtualRow.index]!.name"
+                  :content="transactions[virtualRow.index]!.name!"
+                  content-class-name="max-w-[min(400px,100vw)] whitespace-normal break-words"
+                >
+                  <span class="text-muted-foreground block cursor-default truncate whitespace-nowrap">
+                    {{ transactions[virtualRow.index]!.name }}
+                  </span>
+                </ResponsiveTooltip>
+              </div>
+              <div class="text-center">
+                <DesktopOnlyTooltip :content="$t('portfolioDetail.transactionsList.deleteTransaction.tooltip')">
+                  <span class="inline-flex">
+                    <DeleteInvestmentTransactionDialog :transaction-id="transactions[virtualRow.index]!.id">
+                      <UiButton
+                        variant="ghost-destructive"
+                        size="icon"
+                        class="size-7"
+                        :aria-label="$t('portfolioDetail.transactionsList.deleteTransaction.tooltip')"
+                      >
+                        <Trash2Icon class="size-3.5" />
+                      </UiButton>
+                    </DeleteInvestmentTransactionDialog>
+                  </span>
+                </DesktopOnlyTooltip>
+              </div>
+            </div>
+          </template>
+          <div v-else class="text-muted-foreground flex items-center justify-center px-3 py-2 text-xs">
+            {{ $t('portfolioDetail.transactionsList.loadingMore') }}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

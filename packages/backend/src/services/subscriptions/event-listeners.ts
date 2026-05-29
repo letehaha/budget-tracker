@@ -8,7 +8,7 @@ import { matchTransactionToSubscriptions } from './matching-engine';
 const DEBOUNCE_DELAY_MS = 5_000;
 const MAX_WAIT_MS = 15_000;
 
-const pendingByUser = new Map<number, Set<number>>();
+const pendingByUser = new Map<number, Set<string>>();
 
 const processMatching = debounce(
   async () => {
@@ -52,7 +52,7 @@ function handleTransactionsSynced(payload: TransactionsSyncedPayload): void {
 
   let userTxIds = pendingByUser.get(userId);
   if (!userTxIds) {
-    userTxIds = new Set<number>();
+    userTxIds = new Set<string>();
     pendingByUser.set(userId, userTxIds);
   }
 

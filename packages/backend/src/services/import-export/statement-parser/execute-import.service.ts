@@ -24,7 +24,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface ExecuteImportParams {
   userId: number;
-  accountId: number;
+  accountId: string;
   transactions: ExtractedTransaction[];
   skipIndices: number[];
 }
@@ -76,7 +76,7 @@ async function executeImportImpl({
 
   // Create transactions
   const errors: StatementImportError[] = [];
-  const newTransactionIds: number[] = [];
+  const newTransactionIds: string[] = [];
 
   for (let i = 0; i < transactions.length; i++) {
     // Skip if in skip list

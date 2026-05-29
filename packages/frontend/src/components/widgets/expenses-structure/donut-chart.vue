@@ -39,10 +39,10 @@
 <script lang="ts" setup>
 import Button from '@/components/lib/ui/button/Button.vue';
 import { useFormatCurrency } from '@/composable';
-import { useMediaQuery } from '@vueuse/core';
+import { useMediaQuery, useResizeObserver } from '@vueuse/core';
 import * as d3 from 'd3';
-import { ExternalLinkIcon } from 'lucide-vue-next';
-import { nextTick, onUnmounted, reactive, ref, watch } from 'vue';
+import { ExternalLinkIcon } from '@lucide/vue';
+import { nextTick, reactive, ref, watch } from 'vue';
 
 import type { ChartDataItem } from './use-expenses-structure-data';
 
@@ -52,7 +52,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  'category-click': [payload: { categoryId: number }];
+  'category-click': [payload: { categoryId: string }];
 }>();
 
 const { formatBaseCurrency } = useFormatCurrency();
@@ -60,7 +60,7 @@ const isTouch = useMediaQuery('(pointer: coarse)');
 
 const chartContainerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
-const selectedCategoryId = ref<number | null>(null);
+const selectedCategoryId = ref<string | null>(null);
 
 const centerLabel = reactive({
   name: '',
@@ -157,28 +157,13 @@ watch(selectedCategoryId, (newId) => {
   }
 });
 
-// ResizeObserver for responsive chart
-let resizeObserver: ResizeObserver | null = null;
-
-const setupResizeObserver = () => {
-  if (resizeObserver) resizeObserver.disconnect();
-
-  if (chartContainerRef.value) {
-    resizeObserver = new ResizeObserver(() => renderChart());
-    resizeObserver.observe(chartContainerRef.value);
-  }
-};
-
-onUnmounted(() => {
-  if (resizeObserver) resizeObserver.disconnect();
-});
+useResizeObserver(chartContainerRef, renderChart);
 
 watch(
   [() => props.data, chartContainerRef],
   async ([newData, container]) => {
     if (newData.length > 0 && container) {
       await nextTick();
-      setupResizeObserver();
       renderChart();
     }
   },

@@ -31,7 +31,7 @@ const bodyZodSchema = z
     transferNature: z.nativeEnum(TRANSACTION_TRANSFER_NATURE).optional(),
     refundedByTxIds: z.array(recordId()).nullish(),
     refundsTxId: recordId().nullish(),
-    refundsSplitId: z.string().uuid().nullish(),
+    refundsSplitId: recordId().nullish(),
     splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').nullish(),
     tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').nullish(),
   })
@@ -88,9 +88,7 @@ const bodyZodSchema = z
   );
 
 const paramsZodSchema = z.object({
-  id: z.string().refine((val) => !isNaN(Number(val)), {
-    message: 'ID must be a valid number',
-  }),
+  id: z.string().uuid({ message: 'ID must be a valid UUID' }),
 });
 
 const schema = z.object({
@@ -129,7 +127,7 @@ export default createController(schema, async ({ user, params, body }) => {
   }));
 
   const transactions = await transactionsService.updateTransaction({
-    id: parseInt(id),
+    id,
     ...removeUndefinedKeys({
       amount: amountAsMoney,
       destinationAmount: destinationAmountAsMoney,

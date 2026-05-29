@@ -2,6 +2,7 @@ import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
 
 import { AlphaVantageDataProvider } from './alphavantage-provider';
 import { BaseSecurityDataProvider } from './base-provider';
+import { CoinGeckoDataProvider } from './coingecko-provider';
 import { CompositeDataProvider } from './composite-provider';
 import { FmpDataProvider } from './fmp-provider';
 import { PolygonDataProvider } from './polygon-provider';
@@ -47,11 +48,20 @@ class DataProviderFactory {
         return new YahooDataProvider();
       }
 
+      case SECURITY_PROVIDER.coingecko: {
+        const apiKey = process.env.COINGECKO_API_KEY as string;
+        if (!apiKey) {
+          throw new Error('CoinGecko API key not configured');
+        }
+        return new CoinGeckoDataProvider({ apiKey });
+      }
+
       case SECURITY_PROVIDER.composite: {
         return new CompositeDataProvider({
           fmpApiKey: process.env.FMP_API_KEY,
           polygonApiKey: process.env.POLYGON_API_KEY,
           alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY,
+          coingeckoApiKey: process.env.COINGECKO_API_KEY,
           yahooEnabled: process.env.YAHOO_FINANCE_ENABLED !== 'false',
         });
       }

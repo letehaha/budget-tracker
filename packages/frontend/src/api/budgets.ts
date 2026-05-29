@@ -4,14 +4,14 @@ import { BudgetModel, endpointsTypes } from '@bt/shared/types';
 interface editBudgetParamsParams {
   name?: string;
   limitAmount?: number;
-  categoryIds?: number[];
+  categoryIds?: string[];
 }
 
 export const loadSystemBudgets = async ({ status }: { status?: string } = {}): Promise<BudgetModel[]> => {
   return api.get('/budgets', status ? { status } : undefined);
 };
 
-export const loadBudgetById = async (id: number): Promise<BudgetModel> => {
+export const loadBudgetById = async (id: string): Promise<BudgetModel> => {
   return api.get(`/budgets/${id}`);
 };
 
@@ -23,24 +23,24 @@ export const createBudget = async (payload: Omit<BudgetModel, 'id' | 'userId'>):
   return api.post('/budgets', params);
 };
 
-export const deleteBudget = async (budgetId: number) => api.delete(`/budgets/${budgetId}`);
+export const deleteBudget = async (budgetId: string) => api.delete(`/budgets/${budgetId}`);
 
-export const archiveBudget = async ({ budgetId, isArchived }: { budgetId: number; isArchived: boolean }) =>
+export const archiveBudget = async ({ budgetId, isArchived }: { budgetId: string; isArchived: boolean }) =>
   api.patch(`/budgets/${budgetId}/archive`, { isArchived });
 
-export const editBudget = async ({ budgetId, payload }: { budgetId: number; payload: editBudgetParamsParams }) => {
+export const editBudget = async ({ budgetId, payload }: { budgetId: string; payload: editBudgetParamsParams }) => {
   await api.put(`/budgets/${budgetId}`, payload);
 };
 
-export const addTransactionsToBudget = async (budgetId: number, params: Record<string, unknown>) =>
+export const addTransactionsToBudget = async (budgetId: string, params: Record<string, unknown>) =>
   api.post(`/budgets/${budgetId}/transactions`, params);
 
 export const removeTransactionsFromBudget = async ({
   budgetId,
   payload,
 }: {
-  budgetId: number;
-  payload: { transactionIds: number[] };
+  budgetId: string;
+  payload: { transactionIds: string[] };
 }) => api.delete(`/budgets/${budgetId}/transactions`, { data: payload });
 
 export interface StatsResponse {
@@ -55,21 +55,21 @@ export interface StatsResponse {
   };
 }
 
-export const loadBudgetStats = async ({ budgetId }: { budgetId: number }): Promise<StatsResponse> => {
+export const loadBudgetStats = async ({ budgetId }: { budgetId: string }): Promise<StatsResponse> => {
   return api.get(`/budgets/${budgetId}/stats`);
 };
 
 export interface CategoryBudgetTransaction {
-  id: number;
+  id: string;
   time: string;
   transactionType: 'income' | 'expense';
   refAmount: number;
   amount: number;
   note: string | null;
-  categoryId: number | null;
-  accountId: number;
+  categoryId: string | null;
+  accountId: string;
   effectiveCategory?: {
-    id: number;
+    id: string;
     name: string;
     color: string;
   };
@@ -86,7 +86,7 @@ export const loadCategoryBudgetTransactions = async ({
   from = 0,
   limit = 50,
 }: {
-  budgetId: number;
+  budgetId: string;
   from?: number;
   limit?: number;
 }): Promise<CategoryBudgetTransactionsResponse> => {
@@ -96,7 +96,7 @@ export const loadCategoryBudgetTransactions = async ({
 export const loadBudgetSpendingStats = async ({
   budgetId,
 }: {
-  budgetId: number;
+  budgetId: string;
 }): Promise<endpointsTypes.BudgetSpendingStatsResponse> => {
   return api.get(`/budgets/${budgetId}/spending-stats`);
 };

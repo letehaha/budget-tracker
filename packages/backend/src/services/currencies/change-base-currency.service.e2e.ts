@@ -872,7 +872,7 @@ describe('Change Base Currency', () => {
       });
       const combinedData = helpers.extractResponse(combinedBalanceHistory);
       const accountBalances = combinedData.filter(
-        (b: { accountId: number }) => b.accountId === accountWithInitialBalance.id,
+        (b: { accountId: string }) => b.accountId === accountWithInitialBalance.id,
       );
       expect(accountBalances.length).toBeGreaterThan(0);
     });

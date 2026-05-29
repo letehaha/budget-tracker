@@ -14,8 +14,8 @@ interface UpdateSubscriptionParams {
   frequency?: SUBSCRIPTION_FREQUENCIES;
   startDate?: string;
   endDate?: string | null;
-  accountId?: number | null;
-  categoryId?: number | null;
+  accountId?: string | null;
+  categoryId?: string | null;
   matchingRules?: SubscriptionMatchingRules;
   isActive?: boolean;
   notes?: string | null;

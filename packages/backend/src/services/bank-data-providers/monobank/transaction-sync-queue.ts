@@ -1,13 +1,16 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as MerchantCategoryCodes from '@models/merchant-category-codes.model';
 import Transactions from '@models/transactions.model';
 import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
 import * as Users from '@models/users.model';
+import { redisClient } from '@root/redis-client';
 import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
 import { Job, Queue, Worker } from 'bullmq';
@@ -18,8 +21,8 @@ import { MonobankApiClient } from './api-client';
 
 interface TransactionSyncJobData extends SentryTraceData {
   userId: number;
-  accountId: number;
-  connectionId: number;
+  accountId: RecordId;
+  connectionId: string;
   externalAccountId: string;
   apiToken: string;
   fromTimestamp: number;
@@ -78,9 +81,9 @@ transactionSyncQueue.on('error', (err) => {
  */
 async function createMonobankTransaction(
   data: ExternalMonobankTransactionResponse,
-  accountId: number,
+  accountId: string,
   userId: number,
-): Promise<number | undefined> {
+): Promise<string | undefined> {
   // Check if transaction already exists (duplicate prevention)
   const isTransactionExists = await Transactions.findOne({
     where: {
@@ -109,7 +112,7 @@ async function createMonobankTransaction(
     userId,
   });
 
-  let categoryId: number;
+  let categoryId: string;
 
   if (userMcc.length) {
     categoryId = userMcc[0]!.get('categoryId');
@@ -199,7 +202,7 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
           });
 
           // Process each transaction and collect created IDs
-          const createdTransactionIds: number[] = [];
+          const createdTransactionIds: string[] = [];
 
           // Sort transactions by date (ascending) so the last transaction for each day
           // This is important for Balances.handleTransactionChange() which uses the
@@ -333,21 +336,55 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
   },
 );
 
-// Worker event listeners
-transactionSyncWorker.on('completed', async (job) => {
+// 24h safety TTL: if the worker crashes between intermediate batches, the
+// counter key expires rather than lingering in Redis forever.
+const JOB_GROUP_COMPLETIONS_TTL_SECONDS = 24 * 60 * 60;
+
+function jobGroupCompletionsKey(jobGroupId: string): string {
+  return `jobgroup:${jobGroupId}:completions`;
+}
+
+/**
+ * Handles a batch job's 'completed' event.
+ *
+ * Uses an atomic Redis counter (INCR) keyed by jobGroupId rather than
+ * enumerating the queue's completed set. The queue trims completed jobs via
+ * `removeOnComplete.count` — under concurrent syncs this can evict earlier
+ * batches of *this* group before the last one fires, and any approach that
+ * derives "are we done?" from the queue snapshot is racy. A dedicated counter
+ * is immune: each successful batch contributes exactly one INCR, and the call
+ * that returns `totalBatches` is the one that fires the final transition.
+ *
+ * Exported for direct testing.
+ */
+export async function handleCompletedBatch(job: Job<TransactionSyncJobData>): Promise<void> {
   logger.info(`Job ${job.id} completed successfully`);
 
-  // Extract jobGroupId and check if all batches are completed
-  const jobGroupId = job.id?.substring(0, job.id.lastIndexOf('-')) || '';
-  const { totalBatches, accountId, userId } = job.data;
+  const jobId = job.id;
+  if (!jobId) return;
+  const jobGroupId = jobId.substring(0, jobId.lastIndexOf('-'));
+  const { totalBatches, accountId, userId, connectionId } = job.data;
 
-  const progress = await getJobGroupProgress(jobGroupId);
+  const counterKey = jobGroupCompletionsKey(jobGroupId);
+  const completedCount = await redisClient.incr(counterKey);
+  await redisClient.expire(counterKey, JOB_GROUP_COMPLETIONS_TTL_SECONDS);
 
-  if (progress.completedBatches === totalBatches) {
-    await setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId });
-    logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
-  }
-});
+  if (completedCount < totalBatches) return;
+
+  await Promise.all([
+    setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId }),
+    // Mark the connection as synced. Enable Banking does this via
+    // base-provider's `updateLastSync`; Monobank's queue-based flow needs
+    // the equivalent write so the list view's "Last synced" column reflects
+    // reality for the connection, not just the account.
+    BankDataProviderConnections.update({ lastSyncAt: new Date() }, { where: { id: connectionId } }),
+  ]);
+  await redisClient.del(counterKey);
+  logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
+}
+
+// Worker event listeners
+transactionSyncWorker.on('completed', (job) => handleCompletedBatch(job));
 
 transactionSyncWorker.on('failed', (job, err) => {
   const validationErrors = (err as any).errors?.map((e: any) => `${e.type}:${e.path}:${e.validatorKey}`).join(', ');
@@ -398,8 +435,8 @@ function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Date; to:
  */
 export async function queueTransactionSync(params: {
   userId: number;
-  accountId: number;
-  connectionId: number;
+  accountId: RecordId;
+  connectionId: string;
   externalAccountId: string;
   apiToken: string;
   from: Date;
@@ -537,15 +574,15 @@ export async function getJobGroupProgress(jobGroupId: string): Promise<{
 export async function getActiveJobsForUser(userId: number): Promise<
   Array<{
     jobGroupId: string;
-    connectionId: number;
-    accountId: number;
+    connectionId: string;
+    accountId: string;
     status: 'waiting' | 'active';
   }>
 > {
   const jobs = await transactionSyncQueue.getJobs(['waiting', 'active']);
 
   // Group jobs by jobGroupId
-  const jobGroups = new Map<string, Array<{ accountId: number }>>();
+  const jobGroups = new Map<string, Array<{ accountId: string }>>();
 
   jobs.forEach((job) => {
     const jobId = job.id;
@@ -576,8 +613,8 @@ export async function getActiveJobsForUser(userId: number): Promise<
   // Convert to array with status
   const result: Array<{
     jobGroupId: string;
-    connectionId: number;
-    accountId: number;
+    connectionId: string;
+    accountId: string;
     status: 'waiting' | 'active';
   }> = [];
 

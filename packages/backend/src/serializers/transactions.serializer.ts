@@ -6,6 +6,7 @@
  * Deserializers convert API decimal inputs to Money.
  */
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
 import type Tags from '@models/tags.model';
 import type TransactionGroups from '@models/transaction-groups.model';
@@ -18,12 +19,12 @@ import type Transactions from '@models/transactions.model';
 
 interface TransactionSplitApiResponse {
   id: string;
-  categoryId: number;
+  categoryId: string;
   amount: number;
   refAmount: number;
   note: string | null;
   category?: {
-    id: number;
+    id: string;
     name: string;
     color: string;
     icon: string;
@@ -31,7 +32,7 @@ interface TransactionSplitApiResponse {
 }
 
 export interface TransactionApiResponse {
-  id: number;
+  id: string;
   amount: number;
   refAmount: number;
   commissionRate: number;
@@ -42,8 +43,8 @@ export interface TransactionApiResponse {
   userId: number;
   transactionType: string;
   paymentType: string;
-  accountId: number | null;
-  categoryId: number | null;
+  accountId: string | null;
+  categoryId: string | null;
   currencyCode: string | null;
   accountType: string;
   refCurrencyCode: string | null;
@@ -56,15 +57,25 @@ export interface TransactionApiResponse {
   updatedAt: string;
   splits?: TransactionSplitApiResponse[];
   tags?: Array<{
-    id: number;
+    id: string;
     name: string;
     color: string;
     icon: string | null;
   }>;
   transactionGroups?: Array<{
-    id: number;
+    id: string;
     name: string;
   }>;
+  /** Recipient who attached this tx to a shared budget. Present (and possibly `null`)
+   *  only on budget-scoped fetches; absent on the global tx list and on detail lookups
+   *  outside a budget context. `null` means owner-attached (no chip needed in the UI). */
+  addedBy?: { id: number; username: string; avatar: string | null } | null;
+  /** Whether the caller has write access to this row. The frontend uses this to render
+   *  an inert "Transaction Details" dialog (disabled fields, hidden submit/delete) when
+   *  the caller can see the tx — typically via a budget share — but has no write claim
+   *  on the parent account. Absent on paths that don't compute it (single-tx writes,
+   *  internal fetches). */
+  canEdit?: boolean;
 }
 
 // ============================================================================
@@ -79,20 +90,20 @@ interface CreateTransactionRequest {
   time?: string;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: number;
-  destinationAccountId?: number;
-  destinationTransactionId?: number;
-  categoryId?: number;
+  accountId: RecordId;
+  destinationAccountId?: string;
+  destinationTransactionId?: string;
+  categoryId?: RecordId;
   accountType?: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
-  refundForTxId?: number;
+  refundForTxId?: string;
   refundForSplitId?: string;
   splits?: Array<{
-    categoryId: number;
+    categoryId: RecordId;
     amount: number; // decimal from API
     note?: string | null;
   }>;
-  tagIds?: number[];
+  tagIds?: string[];
 }
 
 // ============================================================================
@@ -107,20 +118,20 @@ interface CreateTransactionInternal {
   time?: Date;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: number;
-  destinationAccountId?: number;
-  destinationTransactionId?: number;
-  categoryId?: number;
+  accountId: RecordId;
+  destinationAccountId?: string;
+  destinationTransactionId?: string;
+  categoryId?: RecordId;
   accountType: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
-  refundsTxId?: number;
+  refundsTxId?: string;
   refundsSplitId?: string;
   splits?: Array<{
-    categoryId: number;
+    categoryId: RecordId;
     amount: Money;
     note?: string | null;
   }>;
-  tagIds?: number[];
+  tagIds?: string[];
   userId: number;
 }
 
@@ -132,7 +143,7 @@ interface CreateTransactionInternal {
  * Serialize a transaction split from DB format to API response
  */
 function serializeTransactionSplit(
-  split: TransactionSplits & { category?: { id: number; name: string; color: string; icon: string } },
+  split: TransactionSplits & { category?: { id: string; name: string; color: string; icon: string } },
 ): TransactionSplitApiResponse {
   return {
     id: split.id,
@@ -159,6 +170,8 @@ export function serializeTransaction(
     splits?: TransactionSplits[];
     tags?: Tags[];
     transactionGroups?: TransactionGroups[];
+    addedBy?: { id: number; username: string; avatar: string | null } | null;
+    canEdit?: boolean;
   },
 ): TransactionApiResponse {
   return {
@@ -188,7 +201,7 @@ export function serializeTransaction(
     ...(tx.splits && {
       splits: tx.splits.map((split) =>
         serializeTransactionSplit(
-          split as TransactionSplits & { category?: { id: number; name: string; color: string; icon: string } },
+          split as TransactionSplits & { category?: { id: string; name: string; color: string; icon: string } },
         ),
       ),
     }),
@@ -206,6 +219,14 @@ export function serializeTransaction(
         name: group.name,
       })),
     }),
+    // `addedBy` is included whenever the upstream service attached it (budget-scoped
+    // fetches). `null` is a meaningful value — "owner-attached" — and must be sent so
+    // the frontend can distinguish "no metadata yet" from "tx is owned by the budget
+    // owner". Use a property-existence check rather than truthiness to preserve null.
+    ...('addedBy' in tx ? { addedBy: tx.addedBy ?? null } : {}),
+    // `canEdit` is omitted on paths that don't compute it (write returns, internal
+    // fetches). Property-existence check so an explicit `false` survives serialization.
+    ...('canEdit' in tx ? { canEdit: tx.canEdit ?? false } : {}),
   };
 }
 
@@ -213,7 +234,15 @@ export function serializeTransaction(
  * Serialize multiple transactions
  */
 export function serializeTransactions(
-  txs: Array<Transactions & { splits?: TransactionSplits[]; tags?: Tags[]; transactionGroups?: TransactionGroups[] }>,
+  txs: Array<
+    Transactions & {
+      splits?: TransactionSplits[];
+      tags?: Tags[];
+      transactionGroups?: TransactionGroups[];
+      addedBy?: { id: number; username: string; avatar: string | null } | null;
+      canEdit?: boolean;
+    }
+  >,
 ): TransactionApiResponse[] {
   return txs.map(serializeTransaction);
 }

@@ -8,7 +8,7 @@
             :disabled="disabled"
             :class="
               cn(
-                'border-input bg-background ring-offset-background flex min-h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                'border-input bg-input-background ring-offset-background flex min-h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
                 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
                 disabled && 'cursor-not-allowed opacity-50',
               )
@@ -36,7 +36,9 @@
         </PopoverTrigger>
         <PopoverContent class="w-80 p-0" align="start">
           <div class="border-border border-b p-2">
-            <div class="border-input bg-background flex h-9 w-full items-center gap-2 rounded-md border px-3 text-sm">
+            <div
+              class="border-input bg-input-background flex h-9 w-full items-center gap-2 rounded-md border px-3 text-sm"
+            >
               <SearchIcon class="text-muted-foreground size-4" />
               <input
                 v-model="searchQuery"
@@ -80,13 +82,14 @@
 
 <script setup lang="ts">
 import { type FormattedCategory } from '@/common/types';
+import { collectDescendantIds } from '@/components/common/combobox-categories.helpers';
 import { FieldError, FieldLabel } from '@/components/fields';
 import CategoryItem from '@/components/fields/category-multi-select-item.vue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { cn } from '@/lib/utils';
 import { useCategoriesStore } from '@/stores';
 import { CATEGORY_TYPES } from '@bt/shared/types';
-import { ChevronsUpDownIcon, SearchIcon, XIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon, SearchIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -94,7 +97,7 @@ import { useI18n } from 'vue-i18n';
 const props = withDefaults(
   defineProps<{
     label?: string;
-    modelValue?: number[];
+    modelValue?: string[];
     placeholder?: string;
     errorMessage?: string;
     disabled?: boolean;
@@ -108,7 +111,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  'update:model-value': [value: number[]];
+  'update:model-value': [value: string[]];
 }>();
 
 const { t } = useI18n();
@@ -177,30 +180,11 @@ const filteredCategories = computed(() => {
   return findMatchingCategories(availableCategories.value, query);
 });
 
-const isSelected = (categoryId: number) => selectedCategoryIds.value.has(categoryId);
+const isSelected = (categoryId: string) => selectedCategoryIds.value.has(categoryId);
 
-/**
- * Recursively collects all descendant IDs from a category
- */
-const collectAllDescendantIds = (category: FormattedCategory): number[] => {
-  const ids: number[] = [];
-  if (category.subCategories?.length) {
-    for (const child of category.subCategories) {
-      ids.push(child.id);
-      ids.push(...collectAllDescendantIds(child));
-    }
-  }
-  return ids;
-};
+const getDescendantCount = (category: FormattedCategory): number => collectDescendantIds({ category }).length;
 
-/**
- * Gets the total count of all descendants (not just direct children)
- */
-const getDescendantCount = (category: FormattedCategory): number => {
-  return collectAllDescendantIds(category).length;
-};
-
-const toggleCategory = (categoryId: number) => {
+const toggleCategory = (categoryId: string) => {
   const currentIds = new Set(props.modelValue ?? []);
   const category = categoriesMap.value[categoryId];
 
@@ -208,7 +192,7 @@ const toggleCategory = (categoryId: number) => {
 
   // Find the category in the formatted structure to get its descendants
   const formattedCategory = findCategory(availableCategories.value, (cat) => cat.id === categoryId);
-  const descendantIds = formattedCategory ? collectAllDescendantIds(formattedCategory) : [];
+  const descendantIds = formattedCategory ? collectDescendantIds({ category: formattedCategory }) : [];
 
   if (currentIds.has(categoryId)) {
     // Uncheck: remove this category and all its descendants

@@ -1,10 +1,20 @@
 import { cva } from 'class-variance-authority';
 import type { VariantProps } from 'class-variance-authority';
+import type { Component } from 'vue';
 
 export { default as PillTabs } from './pill-tabs.vue';
 
+/**
+ * Discriminated union: `iconClass` is only meaningful when an `icon` is set —
+ * declaring `iconClass` without an `icon` would silently do nothing.
+ */
+export type PillTabItem = { value: string; label: string } & (
+  | { icon?: undefined; iconClass?: never }
+  | { icon: Component; iconClass?: string }
+);
+
 export const pillTabsContainerVariants = cva(
-  'bg-muted/50 relative inline-flex items-center self-start no-scrollbar max-w-full overflow-x-auto',
+  'bg-muted border-border/50 relative inline-flex items-center self-start overflow-x-auto border no-scrollbar max-w-full',
   {
     variants: {
       size: {
@@ -18,7 +28,7 @@ export const pillTabsContainerVariants = cva(
 );
 
 export const pillTabsIndicatorVariants = cva(
-  'bg-background absolute rounded-md shadow-sm transition-all duration-200 ease-out',
+  'bg-card dark:bg-background absolute rounded-md shadow-sm transition-all duration-200 ease-out',
   {
     variants: {
       size: {
@@ -32,7 +42,7 @@ export const pillTabsIndicatorVariants = cva(
 );
 
 export const pillTabsTriggerVariants = cva(
-  'focus-visible:bg-background/50 relative z-1 rounded-md transition-colors focus-visible:outline-none',
+  'focus-visible:bg-background/50 relative z-1 rounded-md whitespace-nowrap transition-colors focus-visible:outline-none',
   {
     variants: {
       size: {

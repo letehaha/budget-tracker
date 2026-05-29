@@ -4,7 +4,7 @@ import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import Card from '@/components/lib/ui/card/Card.vue';
 import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useQuery } from '@tanstack/vue-query';
-import { BarChart3Icon, LoaderCircleIcon, TriangleAlertIcon } from 'lucide-vue-next';
+import { BarChart3Icon, LoaderCircleIcon, TriangleAlertIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -12,7 +12,7 @@ import BudgetCategoryChart from './budget-category-chart.vue';
 import BudgetTimelineChart from './budget-timeline-chart.vue';
 
 const props = defineProps<{
-  budgetId: number;
+  budgetId: string;
 }>();
 
 const { t } = useI18n();

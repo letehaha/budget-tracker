@@ -110,7 +110,7 @@ describe('GET /investments/securities/search - Yahoo as primary provider', () =>
     expect(mockedFmpSearch).not.toHaveBeenCalled();
   });
 
-  it('should map Yahoo typeDisp values to correct asset classes', async () => {
+  it('should filter out non-stock asset classes (crypto, fixed_income) returned by Yahoo', async () => {
     mockedYahooSearch.mockResolvedValue({
       quotes: [
         { symbol: 'BTC-USD', shortname: 'Bitcoin USD', typeDisp: 'Cryptocurrency', isYahooFinance: true },
@@ -126,10 +126,11 @@ describe('GET /investments/securities/search - Yahoo as primary provider', () =>
 
     const results = await helpers.searchSecurities({ payload: { query: 'test' }, raw: true });
 
-    expect(results).toHaveLength(3);
-    expect(results.find((r) => r.symbol === 'BTC-USD')?.assetClass).toBe(ASSET_CLASS.crypto);
-    expect(results.find((r) => r.symbol === 'VBTLX')?.assetClass).toBe(ASSET_CLASS.fixed_income);
-    expect(results.find((r) => r.symbol === 'SPY')?.assetClass).toBe(ASSET_CLASS.stocks);
+    // BTC-USD (crypto) and VBTLX (fixed_income) are filtered by the search service;
+    // only the stock (SPY) survives.
+    expect(results).toHaveLength(1);
+    expect(results[0]?.symbol).toBe('SPY');
+    expect(results[0]?.assetClass).toBe(ASSET_CLASS.stocks);
   });
 
   it('should filter out symbols where currency cannot be resolved', async () => {
@@ -608,7 +609,7 @@ describe('Yahoo getHistoricalPrices via composite provider', () => {
     expect(mockedYahooChart).toHaveBeenCalled();
   });
 
-  it('should map Yahoo typeDisp "option" and "bond" to correct asset classes', async () => {
+  it('should filter out unsupported Yahoo asset classes (options, bonds)', async () => {
     mockedYahooSearch.mockResolvedValue({
       quotes: [
         { symbol: 'OPT1', shortname: 'Test Option', typeDisp: 'Option', isYahooFinance: true },
@@ -622,9 +623,8 @@ describe('Yahoo getHistoricalPrices via composite provider', () => {
 
     const results = await helpers.searchSecurities({ payload: { query: 'test' }, raw: true });
 
-    expect(results).toHaveLength(2);
-    expect(results.find((r) => r.symbol === 'OPT1')?.assetClass).toBe(ASSET_CLASS.options);
-    expect(results.find((r) => r.symbol === 'BND1')?.assetClass).toBe(ASSET_CLASS.fixed_income);
+    // Both options and bonds are unsupported asset classes — search service drops them.
+    expect(results).toHaveLength(0);
   });
 
   it('should default to stocks asset class when typeDisp is undefined', async () => {

@@ -1,5 +1,11 @@
 import { SUPPORTED_LOCALES } from '@bt/shared/i18n/locales';
-import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH, AI_FEATURE, AI_PROVIDER, NOTIFICATION_TYPES } from '@bt/shared/types';
+import {
+  AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH,
+  AI_FEATURE,
+  AI_PROVIDER,
+  NOTIFICATION_TYPES,
+  RecordId,
+} from '@bt/shared/types';
 import {
   CreationOptional,
   DataTypes,
@@ -10,15 +16,15 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsTo,
   Default,
   Index,
   NotNull,
   PrimaryKey,
   Table,
-  Unique,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 import z from 'zod';
 
 import Users from './users.model';
@@ -143,11 +149,17 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
   timestamps: true, // To include `createdAt` and `updatedAt`
 })
 export default class UserSettings extends Model<InferAttributes<UserSettings>, InferCreationAttributes<UserSettings>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  @Unique
-  declare id: CreationOptional<number>;
+  @NotNull
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static generateUUIDv7(instance: UserSettings) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull

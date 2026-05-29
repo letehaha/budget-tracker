@@ -112,6 +112,35 @@ These are declared on individual routes and loaded lazily:
 - **Avoid redundant prefixes**: inside `pages/account.json`, the root is already `pages.account` — don't repeat it
 - **Parameterized strings** use `{named}` placeholders: `"An income of {amount} {currency} will be created"`
 
+### CRITICAL: Each chunk file wraps keys under a root namespace
+
+This is the #1 source of bugs (UI shows raw key paths like `shareAccountDialog.title` instead of the translation). vue-i18n merges every chunk's JSON into a single root-level message tree — so the component-side `$t(...)` path is the **literal nested path inside the JSON**, not just the leaf name.
+
+By project convention, every chunk file wraps its content under a top-level object. Examples:
+
+| Chunk file                  | Root namespace inside JSON | Component-side `$t(...)` path            |
+| --------------------------- | -------------------------- | ---------------------------------------- |
+| `common.json`               | `common`                   | `$t('common.cancel')`                    |
+| `dialogs.json`              | `dialogs`                  | `$t('dialogs.shareAccountDialog.title')` |
+| `forms.json`                | `forms`                    | `$t('forms.validators.mustBePositive')`  |
+| `errors.json`               | `errors`                   | `$t('errors.somethingWentWrong')`        |
+| `layout.json`               | `layout`                   | `$t('layout.sidebar.dashboard')`         |
+| `pages/account.json`        | `pages.account`            | `$t('pages.account.header.editName')`    |
+| `pages/shared-with-me.json` | `sharedWithMe`             | `$t('sharedWithMe.invitation.title')`    |
+| `settings/categories.json`  | `settings.categories`      | `$t('settings.categories.list.empty')`   |
+| `auth/sign-in.json`         | `auth.signIn`              | `$t('auth.signIn.submit')`               |
+
+**The wrapper does NOT always mechanically match the file path** (e.g., `pages/shared-with-me.json` uses `sharedWithMe`, not `pages.sharedWithMe`). **Always verify by inspection** — never assume.
+
+#### MANDATORY checks before adding keys
+
+1. **Read the target chunk** (`cat -n`) and identify its existing top-level wrapper key.
+2. **Place new keys nested INSIDE that wrapper**, not as new top-level siblings.
+3. **In your output report, state the FULL component-side `$t(...)` path** the keys will resolve at (e.g. "added at `dialogs.shareAccountDialog.title` — caller must use `$t('dialogs.shareAccountDialog.title')`"), so the main model wires the correct path.
+4. **If the caller (main model's prompt) referenced a path WITHOUT the wrapper** (e.g. asked for `shareAccountDialog.title` to live in `dialogs.json`), still nest under the wrapper and **flag the mismatch in the Notes** so the main model knows to update the component-side `$t(...)` calls.
+
+If a chunk file is empty or new, ask the main model what root namespace to use rather than guessing.
+
 ### Anti-Patterns to Avoid
 
 - **Don't put reusable validator messages in page-specific chunks** — they belong in `forms.json`

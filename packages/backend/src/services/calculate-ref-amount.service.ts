@@ -1,5 +1,4 @@
 import { Money } from '@common/types/money';
-import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
@@ -8,6 +7,7 @@ import * as Currencies from '@models/currencies.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 
+import { calculateRefAmountFromParams } from './calculate-ref-amount.utils';
 import { withTransaction } from './common/with-transaction';
 
 const refAmountCache = new CacheClient<string>({
@@ -40,9 +40,9 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
   // **REDIS CACHE CHECK** - Cache the final converted amount (stored as cents)
   const dateStr = new Date(params.date).toISOString().split('T')[0];
   const amountCents = amount.toCents();
-  refAmountCache.setCacheKey(`ref_amount:${userId}:${amountCents}:${baseCode}:${quoteCode || 'default'}:${dateStr}`);
+  const cacheKey = `ref_amount:${userId}:${amountCents}:${baseCode}:${quoteCode || 'default'}:${dateStr}`;
 
-  const cachedAmount = await refAmountCache.read();
+  const cachedAmount = await refAmountCache.read(cacheKey);
 
   if (cachedAmount !== null) {
     return Money.fromCents(parseInt(cachedAmount, 10));
@@ -67,7 +67,7 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
 
     // If baseCode same as default currency code no need to calculate anything
     if (defaultUserCurrency?.code === baseCode || quoteCode === baseCode) {
-      await refAmountCache.write({ value: amountCents.toString() });
+      await refAmountCache.write({ key: cacheKey, value: amountCents.toString() });
       return amount;
     }
 
@@ -88,7 +88,7 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
     const finalAmount = calculateRefAmountFromParams({ amount, rate: result.rate });
 
     // **CACHE THE FINAL RESULT** (store as cents for cache consistency)
-    await refAmountCache.write({ value: finalAmount.toCents().toString() });
+    await refAmountCache.write({ key: cacheKey, value: finalAmount.toCents().toString() });
 
     return finalAmount;
   } catch (e) {
@@ -99,29 +99,7 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
   }
 }
 
-export const calculateRefAmountFromParams = ({
-  amount,
-  rate,
-  useFloorAbs = true,
-}: {
-  amount: Money;
-  rate: number;
-  // For example in investments we're using raw float numbers, so it makes no sense to use it
-  useFloorAbs?: boolean;
-}): Money => {
-  const amountCents = amount.toCents();
-  const isNegative = amountCents < 0;
-
-  // Use Banker's Rounding (round half to even) per IEEE 754 and IFRS/GAAP standards.
-  // This minimizes cumulative rounding bias in bidirectional currency conversions (e.g., USD → EUR → USD).
-  // Since amounts are stored as integers (cents * 100), rounding still produces integers
-  // but with better reversibility and compliance with accounting standards.
-  const refAmount =
-    amountCents === 0 ? 0 : useFloorAbs ? roundHalfToEven(Math.abs(amountCents) * rate) : amountCents * rate;
-  const finalAmount = isNegative ? refAmount * -1 : refAmount;
-
-  return Money.fromCents(finalAmount);
-};
+export { calculateRefAmountFromParams } from './calculate-ref-amount.utils';
 
 type Params = {
   amount: Money;

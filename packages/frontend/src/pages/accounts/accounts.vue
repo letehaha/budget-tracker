@@ -18,6 +18,7 @@
                   <template v-if="key === 'archived'">{{ $t('accounts.sections.archived') }}</template>
                   <template v-else-if="key === 'manual'">{{ $t('accounts.sections.manual') }}</template>
                   <template v-else-if="key === 'integrations'">{{ $t('accounts.sections.connected') }}</template>
+                  <template v-else-if="key === 'sharedWithMe'">{{ $t('accounts.sections.sharedWithMe') }}</template>
                 </h2>
               </template>
 
@@ -79,7 +80,7 @@ import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-i
 import { useAccountsStore } from '@/stores';
 import { ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
-import { LandmarkIcon, LinkIcon, PlusIcon } from 'lucide-vue-next';
+import { LandmarkIcon, LinkIcon, PlusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
@@ -89,23 +90,25 @@ import Section from './components/section.vue';
 const { accounts } = storeToRefs(useAccountsStore());
 const queryClient = useQueryClient();
 
-type AccountTypeKey = 'integrations' | 'manual' | 'archived';
+type AccountTypeKey = 'integrations' | 'manual' | 'sharedWithMe' | 'archived';
 
 const groupedAccounts = computed(() =>
   (accounts.value ?? []).reduce(
     (acc, account) => {
-      if (account.status === ACCOUNT_STATUSES.archived) {
+      if (account.share?.isOwner === false) {
+        // Shared accounts always render in their own section, regardless of archive status
+        // or connection origin (the recipient doesn't see the owner's bank-link metadata).
+        acc.sharedWithMe.push(account);
+      } else if (account.status === ACCOUNT_STATUSES.archived) {
         acc.archived.push(account);
+      } else if (account.bankDataProviderConnectionId) {
+        acc.integrations.push(account);
       } else {
-        if (typeof account.bankDataProviderConnectionId === 'number') {
-          acc.integrations.push(account);
-        } else {
-          acc.manual.push(account);
-        }
+        acc.manual.push(account);
       }
       return acc;
     },
-    { integrations: [], manual: [], archived: [] } as Record<AccountTypeKey, AccountModel[]>,
+    { integrations: [], manual: [], sharedWithMe: [], archived: [] } as Record<AccountTypeKey, AccountModel[]>,
   ),
 );
 

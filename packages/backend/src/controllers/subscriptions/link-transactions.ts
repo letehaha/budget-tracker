@@ -6,7 +6,7 @@ import z from 'zod';
 
 const schema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: recordId(),
   }),
   body: z.object({
     transactionIds: z.array(recordId()).min(1),

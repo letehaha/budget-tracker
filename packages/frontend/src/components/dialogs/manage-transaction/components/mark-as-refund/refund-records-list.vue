@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { loadRefundRecommendations, loadTransactions } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { removeValuesFromObject } from '@/common/utils/remove-values-from-object';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -11,8 +10,8 @@ import { cn } from '@/lib/utils';
 import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
 import { isDate } from 'date-fns';
-import { isEqual } from 'lodash-es';
-import { CircleAlert, ListFilterIcon, SparklesIcon } from 'lucide-vue-next';
+import { isEqual, isNil, omitBy } from 'lodash-es';
+import { CircleAlert, ListFilterIcon, SparklesIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface RecordListModalProps {
@@ -20,11 +19,11 @@ interface RecordListModalProps {
   selectedTransactions: TransactionModel[];
   onSelect: (item: TransactionModel) => void;
   /** Origin transaction ID (for recommendations when editing) */
-  originTransactionId?: number;
+  originTransactionId?: string;
   /** Origin transaction amount for recommendations (used when creating new tx) */
   originAmount?: number | null;
   /** Origin account ID for recommendations (used when creating new tx) */
-  originAccountId?: number | null;
+  originAccountId?: string | null;
 }
 
 const props = defineProps<RecordListModalProps>();
@@ -107,18 +106,21 @@ const fetchTransactions = ({ pageParam, filter }: { pageParam: number; filter: t
   const from = pageParam * limit;
 
   return loadTransactions(
-    removeValuesFromObject<Parameters<typeof loadTransactions>[0]>({
-      limit,
-      from,
-      transactionType: props.transactionType,
-      excludeTransfer: true,
-      excludeRefunds: false, // Allow transactions that already have refunds
-      includeSplits: true, // Include splits so we can show split selector
-      endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
-      startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
-      amountGte: filter.amountGte ?? undefined,
-      amountLte: filter.amountLte ?? undefined,
-    }),
+    omitBy(
+      {
+        limit,
+        from,
+        transactionType: props.transactionType,
+        excludeTransfer: true,
+        excludeRefunds: false, // Allow transactions that already have refunds
+        includeSplits: true, // Include splits so we can show split selector
+        endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
+        startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
+        amountGte: filter.amountGte ?? undefined,
+        amountLte: filter.amountLte ?? undefined,
+      },
+      isNil,
+    ) as unknown as Parameters<typeof loadTransactions>[0],
   );
 };
 

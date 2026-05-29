@@ -12,7 +12,7 @@ const MAX_REMINDERS_PER_USER = 50;
 
 interface CreateReminderPayload {
   userId: number;
-  tagId: number;
+  tagId: string;
   type: TagReminderType;
   frequency?: TagReminderFrequency | null; // `null` for realtime
   dayOfMonth?: number | null;
@@ -77,7 +77,7 @@ export const createReminder = withTransaction(async (payload: CreateReminderPayl
 
 interface GetRemindersForTagPayload {
   userId: number;
-  tagId: number;
+  tagId: string;
 }
 
 export const getRemindersForTag = async ({ userId, tagId }: GetRemindersForTagPayload) => {
@@ -96,9 +96,9 @@ export const getRemindersForTag = async ({ userId, tagId }: GetRemindersForTagPa
 };
 
 interface GetReminderByIdPayload {
-  id: number;
+  id: string;
   userId: number;
-  tagId: number;
+  tagId: string;
 }
 
 export const getReminderById = async ({ id, userId, tagId }: GetReminderByIdPayload) => {
@@ -128,9 +128,9 @@ export const getAllReminders = async ({ userId }: GetAllRemindersPayload) => {
 };
 
 interface UpdateReminderPayload {
-  id: number;
+  id: string;
   userId: number;
-  tagId: number;
+  tagId: string;
   type?: TagReminderType;
   frequency?: TagReminderFrequency | null;
   dayOfMonth?: number | null;
@@ -194,9 +194,9 @@ export const updateReminder = withTransaction(async (payload: UpdateReminderPayl
 });
 
 interface DeleteReminderPayload {
-  id: number;
+  id: string;
   userId: number;
-  tagId: number;
+  tagId: string;
 }
 
 export const deleteReminder = withTransaction(async ({ id, userId, tagId }: DeleteReminderPayload) => {
@@ -230,7 +230,7 @@ export const getEnabledScheduledReminders = async () => {
  * Get all enabled real-time reminders for specific tags and user.
  * Used when transactions are tagged to check for real-time triggers.
  */
-const getEnabledRealTimeRemindersForTags = async ({ tagIds, userId }: { tagIds: number[]; userId: number }) => {
+const getEnabledRealTimeRemindersForTags = async ({ tagIds, userId }: { tagIds: string[]; userId: number }) => {
   if (tagIds.length === 0) return [];
 
   const reminders = await TagReminders.findAll({
@@ -247,7 +247,7 @@ const getEnabledRealTimeRemindersForTags = async ({ tagIds, userId }: { tagIds: 
 };
 
 interface UpdateReminderCheckTimesPayload {
-  id: number;
+  id: string;
   lastCheckedAt: Date;
   lastTriggeredAt?: Date | null;
 }
@@ -283,7 +283,7 @@ export const triggerRealTimeRemindersForTags = async ({
   tagIds,
   userId,
 }: {
-  tagIds: number[];
+  tagIds: string[];
   userId: number;
 }): Promise<void> => {
   if (tagIds.length === 0) {

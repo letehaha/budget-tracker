@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
-import { Circle } from 'lucide-vue-next';
+import { Circle } from '@lucide/vue';
 import { RadioGroupIndicator, RadioGroupItem, type RadioGroupItemProps, useForwardProps } from 'reka-ui';
 import { type HTMLAttributes, computed } from 'vue';
 

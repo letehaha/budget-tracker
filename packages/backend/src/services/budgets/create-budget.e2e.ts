@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 
@@ -53,7 +54,7 @@ describe('Create Budget', () => {
           amount: 100,
           transactionType: TRANSACTION_TYPES.expense,
           time: '2025-03-02T10:00:00Z',
-          categoryId: 1,
+          categoryId: NONEXISTENT_ID,
         }),
         raw: true,
       }),
@@ -63,7 +64,7 @@ describe('Create Budget', () => {
           amount: 200,
           transactionType: TRANSACTION_TYPES.expense,
           time: '2025-03-03T10:00:00Z',
-          categoryId: 1,
+          categoryId: NONEXISTENT_ID,
         }),
         raw: true,
       }),

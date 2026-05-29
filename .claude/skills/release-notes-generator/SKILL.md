@@ -121,6 +121,19 @@ Follow the **exact format** observed from recent releases. The format is:
 - Use `###` for section titles within
 - **Add a relevant emoji before each `###` section title** to visually separate features. Pick emojis that match the feature's purpose (e.g., 🔔 for notifications, 🔗 for linking, 👀 for monitoring, ✨ for improvements, 📝 for code changes).
 - Feature descriptions should be user-facing (what changed for the user, not code details)
+- **Product name**: Always refer to the product as **MoneyMatter**, never "Budget Tracker" or "budget-tracker". The first mention in the release notes must be a markdown link: `[MoneyMatter](https://moneymatter.app)`. Subsequent mentions can be plain "MoneyMatter".
+- **NEVER mention baseline / table-stakes work in release notes.** These are expected and invisible to users — calling them out as features is noise. Do NOT write things like:
+  - "translations for both languages are in place" / "i18n added" / "localization shipped"
+  - "tests added" / "test coverage" / "e2e tests updated"
+  - "types added" / "TypeScript types"
+  - "accessibility improvements" (unless the release is explicitly _about_ an a11y overhaul)
+  - "code refactored" / "cleanup" / "linting fixed"
+  - "docs updated" / "comments added"
+  - CI/build/deploy internals unless user-visible
+    Release notes answer exactly two questions: **what's new** and **what's fixed**. If something doesn't change user experience, it doesn't belong. When in doubt, leave it out.
+- **Order sections by user impact, not by technical scope.** The top of the release notes should be what end users care about most (visual changes, new UI features, new product capabilities). Dev-oriented or infrastructure-adjacent features (MCP metadata endpoints, `.well-known/` files, OAuth discovery, AI agent discoverability, API metadata, build/deploy improvements that _are_ user-visible but niche) belong **lower** in the document — after primary user features.
+- **Release title selection**: The title should highlight the **biggest user-facing feature(s)**, not dev/infrastructure work. Never put dev-oriented features (like "AI discoverability," ".well-known endpoints," "OAuth metadata," "MCP server card") in the title unless that _is_ the headline release. Prefer user-visible features in the title: new UI, new workflows, new user-visible AI capabilities (e.g., categorization, tools the user interacts with).
+- **When multiple related features fall under the same theme, use an umbrella phrase** in the title instead of naming just one. Example: if a release ships custom AI categorization _and_ investments MCP tools _and_ AI discoverability, the title should say "improved AI workflows" (covers all three) rather than "smarter AI categorization" (covers only one, undersells the rest). Umbrella phrases also scale better when contents shift late in the release cycle.
 - If there's a single dominant feature, it can be the main section title (see v0.10.6 "Walutomat Integration" as reference)
 - The "Code Changes" section lists all PRs with links
 - Always end with the Full Changelog compare link

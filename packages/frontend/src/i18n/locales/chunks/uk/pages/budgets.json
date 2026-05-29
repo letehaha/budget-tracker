@@ -2,6 +2,9 @@
   "budgets": {
     "title": "Бюджети",
     "description": "Відстежуйте витрати та контролюйте фінансові події",
+    "notFound": "Бюджет не знайдено",
+    "notFoundDescription": "Не вдалося знайти цей бюджет. Можливо, його було видалено, або у вас немає до нього доступу.",
+    "backToList": "Повернутися до бюджетів",
     "newBudget": "Новий бюджет",
     "createBudget": "Створити бюджет",
     "creation": {
@@ -24,6 +27,7 @@
       "deleteSuccess": "Бюджет успішно видалено!",
       "deleteError": "Неочікувана помилка!",
       "updateSuccess": "Бюджет успішно оновлено!",
+      "updateError": "Не вдалося оновити бюджет",
       "unlinkTransactionsSuccess": "Транзакції успішно відв'язано!",
       "deleteDialog": {
         "title": "Бажаєте видалити цей бюджет?",
@@ -63,7 +67,8 @@
       "limitLabel": "Ліміт бюджету",
       "limitPlaceholder": "Введіть суму ліміту (необов'язково)",
       "startDateLabel": "Дата початку",
-      "endDateLabel": "Дата закінчення"
+      "endDateLabel": "Дата закінчення",
+      "notSet": "Не вказано"
     },
     "addTransactionsDialog": {
       "title": "Додати транзакції до бюджету",
@@ -79,6 +84,7 @@
       "transactionsCount": "{count} транзакцій",
       "noTransactions": "Ще немає транзакцій",
       "noTransactionsDescription": "Транзакції, що відповідають вашим відстежуваним категоріям, з'являться тут автоматично.",
+      "transactionsLoadError": "Не вдалося завантажити транзакції",
       "categoryBreakdown": "Розбивка за категоріями",
       "edit": "Редагувати",
       "editTitle": "Редагувати бюджет",
@@ -92,6 +98,9 @@
     "manualBudget": {
       "edit": "Редагувати",
       "editTitle": "Редагування бюджету"
+    },
+    "share": {
+      "sharedByBadge": "Поділено: {handle}"
     }
   }
 }

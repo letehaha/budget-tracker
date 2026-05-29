@@ -2,19 +2,6 @@
   "common": {
     "processAlreadyLocked": "Sync process for \"{{lockKey}}\" is already locked."
   },
-  "auth": {
-    "migration": {
-      "userNotLinked": "User is not linked to auth system",
-      "authUserNotFound": "Auth user not found",
-      "onlyLegacyAccounts": "Only legacy accounts can use this endpoint. Use the standard email change flow.",
-      "emailAlreadyInUse": "Email is already in use",
-      "emailServiceNotConfigured": "Email service not configured",
-      "failedToSendVerification": "Failed to send verification email",
-      "verificationSent": "Verification email sent",
-      "linkExpired": "Verification link has expired",
-      "invalidOrExpiredLink": "Invalid or expired verification link"
-    }
-  },
   "accounts": {
     "groupNotFound": "Group or account not found",
     "accountNotFound": "Account not found!",
@@ -40,6 +27,10 @@
     "notFound": "Transaction not found",
     "missingRequiredFields": "One of required fields are missing: destinationAmount, destinationAccountId.",
     "refundAndTransferNotAllowed": "It is not allowed to create a transaction that is a refund and a transfer at the same time",
+    "notOwnTransaction": "You can only edit or delete transactions you created on this shared account.",
+    "sharedAccountChangeNotSupported": "Moving a transaction to a different account is only allowed for the account owner.",
+    "sharedTransfersNotSupported": "Transfers on a shared account are not supported yet.",
+    "sharedRefundsNotSupported": "Refund linking on a shared account is not supported yet.",
     "cannotCreateWithParams": "Cannot create transaction with provided params",
     "idCannotBeChanged": "id cannot be changed",
     "editReadonlyFields": "Attempt to edit readonly fields of the external account",
@@ -48,6 +39,7 @@
     "refundExceedsOriginal": "Total refund amount cannot be greater than the original transaction amount",
     "oppositeTransactionNotFound": "Cannot find opposite tx to make an updation",
     "transactionIdNotExist": "Transaction with provided `id` does not exist!",
+    "notAuthorizedToEdit": "You are not authorized to edit this transaction.",
     "cannotDeleteExternal": "It's not allowed to manually delete external transactions",
     "unexpectedDeleteIssue": "Unexpected issue when tried to delete transaction",
     "linkSelfNotAllowed": "Trying to link the transaction to itself.",
@@ -58,6 +50,7 @@
     "linkCannotFind": "Cannot find base or opposite transactions",
     "invalidTagIds": "One or more tag IDs are invalid or do not belong to this user",
     "cannotEditPortfolioLinkedTransaction": "Cannot edit a transaction linked to a portfolio. Unlink it first.",
+    "refFieldsRequiredForTransferToPortfolio": "Reference currency and reference amount must be set for portfolio-transfer transactions.",
     "splits": {
       "splitsOnTransfer": "Cannot add splits to transfer transactions",
       "splitLimitExceeded": "Maximum {{max}} splits allowed per transaction",
@@ -122,7 +115,6 @@
   },
   "investments": {
     "portfolioNotFound": "Portfolio not found",
-    "portfolioNameExists": "Portfolio with this name already exists",
     "portfolioIdRequired": "Portfolio ID is required.",
     "holdingNotFound": "Holding not found",
     "holdingNotFoundAddSecurity": "Holding not found. Please add the security to the portfolio first.",
@@ -176,8 +168,10 @@
     "fromMustBeValidDate": "\"from\" must be a valid date string",
     "toMustBeValidDate": "\"to\" must be a valid date string",
     "onlySupportedForMonobank": "Loading transactions for period is only supported for Monobank",
+    "reconciliationOnlyForEnableBanking": "Reconciliation is only available for Enable Banking connections",
     "transactionLoadingQueued": "Transaction loading queued. Estimated time: {{minutes}} minute(s)",
     "noValidAccountIds": "None of the selected account IDs are valid",
+    "accountCurrencyNotSupported": "Account currency \"{{currency}}\" is not supported by this system.",
     "monobank": {
       "invalidCredentialsFormat": "Invalid credentials format for Monobank",
       "invalidApiToken": "Invalid Monobank API token",
@@ -201,8 +195,10 @@
       "noActiveSessionGeneric": "No active session",
       "noBalanceInfo": "No balance information available",
       "authenticationFailed": "Enable Banking authentication failed: {{message}}",
+      "sessionExpiredReconnect": "Bank session expired. Please reconnect your bank account to continue syncing.",
       "apiBadRequestError": "Enable Banking API error: {{message}}",
-      "apiGeneralError": "Enable Banking API error: {{message}}"
+      "apiGeneralError": "Enable Banking API error: {{message}}",
+      "redirectUriNotAllowed": "Your Enable Banking application is missing the required redirect URL. Please log in to the Enable Banking dashboard, edit your application, and add this URL to the allowed redirect URLs: {{redirectUrl}}"
     },
     "lunchflow": {
       "invalidCredentialsFormat": "Invalid LunchFlow credentials format. Please provide a valid API key.",
@@ -222,6 +218,8 @@
     "headersCannotBeParsed": "Headers cannot be parsed",
     "csvFileEmpty": "CSV file is empty",
     "csvFileNoHeaders": "CSV file has no headers",
+    "csvFileTooManyRows": "CSV file exceeds the maximum allowed row count of {{max}} rows.",
+    "csvFileForbiddenHeader": "CSV file contains a header name that is not allowed.",
     "invalidDateFormat": "Invalid date format: \"{{dateStr}}\". Expected ISO format (YYYY-MM-DD).",
     "invalidAmount": "Invalid amount: \"{{amountStr}}\". Expected numeric value.",
     "accountNameEmpty": "Account name is empty",
@@ -243,6 +241,8 @@
     "listIsEmpty": "Currencies list is empty",
     "noBaseCurrency": "User does not have a base currency set",
     "alreadyBaseCurrency": "The selected currency is already a base currency",
+    "baseCurrencyLockedByShares": "Cannot change base currency while you have active shared resources. Revoke or leave them first.",
+    "baseCurrencyLockedByHousehold": "Cannot change base currency while you are part of an active household. Revoke or leave your household membership first.",
     "cannotFindForRefAmount": "Cannot find currency to calculate ref amount!",
     "cannotCalculateRefAmount": "Cannot calculate ref amount",
     "currencyNotConnected": "Asked currency is not connected",
@@ -252,6 +252,9 @@
     "excludedCategoriesNotFound": "One or more excluded categories not found",
     "userSettingsNotFound": "User settings not found"
   },
+  "users": {
+    "usernameAlreadyTaken": "Username \"{{username}}\" is already taken"
+  },
   "userCurrencies": {
     "baseCurrencyExists": "Base currency already exists!",
     "currencyCodeNotExist": "Currency with passed code does not exist.",
@@ -259,6 +262,7 @@
     "currencyNotExist": "Currency with code \"{{currencyCode}}\" does not exist.",
     "cannotDeleteDefaultCurrency": "It is not allowed to delete default currency. Unmake it default first.",
     "cannotDeleteCurrencyWithAccounts": "It is not allowed to delete currency associated with any accounts. Delete accounts first. Accounts names: \"{{accountNames}}\".",
+    "cannotDeleteCurrencyWithInvestments": "It is not allowed to delete currency \"{{currencyCode}}\" while it is used by investment holdings. Delete those holdings first.",
     "defaultCurrencyNotPresent": "Cannot delete currency. Default currency is not present in the system"
   },
   "ai": {
@@ -267,16 +271,6 @@
   },
   "middleware": {
     "tooManyRequests": "Too many requests. Please try again later."
-  },
-  "emails": {
-    "legacyEmailMigration": {
-      "subject": "Verify your new {{appName}} email",
-      "heading": "Verify your new email",
-      "body": "You requested to change your email address to this one. Click the button below to confirm:",
-      "buttonText": "Verify Email",
-      "orCopyLink": "Or copy and paste this link:",
-      "expiryNotice": "This link expires in 1 hour. If you didn't request this change, you can safely ignore this email."
-    }
   },
   "defaultCategories": {
     "main": {
@@ -287,7 +281,7 @@
       "vehicle": "Vehicle",
       "life": "Life & Entertainment",
       "communication": "Communication, PC",
-      "financialExpenses": "Financial expenses",
+      "financial-expenses": "Financial expenses",
       "investments": "Investments",
       "income": "Income",
       "other": "Other"
@@ -296,88 +290,88 @@
       "food": {
         "groceries": "Groceries",
         "restaurant": "Restaurant, fast-food",
-        "barCafe": "Bar, cafe"
+        "bar-cafe": "Bar, cafe"
       },
       "shopping": {
-        "clothesShoes": "Clothes & shoes",
-        "jewelsAccessories": "Jewels, accessories",
-        "healthBeauty": "Health and beauty",
+        "clothes-shoes": "Clothes & shoes",
+        "jewels-accessories": "Jewels, accessories",
+        "health-beauty": "Health and beauty",
         "kids": "Kids",
-        "homeGarden": "Home, garden",
-        "petsAnimals": "Pets, animals",
-        "electronicsAccessories": "Electronics, accessories",
-        "giftsJoy": "Gifts, joy",
-        "stationeryTools": "Stationery, tools",
-        "freeTime": "Free time",
-        "drugstoreChemist": "Drug-store, chemist"
+        "home-garden": "Home, garden",
+        "pets-animals": "Pets, animals",
+        "electronics-accessories": "Electronics, accessories",
+        "gifts-joy": "Gifts, joy",
+        "stationery-tools": "Stationery, tools",
+        "free-time": "Free time",
+        "drugstore-chemist": "Drug-store, chemist"
       },
       "housing": {
         "rent": "Rent",
         "mortgage": "Mortgage",
-        "energyUtilities": "Energy, utilities",
+        "energy-utilities": "Energy, utilities",
         "services": "Services",
-        "maintenanceRepairs": "Maintenance, repairs",
-        "propertyInsurance": "Property insurance"
+        "maintenance-repairs": "Maintenance, repairs",
+        "property-insurance": "Property insurance"
       },
       "transportation": {
-        "publicTransport": "Public transport",
+        "public-transport": "Public transport",
         "taxi": "Taxi",
-        "longDistance": "Long distance",
-        "businessTrips": "Business trips"
+        "long-distance": "Long distance",
+        "business-trips": "Business trips"
       },
       "vehicle": {
         "fuel": "Fuel",
         "parking": "Parking",
-        "vehicleMaintenance": "Vehicle maintenance",
+        "vehicle-maintenance": "Vehicle maintenance",
         "rentals": "Rentals",
-        "vehicleInsurance": "Vehicle insurance",
+        "vehicle-insurance": "Vehicle insurance",
         "leasing": "Leasing"
       },
       "life": {
-        "healthCareDoctor": "Health care, doctor",
-        "wellnessBeauty": "Wellness, beauty",
-        "activeSportFitness": "Active sport, fitness",
-        "cultureSportEvents": "Culture, sport events",
+        "health-care-doctor": "Health care, doctor",
+        "wellness-beauty": "Wellness, beauty",
+        "active-sport-fitness": "Active sport, fitness",
+        "culture-sport-events": "Culture, sport events",
         "hobbies": "Hobbies",
-        "educationDevelopment": "Education, development",
-        "booksAudioSubscriptions": "Books, audio, subscriptions",
-        "tvStreaming": "TV, Streaming",
-        "holidayTripsHotels": "Holiday, trips, hotels",
-        "charityGifts": "Charity, gifts",
-        "alcoholTobacco": "Alcohol, tobacco",
-        "lotteryGambling": "Lottery, gambling"
+        "education-development": "Education, development",
+        "books-audio-subscriptions": "Books, audio, subscriptions",
+        "tv-streaming": "TV, Streaming",
+        "holiday-trips-hotels": "Holiday, trips, hotels",
+        "charity-gifts": "Charity, gifts",
+        "alcohol-tobacco": "Alcohol, tobacco",
+        "lottery-gambling": "Lottery, gambling"
       },
       "communication": {
-        "phoneCellPhone": "Phone, cell phone",
+        "phone-cell-phone": "Phone, cell phone",
         "internet": "Internet",
-        "softwareAppsGames": "Software, apps, games",
-        "postalServices": "Postal services"
+        "software-apps-games": "Software, apps, games",
+        "postal-services": "Postal services"
       },
-      "financialExpenses": {
+      "financial-expenses": {
         "taxes": "Taxes",
         "insurances": "Insurances",
-        "loanInterests": "Loan, interests",
+        "loan-interests": "Loan, interests",
         "fines": "Fines",
         "advisory": "Advisory",
-        "chargesFees": "Charges, Fees",
-        "childSupport": "Child Support"
+        "charges-fees": "Charges, Fees",
+        "child-support": "Child Support"
       },
       "investments": {
         "realty": "Realty",
-        "vehiclesChattels": "Vehicles, chattels",
-        "financialInvestments": "Financial investments",
+        "vehicles-chattels": "Vehicles, chattels",
+        "financial-investments": "Financial investments",
         "savings": "Savings",
         "collections": "Collections"
       },
       "income": {
-        "wageInvoices": "Wage, invoices",
-        "interestsDividends": "Interests, dividends",
+        "wage-invoices": "Wage, invoices",
+        "interests-dividends": "Interests, dividends",
         "sale": "Sale",
-        "rentalIncome": "Rental income",
-        "duesGrants": "Dues & grants",
-        "lendingRenting": "Lending, renting",
-        "checksCoupons": "Checks, coupons",
-        "lotteryGambling": "Lottery, gambling",
+        "rental-income": "Rental income",
+        "dues-grants": "Dues & grants",
+        "lending-renting": "Lending, renting",
+        "checks-coupons": "Checks, coupons",
+        "lottery-gambling": "Lottery, gambling",
         "refunds": "Refunds (tax, purchase)",
         "freelance": "Freelance",
         "gifts": "Gifts"

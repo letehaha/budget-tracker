@@ -6,7 +6,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 import { AccountModel, TransactionModel } from '@bt/shared/types';
-import { Trash2Icon } from 'lucide-vue-next';
+import { Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

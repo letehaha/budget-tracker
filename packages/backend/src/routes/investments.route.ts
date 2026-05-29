@@ -1,4 +1,9 @@
 import {
+  estimateCostController as importEstimateCostController,
+  executeImportController as importExecuteController,
+  extractController as importExtractController,
+} from '@controllers/investment-transactions-parser';
+import {
   createHoldingController,
   deleteHoldingController,
   getHoldingsController,
@@ -16,6 +21,7 @@ import getPortfolioSummaryController from '@controllers/investments/portfolios/g
 import listPortfolioTransfersController from '@controllers/investments/portfolios/list-portfolio-transfers';
 import listPortfoliosController from '@controllers/investments/portfolios/list-portfolios';
 import portfolioToAccountTransferController from '@controllers/investments/portfolios/portfolio-to-account-transfer';
+import restorePortfolioController from '@controllers/investments/portfolios/restore-portfolio';
 import updatePortfolioController from '@controllers/investments/portfolios/update-portfolio';
 import updatePortfolioBalanceController from '@controllers/investments/portfolios/update-portfolio-balance';
 import getPricesController from '@controllers/investments/prices/get-prices.controller';
@@ -38,9 +44,10 @@ import { Router } from 'express';
 
 const router = Router({});
 
-// All investment routes are blocked for demo users
-// Demo users see a "Not available in demo" placeholder on the frontend
-router.use(authenticateSession, blockDemoUsers);
+// Demo users get a pre-seeded portfolio and can edit it freely. Creating new
+// portfolios and deleting existing ones are blocked per-route below; admin-only
+// endpoints enforce their own access checks.
+router.use(authenticateSession);
 
 // Portfolio routes
 router.get('/portfolios', validateEndpoint(listPortfoliosController.schema), listPortfoliosController.handler);
@@ -123,13 +130,23 @@ router.put(
 
 router.delete(
   '/portfolios/:id',
+  blockDemoUsers,
   checkBaseCurrencyLock,
   validateEndpoint(deletePortfolioController.schema),
   deletePortfolioController.handler,
 );
 
 router.post(
+  '/portfolios/:id/restore',
+  blockDemoUsers,
+  checkBaseCurrencyLock,
+  validateEndpoint(restorePortfolioController.schema),
+  restorePortfolioController.handler,
+);
+
+router.post(
   '/portfolios',
+  blockDemoUsers,
   checkBaseCurrencyLock,
   validateEndpoint(createPortfolioController.schema),
   createPortfolioController.handler,
@@ -209,6 +226,32 @@ router.put(
   checkBaseCurrencyLock,
   validateEndpoint(updateInvestmentTransactionController.schema),
   updateInvestmentTransactionController.handler,
+);
+
+/**
+ * Investment transactions import. Two paths share the review + execute stages:
+ *   - AI:  estimate-cost → extract({ source: 'ai' }) → execute
+ *   - CSV: (frontend parses locally via papaparse) → extract({ source: 'csv', columnMapping }) → execute
+ *
+ * `extract` is the merged endpoint; the body's discriminator decides whether
+ * the file is fed through the AI provider or parsed via the codebase CSV
+ * parser using a user-supplied column mapping.
+ */
+router.post(
+  '/transactions-import/estimate-cost',
+  validateEndpoint(importEstimateCostController.schema),
+  importEstimateCostController.handler,
+);
+router.post(
+  '/transactions-import/extract',
+  validateEndpoint(importExtractController.schema),
+  importExtractController.handler,
+);
+router.post(
+  '/transactions-import/execute',
+  checkBaseCurrencyLock,
+  validateEndpoint(importExecuteController.schema),
+  importExecuteController.handler,
 );
 
 export default router;

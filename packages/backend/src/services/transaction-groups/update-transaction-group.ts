@@ -3,7 +3,7 @@ import TransactionGroups from '@models/transaction-groups.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UpdateTransactionGroupPayload {
-  id: number;
+  id: string;
   userId: number;
   name?: string;
   note?: string | null;

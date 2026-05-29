@@ -1,7 +1,7 @@
 <template>
   <span
     v-if="isVisible"
-    class="bg-success-text/70 text-success-foreground inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium"
+    class="bg-success-text/70 dark:text-success-foreground inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium text-white"
   >
     {{ $t('common.new') }}
   </span>

@@ -6,13 +6,13 @@ export default class TransactionGroupItems extends Model<
   InferAttributes<TransactionGroupItems>,
   InferCreationAttributes<TransactionGroupItems>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
-  declare groupId: number;
+  declare groupId: string;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
-  declare transactionId: number;
+  declare transactionId: string;
 }

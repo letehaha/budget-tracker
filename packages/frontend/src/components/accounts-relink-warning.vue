@@ -99,7 +99,7 @@ import { useSyncStatus } from '@/composable/use-sync-status';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores/accounts';
-import { AlertTriangleIcon, ChevronRightIcon, ExternalLinkIcon, LinkIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, ChevronRightIcon, ExternalLinkIcon, LinkIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, watch } from 'vue';
 
@@ -111,7 +111,7 @@ const { accountsNeedingRelink } = storeToRefs(accountsStore);
 
 // Get unique connection IDs from accounts needing relink
 const uniqueConnectionIds = computed(() => {
-  const ids = new Set<number>();
+  const ids = new Set<string>();
   for (const account of accountsNeedingRelink.value) {
     if (account.bankDataProviderConnectionId) {
       ids.add(account.bankDataProviderConnectionId);

@@ -3,18 +3,20 @@ import { executeImportController } from '@controllers/import-export/execute-impo
 import { extractUniqueValuesController } from '@controllers/import-export/extract-unique-values.controller';
 import { parseCsv } from '@controllers/import-export/parse-csv.controller';
 import { authenticateSession } from '@middlewares/better-auth';
+import { csvImportRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
 const router = Router({});
 
 // Parse CSV file and return preview
-router.post('/csv/parse', authenticateSession, validateEndpoint(parseCsv.schema), parseCsv.handler);
+router.post('/csv/parse', authenticateSession, csvImportRateLimit, validateEndpoint(parseCsv.schema), parseCsv.handler);
 
 // Extract unique accounts/categories from full dataset
 router.post(
   '/csv/extract-unique-values',
   authenticateSession,
+  csvImportRateLimit,
   validateEndpoint(extractUniqueValuesController.schema),
   extractUniqueValuesController.handler,
 );
@@ -23,6 +25,7 @@ router.post(
 router.post(
   '/csv/detect-duplicates',
   authenticateSession,
+  csvImportRateLimit,
   validateEndpoint(detectDuplicatesController.schema),
   detectDuplicatesController.handler,
 );
@@ -31,6 +34,7 @@ router.post(
 router.post(
   '/csv/execute',
   authenticateSession,
+  csvImportRateLimit,
   validateEndpoint(executeImportController.schema),
   executeImportController.handler,
 );

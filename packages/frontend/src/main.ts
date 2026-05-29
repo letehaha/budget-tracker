@@ -1,9 +1,11 @@
 import '@/styles/global.css';
 import './registerServiceWorker';
 
-import { identifyCurrentTheme, patchMetaViewportMaxScaleForiOS } from '@/common/utils';
+import { identifyCurrentTheme } from '@/common/utils/color-theme';
+import { patchMetaViewportMaxScaleForiOS } from '@/common/utils/meta-viewport-max-scale';
 import { i18n, initializeLocale, loadChunks } from '@/i18n';
 import { initPostHog, trackPageviews } from '@/lib/posthog';
+import { queryClient } from '@/lib/query-client';
 import { initSentry } from '@/lib/sentry';
 import { router } from '@/routes';
 import { store } from '@/stores/setup';
@@ -49,7 +51,7 @@ initI18n()
     app.use(head);
     app.use(i18n); // Register vue-i18n plugin
 
-    app.use(VueQueryPlugin);
+    app.use(VueQueryPlugin, { queryClient });
 
     app.mount('#app');
   });

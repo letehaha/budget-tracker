@@ -10,8 +10,8 @@ import { format, parseISO } from 'date-fns';
 
 interface GetTransactionsParams {
   userId: number;
-  portfolioId?: number;
-  securityId?: number;
+  portfolioId?: string;
+  securityId?: string;
   category?: INVESTMENT_TRANSACTION_CATEGORY;
   startDate?: string;
   endDate?: string;
@@ -29,10 +29,12 @@ const serviceImpl = async ({
   limit = 20,
   offset = 0,
 }: GetTransactionsParams) => {
-  // Build where clause
+  // Build where clause. User scoping comes from the Portfolios INNER JOIN
+  // below (`include[].where = { userId }`), so we don't need a parallel
+  // userId-filter subquery on portfolioId — that would be redundant and
+  // previously string-interpolated userId into raw SQL.
   const where: WhereOptions = {};
 
-  // Add portfolio filter
   if (portfolioId) {
     // Check if portfolio belongs to the user and add it to the where clause in one query
     await findOrThrowNotFound({
@@ -44,12 +46,6 @@ const serviceImpl = async ({
     });
 
     where.portfolioId = portfolioId;
-  } else {
-    // If no specific portfolio is requested, use a subquery to get all portfolios for the user
-    // This avoids fetching all portfolios into memory
-    where.portfolioId = {
-      [Op.in]: Portfolios.sequelize!.literal(`(SELECT id FROM "Portfolios" WHERE "userId" = ${userId})`),
-    };
   }
 
   // Add security filter
@@ -84,16 +80,30 @@ const serviceImpl = async ({
       order: [['date', 'DESC']],
       limit,
       offset,
+      attributes: [
+        'id',
+        'securityId',
+        'portfolioId',
+        'category',
+        'date',
+        'name',
+        'quantity',
+        'price',
+        'fees',
+        'amount',
+        'currencyCode',
+      ],
       include: [
         {
           model: Portfolios,
           as: 'portfolio',
-          attributes: ['id', 'name'], // Only fetch needed fields
-          where: { userId }, // Ensure user can only see their own portfolios
+          attributes: ['id', 'name'],
+          where: { userId }, // INNER JOIN enforces user scoping
         },
         {
           model: Securities,
           as: 'security',
+          attributes: ['id', 'symbol', 'name', 'currencyCode', 'assetClass'],
         },
       ],
     }),

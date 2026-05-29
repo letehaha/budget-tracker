@@ -15,7 +15,13 @@
         <span v-if="deletePortfolioMutation.isPending.value">{{
           $t('dialogs.deletePortfolio.deleteButtonLoading')
         }}</span>
-        <span v-else>{{ $t('dialogs.deletePortfolio.deleteButton') }}</span>
+        <template v-else>
+          <Trash2Icon class="size-4" />
+
+          <span>
+            {{ $t('dialogs.deletePortfolio.deleteButton') }}
+          </span>
+        </template>
       </UiButton>
     </template>
   </ResponsiveDialog>
@@ -26,13 +32,15 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useDeletePortfolio } from '@/composable/data-queries/portfolios';
+import { ApiErrorResponseError } from '@/js/errors';
+import { Trash2Icon } from '@lucide/vue';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
 const props = defineProps<{
-  portfolioId: number;
+  portfolioId: string;
 }>();
 
 const emit = defineEmits<{
@@ -49,8 +57,12 @@ const handleDelete = async () => {
     addSuccessNotification(t('dialogs.deletePortfolio.notifications.success'));
     isOpen.value = false;
     emit('deleted');
-  } catch {
-    addErrorNotification(t('dialogs.deletePortfolio.notifications.error'));
+  } catch (e) {
+    const message =
+      e instanceof ApiErrorResponseError && e.data?.message
+        ? e.data.message
+        : t('dialogs.deletePortfolio.notifications.error');
+    addErrorNotification(message);
   }
 };
 </script>

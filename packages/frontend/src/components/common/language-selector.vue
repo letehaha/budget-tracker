@@ -4,10 +4,10 @@
       <Button :variant="variant" :size="showLabel ? 'default' : 'icon'" :class="buttonClass">
         <template v-if="showLabel">
           <span>{{ currentLocaleNative }}</span>
-          <img :src="currentFlagSrc" :alt="currentLocaleNative" class="size-5" />
+          <img :src="currentFlagSrc" :alt="currentLocaleNative" class="h-4 w-5.5 rounded-sm object-cover" />
         </template>
         <template v-else>
-          <img :src="currentFlagSrc" :alt="currentLocaleNative" class="size-5" />
+          <img :src="currentFlagSrc" :alt="currentLocaleNative" class="h-4 w-5.5 rounded-sm object-cover" />
         </template>
       </Button>
     </Popover.PopoverTrigger>
@@ -25,7 +25,7 @@
           }"
           @click="handleLocaleChange(locale.value)"
         >
-          <img :src="locale.flagSrc" :alt="locale.native" class="size-5" />
+          <img :src="locale.flagSrc" :alt="locale.native" class="h-4 w-5.5 rounded-sm object-cover" />
           <span>{{ locale.native }}</span>
         </button>
       </div>

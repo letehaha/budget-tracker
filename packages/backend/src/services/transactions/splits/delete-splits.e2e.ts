@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -81,7 +82,7 @@ describe('Delete transaction splits', () => {
   });
 
   it('should reject deleting non-existent split', async () => {
-    const fakeUuid = '019b8b00-0000-7000-0000-000000000000';
+    const fakeUuid = generateRandomRecordId();
 
     const deleteRes = await helpers.deleteSplit({ splitId: fakeUuid });
     // Should return error status (404 NotFound or 422 if validation layer catches it first)

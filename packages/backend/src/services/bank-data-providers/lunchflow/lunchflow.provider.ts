@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ACCOUNT_TYPES,
@@ -15,7 +16,7 @@ import { logger } from '@js/utils';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
-import { Sequelize } from '@sequelize/core';
+import { and, literal, where } from '@sequelize/core';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -61,7 +62,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   // Connection Management
   // ============================================================================
 
-  async connect(userId: number, credentials: unknown): Promise<number> {
+  async connect(userId: number, credentials: unknown): Promise<string> {
     if (!this.isValidCredentials(credentials)) {
       throw new ValidationError({ message: t({ key: 'bankDataProviders.lunchflow.invalidCredentialsFormat' }) });
     }
@@ -98,7 +99,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     return connection.id;
   }
 
-  async disconnect(connectionId: number): Promise<void> {
+  async disconnect(connectionId: string): Promise<void> {
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
 
@@ -112,14 +113,13 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
     const apiClient = new LunchFlowApiClient(credentials.apiKey);
 
-    try {
-      return await apiClient.testConnection();
-    } catch {
-      return false;
-    }
+    // testConnection returns false only for 401/403.
+    // Network/5xx errors propagate so callers can distinguish "invalid key"
+    // from "provider is down".
+    return await apiClient.testConnection();
   }
 
-  async refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void> {
+  async refreshCredentials(connectionId: string, newCredentials: unknown): Promise<void> {
     if (!this.isValidCredentials(newCredentials)) {
       throw new ValidationError({ message: t({ key: 'bankDataProviders.lunchflow.invalidCredentialsFormat' }) });
     }
@@ -148,7 +148,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   // Account Operations
   // ============================================================================
 
-  async fetchAccounts(connectionId: number): Promise<ProviderAccount[]> {
+  async fetchAccounts(connectionId: string): Promise<ProviderAccount[]> {
     const { apiKey } = await this.getValidatedCredentials(connectionId);
 
     const apiClient = new LunchFlowApiClient(apiKey);
@@ -171,6 +171,25 @@ export class LunchFlowProvider extends BaseBankDataProvider {
       activeAccounts.map((account) => apiClient.getBalance({ accountId: account.id })),
     );
 
+    // Per-account balance failures are expected (fall back to 0). But when
+    // most accounts in one sync fail simultaneously, that's a strong signal
+    // the balance API itself is degraded — escalate to Sentry. Min count of 2
+    // avoids firing for single-account connections where one bad account
+    // would otherwise look like a 100% failure rate.
+    const rejectedCount = balanceResults.filter((r) => r.status === 'rejected').length;
+    if (rejectedCount >= 2 && rejectedCount / activeAccounts.length > 0.5) {
+      logger.error(
+        {
+          message: '[LunchFlow] Majority of balance fetches failed in a single sync. Possible API degradation.',
+        },
+        {
+          connectionId,
+          rejectedCount,
+          accountCount: activeAccounts.length,
+        },
+      );
+    }
+
     return activeAccounts.reduce<ProviderAccount[]>((result, account, index) => {
       const balanceResult = balanceResults[index]!;
       let balance: Cents = asCents(0);
@@ -180,7 +199,9 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         balance = Money.fromDecimal(balanceResult.value.balance.amount).toCents();
         currency = balanceResult.value.balance.currency || currency;
       } else {
-        logger.warn(`[LunchFlow] Failed to fetch balance for account ${account.id}, defaulting to 0`);
+        const reason =
+          balanceResult.reason instanceof Error ? balanceResult.reason.message : String(balanceResult.reason);
+        logger.info(`[LunchFlow] Failed to fetch balance for account ${account.id}, defaulting to 0: ${reason}`);
       }
 
       if (!currency) {
@@ -212,7 +233,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   // ============================================================================
 
   async fetchTransactions(
-    connectionId: number,
+    connectionId: string,
     accountExternalId: string,
     _dateRange?: DateRange, // eslint-disable-line @typescript-eslint/no-unused-vars
   ): Promise<ProviderTransaction[]> {
@@ -244,8 +265,8 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     systemAccountId,
     userId,
   }: {
-    connectionId: number;
-    systemAccountId: number;
+    connectionId: string;
+    systemAccountId: RecordId;
     userId: number;
   }): Promise<void> {
     await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.SYNCING, userId });
@@ -291,7 +312,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
       postedTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
-      const createdTransactionIds: number[] = [];
+      const createdTransactionIds: string[] = [];
 
       for (const tx of postedTransactions) {
         // Primary dedup: check by originalId (covers normal re-sync)
@@ -310,9 +331,9 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         // This covers the unlink→relink flow where originalId was cleared to null
         // but the original value was preserved in externalData
         const existingByOriginalSource = await Transactions.findOne({
-          where: Sequelize.and(
+          where: and(
             { accountId: account.id, originalId: null },
-            Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), tx.id!),
+            where(literal(`"externalData"#>>'{originalSource,originalId}'`), tx.id!),
           ),
         });
 
@@ -388,7 +409,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   // Balance Operations
   // ============================================================================
 
-  async fetchBalance(connectionId: number, accountExternalId: string): Promise<ProviderBalance> {
+  async fetchBalance(connectionId: string, accountExternalId: string): Promise<ProviderBalance> {
     const { apiKey } = await this.getValidatedCredentials(connectionId);
 
     const apiClient = new LunchFlowApiClient(apiKey);
@@ -402,7 +423,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     };
   }
 
-  async refreshBalance(connectionId: number, systemAccountId: number): Promise<void> {
+  async refreshBalance(connectionId: string, systemAccountId: string): Promise<void> {
     const account = await this.getSystemAccount(systemAccountId);
 
     if (!account.externalId) {
@@ -417,58 +438,6 @@ export class LunchFlowProvider extends BaseBankDataProvider {
   }
 
   // ============================================================================
-  // Auth Failure Handling
-  // ============================================================================
-
-  /**
-   * Handle auth errors with retry tracking.
-   * After 2 consecutive auth failures, deactivate the connection.
-   */
-  private async handleAuthError({ connectionId, error }: { connectionId: number; error: unknown }): Promise<void> {
-    const isForbiddenError = error instanceof ForbiddenError;
-    if (!isForbiddenError) return;
-
-    try {
-      const connection = await this.getConnection(connectionId);
-      const metadata = (connection.metadata as LunchFlowMetadata) || {};
-      const failures = (metadata.consecutiveAuthFailures || 0) + 1;
-      metadata.consecutiveAuthFailures = failures;
-
-      if (failures >= 2) {
-        connection.isActive = false;
-        metadata.deactivationReason = 'auth_failure';
-        logger.warn(`[LunchFlow] Connection ${connectionId} deactivated after ${failures} consecutive auth failures`);
-      }
-
-      connection.metadata = metadata as any;
-      await connection.save();
-    } catch (metaError) {
-      logger.error({
-        message: '[LunchFlow] Failed to update auth failure metadata:',
-        error: metaError as Error,
-      });
-    }
-  }
-
-  /**
-   * Reset consecutive auth failure counter on successful API call
-   */
-  private async resetAuthFailures(connectionId: number): Promise<void> {
-    try {
-      const connection = await this.getConnection(connectionId);
-      const metadata = (connection.metadata as LunchFlowMetadata) || {};
-
-      if (metadata.consecutiveAuthFailures && metadata.consecutiveAuthFailures > 0) {
-        metadata.consecutiveAuthFailures = 0;
-        connection.metadata = metadata as any;
-        await connection.save();
-      }
-    } catch {
-      // Non-critical, ignore
-    }
-  }
-
-  // ============================================================================
   // Helper Methods
   // ============================================================================
 
@@ -480,7 +449,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     return typeof apiKey === 'string' && apiKey.length > 0;
   }
 
-  private async getValidatedCredentials(connectionId: number): Promise<LunchFlowCredentials> {
+  private async getValidatedCredentials(connectionId: string): Promise<LunchFlowCredentials> {
     const credentials = await this.getDecryptedCredentials(connectionId);
     if (!this.isValidCredentials(credentials)) {
       throw new ValidationError({

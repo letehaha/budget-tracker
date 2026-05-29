@@ -266,6 +266,8 @@
           "loadFailed": "Failed to load integration details. Please try again.",
           "notFoundTitle": "Integration not found",
           "notFoundDescription": "This integration may have been removed or the link is incorrect. Check your integrations list to find what you're looking for.",
+          "unexpectedTitle": "Something went wrong",
+          "unexpectedDescription": "We couldn't load this connection. Please try again later.",
           "backButton": "Back to Integrations"
         },
         "connectionDetails": {
@@ -285,7 +287,7 @@
           "statusExpired": "Expired",
           "statusExpiringSoon": "Expiring Soon",
           "statusActive": "Active",
-          "expiredTitle": "⚠️ Connection Expired",
+          "expiredTitle": "Connection Expired",
           "expiredDescription": "Your bank connection has expired. Please reconnect to continue syncing transactions.",
           "expiringSoonTitle": "⚠️ Expiring Soon",
           "expiringSoonDescription": "Your bank connection will expire in {days} day(s). Please reconnect soon to avoid interruption.",
@@ -379,6 +381,16 @@
         "easySetup": "Easy to setup",
         "mediumSetup": "Medium setup",
         "veryDifficultSetup": "Very difficult to setup"
+      },
+      "regions": {
+        "ukraine": "Ukraine",
+        "eu": "EU",
+        "uk": "UK",
+        "usa": "USA",
+        "poland": "Poland",
+        "canada": "Canada",
+        "australia": "Australia",
+        "newZealand": "New Zealand"
       },
       "tooltips": {
         "monobank": "Requires manually copying an API token from the Monobank mobile app",

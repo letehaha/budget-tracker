@@ -6,9 +6,12 @@ import * as Accounts from '@models/accounts.model';
 import Currencies from '@models/currencies.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
+import Transactions from '@models/transactions.model';
+import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
 import { Big } from 'big.js';
+import { format } from 'date-fns';
 
 export function validatePositiveAmount({ amount }: { amount: string }): void {
   if (new Big(amount).lte(0)) {
@@ -21,7 +24,7 @@ export async function findPortfolioOrThrow({
   userId,
   role,
 }: {
-  portfolioId: number;
+  portfolioId: string;
   userId: number;
   role: 'source' | 'destination' | 'generic';
 }): Promise<Portfolios> {
@@ -42,7 +45,7 @@ export async function findAccountOrThrow({
   userId,
   role,
 }: {
-  accountId: number;
+  accountId: string;
   userId: number;
   role: 'source' | 'destination';
 }): Promise<NonNullable<Awaited<ReturnType<typeof Accounts.getAccountById>>>> {
@@ -124,21 +127,59 @@ export async function reverseTransferBalanceChanges({
   }
 }
 
+export async function getUserBaseCurrencyCode({ userId }: { userId: number }): Promise<string> {
+  // `getCurrency` claims non-null but `findOne` can actually return `null` (incomplete onboarding).
+  // Mirror calculate-ref-amount: throw a typed ValidationError instead of crashing on destructure.
+  const result = await UsersCurrencies.getCurrency({ userId, isDefaultCurrency: true });
+  if (!result) {
+    throw new ValidationError({ message: t({ key: 'currencies.cannotFindForRefAmount' }) });
+  }
+  return result.currency.code;
+}
+
 export async function computeRefAmount({
   amount,
   currencyCode,
   userId,
   date,
+  baseCurrencyCode,
 }: {
   amount: string;
   currencyCode: string;
   userId: number;
   date: string;
+  /** If known, skips the internal default-currency lookup. */
+  baseCurrencyCode?: string;
 }): Promise<Money> {
   return calculateRefAmount({
     amount: Money.fromDecimal(amount),
     baseCode: currencyCode,
+    quoteCode: baseCurrencyCode,
     userId,
     date: new Date(date),
   });
+}
+
+/**
+ * For a Transaction being promoted to (or re-stamped as) `transfer_to_portfolio`, derive the ref
+ * fields the model validator requires. Computes `refAmount` from the tx's own currency/time so the
+ * historical FX rate is used, and stamps the user's *current* base currency in `refCurrencyCode`.
+ * Both must be set together — the validator rejects partial stamps.
+ */
+export async function computeRestampForExistingTransaction({
+  tx,
+  userId,
+}: {
+  tx: Transactions;
+  userId: number;
+}): Promise<{ refCurrencyCode: string; refAmount: Money }> {
+  const refCurrencyCode = await getUserBaseCurrencyCode({ userId });
+  const refAmount = await computeRefAmount({
+    amount: tx.amount.toDecimalString(10),
+    currencyCode: tx.currencyCode,
+    userId,
+    date: format(tx.time, 'yyyy-MM-dd'),
+    baseCurrencyCode: refCurrencyCode,
+  });
+  return { refCurrencyCode, refAmount };
 }

@@ -7,7 +7,7 @@ import { computed } from 'vue';
 const BASE_QUERY_KEY = 'transactions-by-transfer-id';
 
 export function useOppositeTxRecord(transaction: {
-  id: number;
+  id: string;
   transferNature: TRANSACTION_TRANSFER_NATURE;
   transferId: string | null;
 }) {
@@ -30,4 +30,4 @@ export function useOppositeTxRecord(transaction: {
   });
 }
 
-export const getInvalidationQueryKey = (transactionId: number) => [BASE_QUERY_KEY, transactionId];
+export const getInvalidationQueryKey = (transactionId: string) => [BASE_QUERY_KEY, transactionId];

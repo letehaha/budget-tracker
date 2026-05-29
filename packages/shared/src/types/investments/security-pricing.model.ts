@@ -1,9 +1,9 @@
 import { SecurityModel } from './security.model';
 
 export interface SecurityPricingModel {
-  id: number; // PR
+  id: string; // PR
 
-  securityId: number;
+  securityId: string;
   /**
    * The date for which this pricing information is applicable. This field is crucial for tracking
    * the historical prices of securities and allows for analysis of price trends over time.

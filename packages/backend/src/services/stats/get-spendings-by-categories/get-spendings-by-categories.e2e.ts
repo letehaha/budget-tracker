@@ -1,4 +1,11 @@
-import { CategoryModel, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  CategoryModel,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  TRANSACTIONS_WRITE_SCOPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 
@@ -125,7 +132,7 @@ describe('[Stats] Spendings by categories', () => {
     const data = await helpers.getSpendingsByCategories({ raw: true });
 
     expect(data).toEqual({
-      '1': {
+      [category.id]: {
         name: category.name,
         color: category.color,
         amount: 200,
@@ -148,7 +155,7 @@ describe('[Stats] Spendings by categories', () => {
     const rootCategories = categoriesList.filter((c) => !c.parentId).slice(0, CATEGORIES_AMOUNT_FOR_EACH_NESTING_LEVEL);
 
     // Prepare nested 1-level categories
-    const excludedIds = new Set<number>([]);
+    const excludedIds = new Set<string>([]);
     const firstLevelNestedCategories = categoriesList.filter((c) => {
       if (c.parentId) {
         if (rootCategories.some((e) => e.id === c.parentId) && !excludedIds.has(c.parentId)) {
@@ -256,12 +263,12 @@ describe('[Stats] Spendings by categories', () => {
     // 1 transaction is being refunded by income with value 100, so 600 - (200 - 100) = 500
     // Transfers are ignored
     expect(spendingsByCategories).toEqual({
-      '1': {
+      [rootCategories[0]!.id]: {
         name: rootCategories[0]!.name,
         color: rootCategories[0]!.color,
         amount: 400,
       },
-      '2': {
+      [rootCategories[1]!.id]: {
         name: rootCategories[1]!.name,
         color: rootCategories[1]!.color,
         amount: 500,
@@ -367,16 +374,73 @@ describe('[Stats] Spendings by categories', () => {
     });
 
     expect(spendingsByCategories).toEqual({
-      '1': {
+      [rootCategories[0]!.id]: {
         name: rootCategories[0]!.name,
         color: rootCategories[0]!.color,
         // 400 (initial) + 400 (expense eur 500 - uah income refund 100) + 1000 (uah expense)
         amount: 400 + 400 + 1000,
       },
-      '2': {
+      [rootCategories[1]!.id]: {
         name: rootCategories[1]!.name,
         color: rootCategories[1]!.color,
         amount: 500,
+      },
+    });
+  });
+});
+
+/**
+ * Regression: a recipient on a shared account creates a transaction tagged with the owner's
+ * categoryId (forced by S4). Before the categories lookup was widened to include accessible
+ * owners, those rows fell out of the recipient's category map and the dashboard widget
+ * rendered them as "Unknown" with a black wedge.
+ */
+describe('[Stats] Spendings by categories — shared accounts', () => {
+  it('resolves owner category name + color when recipient logs a tx on a shared account', async () => {
+    const ownerAccount = await helpers.createAccount({ raw: true });
+    const ownerCategory = await helpers.addCustomCategory({
+      name: 'Owner Groceries',
+      color: '#A1B2C3',
+      raw: true,
+    });
+
+    const recipient = await helpers.signUpSecondUser();
+    await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () => helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code }),
+    });
+
+    const invitation = await helpers.createShareInvitation({
+      inviteeEmail: recipient.email,
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: ownerAccount.id,
+      permission: SHARE_PERMISSIONS.write,
+      policy: { transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all },
+      raw: true,
+    });
+
+    await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: async () => {
+        await helpers.acceptShareInvitation({ token: invitation.token, raw: true });
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: ownerAccount.id,
+            amount: 1500,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: ownerCategory.id,
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.getSpendingsByCategories({ raw: true });
+        const bucket = result[ownerCategory.id.toString()];
+        expect(bucket).toBeDefined();
+        expect(bucket).toEqual({
+          amount: 1500,
+          name: ownerCategory.name,
+          color: ownerCategory.color,
+        });
       },
     });
   });

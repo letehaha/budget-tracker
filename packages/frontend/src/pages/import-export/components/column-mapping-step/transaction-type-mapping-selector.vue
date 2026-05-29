@@ -48,7 +48,7 @@
             @blur="updateIncomeValues"
             type="text"
             :placeholder="$t('pages.importExport.transactionTypeMapping.incomeValuesPlaceholder')"
-            class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            class="border-input bg-input-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
           <p class="text-muted-foreground mt-1 text-xs">
             {{ $t('pages.importExport.transactionTypeMapping.commaSeparatedHint') }}
@@ -65,7 +65,7 @@
             @blur="updateExpenseValues"
             type="text"
             :placeholder="$t('pages.importExport.transactionTypeMapping.expenseValuesPlaceholder')"
-            class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            class="border-input bg-input-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
           <p class="text-muted-foreground mt-1 text-xs">
             {{ $t('pages.importExport.transactionTypeMapping.commaSeparatedHint') }}

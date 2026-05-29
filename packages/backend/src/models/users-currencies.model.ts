@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { removeUndefinedKeys } from '@js/helpers';
 import {
@@ -9,15 +10,8 @@ import {
   NonAttribute,
   Op,
 } from '@sequelize/core';
-import {
-  Attribute,
-  AutoIncrement,
-  Default,
-  Index,
-  NotNull,
-  PrimaryKey,
-  Table,
-} from '@sequelize/core/decorators-legacy';
+import { Attribute, BeforeCreate, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import Currencies from './currencies.model';
 import Users from './users.model';
@@ -31,10 +25,17 @@ export default class UsersCurrencies extends Model<
   InferAttributes<UsersCurrencies>,
   InferCreationAttributes<UsersCurrencies>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  @NotNull
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static generateUUIDv7(instance: UsersCurrencies) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull

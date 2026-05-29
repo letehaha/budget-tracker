@@ -6,7 +6,15 @@ import { Op } from '@sequelize/core';
 import { subYears } from 'date-fns';
 import YahooFinance from 'yahoo-finance2';
 
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
+import {
+  BaseSecurityDataProvider,
+  BulkPriceData,
+  HistoricalPriceOptions,
+  PriceData,
+  ProviderSymbol,
+  SecurityPriceFetchInput,
+  toProviderSymbol,
+} from './base-provider';
 
 const DEFAULT_HISTORY_YEARS = 5;
 const CURRENCY_RESOLVE_CONCURRENCY = 5;
@@ -57,6 +65,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
 
         results.push({
           symbol,
+          providerSymbol: symbol,
           name,
           assetClass: this.mapTypeToAssetClass('typeDisp' in q ? String(q.typeDisp) : undefined),
           providerName: this.providerName,
@@ -78,67 +87,63 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
       logger.info(`Yahoo search returned ${results.length} results for: ${query}`);
       return results;
     } catch (error) {
-      logger.error({ message: 'Yahoo Finance search failed:', error: error as Error });
-      throw new Error(`Yahoo Finance search failed: ${error instanceof Error ? error.message : 'Unknown error'}`, {
-        cause: error,
-      });
+      throw this.formatProviderError({ operation: 'Yahoo Finance search failed', error });
     }
   }
 
-  public async getLatestPrice(symbol: string): Promise<PriceData> {
+  public async getLatestPrice(providerSymbol: ProviderSymbol): Promise<PriceData> {
     try {
-      logger.info(`Fetching latest price from Yahoo for: ${symbol}`);
+      logger.info(`Fetching latest price from Yahoo for: ${providerSymbol}`);
 
-      const quote = await this.client.quote(symbol);
+      const quote = await this.client.quote(providerSymbol);
 
       if (!quote || !quote.regularMarketPreviousClose) {
-        throw new Error(`No quote data found for symbol: ${symbol}`);
+        throw new Error(`No quote data found for symbol: ${providerSymbol}`);
       }
 
       const priceClose = quote.regularMarketPreviousClose;
       if (!quote.regularMarketTime) {
-        logger.info(`Missing regularMarketTime for ${symbol}, using current time as fallback`);
+        logger.info(`Missing regularMarketTime for ${providerSymbol}, using current time as fallback`);
       }
       const marketTime = quote.regularMarketTime ? new Date(quote.regularMarketTime) : new Date();
 
       const result: PriceData = {
-        symbol: quote.symbol ?? symbol,
+        providerSymbol: toProviderSymbol(quote.symbol ?? providerSymbol),
         date: marketTime,
         priceClose,
         priceAsOf: marketTime,
         providerName: SECURITY_PROVIDER.yahoo,
       };
 
-      logger.info(`Latest price for ${symbol}: ${priceClose} on ${marketTime.toISOString()}`);
+      logger.info(`Latest price for ${providerSymbol}: ${priceClose} on ${marketTime.toISOString()}`);
       return result;
     } catch (error) {
-      logger.error({ message: `Failed to fetch latest price for ${symbol}:`, error: error as Error });
-      throw new Error(
-        `Failed to fetch latest price for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { cause: error },
-      );
+      throw this.formatProviderError({ operation: `Failed to fetch latest price for ${providerSymbol}`, error });
     }
   }
 
-  public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
+  public async getHistoricalPrices(
+    providerSymbol: ProviderSymbol,
+    options?: HistoricalPriceOptions,
+  ): Promise<PriceData[]> {
     try {
       const startDate = options?.startDate;
       const endDate = options?.endDate;
 
       logger.info(
-        `Fetching historical prices from Yahoo for: ${symbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
+        `Fetching historical prices from Yahoo for: ${providerSymbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
       );
 
       const period1 = startDate ?? subYears(new Date(), DEFAULT_HISTORY_YEARS);
       const period2 = endDate ?? new Date();
 
-      const chartResult = await this.client.chart(symbol, {
+      const chartResult = await this.client.chart(providerSymbol, {
         period1: period1.toISOString().split('T')[0]!,
         period2: period2.toISOString().split('T')[0]!,
       });
 
       if (!chartResult.quotes || chartResult.quotes.length === 0) {
-        throw new Error(`No historical data found for symbol: ${symbol}`);
+        throw new Error(`No historical data found for symbol: ${providerSymbol}`);
       }
 
       const results: PriceData[] = [];
@@ -146,7 +151,7 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
         if (q.close == null) continue;
 
         results.push({
-          symbol,
+          providerSymbol,
           date: new Date(q.date),
           priceClose: q.adjclose ?? q.close,
           priceAsOf: new Date(q.date),
@@ -157,48 +162,52 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
       // Sort by date ascending
       const sorted = results.toSorted((a, b) => a.date.getTime() - b.date.getTime());
 
-      logger.info(`Found ${sorted.length} historical prices for ${symbol}`);
+      logger.info(`Found ${sorted.length} historical prices for ${providerSymbol}`);
       return sorted;
     } catch (error) {
-      logger.error({ message: `Failed to fetch historical prices for ${symbol}:`, error: error as Error });
-      throw new Error(
-        `Failed to fetch historical prices for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { cause: error },
-      );
+      throw this.formatProviderError({ operation: `Failed to fetch historical prices for ${providerSymbol}`, error });
     }
   }
 
-  public async fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]> {
-    if (symbols.length === 0) return [];
+  public async fetchPricesForSecurities(
+    securities: SecurityPriceFetchInput[],
+    forDate: Date,
+  ): Promise<Map<string, BulkPriceData>> {
+    const result = new Map<string, BulkPriceData>();
+    if (securities.length === 0) return result;
 
-    logger.info(`Yahoo: Starting fetch for ${symbols.length} securities`);
+    logger.info(`Yahoo: Starting fetch for ${securities.length} securities`);
 
-    const fetchedPrices: PriceData[] = [];
     const REQUEST_DELAY = 150; // 150ms between requests to avoid throttling
 
-    for (const symbol of symbols) {
+    for (const security of securities) {
+      const { providerSymbol, securityId } = security;
       try {
-        if (fetchedPrices.length > 0) {
+        if (result.size > 0) {
           await sleep({ ms: REQUEST_DELAY });
         }
 
         // Use chart() with next day as period2 since Yahoo rejects same period1/period2
         const nextDay = new Date(forDate.getTime() + 24 * 60 * 60 * 1000);
-        const prices = await this.getHistoricalPrices(symbol, { startDate: forDate, endDate: nextDay });
+        const prices = await this.getHistoricalPrices(providerSymbol, { startDate: forDate, endDate: nextDay });
         if (prices[0]) {
-          fetchedPrices.push(prices[0]);
-          logger.info(`Fetched price for ${symbol} on ${forDate.toISOString().split('T')[0]}: ${prices[0].priceClose}`);
+          result.set(securityId, { ...prices[0], securityId });
+          logger.info(
+            `Fetched price for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}: ${prices[0].priceClose}`,
+          );
         } else {
-          logger.info(`No price data found for ${symbol} on ${forDate.toISOString().split('T')[0]}`);
+          logger.info(`No price data found for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error(`Failed to fetch price for ${symbol}: ${errorMessage}`);
+        // Per-symbol failures are expected (delisted, unsupported by provider, etc.).
+        // The composite provider aggregates and reports if ALL providers fail.
+        logger.info(`Failed to fetch price for ${providerSymbol}: ${errorMessage}`);
       }
     }
 
-    logger.info(`Yahoo fetch complete: ${fetchedPrices.length}/${symbols.length} securities fetched`);
-    return fetchedPrices;
+    logger.info(`Yahoo fetch complete: ${result.size}/${securities.length} securities fetched`);
+    return result;
   }
 
   /**

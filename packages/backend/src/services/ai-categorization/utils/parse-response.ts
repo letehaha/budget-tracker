@@ -11,8 +11,8 @@ export function parseCategorizationResponse({
   validTransactionIds,
 }: {
   response: string;
-  validCategoryIds: Set<number>;
-  validTransactionIds: Set<number>;
+  validCategoryIds: Set<string>;
+  validTransactionIds: Set<string>;
 }): CategorizationResult[] {
   const results: CategorizationResult[] = [];
   const lines = response.trim().split('\n');
@@ -21,11 +21,14 @@ export function parseCategorizationResponse({
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
 
-    const match = trimmed.match(/^(\d+):(\d+)$/);
-    if (!match) continue;
+    // Format: "<transactionId>:<categoryId>" where IDs are UUIDs or other string IDs
+    const colonIndex = trimmed.indexOf(':');
+    if (colonIndex === -1) continue;
 
-    const transactionId = parseInt(match[1]!, 10);
-    const categoryId = parseInt(match[2]!, 10);
+    const transactionId = trimmed.slice(0, colonIndex).trim();
+    const categoryId = trimmed.slice(colonIndex + 1).trim();
+
+    if (!transactionId || !categoryId) continue;
 
     // Validate the result
     if (!validTransactionIds.has(transactionId)) {

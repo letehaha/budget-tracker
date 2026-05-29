@@ -5,7 +5,7 @@ import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore } from '@/stores';
 import { ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
-import { ArchiveIcon, ArchiveRestoreIcon } from 'lucide-vue-next';
+import { ArchiveIcon, ArchiveRestoreIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -22,7 +22,7 @@ const alsoExcludeFromStats = ref(true);
 const isLoading = ref(false);
 
 const isArchived = computed(() => props.account.status === ACCOUNT_STATUSES.archived);
-const hasBankConnection = computed(() => typeof props.account.bankDataProviderConnectionId === 'number');
+const hasBankConnection = computed(() => Boolean(props.account.bankDataProviderConnectionId));
 
 const archiveAccount = async () => {
   isLoading.value = true;

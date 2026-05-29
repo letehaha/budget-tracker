@@ -1,4 +1,4 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, RecordId } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import Users from '@models/users.model';
 import {
@@ -11,7 +11,7 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsTo,
   Default,
   HasMany,
@@ -19,15 +19,15 @@ import {
   NotNull,
   PrimaryKey,
   Table,
-  Unique,
 } from '@sequelize/core/decorators-legacy';
 import { decryptCredentials, encryptCredentials } from '@services/bank-data-providers/utils/credential-encryption';
+import { v7 as uuidv7 } from 'uuid';
 
 /**
  * Interface for BankDataProviderConnections attributes
  */
 interface BankDataProviderConnectionsAttributes {
-  id: number;
+  id: RecordId;
   userId: number;
   providerType: BANK_PROVIDER_TYPE;
   providerName: string;
@@ -53,11 +53,15 @@ export default class BankDataProviderConnections extends Model<
   InferAttributes<BankDataProviderConnections>,
   InferCreationAttributes<BankDataProviderConnections>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  @Unique
-  declare id: CreationOptional<number>;
+  @NotNull
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static assignId(instance: BankDataProviderConnections) {
+    if (!instance.id) instance.id = uuidv7() as RecordId;
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull

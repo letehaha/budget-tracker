@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { CURRENCY_RATES_API_ENDPOINT_REGEX, FRANKFURTER_ENDPOINT_REGEX } from './fetch-exchange-rates-for-date';
 import { initializeHistoricalRates, providerAvailabilityConfig } from './initialize-historical-rates.service';
 import { exchangeRateProviderRegistry } from './providers';
+import { EXCHANGE_RATE_PROVIDER_TYPE } from './providers/types';
 
 describe('Initialize Historical Rates Service', () => {
   let currencyRatesApiOverride: ReturnType<typeof createOverride>;
@@ -165,6 +166,11 @@ describe('Initialize Historical Rates Service', () => {
     expect(sampleRate!.quoteCode).toMatch(/^[A-Z]{3}$/); // 3-letter currency code
     expect(sampleRate!.rate).toBeGreaterThan(0);
     expect(sampleRate!.date).toBeInstanceOf(Date);
+    // `source` must reflect the provider that supplied the rate, not the
+    // UNKNOWN fallback — protects against providerType being dropped from
+    // the insert path in a future refactor.
+    expect(sampleRate!.source).not.toBe(EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN);
+    expect(Object.values(EXCHANGE_RATE_PROVIDER_TYPE)).toContain(sampleRate!.source);
   });
 
   it('should work as a fire-and-forget operation (non-blocking startup pattern)', async () => {

@@ -1,4 +1,5 @@
 import {
+  NotificationModel,
   NotificationPayload,
   NotificationPriority,
   NotificationStatus,
@@ -32,10 +33,10 @@ import Users from './users.model';
   timestamps: false,
   freezeTableName: true,
 })
-export default class Notifications extends Model<
-  InferAttributes<Notifications>,
-  InferCreationAttributes<Notifications>
-> {
+export default class Notifications
+  extends Model<InferAttributes<Notifications>, InferCreationAttributes<Notifications>>
+  implements NotificationModel
+{
   @Attribute(DataTypes.UUID)
   @PrimaryKey
   declare id: CreationOptional<string>;

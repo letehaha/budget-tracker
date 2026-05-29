@@ -38,9 +38,9 @@
     </div>
 
     <!-- Currency Mismatch Warning -->
-    <div v-if="importStore.currencyMismatchWarning" class="bg-warning/20 border-warning mt-4 rounded-lg border p-4">
-      <p class="text-warning-foreground text-sm"><span>⚠️</span> {{ importStore.currencyMismatchWarning }}</p>
-    </div>
+    <Callout v-if="importStore.currencyMismatchWarning" class="mt-4">
+      <p>{{ importStore.currencyMismatchWarning }}</p>
+    </Callout>
 
     <!-- Account Mapping Table (shown after extract is called) -->
     <AccountMappingTable v-if="importStore.uniqueAccountsInCSV.length > 0" class="mt-6" />
@@ -48,13 +48,9 @@
     <!-- Category Mapping Table (shown after extract is called) -->
     <CategoryMappingTable v-if="importStore.uniqueCategoriesInCSV.length > 0" class="mt-6" />
 
-    <template v-if="extractingError">
-      <div class="bg-destructive/20 border-destructive mt-4 rounded-lg border p-4">
-        <p class="text-destructive-text">
-          {{ extractingError }}
-        </p>
-      </div>
-    </template>
+    <Callout v-if="extractingError" variant="destructive" class="mt-4">
+      <p>{{ extractingError }}</p>
+    </Callout>
 
     <!-- Continue Button (shown after extraction) -->
     <div v-if="hasExtracted" class="mt-6 flex justify-end">
@@ -68,10 +64,11 @@
 
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useImportExportStore } from '@/stores/import-export';
 import { API_ERROR_CODES, AccountOptionValue, CategoryOptionValue } from '@bt/shared/types';
-import { ChevronRightIcon } from 'lucide-vue-next';
+import { ChevronRightIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

@@ -4,6 +4,7 @@ import {
   SUBSCRIPTION_FREQUENCIES,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import * as helpers from '@tests/helpers';
 import { addMonths, addWeeks, addYears, format } from 'date-fns';
@@ -213,7 +214,7 @@ describe('Payment Reminders', () => {
 
     it('returns 404 for non-existent reminder', async () => {
       const res = await helpers.getPaymentReminderById({
-        id: '00000000-0000-0000-0000-000000000000',
+        id: NONEXISTENT_ID,
         raw: false,
       });
       expect(res.statusCode).toBe(404);
@@ -308,7 +309,7 @@ describe('Payment Reminders', () => {
 
     it('returns 404 when deleting non-existent reminder', async () => {
       const res = await helpers.deletePaymentReminder({
-        id: '00000000-0000-0000-0000-000000000000',
+        id: NONEXISTENT_ID,
       });
       expect(res.statusCode).toBe(404);
     });
@@ -370,7 +371,7 @@ describe('Payment Reminders', () => {
 
     it('returns 404 for periods of non-existent reminder', async () => {
       const res = await helpers.getPaymentReminderPeriods({
-        reminderId: '00000000-0000-0000-0000-000000000000',
+        reminderId: NONEXISTENT_ID,
         raw: false,
       });
       expect(res.statusCode).toBe(404);
@@ -1414,7 +1415,7 @@ describe('Payment Reminders', () => {
 
       const res = await helpers.revertPaymentReminderPeriod({
         reminderId: reminder.id,
-        periodId: '00000000-0000-0000-0000-000000000000',
+        periodId: NONEXISTENT_ID,
         raw: false,
       });
 

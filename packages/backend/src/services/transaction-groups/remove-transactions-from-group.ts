@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ConflictError, ValidationError } from '@js/errors';
 import TransactionGroupItems from '@models/transaction-group-items.model';
@@ -9,9 +10,9 @@ import { MIN_GROUP_SIZE, INCLUDE_GROUP_TRANSACTIONS } from './constants';
 import { resolveTransferPairs } from './resolve-transfer-pairs';
 
 interface RemoveTransactionsFromGroupPayload {
-  groupId: number;
+  groupId: RecordId;
   userId: number;
-  transactionIds: number[];
+  transactionIds: RecordId[];
   force?: boolean;
 }
 

@@ -1,5 +1,7 @@
 <script lang="ts" setup>
+import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
+import { captureException } from '@/lib/sentry';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -8,9 +10,10 @@ import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { useFormValidation } from '@/composable/form-validator';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
-import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore } from '@/stores';
+import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore, useUserStore } from '@/stores';
 import {
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
@@ -18,8 +21,9 @@ import {
   TRANSACTION_TYPES,
   type TransactionModel,
 } from '@bt/shared/types';
+import { minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
-import { SplitIcon } from 'lucide-vue-next';
+import { SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -33,6 +37,8 @@ import PortfolioLinkedView from './components/portfolio-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
+import { useAccountAccess } from '@/composable/use-account-access';
+import { useAccountCategories } from '@/composable/data-queries/categories';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 
 import {
@@ -43,7 +49,7 @@ import {
   useUnlinkTransactions,
 } from './composables';
 import type { TransferDestinationType } from './composables/transfer-form';
-import { prepopulateForm } from './helpers';
+import { canDeleteTransaction, prepopulateForm } from './helpers';
 import { FORM_TYPES, UI_FORM_STRUCT } from './types';
 
 defineOptions({
@@ -60,22 +66,12 @@ const props = withDefaults(defineProps<CreateRecordModalProps>(), {
   oppositeTransaction: undefined,
 });
 
-// Normalize transactions so that `transaction` is always the expense (source) side
-// and `oppositeTransaction` is always the income (destination) side.
-// This ensures consistent form population regardless of how props are passed.
-const shouldSwapTransactions = computed(() => {
-  return (
-    props.transaction &&
-    props.oppositeTransaction &&
-    props.oppositeTransaction.transactionType === TRANSACTION_TYPES.expense
-  );
-});
-
-const transaction = computed(() => (shouldSwapTransactions.value ? props.oppositeTransaction : props.transaction));
-
-const oppositeTransaction = computed(() =>
-  shouldSwapTransactions.value ? props.transaction : props.oppositeTransaction,
-);
+// Keep `transaction` as the user-facing primary tx (set by useManageTransactionDialog
+// — for external transfers, this is always the external side). Form-data mapping
+// (which side is "from"/"to") is handled in prepopulateForm based on transactionType,
+// so we no longer swap the props.
+const transaction = computed(() => props.transaction);
+const oppositeTransaction = computed(() => props.oppositeTransaction);
 
 const emit = defineEmits(['close-modal']);
 const closeModal = () => {
@@ -93,6 +89,7 @@ watch(() => route.path, closeModal);
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { accountsRecord, activeSystemAccounts, systemAccountsActiveFirst } = storeToRefs(useAccountsStore());
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
+const { user: currentUser } = storeToRefs(useUserStore());
 const tagsStore = useTagsStore();
 // Load tags when the dialog opens
 tagsStore.loadTags();
@@ -165,18 +162,21 @@ const isOppositeTxExternal = computed(() => {
   const account = accountsRecord.value[oppositeTransaction.value.accountId];
   return (account && account.type !== ACCOUNT_TYPES.system) ?? false;
 });
-// If record is external, the account field will be disabled, so we need to preselect
-// the account
+// If record is external (and not a transfer), the account field will be disabled,
+// so we need to preselect the account. For transfer cases, prepopulateForm fills
+// form.account based on which side is the source — bypassing this preselection.
 watch(
   () => isRecordExternal.value,
   (value) => {
-    if (value && transaction.value?.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
-      nextTick(() => {
-        if (transaction.value && accountsRecord.value[transaction.value.accountId]) {
-          form.value.account = accountsRecord.value[transaction.value.accountId]!;
-        }
-      });
-    }
+    if (!value) return;
+    if (transaction.value?.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return;
+    if (transaction.value?.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) return;
+
+    nextTick(() => {
+      if (transaction.value && accountsRecord.value[transaction.value.accountId]) {
+        form.value.account = accountsRecord.value[transaction.value.accountId]!;
+      }
+    });
   },
   { immediate: true },
 );
@@ -188,7 +188,95 @@ const deleteMutation = useDeleteTransaction({ onSuccess: closeModal });
 const isLoading = computed(
   () => submitMutation.isPending.value || unlinkMutation.isPending.value || deleteMutation.isPending.value,
 );
-const isFormFieldsDisabled = computed(() => isLoading.value || !isInitialRefundsDataLoaded.value);
+
+// Resolve the account whose share state drives auth + category routing. In edit mode
+// it's the tx's parent account (immutable in this dialog); in create mode it's whatever
+// the user has currently picked in the account-field.
+const resolvedAccountId = computed(() => {
+  if (transaction.value) return transaction.value.accountId;
+  return form.value.account?.id ?? null;
+});
+const resolvedAccount = computed(() =>
+  resolvedAccountId.value != null ? accountsRecord.value[resolvedAccountId.value] : undefined,
+);
+const {
+  share: accountShare,
+  isSharedWithCaller: isAccountSharedWithCaller,
+  canMutateTx,
+} = useAccountAccess(resolvedAccount);
+
+const sharedAccountCategories = useAccountCategories({
+  accountId: () => resolvedAccountId.value ?? undefined,
+  enabled: isAccountSharedWithCaller,
+});
+
+const effectiveFormattedCategories = computed(() =>
+  isAccountSharedWithCaller.value ? sharedAccountCategories.formatted.value : formattedCategories.value,
+);
+const effectiveCategoriesMap = computed(() =>
+  isAccountSharedWithCaller.value ? sharedAccountCategories.map.value : categoriesMap.value,
+);
+
+// Treat both success and error as terminal so a failed fetch unblocks the form (the
+// composable surfaces the error via toast). Without the `isError` branch, prepopulation
+// would hang and the dialog would render a permanently-blank edit form on transient
+// network failures.
+const isCategoriesReady = computed(
+  () =>
+    !isAccountSharedWithCaller.value ||
+    sharedAccountCategories.isSuccess.value ||
+    sharedAccountCategories.isError.value,
+);
+
+const canMutateCurrentTx = computed(() => canMutateTx(transaction.value, currentUser.value?.id));
+
+// Lazy server-side write-access check, used only when the parent account isn't in the
+// caller's local `accountsRecord` — typically when the row is visible via a budget
+// share but the account itself isn't shared with the caller. `useAccountAccess` can't
+// decide that case (it has nothing to read), and the bulk list path intentionally
+// skips `canEdit` to keep common reads cheap. Returns `null` until resolved.
+const isAccountLocallyKnown = computed(() => {
+  if (!transaction.value) return true;
+  return !!accountsRecord.value[transaction.value.accountId];
+});
+const lazyCanEdit = ref<boolean | null>(null);
+watch(
+  transaction,
+  async (tx) => {
+    lazyCanEdit.value = null;
+    if (!tx) return;
+    if (isAccountLocallyKnown.value) return;
+    try {
+      const detail = await loadTransactionById({ id: tx.id });
+      // Pessimistic default: only unlock the form when the server explicitly says
+      // `canEdit: true`. A null detail (caller had no read claim) or a missing field
+      // both fall through to read-only — submitting under uncertainty would 403.
+      lazyCanEdit.value = detail?.canEdit === true;
+    } catch (error) {
+      // Form degrades to read-only on failure — the visible state change tells the
+      // user the form is locked. Sentry capture surfaces transient failures (auth
+      // expiry, server crash, network drop) so ops can distinguish them from a real
+      // permission denial. A toast would be noisy on flaky networks.
+      lazyCanEdit.value = false;
+      captureException({ error, context: { source: 'lazyCanEditProbe', transactionId: tx.id } });
+    }
+  },
+  { immediate: true },
+);
+
+// Read-only when the row is editable in principle (some claim) but the lazy check has
+// either resolved to "no write" or is still in flight. While loading, we prefer the
+// pessimistic "details" view so the user doesn't see an edit button flicker, then
+// disappear. For account-locally-known txs we trust the synchronous local check.
+const isReadOnly = computed(() => {
+  if (!transaction.value) return false;
+  if (isAccountLocallyKnown.value) return false;
+  if (lazyCanEdit.value === null) return true;
+  return !lazyCanEdit.value;
+});
+const isMutable = computed(() => canMutateCurrentTx.value && !isReadOnly.value);
+
+const isFormFieldsDisabled = computed(() => isLoading.value || !isInitialRefundsDataLoaded.value || !isMutable.value);
 
 const currentTxType = computed(() => form.value.type);
 const isTransferTx = computed(() => currentTxType.value === FORM_TYPES.transfer);
@@ -280,6 +368,12 @@ watch(
 
           if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
             form.value.account = OUT_OF_WALLET_ACCOUNT_MOCK;
+          } else if (oppositeTransaction.value) {
+            // Restore the source (expense) side from the opposite transaction so the
+            // form keeps the previously known source values (e.g. when re-entering
+            // transfer mode after toggling income → transfer for an external income tx).
+            form.value.amount = oppositeTransaction.value.amount;
+            form.value.account = accountsRecord.value[oppositeTransaction.value.accountId] ?? null;
           }
         }
       } else if (prevTxType === FORM_TYPES.transfer) {
@@ -295,7 +389,66 @@ watch(
   },
 );
 
+// In transfer mode, when source and destination accounts share the same currency,
+// mirror the missing side from the populated one. Covers the income → transfer
+// edit flow where `amount` starts empty after the user picks a source account.
+watch(
+  () => [form.value.account?.currencyCode, form.value.toAccount?.currencyCode] as const,
+  ([fromCurrency, toCurrency]) => {
+    if (!isTransferTx.value) return;
+    if (!fromCurrency || !toCurrency) return;
+    if (fromCurrency !== toCurrency) return;
+
+    if (form.value.amount == null && form.value.targetAmount != null) {
+      form.value.amount = form.value.targetAmount;
+    } else if (form.value.targetAmount == null && form.value.amount != null) {
+      form.value.targetAmount = form.value.amount;
+    }
+  },
+);
+
+const isAmountRequired = computed(() => !isAmountFieldDisabled.value);
+const isTargetAmountRequired = computed(
+  () =>
+    isTargetFieldVisible.value &&
+    !isTargetAmountFieldDisabled.value &&
+    // When currencies match, the watcher above mirrors the missing side, so requiring
+    // both would surface a redundant error before the mirror has a chance to run.
+    isCurrenciesDifferent.value,
+);
+
+// Wrap the entire structure in one computed so the rules lookup inside
+// `getFieldErrorMessage` (which uses lodash get on the original rules object)
+// resolves through `rules.value.form.amount` instead of failing on a nested
+// ComputedRef and silently dropping the error message.
+const validationRules = computed(() => ({
+  form: {
+    amount: isAmountRequired.value ? { required, minValue: minValue(0.01) } : {},
+    targetAmount: isTargetAmountRequired.value ? { required, minValue: minValue(0.01) } : {},
+  },
+}));
+
+const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
+  { form },
+  validationRules,
+  {},
+  {
+    customValidationMessages: {
+      required: t('dialogs.manageTransaction.form.validation.required'),
+      minValue: t('dialogs.manageTransaction.form.validation.minValue'),
+    },
+  },
+);
+
+const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
+const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
+
 const submit = () => {
+  touchField('form.amount');
+  touchField('form.targetAmount');
+
+  if (!isFormValid('form')) return;
+
   submitMutation.mutate({
     form: form.value,
     isFormCreation: isFormCreation.value,
@@ -317,11 +470,17 @@ const unlinkTransactions = () => {
   });
 };
 
-const deleteTransactionHandler = () => {
-  // Check the account type, not the transaction type
-  const account = accountsRecord.value[transaction.value!.accountId];
-  if (account && account.type !== ACCOUNT_TYPES.system) return;
+const canDelete = computed(() =>
+  canDeleteTransaction({
+    transaction: transaction.value,
+    oppositeTransaction: oppositeTransaction.value,
+    accounts: accountsRecord.value,
+    canMutate: isMutable.value,
+  }),
+);
 
+const deleteTransactionHandler = () => {
+  if (!canDelete.value) return;
   deleteMutation.mutate({
     transactionId: transaction.value!.id,
   });
@@ -337,19 +496,43 @@ const previouslyFocusedElement = ref(document.activeElement);
 
 const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
-onMounted(() => {
+// Tx prepopulation has to wait for the right category map. For owner-side / unshared txs
+// the global Pinia map is loaded synchronously on app boot; for shared-with-caller txs
+// we route through `useAccountCategories`, which fires after mount — populate then.
+const hasPrepopulated = ref(false);
+const prepopulateIfReady = () => {
+  if (hasPrepopulated.value) return;
   if (!transaction.value) {
     form.value.account = activeSystemAccounts.value[0] ?? null;
-  } else {
-    const data = prepopulateForm({
-      transaction: transaction.value,
-      oppositeTransaction: oppositeTransaction.value,
-      accounts: accountsRecord.value,
-      categories: categoriesMap.value,
-      formattedCategories: formattedCategories.value,
-    });
-    if (data) form.value = data;
+    hasPrepopulated.value = true;
+    return;
   }
+  if (!isCategoriesReady.value) return;
+  const data = prepopulateForm({
+    transaction: transaction.value,
+    oppositeTransaction: oppositeTransaction.value,
+    accounts: accountsRecord.value,
+    categories: effectiveCategoriesMap.value,
+    formattedCategories: effectiveFormattedCategories.value,
+  });
+  if (data) form.value = data;
+  hasPrepopulated.value = true;
+};
+
+onMounted(prepopulateIfReady);
+watch(isCategoriesReady, prepopulateIfReady);
+
+// In create mode, switching between own and shared accounts swaps the category set —
+// drop a stale selection so the user doesn't submit a categoryId that no longer exists
+// in the active list. Skip while the new list is still loading (empty) — we'd otherwise
+// blank the field momentarily.
+watch(effectiveFormattedCategories, (categories) => {
+  if (!isFormCreation.value) return;
+  const selectedId = form.value.category?.id;
+  if (selectedId == null) return;
+  if (effectiveCategoriesMap.value[selectedId]) return;
+  const fallback = categories[0];
+  if (fallback) form.value.category = fallback;
 });
 
 onUnmounted(() => {
@@ -385,7 +568,10 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled"
       />
     </FormRow>
-    <template v-if="!isTransferTx">
+    <!-- Refund linking on accounts shared *with* the caller isn't supported by the
+         backend yet — hide the field rather than offering a button that errors on
+         submit. Owner-side shares (`share.isOwner === true`) keep full access. -->
+    <template v-if="!isTransferTx && !isAccountSharedWithCaller">
       <FormRow>
         <MarkAsRefundField
           v-model:refunds="form.refundsTx"
@@ -421,7 +607,13 @@ onUnmounted(() => {
     <div class="mb-4 flex items-center justify-between px-6 py-3">
       <DialogTitle>
         <span class="text-2xl">
-          {{ isFormCreation ? $t('dialogs.manageTransaction.addTitle') : $t('dialogs.manageTransaction.editTitle') }}
+          {{
+            isReadOnly
+              ? $t('dialogs.manageTransaction.detailsTitle')
+              : isFormCreation
+                ? $t('dialogs.manageTransaction.addTitle')
+                : $t('dialogs.manageTransaction.editTitle')
+          }}
         </span>
       </DialogTitle>
 
@@ -450,7 +642,9 @@ onUnmounted(() => {
               :disabled="isFormFieldsDisabled || isAmountFieldDisabled"
               only-positive
               :placeholder="$t('dialogs.manageTransaction.form.amountPlaceholder')"
+              :error-message="amountErrorMessage"
               autofocus
+              @blur="touchField('form.amount')"
             >
               <template #iconTrailing>
                 <span>{{ currencyCode }}</span>
@@ -479,7 +673,9 @@ onUnmounted(() => {
               <category-select-field
                 v-model="form.category"
                 :label="$t('dialogs.manageTransaction.form.categoryLabel')"
-                :values="formattedCategories"
+                :values="effectiveFormattedCategories"
+                :categories-map="isAccountSharedWithCaller ? effectiveCategoriesMap : undefined"
+                :shared-owner-username="isAccountSharedWithCaller ? accountShare?.owner.username : undefined"
                 label-key="name"
                 :disabled="isFormFieldsDisabled"
               />
@@ -534,6 +730,7 @@ onUnmounted(() => {
               :total-amount="form.amount ? Number(form.amount) : null"
               :currency-code="currencyCode"
               :main-category="form.category"
+              :categories="effectiveFormattedCategories"
             />
           </template>
 
@@ -546,6 +743,8 @@ onUnmounted(() => {
                 :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
                 :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
                 type="number"
+                :error-message="targetAmountErrorMessage"
+                @blur="touchField('form.targetAmount')"
               >
                 <template #iconTrailing>
                   <span>{{ targetCurrency?.currency?.code }}</span>
@@ -554,8 +753,11 @@ onUnmounted(() => {
             </form-row>
           </template>
 
+          <!-- Transfer linking on accounts shared *with* the caller isn't supported by
+               the backend yet — hide the linker for recipients rather than letting
+               them trigger a confusing server error. -->
           <LinkTransactionSection
-            v-if="transferDestinationType === 'account'"
+            v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
             v-model:linked-transaction="linkedTransaction"
             :is-transfer-tx="isTransferTx"
             :is-form-creation="isFormCreation"
@@ -590,7 +792,7 @@ onUnmounted(() => {
 
             <Drawer.DrawerContent>
               <Drawer.DrawerTitle></Drawer.DrawerTitle>
-              <div class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
+              <div class="bg-card dark:bg-muted dark:shadow-foreground/10 px-6 pt-6 dark:shadow-[inset_2px_4px_12px]">
                 <ReuseMoreOptions />
               </div>
             </Drawer.DrawerContent>
@@ -599,7 +801,7 @@ onUnmounted(() => {
 
         <div class="flex items-center justify-between py-6">
           <Button
-            v-if="transaction && accountsRecord[transaction.accountId]?.type === ACCOUNT_TYPES.system"
+            v-if="canDelete"
             class="min-w-25"
             :disabled="isFormFieldsDisabled"
             :aria-label="$t('dialogs.manageTransaction.form.deleteAriaLabel')"
@@ -609,6 +811,7 @@ onUnmounted(() => {
             {{ $t('dialogs.manageTransaction.form.deleteButton') }}
           </Button>
           <Button
+            v-if="!isReadOnly"
             class="ml-auto min-w-30"
             :aria-label="
               isFormCreation
@@ -629,7 +832,10 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div v-if="!isMobileView" class="bg-black/20 px-6 pt-6 shadow-[inset_2px_4px_12px] shadow-black/40">
+      <div
+        v-if="!isMobileView"
+        class="bg-muted shadow-foreground/10 px-6 pt-6 shadow-[inset_2px_4px_12px] dark:bg-black/20 dark:shadow-black/40"
+      >
         <ReuseMoreOptions />
       </div>
     </div>

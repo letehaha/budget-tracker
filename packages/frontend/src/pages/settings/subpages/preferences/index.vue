@@ -66,7 +66,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useOnboardingStore } from '@/stores/onboarding';
 import { useQueryClient } from '@tanstack/vue-query';
-import { RocketIcon } from 'lucide-vue-next';
+import { RocketIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

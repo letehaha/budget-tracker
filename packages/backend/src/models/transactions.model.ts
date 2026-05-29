@@ -4,13 +4,16 @@ import {
   CategorizationMeta,
   FILTER_OPERATION,
   PAYMENT_TYPES,
+  RecordId,
   SORT_DIRECTIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  TransactionCreatorSnapshot,
   TransactionModel,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
@@ -43,7 +46,6 @@ import {
   AfterDestroy,
   AfterUpdate,
   Attribute,
-  AutoIncrement,
   BeforeCreate,
   BeforeDestroy,
   BeforeUpdate,
@@ -57,7 +59,8 @@ import {
   Table,
   Unique,
 } from '@sequelize/core/decorators-legacy';
-import { updateAccountBalanceForChangedTx } from '@services/accounts.service';
+import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
+import { v7 as uuidv7 } from 'uuid';
 
 const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
   const include: Includeable[] = [];
@@ -74,7 +77,7 @@ const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
 };
 
 export interface TransactionsAttributes {
-  id: number;
+  id: string;
   amount: Money;
   /** Amount in user's base currency */
   refAmount: Money;
@@ -83,8 +86,8 @@ export interface TransactionsAttributes {
   userId: number;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: number;
-  categoryId: number;
+  accountId: string;
+  categoryId: string;
   currencyCode: string;
   accountType: ACCOUNT_TYPES;
   refCurrencyCode: string;
@@ -117,13 +120,19 @@ export interface TransactionsAttributes {
   freezeTableName: true,
 })
 export default class Transactions extends Model<InferAttributes<Transactions>, InferCreationAttributes<Transactions>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
   @Unique
-  declare id: CreationOptional<number>;
+  declare id: CreationOptional<RecordId>;
 
-  @Attribute(DataTypes.INTEGER)
+  @BeforeCreate
+  static generateUUIDv7(instance: Transactions) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
+
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get amount(): Money {
@@ -134,7 +143,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   }
 
   // Amount in currency of account
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get refAmount(): Money {
@@ -155,6 +164,9 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @Attribute(DataTypes.INTEGER)
   @Index
   declare userId: number;
+
+  @Attribute(DataTypes.JSONB)
+  declare creatorSnapshot: TransactionCreatorSnapshot | null;
 
   @BelongsToMany(() => Budgets, {
     through: () => BudgetTransactions,
@@ -194,16 +206,16 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @Default(PAYMENT_TYPES.creditCard)
   declare paymentType: CreationOptional<PAYMENT_TYPES>;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare accountId: number | null;
+  declare accountId: RecordId | null;
 
   @BelongsTo(() => Accounts, 'accountId')
   declare account?: NonAttribute<Accounts>;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare categoryId: number | null;
+  declare categoryId: RecordId | null;
 
   @BelongsTo(() => Categories, 'categoryId')
   declare category?: NonAttribute<Categories>;
@@ -227,7 +239,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
 
   // (hash, used to connect two transactions)
   @Attribute(DataTypes.STRING)
-  declare transferId: string | null;
+  declare transferId: RecordId | null;
 
   // Stores the original id from external source
   @Attribute(DataTypes.STRING)
@@ -237,7 +249,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @Attribute(DataTypes.JSONB)
   declare externalData: TransactionsAttributes['externalData'] | null;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get commissionRate(): CreationOptional<Money> {
@@ -247,7 +259,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
     moneySetCents(this, 'commissionRate', val);
   }
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get refCommissionRate(): CreationOptional<Money> {
@@ -257,7 +269,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
     moneySetCents(this, 'refCommissionRate', val);
   }
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get cashbackAmount(): CreationOptional<Money> {
@@ -288,24 +300,43 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   static validateTransferRelatedFields(instance: Transactions) {
     const { transferNature, transferId, refAmount, refCurrencyCode } = instance;
 
-    const requiredFields = [transferId, refCurrencyCode, refAmount];
-
-    if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
-      if (requiredFields.some((item) => item === undefined)) {
-        throw new ValidationError({
-          message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,
-        });
+    switch (transferNature) {
+      case TRANSACTION_TRANSFER_NATURE.common_transfer: {
+        const requiredFields = [transferId, refCurrencyCode, refAmount];
+        if (requiredFields.some((item) => item === undefined)) {
+          throw new ValidationError({
+            message: `All these fields should be passed (${requiredFields}) for transfer transaction.`,
+          });
+        }
+        return;
+      }
+      case TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio: {
+        // Single-leg transfer: no paired transferId, but ref fields must still be set so
+        // downstream aggregations can find the row. `refAmount == null` matches both null
+        // and undefined returned by the Money getter when the underlying cents are null.
+        if (!refCurrencyCode || refAmount == null) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.refFieldsRequiredForTransferToPortfolio' }),
+          });
+        }
+        return;
+      }
+      case TRANSACTION_TRANSFER_NATURE.not_transfer:
+      case TRANSACTION_TRANSFER_NATURE.transfer_out_wallet:
+        return;
+      default: {
+        const _exhaustiveCheck: never = transferNature;
+        throw new Error(`Unhandled transferNature in validateTransferRelatedFields: ${_exhaustiveCheck}`);
       }
     }
   }
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
-    const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system && accountId !== null) {
       await updateAccountBalanceForChangedTx({
-        userId,
         accountId,
         amount,
         refAmount,
@@ -364,7 +395,6 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
         }
       } else if (newData.accountId !== null) {
         await updateAccountBalanceForChangedTx({
-          userId: newData.userId,
           accountId: newData.accountId,
           amount: newData.amount,
           prevAmount: prevData.amount,
@@ -394,11 +424,10 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
 
   @BeforeDestroy
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
-    const { accountType, accountId, userId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system && accountId !== null) {
       await updateAccountBalanceForChangedTx({
-        userId,
         accountId,
         prevAmount: amount,
         prevRefAmount: refAmount,
@@ -422,7 +451,7 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   @AfterDestroy
   static async autoDissolveEmptyGroups(instance: Transactions) {
     // After CASCADE removes the join row, check only the groups this transaction belonged to.
-    const affectedGroupIds = (instance as unknown as Record<string, unknown>)._affectedGroupIds as number[] | undefined;
+    const affectedGroupIds = (instance as unknown as Record<string, unknown>)._affectedGroupIds as string[] | undefined;
 
     if (!affectedGroupIds || affectedGroupIds.length === 0) return;
 
@@ -495,14 +524,20 @@ export const findWithFilters = async ({
   limit?: number;
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
-  accountIds?: number[];
+  accountIds?: string[];
   /** Filter: exclude transactions from these account IDs */
-  excludeAccountIds?: number[];
-  budgetIds?: number[];
-  excludedBudgetIds?: number[];
-  tagIds?: number[];
-  excludedTagIds?: number[];
-  userId: number;
+  excludeAccountIds?: string[];
+  budgetIds?: string[];
+  excludedBudgetIds?: string[];
+  tagIds?: string[];
+  excludedTagIds?: string[];
+  /**
+   * Creator scope. Optional because the public-facing read-path uses an account-scoped
+   * query (see `services/sharing/get-accessible-account-ids.service.ts`) so it can
+   * surface transactions on shared accounts regardless of who created them. Internal
+   * callers pass `userId` to keep their owner-scoped semantics.
+   */
+  userId?: number;
   order?: SORT_DIRECTIONS;
   includeSplits?: boolean;
   includeTags?: boolean;
@@ -522,7 +557,7 @@ export const findWithFilters = async ({
   refAmountGte?: Money;
   /** Filter: refAmount <= this value - for cross-currency matching */
   refAmountLte?: Money;
-  categoryIds?: number[];
+  categoryIds?: string[];
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof InferAttributes<Transactions>)[];
   categorizationSource?: CATEGORIZATION_SOURCE;
@@ -537,7 +572,7 @@ export const findWithFilters = async ({
   const refundCondition = buildRefundCondition(resolvedRefundFilter);
 
   const whereClause: WhereOptions<Transactions> = {
-    userId,
+    ...(userId !== undefined ? { userId } : {}),
     ...removeUndefinedKeys({
       accountType,
       transactionType,
@@ -560,13 +595,15 @@ export const findWithFilters = async ({
   }
 
   if (categoryIds && categoryIds.length > 0) {
-    // Find transactions that have splits with any of the requested category IDs
+    // Find transactions that have splits with any of the requested category IDs.
+    // When `userId` is unset (account-scoped public read-path), we widen the lookup to
+    // any user's splits — the outer accountId filter constrains the final rows to the
+    // caller's accessible accounts, so this stays safe.
+    const splitsWhere: Record<string, unknown> = { categoryId: { [Op.in]: categoryIds } };
+    if (userId !== undefined) splitsWhere.userId = userId;
     const transactionIdsWithMatchingSplits = await TransactionSplits.findAll({
       attributes: ['transactionId'],
-      where: {
-        userId,
-        categoryId: { [Op.in]: categoryIds },
-      },
+      where: splitsWhere,
       raw: true,
     }).then((results) => [...new Set(results.map((r) => r.transactionId))]);
 
@@ -694,8 +731,8 @@ export const findWithFilters = async ({
 
     if (excludedTransactionIds.length > 0) {
       // Merge with existing id exclusions if any
-      if (whereClause.id && (whereClause.id as Record<symbol, number[]>)[Op.notIn]) {
-        const existingExclusions = (whereClause.id as Record<symbol, number[]>)[Op.notIn] as number[];
+      if (whereClause.id && (whereClause.id as Record<symbol, string[]>)[Op.notIn]) {
+        const existingExclusions = (whereClause.id as Record<symbol, string[]>)[Op.notIn] as string[];
         whereClause.id = {
           ...(whereClause.id as object),
           [Op.notIn]: [...new Set([...existingExclusions, ...excludedTransactionIds])],
@@ -777,7 +814,7 @@ export const getTransactionById = ({
   userId,
   includeSplits,
 }: {
-  id: number;
+  id: string;
   userId: number;
   includeSplits?: boolean;
 }): Promise<Transactions | null> => {
@@ -789,9 +826,16 @@ export const getTransactionById = ({
   });
 };
 
-export const getTransactionsByTransferId = ({ transferId, userId }: { transferId: string; userId: number }) => {
+export const getTransactionsByTransferId = ({
+  transferId,
+  accountIds,
+}: {
+  transferId: string;
+  accountIds: string[];
+}) => {
+  if (accountIds.length === 0) return Promise.resolve([] as Transactions[]);
   return Transactions.findAll({
-    where: { transferId, userId },
+    where: { transferId, accountId: { [Op.in]: accountIds } },
   });
 };
 
@@ -854,7 +898,7 @@ export const createTransaction = async ({ userId, ...rest }: CreateTransactionPa
 };
 
 export interface UpdateTransactionByIdParams {
-  id: number;
+  id: string;
   userId: number;
   amount?: Money;
   refAmount?: Money;
@@ -862,8 +906,8 @@ export interface UpdateTransactionByIdParams {
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
-  accountId?: number;
-  categoryId?: number;
+  accountId?: string;
+  categoryId?: string;
   currencyCode?: string;
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
@@ -898,8 +942,8 @@ export const updateTransactions = (
     time?: Date;
     transactionType?: TRANSACTION_TYPES;
     paymentType?: PAYMENT_TYPES;
-    accountId?: number;
-    categoryId?: number;
+    accountId?: string;
+    categoryId?: string;
     accountType?: ACCOUNT_TYPES;
     currencyCode?: string;
     refCurrencyCode?: string;
@@ -918,7 +962,7 @@ export const updateTransactions = (
   });
 };
 
-export const deleteTransactionById = async ({ id, userId }: { id: number; userId: number }) => {
+export const deleteTransactionById = async ({ id, userId }: { id: string; userId: number }) => {
   const tx = await getTransactionById({ id, userId });
 
   if (!tx) return true;

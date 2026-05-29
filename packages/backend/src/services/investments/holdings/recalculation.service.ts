@@ -1,16 +1,20 @@
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import Securities from '@models/investments/securities.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Big } from 'big.js';
 
-const recalculateHoldingImpl = async (holdingId: { portfolioId: number; securityId: number }) => {
+const recalculateHoldingImpl = async (holdingId: { portfolioId: string; securityId: string }) => {
   const holding = await findOrThrowNotFound({
-    query: Holdings.findOne({ where: holdingId }),
+    query: Holdings.findOne({
+      where: holdingId,
+      include: [{ model: Securities, as: 'security', required: true }],
+    }),
     message: t({ key: 'investments.holdingNotFoundForRecalculation' }),
   });
 
@@ -31,27 +35,49 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: number; security
     const amount = tx.amount.toBig();
     const refAmount = tx.refAmount.toBig();
 
+    // Invariant: cost basis represents the cost of the *current long position*.
+    // While running quantity is ≤ 0 (allowed for crypto drift), there is no
+    // long position, so cost basis must stay zero. Otherwise, average-cost
+    // tracking on the long portion. Without this invariant, the previous code
+    // silently inflated cost basis: a SELL while qty was negative produced a
+    // negative `quantity / totalQuantity` proportion and *added* to cost
+    // instead of reducing it (seen as a $1.27M cost basis on 0.28 BTC after a
+    // realistic Yahoo CSV import).
     switch (tx.category) {
-      case INVESTMENT_TRANSACTION_CATEGORY.buy:
-        totalQuantity = totalQuantity.plus(quantity);
-        totalCostBasis = totalCostBasis.plus(amount);
-        totalRefCostBasis = totalRefCostBasis.plus(refAmount);
+      case INVESTMENT_TRANSACTION_CATEGORY.buy: {
+        const newQuantity = totalQuantity.plus(quantity);
+        if (newQuantity.lte(0)) {
+          // Buy that doesn't bring the position out of short — no long position
+          // to attribute cost to.
+          totalCostBasis = new Big(0);
+          totalRefCostBasis = new Big(0);
+        } else if (totalQuantity.lte(0)) {
+          // Buy crosses from short/zero into a long position. Only the portion
+          // above zero counts as a new long basis; the rest just covered the short.
+          const longProportion = newQuantity.div(quantity);
+          totalCostBasis = amount.times(longProportion);
+          totalRefCostBasis = refAmount.times(longProportion);
+        } else {
+          totalCostBasis = totalCostBasis.plus(amount);
+          totalRefCostBasis = totalRefCostBasis.plus(refAmount);
+        }
+        totalQuantity = newQuantity;
         break;
+      }
 
       case INVESTMENT_TRANSACTION_CATEGORY.sell: {
-        let costBasisReduction = new Big(0);
-        let refCostBasisReduction = new Big(0);
-
-        // Only calculate proportional reduction if there's a position to sell from.
-        // If selling from a zero-quantity position, the cost basis reduction is zero.
-        if (!totalQuantity.eq(0)) {
-          const proportion = quantity.div(totalQuantity);
-          costBasisReduction = totalCostBasis.times(proportion);
-          refCostBasisReduction = totalRefCostBasis.times(proportion);
+        if (totalQuantity.gt(0)) {
+          const newQuantity = totalQuantity.minus(quantity);
+          if (newQuantity.lte(0)) {
+            totalCostBasis = new Big(0);
+            totalRefCostBasis = new Big(0);
+          } else {
+            const remainingProportion = newQuantity.div(totalQuantity);
+            totalCostBasis = totalCostBasis.times(remainingProportion);
+            totalRefCostBasis = totalRefCostBasis.times(remainingProportion);
+          }
         }
-
-        totalCostBasis = totalCostBasis.minus(costBasisReduction);
-        totalRefCostBasis = totalRefCostBasis.minus(refCostBasisReduction);
+        // Sell from zero/short position doesn't touch cost basis.
         totalQuantity = totalQuantity.minus(quantity);
         break;
       }
@@ -63,8 +89,10 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: number; security
     }
   }
 
-  // Cap quantity at 0 (no negative holdings) but preserve cost basis calculations
-  holding.quantity = Money.fromDecimal(totalQuantity.lt(0) ? '0' : totalQuantity.toFixed(10));
+  // Crypto holdings may legitimately go negative (staking/fee drift) until the
+  // user reconciles via a "mark as zero" adjustment; stocks always cap at zero.
+  const allowNegativeQuantity = holding.security?.assetClass === ASSET_CLASS.crypto;
+  holding.quantity = Money.fromDecimal(!allowNegativeQuantity && totalQuantity.lt(0) ? '0' : totalQuantity.toFixed(10));
   holding.costBasis = Money.fromDecimal(totalCostBasis.lt(0) ? '0' : totalCostBasis.toFixed(10));
   holding.refCostBasis = Money.fromDecimal(totalRefCostBasis.lt(0) ? '0' : totalRefCostBasis.toFixed(10));
   await holding.save();

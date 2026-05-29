@@ -32,7 +32,7 @@ export async function createInvestmentTransaction<R extends boolean | undefined 
   payload,
   raw,
 }: {
-  payload: Partial<ReturnType<typeof buildInvestmentTransactionPayload>> & { portfolioId: number; securityId: number };
+  payload: Partial<ReturnType<typeof buildInvestmentTransactionPayload>> & { portfolioId: string; securityId: string };
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _createInvestmentTransaction>>, R>({
@@ -88,7 +88,7 @@ export async function deleteInvestmentTransaction<R extends boolean | undefined 
   transactionId,
   raw,
 }: {
-  transactionId: number;
+  transactionId: string;
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _deleteInvestmentTransaction>>, R>({
@@ -103,7 +103,7 @@ export async function updateInvestmentTransaction<R extends boolean | undefined 
   payload,
   raw,
 }: {
-  transactionId: number;
+  transactionId: string;
   payload: Partial<Omit<Parameters<typeof _updateInvestmentTransaction>[0], 'userId' | 'transactionId'>>;
   raw?: R;
 }) {

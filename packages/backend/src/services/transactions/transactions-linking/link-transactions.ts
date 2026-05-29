@@ -5,6 +5,7 @@ import { logger } from '@js/utils/logger';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { Op } from '@sequelize/core';
+import { assertTxWriteAccess } from '@services/sharing/auth/authorize-account-write.service';
 import { v4 as uuidv4 } from 'uuid';
 
 // Natures that indicate a transaction is already linked as a transfer.
@@ -58,17 +59,18 @@ export const linkTransactions = withTransaction(
     ignoreBaseTxTypeValidation,
   }: {
     userId: number;
-    ids: [baseTxId: number, oppositeTxId: number][];
+    ids: [baseTxId: string, oppositeTxId: string][];
     ignoreBaseTxTypeValidation?: boolean;
   }): Promise<[baseTx: Transactions.default, oppositeTx: Transactions.default][]> => {
     try {
       const result: ResultStruct[] = [];
 
       for (const [baseTxId, oppositeTxId] of ids) {
-        const transactions = await Transactions.getTransactionsByArrayOfField({
-          userId,
-          fieldName: 'id',
-          fieldValues: [baseTxId, oppositeTxId],
+        // Fetch both rows without a userId filter — sharing means the pair can live on
+        // accounts owned by different users. The auth gate below verifies the caller has
+        // `write` on each side's parent account before we mutate anything.
+        const transactions = await Transactions.default.findAll({
+          where: { id: { [Op.in]: [baseTxId, oppositeTxId] } },
         });
 
         if (transactions.length !== 2) {
@@ -90,6 +92,14 @@ export const linkTransactions = withTransaction(
           });
         }
 
+        // Auth gate per side: caller must have `write` on the parent account, and the
+        // `transactionsWriteScope: 'own'` policy still applies (recipient on `'own'`
+        // can only link rows they authored). Missing/insufficient access surfaces as a
+        // 404 so existence is masked.
+        for (const tx of [base, opposite]) {
+          await assertTxWriteAccess({ userId, tx, notFoundKey: 'transactions.linkCannotFind' });
+        }
+
         validateTransactionLinking({
           base,
           opposite,
@@ -103,7 +113,6 @@ export const linkTransactions = withTransaction(
           },
           {
             where: {
-              userId,
               id: { [Op.in]: [baseTxId, oppositeTxId] },
             },
             returning: true,

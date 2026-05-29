@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { serializeExpensesAmountForPeriod } from '@root/serializers/stats.serializer';
@@ -15,8 +16,8 @@ export function registerGetExpensesForPeriod(server: McpServer) {
       inputSchema: {
         startDate: z.string().optional().describe('Start date (ISO 8601). Default: start of current month'),
         endDate: z.string().optional().describe('End date (ISO 8601). Default: today'),
-        accountId: z.number().optional().describe('Filter by specific account ID'),
-        excludedCategoryIds: z.array(z.number()).optional().describe('Exclude specific category IDs from total'),
+        accountId: recordId().optional().describe('Filter by specific account ID'),
+        excludedCategoryIds: z.array(recordId()).optional().describe('Exclude specific category IDs from total'),
       },
     },
     async (args, extra) => {

@@ -4,6 +4,7 @@ import {
   CurrencyOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { extractUniqueValues } from '@services/import-export/csv-import/extract-unique-values';
 import z from 'zod';
@@ -11,7 +12,7 @@ import z from 'zod';
 const categoryOptionSchema = z.discriminatedUnion('option', [
   z.object({ option: z.literal(CategoryOptionValue.mapDataSourceColumn), columnName: z.string() }),
   z.object({ option: z.literal(CategoryOptionValue.createNewCategories), columnName: z.string() }),
-  z.object({ option: z.literal(CategoryOptionValue.existingCategory), categoryId: z.number() }),
+  z.object({ option: z.literal(CategoryOptionValue.existingCategory), categoryId: recordId() }),
 ]);
 
 const currencyOptionSchema = z.discriminatedUnion('option', [
@@ -31,7 +32,7 @@ const transactionTypeOptionSchema = z.discriminatedUnion('option', [
 
 const accountOptionSchema = z.discriminatedUnion('option', [
   z.object({ option: z.literal(AccountOptionValue.dataSourceColumn), columnName: z.string() }),
-  z.object({ option: z.literal(AccountOptionValue.existingAccount), accountId: z.number() }),
+  z.object({ option: z.literal(AccountOptionValue.existingAccount), accountId: recordId() }),
 ]);
 
 const columnMappingConfigSchema = z.object({

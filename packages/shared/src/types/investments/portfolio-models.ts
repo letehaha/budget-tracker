@@ -3,8 +3,15 @@ import { PORTFOLIO_TYPE } from './enums';
 import { HoldingModel } from './holding.model';
 import { InvestmentTransactionModel } from './investment-transaction.model';
 
+/**
+ * How long a soft-deleted (trashed) portfolio is retained before the purge
+ * cron hard-deletes it. Shared across backend (cron + service) and frontend
+ * (trash UI copy) so the two can never silently drift.
+ */
+export const PORTFOLIO_TRASH_RETENTION_DAYS = 30;
+
 export interface PortfolioBalanceModel {
-  portfolioId: number;
+  portfolioId: string;
   currencyCode: string;
   availableCash: string;
   totalCash: string;
@@ -19,7 +26,7 @@ export interface PortfolioBalanceModel {
 }
 
 export interface PortfolioModel {
-  id: number;
+  id: string;
   name: string;
   userId: number;
   portfolioType: PORTFOLIO_TYPE;
@@ -27,6 +34,8 @@ export interface PortfolioModel {
   isEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
+  /** Non-null when the portfolio is in trash awaiting purge. */
+  deletedAt: Date | null;
 
   // Associations
   user?: UserModel;
@@ -36,19 +45,19 @@ export interface PortfolioModel {
 }
 
 export interface PortfolioTransferModel {
-  id: number;
+  id: string;
   userId: number;
-  fromAccountId: number | null;
-  toPortfolioId: number | null;
-  fromPortfolioId: number | null;
-  toAccountId: number | null;
+  fromAccountId: string | null;
+  toPortfolioId: string | null;
+  fromPortfolioId: string | null;
+  toAccountId: string | null;
   amount: string;
   refAmount: string;
   currencyCode: string;
   toCurrencyCode: string | null;
   toAmount: string | null;
   refToAmount: string | null;
-  transactionId: number | null;
+  transactionId: string | null;
   metaData: Record<string, unknown> | null;
   date: string;
   description: string | null;

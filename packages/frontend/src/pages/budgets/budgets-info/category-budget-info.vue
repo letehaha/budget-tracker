@@ -16,8 +16,12 @@ import Card from '@/components/lib/ui/card/Card.vue';
 import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
+import { useBudgetAccess } from '@/composable/use-budget-access';
+import { captureException } from '@/lib/sentry';
+import BudgetSharingPanel from '@/pages/budgets/components/budget-sharing-panel.vue';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cloneDeep } from 'lodash-es';
 import {
   ArchiveIcon,
@@ -30,8 +34,9 @@ import {
   PencilIcon,
   TagIcon,
   Trash2Icon,
-} from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+  UsersIcon,
+} from '@lucide/vue';
+import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -50,7 +55,7 @@ const { formatBaseCurrency } = useFormatCurrency();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 const budgetData = ref();
-const currentBudgetId = ref<number>(Number(route.params.id));
+const currentBudgetId = ref<string>(route.params.id as string);
 const isEditDialogOpen = ref(false);
 const isCategoriesExpanded = ref(false);
 const transactionsFrom = ref(0);
@@ -73,10 +78,16 @@ const { stats, transactionDateRange, getBudgetTimeStatus, utilizationColor, util
   budgetData,
 });
 
-// Load category budget transactions
+const { isOwner, canManage, isSharedWithCaller, ownerHandle } = useBudgetAccess(toRef(() => budgetItem.value));
+
+// Load category budget transactions.
+// NOTE: Distinct query-key prefix (`budgetCategoryTransactions`) — not derived from
+// `budgetStats` — so invalidating budget stats elsewhere doesn't accidentally bust
+// the transaction list.
 const {
   data: transactionsData,
   isLoading: isLoadingTransactions,
+  isError: isTransactionsError,
   isFetching: isFetchingTransactions,
 } = useQuery({
   queryFn: () =>
@@ -85,7 +96,7 @@ const {
       from: 0,
       limit: transactionsFrom.value + transactionsLimit.value,
     }),
-  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetStats, 'transactions', currentBudgetId, transactionsFrom],
+  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetCategoryTransactions, currentBudgetId, transactionsFrom],
   staleTime: 30_000,
 });
 
@@ -106,22 +117,31 @@ const { mutateAsync, isPending: isBudgetDataUpdating } = useMutation({
   },
 });
 
-const handleSaveFromDialog = async (payload: { name: string; limitAmount: number; categoryIds: number[] }) => {
-  await mutateAsync({
-    budgetId: currentBudgetId.value,
-    payload,
-  });
-  addSuccessNotification(t('budgets.list.updateSuccess'));
-  isEditDialogOpen.value = false;
+const handleSaveFromDialog = async (payload: { name: string; limitAmount: number; categoryIds: string[] }) => {
+  try {
+    await mutateAsync({
+      budgetId: currentBudgetId.value,
+      payload,
+    });
+    addSuccessNotification(t('budgets.list.updateSuccess'));
+    isEditDialogOpen.value = false;
+  } catch (err) {
+    captureException({ error: err, context: { source: 'categoryBudgetEdit', budgetId: currentBudgetId.value } });
+    addErrorNotification(t('budgets.list.updateError'));
+  }
 };
 
 const handleDeleteBudget = async () => {
   try {
     await deleteBudgetApi(currentBudgetId.value);
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
+    // Shared recipients see this budget in their shared-with-me list; clear that cache
+    // too so it doesn't linger after the owner deletes the row.
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.sharedWithMe });
     addSuccessNotification(t('budgets.list.deleteSuccess'));
-    router.push('/budgets');
-  } catch {
+    router.push({ name: ROUTES_NAMES.plannedBudgets });
+  } catch (err) {
+    captureException({ error: err, context: { source: 'categoryBudgetDelete', budgetId: currentBudgetId.value } });
     addErrorNotification(t('budgets.list.deleteError'));
   }
 };
@@ -129,31 +149,37 @@ const handleDeleteBudget = async () => {
 const { isBudgetArchived, handleToggleArchive } = useArchiveToggle({ budgetData, budgetId: currentBudgetId });
 
 const activeTab = ref('statistics');
-const tabItems = computed(() => [
-  { value: 'statistics', label: t('pages.budgetDetails.tabs.statistics') },
-  { value: 'transactions', label: t('pages.budgetDetails.tabs.transactions') },
-]);
+const tabItems = computed(() => {
+  const items = [
+    { value: 'statistics', label: t('pages.budgetDetails.tabs.statistics') },
+    { value: 'transactions', label: t('pages.budgetDetails.tabs.transactions') },
+  ];
+  if (canManage.value) {
+    items.push({ value: 'sharing', label: t('pages.budgetDetails.tabs.sharing') });
+  }
+  return items;
+});
 
 watch(
   budgetItem,
   (item) => {
     if (item) {
       budgetData.value = cloneDeep(item);
-      budgetData.value.categoryIds = item.categories?.map((c: { id: number }) => c.id) ?? [];
+      budgetData.value.categoryIds = item.categories?.map((c: { id: string }) => c.id) ?? [];
     }
   },
   { immediate: true },
 );
 
 const formatTransactionDate = (date: string) => {
-  return format(new Date(date), 'MMM d, yyyy');
+  return format(parseISO(date), 'MMM d, yyyy');
 };
 
 // Category breakdown computed
 const categoryBreakdown = computed(() => {
   if (!transactions.value.length) return [];
 
-  const breakdown = new Map<number, { category: CategoryBudgetTransaction['effectiveCategory']; amount: number }>();
+  const breakdown = new Map<string, { category: CategoryBudgetTransaction['effectiveCategory']; amount: number }>();
 
   for (const tx of transactions.value) {
     if (!tx.effectiveCategory) continue;
@@ -189,6 +215,13 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
           <div>
             <div class="flex items-center gap-3">
               <h1 class="text-2xl font-semibold tracking-tight">{{ budgetData.name }}</h1>
+              <span
+                v-if="isSharedWithCaller"
+                class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+              >
+                <UsersIcon class="size-3" />
+                {{ $t('budgets.share.sharedByBadge', { handle: `@${ownerHandle}` }) }}
+              </span>
               <span class="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-medium">
                 {{ $t('budgets.list.autoTracked') }}
               </span>
@@ -227,8 +260,9 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-2">
+        <!-- Action Buttons — owners / `manage` recipients only. Recipients on read/write
+             see the "shared by @owner" header badge and no controls. -->
+        <div v-if="canManage" class="flex items-center gap-2">
           <ActionButton
             :action="handleToggleArchive"
             :label="isBudgetArchived ? t('budgets.list.unarchive') : t('budgets.list.archive')"
@@ -254,6 +288,7 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
           </ResponsiveDialog>
 
           <AlertDialog
+            v-if="isOwner"
             :title="$t('budgets.list.deleteDialog.title')"
             accept-variant="destructive"
             @accept="handleDeleteBudget"
@@ -302,10 +337,11 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
           class="from-card pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-linear-to-t to-transparent"
         />
       </div>
-      <button
+      <Button
         v-if="budgetData.categories?.length > 6"
-        type="button"
-        class="text-muted-foreground hover:text-foreground mt-2 flex items-center gap-1 text-xs transition-colors"
+        variant="ghost"
+        size="sm"
+        class="text-muted-foreground hover:text-foreground mt-2 h-auto p-0 text-xs"
         @click="isCategoriesExpanded = !isCategoriesExpanded"
       >
         <template v-if="isCategoriesExpanded">
@@ -316,7 +352,7 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
           <ChevronDownIcon class="size-3" />
           {{ $t('budgets.categoryBudget.showMore') }}
         </template>
-      </button>
+      </Button>
       <p class="text-muted-foreground mt-3 text-xs">
         {{ $t('budgets.categoryBudget.autoTrackedInfo') }}
       </p>
@@ -338,7 +374,7 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
     <BudgetStatistics v-if="activeTab === 'statistics'" :budget-id="currentBudgetId" />
 
     <!-- Transactions Tab -->
-    <template v-else>
+    <template v-else-if="activeTab === 'transactions'">
       <!-- Category Breakdown -->
       <Card v-if="categoryBreakdown.length > 0" class="mb-6 p-4">
         <h3 class="mb-4 font-medium">{{ $t('budgets.categoryBudget.categoryBreakdown') }}</h3>
@@ -369,7 +405,14 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
           <div class="p-3 @md:p-4">
             <template v-if="isLoadingTransactions">
               <div class="flex items-center justify-center py-12">
-                <div class="text-muted-foreground text-sm">{{ t('pages.budgetDetails.loading') }}</div>
+                <div class="text-muted-foreground text-sm">{{ $t('pages.budgetDetails.loading') }}</div>
+              </div>
+            </template>
+            <template v-else-if="isTransactionsError">
+              <div class="flex items-center justify-center py-12">
+                <div class="text-destructive-text text-sm">
+                  {{ $t('budgets.categoryBudget.transactionsLoadError') }}
+                </div>
               </div>
             </template>
             <template v-else-if="transactions.length > 0">
@@ -392,7 +435,7 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
                         {{ tx.effectiveCategory.name }}
                       </span>
                       <span v-else class="text-muted-foreground truncate text-sm">
-                        {{ t('pages.budgetDetails.uncategorized') }}
+                        {{ $t('pages.budgetDetails.uncategorized') }}
                       </span>
                     </div>
                     <div class="text-muted-foreground flex items-center gap-2 text-xs">
@@ -404,7 +447,7 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
                   <div class="text-right">
                     <span
                       class="text-sm font-medium tabular-nums"
-                      :class="tx.transactionType === 'expense' ? 'text-app-expense-color' : 'text-success-text'"
+                      :class="tx.transactionType === 'expense' ? 'text-app-expense-color' : 'text-app-income-color'"
                     >
                       {{ tx.transactionType === 'expense' ? '-' : '+'
                       }}{{ formatBaseCurrency(tx.effectiveRefAmount || tx.refAmount) }}
@@ -435,6 +478,9 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
         </Card>
       </div>
     </template>
+
+    <!-- Sharing Tab — owners + manage recipients only. -->
+    <BudgetSharingPanel v-else-if="activeTab === 'sharing' && canManage && budgetItem" :budget="budgetItem" />
   </div>
 
   <!-- Loading State -->

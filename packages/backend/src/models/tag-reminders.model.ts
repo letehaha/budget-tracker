@@ -11,7 +11,7 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsTo,
   Default,
   Index,
@@ -19,26 +19,33 @@ import {
   PrimaryKey,
   Table,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 @Table({
   tableName: 'TagReminders',
   timestamps: true,
 })
 export default class TagReminders extends Model<InferAttributes<TagReminders>, InferCreationAttributes<TagReminders>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  declare id: CreationOptional<string>;
+
+  @BeforeCreate
+  static generateUUIDv7(instance: TagReminders) {
+    if (!instance.id) {
+      instance.id = uuidv7();
+    }
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Index
   declare userId: number;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare tagId: number;
+  declare tagId: string;
 
   @Attribute(DataTypes.STRING(20))
   @NotNull

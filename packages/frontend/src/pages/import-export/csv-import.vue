@@ -179,7 +179,7 @@
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useImportExportStore } from '@/stores/import-export';
-import { CheckIcon, ChevronDownIcon, LockIcon } from 'lucide-vue-next';
+import { CheckIcon, ChevronDownIcon, LockIcon } from '@lucide/vue';
 import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 

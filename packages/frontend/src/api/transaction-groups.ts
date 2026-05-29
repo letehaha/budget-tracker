@@ -2,7 +2,7 @@ import { api } from '@/api/_api';
 import type { TransactionModel } from '@bt/shared/types/db-models';
 
 export interface TransactionGroupResponse {
-  id: number;
+  id: string;
   name: string;
   note: string | null;
   createdAt: string;
@@ -23,7 +23,7 @@ export const loadTransactionGroups = async ({
   });
 };
 
-export const loadTransactionGroupById = async ({ id }: { id: number }): Promise<TransactionGroupResponse> => {
+export const loadTransactionGroupById = async ({ id }: { id: string }): Promise<TransactionGroupResponse> => {
   return api.get(`/transaction-groups/${id}`);
 };
 
@@ -34,7 +34,7 @@ export const createTransactionGroup = async ({
 }: {
   name: string;
   note?: string | null;
-  transactionIds: number[];
+  transactionIds: string[];
 }): Promise<TransactionGroupResponse> => {
   return api.post('/transaction-groups', { name, note, transactionIds });
 };
@@ -43,13 +43,13 @@ export const updateTransactionGroup = async ({
   id,
   payload,
 }: {
-  id: number;
+  id: string;
   payload: { name?: string; note?: string | null };
 }): Promise<TransactionGroupResponse> => {
   return api.put(`/transaction-groups/${id}`, payload);
 };
 
-export const deleteTransactionGroup = async ({ id }: { id: number }): Promise<void> => {
+export const deleteTransactionGroup = async ({ id }: { id: string }): Promise<void> => {
   return api.delete(`/transaction-groups/${id}`);
 };
 
@@ -57,8 +57,8 @@ export const addTransactionsToGroup = async ({
   groupId,
   transactionIds,
 }: {
-  groupId: number;
-  transactionIds: number[];
+  groupId: string;
+  transactionIds: string[];
 }): Promise<TransactionGroupResponse> => {
   return api.post(`/transaction-groups/${groupId}/transactions`, { transactionIds });
 };
@@ -68,8 +68,8 @@ export const removeTransactionsFromGroup = async ({
   transactionIds,
   force,
 }: {
-  groupId: number;
-  transactionIds: number[];
+  groupId: string;
+  transactionIds: string[];
   force?: boolean;
 }): Promise<{ group: TransactionGroupResponse | null; dissolved: boolean }> => {
   return api.delete(`/transaction-groups/${groupId}/transactions`, {

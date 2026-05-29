@@ -9,7 +9,7 @@ export default createController(
       id: recordId(),
     }),
     body: z.object({
-      connectionId: z.number(),
+      connectionId: recordId(),
       externalAccountId: z.string(),
     }),
   }),

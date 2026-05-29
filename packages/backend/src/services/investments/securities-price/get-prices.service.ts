@@ -3,7 +3,7 @@ import { Op, WhereOptions } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface PriceQueryOptions {
-  securityId?: number;
+  securityId?: string;
   startDate?: Date;
   endDate?: Date;
 }

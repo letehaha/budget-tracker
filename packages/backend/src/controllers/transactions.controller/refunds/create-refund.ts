@@ -8,7 +8,7 @@ const schema = z.object({
     originalTxId: recordId().nullable(),
     refundTxId: recordId(),
     // Optional: when provided, the refund targets a specific split of the original transaction
-    splitId: z.string().uuid().optional(),
+    splitId: recordId().optional(),
   }),
 });
 

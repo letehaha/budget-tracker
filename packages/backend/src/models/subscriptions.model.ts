@@ -60,7 +60,7 @@ export default class Subscriptions extends Model<
   @Default(SUBSCRIPTION_TYPES.subscription)
   declare type: CreationOptional<SUBSCRIPTION_TYPES>;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   get expectedAmount(): Money {
     return moneyGetCents(this, 'expectedAmount');
   }
@@ -82,11 +82,11 @@ export default class Subscriptions extends Model<
   @Attribute(DataTypes.DATEONLY)
   declare endDate: string | null;
 
-  @Attribute(DataTypes.INTEGER)
-  declare accountId: number | null;
+  @Attribute(DataTypes.UUID)
+  declare accountId: string | null;
 
-  @Attribute(DataTypes.INTEGER)
-  declare categoryId: number | null;
+  @Attribute(DataTypes.UUID)
+  declare categoryId: string | null;
 
   @Attribute(DataTypes.JSONB)
   @NotNull

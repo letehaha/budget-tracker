@@ -381,19 +381,6 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   }
 
   /**
-   * Navigate to a step (used by accordion clicks).
-   * Only allows going to the current step (no skipping via accordion).
-   */
-  function goToStep({ step }: { step: number }) {
-    // Only allow navigating to current step (keeps accordion behavior but prevents skipping)
-    if (step === currentStep.value) {
-      return;
-    }
-    // Don't allow clicking on accordion headers to change steps
-    // Users must use Back/Continue buttons
-  }
-
-  /**
    * Go back to a previous step (used by Back buttons).
    * Removes completion status of steps after the target step.
    */
@@ -452,7 +439,6 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     proceedToImport,
     executeImport,
     reset,
-    goToStep,
     goBackToStep,
   };
 });

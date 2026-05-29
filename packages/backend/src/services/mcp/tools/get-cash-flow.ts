@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { serializeCashFlow } from '@root/serializers/stats.serializer';
@@ -19,8 +20,8 @@ export function registerGetCashFlow(server: McpServer) {
           .enum(['monthly', 'biweekly', 'weekly'])
           .optional()
           .describe('Time granularity. Default: monthly'),
-        accountId: z.number().optional().describe('Filter by specific account ID'),
-        categoryIds: z.array(z.number()).optional().describe('Filter by category IDs'),
+        accountId: recordId().optional().describe('Filter by specific account ID'),
+        categoryIds: z.array(recordId()).optional().describe('Filter by category IDs'),
       },
     },
     async (args, extra) => {

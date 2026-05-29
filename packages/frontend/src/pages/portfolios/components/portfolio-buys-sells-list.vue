@@ -55,10 +55,10 @@ import { usePortfolioInvestmentTransactions } from '@/composable/data-queries/in
 import { useFormatCurrency } from '@/composable/formatters';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { format } from 'date-fns';
-import { ArrowDownIcon, ArrowUpIcon, CircleDollarSignIcon } from 'lucide-vue-next';
+import { ArrowDownIcon, ArrowUpIcon, CircleDollarSignIcon } from '@lucide/vue';
 import { type Component, computed, ref, toRef } from 'vue';
 
-const props = defineProps<{ portfolioId: number }>();
+const props = defineProps<{ portfolioId: string }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();

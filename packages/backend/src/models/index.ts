@@ -10,6 +10,13 @@ pg.types.setTypeParser(1082, toDate); // DATE
 pg.types.setTypeParser(1114, toDate); // TIMESTAMP WITHOUT TIME ZONE
 pg.types.setTypeParser(1184, toDate); // TIMESTAMP WITH TIME ZONE
 
+// node-postgres returns BIGINT as string to preserve precision. Our cents
+// columns are BIGINT, but cent values stay far below JS Number's safe 2^53
+// ceiling (~$90T). Parse to Number so model getters, hooks, raw queries, and
+// API serializers all see numbers uniformly. pg only invokes the parser for
+// non-null values, so we don't need a null branch.
+pg.types.setTypeParser(20, (val) => Number(val));
+
 import AccountGroupingModel from './accounts-groups/account-grouping.model';
 import AccountGroupsModel from './accounts-groups/account-groups.model';
 import AccountsModel from './accounts.model';
@@ -20,6 +27,7 @@ import BudgetCategoriesModel from './budget-categories.model';
 import BudgetTransactionsModel from './budget-transactions.model';
 import BudgetModel from './budget.model';
 import CategoriesModel from './categories.model';
+import { connection } from './connection';
 import CurrenciesModel from './currencies.model';
 import ExchangeRatesModel from './exchange-rates.model';
 import HoldingsModel from './investments/holdings.model';
@@ -36,6 +44,8 @@ import PaymentReminderNotificationsModel from './payment-reminder-notifications.
 import PaymentReminderPeriodsModel from './payment-reminder-periods.model';
 import PaymentRemindersModel from './payment-reminders.model';
 import RefundTransactionsModel from './refund-transactions.model';
+import ResourceSharesModel from './resource-shares.model';
+import ShareInvitationsModel from './share-invitations.model';
 import SubscriptionCandidatesModel from './subscription-candidates.model';
 import SubscriptionTransactionsModel from './subscription-transactions.model';
 import SubscriptionsModel from './subscriptions.model';
@@ -53,13 +63,6 @@ import UserSettingsModel from './user-settings.model';
 import UsersCurrenciesModel from './users-currencies.model';
 import UsersModel from './users.model';
 
-const connection: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sequelize?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Sequelize?: any;
-} = {};
-
 const models = [
   UsersModel,
   AccountsModel,
@@ -71,6 +74,8 @@ const models = [
   MerchantCategoryCodesModel,
   NotificationsModel,
   RefundTransactionsModel,
+  ResourceSharesModel,
+  ShareInvitationsModel,
   TransactionsModel,
   UserExchangeRatesModel,
   UserMerchantCategoryCodesModel,
@@ -119,10 +124,7 @@ const sequelize = new Sequelize({
   database: databaseName,
   port: Number(process.env.APPLICATION_DB_PORT),
   models,
-  pool: {
-    max: 50,
-    evict: 10000,
-  },
+  pool: process.env.NODE_ENV === 'test' ? { max: 50, min: 0, evict: 10_000 } : { max: 50, min: 5, evict: 60_000 },
   logging: process.env.DB_QUERY_LOGGING === 'true' ? console.log : false,
 });
 

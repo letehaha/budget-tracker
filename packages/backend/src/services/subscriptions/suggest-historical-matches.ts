@@ -133,7 +133,7 @@ function buildWhereFromRules({ rules }: { rules: SubscriptionMatchingRule[] }): 
       }
       case 'accountId': {
         if (rule.operator === 'equals') {
-          sqlConditions.push({ accountId: rule.value as number });
+          sqlConditions.push({ accountId: rule.value as string });
         }
         break;
       }

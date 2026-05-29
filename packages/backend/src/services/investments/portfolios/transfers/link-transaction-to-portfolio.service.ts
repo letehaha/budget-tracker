@@ -11,12 +11,12 @@ import { withTransaction } from '@services/common/with-transaction';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
 import { format } from 'date-fns';
 
-import { computeRefAmount, findPortfolioOrThrow, negateAmount } from './transfer-validations';
+import { computeRestampForExistingTransaction, findPortfolioOrThrow, negateAmount } from './transfer-validations';
 
 interface LinkTransactionToPortfolioParams {
   userId: number;
-  transactionId: number;
-  portfolioId: number;
+  transactionId: string;
+  portfolioId: string;
 }
 
 const DISALLOWED_TRANSFER_NATURES = [
@@ -56,9 +56,8 @@ const linkTransactionToPortfolioImpl = async ({
   const date = format(tx.time, 'yyyy-MM-dd');
   const currencyCode = tx.currencyCode!;
 
-  const refAmount = await computeRefAmount({ amount, currencyCode, userId, date });
+  const { refCurrencyCode, refAmount } = await computeRestampForExistingTransaction({ tx, userId });
 
-  // Determine direction based on transaction type:
   // expense → money flows from account to portfolio (portfolio balance UP)
   // income → money flows from portfolio to account (portfolio balance DOWN)
   const isExpense = tx.transactionType === TRANSACTION_TYPES.expense;
@@ -95,6 +94,8 @@ const linkTransactionToPortfolioImpl = async ({
     id: transactionId,
     userId,
     transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+    refCurrencyCode,
+    refAmount,
   });
 
   // Update portfolio balance

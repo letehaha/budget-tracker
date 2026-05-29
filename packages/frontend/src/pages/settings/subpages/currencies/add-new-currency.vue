@@ -49,7 +49,7 @@ import { useCurrencyName } from '@/composable';
 import { useCurrenciesStore } from '@/stores';
 import { CurrencyModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
-import { InfoIcon } from 'lucide-vue-next';
+import { InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

@@ -49,8 +49,7 @@
     },
     "placeholders": {
       "email": "your{'@'}email.com",
-      "password": "Ваш пароль",
-      "username": "напр. johnsnow"
+      "password": "Ваш пароль"
     },
     "dialogs": {
       "createAccount": "Створити рахунок"
@@ -86,6 +85,10 @@
       "statementParsing": {
         "name": "Парсер виписок",
         "description": "Вилучення транзакцій з банківських виписок (PDF, CSV, TXT) за допомогою ШІ"
+      },
+      "investmentTransactionsParsing": {
+        "name": "Імпорт інвестиційних транзакцій",
+        "description": "ШІ-вилучені операції купівлі/продажу з експортів бірж, брокерських виписок або вставленого тексту."
       }
     },
     "transactions": {
@@ -144,6 +147,9 @@
     "tagReminder": {
       "thresholdMessage": "витрачено {amount} (поріг: {threshold})",
       "existenceMessage": "{count} транзакція | {count} транзакції | {count} транзакцій"
+    },
+    "share": {
+      "sendFailedHint": "Відкрийте панель спільного доступу, щоб надіслати повторно."
     }
   },
   "currencyNames": {
@@ -205,6 +211,13 @@
     "XAF": "Франк КФА BEAC",
     "BTC": "Біткоїн",
     "ETH": "Етеріум"
+  },
+  "fileDropzone": {
+    "clickOrDrag": "Натисніть або перетягніть файл сюди",
+    "dropHere": "Відпустіть файл для завантаження",
+    "removeFile": "Прибрати файл",
+    "fileTooLarge": "Файл занадто великий. Максимальний розмір — {max}.",
+    "onlyFirstFileTaken": "Кинуто кілька файлів — використано лише перший."
   },
   "demo": {
     "loadingOverlay": {

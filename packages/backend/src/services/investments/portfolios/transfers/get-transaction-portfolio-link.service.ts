@@ -6,7 +6,7 @@ import Portfolios from '@models/investments/portfolios.model';
 
 interface GetTransactionPortfolioLinkParams {
   userId: number;
-  transactionId: number;
+  transactionId: string;
 }
 
 export const getTransactionPortfolioLink = async ({ userId, transactionId }: GetTransactionPortfolioLinkParams) => {
@@ -14,8 +14,11 @@ export const getTransactionPortfolioLink = async ({ userId, transactionId }: Get
     query: PortfolioTransfers.findOne({
       where: { transactionId, userId },
       include: [
-        { model: Portfolios, as: 'fromPortfolio' },
-        { model: Portfolios, as: 'toPortfolio' },
+        // paranoid:false so the link surfaces even when the linked portfolio
+        // has been soft-deleted (trash). The FE shows a "Deleted portfolio"
+        // badge based on `isPortfolioDeleted` below.
+        { model: Portfolios, as: 'fromPortfolio', paranoid: false },
+        { model: Portfolios, as: 'toPortfolio', paranoid: false },
         { model: Currencies, as: 'currency' },
       ],
     }),
@@ -28,10 +31,16 @@ export const getTransactionPortfolioLink = async ({ userId, transactionId }: Get
   const portfolioId = isDeposit ? transfer.toPortfolioId! : transfer.fromPortfolioId!;
   const portfolio = isDeposit ? transfer.toPortfolio : transfer.fromPortfolio;
 
+  // A null portfolio means the FK row no longer exists at all (hard-deleted
+  // outside the trash window, or DB corruption). Surface that as "deleted"
+  // too so the FE renders the badge instead of a blank active label.
+  const isPortfolioDeleted = portfolio == null || portfolio.deletedAt != null;
+
   return {
     transferId: transfer.id,
     portfolioId,
     portfolioName: portfolio?.name ?? '',
+    isPortfolioDeleted,
     transferType: isDeposit ? ('deposit' as const) : ('withdrawal' as const),
     amount: transfer.amount.toJSON(),
     currencyCode: transfer.currencyCode,

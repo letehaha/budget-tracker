@@ -10,7 +10,7 @@ import { createTransaction } from '@services/transactions/create-transaction';
 
 interface AdjustAccountBalanceParams {
   userId: number;
-  accountId: number;
+  accountId: string;
   targetBalance: Money;
   note?: string;
 }

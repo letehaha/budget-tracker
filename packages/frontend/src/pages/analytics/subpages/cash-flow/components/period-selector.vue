@@ -25,7 +25,7 @@ import { DateSelector, type DateSelectorPreset } from '@/components/lib/ui/date-
 import { useEarliestTransactionDate } from '@/composable/data-queries/earliest-transaction-date';
 import { type Period, usePeriodNavigation } from '@/composable/use-period-navigation';
 import { endOfMonth, endOfYear, isAfter, startOfMonth, startOfYear, subMonths, subYears } from 'date-fns';
-import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { CalendarIcon, ChevronLeft, ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

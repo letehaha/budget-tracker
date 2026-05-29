@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -82,7 +83,7 @@ describe('Tags API', () => {
     });
 
     it('returns 404 for non-existent tag', async () => {
-      const response = await helpers.getTagById({ id: 999999, raw: false });
+      const response = await helpers.getTagById({ id: NONEXISTENT_ID, raw: false });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
@@ -126,7 +127,7 @@ describe('Tags API', () => {
 
     it('returns 404 for non-existent tag', async () => {
       const response = await helpers.updateTag({
-        id: 999999,
+        id: NONEXISTENT_ID,
         payload: { name: 'Does not exist' },
         raw: false,
       });
@@ -150,7 +151,7 @@ describe('Tags API', () => {
     });
 
     it('returns 404 for non-existent tag', async () => {
-      const response = await helpers.deleteTag({ id: 999999, raw: false });
+      const response = await helpers.deleteTag({ id: NONEXISTENT_ID, raw: false });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });

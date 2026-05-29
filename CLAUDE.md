@@ -1,6 +1,9 @@
 # Project Rules & Conventions
 
-## Context Files
+## Communication Style
+
+- **Default to caveman mode** for all user-facing text in this project. Follow the conventions in `.claude/skills/caveman/SKILL.md` (or the `caveman` skill description) — drop articles/filler/pleasantries, keep technical accuracy. Apply to chat replies, status updates, and end-of-turn summaries. Do NOT apply to code, comments, commit messages, PR descriptions, or file content.
+- Switch to normal English only when the user explicitly asks (e.g. "normal mode", "stop caveman", "full sentences").
 
 - **Backend work**: Read `.claude/docs/backend-conventions.md` before writing backend code
 - **Frontend work**: Read `.claude/skills/frontend-rules/SKILL.md` before writing frontend code
@@ -103,12 +106,11 @@ Other instructions:
    - All API responses MUST return monetary amounts as **decimals** (not cents). `Money` auto-serializes via `toJSON()` in `res.json()`. For explicit conversion, use serializers with `centsToApiDecimal()` from `@common/types/money`.
    - Money fields on transactions: `amount`, `refAmount`, `commissionRate`, `refCommissionRate`, `cashbackAmount`
    - **Frontend ALWAYS works with decimals.** The API returns decimals, forms accept decimals, and the frontend sends decimals back. **NEVER** manually convert between cents and decimals in frontend code.
-7. **i18n Files - DO NOT EDIT UNLESS EXPLICITLY ASKED**
-   - i18n locale files are BLOCKED from reading (hook saves tokens)
-   - **NEVER** proactively add/update translations when implementing features
-   - **ONLY** edit i18n files when the user explicitly asks for translation work
-   - When asked, use the `i18n-editor` subagent
-   - If a feature needs translations, mention it in your response and let the user decide when to add them
+7. **i18n Files - use the `i18n-editor` subagent**
+   - i18n locale files are BLOCKED from reading by the main agent (hook saves tokens) — always delegate to the `i18n-editor` subagent.
+   - When a feature genuinely needs new translation keys (i.e. you just added a `$t('...')` reference that doesn't exist yet), proactively trigger the `i18n-editor` subagent to add them — do NOT ask for permission first. Add both `en` and `uk` translations in the same call. Briefly summarize what keys were added in your final response.
+   - Do NOT touch i18n files for unrelated work (don't "improve" existing translations, don't reorganize keys, don't bulk-translate English-only strings you encounter) — only add/update keys that the current task requires.
+   - If a translation's wording is non-obvious (e.g., domain terminology, formal vs. casual tone), ask the user for the copy before delegating to the subagent.
 8. For Chrome extenstion use Brave browser, not Chrome
 9. **Frontend env vars (`VITE_*`) must also be added to CI** — they are inlined at build time. Add as input + envkey in `.github/actions/frontend-docker-build/action.yml`, then pass the secret in `.github/workflows/image-to-docker-hub.yml`.
 10. **CRITICAL: No Git Commits or Pushes**
@@ -124,3 +126,10 @@ Other instructions:
     - Instead, **describe the problem to the user** and ask what to do next.
     - This applies to debugging, unexpected behavior, failing builds, type errors you can't resolve, etc.
     - Burning tokens on a long chain of guesses almost never helps. Asking the user is always better.
+13. **Frontend Responsive Design: Container Width, Not Screen Width**
+    - Most pages render inside a layout with a persistent sidebar, so the **content container is much narrower than the viewport** (e.g., a 768px screen leaves ~500px for content). Viewport-based breakpoints (`md:`, `lg:`, `@media (min-width: 768px)`, `window.innerWidth`, etc.) therefore fire at the wrong moments and produce broken layouts.
+    - **Default to container-based responsiveness**: use Tailwind's container queries (`@container` + `@sm:`, `@md:`, `@lg:` variants), CSS `@container` queries, or `ResizeObserver` on the component's wrapper. Mark the nearest layout wrapper with `@container` so children can react to its actual width.
+    - Only use screen/viewport breakpoints when the change genuinely depends on the **viewport itself** — sidebar collapse, mobile nav switch, top-level page shell. Inside a page, prefer container queries.
+    - When in doubt, ask: "would this breakpoint behave correctly if the sidebar collapsed/expanded?" If no — it should be a container query.
+
+Always use the caveman skill

@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { bulkUploadPrices, getPriceUploadInfo, searchSecurities } from '@/api/securities';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import SecurityLogo from '@/components/common/security-logo.vue';
 import InputField from '@/components/fields/input-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useIsAdmin } from '@/composable';
 import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { useQuery } from '@tanstack/vue-query';
 import { format, parse } from 'date-fns';
-import { InfoIcon } from 'lucide-vue-next';
+import { InfoIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -41,7 +43,7 @@ watch(searchTerm, (v) => {
 
 const query = useQuery({
   queryKey: ['sec-search-admin', debounced],
-  queryFn: () => searchSecurities(debounced.value),
+  queryFn: () => searchSecurities({ query: debounced.value }),
   enabled: () => debounced.value.length >= 1,
 });
 
@@ -393,9 +395,10 @@ if (!isAdmin.value) {
               <li
                 v-for="sec in query.data.value || []"
                 :key="sec.symbol"
-                class="hover:bg-muted/40 grid cursor-pointer grid-cols-[auto_1fr_auto_auto] items-center gap-2 px-2 py-1"
+                class="hover:bg-muted/40 grid cursor-pointer grid-cols-[auto_auto_1fr_auto_auto] items-center gap-2 px-2 py-1"
                 @click="selectSecurity(sec)"
               >
+                <SecurityLogo :security="sec" class="size-5" />
                 <span class="font-medium">{{ sec.symbol }}</span>
                 <span class="text-muted-foreground truncate text-xs">{{ sec.name }}</span>
                 <span class="text-muted-foreground text-right text-xs">{{ sec.exchangeName }}</span>
@@ -561,8 +564,7 @@ if (!isAdmin.value) {
 
           <!-- Step 6: Result -->
           <div v-if="currentStep === 'result'" class="space-y-4">
-            <div class="bg-success/20 text-success-text border-success/20 rounded border p-4">
-              <h3 class="mb-2 font-medium">{{ $t('settings.admin.priceUpload.result.title') }}</h3>
+            <Callout variant="success" :title="$t('settings.admin.priceUpload.result.title')">
               <div class="space-y-1 text-sm">
                 <div>
                   {{
@@ -589,7 +591,7 @@ if (!isAdmin.value) {
                   }}
                 </div>
               </div>
-            </div>
+            </Callout>
 
             <div class="flex justify-end gap-2">
               <Button variant="outline" @click="isOpen = false">{{

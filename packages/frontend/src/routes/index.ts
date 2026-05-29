@@ -72,7 +72,17 @@ const routes: RouteRecordRaw[] = [
         path: '/portfolios/:portfolioId',
         name: ROUTES_NAMES.portfolioDetail,
         component: () => import('@/pages/portfolios/portfolio-detail.vue'),
-        meta: { i18nChunks: ['pages/portfolio-detail', 'pages/investments', 'pages/transactions'] as I18nChunkName[] },
+        meta: {
+          i18nChunks: ['pages/portfolio-detail', 'pages/investments', 'pages/transactions'] as I18nChunkName[],
+        },
+      },
+      {
+        path: '/portfolios/:portfolioId/import-transactions',
+        name: ROUTES_NAMES.portfolioTransactionsImport,
+        component: () => import('@/pages/portfolios/transactions-import/page.vue'),
+        meta: {
+          i18nChunks: ['pages/investments-import', 'pages/portfolio-detail'] as I18nChunkName[],
+        },
       },
       {
         path: '/analytics',
@@ -206,6 +216,7 @@ const routes: RouteRecordRaw[] = [
             'settings/ai',
             'settings/security',
             'settings/admin',
+            'pages/shared-with-me',
           ] as I18nChunkName[],
         },
         children: [
@@ -282,6 +293,18 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/settings/subpages/ai-integrations/index.vue'),
             meta: { i18nChunks: ['settings/ai-integrations'] as I18nChunkName[] },
           },
+          {
+            path: 'shared-with-me',
+            name: ROUTES_NAMES.settingsSharedWithMe,
+            component: () => import('@/pages/shared-with-me/shared-with-me.vue'),
+            meta: { i18nChunks: ['pages/shared-with-me'] as I18nChunkName[] },
+          },
+          {
+            path: 'household',
+            name: ROUTES_NAMES.settingsHousehold,
+            component: () => import('@/pages/settings/subpages/household/index.vue'),
+            meta: { i18nChunks: ['pages/household'] as I18nChunkName[] },
+          },
         ],
       },
     ],
@@ -310,12 +333,6 @@ const routes: RouteRecordRaw[] = [
         path: '/verify-email',
         name: ROUTES_NAMES.verifyEmail,
         component: () => import('@/pages/auth/verify-email.vue'),
-        meta: { i18nChunks: ['auth/verify-email'] as I18nChunkName[] },
-      },
-      {
-        path: '/auth/verify-legacy-email',
-        name: ROUTES_NAMES.verifyLegacyEmail,
-        component: () => import('@/pages/auth/verify-legacy-email.vue'),
         meta: { i18nChunks: ['auth/verify-email'] as I18nChunkName[] },
       },
       {

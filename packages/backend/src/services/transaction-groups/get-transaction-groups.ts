@@ -14,7 +14,7 @@ export interface TransactionGroupWithTransactions extends TransactionGroups {
 }
 
 export interface TransactionGroupWithAggregates {
-  id: number;
+  id: string;
   name: string;
   note: string | null;
   createdAt: Date;

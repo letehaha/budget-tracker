@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -51,7 +52,7 @@ describe('Portfolio Transfer', () => {
 
     // Verify transfer record
     expect(transfer).toMatchObject({
-      id: expect.any(Number),
+      id: expect.any(String),
       userId: expect.any(Number),
       fromPortfolioId: sourcePortfolio.id,
       toPortfolioId: destPortfolio.id,
@@ -95,7 +96,7 @@ describe('Portfolio Transfer', () => {
         await helpers.createPortfolioTransfer({
           fromPortfolioId: sourcePortfolio.id,
           payload: helpers.buildPortfolioTransferPayload({
-            toPortfolioId: 999999, // Non-existent portfolio
+            toPortfolioId: generateRandomRecordId(), // Non-existent portfolio
             currencyCode: usdCurrency!.currencyCode,
           }),
         })
@@ -106,7 +107,7 @@ describe('Portfolio Transfer', () => {
     expect(
       (
         await helpers.createPortfolioTransfer({
-          fromPortfolioId: 999999, // Non-existent portfolio
+          fromPortfolioId: generateRandomRecordId(), // Non-existent portfolio
           payload: helpers.buildPortfolioTransferPayload({
             toPortfolioId: sourcePortfolio.id,
             currencyCode: usdCurrency!.currencyCode,
@@ -175,7 +176,7 @@ describe('Portfolio Transfer', () => {
     const response = await helpers.createPortfolioTransfer({
       fromPortfolioId: sourcePortfolio.id,
       payload: helpers.buildPortfolioTransferPayload({
-        toPortfolioId: 999999,
+        toPortfolioId: generateRandomRecordId(),
         currencyCode: usdCurrency!.currencyCode,
         amount: '100',
       }),

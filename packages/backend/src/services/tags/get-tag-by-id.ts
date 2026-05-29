@@ -3,7 +3,7 @@ import { t } from '@i18n/index';
 import Tags from '@models/tags.model';
 
 interface GetTagByIdPayload {
-  id: number;
+  id: string;
   userId: number;
 }
 

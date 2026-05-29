@@ -18,7 +18,7 @@
               type="button"
               :class="
                 cn(
-                  'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
+                  'border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
                   !form.icon && 'text-muted-foreground',
                 )
               "
@@ -113,7 +113,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { cn } from '@/lib/utils';
 import { TagModel } from '@bt/shared/types';
-import { ChevronsUpDownIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon } from '@lucide/vue';
 import { defineAsyncComponent, ref } from 'vue';
 
 const IconPickerDropdown = defineAsyncComponent(() => import('@/components/common/icons/icon-picker-dropdown.vue'));

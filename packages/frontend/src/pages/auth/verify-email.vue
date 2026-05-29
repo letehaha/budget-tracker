@@ -43,7 +43,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { authClient } from '@/lib/auth-client';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
-import { MailIcon } from 'lucide-vue-next';
+import { MailIcon } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';

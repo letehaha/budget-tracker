@@ -84,7 +84,7 @@ describe('Statement Parser - Detect Duplicates endpoint', () => {
       expect(duplicate.extractedTransaction.type).toBe('expense');
 
       // existingTransaction should have DB transaction data
-      expect(typeof duplicate.existingTransaction.id).toBe('number');
+      expect(typeof duplicate.existingTransaction.id).toBe('string');
       expect(duplicate.existingTransaction.date).toBe('2024-01-15');
       expect(duplicate.existingTransaction.amount).toBe(10050);
       expect(duplicate.existingTransaction.note).toBe('Existing note');

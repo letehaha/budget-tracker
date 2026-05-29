@@ -6,27 +6,27 @@ import {
   Model,
   NonAttribute,
 } from '@sequelize/core';
-import {
-  Attribute,
-  AutoIncrement,
-  HasMany,
-  Index,
-  NotNull,
-  PrimaryKey,
-  Table,
-} from '@sequelize/core/decorators-legacy';
+import { Attribute, BeforeCreate, HasMany, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import TagReminders from './tag-reminders.model';
 import type Transactions from './transactions.model';
+
 @Table({
   tableName: 'Tags',
   timestamps: true,
 })
 export default class Tags extends Model<InferAttributes<Tags>, InferCreationAttributes<Tags>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  declare id: CreationOptional<string>;
+
+  @BeforeCreate
+  static generateUUIDv7(instance: Tags) {
+    if (!instance.id) {
+      instance.id = uuidv7();
+    }
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull

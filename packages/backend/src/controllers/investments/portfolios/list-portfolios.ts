@@ -10,6 +10,7 @@ export default createController(
       .object({
         portfolioType: z.nativeEnum(PORTFOLIO_TYPE).optional(),
         isEnabled: booleanQuery().optional(),
+        onlyDeleted: booleanQuery().optional(),
         limit: z.coerce.number().int().min(1).max(100).default(20),
         offset: z.coerce.number().int().min(0).default(0),
         page: z.coerce.number().int().min(1).optional(),
@@ -27,6 +28,7 @@ export default createController(
       userId: user.id,
       portfolioType: query.portfolioType,
       isEnabled: query.isEnabled,
+      onlyDeleted: query.onlyDeleted,
       limit: query.limit,
       offset: query.offset,
     });

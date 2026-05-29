@@ -5,7 +5,7 @@ import * as Transactions from '@models/transactions.model';
 interface FindDuplicatesParams {
   userId: number;
   validRows: ParsedTransactionRow[];
-  accountNameToId: Map<string, number | null>;
+  accountNameToId: Map<string, string | null>;
 }
 
 /**
@@ -22,7 +22,7 @@ export async function findDuplicates({
   const duplicates: DuplicateMatch[] = [];
 
   // Get all account IDs that are already in the system (not null = not new)
-  const existingAccountIds = new Set(Array.from(accountNameToId.values()).filter((id): id is number => id !== null));
+  const existingAccountIds = new Set(Array.from(accountNameToId.values()).filter((id): id is string => id !== null));
 
   if (existingAccountIds.size === 0) {
     // All accounts are new, no duplicates possible

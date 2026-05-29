@@ -116,7 +116,7 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
       userId,
       from,
       to,
-      accountId: Number(accountId),
+      accountId,
       transactionType,
       categoryIds,
       excludedCategoryIds,
@@ -147,7 +147,7 @@ export const getExpensesAmountForPeriod = createController(expensesAmountSchema,
       userId,
       from,
       to,
-      accountId: Number(accountId),
+      accountId,
       excludedCategoryIds,
     }),
   );
@@ -204,7 +204,7 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
       from,
       to,
       granularity,
-      accountId: accountId ? Number(accountId) : undefined,
+      accountId,
       categoryIds,
     }),
   );
@@ -239,7 +239,7 @@ export const getCumulativeData = createController(cumulativeDataSchema, async ({
       from,
       to,
       metric,
-      accountId: accountId ? Number(accountId) : undefined,
+      accountId: accountId ?? undefined,
     }),
   );
 

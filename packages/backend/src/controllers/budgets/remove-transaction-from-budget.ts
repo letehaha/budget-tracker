@@ -8,14 +8,15 @@ const schema = z.object({
     id: recordId(),
   }),
   body: z.object({
-    transactionIds: z.array(recordId()),
+    transactionIds: z.array(recordId()).min(1),
   }),
 });
 
 export default createController(schema, async ({ user, params, body }) => {
-  await removeTransactionsFromBudget({
-    budgetId: Number(params.id),
+  const data = await removeTransactionsFromBudget({
+    budgetId: params.id,
     userId: user.id,
     transactionIds: body.transactionIds,
   });
+  return { data };
 });

@@ -1,7 +1,10 @@
 import { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/securities.model';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
+
+const dedupKey = (providerName: string, providerSymbol: string) => `${providerName}:${providerSymbol}`;
 
 const addOrUpdateFromProviderImpl = async (
   securitiesFromProvider: SecuritySearchResult[],
@@ -11,20 +14,29 @@ const addOrUpdateFromProviderImpl = async (
     return { newCount: 0 };
   }
 
-  // Get all existing symbols from our database for quick lookup
+  // Look up existing (providerName, providerSymbol) tuples in one query — this is the
+  // canonical identity now that crypto symbols may collide across providers.
+  const incomingKeys = securitiesFromProvider.map((s) => dedupKey(s.providerName, s.providerSymbol));
+  const providerNames = Array.from(new Set(securitiesFromProvider.map((s) => s.providerName)));
+  const providerSymbols = Array.from(new Set(securitiesFromProvider.map((s) => s.providerSymbol)));
+
   const existingSecurities = await Securities.findAll({
-    attributes: ['symbol'],
+    where: {
+      providerName: { [Op.in]: providerNames },
+      providerSymbol: { [Op.in]: providerSymbols },
+    },
+    attributes: ['providerName', 'providerSymbol'],
     raw: true,
   });
-  const existingSymbols = new Set(existingSecurities.map((s) => s.symbol));
-  logger.info(`Found ${existingSymbols.size} existing securities in the database.`);
+  const existingKeys = new Set(existingSecurities.map((s) => dedupKey(s.providerName, s.providerSymbol)));
+  logger.info(`Found ${existingKeys.size} matching existing securities for ${incomingKeys.length} incoming entries.`);
 
   // Partition incoming securities into new inserts vs updates in a single pass
   const [newSecurities, existingToUpdate] = securitiesFromProvider.reduce<
     [SecuritySearchResult[], SecuritySearchResult[]]
   >(
     (acc, sec) => {
-      (sec.symbol && existingSymbols.has(sec.symbol) ? acc[1] : acc[0]).push(sec);
+      (existingKeys.has(dedupKey(sec.providerName, sec.providerSymbol)) ? acc[1] : acc[0]).push(sec);
       return acc;
     },
     [[], []],
@@ -36,13 +48,16 @@ const addOrUpdateFromProviderImpl = async (
   // Prepare bulk insert payload for new securities
   const securitiesToCreate = newSecurities.map((security) => ({
     symbol: security.symbol,
+    providerSymbol: security.providerSymbol,
     name: security.name,
     assetClass: security.assetClass,
     providerName: security.providerName,
     currencyCode: security.currencyCode.toUpperCase(),
+    cryptoCurrencyCode: security.cryptoCurrencyCode ?? null,
     exchangeMic: security.exchangeMic,
     exchangeAcronym: security.exchangeAcronym || null,
     exchangeName: security.exchangeName || null,
+    logoUrl: security.logoUrl ?? null,
     isBrokerageCash: false,
   }));
 
@@ -55,15 +70,20 @@ const addOrUpdateFromProviderImpl = async (
     const updatePromises = existingToUpdate.map((sec) =>
       Securities.update(
         {
+          symbol: sec.symbol,
           name: sec.name,
           assetClass: sec.assetClass,
-          providerName: sec.providerName,
           currencyCode: sec.currencyCode.toUpperCase(),
+          cryptoCurrencyCode: sec.cryptoCurrencyCode ?? null,
           exchangeMic: sec.exchangeMic,
           exchangeAcronym: sec.exchangeAcronym || null,
           exchangeName: sec.exchangeName || null,
+          // Preserve existing logoUrl when the provider doesn't supply one —
+          // stock providers leave the field undefined, and we don't want to
+          // wipe a value that another provider (e.g. CoinGecko) populated.
+          ...(sec.logoUrl !== undefined ? { logoUrl: sec.logoUrl } : {}),
         },
-        { where: { symbol: sec.symbol } },
+        { where: { providerName: sec.providerName, providerSymbol: sec.providerSymbol } },
       ),
     );
     await Promise.all(updatePromises);

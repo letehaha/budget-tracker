@@ -15,7 +15,7 @@
         </div>
 
         <button
-          class="text-popover-foreground hover:bg-popover-foreground/10 relative flex w-full cursor-pointer items-center gap-2 overflow-hidden border-none p-2 text-left text-sm leading-tight text-ellipsis transition-colors duration-300 ease-out"
+          class="text-popover-foreground hover:bg-popover-foreground/10 relative flex w-full cursor-pointer items-center gap-2 border-none p-2 text-left text-sm leading-tight transition-colors duration-300 ease-out"
           type="button"
           :class="{ 'bg-primary/15 hover:bg-primary/20': selectedValue?.id === item.id }"
           :style="{ paddingLeft: `${16 + (isSearching ? 0 : item.depth) * 12}px` }"
@@ -23,8 +23,8 @@
           :aria-selected="selectedValue?.id === item.id"
           @mousedown.prevent="selectItem(item)"
         >
-          <CategoryCircle :category="item" />
-          <span class="grow">{{ item.name }}</span>
+          <CategoryCircle :category="item" :categories-map="categoriesMap" class="shrink-0" />
+          <span class="min-w-0 grow truncate">{{ item.name }}</span>
         </button>
       </template>
 
@@ -53,7 +53,7 @@
               :disabled="disabled"
               :class="
                 cn(
-                  'border-input bg-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                  'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
                   'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
                   disabled && 'cursor-not-allowed opacity-50',
                   $attrs.class ?? '',
@@ -62,7 +62,12 @@
               :aria-label="$t('fields.categorySelect.selectCategoryLabel')"
               :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
             >
-              <CategoryCircle v-if="selectedValue" :category="selectedValue" class="shrink-0" />
+              <CategoryCircle
+                v-if="selectedValue"
+                :category="selectedValue"
+                :categories-map="categoriesMap"
+                class="shrink-0"
+              />
               <span
                 class="text-muted-foreground min-w-0 flex-1 truncate text-left"
                 :class="{ 'text-foreground': selectedValue }"
@@ -88,20 +93,32 @@
           </Popover.PopoverTrigger>
           <Popover.PopoverContent
             align="start"
-            class="w-[--reka-popover-trigger-width] p-0"
+            class="w-(--reka-popover-trigger-width) max-w-(--reka-popover-trigger-width) min-w-(--reka-popover-trigger-width) p-0"
             @open-auto-focus.prevent="$nextTick(() => inputRef?.focus())"
           >
-            <!-- Search input -->
-            <div class="border-b p-2">
-              <input
-                ref="inputRef"
-                v-model="searchQuery"
-                type="text"
-                class="bg-background w-full text-sm outline-none"
-                :placeholder="$t('fields.categorySelect.searchPlaceholder')"
-                :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
-              />
+            <div
+              v-if="sharedOwnerHandle"
+              class="bg-muted/40 text-foreground flex items-center gap-2 border-b px-3 py-2 text-xs"
+              role="note"
+            >
+              <span>{{ $t('fields.categorySelect.sharedOwnerNotice', { owner: sharedOwnerHandle }) }}</span>
+              <ResponsiveTooltip
+                :content="$t('fields.categorySelect.sharedOwnerNoticeTooltip', { owner: sharedOwnerHandle })"
+                content-class-name="max-w-64"
+                :delay-duration="100"
+              >
+                <InfoIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" />
+              </ResponsiveTooltip>
             </div>
+            <!-- Search input -->
+            <input
+              ref="inputRef"
+              v-model="searchQuery"
+              type="text"
+              class="w-full border-b bg-transparent px-3 py-2 text-sm outline-none"
+              :placeholder="$t('fields.categorySelect.searchPlaceholder')"
+              :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
+            />
             <!-- Category list -->
             <div ref="listRef" class="max-h-87.5 overflow-auto">
               <CategoryListContent />
@@ -117,7 +134,7 @@
           :disabled="disabled"
           :class="
             cn(
-              'border-input bg-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
+              'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
               'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
               disabled && 'cursor-not-allowed opacity-50',
               $attrs.class ?? '',
@@ -127,7 +144,12 @@
           :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
           @click="openDropdown"
         >
-          <CategoryCircle v-if="selectedValue" :category="selectedValue" class="shrink-0" />
+          <CategoryCircle
+            v-if="selectedValue"
+            :category="selectedValue"
+            :categories-map="categoriesMap"
+            class="shrink-0"
+          />
           <span
             class="text-muted-foreground min-w-0 flex-1 truncate text-left"
             :class="{ 'text-foreground': selectedValue }"
@@ -160,9 +182,24 @@
           <Drawer.DrawerTitle>{{ $t('fields.categorySelect.selectCategoryLabel') }}</Drawer.DrawerTitle>
         </Drawer.DrawerHeader>
 
+        <div
+          v-if="sharedOwnerHandle"
+          class="bg-muted/40 text-foreground mb-3 flex items-center justify-between gap-2 rounded-md px-3 py-2 text-xs"
+          role="note"
+        >
+          <span>{{ $t('fields.categorySelect.sharedOwnerNotice', { owner: sharedOwnerHandle }) }}</span>
+          <ResponsiveTooltip
+            :content="$t('fields.categorySelect.sharedOwnerNoticeTooltip', { owner: sharedOwnerHandle })"
+            content-class-name="max-w-64"
+            :delay-duration="100"
+          >
+            <InfoIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" />
+          </ResponsiveTooltip>
+        </div>
+
         <!-- Search input in drawer -->
         <div
-          class="border-input bg-background mb-3 flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm"
+          class="border-input bg-input-background mb-3 flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm"
         >
           <input
             ref="drawerInputRef"
@@ -195,15 +232,17 @@
 
 <script setup lang="ts">
 import { type FormattedCategory } from '@/common/types';
+import { truncateOwnerUsername } from '@/common/utils/account-display';
 import CategoryCircle from '@/components/common/category-circle.vue';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { FieldError, FieldLabel } from '@/components/fields';
 import * as Drawer from '@/components/lib/ui/drawer';
 import * as Popover from '@/components/lib/ui/popover';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
-import { CATEGORY_TYPES } from '@bt/shared/types';
+import { CATEGORY_TYPES, type CategoryModel } from '@bt/shared/types';
 import { createReusableTemplate } from '@vueuse/core';
-import { ChevronDownIcon, XIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, InfoIcon, XIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 defineOptions({ inheritAttrs: false });
@@ -212,7 +251,7 @@ const [CategoryListTemplate, CategoryListContent] = createReusableTemplate();
 
 interface FlatCategory extends FormattedCategory {
   depth: number;
-  rootParentId: number;
+  rootParentId: string;
   rootParentName: string;
 }
 
@@ -225,6 +264,14 @@ const props = withDefaults(
     placeholder?: string;
     errorMessage?: string;
     disabled?: boolean;
+    /** Forwarded to inner CategoryCircle so icon inheritance walks the right tree. */
+    categoriesMap?: Record<string, CategoryModel>;
+    /**
+     * When set, surfaces a "Showing @{owner}'s categories" notice atop the dropdown so
+     * recipients on a shared account aren't confused by suddenly seeing a different
+     * category set than the global Pinia store would render.
+     */
+    sharedOwnerUsername?: string;
   }>(),
   {
     label: undefined,
@@ -232,7 +279,13 @@ const props = withDefaults(
     placeholder: undefined,
     errorMessage: undefined,
     labelKey: 'label',
+    categoriesMap: undefined,
+    sharedOwnerUsername: undefined,
   },
+);
+
+const sharedOwnerHandle = computed(() =>
+  props.sharedOwnerUsername ? `@${truncateOwnerUsername(props.sharedOwnerUsername)}` : null,
 );
 
 const emit = defineEmits<{
@@ -267,7 +320,7 @@ const flattenCategories = ({
 }: {
   categories: FormattedCategory[];
   depth?: number;
-  rootParent?: { id: number; name: string };
+  rootParent?: { id: string; name: string };
 }): FlatCategory[] => {
   const result: FlatCategory[] = [];
 

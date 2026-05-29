@@ -4,7 +4,7 @@ import { Money } from '@common/types/money';
  * Transaction data sent to AI for categorization
  */
 export interface TransactionForCategorization {
-  id: number;
+  id: string;
   amount: Money;
   currencyCode: string | null;
   accountName: string;
@@ -16,8 +16,8 @@ export interface TransactionForCategorization {
  * Category data sent to AI
  */
 export interface CategoryForCategorization {
-  id: number;
-  parentId: number | null;
+  id: string;
+  parentId: string | null;
   name: string;
 }
 
@@ -25,8 +25,8 @@ export interface CategoryForCategorization {
  * AI categorization result for a single transaction
  */
 export interface CategorizationResult {
-  transactionId: number;
-  categoryId: number;
+  transactionId: string;
+  categoryId: string;
 }
 
 /**
@@ -34,6 +34,6 @@ export interface CategorizationResult {
  */
 export interface CategorizationBatchResult {
   successful: CategorizationResult[];
-  failed: number[]; // Transaction IDs that couldn't be categorized
+  failed: string[]; // Transaction IDs that couldn't be categorized
   errors?: string[];
 }

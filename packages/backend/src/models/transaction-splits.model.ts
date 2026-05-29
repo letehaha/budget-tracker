@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import {
@@ -40,32 +41,32 @@ export default class TransactionSplits extends Model<
 > {
   @Attribute(DataTypes.UUID)
   @PrimaryKey
-  declare id: CreationOptional<string>;
+  declare id: CreationOptional<RecordId>;
 
   @BeforeCreate
   static generateUUIDv7(instance: TransactionSplits) {
     if (!instance.id) {
-      instance.id = uuidv7();
+      instance.id = uuidv7() as RecordId;
     }
   }
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare transactionId: number;
+  declare transactionId: RecordId;
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Index
   declare userId: number;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare categoryId: number;
+  declare categoryId: RecordId;
 
   // Amount in account currency (same as transaction.amount), stored as amount*100
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   get amount(): Money {
     return moneyGetCents(this, 'amount');
@@ -75,7 +76,7 @@ export default class TransactionSplits extends Model<
   }
 
   // Amount in base currency (same as transaction.refAmount), stored as amount*100
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   get refAmount(): Money {
     return moneyGetCents(this, 'refAmount');
@@ -101,9 +102,9 @@ export default class TransactionSplits extends Model<
 // Helper functions for working with splits
 
 export interface CreateSplitPayload {
-  transactionId: number;
+  transactionId: string;
   userId: number;
-  categoryId: number;
+  categoryId: string;
   amount: Money;
   refAmount: Money;
   note?: string | null;
@@ -118,12 +119,18 @@ export const deleteSplitsForTransaction = async ({
   transactionId,
   userId,
 }: {
-  transactionId: number;
-  userId: number;
+  transactionId: string;
+  /**
+   * Optional. When omitted (callers that have already authorized via the parent
+   * transaction's account), all splits for the transaction are deleted regardless
+   * of which user authored each row. Required for legacy single-user callsites that
+   * still scope by creator.
+   */
+  userId?: number;
 }) => {
-  return TransactionSplits.destroy({
-    where: { transactionId, userId },
-  });
+  const where: { transactionId: string; userId?: number } = { transactionId };
+  if (userId !== undefined) where.userId = userId;
+  return TransactionSplits.destroy({ where });
 };
 
 export const deleteSplitById = async ({ id, userId }: { id: string; userId: number }) => {

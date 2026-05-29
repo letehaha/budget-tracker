@@ -81,6 +81,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   budgetAddingTransactionList: [transactionChange, 'budget-adding-transaction-list'] as const,
   budgetStats: [transactionChange, 'budget-stats'] as const,
   budgetSpendingStats: [transactionChange, 'budget-spending-stats'] as const,
+  budgetCategoryTransactions: [transactionChange, 'budget-category-transactions'] as const,
 
   /**
    * Investments
@@ -88,6 +89,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // portfolios
   portfoliosList: [securityPriceChange, 'portfolios'] as const,
+  portfoliosTrashList: [securityPriceChange, 'portfolios-trash'] as const,
   portfolioDetails: [securityPriceChange, 'portfolio-details'] as const,
   portfolioTransfers: [securityPriceChange, 'portfolio-transfers'] as const,
   portfolioSummary: [securityPriceChange, 'portfolio-summary'] as const,
@@ -99,6 +101,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // holdings
   holdingsList: [securityPriceChange, 'holdings'] as const,
   holdingTransactions: [securityPriceChange, 'holding-transactions'] as const,
+
+  // transactions import (AI-parsed)
+  investmentImportSecuritySearch: ['investment-import', 'security-search'] as const,
 
   // bank integrations
   bankProviders: [bankConnectionChange, 'bank-providers'] as const,
@@ -139,4 +144,13 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   aiApiKeyStatus: ['ai-settings', 'api-keys'] as const,
   aiFeaturesStatus: ['ai-settings', 'features'] as const,
   aiCustomInstructions: ['ai-settings', 'custom-instructions'] as const,
+
+  // sharing
+  shareInvitationsSent: ['share', 'invitations-sent'] as const,
+  shareInvitationsReceived: ['share', 'invitations-received'] as const,
+  shareMembers: ['share', 'members'] as const,
+  sharedWithMe: ['share', 'shared-with-me'] as const,
+
+  // categories
+  categoriesByAccount: ['categories-by-account'] as const,
 });

@@ -7,7 +7,7 @@ import { useCurrencyName } from '@/composable/formatters';
 import { useAccountsStore } from '@/stores';
 import type { CurrencyModel, SubscriptionMatchingRule } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { PlusIcon, Trash2Icon } from 'lucide-vue-next';
+import { PlusIcon, Trash2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

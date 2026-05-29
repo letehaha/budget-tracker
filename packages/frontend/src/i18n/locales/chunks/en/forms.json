@@ -5,7 +5,9 @@
       "types": {
         "buy": "Buy",
         "sell": "Sell",
-        "dividend": "Dividend"
+        "dividend": "Dividend",
+        "fee": "Fee",
+        "tax": "Tax"
       },
       "securityLabel": "Security",
       "securityPlaceholder": "Select a security",
@@ -13,9 +15,12 @@
       "quantityPlaceholder": "0.00",
       "priceLabel": "Price per Share",
       "pricePlaceholder": "0.00",
+      "priceHelp": "Use 0 for staking rewards, airdrops or balance adjustments.",
       "feesLabel": "Fees (optional)",
       "feesPlaceholder": "0.00",
       "dateLabel": "Transaction Date",
+      "noteLabel": "Note",
+      "notePlaceholder": "Optional. Add a note about this transaction",
       "cancelButton": "Cancel",
       "submitButton": "Create Transaction",
       "submitButtonLoading": "Creating...",
@@ -187,7 +192,10 @@
       "searchCategoryLabel": "Search category",
       "clearSearchLabel": "Clear search",
       "clearSelectionLabel": "Clear selection",
-      "searchPlaceholder": "Search..."
+      "searchPlaceholder": "Search...",
+      "sharedOwnerNotice": "Showing {owner}'s categories",
+      "sharedOwnerNoticeTooltip": "Transactions on a shared account always use the owner's categories. Anything you save here will be filed under {owner}'s set so both of you see consistent totals.",
+      "sharedOwnerCategoriesLoadError": "Couldn't load categories for the shared account. Please try again."
     },
     "select": {
       "selectOption": "Select an option",
@@ -202,7 +210,9 @@
     },
     "comboboxCategories": {
       "searchPlaceholder": "Search categories...",
-      "unselectedPlaceholder": "All categories"
+      "unselectedPlaceholder": "All categories",
+      "category": "category selected",
+      "categoriesSelected": "categories selected"
     },
     "tagSelect": {
       "placeholder": "Select tags...",

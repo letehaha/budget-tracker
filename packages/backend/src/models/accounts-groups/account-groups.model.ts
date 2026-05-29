@@ -1,4 +1,5 @@
 // AccountGroup.model.ts
+import { RecordId } from '@bt/shared/types';
 import {
   CreationOptional,
   DataTypes,
@@ -9,14 +10,15 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
   BelongsTo,
   BelongsToMany,
+  Default,
   Index,
   NotNull,
   PrimaryKey,
   Table,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from '../accounts.model';
 import BankDataProviderConnections from '../bank-data-provider-connections.model';
@@ -41,10 +43,10 @@ import AccountGrouping from './account-grouping.model';
   freezeTableName: true,
 })
 export default class AccountGroup extends Model<InferAttributes<AccountGroup>, InferCreationAttributes<AccountGroup>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  @Default(() => uuidv7())
+  declare id: CreationOptional<RecordId>;
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
@@ -55,12 +57,12 @@ export default class AccountGroup extends Model<InferAttributes<AccountGroup>, I
   @NotNull
   declare name: string;
 
-  @Attribute(DataTypes.INTEGER)
-  declare parentGroupId: number | null;
+  @Attribute(DataTypes.UUID)
+  declare parentGroupId: RecordId | null;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare bankDataProviderConnectionId: number | null;
+  declare bankDataProviderConnectionId: RecordId | null;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;

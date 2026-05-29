@@ -1,4 +1,3 @@
-import { ValidationError } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
@@ -7,69 +6,41 @@ import { withTransaction } from '@services/common/with-transaction';
 
 interface DeletePortfolioParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
+  /**
+   * When true, hard-deletes the portfolio and cascades to all related rows
+   * (holdings, investment transactions, balances) — irreversible. Used by:
+   *   - the trash UI's "Delete now" button (user opts out of the 30-day window);
+   *   - the purge cron (finalises portfolios past the retention window).
+   * When false (default), performs a soft-delete that can be restored.
+   */
   force?: boolean;
 }
 
 const deletePortfolioImpl = async ({ userId, portfolioId, force = false }: DeletePortfolioParams) => {
-  // Find the portfolio and verify ownership
+  // Look up across both live and soft-deleted rows so a second delete on a
+  // trashed portfolio is still a no-op success (idempotency).
   const portfolio = await Portfolios.findOne({
     where: { id: portfolioId, userId },
-    include: [
-      { model: Holdings, as: 'holdings' },
-      { model: InvestmentTransaction, as: 'investmentTransactions' },
-      { model: PortfolioBalances, as: 'balances' },
-    ],
+    paranoid: false,
   });
 
   if (!portfolio) {
     return { success: true };
   }
 
-  // Check for active holdings unless force delete
-  if (!force) {
-    const hasActiveHoldings = portfolio.holdings && portfolio.holdings.length > 0;
-    const hasTransactions = portfolio.investmentTransactions && portfolio.investmentTransactions.length > 0;
-    const hasBalances =
-      portfolio.balances &&
-      portfolio.balances.some((balance) => balance.totalCash.toNumber() > 0 || balance.availableCash.toNumber() > 0);
-
-    if (hasActiveHoldings) {
-      throw new ValidationError({
-        message: 'Cannot delete portfolio with active holdings. Transfer or sell holdings first, or use force delete.',
-      });
-    }
-
-    if (hasTransactions) {
-      throw new ValidationError({
-        message: 'Cannot delete portfolio with transaction history. Use force delete to remove all data.',
-      });
-    }
-
-    if (hasBalances) {
-      throw new ValidationError({
-        message: 'Cannot delete portfolio with cash balances. Transfer funds first, or use force delete.',
-      });
-    }
-  }
-
-  // If force delete, remove all related data first
   if (force) {
-    // Delete related data in proper order (due to foreign key constraints)
-    if (portfolio.holdings) {
-      await Holdings.destroy({ where: { portfolioId } });
-    }
-
-    if (portfolio.investmentTransactions) {
-      await InvestmentTransaction.destroy({ where: { portfolioId } });
-    }
-
-    if (portfolio.balances) {
-      await PortfolioBalances.destroy({ where: { portfolioId } });
-    }
+    await Holdings.destroy({ where: { portfolioId } });
+    await InvestmentTransaction.destroy({ where: { portfolioId } });
+    await PortfolioBalances.destroy({ where: { portfolioId } });
+    await portfolio.destroy({ force: true });
+    return { success: true };
   }
 
-  // Delete the portfolio
+  // Soft delete: Sequelize sets deletedAt; child rows stay and become invisible
+  // to all paranoid queries because every read path filters by portfolioId from
+  // a Portfolios query (which now hides soft-deleted parents) or includes
+  // Portfolios in the join.
   await portfolio.destroy();
 
   return { success: true };

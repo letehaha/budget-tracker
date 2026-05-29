@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import {
   CreationOptional,
   DataTypes,
@@ -6,7 +7,8 @@ import {
   Model,
   NonAttribute,
 } from '@sequelize/core';
-import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from '../accounts.model';
 import AccountGroup from './account-groups.model';
@@ -35,20 +37,20 @@ export default class AccountGrouping extends Model<
   InferAttributes<AccountGrouping>,
   InferCreationAttributes<AccountGrouping>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  @Default(() => uuidv7())
+  declare id: CreationOptional<RecordId>;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare accountId: number;
+  declare accountId: RecordId;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare groupId: number;
+  declare groupId: RecordId;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;

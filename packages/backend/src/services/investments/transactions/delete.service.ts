@@ -4,13 +4,14 @@ import Portfolios from '@models/investments/portfolios.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import { Big } from 'big.js';
 
 import { calculateCashDelta } from './cash-balance-utils';
 
 interface DeleteTransactionParams {
   userId: number;
-  transactionId: number;
+  transactionId: string;
 }
 
 const deleteInvestmentTransactionImpl = async ({ userId, transactionId }: DeleteTransactionParams) => {
@@ -43,6 +44,10 @@ const deleteInvestmentTransactionImpl = async ({ userId, transactionId }: Delete
   if (cashDelta !== null) {
     // Reverse: negate the original delta
     const reversedDelta = new Big(cashDelta).times(-1).toFixed(10);
+    // The transaction's currency may have been disconnected from the user after
+    // the transaction was created; re-link idempotently so the downstream
+    // ref-amount lookup doesn't fail with `currencyNotConnected`.
+    await ensureUserCurrencyConnected({ userId, currencyCode });
     await updatePortfolioBalance({
       userId,
       portfolioId,

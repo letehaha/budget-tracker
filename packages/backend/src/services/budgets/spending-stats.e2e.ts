@@ -1,4 +1,5 @@
 import { BUDGET_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -482,15 +483,234 @@ describe('Get budget spending stats', () => {
     });
   });
 
+  describe('Refund handling', () => {
+    it('nets out a refund-income from category breakdown and timeline (manual budget)', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const category = await helpers.addCustomCategory({
+        name: 'Travel',
+        color: '#0000FF',
+        raw: true,
+      });
+
+      const [expenseTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 500,
+          categoryId: category.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-04-10T10:00:00Z',
+        }),
+      });
+      const [refundIncomeTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 200,
+          categoryId: category.id,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2025-04-12T10:00:00Z',
+        }),
+      });
+
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundIncomeTx.id }, true);
+
+      const budget = await helpers.createCustomBudget({
+        name: 'spending-refund-test-manual',
+        startDate: '2025-04-01T00:00:00Z',
+        endDate: '2025-04-30T23:59:59Z',
+        raw: true,
+      });
+      await helpers.addTransactionToCustomBudget({
+        id: budget.id,
+        payload: { transactionIds: [expenseTx.id, refundIncomeTx.id] },
+      });
+
+      const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
+
+      expect(result.spendingsByCategory).toHaveLength(1);
+      expect(result.spendingsByCategory[0]!.amount).toBe(300);
+
+      const totalExpense = result.spendingOverTime.periods.reduce((sum, p) => sum + p.expense, 0);
+      const totalIncome = result.spendingOverTime.periods.reduce((sum, p) => sum + p.income, 0);
+      expect(totalExpense).toBe(300);
+      expect(totalIncome).toBe(0);
+    });
+
+    it('nets out a fully refunded expense to zero in the category breakdown', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const category = await helpers.addCustomCategory({
+        name: 'Returns',
+        color: '#00FFFF',
+        raw: true,
+      });
+
+      const [expenseTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 400,
+          categoryId: category.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-05-05T10:00:00Z',
+        }),
+      });
+      const [refundIncomeTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 400,
+          categoryId: category.id,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2025-05-06T10:00:00Z',
+        }),
+      });
+
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundIncomeTx.id }, true);
+
+      const budget = await helpers.createCustomBudget({
+        name: 'spending-refund-full',
+        startDate: '2025-05-01T00:00:00Z',
+        endDate: '2025-05-31T23:59:59Z',
+        raw: true,
+      });
+      await helpers.addTransactionToCustomBudget({
+        id: budget.id,
+        payload: { transactionIds: [expenseTx.id, refundIncomeTx.id] },
+      });
+
+      const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
+
+      // Both sides cancel out — category has zero amount, so it's omitted.
+      expect(result.spendingsByCategory).toHaveLength(0);
+
+      const totalExpense = result.spendingOverTime.periods.reduce((sum, p) => sum + p.expense, 0);
+      const totalIncome = result.spendingOverTime.periods.reduce((sum, p) => sum + p.income, 0);
+      expect(totalExpense).toBe(0);
+      expect(totalIncome).toBe(0);
+    });
+
+    it('attaches a split-targeted refund to the split’s category, not the original primary category', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const primaryCategory = await helpers.addCustomCategory({
+        name: 'Primary',
+        color: '#111111',
+        raw: true,
+      });
+      const splitCategory = await helpers.addCustomCategory({
+        name: 'SplitCat',
+        color: '#222222',
+        raw: true,
+      });
+
+      // Expense $10 with $3 split in splitCategory; primary remainder ($7) stays in primaryCategory.
+      const [expenseTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1000,
+          categoryId: primaryCategory.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-07-10T10:00:00Z',
+          splits: [{ categoryId: splitCategory.id, amount: 300 }],
+        }),
+      });
+
+      const txWithSplits = await helpers.getTransactions({ raw: true, includeSplits: true });
+      const split = txWithSplits.find((t) => t.id === expenseTx.id)!.splits![0]!;
+
+      // Refund-income $3 targeting the $3 split.
+      const [refundIncomeTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 300,
+          categoryId: splitCategory.id,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2025-07-12T10:00:00Z',
+        }),
+      });
+
+      await helpers.createSingleRefund(
+        { originalTxId: expenseTx.id, refundTxId: refundIncomeTx.id, splitId: split.id },
+        true,
+      );
+
+      // Category budget tracking only splitCategory — only the $3 split is counted.
+      const budget = await helpers.createCustomBudget({
+        name: 'split-refund-category-budget',
+        type: BUDGET_TYPES.category,
+        categoryIds: [splitCategory.id],
+        startDate: '2025-07-01T00:00:00Z',
+        endDate: '2025-07-31T23:59:59Z',
+        raw: true,
+      });
+
+      const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
+
+      // The refund must net out the split's category to zero. If splitId is ignored, the
+      // adjustment would target the original tx's primary category (which isn't even tracked
+      // by this budget), and SplitCat would remain at $3.
+      expect(result.spendingsByCategory).toHaveLength(0);
+    });
+
+    it('nets out refunds for a category budget', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const category = await helpers.addCustomCategory({
+        name: 'Groceries',
+        color: '#FFAA00',
+        raw: true,
+      });
+
+      const [expenseTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 600,
+          categoryId: category.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-06-10T10:00:00Z',
+        }),
+      });
+      const [refundIncomeTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 250,
+          categoryId: category.id,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2025-06-15T10:00:00Z',
+        }),
+      });
+
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundIncomeTx.id }, true);
+
+      const budget = await helpers.createCustomBudget({
+        name: 'category-refund-budget',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category.id],
+        startDate: '2025-06-01T00:00:00Z',
+        endDate: '2025-06-30T23:59:59Z',
+        raw: true,
+      });
+
+      const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
+
+      expect(result.spendingsByCategory).toHaveLength(1);
+      // 600 expense - 250 refund-income = 350
+      expect(result.spendingsByCategory[0]!.amount).toBe(350);
+    });
+  });
+
   describe('Error handling', () => {
     it('returns 404 for non-existent budget', async () => {
-      const response = await helpers.getSpendingStats({ id: 999999, raw: false });
+      const response = await helpers.getSpendingStats({ id: NONEXISTENT_ID, raw: false });
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
 
     it('returns validation error for invalid budget id', async () => {
       const response = await helpers.getSpendingStats({
-        id: 'invalid' as unknown as number,
+        id: 'invalid' as unknown as string,
         raw: false,
       });
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);

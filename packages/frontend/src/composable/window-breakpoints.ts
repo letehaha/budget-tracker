@@ -8,6 +8,7 @@ interface Options {
 
 export const CUSTOM_BREAKPOINTS = Object.freeze({
   uiMobile: 767,
+  uiDesktop: 1024,
 });
 
 type Breakpoint = number | (typeof CUSTOM_BREAKPOINTS)[keyof typeof CUSTOM_BREAKPOINTS];

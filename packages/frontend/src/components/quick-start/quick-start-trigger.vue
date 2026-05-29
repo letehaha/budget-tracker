@@ -2,7 +2,7 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/lib/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useOnboardingStore } from '@/stores/onboarding';
-import { RocketIcon } from 'lucide-vue-next';
+import { RocketIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 

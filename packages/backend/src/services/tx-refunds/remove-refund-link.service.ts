@@ -8,8 +8,8 @@ import { withTransaction } from '../common/with-transaction';
 
 interface RemoveRefundLinkParams {
   userId: number;
-  originalTxId: number | null;
-  refundTxId: number;
+  originalTxId: string | null;
+  refundTxId: string;
 }
 
 export const removeRefundLink = withTransaction(

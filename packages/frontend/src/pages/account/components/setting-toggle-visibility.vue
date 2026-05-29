@@ -2,11 +2,12 @@
 import { Switch } from '@/components/lib/ui/switch';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { debounce } from 'lodash-es';
-import { InfoIcon } from 'lucide-vue-next';
-import { reactive, watch, watchEffect } from 'vue';
+import { InfoIcon } from '@lucide/vue';
+import { reactive, toRef, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -15,6 +16,8 @@ const props = defineProps<{
   account: AccountModel;
 }>();
 
+const { isOwner } = useAccountAccess(toRef(() => props.account));
+
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 
@@ -22,7 +25,7 @@ const form = reactive({
   excludeFromStats: false,
 });
 
-const updateExcludeFromStats = async ({ id, excludeFromStats }: { id: number; excludeFromStats: boolean }) => {
+const updateExcludeFromStats = async ({ id, excludeFromStats }: { id: string; excludeFromStats: boolean }) => {
   try {
     await accountsStore.editAccount({ id, excludeFromStats });
 
@@ -66,13 +69,17 @@ watch(
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent class="max-w-[400px] p-4">
             <span class="text-sm leading-6 opacity-90">
-              {{ t('pages.account.excludeFromStats.tooltip') }}
+              {{
+                isOwner
+                  ? t('pages.account.excludeFromStats.tooltip')
+                  : t('pages.account.excludeFromStats.recipientTooltip')
+              }}
             </span>
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
       </Tooltip.TooltipProvider>
     </span>
 
-    <Switch v-model:model-value="form.excludeFromStats" />
+    <Switch v-model:model-value="form.excludeFromStats" :disabled="!isOwner" />
   </div>
 </template>

@@ -9,7 +9,7 @@ import { BUDGET_STATUSES, BUDGET_TYPES, BudgetModel } from '@bt/shared/types';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { useLocalStorage } from '@vueuse/core';
 import { differenceInDays, isPast, isWithinInterval } from 'date-fns';
-import { ArchiveRestoreIcon, TagsIcon, WalletIcon } from 'lucide-vue-next';
+import { ArchiveRestoreIcon, TagsIcon, WalletIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -53,13 +53,13 @@ const budgetStatsQueries = useQueries({
   ),
 });
 
-const getBudgetStats = (budgetId: number) => {
+const getBudgetStats = (budgetId: string) => {
   const index = budgetsList.value?.findIndex((b: BudgetModel) => b.id === budgetId) ?? -1;
   if (index === -1) return null;
   return budgetStatsQueries.value[index]?.data ?? null;
 };
 
-const isBudgetStatsLoading = (budgetId: number) => {
+const isBudgetStatsLoading = (budgetId: string) => {
   const index = budgetsList.value?.findIndex((b: BudgetModel) => b.id === budgetId) ?? -1;
   if (index === -1) return true;
   const query = budgetStatsQueries.value[index];
@@ -70,11 +70,11 @@ const isBudgetStatsLoading = (budgetId: number) => {
   return false;
 };
 
-const navigateToBudget = ({ budgetId }: { budgetId: number }) => {
+const navigateToBudget = ({ budgetId }: { budgetId: string }) => {
   router.push({ name: ROUTES_NAMES.plannedBudgetDetails, params: { id: budgetId } });
 };
 
-const deleteBudget = async ({ budgetId }: { budgetId: number }) => {
+const deleteBudget = async ({ budgetId }: { budgetId: string }) => {
   try {
     await deleteBudgetApi(budgetId);
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.budgetsList });
@@ -94,7 +94,7 @@ const { mutate: archiveBudget } = useMutation({
   },
 });
 
-const handleArchive = ({ budgetId, isArchived }: { budgetId: number; isArchived: boolean }) => {
+const handleArchive = ({ budgetId, isArchived }: { budgetId: string; isArchived: boolean }) => {
   archiveBudget({ budgetId, isArchived });
 };
 

@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -41,7 +42,7 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
     });
 
     expect(transfer).toMatchObject({
-      id: expect.any(Number),
+      id: expect.any(String),
       fromAccountId: account.id,
       toPortfolioId: portfolio.id,
       fromPortfolioId: null,
@@ -62,10 +63,11 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
     expect(balance!.availableCash).toBeNumericEqual(500);
     expect(balance!.totalCash).toBeNumericEqual(500);
 
-    // Transaction should be marked as transfer_to_portfolio
+    // Transaction should be marked as transfer_to_portfolio and carry the user's base currency
     const transactions = await helpers.getTransactions({ raw: true });
     const updatedTx = transactions.find((t) => t.id === expenseTx!.id);
     expect(updatedTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
+    expect(updatedTx!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
   });
 
   it('should link an income transaction to a portfolio (portfolio → account withdrawal)', async () => {
@@ -93,7 +95,7 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
     });
 
     expect(transfer).toMatchObject({
-      id: expect.any(Number),
+      id: expect.any(String),
       fromPortfolioId: portfolio.id,
       toAccountId: account.id,
       fromAccountId: null,
@@ -111,11 +113,45 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
 
     expect(balance!.availableCash).toBeNumericEqual(700);
     expect(balance!.totalCash).toBeNumericEqual(700);
+
+    // Linked tx should carry the user's base currency, not the account currency
+    const transactions = await helpers.getTransactions({ raw: true });
+    const updatedTx = transactions.find((t) => t.id === incomeTx!.id);
+    expect(updatedTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
+    expect(updatedTx!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
+  });
+
+  it('should stamp base currency on refCurrencyCode when account currency differs', async () => {
+    const { account: eurAccount } = await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
+
+    const [eurExpenseTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: eurAccount.id,
+        amount: 250,
+        transactionType: TRANSACTION_TYPES.expense,
+      }),
+      raw: true,
+    });
+
+    await helpers.linkTransactionToPortfolio({
+      transactionId: eurExpenseTx!.id,
+      payload: { portfolioId: portfolio.id },
+      raw: true,
+    });
+
+    // The underlying transaction must record the user's base currency (NOT EUR) in
+    // refCurrencyCode. A regression that re-uses account.currencyCode would silently
+    // pass any same-currency test, so this assertion is the load-bearing one.
+    const transactions = await helpers.getTransactions({ raw: true });
+    const updatedTx = transactions.find((t) => t.id === eurExpenseTx!.id);
+    expect(updatedTx!.currencyCode).toBe('EUR');
+    expect(updatedTx!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
+    expect(updatedTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
   });
 
   it('should return 404 for non-existent transaction', async () => {
     const response = await helpers.linkTransactionToPortfolio({
-      transactionId: 999999,
+      transactionId: generateRandomRecordId(),
       payload: { portfolioId: portfolio.id },
     });
 
@@ -133,7 +169,7 @@ describe('Link Transaction to Portfolio (POST /transactions/:transactionId/link-
 
     const response = await helpers.linkTransactionToPortfolio({
       transactionId: tx!.id,
-      payload: { portfolioId: 999999 },
+      payload: { portfolioId: generateRandomRecordId() },
     });
 
     expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);

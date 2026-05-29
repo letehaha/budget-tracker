@@ -1,7 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
-import { addDays, startOfDay, subDays } from 'date-fns';
+import { startOfDay, subDays } from 'date-fns';
 
 describe('bulkScanTransferRecommendations', () => {
   const today = startOfDay(new Date());
@@ -112,7 +112,7 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       // Weaker match: slightly different amount, 5 days apart
-      const [weakerMatch] = await helpers.createTransaction({
+      await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account2.id,
           amount: 540,

@@ -136,6 +136,8 @@ describe('Detect Duplicates endpoint', () => {
 
     it('should use existing currency for all rows when specified', async () => {
       const fileContent = helpers.loadCsvFixture('minimal-columns.csv');
+      const existingCategories = await helpers.getCategoriesList();
+      const firstCategoryId = existingCategories[0]!.id;
 
       const result = await helpers.detectDuplicates({
         payload: {
@@ -144,7 +146,7 @@ describe('Detect Duplicates endpoint', () => {
           columnMapping: {
             date: 'Date',
             amount: 'Amount',
-            category: { option: CategoryOptionValue.existingCategory, categoryId: 1 },
+            category: { option: CategoryOptionValue.existingCategory, categoryId: firstCategoryId },
             currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: 'EUR' },
             transactionType: { option: TransactionTypeOptionValue.amountSign },
             account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Date' },

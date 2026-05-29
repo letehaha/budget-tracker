@@ -1,4 +1,5 @@
 import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
+import { recordArrayIds } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeBudget } from '@root/serializers';
@@ -10,7 +11,7 @@ const schema = z.object({
     .object({
       name: z.string().min(1, 'Name is required').max(200, 'The name must not exceed 200 characters').trim(),
       type: z.nativeEnum(BUDGET_TYPES).optional().default(BUDGET_TYPES.manual),
-      categoryIds: z.array(z.number().int().positive()).optional(),
+      categoryIds: recordArrayIds().optional(),
       startDate: z.string().datetime().nullable().optional(),
       endDate: z.string().datetime().nullable().optional(),
       autoInclude: z.boolean().optional().default(false),

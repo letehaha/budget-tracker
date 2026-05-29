@@ -9,7 +9,7 @@ import { reverseTransferBalanceChanges } from './transfer-validations';
 
 interface DeletePortfolioTransferParams {
   userId: number;
-  transferId: number;
+  transferId: string;
   deleteLinkedTransaction?: boolean;
 }
 

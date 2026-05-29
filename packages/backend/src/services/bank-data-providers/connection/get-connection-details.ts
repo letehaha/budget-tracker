@@ -7,12 +7,12 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import { bankProviderRegistry } from '../registry';
 
 interface GetConnectionDetailsParams {
-  connectionId: number;
+  connectionId: string;
   userId: number;
 }
 
 export interface ConnectionDetailsResponse {
-  id: number;
+  id: string;
   providerType: string;
   providerName: string;
   isActive: boolean;
@@ -35,7 +35,7 @@ export interface ConnectionDetailsResponse {
     };
   };
   accounts: Array<{
-    id: number;
+    id: string;
     name: string;
     externalId: string | null;
     currentBalance: number;
@@ -51,6 +51,12 @@ export interface ConnectionDetailsResponse {
   };
   deactivationReason?: string | null;
 }
+
+const parseValidDate = (raw: unknown): Date | null => {
+  if (!raw) return null;
+  const parsed = new Date(raw as string);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
 
 export async function getConnectionDetails(params: GetConnectionDetailsParams): Promise<ConnectionDetailsResponse> {
   const { connectionId, userId } = params;
@@ -90,22 +96,31 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
   const metadata = connection.metadata as any;
 
   if (metadata?.consentValidUntil) {
-    const now = new Date();
-    const validUntil = new Date(metadata.consentValidUntil);
-    const validFrom = metadata.consentValidFrom ? new Date(metadata.consentValidFrom) : null;
+    const validUntil = parseValidDate(metadata.consentValidUntil);
+    const validFrom = parseValidDate(metadata.consentValidFrom);
 
-    const msRemaining = validUntil.getTime() - now.getTime();
-    const daysRemaining = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
-    const isExpired = msRemaining <= 0;
-    const isExpiringSoon = !isExpired && daysRemaining <= 7;
+    if (validUntil) {
+      const msRemaining = validUntil.getTime() - Date.now();
+      const daysRemaining = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
+      const isExpired = msRemaining <= 0;
+      const isExpiringSoon = !isExpired && daysRemaining <= 7;
 
-    consentInfo = {
-      validFrom: validFrom?.toISOString() || null,
-      validUntil: validUntil.toISOString(),
-      daysRemaining: isExpired ? 0 : daysRemaining,
-      isExpired,
-      isExpiringSoon,
-    };
+      consentInfo = {
+        validFrom: validFrom?.toISOString() || null,
+        validUntil: validUntil.toISOString(),
+        daysRemaining: isExpired ? 0 : daysRemaining,
+        isExpired,
+        isExpiringSoon,
+      };
+    } else {
+      consentInfo = {
+        validFrom: validFrom?.toISOString() || null,
+        validUntil: null,
+        daysRemaining: null,
+        isExpired: false,
+        isExpiringSoon: false,
+      };
+    }
   }
 
   return {
@@ -127,7 +142,7 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       id: account.id,
       name: account.name,
       externalId: account.externalId,
-      currentBalance: account.currentBalance.toNumber(),
+      currentBalance: account.currentBalance?.toNumber() ?? 0,
       currencyCode: account.currencyCode,
       type: account.type,
     })),

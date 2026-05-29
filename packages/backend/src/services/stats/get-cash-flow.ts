@@ -1,8 +1,13 @@
+import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
-import Categories from '@models/categories.model';
+import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
 import { Op } from '@sequelize/core';
+import {
+  AccessibleCategoryInfo,
+  getAccessibleCategoryMap,
+} from '@services/categories/get-accessible-category-map.service';
 import {
   addDays,
   addMonths,
@@ -25,8 +30,8 @@ interface GetCashFlowParams {
   from: string;
   to: string;
   granularity: endpointsTypes.CashFlowGranularity;
-  accountId?: number;
-  categoryIds?: number[];
+  accountId?: string;
+  categoryIds?: RecordId[];
 }
 
 /**
@@ -107,12 +112,7 @@ const findBucketIndex = ({
   return buckets.findIndex((bucket) => txTime >= bucket.periodStart.getTime() && txTime <= bucket.periodEnd.getTime());
 };
 
-interface CategoryInfo {
-  id: number;
-  name: string;
-  color: string;
-  parentId: number | null;
-}
+type CategoryInfo = AccessibleCategoryInfo;
 
 interface CategoryAmounts {
   incomeAmount: number;
@@ -122,7 +122,7 @@ interface CategoryAmounts {
 interface PeriodCategoryData {
   income: number;
   expenses: number;
-  categories: Map<number, CategoryAmounts>; // categoryId -> amounts by type (aggregated by target category)
+  categories: Map<string, CategoryAmounts>; // categoryId -> amounts by type (aggregated by target category)
 }
 
 /**
@@ -132,9 +132,9 @@ const getRootCategoryId = ({
   categoryId,
   categoryMap,
 }: {
-  categoryId: number;
-  categoryMap: Map<number, CategoryInfo>;
-}): number => {
+  categoryId: string;
+  categoryMap: Map<string, CategoryInfo>;
+}): string => {
   let current = categoryMap.get(categoryId);
   if (!current) return categoryId;
 
@@ -157,10 +157,10 @@ const getAggregationCategoryId = ({
   categoryMap,
   targetCategoryIds,
 }: {
-  categoryId: number;
-  categoryMap: Map<number, CategoryInfo>;
-  targetCategoryIds?: Set<number>;
-}): number => {
+  categoryId: string;
+  categoryMap: Map<string, CategoryInfo>;
+  targetCategoryIds?: Set<string>;
+}): string => {
   // If no target categories specified, aggregate to root
   if (!targetCategoryIds) {
     return getRootCategoryId({ categoryId, categoryMap });
@@ -207,33 +207,20 @@ export const getCashFlow = async ({
     periodDataMap.set(index, { income: 0, expenses: 0, categories: new Map() });
   });
 
-  // Fetch ALL user categories to build the hierarchy map
-  const allCategories = await Categories.findAll({
-    where: { userId },
-    attributes: ['id', 'name', 'color', 'parentId'],
-    raw: true,
-  });
-
-  // Build category lookup map
-  const categoryMap: Map<number, CategoryInfo> = new Map();
-  allCategories.forEach((cat) => {
-    categoryMap.set(cat.id, {
-      id: cat.id,
-      name: cat.name,
-      color: cat.color,
-      parentId: cat.parentId,
-    });
-  });
+  // Fetch categories for every owner whose accounts the caller can see (own + shared) so
+  // shared-account transactions — which reference the owner's categoryId — render with
+  // their real name/color instead of falling out of the hierarchy map.
+  const { categories: allCategories, byId: categoryMap } = await getAccessibleCategoryMap({ userId });
 
   // Get root categories (those without a parent)
   const rootCategories = allCategories.filter((cat) => cat.parentId === null);
 
   // Determine which category IDs to filter by in the query
-  let queryFilterCategoryIds: number[] | undefined;
+  let queryFilterCategoryIds: string[] | undefined;
 
   if (categoryIds && categoryIds.length > 0) {
     // User selected specific categories - expand to include all children
-    const expandedCategoryIds = new Set<number>(categoryIds);
+    const expandedCategoryIds = new Set<string>(categoryIds);
 
     // For each selected category, add all its descendants
     allCategories.forEach((cat) => {
@@ -281,7 +268,7 @@ export const getCashFlow = async ({
   // Determine which categories to report in the breakdown
   // If specific categories selected, report those exact categories (not aggregated to root)
   // Otherwise, aggregate to root categories
-  let reportCategoryIds: number[];
+  let reportCategoryIds: RecordId[];
   // When specific categories are selected, aggregate to those categories instead of root
   const aggregateToSelectedCategories = categoryIds && categoryIds.length > 0;
 
@@ -294,7 +281,7 @@ export const getCashFlow = async ({
   }
 
   // Create a set of target categories for aggregation (when specific categories are selected)
-  const targetCategoryIds = aggregateToSelectedCategories ? new Set(categoryIds) : undefined;
+  const targetCategoryIds = aggregateToSelectedCategories ? new Set<string>(categoryIds) : undefined;
 
   // Aggregate transactions into buckets
   for (const tx of transactions) {

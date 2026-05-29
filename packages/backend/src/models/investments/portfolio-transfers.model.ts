@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
@@ -10,7 +11,7 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsTo,
   Default,
   Index,
@@ -18,6 +19,7 @@ import {
   PrimaryKey,
   Table,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from '../accounts.model';
 import Currencies from '../currencies.model';
@@ -33,31 +35,37 @@ export default class PortfolioTransfers extends Model<
   InferAttributes<PortfolioTransfers>,
   InferCreationAttributes<PortfolioTransfers>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static generateUUIDv7(instance: PortfolioTransfers) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
   @Index
   declare userId: number;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare fromAccountId: number | null;
+  declare fromAccountId: RecordId | null;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare toPortfolioId: number | null;
+  declare toPortfolioId: RecordId | null;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare fromPortfolioId: number | null;
+  declare fromPortfolioId: RecordId | null;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare toAccountId: number | null;
+  declare toAccountId: RecordId | null;
 
   @Attribute(DataTypes.DECIMAL(20, 10))
   @NotNull
@@ -93,9 +101,9 @@ export default class PortfolioTransfers extends Model<
   @Attribute(DataTypes.JSONB)
   declare metaData: Record<string, unknown> | null;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare transactionId: number | null;
+  declare transactionId: RecordId | null;
 
   @Attribute({ type: DataTypes.STRING(3), defaultValue: null })
   @Index

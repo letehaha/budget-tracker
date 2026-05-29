@@ -1,4 +1,4 @@
-import { CATEGORY_TYPES } from '@bt/shared/types';
+import { CATEGORY_TYPES, RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
 import {
@@ -11,15 +11,15 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsToMany,
   Default,
   Index,
   NotNull,
   PrimaryKey,
   Table,
-  Unique,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import MerchantCategoryCodes from './merchant-category-codes.model';
 import UserMerchantCategoryCodes from './user-merchant-category-codes.model';
@@ -30,15 +30,28 @@ import UserMerchantCategoryCodes from './user-merchant-category-codes.model';
   freezeTableName: true,
 })
 export default class Categories extends Model<InferAttributes<Categories>, InferCreationAttributes<Categories>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  @Unique
-  declare id: CreationOptional<number>;
+  @NotNull
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static assignId(instance: Categories) {
+    if (!instance.id) instance.id = uuidv7() as RecordId;
+  }
 
   @Attribute(DataTypes.STRING)
   @NotNull
   declare name: string;
+
+  /**
+   * Stable, locale-independent identifier for seeded default categories (kebab-case).
+   * Null for user-created custom categories. Survives renames and locale changes — used
+   * by stats/sharing features to merge equivalent categories across users. The canonical
+   * set of values lives in `default-categories.ts`.
+   */
+  @Attribute(DataTypes.STRING(100))
+  declare key: string | null;
 
   // Lucide-icons icon name
   @Attribute(DataTypes.STRING(50))
@@ -48,13 +61,13 @@ export default class Categories extends Model<InferAttributes<Categories>, Infer
   @NotNull
   declare color: string;
 
-  @Attribute(DataTypes.ENUM({ values: Object.values(CATEGORY_TYPES) }))
+  @Attribute(DataTypes.STRING)
   @NotNull
   @Default(CATEGORY_TYPES.custom)
   declare type: CreationOptional<CATEGORY_TYPES>;
 
-  @Attribute(DataTypes.INTEGER)
-  declare parentId: number | null;
+  @Attribute(DataTypes.UUID)
+  declare parentId: RecordId | null;
 
   @Attribute(DataTypes.INTEGER)
   @Index
@@ -77,12 +90,22 @@ export const getCategories = async ({ userId }: { userId: number }) => {
   return categories;
 };
 
+export const getCategoriesForUsers = async ({ userIds }: { userIds: number[] }) => {
+  if (userIds.length === 0) return [];
+  const categories = await Categories.findAll({
+    where: { userId: userIds },
+    raw: true,
+  });
+
+  return categories;
+};
+
 export interface CreateCategoryPayload {
   userId: number;
   name: string;
   icon?: string | null;
   color?: string;
-  parentId?: number;
+  parentId?: string;
   type?: CATEGORY_TYPES;
 }
 
@@ -117,7 +140,7 @@ export const createCategory = async ({ parentId, color, userId, ...params }: Cre
 
 export interface EditCategoryPayload {
   userId: number;
-  categoryId: number;
+  categoryId: string;
   name?: string;
   icon?: string | null;
   color?: string;
@@ -141,7 +164,7 @@ export const editCategory = async ({ userId, categoryId, ...params }: EditCatego
 
 export interface DeleteCategoryPayload {
   userId: number;
-  categoryId: number;
+  categoryId: string;
 }
 
 export const deleteCategory = async ({ userId, categoryId }: DeleteCategoryPayload) => {

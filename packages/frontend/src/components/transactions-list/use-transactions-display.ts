@@ -66,7 +66,7 @@ export function useTransactionsDisplay({
     }
 
     // Group transactions by groupId and replace with group rows
-    const groupedTxs = new Map<number, TransactionModel[]>();
+    const groupedTxs = new Map<string, TransactionModel[]>();
     const ungrouped: TransactionModel[] = [];
 
     for (const tx of deduplicated) {

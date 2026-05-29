@@ -16,11 +16,11 @@ export default class SubscriptionTransactions extends Model<
   @NotNull
   declare subscriptionId: string;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
   @Unique
-  declare transactionId: number;
+  declare transactionId: string;
 
   @Attribute(DataTypes.ENUM(...Object.values(SUBSCRIPTION_MATCH_SOURCE)))
   @NotNull

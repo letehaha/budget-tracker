@@ -6,7 +6,7 @@ import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { formatUIAmount } from '@/js/helpers';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, TransactionModel, TransactionSplitModel } from '@bt/shared/types';
-import { CheckIcon, SplitIcon } from 'lucide-vue-next';
+import { CheckIcon, SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -27,9 +27,9 @@ const props = defineProps<{
   /** Current form's currency code */
   currentCurrencyCode?: string;
   /** Current account ID (for recommendations) */
-  currentAccountId?: number | null;
+  currentAccountId?: string | null;
   /** Current transaction ID (for recommendations when editing) */
-  currentTransactionId?: number;
+  currentTransactionId?: string;
 }>();
 
 const emit = defineEmits<{

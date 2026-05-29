@@ -9,36 +9,36 @@ export type CreateTransactionParams = Omit<
   'refAmount' | 'transferId' | 'currencyCode' | 'refCurrencyCode'
 > & {
   destinationAmount?: Money;
-  destinationAccountId?: number;
-  destinationTransactionId?: number;
-  refundsTxId?: number;
+  destinationAccountId?: string;
+  destinationTransactionId?: string;
+  refundsTxId?: string;
   refundsSplitId?: string;
   splits?: SplitInput[];
-  tagIds?: number[];
+  tagIds?: string[];
 };
 
 interface UpdateParams {
-  id: number;
+  id: string;
   userId: number;
   amount?: Money;
   note?: string | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
-  accountId?: number;
-  categoryId?: number;
+  accountId?: string;
+  categoryId?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
-  refundsTxId?: number | null;
+  refundsTxId?: string | null;
   refundsSplitId?: string | null;
-  refundedByTxIds?: number[] | null;
+  refundedByTxIds?: string[] | null;
   splits?: SplitInput[] | null; // null to clear all splits
-  tagIds?: number[] | null; // null to clear all tags
+  tagIds?: string[] | null; // null to clear all tags
 }
 
 interface UpdateTransferParams {
   destinationAmount?: Money;
-  destinationTransactionId?: number;
-  destinationAccountId?: number;
+  destinationTransactionId?: string;
+  destinationAccountId?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
   transferId?: string;
 }

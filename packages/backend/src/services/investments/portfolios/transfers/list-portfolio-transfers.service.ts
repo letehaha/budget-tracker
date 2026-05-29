@@ -8,7 +8,7 @@ import { Op } from '@sequelize/core';
 
 interface ListPortfolioTransfersParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
   dateFrom?: string;
   dateTo?: string;
   limit?: number;

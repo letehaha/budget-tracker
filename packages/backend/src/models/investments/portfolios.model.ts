@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import {
   CreationOptional,
@@ -9,7 +10,7 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsTo,
   Default,
   HasMany,
@@ -19,6 +20,7 @@ import {
   Table,
   Unique,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import Users from '../users.model';
 import Holdings from './holdings.model';
@@ -27,14 +29,21 @@ import PortfolioBalances from './portfolio-balances.model';
 
 @Table({
   timestamps: true,
+  paranoid: true,
   tableName: 'Portfolios',
 })
 export default class Portfolios extends Model<InferAttributes<Portfolios>, InferCreationAttributes<Portfolios>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
   @Unique
-  declare id: CreationOptional<number>;
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static generateUUIDv7(instance: Portfolios) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
   @Attribute(DataTypes.STRING)
   @NotNull
@@ -45,7 +54,7 @@ export default class Portfolios extends Model<InferAttributes<Portfolios>, Infer
   @Index
   declare userId: number;
 
-  @Attribute(DataTypes.ENUM(...Object.values(PORTFOLIO_TYPE)))
+  @Attribute(DataTypes.STRING)
   @NotNull
   @Index
   @Default(PORTFOLIO_TYPE.investment)
@@ -66,6 +75,9 @@ export default class Portfolios extends Model<InferAttributes<Portfolios>, Infer
   @Attribute(DataTypes.DATE)
   @NotNull
   declare updatedAt: CreationOptional<Date>;
+
+  @Attribute(DataTypes.DATE)
+  declare deletedAt: Date | null;
 
   // Associations
   @BelongsTo(() => Users, 'userId')

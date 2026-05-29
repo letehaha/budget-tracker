@@ -4,7 +4,7 @@ import { Button } from '@/components/lib/ui/button';
 import WidgetSkeleton from '@/components/widgets/components/widget-skeleton.vue';
 import type { WidgetSize } from '@/components/widgets/widget-registry';
 import { WIDGET_REGISTRY } from '@/components/widgets/widget-registry';
-import { GripVerticalIcon, XIcon } from 'lucide-vue-next';
+import { GripVerticalIcon, XIcon } from '@lucide/vue';
 import { computed, defineAsyncComponent, provide, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 

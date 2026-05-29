@@ -200,7 +200,7 @@ describe('getRefundTransactions', () => {
 
   describe('failure cases', () => {
     it('fails when invalid categoryId is provided', async () => {
-      const response = await helpers.getRefundTransactions({ categoryId: -10 });
+      const response = await helpers.getRefundTransactions({ categoryId: 'invalid-not-a-uuid' as unknown as string });
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
@@ -212,7 +212,7 @@ describe('getRefundTransactions', () => {
     });
 
     it('fails when invalid accountId is provided', async () => {
-      const response = await helpers.getRefundTransactions({ accountId: -10 });
+      const response = await helpers.getRefundTransactions({ accountId: 'invalid-not-a-uuid' as unknown as string });
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 

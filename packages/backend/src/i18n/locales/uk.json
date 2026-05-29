@@ -2,19 +2,6 @@
   "common": {
     "processAlreadyLocked": "Процес синхронізації для \"{{lockKey}}\" вже заблоковано."
   },
-  "auth": {
-    "migration": {
-      "userNotLinked": "Користувач не прив'язаний до системи авторизації",
-      "authUserNotFound": "Користувача авторизації не знайдено",
-      "onlyLegacyAccounts": "Тільки застарілі облікові записи можуть використовувати цей ендпоінт. Використовуйте стандартний процес зміни email.",
-      "emailAlreadyInUse": "Email вже використовується",
-      "emailServiceNotConfigured": "Сервіс email не налаштовано",
-      "failedToSendVerification": "Не вдалося надіслати лист підтвердження",
-      "verificationSent": "Лист підтвердження надіслано",
-      "linkExpired": "Термін дії посилання для підтвердження закінчився",
-      "invalidOrExpiredLink": "Недійсне або прострочене посилання для підтвердження"
-    }
-  },
   "accounts": {
     "groupNotFound": "Групу або рахунок не знайдено",
     "accountNotFound": "Рахунок не знайдено!",
@@ -40,6 +27,10 @@
     "notFound": "Транзакція не знайдена",
     "missingRequiredFields": "Одне з обов'язкових полів відсутнє: destinationAmount, destinationAccountId.",
     "refundAndTransferNotAllowed": "Не дозволено створювати транзакцію, яка є одночасно поверненням і переказом",
+    "notOwnTransaction": "Ви можете редагувати або видаляти лише транзакції, створені вами на цьому спільному рахунку.",
+    "sharedAccountChangeNotSupported": "Переміщення транзакції до іншого рахунку дозволено лише власнику рахунку.",
+    "sharedTransfersNotSupported": "Перекази на спільному рахунку поки що не підтримуються.",
+    "sharedRefundsNotSupported": "Прив'язка повернень на спільному рахунку поки що не підтримується.",
     "cannotCreateWithParams": "Не вдалося створити транзакцію з наданими параметрами",
     "idCannotBeChanged": "id не можна змінити",
     "editReadonlyFields": "Спроба редагувати поля зовнішнього рахунку, які доступні лише для читання",
@@ -48,6 +39,7 @@
     "refundExceedsOriginal": "Загальна сума повернення не може перевищувати суму оригінальної транзакції",
     "oppositeTransactionNotFound": "Не вдалося знайти протилежну транзакцію для оновлення",
     "transactionIdNotExist": "Транзакція з наданим `id` не існує!",
+    "notAuthorizedToEdit": "У вас немає прав редагувати цю транзакцію.",
     "cannotDeleteExternal": "Не дозволено вручну видаляти зовнішні транзакції",
     "unexpectedDeleteIssue": "Неочікувана помилка при спробі видалити транзакцію",
     "linkSelfNotAllowed": "Спроба зв'язати транзакцію саму з собою.",
@@ -58,6 +50,7 @@
     "linkCannotFind": "Не вдалося знайти базову або протилежну транзакцію",
     "invalidTagIds": "Один або декілька ID тегів недійсні або не належать цьому користувачу",
     "cannotEditPortfolioLinkedTransaction": "Неможливо редагувати транзакцію, прив'язану до портфеля. Спочатку від'єднайте її.",
+    "refFieldsRequiredForTransferToPortfolio": "Для транзакцій переказу в портфель необхідно задати валюту обліку та суму в ній.",
     "splits": {
       "splitsOnTransfer": "Не можна додавати розбиття до транзакцій-переказів",
       "splitLimitExceeded": "Максимально дозволено {{max}} розбиттів на транзакцію",
@@ -125,7 +118,6 @@
   },
   "investments": {
     "portfolioNotFound": "Портфель не знайдено",
-    "portfolioNameExists": "Портфель з такою назвою вже існує",
     "portfolioIdRequired": "ID портфеля обов'язковий.",
     "holdingNotFound": "Актив не знайдено",
     "holdingNotFoundAddSecurity": "Актив не знайдено. Будь ласка, спочатку додайте цінний папір до портфеля.",
@@ -179,8 +171,10 @@
     "fromMustBeValidDate": "\"from\" повинен бути дійсним рядком дати",
     "toMustBeValidDate": "\"to\" повинен бути дійсним рядком дати",
     "onlySupportedForMonobank": "Завантаження транзакцій за період підтримується лише для Monobank",
+    "reconciliationOnlyForEnableBanking": "Узгодження дублікатів доступне лише для з'єднань Enable Banking",
     "transactionLoadingQueued": "Завантаження транзакцій додано в чергу. Орієнтовний час: {{minutes}} хв.",
     "noValidAccountIds": "Жоден з обраних ID рахунків не є дійсним",
+    "accountCurrencyNotSupported": "Валюта рахунку \"{{currency}}\" не підтримується системою.",
     "monobank": {
       "invalidCredentialsFormat": "Недійсний формат облікових даних для Monobank",
       "invalidApiToken": "Недійсний API токен Monobank",
@@ -204,8 +198,10 @@
       "noActiveSessionGeneric": "Немає активної сесії",
       "noBalanceInfo": "Інформація про баланс недоступна",
       "authenticationFailed": "Автентифікація Enable Banking не вдалася: {{message}}",
+      "sessionExpiredReconnect": "Сесія банку закінчилася. Будь ласка, повторно підключіть свій банківський рахунок, щоб продовжити синхронізацію.",
       "apiBadRequestError": "Помилка API Enable Banking: {{message}}",
-      "apiGeneralError": "Помилка API Enable Banking: {{message}}"
+      "apiGeneralError": "Помилка API Enable Banking: {{message}}",
+      "redirectUriNotAllowed": "У вашому застосунку Enable Banking відсутній необхідний URL переадресації. Будь ласка, увійдіть до панелі Enable Banking, відредагуйте свій застосунок і додайте цей URL до дозволених URL переадресації: {{redirectUrl}}"
     },
     "lunchflow": {
       "invalidCredentialsFormat": "Невірний формат облікових даних LunchFlow. Будь ласка, надайте дійсний API-ключ.",
@@ -225,6 +221,8 @@
     "headersCannotBeParsed": "Неможливо розпарсити заголовки",
     "csvFileEmpty": "CSV файл порожній",
     "csvFileNoHeaders": "CSV файл не містить заголовків",
+    "csvFileTooManyRows": "CSV файл перевищує максимально дозволену кількість рядків {{max}}.",
+    "csvFileForbiddenHeader": "CSV файл містить назву заголовку, яка не дозволена.",
     "invalidDateFormat": "Недійсний формат дати: \"{{dateStr}}\". Очікується формат ISO (РРРР-ММ-ДД).",
     "invalidAmount": "Недійсна сума: \"{{amountStr}}\". Очікується числове значення.",
     "accountNameEmpty": "Назва рахунку порожня",
@@ -246,6 +244,8 @@
     "listIsEmpty": "Список валют порожній",
     "noBaseCurrency": "Користувач не має встановленої базової валюти",
     "alreadyBaseCurrency": "Обрана валюта вже є базовою",
+    "baseCurrencyLockedByShares": "Неможливо змінити базову валюту, поки є активні спільні ресурси. Спочатку відкличте їх або вийдіть з них.",
+    "baseCurrencyLockedByHousehold": "Неможливо змінити базову валюту, поки ви є членом активної сім'ї. Спочатку відкличте або залиште членство в сім'ї.",
     "cannotFindForRefAmount": "Не вдалося знайти валюту для розрахунку референтної суми!",
     "cannotCalculateRefAmount": "Не вдалося розрахувати референтну суму",
     "currencyNotConnected": "Запитана валюта не підключена",
@@ -255,6 +255,9 @@
     "excludedCategoriesNotFound": "Одну або декілька виключених категорій не знайдено",
     "userSettingsNotFound": "Налаштування користувача не знайдено"
   },
+  "users": {
+    "usernameAlreadyTaken": "Ім'я користувача \"{{username}}\" вже зайняте"
+  },
   "userCurrencies": {
     "baseCurrencyExists": "Базова валюта вже існує!",
     "currencyCodeNotExist": "Валюта з переданим кодом не існує.",
@@ -262,6 +265,7 @@
     "currencyNotExist": "Валюта з кодом \"{{currencyCode}}\" не існує.",
     "cannotDeleteDefaultCurrency": "Не дозволено видаляти валюту за замовчуванням. Спочатку зніміть статус за замовчуванням.",
     "cannotDeleteCurrencyWithAccounts": "Не дозволено видаляти валюту, пов'язану з рахунками. Спочатку видаліть рахунки. Назви рахунків: \"{{accountNames}}\".",
+    "cannotDeleteCurrencyWithInvestments": "Не можна видалити валюту \"{{currencyCode}}\", доки вона використовується в інвестиційних активах. Спочатку видаліть ці активи.",
     "defaultCurrencyNotPresent": "Не можна видалити валюту. Валюта за замовчуванням відсутня в системі"
   },
   "ai": {
@@ -270,16 +274,6 @@
   },
   "middleware": {
     "tooManyRequests": "Забагато запитів. Будь ласка, спробуйте пізніше."
-  },
-  "emails": {
-    "legacyEmailMigration": {
-      "subject": "Підтвердьте вашу нову адресу {{appName}}",
-      "heading": "Підтвердьте вашу нову email адресу",
-      "body": "Ви запросили зміну вашої email адреси на цю. Натисніть кнопку нижче для підтвердження:",
-      "buttonText": "Підтвердити Email",
-      "orCopyLink": "Або скопіюйте та вставте це посилання:",
-      "expiryNotice": "Термін дії цього посилання закінчується через 1 годину. Якщо ви не запитували цю зміну, можете проігнорувати цей лист."
-    }
   },
   "defaultCategories": {
     "main": {
@@ -290,7 +284,7 @@
       "vehicle": "Авто",
       "life": "Життя та розваги",
       "communication": "Зв'язок, ПК",
-      "financialExpenses": "Фінансові витрати",
+      "financial-expenses": "Фінансові витрати",
       "investments": "Інвестиції",
       "income": "Дохід",
       "other": "Інше"
@@ -299,88 +293,88 @@
       "food": {
         "groceries": "Продукти",
         "restaurant": "Ресторан, фаст-фуд",
-        "barCafe": "Бар, кафе"
+        "bar-cafe": "Бар, кафе"
       },
       "shopping": {
-        "clothesShoes": "Одяг та взуття",
-        "jewelsAccessories": "Прикраси, аксесуари",
-        "healthBeauty": "Здоров'я та краса",
+        "clothes-shoes": "Одяг та взуття",
+        "jewels-accessories": "Прикраси, аксесуари",
+        "health-beauty": "Здоров'я та краса",
         "kids": "Діти",
-        "homeGarden": "Дім, сад",
-        "petsAnimals": "Домашні тварини",
-        "electronicsAccessories": "Електроніка, аксесуари",
-        "giftsJoy": "Подарунки, радість",
-        "stationeryTools": "Канцелярія, інструменти",
-        "freeTime": "Вільний час",
-        "drugstoreChemist": "Аптека, хімія"
+        "home-garden": "Дім, сад",
+        "pets-animals": "Домашні тварини",
+        "electronics-accessories": "Електроніка, аксесуари",
+        "gifts-joy": "Подарунки, радість",
+        "stationery-tools": "Канцелярія, інструменти",
+        "free-time": "Вільний час",
+        "drugstore-chemist": "Аптека, хімія"
       },
       "housing": {
         "rent": "Оренда",
         "mortgage": "Іпотека",
-        "energyUtilities": "Енергія, комунальні",
+        "energy-utilities": "Енергія, комунальні",
         "services": "Послуги",
-        "maintenanceRepairs": "Обслуговування, ремонт",
-        "propertyInsurance": "Страхування нерухомості"
+        "maintenance-repairs": "Обслуговування, ремонт",
+        "property-insurance": "Страхування нерухомості"
       },
       "transportation": {
-        "publicTransport": "Громадський транспорт",
+        "public-transport": "Громадський транспорт",
         "taxi": "Таксі",
-        "longDistance": "Далекі поїздки",
-        "businessTrips": "Відрядження"
+        "long-distance": "Далекі поїздки",
+        "business-trips": "Відрядження"
       },
       "vehicle": {
         "fuel": "Пальне",
         "parking": "Паркування",
-        "vehicleMaintenance": "Обслуговування авто",
+        "vehicle-maintenance": "Обслуговування авто",
         "rentals": "Оренда",
-        "vehicleInsurance": "Страхування авто",
+        "vehicle-insurance": "Страхування авто",
         "leasing": "Лізинг"
       },
       "life": {
-        "healthCareDoctor": "Медицина, лікар",
-        "wellnessBeauty": "Велнес, краса",
-        "activeSportFitness": "Активний спорт, фітнес",
-        "cultureSportEvents": "Культура, спортивні події",
+        "health-care-doctor": "Медицина, лікар",
+        "wellness-beauty": "Велнес, краса",
+        "active-sport-fitness": "Активний спорт, фітнес",
+        "culture-sport-events": "Культура, спортивні події",
         "hobbies": "Хобі",
-        "educationDevelopment": "Освіта, розвиток",
-        "booksAudioSubscriptions": "Книги, аудіо, підписки",
-        "tvStreaming": "ТБ, стрімінг",
-        "holidayTripsHotels": "Відпустка, подорожі, готелі",
-        "charityGifts": "Благодійність, подарунки",
-        "alcoholTobacco": "Алкоголь, тютюн",
-        "lotteryGambling": "Лотерея, азартні ігри"
+        "education-development": "Освіта, розвиток",
+        "books-audio-subscriptions": "Книги, аудіо, підписки",
+        "tv-streaming": "ТБ, стрімінг",
+        "holiday-trips-hotels": "Відпустка, подорожі, готелі",
+        "charity-gifts": "Благодійність, подарунки",
+        "alcohol-tobacco": "Алкоголь, тютюн",
+        "lottery-gambling": "Лотерея, азартні ігри"
       },
       "communication": {
-        "phoneCellPhone": "Телефон, мобільний",
+        "phone-cell-phone": "Телефон, мобільний",
         "internet": "Інтернет",
-        "softwareAppsGames": "Програми, додатки, ігри",
-        "postalServices": "Поштові послуги"
+        "software-apps-games": "Програми, додатки, ігри",
+        "postal-services": "Поштові послуги"
       },
-      "financialExpenses": {
+      "financial-expenses": {
         "taxes": "Податки",
         "insurances": "Страхування",
-        "loanInterests": "Кредит, відсотки",
+        "loan-interests": "Кредит, відсотки",
         "fines": "Штрафи",
         "advisory": "Консультації",
-        "chargesFees": "Збори, комісії",
-        "childSupport": "Аліменти"
+        "charges-fees": "Збори, комісії",
+        "child-support": "Аліменти"
       },
       "investments": {
         "realty": "Нерухомість",
-        "vehiclesChattels": "Транспорт, майно",
-        "financialInvestments": "Фінансові інвестиції",
+        "vehicles-chattels": "Транспорт, майно",
+        "financial-investments": "Фінансові інвестиції",
         "savings": "Заощадження",
         "collections": "Колекції"
       },
       "income": {
-        "wageInvoices": "Зарплата, рахунки",
-        "interestsDividends": "Відсотки, дивіденди",
+        "wage-invoices": "Зарплата, рахунки",
+        "interests-dividends": "Відсотки, дивіденди",
         "sale": "Продаж",
-        "rentalIncome": "Дохід від оренди",
-        "duesGrants": "Внески та гранти",
-        "lendingRenting": "Позики, здача в оренду",
-        "checksCoupons": "Чеки, купони",
-        "lotteryGambling": "Лотерея, азартні ігри",
+        "rental-income": "Дохід від оренди",
+        "dues-grants": "Внески та гранти",
+        "lending-renting": "Позики, здача в оренду",
+        "checks-coupons": "Чеки, купони",
+        "lottery-gambling": "Лотерея, азартні ігри",
         "refunds": "Повернення (податки, покупки)",
         "freelance": "Фріланс",
         "gifts": "Подарунки"

@@ -7,8 +7,8 @@ export const emitTransactionsSyncEvent = ({
   transactionIds,
 }: {
   userId: number;
-  accountId: number;
-  transactionIds: number[];
+  accountId: string;
+  transactionIds: string[];
 }) => {
   if (transactionIds.length > 0) {
     const payload: TransactionsSyncedPayload = {

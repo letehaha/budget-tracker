@@ -9,7 +9,7 @@ import { reverseTransferBalanceChanges } from './transfer-validations';
 
 interface UnlinkTransactionFromPortfolioParams {
   userId: number;
-  transactionId: number;
+  transactionId: string;
 }
 
 const unlinkTransactionFromPortfolioImpl = async ({ userId, transactionId }: UnlinkTransactionFromPortfolioParams) => {

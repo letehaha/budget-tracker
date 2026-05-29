@@ -49,8 +49,7 @@
     },
     "placeholders": {
       "email": "your{'@'}email.com",
-      "password": "Your password",
-      "username": "ie. johnsnow"
+      "password": "Your password"
     },
     "dialogs": {
       "createAccount": "Create account"
@@ -86,6 +85,10 @@
       "statementParsing": {
         "name": "Statement Parser",
         "description": "Extract transactions from bank statements (PDF, CSV, TXT) using AI"
+      },
+      "investmentTransactionsParsing": {
+        "name": "Investment transactions import",
+        "description": "AI-extracted buy/sell transactions from exchange exports, broker statements, or pasted text."
       }
     },
     "transactions": {
@@ -144,6 +147,9 @@
     "tagReminder": {
       "thresholdMessage": "spent {amount} (threshold: {threshold})",
       "existenceMessage": "{count} transaction | {count} transactions"
+    },
+    "share": {
+      "sendFailedHint": "Open the sharing panel to resend."
     }
   },
   "currencyNames": {
@@ -205,6 +211,13 @@
     "XAF": "CFA Franc BEAC",
     "BTC": "Bitcoin",
     "ETH": "Ethereum"
+  },
+  "fileDropzone": {
+    "clickOrDrag": "Click or drag a file here",
+    "dropHere": "Drop file to upload",
+    "removeFile": "Remove file",
+    "fileTooLarge": "File is too large. Max size is {max}.",
+    "onlyFirstFileTaken": "Multiple files dropped — only the first was used."
   },
   "demo": {
     "loadingOverlay": {

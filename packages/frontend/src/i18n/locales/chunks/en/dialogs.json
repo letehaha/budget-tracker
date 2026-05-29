@@ -31,6 +31,9 @@
     "createPortfolio": {
       "title": "Create Portfolio",
       "description": "Create a new investment portfolio to track your holdings and transactions.",
+      "assetSupportNotice": "Currently supports stocks, ETFs and crypto. Bonds, options & other securities are on the {roadmapLink} — share what you need via {feedbackLink}.",
+      "assetSupportRoadmapLink": "vote for what's next",
+      "assetSupportFeedbackLink": "request a feature",
       "form": {
         "nameLabel": "Portfolio name",
         "namePlaceholder": "My Investment Portfolio",
@@ -58,18 +61,19 @@
     },
     "deletePortfolio": {
       "title": "Delete Portfolio",
-      "description": "Are you sure you want to delete this portfolio? This action cannot be undone.",
+      "description": "This portfolio will be moved to trash and can be restored within 30 days. After that, it will be permanently deleted along with all holdings and transactions.",
       "cancelButton": "Cancel",
-      "deleteButton": "Delete",
-      "deleteButtonLoading": "Deleting...",
+      "deleteButton": "Move to Trash",
+      "deleteButtonLoading": "Moving...",
       "notifications": {
-        "success": "Portfolio deleted successfully.",
+        "success": "Portfolio moved to trash. You can restore it within 30 days from the Investments page.",
         "error": "Failed to delete portfolio."
       }
     },
     "manageTransaction": {
       "addTitle": "Add Transaction",
       "editTitle": "Edit Transaction",
+      "detailsTitle": "Transaction Details",
       "title": "Manage transaction",
       "description": "Create or edit a transaction",
       "linkSection": {
@@ -121,7 +125,12 @@
         "destinationTypeAccount": "Account",
         "destinationTypePortfolio": "Portfolio",
         "toPortfolioLabel": "To portfolio",
-        "selectPortfolioPlaceholder": "Select portfolio"
+        "selectPortfolioPlaceholder": "Select portfolio",
+        "noPortfoliosExist": "No portfolios exist",
+        "validation": {
+          "required": "This field is required",
+          "minValue": "Amount must be greater than zero"
+        }
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Select filters",
@@ -260,6 +269,22 @@
       "searchError": "Failed to search securities.",
       "addedIndicator": "(Added)",
       "noResults": "No results.",
+      "emptyState": {
+        "title": "Search for a symbol",
+        "description": "Type a ticker or name to find stocks or crypto you can add to this portfolio."
+      },
+      "noResultsHint": "Try a different ticker, full name, or switch the filter above.",
+      "clearSearch": "Clear search",
+      "endOfList": "That's all",
+      "assetClass": {
+        "crypto": "Crypto"
+      },
+      "filters": {
+        "all": "All",
+        "stocks": "Stocks",
+        "crypto": "Crypto"
+      },
+      "marketCapRank": "#{rank}",
       "notifications": {
         "success": "Holding added.",
         "error": "Failed to add holding."
@@ -350,6 +375,108 @@
     "exchangeCurrency": {
       "title": "Exchange Currency",
       "description": "Exchange cash between different currencies within your portfolio"
+    },
+    "shareAccountDialog": {
+      "title": "Share account",
+      "description": "Invite someone to access {name}.",
+      "emailLabel": "Recipient email",
+      "emailPlaceholder": "name{'@'}example.com",
+      "permissionLabel": "Permission",
+      "permissions": {
+        "read": "Read-only",
+        "write": "Read & add transactions",
+        "manage": "Full access"
+      },
+      "writeScopeLabel": "Transaction edit scope",
+      "writeScope": {
+        "all": "All transactions on the account",
+        "own": "Only transactions they created"
+      },
+      "householdOverrideHint": "{invitee} is already in your household with {permission} access. This share will override the household grant for this specific account.",
+      "householdLookupFailed": "Couldn't check household membership — proceeding without the override hint.",
+      "cancel": "Cancel",
+      "send": "Send invitation",
+      "success": "Invitation request submitted. If a user with that address is registered, they'll receive an invitation.",
+      "error": "Could not send invitation. Please try again.",
+      "emailSendFailedWarning": "Invitation saved, but the email could not be sent. The recipient may not have received a notification — try again later."
+    },
+    "shareBudgetDialog": {
+      "title": "Share budget",
+      "description": "Invite someone to view this budget and contribute their own transactions to it. {name}.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Recipient email",
+      "permissionLabel": "Permission",
+      "permissions": {
+        "read": "View only",
+        "write": "Attach own transactions",
+        "manage": "Manage"
+      },
+      "cancel": "Cancel",
+      "send": "Send invitation",
+      "success": "Invitation sent.",
+      "error": "Couldn't send invitation.",
+      "emailSendFailedWarning": "Invitation created, but the email couldn't be delivered."
+    },
+    "shareInvitationDialog": {
+      "titlePending": "{owner} wants to share with you",
+      "titleAccepted": "Invitation accepted",
+      "titleDeclined": "Invitation declined",
+      "titleCurrencyMismatch": "Base currency doesn't match",
+      "titleLoading": "Loading invitation…",
+      "titleLoadError": "Couldn't load invitation",
+      "titleNotFound": "Invitation not available",
+      "loadErrorBody": "Something went wrong while fetching this invitation. Check your connection and try again.",
+      "retry": "Try again",
+      "pendingMessage": "You've been invited to access {resource}. Review the details below and choose how to respond.",
+      "acceptedBody": "You now have access to this shared resource. Open it to start working together.",
+      "declinedBody": "We've let the sender know.",
+      "currencyMismatch": "Your base currency must be {currency} to accept this invitation. Update your base currency, then try again.",
+      "currencyMismatchUnknown": "Your base currency must match the inviter's to accept this invitation.",
+      "acceptDataRefreshFailed": "Invitation accepted, but refreshing your accounts failed. Reload the page if anything looks stale.",
+      "notFoundBody": "This invitation may have expired, been revoked, or already been actioned. Ask the sender for a new one if you still need access.",
+      "unexpectedError": "Something went wrong. Try again in a moment.",
+      "loading": "Fetching invitation…",
+      "householdResourceLabel": "all your accounts and shared transactions",
+      "permissionLabel": "Access level",
+      "expiresLabel": "Expires",
+      "permissions": {
+        "read": "Read-only",
+        "write": "Read + write",
+        "manage": "Manage"
+      },
+      "unknownOwner": "A MoneyMatter user",
+      "unknownResource": "a shared resource",
+      "accept": "Accept",
+      "decline": "Decline",
+      "close": "Close",
+      "goToAccount": "Go to account",
+      "goToBudget": "Go to budget",
+      "updateBaseCurrency": "Update base currency",
+      "acceptSuccess": "You're now part of this shared resource.",
+      "acceptError": "Couldn't accept the invitation. Try again.",
+      "declineSuccess": "Invitation declined.",
+      "declineError": "Couldn't decline the invitation. Try again.",
+      "backInvite": {
+        "prompt": "Want to share your household with {owner} as well? They'll be able to see and act on your accounts.",
+        "permissionLabel": "Their permission",
+        "writeScopeLabel": "Write scope",
+        "permissions": {
+          "read": "Read only",
+          "write": "Write"
+        },
+        "writeScope": {
+          "all": "Any account",
+          "own": "Only transactions they create"
+        },
+        "send": "Share back",
+        "notNow": "Not now",
+        "done": "Done",
+        "sentTitle": "Invitation sent",
+        "sentBody": "We sent an invitation to {owner}. They'll get access once they accept.",
+        "success": "Invitation sent.",
+        "deliveryFailed": "Invitation created, but the email could not be sent. Try again later.",
+        "error": "Failed to send the invitation."
+      }
     }
   }
 }

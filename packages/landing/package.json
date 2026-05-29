@@ -9,6 +9,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.2",
     "@astrojs/vue": "^5.0.0",
     "@fontsource/montserrat": "^5.1.0",
     "@iconify-json/lucide": "^1.2.0",

@@ -20,7 +20,7 @@ export default class SecurityCurrencyCache extends Model<
   @NotNull
   declare currencyCode: string;
 
-  @Attribute(DataTypes.ENUM(...Object.values(SECURITY_PROVIDER)))
+  @Attribute(DataTypes.STRING)
   @NotNull
   declare providerName: SECURITY_PROVIDER;
 

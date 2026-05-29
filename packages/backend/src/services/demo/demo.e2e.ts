@@ -281,11 +281,23 @@ describe('Demo Mode', () => {
       expect(res.body.response.message).toContain('demo mode');
     });
 
+    it('allows demo users to view the seeded investment portfolio', async () => {
+      const res = await makeRequest({
+        method: 'get',
+        url: '/investments/portfolios',
+        raw: true,
+      });
+
+      expect(Array.isArray(res.data)).toBe(true);
+      expect(res.data.length).toBeGreaterThanOrEqual(1);
+      expect(res.data[0]?.name).toBe('Growth Portfolio');
+    });
+
     it('blocks investment portfolio creation for demo users', async () => {
       const res = await makeRequest({
         method: 'post',
         url: '/investments/portfolios',
-        payload: { name: 'Test Portfolio' },
+        payload: { name: 'Test Portfolio', portfolioType: 'investment' },
       });
 
       expect(res.statusCode).toBe(403);

@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { AI_FEATURE } from '@bt/shared/types';
-import { Loader2Icon } from 'lucide-vue-next';
+import { Loader2Icon } from '@lucide/vue';
 
 import CategorizationFeature from './features/categorization-feature.vue';
 import StatementParsingFeature from './features/statement-parsing-feature.vue';

@@ -79,7 +79,7 @@
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { authClient, getSession } from '@/lib/auth-client';
-import { Loader2Icon, LogOutIcon, MonitorIcon, SmartphoneIcon, TabletIcon } from 'lucide-vue-next';
+import { Loader2Icon, LogOutIcon, MonitorIcon, SmartphoneIcon, TabletIcon } from '@lucide/vue';
 import { type Component, computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

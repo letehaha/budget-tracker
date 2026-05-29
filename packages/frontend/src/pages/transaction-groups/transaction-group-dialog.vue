@@ -9,7 +9,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { invalidateTransactionGroupQueries } from '@/composable/data-queries/transaction-groups';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format } from 'date-fns';
-import { EllipsisVerticalIcon, PencilIcon, Trash2Icon, XIcon } from 'lucide-vue-next';
+import { EllipsisVerticalIcon, PencilIcon, Trash2Icon, XIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import EditGroupDialog from './edit-group-dialog.vue';
@@ -18,7 +18,7 @@ const { t } = useI18n();
 
 const props = defineProps<{
   open?: boolean;
-  groupId?: number;
+  groupId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -73,12 +73,12 @@ const handleDelete = async () => {
 // Remove transaction from group
 const removeConfirm = reactive({
   isOpen: false,
-  transactionId: undefined as number | undefined,
+  transactionId: undefined as string | undefined,
 });
 
 const wouldDissolve = computed(() => transactions.value.length <= 2);
 
-const handleRemoveTransaction = ({ transactionId }: { transactionId: number }) => {
+const handleRemoveTransaction = ({ transactionId }: { transactionId: string }) => {
   removeConfirm.transactionId = transactionId;
   removeConfirm.isOpen = true;
 };

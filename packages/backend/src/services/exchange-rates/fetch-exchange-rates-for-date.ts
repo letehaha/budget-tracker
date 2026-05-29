@@ -63,7 +63,7 @@ export const fetchExchangeRatesForDate = withDeduplication(
         });
       }
 
-      const { result, providerName } = fetchResult;
+      const { result, providerName, providerType } = fetchResult;
 
       // Convert rates to database format
       const rateEntries = Object.entries(result.rates).map(([quoteCode, rate]) => ({
@@ -71,6 +71,7 @@ export const fetchExchangeRatesForDate = withDeduplication(
         quoteCode,
         rate,
         date: normalizedDate,
+        source: providerType,
       }));
 
       // Bulk insert with duplicate handling

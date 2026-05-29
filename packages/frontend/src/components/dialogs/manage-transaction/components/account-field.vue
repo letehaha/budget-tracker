@@ -66,12 +66,16 @@
       <form-row v-else>
         <select-field
           :label="$t('dialogs.manageTransaction.form.toPortfolioLabel')"
-          :placeholder="$t('dialogs.manageTransaction.form.selectPortfolioPlaceholder')"
+          :placeholder="
+            portfolios.length
+              ? $t('dialogs.manageTransaction.form.selectPortfolioPlaceholder')
+              : $t('dialogs.manageTransaction.form.noPortfoliosExist')
+          "
           :values="portfolios"
           label-key="name"
           value-key="id"
           with-search
-          :disabled="disabled || toAccountDisabled"
+          :disabled="disabled || toAccountDisabled || !portfolios.length"
           :model-value="toPortfolio"
           @update:model-value="updateToPortfolio"
         />
@@ -133,7 +137,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES } from '@bt/shared/types';
-import { BriefcaseIcon, WalletIcon } from 'lucide-vue-next';
+import { BriefcaseIcon, WalletIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 

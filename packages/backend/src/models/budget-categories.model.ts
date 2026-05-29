@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
 import { Attribute, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
@@ -22,13 +23,13 @@ export default class BudgetCategories extends Model<
   InferAttributes<BudgetCategories>,
   InferCreationAttributes<BudgetCategories>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
-  declare budgetId: number;
+  declare budgetId: RecordId;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
-  declare categoryId: number;
+  declare categoryId: RecordId;
 }

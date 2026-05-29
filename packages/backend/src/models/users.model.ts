@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
 import {
   CreationOptional,
@@ -64,7 +65,7 @@ export default class Users extends Model<InferAttributes<Users>, InferCreationAt
   declare password: string | null;
 
   @Attribute(DataTypes.STRING)
-  declare authUserId: string | null;
+  declare authUserId: RecordId | null;
 
   @Attribute(DataTypes.STRING(2000))
   declare avatar: string | null;
@@ -74,8 +75,8 @@ export default class Users extends Model<InferAttributes<Users>, InferCreationAt
   @Default(DEFAULT_TOTAL_BALANCE)
   declare totalBalance: CreationOptional<number>;
 
-  @Attribute(DataTypes.INTEGER)
-  declare defaultCategoryId: number | null;
+  @Attribute(DataTypes.UUID)
+  declare defaultCategoryId: RecordId | null;
 
   @Attribute(DataTypes.STRING(20))
   @NotNull
@@ -120,7 +121,6 @@ export const createUser = async ({
   firstName,
   lastName,
   middleName,
-  password,
   avatar,
   totalBalance = DEFAULT_TOTAL_BALANCE,
   authUserId,
@@ -131,7 +131,6 @@ export const createUser = async ({
   firstName?: string;
   lastName?: string;
   middleName?: string;
-  password?: string;
   avatar?: string;
   totalBalance?: number;
   authUserId?: string;
@@ -143,7 +142,6 @@ export const createUser = async ({
     firstName,
     lastName,
     middleName,
-    password,
     avatar,
     totalBalance,
     authUserId,
@@ -174,7 +172,6 @@ export const updateUserById = async ({
   firstName,
   lastName,
   middleName,
-  password,
   avatar,
   totalBalance,
   defaultCategoryId,
@@ -182,13 +179,12 @@ export const updateUserById = async ({
   id: number;
   username?: string;
   email?: string;
-  password?: string;
   firstName?: string;
   lastName?: string;
   middleName?: string;
   avatar?: string;
   totalBalance?: number;
-  defaultCategoryId?: number;
+  defaultCategoryId?: RecordId;
 }): Promise<UserModel | null> => {
   const where = { id };
   const updateFields: Record<string, unknown> = {};
@@ -199,7 +195,6 @@ export const updateUserById = async ({
   if (lastName) updateFields.lastName = lastName;
   if (middleName) updateFields.middleName = middleName;
   if (avatar) updateFields.avatar = avatar;
-  if (password) updateFields.password = password;
   if (totalBalance) updateFields.totalBalance = totalBalance;
   if (defaultCategoryId) updateFields.defaultCategoryId = defaultCategoryId;
 

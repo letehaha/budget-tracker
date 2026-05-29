@@ -1,30 +1,63 @@
+import { SHARE_PERMISSIONS } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
-import { Op } from '@sequelize/core';
+import { literal, Op, where } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 
+import { authorizeBudgetAccess } from './authorize-budget-access';
+
 interface RemoveTransactionsPayload {
-  budgetId: number;
+  budgetId: string;
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
 }
 
 export const removeTransactionsFromBudget = withTransaction(async (payload: RemoveTransactionsPayload) => {
   const { budgetId, userId, transactionIds } = payload;
 
+  const { ownerUserId, isOwner } = await authorizeBudgetAccess({
+    userId,
+    budgetId,
+    requiredPermission: SHARE_PERMISSIONS.write,
+  });
+
   await findOrThrowNotFound({
-    query: Budgets.findOne({ where: { id: budgetId, userId } }),
+    query: Budgets.findOne({ where: { id: budgetId, userId: ownerUserId } }),
     message: t({ key: 'budgets.budgetNotFound' }),
   });
 
-  await BudgetTransactions.destroy({
+  if (isOwner) {
+    // Owner can detach anything attached to their budget — recipient-attached rows
+    // (metadata.addedByUserId set) and owner-attached rows alike.
+    const removedCount = await BudgetTransactions.destroy({
+      where: {
+        budgetId,
+        transactionId: { [Op.in]: transactionIds },
+      },
+    });
+    return { removedCount };
+  }
+
+  // Recipient can only detach rows THEY attached. We match on the JSONB `addedByUserId`
+  // field rather than the underlying `transaction.userId` so a recipient who tries to
+  // remove an *owner-attached* link to one of their own transactions (e.g. owner pulled
+  // recipient's tx into the budget) still gets blocked.
+  //
+  // SQL: `metadata->>'addedByUserId' = '<userId>'`. The pattern follows the codebase's
+  // `where(literal(...))` convention for JSONB filters (see
+  // bank-data-providers/* and cancel-invitation.service.ts).
+  //
+  // The destroy returns the number of rows actually removed — we surface this so the
+  // recipient can tell "your detach matched nothing" (e.g., they passed transactionIds
+  // that belong to owner-attached rows) apart from a normal success.
+  const removedCount = await BudgetTransactions.destroy({
     where: {
       budgetId,
-      transactionId: {
-        [Op.in]: transactionIds,
-      },
+      transactionId: { [Op.in]: transactionIds },
+      [Op.and]: [where(literal(`"metadata"->>'addedByUserId'`), String(userId))],
     },
   });
+  return { removedCount };
 });

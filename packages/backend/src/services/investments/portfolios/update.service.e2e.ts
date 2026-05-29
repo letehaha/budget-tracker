@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -98,33 +99,33 @@ describe('Update Portfolio Service E2E', () => {
     describe('Error cases', () => {
       it('should return 404 when portfolio does not exist', async () => {
         const response = await helpers.updatePortfolio({
-          portfolioId: 99999,
+          portfolioId: generateRandomRecordId(),
           payload: { name: 'New Name' },
         });
 
         expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
       });
 
-      it('should return 409 when name conflicts with existing portfolio', async () => {
-        // Create first portfolio
+      it('allows updating a portfolio to a name another portfolio already uses', async () => {
+        // Mirrors the create-side test — duplicate names are intentionally
+        // permitted now (uniqueness constraint dropped in
+        // 20260524000000-drop-portfolios-unique-name).
         const firstResponse = await helpers.createPortfolio({
           payload: { name: 'First Portfolio' },
         });
         expect(firstResponse.statusCode).toBe(200);
 
-        // Create second portfolio
         const secondResponse = await helpers.createPortfolio({
           payload: { name: 'Second Portfolio' },
         });
         const secondPortfolio = helpers.extractResponse(secondResponse);
 
-        // Try to update second portfolio with first portfolio's name
         const response = await helpers.updatePortfolio({
           portfolioId: secondPortfolio.id,
           payload: { name: 'First Portfolio' },
         });
 
-        expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
+        expect(response.statusCode).toBe(200);
       });
     });
 
@@ -167,7 +168,7 @@ describe('Update Portfolio Service E2E', () => {
 
       it('should return ValidationError for invalid portfolioId parameter', async () => {
         const response = await helpers.updatePortfolio({
-          portfolioId: 'invalid' as unknown as number,
+          portfolioId: 'invalid' as unknown as string,
           payload: { name: 'Test' },
         });
 

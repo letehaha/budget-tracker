@@ -10,9 +10,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
-import Tabs from '@/components/lib/ui/tabs/Tabs.vue';
-import TabsList from '@/components/lib/ui/tabs/TabsList.vue';
-import TabsTrigger from '@/components/lib/ui/tabs/TabsTrigger.vue';
+import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable/formatters';
 import { ApiErrorResponseError } from '@/js/errors';
@@ -20,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { CirclePauseIcon, PlusIcon, RepeatIcon, SearchIcon, Trash2Icon } from 'lucide-vue-next';
+import { CirclePauseIcon, PlusIcon, RepeatIcon, SearchIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -56,6 +54,12 @@ const filteredSubscriptions = computed(() => {
   if (activeFilter.value === 'all') return subscriptions.value;
   return subscriptions.value.filter((s) => s.type === activeFilter.value);
 });
+
+const filterItems = computed(() => [
+  { value: 'all', label: t('planned.subscriptions.summary.filterAll') },
+  { value: SUBSCRIPTION_TYPES.subscription, label: t('planned.subscriptions.summary.filterSubscriptions') },
+  { value: SUBSCRIPTION_TYPES.bill, label: t('planned.subscriptions.summary.filterBills') },
+]);
 
 const { mutate: createSub } = useMutation({
   mutationFn: createSubscription,
@@ -133,17 +137,7 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
     </div>
 
     <!-- Filter Tabs -->
-    <Tabs v-model="activeFilter" default-value="all" class="mb-3 sm:mb-4">
-      <TabsList>
-        <TabsTrigger value="all">{{ $t('planned.subscriptions.summary.filterAll') }}</TabsTrigger>
-        <TabsTrigger :value="SUBSCRIPTION_TYPES.subscription">{{
-          $t('planned.subscriptions.summary.filterSubscriptions')
-        }}</TabsTrigger>
-        <TabsTrigger :value="SUBSCRIPTION_TYPES.bill">{{
-          $t('planned.subscriptions.summary.filterBills')
-        }}</TabsTrigger>
-      </TabsList>
-    </Tabs>
+    <PillTabs v-model="activeFilter" :items="filterItems" class="mb-3 sm:mb-4" />
 
     <SubscriptionsSummary :active-filter="activeFilter" class="mb-3 sm:mb-6" />
 
@@ -175,7 +169,7 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
       >
         <!-- Name -->
         <div class="flex min-w-0 items-center gap-2">
-          <SubscriptionServiceLogo :name="subscription.name" size="sm" />
+          <SubscriptionServiceLogo :name="subscription.name" class="size-5" />
           <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
         </div>
 

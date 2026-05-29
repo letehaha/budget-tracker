@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { RecordId } from '@bt/shared/types';
 import { until } from '@common/helpers';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { i18nextReady } from '@i18n/index';
+import Categories from '@models/categories.model';
 import { connection } from '@models/index';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
@@ -12,7 +14,7 @@ import {
   transactionSyncQueue,
   transactionSyncWorker,
 } from '@services/bank-data-providers/monobank/transaction-sync-queue';
-import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
+import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest';
 
@@ -74,6 +76,56 @@ vi.mock('yahoo-finance2', () => {
   });
   return { __esModule: true, default: MockYahooFinance };
 });
+
+// Mock the official CoinGecko TypeScript SDK globally. The composite provider
+// fans out to CoinGecko on every search, so without this mock every search
+// e2e test would either hit the live API or fail. Methods are no-ops by
+// default (empty results); crypto-specific tests override them per-suite.
+vi.mock('@coingecko/coingecko-typescript', () => {
+  const MockCoingecko = vi.fn().mockImplementation(() => ({
+    search: {
+      get: vi.fn<any>().mockResolvedValue({ coins: [] }),
+    },
+    simple: {
+      price: {
+        get: vi.fn<any>().mockResolvedValue({}),
+      },
+    },
+    coins: {
+      marketChart: {
+        get: vi.fn<any>().mockResolvedValue({ prices: [] }),
+        getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
+      },
+    },
+  }));
+  return { __esModule: true, default: MockCoingecko };
+});
+
+/**
+ * Guard against stale local `.env.test`. The data-provider factory only
+ * registers a provider when its API key is present in `process.env`, so a
+ * missing key silently turns the corresponding provider into a no-op and any
+ * test that expects results from it fails with a misleading "empty array"
+ * assertion — costing hours to diagnose.
+ *
+ * CI generates a fresh `.env.test` from `check-source-code.yml`; local files
+ * are gitignored and easily drift. We fail loud here so the fix is obvious.
+ */
+const REQUIRED_TEST_ENV_VARS = [
+  'FMP_API_KEY',
+  'POLYGON_API_KEY',
+  'ALPHA_VANTAGE_API_KEY',
+  'COINGECKO_API_KEY',
+] as const;
+
+const missingEnvVars = REQUIRED_TEST_ENV_VARS.filter((key) => !process.env[key]);
+if (missingEnvVars.length > 0) {
+  throw new Error(
+    `Missing required test env vars: ${missingEnvVars.join(', ')}. ` +
+      `Add them to <repo-root>/.env.test (any non-empty value, e.g. "test"). ` +
+      `CI sets these automatically via .github/workflows/check-source-code.yml.`,
+  );
+}
 
 beforeAll(async () => {
   mswMockServer.listen({ onUnhandledRequest: 'bypass' });
@@ -273,13 +325,28 @@ beforeEach(async () => {
     const testEmail = 'test1@test.local';
     const testPassword = 'testpassword123';
 
-    // Create the app user with default categories using the shared service
-    // Pass 'en' locale explicitly since tests run without AsyncLocalStorage context
-    await createUserWithDefaults({
+    // Create the app user with default categories.
+    // Pass 'en' locale explicitly since tests run without AsyncLocalStorage context.
+    // authUserId must match what the better-auth mock returns.
+    const seedAppUser = await createAppUserWithUniqueUsername({
       username: 'test1',
-      authUserId: 'test-user-id', // This must match what the mock returns
-      locale: 'en',
+      authUserId: 'test-user-id',
     });
+    await seedUserDefaults({ userId: seedAppUser.id, locale: 'en' });
+
+    // Stash a default category UUID for helpers that build transaction payloads.
+    // Pre-UUID-migration this was hardcoded to `categoryId: 1`; now we resolve
+    // the first seeded main category dynamically so non-transfer tx requests pass
+    // schema validation without each test plumbing categoryId explicitly.
+    const defaultCategory = await Categories.findOne({
+      where: { userId: seedAppUser.id, parentId: null },
+      attributes: ['id'],
+      raw: true,
+    });
+    if (!defaultCategory) {
+      throw new Error('Setup: expected at least one seeded default category for test user');
+    }
+    global.DEFAULT_CATEGORY_ID = defaultCategory.id as RecordId;
 
     // Create better-auth records (ba_*) for test user
     // Since auth is mocked via MSW, we need to manually create these records

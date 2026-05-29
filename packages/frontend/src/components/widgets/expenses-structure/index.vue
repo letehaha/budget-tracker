@@ -76,7 +76,7 @@ import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { ChartPieIcon } from 'lucide-vue-next';
+import { ChartPieIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { type Ref, computed, inject } from 'vue';
 import { useRouter } from 'vue-router';
@@ -109,9 +109,9 @@ const saveWidgetConfig =
     'dashboard-save-widget-config',
   );
 
-const excludedCategoryIds = computed<number[]>(() => {
+const excludedCategoryIds = computed<string[]>(() => {
   const ids = widgetConfigRef?.value?.config?.excludedCategoryIds;
-  return Array.isArray(ids) ? (ids as number[]) : [];
+  return Array.isArray(ids) ? (ids as string[]) : [];
 });
 
 const {
@@ -129,7 +129,7 @@ const {
   excludedCategoryIds,
 });
 
-const persistExcludedCategories = async ({ categoryIds }: { categoryIds: number[] }) => {
+const persistExcludedCategories = async ({ categoryIds }: { categoryIds: string[] }) => {
   if (!saveWidgetConfig || !widgetConfigRef?.value) return;
 
   await saveWidgetConfig({
@@ -138,17 +138,17 @@ const persistExcludedCategories = async ({ categoryIds }: { categoryIds: number[
   });
 };
 
-const handleRemoveExclusion = ({ categoryId }: { categoryId: number }) => {
+const handleRemoveExclusion = ({ categoryId }: { categoryId: string }) => {
   persistExcludedCategories({
     categoryIds: excludedCategoryIds.value.filter((id) => id !== categoryId),
   });
 };
 
-const getAllCategoryIds = (rootCategoryId: number): number[] => {
+const getAllCategoryIds = (rootCategoryId: string): string[] => {
   const result = [rootCategoryId];
   const categories = Object.values(categoriesMap.value);
 
-  const findChildren = (parentId: number) => {
+  const findChildren = (parentId: string) => {
     categories.forEach((cat) => {
       if (cat.parentId === parentId && !result.includes(cat.id)) {
         result.push(cat.id);
@@ -161,7 +161,7 @@ const getAllCategoryIds = (rootCategoryId: number): number[] => {
   return result;
 };
 
-const navigateToTransactions = ({ categoryId }: { categoryId: number }) => {
+const navigateToTransactions = ({ categoryId }: { categoryId: string }) => {
   const allCategoryIds = getAllCategoryIds(categoryId);
 
   router.push({

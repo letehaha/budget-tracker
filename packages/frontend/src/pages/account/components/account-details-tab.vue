@@ -7,7 +7,7 @@ import { useAccountCurrencyCode } from '@/composable/use-account-currency-code';
 import { toLocalNumber } from '@/js/helpers';
 import { useCurrenciesStore } from '@/stores';
 import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
-import { ChevronDownIcon, ChevronUpIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, ChevronUpIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, defineAsyncComponent, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';

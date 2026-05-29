@@ -8,77 +8,8 @@
       </h3>
 
       <!-- Category multi-select (hidden for savings metric) -->
-      <div v-if="props.metric !== 'savings'" class="w-52">
-        <Combobox.Combobox
-          :model-value="undefined"
-          v-model:searchTerm="searchTerm"
-          v-model:open="isComboboxOpen"
-          :multiple="true"
-          class="w-full"
-        >
-          <Combobox.ComboboxAnchor class="border-none p-0">
-            <Combobox.ComboboxTrigger
-              class="ring-offset-background focus-visible:ring-ring flex w-full justify-between rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              <div class="flex items-center gap-2">
-                <span
-                  class="inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1.5 text-xs font-medium"
-                >
-                  {{ selectedCategoryIds.length === 0 ? categories.length : selectedCategoryIds.length }}
-                </span>
-                <span class="text-muted-foreground">
-                  {{
-                    selectedCategoryIds.length === 0
-                      ? t('analytics.trends.monthlyComparison.allCategories')
-                      : selectedCategoryIds.length === 1
-                        ? t('analytics.trends.monthlyComparison.categorySelected', { count: 1 })
-                        : t('analytics.trends.monthlyComparison.categoriesSelected', {
-                            count: selectedCategoryIds.length,
-                          })
-                  }}
-                </span>
-              </div>
-
-              <template v-if="selectedCategoryIds.length > 0">
-                <Button variant="ghost" size="icon" class="size-5" @click.stop="clearSelection">
-                  <XIcon class="text-muted-foreground size-3" />
-                </Button>
-              </template>
-              <template v-else>
-                <ChevronDown class="text-muted-foreground size-4" />
-              </template>
-            </Combobox.ComboboxTrigger>
-          </Combobox.ComboboxAnchor>
-
-          <Combobox.ComboboxList class="max-h-80 w-(--reka-combobox-trigger-width)" :avoid-collisions="false">
-            <div class="relative w-full items-center p-2 pb-0">
-              <Combobox.ComboboxInput
-                class="h-8 w-full rounded-md border pl-8 text-sm focus-visible:ring-0"
-                :placeholder="t('analytics.trends.monthlyComparison.searchCategories')"
-              />
-              <SearchIcon class="text-muted-foreground absolute top-[60%] left-4 size-4 -translate-y-1/2" />
-            </div>
-            <div class="max-h-60 overflow-y-auto p-1">
-              <Combobox.ComboboxEmpty class="text-muted-foreground py-2 text-center text-xs" />
-
-              <Combobox.ComboboxGroup>
-                <Combobox.ComboboxItem
-                  v-for="category in displayedCategories"
-                  :key="category.id"
-                  :value="category"
-                  class="hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5"
-                  @select.prevent="toggleCategory(category)"
-                >
-                  <div class="flex items-center gap-2">
-                    <span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: category.color }"></span>
-                    <span class="text-sm">{{ category.name }}</span>
-                  </div>
-                  <CheckIcon v-if="isCategorySelected(category.id)" class="size-4" />
-                </Combobox.ComboboxItem>
-              </Combobox.ComboboxGroup>
-            </div>
-          </Combobox.ComboboxList>
-        </Combobox.Combobox>
+      <div v-if="props.metric !== 'savings'" class="w-72">
+        <ComboboxCategories v-model:category-ids="selectedCategoryIds" />
       </div>
     </div>
 
@@ -197,20 +128,21 @@
 <script setup lang="ts">
 import { getCashFlow } from '@/api';
 import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import Button from '@/components/lib/ui/button/Button.vue';
-import * as Combobox from '@/components/lib/ui/combobox';
+import { currentTheme } from '@/common/utils/color-theme';
+import ComboboxCategories from '@/components/common/combobox-categories.vue';
 import { useFormatCurrency } from '@/composable';
+import { getChartColors } from '@/composable/charts/chart-colors';
+import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
-import { type CategoryModel, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
+import { TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { useSessionStorage } from '@vueuse/core';
+import { useResizeObserver, useSessionStorage } from '@vueuse/core';
 import * as d3 from 'd3';
-import { CheckIcon, ChevronDown, SearchIcon, XIcon } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -246,11 +178,11 @@ onMounted(() => {
   // Initialize category selection from query params if present
   if (route.query.categoryIds) {
     const categoryIds = Array.isArray(route.query.categoryIds)
-      ? route.query.categoryIds.map((id) => Number(id))
-      : [Number(route.query.categoryIds)];
+      ? route.query.categoryIds.filter((id): id is string => id !== null)
+      : [route.query.categoryIds as string];
 
-    // Only set valid category IDs (filter out NaN)
-    const validIds = categoryIds.filter((id) => !isNaN(id));
+    // Only set valid category IDs
+    const validIds = categoryIds.filter(Boolean);
     if (validIds.length > 0) {
       selectedCategoryIds.value = validIds;
     }
@@ -265,10 +197,7 @@ const svgRef = ref<SVGSVGElement | null>(null);
 const tooltipRef = ref<HTMLDivElement | null>(null);
 
 // Category multi-select state with session persistence
-const selectedCategoryIds = useSessionStorage<number[]>('trends-comparison-categories', []);
-const searchTerm = ref('');
-const isComboboxOpen = ref(false);
-const sessionOrder = ref<number[]>([]);
+const selectedCategoryIds = useSessionStorage<string[]>('trends-comparison-categories', []);
 
 const tooltip = reactive({
   visible: false,
@@ -280,7 +209,7 @@ const tooltip = reactive({
   momChange: undefined as number | undefined,
   categoryName: undefined as string | undefined,
   categoryColor: undefined as string | undefined,
-  categoryId: undefined as number | undefined,
+  categoryId: undefined as string | undefined,
   isAverage: false,
   // Navigation data
   periodStart: undefined as string | undefined,
@@ -315,46 +244,6 @@ const {
   staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
   gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
 });
-
-// When combobox opens, reorder to show selected categories first
-watch(isComboboxOpen, (open) => {
-  if (open) {
-    const selectedIds = new Set(selectedCategoryIds.value);
-    const selectedFirst = categories.value.filter((c) => selectedIds.has(c.id));
-    const others = categories.value.filter((c) => !selectedIds.has(c.id));
-    sessionOrder.value = [...selectedFirst, ...others].map((c) => c.id);
-  }
-});
-
-// Category selection helpers - show selected categories at top when dropdown is open
-const orderedCategories = computed(() => {
-  if (isComboboxOpen.value && sessionOrder.value.length) {
-    const byId = new Map(categories.value.map((c) => [c.id, c] as const));
-    return sessionOrder.value.map((id) => byId.get(id)!).filter(Boolean);
-  }
-  return categories.value;
-});
-
-const displayedCategories = computed(() => {
-  const term = searchTerm.value.trim().toLowerCase();
-  if (!term) return orderedCategories.value;
-  return orderedCategories.value.filter((c) => c.name.toLowerCase().includes(term));
-});
-
-const isCategorySelected = (categoryId: number) => selectedCategoryIds.value.includes(categoryId);
-
-const toggleCategory = (category: CategoryModel) => {
-  const isSelected = isCategorySelected(category.id);
-  if (isSelected) {
-    selectedCategoryIds.value = selectedCategoryIds.value.filter((id) => id !== category.id);
-  } else {
-    selectedCategoryIds.value = [...selectedCategoryIds.value, category.id];
-  }
-};
-
-const clearSelection = () => {
-  selectedCategoryIds.value = [];
-};
 
 // Check if we have stacked bars (multiple categories with data for current metric)
 // Savings mode never uses stacked bars — it shows net flow as simple bars
@@ -515,17 +404,15 @@ const getChangeColorClass = (change: number): string => {
   }
 };
 
-// Colors from CSS variables
 const getColors = () => {
-  const root = document.documentElement;
-  const style = getComputedStyle(root);
+  const { grid, text, card } = getChartColors();
   return {
+    grid,
+    text,
     bar: singleBarColor.value,
-    grid: style.getPropertyValue('--border').trim() || 'rgb(39, 39, 42)',
-    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(161, 161, 170)',
-    // Average line uses a more prominent color for better visibility
-    averageLine: 'rgb(234, 179, 8)', // amber-500 - stands out against most backgrounds
-    averageLabelBg: style.getPropertyValue('--card').trim() || 'rgb(24, 24, 27)',
+    // Average line uses a prominent color for visibility across themes
+    averageLine: 'rgb(234, 179, 8)', // amber-500
+    averageLabelBg: card,
     positive: 'rgb(34, 197, 94)', // green-500
     negative: 'rgb(239, 68, 68)', // red-500
   };
@@ -546,16 +433,7 @@ const formatPeriodLabel = (periodStart: string): string => {
   return format(date, 'MMM yy');
 };
 
-const formatAxisValue = (value: number): string => {
-  const symbol = getCurrencySymbol();
-  const absValue = Math.abs(value);
-  if (absValue >= 1000000) {
-    return `${symbol}${(value / 1000000).toFixed(1)}M`;
-  } else if (absValue >= 1000) {
-    return `${symbol}${(value / 1000).toFixed(0)}K`;
-  }
-  return `${symbol}${value}`;
-};
+const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: getCurrencySymbol() });
 
 const renderChart = () => {
   if (!svgRef.value || !containerRef.value || chartData.value.length === 0) return;
@@ -980,7 +858,7 @@ const renderChart = () => {
 };
 
 // Get category ID and all its children IDs
-function getCategoryWithChildrenIds(categoryId: number): number[] {
+function getCategoryWithChildrenIds(categoryId: string): string[] {
   const ids = [categoryId];
   // Find all categories where parentId matches the given category
   const children = categories.value.filter((cat) => cat.parentId === categoryId);
@@ -999,7 +877,7 @@ function navigateToTransactions({
 }: {
   periodStart: string;
   periodEnd: string;
-  categoryId?: number;
+  categoryId?: string;
 }) {
   const query: Record<string, string | string[]> = {
     start: periodStart,
@@ -1102,7 +980,7 @@ function handleStackedMouseLeave() {
 }
 
 // Handle bar click - navigate on desktop, show tooltip on touch
-function handleBarClick(_event: MouseEvent, d: PeriodWithChange, categoryId?: number) {
+function handleBarClick(_event: MouseEvent, d: PeriodWithChange, categoryId?: string) {
   // Skip if user is interacting with tooltip
   if (isTooltipInteracting.value) return;
 
@@ -1147,49 +1025,12 @@ function handleTooltipMouseLeave() {
   isTooltipInteracting.value = false;
 }
 
-// ResizeObserver for responsive chart
-let resizeObserver: ResizeObserver | null = null;
+useResizeObserver(containerRef, renderChart);
 
-// Setup resize observer when container becomes available
-const setupResizeObserver = () => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
-};
-
-onMounted(() => {
-  renderChart();
-  setupResizeObserver();
+// flush: 'post' waits for the v-else SVG container to mount after data loads,
+// so renderChart sees the correct container dimensions on the first paint.
+watch([chartData, () => props.metric, locale, selectedCategoryIds, currentTheme], renderChart, {
+  deep: true,
+  flush: 'post',
 });
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
-
-// Watch containerRef to set up observer when it becomes available
-// (container is inside v-else block that appears after data loads)
-watch(containerRef, (newVal) => {
-  if (newVal) {
-    setupResizeObserver();
-  }
-});
-
-watch(
-  [chartData, () => props.metric, locale, selectedCategoryIds],
-  () => {
-    // Use nextTick to ensure DOM is updated before rendering
-    // (SVG container is in v-else block that appears when data loads)
-    nextTick(renderChart);
-  },
-  { deep: true },
-);
 </script>

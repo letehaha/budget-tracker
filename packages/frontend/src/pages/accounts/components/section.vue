@@ -17,7 +17,7 @@
 <script lang="ts" setup>
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { ChevronDownIcon } from 'lucide-vue-next';
+import { ChevronDownIcon } from '@lucide/vue';
 import { ref } from 'vue';
 
 const props = defineProps<{ defaultOpen?: boolean }>();

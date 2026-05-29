@@ -8,7 +8,7 @@ import { withTransaction } from '@services/common/with-transaction';
 
 interface GetPortfolioBalancesParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
   currencyCode?: string; // If specified, return balance for specific currency only
 }
 

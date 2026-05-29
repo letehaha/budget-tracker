@@ -5,7 +5,9 @@
       "types": {
         "buy": "Купівля",
         "sell": "Продаж",
-        "dividend": "Дивіденди"
+        "dividend": "Дивіденди",
+        "fee": "Комісія",
+        "tax": "Податок"
       },
       "securityLabel": "Цінний папір",
       "securityPlaceholder": "Виберіть цінний папір",
@@ -13,9 +15,12 @@
       "quantityPlaceholder": "0.00",
       "priceLabel": "Ціна за акцію",
       "pricePlaceholder": "0.00",
+      "priceHelp": "Вкажіть 0 для стейкінг-винагород, аірдропів або коригування балансу.",
       "feesLabel": "Комісії (необов'язково)",
       "feesPlaceholder": "0.00",
       "dateLabel": "Дата транзакції",
+      "noteLabel": "Нотатка",
+      "notePlaceholder": "Необов'язково. Додайте нотатку про цю транзакцію",
       "cancelButton": "Скасувати",
       "submitButton": "Створити транзакцію",
       "submitButtonLoading": "Створення...",
@@ -187,7 +192,10 @@
       "searchCategoryLabel": "Шукати категорію",
       "clearSearchLabel": "Очистити пошук",
       "clearSelectionLabel": "Очистити вибір",
-      "searchPlaceholder": "Пошук..."
+      "searchPlaceholder": "Пошук...",
+      "sharedOwnerNotice": "Показуємо категорії {owner}",
+      "sharedOwnerNoticeTooltip": "Транзакції на спільному рахунку завжди використовують категорії його власника. Все, що ви тут створите, буде записано в наборі категорій {owner}, щоб ви обидва бачили узгоджені підсумки.",
+      "sharedOwnerCategoriesLoadError": "Не вдалося завантажити категорії спільного рахунку. Спробуйте ще раз."
     },
     "select": {
       "selectOption": "Вибрати опцію",
@@ -202,7 +210,9 @@
     },
     "comboboxCategories": {
       "searchPlaceholder": "Шукати категорії...",
-      "unselectedPlaceholder": "Всі категорії"
+      "unselectedPlaceholder": "Всі категорії",
+      "category": "категорія вибрана",
+      "categoriesSelected": "категорій вибрано"
     },
     "tagSelect": {
       "placeholder": "Виберіть теги...",

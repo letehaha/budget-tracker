@@ -83,18 +83,18 @@ describe('Create Portfolio Service E2E', () => {
       expect(portfolio.name).toBe('Trimmed Portfolio');
     });
 
-    it('should reject portfolio creation with duplicate name for same user', async () => {
-      const portfolioData = helpers.buildPortfolioPayload({
-        name: 'Duplicate Portfolio',
-      });
+    it('allows two portfolios with the same name for the same user', async () => {
+      // Duplicate names are no longer rejected — the (userId, name) DB
+      // uniqueness was dropped (see 20260524000000-drop-portfolios-unique-name).
+      // This test locks the new behaviour so we notice if the constraint ever
+      // creeps back in.
+      const portfolioData = helpers.buildPortfolioPayload({ name: 'Duplicate Portfolio' });
 
-      // Create first portfolio
-      const firstResponse = await helpers.createPortfolio({ payload: portfolioData });
-      expect(firstResponse.statusCode).toBe(200);
+      const first = await helpers.createPortfolio({ payload: portfolioData });
+      expect(first.statusCode).toBe(200);
 
-      // Try to create second portfolio with same name
-      const secondResponse = await helpers.createPortfolio({ payload: portfolioData });
-      expect(secondResponse.statusCode).toBe(ERROR_CODES.ConflictError);
+      const second = await helpers.createPortfolio({ payload: portfolioData });
+      expect(second.statusCode).toBe(200);
     });
 
     it('should reject portfolio creation with empty name', async () => {

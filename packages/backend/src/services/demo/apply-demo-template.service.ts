@@ -18,6 +18,7 @@ import {
   createTags,
   setupCurrencies,
   setupDashboardSettings,
+  setupInvestments,
 } from './seed-demo-data.service';
 
 const ACCOUNT_NAME_TO_KEY: Record<string, string> = {
@@ -43,7 +44,7 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
   const accounts = await createAccounts({ userId });
 
   // Build lookup maps from created accounts
-  const accountKeyToId: Record<string, number> = {};
+  const accountKeyToId: Record<string, string> = {};
   const accountKeyToAccountType: Record<string, ACCOUNT_TYPES> = {};
   const accountKeyToCurrency: Record<string, string> = {};
   for (const account of accounts) {
@@ -55,7 +56,7 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
     }
   }
 
-  const fallbackCategoryId = categoryMap.get('other') || 1;
+  const fallbackCategoryId = categoryMap.get('other') || undefined;
 
   const rows = template.transactions.map((tx) => {
     const accountId = accountKeyToId[tx.accountKey];
@@ -108,6 +109,7 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
   }
 
   await setupDashboardSettings({ userId, categoryMap });
+  await setupInvestments({ userId, referenceDate: template.generatedAt });
 
   const duration = Date.now() - startTime;
   logger.info(`Demo template applied for user ${userId} in ${duration}ms (${rows.length} transactions)`);
@@ -211,7 +213,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
 
   // Re-insert balance records for accounts with no transactions (e.g. Savings).
   // The rebuild CTE only covers accounts that appear in the Transactions table.
-  const accountsWithBalances: { accountId: number }[] = await sequelize.query(
+  const accountsWithBalances: { accountId: string }[] = await sequelize.query(
     `SELECT DISTINCT "accountId" FROM "Balances" WHERE "accountId" = ANY(:accountIds)`,
     { replacements: { accountIds }, type: QueryTypes.SELECT },
   );

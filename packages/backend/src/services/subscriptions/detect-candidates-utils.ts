@@ -36,24 +36,24 @@ export function buildGroupingKey({
   currencyCode,
 }: {
   normalizedNote: string;
-  accountId: number;
+  accountId: string;
   currencyCode: string;
 }): string {
   return `${normalizedNote}||${accountId}||${currencyCode}`;
 }
 
 export interface TransactionForGrouping {
-  id: number;
+  id: string;
   amount: number;
   note: string;
   time: Date;
-  accountId: number;
+  accountId: string;
   currencyCode: string;
 }
 
 export interface TransactionGroup {
   normalizedNote: string;
-  accountId: number;
+  accountId: string;
   currencyCode: string;
   transactions: TransactionForGrouping[];
   rawNotes: string[];

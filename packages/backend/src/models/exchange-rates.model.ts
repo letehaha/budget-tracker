@@ -1,3 +1,4 @@
+import { EXCHANGE_RATE_PROVIDER_TYPE } from '@bt/shared/types';
 import { DataTypes, InferAttributes, InferCreationAttributes, Model, Op } from '@sequelize/core';
 import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
@@ -33,6 +34,11 @@ export default class ExchangeRates extends Model<
   @NotNull
   @Default(1)
   declare rate: number;
+
+  @Attribute(DataTypes.STRING(32))
+  @NotNull
+  @Default(EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN)
+  declare source: EXCHANGE_RATE_PROVIDER_TYPE;
 }
 
 export async function getRatesForCurrenciesPairs(

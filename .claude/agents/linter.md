@@ -27,10 +27,13 @@ This is a monorepo with separate backend and frontend:
 
 ### Type Checking (TypeScript)
 
-| Scope    | Command                                                   |
-| -------- | --------------------------------------------------------- |
-| Backend  | `npx tsc --noEmit -p packages/backend/tsconfig.json`      |
-| Frontend | `npx vue-tsc --noEmit -p packages/frontend/tsconfig.json` |
+| Scope                    | Command                                  |
+| ------------------------ | ---------------------------------------- |
+| All (backend + frontend) | `npm run typecheck`                      |
+| Backend only             | `npm -w budget-tracker-be run typecheck` |
+| Frontend only            | `npm -w budget-tracker-fe run typecheck` |
+
+**Always invoke type checks through these npm scripts** — never call `tsc` / `vue-tsc` directly. The npm scripts are pre-approved in settings, so running them avoids permission prompts.
 
 ## Workflow
 

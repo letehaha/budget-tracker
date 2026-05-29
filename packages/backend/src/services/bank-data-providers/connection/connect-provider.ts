@@ -14,7 +14,7 @@ export const connectProvider = async ({
   userId: number;
   credentials: Record<string, unknown>;
   providerName?: string;
-}): Promise<{ connectionId: number; authUrl?: string; message: string }> => {
+}): Promise<{ connectionId: string; authUrl?: string; message: string }> => {
   const provider = bankProviderRegistry.get(providerType);
 
   // Create connection (stores encrypted credentials)

@@ -15,7 +15,7 @@ import TransactionsList from '@/components/transactions-list/transactions-list.v
 import { useShiftMultiSelect } from '@/composable/shift-multi-select';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
-import { AlertTriangleIcon, LinkIcon, PlusIcon, WalletIcon, XIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, LinkIcon, PlusIcon, WalletIcon, XIcon } from '@lucide/vue';
 import { computed, inject, nextTick, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -27,18 +27,18 @@ const scrollAreaViewport = inject<ReturnType<typeof ref<{ viewportElement: HTMLE
   SCROLL_AREA_IDS.dashboard,
 );
 
-defineProps<{ isBudgetDataUpdating: boolean; budgetId: number }>();
+defineProps<{ isBudgetDataUpdating: boolean; budgetId: string }>();
 
 const { addSuccessNotification } = useNotificationCenter();
 const { t } = useI18n();
 
 const route = useRoute();
 const queryClient = useQueryClient();
-const currentBudgetId = ref<number>(Number(route.params.id));
+const currentBudgetId = ref<string>(route.params.id as string);
 
 const cardRef = ref<InstanceType<typeof Card> | null>(null);
 const isUnlinkingSelectionEnabled = ref(false);
-const pickedTransactionsIds = reactive<Set<number>>(new Set());
+const pickedTransactionsIds = reactive<Set<string>>(new Set());
 const isTransactionsPicked = computed(() => !!pickedTransactionsIds.size);
 const { handleSelection, resetSelection, isShiftKeyPressed } = useShiftMultiSelect(pickedTransactionsIds);
 

@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import {
   CreationOptional,
   DataTypes,
@@ -26,15 +27,15 @@ export default class TransferSuggestionDismissals extends Model<
   @NotNull
   declare userId: number;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
-  declare expenseTransactionId: number;
+  declare expenseTransactionId: RecordId;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
-  declare incomeTransactionId: number;
+  declare incomeTransactionId: RecordId;
 
   @Attribute(DataTypes.DATE)
   @NotNull
@@ -57,8 +58,8 @@ export async function createDismissal({
   incomeTransactionId,
 }: {
   userId: number;
-  expenseTransactionId: number;
-  incomeTransactionId: number;
+  expenseTransactionId: string;
+  incomeTransactionId: string;
 }) {
   return TransferSuggestionDismissals.findOrCreate({
     where: { userId, expenseTransactionId, incomeTransactionId },
@@ -70,7 +71,7 @@ export async function getDismissalsForUser({
   expenseTransactionIds,
 }: {
   userId: number;
-  expenseTransactionIds?: number[];
+  expenseTransactionIds?: string[];
 }) {
   return TransferSuggestionDismissals.findAll({
     where: {

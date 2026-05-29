@@ -8,8 +8,8 @@ import {
   skipPeriod,
   unlinkPeriodTransaction,
   updateReminder,
-  type PaymentReminderDetail,
 } from '@/api/payment-reminders';
+import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -17,12 +17,12 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable/formatters';
-import { ApiErrorResponseError } from '@/js/errors';
+import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { PAYMENT_REMINDER_STATUSES, type PaymentReminderPeriodModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format, parseISO } from 'date-fns';
-import { CheckIcon, LinkIcon, PencilIcon, SkipForwardIcon, Trash2Icon, UndoIcon, UnlinkIcon } from 'lucide-vue-next';
+import { CheckIcon, LinkIcon, PencilIcon, SkipForwardIcon, Trash2Icon, UndoIcon, UnlinkIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -43,6 +43,7 @@ const {
   data: reminder,
   isLoading,
   isError,
+  error,
 } = useQuery({
   queryFn: () => loadReminderById({ id: reminderId.value }),
   queryKey: [...VUE_QUERY_CACHE_KEYS.reminderDetails, reminderId],
@@ -51,12 +52,17 @@ const {
   retry: false,
 });
 
-watch(isError, (errored) => {
-  if (errored) {
-    addErrorNotification(t('planned.reminders.notifications.notFound'));
+const isNotFound = computed(() => isError.value && isNotFoundError(error.value));
+
+watch(
+  isError,
+  (errored) => {
+    if (!errored || isNotFound.value) return;
+    addErrorNotification(t('errors.api.unexpectedError'));
     router.replace({ name: ROUTES_NAMES.plannedReminders });
-  }
-});
+  },
+  { immediate: true },
+);
 
 const periodsLimit = ref(6);
 const { data: periodsData } = useQuery({
@@ -91,9 +97,9 @@ const { mutate: updateMutation, isPending: isUpdating } = useMutation({
     isEditOpen.value = false;
     addSuccessNotification(t('planned.reminders.notifications.reminderUpdated'));
   },
-  onError(error) {
+  onError(err) {
     const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.reminders.notifications.updateFailed');
+      err instanceof ApiErrorResponseError ? err.data.message : t('planned.reminders.notifications.updateFailed');
     editFormRef.value?.setError({ error: message ?? '' });
   },
 });
@@ -106,9 +112,9 @@ const { mutate: deleteMutation } = useMutation({
     addSuccessNotification(t('planned.reminders.notifications.reminderDeleted'));
     router.push({ name: ROUTES_NAMES.plannedReminders });
   },
-  onError(error) {
+  onError(err) {
     const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.reminders.notifications.deleteFailed');
+      err instanceof ApiErrorResponseError ? err.data.message : t('planned.reminders.notifications.deleteFailed');
     addErrorNotification(message ?? t('planned.reminders.notifications.deleteFailed'));
   },
 });
@@ -120,11 +126,9 @@ const { mutate: markPaidMutation, isPending: isMarkingPaid } = useMutation({
     invalidateAll();
     addSuccessNotification(t('planned.reminders.notifications.markedAsPaid'));
   },
-  onError(error) {
+  onError(err) {
     const message =
-      error instanceof ApiErrorResponseError
-        ? error.data.message
-        : t('planned.reminders.notifications.markAsPaidFailed');
+      err instanceof ApiErrorResponseError ? err.data.message : t('planned.reminders.notifications.markAsPaidFailed');
     addErrorNotification(message ?? t('planned.reminders.notifications.markAsPaidFailed'));
   },
 });
@@ -135,9 +139,9 @@ const { mutate: skipMutation, isPending: isSkipping } = useMutation({
     invalidateAll();
     addSuccessNotification(t('planned.reminders.notifications.periodSkipped'));
   },
-  onError(error) {
+  onError(err) {
     const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.reminders.notifications.skipFailed');
+      err instanceof ApiErrorResponseError ? err.data.message : t('planned.reminders.notifications.skipFailed');
     addErrorNotification(message ?? t('planned.reminders.notifications.skipFailed'));
   },
 });
@@ -148,9 +152,9 @@ const { mutate: unlinkMutation, isPending: isUnlinking } = useMutation({
     invalidateAll();
     addSuccessNotification(t('planned.reminders.notifications.transactionUnlinked'));
   },
-  onError(error) {
+  onError(err) {
     const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.reminders.notifications.unlinkFailed');
+      err instanceof ApiErrorResponseError ? err.data.message : t('planned.reminders.notifications.unlinkFailed');
     addErrorNotification(message ?? t('planned.reminders.notifications.unlinkFailed'));
   },
 });
@@ -163,9 +167,9 @@ const { mutate: revertMutation, isPending: isReverting } = useMutation({
     revertTarget.value = null;
     addSuccessNotification(t('planned.reminders.notifications.periodReverted'));
   },
-  onError(error) {
+  onError(err) {
     const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.reminders.notifications.revertFailed');
+      err instanceof ApiErrorResponseError ? err.data.message : t('planned.reminders.notifications.revertFailed');
     addErrorNotification(message ?? t('planned.reminders.notifications.revertFailed'));
   },
 });
@@ -209,8 +213,16 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
 </script>
 
 <template>
+  <ResourceNotFound
+    v-if="isNotFound"
+    :title="t('planned.reminders.notFound')"
+    :description="t('planned.reminders.notFoundDescription')"
+    :link-label="t('planned.reminders.backToList')"
+    :link-to="{ name: ROUTES_NAMES.plannedReminders }"
+  />
+
   <!-- Loading skeleton -->
-  <div v-if="isLoading" class="animate-pulse">
+  <div v-else-if="isLoading" class="animate-pulse">
     <div class="bg-muted mb-4 h-8 w-1/3 rounded" />
     <div class="bg-muted mb-2 h-5 w-2/3 rounded" />
     <div class="bg-muted mb-6 h-32 rounded-lg" />

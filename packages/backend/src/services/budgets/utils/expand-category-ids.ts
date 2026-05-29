@@ -10,8 +10,8 @@ export const expandCategoryIds = async ({
   categoryIds,
 }: {
   userId: number;
-  categoryIds: number[];
-}): Promise<number[]> => {
+  categoryIds: string[];
+}): Promise<string[]> => {
   if (!categoryIds.length) return [];
 
   // Find all categories that match the given IDs OR have a parentId matching given IDs

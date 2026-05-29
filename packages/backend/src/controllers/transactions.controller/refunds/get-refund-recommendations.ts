@@ -22,7 +22,7 @@ const schema = z.object({
       // Option 2: Provide form data for new transactions
       transactionType: z.enum(Object.values(TRANSACTION_TYPES) as [string, ...string[]]).optional(),
       originAmount: z.preprocess((val) => (val ? Number(val) : undefined), z.number().positive().optional()),
-      accountId: z.preprocess((val) => (val ? Number(val) : undefined), z.number().int().positive().optional()),
+      accountId: recordId().optional(),
     })
     .refine(
       (data) => {

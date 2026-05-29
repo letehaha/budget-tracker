@@ -1,4 +1,5 @@
-import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import Coingecko from '@coingecko/coingecko-typescript';
 import { Money } from '@common/types/money';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -7,7 +8,7 @@ import SecurityPricing from '@models/investments/security-pricing.model';
 import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
 import alpha from 'alphavantage';
-import { format, isToday, subDays } from 'date-fns';
+import { format, isToday, startOfDay, subDays } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import YahooFinance from 'yahoo-finance2';
 
@@ -54,6 +55,45 @@ mockedYahooFinance.mockImplementation(
     }) as any,
 );
 
+// CoinGecko global mock (registered in setupIntegrationTests.ts). Rebound
+// per-test so a previous override doesn't leak.
+const mockedCoingecko = vi.mocked(Coingecko);
+const mockedCoingeckoSimplePriceGet = vi.fn<any>();
+
+const installCoingeckoMock = () => {
+  mockedCoingeckoSimplePriceGet.mockReset();
+  mockedCoingeckoSimplePriceGet.mockResolvedValue({});
+  mockedCoingecko.mockImplementation(
+    () =>
+      ({
+        search: { get: vi.fn<any>().mockResolvedValue({ coins: [] }) },
+        simple: { price: { get: mockedCoingeckoSimplePriceGet } },
+        coins: {
+          marketChart: {
+            get: vi.fn<any>().mockResolvedValue({ prices: [] }),
+            getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
+          },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any,
+  );
+};
+
+const createCryptoSecurity = async ({
+  symbol = 'BTC',
+  providerSymbol = 'bitcoin',
+  name = 'Bitcoin',
+}: { symbol?: string; providerSymbol?: string; name?: string } = {}) =>
+  Securities.create({
+    symbol,
+    providerSymbol,
+    currencyCode: 'USD',
+    cryptoCurrencyCode: symbol,
+    providerName: SECURITY_PROVIDER.coingecko,
+    assetClass: ASSET_CLASS.crypto,
+    name,
+  });
+
 describe('Securities Daily Sync Service (via API Endpoint)', () => {
   let investmentPortfolio: Portfolios;
   let usSecurity: Securities;
@@ -68,6 +108,8 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
     mockedYahooSearch.mockRejectedValue(new Error('Yahoo mock: not configured'));
     mockedYahooQuote.mockRejectedValue(new Error('Yahoo mock: not configured'));
     mockedYahooChart.mockRejectedValue(new Error('Yahoo mock: not configured'));
+
+    installCoingeckoMock();
 
     // Create investment portfolio
     investmentPortfolio = await helpers.createPortfolio({
@@ -162,9 +204,10 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
 
       expect(response.statusCode).toBe(200);
       expect(helpers.extractResponse(response)).toEqual({
-        message: 'Securities daily sync triggered successfully',
-        triggered: true,
+        message: 'Securities sync triggered (stocks + crypto)',
         timestamp: expect.any(String),
+        stocks: { ok: true },
+        crypto: { ok: true },
       });
 
       // Give some time for background sync to complete
@@ -203,9 +246,10 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
       const response = await helpers.triggerSecuritiesSync();
       expect(response.statusCode).toBe(200);
       expect(helpers.extractResponse(response)).toEqual({
-        message: 'Securities daily sync triggered successfully',
-        triggered: true,
+        message: 'Securities sync triggered (stocks + crypto)',
         timestamp: expect.any(String),
+        stocks: { ok: true },
+        crypto: { ok: true },
       });
 
       await new Promise((resolve) => setTimeout(resolve, 200));
@@ -495,33 +539,338 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
     });
   });
 
+  describe('Closed Market Handling', () => {
+    it('advances pricingLastSyncedAt for symbols when yesterday was a weekend (no provider data)', async () => {
+      // Freeze "today" to a Monday so `yesterday` is Sunday — markets closed,
+      // providers return no data, and the sync should still advance pricingLastSyncedAt
+      // for those symbols so they don't dominate the staleness queue forever.
+      vi.useFakeTimers({
+        now: new Date('2026-05-04T12:00:00Z'), // Monday
+        toFake: ['Date'],
+      });
+
+      try {
+        // Wait for any background work from beforeEach's createHolding to settle, then
+        // snapshot the price-row count so we can assert this sync added none.
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const pricesBefore = await SecurityPricing.count();
+
+        // All providers return empty results — simulating "no data because markets were closed"
+        mockedYahooChart.mockResolvedValue({ quotes: [] });
+        mockedPolygonAggregates.mockResolvedValue({ results: [] });
+        mockedAlphaDaily.mockResolvedValue({ 'Time Series (Daily)': {} });
+
+        const response = await helpers.triggerSecuritiesSync();
+        expect(response.statusCode).toBe(200);
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // pricingLastSyncedAt must advance for every closed-market symbol, even though
+        // no SecurityPricing rows were created.
+        const securities = await helpers.getAllSecurities({ raw: true });
+        const apple = securities.find((s) => s.id === usSecurity.id)!;
+        const asml = securities.find((s) => s.id === nonUsSecurity.id)!;
+        const msft = securities.find((s) => s.id === securityWithStaleData.id)!;
+
+        expect(apple.pricingLastSyncedAt).not.toBeNull();
+        expect(asml.pricingLastSyncedAt).not.toBeNull();
+        expect(msft.pricingLastSyncedAt).not.toBeNull();
+
+        // MSFT was seeded with pricingLastSyncedAt = 10 days ago; it must have been bumped forward.
+        expect(new Date(msft.pricingLastSyncedAt!).getTime()).toBeGreaterThan(
+          new Date('2026-05-03T00:00:00Z').getTime(),
+        );
+
+        // The sync itself must not create new price rows when providers returned nothing.
+        const pricesAfter = await SecurityPricing.count();
+        expect(pricesAfter).toBe(pricesBefore);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('Provider-symbol Collision', () => {
+    it('updates both Securities rows when two securities share a providerSymbol under different providers', async () => {
+      // The DB allows two Security rows to share `providerSymbol` as long as
+      // their `providerName` differs (uniqueness is on the pair). Before this
+      // refactor the daily-sync built a map keyed only by providerSymbol, so
+      // one of these two rows was silently dropped. This test pins the fix in
+      // place: both rows must end up with a SecurityPricing entry and an
+      // advanced pricingLastSyncedAt.
+
+      // beforeEach already created an AAPL row via the FMP search path, so it
+      // has `providerName = fmp`. Add a SECOND AAPL row directly with
+      // `providerName = yahoo` — the colliding pair.
+      const colliderAaplYahoo = await Securities.create({
+        symbol: 'AAPL',
+        providerSymbol: 'AAPL',
+        currencyCode: 'USD',
+        providerName: SECURITY_PROVIDER.yahoo,
+        assetClass: ASSET_CLASS.stocks,
+        name: 'Apple Inc. (Yahoo dup)',
+      });
+
+      // Sanity-check the precondition: two rows, same providerSymbol, distinct providerName.
+      const fmpAapl = await Securities.findOne({
+        where: { providerSymbol: 'AAPL', providerName: SECURITY_PROVIDER.fmp },
+      });
+      expect(fmpAapl).not.toBeNull();
+      expect(fmpAapl!.id).not.toBe(colliderAaplYahoo.id);
+
+      await helpers.createHolding({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: colliderAaplYahoo.id,
+        },
+      });
+
+      // Wait for any background work from createHolding to settle, then
+      // reset price-fetch mocks so the assertion below sees only the sync run.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      mockedYahooChart.mockReset();
+      await SecurityPricing.destroy({ where: { securityId: colliderAaplYahoo.id } });
+
+      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      mockedYahooChart.mockResolvedValue({
+        quotes: [{ date: new Date(yesterday), close: 185.92, adjclose: 185.92 }],
+      });
+
+      const response = await helpers.triggerSecuritiesSync();
+      expect(response.statusCode).toBe(200);
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // BOTH AAPL rows must have a SecurityPricing entry. Before the fix, only
+      // one would — the second would be silently dropped by the symbol-keyed map.
+      const fmpPrices = await SecurityPricing.findAll({ where: { securityId: fmpAapl!.id } });
+      const yahooPrices = await SecurityPricing.findAll({ where: { securityId: colliderAaplYahoo.id } });
+
+      expect(fmpPrices.length).toBeGreaterThan(0);
+      expect(yahooPrices.length).toBeGreaterThan(0);
+
+      // Both rows' pricingLastSyncedAt must advance — otherwise the dropped
+      // security would re-enter the priority queue every run.
+      const securities = await helpers.getAllSecurities({ raw: true });
+      const fmpRow = securities.find((s) => s.id === fmpAapl!.id)!;
+      const yahooRow = securities.find((s) => s.id === colliderAaplYahoo.id)!;
+
+      expect(fmpRow.pricingLastSyncedAt).not.toBeNull();
+      expect(yahooRow.pricingLastSyncedAt).not.toBeNull();
+      expect(isToday(new Date(fmpRow.pricingLastSyncedAt!))).toBe(true);
+      expect(isToday(new Date(yahooRow.pricingLastSyncedAt!))).toBe(true);
+    });
+  });
+
   describe('Concurrent Execution Prevention', () => {
-    it('should prevent concurrent sync execution with locking', async () => {
+    it('reports per-side ok=false when a second trigger hits while the first holds the lock', async () => {
       // Wait for any async work from previous tests to release the lock
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Mock slow Yahoo response to simulate long-running sync
+      // Mock slow Yahoo response so the first trigger holds the stocks lock
       mockedYahooChart.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve({ quotes: [] }), 300)),
       );
 
-      // Start first sync
       const firstSyncPromise = helpers.triggerSecuritiesSync();
-
-      // Start second sync immediately
       const secondSyncPromise = helpers.triggerSecuritiesSync();
 
-      // Both should return success status, but locking should prevent double execution
+      // Both requests now resolve 200 (allSettled surfaces per-side outcomes
+      // instead of throwing). The second request's `stocks.ok` should be false
+      // since the first run still holds `lock:sync:securities-prices:stocks`.
       const [firstResponse, secondResponse] = await Promise.all([firstSyncPromise, secondSyncPromise]);
 
-      const statusCodes = [firstResponse.statusCode, secondResponse.statusCode].toSorted();
-      // One request should succeed (200), the other may be locked out (423 or 429) or both succeed
-      expect(statusCodes[0]).toBe(200);
-      expect([200, 423, 429]).toContain(statusCodes[1]);
+      expect(firstResponse.statusCode).toBe(200);
+      expect(secondResponse.statusCode).toBe(200);
+
+      const firstBody = helpers.extractResponse(firstResponse) as unknown as {
+        stocks: { ok: boolean; error?: string };
+        crypto: { ok: boolean; error?: string };
+      };
+      const secondBody = helpers.extractResponse(secondResponse) as unknown as {
+        stocks: { ok: boolean; error?: string };
+        crypto: { ok: boolean; error?: string };
+      };
+
+      const stocksOkResults = [firstBody.stocks.ok, secondBody.stocks.ok];
+      // Exactly one of the two requests held the stocks lock; the other was rejected.
+      expect(stocksOkResults.filter((ok) => ok)).toHaveLength(1);
+      expect(stocksOkResults.filter((ok) => !ok)).toHaveLength(1);
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       mockedYahooChart.mockClear();
+    });
+  });
+
+  describe('Crypto sync', () => {
+    it('writes a SecurityPricing row for a crypto holding sourced from CoinGecko', async () => {
+      const cryptoSecurity = await createCryptoSecurity();
+      await helpers.createHolding({
+        payload: { portfolioId: investmentPortfolio.id, securityId: cryptoSecurity.id },
+      });
+
+      // Drain any background work created by createHolding before snapshotting.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await SecurityPricing.destroy({ where: { securityId: cryptoSecurity.id } });
+      mockedYahooChart.mockClear();
+      mockedCoingeckoSimplePriceGet.mockReset();
+
+      // Stocks: ensure providers can fetch something so the controller's
+      // dual-trigger reports stocks.ok=true (not the focus of this test).
+      mockedYahooChart.mockResolvedValue({ quotes: [{ date: new Date(), close: 100, adjclose: 100 }] });
+
+      const upstreamLastUpdatedAt = Math.floor(Date.now() / 1000) - 60; // 1 min ago
+      mockedCoingeckoSimplePriceGet.mockResolvedValue({
+        bitcoin: { usd: 67000, last_updated_at: upstreamLastUpdatedAt },
+      });
+
+      const response = await helpers.triggerSecuritiesSync();
+      expect(response.statusCode).toBe(200);
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // CoinGecko must have been called for the batch.
+      expect(mockedCoingeckoSimplePriceGet).toHaveBeenCalled();
+
+      const cryptoPrices = await SecurityPricing.findAll({ where: { securityId: cryptoSecurity.id } });
+      expect(cryptoPrices).toHaveLength(1);
+      const [cryptoPrice] = cryptoPrices;
+      expect(cryptoPrice!.source).toBe(SECURITY_PROVIDER.coingecko);
+      expect(cryptoPrice!.priceClose.toNumber()).toBeCloseTo(67000, 5);
+
+      // Sanity-check the migration actually widened the column to TIMESTAMPTZ.
+      // Without it, Postgres would silently truncate `date` to midnight UTC and
+      // the crypto cadence (multiple rows per day) is broken.
+      const sequelize = SecurityPricing.sequelize!;
+      const [typeRows] = await sequelize.query(
+        `SELECT data_type FROM information_schema.columns
+          WHERE table_name = 'SecurityPricings' AND column_name = 'date'`,
+      );
+      expect((typeRows as { data_type: string }[])[0]?.data_type).toBe('timestamp with time zone');
+
+      // The stored timestamp comes from CoinGecko's last_updated_at, NOT midnight UTC.
+      // Wrap in `new Date()` so the assertion works whether Sequelize returns a Date
+      // or an ISO string for the TIMESTAMPTZ column.
+      expect(new Date(cryptoPrice!.date).getTime()).toBe(upstreamLastUpdatedAt * 1000);
+    });
+
+    it('stocks-daily excludes crypto securities (does not call CoinGecko via the stocks path)', async () => {
+      const cryptoSecurity = await createCryptoSecurity({
+        symbol: 'ETH',
+        providerSymbol: 'ethereum',
+        name: 'Ethereum',
+      });
+      await helpers.createHolding({
+        payload: { portfolioId: investmentPortfolio.id, securityId: cryptoSecurity.id },
+      });
+
+      // Drain createHolding-triggered background work, snapshot state.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await SecurityPricing.destroy({ where: { securityId: cryptoSecurity.id } });
+      await Securities.update({ pricingLastSyncedAt: null }, { where: { id: cryptoSecurity.id } });
+
+      // Make CoinGecko return a price IF it's asked — but the stocks-daily run
+      // must not ask. (Crypto path will ask separately and write the row.)
+      mockedCoingeckoSimplePriceGet.mockReset();
+      mockedCoingeckoSimplePriceGet.mockResolvedValue({
+        ethereum: { usd: 3500, last_updated_at: Math.floor(Date.now() / 1000) },
+      });
+
+      mockedYahooChart.mockResolvedValue({ quotes: [{ date: new Date(), close: 100, adjclose: 100 }] });
+
+      await helpers.triggerSecuritiesSync();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // The crypto row should come from the crypto path (CoinGecko), not the stocks path.
+      // Either way it's sourced as coingecko — the contract we pin is that
+      // Yahoo/Polygon/Alpha were NOT consulted for the crypto security.
+      const calls = mockedYahooChart.mock.calls.map((c) => JSON.stringify(c));
+      expect(calls.some((c) => c.includes('ethereum'))).toBe(false);
+    });
+
+    it('stocks anchor every row to midnight UTC of yesterday', async () => {
+      // Yahoo returns a timestamp far from midnight; the sync must still store
+      // midnight UTC of yesterday so the unique (securityId, date) index keeps
+      // one row per day.
+      const yesterdayMidnightUtc = startOfDay(subDays(new Date(), 1));
+      const noonYesterday = new Date(yesterdayMidnightUtc.getTime() + 12 * 60 * 60 * 1000);
+      mockedYahooChart.mockResolvedValue({
+        quotes: [{ date: noonYesterday, close: 185.92, adjclose: 185.92 }],
+      });
+
+      await helpers.triggerSecuritiesSync();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const usPrice = await SecurityPricing.findOne({
+        where: { securityId: usSecurity.id },
+        order: [['createdAt', 'DESC']],
+      });
+      expect(usPrice).not.toBeNull();
+      // Stored at midnight UTC of yesterday — not at the provider's noon timestamp.
+      // Wrap in `new Date()` so the assertion is robust to whether Sequelize hydrates
+      // the TIMESTAMPTZ column as a Date or as an ISO string.
+      expect(new Date(usPrice!.date).toISOString()).toBe(yesterdayMidnightUtc.toISOString());
+    });
+  });
+
+  describe('Dual-trigger error isolation', () => {
+    it('still runs crypto when stocks throws (and vice versa)', async () => {
+      const cryptoSecurity = await createCryptoSecurity({ symbol: 'SOL', providerSymbol: 'solana', name: 'Solana' });
+      await helpers.createHolding({
+        payload: { portfolioId: investmentPortfolio.id, securityId: cryptoSecurity.id },
+      });
+
+      // Drain background work, snapshot state.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await SecurityPricing.destroy({ where: { securityId: cryptoSecurity.id } });
+      mockedCoingeckoSimplePriceGet.mockReset();
+
+      // Stocks: every provider rejects → stocks sync surfaces failures via
+      // `failedUpdates` (no thrown error from the wrapper, but data integrity
+      // remains; controller will report `stocks.ok: true` with internal counts).
+      // For the strongest assertion, simulate a hard throw via Yahoo + Polygon +
+      // Alpha all rejecting; the sync code path will still complete normally
+      // (no provider == no rows, but no thrown error). To force a thrown error,
+      // mock Securities.findAll to throw.
+      const originalFindAll = Securities.findAll;
+      let firstCall = true;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (Securities as any).findAll = vi.fn().mockImplementation((...args: unknown[]) => {
+        if (firstCall) {
+          firstCall = false;
+          throw new Error('Simulated DB failure on stocks path');
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (originalFindAll as any).apply(Securities, args);
+      });
+
+      mockedCoingeckoSimplePriceGet.mockResolvedValue({
+        solana: { usd: 150, last_updated_at: Math.floor(Date.now() / 1000) },
+      });
+
+      try {
+        const response = await helpers.triggerSecuritiesSync();
+        expect(response.statusCode).toBe(200);
+
+        const body = helpers.extractResponse(response) as unknown as {
+          stocks: { ok: boolean; error?: string };
+          crypto: { ok: boolean; error?: string };
+        };
+
+        // Stocks failed because Securities.findAll threw.
+        expect(body.stocks.ok).toBe(false);
+        // Crypto still ran because allSettled isolates the two promises.
+        expect(body.crypto.ok).toBe(true);
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        const solPrices = await SecurityPricing.findAll({ where: { securityId: cryptoSecurity.id } });
+        expect(solPrices.length).toBeGreaterThan(0);
+      } finally {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (Securities as any).findAll = originalFindAll;
+      }
     });
   });
 });

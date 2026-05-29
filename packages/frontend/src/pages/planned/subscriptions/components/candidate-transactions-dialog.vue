@@ -8,7 +8,7 @@ import { computed } from 'vue';
 
 const props = defineProps<{
   open: boolean;
-  transactionIds: number[];
+  transactionIds: string[];
 }>();
 
 const emit = defineEmits<{
@@ -29,7 +29,12 @@ const transactions = computed(() => {
 </script>
 
 <template>
-  <ResponsiveDialog :open="open" dialog-content-class="max-w-md" @update:open="emit('update:open', $event)">
+  <ResponsiveDialog
+    :open="open"
+    dialog-content-class="max-w-md"
+    hide-drawer-footer
+    @update:open="emit('update:open', $event)"
+  >
     <template #title>{{ $t('planned.subscriptions.candidates.sampleTransactionsTitle') }}</template>
     <template #description>
       {{ $t('planned.subscriptions.candidates.sampleTransactionsDescription') }}

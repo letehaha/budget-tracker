@@ -91,10 +91,6 @@
       "tagModeRemove": "Remove these tags"
     },
     "transactionGroups": {
-      "navigation": {
-        "allTransactions": "All Transactions",
-        "groups": "Groups"
-      },
       "bulkActions": {
         "createNewGroup": "Create new group",
         "addToExistingGroup": "Add to existing group",
@@ -161,6 +157,10 @@
         "createFailed": "Failed to create group",
         "addFailed": "Failed to add transactions to group"
       }
-    }
+    },
+    "transfer": {
+      "hiddenAccount": "Hidden account"
+    },
+    "addedByTooltip": "This transaction was attached to the budget by {handle}"
   }
 }

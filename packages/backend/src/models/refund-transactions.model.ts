@@ -8,7 +8,7 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsTo,
   Index,
   NotNull,
@@ -16,6 +16,7 @@ import {
   Table,
   Unique,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import TransactionSplits from './transaction-splits.model';
 import Transactions from './transactions.model';
@@ -30,10 +31,16 @@ export default class RefundTransactions extends Model<
   InferAttributes<RefundTransactions>,
   InferCreationAttributes<RefundTransactions>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  declare id: CreationOptional<string>;
+
+  @BeforeCreate
+  static generateUUIDv7(instance: RefundTransactions) {
+    if (!instance.id) {
+      instance.id = uuidv7();
+    }
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull
@@ -43,15 +50,15 @@ export default class RefundTransactions extends Model<
   // Can be nullish to support cases like when user has account_A in the system, he receives tx_A,
   // but in fact it's a refund for some tx_B in an "out of system" account. It is important to
   // consider that not all user real-life accounts will be present in the system
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare originalTxId: number | null;
+  declare originalTxId: string | null;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Unique
   @Index
-  declare refundTxId: number;
+  declare refundTxId: string;
 
   // Optional: when set, the refund applies to a specific split rather than the whole transaction
   @Attribute(DataTypes.UUID)
@@ -80,8 +87,8 @@ export const createRefundTransaction = async ({
   splitId,
 }: {
   userId: number;
-  originalTxId: number | null;
-  refundTxId: number;
+  originalTxId: string | null;
+  refundTxId: string;
   splitId?: string | null;
 }) => {
   return RefundTransactions.create({ userId, originalTxId, refundTxId, splitId });

@@ -1,4 +1,4 @@
-import { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES, RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import {
@@ -57,7 +57,7 @@ export default class PaymentReminders extends Model<
   @NotNull
   declare name: string;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   get expectedAmount(): Money {
     return moneyGetCents(this, 'expectedAmount');
   }
@@ -99,8 +99,8 @@ export default class PaymentReminders extends Model<
   @Default('UTC')
   declare timezone: CreationOptional<string>;
 
-  @Attribute(DataTypes.INTEGER)
-  declare categoryId: number | null;
+  @Attribute(DataTypes.UUID)
+  declare categoryId: string | null;
 
   @Attribute(DataTypes.TEXT)
   declare notes: string | null;

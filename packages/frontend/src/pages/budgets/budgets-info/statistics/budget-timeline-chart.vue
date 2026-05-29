@@ -45,12 +45,16 @@
 </template>
 
 <script setup lang="ts">
+import { currentTheme } from '@/common/utils/color-theme';
 import { useFormatCurrency } from '@/composable';
+import { getChartColors } from '@/composable/charts/chart-colors';
+import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
 import type { endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { computed, reactive, ref, watch } from 'vue';
 
 const props = defineProps<{
   data: endpointsTypes.BudgetSpendingPeriod[];
@@ -82,13 +86,12 @@ const { updateTooltipPosition } = useChartTooltipPosition({
 const hasIncome = computed(() => props.data.some((d) => d.income > 0));
 
 const getColors = () => {
-  const root = document.documentElement;
-  const style = getComputedStyle(root);
+  const { grid, text, successText, destructiveText } = getChartColors();
   return {
-    income: style.getPropertyValue('--success-text').trim() || 'rgb(46, 204, 113)',
-    expenses: style.getPropertyValue('--destructive-text').trim() || 'rgb(239, 68, 68)',
-    grid: style.getPropertyValue('--border').trim() || 'rgb(39, 39, 42)',
-    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(161, 161, 170)',
+    grid,
+    text,
+    income: successText,
+    expenses: destructiveText,
   };
 };
 
@@ -97,13 +100,7 @@ const formatPeriodLabel = (periodStart: string): string => {
   return props.granularity === 'monthly' ? format(date, 'MMM yy') : format(date, 'MMM d');
 };
 
-const formatAxisValue = (value: number): string => {
-  const symbol = getCurrencySymbol();
-  const absValue = Math.abs(value);
-  if (absValue >= 1000000) return `${symbol}${(value / 1000000).toFixed(1)}M`;
-  if (absValue >= 1000) return `${symbol}${(value / 1000).toFixed(0)}K`;
-  return `${symbol}${value}`;
-};
+const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: getCurrencySymbol() });
 
 const renderChart = () => {
   if (!svgRef.value || !containerRef.value || props.data.length === 0) return;
@@ -279,20 +276,7 @@ function handleMouseLeave() {
   tooltip.visible = false;
 }
 
-let resizeObserver: ResizeObserver | null = null;
+useResizeObserver(containerRef, renderChart);
 
-onMounted(() => {
-  renderChart();
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => renderChart());
-    resizeObserver.observe(containerRef.value);
-  }
-});
-
-onUnmounted(() => {
-  if (resizeObserver) resizeObserver.disconnect();
-});
-
-watch([() => props.data, () => props.granularity], renderChart, { deep: true });
+watch([() => props.data, () => props.granularity, currentTheme], renderChart, { deep: true });
 </script>

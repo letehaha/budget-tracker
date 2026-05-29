@@ -115,7 +115,7 @@ import { useFormValidation } from '@/composable';
 import { minLength, required, sameAs } from '@/js/helpers/validators';
 import { authClient, setPassword } from '@/lib/auth-client';
 import { useUserStore } from '@/stores';
-import { AlertCircle, Loader2Icon } from 'lucide-vue-next';
+import { AlertCircle, Loader2Icon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

@@ -22,25 +22,25 @@ export const editAccount = async ({
   id,
   ...data
 }: endpointsTypes.UpdateAccountBody & {
-  id: number;
+  id: string;
 }): Promise<AccountModel> => {
   return api.put(`/accounts/${id}`, data);
 };
 
 export interface DeleteAccountPayload {
-  id: number;
+  id: string;
 }
 export const deleteAccount = async ({ id }: DeleteAccountPayload): Promise<void> => api.delete(`/accounts/${id}`);
 
 export interface UnlinkAccountFromBankConnectionPayload {
-  id: number;
+  id: string;
 }
 export const balanceAdjustment = async ({
   id,
   targetBalance,
   note,
 }: {
-  id: number;
+  id: string;
   targetBalance: number;
   note?: string;
 }): Promise<{
@@ -56,8 +56,8 @@ export const unlinkAccountFromBankConnection = async ({
 };
 
 interface LinkAccountToBankConnectionPayload {
-  accountId: number;
-  connectionId: number;
+  accountId: string;
+  connectionId: string;
   externalAccountId: string;
 }
 export const linkAccountToBankConnection = async ({

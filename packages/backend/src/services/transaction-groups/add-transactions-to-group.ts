@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
 import TransactionGroupItems from '@models/transaction-group-items.model';
@@ -10,9 +11,9 @@ import { resolveTransferPairs } from './resolve-transfer-pairs';
 import { validateTransactionsForGroup } from './validate-transactions-for-group';
 
 interface AddTransactionsToGroupPayload {
-  groupId: number;
+  groupId: RecordId;
   userId: number;
-  transactionIds: number[];
+  transactionIds: RecordId[];
 }
 
 export const addTransactionsToGroup = withTransaction(async (payload: AddTransactionsToGroupPayload) => {
@@ -34,7 +35,7 @@ export const addTransactionsToGroup = withTransaction(async (payload: AddTransac
     attributes: ['transactionId'],
     raw: true,
   });
-  const existingIds = new Set(existingInGroup.map((i) => i.transactionId));
+  const existingIds = new Set(existingInGroup.map((i) => i.transactionId as RecordId));
   const newIds = expandedIds.filter((id) => !existingIds.has(id));
 
   if (newIds.length === 0) {

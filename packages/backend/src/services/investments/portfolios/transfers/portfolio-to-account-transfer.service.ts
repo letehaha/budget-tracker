@@ -12,22 +12,24 @@ import { updatePortfolioBalance } from '@services/investments/portfolios/balance
 
 import {
   computeRefAmount,
+  computeRestampForExistingTransaction,
   findAccountOrThrow,
   findCurrencyOrThrow,
   findPortfolioOrThrow,
+  getUserBaseCurrencyCode,
   negateAmount,
   validatePositiveAmount,
 } from './transfer-validations';
 
 interface PortfolioToAccountTransferParams {
   userId: number;
-  portfolioId: number;
-  accountId: number;
+  portfolioId: string;
+  accountId: string;
   amount: string;
   currencyCode: string;
   date: string;
   description?: string | null;
-  existingTransactionId?: number;
+  existingTransactionId?: string;
 }
 
 const portfolioToAccountTransferImpl = async ({
@@ -46,12 +48,12 @@ const portfolioToAccountTransferImpl = async ({
   const account = await findAccountOrThrow({ accountId, userId, role: 'destination' });
   await findCurrencyOrThrow({ currencyCode });
 
-  const refAmount = await computeRefAmount({ amount, currencyCode, userId, date });
+  const refCurrencyCode = await getUserBaseCurrencyCode({ userId });
+  const refAmount = await computeRefAmount({ amount, currencyCode, userId, date, baseCurrencyCode: refCurrencyCode });
 
-  let linkedTransactionId: number;
+  let linkedTransactionId: string;
 
   if (existingTransactionId) {
-    // Link to an existing income transaction
     const existingTx = await findOrThrowNotFound({
       query: Transactions.getTransactionById({
         id: existingTransactionId,
@@ -66,7 +68,6 @@ const portfolioToAccountTransferImpl = async ({
       });
     }
 
-    // Check if this transaction is already linked to a portfolio transfer
     const existingLink = await PortfolioTransfers.findOne({
       where: { transactionId: existingTransactionId },
     });
@@ -77,18 +78,28 @@ const portfolioToAccountTransferImpl = async ({
       });
     }
 
-    // Update the existing transaction's transferNature
+    // Re-stamp ref fields: the existing tx may pre-date a base-currency switch, and the
+    // @BeforeUpdate validator requires both fields on `transfer_to_portfolio` rows.
+    const restamp = await computeRestampForExistingTransaction({ tx: existingTx, userId });
+
     await Transactions.updateTransactionById({
       id: existingTransactionId,
       userId,
       transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+      refCurrencyCode: restamp.refCurrencyCode,
+      refAmount: restamp.refAmount,
     });
 
     linkedTransactionId = existingTransactionId;
   } else {
-    // Create a new income Transaction on the account
     const txAmount = Money.fromDecimal(amount);
-    const txRefAmount = await computeRefAmount({ amount, currencyCode: account.currencyCode, userId, date });
+    const txRefAmount = await computeRefAmount({
+      amount,
+      currencyCode: account.currencyCode,
+      userId,
+      date,
+      baseCurrencyCode: refCurrencyCode,
+    });
 
     const newTx = await Transactions.createTransaction({
       userId,
@@ -99,6 +110,7 @@ const portfolioToAccountTransferImpl = async ({
       accountId,
       accountType: account.type,
       currencyCode: account.currencyCode,
+      refCurrencyCode,
       transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
       time: new Date(date),
       note: description || undefined,

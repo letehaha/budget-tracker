@@ -8,7 +8,7 @@
   >
     <Combobox.ComboboxAnchor>
       <Combobox.ComboboxTrigger
-        class="ring-offset-background focus-visible:ring-ring flex w-full justify-between rounded-md text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        class="border-input bg-input-background ring-offset-background focus-visible:ring-ring flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
         <div class="flex items-center gap-2">
           <span
@@ -134,16 +134,16 @@ import { Collapsible, CollapsibleContent } from '@/components/lib/ui/collapsible
 import * as Combobox from '@/components/lib/ui/combobox';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useAccountsStore } from '@/stores';
-import { AccountModel } from '@bt/shared/types';
+import { AccountModel, type RecordId } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { isEqual } from 'lodash-es';
-import { CheckIcon, ChevronDown, MinusIcon, SearchIcon, XIcon } from 'lucide-vue-next';
+import { CheckIcon, ChevronDown, MinusIcon, SearchIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import ComboboxAccountItem from './combobox-account-item.vue';
 
 interface FlatGroup {
-  id: number;
+  id: string;
   name: string;
   accounts: AccountModel[];
 }
@@ -156,19 +156,19 @@ const emit = defineEmits(['update:accounts']);
 
 // --- Helpers ---
 
-function applySessionOrder<T extends { id: number }>({ items, order }: { items: T[]; order: number[] }): T[] {
+function applySessionOrder<T extends { id: string }>({ items, order }: { items: T[]; order: string[] }): T[] {
   if (!order.length) return items;
   const byId = new Map(items.map((item) => [item.id, item]));
   return order.map((id) => byId.get(id)!).filter(Boolean);
 }
 
-function partitionSelectedFirst<T extends { id: number }>({
+function partitionSelectedFirst<T extends { id: string }>({
   items,
   selectedIds,
 }: {
   items: T[];
-  selectedIds: Set<number>;
-}): number[] {
+  selectedIds: Set<string>;
+}): string[] {
   const selected = items.filter((item) => selectedIds.has(item.id));
   const others = items.filter((item) => !selectedIds.has(item.id));
   return [...selected, ...others].map((item) => item.id);
@@ -215,7 +215,7 @@ const flattenedGroups = computed<FlatGroup[]>(() => {
 });
 
 const groupedAccountIds = computed(() => {
-  const ids = new Set<number>();
+  const ids = new Set<string>();
   for (const group of flattenedGroups.value) {
     for (const account of group.accounts) {
       ids.add(account.id);
@@ -241,7 +241,7 @@ const ungroupedAccounts = computed(() => {
 
 // --- Selection state ---
 
-const selectedAccountIds = ref<number[]>([]);
+const selectedAccountIds = ref<string[]>([]);
 
 const selectedAccounts = computed(() =>
   (storeAccounts.value ?? []).filter((a) => selectedAccountIds.value.includes(a.id)),
@@ -278,14 +278,14 @@ const clearSelection = () => {
 
 // --- Collapse state ---
 
-const collapsedGroups = ref(new Set<number>());
+const collapsedGroups = ref(new Set<string>());
 
-const isGroupExpanded = (groupId: number): boolean => {
+const isGroupExpanded = (groupId: string): boolean => {
   if (normalizedSearch.value) return true;
   return !collapsedGroups.value.has(groupId);
 };
 
-const toggleCollapse = (groupId: number) => {
+const toggleCollapse = (groupId: string) => {
   const next = new Set(collapsedGroups.value);
   if (next.has(groupId)) {
     next.delete(groupId);
@@ -299,7 +299,7 @@ const toggleCollapse = (groupId: number) => {
 
 const groupCheckStates = computed(() => {
   const selectedSet = new Set(selectedAccountIds.value);
-  const states = new Map<number, CheckedState>();
+  const states = new Map<string, CheckedState>();
   for (const group of flattenedGroups.value) {
     const selectedCount = group.accounts.filter((a) => selectedSet.has(a.id)).length;
     if (selectedCount === 0) states.set(group.id, false);
@@ -309,7 +309,7 @@ const groupCheckStates = computed(() => {
   return states;
 });
 
-const toggleGroup = (groupId: number) => {
+const toggleGroup = (groupId: string) => {
   const group = flattenedGroups.value.find((g) => g.id === groupId);
   if (!group) return;
 
@@ -318,7 +318,7 @@ const toggleGroup = (groupId: number) => {
 
   if (allSelected) {
     const groupIdSet = new Set(groupAccountIds);
-    selectedAccountIds.value = selectedAccountIds.value.filter((id) => !groupIdSet.has(id));
+    selectedAccountIds.value = selectedAccountIds.value.filter((id) => !groupIdSet.has(id as RecordId));
   } else {
     const currentSet = new Set(selectedAccountIds.value);
     const toAdd = groupAccountIds.filter((id) => !currentSet.has(id));
@@ -331,9 +331,9 @@ const toggleGroup = (groupId: number) => {
 // --- Session ordering ---
 
 const sessionOrder = ref({
-  groups: [] as number[],
-  ungrouped: [] as number[],
-  groupAccounts: new Map<number, number[]>(),
+  groups: [] as string[],
+  ungrouped: [] as string[],
+  groupAccounts: new Map<string, string[]>(),
 });
 
 function captureSessionOrder() {
@@ -345,7 +345,7 @@ function captureSessionOrder() {
     selectedIds,
   });
 
-  const accountOrderMap = new Map<number, number[]>();
+  const accountOrderMap = new Map<string, string[]>();
   for (const group of flattenedGroups.value) {
     accountOrderMap.set(group.id, partitionSelectedFirst({ items: group.accounts, selectedIds }));
   }

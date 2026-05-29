@@ -114,7 +114,7 @@ onMounted(async () => {
 
 // Create a reverse mapping to find which CSV category name maps to which system category ID
 const categoryIdToCSVName = computed(() => {
-  const mapping: Record<number, string> = {};
+  const mapping: Record<string, string> = {};
   for (const [csvName, value] of Object.entries(importStore.categoryMapping)) {
     if (value.action === 'link-existing') {
       mapping[value.categoryId] = csvName;
@@ -146,21 +146,20 @@ const handleActionChange = (categoryName: string, option: OptionItem | null) => 
     importStore.categoryMapping[categoryName] = { action: 'create-new' };
   } else if (action === 'link-existing') {
     // Set action but no categoryId yet - user needs to select
-    importStore.categoryMapping[categoryName] = { action: 'link-existing', categoryId: 0 };
+    importStore.categoryMapping[categoryName] = { action: 'link-existing', categoryId: '' };
   }
 };
 
 const handleCategorySelect = (categoryName: string, value: string) => {
-  const categoryId = Number(value);
-  if (categoryId) {
-    importStore.categoryMapping[categoryName] = { action: 'link-existing', categoryId };
+  if (value) {
+    importStore.categoryMapping[categoryName] = { action: 'link-existing', categoryId: value };
   }
 };
 
 const getCategorySelectValue = (categoryName: string): string => {
   const mapping = importStore.categoryMapping[categoryName];
   if (mapping?.action === 'link-existing' && mapping.categoryId) {
-    return String(mapping.categoryId);
+    return mapping.categoryId;
   }
   return '';
 };
@@ -174,13 +173,13 @@ const getCategoryDisplayValue = (categoryName: string): string => {
   return t('pages.importExport.categoryMappingTable.selectCategory');
 };
 
-const isCategoryMapped = (categoryId: number, currentCategoryName: string): boolean => {
+const isCategoryMapped = (categoryId: string, currentCategoryName: string): boolean => {
   // Check if this category ID is already mapped to a different CSV category
   const mappedTo = categoryIdToCSVName.value[categoryId];
   return mappedTo !== undefined && mappedTo !== currentCategoryName;
 };
 
-const getMappedToCategoryName = (categoryId: number): string => {
+const getMappedToCategoryName = (categoryId: string): string => {
   return categoryIdToCSVName.value[categoryId] || '';
 };
 </script>

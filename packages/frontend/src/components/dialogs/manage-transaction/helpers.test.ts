@@ -1,5 +1,13 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
-import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  AccountModel,
+  PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  TransactionModel,
+  type RecordId,
+} from '@bt/shared/types';
 import {
   ACCOUNTS,
   USER_CATEGORIES,
@@ -12,7 +20,13 @@ import {
   getUahAccount,
 } from '@tests/mocks';
 
-import { getDestinationAmount, getFormTypeFromTransaction, getTxTypeFromFormType, prepopulateForm } from './helpers';
+import {
+  canDeleteTransaction,
+  getDestinationAmount,
+  getFormTypeFromTransaction,
+  getTxTypeFromFormType,
+  prepopulateForm,
+} from './helpers';
 import { FORM_TYPES } from './types';
 
 describe('components/modals/modify-record/helpers', () => {
@@ -65,7 +79,7 @@ describe('components/modals/modify-record/helpers', () => {
         acc[account.id] = account;
         return acc;
       },
-      {} as Record<number, (typeof ACCOUNTS)[0]>,
+      {} as Record<string, (typeof ACCOUNTS)[0]>,
     );
 
     const categoriesRecord = USER_CATEGORIES.reduce(
@@ -73,7 +87,7 @@ describe('components/modals/modify-record/helpers', () => {
         acc[category.id] = category;
         return acc;
       },
-      {} as Record<number, (typeof USER_CATEGORIES)[0]>,
+      {} as Record<string, (typeof USER_CATEGORIES)[0]>,
     );
 
     it('returns undefined when transaction is undefined', () => {
@@ -160,6 +174,90 @@ describe('components/modals/modify-record/helpers', () => {
         toAccount: destinationAccount,
         targetAmount: oppositeTransaction.amount,
       });
+    });
+
+    it('flips source/destination when transaction is the income side of a transfer', () => {
+      // Mirrors the external income → transfer flow where the user-facing primary
+      // tx is the income side; the form-data layout still expects amount/account
+      // to be the source (expense) side.
+      const incomeAccount = getUahAccount();
+      const expenseAccount = getUah2Account();
+
+      const transaction = buildSystemTransferOppositeTransaction({
+        accountId: incomeAccount.id,
+        amount: 800,
+      });
+      const oppositeTransaction = buildSystemTransferExpenseTransaction({
+        accountId: expenseAccount.id,
+        amount: 800,
+        transferId: transaction.transferId,
+      });
+
+      const result = prepopulateForm({
+        transaction,
+        oppositeTransaction,
+        accounts: accountsRecord,
+        categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
+      });
+
+      expect(result).toMatchObject({
+        type: FORM_TYPES.transfer,
+        amount: oppositeTransaction.amount,
+        account: expenseAccount,
+        toAccount: incomeAccount,
+        targetAmount: transaction.amount,
+      });
+    });
+
+    it('falls back to first formatted category when transaction.categoryId is null', () => {
+      // Transfers are created with `categoryId: null` (see `prepare-tx-creation-params.ts`),
+      // so prepopulating a transfer-mode edit without a fallback would leave form.category
+      // null and crash `prepareTxUpdationParams` on the way back out. Verify the picker
+      // starts with a sensible default — same behavior any freshly-created expense gets.
+      const sourceAccount = getUahAccount();
+      const transaction = buildSystemTransferExpenseTransaction({
+        accountId: sourceAccount.id,
+        categoryId: null as unknown as RecordId,
+      });
+
+      const result = prepopulateForm({
+        transaction,
+        oppositeTransaction: undefined,
+        accounts: accountsRecord,
+        categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
+      });
+
+      expect(result?.category).toEqual(USER_CATEGORIES[0]);
+    });
+
+    it('falls back to the income tx itself as source when no opposite is provided', () => {
+      // Edge case: an income transfer rendered before the opposite side is loaded.
+      // The flip in prepopulateForm should not blow up — it should treat the
+      // single tx as the source so the form still has *something* to render.
+      const incomeAccount = getUahAccount();
+
+      const transaction = buildSystemTransferOppositeTransaction({
+        accountId: incomeAccount.id,
+        amount: 500,
+      });
+
+      const result = prepopulateForm({
+        transaction,
+        oppositeTransaction: undefined,
+        accounts: accountsRecord,
+        categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
+      });
+
+      expect(result).toMatchObject({
+        type: FORM_TYPES.transfer,
+        amount: transaction.amount,
+        account: incomeAccount,
+      });
+      expect(result!.toAccount).toBeUndefined();
+      expect(result!.targetAmount).toBeUndefined();
     });
 
     it('populates form for out-of-wallet income transaction (external → account)', () => {
@@ -266,6 +364,69 @@ describe('components/modals/modify-record/helpers', () => {
 
       expect(result!.time).toBeInstanceOf(Date);
       expect(result!.time.getTime()).toBe(txTime.getTime());
+    });
+  });
+
+  describe('canDeleteTransaction', () => {
+    const sourceAccount = getUahAccount();
+    const destSystemAccount = getUah2Account();
+    const destMonobankAccount = {
+      ...getUah2Account(),
+      id: '00000000-0000-0000-0000-000000000099' as RecordId,
+      type: ACCOUNT_TYPES.monobank,
+    } as AccountModel;
+
+    const accounts: Record<string, AccountModel> = {
+      [sourceAccount.id!]: sourceAccount as AccountModel,
+      [destSystemAccount.id!]: destSystemAccount as AccountModel,
+      [destMonobankAccount.id]: destMonobankAccount,
+    };
+
+    it('returns false when there is no transaction (create mode)', () => {
+      expect(
+        canDeleteTransaction({ transaction: undefined, oppositeTransaction: undefined, accounts, canMutate: true }),
+      ).toBe(false);
+    });
+
+    it('returns false when caller cannot mutate the tx', () => {
+      const transaction = buildSystemExpenseTransaction({ accountId: sourceAccount.id! });
+      expect(canDeleteTransaction({ transaction, oppositeTransaction: undefined, accounts, canMutate: false })).toBe(
+        false,
+      );
+    });
+
+    it('returns true for a plain system expense the caller can mutate', () => {
+      const transaction = buildSystemExpenseTransaction({ accountId: sourceAccount.id! });
+      expect(canDeleteTransaction({ transaction, oppositeTransaction: undefined, accounts, canMutate: true })).toBe(
+        true,
+      );
+    });
+
+    it('returns true for a system-to-system transfer pair', () => {
+      const transaction = buildSystemTransferExpenseTransaction({ accountId: sourceAccount.id! });
+      const oppositeTransaction = buildSystemTransferOppositeTransaction({
+        accountId: destSystemAccount.id!,
+        transferId: transaction.transferId,
+      });
+      expect(canDeleteTransaction({ transaction, oppositeTransaction, accounts, canMutate: true })).toBe(true);
+    });
+
+    it('returns false when the opposite leg lives on an external (monobank) account', () => {
+      // Regression: deleting only the system leg would orphan the external income row,
+      // since the backend cascades the pair but cannot remove the monobank-side tx.
+      const transaction = buildSystemTransferExpenseTransaction({ accountId: sourceAccount.id! });
+      const oppositeTransaction = buildSystemTransferOppositeTransaction({
+        accountId: destMonobankAccount.id,
+        transferId: transaction.transferId,
+      });
+      expect(canDeleteTransaction({ transaction, oppositeTransaction, accounts, canMutate: true })).toBe(false);
+    });
+
+    it('returns false when the primary tx is on an external account (existing behavior preserved)', () => {
+      const transaction = buildSystemExpenseTransaction({ accountId: destMonobankAccount.id });
+      expect(canDeleteTransaction({ transaction, oppositeTransaction: undefined, accounts, canMutate: true })).toBe(
+        false,
+      );
     });
   });
 });

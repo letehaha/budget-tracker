@@ -57,8 +57,8 @@ export default class PaymentReminderPeriods extends Model<
   @Attribute(DataTypes.DATE)
   declare paidAt: Date | null;
 
-  @Attribute(DataTypes.INTEGER)
-  declare transactionId: number | null;
+  @Attribute(DataTypes.UUID)
+  declare transactionId: string | null;
 
   @Attribute(DataTypes.TEXT)
   declare notes: string | null;

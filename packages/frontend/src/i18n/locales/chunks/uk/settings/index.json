@@ -9,7 +9,9 @@
       "preferences": "Налаштування",
       "ai": "ШІ",
       "security": "Безпека",
-      "admin": "Адміністратор"
+      "admin": "Адміністратор",
+      "sharedWithMe": "Поділилися зі мною",
+      "household": "Сім'я"
     },
     "backToSettings": "Назад до налаштувань"
   }

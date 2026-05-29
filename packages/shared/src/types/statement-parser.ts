@@ -132,7 +132,7 @@ export interface StatementExtractError {
  */
 export interface StatementDetectDuplicatesRequest {
   /** Account ID to check duplicates against */
-  accountId: number;
+  accountId: string;
   /** Extracted transactions from AI */
   transactions: ExtractedTransaction[];
 }
@@ -148,7 +148,7 @@ export interface StatementDuplicateMatch {
   extractedTransaction: ExtractedTransaction;
   /** The existing transaction in the database */
   existingTransaction: {
-    id: number;
+    id: string;
     date: string;
     amount: Cents;
     note: string;
@@ -168,7 +168,7 @@ export interface StatementDetectDuplicatesResponse {
  */
 export interface StatementExecuteImportRequest {
   /** Account ID to import transactions to */
-  accountId: number;
+  accountId: string;
   /** Extracted transactions to import */
   transactions: ExtractedTransaction[];
   /** Transaction indices to skip (confirmed duplicates) */
@@ -192,7 +192,7 @@ export interface StatementExecuteImportResponse {
     skipped: number;
     errors: StatementImportError[];
   };
-  newTransactionIds: number[];
+  newTransactionIds: string[];
   batchId: string;
 }
 

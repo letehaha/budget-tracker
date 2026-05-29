@@ -1,5 +1,10 @@
 import { UserModel } from '@bt/shared/types';
-import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import {
+  ASSET_CLASS,
+  SECURITY_PROVIDER,
+  SUPPORTED_ASSET_CLASSES,
+  type SecuritySearchResult,
+} from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -10,7 +15,12 @@ import { dataProviderFactory } from '../data-providers';
 interface SearchOptions {
   query: string;
   limit?: number;
-  portfolioId?: number;
+  portfolioId?: string;
+  /**
+   * Narrow results to a single asset class (driven by the UI All / Stocks /
+   * Crypto pill-tab). When omitted, all supported classes are returned.
+   */
+  assetClass?: ASSET_CLASS;
   user: UserModel;
 }
 
@@ -19,20 +29,24 @@ interface SecuritySearchResultFormatted extends SecuritySearchResult {
 }
 
 // Represents the minimal holding data returned by the portfolio check query
-interface HoldingSymbolLookup {
-  securityId: number;
+interface HoldingProviderLookup {
+  securityId: string;
   security?: {
-    symbol: string;
+    providerName: SECURITY_PROVIDER;
+    providerSymbol: string;
   };
 }
+
+const portfolioKey = (providerName: string, providerSymbol: string) => `${providerName}:${providerSymbol}`;
 
 export const searchSecurities = async ({
   query,
   limit = 20,
   user,
   portfolioId,
+  assetClass,
 }: SearchOptions): Promise<SecuritySearchResultFormatted[]> => {
-  logger.info(`Searching securities for: ${query}`);
+  logger.info(`Searching securities for: ${query}${assetClass ? ` (class=${assetClass})` : ''}`);
 
   // Validate input
   if (!query) {
@@ -42,10 +56,18 @@ export const searchSecurities = async ({
 
   try {
     const provider = dataProviderFactory.getProvider();
-    const searchResults = await provider.searchSecurities(query);
+    const searchResults = await provider.searchSecurities(query, { assetClass });
+
+    // Compose two filters:
+    //   1. Drop classes the product doesn't support end-to-end (cash, options, …)
+    //   2. Honour the UI filter (post-filter is defense in depth — composite already
+    //      skips the irrelevant provider, but some providers return mixed-class hits).
+    const supportedResults = searchResults.filter(
+      (r) => SUPPORTED_ASSET_CLASSES.includes(r.assetClass) && (!assetClass || r.assetClass === assetClass),
+    );
 
     // Apply limit if specified
-    let limitedResults = limit ? searchResults.slice(0, limit) : searchResults;
+    let limitedResults = limit ? supportedResults.slice(0, limit) : supportedResults;
 
     // If portfolioId is provided, check which securities are already in the portfolio
     if (portfolioId) {
@@ -56,7 +78,7 @@ export const searchSecurities = async ({
           {
             model: Securities,
             as: 'security',
-            attributes: ['symbol'], // Only fetch the symbol from Securities
+            attributes: ['providerName', 'providerSymbol'],
           },
           {
             model: Portfolios,
@@ -66,15 +88,20 @@ export const searchSecurities = async ({
             required: true,
           },
         ],
-      })) as unknown as HoldingSymbolLookup[];
+      })) as unknown as HoldingProviderLookup[];
 
-      // Create a Set of symbols that are in the portfolio for quick lookup
-      const portfolioSymbols = new Set(holdings.map((h) => h.security?.symbol).filter(Boolean));
+      // Set of `${providerName}:${providerSymbol}` tuples already held in this portfolio.
+      // Keying on symbol alone would yield false positives when the same ticker exists
+      // under multiple providers (common with crypto).
+      const portfolioKeys = new Set(
+        holdings
+          .map((h) => (h.security ? portfolioKey(h.security.providerName, h.security.providerSymbol) : null))
+          .filter((key): key is string => key !== null),
+      );
 
-      // Add isInPortfolio flag to each search result
       limitedResults = limitedResults.map((result) => ({
         ...result,
-        isInPortfolio: portfolioSymbols.has(result.symbol),
+        isInPortfolio: portfolioKeys.has(portfolioKey(result.providerName, result.providerSymbol)),
       }));
     }
 

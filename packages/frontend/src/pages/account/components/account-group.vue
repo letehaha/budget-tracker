@@ -5,7 +5,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useAccountGroupForAccount } from '@/composable/data-queries/account-groups';
 import { AccountModel } from '@bt/shared/types';
-import { EditIcon, InfoIcon } from 'lucide-vue-next';
+import { EditIcon, InfoIcon } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -15,7 +15,7 @@ const props = defineProps<{
   account: AccountModel;
 }>();
 
-const accId = ref<number | string>(props.account.id);
+const accId = ref<string>(props.account.id);
 
 const { group: accountGroupData } = useAccountGroupForAccount(accId);
 

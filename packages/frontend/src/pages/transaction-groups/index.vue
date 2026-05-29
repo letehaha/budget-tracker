@@ -8,7 +8,7 @@ import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.v
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { invalidateTransactionGroupQueries } from '@/composable/data-queries/transaction-groups';
 import { useQueryClient, useQuery } from '@tanstack/vue-query';
-import { Trash2Icon, CalendarIcon, HashIcon } from 'lucide-vue-next';
+import { Trash2Icon, CalendarIcon, HashIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { format } from 'date-fns';
 
@@ -36,10 +36,10 @@ const filteredGroups = computed(() => {
 const dialogState = reactive({
   isOpen: false,
   key: 0,
-  groupId: undefined as number | undefined,
+  groupId: undefined as string | undefined,
 });
 
-const openGroupDialog = ({ groupId }: { groupId: number }) => {
+const openGroupDialog = ({ groupId }: { groupId: string }) => {
   dialogState.groupId = groupId;
   dialogState.key++;
   dialogState.isOpen = true;
@@ -48,7 +48,7 @@ const openGroupDialog = ({ groupId }: { groupId: number }) => {
 // Delete confirmation
 const deleteState = reactive({
   isOpen: false,
-  groupId: undefined as number | undefined,
+  groupId: undefined as string | undefined,
   groupName: '',
 });
 

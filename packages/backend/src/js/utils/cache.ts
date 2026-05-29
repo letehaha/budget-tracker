@@ -12,7 +12,6 @@ export class CacheClient<T = unknown> {
   private readonly ttl: number;
   private readonly logPrefix: string;
   private readonly parseJson: boolean;
-  private currentCacheKey?: string;
 
   constructor(config: CacheConfig = {}) {
     this.ttl = config.ttl ?? 3600;
@@ -20,46 +19,28 @@ export class CacheClient<T = unknown> {
     this.parseJson = config.parseJson ?? true;
   }
 
-  setCacheKey(key: string): this {
-    this.currentCacheKey = key;
-    return this;
-  }
-
-  async read(key?: string): Promise<T | null> {
-    const cacheKey = key ?? this.currentCacheKey;
-    if (!cacheKey) {
-      logger.error({ message: `${this.logPrefix} read skipped: No cache key provided and no default key set` });
-      return null;
-    }
-
+  async read(key: string): Promise<T | null> {
     try {
-      const cached = await redisClient.get(cacheKey);
+      const cached = await redisClient.get(key);
       if (cached !== null) {
         return this.parseJson ? JSON.parse(cached) : (cached as T);
       } else {
         return null;
       }
     } catch (error) {
-      logger.error({ message: `${this.logPrefix} read error for key ${cacheKey}:`, error: error as Error });
+      logger.error({ message: `${this.logPrefix} read error for key ${key}:`, error: error as Error });
       return null;
     }
   }
 
-  async write(params: { key?: string; value: T; ttl?: number }): Promise<void> {
-    const cacheKey = params.key ?? this.currentCacheKey;
-
-    if (!cacheKey) {
-      logger.error({ message: `${this.logPrefix} write skipped: No cache key provided and no default key set` });
-      return;
-    }
-
+  async write(params: { key: string; value: T; ttl?: number }): Promise<void> {
     const ttl = params.ttl ?? this.ttl;
 
     try {
       const serializedValue = typeof params.value === 'string' ? params.value : JSON.stringify(params.value);
-      await redisClient.setex(cacheKey, ttl, serializedValue);
+      await redisClient.setex(params.key, ttl, serializedValue);
     } catch (error) {
-      logger.error({ message: `${this.logPrefix} write error for key ${cacheKey}:`, error: error as Error });
+      logger.error({ message: `${this.logPrefix} write error for key ${params.key}:`, error: error as Error });
     }
   }
 

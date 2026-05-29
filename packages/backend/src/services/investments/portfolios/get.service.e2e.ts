@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -33,7 +34,7 @@ describe('Get Portfolio Service E2E', () => {
 
     it('should return 404 when portfolio does not exist', async () => {
       const response = await helpers.getPortfolio({
-        portfolioId: 99999,
+        portfolioId: generateRandomRecordId(),
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);

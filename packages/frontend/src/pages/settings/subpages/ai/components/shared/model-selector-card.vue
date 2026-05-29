@@ -188,7 +188,15 @@ import {
   AI_FEATURE,
   AI_PROVIDER,
 } from '@bt/shared/types';
-import { AlertTriangleIcon, ChevronDownIcon, ChevronRightIcon, FileTextIcon, InfoIcon, TagIcon } from 'lucide-vue-next';
+import {
+  AlertTriangleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FileTextIcon,
+  InfoIcon,
+  LineChartIcon,
+  TagIcon,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -207,6 +215,7 @@ const featureDisplayInfo = computed(() => getAIFeatureDisplayInfo({ feature: pro
 const FEATURE_ICONS = {
   [AI_FEATURE.categorization]: TagIcon,
   [AI_FEATURE.statementParsing]: FileTextIcon,
+  [AI_FEATURE.investmentTransactionsParsing]: LineChartIcon,
 } as const;
 
 const featureIcon = computed(() => FEATURE_ICONS[props.featureStatus.feature]);

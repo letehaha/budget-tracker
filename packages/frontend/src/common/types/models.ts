@@ -1,11 +1,11 @@
 import { AccountModel, UserModel } from '@bt/shared/types';
 
 export interface AccountGroups {
-  id: number;
+  id: string;
   userId: number;
   name: string;
-  parentGroupId: number | null;
-  bankDataProviderConnectionId: number | null;
+  parentGroupId: string | null;
+  bankDataProviderConnectionId: string | null;
   user: UserModel;
   parentGroup: AccountGroups;
   childGroups: AccountGroups[];

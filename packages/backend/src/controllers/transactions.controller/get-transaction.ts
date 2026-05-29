@@ -5,18 +5,12 @@ import {
   SORT_DIRECTIONS,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
-import { booleanQuery } from '@common/lib/zod/custom-types';
+import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeTransactions } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import z from 'zod';
-
-const parseCommaSeparatedNumbers = (value: string) =>
-  value
-    .split(',')
-    .map(Number)
-    .filter((n) => !isNaN(n));
 
 const parseCommaSeparatedStrings = (value: string) =>
   value
@@ -36,46 +30,25 @@ const schema = z.object({
       transactionType: z.nativeEnum(TRANSACTION_TYPES).optional(),
       accountType: z.nativeEnum(ACCOUNT_TYPES).optional(),
       accountIds: z
-        .preprocess(
-          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
-          z.array(z.number().int().positive()),
-        )
+        .preprocess((val) => (typeof val === 'string' ? parseCommaSeparatedStrings(val) : val), z.array(recordId()))
         .optional(),
       budgetIds: z
-        .preprocess(
-          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
-          z.array(z.number().int().positive()),
-        )
+        .preprocess((val) => (typeof val === 'string' ? parseCommaSeparatedStrings(val) : val), z.array(recordId()))
         .optional(),
       excludedBudgetIds: z
-        .preprocess(
-          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
-          z.array(z.number().int().positive()),
-        )
+        .preprocess((val) => (typeof val === 'string' ? parseCommaSeparatedStrings(val) : val), z.array(recordId()))
         .optional(),
       tagIds: z
-        .preprocess(
-          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
-          z.array(z.number().int().positive()),
-        )
+        .preprocess((val) => (typeof val === 'string' ? parseCommaSeparatedStrings(val) : val), z.array(recordId()))
         .optional(),
       excludedTagIds: z
-        .preprocess(
-          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
-          z.array(z.number().int().positive()),
-        )
+        .preprocess((val) => (typeof val === 'string' ? parseCommaSeparatedStrings(val) : val), z.array(recordId()))
         .optional(),
       categoryIds: z
-        .preprocess(
-          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
-          z.array(z.number().int().positive()),
-        )
+        .preprocess((val) => (typeof val === 'string' ? parseCommaSeparatedStrings(val) : val), z.array(recordId()))
         .optional(),
       excludeAccountIds: z
-        .preprocess(
-          (val) => (typeof val === 'string' ? parseCommaSeparatedNumbers(val) : val),
-          z.array(z.number().int().positive()),
-        )
+        .preprocess((val) => (typeof val === 'string' ? parseCommaSeparatedStrings(val) : val), z.array(recordId()))
         .optional(),
       includeSplits: booleanQuery().optional(),
       includeTags: booleanQuery().optional(),

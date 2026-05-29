@@ -5,17 +5,32 @@ import Label from '@/components/lib/ui/label/Label.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/lib/ui/select';
 import { useNotificationCenter } from '@/components/notification-center';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { MessageSquareIcon } from 'lucide-vue-next';
+import { useVModel } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import FeedbackPulseButton from './feedback-pulse-button.vue';
+
 type FeedbackType = 'bug' | 'feature_request' | 'other';
+
+const props = defineProps<{
+  open?: boolean;
+  /**
+   * Suppresses the bundled sidebar pulse-button trigger. Use when opening the
+   * dialog programmatically via v-model:open from another surface.
+   */
+  triggerless?: boolean;
+  /** Initial feedback type when the dialog is opened. */
+  defaultType?: FeedbackType;
+}>();
+
+const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 
-const isOpen = ref(false);
-const feedbackType = ref<FeedbackType>('bug');
+const isOpen = useVModel(props, 'open', emit, { passive: true, defaultValue: false });
+const feedbackType = ref<FeedbackType>(props.defaultType ?? 'bug');
 const message = ref('');
 const isSubmitting = ref(false);
 
@@ -26,8 +41,8 @@ const FEEDBACK_TYPES = computed(() => [
 ]);
 
 watch(isOpen, (open) => {
-  if (!open) {
-    feedbackType.value = 'bug';
+  if (open) {
+    feedbackType.value = props.defaultType ?? 'bug';
     message.value = '';
   }
 });
@@ -58,11 +73,8 @@ const submit = () => {
 
 <template>
   <ResponsiveDialog v-model:open="isOpen">
-    <template #trigger>
-      <ui-button variant="ghost-primary" class="w-full justify-start gap-2 px-3" size="default">
-        <MessageSquareIcon class="size-4 shrink-0" />
-        <span>{{ t('dialogs.feedback.sidebarButton') }}</span>
-      </ui-button>
+    <template v-if="!triggerless" #trigger>
+      <FeedbackPulseButton :label="t('dialogs.feedback.sidebarButton')" />
     </template>
 
     <template #title>{{ t('dialogs.feedback.title') }}</template>
@@ -88,7 +100,7 @@ const submit = () => {
           <Label>{{ t('dialogs.feedback.messageLabel') }}</Label>
           <textarea
             v-model="message"
-            class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-30 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+            class="border-input bg-input-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-30 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
             :placeholder="t('dialogs.feedback.messagePlaceholder')"
           />
         </div>

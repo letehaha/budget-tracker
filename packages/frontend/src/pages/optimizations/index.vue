@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Card } from '@/components/lib/ui/card';
 import { ROUTES_NAMES } from '@/routes';
-import { ArrowRightLeftIcon } from 'lucide-vue-next';
+import { ArrowRightLeftIcon } from '@lucide/vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();

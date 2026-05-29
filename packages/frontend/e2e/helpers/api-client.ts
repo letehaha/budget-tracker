@@ -5,6 +5,23 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'https://localhost:8100';
 
 export { API_BASE_URL, BASE_URL };
 
+/**
+ * Extract an entity ID (UUID string) from API responses, handling shapes:
+ *   { response: { id } } | { response: [{ id }] } | { id }
+ */
+export function extractId(apiResult: unknown): string {
+  if (!apiResult || typeof apiResult !== 'object') {
+    throw new Error(`Invalid API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
+  }
+  const r = apiResult as { response?: { id?: string } | { id?: string }[]; id?: string };
+  const resp = r.response;
+  const id = Array.isArray(resp) ? resp[0]?.id : (resp?.id ?? r.id);
+  if (typeof id !== 'string' || id.length === 0) {
+    throw new Error(`Failed to extract ID from API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
+  }
+  return id;
+}
+
 // ─── Generic request helpers ─────────────────────────────────────────
 
 async function assertOk({
@@ -161,11 +178,19 @@ export async function createAccount({
   name,
   currencyCode,
   initialBalance,
+  type,
 }: {
   request: APIRequestContext;
   name: string;
   currencyCode: string;
   initialBalance: number;
+  /**
+   * Account type. Defaults to "system" (regular user account).
+   * Use "monobank" to create an external account — only allowed outside production.
+   * Mirrors the e2e-relevant subset of `ACCOUNT_TYPES` from `@bt/shared/types`
+   * (kept inline because the e2e tsconfig has no path mapping for shared types).
+   */
+  type?: 'system' | 'monobank';
 }) {
   return apiPost({
     request,
@@ -176,6 +201,7 @@ export async function createAccount({
       initialBalance,
       creditLimit: 0,
       accountCategory: 'general',
+      ...(type !== undefined && { type }),
     },
   });
 }
@@ -193,7 +219,7 @@ export async function setPortfolioCash({
   amount,
 }: {
   request: APIRequestContext;
-  portfolioId: number;
+  portfolioId: string;
   currencyCode: string;
   amount: string;
 }) {
@@ -204,6 +230,46 @@ export async function setPortfolioCash({
   });
 }
 
+// ─── Categories ──────────────────────────────────────────────────────
+
+async function apiGet({ request, path }: { request: APIRequestContext; path: string }) {
+  const response = await request.get(`${API_BASE_URL}${path}`);
+  await assertOk({ response, label: `API GET ${path} failed` });
+  return response.json();
+}
+
+const categoryIdCache = new WeakMap<APIRequestContext, string>();
+
+async function resolveDefaultCategoryId({ request }: { request: APIRequestContext }): Promise<string> {
+  const cached = categoryIdCache.get(request);
+  if (cached !== undefined) return cached;
+
+  const result = await apiGet({ request, path: '/api/v1/categories' });
+  const categories: Array<{ id: string }> = result.response ?? result;
+  if (!Array.isArray(categories) || categories.length === 0) {
+    throw new Error('No categories available for the test user');
+  }
+  const id = categories[0]!.id;
+  categoryIdCache.set(request, id);
+  return id;
+}
+
+export async function createCategory({
+  request,
+  name,
+  color,
+}: {
+  request: APIRequestContext;
+  name: string;
+  color?: string;
+}) {
+  return apiPost({
+    request,
+    path: '/api/v1/categories',
+    data: { name, ...(color !== undefined && { color }) },
+  });
+}
+
 // ─── Transactions ────────────────────────────────────────────────────
 
 export async function createTransaction({
@@ -211,16 +277,17 @@ export async function createTransaction({
   accountId,
   amount,
   transactionType = 'expense',
-  categoryId = 1,
+  categoryId,
   transferNature = 'not_transfer',
 }: {
   request: APIRequestContext;
-  accountId: number;
+  accountId: string;
   amount: number;
   transactionType?: 'expense' | 'income';
-  categoryId?: number;
+  categoryId?: string;
   transferNature?: 'not_transfer' | 'transfer_between_user_accounts' | 'transfer_out_wallet';
 }) {
+  const resolvedCategoryId = categoryId ?? (await resolveDefaultCategoryId({ request }));
   return apiPost({
     request,
     path: '/api/v1/transactions',
@@ -228,7 +295,7 @@ export async function createTransaction({
       accountId,
       amount,
       transactionType,
-      categoryId,
+      categoryId: resolvedCategoryId,
       transferNature,
       paymentType: 'creditCard',
       time: new Date().toISOString(),
@@ -236,12 +303,16 @@ export async function createTransaction({
   });
 }
 
+export async function getTransaction({ request, id }: { request: APIRequestContext; id: string }) {
+  return apiGet({ request, path: `/api/v1/transactions/${id}` });
+}
+
 export async function linkTransactions({
   request,
   ids,
 }: {
   request: APIRequestContext;
-  ids: [baseTxId: number, oppositeTxId: number][];
+  ids: [baseTxId: string, oppositeTxId: string][];
 }) {
   return apiPut({
     request,
@@ -256,8 +327,8 @@ export async function linkTransactionToPortfolio({
   portfolioId,
 }: {
   request: APIRequestContext;
-  transactionId: number;
-  portfolioId: number;
+  transactionId: string;
+  portfolioId: string;
 }) {
   return apiPost({
     request,
@@ -276,7 +347,7 @@ export async function createTransactionGroup({
 }: {
   request: APIRequestContext;
   name: string;
-  transactionIds: number[];
+  transactionIds: string[];
   note?: string | null;
 }) {
   return apiPost({
@@ -292,8 +363,8 @@ export async function addTransactionsToGroup({
   transactionIds,
 }: {
   request: APIRequestContext;
-  groupId: number;
-  transactionIds: number[];
+  groupId: string;
+  transactionIds: string[];
 }) {
   return apiPost({
     request,
@@ -345,13 +416,81 @@ export async function markReminderPeriodPaid({
   request: APIRequestContext;
   reminderId: string;
   periodId: string;
-  transactionId?: number;
+  transactionId?: string;
 }) {
   return apiPost({
     request,
     path: `/api/v1/payment-reminders/${reminderId}/periods/${periodId}/pay`,
     data: transactionId !== undefined ? { transactionId } : {},
   });
+}
+
+// ─── Sharing ─────────────────────────────────────────────────────────
+
+export async function createShareInvitation({
+  request,
+  inviteeEmail,
+  resourceId,
+  permission,
+  policy,
+}: {
+  request: APIRequestContext;
+  inviteeEmail: string;
+  resourceId: number | string;
+  permission: 'read' | 'write' | 'manage';
+  policy?: { transactionsWriteScope?: 'all' | 'own' } | null;
+}): Promise<{ token: string }> {
+  const result = await apiPost({
+    request,
+    path: '/api/v1/share/invitations',
+    data: {
+      inviteeEmail,
+      resourceType: 'account',
+      resourceId,
+      permission,
+      ...(policy !== undefined && { policy }),
+    },
+  });
+  const token = result.response?.token ?? result.token;
+  if (!token) {
+    throw new Error(`Invitation create did not return a token: ${JSON.stringify(result).slice(0, 200)}`);
+  }
+  return { token };
+}
+
+export async function acceptShareInvitation({
+  request,
+  token,
+}: {
+  request: APIRequestContext;
+  token: string;
+}): Promise<void> {
+  await apiPost({
+    request,
+    path: `/api/v1/share/invitations/${encodeURIComponent(token)}/accept`,
+    data: {},
+  });
+}
+
+export async function signInViaApi({
+  playwright,
+  email,
+  password,
+}: {
+  playwright: { request: { newContext: (options: Record<string, unknown>) => Promise<APIRequestContext> } };
+  email: string;
+  password: string;
+}): Promise<APIRequestContext> {
+  const request = await playwright.request.newContext({
+    ignoreHTTPSErrors: true,
+    extraHTTPHeaders: { Origin: BASE_URL },
+  });
+  await apiPost({
+    request,
+    path: '/api/v1/auth/sign-in/email',
+    data: { email, password },
+  });
+  return request;
 }
 
 // ─── Holdings ────────────────────────────────────────────────────────
@@ -362,9 +501,10 @@ export async function createHolding({
   searchResult,
 }: {
   request: APIRequestContext;
-  portfolioId: number;
+  portfolioId: string;
   searchResult: {
     symbol: string;
+    providerSymbol?: string;
     name: string;
     assetClass: string;
     providerName: string;
@@ -374,9 +514,13 @@ export async function createHolding({
     exchangeName?: string;
   };
 }) {
+  const { providerSymbol, ...rest } = searchResult;
   return apiPost({
     request,
     path: '/api/v1/investments/holding',
-    data: { portfolioId, searchResult },
+    data: {
+      portfolioId,
+      searchResult: { ...rest, providerSymbol: providerSymbol ?? rest.symbol },
+    },
   });
 }

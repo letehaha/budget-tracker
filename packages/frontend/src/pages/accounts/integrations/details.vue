@@ -2,6 +2,14 @@
   <PageWrapper>
     <IntegrationDetailsSkeleton v-if="isLoading" />
 
+    <ResourceNotFound
+      v-else-if="isConnectionNotFound"
+      :title="$t('pages.integrations.details.error.notFoundTitle')"
+      :description="$t('pages.integrations.details.error.notFoundDescription')"
+      :link-label="$t('pages.integrations.details.error.backButton')"
+      :link-to="{ name: ROUTES_NAMES.accountIntegrations }"
+    />
+
     <div
       v-else-if="error"
       class="flex min-h-80 flex-col items-center justify-center rounded-lg border border-dashed p-6 text-center md:p-12"
@@ -10,10 +18,10 @@
         <SearchXIcon class="text-muted-foreground size-8" />
       </div>
       <h2 class="mb-2 text-xl font-semibold tracking-wide">
-        {{ $t('pages.integrations.details.error.notFoundTitle') }}
+        {{ $t('pages.integrations.details.error.unexpectedTitle') }}
       </h2>
       <p class="text-muted-foreground mb-6 max-w-md">
-        {{ $t('pages.integrations.details.error.notFoundDescription') }}
+        {{ $t('pages.integrations.details.error.unexpectedDescription') }}
       </p>
       <UiButton @click="router.push({ name: ROUTES_NAMES.accountIntegrations })">
         <ArrowLeftIcon class="size-4" />
@@ -112,16 +120,20 @@
         </Collapsible>
       </Card>
 
-      <!-- Auth Failure Banner (for LunchFlow and other API key providers) -->
-      <Card v-if="isDeactivatedDueToAuth" class="border-destructive mb-6">
+      <!-- Auth Failure Banner (for LunchFlow and other API key providers).
+           Excluded for Enable Banking because OAuth providers can't re-supply
+           credentials inline — they reconnect via the Connection Validity card. -->
+      <Card
+        v-if="isDeactivatedDueToAuth && connectionDetails.providerType !== BANK_PROVIDER_TYPE.ENABLE_BANKING"
+        class="border-destructive mb-6"
+      >
         <CardContent class="p-6">
           <div class="space-y-4">
-            <div class="text-destructive-text bg-destructive/20 rounded-lg p-4">
-              <p class="font-semibold">{{ $t('pages.integrations.authFailure.title') }}</p>
+            <Callout variant="destructive" :title="$t('pages.integrations.authFailure.title')">
               <p class="mt-1 text-sm">
                 {{ $t('pages.integrations.authFailure.description') }}
               </p>
-            </div>
+            </Callout>
             <div class="flex gap-3">
               <UiButton variant="default" @click="isUpdateCredentialsDialogOpen = true">
                 {{ $t('pages.integrations.authFailure.updateButton') }}
@@ -183,7 +195,6 @@
         class="mb-6"
         :class="{
           'border-yellow-500': connectionDetails.consent.isExpiringSoon,
-          'border-destructive': connectionDetails.consent.isExpired,
         }"
       >
         <Collapsible v-model:open="isConnectionValidityOpen">
@@ -219,15 +230,15 @@
             <CardContent class="pt-0 max-sm:px-4 max-sm:pb-4">
               <div class="space-y-4">
                 <!-- Expiration Warning -->
-                <div
+                <Callout
                   v-if="connectionDetails.consent.isExpired"
-                  class="text-destructive-text bg-destructive/20 rounded-lg p-4"
+                  variant="destructive"
+                  :title="$t('pages.integrations.details.connectionValidity.expiredTitle')"
                 >
-                  <p class="font-semibold">{{ $t('pages.integrations.details.connectionValidity.expiredTitle') }}</p>
-                  <p class="mt-1 text-sm">
+                  <p class="text-muted-foreground text-sm">
                     {{ $t('pages.integrations.details.connectionValidity.expiredDescription') }}
                   </p>
-                </div>
+                </Callout>
                 <div
                   v-else-if="connectionDetails.consent.isExpiringSoon"
                   class="rounded-lg bg-yellow-100 p-4 text-yellow-800"
@@ -551,8 +562,10 @@ import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
 import { getBankInstitutionLogoUrl } from '@/common/utils/find-bank-institution';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
+import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import {
@@ -566,12 +579,12 @@ import {
 import * as Popover from '@/components/lib/ui/popover';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
-import { ApiErrorResponseError } from '@/js/errors';
+import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from 'lucide-vue-next';
+import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -587,7 +600,7 @@ const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 
-const connectionId = computed(() => Number(route.params.connectionId));
+const connectionId = computed(() => String(route.params.connectionId));
 const isFetchAccountsDialogOpen = ref(false);
 const isDisconnectDialogOpen = ref(false);
 const isEditNameDialogOpen = ref(false);
@@ -603,7 +616,13 @@ const isConnectedAccountsOpen = ref(true);
 const isConnectionValidityOpen = ref(false);
 const isReconnectPending = ref(false);
 
-const { data: connectionDetails, isLoading, error } = useBankConnectionDetails({ connectionId: connectionId });
+const {
+  data: connectionDetails,
+  isLoading,
+  error,
+} = useBankConnectionDetails({ connectionId: connectionId, queryOptions: { retry: false } });
+
+const isConnectionNotFound = computed(() => isNotFoundError(error.value));
 
 const { data: bankConnections } = useQuery({
   queryFn: listConnections,
@@ -735,7 +754,7 @@ const { mutate: disconnectMutation, isPending: isDisconnecting } = useMutation({
 
 // Mutation for updating connection name
 const { mutate: updateNameMutation, isPending: isSavingName } = useMutation({
-  mutationFn: ({ connectionId: connId, providerName }: { connectionId: number; providerName: string }) =>
+  mutationFn: ({ connectionId: connId, providerName }: { connectionId: string; providerName: string }) =>
     updateConnectionDetails(connId, { providerName }),
   onSuccess: () => {
     addSuccessNotification(t('pages.integrations.notifications.updateNameSuccess'));

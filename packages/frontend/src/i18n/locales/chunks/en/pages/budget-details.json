@@ -40,7 +40,8 @@
       "transactionsLinked": "{count} transaction linked to this budget | {count} transactions linked to this budget",
       "tabs": {
         "statistics": "Statistics",
-        "transactions": "Transactions"
+        "transactions": "Transactions",
+        "sharing": "Sharing"
       },
       "statistics": {
         "tabs": {
@@ -58,6 +59,46 @@
         "expenses": "Expenses",
         "incomeLabel": "Income:",
         "expensesLabel": "Expenses:"
+      },
+      "sharing": {
+        "title": "Sharing",
+        "description": "Manage who can see this budget and contribute to it.",
+        "inviteAnother": "Invite someone",
+        "membersHeading": "Members",
+        "pendingHeading": "Pending invitations",
+        "loadError": "Couldn't load members.",
+        "permissions": {
+          "read": "View only",
+          "write": "Attach own transactions",
+          "manage": "Manage"
+        },
+        "member": {
+          "you": "you",
+          "roleOwner": "Owner",
+          "roleRecipient": "Member",
+          "ownerHint": "Full control of this budget",
+          "updateSuccess": "Permission updated.",
+          "updateError": "Couldn't update permission.",
+          "revoke": "Revoke access",
+          "revokeConfirm": "Revoke",
+          "revokeTitle": "Revoke access?",
+          "revokeDescription": "{user} will lose access to {budget}.",
+          "revokeSuccess": "Access revoked.",
+          "revokeError": "Couldn't revoke access."
+        },
+        "pending": {
+          "empty": "No pending invitations.",
+          "resend": "Resend",
+          "resendSuccess": "Invitation resent.",
+          "resendError": "Couldn't resend invitation.",
+          "resendDeliveryFailed": "Resent, but the email couldn't be delivered.",
+          "cancel": "Cancel",
+          "cancelConfirm": "Cancel invitation",
+          "cancelTitle": "Cancel invitation?",
+          "cancelDescription": "The invitation to {email} will be cancelled.",
+          "cancelSuccess": "Invitation cancelled.",
+          "cancelError": "Couldn't cancel invitation."
+        }
       }
     }
   }

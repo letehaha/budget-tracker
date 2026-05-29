@@ -23,7 +23,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { useAccountsStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
-import { InfoIcon } from 'lucide-vue-next';
+import { InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';

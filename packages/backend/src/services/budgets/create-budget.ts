@@ -13,12 +13,12 @@ import { withTransaction } from '@services/common/with-transaction';
 import { expandCategoryIds } from './utils/expand-category-ids';
 
 interface CreateBudgetPayload {
-  id?: number;
+  id?: string;
   userId: number;
   name: string;
   status: BUDGET_STATUSES;
   type?: BUDGET_TYPES;
-  categoryIds?: number[];
+  categoryIds?: string[];
   startDate?: Date | null;
   endDate?: Date | null;
   autoInclude?: boolean;

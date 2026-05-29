@@ -21,8 +21,10 @@ export default createController(
       price: z
         .string()
         .optional()
-        .refine((val) => val === undefined || (!isNaN(parseFloat(val)) && parseFloat(val) > 0), {
-          message: 'Price must be a positive number',
+        // Zero allowed: staking rewards / airdrops / burns / balance adjustments
+        // are real position changes with no cash side.
+        .refine((val) => val === undefined || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0), {
+          message: 'Price must be a non-negative number',
         }),
       fees: z
         .string()

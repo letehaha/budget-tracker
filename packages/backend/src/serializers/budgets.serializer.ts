@@ -5,23 +5,25 @@
  * Money fields auto-convert via .toNumber().
  * Deserializers convert API decimal inputs to Money.
  */
-import { BUDGET_TYPES } from '@bt/shared/types';
+import { BUDGET_TYPES, ResourceShareInfo } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
 import type Budgets from '@models/budget.model';
+import type { BudgetShareContext } from '@services/sharing/get-shared-budgets.service';
 
 // ============================================================================
 // Response Types
 // ============================================================================
 
 interface BudgetCategoryResponse {
-  id: number;
+  id: string;
   name: string;
   color: string;
-  parentId: number | null;
+  parentId: string | null;
 }
 
 interface BudgetApiResponse {
-  id: number;
+  id: string;
+  userId: number;
   name: string;
   status: string;
   type: BUDGET_TYPES;
@@ -30,6 +32,8 @@ interface BudgetApiResponse {
   autoInclude: boolean;
   limitAmount: number | null;
   categories: BudgetCategoryResponse[];
+  /** Present on user-facing list/detail responses when share context is attached. */
+  share?: ResourceShareInfo;
 }
 
 // ============================================================================
@@ -39,7 +43,7 @@ interface BudgetApiResponse {
 /**
  * Serialize a budget from DB format to API response
  */
-export function serializeBudget(budget: Budgets): BudgetApiResponse {
+export function serializeBudget(budget: Budgets & { _shareContext?: BudgetShareContext }): BudgetApiResponse {
   const categories: BudgetCategoryResponse[] = (budget.categories || []).map((c) => ({
     id: c.id,
     name: c.name,
@@ -47,8 +51,9 @@ export function serializeBudget(budget: Budgets): BudgetApiResponse {
     parentId: c.parentId,
   }));
 
-  return {
+  const response: BudgetApiResponse = {
     id: budget.id,
+    userId: budget.userId,
     name: budget.name,
     status: budget.status,
     type: budget.type,
@@ -58,12 +63,26 @@ export function serializeBudget(budget: Budgets): BudgetApiResponse {
     limitAmount: budget.limitAmount !== null ? budget.limitAmount.toNumber() : null,
     categories,
   };
+
+  if (budget._shareContext) {
+    response.share = {
+      isOwner: budget._shareContext.isOwner,
+      owner: budget._shareContext.owner,
+      permission: budget._shareContext.permission,
+      policy: budget._shareContext.policy,
+      accessSource: budget._shareContext.accessSource,
+    };
+  }
+
+  return response;
 }
 
 /**
  * Serialize multiple budgets
  */
-export function serializeBudgets(budgets: Budgets[]): BudgetApiResponse[] {
+export function serializeBudgets(
+  budgets: Array<Budgets & { _shareContext?: BudgetShareContext }>,
+): BudgetApiResponse[] {
   return budgets.map(serializeBudget);
 }
 
@@ -117,7 +136,7 @@ export function serializeBudgetStats(stats: BudgetStatsInternal): BudgetStatsApi
 // ============================================================================
 
 interface SpendingCategoryInternal {
-  categoryId: number;
+  categoryId: string;
   name: string;
   color: string;
   amount: number; // cents

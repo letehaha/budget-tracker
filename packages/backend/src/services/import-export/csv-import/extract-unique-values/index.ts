@@ -3,6 +3,7 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { parse } from 'csv-parse/sync';
 
+import { MAX_CSV_ROWS } from '../csv-parser.service';
 import { extractAccounts } from './extract-accounts';
 import { extractCategories } from './extract-categories';
 import { validateBasicFields } from './validate-basic-fields';
@@ -48,6 +49,12 @@ export async function extractUniqueValues({
   }
 
   const dataRows = records.slice(1);
+
+  if (dataRows.length > MAX_CSV_ROWS) {
+    throw new ValidationError({
+      message: t({ key: 'csvImport.csvFileTooManyRows', variables: { max: MAX_CSV_ROWS } }),
+    });
+  }
 
   validateBasicFields({ headers, columnMapping });
 

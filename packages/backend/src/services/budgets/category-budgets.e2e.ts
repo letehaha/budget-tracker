@@ -1,4 +1,5 @@
 import { BUDGET_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -127,7 +128,7 @@ describe('Category-Based Budgets', () => {
       const response = await helpers.createCustomBudget({
         name: 'Invalid Budget',
         type: BUDGET_TYPES.category,
-        categoryIds: [999999],
+        categoryIds: [NONEXISTENT_ID],
         raw: false,
       });
 
@@ -1355,7 +1356,7 @@ describe('Category-Based Budgets', () => {
     });
 
     it('fails for non-existent budget', async () => {
-      const response = await helpers.getCategoryBudgetTransactions({ id: 999999, raw: false });
+      const response = await helpers.getCategoryBudgetTransactions({ id: NONEXISTENT_ID, raw: false });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });

@@ -21,6 +21,7 @@ interface ApiRequestConfig {
   };
   body?: string;
   credentials: RequestCredentials;
+  signal?: AbortSignal;
 }
 
 interface ApiCall {
@@ -33,6 +34,8 @@ interface ApiCall {
     needRaw?: boolean;
     /** When true, suppresses error toast notifications for failed requests */
     silent?: boolean;
+    /** AbortSignal forwarded to fetch — lets callers cancel in-flight requests. */
+    signal?: AbortSignal;
   };
 }
 
@@ -171,6 +174,10 @@ class ApiCaller {
       config.body = JSON.stringify(opts.data);
     }
 
+    if (opts.options?.signal) {
+      config.signal = opts.options.signal;
+    }
+
     let result: Response;
 
     const { addNotification } = useNotificationCenter();
@@ -187,6 +194,11 @@ class ApiCaller {
     try {
       result = await fetch(url, config);
     } catch (e) {
+      // Caller-initiated abort (signal) — rethrow silently so the caller can
+      // discard the in-flight request without showing a network error toast.
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        throw e;
+      }
       if (e instanceof TypeError && e.toString().includes('Failed to fetch')) {
         const message = t('errors.api.failedToFetch', 'Failed to connect to server');
         if (!isSilent) {
@@ -221,13 +233,33 @@ class ApiCaller {
       return undefined;
     }
 
-    const {
-      status,
-      response,
-    }: {
+    let parsed: {
       status: API_RESPONSE_STATUS;
       response: ApiBaseError | ApiValidResponse;
-    } = await result.json();
+    };
+
+    try {
+      parsed = await result.json();
+    } catch {
+      // Response body is not JSON. Happens for raw infrastructure errors that
+      // never reach our `apiResponseMiddleware` envelope — e.g. body-parser's
+      // 413 Payload Too Large (plain text) or a gateway HTML 5xx page.
+      // Without this, `result.json()` throws a SyntaxError that escapes to the
+      // caller and surfaces as "Unexpected token <".
+      const message =
+        result.status === 413
+          ? t('errors.api.payloadTooLarge', 'The request is too large. Please try importing fewer items at a time')
+          : `${result.status} ${result.statusText}`.trim() ||
+            t('errors.api.unexpectedError', 'An unexpected error occurred');
+
+      throw new errors.ApiErrorResponseError(message, {
+        code: result.status === 413 ? API_ERROR_CODES.payloadTooLarge : API_ERROR_CODES.unexpected,
+        message,
+        statusText: result.statusText,
+      });
+    }
+
+    const { status, response } = parsed;
 
     if (status === API_RESPONSE_STATUS.success) {
       return response;
@@ -256,7 +288,7 @@ class ApiCaller {
         });
       }
 
-      throw new errors.ApiErrorResponseError(response.statusText, response);
+      throw new errors.ApiErrorResponseError(response.message, response);
     }
 
     return undefined;

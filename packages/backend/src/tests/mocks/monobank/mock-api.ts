@@ -28,10 +28,8 @@ export const monobankHandlers = [
     const token = request.headers.get('X-Token');
 
     if (token === INVALID_MONOBANK_TOKEN) {
-      return new HttpResponse(null, {
-        status: 403,
-        statusText: 'Forbidden',
-      });
+      // Matches Monobank's real 403 response body for an unknown API token.
+      return HttpResponse.json({ errorDescription: "Unknown 'X-Token'" }, { status: 403 });
     }
 
     return HttpResponse.json(getMockedClientData());

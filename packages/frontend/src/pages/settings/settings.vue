@@ -64,6 +64,7 @@ import { useElementSize } from '@vueuse/core';
 import {
   ChevronRightIcon,
   CircleDollarSignIcon,
+  HomeIcon,
   KeyRoundIcon,
   LayersIcon,
   PlugIcon,
@@ -73,7 +74,8 @@ import {
   TagIcon,
   TagsIcon,
   UploadIcon,
-} from 'lucide-vue-next';
+  UsersIcon,
+} from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { type Component, computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -171,6 +173,19 @@ const baseTabs = computed<Tab[]>(() => [
     label: t('settings.navigation.security'),
     to: { name: ROUTES_NAMES.settingsSecurity },
     icon: KeyRoundIcon,
+  },
+  {
+    name: 'shared-with-me',
+    label: t('settings.navigation.sharedWithMe'),
+    to: { name: ROUTES_NAMES.settingsSharedWithMe },
+    icon: UsersIcon,
+  },
+  {
+    name: 'household',
+    label: t('settings.navigation.household'),
+    to: { name: ROUTES_NAMES.settingsHousehold },
+    icon: HomeIcon,
+    badgeSince: '2026-05-14',
   },
 ]);
 

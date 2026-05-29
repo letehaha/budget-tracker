@@ -5,7 +5,7 @@
  * API Documentation: https://enablebanking.com/docs/api/reference
  */
 import { t } from '@i18n/index';
-import { BadGateway, BadRequestError, ForbiddenError } from '@js/errors';
+import { BadGateway, BadRequestError, ForbiddenError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import axios, { AxiosInstance } from 'axios';
 
@@ -34,6 +34,81 @@ interface PSUContext {
   ipAddress?: string;
   /** PSU user agent */
   userAgent?: string;
+}
+
+/**
+ * JSON.stringify that falls back to `String(value)` when serialization throws
+ * (circular references, BigInt members, throwing toJSON, etc.). Logs a warning
+ * on the fallback path so a degraded serialization is at least visible —
+ * silently returning "[object Object]" would destroy debugging info in Sentry.
+ */
+export function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch (err) {
+    logger.warn(`[EnableBankingApiClient] safeStringify fallback: ${err instanceof Error ? err.message : String(err)}`);
+    return String(value);
+  }
+}
+
+/**
+ * Reason an ASPSP_ERROR was classified as an auth failure. Captured in logs so
+ * we can audit which branch fired (regression-proofing the regex).
+ */
+type AspspAuthFailureReason = 'nested-code' | 'nested-status' | 'keyword-match';
+
+/**
+ * Strict keyword pattern for cases where Enable Banking strips `error_data`
+ * (seen in dev) but the wrapper / nested message still describes an auth or
+ * consent failure. Each alternative is anchored to phrases that strongly
+ * imply auth state — bare words like "forbidden" or "unauthorized" were
+ * intentionally removed to avoid promoting unrelated 400s (e.g. "Operation
+ * forbidden by bank during maintenance") into connection deactivations.
+ */
+const ASPSP_AUTH_FAILURE_KEYWORDS =
+  /refresh.?token|token.*(?:expired|invalid|revoked)|session.*(?:expired|invalid|revoked)|consent.*(?:expired|invalid|revoked|withdrawn)|reauthorization|reauthenticate|access.*(?:token|not\s+allowed)|forbidden.*authenticated|authenticated.*forbidden|psd2.*consent/;
+
+/**
+ * Detect when an Enable Banking ASPSP_ERROR (HTTP 400) actually represents an
+ * upstream session/token/consent failure. Matches on either:
+ *   - nested HTTP code/status of 401 or 403 (string "401"/"403 FORBIDDEN" or numeric)
+ *   - strict keyword pattern in the wrapper or nested message
+ *
+ * Returns `{ matched: false }` when no signal is found so the caller can log
+ * which branch matched and audit misclassifications in Sentry.
+ */
+export function classifyAspspError({
+  detail,
+  aspspMessage,
+}: {
+  detail: Record<string, unknown>;
+  aspspMessage?: string;
+}): { matched: true; reason: AspspAuthFailureReason } | { matched: false } {
+  const errorData = (detail.error_data ?? {}) as Record<string, unknown>;
+
+  const nestedCode = errorData.code;
+  if (typeof nestedCode === 'string' && /^\s*(?:401|403)\b/.test(nestedCode)) {
+    return { matched: true, reason: 'nested-code' };
+  }
+  if (typeof nestedCode === 'number' && (nestedCode === 401 || nestedCode === 403)) {
+    return { matched: true, reason: 'nested-code' };
+  }
+
+  const nestedStatus = errorData.status;
+  if (typeof nestedStatus === 'number' && (nestedStatus === 401 || nestedStatus === 403)) {
+    return { matched: true, reason: 'nested-status' };
+  }
+  if (typeof nestedStatus === 'string' && /^\s*(?:401|403)\b/.test(nestedStatus)) {
+    return { matched: true, reason: 'nested-status' };
+  }
+
+  const nestedMessage = typeof errorData.message === 'string' ? errorData.message : '';
+  const combined = `${aspspMessage ?? ''} ${nestedMessage}`.toLowerCase();
+  if (ASPSP_AUTH_FAILURE_KEYWORDS.test(combined)) {
+    return { matched: true, reason: 'keyword-match' };
+  }
+
+  return { matched: false };
 }
 
 export class EnableBankingApiClient {
@@ -83,28 +158,78 @@ export class EnableBankingApiClient {
   private handleApiError(error: unknown, method: string): never {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-      const message = error.response?.data?.message || error.message;
+      const data = (error.response?.data ?? {}) as Record<string, unknown>;
+      const httpUrl = error.config?.url;
+      const httpMethod = error.config?.method?.toUpperCase();
 
-      logger.error(`[EnableBankingApiClient] ${method} failed:`, {
+      // Enable Banking wraps upstream bank failures as HTTP 400 with
+      // `error: "ASPSP_ERROR"` and nests the real payload in `detail.error_data`.
+      // Flatten those fields to top-level primitives so Sentry's default
+      // `normalizeDepth: 3` doesn't truncate them to "[Object]".
+      const detail = (data.detail ?? {}) as Record<string, unknown>;
+      const aspspError = typeof data.error === 'string' ? data.error : undefined;
+      const aspspMessage = typeof detail.message === 'string' ? detail.message : undefined;
+      const aspspErrorName = typeof detail.error_name === 'string' ? detail.error_name : undefined;
+      let aspspErrorDataStr: string | undefined;
+      if (typeof detail.error_data === 'string') {
+        aspspErrorDataStr = detail.error_data;
+      } else if (detail.error_data != null) {
+        aspspErrorDataStr = safeStringify(detail.error_data);
+      }
+
+      // Prefer real upstream message over the generic wrapper "Error interacting with ASPSP".
+      const message = aspspMessage || (typeof data.message === 'string' ? data.message : error.message);
+
+      const errorDetails = { aspspError, aspspErrorName, aspspMessage, aspspErrorDataStr };
+      const errorContext = {
         status,
+        httpMethod,
+        httpUrl,
         message,
-        data: error.response?.data,
-      });
+        ...errorDetails,
+        rawData: safeStringify(data),
+      };
+
+      logger.error(`[EnableBankingApiClient] ${method} failed:`, errorContext);
+
+      // Detect ASPSP-wrapped session/token expiry. Upstream returns 401/403 but
+      // Enable Banking surfaces it as 400 ASPSP_ERROR — promote to ForbiddenError
+      // so the provider's handleProviderError marks the connection inactive and
+      // the UI prompts the user to reconnect.
+      if (status === 400 && aspspError === 'ASPSP_ERROR') {
+        const classification = classifyAspspError({ detail, aspspMessage });
+        if (classification.matched) {
+          // Audit log so we can review classifications in Sentry — the wrong
+          // call here either silently lets a broken connection keep failing
+          // (false negative) or kills a working one (false positive).
+          logger.warn(
+            `[EnableBankingApiClient] Classified ASPSP_ERROR as auth failure (reason=${classification.reason})`,
+            errorContext,
+          );
+          throw new ForbiddenError({
+            message: t({ key: 'bankDataProviders.enableBanking.sessionExpiredReconnect' }),
+            details: errorDetails,
+          });
+        }
+      }
 
       if (status === 401 || status === 403) {
         throw new ForbiddenError({
           message: t({ key: 'bankDataProviders.enableBanking.authenticationFailed', variables: { message } }),
+          details: errorDetails,
         });
       }
 
       if (status && status >= 400 && status < 500) {
         throw new BadRequestError({
           message: t({ key: 'bankDataProviders.enableBanking.apiBadRequestError', variables: { message } }),
+          details: errorDetails,
         });
       }
 
       throw new BadGateway({
         message: t({ key: 'bankDataProviders.enableBanking.apiGeneralError', variables: { message } }),
+        details: errorDetails,
       });
     }
 
@@ -112,7 +237,10 @@ export class EnableBankingApiClient {
   }
 
   /**
-   * Test connection by fetching application info
+   * Test connection by fetching application info.
+   * Returns false only for a genuine auth failure (401/403). Network/5xx errors
+   * propagate via handleApiError so callers can distinguish "invalid creds" from
+   * "provider is down".
    * @link https://enablebanking.com/docs/api/reference#application-get
    */
   async testConnection(): Promise<boolean> {
@@ -122,6 +250,12 @@ export class EnableBankingApiClient {
       });
       return true;
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status === 401 || status === 403) {
+          return false;
+        }
+      }
       this.handleApiError(error, 'testConnection');
     }
   }
@@ -157,6 +291,17 @@ export class EnableBankingApiClient {
       });
       return response.data;
     } catch (error) {
+      // User-side misconfig: their Enable Banking app's redirect URL allowlist
+      // doesn't include the URL we sent. Surface as a validation error so it
+      // reaches the user instead of crashing into Sentry.
+      if (axios.isAxiosError(error) && error.response?.data?.error === 'REDIRECT_URI_NOT_ALLOWED') {
+        throw new ValidationError({
+          message: t({
+            key: 'bankDataProviders.enableBanking.redirectUriNotAllowed',
+            variables: { redirectUrl: request.redirect_url },
+          }),
+        });
+      }
       this.handleApiError(error, 'startAuthorization');
     }
   }
@@ -201,6 +346,18 @@ export class EnableBankingApiClient {
         headers: this.getAuthHeaders(psuContext),
       });
     } catch (error) {
+      // Already-closed = nothing to revoke. Swallow the 400 so handleApiError
+      // doesn't log + throw on every reauthorize that follows a stale session.
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const data = error.response?.data as { error?: unknown } | undefined;
+        if (status === 400 && data?.error === 'CLOSED_SESSION') {
+          logger.info(
+            `[EnableBankingApiClient] deleteSession: session ${sessionId} already closed upstream; treating as success`,
+          );
+          return;
+        }
+      }
       this.handleApiError(error, 'deleteSession');
     }
   }

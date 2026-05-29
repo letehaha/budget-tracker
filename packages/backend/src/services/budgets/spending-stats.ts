@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -20,17 +21,19 @@ import {
   startOfWeek,
 } from 'date-fns';
 
+import { authorizeBudgetRead } from './authorize-budget-access';
 import { buildDateFilter } from './utils/build-date-filter';
+import { fetchBudgetRefundPairs, type RefundPair } from './utils/refund-pairs';
 
 interface CategoryInfo {
-  id: number;
+  id: RecordId;
   name: string;
   color: string;
-  parentId: number | null;
+  parentId: RecordId | null;
 }
 
 interface SpendingByCategoryItem {
-  categoryId: number;
+  categoryId: RecordId;
   name: string;
   color: string;
   amount: number; // cents, positive (expenses only)
@@ -39,7 +42,7 @@ interface SpendingByCategoryItem {
 
 interface CategoryAmountEntry {
   amount: number;
-  children: Map<number, number>;
+  children: Map<RecordId, number>;
 }
 
 interface SpendingPeriod {
@@ -112,9 +115,9 @@ const getRootCategoryId = ({
   categoryId,
   categoryMap,
 }: {
-  categoryId: number;
-  categoryMap: Map<number, CategoryInfo>;
-}): number => {
+  categoryId: RecordId;
+  categoryMap: Map<string, CategoryInfo>;
+}): RecordId => {
   let current = categoryMap.get(categoryId);
   if (!current) return categoryId;
 
@@ -138,10 +141,10 @@ const getTopLevelTargetCategoryId = ({
   categoryMap,
   targetCategoryIds,
 }: {
-  categoryId: number;
-  categoryMap: Map<number, CategoryInfo>;
-  targetCategoryIds: Set<number>;
-}): number => {
+  categoryId: RecordId;
+  categoryMap: Map<string, CategoryInfo>;
+  targetCategoryIds: Set<RecordId>;
+}): RecordId => {
   let topLevel = categoryId;
   let current = categoryMap.get(categoryId);
 
@@ -173,9 +176,9 @@ const getEmptyResponse = (): SpendingStatsResponse => ({
 const buildCategoryMap = ({
   categories,
 }: {
-  categories: { id: number; name: string; color: string; parentId: number | null }[];
-}): Map<number, CategoryInfo> => {
-  const categoryMap = new Map<number, CategoryInfo>();
+  categories: { id: RecordId; name: string; color: string; parentId: RecordId | null }[];
+}): Map<string, CategoryInfo> => {
+  const categoryMap = new Map<string, CategoryInfo>();
   categories.forEach((cat) => {
     categoryMap.set(cat.id, {
       id: cat.id,
@@ -212,8 +215,8 @@ const buildSpendingsByCategory = ({
   categoryAmounts,
   categoryMap,
 }: {
-  categoryAmounts: Map<number, CategoryAmountEntry>;
-  categoryMap: Map<number, CategoryInfo>;
+  categoryAmounts: Map<RecordId, CategoryAmountEntry>;
+  categoryMap: Map<string, CategoryInfo>;
 }): SpendingByCategoryItem[] => {
   const result: SpendingByCategoryItem[] = [];
   for (const [catId, entry] of categoryAmounts) {
@@ -253,8 +256,10 @@ interface NormalizedTxData {
   time: Date;
   amount: number; // cents
   isExpense: boolean;
-  categoryId: number | null; // aggregation target (root or top-level target), null = skip category aggregation
-  originalCategoryId: number | null; // the actual leaf category
+  categoryId: RecordId | null; // aggregation target (root or top-level target), null = skip category aggregation
+  originalCategoryId: RecordId | null; // the actual leaf category
+  /** When true, subtract `amount` instead of adding. Used to net out refund pairs. */
+  negative?: boolean;
 }
 
 const determineDateRange = ({
@@ -285,7 +290,7 @@ const aggregateTransactionData = ({
   txDataList: NormalizedTxData[];
   budgetStartDate: Date | null;
   budgetEndDate: Date | null;
-  categoryMap: Map<number, CategoryInfo>;
+  categoryMap: Map<string, CategoryInfo>;
 }): SpendingStatsResponse => {
   const { from: rangeFrom, to: rangeTo } = determineDateRange({
     budgetStartDate,
@@ -299,27 +304,39 @@ const aggregateTransactionData = ({
   const periodData = new Map<number, { expense: number; income: number }>();
   buckets.forEach((_, index) => periodData.set(index, { expense: 0, income: 0 }));
 
-  const categoryAmounts = new Map<number, CategoryAmountEntry>();
+  const categoryAmounts = new Map<RecordId, CategoryAmountEntry>();
 
   for (const txData of txDataList) {
+    const sign = txData.negative ? -1 : 1;
+    const signedAmount = txData.amount * sign;
+
     const bucketIndex = findBucketIndex({ transactionTime: new Date(txData.time), buckets });
     if (bucketIndex !== -1) {
       const period = periodData.get(bucketIndex)!;
       if (txData.isExpense) {
-        period.expense += txData.amount;
+        period.expense += signedAmount;
       } else {
-        period.income += txData.amount;
+        period.income += signedAmount;
       }
     }
 
     if (txData.isExpense && txData.categoryId !== null) {
+      // For refund subtractions, only adjust an existing bucket — never create a new
+      // negative-amount entry for a category that wasn't part of the forward aggregation.
+      if (txData.negative && !categoryAmounts.has(txData.categoryId)) continue;
+
       const entry = categoryAmounts.get(txData.categoryId) ?? { amount: 0, children: new Map() };
-      entry.amount += txData.amount;
+      entry.amount += signedAmount;
       if (txData.originalCategoryId !== null && txData.originalCategoryId !== txData.categoryId) {
-        entry.children.set(
-          txData.originalCategoryId,
-          (entry.children.get(txData.originalCategoryId) ?? 0) + txData.amount,
-        );
+        const existingChild = entry.children.get(txData.originalCategoryId);
+        if (txData.negative) {
+          // Same guard as above for the child bucket.
+          if (existingChild !== undefined) {
+            entry.children.set(txData.originalCategoryId, existingChild + signedAmount);
+          }
+        } else {
+          entry.children.set(txData.originalCategoryId, (existingChild ?? 0) + signedAmount);
+        }
       }
       categoryAmounts.set(txData.categoryId, entry);
     }
@@ -332,51 +349,199 @@ const aggregateTransactionData = ({
 };
 
 /**
- * Manual budget: fetch transactions via budgetIds, group by root category
+ * Builds negative `NormalizedTxData` entries from refund pairs so `aggregateTransactionData`
+ * nets them out of the period income/expense and per-category expense aggregations. For each
+ * side of a pair that's in the budget, we subtract `refundTx.refAmount` — matching the global
+ * "Expenses Structure" widget's refund handling.
+ */
+const buildRefundAdjustments = ({
+  pairs,
+  resolveCategoryBucket,
+}: {
+  pairs: RefundPair[];
+  resolveCategoryBucket: (categoryId: RecordId) => RecordId | null;
+}): NormalizedTxData[] => {
+  const adjustments: NormalizedTxData[] = [];
+
+  for (const pair of pairs) {
+    const adjustmentAmount = pair.refundTx.refAmount.toCents();
+
+    const pushSide = ({
+      tx,
+      overrideCategoryId,
+    }: {
+      tx: RefundPair['originalTx'];
+      overrideCategoryId: RecordId | null;
+    }) => {
+      const isExpense = tx.transactionType === TRANSACTION_TYPES.expense;
+      const targetCategoryId = overrideCategoryId ?? tx.categoryId;
+      const resolved = isExpense ? resolveCategoryBucket(targetCategoryId) : null;
+      adjustments.push({
+        time: tx.time,
+        amount: adjustmentAmount,
+        isExpense,
+        categoryId: resolved,
+        originalCategoryId: isExpense ? targetCategoryId : null,
+        negative: true,
+      });
+    };
+
+    // splitId only applies to the original side — splits belong to the original tx.
+    if (pair.originalInBudget) pushSide({ tx: pair.originalTx, overrideCategoryId: pair.splitCategoryId });
+    if (pair.refundInBudget) pushSide({ tx: pair.refundTx, overrideCategoryId: null });
+  }
+
+  return adjustments;
+};
+
+/** Synthetic categoryId used to bucket recipients' null-key (custom) categories in the
+ *  shared-budget spending breakdown. Owner-side customs stay as their own rows; only
+ *  recipient-side null-key categories fold here, per the MVP decision (cross-user custom
+ *  alignment is a deferred follow-up). Carries a unique non-UUID shape so it can't collide
+ *  with a real `Categories.id`. Cast to `RecordId` so it slots into the existing maps
+ *  without widening every signature to `string | RecordId`. */
+const OTHER_CATEGORY_ID = '__shared_budget_other__' as RecordId;
+
+/** Build a categoryId -> canonical categoryId map for shared-budget aggregation.
+ *
+ *  Strategy (per the "merge by Categories.key" decision):
+ *    - Owner's category: maps to itself (no change).
+ *    - Recipient's seeded category whose `key` matches an owner category: maps to the
+ *      owner's matching id, so owner + recipient contributions land in the same bucket
+ *      and the breakdown displays owner's name/color.
+ *    - Recipient's seeded category whose `key` has no owner counterpart: maps to itself
+ *      (rendered with the recipient's own name/color — uncommon since seeded keys are
+ *      consistent across users by construction).
+ *    - Recipient's null-key (custom) category: maps to `OTHER_CATEGORY_ID`. The breakdown
+ *      shows a single "Other" row aggregating all such contributions.
+ */
+const buildSharedBudgetMergeMap = ({
+  categories,
+  ownerUserId,
+}: {
+  categories: { id: RecordId; key: string | null; userId: number }[];
+  ownerUserId: number;
+}): Map<RecordId, RecordId> => {
+  const ownerKeyToId = new Map<string, RecordId>();
+  for (const cat of categories) {
+    if (cat.userId === ownerUserId && cat.key !== null) {
+      ownerKeyToId.set(cat.key, cat.id);
+    }
+  }
+
+  const mergeMap = new Map<RecordId, RecordId>();
+  for (const cat of categories) {
+    if (cat.userId === ownerUserId) {
+      mergeMap.set(cat.id, cat.id);
+    } else if (cat.key !== null && ownerKeyToId.has(cat.key)) {
+      mergeMap.set(cat.id, ownerKeyToId.get(cat.key)!);
+    } else if (cat.key === null) {
+      mergeMap.set(cat.id, OTHER_CATEGORY_ID);
+    } else {
+      // Recipient seeded category with a key the owner doesn't have — render under the
+      // recipient's own name/color rather than burying it in "Other".
+      mergeMap.set(cat.id, cat.id);
+    }
+  }
+  return mergeMap;
+};
+
+/**
+ * Manual budget: fetch transactions via the BudgetTransactions junction (no userId
+ * filter, so recipient contributions count) and group by root category.
+ *
+ * Shared-budget category breakdown merges by `Categories.key`: a recipient's seeded
+ * category folds into the owner's matching one (display shows owner's name/color); a
+ * recipient's custom (null-key) category buckets under a synthetic "Other" row. See
+ * `buildSharedBudgetMergeMap` for the full strategy. For non-shared budgets, the merge
+ * map is identity-only and behaviour matches the pre-share implementation.
  */
 const getManualBudgetSpendingStats = async ({
-  userId,
+  userId: ownerUserId,
   budgetId,
 }: {
   userId: number;
-  budgetId: number;
+  budgetId: string;
 }): Promise<SpendingStatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
-    query: Budgets.findOne({ where: { id: budgetId, userId } }),
+    query: Budgets.findOne({ where: { id: budgetId, userId: ownerUserId } }),
     message: t({ key: 'budgets.budgetNotFound' }),
   });
 
   const transactions = await Transactions.findWithFilters({
-    userId,
     excludeTransfer: true,
     budgetIds: [budgetId],
     from: 0,
     limit: Infinity,
-    attributes: ['time', 'refAmount', 'transactionType', 'categoryId'],
+    attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked', 'userId'],
   });
 
   if (transactions.length === 0) return getEmptyResponse();
 
-  const allCategories = await Categories.findAll({
-    where: { userId },
-    attributes: ['id', 'name', 'color', 'parentId'],
+  // Contributors = owner (always, even with no own tx) + every userId that authored a
+  // tx attached to this budget. Owner's tree must be loaded so the merge map has key->id
+  // targets to fold recipients into; recipient trees are loaded so the parent walk works.
+  const contributingUserIds = new Set<number>([ownerUserId]);
+  for (const tx of transactions) contributingUserIds.add(tx.userId);
+
+  const allCategoriesRaw = (await Categories.findAll({
+    where: { userId: { [Op.in]: Array.from(contributingUserIds) } },
+    attributes: ['id', 'name', 'color', 'parentId', 'key', 'userId'],
     raw: true,
+  })) as unknown as {
+    id: RecordId;
+    name: string;
+    color: string;
+    parentId: RecordId | null;
+    key: string | null;
+    userId: number;
+  }[];
+
+  const mergeMap = buildSharedBudgetMergeMap({ categories: allCategoriesRaw, ownerUserId });
+  const canonicalize = (id: RecordId): RecordId => mergeMap.get(id) ?? id;
+
+  const categoryMap = buildCategoryMap({ categories: allCategoriesRaw });
+  categoryMap.set(OTHER_CATEGORY_ID, {
+    id: OTHER_CATEGORY_ID,
+    name: 'Other',
+    color: '#6B7280',
+    parentId: null,
   });
-  const categoryMap = buildCategoryMap({ categories: allCategories });
+
+  const canonicalChildId = (id: RecordId | null): RecordId | null => {
+    if (id === null) return null;
+    const canonical = canonicalize(id);
+    // Recipient's null-key custom categories collapse to `OTHER` at the canonical
+    // step. Returning `null` here keeps them out of the child-row breakdown — they
+    // would otherwise render as an "Other" subcategory under a (possibly keyed)
+    // parent, which would be confusing alongside a top-level "Other" row.
+    return canonical === OTHER_CATEGORY_ID ? null : canonical;
+  };
 
   const txDataList: NormalizedTxData[] = transactions.map((tx) => {
-    const rootCatId = tx.categoryId ? getRootCategoryId({ categoryId: tx.categoryId, categoryMap }) : null;
+    const rootCatId = tx.categoryId
+      ? canonicalize(getRootCategoryId({ categoryId: tx.categoryId, categoryMap }))
+      : null;
     return {
       time: tx.time,
       amount: tx.refAmount.toCents(),
       isExpense: tx.transactionType === TRANSACTION_TYPES.expense,
       categoryId: rootCatId,
-      originalCategoryId: tx.categoryId,
+      // Apply the merge map to the child id too — otherwise we'd render duplicate
+      // "Groceries" rows under "Food" (one each for owner's and recipient's
+      // categoryId, both meaning the same thing).
+      originalCategoryId: canonicalChildId(tx.categoryId),
     };
   });
 
+  const refundPairs = await fetchBudgetRefundPairs({ countedTransactions: transactions });
+  const refundAdjustments = buildRefundAdjustments({
+    pairs: refundPairs,
+    resolveCategoryBucket: (categoryId) => canonicalize(getRootCategoryId({ categoryId, categoryMap })),
+  });
+
   return aggregateTransactionData({
-    txDataList,
+    txDataList: [...txDataList, ...refundAdjustments],
     budgetStartDate: budgetDetails.startDate,
     budgetEndDate: budgetDetails.endDate,
     categoryMap,
@@ -391,7 +556,7 @@ const getCategoryBudgetSpendingStats = async ({
   budgetId,
 }: {
   userId: number;
-  budgetId: number;
+  budgetId: string;
 }): Promise<SpendingStatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findOne({
@@ -411,17 +576,17 @@ const getCategoryBudgetSpendingStats = async ({
   });
 
   // Fetch all user categories for hierarchy
-  const allCategories = await Categories.findAll({
+  const allCategoriesRaw = (await Categories.findAll({
     where: { userId },
     attributes: ['id', 'name', 'color', 'parentId'],
     raw: true,
-  });
-  const categoryMap = buildCategoryMap({ categories: allCategories });
-  const targetCategoryIds = new Set(budgetCategoryIds);
+  })) as unknown as { id: RecordId; name: string; color: string; parentId: RecordId | null }[];
+  const categoryMap = buildCategoryMap({ categories: allCategoriesRaw });
+  const targetCategoryIds = new Set<RecordId>(budgetCategoryIds);
 
   // Expand target categories to include all descendants
-  const expandedCategoryIds = new Set<number>(budgetCategoryIds);
-  allCategories.forEach((cat) => {
+  const expandedCategoryIds = new Set<RecordId>(budgetCategoryIds);
+  allCategoriesRaw.forEach((cat) => {
     let current: CategoryInfo | undefined = categoryMap.get(cat.id);
     while (current) {
       if (targetCategoryIds.has(current.id)) {
@@ -459,12 +624,13 @@ const getCategoryBudgetSpendingStats = async ({
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           ...dateFilter,
         },
-        attributes: ['id', 'time', 'transactionType'],
+        attributes: ['id', 'time', 'transactionType', 'refundLinked'],
       },
     ],
   });
 
   const txDataList: NormalizedTxData[] = [];
+  const countedTransactions: { id: string; refundLinked: boolean }[] = [];
 
   // Process primary category transactions (only those WITHOUT splits)
   for (const tx of primaryCategoryTransactions) {
@@ -484,6 +650,7 @@ const getCategoryBudgetSpendingStats = async ({
       categoryId: topLevelCatId,
       originalCategoryId: tx.categoryId!,
     });
+    countedTransactions.push({ id: tx.id, refundLinked: tx.refundLinked });
   }
 
   // Process splits
@@ -504,12 +671,19 @@ const getCategoryBudgetSpendingStats = async ({
       categoryId: topLevelCatId,
       originalCategoryId: split.categoryId,
     });
+    countedTransactions.push({ id: transaction.id, refundLinked: transaction.refundLinked });
   }
 
   if (txDataList.length === 0) return getEmptyResponse();
 
+  const refundPairs = await fetchBudgetRefundPairs({ countedTransactions });
+  const refundAdjustments = buildRefundAdjustments({
+    pairs: refundPairs,
+    resolveCategoryBucket: (categoryId) => getTopLevelTargetCategoryId({ categoryId, categoryMap, targetCategoryIds }),
+  });
+
   return aggregateTransactionData({
-    txDataList,
+    txDataList: [...txDataList, ...refundAdjustments],
     budgetStartDate: budgetDetails.startDate,
     budgetEndDate: budgetDetails.endDate,
     categoryMap,
@@ -521,16 +695,21 @@ export const getBudgetSpendingStats = async ({
   budgetId,
 }: {
   userId: number;
-  budgetId: number;
+  budgetId: string;
 }): Promise<SpendingStatsResponse> => {
+  // Share-aware auth: recipient sees the same numbers the owner would (per PRD
+  // visibility decision). Downstream queries scope against the owner's userId so
+  // a recipient's unrelated transactions don't filter the result.
+  const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+
   const budgetDetails = await findOrThrowNotFound({
-    query: Budgets.findOne({ where: { id: budgetId, userId }, attributes: ['type'] }),
+    query: Budgets.findOne({ where: { id: budgetId, userId: ownerUserId }, attributes: ['type'] }),
     message: t({ key: 'budgets.budgetNotFound' }),
   });
 
   if (budgetDetails.type === BUDGET_TYPES.category) {
-    return getCategoryBudgetSpendingStats({ userId, budgetId });
+    return getCategoryBudgetSpendingStats({ userId: ownerUserId, budgetId });
   }
 
-  return getManualBudgetSpendingStats({ userId, budgetId });
+  return getManualBudgetSpendingStats({ userId: ownerUserId, budgetId });
 };

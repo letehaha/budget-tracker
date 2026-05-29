@@ -27,18 +27,18 @@ const formatTransactionPayload = <
 export const loadTransactions = async (params: {
   from: number;
   limit?: number;
-  budgetIds?: number[];
-  excludedBudgetIds?: number[];
+  budgetIds?: string[];
+  excludedBudgetIds?: string[];
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
-  accountIds?: number[];
-  categoryIds?: number[];
-  tagIds?: number[];
-  excludedTagIds?: number[];
+  accountIds?: string[];
+  categoryIds?: string[];
+  tagIds?: string[];
+  excludedTagIds?: string[];
   sort?: SORT_DIRECTIONS;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
-  excludeAccountIds?: number[];
+  excludeAccountIds?: string[];
   transferFilter?: FILTER_OPERATION;
   refundFilter?: FILTER_OPERATION;
   startDate?: string;
@@ -56,7 +56,15 @@ export const loadTransactionsByTransferId = async (transferId: string): Promise<
   return api.get(`/transactions/transfer/${transferId}`);
 };
 
-export const loadTransactionsByIds = async ({ ids }: { ids: number[] }): Promise<TransactionModel[]> => {
+/** Single-tx fetch used by the edit dialog when the parent account isn't in the
+ *  caller's local `accountsRecord` (typically the budget-share-only case). The list
+ *  endpoints skip `canEdit` to keep the common path cheap; this lookup exposes it
+ *  for free from the already-resolved access result on the server. */
+export const loadTransactionById = async ({ id }: { id: string }): Promise<TransactionModel | null> => {
+  return api.get(`/transactions/${id}`);
+};
+
+export const loadTransactionsByIds = async ({ ids }: { ids: string[] }): Promise<TransactionModel[]> => {
   return api.get('/transactions/by-ids', { ids: ids.join(',') });
 };
 
@@ -73,13 +81,13 @@ export const createTransaction = async (params: endpointsTypes.CreateTransaction
 export const editTransaction = async ({
   txId,
   ...rest
-}: endpointsTypes.UpdateTransactionBody & { txId: number }): Promise<void> => {
+}: endpointsTypes.UpdateTransactionBody & { txId: string }): Promise<void> => {
   const params = formatTransactionPayload(rest);
 
   await api.put(`/transactions/${txId}`, params);
 };
 
-export const deleteTransaction = async (txId: number): Promise<void> => {
+export const deleteTransaction = async (txId: string): Promise<void> => {
   await api.delete(`/transactions/${txId}`);
 };
 
@@ -98,13 +106,13 @@ export const bulkUpdateTransactions = async (
 };
 
 export const loadRefundRecommendations = async (
-  params: { transactionId: number } | { transactionType: TRANSACTION_TYPES; originAmount: number; accountId: number },
+  params: { transactionId: string } | { transactionType: TRANSACTION_TYPES; originAmount: number; accountId: string },
 ): Promise<endpointsTypes.GetRefundRecommendationsResponse> => {
   return api.get('/transactions/refund-recommendations', params);
 };
 
 export const loadTransferRecommendations = async (
-  params: { transactionId: number } | { transactionType: TRANSACTION_TYPES; originAmount: number; accountId: number },
+  params: { transactionId: string } | { transactionType: TRANSACTION_TYPES; originAmount: number; accountId: string },
 ): Promise<endpointsTypes.GetTransferRecommendationsResponse> => {
   return api.get('/transactions/transfer-recommendations', params);
 };

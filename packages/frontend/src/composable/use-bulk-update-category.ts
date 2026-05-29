@@ -3,12 +3,13 @@ import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
 import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
+import type { RecordId } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 interface BulkUpdateParams {
-  transactionIds: number[];
-  categoryId?: number;
-  tagIds?: number[];
+  transactionIds: string[];
+  categoryId?: RecordId;
+  tagIds?: string[];
   tagMode?: 'add' | 'replace' | 'remove';
   note?: string;
 }

@@ -115,7 +115,7 @@ import { useCurrencyName } from '@/composable';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import type { AccountModel } from '@bt/shared/types';
-import { AlertTriangleIcon, ArrowLeftIcon, PlusIcon } from 'lucide-vue-next';
+import { AlertTriangleIcon, ArrowLeftIcon, PlusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';

@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { listExternalAccounts } from '@root/services/bank-data-providers/connection/list-external-accounts';
 import z from 'zod';
@@ -9,7 +10,7 @@ export type ListExternalAccountsResponseData = {
 export default createController(
   z.object({
     params: z.object({
-      connectionId: z.coerce.number(),
+      connectionId: recordId(),
     }),
   }),
   async ({ user, params }) => {

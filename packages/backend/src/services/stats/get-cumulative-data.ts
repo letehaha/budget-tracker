@@ -23,7 +23,7 @@ interface GetCumulativeDataParams {
   from: string;
   to: string;
   metric: endpointsTypes.CumulativeMetric;
-  accountId?: number;
+  accountId?: string;
 }
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

@@ -43,7 +43,7 @@
                 type="button"
                 :class="
                   cn(
-                    'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
+                    'border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
                     !form.icon && 'text-muted-foreground',
                   )
                 "
@@ -78,7 +78,7 @@
 <script setup lang="ts">
 import { createCategory, editCategory } from '@/api';
 import { type FormattedCategory } from '@/common/types';
-import { removeNullishValues } from '@/common/utils/remove-keys';
+import { isNil, omitBy } from 'lodash-es';
 import TagIcon from '@/components/common/icons/tag-icon.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import ColorSelectField from '@/components/fields/color-select-field.vue';
@@ -90,7 +90,8 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { useCategoriesStore, useOnboardingStore } from '@/stores';
-import { ChevronsUpDownIcon } from 'lucide-vue-next';
+import { ChevronsUpDownIcon } from '@lucide/vue';
+import { useVModel } from '@vueuse/core';
 import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -107,15 +108,8 @@ const emit = defineEmits<{
   'update:open': [value: boolean];
 }>();
 
-const isOpen = computed({
-  get: () => props.open ?? internalOpen.value,
-  set: (value: boolean) => {
-    internalOpen.value = value;
-    emit('update:open', value);
-  },
-});
+const isOpen = useVModel(props, 'open', emit, { passive: true });
 
-const internalOpen = ref(false);
 const isSubmitting = ref(false);
 
 const { t } = useI18n();
@@ -211,12 +205,15 @@ const handleSubmit = async () => {
       let params: CreateParams = { name: form.name.trim() };
 
       if (props.parentCategory) {
-        params = removeNullishValues({
-          ...params,
-          icon: props.parentCategory.icon,
-          color: props.parentCategory.color,
-          parentId: props.parentCategory.id,
-        }) as CreateParams;
+        params = omitBy(
+          {
+            ...params,
+            icon: props.parentCategory.icon,
+            color: props.parentCategory.color,
+            parentId: props.parentCategory.id,
+          },
+          isNil,
+        ) as CreateParams;
       } else {
         // Top-level category - use selected color and icon
         params.color = form.color;

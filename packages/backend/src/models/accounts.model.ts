@@ -1,4 +1,10 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  type AccountExternalData,
+  RecordId,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Balances from '@models/balances.model';
@@ -16,7 +22,6 @@ import {
 import {
   AfterCreate,
   Attribute,
-  AutoIncrement,
   BelongsTo,
   Default,
   HasMany,
@@ -24,11 +29,11 @@ import {
   NotNull,
   PrimaryKey,
   Table,
-  Unique,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 interface AccountsAttributes {
-  id: number;
+  id: string;
   name: string;
   initialBalance: Money;
   refInitialBalance: Money;
@@ -48,7 +53,7 @@ interface AccountsAttributes {
   // iban: string; // move to additionalFields
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
-  bankDataProviderConnectionId?: number; // FK to BankDataProviderConnections
+  bankDataProviderConnectionId?: string; // FK to BankDataProviderConnections
 }
 
 @Table({
@@ -57,17 +62,16 @@ interface AccountsAttributes {
   freezeTableName: true,
 })
 export default class Accounts extends Model<InferAttributes<Accounts>, InferCreationAttributes<Accounts>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  @Unique
-  declare id: CreationOptional<number>;
+  @Default(() => uuidv7())
+  declare id: CreationOptional<RecordId>;
 
   @Attribute(DataTypes.STRING)
   @NotNull
   declare name: string;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get initialBalance(): Money {
@@ -77,7 +81,7 @@ export default class Accounts extends Model<InferAttributes<Accounts>, InferCrea
     moneySetCents(this, 'initialBalance', val);
   }
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get refInitialBalance(): Money {
@@ -87,7 +91,7 @@ export default class Accounts extends Model<InferAttributes<Accounts>, InferCrea
     moneySetCents(this, 'refInitialBalance', val);
   }
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get currentBalance(): Money {
@@ -97,7 +101,7 @@ export default class Accounts extends Model<InferAttributes<Accounts>, InferCrea
     moneySetCents(this, 'currentBalance', val);
   }
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get refCurrentBalance(): Money {
@@ -107,7 +111,7 @@ export default class Accounts extends Model<InferAttributes<Accounts>, InferCrea
     moneySetCents(this, 'refCurrentBalance', val);
   }
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get creditLimit(): Money {
@@ -117,7 +121,7 @@ export default class Accounts extends Model<InferAttributes<Accounts>, InferCrea
     moneySetCents(this, 'creditLimit', val);
   }
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   @Default(0)
   get refCreditLimit(): Money {
@@ -166,9 +170,9 @@ export default class Accounts extends Model<InferAttributes<Accounts>, InferCrea
   @Default(false)
   declare excludeFromStats: CreationOptional<boolean>;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @Index
-  declare bankDataProviderConnectionId: number | null;
+  declare bankDataProviderConnectionId: RecordId | null;
 
   @BelongsTo(() => Currencies, 'currencyCode')
   declare currency?: NonAttribute<Currencies>;
@@ -293,11 +297,11 @@ export async function updateAccountById({ id, userId, ...payload }: UpdateAccoun
   return account;
 }
 
-export const deleteAccountById = ({ id }: { id: number }) => {
-  return Accounts.destroy({ where: { id } });
+export const deleteAccountById = ({ id, userId }: { id: string; userId: number }) => {
+  return Accounts.destroy({ where: { id, userId } });
 };
 
-export const getAccountCurrency = async ({ userId, id }: { userId: number; id: number }) => {
+export const getAccountCurrency = async ({ userId, id }: { userId: number; id: string }) => {
   const account = (await Accounts.findOne({
     where: { userId, id },
     include: {

@@ -7,7 +7,7 @@ import { categorizeTransactions } from './categorization-service';
 
 interface CategorizationJobData extends SentryTraceData {
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
 }
 
 // Redis connection configuration for BullMQ
@@ -148,7 +148,7 @@ export async function queueCategorizationJob({
   transactionIds,
 }: {
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
 }): Promise<string> {
   if (transactionIds.length === 0) {
     logger.info(`[AI Categorization] No transactions to categorize for user ${userId}`);

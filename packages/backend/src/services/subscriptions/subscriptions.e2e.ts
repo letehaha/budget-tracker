@@ -21,6 +21,8 @@ describe('Subscriptions', () => {
 
     it('creates a subscription with all optional fields', async () => {
       const account = await helpers.createAccount({ raw: true });
+      const categories = await helpers.getCategoriesList();
+      const categoryId = categories[0]!.id;
 
       const sub = await helpers.createSubscription({
         name: 'Spotify',
@@ -31,7 +33,7 @@ describe('Subscriptions', () => {
         startDate: '2025-01-15',
         endDate: '2026-01-15',
         accountId: account.id,
-        categoryId: 1,
+        categoryId,
         matchingRules: {
           rules: [{ field: 'note', operator: 'contains_any', value: ['spotify'] }],
         },
@@ -43,7 +45,7 @@ describe('Subscriptions', () => {
       // DB stores 999 cents; API serializes Money to decimal (9.99)
       expect(sub.expectedAmount).toBe(9.99);
       expect(sub.accountId).toBe(account.id);
-      expect(sub.categoryId).toBe(1);
+      expect(sub.categoryId).toBe(categoryId);
       expect(sub.notes).toBe('Family plan');
     });
 
@@ -322,7 +324,7 @@ describe('Subscriptions', () => {
 
       // Suggest matches should NOT include the unlinked transaction
       const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
-      const suggestedIds = suggestions.map((s: { id: number }) => s.id);
+      const suggestedIds = suggestions.map((s: { id: string }) => s.id);
       expect(suggestedIds).not.toContain(tx.id);
     });
   });
@@ -450,7 +452,7 @@ describe('Subscriptions', () => {
       // The historical match suggestions should include the UAH transaction
       // after converting its amount to USD and seeing it falls within 900-1100 cents
       const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
-      const suggestedIds = suggestions.map((s: { id: number }) => s.id);
+      const suggestedIds = suggestions.map((s: { id: string }) => s.id);
 
       expect(suggestedIds).toContain(tx.id);
     });

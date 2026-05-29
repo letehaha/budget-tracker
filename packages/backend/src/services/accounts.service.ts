@@ -1,17 +1,63 @@
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { UnexpectedError } from '@js/errors';
+import { NotFoundError, UnexpectedError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
+import Users from '@models/users.model';
+import { Op } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import {
+  cleanupAccountSharesInTx,
+  notifyAccountDeleteRecipients,
+  type AccountShareCleanupResult,
+} from '@services/sharing/cleanup/cleanup-account-shares.service';
+import {
+  AccountShareContext,
+  buildOwnerShareContext,
+  getSharedAccountById,
+  getSharedAccountsForUser,
+} from '@services/sharing/get-shared-accounts.service';
+import { convertCrossUserTransfersForAccountIds } from '@services/sharing/household/convert-cross-user-transfers.service';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
 import { withTransaction } from './common/with-transaction';
 
-type AccountWithRelinkStatus = Accounts.default & { needsRelink?: boolean };
+type AccountWithRelinkStatus = Accounts.default & {
+  needsRelink?: boolean;
+  _shareContext?: AccountShareContext;
+  _bankProviderType?: BANK_PROVIDER_TYPE | null;
+};
+
+/**
+ * Batch-load provider types for accounts that have a `bankDataProviderConnectionId` and
+ * stamp `_bankProviderType` on each account in place. Lets the serializer expose the
+ * provider type so the frontend can render the bank logo without a per-account
+ * connection-details lookup (which is owner-scoped and unreachable for share recipients).
+ */
+async function attachBankProviderTypes(accounts: AccountWithRelinkStatus[]): Promise<void> {
+  const connectionIds = Array.from(
+    new Set(accounts.map((a) => a.bankDataProviderConnectionId).filter((id): id is RecordId => typeof id === 'string')),
+  );
+  if (!connectionIds.length) return;
+
+  const connections = await BankDataProviderConnections.findAll({
+    where: { id: { [Op.in]: connectionIds } },
+    attributes: ['id', 'providerType'],
+  });
+  const providerTypeById = new Map(connections.map((c) => [c.id, c.providerType as BANK_PROVIDER_TYPE]));
+
+  for (const account of accounts) {
+    if (typeof account.bankDataProviderConnectionId === 'string') {
+      account._bankProviderType = providerTypeById.get(account.bankDataProviderConnectionId) ?? null;
+    }
+  }
+}
 
 /**
  * Check if an Enable Banking account needs to be re-linked.
@@ -56,22 +102,77 @@ function addNeedsRelinkFlag(accounts: Accounts.default[]): AccountWithRelinkStat
   );
 }
 
+/**
+ * User-facing account list. Returns the caller's owned accounts plus any accounts that
+ * have been shared with them (accepted shares only). Each item carries a `_shareContext`
+ * marker that the serializer turns into the public `share` block.
+ *
+ * Internal callers that should remain owner-scoped (e.g. balance recalculation) must use
+ * the model-level `Accounts.getAccountById` / `Accounts.getAccounts` directly.
+ */
 export const getAccounts = withTransaction(
   async (payload: Accounts.GetAccountsPayload): Promise<AccountWithRelinkStatus[]> => {
-    const accounts = await Accounts.getAccounts(payload);
-    return addNeedsRelinkFlag(accounts);
+    const ownedRaw = await Accounts.getAccounts(payload);
+    const ownedWithRelink = addNeedsRelinkFlag(ownedRaw);
+
+    const ownerUser = ownedWithRelink.length ? await Users.findByPk(payload.userId) : null;
+    if (ownedWithRelink.length && !ownerUser) {
+      // Authenticated caller owns accounts but has no Users row — should never happen
+      // (auth middleware guarantees it). Without the row we can't stamp _shareContext and
+      // the serializer silently omits the `share` block, which the frontend uses to
+      // distinguish owner vs recipient UI. Surface so this doesn't degrade silently.
+      logger.error(
+        {
+          message: 'Authenticated user not found when building owner share context',
+          error: new Error(`Users.findByPk returned null for userId=${payload.userId}`),
+        },
+        { code: 'ACCOUNTS_OWNER_USER_MISSING', userId: payload.userId },
+      );
+    }
+    const ownerContext = ownerUser ? await buildOwnerShareContext({ ownerUser }) : null;
+
+    const owned = ownedWithRelink.map((account) =>
+      ownerContext ? Object.assign(account, { _shareContext: ownerContext }) : account,
+    );
+
+    const shared = await getSharedAccountsForUser({ userId: payload.userId, type: payload.type });
+    // Shared instances aren't passed through `addNeedsRelinkFlag` because non-owners
+    // shouldn't see relink state for someone else's bank-linked account.
+    const all = [...owned, ...shared];
+    await attachBankProviderTypes(all);
+    return all;
   },
 );
 
 export const getAccountById = withTransaction(
-  async (payload: { id: number; userId: number }): Promise<AccountWithRelinkStatus | null> => {
-    const account = await Accounts.getAccountById({ ...payload });
+  async (payload: { id: string; userId: number }): Promise<AccountWithRelinkStatus | null> => {
+    const owned = await Accounts.getAccountById({ ...payload });
 
-    if (!account) return null;
+    if (owned) {
+      const enriched = Object.assign(owned, { needsRelink: checkNeedsRelink(owned) }) as AccountWithRelinkStatus;
+      const ownerUser = await Users.findByPk(payload.userId);
+      if (ownerUser) {
+        enriched._shareContext = await buildOwnerShareContext({ ownerUser });
+      } else {
+        // Same integrity-violation signal as `getAccounts` — caller owns this account
+        // but has no Users row. Without _shareContext the recipient-vs-owner serializer
+        // branch breaks; log so silent UI degradation is visible to ops.
+        logger.error(
+          {
+            message: 'Authenticated user not found when building owner share context for account by id',
+            error: new Error(`Users.findByPk returned null for userId=${payload.userId}`),
+          },
+          { code: 'ACCOUNTS_OWNER_USER_MISSING', userId: payload.userId, accountId: payload.id },
+        );
+      }
+      await attachBankProviderTypes([enriched]);
+      return enriched;
+    }
 
-    return Object.assign(account, {
-      needsRelink: checkNeedsRelink(account),
-    });
+    // Fall through to shared lookup; returns null if the caller has no accepted share.
+    const shared = await getSharedAccountById({ userId: payload.userId, id: payload.id });
+    if (shared) await attachBankProviderTypes([shared]);
+    return shared;
   },
 );
 
@@ -104,7 +205,10 @@ export const createAccount = withTransaction(
         refInitialBalance,
       });
     } catch (e) {
-      console.log('account error', e);
+      logger.error(
+        { message: 'Failed to create account', error: e as Error },
+        { code: 'ACCOUNT_CREATE_FAILED', userId: payload.userId, currencyCode: payload.currencyCode },
+      );
       throw e;
     }
   },
@@ -201,105 +305,64 @@ export const updateAccount = withTransaction(
   },
 );
 
-const calculateNewBalance = (amount: Money, previousAmount: Money, currentBalance: Money): Money => {
-  return currentBalance.add(amount.subtract(previousAmount));
-};
-
-const defineCorrectAmountFromTxType = (amount: Money, transactionType: TRANSACTION_TYPES): Money => {
-  return transactionType === TRANSACTION_TYPES.income ? amount : amount.negate();
-};
-
-// At least one of pair (amount + refAmount) OR (prevAmount + prefRefAmount) should be passed
-// It is NOT allowed to pass 1 or 3 amount-related arguments
-
-/** For **CREATED** transactions. When only (amount + refAmount) passed */
-// export async function updateAccountBalanceForChangedTxImpl(
-//   {
-//     accountId,
-//     userId,
-//     transactionType,
-//     amount,
-//     refAmount,
-//     currencyCode,
-//   }: updateAccountBalanceRequiredFields & { amount: number; refAmount: number },
-// ): Promise<void>;
-
-// /** For **DELETED** transactions. When only (prevAmount + prefRefAmount) passed */
-// export async function updateAccountBalanceForChangedTxImpl({
-//   accountId,
-//   userId,
-//   transactionType,
-//   prevAmount,
-//   prevRefAmount,
-//   currencyCode,
-// }: updateAccountBalanceRequiredFields & {
-//   prevAmount: number;
-//   prevRefAmount: number;
-// }): Promise<void>;
-
-// /** For **UPDATED** transactions. When both pairs passed */
-// export async function updateAccountBalanceForChangedTxImpl({
-//   accountId,
-//   userId,
-//   transactionType,
-//   amount,
-//   prevAmount,
-//   refAmount,
-//   prevRefAmount,
-//   currencyCode,
-//   prevTransactionType,
-// }: updateAccountBalanceRequiredFields & {
-//   amount: number;
-//   prevAmount: number;
-//   refAmount: number;
-//   prevRefAmount: number;
-//   prevTransactionType: TRANSACTION_TYPES;
-// }): Promise<void>;
-
-async function updateAccountBalanceForChangedTxImpl({
-  accountId,
-  userId,
-  transactionType,
-  amount = Money.zero(),
-  prevAmount = Money.zero(),
-  refAmount = Money.zero(),
-  prevRefAmount = Money.zero(),
-  prevTransactionType = transactionType,
-}: {
-  accountId: number;
-  userId: number;
-  transactionType: TRANSACTION_TYPES;
-  amount?: Money;
-  prevAmount?: Money;
-  refAmount?: Money;
-  prevRefAmount?: Money;
-  prevTransactionType?: TRANSACTION_TYPES;
-  currencyCode?: string;
-}): Promise<void> {
-  const account = await getAccountById({ id: accountId, userId });
-
-  if (!account) return undefined;
-
-  const currentBalance = account.currentBalance;
-  const refCurrentBalance = account.refCurrentBalance;
-
-  const newAmount = defineCorrectAmountFromTxType(amount, transactionType);
-  const oldAmount = defineCorrectAmountFromTxType(prevAmount, prevTransactionType);
-  const newRefAmount = defineCorrectAmountFromTxType(refAmount, transactionType);
-  const oldRefAmount = defineCorrectAmountFromTxType(prevRefAmount, prevTransactionType);
-
-  await Accounts.updateAccountById({
-    id: accountId,
-    userId,
-    currentBalance: calculateNewBalance(newAmount, oldAmount, currentBalance),
-    refCurrentBalance: calculateNewBalance(newRefAmount, oldRefAmount, refCurrentBalance),
-  });
+interface DeleteAccountByIdInTxResult {
+  affectedRows: number;
+  cleanup: AccountShareCleanupResult;
+  /** Snapshotted before destroy so the post-commit notification copy can still reference
+   *  the account name after the row is gone. */
+  accountSnapshot: { id: string; name: string };
 }
 
-export const updateAccountBalanceForChangedTx = withTransaction(updateAccountBalanceForChangedTxImpl);
+const deleteAccountByIdInTx = withTransaction(
+  async ({ id, userId }: { id: string; userId: number }): Promise<DeleteAccountByIdInTxResult> => {
+    const account = await Accounts.default.findOne({ where: { id, userId } });
+    if (!account) {
+      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+    }
 
-export const deleteAccountById = async ({ id }: { id: number }) => {
-  return Accounts.deleteAccountById({ id });
+    // Sharing cleanup runs in the same transaction so a destroy failure rolls back the
+    // share row deletes and invitation revocations atomically.
+    const cleanup = await cleanupAccountSharesInTx({ accountId: id, ownerUserId: userId });
+
+    // Convert cross-user transfer pairs BEFORE the destroy so the partner leg (on the
+    // OTHER user's account) isn't left orphaned with a `transferId` pointing at the
+    // about-to-be-cascaded leg on this account. Same transaction as the destroy, so a
+    // failure rolls everything back together.
+    await convertCrossUserTransfersForAccountIds({ accountIds: [id], ownerUserId: userId });
+
+    const affectedRows = await Accounts.deleteAccountById({ id, userId });
+    if (affectedRows === 0) {
+      // Defensive: the findOne above succeeded, so a 0-affectedRows here is a concurrency
+      // anomaly (someone else deleted the row between the two queries). Treat it as a 404
+      // for the caller so the response stays consistent.
+      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+    }
+
+    return {
+      affectedRows,
+      cleanup,
+      accountSnapshot: { id: account.id, name: account.name },
+    };
+  },
+);
+
+export const deleteAccountById = async ({ id, userId }: { id: string; userId: number }) => {
+  const result = await deleteAccountByIdInTx({ id, userId });
+
+  // Post-commit fan-out: the durable changes (share rows deleted, invitations revoked,
+  // account row destroyed) committed in the transaction above. Notifications are
+  // best-effort — a transient notify failure must not re-open the deleted account.
+  if (result.cleanup.recipients.length > 0 || result.cleanup.householdRecipients.length > 0) {
+    const owner = await Users.findByPk(userId);
+    await notifyAccountDeleteRecipients({
+      recipients: result.cleanup.recipients,
+      householdRecipients: result.cleanup.householdRecipients,
+      owner,
+      account: result.accountSnapshot,
+    });
+  }
+
+  return result.affectedRows;
 };
 
 export { unlinkAccountFromBankConnection } from './accounts/unlink-from-bank-connection';

@@ -5,6 +5,21 @@
 import type { Cents } from './money';
 
 /**
+ * Maximum data rows accepted from a single CSV upload. Same cap applied on the
+ * client (pre-flight in the investments column-mapping step) and on the server
+ * (bank- and investment-import parsers). Bumping this in one place reflects
+ * everywhere.
+ */
+export const MAX_CSV_ROWS = 50_000;
+
+/**
+ * CSV header names we refuse to accept — they would alias `Object.prototype`
+ * keys when used as object indices downstream. Shared so client and server
+ * stay in sync.
+ */
+export const CSV_FORBIDDEN_HEADERS = ['__proto__', 'prototype', 'constructor'] as const;
+
+/**
  * Import source types for imported transactions
  */
 export enum ImportSource {
@@ -52,7 +67,7 @@ export enum AccountOptionValue {
 export type CategoryOption =
   | { option: CategoryOptionValue.mapDataSourceColumn; columnName: string }
   | { option: CategoryOptionValue.createNewCategories; columnName: string }
-  | { option: CategoryOptionValue.existingCategory; categoryId: number };
+  | { option: CategoryOptionValue.existingCategory; categoryId: string };
 
 /**
  * Currency assignment options for CSV import
@@ -78,7 +93,7 @@ export type TransactionTypeOption =
  */
 export type AccountOption =
   | { option: AccountOptionValue.dataSourceColumn; columnName: string }
-  | { option: AccountOptionValue.existingAccount; accountId: number };
+  | { option: AccountOptionValue.existingAccount; accountId: string };
 
 /**
  * Column mapping configuration for Step 2
@@ -114,14 +129,14 @@ export interface ExtractUniqueValuesResponse {
 /**
  * Account mapping for import - maps CSV account name to action
  */
-export type AccountMappingValue = { action: 'create-new' } | { action: 'link-existing'; accountId: number };
+export type AccountMappingValue = { action: 'create-new' } | { action: 'link-existing'; accountId: string };
 
 export type AccountMappingConfig = Record<string, AccountMappingValue>;
 
 /**
  * Category mapping for import - maps CSV category name to action
  */
-export type CategoryMappingValue = { action: 'create-new' } | { action: 'link-existing'; categoryId: number };
+export type CategoryMappingValue = { action: 'create-new' } | { action: 'link-existing'; categoryId: string };
 
 export type CategoryMappingConfig = Record<string, CategoryMappingValue>;
 
@@ -155,11 +170,11 @@ export interface DuplicateMatch {
   rowIndex: number;
   importedTransaction: ParsedTransactionRow;
   existingTransaction: {
-    id: number;
+    id: string;
     date: string;
     amount: Cents;
     note: string;
-    accountId: number | null;
+    accountId: string | null;
   };
   matchType: 'originalId' | 'exact' | 'fuzzy';
   confidence: number; // 0-100
@@ -194,6 +209,10 @@ export interface ExecuteImportRequest {
   categoryMapping: CategoryMappingConfig;
   /** Row indices to skip (confirmed duplicates) */
   skipDuplicateIndices: number[];
+  /** Fallback account for rows whose accountName is empty (used when "single existing account" was chosen) */
+  defaultAccountId?: string;
+  /** Fallback category for rows whose categoryName is empty (used when "single existing category" was chosen) */
+  defaultCategoryId?: string;
 }
 
 /**
@@ -215,6 +234,6 @@ export interface ExecuteImportResponse {
     categoriesCreated: number;
     errors: ImportError[];
   };
-  newTransactionIds: number[];
+  newTransactionIds: string[];
   batchId: string;
 }

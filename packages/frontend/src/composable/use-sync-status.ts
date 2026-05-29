@@ -1,17 +1,50 @@
 import * as bankDataProvidersApi from '@/api/bank-data-providers';
 import type { SyncStatusResponse } from '@/api/bank-data-providers';
-import { computed, ref } from 'vue';
+import type { AccountGroups } from '@/common/types/models';
+import { getCurrentLocale, loadChunks } from '@/i18n';
+import type { AccountModel } from '@bt/shared/types';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { SSE_EVENT_TYPES, type SyncStatusChangedPayload, useSSE } from './use-sse';
 
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+// If a sync stays active longer than this, surface a "stuck" state to the user
+// so the spinner doesn't run indefinitely. Long enough to cover slow Enable
+// Banking syncs but well below the backend's 20-min stale threshold.
+const DEFAULT_STUCK_SYNC_THRESHOLD_MS = 5 * 60 * 1000;
+
+function getStuckSyncThresholdMs(): number {
+  // Allow Playwright e2e tests to shorten the threshold without waiting 5 min.
+  // No-op when the flag isn't set (production / dev), so prod code is unaffected.
+  if (typeof window !== 'undefined') {
+    const override = (window as unknown as { __TEST_SYNC_STUCK_MS__?: number }).__TEST_SYNC_STUCK_MS__;
+    if (typeof override === 'number' && override > 0) return override;
+  }
+  return DEFAULT_STUCK_SYNC_THRESHOLD_MS;
+}
 
 // Global state shared across all component instances
 const syncStatusData = ref<SyncStatusResponse | null>(null);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 const justCompleted = ref(false); // Track if sync just completed
+const syncStuck = ref(false);
+let stuckTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Provider names are used by sync-status-tooltip in the always-visible header
+// but live in the integrations chunk that's only auto-loaded on that route.
+// Trigger the load lazily on first composable use.
+let providerChunkLoadPromise: Promise<void> | null = null;
+function ensureProviderChunkLoaded(): Promise<void> {
+  if (!providerChunkLoadPromise) {
+    providerChunkLoadPromise = loadChunks({
+      locale: getCurrentLocale(),
+      chunks: ['pages/account-integrations'],
+    });
+  }
+  return providerChunkLoadPromise;
+}
 
 // SSE subscription state
 let sseUnsubscribe: (() => void) | null = null;
@@ -21,11 +54,19 @@ export function useSyncStatus() {
   const { t } = useI18n();
   const { connect, disconnect, on, isConnected } = useSSE();
 
-  const isSyncing = computed(() => {
+  // Kick off provider-name chunk load eagerly; provider names show up in the
+  // popover regardless of which page the user is on.
+  void ensureProviderChunkLoaded();
+
+  const rawIsSyncing = computed(() => {
     if (!syncStatusData.value) return false;
     const { summary } = syncStatusData.value;
     return summary.syncing > 0 || summary.queued > 0;
   });
+
+  // Once the watchdog flips syncStuck, treat sync as not-in-progress in the UI
+  // so the spinner stops. Backend may still be working, but we won't pretend.
+  const isSyncing = computed(() => rawIsSyncing.value && !syncStuck.value);
 
   const syncProgress = computed(() => {
     if (!syncStatusData.value) return { current: 0, total: 0, percentage: 0 };
@@ -56,6 +97,36 @@ export function useSyncStatus() {
     return syncStatusData.value?.accounts || [];
   });
 
+  const connectionsNeedingReauth = computed(() => {
+    return syncStatusData.value?.connectionsNeedingReauth || [];
+  });
+
+  // Built once per reactivity tick so per-account / per-group lookups stay O(1)
+  // — three different sidebar/details components query this for every render.
+  const reauthConnectionIdsSet = computed(() => new Set(connectionsNeedingReauth.value.map((c) => c.connectionId)));
+
+  function isAccountNeedingReauth(account: Pick<AccountModel, 'bankDataProviderConnectionId'>): boolean {
+    const id = account.bankDataProviderConnectionId;
+    return id !== null && id !== undefined && reauthConnectionIdsSet.value.has(id);
+  }
+
+  function isConnectionNeedingReauth(connectionId: string | null | undefined): boolean {
+    return connectionId !== null && connectionId !== undefined && reauthConnectionIdsSet.value.has(connectionId);
+  }
+
+  // Walk the group tree (direct accounts + nested child groups) so a mixed-
+  // content group still surfaces a warning when any descendant account is on
+  // an expired connection — important because groups can hold both bank-linked
+  // and manual accounts side by side. Tolerant of undefined arrays so a
+  // partial cache payload doesn't crash the sidebar.
+  function groupHasReauthAccount(group: AccountGroups): boolean {
+    if (reauthConnectionIdsSet.value.size === 0) return false;
+    const accounts = group.accounts ?? [];
+    if (accounts.some((account) => isAccountNeedingReauth(account))) return true;
+    const childGroups = group.childGroups ?? [];
+    return childGroups.some((child) => groupHasReauthAccount(child));
+  }
+
   const syncingSummaryText = computed(() => {
     if (!syncStatusData.value || !isSyncing.value) return '';
 
@@ -69,8 +140,28 @@ export function useSyncStatus() {
   });
 
   const showSuccessMessage = computed(() => {
-    return justCompleted.value && !isSyncing.value;
+    return justCompleted.value && !isSyncing.value && !syncStuck.value;
   });
+
+  // Start/stop the watchdog whenever the underlying syncing flag flips.
+  watch(
+    rawIsSyncing,
+    (active) => {
+      if (active) {
+        if (stuckTimer) clearTimeout(stuckTimer);
+        stuckTimer = setTimeout(() => {
+          syncStuck.value = true;
+        }, getStuckSyncThresholdMs());
+      } else {
+        if (stuckTimer) {
+          clearTimeout(stuckTimer);
+          stuckTimer = null;
+        }
+        syncStuck.value = false;
+      }
+    },
+    { immediate: true },
+  );
 
   /**
    * Subscribe to SSE sync status events
@@ -79,8 +170,9 @@ export function useSyncStatus() {
     if (isSSESubscribed) return;
 
     sseUnsubscribe = on<SyncStatusChangedPayload>(SSE_EVENT_TYPES.SYNC_STATUS_CHANGED, (data) => {
-      // Track if sync just completed
-      const wasSyncingBefore = isSyncing.value;
+      // Track raw state (not the watchdog-masked version) so completion is
+      // detected even after the watchdog has already silenced the spinner.
+      const wasSyncingBefore = rawIsSyncing.value;
 
       // Update status from SSE event (cast to SyncStatusResponse since the types are compatible)
       syncStatusData.value = data as unknown as SyncStatusResponse;
@@ -182,8 +274,10 @@ export function useSyncStatus() {
       await fetchStatus();
 
       // Connect to SSE if sync was triggered OR if sync is already in progress
-      // (e.g., page refresh while sync is running from another tab/session)
-      if (result.syncTriggered || isSyncing.value) {
+      // (e.g., page refresh while sync is running from another tab/session).
+      // Use rawIsSyncing so we still re-attach when the page loaded mid-sync
+      // even if the watchdog has already masked isSyncing.
+      if (result.syncTriggered || rawIsSyncing.value) {
         subscribeToSSE();
         await connect();
       }
@@ -207,11 +301,17 @@ export function useSyncStatus() {
     isLoading,
     error,
     isSyncing,
+    rawIsSyncing,
+    syncStuck,
     syncProgress,
     lastSyncTimestamp,
     timeSinceLastSync,
     needsConfirmation,
     accountStatuses,
+    connectionsNeedingReauth,
+    isAccountNeedingReauth,
+    isConnectionNeedingReauth,
+    groupHasReauthAccount,
     syncingSummaryText,
     showSuccessMessage,
     isConnected,

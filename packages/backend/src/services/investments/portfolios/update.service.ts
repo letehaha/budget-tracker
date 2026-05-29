@@ -1,14 +1,13 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { ConflictError } from '@js/errors';
 import Portfolios from '@models/investments/portfolios.model';
 import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UpdatePortfolioParams {
   userId: number;
-  portfolioId: number;
+  portfolioId: string;
   name?: string;
   portfolioType?: PORTFOLIO_TYPE;
   description?: string | null;
@@ -31,20 +30,7 @@ const updatePortfolioImpl = async ({
     message: t({ key: 'investments.portfolioNotFound' }),
   });
 
-  // Check if another portfolio with same name already exists for this user (only if name is being updated)
-  if (name !== undefined) {
-    const existingPortfolio = await Portfolios.findOne({
-      where: {
-        userId,
-        name: name.trim(),
-        id: { [Op.ne]: portfolioId }, // Exclude current portfolio
-      },
-    });
-
-    if (existingPortfolio) {
-      throw new ConflictError({ message: t({ key: 'investments.portfolioNameExists' }) });
-    }
-  }
+  // Duplicate names are allowed — see the matching note in create.service.ts.
 
   // Update the portfolio with only provided fields
   const updateData: Partial<Portfolios> = {};

@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Must import after mocking
@@ -41,7 +42,7 @@ describe('categorization-queue', () => {
 
     it('adds job to queue with correct data', async () => {
       const userId = 123;
-      const transactionIds = [1, 2, 3];
+      const transactionIds = [generateRandomRecordId(), generateRandomRecordId(), generateRandomRecordId()];
 
       await queueCategorizationJob({ userId, transactionIds });
 
@@ -57,7 +58,7 @@ describe('categorization-queue', () => {
     it('returns job ID', async () => {
       const result = await queueCategorizationJob({
         userId: 456,
-        transactionIds: [10, 20],
+        transactionIds: [generateRandomRecordId(), generateRandomRecordId()],
       });
 
       expect(result).toMatch(/^categorization-456-\d+$/);
@@ -66,7 +67,7 @@ describe('categorization-queue', () => {
     it('generates unique job IDs based on timestamp', async () => {
       const result1 = await queueCategorizationJob({
         userId: 1,
-        transactionIds: [1],
+        transactionIds: [generateRandomRecordId()],
       });
 
       // Small delay to ensure different timestamp
@@ -74,7 +75,7 @@ describe('categorization-queue', () => {
 
       const result2 = await queueCategorizationJob({
         userId: 1,
-        transactionIds: [2],
+        transactionIds: [generateRandomRecordId()],
       });
 
       expect(result1).not.toBe(result2);

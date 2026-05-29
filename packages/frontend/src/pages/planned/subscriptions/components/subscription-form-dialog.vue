@@ -6,6 +6,7 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
@@ -21,8 +22,9 @@ import {
   SUBSCRIPTION_TYPES,
   type SubscriptionMatchingRule,
   type SubscriptionModel,
+  type RecordId,
 } from '@bt/shared/types';
-import { AlertCircleIcon, ChevronDownIcon } from 'lucide-vue-next';
+import { ChevronDownIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -61,7 +63,7 @@ const FREQUENCY_OPTIONS = [
 const accountOptions = computed(() => [
   {
     label: t('planned.subscriptions.form.noAccount'),
-    value: 0,
+    value: null,
   },
   ...accountsStore.activeAccounts.map((a) => ({
     label: `${a.name} (${a.currencyCode})`,
@@ -77,8 +79,8 @@ interface FormState {
   frequency: SUBSCRIPTION_FREQUENCIES;
   startDate: Date | null;
   endDate: Date | null;
-  accountId: number | null;
-  categoryId: number | null;
+  accountId: string | null;
+  categoryId: string | null;
   matchingRules: SubscriptionMatchingRule[];
   notes: string;
 }
@@ -133,7 +135,7 @@ const selectedCategory = computed(() => {
 });
 
 const selectedAccount = computed(() => {
-  return accountOptions.value.find((a) => a.value === (form.value.accountId ?? 0)) ?? null;
+  return accountOptions.value.find((a) => a.value === form.value.accountId) ?? null;
 });
 
 const selectedCurrency = computed(() => {
@@ -224,8 +226,8 @@ const handleSubmit = () => {
     frequency: form.value.frequency,
     startDate: form.value.startDate?.toISOString().split('T')[0] ?? new Date().toISOString().split('T')[0]!,
     endDate: form.value.endDate ? form.value.endDate.toISOString().split('T')[0]! : null,
-    accountId: form.value.accountId || null,
-    categoryId: form.value.categoryId || null,
+    accountId: (form.value.accountId || null) as RecordId | null,
+    categoryId: (form.value.categoryId || null) as RecordId | null,
     matchingRules: {
       rules: form.value.matchingRules.filter((r) => {
         // Filter out empty rules
@@ -251,10 +253,9 @@ const handleSubmit = () => {
 <template>
   <form :id="formId" class="grid gap-4" @submit.prevent="handleSubmit">
     <!-- Form Error -->
-    <div v-if="formError" class="bg-destructive/10 text-destructive-text flex items-start gap-2 rounded-md p-3 text-sm">
-      <AlertCircleIcon class="mt-0.5 size-4 shrink-0" />
+    <Callout v-if="formError" variant="destructive">
       <span>{{ formError }}</span>
-    </div>
+    </Callout>
 
     <!-- Name -->
     <div class="flex items-start gap-3">

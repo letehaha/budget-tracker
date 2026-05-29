@@ -132,6 +132,8 @@ interface ExecuteImportParams {
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
+  defaultAccountId?: string;
+  defaultCategoryId?: string;
 }
 
 export function executeImport<R extends boolean | undefined = false>({
@@ -154,7 +156,7 @@ export function executeImport<R extends boolean | undefined = false>({
 // ============================================
 
 interface StatementDetectDuplicatesParams {
-  accountId: number;
+  accountId: string;
   transactions: ExtractedTransaction[];
 }
 
@@ -178,7 +180,7 @@ export function statementDetectDuplicates<R extends boolean | undefined = false>
 // ============================================
 
 interface StatementExecuteImportParams {
-  accountId: number;
+  accountId: string;
   transactions: ExtractedTransaction[];
   skipIndices: number[];
 }

@@ -1,4 +1,5 @@
 import { SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -128,11 +129,11 @@ describe('mapIntervalToFrequency', () => {
 
 function makeTx({ amount }: { amount: number }): TransactionForGrouping {
   return {
-    id: Math.random(),
+    id: `00000000-0000-0000-0000-${Math.random().toString(16).slice(2, 14)}`,
     amount,
     note: 'test',
     time: new Date(),
-    accountId: 1,
+    accountId: generateRandomRecordId(),
     currencyCode: 'USD',
   };
 }

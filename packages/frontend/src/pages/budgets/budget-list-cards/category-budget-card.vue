@@ -4,7 +4,7 @@ import { Card } from '@/components/lib/ui/card';
 import { useFormatCurrency } from '@/composable';
 import { BudgetModel, CategoryModel } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArchiveIcon, ArrowRightIcon, CalendarIcon, TagsIcon } from 'lucide-vue-next';
+import { ArchiveIcon, ArrowRightIcon, CalendarIcon, TagsIcon } from '@lucide/vue';
 
 import BudgetStatsSkeleton from '../budget-stats-skeleton.vue';
 import BudgetCardDropdown from './shared/budget-card-dropdown.vue';

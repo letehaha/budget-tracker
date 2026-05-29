@@ -1,7 +1,13 @@
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  API_ERROR_CODES,
+  type BaseCurrencyBlocker,
+  RESOURCE_TYPES,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
-import { ValidationError } from '@js/errors';
+import { ConflictError, ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
@@ -11,9 +17,10 @@ import InvestmentTransaction from '@models/investments/investment-transaction.mo
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
+import ResourceShares from '@models/resource-shares.model';
 import Transactions from '@models/transactions.model';
 import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.model';
-import { QueryTypes, Transaction as SequelizeTransaction } from '@sequelize/core';
+import { Op, QueryTypes, Transaction as SequelizeTransaction } from '@sequelize/core';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withLock } from '@services/common/lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
@@ -93,6 +100,57 @@ interface RecalculateResult {
 async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise<RecalculateResult> {
   const { userId, newCurrencyCode } = params;
 
+  // Refuse the change while the user has any active share — both ends of an
+  // accepted share must agree on a base currency, otherwise the recipient's
+  // aggregated stats mix the owner's `refAmount` with their own under different
+  // ref-currency assumptions and the totals diverge silently. Pending invitations
+  // don't lock; they're handled by the accept-time currency-match check, which
+  // surfaces a clean error instead.
+  //
+  // Two parallel counts so the response can tell the user precisely which kind
+  // of relationship is blocking — household memberships are user-scoped (one
+  // revoke covers many accounts), per-resource shares are resource-scoped (each
+  // must be revoked individually). The frontend renders multi-step guidance off
+  // the `blockers` array.
+  const [householdBlockingCount, perResourceBlockingCount] = await Promise.all([
+    ResourceShares.count({
+      where: {
+        [Op.or]: [{ ownerUserId: userId }, { sharedWithUserId: userId }],
+        resourceType: RESOURCE_TYPES.household,
+        acceptedAt: { [Op.not]: null },
+      },
+    }),
+    ResourceShares.count({
+      where: {
+        [Op.or]: [{ ownerUserId: userId }, { sharedWithUserId: userId }],
+        resourceType: RESOURCE_TYPES.account,
+        acceptedAt: { [Op.not]: null },
+      },
+    }),
+  ]);
+
+  if (householdBlockingCount > 0 || perResourceBlockingCount > 0) {
+    const blockers: BaseCurrencyBlocker[] = [];
+    if (householdBlockingCount > 0) blockers.push({ type: 'household', count: householdBlockingCount });
+    if (perResourceBlockingCount > 0) blockers.push({ type: 'share', count: perResourceBlockingCount });
+
+    // Household takes the primary code when both block — revoking household is the
+    // higher-impact action, so surface it first; the `blockers` array still tells
+    // the user there's a per-resource step waiting after.
+    if (householdBlockingCount > 0) {
+      throw new ConflictError({
+        code: API_ERROR_CODES.baseCurrencyLockedByHousehold,
+        message: t({ key: 'currencies.baseCurrencyLockedByHousehold' }),
+        details: { blockers },
+      });
+    }
+    throw new ConflictError({
+      code: API_ERROR_CODES.baseCurrencyLockedByShares,
+      message: t({ key: 'currencies.baseCurrencyLockedByShares' }),
+      details: { blockers },
+    });
+  }
+
   // Get current base currency
   const oldBaseCurrency = await getBaseCurrency({ userId });
 
@@ -136,9 +194,12 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       transaction: dbTransaction,
     });
 
-    // Pre-fetch portfolios once for steps 4, 6, 7
+    // Pre-fetch portfolios once for steps 4, 6, 7. Include soft-deleted ones
+    // (paranoid:false) so refAmounts stay consistent if the user later
+    // restores a portfolio that was in the trash during a base-currency switch.
     const portfolios = await Portfolios.findAll({
       where: { userId },
+      paranoid: false,
       transaction: dbTransaction,
     });
     const portfolioIds = portfolios.map((p) => p.id);
@@ -321,10 +382,10 @@ async function recalculateAccounts(params: {
   // and we read our own writes within the same DB transaction.
   const systemAccountIds = accounts.filter((a) => a.type === ACCOUNT_TYPES.system).map((a) => a.id);
 
-  const refAmountSums = new Map<number, number>();
+  const refAmountSums = new Map<string, number>();
 
   if (systemAccountIds.length > 0) {
-    const rows = await Transactions.sequelize!.query<{ accountId: number; refBalanceSum: string }>(
+    const rows = await Transactions.sequelize!.query<{ accountId: string; refBalanceSum: string }>(
       `SELECT
         "accountId",
         COALESCE(SUM(
@@ -455,7 +516,7 @@ async function rebuildBalances(params: {
 async function recalculateInvestmentTransactions(params: {
   userId: number;
   newCurrencyCode: string;
-  portfolioIds: number[];
+  portfolioIds: string[];
   transaction: SequelizeTransaction;
 }): Promise<number> {
   const { userId, newCurrencyCode, portfolioIds, transaction } = params;
@@ -552,7 +613,7 @@ async function recalculatePortfolioTransfers(params: {
 async function recalculateHoldings(params: {
   userId: number;
   newCurrencyCode: string;
-  portfolioIds: number[];
+  portfolioIds: string[];
   transaction: SequelizeTransaction;
 }): Promise<number> {
   const { userId, newCurrencyCode, portfolioIds, transaction } = params;
@@ -594,7 +655,7 @@ async function recalculateHoldings(params: {
 async function recalculatePortfolioBalances(params: {
   userId: number;
   newCurrencyCode: string;
-  portfolioIds: number[];
+  portfolioIds: string[];
   transaction: SequelizeTransaction;
 }): Promise<number> {
   const { userId, newCurrencyCode, portfolioIds, transaction } = params;

@@ -169,7 +169,7 @@ const handleOptionChange = (option: OptionItem | null) => {
       importStore.columnMapping.category = { option: CategoryOptionValue.createNewCategories, columnName: '' };
       break;
     case CategoryOptionValue.existingCategory:
-      importStore.columnMapping.category = { option: CategoryOptionValue.existingCategory, categoryId: 0 };
+      importStore.columnMapping.category = { option: CategoryOptionValue.existingCategory, categoryId: '' };
       break;
   }
 };

@@ -106,7 +106,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
   sinceDate.setMonth(sinceDate.getMonth() - LOOKBACK_MONTHS);
 
   // Get transaction IDs already linked to active subscriptions
-  const linkedTxIds: { transactionId: number }[] = await SubscriptionCandidates.sequelize!.query(
+  const linkedTxIds: { transactionId: string }[] = await SubscriptionCandidates.sequelize!.query(
     `SELECT "transactionId" FROM "SubscriptionTransactions" WHERE "status" = :status`,
     {
       replacements: { status: SUBSCRIPTION_LINK_STATUS.active },
@@ -133,7 +133,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
   const transactions: TransactionForGrouping[] = rawTransactions
     .filter((tx) => !linkedSet.has(tx.id) && tx.note !== null && tx.accountId !== null && tx.currencyCode !== null)
     .map((tx) => ({
-      id: tx.id,
+      id: tx.id as string,
       amount: tx.amount.toCents(),
       note: tx.note!,
       time: tx.time,
@@ -168,7 +168,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
     existingCandidates.map((c) =>
       buildGroupingKey({
         normalizedNote: normalizeNote({ note: c.suggestedName }),
-        accountId: c.accountId ?? 0,
+        accountId: c.accountId ?? '',
         currencyCode: c.currencyCode,
       }),
     ),

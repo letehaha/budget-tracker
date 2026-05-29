@@ -7,7 +7,7 @@
 MoneyMatter is a privacy-first alternative to apps like Mint, YNAB, and other commercial budget trackers. Unlike those services, MoneyMatter is:
 
 - **Free forever** — no subscription fees, no premium tiers
-- **Open source** — MIT-licensed, fully auditable code
+- **Open source** — AGPL-3.0-licensed, fully auditable code
 - **Self-hostable** — run on your own server with Docker, or use the hosted cloud version
 - **Privacy-first** — your data is never sold, shared, or used for advertising
 
@@ -121,7 +121,7 @@ Setup guide and Docker configuration: https://github.com/letehaha/budget-tracker
 | Feature | Mint & others | YNAB | MoneyMatter |
 |---|---|---|---|
 | Price | Free (you're the product) | $99/year | Free forever |
-| Open Source | No | No | Yes (MIT) |
+| Open Source | No | No | Yes (AGPL-3.0) |
 | Self-Hostable | No | No | Yes |
 | Data Privacy | Sells data | Stored on their servers | You own it 100% |
 | Investment Tracking | No | No | Yes |

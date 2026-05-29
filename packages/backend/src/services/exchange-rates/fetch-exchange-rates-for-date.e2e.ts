@@ -10,6 +10,7 @@ import {
   CURRENCY_RATES_API_ENDPOINT_REGEX,
   FRANKFURTER_ENDPOINT_REGEX,
 } from './fetch-exchange-rates-for-date';
+import { EXCHANGE_RATE_PROVIDER_TYPE } from './providers/types';
 
 describe('Exchange Rates Functionality', () => {
   let currencyRatesApiOverride: ReturnType<typeof createOverride>;
@@ -60,6 +61,10 @@ describe('Exchange Rates Functionality', () => {
       expect(item).toMatchObject({
         date: expect.stringContaining(date),
       });
+      // `source` must be populated with a real provider — guards against
+      // the providerType being silently dropped from the insert path.
+      expect(item.source).not.toBe(EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN);
+      expect(Object.values(EXCHANGE_RATE_PROVIDER_TYPE)).toContain(item.source);
     });
   });
 
@@ -141,6 +146,15 @@ describe('Exchange Rates Functionality', () => {
     expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(1);
     expect(frankfurterCounter.count).toBeGreaterThanOrEqual(1);
     expect(apiLayerCounter.count).toBeGreaterThanOrEqual(1);
+
+    // The persisted rows must be attributed to the provider that actually won
+    // the fallback chain (api-layer), not the ones that failed.
+    const date = format(new Date(), 'yyyy-MM-dd');
+    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
+    expect(response.length).toBeGreaterThan(0);
+    response.forEach((item) => {
+      expect(item.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER);
+    });
   });
 
   it('should return 502 when all providers fail', async () => {

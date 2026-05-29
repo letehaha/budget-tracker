@@ -3,31 +3,21 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">{{ $t('investments.title') }}</h1>
 
-      <CreatePortfolioDialog v-if="!isDemo">
-        <UiButton>
+      <DemoRestricted :message="$t('demo.featureNotAvailable')">
+        <CreatePortfolioDialog v-if="!isDemo">
+          <UiButton>
+            <PlusIcon class="mr-2 size-4" />
+            {{ $t('investments.createButton') }}
+          </UiButton>
+        </CreatePortfolioDialog>
+        <UiButton v-else disabled>
           <PlusIcon class="mr-2 size-4" />
           {{ $t('investments.createButton') }}
         </UiButton>
-      </CreatePortfolioDialog>
+      </DemoRestricted>
     </div>
 
-    <!-- Demo mode restriction -->
-    <template v-if="isDemo">
-      <div class="py-12 text-center">
-        <div class="mb-4">
-          <LockIcon class="text-muted-foreground mx-auto size-12" />
-        </div>
-        <h3 class="text-foreground mb-2 text-lg font-medium">{{ $t('demo.investmentsRestricted.title') }}</h3>
-        <p class="text-muted-foreground mb-4">
-          {{ $t('demo.investmentsRestricted.description') }}
-        </p>
-        <router-link :to="{ name: ROUTES_NAMES.signUp }">
-          <UiButton>{{ $t('demo.signUpToUnlock') }}</UiButton>
-        </router-link>
-      </div>
-    </template>
-
-    <template v-else-if="portfoliosQuery.isLoading.value">
+    <template v-if="portfoliosQuery.isLoading.value">
       <div class="mb-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
         <Card v-for="i in 3" :key="i" class="overflow-hidden">
           <CardHeader class="p-4 pb-2">
@@ -110,7 +100,7 @@
                     </RouterLink>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DeletePortfolioDialog :portfolio-id="portfolio.id">
+                  <DeletePortfolioDialog v-if="!isDemo" :portfolio-id="portfolio.id">
                     <DropdownMenuItem
                       class="text-destructive-text focus:bg-destructive-text/10 focus:text-destructive-text"
                       @select.prevent
@@ -119,6 +109,16 @@
                       {{ $t('investments.menu.delete') }}
                     </DropdownMenuItem>
                   </DeletePortfolioDialog>
+                  <DemoRestricted v-else :message="$t('demo.featureNotAvailable')">
+                    <DropdownMenuItem
+                      disabled
+                      class="text-destructive-text focus:bg-destructive-text/10 focus:text-destructive-text"
+                      @select.prevent
+                    >
+                      <Trash2Icon class="mr-2 size-4" />
+                      {{ $t('investments.menu.delete') }}
+                    </DropdownMenuItem>
+                  </DemoRestricted>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -177,14 +177,22 @@
             {{ $t('investments.empty.description') }}
           </p>
         </div>
-        <CreatePortfolioDialog>
-          <UiButton size="lg">
+        <DemoRestricted :message="$t('demo.featureNotAvailable')">
+          <CreatePortfolioDialog v-if="!isDemo">
+            <UiButton size="lg">
+              <PlusIcon class="mr-2 size-4" />
+              {{ $t('investments.empty.createFirstButton') }}
+            </UiButton>
+          </CreatePortfolioDialog>
+          <UiButton v-else size="lg" disabled>
             <PlusIcon class="mr-2 size-4" />
             {{ $t('investments.empty.createFirstButton') }}
           </UiButton>
-        </CreatePortfolioDialog>
+        </DemoRestricted>
       </div>
     </template>
+
+    <PortfoliosTrash v-if="!isDemo" />
   </PageWrapper>
 </template>
 
@@ -197,6 +205,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
 import PageWrapper from '@/components/common/page-wrapper.vue';
+import { DemoRestricted } from '@/components/demo';
 import CreatePortfolioDialog from '@/components/dialogs/create-portfolio-dialog.vue';
 import DeletePortfolioDialog from '@/components/dialogs/delete-portfolio-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -204,6 +213,7 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { cn } from '@/lib/utils';
 import PortfolioCardBalance from '@/pages/investments/components/portfolio-card-balance.vue';
+import PortfoliosTrash from '@/pages/investments/components/portfolios-trash.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useCurrenciesStore, useUserStore } from '@/stores';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
@@ -213,12 +223,11 @@ import {
   EyeIcon,
   EyeOffIcon,
   LandmarkIcon,
-  LockIcon,
   MoreVerticalIcon,
   PiggyBankIcon,
   PlusIcon,
   Trash2Icon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { FunctionalComponent } from 'vue';
 import { computed } from 'vue';

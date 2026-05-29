@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { format } from 'date-fns';
-import { GroupIcon } from 'lucide-vue-next';
+import { GroupIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -8,7 +8,7 @@ const { t } = useI18n();
 
 export interface GroupRowData {
   type: 'group';
-  groupId: number;
+  groupId: string;
   groupName: string;
   transactionCount: number;
   dateFrom: Date;
@@ -20,7 +20,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  click: [groupId: number];
+  click: [groupId: string];
 }>();
 
 const dateRange = computed(() => {

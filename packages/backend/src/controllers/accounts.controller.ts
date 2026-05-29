@@ -1,5 +1,5 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES } from '@bt/shared/types';
-import { currencyCode } from '@common/lib/zod/custom-types';
+import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { Unauthorized, ValidationError } from '@js/errors';
@@ -21,7 +21,7 @@ export const getAccounts = createController(z.object({}), async ({ user }) => {
 export const getAccountById = createController(
   z.object({
     params: z.object({
-      id: z.coerce.number(),
+      id: recordId(),
     }),
   }),
   async ({ user, params }) => {
@@ -75,7 +75,7 @@ export const createAccount = createController(
 export const updateAccount = createController(
   z.object({
     params: z.object({
-      id: z.coerce.number(),
+      id: recordId(),
     }),
     body: z.object({
       accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).optional(),
@@ -127,11 +127,12 @@ export const updateAccount = createController(
 export const deleteAccount = createController(
   z.object({
     params: z.object({
-      id: z.coerce.number(),
+      id: recordId(),
     }),
   }),
-  async ({ params }) => {
+  async ({ user, params }) => {
     const { id } = params;
-    await accountsService.deleteAccountById({ id });
+    const { id: userId } = user;
+    await accountsService.deleteAccountById({ id, userId });
   },
 );

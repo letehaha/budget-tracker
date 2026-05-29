@@ -1,4 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
@@ -222,7 +223,7 @@ describe('GET /transactions (get investment transactions)', () => {
 
   it('should return 404 for non-existent portfolio', async () => {
     const response = await getInvestmentTransactions({
-      portfolioId: 999999,
+      portfolioId: generateRandomRecordId(),
     });
     expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
   });

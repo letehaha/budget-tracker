@@ -1,8 +1,9 @@
-import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
+import { BUDGET_STATUSES, BUDGET_TYPES, RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Categories from '@models/categories.model';
 import Transactions from '@models/transactions.model';
+import Users from '@models/users.model';
 import {
   CreationOptional,
   DataTypes,
@@ -13,7 +14,8 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
+  BelongsTo,
   BelongsToMany,
   Default,
   Index,
@@ -21,28 +23,35 @@ import {
   PrimaryKey,
   Table,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import BudgetCategories from './budget-categories.model';
+import BudgetTransactions from './budget-transactions.model';
 
 @Table({
   timestamps: false,
   tableName: 'Budgets',
 })
 export default class Budgets extends Model<InferAttributes<Budgets>, InferCreationAttributes<Budgets>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  @NotNull
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static assignId(instance: Budgets) {
+    if (!instance.id) instance.id = uuidv7() as RecordId;
+  }
 
   @Attribute(DataTypes.STRING(200))
   @NotNull
   declare name: string;
 
-  @Attribute(DataTypes.ENUM({ values: Object.values(BUDGET_STATUSES) }))
+  @Attribute(DataTypes.STRING)
   @NotNull
   declare status: BUDGET_STATUSES;
 
-  @Attribute(DataTypes.ENUM({ values: Object.values(BUDGET_TYPES) }))
+  @Attribute(DataTypes.STRING)
   @NotNull
   @Default(BUDGET_TYPES.manual)
   declare type: CreationOptional<BUDGET_TYPES>;
@@ -57,7 +66,7 @@ export default class Budgets extends Model<InferAttributes<Budgets>, InferCreati
   @Default(false)
   declare autoInclude: CreationOptional<boolean>;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   get limitAmount(): Money {
     return moneyGetCents(this, 'limitAmount');
   }
@@ -70,7 +79,14 @@ export default class Budgets extends Model<InferAttributes<Budgets>, InferCreati
   @Index
   declare userId: number;
 
-  // In Sequelize v7, BelongsToMany is defined on Transactions model and automatically creates the inverse
+  @BelongsTo(() => Users, 'userId')
+  declare user?: NonAttribute<Users>;
+
+  @BelongsToMany(() => Transactions, {
+    through: () => BudgetTransactions,
+    foreignKey: 'budgetId',
+    otherKey: 'transactionId',
+  })
   declare transactions?: NonAttribute<Transactions[]>;
 
   @BelongsToMany(() => Categories, {

@@ -41,11 +41,11 @@ export const getExpensesHistory = async ({
   excludedCategoryIds,
 }: {
   userId: number;
-  accountId?: number;
+  accountId?: string;
   from?: string;
   to?: string;
   transactionType?: TRANSACTION_TYPES;
-  excludedCategoryIds?: number[];
+  excludedCategoryIds?: string[];
 }): Promise<GetExpensesHistoryResponseSchema[]> => {
   const dataAttributes: (keyof InferAttributes<Transactions.default>)[] = [
     'id',

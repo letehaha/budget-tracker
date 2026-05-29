@@ -2,7 +2,7 @@ import { api } from '@/api/_api';
 import { AccountGroups } from '@/common/types/models';
 
 export const loadAccountGroups = async (
-  payload: { accountIds?: number[]; includeArchived?: boolean } = {},
+  payload: { accountIds?: string[]; includeArchived?: boolean } = {},
 ): Promise<AccountGroups[]> => {
   return api.get('/account-group', payload);
 };
@@ -11,23 +11,23 @@ export const createAccountsGroup = async (payload: { name: string }): Promise<vo
   await api.post('/account-group', payload);
 };
 
-export const linkAccountToGroup = async (payload: { accountId: number; groupId: number }) => {
+export const linkAccountToGroup = async (payload: { accountId: string; groupId: string }) => {
   await api.post(`/account-group/${payload.groupId}/add-account/${payload.accountId}`);
 };
 
-export const removeAccountFromGroup = async (payload: { accountIds: number[]; groupId: number }) => {
+export const removeAccountFromGroup = async (payload: { accountIds: string[]; groupId: string }) => {
   await api.delete(`/account-group/${payload.groupId}/accounts`, {
     data: { accountIds: payload.accountIds },
   });
 };
 
 export const updateAccountGroup = async (payload: {
-  groupId: number;
-  updates: { name?: string; parentGroupId?: number | null };
+  groupId: string;
+  updates: { name?: string; parentGroupId?: string | null };
 }) => {
   await api.put(`/account-group/${payload.groupId}`, payload.updates);
 };
 
-export const deleteAccountGroup = async (payload: { userId: number; groupId: number }) => {
+export const deleteAccountGroup = async (payload: { groupId: string }) => {
   await api.delete(`/account-group/${payload.groupId}`);
 };

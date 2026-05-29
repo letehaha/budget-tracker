@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import {
   CreationOptional,
@@ -9,7 +10,6 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
   BeforeCreate,
   BeforeUpdate,
   Default,
@@ -19,6 +19,7 @@ import {
   PrimaryKey,
   Table,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import Holdings from './holdings.model';
 import InvestmentTransactions from './investment-transaction.model';
@@ -30,10 +31,16 @@ import SecurityPricing from './security-pricing.model';
   timestamps: true,
 })
 export default class Securities extends Model<InferAttributes<Securities>, InferCreationAttributes<Securities>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static generateUUIDv7(instance: Securities) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
   @Attribute(DataTypes.STRING)
   declare name: string | null;
@@ -41,6 +48,10 @@ export default class Securities extends Model<InferAttributes<Securities>, Infer
   @Attribute(DataTypes.STRING)
   @Index
   declare symbol: string | null;
+
+  @Attribute(DataTypes.STRING)
+  @Index
+  declare providerSymbol: string | null;
 
   @Attribute(DataTypes.STRING)
   @Index
@@ -77,11 +88,14 @@ export default class Securities extends Model<InferAttributes<Securities>, Infer
   @Attribute(DataTypes.STRING)
   declare exchangeName: string | null;
 
-  @Attribute(DataTypes.ENUM(...Object.values(SECURITY_PROVIDER)))
+  @Attribute(DataTypes.STRING(255))
+  declare logoUrl: string | null;
+
+  @Attribute(DataTypes.STRING)
   @NotNull
   declare providerName: SECURITY_PROVIDER;
 
-  @Attribute(DataTypes.ENUM(...Object.values(ASSET_CLASS)))
+  @Attribute(DataTypes.STRING)
   @NotNull
   declare assetClass: ASSET_CLASS;
 

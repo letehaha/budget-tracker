@@ -1,4 +1,5 @@
 import { CategoryModel } from '@bt/shared/types';
+import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -83,7 +84,7 @@ describe('Delete custom categories', () => {
 
   it('should return not found error for non-existent category', async () => {
     const res = await helpers.deleteCustomCategory({
-      categoryId: 9999,
+      categoryId: NONEXISTENT_ID,
       raw: false,
     });
 

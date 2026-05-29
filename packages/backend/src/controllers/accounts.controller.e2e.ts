@@ -1,4 +1,6 @@
+import type { RecordId } from '@bt/shared/types';
 import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { addDays } from 'date-fns';
@@ -29,7 +31,7 @@ async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T
   }
 }
 
-async function createExpenseTransactions({ accountId, count }: { accountId: number; count: number }) {
+async function createExpenseTransactions({ accountId, count }: { accountId: RecordId; count: number }) {
   for (const index in Array(count).fill(0)) {
     await helpers.createTransaction({
       payload: {
@@ -96,11 +98,34 @@ describe('Accounts controller', () => {
 
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
+
+    it('accepts balances above the legacy 32-bit INTEGER ceiling', async () => {
+      // Regression: SequelizeDatabaseError "value … is out of range for type integer".
+      // 25_000_000 decimal → 2_500_000_000 cents, comfortably above the old
+      // 2_147_483_647 cap; common for low-denomination currencies (IDR, VND).
+      const LARGE_BALANCE = 25_000_000;
+
+      const account = await helpers.createAccount({
+        payload: {
+          ...helpers.buildAccountPayload(),
+          initialBalance: LARGE_BALANCE,
+          creditLimit: LARGE_BALANCE,
+        },
+        raw: true,
+      });
+
+      expect(account.initialBalance).toStrictEqual(LARGE_BALANCE);
+      expect(account.refInitialBalance).toStrictEqual(LARGE_BALANCE);
+      expect(account.currentBalance).toStrictEqual(LARGE_BALANCE);
+      expect(account.refCurrentBalance).toStrictEqual(LARGE_BALANCE);
+      expect(account.creditLimit).toStrictEqual(LARGE_BALANCE);
+      expect(account.refCreditLimit).toStrictEqual(LARGE_BALANCE);
+    });
   });
   describe('update account', () => {
     it('should return 404 if try to update unexisting account', async () => {
       const res = await helpers.updateAccount<helpers.ErrorResponse>({
-        id: 1,
+        id: generateRandomRecordId(),
       });
 
       expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
@@ -468,6 +493,38 @@ describe('Accounts controller', () => {
       });
 
       expect(brokenUpdate.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+  describe('delete account', () => {
+    it('returns 404 when deleting a non-existent account', async () => {
+      const res = await helpers.deleteAccount({ id: generateRandomRecordId(), raw: false });
+
+      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it('deletes own account successfully', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const res = await helpers.deleteAccount({ id: account.id, raw: false });
+      expect(res.statusCode).toBe(200);
+
+      const accountsAfter = await helpers.getAccounts();
+      expect(accountsAfter.some((a) => a.id === account.id)).toBe(false);
+    });
+
+    it('returns 404 when deleting another user account and leaves it intact', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const user2Cookies = await createSecondUser();
+
+      const res = await asUser({
+        cookies: user2Cookies,
+        fn: () => helpers.deleteAccount({ id: account.id, raw: false }),
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      const stillExists = await helpers.getAccount({ id: account.id, raw: true });
+      expect(stillExists.id).toBe(account.id);
     });
   });
 });

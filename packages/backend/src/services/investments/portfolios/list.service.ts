@@ -1,17 +1,26 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import Portfolios from '@models/investments/portfolios.model';
-import { FindOptions, InferAttributes, WhereOptions } from '@sequelize/core';
+import { FindOptions, InferAttributes, Op, WhereOptions } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface ListPortfoliosParams {
   userId: number;
   portfolioType?: PORTFOLIO_TYPE;
   isEnabled?: boolean;
+  /** When true, returns ONLY soft-deleted portfolios (for the trash view). */
+  onlyDeleted?: boolean;
   limit?: number;
   offset?: number;
 }
 
-const listPortfoliosImpl = async ({ userId, portfolioType, isEnabled, limit, offset }: ListPortfoliosParams) => {
+const listPortfoliosImpl = async ({
+  userId,
+  portfolioType,
+  isEnabled,
+  onlyDeleted = false,
+  limit,
+  offset,
+}: ListPortfoliosParams) => {
   const where: WhereOptions<Portfolios> = { userId };
 
   // Add optional filters
@@ -23,9 +32,17 @@ const listPortfoliosImpl = async ({ userId, portfolioType, isEnabled, limit, off
     where.isEnabled = isEnabled;
   }
 
+  if (onlyDeleted) {
+    // Bypass paranoid (so trash rows surface) AND constrain to non-null
+    // deletedAt so live rows don't leak in. `Op.not` against `null` produces
+    // `IS NOT NULL` in SQL.
+    where.deletedAt = { [Op.not]: null };
+  }
+
   const options: FindOptions<InferAttributes<Portfolios>> = {
     where,
-    order: [['createdAt', 'DESC']],
+    order: onlyDeleted ? [['deletedAt', 'DESC']] : [['createdAt', 'DESC']],
+    paranoid: !onlyDeleted,
   };
 
   if (limit !== undefined) {

@@ -8,7 +8,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useAccountGroupForAccount } from '@/composable/data-queries/account-groups';
 import { AccountModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { CheckIcon, PlusIcon } from 'lucide-vue-next';
+import { CheckIcon, PlusIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

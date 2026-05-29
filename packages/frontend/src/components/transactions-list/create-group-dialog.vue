@@ -14,7 +14,7 @@ const { t } = useI18n();
 
 const props = defineProps<{
   open?: boolean;
-  transactionIds: number[];
+  transactionIds: string[];
 }>();
 
 const emit = defineEmits<{

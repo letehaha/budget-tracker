@@ -5,7 +5,7 @@ import { addYears, format, min, startOfDay } from 'date-fns';
 import chunk from 'lodash/chunk';
 
 import { exchangeRateProviderRegistry } from './providers';
-import { ExchangeRateResult } from './providers/types';
+import { EXCHANGE_RATE_PROVIDER_TYPE, ExchangeRateResult } from './providers/types';
 
 // Fallback date if no providers are registered (should not happen in practice)
 const FALLBACK_START_DATE = new Date('1999-01-04');
@@ -54,12 +54,22 @@ async function waitForProviderAvailability(): Promise<boolean> {
 async function insertRatesChunk({
   results,
   validCurrencyCodes,
+  providerType,
 }: {
   results: ExchangeRateResult[];
   validCurrencyCodes: Set<string>;
+  providerType: EXCHANGE_RATE_PROVIDER_TYPE;
 }): Promise<{ totalRates: number; insertedRates: number }> {
-  // Convert provider results to rate entries, filtering as we go to reduce memory
-  const validRates: { baseCode: string; quoteCode: string; rate: number; date: Date }[] = [];
+  // Convert provider results to rate entries, filtering as we go to reduce memory.
+  // `source` is part of the intermediate shape so a future refactor cannot drop
+  // it before the bulkCreate() call without a type error.
+  const validRates: {
+    baseCode: string;
+    quoteCode: string;
+    rate: number;
+    date: Date;
+    source: EXCHANGE_RATE_PROVIDER_TYPE;
+  }[] = [];
 
   for (const result of results) {
     const rateDate = startOfDay(new Date(result.date));
@@ -70,6 +80,7 @@ async function insertRatesChunk({
           quoteCode,
           rate,
           date: rateDate,
+          source: providerType,
         });
       }
     }
@@ -83,18 +94,10 @@ async function insertRatesChunk({
   const chunks = chunk(validRates, BULK_INSERT_BATCH_SIZE);
 
   for (const batch of chunks) {
-    await ExchangeRates.bulkCreate(
-      batch.map((rate) => ({
-        baseCode: rate.baseCode,
-        quoteCode: rate.quoteCode,
-        rate: rate.rate,
-        date: rate.date,
-      })),
-      {
-        ignoreDuplicates: true,
-        logging: false,
-      },
-    );
+    await ExchangeRates.bulkCreate(batch, {
+      ignoreDuplicates: true,
+      logging: false,
+    });
 
     // Yield to event loop between batches
     await new Promise((resolve) => setImmediate(resolve));
@@ -139,6 +142,15 @@ export async function initializeHistoricalRates(): Promise<void> {
 
     logger.info(`Found ${validCurrencyCodes.size} valid currencies in database`);
 
+    // Without any currencies, every fetched rate would be filtered out — burning
+    // provider quota for zero inserts. Bail out loudly so this isn't silent.
+    if (validCurrencyCodes.size === 0) {
+      logger.warn(
+        'No currencies found in database; skipping historical rates initialization to avoid wasted provider calls.',
+      );
+      return;
+    }
+
     let currentStartDate = new Date(globalStartDate);
     let totalInserted = 0;
     let providerName: string | null = null;
@@ -167,6 +179,7 @@ export async function initializeHistoricalRates(): Promise<void> {
         const { insertedRates } = await insertRatesChunk({
           results: fetchResult.results,
           validCurrencyCodes,
+          providerType: fetchResult.providerType,
         });
 
         totalInserted += insertedRates;

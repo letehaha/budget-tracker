@@ -8,7 +8,7 @@ import { type Ref, computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 export interface ChartDataItem {
-  categoryId: number;
+  categoryId: string;
   name: string;
   color: string;
   amount: number;
@@ -19,7 +19,7 @@ export function useExpensesStructureData({
   excludedCategoryIds,
 }: {
   selectedPeriod: () => { from: Date; to: Date };
-  excludedCategoryIds: Ref<number[]>;
+  excludedCategoryIds: Ref<string[]>;
 }) {
   const { t } = useI18n();
 
@@ -136,9 +136,9 @@ export function useExpensesStructureData({
   const chartData = computed<ChartDataItem[]>(() => {
     const excludedSet = new Set(excludedCategoryIds.value);
     return Object.entries(spendingsByCategories.value || {})
-      .filter(([id]) => !excludedSet.has(Number(id)))
+      .filter(([id]) => !excludedSet.has(id))
       .map(([id, value]) => ({
-        categoryId: Number(id),
+        categoryId: id,
         name: value.name,
         color: value.color,
         amount: value.amount,

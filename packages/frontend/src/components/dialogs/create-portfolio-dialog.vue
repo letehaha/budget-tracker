@@ -4,18 +4,23 @@ import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import FeedbackDialog from '@/components/sidebar/feedback-dialog.vue';
 import { useCreatePortfolio } from '@/composable/data-queries/portfolios';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
-import { CheckIcon } from 'lucide-vue-next';
+import { CheckIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 
+const emit = defineEmits<{ created: [] }>();
+
 const isOpen = ref(false);
+const isFeedbackOpen = ref(false);
 
 const form = reactive({
   name: '',
@@ -44,6 +49,7 @@ const resetForm = () => {
 const onPortfolioCreation = () => {
   isOpen.value = false;
   resetForm();
+  emit('created');
 };
 
 const createPortfolio = async () => {
@@ -81,6 +87,32 @@ const createPortfolio = async () => {
     <template #description> {{ $t('dialogs.createPortfolio.description') }} </template>
 
     <form class="mt-4 grid gap-6" @submit.prevent="createPortfolio">
+      <Callout>
+        <i18n-t keypath="dialogs.createPortfolio.assetSupportNotice" tag="p">
+          <template #roadmapLink>
+            <a
+              href="https://moneymatter.featurebase.app/dashboard/roadmap"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-medium underline underline-offset-2 hover:no-underline"
+            >
+              {{ $t('dialogs.createPortfolio.assetSupportRoadmapLink') }}
+            </a>
+          </template>
+          <template #feedbackLink>
+            <button
+              type="button"
+              class="font-medium underline underline-offset-2 hover:no-underline"
+              @click="isFeedbackOpen = true"
+            >
+              {{ $t('dialogs.createPortfolio.assetSupportFeedbackLink') }}
+            </button>
+          </template>
+        </i18n-t>
+      </Callout>
+
+      <FeedbackDialog v-model:open="isFeedbackOpen" triggerless default-type="feature_request" />
+
       <InputField
         v-model="form.name"
         :label="$t('dialogs.createPortfolio.form.nameLabel')"
@@ -111,7 +143,7 @@ const createPortfolio = async () => {
       />
 
       <div class="flex">
-        <UiButton type="submit" class="ml-auto min-w-[120px]" :disabled="isSubmitDisabled">
+        <UiButton type="submit" class="ml-auto min-w-30" :disabled="isSubmitDisabled">
           <CheckIcon class="size-4" />
           {{
             createPortfolioMutation.isPending.value

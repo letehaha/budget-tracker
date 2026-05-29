@@ -12,6 +12,7 @@ import {
   getWalutomatHistoryByCurrencyMock,
   getWalutomatHistoryMock,
 } from '@tests/mocks/walutomat/mock-api';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 describe('Walutomat Data Provider E2E', () => {
@@ -37,7 +38,7 @@ describe('Walutomat Data Provider E2E', () => {
       });
 
       expect(connectResult).toHaveProperty('connectionId');
-      expect(connectResult.connectionId).toBeGreaterThan(0);
+      expect(connectResult.connectionId).toBeTruthy();
 
       const connectionId = connectResult.connectionId;
 
@@ -47,7 +48,7 @@ describe('Walutomat Data Provider E2E', () => {
       expect(Array.isArray(connections)).toBe(true);
       expect(connections.length).toBeGreaterThan(0);
 
-      const connection = connections.find((c: { id: number }) => c.id === connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionId);
       expect(connection).toBeDefined();
       expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.WALUTOMAT);
       expect(connection?.providerName).toBe('Walutomat');
@@ -112,7 +113,7 @@ describe('Walutomat Data Provider E2E', () => {
       });
 
       expect(result).toHaveProperty('connectionId');
-      expect(result.connectionId).toBeGreaterThan(0);
+      expect(typeof result.connectionId).toBe('string');
     });
 
     it('should fail with invalid API key', async () => {
@@ -165,7 +166,7 @@ describe('Walutomat Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
       expect(connection?.providerName).toBe('Walutomat');
     });
   });
@@ -433,9 +434,61 @@ describe('Walutomat Data Provider E2E', () => {
         raw: true,
       });
 
-      const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === connectionId);
+      const { connections: disconnectedConnections } = await helpers.bankDataProviders.listUserConnections({
+        raw: true,
+      });
+      const connection = disconnectedConnections.find((c: { id: string }) => c.id === connectionId);
       expect(connection).toBeUndefined();
+    });
+  });
+
+  describe('Provider outage vs. invalid credentials', () => {
+    const WALUTOMAT_BALANCES_URL = 'https://api.walutomat.pl/api/v2.0.0/account/balances';
+
+    it('connect: should not treat a provider 5xx as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(WALUTOMAT_BALANCES_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.WALUTOMAT}/connect`,
+        payload: {
+          credentials: {
+            apiKey: VALID_WALUTOMAT_API_KEY,
+            privateKey: VALID_WALUTOMAT_PRIVATE_KEY,
+          },
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('refreshCredentials: should not treat a provider 5xx as invalid credentials', async () => {
+      const { connectionId } = await helpers.walutomat.pair();
+
+      global.mswMockServer.use(
+        http.get(WALUTOMAT_BALANCES_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'patch',
+        url: `/bank-data-providers/connections/${connectionId}`,
+        payload: {
+          credentials: {
+            apiKey: VALID_WALUTOMAT_API_KEY,
+            privateKey: VALID_WALUTOMAT_PRIVATE_KEY,
+          },
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
     });
   });
 });

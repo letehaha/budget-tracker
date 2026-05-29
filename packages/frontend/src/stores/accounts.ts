@@ -18,7 +18,7 @@ export const useAccountsStore = defineStore('accounts', () => {
   const queryClient = useQueryClient();
   const { isUserExists } = storeToRefs(useUserStore());
 
-  const accountsRecord = ref<Record<number, AccountWithRelinkStatus>>({});
+  const accountsRecord = ref<Record<string, AccountWithRelinkStatus>>({});
 
   const {
     data: accounts,
@@ -61,58 +61,41 @@ export const useAccountsStore = defineStore('accounts', () => {
   const accountsNeedingRelink = computed(() => accounts.value?.filter((item) => item.needsRelink) ?? []);
 
   const editAccount = async ({ id, ...data }: Parameters<typeof apiEditAccount>[0]) => {
-    try {
-      await apiEditAccount({ id, ...data });
-      await refetchAccounts();
+    await apiEditAccount({ id, ...data });
+    await refetchAccounts();
 
-      queryClient.invalidateQueries({
-        queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
-      });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
-      throw e;
-    }
+    queryClient.invalidateQueries({
+      queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
+    });
   };
 
   const deleteAccount = async ({ id }: DeleteAccountPayload) => {
-    try {
-      await apiDeleteAccount({ id });
-      await refetchAccounts();
-      // Invalidate all queries that depend on transaction changes
-      // since deleting an account will delete all associated transactions
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          const queryKey = query.queryKey as string[];
-          return queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange);
-        },
-      });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
-    }
+    await apiDeleteAccount({ id });
+    await refetchAccounts();
+    // Invalidate all queries that depend on transaction changes
+    // since deleting an account will delete all associated transactions
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange);
+      },
+    });
   };
 
   const unlinkAccountFromBankConnection = async ({ id }: UnlinkAccountFromBankConnectionPayload) => {
-    try {
-      await apiUnlinkAccountFromBankConnection({ id });
-      await refetchAccounts();
-      // Invalidate all queries that depend on transaction changes
-      // since unlinking updates all associated transactions
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          const queryKey = query.queryKey as string[];
-          return (
-            queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange) ||
-            queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange)
-          );
-        },
-      });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
-      throw e;
-    }
+    await apiUnlinkAccountFromBankConnection({ id });
+    await refetchAccounts();
+    // Invalidate all queries that depend on transaction changes
+    // since unlinking updates all associated transactions
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return (
+          queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange) ||
+          queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange)
+        );
+      },
+    });
   };
 
   return {

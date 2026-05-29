@@ -91,10 +91,6 @@
       "tagModeRemove": "Видалити ці теги"
     },
     "transactionGroups": {
-      "navigation": {
-        "allTransactions": "Всі транзакції",
-        "groups": "Групи"
-      },
       "bulkActions": {
         "createNewGroup": "Створити нову групу",
         "addToExistingGroup": "Додати до існуючої групи",
@@ -161,6 +157,10 @@
         "createFailed": "Не вдалося створити групу",
         "addFailed": "Не вдалося додати транзакції до групи"
       }
-    }
+    },
+    "transfer": {
+      "hiddenAccount": "Прихований рахунок"
+    },
+    "addedByTooltip": "Цю транзакцію додав до бюджету {handle}"
   }
 }

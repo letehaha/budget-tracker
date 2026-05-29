@@ -16,12 +16,11 @@ import {
   SparklesIcon,
   TrendingUpIcon,
   WalletIcon,
-} from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
+} from '@lucide/vue';
+import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-const { t } = useI18n();
+import { useSidebarNavCollapse } from './use-nav-collapse';
 
 withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 
@@ -31,16 +30,19 @@ const navIconBase = 'size-4 shrink-0';
 const navIconActive = 'text-primary';
 
 const route = useRoute();
+const { isAccountsOpen, isTransactionsOpen, isPlannedOpen } = useSidebarNavCollapse();
 
 const isAccountsRoute = computed(
   () =>
     route.name === ROUTES_NAMES.accounts ||
     route.name === ROUTES_NAMES.account ||
     route.name === ROUTES_NAMES.accountIntegrations ||
-    route.name === ROUTES_NAMES.accountIntegrationDetails,
+    route.name === ROUTES_NAMES.accountIntegrationDetails ||
+    route.name === ROUTES_NAMES.investments ||
+    route.name === ROUTES_NAMES.portfolioDetail ||
+    route.name === ROUTES_NAMES.portfolioTransactionsImport,
 );
 
-const isAccountsOpen = ref(false);
 watch(
   isAccountsRoute,
   (val) => {
@@ -57,7 +59,6 @@ const isTransactionsRoute = computed(
     route.name === ROUTES_NAMES.optimizationsTransfers,
 );
 
-const isTransactionsOpen = ref(false);
 watch(
   isTransactionsRoute,
   (val) => {
@@ -77,7 +78,6 @@ const isPlannedRoute = computed(
     route.name === ROUTES_NAMES.plannedReminderDetails,
 );
 
-const isPlannedOpen = ref(false);
 watch(
   isPlannedRoute,
   (val) => {
@@ -147,21 +147,20 @@ watch(
             <span>{{ $t('navigation.bankIntegrations') }}</span>
           </ui-button>
         </router-link>
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <TrendingUpIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t('navigation.investments') }}</span>
+          </ui-button>
+        </router-link>
       </div>
     </CollapsibleContent>
   </Collapsible>
-
-  <router-link v-if="!bottomNav" v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">
-    <ui-button
-      variant="ghost"
-      as="span"
-      :class="[navItemBase, 'justify-start', isActive && navItemActive]"
-      size="default"
-    >
-      <TrendingUpIcon :class="[navIconBase, isActive && navIconActive]" />
-      <span> {{ $t('navigation.investments') }} </span>
-    </ui-button>
-  </router-link>
 
   <template v-if="bottomNav">
     <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">
@@ -196,7 +195,7 @@ watch(
             size="sm"
           >
             <CreditCardIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ t('transactions.transactionGroups.navigation.allTransactions') }}</span>
+            <span>{{ $t('navigation.allTransactions') }}</span>
           </ui-button>
         </router-link>
         <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactionGroups }">
@@ -207,7 +206,7 @@ watch(
             size="sm"
           >
             <GroupIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ t('transactions.transactionGroups.navigation.groups') }}</span>
+            <span>{{ $t('navigation.transactionGroups') }}</span>
           </ui-button>
         </router-link>
         <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.optimizations }">

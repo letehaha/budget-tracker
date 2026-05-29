@@ -5,10 +5,10 @@ import * as helpers from '@tests/helpers';
 import { MakeRequestReturn } from './common';
 
 interface GetTransferRecommendationsParams {
-  transactionId?: number;
+  transactionId?: string;
   transactionType?: TRANSACTION_TYPES;
   originAmount?: number;
-  accountId?: number;
+  accountId?: string;
 }
 
 export function getTransferRecommendations<R extends boolean | undefined = undefined>({
@@ -35,8 +35,8 @@ export function dismissTransferSuggestion<R extends boolean | undefined = undefi
   raw,
   ...params
 }: {
-  expenseTransactionId: number;
-  incomeTransactionId: number;
+  expenseTransactionId: string;
+  incomeTransactionId: string;
   raw?: R;
 }): Promise<MakeRequestReturn<void, R>> {
   return helpers.makeRequest<void, R>({

@@ -1,11 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { DEACTIVATION_REASON, type DeactivationReason } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
+import { ForbiddenError } from '@js/errors';
+import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
 import { IBankDataProvider, ProviderAccount, ProviderMetadata } from './types';
+
+/**
+ * Shape of connection-metadata fields used by the shared auth-failure
+ * tracking. Provider-specific metadata interfaces should include these
+ * fields (and may add their own).
+ */
+interface AuthTrackingMetadata {
+  consecutiveAuthFailures?: number;
+  deactivationReason?: DeactivationReason | null;
+}
+
+/**
+ * After this many consecutive auth failures the connection is auto-deactivated
+ * to stop us hammering the upstream with bad credentials.
+ */
+const AUTH_FAILURE_DEACTIVATION_THRESHOLD = 2;
 
 /**
  * Abstract base class for all bank data providers.
@@ -34,7 +52,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @returns Connection model instance
    * @throws NotFoundError if connection not found
    */
-  protected async getConnection(connectionId: number): Promise<BankDataProviderConnections> {
+  protected async getConnection(connectionId: string): Promise<BankDataProviderConnections> {
     return findOrThrowNotFound({
       query: BankDataProviderConnections.findByPk(connectionId),
       message: t({ key: 'errors.connectionIdNotFound', variables: { connectionId } }),
@@ -45,7 +63,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * Update last sync timestamp for a connection
    * @param connectionId - Connection ID to update
    */
-  protected async updateLastSync(connectionId: number): Promise<void> {
+  protected async updateLastSync(connectionId: string): Promise<void> {
     await BankDataProviderConnections.update({ lastSyncAt: new Date() }, { where: { id: connectionId } });
   }
 
@@ -55,7 +73,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @returns Account model instance
    * @throws NotFoundError if account not found
    */
-  protected async getSystemAccount(systemAccountId: number): Promise<Accounts> {
+  protected async getSystemAccount(systemAccountId: string): Promise<Accounts> {
     return findOrThrowNotFound({
       query: Accounts.findByPk(systemAccountId),
       message: t({ key: 'errors.accountIdNotFound', variables: { accountId: systemAccountId } }),
@@ -67,9 +85,76 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param connectionId - Connection ID
    * @returns Decrypted credentials object
    */
-  protected async getDecryptedCredentials(connectionId: number): Promise<Record<string, unknown>> {
+  protected async getDecryptedCredentials(connectionId: string): Promise<Record<string, unknown>> {
     const connection = await this.getConnection(connectionId);
     return connection.getDecryptedCredentials();
+  }
+
+  // ============================================================================
+  // Auth Failure Tracking
+  // ============================================================================
+
+  /**
+   * Whether a thrown error represents an auth failure for this provider.
+   * Default treats any `ForbiddenError` as an auth failure. Providers whose
+   * upstream returns auth failures via different mechanisms (e.g. HTTP 401/403
+   * wrapped in a custom error class) should override this.
+   */
+  protected isAuthError(error: unknown): boolean {
+    return error instanceof ForbiddenError;
+  }
+
+  /**
+   * Increment the connection's consecutive auth-failure counter and deactivate
+   * the connection once the threshold is reached. Called by providers in the
+   * catch branch of an authenticated call. No-ops for non-auth errors so call
+   * sites can pass any caught error.
+   */
+  protected async handleAuthError({ connectionId, error }: { connectionId: string; error: unknown }): Promise<void> {
+    if (!this.isAuthError(error)) return;
+
+    try {
+      const connection = await this.getConnection(connectionId);
+      const metadata = ((connection.metadata as AuthTrackingMetadata) || {}) as AuthTrackingMetadata;
+      const failures = (metadata.consecutiveAuthFailures || 0) + 1;
+      metadata.consecutiveAuthFailures = failures;
+
+      if (failures >= AUTH_FAILURE_DEACTIVATION_THRESHOLD) {
+        connection.isActive = false;
+        metadata.deactivationReason = DEACTIVATION_REASON.AUTH_FAILURE;
+        logger.warn(
+          `[${this.metadata.name}] Connection ${connectionId} deactivated after ${failures} consecutive auth failures`,
+        );
+      }
+
+      connection.metadata = metadata as any;
+      await connection.save();
+    } catch (metaError) {
+      logger.error({
+        message: `[${this.metadata.name}] Failed to update auth failure metadata:`,
+        error: metaError as Error,
+      });
+    }
+  }
+
+  /**
+   * Reset the consecutive auth-failure counter after a successful call.
+   * Failures here are swallowed because the recorded count is non-critical:
+   * we'd rather risk an extra deactivation than fail a working request.
+   */
+  protected async resetAuthFailures(connectionId: string): Promise<void> {
+    try {
+      const connection = await this.getConnection(connectionId);
+      const metadata = ((connection.metadata as AuthTrackingMetadata) || {}) as AuthTrackingMetadata;
+
+      if (metadata.consecutiveAuthFailures && metadata.consecutiveAuthFailures > 0) {
+        metadata.consecutiveAuthFailures = 0;
+        connection.metadata = metadata as any;
+        await connection.save();
+      }
+    } catch {
+      // Non-critical, ignore
+    }
   }
 
   /**
@@ -102,13 +187,13 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param credentials - Provider-specific credentials
    * @returns Connection ID
    */
-  abstract connect(userId: number, credentials: unknown): Promise<number>;
+  abstract connect(userId: number, credentials: unknown): Promise<string>;
 
   /**
    * Disconnect and remove a provider connection
    * @param connectionId - Connection to disconnect
    */
-  abstract disconnect(connectionId: number): Promise<void>;
+  abstract disconnect(connectionId: string): Promise<void>;
 
   /**
    * Validate credentials by testing connection to provider
@@ -122,14 +207,14 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param connectionId - Connection to update
    * @param newCredentials - New credentials to store
    */
-  abstract refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void>;
+  abstract refreshCredentials(connectionId: string, newCredentials: unknown): Promise<void>;
 
   /**
    * Fetch list of accounts from provider (without saving to DB)
    * @param connectionId - Connection to fetch accounts from
    * @returns List of provider accounts
    */
-  abstract fetchAccounts(connectionId: number): Promise<ProviderAccount[]>;
+  abstract fetchAccounts(connectionId: string): Promise<ProviderAccount[]>;
 
   /**
    * Fetch transactions for a specific account (without saving to DB)
@@ -138,7 +223,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param dateRange - Optional date range to filter transactions
    * @returns List of transactions
    */
-  abstract fetchTransactions(connectionId: number, accountExternalId: string, dateRange?: any): Promise<any[]>;
+  abstract fetchTransactions(connectionId: string, accountExternalId: string, dateRange?: any): Promise<any[]>;
 
   /**
    * Sync transactions for a specific account to our database
@@ -152,8 +237,8 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
     systemAccountId,
     userId,
   }: {
-    connectionId: number;
-    systemAccountId: number;
+    connectionId: string;
+    systemAccountId: string;
     userId: number;
   }): Promise<void | { jobGroupId: string; totalBatches: number; estimatedMinutes: number }>;
 
@@ -163,14 +248,14 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param accountExternalId - Provider's account ID
    * @returns Current balance
    */
-  abstract fetchBalance(connectionId: number, accountExternalId: string): Promise<any>;
+  abstract fetchBalance(connectionId: string, accountExternalId: string): Promise<any>;
 
   /**
    * Refresh balance for a specific account in our system
    * @param connectionId - Connection ID
    * @param systemAccountId - Our internal account ID
    */
-  abstract refreshBalance(connectionId: number, systemAccountId: number): Promise<void>;
+  abstract refreshBalance(connectionId: string, systemAccountId: string): Promise<void>;
 
   /**
    * Set up webhook for real-time updates (if supported)
@@ -178,7 +263,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param connectionId - Connection to set up webhook for
    * @param webhookUrl - URL to receive webhook notifications
    */
-  setupWebhook?(connectionId: number, webhookUrl: string): Promise<void>;
+  setupWebhook?(connectionId: string, webhookUrl: string): Promise<void>;
 
   /**
    * Handle incoming webhook payload (if supported)

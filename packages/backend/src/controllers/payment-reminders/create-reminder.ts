@@ -24,7 +24,7 @@ const schema = z.object({
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .refine((val) => val >= new Date().toISOString().slice(0, 10), { message: 'Due date cannot be in the past' }),
-      subscriptionId: z.string().uuid().optional(),
+      subscriptionId: recordId().optional(),
       expectedAmount: z.number().nonnegative().nullable().optional(),
       currencyCode: z.string().length(3).nullable().optional(),
       frequency: z.enum(frequencyValues).nullable().optional(),

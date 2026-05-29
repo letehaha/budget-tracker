@@ -12,11 +12,11 @@ import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import type { BulkTransferScanItem } from '@bt/shared/types/endpoints';
-import type { TransactionModel } from '@bt/shared/types';
+import type { TransactionModel, RecordId } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import type { Period } from '@/composable/use-period-navigation';
 import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
-import { SearchXIcon, SparklesIcon } from 'lucide-vue-next';
+import { SearchXIcon, SparklesIcon } from '@lucide/vue';
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { createReusableTemplate } from '@vueuse/core';
@@ -143,8 +143,8 @@ async function freshScan() {
 
 // Link mutation
 const linkMutation = useMutation({
-  mutationFn: ({ expenseId, incomeId }: { expenseId: number; incomeId: number }) =>
-    linkTransactions({ ids: [[expenseId, incomeId]] }),
+  mutationFn: ({ expenseId, incomeId }: { expenseId: string; incomeId: string }) =>
+    linkTransactions({ ids: [[expenseId as RecordId, incomeId as RecordId]] }),
   onMutate: async ({ expenseId, incomeId }) => {
     const previous = { items: [...allItems.value], total: totalCount.value };
 
@@ -189,10 +189,10 @@ const linkMutation = useMutation({
 
 // Skip (dismiss) mutation
 const skipMutation = useMutation({
-  mutationFn: ({ expenseId, incomeId }: { expenseId: number; incomeId: number }) =>
+  mutationFn: ({ expenseId, incomeId }: { expenseId: string; incomeId: string }) =>
     dismissTransferSuggestion({
-      expenseTransactionId: expenseId,
-      incomeTransactionId: incomeId,
+      expenseTransactionId: expenseId as RecordId,
+      incomeTransactionId: incomeId as RecordId,
     }),
   onMutate: async ({ expenseId, incomeId }) => {
     const previous = { items: [...allItems.value], total: totalCount.value };
@@ -245,11 +245,11 @@ function handleSelectExpense(index: number) {
   }
 }
 
-function handleLink(payload: { expenseId: number; incomeId: number }) {
+function handleLink(payload: { expenseId: string; incomeId: string }) {
   linkMutation.mutate(payload);
 }
 
-function handleSkip(payload: { expenseId: number; incomeId: number }) {
+function handleSkip(payload: { expenseId: string; incomeId: string }) {
   skipMutation.mutate(payload);
 }
 
@@ -259,7 +259,9 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
 </script>
 
 <template>
-  <div class="flex h-[calc(100dvh-var(--header-height))] flex-col gap-4 overflow-hidden p-4 md:p-6">
+  <div
+    class="flex h-[calc(100dvh-var(--header-height))] flex-col gap-4 overflow-hidden p-4 max-md:h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] md:p-6"
+  >
     <!-- Header -->
     <div class="shrink-0">
       <h1 class="text-2xl font-bold tracking-tight">
@@ -335,7 +337,7 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
       <!-- Empty state (after scan, no results) -->
       <div
         v-else-if="hasScanned && allItems.length === 0 && !isScanning"
-        class="flex flex-1 flex-col items-center justify-center gap-3"
+        class="flex flex-1 flex-col items-center justify-center gap-3 px-6"
       >
         <SearchXIcon class="text-muted-foreground size-12" />
         <div class="text-center">
@@ -347,7 +349,7 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
       </div>
 
       <!-- Initial state (before first scan) -->
-      <div v-else-if="!hasScanned && !isScanning" class="flex flex-1 flex-col items-center justify-center gap-3">
+      <div v-else-if="!hasScanned && !isScanning" class="flex flex-1 flex-col items-center justify-center gap-3 px-6">
         <SparklesIcon class="text-muted-foreground size-12" />
         <div class="text-center">
           <p class="font-medium">{{ $t('optimizations.transferSuggestions.initial.title') }}</p>

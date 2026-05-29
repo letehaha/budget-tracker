@@ -1,6 +1,12 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import {
+  ASSET_CLASS,
+  SECURITY_PROVIDER,
+  SUPPORTED_ASSET_CLASSES,
+  SecuritySearchResult,
+} from '@bt/shared/types/investments';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { ValidationError } from '@js/errors';
 import { createHolding } from '@services/investments/holdings/create-holding.service';
 import { deleteHolding } from '@services/investments/holdings/delete-holding.service';
 import { getHoldings } from '@services/investments/holdings/get-holdings.service';
@@ -10,6 +16,7 @@ import z from 'zod';
 // Zod schema for SecuritySearchResult (matching the shared type)
 const SecuritySearchResultSchema = z.object({
   symbol: z.string(),
+  providerSymbol: z.string(),
   name: z.string(),
   assetClass: z.nativeEnum(ASSET_CLASS),
   providerName: z.nativeEnum(SECURITY_PROVIDER),
@@ -17,8 +24,12 @@ const SecuritySearchResultSchema = z.object({
   exchangeMic: z.string().optional(),
   exchangeName: z.string().optional(),
   currencyCode: z.string(),
+  cryptoCurrencyCode: z.string().optional(),
   cusip: z.string().optional(),
   isin: z.string().optional(),
+  logoUrl: z.string().nullable().optional(),
+  matchType: z.enum(['exact', 'partial']).optional(),
+  marketCapRank: z.number().nullable().optional(),
 }) satisfies z.ZodType<SecuritySearchResult>;
 
 export const createHoldingController = createController(
@@ -42,6 +53,12 @@ export const createHoldingController = createController(
 
     // If searchResult is provided, create the security first
     if (searchResult) {
+      if (!SUPPORTED_ASSET_CLASSES.includes(searchResult.assetClass)) {
+        throw new ValidationError({
+          message: `Asset class "${searchResult.assetClass}" is not supported yet.`,
+        });
+      }
+
       const { security } = await addSecurityFromSearch({ searchResult });
       finalSecurityId = security.id;
     }
@@ -80,12 +97,16 @@ export const getHoldingsController = createController(
 
 export const deleteHoldingController = createController(
   z.object({
-    body: z.object({ portfolioId: recordId(), securityId: recordId() }),
+    body: z.object({
+      portfolioId: recordId(),
+      securityId: recordId(),
+      force: z.boolean().optional(),
+    }),
   }),
   async ({ user, body }) => {
     const { id: userId } = user;
-    const { portfolioId, securityId } = body;
-    await deleteHolding({ userId, portfolioId, securityId });
+    const { portfolioId, securityId, force } = body;
+    await deleteHolding({ userId, portfolioId, securityId, force });
     return { statusCode: 200 };
   },
 );

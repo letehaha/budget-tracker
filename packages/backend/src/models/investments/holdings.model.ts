@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
 import {
@@ -50,17 +51,17 @@ import Securities from './securities.model';
   tableName: 'Holdings',
 })
 export default class Holdings extends Model<InferAttributes<Holdings>, InferCreationAttributes<Holdings>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
   @Index
-  declare portfolioId: number;
+  declare portfolioId: RecordId;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
   @NotNull
   @Index
-  declare securityId: number;
+  declare securityId: RecordId;
 
   /**
    * The `quantity` field represents the total number of units or shares

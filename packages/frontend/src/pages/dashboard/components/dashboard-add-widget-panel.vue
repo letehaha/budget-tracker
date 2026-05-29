@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { WidgetDefinition } from '@/components/widgets/widget-registry';
-import { PlusIcon } from 'lucide-vue-next';
+import { PlusIcon } from '@lucide/vue';
 
 defineProps<{
   availableWidgets: WidgetDefinition[];

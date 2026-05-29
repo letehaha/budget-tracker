@@ -14,24 +14,24 @@ export const createInvestmentTransaction = (payload: Record<string, unknown>): P
 
 /** @public */
 export const updateInvestmentTransaction = (
-  transactionId: number,
+  transactionId: string,
   payload: Record<string, unknown>,
 ): Promise<InvestmentTransactionModel> => {
   return api.put(`/investments/transaction/${transactionId}`, payload);
 };
 
-export const deleteInvestmentTransaction = (transactionId: number): Promise<void> => {
+export const deleteInvestmentTransaction = (transactionId: string): Promise<void> => {
   return api.delete(`/investments/transaction/${transactionId}`);
 };
 
 /** @public */
-export const getInvestmentTransactions = (portfolioId: number): Promise<InvestmentTransactionModel[]> => {
+export const getInvestmentTransactions = (portfolioId: string): Promise<InvestmentTransactionModel[]> => {
   return api.get(`/investments/accounts/${portfolioId}/transactions`);
 };
 
 export const getHoldingTransactions = (params: {
-  portfolioId: number;
-  securityId: number;
+  portfolioId: string;
+  securityId: string;
   limit?: number;
   offset?: number;
 }): Promise<HoldingTransactionsResponse> => {
@@ -39,7 +39,7 @@ export const getHoldingTransactions = (params: {
 };
 
 export const getPortfolioInvestmentTransactions = (params: {
-  portfolioId: number;
+  portfolioId: string;
   limit?: number;
   offset?: number;
 }): Promise<HoldingTransactionsResponse> => {

@@ -31,7 +31,7 @@ import { Button } from '@/components/lib/ui/button';
 import { authClient } from '@/lib/auth-client';
 import { ROUTES_NAMES } from '@/routes';
 import { useUserStore } from '@/stores/user';
-import { ShieldAlertIcon, XIcon } from 'lucide-vue-next';
+import { ShieldAlertIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 

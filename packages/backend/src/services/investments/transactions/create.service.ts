@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -7,6 +7,7 @@ import { ValidationError } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
@@ -17,37 +18,67 @@ import { calculateCashDelta } from './cash-balance-utils';
 
 interface CreateTxParams {
   userId: number;
-  portfolioId: number;
-  securityId: number;
+  portfolioId: string;
+  securityId: string;
   category: INVESTMENT_TRANSACTION_CATEGORY;
   date: string;
   quantity: string;
   price: string;
   fees: string;
   name?: string;
+  /**
+   * Optional pre-loaded holding (with `security` and `portfolio` includes) +
+   * a flag indicating the caller has already verified portfolio ownership.
+   * Used by the bulk import loop to skip a portfolio query + a holding query
+   * per row. Without this the function fetches both itself, as before.
+   */
+  preloadedHolding?: Holdings;
 }
 
 const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
-  const { portfolioId, securityId, userId, category, quantity, price, fees, date } = params;
+  const { portfolioId, securityId, userId, category, quantity, price, fees, date, preloadedHolding } = params;
 
-  // Verify portfolio exists and user owns it
-  await findOrThrowNotFound({
-    query: Portfolios.findOne({
-      where: { id: portfolioId, userId },
-    }),
-    message: t({ key: 'investments.portfolioNotFound' }),
-  });
+  let holding: Holdings;
+  if (preloadedHolding) {
+    // Caller has already verified ownership and loaded the holding with its
+    // `portfolio` + `security` includes — the import loop hits the same
+    // (portfolioId, securityId) for every row of a holding, so re-fetching
+    // here would be wasted work. Defense in depth: re-verify that the
+    // preloaded portfolio actually belongs to this user. A future caller that
+    // forgets the ownership check upstream would silently grant cross-tenant
+    // writes without this guard.
+    if (!preloadedHolding.portfolio || preloadedHolding.portfolio.userId !== userId) {
+      throw new ValidationError({
+        message: 'preloadedHolding ownership mismatch — portfolio does not belong to the calling user.',
+      });
+    }
+    holding = preloadedHolding;
+  } else {
+    await findOrThrowNotFound({
+      query: Portfolios.findOne({
+        where: { id: portfolioId, userId },
+      }),
+      message: t({ key: 'investments.portfolioNotFound' }),
+    });
 
-  const holding = await findOrThrowNotFound({
-    query: Holdings.findOne({
-      where: { portfolioId, securityId },
-      include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
-    }),
-    message: t({ key: 'investments.holdingNotFoundAddSecurity' }),
-  });
+    holding = await findOrThrowNotFound({
+      query: Holdings.findOne({
+        where: { portfolioId, securityId },
+        include: [
+          { model: Portfolios, as: 'portfolio', where: { userId }, required: true },
+          { model: Securities, as: 'security', required: true },
+        ],
+      }),
+      message: t({ key: 'investments.holdingNotFoundAddSecurity' }),
+    });
+  }
 
-  // Disallow selling more shares than currently owned
-  if (category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
+  // Crypto holdings often drift from the on-chain truth (staking rewards, gas
+  // fees, missed transfers), so we trust the user and let the position go
+  // negative — a follow-up "adjust to zero" flow will reconcile the leftover.
+  // Stocks have exact share counts, so we keep the strict check.
+  const isCrypto = holding.security?.assetClass === ASSET_CLASS.crypto;
+  if (category === INVESTMENT_TRANSACTION_CATEGORY.sell && !isCrypto) {
     const currentQty = new Big(holding.quantity.toDecimalString(10));
     if (new Big(quantity).gt(currentQty)) {
       throw new ValidationError({

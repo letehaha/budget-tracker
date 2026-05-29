@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -361,7 +362,7 @@ describe('Refund Transactions service', () => {
         });
 
         // Use a valid UUID format that doesn't exist in the database
-        const fakeUuid = '019b8b00-0000-7000-0000-000000000000';
+        const fakeUuid = generateRandomRecordId();
         const result = await helpers.createSingleRefund({
           originalTxId: expenseTx.id,
           refundTxId: refundTx.id,

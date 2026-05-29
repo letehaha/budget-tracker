@@ -7,7 +7,7 @@ import { withTransaction } from '../common/with-transaction';
 
 interface GetRefundParams {
   userId: number;
-  transactionId: number;
+  transactionId: string;
 }
 
 export const getRefundsForTransactionById = withTransaction(

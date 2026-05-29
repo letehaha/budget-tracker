@@ -137,13 +137,13 @@ export interface IBankDataProvider {
    * @param credentials - Provider-specific credentials
    * @returns Connection ID
    */
-  connect(userId: number, credentials: unknown): Promise<number>;
+  connect(userId: number, credentials: unknown): Promise<string>;
 
   /**
    * Disconnect and remove a provider connection
    * @param connectionId - Connection to disconnect
    */
-  disconnect(connectionId: number): Promise<void>;
+  disconnect(connectionId: string): Promise<void>;
 
   /**
    * Validate credentials by testing connection to provider
@@ -157,7 +157,7 @@ export interface IBankDataProvider {
    * @param connectionId - Connection to update
    * @param newCredentials - New credentials to store
    */
-  refreshCredentials(connectionId: number, newCredentials: unknown): Promise<void>;
+  refreshCredentials(connectionId: string, newCredentials: unknown): Promise<void>;
 
   // ========================================
   // Account Operations
@@ -168,7 +168,7 @@ export interface IBankDataProvider {
    * @param connectionId - Connection to fetch accounts from
    * @returns List of provider accounts
    */
-  fetchAccounts(connectionId: number): Promise<ProviderAccount[]>;
+  fetchAccounts(connectionId: string): Promise<ProviderAccount[]>;
 
   // ========================================
   // Transaction Operations
@@ -182,7 +182,7 @@ export interface IBankDataProvider {
    * @returns List of transactions
    */
   fetchTransactions(
-    connectionId: number,
+    connectionId: string,
     accountExternalId: string,
     dateRange?: DateRange,
   ): Promise<ProviderTransaction[]>;
@@ -199,8 +199,8 @@ export interface IBankDataProvider {
     systemAccountId,
     userId,
   }: {
-    connectionId: number;
-    systemAccountId: number;
+    connectionId: string;
+    systemAccountId: string;
     userId: number;
   }): Promise<void | { jobGroupId: string; totalBatches: number; estimatedMinutes: number }>;
 
@@ -214,14 +214,14 @@ export interface IBankDataProvider {
    * @param accountExternalId - Provider's account ID
    * @returns Current balance
    */
-  fetchBalance(connectionId: number, accountExternalId: string): Promise<ProviderBalance>;
+  fetchBalance(connectionId: string, accountExternalId: string): Promise<ProviderBalance>;
 
   /**
    * Refresh balance for a specific account in our system
    * @param connectionId - Connection ID
    * @param systemAccountId - Our internal account ID
    */
-  refreshBalance(connectionId: number, systemAccountId: number): Promise<void>;
+  refreshBalance(connectionId: string, systemAccountId: string): Promise<void>;
 
   // ========================================
   // Webhook Support (Optional)
@@ -232,7 +232,7 @@ export interface IBankDataProvider {
    * @param connectionId - Connection to set up webhook for
    * @param webhookUrl - URL to receive webhook notifications
    */
-  setupWebhook?(connectionId: number, webhookUrl: string): Promise<void>;
+  setupWebhook?(connectionId: string, webhookUrl: string): Promise<void>;
 
   /**
    * Handle incoming webhook payload (if supported)

@@ -3,6 +3,7 @@ import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
 import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  type RecordId,
   // TransactionModel,
 } from '@bt/shared/types';
 import type { SplitInput } from '@bt/shared/types/endpoints';
@@ -54,7 +55,7 @@ export const prepareTxCreationParams = ({
   if (form.refundsTx) {
     creationParams.refundForTxId = form.refundsTx.transaction.id;
     if (form.refundsTx.splitId) {
-      creationParams.refundForSplitId = form.refundsTx.splitId;
+      creationParams.refundForSplitId = form.refundsTx.splitId as RecordId;
     }
   }
 

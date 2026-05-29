@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, RecordId, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
@@ -16,7 +16,7 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsTo,
   Index,
   NotNull,
@@ -25,6 +25,7 @@ import {
 } from '@sequelize/core/decorators-legacy';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { startOfDay, startOfMonth, subDays } from 'date-fns';
+import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
 import Transactions, { TransactionsAttributes } from './transactions.model';
@@ -32,15 +33,20 @@ import Transactions, { TransactionsAttributes } from './transactions.model';
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
   endDate: Date;
-  accountIds: number[];
+  accountIds: string[];
 }
 
 @Table({ timestamps: true, tableName: 'Balances', freezeTableName: true })
 export default class Balances extends Model<InferAttributes<Balances>, InferCreationAttributes<Balances>> {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  @NotNull
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static assignId(instance: Balances) {
+    if (!instance.id) instance.id = uuidv7() as RecordId;
+  }
 
   @Attribute(DataTypes.DATEONLY)
   @NotNull
@@ -53,7 +59,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
    * specific date.
    * `amount` is in the BASE currency. So it represents a `refAmount` (`refBalance`)
    */
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   get amount(): Money {
     return moneyGetCents(this, 'amount');
@@ -62,10 +68,10 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
     moneySetCents(this, 'amount', val);
   }
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare accountId: number;
+  declare accountId: RecordId;
 
   @BelongsTo(() => Accounts, 'accountId')
   declare account?: NonAttribute<Accounts>;
@@ -267,7 +273,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
     date,
     amount,
   }: {
-    accountId: number;
+    accountId: string;
     date: Date;
     amount: Money;
   }) {
@@ -445,7 +451,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
     date,
     refBalance,
   }: {
-    accountId: number;
+    accountId: string;
     date: Date;
     refBalance: Money;
   }) {

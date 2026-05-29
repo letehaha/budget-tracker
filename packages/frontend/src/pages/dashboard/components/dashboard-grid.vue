@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { LayoutGridIcon } from 'lucide-vue-next';
+import { LayoutGridIcon } from '@lucide/vue';
 import { provide } from 'vue';
 import { VueDraggable } from 'vue-draggable-plus';
 

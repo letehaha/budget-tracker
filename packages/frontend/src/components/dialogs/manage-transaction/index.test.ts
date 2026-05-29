@@ -29,7 +29,7 @@ const mountComponent = ({ props = {} } = {}) =>
             },
             accounts: {
               accountsRecord: dataMocks.ACCOUNTS.reduce(
-                (acc: Record<number, (typeof dataMocks.ACCOUNTS)[number]>, curr) => {
+                (acc: Record<string, (typeof dataMocks.ACCOUNTS)[number]>, curr) => {
                   acc[curr.id] = curr;
                   return acc;
                 },
@@ -766,7 +766,7 @@ describe.skip('transactions create/update/delete form', () => {
     const transaction = dataMocks.buildSystemExpenseTransaction();
     const oppositeTransaction = {
       ...dataMocks.buildSystemIncomeTransaction(),
-      id: faker.number.int({ min: transaction.id, max: 100000 }),
+      id: faker.string.uuid(),
       accountId: dataMocks.getUah2Account().id,
     };
 

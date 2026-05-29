@@ -99,14 +99,25 @@ async function categorizeBatch({
       },
     };
   } catch (error) {
-    logger.error({ message: 'AI categorization batch failed', error: error as Error });
+    const isTemp = isTemporaryError(error);
+    const isAuth = isAuthError(error);
+
+    if (isTemp || isAuth) {
+      // Handled by parent: temporary errors return early, auth errors fall back to server key.
+      // Avoid Sentry noise for these expected paths.
+      logger.info(
+        `AI categorization batch failed (handled: ${isTemp ? 'temporary' : 'auth'}): ${(error as Error).message}`,
+      );
+    } else {
+      logger.error({ message: 'AI categorization batch failed', error: error as Error });
+    }
 
     return {
       successful: [],
       failed: transactions.map((t) => t.id),
       errors: [(error as Error).message],
-      isAuthError: isAuthError(error),
-      isTemporaryError: isTemporaryError(error),
+      isAuthError: isAuth,
+      isTemporaryError: isTemp,
     };
   }
 }
@@ -127,7 +138,7 @@ async function applyCategorizationResults({
   const now = new Date().toISOString();
 
   // Group transaction IDs by categoryId
-  const groupedByCategory = new Map<number, number[]>();
+  const groupedByCategory = new Map<string, string[]>();
   for (const result of results) {
     if (!groupedByCategory.has(result.categoryId)) {
       groupedByCategory.set(result.categoryId, []);
@@ -166,7 +177,7 @@ async function getUncategorizedTransactions({
   transactionIds,
 }: {
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
 }): Promise<TransactionForCategorization[]> {
   const transactions = await Transactions.findAll({
     where: {
@@ -208,7 +219,7 @@ export async function categorizeTransactions({
   totalTransactionCount,
 }: {
   userId: number;
-  transactionIds: number[];
+  transactionIds: string[];
   /** Total transactions to process (for progress tracking). If not provided, uses transactionIds.length */
   totalTransactionCount?: number;
 }): Promise<CategorizationBatchResult> {

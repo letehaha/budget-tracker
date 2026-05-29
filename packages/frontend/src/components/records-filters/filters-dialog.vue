@@ -27,7 +27,7 @@
 <script lang="ts" setup>
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { ListFilterIcon } from 'lucide-vue-next';
+import { ListFilterIcon } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();

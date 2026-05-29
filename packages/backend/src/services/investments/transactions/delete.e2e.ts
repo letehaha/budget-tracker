@@ -1,9 +1,12 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
+import UsersCurrencies from '@models/users-currencies.model';
 import * as helpers from '@tests/helpers';
+import { makeRequest } from '@tests/helpers/common';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('DELETE /investments/transaction/:transactionId (delete investment transaction)', () => {
@@ -136,7 +139,7 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
 
   it('should successfully delete non-existent transaction', async () => {
     const response = await helpers.deleteInvestmentTransaction({
-      transactionId: 99999,
+      transactionId: generateRandomRecordId(),
       raw: false,
     });
 
@@ -145,10 +148,106 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
 
   it('should fail with invalid transaction ID', async () => {
     const response = await helpers.deleteInvestmentTransaction({
-      transactionId: -1,
+      transactionId: 'invalid' as unknown as string,
       raw: false,
     });
 
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+  });
+
+  // Regression for MONEY-MATTER-BACKEND-5R: deleting a transaction whose
+  // currency was disconnected from the user after creation used to throw
+  // `currencyNotConnected` from the downstream ref-amount lookup. The delete
+  // path now re-links the currency idempotently before updating the balance.
+  it('should delete a transaction even after its currency was disconnected from the user', async () => {
+    const [eurSecurity] = await helpers.seedSecurities([{ symbol: 'ASML', name: 'ASML Holding', currencyCode: 'EUR' }]);
+
+    const eurPortfolio = await helpers.createPortfolio({
+      payload: helpers.buildPortfolioPayload({ name: 'EUR Portfolio' }),
+      raw: true,
+    });
+
+    await helpers.createHolding({
+      payload: { portfolioId: eurPortfolio.id, securityId: eurSecurity!.id },
+    });
+
+    const eurTransaction = await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: eurPortfolio.id,
+        securityId: eurSecurity!.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        quantity: '1',
+        price: '500',
+      },
+      raw: true,
+    });
+
+    // Simulate the orphan-currency state: user-currency link removed directly
+    // (bypassing the API guard, which now blocks this — see deleteUserCurrency).
+    await UsersCurrencies.destroy({ where: { currencyCode: 'EUR' } });
+
+    const response = await helpers.deleteInvestmentTransaction({
+      transactionId: eurTransaction.id,
+      raw: false,
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const deleted = await InvestmentTransaction.findByPk(eurTransaction.id);
+    expect(deleted).toBeNull();
+  });
+
+  it('should block disconnecting a user currency that is still in use by investment holdings', async () => {
+    const [eurSecurity] = await helpers.seedSecurities([{ symbol: 'ASML', name: 'ASML Holding', currencyCode: 'EUR' }]);
+
+    const eurPortfolio = await helpers.createPortfolio({
+      payload: helpers.buildPortfolioPayload({ name: 'EUR Portfolio' }),
+      raw: true,
+    });
+
+    await helpers.createHolding({
+      payload: { portfolioId: eurPortfolio.id, securityId: eurSecurity!.id },
+    });
+
+    const response = await makeRequest({
+      method: 'delete',
+      url: '/user/currency',
+      payload: { currencyCode: 'EUR' },
+    });
+
+    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const stillLinked = await UsersCurrencies.findOne({ where: { currencyCode: 'EUR' } });
+    expect(stillLinked).not.toBeNull();
+  });
+
+  it('should still block currency removal when the holding belongs to a soft-deleted (trashed) portfolio', async () => {
+    // Guard for the paranoid:false bypass in user.service.deleteUserCurrency.
+    // Without it, a user could remove a currency while a portfolio in trash
+    // still references it — restoring the portfolio later would surface broken
+    // holding rows with no UsersCurrencies link.
+    const [eurSecurity] = await helpers.seedSecurities([{ symbol: 'SAP', name: 'SAP SE', currencyCode: 'EUR' }]);
+
+    const eurPortfolio = await helpers.createPortfolio({
+      payload: helpers.buildPortfolioPayload({ name: 'EUR Portfolio Trash' }),
+      raw: true,
+    });
+
+    await helpers.createHolding({
+      payload: { portfolioId: eurPortfolio.id, securityId: eurSecurity!.id },
+    });
+
+    await helpers.deletePortfolio({ portfolioId: eurPortfolio.id });
+
+    const response = await makeRequest({
+      method: 'delete',
+      url: '/user/currency',
+      payload: { currencyCode: 'EUR' },
+    });
+
+    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const stillLinked = await UsersCurrencies.findOne({ where: { currencyCode: 'EUR' } });
+    expect(stillLinked).not.toBeNull();
   });
 });

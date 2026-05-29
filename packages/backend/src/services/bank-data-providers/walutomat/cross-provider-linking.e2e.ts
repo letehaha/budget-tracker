@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import Transactions from '@models/transactions.model';
@@ -45,7 +46,7 @@ async function createBankTransaction({
   transactionType,
   time,
 }: {
-  accountId: number;
+  accountId: RecordId;
   amount: number;
   transactionType: TRANSACTION_TYPES;
   time: Date;

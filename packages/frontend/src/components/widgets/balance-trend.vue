@@ -14,7 +14,7 @@
       </div>
     </template>
     <template v-if="widgetConfigRef" #action>
-      <SpikeSettingsPopover />
+      <BalanceTrendSettingsPopover />
     </template>
     <template v-if="isInitialLoading">
       <LoadingState />
@@ -130,6 +130,8 @@ import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import SelectField from '@/components/fields/select-field.vue';
 import { useFormatCurrency } from '@/composable';
+import { getChartColors } from '@/composable/charts/chart-colors';
+import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import {
   SPIKE_DEFAULTS,
@@ -138,23 +140,25 @@ import {
   useSpikeDetection,
 } from '@/composable/charts/use-spike-detection';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
+import { currentTheme } from '@/common/utils/color-theme';
 import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { loadCombinedBalanceTrendData } from '@/services';
 import { useCurrenciesStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
+import { useResizeObserver } from '@vueuse/core';
 import * as d3 from 'd3';
 import { differenceInDays, endOfDay, format, isSameMonth, min, startOfDay, subDays } from 'date-fns';
-import { ChartLineIcon } from 'lucide-vue-next';
+import { ChartLineIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
-import { computed, inject, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import BalanceTrendSettingsPopover from './components/balance-trend-settings-popover.vue';
 import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
-import SpikeSettingsPopover from './components/spike-settings-popover.vue';
 import SpikeTransactionsPanel from './components/spike-transactions-panel.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
@@ -215,7 +219,13 @@ const spikeSettings = computed<SpikeDetectionOptions>(() => {
   };
 });
 
-// D3 chart refs
+// When true, the chart x-axis is trimmed to the most recent data point.
+// When false, it spans the full selected period (future dates appear empty).
+const fitToLatestData = computed<boolean>(() => {
+  const cfg = widgetConfigRef?.value?.config;
+  return (cfg?.fitToLatestData as boolean | undefined) ?? true;
+});
+
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
 const tooltipRef = ref<HTMLDivElement | null>(null);
@@ -248,7 +258,7 @@ const prevDataPeriod = ref(props.selectedPeriod);
 const periodQueryKey = computed(() => `${props.selectedPeriod.from.getTime()}-${props.selectedPeriod.to.getTime()}`);
 
 // For data fetching, cap the 'to' date at today - we can't have balance history
-// for future dates. The chart x-axis will still show the full period range.
+// for future dates. The chart x-axis end is controlled separately by `chartXAxisEnd`.
 const fetchPeriod = computed(() => ({
   from: props.selectedPeriod.from,
   to: min([props.selectedPeriod.to, new Date()]),
@@ -311,8 +321,13 @@ watch(
 
 const isDataEmpty = computed(() => !balanceHistory.value || balanceHistory.value.every((i) => i.totalBalance === 0));
 
+// End date the chart x-axis should reach. Trimmed to today when fitToLatestData is on.
+const chartXAxisEnd = computed(() =>
+  fitToLatestData.value ? min([actualDataPeriod.value.to, new Date()]) : actualDataPeriod.value.to,
+);
+
 // Key for the chart component - changes when period changes to trigger CSS transition
-const chartKey = computed(() => `${actualDataPeriod.value.from.getTime()}-${actualDataPeriod.value.to.getTime()}`);
+const chartKey = computed(() => `${actualDataPeriod.value.from.getTime()}-${chartXAxisEnd.value.getTime()}`);
 
 const periodLabel = computed(() => {
   const from = props.selectedPeriod.from;
@@ -500,26 +515,12 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleEscapeKey);
 });
 
-// Get colors from CSS variables
 const getColors = () => {
-  const style = getComputedStyle(document.documentElement);
-  return {
-    primary: style.getPropertyValue('--primary').trim() || 'rgb(139, 92, 246)',
-    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(163, 160, 155)',
-    grid: style.getPropertyValue('--border').trim() || 'rgb(42, 40, 37)',
-  };
+  const { grid, text, primary } = getChartColors();
+  return { grid, text, primary };
 };
 
-const formatAxisValue = (value: number): string => {
-  const symbol = getCurrencySymbol();
-  const absValue = Math.abs(value);
-  if (absValue >= 1000000) {
-    return `${symbol}${(value / 1000000).toFixed(1)}M`;
-  } else if (absValue >= 1000) {
-    return `${symbol}${(value / 1000).toFixed(0)}k`;
-  }
-  return `${symbol}${value}`;
-};
+const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: getCurrencySymbol() });
 
 const renderChart = () => {
   if (!svgRef.value || !containerRef.value || chartData.value.length === 0) return;
@@ -548,7 +549,7 @@ const renderChart = () => {
   const pixelsPerTick = isMobile ? 80 : 120;
   const ticksAmount = Math.min(7, Math.max(2, Math.round(innerWidth / pixelsPerTick)));
   const fromDate = actualDataPeriod.value.from;
-  const toDate = actualDataPeriod.value.to;
+  const toDate = chartXAxisEnd.value;
   const xAxisTicks = generateDateSteps({ datesToShow: ticksAmount, fromDate, toDate });
 
   // X scale
@@ -835,57 +836,22 @@ const balancesDiff = computed<number>(() => {
   return Number(percentage);
 });
 
-// ResizeObserver for responsive chart
-let resizeObserver: ResizeObserver | null = null;
+useResizeObserver(containerRef, renderChart);
 
-const setupResizeObserver = () => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
-};
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
-
-// Watch for data changes and re-render chart
-// Use flush: 'post' to ensure DOM is updated before rendering
+// flush: 'post' so the watcher runs after Vue has applied DOM updates from the
+// new data, then renderChart can read the correct container dimensions.
 watch(
-  [chartData, () => actualDataPeriod.value],
-  async () => {
+  [chartData, () => actualDataPeriod.value, currentTheme],
+  () => {
     closeSpikePanel();
-    await nextTick();
-    setupResizeObserver();
     renderChart();
   },
   { deep: true, flush: 'post' },
 );
 
-// Re-render chart when spike settings change (after Accept / save)
-watch(spikePoints, () => {
+watch([spikePoints, chartXAxisEnd], () => {
   renderChart();
 });
-
-// Also watch for when container becomes available (after loading state)
-watch(
-  () => containerRef.value,
-  async (newVal) => {
-    if (newVal) {
-      await nextTick();
-      setupResizeObserver();
-      renderChart();
-    }
-  },
-);
 </script>
 
 <style scoped>

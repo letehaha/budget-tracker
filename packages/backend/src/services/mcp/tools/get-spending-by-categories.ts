@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -17,13 +18,13 @@ export function registerGetSpendingByCategories(server: McpServer) {
       inputSchema: {
         startDate: z.string().optional().describe('Start date (ISO 8601). Default: start of current month'),
         endDate: z.string().optional().describe('End date (ISO 8601). Default: today'),
-        accountId: z.number().optional().describe('Filter by specific account ID'),
+        accountId: recordId().optional().describe('Filter by specific account ID'),
         transactionType: z
           .enum([TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense])
           .optional()
           .describe('Transaction type. Default: expense'),
-        categoryIds: z.array(z.number()).optional().describe('Only include specific category IDs'),
-        excludedCategoryIds: z.array(z.number()).optional().describe('Exclude specific category IDs'),
+        categoryIds: z.array(recordId()).optional().describe('Only include specific category IDs'),
+        excludedCategoryIds: z.array(recordId()).optional().describe('Exclude specific category IDs'),
       },
     },
     async (args, extra) => {
@@ -47,7 +48,7 @@ export function registerGetSpendingByCategories(server: McpServer) {
 
       // Convert from object keyed by ID to an array for easier AI consumption
       const categories = Object.entries(serialized).map(([id, data]) => ({
-        id: Number(id),
+        id,
         ...data,
       }));
 

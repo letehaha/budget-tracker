@@ -10,7 +10,7 @@ import z from 'zod';
 
 const schema = z.object({
   body: z.object({
-    connectionId: z.number().int().positive('Connection ID must be a positive integer'),
+    connectionId: z.string().uuid('Connection ID must be a valid UUID'),
     code: z.string().min(1, 'Authorization code is required'),
     state: z.string().min(1, 'State parameter is required'),
     error: z.string().optional(),

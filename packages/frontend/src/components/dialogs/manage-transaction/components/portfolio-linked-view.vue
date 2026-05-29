@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import DeletedBadge from '@/components/common/deleted-badge.vue';
 import * as AlertDialog from '@/components/lib/ui/alert-dialog';
 import { Button } from '@/components/lib/ui/button';
 import {
@@ -74,7 +75,12 @@ const handleUnlink = () => {
                     : $t('dialogs.manageTransaction.portfolioLinked.withdrawal'),
               })
             }}
+            <template v-if="linkData.isPortfolioDeleted">
+              <span class="text-muted-foreground line-through">{{ linkData.portfolioName }}</span>
+              <DeletedBadge class="ml-2" />
+            </template>
             <RouterLink
+              v-else
               :to="{ name: ROUTES_NAMES.portfolioDetail, params: { portfolioId: linkData.portfolioId } }"
               class="text-primary underline underline-offset-2"
               @click="emit('close-modal')"

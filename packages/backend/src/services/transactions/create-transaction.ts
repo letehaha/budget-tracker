@@ -1,16 +1,29 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { UnwrapPromise } from '@common/types';
 import { Money } from '@common/types/money';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { UnexpectedError, ValidationError } from '@js/errors';
+import { NotFoundError, UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
-import Balances from '@models/balances.model';
+import Categories from '@models/categories.model';
 import Tags from '@models/tags.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
+import {
+  assertSharedWritePhase1Guards,
+  authorizeAccountWrite,
+} from '@services/sharing/auth/authorize-account-write.service';
+import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import { v4 as uuidv4 } from 'uuid';
 
 import { withTransaction } from '../common/with-transaction';
@@ -100,15 +113,6 @@ export const calcTransferTransactionRefAmount = async ({
  * 3. Calculate correct refAmount for both base and opposite tx. Logic is described down in the code
  */
 export const createOppositeTransaction = async (params: CreateOppositeTransactionParams) => {
-  logger.info('State before transfer', {
-    accountFrom: {
-      balance: 10,
-      refBalance: 100,
-      balance_in_table: 100,
-    },
-    accountTo: {},
-  });
-
   const [creationParams, baseTransaction] = params;
 
   const { destinationAmount, destinationAccountId, userId, transactionType } = creationParams;
@@ -118,6 +122,22 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
       message: t({ key: 'transactions.missingRequiredFields' }),
     });
   }
+
+  // Dest may belong to another user when the caller has a household membership (or per-resource
+  // write share) on it. Auth + resolve owner here so opposite-tx fields can be scoped to the
+  // *dest owner* — userId on the row, ref-currency, category — instead of leaking source-user
+  // context onto someone else's account.
+  const destAccess = await canUserAccessResource({
+    userId,
+    resourceType: RESOURCE_TYPES.account,
+    resourceId: destinationAccountId,
+    requiredPermission: SHARE_PERMISSIONS.write,
+  });
+  if (!destAccess.granted) {
+    throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+  }
+  const destOwnerUserId = destAccess.ownerUserId;
+  const isCrossUser = destOwnerUserId !== baseTransaction.userId;
 
   const transferId = uuidv4();
 
@@ -129,25 +149,54 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   });
 
   const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
-    userId,
+    userId: destOwnerUserId,
     id: destinationAccountId,
   });
 
-  const defaultUserCurrency = await UsersCurrencies.getBaseCurrency({ userId });
+  const sourceUserBaseCurrency = await UsersCurrencies.getBaseCurrency({ userId });
+  const destOwnerBaseCurrency = isCrossUser
+    ? await UsersCurrencies.getBaseCurrency({ userId: destOwnerUserId })
+    : sourceUserBaseCurrency;
 
-  const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } = await calcTransferTransactionRefAmount({
-    userId,
-    baseTransaction: baseTx,
-    destinationAmount,
-    oppositeTxCurrencyCode: oppositeTxCurrency.code,
-    baseCurrency: defaultUserCurrency,
-    date: new Date(baseTransaction.time),
-  });
+  let oppositeRefAmount: Money;
 
-  baseTx = updatedBaseTransaction;
+  if (isCrossUser) {
+    // Cross-user pairs deliberately *don't* share a refAmount: each leg's refAmount is in
+    // its own owner's base currency. The same-user `calcTransferTransactionRefAmount` would
+    // pull one of the two refs back into the other's base currency and corrupt accounting
+    // on whichever side it overwrote. Calculate the opposite leg independently using the
+    // dest owner's userId so their exchange-rate config drives the conversion.
+    if (destOwnerBaseCurrency.currency.code === oppositeTxCurrency.code) {
+      oppositeRefAmount = destinationAmount;
+    } else {
+      oppositeRefAmount = await calculateRefAmount({
+        userId: destOwnerUserId,
+        amount: destinationAmount,
+        baseCode: oppositeTxCurrency.code,
+        quoteCode: destOwnerBaseCurrency.currency.code,
+        date: new Date(baseTransaction.time),
+      });
+    }
+  } else {
+    const result = await calcTransferTransactionRefAmount({
+      userId,
+      baseTransaction: baseTx,
+      destinationAmount,
+      oppositeTxCurrencyCode: oppositeTxCurrency.code,
+      baseCurrency: sourceUserBaseCurrency,
+      date: new Date(baseTransaction.time),
+    });
+    oppositeRefAmount = result.oppositeRefAmount;
+    baseTx = result.baseTransaction;
+  }
+
+  // Categories are per-user — copying the source-side category id onto a row owned by a
+  // different user would point at a category the dest owner doesn't own. Drop it on
+  // cross-user pairs; same-user transfers keep the existing copy-through behavior.
+  const oppositeCategoryId = isCrossUser ? undefined : baseTransaction.categoryId;
 
   const oppositeTx = await Transactions.createTransaction({
-    userId: baseTransaction.userId,
+    userId: destOwnerUserId,
     amount: destinationAmount,
     refAmount: oppositeRefAmount,
     note: baseTransaction.note ?? undefined,
@@ -156,10 +205,10 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
       transactionType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
     paymentType: baseTransaction.paymentType,
     accountId: destinationAccountId,
-    categoryId: baseTransaction.categoryId ?? undefined,
+    categoryId: oppositeCategoryId,
     accountType: ACCOUNT_TYPES.system,
     currencyCode: oppositeTxCurrency.code,
-    refCurrencyCode: defaultUserCurrency.currency.code,
+    refCurrencyCode: destOwnerBaseCurrency.currency.code,
     transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
     transferId,
   });
@@ -205,15 +254,43 @@ export const createTransaction = withTransaction(
         });
       }
 
+      // Account-scoped auth: owners pass; recipients need `write`. The returned
+      // `accountOwnerUserId` scopes downstream owner-only lookups (account row, category
+      // set) so a shared-account write resolves correctly. Phase-1 guards block recipient
+      // flows that need their own follow-up slices.
+      const { isOwner, accountOwnerUserId } = await authorizeAccountWrite({
+        userId,
+        accountId,
+      });
+      assertSharedWritePhase1Guards({
+        isOwner,
+        involvesTransfer: transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
+        involvesRefund: refundsTxId !== undefined && refundsTxId !== null,
+      });
+
+      if (payload.categoryId !== undefined && payload.categoryId !== null) {
+        await findOrThrowNotFound({
+          query: Categories.findOne({ where: { id: payload.categoryId, userId: accountOwnerUserId } }),
+          message: 'Category not found or does not belong to user.',
+        });
+      }
+
       const { currency: defaultUserCurrency } = await UsersCurrencies.getCurrency({
         userId,
         isDefaultCurrency: true,
       });
 
       const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
-        userId,
+        userId: accountOwnerUserId,
         id: accountId,
       });
+
+      // Recipients writing on a shared account whose currency they haven't connected
+      // would otherwise trip `currencyNotConnected` inside the ref-amount lookup.
+      // Auto-connect so the guard stays internal and not user-facing.
+      if (!isOwner && generalTxCurrency.code !== defaultUserCurrency.code) {
+        await ensureUserCurrencyConnected({ userId, currencyCode: generalTxCurrency.code });
+      }
 
       const generalTxParams: Transactions.CreateTransactionPayload & {
         time: Date;
@@ -248,17 +325,6 @@ export const createTransaction = withTransaction(
           date: generalTxParams.time,
         });
       }
-
-      await logDataBefore({
-        amount,
-        refAmount: generalTxParams.refAmount,
-        userId,
-        accountId,
-        transferNature,
-        destinationTransactionId,
-        refundsTxId,
-        ...payload,
-      });
 
       const baseTransaction = await Transactions.createTransaction(generalTxParams);
 
@@ -322,6 +388,7 @@ export const createTransaction = withTransaction(
         await manageSplits({
           transactionId: baseTransaction!.id,
           userId,
+          categoryOwnerUserId: accountOwnerUserId,
           splits,
           transactionAmount: amount,
           transactionCurrencyCode: generalTxCurrency.code,
@@ -372,56 +439,3 @@ export const createTransaction = withTransaction(
     }
   },
 );
-
-// {
-//   "accountId": 40,
-//   "amount": 150_000,
-//   "balance": 684_278,
-//   "balanceDetails": 2_056_344,
-//   "level": "info",
-//   "message": "Before",
-//   "refAmount": 1_518_517,
-//   "refBalance": 6_331_767,
-// }
-
-const logDataBefore = async (params: CreateTransactionParams & { refAmount?: Money }) => {
-  try {
-    const { transferNature, destinationTransactionId, userId, accountId, transactionType } = params;
-    const isTransfer = transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
-    const transferWithoutLinking = isTransfer && !destinationTransactionId;
-    const isBasicExpense =
-      transactionType === TRANSACTION_TYPES.expense && transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer;
-
-    const baseAccount = (await Accounts.getAccountById({
-      userId,
-      id: params.accountId,
-    }))!;
-    const baseAccountBalance = (await Balances.findOne({
-      where: { accountId },
-      order: [['date', 'DESC']],
-      attributes: ['amount'],
-    }))!;
-
-    if (isBasicExpense) {
-      logger.info('Create expense transaction');
-      logger.info('Before', {
-        accountId,
-        balance: baseAccount.currentBalance,
-        amount: params.amount,
-        refBalance: baseAccount.refCurrentBalance,
-        refAmount: params.refAmount,
-        balanceDetails: baseAccountBalance.amount,
-      });
-    } else if (transferWithoutLinking) {
-      logger.info(`Details before basic transfer:
-        Account from:
-          accountId: ${accountId}
-          balance: ${baseAccount.currentBalance}
-          refBalance: ${baseAccount.refCurrentBalance}
-          balanceDetails: ${baseAccountBalance.amount}
-        `);
-    }
-  } catch (err) {
-    logger.error(err as Error);
-  }
-};

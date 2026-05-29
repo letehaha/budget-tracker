@@ -5,11 +5,18 @@ import { useShiftMultiSelect } from './shift-multi-select';
 
 interface UseTransactionSelectionOptions {
   getTransactions: () => TransactionModel[];
+  /**
+   * Optional caller-supplied predicate layered on top of the built-in selectability
+   * rules (e.g., split parents are never selectable). Lets callers lock out rows the
+   * downstream bulk endpoint can't handle, so the toolbar never offers an action
+   * that silently no-ops on submit.
+   */
+  isExtraSelectable?: (tx: TransactionModel) => boolean;
 }
 
-export function useTransactionSelection({ getTransactions }: UseTransactionSelectionOptions) {
+export function useTransactionSelection({ getTransactions, isExtraSelectable }: UseTransactionSelectionOptions) {
   // Use ref with Set for better reactivity tracking
-  const selectedIds = ref(new Set<number>());
+  const selectedIds = ref(new Set<string>());
 
   // Wrapper to trigger reactivity when Set is modified
   const triggerUpdate = () => triggerRef(selectedIds);
@@ -23,6 +30,9 @@ export function useTransactionSelection({ getTransactions }: UseTransactionSelec
     if (tx.splits && tx.splits.length > 0) {
       return false;
     }
+    if (isExtraSelectable && !isExtraSelectable(tx)) {
+      return false;
+    }
     return true;
   };
 
@@ -32,11 +42,11 @@ export function useTransactionSelection({ getTransactions }: UseTransactionSelec
     return selectableTransactions.length > 0 && selectedIds.value.size === selectableTransactions.length;
   });
 
-  const isTransactionSelected = (id: number): boolean => {
+  const isTransactionSelected = (id: string): boolean => {
     return selectedIds.value.has(id);
   };
 
-  const toggleTransaction = ({ value, id }: { value: boolean; id: number }) => {
+  const toggleTransaction = ({ value, id }: { value: boolean; id: string }) => {
     const transactions = getTransactions();
 
     // Filter to only selectable transactions for range selection
@@ -62,7 +72,7 @@ export function useTransactionSelection({ getTransactions }: UseTransactionSelec
     resetSelection();
   };
 
-  const getSelectedTransactionIds = (): number[] => {
+  const getSelectedTransactionIds = (): string[] => {
     return Array.from(selectedIds.value);
   };
 

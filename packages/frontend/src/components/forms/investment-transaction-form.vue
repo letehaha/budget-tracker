@@ -2,6 +2,7 @@
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
+import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCreateInvestmentTransaction } from '@/composable/data-queries/investment-transactions';
@@ -19,7 +20,7 @@ interface SecurityOption {
 }
 
 const props = defineProps<{
-  portfolioId: number;
+  portfolioId: string;
   securities: SecurityOption[];
   securityId?: string | null;
 }>();
@@ -29,25 +30,19 @@ const emit = defineEmits(['success', 'cancel']);
 const { addNotification } = useNotificationCenter();
 const createTransactionMutation = useCreateInvestmentTransaction();
 
-const transactionTypeMap: Record<string, string> = {
+const transactionTypeMap: Partial<Record<INVESTMENT_TRANSACTION_CATEGORY, string>> = {
   [INVESTMENT_TRANSACTION_CATEGORY.buy]: 'forms.investmentTransaction.types.buy',
   [INVESTMENT_TRANSACTION_CATEGORY.sell]: 'forms.investmentTransaction.types.sell',
   [INVESTMENT_TRANSACTION_CATEGORY.dividend]: 'forms.investmentTransaction.types.dividend',
+  [INVESTMENT_TRANSACTION_CATEGORY.fee]: 'forms.investmentTransaction.types.fee',
+  [INVESTMENT_TRANSACTION_CATEGORY.tax]: 'forms.investmentTransaction.types.tax',
 };
 
 const transactionTypes = computed(() =>
-  Object.values(INVESTMENT_TRANSACTION_CATEGORY)
-    .filter((type) =>
-      [
-        INVESTMENT_TRANSACTION_CATEGORY.buy,
-        INVESTMENT_TRANSACTION_CATEGORY.sell,
-        INVESTMENT_TRANSACTION_CATEGORY.dividend,
-      ].includes(type),
-    )
-    .map((type) => ({
-      value: type,
-      label: t(transactionTypeMap[type]!),
-    })),
+  (Object.keys(transactionTypeMap) as INVESTMENT_TRANSACTION_CATEGORY[]).map((type) => ({
+    value: type,
+    label: t(transactionTypeMap[type]!),
+  })),
 );
 
 const form = reactive({
@@ -57,6 +52,7 @@ const form = reactive({
   price: '',
   date: new Date(),
   fees: '',
+  note: '',
 });
 
 watch(
@@ -88,6 +84,7 @@ const resetForm = () => {
   form.price = '';
   form.date = new Date();
   form.fees = '';
+  form.note = '';
   resetValidation();
 };
 
@@ -104,6 +101,8 @@ const onSubmit = async () => {
   if (!form.security) return;
 
   try {
+    const trimmedNote = form.note.trim();
+
     await createTransactionMutation.mutateAsync({
       portfolioId: props.portfolioId,
       // This payload structure is an assumption and will need to be verified against the backend.
@@ -113,6 +112,7 @@ const onSubmit = async () => {
       price: form.price,
       date: form.date.toISOString().slice(0, 10),
       fees: form.fees || '0',
+      ...(trimmedNote ? { name: trimmedNote } : {}),
     });
 
     addNotification({
@@ -166,16 +166,19 @@ const onSubmit = async () => {
       @blur="touchField('form.quantity')"
     />
 
-    <InputField
-      v-model="form.price"
-      :label="$t('forms.investmentTransaction.priceLabel')"
-      type="number"
-      step="any"
-      :placeholder="$t('forms.investmentTransaction.pricePlaceholder')"
-      :disabled="createTransactionMutation.isPending.value"
-      :error-message="getFieldErrorMessage('form.price')"
-      @blur="touchField('form.price')"
-    />
+    <div>
+      <InputField
+        v-model="form.price"
+        :label="$t('forms.investmentTransaction.priceLabel')"
+        type="number"
+        step="any"
+        :placeholder="$t('forms.investmentTransaction.pricePlaceholder')"
+        :disabled="createTransactionMutation.isPending.value"
+        :error-message="getFieldErrorMessage('form.price')"
+        @blur="touchField('form.price')"
+      />
+      <p class="text-muted-foreground mt-1.5 text-xs">{{ $t('forms.investmentTransaction.priceHelp') }}</p>
+    </div>
 
     <InputField
       v-model="form.fees"
@@ -192,6 +195,15 @@ const onSubmit = async () => {
       :disabled="createTransactionMutation.isPending.value"
       :error-message="getFieldErrorMessage('form.date')"
       @blur="touchField('form.date')"
+    />
+
+    <TextareaField
+      v-model="form.note"
+      :label="$t('forms.investmentTransaction.noteLabel')"
+      :placeholder="$t('forms.investmentTransaction.notePlaceholder')"
+      :disabled="createTransactionMutation.isPending.value"
+      :maxlength="2000"
+      rows="3"
     />
 
     <div class="flex justify-end gap-4">

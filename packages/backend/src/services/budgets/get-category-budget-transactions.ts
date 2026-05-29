@@ -8,6 +8,7 @@ import TransactionSplits from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
 import { Op } from '@sequelize/core';
 
+import { authorizeBudgetRead } from './authorize-budget-access';
 import { buildDateFilter } from './utils/build-date-filter';
 
 /**
@@ -21,6 +22,10 @@ export const getCategoryBudgetTransactions = async ({
   from = 0,
   limit = 50,
 }: GetCategoryBudgetTransactionsParams) => {
+  // Share-aware auth: recipient sees owner's transactions on the budget (per PRD
+  // visibility decision), not a recipient-userId slice.
+  const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+
   const budget = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId, {
       include: [{ model: Categories, as: 'categories', attributes: ['id', 'name', 'color'] }],
@@ -46,7 +51,7 @@ export const getCategoryBudgetTransactions = async ({
   // Get transactions where primary category matches and have no splits
   const primaryCategoryTransactions = await Transactions.default.findAll({
     where: {
-      userId,
+      userId: ownerUserId,
       categoryId: { [Op.in]: categoryIds },
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       ...dateFilter,
@@ -62,7 +67,7 @@ export const getCategoryBudgetTransactions = async ({
   // Get splits that match the categories
   const matchingSplits = await TransactionSplits.findAll({
     where: {
-      userId,
+      userId: ownerUserId,
       categoryId: { [Op.in]: categoryIds },
     },
     include: [
@@ -85,7 +90,7 @@ export const getCategoryBudgetTransactions = async ({
 
   // Combine results
   const results: TransactionWithCategory[] = [];
-  const seenTransactionIds = new Set<number>();
+  const seenTransactionIds = new Set<string>();
 
   // Process primary category transactions (only those WITHOUT splits)
   for (const tx of primaryCategoryTransactions) {
@@ -160,17 +165,17 @@ export const getCategoryBudgetTransactions = async ({
 };
 
 interface TransactionWithCategory {
-  id: number;
+  id: string;
   time: Date;
   transactionType: TRANSACTION_TYPES;
   refAmount: number;
   amount: number;
   note: string | null;
-  categoryId: number | null;
-  accountId: number | null;
+  categoryId: string | null;
+  accountId: string;
   /** For split transactions, this is the split's category */
   effectiveCategory?: {
-    id: number;
+    id: string;
     name: string;
     color: string;
   };
@@ -180,7 +185,7 @@ interface TransactionWithCategory {
 
 interface GetCategoryBudgetTransactionsParams {
   userId: number;
-  budgetId: number;
+  budgetId: string;
   from?: number;
   limit?: number;
 }

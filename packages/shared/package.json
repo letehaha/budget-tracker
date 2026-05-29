@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "keywords": [],
-  "license": "ISC",
+  "license": "AGPL-3.0-only",
   "author": "",
   "type": "module",
   "main": "src/index.ts",

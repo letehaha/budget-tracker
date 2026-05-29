@@ -16,7 +16,7 @@ import type { CombinedBalanceHistoryItem } from '@services/stats/get-combined-ba
 interface BalanceHistoryItemApiResponse {
   date: Date | string;
   amount: number;
-  accountId: number;
+  accountId: string;
 }
 
 /**
@@ -52,7 +52,7 @@ interface SpendingStructureApiResponse {
 }
 
 type GetSpendingsByCategoriesApiResponse = {
-  [categoryId: number]: SpendingStructureApiResponse;
+  [categoryId: string]: SpendingStructureApiResponse;
 };
 
 /**
@@ -64,7 +64,7 @@ export function serializeSpendingsByCategories(
   const result: GetSpendingsByCategoriesApiResponse = {};
 
   for (const [categoryId, spending] of Object.entries(spendings)) {
-    result[Number(categoryId)] = {
+    result[categoryId] = {
       name: spending.name,
       color: spending.color,
       amount: centsToApiDecimal(spending.amount),
@@ -79,7 +79,7 @@ export function serializeSpendingsByCategories(
 // ============================================================================
 
 interface CashFlowCategoryDataApiResponse {
-  categoryId: number;
+  categoryId: string;
   name: string;
   color: string;
   incomeAmount: number;

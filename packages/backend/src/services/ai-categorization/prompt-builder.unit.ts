@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { Money } from '@common/types/money';
 
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
@@ -72,9 +73,15 @@ describe('buildSystemPrompt', () => {
 });
 
 describe('buildUserMessage', () => {
+  const TX1 = generateRandomRecordId();
+  const TX2 = generateRandomRecordId();
+  const CAT10 = generateRandomRecordId();
+  const CAT20 = generateRandomRecordId();
+  const CAT30 = generateRandomRecordId();
+
   const mockTransactions: TransactionForCategorization[] = [
     {
-      id: 1,
+      id: TX1,
       amount: Money.fromDecimal(42.5),
       currencyCode: 'USD',
       accountName: 'Main Account',
@@ -82,7 +89,7 @@ describe('buildUserMessage', () => {
       note: 'Starbucks coffee',
     },
     {
-      id: 2,
+      id: TX2,
       amount: Money.fromDecimal(100),
       currencyCode: 'EUR',
       accountName: 'Savings',
@@ -92,9 +99,9 @@ describe('buildUserMessage', () => {
   ];
 
   const mockCategories: CategoryForCategorization[] = [
-    { id: 10, parentId: null, name: 'Food' },
-    { id: 20, parentId: 10, name: 'Coffee' },
-    { id: 30, parentId: null, name: 'Income' },
+    { id: CAT10, parentId: null, name: 'Food' },
+    { id: CAT20, parentId: CAT10, name: 'Coffee' },
+    { id: CAT30, parentId: null, name: 'Income' },
   ];
 
   it('should include CATEGORIES and TRANSACTIONS sections', () => {
@@ -114,7 +121,7 @@ describe('buildUserMessage', () => {
     });
 
     expect(message).toContain('id|amount|currency|account|datetime|note');
-    expect(message).toContain('1|');
+    expect(message).toContain(`${TX1}|`);
     expect(message).toContain('Starbucks coffee');
   });
 
@@ -125,14 +132,14 @@ describe('buildUserMessage', () => {
     });
 
     expect(message).toContain('id|parentId|name');
-    expect(message).toContain('10||Food');
-    expect(message).toContain('20|10|Coffee');
+    expect(message).toContain(`${CAT10}||Food`);
+    expect(message).toContain(`${CAT20}|${CAT10}|Coffee`);
   });
 
   it('should escape pipe characters in transaction notes', () => {
     const transactions: TransactionForCategorization[] = [
       {
-        id: 1,
+        id: TX1,
         amount: Money.fromDecimal(10),
         currencyCode: 'USD',
         accountName: 'Test',
@@ -150,7 +157,7 @@ describe('buildUserMessage', () => {
   it('should replace newlines in transaction notes', () => {
     const transactions: TransactionForCategorization[] = [
       {
-        id: 1,
+        id: TX1,
         amount: Money.fromDecimal(10),
         currencyCode: 'USD',
         accountName: 'Test',
@@ -168,7 +175,7 @@ describe('buildUserMessage', () => {
     const longNote = 'x'.repeat(300);
     const transactions: TransactionForCategorization[] = [
       {
-        id: 1,
+        id: TX1,
         amount: Money.fromDecimal(10),
         currencyCode: 'USD',
         accountName: 'Test',
@@ -181,7 +188,7 @@ describe('buildUserMessage', () => {
 
     // The note portion should be at most 200 chars
     const lines = message.split('\n');
-    const txLine = lines.find((l) => l.startsWith('1|'));
+    const txLine = lines.find((l) => l.startsWith(`${TX1}|`));
     const notePart = txLine!.split('|').pop()!;
     expect(notePart.length).toBe(200);
   });
@@ -189,7 +196,7 @@ describe('buildUserMessage', () => {
   it('should handle null notes', () => {
     const transactions: TransactionForCategorization[] = [
       {
-        id: 1,
+        id: TX1,
         amount: Money.fromDecimal(10),
         currencyCode: 'USD',
         accountName: 'Test',
@@ -202,7 +209,7 @@ describe('buildUserMessage', () => {
 
     // Should not throw and should end with an empty note field
     const lines = message.split('\n');
-    const txLine = lines.find((l) => l.startsWith('1|'));
+    const txLine = lines.find((l) => l.startsWith(`${TX1}|`));
     expect(txLine).toBeDefined();
     expect(txLine!.endsWith('|')).toBe(true);
   });
@@ -219,9 +226,9 @@ describe('buildUserMessage', () => {
   it('should format parentId as empty string for top-level categories', () => {
     const message = buildUserMessage({
       transactions: mockTransactions,
-      categories: [{ id: 10, parentId: null, name: 'Food' }],
+      categories: [{ id: CAT10, parentId: null, name: 'Food' }],
     });
 
-    expect(message).toContain('10||Food');
+    expect(message).toContain(`${CAT10}||Food`);
   });
 });

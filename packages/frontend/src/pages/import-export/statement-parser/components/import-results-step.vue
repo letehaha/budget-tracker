@@ -161,7 +161,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import { AlertCircleIcon, ArrowLeftIcon, CheckCircleIcon, Loader2Icon } from 'lucide-vue-next';
+import { AlertCircleIcon, ArrowLeftIcon, CheckCircleIcon, Loader2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 

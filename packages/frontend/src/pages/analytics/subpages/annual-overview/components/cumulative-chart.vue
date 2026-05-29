@@ -50,11 +50,15 @@
 </template>
 
 <script setup lang="ts">
+import { currentTheme } from '@/common/utils/color-theme';
 import { useFormatCurrency } from '@/composable';
+import { getChartColors } from '@/composable/charts/chart-colors';
+import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import type { endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 type MetricType = 'expenses' | 'income' | 'savings';
@@ -118,15 +122,14 @@ const getMargins = ({ width }: { width: number }) => {
 };
 
 const getColors = () => {
-  const style = getComputedStyle(document.documentElement);
-  const colors = METRIC_COLORS[props.metric];
-
+  const { grid, text } = getChartColors();
+  const m = METRIC_COLORS[props.metric];
   return {
-    grid: style.getPropertyValue('--border').trim() || 'rgb(39, 39, 42)',
-    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(161, 161, 170)',
-    currentYear: colors.main,
-    previousYear: colors.faded,
-    areaFill: colors.area,
+    grid,
+    text,
+    currentYear: m.main,
+    previousYear: m.faded,
+    areaFill: m.area,
   };
 };
 
@@ -353,16 +356,7 @@ const renderChart = () => {
     .on('mouseleave', handleMouseLeave);
 };
 
-const formatAxisValue = (value: number): string => {
-  const symbol = getCurrencySymbol();
-  const absValue = Math.abs(value);
-  if (absValue >= 1000000) {
-    return `${symbol}${(value / 1000000).toFixed(1)}M`;
-  } else if (absValue >= 1000) {
-    return `${symbol}${(value / 1000).toFixed(0)}K`;
-  }
-  return `${symbol}${value}`;
-};
+const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: getCurrencySymbol() });
 
 function handleMouseMove(event: MouseEvent) {
   updateTooltipPosition(event);
@@ -372,24 +366,9 @@ function handleMouseLeave() {
   tooltip.visible = false;
 }
 
-let resizeObserver: ResizeObserver | null = null;
+useResizeObserver(containerRef, renderChart);
 
-onMounted(() => {
-  renderChart();
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
+watch([() => props.currentPeriodData, () => props.previousPeriodData, () => props.metric, currentTheme], renderChart, {
+  deep: true,
 });
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
-
-watch([() => props.currentPeriodData, () => props.previousPeriodData, () => props.metric], renderChart, { deep: true });
 </script>

@@ -1,9 +1,12 @@
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import { restClient } from '@polygon.io/client-js';
 import * as helpers from '@tests/helpers';
+import { makeRequest } from '@tests/helpers/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockedRestClient = vi.mocked(restClient);
@@ -56,7 +59,7 @@ describe('POST /holdings (create holding)', () => {
   it('should fail to create a holding for non-existent portfolio', async () => {
     const response = await helpers.createHolding({
       payload: {
-        portfolioId: 999999,
+        portfolioId: generateRandomRecordId(),
         securityId: vooSecurity.id,
       },
     });
@@ -68,7 +71,7 @@ describe('POST /holdings (create holding)', () => {
     const response = await helpers.createHolding({
       payload: {
         portfolioId: investmentPortfolio.id,
-        securityId: 999999,
+        securityId: generateRandomRecordId(),
       },
     });
 
@@ -97,7 +100,7 @@ describe('POST /holdings (create holding)', () => {
 
   it('fails if required fields are missing', async () => {
     // Missing portfolioId
-    const payloadMissingPortfolioId = { securityId: vooSecurity.id } as Parameters<
+    const payloadMissingPortfolioId = { securityId: vooSecurity.id } as unknown as Parameters<
       typeof helpers.createHolding
     >[0]['payload'];
 
@@ -109,7 +112,7 @@ describe('POST /holdings (create holding)', () => {
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
 
     // Missing securityId
-    const payloadMissingSecurityId = { portfolioId: investmentPortfolio.id } as Parameters<
+    const payloadMissingSecurityId = { portfolioId: investmentPortfolio.id } as unknown as Parameters<
       typeof helpers.createHolding
     >[0]['payload'];
 
@@ -161,6 +164,30 @@ describe('POST /holdings (create holding)', () => {
     expect(typeof holding.currencyCode).toBe('string');
     expect(holding.portfolioId).toBe(investmentPortfolio.id);
     expect(holding.securityId).toBe(vooSecurity.id);
+  });
+
+  it('rejects searchResult with unsupported asset class (e.g. crypto)', async () => {
+    const response = await makeRequest({
+      method: 'post',
+      url: '/investments/holding',
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        searchResult: {
+          symbol: 'BTC-USD',
+          name: 'Bitcoin USD',
+          assetClass: ASSET_CLASS.crypto,
+          providerName: SECURITY_PROVIDER.yahoo,
+          currencyCode: 'USD',
+          exchangeName: 'CCC',
+          exchangeAcronym: 'CCC',
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const created = await Securities.findOne({ where: { symbol: 'BTC-USD' } });
+    expect(created).toBeNull();
   });
 
   it.todo('prevents race condition on duplicate (only one succeeds)');

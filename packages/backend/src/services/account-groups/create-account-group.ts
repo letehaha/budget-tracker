@@ -13,11 +13,11 @@ export const createAccountGroup = withTransaction(
   }: {
     userId: number;
     name: string;
-    parentGroupId?: number | null;
+    parentGroupId?: string | null;
   }): Promise<AccountGroup> => {
     if (parentGroupId) {
       await findOrThrowNotFound({
-        query: AccountGroup.findByPk(parentGroupId),
+        query: AccountGroup.findOne({ where: { id: parentGroupId, userId } }),
         message: t({ key: 'accountGroups.parentGroupDoesNotExist' }),
       });
     }

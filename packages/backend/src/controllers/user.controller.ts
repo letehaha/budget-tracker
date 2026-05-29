@@ -1,9 +1,11 @@
 import { currencyCode } from '@common/lib/zod/custom-types';
 import { authPool } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { invalidateAppUserCache } from '@middlewares/better-auth';
 import { ExchangeRatePair } from '@models/user-exchange-rates.model';
+import { UniqueConstraintError } from '@sequelize/core';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
 import { deleteUser as deleteUserService } from '@services/user/delete-user.service';
@@ -29,28 +31,50 @@ export const getUser = createController(z.object({}), async ({ user }) => {
 export const updateUser = createController(
   z.object({
     body: z.object({
-      username: z.string().optional(),
+      // Mirrors slugifyUsername output: lowercase ASCII alphanumerics with single
+      // hyphens between alphanumeric runs. 1-64 chars matches the signup-side cap.
+      username: z
+        .string()
+        .trim()
+        .min(1, 'Username must not be empty')
+        .max(64, 'Username must be 64 characters or fewer')
+        .regex(
+          /^[a-z0-9]+(-[a-z0-9]+)*$/,
+          'Username must contain only lowercase letters, digits, and single hyphens (no leading, trailing, or consecutive hyphens)',
+        )
+        .optional(),
       email: z.string().optional(),
       firstName: z.string().optional(),
       lastName: z.string().optional(),
       middleName: z.string().optional(),
-      password: z.string().optional(),
       avatar: z.string().optional(),
       totalBalance: z.number().optional(),
     }),
   }),
   async ({ user, body }) => {
-    const userData = await userService.updateUser({
-      id: user.id,
-      ...body,
-    });
+    try {
+      const userData = await userService.updateUser({
+        id: user.id,
+        ...body,
+      });
 
-    // Invalidate cached user so the next request picks up the new username/role
-    if (user.authUserId) {
-      invalidateAppUserCache({ authUserId: user.authUserId });
+      // Invalidate cached user so the next request picks up the new username/role
+      if (user.authUserId) {
+        invalidateAppUserCache({ authUserId: user.authUserId });
+      }
+
+      return { data: userData };
+    } catch (error) {
+      // Surface a 422 instead of a 500 when the new username collides with
+      // another user's. Without this, the raw UniqueConstraintError bubbles
+      // up as an unexpected error.
+      if (error instanceof UniqueConstraintError && error.errors?.some((e) => e.path === 'username') && body.username) {
+        throw new ValidationError({
+          message: t({ key: 'users.usernameAlreadyTaken', variables: { username: body.username } }),
+        });
+      }
+      throw error;
     }
-
-    return { data: userData };
   },
 );
 

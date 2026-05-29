@@ -17,7 +17,7 @@ import {
   subDays,
   subMonths,
 } from 'date-fns';
-import { ArrowDownRightIcon, ArrowUpRightIcon, InfoIcon, WalletIcon } from 'lucide-vue-next';
+import { ArrowDownRightIcon, ArrowUpRightIcon, InfoIcon, WalletIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 

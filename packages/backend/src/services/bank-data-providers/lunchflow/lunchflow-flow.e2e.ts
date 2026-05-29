@@ -6,6 +6,7 @@ import {
   TRANSACTION_TYPES,
   asDecimal,
 } from '@bt/shared/types';
+import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
 import { Op } from '@sequelize/core';
@@ -25,6 +26,7 @@ import {
   getLunchFlowTransactionsMock,
 } from '@tests/mocks/lunchflow/mock-api';
 import { addDays, subDays } from 'date-fns';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -53,7 +55,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       expect(connectResult).toHaveProperty('connectionId');
-      expect(connectResult.connectionId).toBeGreaterThan(0);
+      expect(connectResult.connectionId).toBeDefined();
 
       const connectionId = connectResult.connectionId;
 
@@ -63,7 +65,7 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(Array.isArray(connections)).toBe(true);
       expect(connections.length).toBeGreaterThan(0);
 
-      const connection = connections.find((c: { id: number }) => c.id === connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionId);
       expect(connection).toBeDefined();
       expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.LUNCHFLOW);
       expect(connection?.providerName).toBe('LunchFlow');
@@ -125,13 +127,7 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: {
-          externalId: string | null;
-          id: number;
-          name: string;
-          currentBalance: number;
-          currencyCode: string;
-        }) => {
+        (account: { externalId: string; id: string; name: string; currentBalance: number; currencyCode: string }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -142,7 +138,7 @@ describe('LunchFlow Data Provider E2E', () => {
 
       // Verify connections list now shows updated account count
       const { connections: updatedConnections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const updatedConnection = updatedConnections.find((c: { id: number }) => c.id === connectionId);
+      const updatedConnection = updatedConnections.find((c: { id: string }) => c.id === connectionId);
       expect(updatedConnection?.accountsCount).toBe(accountIdsToConnect.length);
     });
   });
@@ -166,7 +162,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       expect(result).toHaveProperty('connectionId');
-      expect(result.connectionId).toBeGreaterThan(0);
+      expect(result.connectionId).toBeDefined();
     });
 
     it('should fail with invalid API key', async () => {
@@ -201,7 +197,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
       expect(connection?.providerName).toBe('LunchFlow');
     });
 
@@ -231,7 +227,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === result.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === result.connectionId);
 
       expect(connection).toBeDefined();
       expect(connection?.providerType).toBe(BANK_PROVIDER_TYPE.LUNCHFLOW);
@@ -268,7 +264,7 @@ describe('LunchFlow Data Provider E2E', () => {
   describe('Step 4: List external accounts', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.listExternalAccounts({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
       });
 
       expect(result.status).toEqual(ERROR_CODES.NotFoundError);
@@ -373,7 +369,7 @@ describe('LunchFlow Data Provider E2E', () => {
   describe('Step 5: Connect selected accounts', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
         accountExternalIds: ['1001'],
       });
 
@@ -467,7 +463,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === connectionResult.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionResult.connectionId);
       expect(connection?.accountsCount).toBe(1);
     });
 
@@ -493,7 +489,7 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connection = connections.find((c: { id: number }) => c.id === connectionResult.connectionId);
+      const connection = connections.find((c: { id: string }) => c.id === connectionResult.connectionId);
       expect(connection?.lastSyncAt).not.toBeNull();
     });
   });
@@ -502,7 +498,7 @@ describe('LunchFlow Data Provider E2E', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.makeRequest({
         method: 'get',
-        url: '/bank-data-providers/connections/99999',
+        url: `/bank-data-providers/connections/${NONEXISTENT_ID}`,
       });
 
       expect(result.status).toEqual(ERROR_CODES.NotFoundError);
@@ -560,13 +556,7 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(details.accounts.length).toBe(2);
 
       details.accounts.forEach(
-        (account: {
-          id: number;
-          name: string;
-          externalId: string | null;
-          currentBalance: number;
-          currencyCode: string;
-        }) => {
+        (account: { id: string; name: string; externalId: string; currentBalance: number; currencyCode: string }) => {
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
           expect(account).toHaveProperty('externalId');
@@ -866,6 +856,11 @@ describe('LunchFlow Data Provider E2E', () => {
 
     it('should sync transactions after reconnecting', async () => {
       const MOCK_AMOUNT = 3;
+      // Use the same mocked transaction set for both syncs so the secondary
+      // dedup (via externalData.originalSource.originalId) can re-match the
+      // pre-disconnect transactions — otherwise we end up with unrelated
+      // transactions from both syncs on the re-linked account.
+      const mockedTransactions = helpers.lunchflow.mockedTransactionData(MOCK_AMOUNT);
 
       // Connect and sync
       const firstConnect = await helpers.bankDataProviders.connectProvider({
@@ -881,7 +876,7 @@ describe('LunchFlow Data Provider E2E', () => {
 
       global.mswMockServer.use(
         getLunchFlowTransactionsMock({
-          response: helpers.lunchflow.mockedTransactionData(MOCK_AMOUNT),
+          response: mockedTransactions,
           accountId: externalAccounts1[0]!.externalId,
         }),
         getLunchFlowBalanceMock({ accountId: externalAccounts1[0]!.externalId }),
@@ -915,7 +910,7 @@ describe('LunchFlow Data Provider E2E', () => {
       // Set up mocks for second connection sync
       global.mswMockServer.use(
         getLunchFlowTransactionsMock({
-          response: helpers.lunchflow.mockedTransactionData(MOCK_AMOUNT),
+          response: mockedTransactions,
           accountId: externalAccounts2[0]!.externalId,
         }),
         getLunchFlowBalanceMock({ accountId: externalAccounts2[0]!.externalId }),
@@ -927,7 +922,7 @@ describe('LunchFlow Data Provider E2E', () => {
         raw: true,
       });
 
-      // New account should have synced transactions
+      // Re-linked account should have the same transactions — no duplicates
       const transactions = await Transactions.findAll({
         where: { accountId: syncedAccounts[0]!.id },
         raw: true,
@@ -1033,6 +1028,74 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(relinkedAccount.type).toBe(ACCOUNT_TYPES.lunchflow);
       expect(relinkedAccount.bankDataProviderConnectionId).toBe(secondConnect.connectionId);
       expect(relinkedAccount.externalId).toBe(externalAccountId);
+    });
+
+    it('should re-link (not duplicate) the existing account when reconnecting via connectSelectedAccounts with a fresh connection', async () => {
+      // Regression: after a disconnect, externalData.connectionHistory stores the
+      // OLD connectionId. A fresh connectProvider returns a NEW connectionId.
+      // The fallback matcher in connectSelectedAccounts used to require
+      // previousConnection.bankDataProviderConnectionId === <new connectionId>,
+      // which is impossible — so a duplicate account was created.
+      const externalAccountId = getMockedLunchFlowAccounts().accounts[0]!.id.toString();
+
+      // 1. Connect + select account
+      const firstConnect = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        raw: true,
+      });
+
+      global.mswMockServer.use(
+        getLunchFlowTransactionsMock({ accountId: externalAccountId }),
+        getLunchFlowBalanceMock({ accountId: externalAccountId }),
+      );
+
+      const { syncedAccounts: firstSelected } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: firstConnect.connectionId,
+        accountExternalIds: [externalAccountId],
+        raw: true,
+      });
+      const originalAccountId = firstSelected[0]!.id;
+
+      // 2. Disconnect (keep accounts → stores previousConnection metadata)
+      await helpers.bankDataProviders.disconnectProvider({
+        connectionId: firstConnect.connectionId,
+        removeAssociatedAccounts: false,
+        raw: true,
+      });
+
+      // 3. Create a brand-new connection (NEW connectionId)
+      const secondConnect = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        raw: true,
+      });
+      expect(secondConnect.connectionId).not.toBe(firstConnect.connectionId);
+
+      // 4. Call connectSelectedAccounts (the auto-matching path — NOT manual link)
+      global.mswMockServer.use(
+        getLunchFlowTransactionsMock({ accountId: externalAccountId }),
+        getLunchFlowBalanceMock({ accountId: externalAccountId }),
+      );
+
+      const { syncedAccounts: secondSelected } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: secondConnect.connectionId,
+        accountExternalIds: [externalAccountId],
+        raw: true,
+      });
+
+      // 5. Expect the SAME account was re-linked, not a duplicate
+      expect(secondSelected).toHaveLength(1);
+      expect(secondSelected[0]!.id).toBe(originalAccountId);
+
+      const allAccounts = await helpers.getAccounts();
+      const matchingRows = allAccounts.filter((a) => a.externalId === externalAccountId);
+      expect(matchingRows).toHaveLength(1);
+
+      const relinked = await helpers.getAccount({ id: originalAccountId, raw: true });
+      expect(relinked.type).toBe(ACCOUNT_TYPES.lunchflow);
+      expect(relinked.bankDataProviderConnectionId).toBe(secondConnect.connectionId);
+      expect(relinked.externalId).toBe(externalAccountId);
     });
   });
 
@@ -1271,7 +1334,7 @@ describe('LunchFlow Data Provider E2E', () => {
   describe('Update connection details', () => {
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.updateConnectionDetails({
-        connectionId: 99999,
+        connectionId: generateRandomRecordId(),
         providerName: 'New Name',
       });
 
@@ -1394,6 +1457,54 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       expect(reactivated.isActive).toBe(true);
+    });
+  });
+
+  describe('Provider outage vs. invalid credentials', () => {
+    const LUNCHFLOW_ACCOUNTS_URL = 'https://lunchflow.app/api/v1/accounts';
+
+    it('connect: should not treat a provider 5xx as invalid credentials', async () => {
+      global.mswMockServer.use(
+        http.get(LUNCHFLOW_ACCOUNTS_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/${BANK_PROVIDER_TYPE.LUNCHFLOW}/connect`,
+        payload: {
+          credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('refreshCredentials: should not treat a provider 5xx as invalid credentials', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        raw: true,
+      });
+
+      global.mswMockServer.use(
+        http.get(LUNCHFLOW_ACCOUNTS_URL, () => {
+          return new HttpResponse(null, { status: 500, statusText: 'Internal Server Error' });
+        }),
+      );
+
+      const result = await helpers.makeRequest({
+        method: 'patch',
+        url: `/bank-data-providers/connections/${connectResult.connectionId}`,
+        payload: {
+          credentials: { apiKey: VALID_LUNCHFLOW_API_KEY_2 },
+        },
+      });
+
+      expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
+      expect(result.status).toBeGreaterThanOrEqual(400);
     });
   });
 });

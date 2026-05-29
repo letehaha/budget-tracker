@@ -42,6 +42,14 @@
             "outOfRange": "Value is out of allowed range",
             "integer": "Must be a whole number"
           }
+        },
+        "settings": {
+          "title": "Settings",
+          "spikeMarkers": "Spike markers",
+          "fitToLatestData": "Fit to latest data",
+          "fitToLatestDataTooltip": "When on, the chart only spans up to your latest data point. When off, the x-axis covers the full selected period, leaving empty space for any future dates.",
+          "on": "On",
+          "off": "Off"
         }
       },
       "expensesStructure": {

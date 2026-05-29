@@ -56,7 +56,7 @@ export default class SubscriptionCandidates extends Model<
   @NotNull
   declare detectedFrequency: SUBSCRIPTION_FREQUENCIES;
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.BIGINT)
   @NotNull
   get averageAmount(): Money {
     return moneyGetCents(this, 'averageAmount');
@@ -69,13 +69,13 @@ export default class SubscriptionCandidates extends Model<
   @NotNull
   declare currencyCode: string;
 
-  @Attribute(DataTypes.INTEGER)
-  declare accountId: number | null;
+  @Attribute(DataTypes.UUID)
+  declare accountId: string | null;
 
-  @Attribute(DataTypes.ARRAY(DataTypes.INTEGER))
+  @Attribute(DataTypes.ARRAY(DataTypes.UUID))
   @NotNull
   @Default([])
-  declare sampleTransactionIds: CreationOptional<number[]>;
+  declare sampleTransactionIds: CreationOptional<string[]>;
 
   @Attribute(DataTypes.INTEGER)
   @NotNull

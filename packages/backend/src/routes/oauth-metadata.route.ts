@@ -2,7 +2,7 @@ import { Express, Request, Response } from 'express';
 
 import { API_PREFIX, MCP_BASE_URL } from '../config';
 
-const MCP_SCOPES_SUPPORTED = ['finance:read', 'profile:read', 'offline_access'];
+const MCP_SCOPES_SUPPORTED = ['finance:read', 'finance:write', 'finance:delete', 'profile:read', 'offline_access'];
 
 /**
  * Set up OAuth discovery and metadata routes required by MCP clients.

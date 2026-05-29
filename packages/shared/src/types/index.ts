@@ -1,5 +1,6 @@
 import * as endpointsTypes from './endpoints';
 
+export * from './record-id';
 export * from './enums';
 export * from './db-models';
 
@@ -12,4 +13,5 @@ export * from './statement-parser';
 export * from './sse';
 export * from './ai/index';
 export * from './money';
+export * from './testing';
 export { endpointsTypes };

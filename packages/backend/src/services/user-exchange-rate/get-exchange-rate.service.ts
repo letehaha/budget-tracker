@@ -30,9 +30,9 @@ export async function getExchangeRate({
   quoteCode,
 }: ExchangeRateParams): Promise<ExchangeRateReturnType> {
   // **REDIS CACHE CHECK - FIRST THING, before any expensive operations**
-  exchangeRateCache.setCacheKey(`exchange_rate:${JSON.stringify({ userId, date, baseCode, quoteCode })}`);
+  const cacheKey = `exchange_rate:${JSON.stringify({ userId, date, baseCode, quoteCode })}`;
 
-  const cachedResult = await exchangeRateCache.read();
+  const cachedResult = await exchangeRateCache.read(cacheKey);
 
   if (cachedResult) {
     return {
@@ -53,7 +53,7 @@ export async function getExchangeRate({
     };
 
     // Cache this simple result too
-    await exchangeRateCache.write({ value: result });
+    await exchangeRateCache.write({ key: cacheKey, value: result });
     return result;
   }
 
@@ -175,7 +175,7 @@ export async function getExchangeRate({
     };
   }
 
-  await exchangeRateCache.write({ value: result });
+  await exchangeRateCache.write({ key: cacheKey, value: result });
 
   return result;
 }

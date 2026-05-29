@@ -1,4 +1,5 @@
 import { CATEGORY_TYPES } from '@bt/shared/types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as categoriesService from '@root/services/categories/create-category';
 import * as onboardingService from '@services/user-settings/onboarding';
@@ -13,7 +14,7 @@ const CreateCategoryPayloadSchema = z
   .and(
     z.union([
       z.object({
-        parentId: z.number().positive().int(),
+        parentId: recordId(),
         color: z
           .string()
           .regex(/^#[0-9A-F]{6}$/i)

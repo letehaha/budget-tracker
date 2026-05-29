@@ -1,13 +1,15 @@
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import ExchangeRates from '@models/exchange-rates.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import { Op } from '@sequelize/core';
+import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
 import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 
 import { getAggregatedBalanceHistory } from './get-balance-history';
@@ -19,6 +21,8 @@ export interface CombinedBalanceHistoryItem {
   portfoliosBalance: number;
   totalBalance: number;
 }
+
+const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
 
 /**
  * Helper function to calculate portfolio balance history
@@ -52,7 +56,7 @@ const calculatePortfolioBalanceHistory = async ({
     return null;
   }
 
-  const portfolioIds = portfolios.map((p: { id: number }) => p.id);
+  const portfolioIds = portfolios.map((p: { id: string }) => p.id);
 
   type TransactionRow = Pick<
     InvestmentTransaction,
@@ -63,6 +67,7 @@ const calculatePortfolioBalanceHistory = async ({
     quantity: number;
     costBasis: number;
     currencyCode: string;
+    assetClass: ASSET_CLASS;
   };
 
   const transactions: TransactionRow[] = await InvestmentTransaction.findAll({
@@ -81,7 +86,20 @@ const calculatePortfolioBalanceHistory = async ({
   });
 
   const securityIds = [...new Set(transactions.map((t: TransactionRow) => t.securityId))];
-  const currencyCodes = [...new Set(transactions.map((t: TransactionRow) => t.currencyCode))];
+
+  // Look up securities to get the *security's* native currency and asset class.
+  // Transactions store the cash-leg currency (often the brokerage's settlement
+  // currency, e.g. USD for an ASML.AS purchase), which is NOT the right currency
+  // for converting market value — prices are in the security's native currency.
+  type SecurityRow = Pick<Securities, 'id' | 'currencyCode' | 'assetClass'>;
+  const securities: SecurityRow[] = await Securities.findAll({
+    where: { id: { [Op.in]: securityIds } },
+    attributes: ['id', 'currencyCode', 'assetClass'],
+    raw: true,
+  });
+  const securitiesById = new Map(securities.map((s) => [s.id, s]));
+
+  const currencyCodes = [...new Set(securities.map((s) => s.currencyCode))];
 
   if (securityIds.length === 0) {
     return null;
@@ -94,14 +112,24 @@ const calculatePortfolioBalanceHistory = async ({
   type SecurityPriceRow = Pick<SecurityPricing, 'securityId' | 'date' | 'priceClose'>;
   type ExchangeRateRow = Pick<UserExchangeRates, 'baseCode' | 'quoteCode' | 'date' | 'rate'>;
 
+  // Currencies we need a `USD → X` rate for: every security currency PLUS the
+  // user's base currency (used as the numerator in the cross-rate). USD itself
+  // is excluded because `findLatestUsdRate` short-circuits to 1 for it.
+  const usdRateQuoteCodes = [...new Set([userBaseCurrency.currencyCode, ...currencyCodes])].filter(
+    (code) => code !== API_LAYER_BASE_CURRENCY_CODE,
+  );
+
   const [securityPrices, userCustomExchangeRates, systemExchangeRates] = await Promise.all([
     SecurityPricing.findAll({
       where: {
         securityId: {
           [Op.in]: securityIds,
         },
+        // `date` is now TIMESTAMPTZ (crypto stores intraday timestamps). A
+        // raw `yyyy-MM-dd` upper bound would silently coerce to midnight UTC
+        // and drop same-day intraday rows; explicit endOfDay keeps them.
         date: {
-          [Op.between]: [dataFetchMinDate, maxDate],
+          [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(maxDate))],
         },
       },
       order: [
@@ -124,31 +152,37 @@ const calculatePortfolioBalanceHistory = async ({
       attributes: ['baseCode', 'quoteCode', 'date', 'rate'],
       raw: true,
     }) as Promise<ExchangeRateRow[]>,
+    // System rates are stored only in one canonical direction:
+    // `baseCode = API_LAYER_BASE_CURRENCY_CODE (USD), quoteCode = X` (1 USD = N X).
+    // Query that direction for every currency we need to convert _from_ AND
+    // for the user's base currency, then compute the actual security→base
+    // cross-rate in `getExchangeRate` below. The cross-rate maths mirrors
+    // `services/user-exchange-rate/get-exchange-rate.service.ts` — keep the
+    // two implementations in sync if you touch either.
     ExchangeRates.findAll({
       where: {
-        baseCode: {
-          [Op.in]: currencyCodes,
-        },
-        quoteCode: userBaseCurrency.currencyCode,
+        baseCode: API_LAYER_BASE_CURRENCY_CODE,
+        quoteCode: { [Op.in]: usdRateQuoteCodes },
         date: {
           [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(maxDate))],
         },
       },
       order: [
-        ['baseCode', 'ASC'],
+        ['quoteCode', 'ASC'],
         ['date', 'ASC'],
       ],
       raw: true,
     }),
   ]);
 
-  const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
-
-  // Build price lookup with O(1) access by security+date
-  const pricesBySecurity = new Map<number, Array<{ date: string; price: number }>>();
-  const pricesBySecurityAndDate = new Map<string, number>(); // "securityId_date" -> price
+  // Build price lookup with O(1) access by security+date. `price.date` is a
+  // TIMESTAMPTZ Date (crypto carries intraday timestamps); format to
+  // yyyy-MM-dd so the key matches `targetDate` strings below and same-day
+  // intraday rows collapse onto the same daily bucket (last write wins).
+  const pricesBySecurity = new Map<string, Array<{ date: string; price: number }>>();
+  const pricesBySecurityAndDate = new Map<string, number>();
   for (const price of securityPrices) {
-    const dateStr = String(price.date);
+    const dateStr = formatDate(price.date);
     const priceValue = price.priceClose.toNumber();
 
     if (!pricesBySecurity.has(price.securityId)) {
@@ -161,50 +195,91 @@ const calculatePortfolioBalanceHistory = async ({
     pricesBySecurityAndDate.set(`${price.securityId}_${dateStr}`, priceValue);
   }
 
-  const exchangeRateMap = new Map<string, number>();
-
-  // Build user rates map first for O(1) lookup
+  // User-set overrides — these are stored as `currencyCode → userBase` directly,
+  // not via USD pivot, so they short-circuit the cross-rate maths below.
   const userRatesMap = new Map<string, number>();
   for (const r of userCustomExchangeRates) {
     if (r.rate == null) continue;
     userRatesMap.set(`${r.baseCode}_${formatDate(r.date)}`, r.rate);
   }
 
+  // System rates indexed by `${quoteCode}_${dateStr}` — value is `1 USD = N quoteCode`.
+  // Same currency can be queried under multiple cross-pairs so this stays a single
+  // source of truth instead of one map per pair.
+  const usdRatesMap = new Map<string, number>();
+  // Per-currency sorted date list, ascending — used by `findLatestUsdRate` to walk
+  // backwards from the requested date when an exact match is missing (weekends,
+  // pre-historical-init dates).
+  const usdRateDatesByQuote = new Map<string, string[]>();
   for (const rate of systemExchangeRates) {
-    const key = `${rate.baseCode}_${formatDate(rate.date)}`;
-    // O(1) lookup instead of O(n) find
-    const userRate = userRatesMap.get(key);
-    exchangeRateMap.set(key, userRate ?? rate.rate);
+    const dateStr = formatDate(rate.date);
+    usdRatesMap.set(`${rate.quoteCode}_${dateStr}`, rate.rate);
+
+    const dates = usdRateDatesByQuote.get(rate.quoteCode);
+    if (dates) {
+      dates.push(dateStr);
+    } else {
+      usdRateDatesByQuote.set(rate.quoteCode, [dateStr]);
+    }
   }
+
+  const missingRateCurrencies = new Set<string>();
+
+  // Look up `1 USD = ? quoteCode` for `dateStr`, falling back to the most
+  // recent prior rate if the exact day isn't present. Returns `null` if no
+  // rate at all is known for this currency.
+  const findLatestUsdRate = (quoteCode: string, dateStr: string): number | null => {
+    if (quoteCode === API_LAYER_BASE_CURRENCY_CODE) return 1;
+
+    const exact = usdRatesMap.get(`${quoteCode}_${dateStr}`);
+    if (exact !== undefined) return exact;
+
+    const dates = usdRateDatesByQuote.get(quoteCode);
+    if (!dates || dates.length === 0) return null;
+
+    let candidate: number | null = null;
+    for (const d of dates) {
+      if (d <= dateStr) {
+        candidate = usdRatesMap.get(`${quoteCode}_${d}`) ?? candidate;
+      } else {
+        break;
+      }
+    }
+    return candidate;
+  };
 
   const getExchangeRate = (currencyCode: string, dateStr: string): number => {
     if (currencyCode === userBaseCurrency.currencyCode) {
       return 1;
     }
 
-    const key = `${currencyCode}_${dateStr}`;
-    const rate = exchangeRateMap.get(key);
+    // User override (`currencyCode → userBase`) wins over the computed cross-rate.
+    const userOverride = userRatesMap.get(`${currencyCode}_${dateStr}`);
+    if (userOverride !== undefined) return userOverride;
 
-    if (rate) {
-      return rate;
+    // Cross-rate via USD pivot: value_in_userBase = value_in_currencyCode *
+    // (USD→userBase) / (USD→currencyCode).
+    const usdToCurrency = findLatestUsdRate(currencyCode, dateStr);
+    const usdToBase = findLatestUsdRate(userBaseCurrency.currencyCode, dateStr);
+
+    if (usdToCurrency == null || usdToBase == null) {
+      missingRateCurrencies.add(currencyCode);
+      return 1;
     }
 
-    const availableRates = Array.from(exchangeRateMap.entries())
-      .filter(([k]) => {
-        const parts = k.split('_');
-        return k.startsWith(`${currencyCode}_`) && parts[1] && parts[1] <= dateStr;
-      })
-      .toSorted((a, b) => b[0].localeCompare(a[0]));
-
-    if (availableRates.length > 0) {
-      return availableRates[0]![1];
+    // A stored zero rate is data corruption, not a missing-rate gap — only a
+    // bad DB write or an upstream provider bug can produce it. Surface it as
+    // an error (not the missing-rate warn) and refuse to divide by zero.
+    if (usdToCurrency === 0) {
+      logger.error(`Stored exchange rate is zero for USD->${currencyCode} on ${dateStr}; treating as missing.`);
+      missingRateCurrencies.add(currencyCode);
+      return 1;
     }
 
-    logger.warn(`No exchange rate found for ${currencyCode} on ${dateStr}, using 1:1`);
-    return 1;
+    return usdToBase / usdToCurrency;
   };
 
-  const findPriceForDate = (securityId: number, targetDate: string): number | null => {
+  const findPriceForDate = (securityId: string, targetDate: string): number | null => {
     // O(1) exact match lookup
     const exactPrice = pricesBySecurityAndDate.get(`${securityId}_${targetDate}`);
     if (exactPrice !== undefined) return exactPrice;
@@ -226,7 +301,7 @@ const calculatePortfolioBalanceHistory = async ({
   };
 
   // Pre-group transactions by portfolio for O(1) lookup instead of O(n) filter
-  const transactionsByPortfolio = new Map<number, TransactionRow[]>();
+  const transactionsByPortfolio = new Map<string, TransactionRow[]>();
   for (const tx of transactions) {
     if (!transactionsByPortfolio.has(tx.portfolioId)) {
       transactionsByPortfolio.set(tx.portfolioId, []);
@@ -236,20 +311,21 @@ const calculatePortfolioBalanceHistory = async ({
 
   const portfolioValuesByDate = new Map<string, number>();
 
-  // Process all portfolios, building up holdings state incrementally by date
-  // Each portfolio's transactions are already sorted by date ASC
+  // Process all portfolios, building up holdings state incrementally by date.
+  // Holdings tracking must mirror `recalculateHolding` (see
+  // services/investments/holdings/recalculation.service.ts) — otherwise an
+  // oversell mid-history (allowed for crypto drift) causes the holding to be
+  // dropped and reinflated by the next buy, ballooning quantity and market value.
   for (const dateStr of uniqueDates) {
     let totalValueForDate = 0;
 
     for (const portfolioId of portfolioIds) {
       const portfolioTxs = transactionsByPortfolio.get(portfolioId) ?? [];
 
-      // Build holdings by processing transactions up to this date
-      // Transactions are already ordered by date ASC, so we can process incrementally
-      const holdings = new Map<number, HoldingState>();
+      const holdings = new Map<string, HoldingState>();
 
       for (const tx of portfolioTxs) {
-        // Since transactions are sorted by date, once we pass the current date, stop
+        // Transactions are sorted by date ASC; stop once we pass the snapshot.
         if (tx.date > dateStr) break;
 
         const securityId = tx.securityId;
@@ -257,36 +333,53 @@ const calculatePortfolioBalanceHistory = async ({
         const totalAmount = tx.refAmount.toNumber() + tx.refFees.toNumber();
 
         if (!holdings.has(securityId)) {
+          const security = securitiesById.get(securityId);
           holdings.set(securityId, {
             quantity: 0,
             costBasis: 0,
-            currencyCode: tx.currencyCode,
+            currencyCode: security?.currencyCode ?? tx.currencyCode,
+            assetClass: security?.assetClass ?? ASSET_CLASS.other,
           });
         }
 
         const holding = holdings.get(securityId)!;
 
         if (tx.category === INVESTMENT_TRANSACTION_CATEGORY.buy) {
-          holding.quantity += quantity;
-          holding.costBasis += totalAmount;
+          const newQuantity = holding.quantity + quantity;
+          if (newQuantity <= 0) {
+            holding.costBasis = 0;
+          } else if (holding.quantity <= 0) {
+            // Buy crosses from short/zero into long — only the long portion is new basis.
+            const longProportion = newQuantity / quantity;
+            holding.costBasis = totalAmount * longProportion;
+          } else {
+            holding.costBasis += totalAmount;
+          }
+          holding.quantity = newQuantity;
         } else if (tx.category === INVESTMENT_TRANSACTION_CATEGORY.sell) {
           if (holding.quantity > 0) {
-            const sellRatio = quantity / holding.quantity;
-            holding.costBasis *= 1 - sellRatio;
-            holding.quantity -= quantity;
+            const newQuantity = holding.quantity - quantity;
+            if (newQuantity <= 0) {
+              holding.costBasis = 0;
+            } else {
+              const remainingProportion = newQuantity / holding.quantity;
+              holding.costBasis *= remainingProportion;
+            }
           }
-        }
-
-        if (holding.quantity <= 0) {
-          holdings.delete(securityId);
+          holding.quantity -= quantity;
         }
       }
 
       for (const [securityId, holding] of holdings) {
+        // Stocks cap at zero; crypto can legitimately drift negative until reconciled.
+        const allowNegative = holding.assetClass === ASSET_CLASS.crypto;
+        const effectiveQuantity = !allowNegative && holding.quantity < 0 ? 0 : holding.quantity;
+        if (effectiveQuantity === 0) continue;
+
         const currentPrice = findPriceForDate(securityId, dateStr);
 
         if (currentPrice !== null) {
-          const marketValueInSecurityCurrency = holding.quantity * currentPrice;
+          const marketValueInSecurityCurrency = effectiveQuantity * currentPrice;
           const exchangeRate = getExchangeRate(holding.currencyCode, dateStr);
           const marketValueInBaseCurrency = Math.floor(marketValueInSecurityCurrency * exchangeRate);
           totalValueForDate += marketValueInBaseCurrency;
@@ -297,6 +390,15 @@ const calculatePortfolioBalanceHistory = async ({
     }
 
     portfolioValuesByDate.set(dateStr, Money.fromDecimal(totalValueForDate).toCents());
+  }
+
+  if (missingRateCurrencies.size > 0) {
+    logger.warn('Exchange rate fallback to 1:1', {
+      userId,
+      baseCurrency: userBaseCurrency.currencyCode,
+      currencies: Array.from(missingRateCurrencies),
+      dateRange: { from: minDate, to: maxDate },
+    });
   }
 
   return portfolioValuesByDate;

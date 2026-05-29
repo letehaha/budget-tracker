@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -107,8 +108,8 @@ describe('removeRefundLink', () => {
   describe('failure cases', () => {
     it('fails when refund link does not exist', async () => {
       const response = await helpers.deleteRefund({
-        originalTxId: 999999,
-        refundTxId: 999998,
+        originalTxId: generateRandomRecordId(),
+        refundTxId: generateRandomRecordId(),
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
@@ -128,13 +129,13 @@ describe('removeRefundLink', () => {
 
       let response = await helpers.deleteRefund({
         originalTxId: baseTx.id,
-        refundTxId: 999998,
+        refundTxId: generateRandomRecordId(),
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
 
       response = await helpers.deleteRefund({
-        originalTxId: 999998,
+        originalTxId: generateRandomRecordId(),
         refundTxId: baseTx.id,
       });
 
@@ -197,7 +198,7 @@ describe('removeRefundLink', () => {
       it('fails when trying to remove a non-existent refund link with null originalTxId', async () => {
         const response = await helpers.deleteRefund({
           originalTxId: null,
-          refundTxId: 999998,
+          refundTxId: generateRandomRecordId(),
         });
 
         expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);

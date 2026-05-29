@@ -1,4 +1,4 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, RecordId } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
@@ -12,7 +12,7 @@ import {
 } from '@sequelize/core';
 import {
   Attribute,
-  AutoIncrement,
+  BeforeCreate,
   BelongsTo,
   Default,
   Index,
@@ -21,6 +21,7 @@ import {
   Table,
   Unique,
 } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import Portfolios from './portfolios.model';
 import Securities from './securities.model';
@@ -55,22 +56,28 @@ export default class InvestmentTransaction extends Model<
    * your bank account's perspective - selling securities brings money IN (income).
    */
 
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
   @Unique
-  declare id: CreationOptional<number>;
+  declare id: CreationOptional<RecordId>;
 
-  @Attribute(DataTypes.INTEGER)
+  @BeforeCreate
+  static generateUUIDv7(instance: InvestmentTransaction) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
+
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare securityId: number;
+  declare securityId: RecordId;
 
   // New portfolioId field for portfolio migration
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare portfolioId: number;
+  declare portfolioId: RecordId;
 
   /**
    * The transaction type representing cash flow direction:
@@ -78,7 +85,7 @@ export default class InvestmentTransaction extends Model<
    * - INCOME: Money entering your account (SELL transactions)
    * See class-level documentation above for detailed explanation.
    */
-  @Attribute(DataTypes.ENUM(...Object.values(TRANSACTION_TYPES)))
+  @Attribute(DataTypes.STRING)
   @NotNull
   declare transactionType: TRANSACTION_TYPES;
 
@@ -193,7 +200,7 @@ export default class InvestmentTransaction extends Model<
    * - SELL category → INCOME transactionType (receiving money)
    * See class-level documentation for detailed cash flow logic.
    */
-  @Attribute(DataTypes.ENUM(...Object.values(INVESTMENT_TRANSACTION_CATEGORY)))
+  @Attribute(DataTypes.STRING)
   @NotNull
   declare category: INVESTMENT_TRANSACTION_CATEGORY;
 
@@ -201,7 +208,7 @@ export default class InvestmentTransaction extends Model<
    * "transferNature" and "transferId" are used to move funds between different
    * accounts and don't affect income/expense stats.
    */
-  @Attribute(DataTypes.ENUM(...Object.values(TRANSACTION_TRANSFER_NATURE)))
+  @Attribute(DataTypes.STRING)
   @NotNull
   @Default(TRANSACTION_TRANSFER_NATURE.not_transfer)
   declare transferNature: CreationOptional<TRANSACTION_TRANSFER_NATURE>;

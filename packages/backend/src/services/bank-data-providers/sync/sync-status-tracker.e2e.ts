@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -35,7 +36,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
   });
 
   it('should reset QUEUED status to IDLE on startup', async () => {
-    const accountId = 12345;
+    const accountId = generateRandomRecordId();
 
     // Set account to QUEUED status
     await setAccountSyncStatus({ accountId, status: SyncStatus.QUEUED, userId: testUserId });
@@ -56,7 +57,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
   });
 
   it('should reset SYNCING status to IDLE on startup', async () => {
-    const accountId = 12346;
+    const accountId = generateRandomRecordId();
 
     // Set account to SYNCING status
     await setAccountSyncStatus({ accountId, status: SyncStatus.SYNCING, userId: testUserId });
@@ -77,7 +78,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
   });
 
   it('should preserve COMPLETED status on startup', async () => {
-    const accountId = 12347;
+    const accountId = generateRandomRecordId();
 
     // Set account to COMPLETED status
     await setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId: testUserId });
@@ -98,7 +99,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
   });
 
   it('should preserve FAILED status on startup', async () => {
-    const accountId = 12348;
+    const accountId = generateRandomRecordId();
     const originalError = 'Original sync error';
 
     // Set account to FAILED status
@@ -115,7 +116,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
   });
 
   it('should preserve IDLE status on startup', async () => {
-    const accountId = 12349;
+    const accountId = generateRandomRecordId();
 
     // Set account to IDLE status
     await setAccountSyncStatus({ accountId, status: SyncStatus.IDLE, userId: testUserId });
@@ -129,10 +130,10 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
   });
 
   it('should handle multiple accounts with different statuses', async () => {
-    const queuedAccountId = 11111;
-    const syncingAccountId = 22222;
-    const completedAccountId = 33333;
-    const failedAccountId = 44444;
+    const queuedAccountId = generateRandomRecordId();
+    const syncingAccountId = generateRandomRecordId();
+    const completedAccountId = generateRandomRecordId();
+    const failedAccountId = generateRandomRecordId();
 
     // Set up various statuses
     await setAccountSyncStatus({ accountId: queuedAccountId, status: SyncStatus.QUEUED, userId: testUserId });
@@ -184,7 +185,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
   });
 
   it('should not touch accountPriority keys', async () => {
-    const accountId = 88888;
+    const accountId = generateRandomRecordId();
     const priority = 100;
 
     // Set priority
@@ -200,7 +201,7 @@ describe('Sync Status Tracker - clearAllSyncStatuses', () => {
   });
 
   it('should delete invalid/corrupted keys', async () => {
-    const corruptedKey = REDIS_KEYS.accountSyncStatus(77777);
+    const corruptedKey = REDIS_KEYS.accountSyncStatus(generateRandomRecordId());
 
     // Set corrupted data (not valid JSON)
     await redisClient.set(corruptedKey, 'invalid json data');

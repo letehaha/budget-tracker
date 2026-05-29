@@ -66,31 +66,7 @@ Removes a worktree and its local branch.
 
 6. Return to original directory
 
-7. Check if running inside tmux:
-
-   ```bash
-   if [ -n "$TMUX" ]; then
-     # Inside tmux - open new window with claude
-     tmux new-window -c "<absolute-path>" -n "<branch-name>" "claude; bash"
-   fi
-   ```
-
-8. **CRITICAL - Output this format at the end:**
-
-   If tmux was used:
-
-   ```
-   Worktree created successfully!
-
-     Branch: <branch-name>
-     Base:   <base-branch>
-     Path:   <absolute-path>
-
-   New tmux window "<branch-name>" opened with Claude Code.
-   Switch to it with: Ctrl+b n (next) or Ctrl+b w (window list)
-   ```
-
-   If NOT in tmux (fallback):
+7. **CRITICAL - Output this format at the end:**
 
    ```
    Worktree created successfully!

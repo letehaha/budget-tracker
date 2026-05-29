@@ -55,10 +55,14 @@
 </template>
 
 <script setup lang="ts">
+import { currentTheme } from '@/common/utils/color-theme';
 import { useFormatCurrency } from '@/composable';
+import { getChartColors } from '@/composable/charts/chart-colors';
+import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import * as d3 from 'd3';
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { reactive, ref, watch } from 'vue';
 
 import type { ProjectionDataPoint } from '../composables/use-projection-calc';
 
@@ -96,13 +100,8 @@ const chartColors = {
 };
 
 const getColors = () => {
-  const root = document.documentElement;
-  const style = getComputedStyle(root);
-  return {
-    grid: style.getPropertyValue('--border').trim() || 'rgb(39, 39, 42)',
-    text: style.getPropertyValue('--muted-foreground').trim() || 'rgb(161, 161, 170)',
-    ...chartColors,
-  };
+  const { grid, text } = getChartColors();
+  return { grid, text, ...chartColors };
 };
 
 const MOBILE_CHART_BREAKPOINT = 400;
@@ -117,16 +116,7 @@ const getMargins = ({ width }: { width: number }) => {
   };
 };
 
-const formatAxisValue = (value: number): string => {
-  const symbol = getCurrencySymbol();
-  const absValue = Math.abs(value);
-  if (absValue >= 1_000_000) {
-    return `${symbol}${(value / 1_000_000).toFixed(1)}M`;
-  } else if (absValue >= 1_000) {
-    return `${symbol}${(value / 1_000).toFixed(0)}K`;
-  }
-  return `${symbol}${Math.round(value)}`;
-};
+const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: getCurrencySymbol() });
 
 /**
  * Compute which year indices to show as X-axis ticks.
@@ -393,25 +383,7 @@ const sampleDataForRendering = (data: ProjectionDataPoint[]): ProjectionDataPoin
   return sampled;
 };
 
-// ResizeObserver for responsive chart
-let resizeObserver: ResizeObserver | null = null;
+useResizeObserver(containerRef, renderChart);
 
-onMounted(() => {
-  renderChart();
-
-  if (containerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
-      renderChart();
-    });
-    resizeObserver.observe(containerRef.value);
-  }
-});
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
-
-watch([() => props.data, () => props.indicatorLabel], renderChart, { deep: true });
+watch([() => props.data, () => props.indicatorLabel, currentTheme], renderChart, { deep: true });
 </script>

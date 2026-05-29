@@ -107,11 +107,11 @@ import { useFormatCurrency } from '@/composable/formatters';
 import type { PortfolioModel } from '@bt/shared/types';
 import type { PortfolioTransferModel } from '@bt/shared/types/investments';
 import { format } from 'date-fns';
-import { ArrowDownIcon, ArrowUpIcon, RefreshCwIcon, Trash2Icon } from 'lucide-vue-next';
+import { ArrowDownIcon, ArrowUpIcon, RefreshCwIcon, Trash2Icon } from '@lucide/vue';
 import { ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps<{ portfolioId: number; portfolio: PortfolioModel }>();
+const props = defineProps<{ portfolioId: string; portfolio: PortfolioModel }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { t } = useI18n();

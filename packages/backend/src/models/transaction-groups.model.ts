@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import {
   CreationOptional,
   DataTypes,
@@ -6,7 +7,8 @@ import {
   Model,
   NonAttribute,
 } from '@sequelize/core';
-import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+import { Attribute, BeforeCreate, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
+import { v7 as uuidv7 } from 'uuid';
 
 import type Transactions from './transactions.model';
 
@@ -18,10 +20,17 @@ export default class TransactionGroups extends Model<
   InferAttributes<TransactionGroups>,
   InferCreationAttributes<TransactionGroups>
 > {
-  @Attribute(DataTypes.INTEGER)
+  @Attribute(DataTypes.UUID)
   @PrimaryKey
-  @AutoIncrement
-  declare id: CreationOptional<number>;
+  @NotNull
+  declare id: CreationOptional<RecordId>;
+
+  @BeforeCreate
+  static generateUUIDv7(instance: TransactionGroups) {
+    if (!instance.id) {
+      instance.id = uuidv7() as RecordId;
+    }
+  }
 
   @Attribute(DataTypes.INTEGER)
   @NotNull

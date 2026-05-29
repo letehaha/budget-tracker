@@ -8,7 +8,9 @@ import * as Transactions from '@models/transactions.model';
 import { Op } from '@sequelize/core';
 
 import { withTransaction } from '../common/with-transaction';
+import { authorizeBudgetRead } from './authorize-budget-access';
 import { buildDateFilter } from './utils/build-date-filter';
+import { fetchBudgetRefundPairs } from './utils/refund-pairs';
 
 interface StatsResponse {
   summary: {
@@ -36,30 +38,38 @@ export const getResponseInitialState = (): StatsResponse => ({
 
 /**
  * Calculate stats for manual budgets using BudgetTransactions junction table.
+ *
+ * Junction-only scope on the transaction lookup: any row in `BudgetTransactions` for
+ * this budget is counted, regardless of `Transactions.userId`. This is what lets a
+ * `write` recipient's attached transactions contribute to the shared-budget totals
+ * (income/expense/balance/utilization). The caller's authorization happens upstream
+ * via `authorizeBudgetRead`, so we trust the budgetId scope here.
+ *
+ * Category budgets keep the legacy owner-only filter — recipients can't manually
+ * attach to a category budget (it'd trip `cannotManuallyLinkToCategoryBudget`), so
+ * widening that path would be a no-op today.
  */
-const getManualBudgetStats = async ({
-  userId,
-  budgetId,
-}: {
-  userId: number;
-  budgetId: number;
-}): Promise<StatsResponse> => {
+const getManualBudgetStats = async ({ budgetId }: { budgetId: string }): Promise<StatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId),
     message: t({ key: 'budgets.budgetNotFound' }),
   });
 
-  const transactions: Pick<Transactions.default, 'time' | 'amount' | 'refAmount' | 'transactionType'>[] =
-    await Transactions.findWithFilters({
-      userId,
-      excludeTransfer: true,
-      budgetIds: [budgetId],
-      from: 0,
-      limit: Infinity,
-      attributes: ['time', 'amount', 'refAmount', 'transactionType'],
-    });
+  const transactions: Pick<
+    Transactions.default,
+    'id' | 'time' | 'amount' | 'refAmount' | 'transactionType' | 'refundLinked'
+  >[] = await Transactions.findWithFilters({
+    excludeTransfer: true,
+    budgetIds: [budgetId],
+    from: 0,
+    limit: Infinity,
+    attributes: ['id', 'time', 'amount', 'refAmount', 'transactionType', 'refundLinked'],
+  });
 
-  return aggregateTransactionStats({ transactions, limitAmount: budgetDetails.limitAmount?.toCents() ?? null });
+  const limitAmount = budgetDetails.limitAmount?.toCents() ?? null;
+  const result = aggregateTransactionStats({ transactions, limitAmount });
+  await applyRefundAdjustments({ countedTransactions: transactions, result, limitAmount });
+  return result;
 };
 
 /**
@@ -71,7 +81,7 @@ const getCategoryBudgetStats = async ({
   budgetId,
 }: {
   userId: number;
-  budgetId: number;
+  budgetId: string;
 }): Promise<StatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId, {
@@ -117,13 +127,13 @@ const getCategoryBudgetStats = async ({
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           ...dateFilter,
         },
-        attributes: ['id', 'time', 'transactionType'],
+        attributes: ['id', 'time', 'transactionType', 'refundLinked'],
       },
     ],
   });
 
   const result = getResponseInitialState();
-  const countedTransactionIds = new Set<number>();
+  const countedTransactions: { id: string; refundLinked: boolean }[] = [];
 
   // Process primary category transactions (only those WITHOUT splits)
   for (const tx of primaryCategoryTransactions) {
@@ -134,7 +144,7 @@ const getCategoryBudgetStats = async ({
       continue;
     }
 
-    countedTransactionIds.add(tx.id);
+    countedTransactions.push({ id: tx.id, refundLinked: tx.refundLinked });
     const isExpense = tx.transactionType === TRANSACTION_TYPES.expense;
 
     if (isExpense) {
@@ -153,7 +163,7 @@ const getCategoryBudgetStats = async ({
     const transaction = split.get('transaction') as Transactions.default;
     if (!transaction) continue;
 
-    countedTransactionIds.add(transaction.id);
+    countedTransactions.push({ id: transaction.id, refundLinked: transaction.refundLinked });
     const isExpense = transaction.transactionType === TRANSACTION_TYPES.expense;
 
     if (isExpense) {
@@ -167,12 +177,17 @@ const getCategoryBudgetStats = async ({
     updateDateRange(result, transaction.time);
   }
 
-  result.summary.transactionsCount = countedTransactionIds.size;
+  const uniqueCountedIds = new Set(countedTransactions.map((tx) => tx.id));
+  result.summary.transactionsCount = uniqueCountedIds.size;
 
-  if (budgetDetails.limitAmount) {
+  const limitAmount = budgetDetails.limitAmount?.toCents() ?? null;
+
+  if (limitAmount !== null) {
     const netSpending = Math.max(0, -result.summary.balance);
-    result.summary.utilizationRate = (netSpending / budgetDetails.limitAmount.toCents()) * 100;
+    result.summary.utilizationRate = (netSpending / limitAmount) * 100;
   }
+
+  await applyRefundAdjustments({ countedTransactions, result, limitAmount });
 
   return result;
 };
@@ -187,6 +202,51 @@ const updateDateRange = (result: StatsResponse, time: Date) => {
   }
   if (!result.summary.lastTransactionDate || txDate > result.summary.lastTransactionDate) {
     result.summary.lastTransactionDate = txDate;
+  }
+};
+
+/**
+ * Nets out refund pairs from actualIncome/actualExpense so a refund-income doesn't inflate
+ * income and the matching expense reflects net spend (matching the global "Expenses Structure"
+ * widget). For each refund where a side is in the budget, we subtract `refundTx.refAmount`
+ * from that side. Balance and utilizationRate are recomputed from the adjusted totals.
+ */
+const applyRefundAdjustments = async ({
+  countedTransactions,
+  result,
+  limitAmount,
+}: {
+  countedTransactions: { id: string; refundLinked: boolean }[];
+  result: StatsResponse;
+  limitAmount: number | null;
+}): Promise<void> => {
+  const pairs = await fetchBudgetRefundPairs({ countedTransactions });
+  if (pairs.length === 0) return;
+
+  for (const pair of pairs) {
+    const adjustment = pair.refundTx.refAmount.toCents();
+
+    if (pair.originalInBudget) {
+      if (pair.originalTx.transactionType === TRANSACTION_TYPES.expense) {
+        result.summary.actualExpense -= adjustment;
+      } else {
+        result.summary.actualIncome -= adjustment;
+      }
+    }
+
+    if (pair.refundInBudget) {
+      if (pair.refundTx.transactionType === TRANSACTION_TYPES.expense) {
+        result.summary.actualExpense -= adjustment;
+      } else {
+        result.summary.actualIncome -= adjustment;
+      }
+    }
+  }
+
+  result.summary.balance = result.summary.actualIncome - result.summary.actualExpense;
+  if (limitAmount !== null) {
+    const netSpending = Math.max(0, -result.summary.balance);
+    result.summary.utilizationRate = (netSpending / limitAmount) * 100;
   }
 };
 
@@ -218,7 +278,7 @@ const aggregateTransactionStats = ({
 
   result.summary.transactionsCount = transactions.length;
 
-  if (limitAmount) {
+  if (limitAmount !== null) {
     const netSpending = Math.max(0, -result.summary.balance);
     result.summary.utilizationRate = (netSpending / limitAmount) * 100;
   }
@@ -227,16 +287,21 @@ const aggregateTransactionStats = ({
 };
 
 export const getBudgetStats = withTransaction(
-  async ({ userId, budgetId }: { userId: number; budgetId: number }): Promise<StatsResponse> => {
+  async ({ userId, budgetId }: { userId: number; budgetId: string }): Promise<StatsResponse> => {
+    // Share-aware auth: recipient sees the same numbers the owner would (per PRD
+    // visibility decision). Downstream queries scope against the owner's userId so
+    // a recipient's unrelated transactions don't filter the result.
+    const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+
     const budgetDetails = await findOrThrowNotFound({
       query: Budgets.findByPk(budgetId, { attributes: ['type'] }),
       message: t({ key: 'budgets.budgetNotFound' }),
     });
 
     if (budgetDetails.type === BUDGET_TYPES.category) {
-      return getCategoryBudgetStats({ userId, budgetId });
+      return getCategoryBudgetStats({ userId: ownerUserId, budgetId });
     }
 
-    return getManualBudgetStats({ userId, budgetId });
+    return getManualBudgetStats({ budgetId });
   },
 );

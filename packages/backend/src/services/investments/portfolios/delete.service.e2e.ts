@@ -1,96 +1,35 @@
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
-import { Money } from '@common/types/money';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import PortfolioBalances from '@models/investments/portfolio-balances.model';
+import Portfolios from '@models/investments/portfolios.model';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
 
 describe('Delete Portfolio Service E2E', () => {
   describe('DELETE /investments/portfolios/:id', () => {
-    describe('Success cases', () => {
-      it('should delete empty portfolio successfully', async () => {
-        const createResponse = await helpers.createPortfolio();
-        const createdPortfolio = helpers.extractResponse(createResponse);
+    describe('Soft delete (default)', () => {
+      it('should soft-delete an empty portfolio', async () => {
+        const created = await helpers.createPortfolio({ raw: true });
 
-        const deleteResponse = await helpers.deletePortfolio({
-          portfolioId: createdPortfolio.id,
-        });
-
+        const deleteResponse = await helpers.deletePortfolio({ portfolioId: created.id });
         expect(deleteResponse.statusCode).toBe(200);
-        const result = helpers.extractResponse(deleteResponse);
-        expect(result.success).toBe(true);
 
-        // Verify portfolio is deleted
-        const getResponse = await helpers.getPortfolio({
-          portfolioId: createdPortfolio.id,
-        });
+        // Portfolio disappears from default list (paranoid filtering)
+        const list = await helpers.listPortfolios({ raw: true });
+        expect(list.data.find((p) => p.id === created.id)).toBeUndefined();
+
+        // GET on the soft-deleted portfolio returns 404
+        const getResponse = await helpers.getPortfolio({ portfolioId: created.id });
         expect(getResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
       });
 
-      it('should handle deleting same portfolio multiple times gracefully', async () => {
-        const createResponse = await helpers.createPortfolio();
-        const createdPortfolio = helpers.extractResponse(createResponse);
+      it('should soft-delete a portfolio with holdings, balances, and transactions', async () => {
+        const created = await helpers.createPortfolio({ raw: true });
 
-        // Delete portfolio first time
-        const firstDeleteResponse = await helpers.deletePortfolio({
-          portfolioId: createdPortfolio.id,
-        });
-        expect(firstDeleteResponse.statusCode).toBe(200);
-
-        // Delete same portfolio again - should still return success
-        const secondDeleteResponse = await helpers.deletePortfolio({
-          portfolioId: createdPortfolio.id,
-        });
-        expect(secondDeleteResponse.statusCode).toBe(200);
-      });
-
-      it('should handle non-existent portfolio gracefully', async () => {
-        const deleteResponse = await helpers.deletePortfolio({
-          portfolioId: 99999,
-        });
-
-        expect(deleteResponse.statusCode).toBe(200);
-      });
-    });
-
-    describe('Validation errors', () => {
-      it('should return ValidationError for invalid portfolio ID', async () => {
-        const deleteResponse = await helpers.deletePortfolio({
-          portfolioId: 'invalid' as unknown as number,
-        });
-
-        expect(deleteResponse.statusCode).toBe(ERROR_CODES.ValidationError);
-      });
-
-      it('should prevent deletion of portfolio with cash balances', async () => {
-        const createdPortfolio = await helpers.createPortfolio({ raw: true });
-
-        // Create a portfolio balance using the dedicated helper
-        const balanceResponse = await helpers.updatePortfolioBalance({
-          portfolioId: createdPortfolio.id,
-          currencyCode: global.BASE_CURRENCY.code,
-          setTotalCash: '1000.00',
-          setAvailableCash: '500.00',
-        });
-
-        expect(balanceResponse.statusCode).toBe(200);
-
-        // Try to delete portfolio with cash balances
-        const deleteResponse = await helpers.deletePortfolio({
-          portfolioId: createdPortfolio.id,
-        });
-
-        expect(deleteResponse.statusCode).toBe(ERROR_CODES.ValidationError);
-      });
-    });
-
-    describe('Force delete', () => {
-      it('should force delete portfolio with all related data', async () => {
-        const createdPortfolio = await helpers.createPortfolio({ raw: true });
-
-        // Create a temporary account for the holding (needed for backward compatibility)
-        // Use USD currency if available, otherwise use the base currency
         const usdCurrency = global.MODELS_CURRENCIES!.find((c: { code: string }) => c.code === 'USD');
         const currencyToUse = usdCurrency || global.BASE_CURRENCY;
 
@@ -102,82 +41,92 @@ describe('Delete Portfolio Service E2E', () => {
           raw: true,
         });
 
-        // Seed securities
-        const seededSecurities = await helpers.seedSecurities([
-          { symbol: 'VOO', name: 'Vanguard S&P 500 ETF' },
-          { symbol: 'AAPL', name: 'Apple Inc.' },
-        ]);
-        const vooSecurity = seededSecurities.find((s) => s.symbol === 'VOO')!;
-        const aaplSecurity = seededSecurities.find((s) => s.symbol === 'AAPL')!;
+        const [vooSecurity] = await helpers.seedSecurities([{ symbol: 'VOO', name: 'Vanguard S&P 500 ETF' }]);
 
-        // Create holdings directly in the database with portfolioId since the service is still account-based
         await Holdings.create({
-          portfolioId: createdPortfolio.id,
-          securityId: vooSecurity.id,
-          quantity: Money.fromDecimal('0'),
-          costBasis: Money.fromDecimal('0'),
-          refCostBasis: Money.fromDecimal('0'),
-          currencyCode: 'USD',
-        });
-        await Holdings.create({
-          portfolioId: createdPortfolio.id,
-          securityId: aaplSecurity.id,
-          quantity: Money.fromDecimal('0'),
-          costBasis: Money.fromDecimal('0'),
-          refCostBasis: Money.fromDecimal('0'),
+          portfolioId: created.id,
+          accountId: investmentAccount.id,
+          securityId: vooSecurity!.id,
+          quantity: '0',
+          costBasis: '0',
+          refCostBasis: '0',
+          value: '0',
+          refValue: '0',
           currencyCode: 'USD',
         });
 
-        // Create investment transactions
         await helpers.createInvestmentTransaction({
           payload: {
-            portfolioId: createdPortfolio.id,
-            securityId: vooSecurity.id,
+            portfolioId: created.id,
+            securityId: vooSecurity!.id,
             category: INVESTMENT_TRANSACTION_CATEGORY.buy,
             quantity: '10',
             price: '100',
             fees: '5',
           },
         });
-        await helpers.createInvestmentTransaction({
-          payload: {
-            portfolioId: createdPortfolio.id,
-            securityId: aaplSecurity.id,
-            category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-            quantity: '5',
-            price: '150',
-            fees: '2.50',
-          },
-        });
 
-        // Create a portfolio balance using the dedicated helper
         await helpers.updatePortfolioBalance({
-          portfolioId: createdPortfolio.id,
+          portfolioId: created.id,
           currencyCode: global.BASE_CURRENCY.code,
           setTotalCash: '1000.00',
-          setAvailableCash: '500.00',
         });
 
-        // Force delete should succeed even with balances, holdings, and transactions
-        const deleteResponse = await helpers.deletePortfolio({
-          portfolioId: createdPortfolio.id,
-          force: true,
-        });
-
+        const deleteResponse = await helpers.deletePortfolio({ portfolioId: created.id });
         expect(deleteResponse.statusCode).toBe(200);
 
-        // Verify portfolio is deleted
-        const getResponse = await helpers.getPortfolio({
-          portfolioId: createdPortfolio.id,
-        });
+        // Portfolio invisible to standard endpoints
+        const getResponse = await helpers.getPortfolio({ portfolioId: created.id });
         expect(getResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+        // Holdings rows still exist in DB (we just hid the parent)
+        const holdingsCount = await Holdings.count({ where: { portfolioId: created.id } });
+        expect(holdingsCount).toBe(1);
+
+        // And portfolio row has a deletedAt timestamp
+        const trashed = await Portfolios.findOne({ where: { id: created.id }, paranoid: false });
+        expect(trashed?.deletedAt).not.toBeNull();
       });
 
-      it('should handle force delete with force=false query parameter', async () => {
-        const createdPortfolio = await helpers.createPortfolio({ raw: true });
+      it('should be idempotent — deleting the same portfolio twice succeeds', async () => {
+        const created = await helpers.createPortfolio({ raw: true });
 
-        // Create a temporary account for the holding (needed for backward compatibility)
-        // Use USD currency if available, otherwise use the base currency
+        const first = await helpers.deletePortfolio({ portfolioId: created.id });
+        expect(first.statusCode).toBe(200);
+
+        const second = await helpers.deletePortfolio({ portfolioId: created.id });
+        expect(second.statusCode).toBe(200);
+      });
+
+      it('should treat a missing portfolio as a no-op success', async () => {
+        const response = await helpers.deletePortfolio({ portfolioId: generateRandomRecordId() });
+        expect(response.statusCode).toBe(200);
+      });
+
+      it('should surface soft-deleted portfolios in onlyDeleted=true listing', async () => {
+        const trashed = await helpers.createPortfolio({ raw: true });
+        const live = await helpers.createPortfolio({ raw: true });
+        await helpers.deletePortfolio({ portfolioId: trashed.id });
+
+        const trash = await helpers.listPortfolios({ onlyDeleted: true, raw: true });
+        expect(trash.data.find((p) => p.id === trashed.id)).toBeDefined();
+        expect(trash.data.find((p) => p.id === live.id)).toBeUndefined();
+      });
+    });
+
+    describe('Validation errors', () => {
+      it('should return ValidationError for invalid portfolio ID', async () => {
+        const response = await helpers.deletePortfolio({
+          portfolioId: 'invalid' as unknown as string,
+        });
+        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      });
+    });
+
+    describe('Force delete (purge path)', () => {
+      it('should hard-delete the portfolio and cascade every child table', async () => {
+        const created = await helpers.createPortfolio({ raw: true });
+
         const usdCurrency = global.MODELS_CURRENCIES!.find((c: { code: string }) => c.code === 'USD');
         const currencyToUse = usdCurrency || global.BASE_CURRENCY;
 
@@ -189,44 +138,60 @@ describe('Delete Portfolio Service E2E', () => {
           raw: true,
         });
 
-        // Seed securities
-        const seededSecurities = await helpers.seedSecurities([{ symbol: 'TSLA', name: 'Tesla Inc.' }]);
-        const teslaSecurity = seededSecurities.find((s) => s.symbol === 'TSLA')!;
+        const [aapl] = await helpers.seedSecurities([{ symbol: 'AAPL', name: 'Apple Inc.' }]);
 
-        // Create holding directly in the database with portfolioId since the service is still account-based
         await Holdings.create({
-          portfolioId: createdPortfolio.id,
-          securityId: teslaSecurity.id,
-          quantity: Money.fromDecimal('0'),
-          costBasis: Money.fromDecimal('0'),
-          refCostBasis: Money.fromDecimal('0'),
+          portfolioId: created.id,
+          accountId: investmentAccount.id,
+          securityId: aapl!.id,
+          quantity: '0',
+          costBasis: '0',
+          refCostBasis: '0',
+          value: '0',
+          refValue: '0',
           currencyCode: 'USD',
         });
+
         await helpers.createInvestmentTransaction({
           payload: {
-            portfolioId: createdPortfolio.id,
-            securityId: teslaSecurity.id,
+            portfolioId: created.id,
+            securityId: aapl!.id,
             category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-            quantity: '3',
-            price: '200',
-            fees: '1.00',
+            quantity: '5',
+            price: '150',
+            fees: '1',
           },
         });
 
-        // Create a portfolio balance using the dedicated helper
         await helpers.updatePortfolioBalance({
-          portfolioId: createdPortfolio.id,
+          portfolioId: created.id,
           currencyCode: global.BASE_CURRENCY.code,
-          setTotalCash: '1000.00',
+          setTotalCash: '500.00',
         });
 
-        // Delete with force=false should fail when there are balances/holdings/transactions
-        const deleteResponse = await helpers.deletePortfolio({
-          portfolioId: createdPortfolio.id,
-          force: false,
-        });
+        const response = await helpers.deletePortfolio({ portfolioId: created.id, force: true });
+        expect(response.statusCode).toBe(200);
 
-        expect(deleteResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+        // Portfolio row is gone, even when bypassing paranoid
+        const remaining = await Portfolios.findOne({ where: { id: created.id }, paranoid: false });
+        expect(remaining).toBeNull();
+
+        // All three child tables cascaded out — guards against future drift if
+        // someone refactors the force-delete and drops one of the destroy calls.
+        expect(await Holdings.count({ where: { portfolioId: created.id } })).toBe(0);
+        expect(await InvestmentTransaction.count({ where: { portfolioId: created.id } })).toBe(0);
+        expect(await PortfolioBalances.count({ where: { portfolioId: created.id } })).toBe(0);
+      });
+
+      it('should also hard-delete an already-trashed portfolio', async () => {
+        const created = await helpers.createPortfolio({ raw: true });
+        await helpers.deletePortfolio({ portfolioId: created.id });
+
+        const response = await helpers.deletePortfolio({ portfolioId: created.id, force: true });
+        expect(response.statusCode).toBe(200);
+
+        const remaining = await Portfolios.findOne({ where: { id: created.id }, paranoid: false });
+        expect(remaining).toBeNull();
       });
     });
   });

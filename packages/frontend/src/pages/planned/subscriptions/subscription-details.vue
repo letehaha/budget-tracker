@@ -9,6 +9,7 @@ import {
   updateSubscription,
 } from '@/api/subscriptions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -16,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/pop
 import { useNotificationCenter } from '@/components/notification-center';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useFormatCurrency } from '@/composable/formatters';
-import { ApiErrorResponseError } from '@/js/errors';
+import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { SUBSCRIPTION_MATCH_SOURCE, type SubscriptionModel, type TransactionModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
@@ -31,7 +32,7 @@ import {
   SettingsIcon,
   Trash2Icon,
   UnlinkIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -54,6 +55,7 @@ const {
   data: subscription,
   isLoading,
   isError,
+  error,
 } = useQuery({
   queryFn: () => loadSubscriptionById({ id: subscriptionId.value }),
   queryKey: [...VUE_QUERY_CACHE_KEYS.subscriptionDetails, subscriptionId],
@@ -61,12 +63,17 @@ const {
   retry: false,
 });
 
-watch(isError, (errored) => {
-  if (errored) {
-    addErrorNotification(t('planned.subscriptions.notFound'));
+const isNotFound = computed(() => isError.value && isNotFoundError(error.value));
+
+watch(
+  isError,
+  (errored) => {
+    if (!errored || isNotFound.value) return;
+    addErrorNotification(t('errors.api.unexpectedError'));
     router.replace({ name: ROUTES_NAMES.plannedSubscriptions });
-  }
-});
+  },
+  { immediate: true },
+);
 
 const isActionsOpen = ref(false);
 const isEditDialogOpen = ref(false);
@@ -74,7 +81,7 @@ const editFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null
 const isDeleteDialogOpen = ref(false);
 const isSuggestDialogOpen = ref(false);
 const suggestedMatches = ref<TransactionModel[]>([]);
-const selectedSuggestionIds = ref<Set<number>>(new Set());
+const selectedSuggestionIds = ref<Set<string>>(new Set());
 const isSuggestLoading = ref(false);
 
 const invalidateQueries = () => {
@@ -95,9 +102,8 @@ const { mutate: updateSub } = useMutation({
     isEditDialogOpen.value = false;
     addSuccessNotification(t('planned.subscriptions.updateSuccess'));
   },
-  onError(error) {
-    const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.subscriptions.updateError');
+  onError(err) {
+    const message = err instanceof ApiErrorResponseError ? err.data.message : t('planned.subscriptions.updateError');
     editFormRef.value?.setError({ error: message ?? '' });
   },
 });
@@ -127,7 +133,7 @@ const handleDelete = async () => {
   }
 };
 
-const handleUnlinkTransaction = async ({ transactionId }: { transactionId: number }) => {
+const handleUnlinkTransaction = async ({ transactionId }: { transactionId: string }) => {
   try {
     await unlinkTransactionsFromSubscription({ id: subscriptionId.value, transactionIds: [transactionId] });
     invalidateQueries();
@@ -150,7 +156,7 @@ const handleSuggestMatches = async () => {
   }
 };
 
-const toggleSuggestionSelection = ({ transactionId }: { transactionId: number }) => {
+const toggleSuggestionSelection = ({ transactionId }: { transactionId: string }) => {
   const newSet = new Set(selectedSuggestionIds.value);
   if (newSet.has(transactionId)) {
     newSet.delete(transactionId);
@@ -189,8 +195,16 @@ const getMatchSourceClass = ({ source }: { source: string }): string =>
 </script>
 
 <template>
+  <ResourceNotFound
+    v-if="isNotFound"
+    :title="t('planned.subscriptions.notFound')"
+    :description="t('planned.subscriptions.notFoundDescription')"
+    :link-label="t('planned.subscriptions.backToList')"
+    :link-to="{ name: ROUTES_NAMES.plannedSubscriptions }"
+  />
+
   <!-- Loading -->
-  <div v-if="isLoading" class="animate-pulse">
+  <div v-else-if="isLoading" class="animate-pulse">
     <div class="bg-muted mb-4 h-8 w-1/3 rounded" />
     <div class="bg-muted mb-2 h-5 w-2/3 rounded" />
     <div class="bg-muted mb-6 h-5 w-1/2 rounded" />
@@ -202,7 +216,7 @@ const getMatchSourceClass = ({ source }: { source: string }): string =>
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
         <div class="flex items-center gap-3">
-          <SubscriptionServiceLogo :name="subscription.name" size="lg" />
+          <SubscriptionServiceLogo :name="subscription.name" class="size-10" />
           <h1 class="text-2xl font-semibold tracking-tight">{{ subscription.name }}</h1>
           <SubscriptionTypeBadge :type="subscription.type" size="md" />
           <span

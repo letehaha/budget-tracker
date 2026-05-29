@@ -23,7 +23,7 @@ import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/accoun
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import type { AccountModel, PortfolioModel, TransactionModel, UserCurrencyModel } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { ArrowDownIcon, ArrowUpIcon, X } from 'lucide-vue-next';
+import { ArrowDownIcon, ArrowUpIcon, X } from '@lucide/vue';
 import { minValue, required } from '@vuelidate/validators';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
@@ -38,7 +38,7 @@ interface Emit {
 }
 
 const props = defineProps<{
-  portfolioId: number;
+  portfolioId: string;
   portfolio: PortfolioModel;
   disabled?: boolean;
 }>();

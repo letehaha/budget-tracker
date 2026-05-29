@@ -9,6 +9,7 @@ import {
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { Label } from '@/components/lib/ui/label';
 import * as Select from '@/components/lib/ui/select';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -16,7 +17,7 @@ import { useFormatCurrency } from '@/composable/formatters';
 import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { CheckIcon, Link2Icon } from 'lucide-vue-next';
+import { CheckIcon, Link2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -51,7 +52,7 @@ const { data: connections, isLoading: isLoadingConnections } = useQuery<BankConn
 // Fetch external accounts for selected connection
 const { data: externalAccounts, isLoading: isLoadingExternalAccounts } = useQuery<AvailableAccount[]>({
   queryKey: [...VUE_QUERY_CACHE_KEYS.bankAvailableExternalAccounts, selectedConnectionId],
-  queryFn: () => getAvailableAccounts(Number(selectedConnectionId.value)),
+  queryFn: () => getAvailableAccounts(selectedConnectionId.value!),
   enabled: computed(() => !!selectedConnectionId.value),
 });
 
@@ -71,7 +72,7 @@ const linkAccount = async () => {
   try {
     const result = await linkAccountToBankConnection({
       accountId: props.account.id,
-      connectionId: Number(selectedConnectionId.value)!,
+      connectionId: selectedConnectionId.value!,
       externalAccountId: selectedExternalAccountId.value!,
     });
 
@@ -217,10 +218,9 @@ const linkingError = computed(() => {
         </div>
 
         <!-- Currency Mismatch Error -->
-        <div v-if="linkingError" class="bg-destructive/10 rounded-md p-3 text-sm">
-          <p class="text-destructive-text font-semibold">{{ $t('pages.account.link.mismatchWarning') }}</p>
-          <p class="text-destructive-text mt-1 text-xs">{{ linkingError }}</p>
-        </div>
+        <Callout v-if="linkingError" variant="destructive" :title="$t('pages.account.link.mismatchWarning')">
+          <p class="mt-1 text-xs">{{ linkingError }}</p>
+        </Callout>
 
         <!-- Balance Preview -->
         <div v-else-if="selectedExternalAccount" class="bg-muted rounded-md p-3 text-sm">

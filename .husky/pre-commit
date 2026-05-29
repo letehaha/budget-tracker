@@ -4,5 +4,11 @@ export NVM_DIR="$HOME/.nvm"
 . "$NVM_DIR/nvm.sh"
 
 npm run format
+
+if git diff --cached --name-only | grep -qE '^packages/frontend/public/(skills/|\.well-known/agent-skills/index\.json)'; then
+  node scripts/regen-agent-skills-index.mjs
+  git add packages/frontend/public/.well-known/agent-skills/index.json
+fi
+
 git add -u
 npm run lint

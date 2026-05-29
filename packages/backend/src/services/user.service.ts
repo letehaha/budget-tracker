@@ -1,9 +1,12 @@
+import type { RecordId } from '@bt/shared/types';
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import * as Currencies from '@models/currencies.model';
 import * as ExchangeRates from '@models/exchange-rates.model';
+import Holdings from '@models/investments/holdings.model';
+import Portfolios from '@models/investments/portfolios.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import * as Users from '@models/users.model';
@@ -27,7 +30,6 @@ export const createUser = withTransaction(
     firstName,
     lastName,
     middleName,
-    password,
     avatar,
     totalBalance,
     authUserId,
@@ -37,7 +39,6 @@ export const createUser = withTransaction(
     firstName?: string;
     lastName?: string;
     middleName?: string;
-    password?: string;
     avatar?: string;
     totalBalance?: number;
     authUserId?: string;
@@ -48,7 +49,6 @@ export const createUser = withTransaction(
       firstName,
       lastName,
       middleName,
-      password,
       avatar,
       totalBalance,
       authUserId,
@@ -66,7 +66,6 @@ export const updateUser = withTransaction(
     firstName,
     lastName,
     middleName,
-    password,
     avatar,
     totalBalance,
     defaultCategoryId,
@@ -77,10 +76,9 @@ export const updateUser = withTransaction(
     firstName?: string;
     lastName?: string;
     middleName?: string;
-    password?: string;
     avatar?: string;
     totalBalance?: number;
-    defaultCategoryId?: number;
+    defaultCategoryId?: RecordId;
   }) => {
     const user = await Users.updateUserById({
       id,
@@ -89,7 +87,6 @@ export const updateUser = withTransaction(
       firstName,
       lastName,
       middleName,
-      password,
       avatar,
       totalBalance,
       defaultCategoryId,
@@ -209,6 +206,9 @@ const setDefaultUserCurrency = withTransaction(
     });
 
     const currency = await Currencies.getCurrency({ code: currencyCode });
+    if (!currency) {
+      throw new UnexpectedError({ message: t({ key: 'userCurrencies.currencyCodeNotExist' }) });
+    }
 
     await Transactions.updateTransactions(
       {
@@ -255,6 +255,36 @@ export const deleteUserCurrency = withTransaction(
           accounts,
         },
       });
+    }
+
+    // Holdings own their currency too: refAmount lookups on investment txs
+    // require the link, so disconnect must not leave orphan investments behind.
+    // Include soft-deleted portfolios (trash) so a user can't remove a currency
+    // whose holdings would resurface broken when the portfolio is restored.
+    const userPortfolios = await Portfolios.findAll({
+      where: { userId },
+      paranoid: false,
+      attributes: ['id'],
+      raw: true,
+    });
+
+    if (userPortfolios.length) {
+      const holdingInCurrency = await Holdings.findOne({
+        where: {
+          currencyCode,
+          portfolioId: userPortfolios.map((p) => p.id),
+        },
+        attributes: ['portfolioId'],
+      });
+
+      if (holdingInCurrency) {
+        throw new ValidationError({
+          message: t({
+            key: 'userCurrencies.cannotDeleteCurrencyWithInvestments',
+            variables: { currencyCode },
+          }),
+        });
+      }
     }
 
     const defaultCurrency = await UsersCurrencies.getCurrency({

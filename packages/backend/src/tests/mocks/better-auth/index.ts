@@ -3,6 +3,7 @@
  * Re-exports from the actual package where possible, mocks ESM-only parts.
  */
 import { requestContext } from '@common/request-context';
+import { connection } from '@models/index';
 
 // Types and non-ESM exports can come from actual package
 // For now, provide a basic mock that supports our test scenarios
@@ -104,20 +105,43 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
         const acceptLanguage = request.headers.get('Accept-Language') || request.headers.get('accept-language');
         const locale = acceptLanguage?.split(',')[0]?.split('-')[0] || 'en';
 
-        const newUser = { id: `test-user-${Date.now()}`, email: body.email, name: body.name };
+        const newUser = {
+          id: `test-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          email: body.email,
+          name: body.name,
+        };
         const sessionToken = `test-token-${newUser.id}`;
 
-        // Store session for later lookup
-        sessionStore.set(sessionToken, newUser);
+        // Persist the auth user to mirror better-auth's real behavior:
+        // ba_user (and ba_account) are committed BEFORE the after-hook fires.
+        // Tests that exercise rollback / orphan-cleanup paths need this row
+        // to actually exist so the hook's compensating DELETE has something
+        // to remove. Email-collision returns a 409 to mimic better-auth.
+        try {
+          await connection.sequelize.query(
+            `INSERT INTO ba_user (id, name, email, "emailVerified", "createdAt", "updatedAt")
+             VALUES (:id, :name, :email, false, NOW(), NOW())`,
+            { replacements: { id: newUser.id, name: body.name, email: body.email } },
+          );
+        } catch {
+          return new Response(JSON.stringify({ message: 'Email already in use' }), {
+            status: 409,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
 
-        // Call databaseHooks.user.create.after if provided
-        // This enables locale-aware category creation during signup
+        // Call databaseHooks.user.create.after. If it throws, propagate so
+        // the upstream toNodeHandler can convert it to a 5xx response — this
+        // matches real better-auth behaviour and lets tests assert on the
+        // rollback path.
         if (config.databaseHooks?.user?.create?.after) {
-          // Run within AsyncLocalStorage context with the detected locale
           await requestContext.run({ locale }, async () => {
             await config.databaseHooks!.user!.create!.after!(newUser);
           });
         }
+
+        // Hook succeeded — register the session for subsequent requests.
+        sessionStore.set(sessionToken, newUser);
 
         return new Response(
           JSON.stringify({

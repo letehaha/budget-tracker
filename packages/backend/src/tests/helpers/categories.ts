@@ -3,7 +3,7 @@ import * as helpers from '@tests/helpers';
 import { Response } from 'express';
 
 interface BaseCreationPayload {
-  parentId?: number;
+  parentId?: string;
   name?: string;
   color?: string;
 }
@@ -29,7 +29,7 @@ export async function addCustomCategory({
 }
 
 interface BaseUpdationPayload {
-  categoryId: number;
+  categoryId: string;
   name?: string;
   color?: string;
   icon?: string | null;
@@ -56,35 +56,55 @@ export async function editCustomCategory({
   return result;
 }
 
-export const getCategoriesList = async (): Promise<CategoryModel[]> => {
+/**
+ * Strip undefined fields so they don't end up serialized as the literal string "undefined"
+ * in the query string (URLSearchParams happily turns `undefined` into `"undefined"`, which
+ * then trips `z.coerce.boolean()` into truthy and breaks downstream validation).
+ */
+const compactParams = <T extends Record<string, unknown>>(params: T | undefined): Record<string, unknown> | null => {
+  if (!params) return null;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) out[key] = value;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+};
+
+export const getCategoriesList = async (params?: {
+  accountId?: string;
+  includeAccessible?: boolean;
+}): Promise<CategoryModel[]> => {
   const result = await helpers.makeRequest({
     method: 'get',
     url: '/categories',
+    payload: compactParams(params),
     raw: true,
   });
 
   return result;
 };
 
+export const getCategoriesListResponse = async (params?: { accountId?: string; includeAccessible?: boolean }) => {
+  return helpers.makeRequest({
+    method: 'get',
+    url: '/categories',
+    payload: compactParams(params),
+  });
+};
+
+export async function deleteCustomCategory({ raw, ...params }: { categoryId?: string; raw?: false }): Promise<Response>;
 export async function deleteCustomCategory({
   raw,
   ...params
 }: {
-  categoryId?: number | string;
-  raw?: false;
-}): Promise<Response>;
-export async function deleteCustomCategory({
-  raw,
-  ...params
-}: {
-  categoryId?: number | string;
+  categoryId?: string;
   raw?: true;
 }): Promise<CategoryModel[]>;
 export async function deleteCustomCategory({
   categoryId,
   raw = true,
 }: {
-  categoryId?: number | string;
+  categoryId?: string;
   raw?: boolean;
 }): Promise<Response | CategoryModel[]> {
   const result = await helpers.makeRequest({

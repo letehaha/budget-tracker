@@ -6,7 +6,7 @@ import { useFormatCurrency } from '@/composable/formatters';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { format } from 'date-fns';
-import { GripVerticalIcon, PencilIcon, PlusIcon, Trash2Icon, SaveIcon } from 'lucide-vue-next';
+import { GripVerticalIcon, PencilIcon, PlusIcon, Trash2Icon, SaveIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
 import { computed, inject, ref, watch } from 'vue';
@@ -34,9 +34,9 @@ const saveWidgetConfig =
     'dashboard-save-widget-config',
   );
 
-const selectedCategoryIds = computed<number[]>(() => {
+const selectedCategoryIds = computed<string[]>(() => {
   const ids = widgetConfigRef?.value?.config?.selectedCategoryIds;
-  return Array.isArray(ids) ? (ids as number[]) : [];
+  return Array.isArray(ids) ? (ids as string[]) : [];
 });
 
 const MAX_SLOTS_LARGE = 16;
@@ -80,8 +80,8 @@ const isCustomizing = ref(false);
 watch(categoryRows, (rows) => {
   if (!isCustomizing.value) return;
 
-  const currentIds = new Set(draggableRows.value.map((r) => r.id));
-  const newIds = new Set(rows.map((r) => r.id));
+  const currentIds = new Set<string>(draggableRows.value.map((r) => r.id));
+  const newIds = new Set<string>(rows.map((r) => r.id));
 
   // Add newly appeared rows at the end
   for (const row of rows) {
@@ -99,7 +99,7 @@ const isInitialLoading = computed(() => isFetching.value && !hasData.value && se
 
 const pickerOpen = ref(false);
 // Category ID being replaced, or null for "add new"
-const replacingCategoryId = ref<number | null>(null);
+const replacingCategoryId = ref<string | null>(null);
 
 const disabledCategoryIds = computed(() => {
   if (replacingCategoryId.value !== null) {
@@ -114,12 +114,12 @@ const openPickerForAdd = () => {
   pickerOpen.value = true;
 };
 
-const openPickerForReplace = ({ categoryId }: { categoryId: number }) => {
+const openPickerForReplace = ({ categoryId }: { categoryId: string }) => {
   replacingCategoryId.value = categoryId;
   pickerOpen.value = true;
 };
 
-const persistCategories = async ({ categoryIds }: { categoryIds: number[] }) => {
+const persistCategories = async ({ categoryIds }: { categoryIds: string[] }) => {
   if (!saveWidgetConfig || !widgetConfigRef?.value) return;
 
   await saveWidgetConfig({
@@ -128,7 +128,7 @@ const persistCategories = async ({ categoryIds }: { categoryIds: number[] }) => 
   });
 };
 
-const handleCategorySelected = ({ categoryId }: { categoryId: number }) => {
+const handleCategorySelected = ({ categoryId }: { categoryId: string }) => {
   const ids = [...selectedCategoryIds.value];
 
   if (replacingCategoryId.value !== null) {
@@ -141,7 +141,7 @@ const handleCategorySelected = ({ categoryId }: { categoryId: number }) => {
   persistCategories({ categoryIds: ids });
 };
 
-const removeCategory = ({ categoryId }: { categoryId: number }) => {
+const removeCategory = ({ categoryId }: { categoryId: string }) => {
   const ids = selectedCategoryIds.value.filter((id) => id !== categoryId);
   persistCategories({ categoryIds: ids });
 
@@ -185,8 +185,8 @@ const formatAmount = ({ netAmount }: { netAmount: number }) => {
   return formatBaseCurrency(0);
 };
 
-const getDescendantIds = ({ categoryId }: { categoryId: number }): number[] => {
-  const childrenMap = new Map<number, number[]>();
+const getDescendantIds = ({ categoryId }: { categoryId: string }): string[] => {
+  const childrenMap = new Map<string, string[]>();
   for (const cat of categories.value) {
     if (cat.parentId !== null) {
       const children = childrenMap.get(cat.parentId) ?? [];
@@ -195,7 +195,7 @@ const getDescendantIds = ({ categoryId }: { categoryId: number }): number[] => {
     }
   }
 
-  const result: number[] = [];
+  const result: string[] = [];
   const queue = [categoryId];
   while (queue.length > 0) {
     const current = queue.shift()!;
@@ -205,7 +205,7 @@ const getDescendantIds = ({ categoryId }: { categoryId: number }): number[] => {
   return result;
 };
 
-const navigateToTransactions = ({ categoryId }: { categoryId: number }) => {
+const navigateToTransactions = ({ categoryId }: { categoryId: string }) => {
   if (isCustomizing.value) return;
 
   const allIds = getDescendantIds({ categoryId });
@@ -335,7 +335,7 @@ const navigateToTransactions = ({ categoryId }: { categoryId: number }) => {
     <CategoryPickerDialog
       v-model:open="pickerOpen"
       :disabled-category-ids="disabledCategoryIds"
-      @select="(id: number) => handleCategorySelected({ categoryId: id })"
+      @select="(id: string) => handleCategorySelected({ categoryId: id })"
     />
   </WidgetWrapper>
 </template>

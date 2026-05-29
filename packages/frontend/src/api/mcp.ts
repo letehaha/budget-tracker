@@ -38,15 +38,23 @@ export function getMcpServerUrl(): string {
 export async function submitOAuthConsent({
   accept,
   oauthQuery,
+  scope,
 }: {
   accept: boolean;
   oauthQuery: string;
+  scope?: string;
 }): Promise<Response> {
+  const body: { accept: boolean; oauth_query: string; scope?: string } = {
+    accept,
+    oauth_query: oauthQuery,
+  };
+  if (scope !== undefined) body.scope = scope;
+
   return fetch(`${API_HTTP}/api/v1/auth/oauth2/consent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ accept, oauth_query: oauthQuery }),
+    body: JSON.stringify(body),
   });
 }
 

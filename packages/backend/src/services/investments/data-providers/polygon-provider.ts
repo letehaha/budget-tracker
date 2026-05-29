@@ -12,7 +12,15 @@ import {
 import { isAxiosError } from 'axios';
 import { formatDate, subYears } from 'date-fns';
 
-import { BaseSecurityDataProvider, HistoricalPriceOptions, PriceData } from './base-provider';
+import {
+  BaseSecurityDataProvider,
+  BulkPriceData,
+  HistoricalPriceOptions,
+  PriceData,
+  ProviderSymbol,
+  SecurityPriceFetchInput,
+  toProviderSymbol,
+} from './base-provider';
 
 // Since the library doesn't export these types directly, we derive them.
 type TickerTypes = ITickersQuery['type'];
@@ -47,10 +55,14 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
               logger.info(`Rate limit hit on Polygon daily prices (attempt ${attempt}), retrying...`);
               return true;
             }
-            logger.error({ message: `Non-retryable error on Polygon daily prices (attempt ${attempt}).`, error });
+            // Composite provider aggregates and reports if all providers fail.
+            const errorMsg = error.response?.data?.message || error.message;
+            logger.info(`Non-retryable error on Polygon daily prices (attempt ${attempt}): ${errorMsg}`);
             return false; // stop retrying
           } else {
-            logger.error({ message: 'Unexpected error', error: error as Error });
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            logger.info(`Unexpected error on Polygon daily prices (attempt ${attempt}): ${errorMsg}`);
+            return false; // stop retrying
           }
         },
       },
@@ -61,21 +73,28 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
       return [];
     }
 
-    return allPricing.results.map((price) => ({
-      symbol: price.T!,
-      date: new Date(price.t!),
-      priceClose: price.c!,
-      providerName: SECURITY_PROVIDER.polygon,
-    }));
+    return allPricing.results.map((price) => {
+      const priceDate = new Date(price.t!);
+      return {
+        providerSymbol: toProviderSymbol(price.T!),
+        date: priceDate,
+        priceClose: price.c!,
+        priceAsOf: priceDate,
+        providerName: SECURITY_PROVIDER.polygon,
+      };
+    });
   }
 
-  public async getHistoricalPrices(symbol: string, options?: HistoricalPriceOptions): Promise<PriceData[]> {
+  public async getHistoricalPrices(
+    providerSymbol: ProviderSymbol,
+    options?: HistoricalPriceOptions,
+  ): Promise<PriceData[]> {
     // Default to getting full available data (up to 5 years) if no options provided
     const defaultEndDate = options?.endDate || new Date();
     const defaultStartDate = options?.startDate || subYears(defaultEndDate, 5);
 
     const response: IAggs = await this.client.stocks.aggregates(
-      symbol,
+      providerSymbol,
       1,
       'day',
       formatDate(defaultStartDate, 'yyyy-MM-dd'),
@@ -85,12 +104,16 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
     return (
       response.results
         ?.filter((bar) => bar.c && bar.t)
-        .map((bar) => ({
-          symbol,
-          date: new Date(bar.t!),
-          priceClose: bar.c!,
-          providerName: SECURITY_PROVIDER.polygon,
-        })) || []
+        .map((bar) => {
+          const date = new Date(bar.t!);
+          return {
+            providerSymbol,
+            date,
+            priceClose: bar.c!,
+            priceAsOf: date,
+            providerName: SECURITY_PROVIDER.polygon,
+          };
+        }) || []
     );
   }
 
@@ -112,8 +135,10 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
         return [];
       }
 
+      const symbol = tickerDetails.results.ticker || query;
       const result: SecuritySearchResult = {
-        symbol: tickerDetails.results.ticker || query,
+        symbol,
+        providerSymbol: symbol,
         name: tickerDetails.results.name || 'Unknown',
         assetClass: this.mapAssetClass(tickerDetails.results.type as TickerTypes),
         providerName: this.providerName,
@@ -138,38 +163,34 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
   /**
    * Get latest price for a security using Polygon
    */
-  public async getLatestPrice(symbol: string): Promise<PriceData> {
+  public async getLatestPrice(providerSymbol: ProviderSymbol): Promise<PriceData> {
     try {
-      logger.info(`Fetching latest price for: ${symbol}`);
+      logger.info(`Fetching latest price for: ${providerSymbol}`);
 
       // Use previous close endpoint for latest price
-      const response = await this.client.stocks.previousClose(symbol);
+      const response = await this.client.stocks.previousClose(providerSymbol);
 
       if (!response.results || response.results.length === 0) {
-        throw new Error(`No quote data found for symbol: ${symbol}`);
+        throw new Error(`No quote data found for symbol: ${providerSymbol}`);
       }
 
       const quote = response.results[0];
       if (!quote) {
-        throw new Error(`No quote data found for symbol: ${symbol}`);
+        throw new Error(`No quote data found for symbol: ${providerSymbol}`);
       }
 
       const result: PriceData = {
-        symbol: quote.T || symbol,
+        providerSymbol: quote.T ? toProviderSymbol(quote.T) : providerSymbol,
         date: new Date(quote.t || Date.now()),
         priceClose: quote.c || 0,
         priceAsOf: new Date(), // Current timestamp
         providerName: SECURITY_PROVIDER.polygon,
       };
 
-      logger.info(`Latest price for ${symbol}: ${result.priceClose} on ${result.date.toISOString()}`);
+      logger.info(`Latest price for ${providerSymbol}: ${result.priceClose} on ${result.date.toISOString()}`);
       return result;
     } catch (error) {
-      logger.error({ message: `Failed to fetch latest price for ${symbol}`, error: error as Error });
-      throw new Error(
-        `Failed to fetch latest price for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { cause: error },
-      );
+      throw this.formatProviderError({ operation: `Failed to fetch latest price for ${providerSymbol}`, error });
     }
   }
 
@@ -177,44 +198,47 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
    * Fetch prices for multiple securities efficiently using batch daily prices API.
    * Makes a single API call to get all daily prices, then filters for requested symbols.
    */
-  public async fetchPricesForSecurities(symbols: string[], forDate: Date): Promise<PriceData[]> {
-    if (symbols.length === 0) {
-      return [];
+  public async fetchPricesForSecurities(
+    securities: SecurityPriceFetchInput[],
+    forDate: Date,
+  ): Promise<Map<string, BulkPriceData>> {
+    const result = new Map<string, BulkPriceData>();
+    if (securities.length === 0) {
+      return result;
     }
 
-    logger.info(`Polygon: Starting batch fetch for ${symbols.length} securities using getDailyPrices`);
+    logger.info(`Polygon: Starting batch fetch for ${securities.length} securities using getDailyPrices`);
 
     // Fetch all daily prices in a single API call
     const allDailyPrices = await this.getDailyPrices(forDate);
 
     if (allDailyPrices.length === 0) {
       logger.info(`No daily prices available for date: ${forDate.toISOString().split('T')[0]}`);
-      return [];
+      return result;
     }
 
-    // Create a map for quick lookup of prices by symbol
-    const priceMap = new Map<string, PriceData>();
+    // Create a map for quick lookup of prices by provider-native id
+    const priceMap = new Map<ProviderSymbol, PriceData>();
     allDailyPrices.forEach((price) => {
-      priceMap.set(price.symbol, price);
+      priceMap.set(price.providerSymbol, price);
     });
 
-    const fetchedPrices: PriceData[] = [];
-
-    // Process each requested symbol
-    for (const symbol of symbols) {
-      const priceData = priceMap.get(symbol);
+    for (const security of securities) {
+      const priceData = priceMap.get(security.providerSymbol);
 
       if (!priceData) {
-        logger.info(`No price data found for symbol: ${symbol} on ${forDate.toISOString().split('T')[0]}`);
+        logger.info(
+          `No price data found for symbol: ${security.providerSymbol} on ${forDate.toISOString().split('T')[0]}`,
+        );
         continue;
       }
 
-      fetchedPrices.push(priceData);
-      logger.info(`Fetched price for ${symbol}: ${priceData.priceClose}`);
+      result.set(security.securityId, { ...priceData, securityId: security.securityId });
+      logger.info(`Fetched price for ${security.providerSymbol}: ${priceData.priceClose}`);
     }
 
-    logger.info(`Polygon batch fetch complete: ${fetchedPrices.length}/${symbols.length} securities fetched`);
-    return fetchedPrices;
+    logger.info(`Polygon batch fetch complete: ${result.size}/${securities.length} securities fetched`);
+    return result;
   }
 
   private mapAssetClass(polygonType?: TickerTypes): ASSET_CLASS {
