@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { VENTURE_DEAL_STATUS_META } from '@/common/const/venture-deal-status';
 import { formatShortDate } from '@/common/utils/date';
 import { getErrorMessage } from '@/common/utils/error-message';
 import { formatFractionAsPercent } from '@/common/utils/percentage';
@@ -11,6 +10,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useDeleteVentureDeal, useVentureDeal } from '@/composable/data-queries/venture/deals';
+import DealStatusPill from '@/pages/venture/components/deal-status-pill.vue';
 import EventsTimeline from '@/pages/venture/components/events-timeline.vue';
 import MetricsSummary from '@/pages/venture/components/metrics-summary.vue';
 import { ROUTES_NAMES } from '@/routes';
@@ -75,15 +75,7 @@ const onDelete = async () => {
       <header class="border-border/60 flex flex-wrap items-start justify-between gap-4 border-b pb-6">
         <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <span
-              :class="[
-                'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium tracking-wide uppercase',
-                VENTURE_DEAL_STATUS_META[deal.status].cls,
-              ]"
-            >
-              <span :class="['size-1.5 rounded-full', VENTURE_DEAL_STATUS_META[deal.status].dot]" />
-              {{ $t(VENTURE_DEAL_STATUS_META[deal.status].label) }}
-            </span>
+            <DealStatusPill :status="deal.status" show-dot />
             <span v-if="deal.platform" class="text-muted-foreground text-xs">
               {{ deal.platform.name }}
             </span>

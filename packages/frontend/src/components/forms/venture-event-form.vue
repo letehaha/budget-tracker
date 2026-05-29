@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PickTransactionDialog from '@/components/dialogs/pick-transaction-dialog.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
@@ -9,24 +8,20 @@ import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getErrorMessage } from '@/common/utils/error-message';
 import { isDecimal, isValidDate } from '@/common/utils/validators';
-import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useCreateVentureEvent, useVentureEvents } from '@/composable/data-queries/venture/events';
-import { useFormatCurrency } from '@/composable/formatters';
+import VentureEventCashFlowPicker from '@/components/forms/venture-event-cash-flow-picker.vue';
 import {
-  TRANSACTION_TYPES,
   type TransactionModel,
   VENTURE_CASH_FLOW_MODE,
   VENTURE_EVENT_TYPE,
   type VentureDealModel,
   type VentureEventModel,
 } from '@bt/shared/types';
-import { PlusIcon, X } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
-const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 interface Emit {
   (e: 'saved', event: VentureEventModel): void;
@@ -46,15 +41,11 @@ const hasInitialInvestment = computed(() =>
   (existingEvents.value ?? []).some((e) => e.type === VENTURE_EVENT_TYPE.initial_investment),
 );
 
-// Until the deal has an initial_investment, no other event type can exist
-// (backend enforces this; see services/venture/events/create.service.ts).
 const availableEventTypes = computed(() => {
   if (!hasInitialInvestment.value) return [VENTURE_EVENT_TYPE.initial_investment];
   return Object.values(VENTURE_EVENT_TYPE).filter((evType) => evType !== VENTURE_EVENT_TYPE.initial_investment);
 });
 
-// If events resolve after mount and reveal the deal already has an initial_investment,
-// the dropdown drops that option — bump the selection to a still-available type.
 watch(hasInitialInvestment, (has) => {
   if (has && form.type === VENTURE_EVENT_TYPE.initial_investment) {
     form.type = VENTURE_EVENT_TYPE.distribution;
@@ -78,8 +69,6 @@ const form = reactive({
 });
 
 const selectedTransactions = ref<TransactionModel[]>([]);
-const selectedTransactionIds = computed(() => selectedTransactions.value.map((tx) => tx.id));
-const isPickerOpen = ref(false);
 
 const isCarryBearing = computed(
   () => form.type === VENTURE_EVENT_TYPE.distribution || form.type === VENTURE_EVENT_TYPE.exit,
@@ -94,42 +83,6 @@ const requiresNav = computed(
     form.type === VENTURE_EVENT_TYPE.writedown ||
     form.type === VENTURE_EVENT_TYPE.exit,
 );
-const allowsLink = computed(() => !isNavOnly.value);
-
-const cashFlowOptions = computed(() => {
-  if (isNavOnly.value) return [VENTURE_CASH_FLOW_MODE.none];
-  return [VENTURE_CASH_FLOW_MODE.linked, VENTURE_CASH_FLOW_MODE.out_of_wallet];
-});
-
-watch(isNavOnly, (navOnly) => {
-  if (navOnly) {
-    form.cashFlowMode = VENTURE_CASH_FLOW_MODE.none;
-  } else if (form.cashFlowMode === VENTURE_CASH_FLOW_MODE.none) {
-    form.cashFlowMode = VENTURE_CASH_FLOW_MODE.out_of_wallet;
-  }
-});
-
-const pickerTransactionType = computed(() => {
-  if (form.type === VENTURE_EVENT_TYPE.distribution || form.type === VENTURE_EVENT_TYPE.exit) {
-    return TRANSACTION_TYPES.income;
-  }
-  return TRANSACTION_TYPES.expense;
-});
-
-const linkedTotal = computed(() =>
-  selectedTransactions.value.reduce((sum, tx) => sum + Math.abs(Number(tx.amount)), 0),
-);
-
-const linkedTotalFormatted = computed(() => formatAmountByCurrencyCode(linkedTotal.value, props.deal.currencyCode));
-
-const onPickTransaction = (tx: TransactionModel) => {
-  if (selectedTransactions.value.some((existing) => existing.id === tx.id)) return;
-  selectedTransactions.value.push(tx);
-};
-
-const removeSelected = (id: TransactionModel['id']) => {
-  selectedTransactions.value = selectedTransactions.value.filter((tx) => tx.id !== id);
-};
 
 const toStr = (val: unknown): string => (val == null ? '' : String(val).trim());
 
@@ -184,7 +137,6 @@ const onSubmit = async () => {
 };
 
 const eventTypeLabel = (type: VENTURE_EVENT_TYPE): string => `venture.events.types.${type}`;
-const cashFlowLabel = (mode: VENTURE_CASH_FLOW_MODE): string => `venture.events.cashFlowModes.${mode}`;
 </script>
 
 <template>
@@ -229,73 +181,13 @@ const cashFlowLabel = (mode: VENTURE_CASH_FLOW_MODE): string => `venture.events.
       :disabled="isPending"
     />
 
-    <div v-if="allowsLink">
-      <FieldLabel :label="$t('venture.events.form.cashFlowModeLabel')">
-        <Select.Select v-model="form.cashFlowMode" :disabled="isPending">
-          <Select.SelectTrigger>
-            <Select.SelectValue />
-          </Select.SelectTrigger>
-          <Select.SelectContent>
-            <Select.SelectItem v-for="mode in cashFlowOptions" :key="mode" :value="mode">
-              {{ $t(cashFlowLabel(mode)) }}
-            </Select.SelectItem>
-          </Select.SelectContent>
-        </Select.Select>
-      </FieldLabel>
-    </div>
-
-    <div v-if="form.cashFlowMode === VENTURE_CASH_FLOW_MODE.linked" class="grid gap-2">
-      <FieldLabel :label="$t('venture.events.form.linkedTransactionsLabel')" :only-template="true">
-        <div class="grid gap-2">
-          <div v-if="selectedTransactions.length > 0" class="grid gap-1">
-            <div
-              v-for="tx in selectedTransactions"
-              :key="tx.id"
-              class="flex items-center gap-2 rounded-md border px-2 py-1"
-            >
-              <div class="min-w-0 flex-1">
-                <TransactionRecord :tx="tx" :as-button="false" />
-              </div>
-              <UiButton
-                type="button"
-                variant="ghost"
-                size="icon"
-                class="size-8 shrink-0"
-                :disabled="isPending"
-                :aria-label="$t('venture.events.form.removeLinkedTransaction')"
-                @click="removeSelected(tx.id)"
-              >
-                <X :size="16" />
-              </UiButton>
-            </div>
-          </div>
-          <UiButton type="button" variant="outline" class="w-full" :disabled="isPending" @click="isPickerOpen = true">
-            <PlusIcon class="size-4" />
-            <span>
-              {{
-                selectedTransactions.length === 0
-                  ? $t('venture.events.form.pickTransaction')
-                  : $t('venture.events.form.pickAnotherTransaction')
-              }}
-            </span>
-          </UiButton>
-          <div class="text-muted-foreground text-xs">
-            {{
-              $t('venture.events.form.linkedSummary', {
-                total: linkedTotalFormatted,
-                count: selectedTransactions.length,
-              })
-            }}
-          </div>
-        </div>
-      </FieldLabel>
-      <PickTransactionDialog
-        v-model:open="isPickerOpen"
-        :transaction-type="pickerTransactionType"
-        :exclude-ids="selectedTransactionIds"
-        @select="onPickTransaction"
-      />
-    </div>
+    <VentureEventCashFlowPicker
+      v-model:mode="form.cashFlowMode"
+      v-model:transactions="selectedTransactions"
+      :event-type="form.type"
+      :currency-code="deal.currencyCode"
+      :disabled="isPending"
+    />
 
     <div v-if="isCarryBearing" class="grid gap-2">
       <label class="flex items-center gap-2 text-sm">
