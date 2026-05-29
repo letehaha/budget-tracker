@@ -361,6 +361,12 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     redirect: { name: ROUTES_NAMES.dashboard },
   },
+  {
+    path: '/:pathMatch(.*)*',
+    name: ROUTES_NAMES.notFound,
+    component: () => import('@/pages/not-found/not-found.vue'),
+    meta: { i18nChunks: ['errors'] as I18nChunkName[] },
+  },
 ];
 
 export const router = createRouter({

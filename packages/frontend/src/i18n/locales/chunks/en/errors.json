@@ -5,6 +5,13 @@
       "unexpectedError": "Unexpected error.",
       "sessionExpired": "Your session has expired. Please sign in again",
       "payloadTooLarge": "The request is too large. Please try importing fewer items at a time"
+    },
+    "notFound": {
+      "title": "This page is off the books",
+      "description": "We couldn't find what you were looking for. The link may be broken, or the page may have moved.",
+      "attemptedLabel": "You tried to visit: ",
+      "goBack": "Go back",
+      "goHome": "Take me home"
     }
   }
 }

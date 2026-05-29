@@ -17,6 +17,7 @@ import { useAccountsStore } from '@/stores';
 import { AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { ChevronRightIcon, ChevronsUpDownIcon, LayersIcon, PlusIcon, TrendingUpIcon } from '@lucide/vue';
+import { useLocalStorage } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { Ref, computed, nextTick, provide, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -65,8 +66,8 @@ const accountsWithoutGroups = computed(() => activeAccounts.value.filter((i) => 
 const isPopoverOpen = ref(false);
 const { hasAnyOpen, collapseAll } = useSidebarNavCollapse();
 
-const isBankAccountsOpen = ref(true);
-const isPortfoliosOpen = ref(true);
+const isBankAccountsOpen = useLocalStorage('sidebar:accounts-bank-open', true);
+const isPortfoliosOpen = useLocalStorage('sidebar:accounts-portfolios-open', true);
 
 const { data: portfolios } = usePortfolios();
 const portfoliosCount = computed(() => (portfolios.value ?? []).filter((p) => !p.deletedAt).length);
