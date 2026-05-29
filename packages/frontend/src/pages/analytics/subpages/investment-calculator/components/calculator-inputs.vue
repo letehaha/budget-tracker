@@ -202,6 +202,7 @@
       <SelectField
         :model-value="selectedIndicatorOption"
         :values="indicatorOptions"
+        :option-disabled="isOptionDisabled"
         :label="$t('analytics.investmentCalculator.annualReturn')"
         label-key="label"
         value-key="id"
@@ -264,8 +265,15 @@ import { PercentIcon, SlidersHorizontalIcon } from '@lucide/vue';
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { CUSTOM_INDICATOR_ID, MARKET_INDICATORS } from '../composables/market-indicators';
+import {
+  CUSTOM_INDICATOR_ID,
+  getPortfolioIdFromIndicatorId,
+  isPortfolioIndicatorId,
+  makePortfolioIndicatorId,
+  MARKET_INDICATORS,
+} from '../composables/market-indicators';
 import type { NetIncomePeriod } from '../composables/use-seed-data';
+import type { PortfolioAnnualizedReturnModel } from '@bt/shared/types/investments/portfolio-annualized-return.model';
 
 const { t } = useI18n();
 const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
@@ -283,6 +291,7 @@ const DEFAULT_HORIZON_MAX = 20;
 interface SelectOption {
   id: string;
   label: string;
+  disabled?: boolean;
 }
 
 const props = defineProps<{
@@ -294,6 +303,7 @@ const props = defineProps<{
   selectedPeriod: NetIncomePeriod | null;
   selectedIndicatorId: string;
   currentTotalBalance: number;
+  portfolioReturns: PortfolioAnnualizedReturnModel[];
 }>();
 
 const emit = defineEmits<{
@@ -400,7 +410,31 @@ const netIncomePeriods: { value: NetIncomePeriod; label: string }[] = [
   { value: 'all', label: 'All' },
 ];
 
+// User's own portfolios first (their tracked performance), then the static
+// market indices, then the manual "Custom" entry. Portfolios without enough
+// history are listed disabled so the option is still discoverable.
+const portfolioOptions = computed<SelectOption[]>(() =>
+  // `annualizedReturn !== null` is the single source of truth — the backend only
+  // sets it when the history is long enough, so it doubles as the "selectable?" gate.
+  props.portfolioReturns.map((p) =>
+    p.annualizedReturn !== null
+      ? {
+          id: makePortfolioIndicatorId({ portfolioId: p.portfolioId }),
+          label: t('analytics.investmentCalculator.portfolioReturnOption', {
+            name: p.portfolioName,
+            rate: p.annualizedReturn.toFixed(1),
+          }),
+        }
+      : {
+          id: makePortfolioIndicatorId({ portfolioId: p.portfolioId }),
+          label: t('analytics.investmentCalculator.portfolioNoHistoryOption', { name: p.portfolioName }),
+          disabled: true,
+        },
+  ),
+);
+
 const indicatorOptions = computed<SelectOption[]>(() => [
+  ...portfolioOptions.value,
   ...MARKET_INDICATORS.map((i) => ({
     id: i.id,
     label: `${i.label} (~${i.avgAnnualReturn}%/yr)`,
@@ -415,9 +449,21 @@ const selectedIndicatorOption = computed(
   () => indicatorOptions.value.find((o) => o.id === props.selectedIndicatorId) ?? null,
 );
 
+const isOptionDisabled = (option: SelectOption): boolean => option.disabled === true;
+
 const handleIndicatorChange = (option: SelectOption | null) => {
-  if (!option) return;
+  if (!option || isOptionDisabled(option)) return;
   emit('update:selectedIndicatorId', option.id);
+
+  if (isPortfolioIndicatorId({ id: option.id })) {
+    const portfolioId = getPortfolioIdFromIndicatorId({ id: option.id });
+    const portfolio = props.portfolioReturns.find((p) => p.portfolioId === portfolioId);
+    if (portfolio && portfolio.annualizedReturn !== null) {
+      emit('update:annualReturnRate', portfolio.annualizedReturn);
+    }
+    return;
+  }
+
   const indicator = MARKET_INDICATORS.find((i) => i.id === option.id);
   if (indicator) {
     emit('update:annualReturnRate', indicator.avgAnnualReturn);

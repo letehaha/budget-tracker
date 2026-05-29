@@ -14,7 +14,7 @@ import Transactions from '@models/transactions.model';
 import * as Users from '@models/users.model';
 import { Op } from 'sequelize';
 
-import { transactionSyncQueue } from '../bank-data-providers/monobank/transaction-sync-queue';
+import { removePendingJobsForUser } from '../bank-data-providers/monobank/transaction-sync-queue';
 import { REDIS_KEYS as SYNC_REDIS_KEYS, clearAccountSyncStatus } from '../bank-data-providers/sync/sync-status-tracker';
 import { withTransaction } from '../common/with-transaction';
 import { fanOutNotifications } from '../sharing/fan-out-notifications';
@@ -127,20 +127,11 @@ const deleteUserInTx = withTransaction(async ({ userId }: { userId: number }): P
 
 export const deleteUser = async ({ userId }: { userId: number }) => {
   try {
-    // 1. Clean up BullMQ queue - remove pending sync jobs for this user
-    // Only target 'waiting' and 'delayed' jobs - 'active' jobs are locked by workers and cannot be removed
-    const pendingJobs = await transactionSyncQueue.getJobs(['waiting', 'delayed']);
-    const userJobs = pendingJobs.filter((job) => job.data.userId === userId);
-    await Promise.all(
-      userJobs.map((job) =>
-        job.remove().catch((error) => {
-          // Job may have become active between getJobs and remove - ignore lock errors,
-          // but log the actual error so we can spot non-lock failures (Redis disconnect,
-          // etc.) instead of misattributing every miss to a transient lock race.
-          logger.warn(`Could not remove job during user deletion. jobId: ${job.id}`, { error: error as Error });
-        }),
-      ),
-    );
+    // 1. Clean up BullMQ queues - remove pending sync jobs for this user across
+    // every per-API-token queue. Helper iterates all known bundles internally.
+    // Only 'waiting' and 'delayed' jobs are targeted - 'active' jobs are locked
+    // by their worker and finish on their own.
+    await removePendingJobsForUser({ userId });
 
     // 2. Clean up Redis cache
     const cache = new CacheClient({ logPrefix: 'user-deletion' });
