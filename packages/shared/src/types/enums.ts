@@ -129,6 +129,7 @@ export enum TRANSACTION_TRANSFER_NATURE {
   common_transfer = 'transfer_between_user_accounts',
   transfer_out_wallet = 'transfer_out_wallet',
   transfer_to_portfolio = 'transfer_to_portfolio',
+  transfer_to_venture = 'transfer_to_venture',
 }
 
 export enum BUDGET_STATUSES {

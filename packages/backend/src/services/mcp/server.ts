@@ -73,6 +73,24 @@ import { registerUpdateSubscription } from './tools/update-subscription';
 import { registerUpdateTag } from './tools/update-tag';
 import { registerUpdateTransaction } from './tools/update-transaction';
 import { registerUpdateTransactionGroup } from './tools/update-transaction-group';
+import {
+  registerCreateVentureDeal,
+  registerCreateVentureEvent,
+  registerCreateVenturePlatform,
+  registerDeleteVentureDeal,
+  registerDeleteVentureEvent,
+  registerDeleteVenturePlatform,
+  registerGetVentureDeal,
+  registerGetVentureDealMetrics,
+  registerGetVentureEvent,
+  registerGetVenturePlatform,
+  registerListVentureDeals,
+  registerListVentureEvents,
+  registerListVenturePlatforms,
+  registerUpdateVentureDeal,
+  registerUpdateVentureEvent,
+  registerUpdateVenturePlatform,
+} from './tools/venture-tools';
 
 /**
  * Creates a new MCP server instance with all tools and prompts registered.
@@ -191,6 +209,24 @@ export function createMcpServer(): McpServer {
   registerUnlinkTransactionsFromSubscription(server);
   registerGetUpcomingSubscriptionPayments(server);
   registerGetSubscriptionsSummary(server);
+
+  // Venture investments (platforms, deals, events)
+  registerListVenturePlatforms(server);
+  registerGetVenturePlatform(server);
+  registerCreateVenturePlatform(server);
+  registerUpdateVenturePlatform(server);
+  registerDeleteVenturePlatform(server);
+  registerListVentureDeals(server);
+  registerGetVentureDeal(server);
+  registerGetVentureDealMetrics(server);
+  registerCreateVentureDeal(server);
+  registerUpdateVentureDeal(server);
+  registerDeleteVentureDeal(server);
+  registerListVentureEvents(server);
+  registerGetVentureEvent(server);
+  registerCreateVentureEvent(server);
+  registerUpdateVentureEvent(server);
+  registerDeleteVentureEvent(server);
 
   return server;
 }

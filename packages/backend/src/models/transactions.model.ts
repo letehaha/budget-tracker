@@ -297,7 +297,8 @@ export default class Transactions extends Model {
         }
         return;
       }
-      case TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio: {
+      case TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio:
+      case TRANSACTION_TRANSFER_NATURE.transfer_to_venture: {
         // Single-leg transfer: no paired transferId, but ref fields must still be set so
         // downstream aggregations can find the row. `refAmount == null` matches both null
         // and undefined returned by the Money getter when the underlying cents are null.

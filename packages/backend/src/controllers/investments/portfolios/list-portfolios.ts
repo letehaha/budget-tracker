@@ -1,6 +1,7 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { booleanQuery } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { applyPaginationTransform, buildPagination, paginationFields } from '@controllers/helpers/pagination';
 import { listPortfolios } from '@services/investments/portfolios/list.service';
 import { z } from 'zod';
 
@@ -11,17 +12,9 @@ export default createController(
         portfolioType: z.nativeEnum(PORTFOLIO_TYPE).optional(),
         isEnabled: booleanQuery().optional(),
         onlyDeleted: booleanQuery().optional(),
-        limit: z.coerce.number().int().min(1).max(100).default(20),
-        offset: z.coerce.number().int().min(0).default(0),
-        page: z.coerce.number().int().min(1).optional(),
+        ...paginationFields,
       })
-      .transform((data) => {
-        // Convert page to offset if page is provided
-        if (data.page !== undefined) {
-          data.offset = (data.page - 1) * data.limit;
-        }
-        return data;
-      }),
+      .transform(applyPaginationTransform),
   }),
   async ({ user, query }) => {
     const portfolios = await listPortfolios({
@@ -36,11 +29,7 @@ export default createController(
     return {
       data: {
         data: portfolios,
-        pagination: {
-          limit: query.limit,
-          offset: query.offset,
-          page: query.page || Math.floor(query.offset / query.limit) + 1,
-        },
+        pagination: buildPagination(query),
       },
     };
   },

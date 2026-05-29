@@ -1,5 +1,6 @@
 import { dateString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { applyPaginationTransform, buildPagination, paginationFields } from '@controllers/helpers/pagination';
 import { listPortfolioTransfers } from '@services/investments/portfolios/transfers';
 import { z } from 'zod';
 
@@ -12,19 +13,11 @@ export default createController(
       .object({
         dateFrom: dateString().optional(),
         dateTo: dateString().optional(),
-        limit: z.coerce.number().int().min(1).max(100).default(20),
-        offset: z.coerce.number().int().min(0).default(0),
-        page: z.coerce.number().int().min(1).optional(),
         sortBy: z.enum(['date', 'amount']).default('date'),
         sortDirection: z.enum(['ASC', 'DESC']).default('DESC'),
+        ...paginationFields,
       })
-      .transform((data) => {
-        // Convert page to offset if page is provided
-        if (data.page !== undefined) {
-          data.offset = (data.page - 1) * data.limit;
-        }
-        return data;
-      }),
+      .transform(applyPaginationTransform),
   }),
   async ({ user, params, query }) => {
     const result = await listPortfolioTransfers({
@@ -41,12 +34,7 @@ export default createController(
     return {
       data: {
         data: result.data,
-        pagination: {
-          limit: query.limit,
-          offset: query.offset,
-          page: query.page || Math.floor(query.offset / query.limit) + 1,
-          totalCount: result.totalCount,
-        },
+        pagination: buildPagination(query, { totalCount: result.totalCount }),
       },
     };
   },

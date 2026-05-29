@@ -8,6 +8,9 @@
   >
     <Popover.Popover v-model:open="isPopoverOpen">
       <FieldLabel :label="label">
+        <template v-if="$slots['label-after']" #label-after>
+          <slot name="label-after" />
+        </template>
         <div class="relative">
           <input
             :value="inputValue"

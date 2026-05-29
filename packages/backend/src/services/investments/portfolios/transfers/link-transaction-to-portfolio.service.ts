@@ -21,6 +21,7 @@ interface LinkTransactionToPortfolioParams {
 const DISALLOWED_TRANSFER_NATURES = [
   TRANSACTION_TRANSFER_NATURE.common_transfer,
   TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+  TRANSACTION_TRANSFER_NATURE.transfer_to_venture,
 ];
 
 const linkTransactionToPortfolioImpl = async ({

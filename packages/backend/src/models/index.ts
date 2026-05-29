@@ -46,6 +46,10 @@ import UserMerchantCategoryCodesModel from './user-merchant-category-codes.model
 import UserSettingsModel from './user-settings.model';
 import UsersCurrenciesModel from './users-currencies.model';
 import UsersModel from './users.model';
+import VentureDealsModel from './venture/venture-deals.model';
+import VentureEventLinksModel from './venture/venture-event-links.model';
+import VentureEventsModel from './venture/venture-events.model';
+import VenturePlatformsModel from './venture/venture-platforms.model';
 
 // node-postgres returns BIGINT as string to preserve precision. Our cents
 // columns are BIGINT, but cent values stay far below JS Number's safe 2^53
@@ -108,6 +112,10 @@ const models = [
   PaymentReminderPeriodsModel,
   PaymentReminderNotificationsModel,
   TransferSuggestionDismissalsModel,
+  VenturePlatformsModel,
+  VentureDealsModel,
+  VentureEventsModel,
+  VentureEventLinksModel,
 ];
 
 const sequelize = new Sequelize({

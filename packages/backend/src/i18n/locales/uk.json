@@ -138,6 +138,7 @@
     "cannotDeleteHoldingWithActivePosition": "Не можна видалити актив з активною позицією. Будь ласка, спочатку продайте або перекажіть всі акції.",
     "transactionAlreadyTransfer": "Транзакція вже позначена як переказ і не може бути прив'язана до портфеля.",
     "transactionAlreadyLinkedToPortfolio": "Транзакція вже прив'язана до переказу в портфель.",
+    "transactionAlreadyLinkedToVenture": "Транзакція вже прив'язана до венчурної угоди",
     "portfolioTransferNotFound": "Переказ портфеля не знайдено",
     "exchangeCurrenciesMustDiffer": "Валюти обміну мають бути різними"
   },

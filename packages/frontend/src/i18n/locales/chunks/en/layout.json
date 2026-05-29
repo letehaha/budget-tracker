@@ -18,7 +18,8 @@
       "subscriptions": "Subscriptions",
       "budgets": "Budgets",
       "reminders": "Reminders"
-    }
+    },
+    "venture": "Venture"
   },
   "sidebar": {
     "accountsView": {
@@ -29,6 +30,7 @@
       "portfolios": "Portfolios",
       "newPortfolio": "New portfolio",
       "noPortfolios": "No portfolios yet",
+      "ventures": "Ventures",
       "collapseNavigation": "Collapse navigation",
       "viaHousehold": "Shared via {handle}'s household",
       "sharedBy": "Shared by {handle}",

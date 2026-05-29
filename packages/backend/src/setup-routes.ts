@@ -37,6 +37,7 @@ import transactionGroupsRoutes from './routes/transaction-groups.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
 import usersRoutes from './routes/users.route';
+import ventureRoutes from './routes/venture.route';
 import webhooksRoutes from './routes/webhooks.route';
 
 export function setupRoutes(app: Express) {
@@ -174,6 +175,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);
   app.use(`${API_PREFIX}/share`, shareRoutes);
   app.use(`${API_PREFIX}/investments`, investmentsRoutes);
+  app.use(`${API_PREFIX}/venture`, ventureRoutes);
   app.use('/mcp', mcpRoutes);
   app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
   app.use(`${API_PREFIX}/import`, statementParserRoutes);

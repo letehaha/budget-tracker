@@ -34,6 +34,7 @@ import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
 import PortfolioLinkedView from './components/portfolio-linked-view.vue';
+import VentureLinkedView from './components/venture-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
@@ -80,6 +81,10 @@ const closeModal = () => {
 
 const isPortfolioLinkedView = computed(
   () => !!props.transaction && props.transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+);
+
+const isVentureLinkedView = computed(
+  () => !!props.transaction && props.transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture,
 );
 
 const route = useRoute();
@@ -590,11 +595,8 @@ onUnmounted(() => {
     </template>
   </DefineMoreOptions>
 
-  <PortfolioLinkedView
-    v-if="$props.transaction && $props.transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio"
-    :transaction="$props.transaction"
-    @close-modal="closeModal"
-  />
+  <PortfolioLinkedView v-if="isPortfolioLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
+  <VentureLinkedView v-else-if="isVentureLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <div v-else class="rounded-t-xl">
     <div
       :class="[

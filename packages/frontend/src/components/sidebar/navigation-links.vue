@@ -13,6 +13,7 @@ import {
   LayersIcon,
   LayoutDashboardIcon,
   RepeatIcon,
+  RocketIcon,
   SparklesIcon,
   TrendingUpIcon,
   WalletIcon,
@@ -40,7 +41,10 @@ const isAccountsRoute = computed(
     route.name === ROUTES_NAMES.accountIntegrationDetails ||
     route.name === ROUTES_NAMES.investments ||
     route.name === ROUTES_NAMES.portfolioDetail ||
-    route.name === ROUTES_NAMES.portfolioTransactionsImport,
+    route.name === ROUTES_NAMES.portfolioTransactionsImport ||
+    route.name === ROUTES_NAMES.venture ||
+    route.name === ROUTES_NAMES.venturePlatformsList ||
+    route.name === ROUTES_NAMES.ventureDealDetail,
 );
 
 watch(
@@ -156,6 +160,17 @@ watch(
           >
             <TrendingUpIcon :class="[navIconBase, isActive && navIconActive]" />
             <span>{{ $t('navigation.investments') }}</span>
+          </ui-button>
+        </router-link>
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.venture }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <RocketIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t('navigation.venture') }}</span>
           </ui-button>
         </router-link>
       </div>

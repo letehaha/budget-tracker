@@ -249,6 +249,12 @@
         "unlinkDescription": "Original transaction details will be restored.",
         "cancelButton": "Cancel",
         "confirmUnlink": "Confirm Unlink"
+      },
+      "ventureLinked": {
+        "title": "Venture-linked transaction",
+        "description": "This transaction is linked to a venture event.",
+        "editHint": "Edit or unlink it from the related venture deal's events timeline.",
+        "openVenture": "Open Venture"
       }
     },
     "portfolioTransfer": {

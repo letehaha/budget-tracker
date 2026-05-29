@@ -89,7 +89,10 @@ const validateTransaction = async (
     });
   }
 
-  if (prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {
+  if (
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio ||
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture
+  ) {
     throw new ValidationError({
       message: t({ key: 'transactions.cannotEditPortfolioLinkedTransaction' }),
     });

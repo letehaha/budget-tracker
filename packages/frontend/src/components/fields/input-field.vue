@@ -7,6 +7,9 @@
     class="input-field"
   >
     <FieldLabel :label="label">
+      <template v-if="$slots['label-after']" #label-after>
+        <slot name="label-after" />
+      </template>
       <template #label-right>
         <template v-if="$slots['label-right']">
           <slot name="label-right" />
@@ -98,6 +101,8 @@ const emits = defineEmits<{
 const slots = defineSlots<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   'label-right'(): any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  'label-after'(): any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subLabel(): any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

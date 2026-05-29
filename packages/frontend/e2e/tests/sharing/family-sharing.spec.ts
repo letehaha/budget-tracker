@@ -159,7 +159,9 @@ test.describe('Family sharing — recipient view', () => {
     await page.goto(`/account/${acctWriteAll.id}`);
 
     // Account name should be plain text, not a popover trigger that opens a rename form.
-    const nameNode = page.getByText(acctWriteAll.name).first();
+    // Target the page-header rendering (text-xl) explicitly — the sidebar lists the same
+    // name (text-sm) under a sticky group header that intercepts pointer events.
+    const nameNode = page.locator('.text-xl', { hasText: acctWriteAll.name }).first();
     await expect(nameNode).toBeVisible({ timeout: 10_000 });
     await nameNode.click();
     // No rename popover input should appear after clicking the name.
