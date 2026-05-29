@@ -76,9 +76,12 @@ const addSecurityFromSearchImpl = async ({
 
       logger.info(`Successfully fetched latest price for ${searchResult.symbol}: ${priceData.priceClose}`);
     } catch (error) {
-      logger.error({
-        message: `Failed to fetch latest price for ${searchResult.symbol}`,
-        error: error as Error,
+      // The immediate price fetch is optional and best-effort: the security was
+      // created successfully and the daily price-sync cron backfills its price on
+      // the next run. Log at warn (operator visibility — e.g. a provider is
+      // 402-ing) rather than error, since this is a recoverable, non-fatal path.
+      logger.warn(`Failed to fetch latest price for ${searchResult.symbol} (will be backfilled by daily sync)`, {
+        error: error instanceof Error ? error.message : String(error),
       });
       // Don't throw - the security creation succeeded, price fetch is optional
     }

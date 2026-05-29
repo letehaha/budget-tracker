@@ -19,7 +19,6 @@ import {
   getHistoricalPriceProviderPreference,
   getLatestPriceProviderPreference,
   getSearchProviderPreference,
-  partitionByMarketStatus,
 } from './utils';
 import { YahooDataProvider } from './yahoo-provider';
 
@@ -212,13 +211,18 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
         `${failedSecurities.length} symbols failed primary provider, attempting fallbacks: ${failedSecurities.map((s) => s.symbol).join(', ')}`,
       );
 
-      const stillMissing: SecurityPriceFetchInput[] = [];
-
+      // Securities still missing after fallbacks simply stay absent from
+      // `allResults` — by contract (see the class doc) the caller diffs the
+      // requested ids against the returned keys to detect partial failures and
+      // owns the user-facing report at the right severity. We deliberately do
+      // NOT re-derive / log "missing" here: the sole caller (daily-sync) already
+      // partitions misses by market status, warns on the genuine ones, and
+      // advances `pricingLastSyncedAt`. Reporting it here too just double-logged
+      // the same fact (once as error, once as warn) into Sentry.
       for (const security of failedSecurities) {
         const preference = getHistoricalPriceProviderPreference(security.symbol, security.assetClass);
         // Skip the primary (already failed) and try only fallback providers
         const fallbackNames = preference.fallbacks.filter((f) => f !== preference.primary);
-        let fetched = false;
 
         for (const fallbackName of fallbackNames) {
           const fallbackProvider = this.providers.get(fallbackName);
@@ -229,7 +233,6 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
             const price = prices.get(security.securityId);
             if (price) {
               allResults.set(security.securityId, price);
-              fetched = true;
               logger.info(`Fallback ${fallbackName} succeeded for ${security.symbol}`);
               break;
             }
@@ -250,29 +253,6 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
               });
             }
           }
-        }
-
-        if (!fetched) {
-          stillMissing.push(security);
-        }
-      }
-
-      if (stillMissing.length > 0) {
-        const { expectedClosed, actuallyMissing } = partitionByMarketStatus({
-          items: stillMissing,
-          date: forDate,
-        });
-
-        if (expectedClosed.length > 0) {
-          logger.info(
-            `${expectedClosed.length}/${securities.length} symbols had no data because their markets were closed on ${forDate.toISOString()}: ${expectedClosed.map((s) => s.symbol).join(', ')}`,
-          );
-        }
-
-        if (actuallyMissing.length > 0) {
-          logger.error(
-            `${actuallyMissing.length}/${securities.length} symbols failed ALL providers: ${actuallyMissing.map((s) => s.symbol).join(', ')}`,
-          );
         }
       }
     }
@@ -335,12 +315,20 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
         logger.info(`Successfully completed ${operationName} with ${providerName}`);
         return result;
       } catch (error) {
-        logger.error({ message: `Provider ${providerName} failed for ${operationName}:`, error: error as Error });
-
-        // If this was the last provider, throw the error
+        // Exhausted the chain — rethrow without logging. The caller owns the
+        // user-facing outcome and logs it once (search swallows to [] and logs;
+        // historical/bulk consumers log in their own `.catch`). Logging here too
+        // would double-report every genuine total failure in Sentry.
         if (providerName === providers[providers.length - 1]) {
           throw error;
         }
+
+        // A non-final provider failing is the expected, designed-for case — a
+        // fallback chain exists precisely so the next provider can take over.
+        // Breadcrumb at info (never Sentry); move on.
+        logger.info(
+          `Provider ${providerName} failed for ${operationName}, trying next: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 

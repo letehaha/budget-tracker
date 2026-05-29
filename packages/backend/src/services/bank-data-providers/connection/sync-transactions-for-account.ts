@@ -9,6 +9,9 @@ import { bankProviderRegistry } from '../registry';
 
 export const syncTransactionsForAccount = withTransaction(
   async ({ connectionId, userId, accountId }: { connectionId: string; userId: number; accountId: string }) => {
+    // Re-loads connection + account by id to re-check ownership on every call,
+    // keeping this safe as a standalone entry point. The resulting N+1 in the
+    // auto-sync fan-out is by design (background work, runs after the response).
     const connection = await BankDataProviderConnections.findOne({
       where: {
         id: connectionId,

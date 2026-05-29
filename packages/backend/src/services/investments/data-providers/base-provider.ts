@@ -156,16 +156,23 @@ export abstract class BaseSecurityDataProvider {
   // and it should be processed uniquely when adding security from the search
 
   /**
-   * Logs the error and returns a new Error wrapping it with the operation
-   * description, so leaf provider methods can `throw this.formatProviderError(...)`
-   * from a catch branch instead of repeating the same log + Error.cause boilerplate.
-   * The wrapped Error preserves the original via `cause` so upstream
-   * (composite provider, callers) can still inspect the underlying failure.
+   * Wraps a leaf-provider failure with the operation description and returns it
+   * (preserving the original via `cause`) so methods can
+   * `throw this.formatProviderError(...)` from a catch branch instead of
+   * repeating the same Error.cause boilerplate.
+   *
+   * Logs at `info` only — deliberately NOT `error`. A single leaf provider
+   * throwing is rarely the real outcome: the composite retries the next
+   * provider in the fallback chain, bulk sync treats per-symbol misses as
+   * expected, and optional price fetches swallow it. Whoever owns the operation
+   * (the composite's all-providers `.catch`, the bulk-sync miss report, or the
+   * consumer's own `.catch`) logs the actual outcome at the right severity.
+   * Error-logging here as well turned every *recovered* failure into a Sentry
+   * exception and double/triple-reported the genuine ones.
    */
   protected formatProviderError({ operation, error }: { operation: string; error: unknown }): Error {
-    logger.error({ message: `${operation}:`, error: error as Error });
-    return new Error(`${operation}: ${error instanceof Error ? error.message : 'Unknown error'}`, {
-      cause: error,
-    });
+    const message = `${operation}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    logger.info(message);
+    return new Error(message, { cause: error });
   }
 }
