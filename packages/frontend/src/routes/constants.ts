@@ -50,6 +50,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsHousehold: `${ROUTER_LAYOUTS.dashboard}.settings.household`,
   importCsv: `${ROUTER_LAYOUTS.dashboard}.import-csv`,
   importStatement: `${ROUTER_LAYOUTS.dashboard}.import-statement`,
+  notFound: `${ROUTER_LAYOUTS.dashboard}.not-found`,
 
   auth: ROUTER_LAYOUTS.auth,
   signIn: `${ROUTER_LAYOUTS.auth}.sign-in`,
