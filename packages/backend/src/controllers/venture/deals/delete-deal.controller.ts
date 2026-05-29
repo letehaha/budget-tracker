@@ -1,4 +1,4 @@
-import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { deleteVentureDeal } from '@services/venture/deals/delete.service';
 import { z } from 'zod';
@@ -8,7 +8,7 @@ export default createController(
     params: z.object({ id: recordId() }),
     body: z
       .object({
-        force: booleanQuery().optional(),
+        force: z.boolean().optional(),
       })
       .optional(),
   }),

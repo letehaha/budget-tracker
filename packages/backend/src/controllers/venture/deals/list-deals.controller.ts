@@ -1,6 +1,7 @@
 import { VENTURE_DEAL_STATUS } from '@bt/shared/types/venture';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { applyPaginationTransform, buildPagination, paginationFields } from '@controllers/helpers/pagination';
 import { serializeVentureDeals } from '@root/serializers';
 import { listVentureDeals } from '@services/venture/deals/list.service';
 import { z } from 'zod';
@@ -11,16 +12,9 @@ export default createController(
       .object({
         status: z.nativeEnum(VENTURE_DEAL_STATUS).optional(),
         platformId: recordId().optional(),
-        limit: z.coerce.number().int().min(1).max(100).default(20),
-        offset: z.coerce.number().int().min(0).default(0),
-        page: z.coerce.number().int().min(1).optional(),
+        ...paginationFields,
       })
-      .transform((data) => {
-        if (data.page !== undefined) {
-          data.offset = (data.page - 1) * data.limit;
-        }
-        return data;
-      }),
+      .transform(applyPaginationTransform),
   }),
   async ({ user, query }) => {
     const deals = await listVentureDeals({
@@ -34,11 +28,7 @@ export default createController(
     return {
       data: {
         data: serializeVentureDeals(deals),
-        pagination: {
-          limit: query.limit,
-          offset: query.offset,
-          page: query.page || Math.floor(query.offset / query.limit) + 1,
-        },
+        pagination: buildPagination(query),
       },
     };
   },

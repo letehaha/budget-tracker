@@ -1,26 +1,9 @@
-/**
- * Venture Deal Serializers
- *
- * Shapes VentureDeals rows for API responses. Drops persistence-only fields
- * (createdAt, updatedAt, deletedAt, metaData) so the wire matches the shared
- * VentureDealModel contract consumed by the frontend.
- */
-import type { CurrencyModel, VentureDealModel } from '@bt/shared/types';
-import type Currencies from '@models/currencies.model';
+import type { VentureDealModel } from '@bt/shared/types';
 import type VentureDeals from '@models/venture/venture-deals.model';
 
+import { serializeCurrency } from './currency.serializer';
 import { serializeVentureEvents } from './venture-events.serializer';
 import { serializeVenturePlatform } from './venture-platforms.serializer';
-
-function serializeCurrency(currency: Currencies): CurrencyModel {
-  return {
-    currency: currency.currency,
-    digits: currency.digits,
-    number: currency.number,
-    code: currency.code,
-    isDisabled: currency.isDisabled,
-  };
-}
 
 export function serializeVentureDeal(deal: VentureDeals): VentureDealModel {
   return {

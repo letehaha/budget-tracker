@@ -1,16 +1,12 @@
 /**
- * Venture Event Serializers
- *
- * Shapes VentureEvents + VentureEventLinks rows for API responses. Drops
- * persistence-only fields (createdAt, updatedAt, metaData) so the wire
- * matches the shared VentureEventModel contract.
- *
  * Money columns (grossAmount, gpCarryAmount, lpNetAmount, refAmount, navAfter)
  * are emitted as decimal strings — same shape the carry/IRR computations use.
  */
 import type { VentureEventLinkModel, VentureEventModel } from '@bt/shared/types';
 import type VentureEventLinks from '@models/venture/venture-event-links.model';
 import type VentureEvents from '@models/venture/venture-events.model';
+
+import { serializeCurrency } from './currency.serializer';
 
 export function serializeVentureEventLink(link: VentureEventLinks): VentureEventLinkModel {
   return {
@@ -43,15 +39,7 @@ export function serializeVentureEvent(event: VentureEvents): VentureEventModel {
     cashFlowMode: event.cashFlowMode,
     notes: event.notes,
     links: event.links ? event.links.map(serializeVentureEventLink) : undefined,
-    currency: event.currency
-      ? {
-          currency: event.currency.currency,
-          digits: event.currency.digits,
-          number: event.currency.number,
-          code: event.currency.code,
-          isDisabled: event.currency.isDisabled,
-        }
-      : undefined,
+    currency: event.currency ? serializeCurrency(event.currency) : undefined,
   };
 }
 

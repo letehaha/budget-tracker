@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/lib/ui/checkbox';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getErrorMessage } from '@/common/utils/error-message';
+import { isDecimal, isValidDate } from '@/common/utils/validators';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useCreateVentureEvent, useVentureEvents } from '@/composable/data-queries/venture/events';
 import { useFormatCurrency } from '@/composable/formatters';
@@ -39,8 +40,7 @@ const props = defineProps<{
 const emit = defineEmits<Emit>();
 
 const createMutation = useCreateVentureEvent();
-const dealIdRef = computed(() => props.deal.id);
-const { data: existingEvents } = useVentureEvents(dealIdRef);
+const { data: existingEvents } = useVentureEvents(() => props.deal.id);
 
 const hasInitialInvestment = computed(() =>
   (existingEvents.value ?? []).some((e) => e.type === VENTURE_EVENT_TYPE.initial_investment),
@@ -131,8 +131,6 @@ const removeSelected = (id: TransactionModel['id']) => {
 };
 
 const toStr = (val: unknown): string => (val == null ? '' : String(val).trim());
-const isDecimal = (val: unknown) => /^-?\d+(\.\d+)?$/.test(toStr(val));
-const isValidDate = (val: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(toStr(val));
 
 const isFormValid = computed(() => {
   if (!isValidDate(form.eventDate)) return false;
@@ -245,7 +243,6 @@ const cashFlowLabel = (mode: VENTURE_CASH_FLOW_MODE): string => `venture.events.
       </FieldLabel>
     </div>
 
-    <!-- Transaction picker (replaces CSV UUID input) -->
     <div v-if="form.cashFlowMode === VENTURE_CASH_FLOW_MODE.linked" class="grid gap-2">
       <FieldLabel :label="$t('venture.events.form.linkedTransactionsLabel')" :only-template="true">
         <div class="grid gap-2">

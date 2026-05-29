@@ -28,38 +28,23 @@ const { addNotification } = useNotificationCenter();
 const createMutation = useCreateVenturePlatform();
 const updateMutation = useUpdateVenturePlatform();
 
-const form = reactive({
-  name: '',
-  website: '',
-  description: '',
-  defaultEntryFeePctPercent: '0',
-  defaultMgmtFeePctPercent: '0',
-  defaultCarryPctPercent: '20',
-  defaultHurdlePctPercent: '0',
+const makeInitial = (p?: VenturePlatformModel | null) => ({
+  name: p?.name ?? '',
+  website: p?.website ?? '',
+  description: p?.description ?? '',
+  defaultEntryFeePctPercent: fractionToPercentInput(p?.defaultEntryFeePct ?? '0'),
+  defaultMgmtFeePctPercent: fractionToPercentInput(p?.defaultMgmtFeePct ?? '0'),
+  defaultCarryPctPercent: fractionToPercentInput(p?.defaultCarryPct ?? '0.2'),
+  defaultHurdlePctPercent: fractionToPercentInput(p?.defaultHurdlePct ?? '0'),
 });
+
+const form = reactive(makeInitial(props.platform));
 
 watch(
   () => props.platform,
   (p) => {
-    if (p) {
-      form.name = p.name;
-      form.website = p.website ?? '';
-      form.description = p.description ?? '';
-      form.defaultEntryFeePctPercent = fractionToPercentInput(p.defaultEntryFeePct);
-      form.defaultMgmtFeePctPercent = fractionToPercentInput(p.defaultMgmtFeePct);
-      form.defaultCarryPctPercent = fractionToPercentInput(p.defaultCarryPct);
-      form.defaultHurdlePctPercent = fractionToPercentInput(p.defaultHurdlePct);
-    } else {
-      form.name = '';
-      form.website = '';
-      form.description = '';
-      form.defaultEntryFeePctPercent = '0';
-      form.defaultMgmtFeePctPercent = '0';
-      form.defaultCarryPctPercent = '20';
-      form.defaultHurdlePctPercent = '0';
-    }
+    Object.assign(form, makeInitial(p));
   },
-  { immediate: true },
 );
 
 const isPending = computed(() => createMutation.isPending.value || updateMutation.isPending.value);

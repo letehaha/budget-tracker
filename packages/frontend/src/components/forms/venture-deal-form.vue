@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
+import HintIcon from '@/components/common/hint-icon.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
@@ -8,17 +8,16 @@ import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getErrorMessage } from '@/common/utils/error-message';
 import { fractionToPercentInput, isPercentInputValid, percentInputToFraction } from '@/common/utils/percentage';
+import { isPositiveDecimal, isValidDate } from '@/common/utils/validators';
 import { useCreateVentureDeal, useUpdateVentureDeal } from '@/composable/data-queries/venture/deals';
 import { useVenturePlatforms } from '@/composable/data-queries/venture/platforms';
 import { useCurrenciesStore } from '@/stores';
 import { VENTURE_SPV_SUBTYPE, type VentureDealModel, type VenturePlatformModel } from '@bt/shared/types';
-import { InfoIcon } from '@lucide/vue';
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-const HINT_CONTENT_CLASS = 'w-fit max-w-[min(450px,calc(100vw-2rem))] text-pretty';
 const { addNotification } = useNotificationCenter();
 
 interface Emit {
@@ -99,17 +98,12 @@ watch(
 
 const isPending = computed(() => createMutation.isPending.value || updateMutation.isPending.value);
 
-const isPositiveDecimal = (val: string | number): boolean => {
-  const n = Number(val);
-  return Number.isFinite(n) && n > 0;
-};
-
 const isFormValid = computed(
   () =>
     form.name.trim().length > 0 &&
     form.currencyCode.length === 3 &&
     isPositiveDecimal(form.principal) &&
-    /^\d{4}-\d{2}-\d{2}$/.test(form.investmentDate) &&
+    isValidDate(form.investmentDate) &&
     isPercentInputValid(form.entryFeePctPercent) &&
     isPercentInputValid(form.mgmtFeePctPercent) &&
     isPercentInputValid(form.carryPctPercent) &&
@@ -203,13 +197,7 @@ const onSubmit = async () => {
       <div>
         <FieldLabel :label="$t('venture.deals.form.subtypeLabel')">
           <template #label-after>
-            <ResponsiveTooltip
-              :delay-duration="100"
-              :content="$t('venture.deals.form.subtypeHint')"
-              :content-class-name="HINT_CONTENT_CLASS"
-            >
-              <InfoIcon class="text-muted-foreground size-5 cursor-help" @click.prevent.stop />
-            </ResponsiveTooltip>
+            <HintIcon :content="$t('venture.deals.form.subtypeHint')" />
           </template>
           <Select.Select v-model="form.spvSubtype" :disabled="isPending">
             <Select.SelectTrigger>
@@ -235,13 +223,7 @@ const onSubmit = async () => {
       :disabled="isPending"
     >
       <template #label-after>
-        <ResponsiveTooltip
-          :delay-duration="100"
-          :content="$t('venture.deals.form.targetCompanyHint')"
-          :content-class-name="HINT_CONTENT_CLASS"
-        >
-          <InfoIcon class="text-muted-foreground size-5 cursor-help" @click.prevent.stop />
-        </ResponsiveTooltip>
+        <HintIcon :content="$t('venture.deals.form.targetCompanyHint')" />
       </template>
     </InputField>
 
@@ -255,13 +237,7 @@ const onSubmit = async () => {
         :error="!isPositiveDecimal(form.principal) && $t('venture.deals.form.principalInvalid')"
       >
         <template #label-after>
-          <ResponsiveTooltip
-            :delay-duration="100"
-            :content="$t('venture.deals.form.principalHint')"
-            :content-class-name="HINT_CONTENT_CLASS"
-          >
-            <InfoIcon class="text-muted-foreground size-5 cursor-help" @click.prevent.stop />
-          </ResponsiveTooltip>
+          <HintIcon :content="$t('venture.deals.form.principalHint')" />
         </template>
       </InputField>
       <InputField
@@ -273,13 +249,7 @@ const onSubmit = async () => {
         :disabled="isPending"
       >
         <template #label-after>
-          <ResponsiveTooltip
-            :delay-duration="100"
-            :content="$t('venture.deals.form.entryFeeHint')"
-            :content-class-name="HINT_CONTENT_CLASS"
-          >
-            <InfoIcon class="text-muted-foreground size-5 cursor-help" @click.prevent.stop />
-          </ResponsiveTooltip>
+          <HintIcon :content="$t('venture.deals.form.entryFeeHint')" />
         </template>
       </InputField>
     </div>
@@ -298,13 +268,7 @@ const onSubmit = async () => {
         :disabled="isPending"
       >
         <template #label-after>
-          <ResponsiveTooltip
-            :delay-duration="100"
-            :content="$t('venture.deals.form.expectedExitDateHint')"
-            :content-class-name="HINT_CONTENT_CLASS"
-          >
-            <InfoIcon class="text-muted-foreground size-5 cursor-help" @click.prevent.stop />
-          </ResponsiveTooltip>
+          <HintIcon :content="$t('venture.deals.form.expectedExitDateHint')" />
         </template>
       </InputField>
     </div>
@@ -319,13 +283,7 @@ const onSubmit = async () => {
         :error="!isPercentInputValid(form.entryFeePctPercent) && $t('venture.deals.form.percentInvalid')"
       >
         <template #label-after>
-          <ResponsiveTooltip
-            :delay-duration="100"
-            :content="$t('venture.deals.form.entryFeePctHint')"
-            :content-class-name="HINT_CONTENT_CLASS"
-          >
-            <InfoIcon class="text-muted-foreground size-5 cursor-help" @click.prevent.stop />
-          </ResponsiveTooltip>
+          <HintIcon :content="$t('venture.deals.form.entryFeePctHint')" />
         </template>
       </InputField>
       <InputField
@@ -337,13 +295,7 @@ const onSubmit = async () => {
         :error="!isPercentInputValid(form.mgmtFeePctPercent) && $t('venture.deals.form.percentInvalid')"
       >
         <template #label-after>
-          <ResponsiveTooltip
-            :delay-duration="100"
-            :content="$t('venture.deals.form.mgmtFeePctHint')"
-            :content-class-name="HINT_CONTENT_CLASS"
-          >
-            <InfoIcon class="text-muted-foreground size-5 cursor-help" @click.prevent.stop />
-          </ResponsiveTooltip>
+          <HintIcon :content="$t('venture.deals.form.mgmtFeePctHint')" />
         </template>
       </InputField>
       <InputField
@@ -355,13 +307,7 @@ const onSubmit = async () => {
         :error="!isPercentInputValid(form.carryPctPercent) && $t('venture.deals.form.percentInvalid')"
       >
         <template #label-after>
-          <ResponsiveTooltip
-            :delay-duration="100"
-            :content="$t('venture.deals.form.carryPctHint')"
-            :content-class-name="HINT_CONTENT_CLASS"
-          >
-            <InfoIcon class="text-muted-foreground size-5 cursor-help" @click.prevent.stop />
-          </ResponsiveTooltip>
+          <HintIcon :content="$t('venture.deals.form.carryPctHint')" />
         </template>
       </InputField>
       <InputField
@@ -373,13 +319,7 @@ const onSubmit = async () => {
         :error="!isPercentInputValid(form.hurdlePctPercent) && $t('venture.deals.form.percentInvalid')"
       >
         <template #label-after>
-          <ResponsiveTooltip
-            :delay-duration="100"
-            :content="$t('venture.deals.form.hurdlePctHint')"
-            :content-class-name="HINT_CONTENT_CLASS"
-          >
-            <InfoIcon class="text-muted-foreground size-5 cursor-help" @click.prevent.stop />
-          </ResponsiveTooltip>
+          <HintIcon :content="$t('venture.deals.form.hurdlePctHint')" />
         </template>
       </InputField>
     </div>

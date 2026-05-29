@@ -1,10 +1,3 @@
-/**
- * Venture Platform Serializers
- *
- * Shapes VenturePlatforms rows for API responses. Drops persistence-only
- * fields (createdAt, updatedAt, deletedAt) so the wire matches the shared
- * VenturePlatformModel contract consumed by the frontend.
- */
 import type { VenturePlatformModel } from '@bt/shared/types';
 import type VenturePlatforms from '@models/venture/venture-platforms.model';
 
