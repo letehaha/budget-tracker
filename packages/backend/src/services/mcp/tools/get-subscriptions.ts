@@ -26,7 +26,25 @@ export function registerGetSubscriptions(server: McpServer) {
 
       const result = await getSubscriptions({ userId, isActive: args.isActive, type: args.type });
 
-      return jsonContent({ data: result });
+      // Drop userId, matchingRules (engine config blob), bare account/category FKs
+      // (the embedded objects already carry them), audit timestamps and category UI hints.
+      const slimmed = result.map((s) => ({
+        id: s.id,
+        name: s.name,
+        type: s.type,
+        expectedAmount: s.expectedAmount,
+        expectedCurrencyCode: s.expectedCurrencyCode,
+        frequency: s.frequency,
+        startDate: s.startDate,
+        endDate: s.endDate,
+        isActive: s.isActive,
+        notes: s.notes,
+        linkedTransactionsCount: s.linkedTransactionsCount,
+        account: s.account,
+        category: s.category ? { id: s.category.id, name: s.category.name } : null,
+      }));
+
+      return jsonContent({ data: slimmed });
     },
   );
 }

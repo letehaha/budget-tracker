@@ -34,7 +34,17 @@ export function registerGetPortfolios(server: McpServer) {
         offset: args.offset,
       });
 
-      return jsonContent({ data: portfolios });
+      // Raw model dump otherwise; drop the caller's own userId and audit fields.
+      const slimmed = portfolios.map((p) => ({
+        id: p.id,
+        name: p.name,
+        portfolioType: p.portfolioType,
+        description: p.description,
+        isEnabled: p.isEnabled,
+        createdAt: p.createdAt,
+      }));
+
+      return jsonContent({ data: slimmed });
     },
   );
 }

@@ -4,6 +4,7 @@ import { Money } from '@common/types/money';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
+import { slimTransactionsForMcp } from '@services/mcp/serializers';
 import { getTransactions } from '@services/transactions/get-transactions';
 import { z } from 'zod';
 
@@ -67,7 +68,7 @@ export function registerSearchTransactions(server: McpServer) {
 
       const transactions = await getTransactions(filterParams);
 
-      const serialized = serializeTransactions(transactions);
+      const serialized = slimTransactionsForMcp(serializeTransactions(transactions));
 
       return jsonContent({
         data: {
