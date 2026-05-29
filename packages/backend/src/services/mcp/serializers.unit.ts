@@ -24,7 +24,6 @@ const fullAccount: AccountApiResponse = {
   currencyCode: 'USD',
   userId: 42,
   externalId: 'ext-abc',
-  externalData: { iban: 'SECRET', owner: 'PII' },
   status: ACCOUNT_STATUSES.active,
   excludeFromStats: false,
   bankDataProviderConnectionId: 'conn-1',
@@ -88,7 +87,6 @@ describe('MCP serializers', () => {
       for (const dropped of [
         'userId',
         'externalId',
-        'externalData',
         'bankDataProviderConnectionId',
         'bankProviderType',
         'needsRelink',
