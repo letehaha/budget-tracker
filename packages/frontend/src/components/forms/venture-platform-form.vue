@@ -3,6 +3,8 @@ import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { getErrorMessage } from '@/common/utils/error-message';
+import { fractionToPercentInput, percentInputToFraction } from '@/common/utils/percentage';
 import { useCreateVenturePlatform, useUpdateVenturePlatform } from '@/composable/data-queries/venture/platforms';
 import type { VenturePlatformModel } from '@bt/shared/types';
 import { computed, reactive, watch } from 'vue';
@@ -36,18 +38,6 @@ const form = reactive({
   defaultHurdlePctPercent: '0',
 });
 
-const decimalToPercent = (decimal: string): string => {
-  const num = Number(decimal);
-  if (!Number.isFinite(num)) return '0';
-  return (num * 100).toString();
-};
-
-const percentToDecimal = (percent: string): string => {
-  const num = Number(percent);
-  if (!Number.isFinite(num)) return '0';
-  return (num / 100).toString();
-};
-
 watch(
   () => props.platform,
   (p) => {
@@ -55,10 +45,10 @@ watch(
       form.name = p.name;
       form.website = p.website ?? '';
       form.description = p.description ?? '';
-      form.defaultEntryFeePctPercent = decimalToPercent(p.defaultEntryFeePct);
-      form.defaultMgmtFeePctPercent = decimalToPercent(p.defaultMgmtFeePct);
-      form.defaultCarryPctPercent = decimalToPercent(p.defaultCarryPct);
-      form.defaultHurdlePctPercent = decimalToPercent(p.defaultHurdlePct);
+      form.defaultEntryFeePctPercent = fractionToPercentInput(p.defaultEntryFeePct);
+      form.defaultMgmtFeePctPercent = fractionToPercentInput(p.defaultMgmtFeePct);
+      form.defaultCarryPctPercent = fractionToPercentInput(p.defaultCarryPct);
+      form.defaultHurdlePctPercent = fractionToPercentInput(p.defaultHurdlePct);
     } else {
       form.name = '';
       form.website = '';
@@ -92,10 +82,10 @@ const buildPayload = () => ({
   name: form.name.trim(),
   website: form.website.trim() || null,
   description: form.description.trim() || null,
-  defaultEntryFeePct: percentToDecimal(form.defaultEntryFeePctPercent),
-  defaultMgmtFeePct: percentToDecimal(form.defaultMgmtFeePctPercent),
-  defaultCarryPct: percentToDecimal(form.defaultCarryPctPercent),
-  defaultHurdlePct: percentToDecimal(form.defaultHurdlePctPercent),
+  defaultEntryFeePct: percentInputToFraction(form.defaultEntryFeePctPercent),
+  defaultMgmtFeePct: percentInputToFraction(form.defaultMgmtFeePctPercent),
+  defaultCarryPct: percentInputToFraction(form.defaultCarryPctPercent),
+  defaultHurdlePct: percentInputToFraction(form.defaultHurdlePctPercent),
 });
 
 const onSubmit = async () => {
@@ -115,7 +105,7 @@ const onSubmit = async () => {
     emit('saved', saved);
   } catch (err) {
     addNotification({
-      text: err instanceof Error && err.message ? err.message : t('venture.platforms.notifications.error'),
+      text: getErrorMessage(err, t('venture.platforms.notifications.error')),
       type: NotificationType.error,
     });
   }

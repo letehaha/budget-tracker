@@ -148,3 +148,32 @@ export const numericString = (options?: { allowNegative?: boolean; allowZero?: b
       },
     )
     .transform((val) => String(val));
+
+/**
+ * Strict decimal string for monetary / arithmetic fields stored as decimal columns.
+ * Accepts number or string, validates against `-?\d+(.\d+)?`, returns canonical string.
+ * Use when a value will be persisted as a decimal and must round-trip without
+ * floating-point lossiness or scientific notation. For pure `> 0` validation use
+ * `positiveAmountString()` instead.
+ */
+export const decimalString = () =>
+  z.union([z.string(), z.number()]).transform((v, ctx) => {
+    const s = typeof v === 'number' ? v.toString() : v;
+    if (!/^-?\d+(\.\d+)?$/.test(s)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid decimal' });
+      return z.NEVER;
+    }
+    return s;
+  });
+
+/**
+ * Fractional percentage in [0, 1] (e.g. 0.085 = 8.5%). Accepts number or numeric
+ * string, returns canonical string. Use for stored fee/carry/hurdle fractions where
+ * the persisted value is the raw fraction, not the display percent.
+ */
+export const percentageFraction = () =>
+  z.coerce
+    .number()
+    .min(0)
+    .max(1)
+    .transform((v) => v.toString());

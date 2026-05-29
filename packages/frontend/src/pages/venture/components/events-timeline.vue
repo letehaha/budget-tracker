@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getErrorMessage } from '@/common/utils/error-message';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { Card, CardContent } from '@/components/lib/ui/card';
 import { Checkbox } from '@/components/lib/ui/checkbox';
@@ -145,7 +146,7 @@ const onConfirmDelete = async () => {
     deleteTarget.value = null;
   } catch (err) {
     addNotification({
-      text: err instanceof Error && err.message ? err.message : t('venture.events.notifications.error'),
+      text: getErrorMessage(err, t('venture.events.notifications.error')),
       type: NotificationType.error,
     });
   }

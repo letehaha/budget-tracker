@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getErrorMessage } from '@/common/utils/error-message';
+import { formatFractionAsPercent } from '@/common/utils/percentage';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import VenturePlatformForm from '@/components/forms/venture-platform-form.vue';
@@ -24,12 +26,6 @@ const deletingPlatform = ref<VenturePlatformModel | null>(null);
 
 const deleteMutation = useDeleteVenturePlatform();
 
-const formatPct = (decimal: string): string => {
-  const num = Number(decimal);
-  if (!Number.isFinite(num)) return '0%';
-  return `${(num * 100).toFixed(2).replace(/\.?0+$/, '')}%`;
-};
-
 const onCreated = () => {
   createDialogOpen.value = false;
 };
@@ -49,7 +45,7 @@ const confirmDelete = async () => {
     deletingPlatform.value = null;
   } catch (err) {
     addNotification({
-      text: err instanceof Error && err.message ? err.message : t('venture.platforms.notifications.error'),
+      text: getErrorMessage(err, t('venture.platforms.notifications.error')),
       type: NotificationType.error,
     });
   }
@@ -150,26 +146,32 @@ const confirmDelete = async () => {
                 {{ $t('venture.platforms.entryFee') }}
               </div>
               <div class="mt-0.5 text-base font-semibold tabular-nums">
-                {{ formatPct(platform.defaultEntryFeePct) }}
+                {{ formatFractionAsPercent(platform.defaultEntryFeePct) }}
               </div>
             </div>
             <div>
               <div class="text-muted-foreground text-[10px] tracking-wide uppercase">
                 {{ $t('venture.platforms.mgmtFee') }}
               </div>
-              <div class="mt-0.5 text-base font-semibold tabular-nums">{{ formatPct(platform.defaultMgmtFeePct) }}</div>
+              <div class="mt-0.5 text-base font-semibold tabular-nums">
+                {{ formatFractionAsPercent(platform.defaultMgmtFeePct) }}
+              </div>
             </div>
             <div>
               <div class="text-muted-foreground text-[10px] tracking-wide uppercase">
                 {{ $t('venture.platforms.carry') }}
               </div>
-              <div class="mt-0.5 text-base font-semibold tabular-nums">{{ formatPct(platform.defaultCarryPct) }}</div>
+              <div class="mt-0.5 text-base font-semibold tabular-nums">
+                {{ formatFractionAsPercent(platform.defaultCarryPct) }}
+              </div>
             </div>
             <div>
               <div class="text-muted-foreground text-[10px] tracking-wide uppercase">
                 {{ $t('venture.platforms.hurdle') }}
               </div>
-              <div class="mt-0.5 text-base font-semibold tabular-nums">{{ formatPct(platform.defaultHurdlePct) }}</div>
+              <div class="mt-0.5 text-base font-semibold tabular-nums">
+                {{ formatFractionAsPercent(platform.defaultHurdlePct) }}
+              </div>
             </div>
           </div>
         </div>

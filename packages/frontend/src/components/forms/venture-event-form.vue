@@ -7,6 +7,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { getErrorMessage } from '@/common/utils/error-message';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useCreateVentureEvent, useVentureEvents } from '@/composable/data-queries/venture/events';
 import { useFormatCurrency } from '@/composable/formatters';
@@ -177,7 +178,7 @@ const onSubmit = async () => {
     emit('saved', saved);
   } catch (err) {
     addNotification({
-      text: err instanceof Error && err.message ? err.message : t('venture.events.notifications.error'),
+      text: getErrorMessage(err, t('venture.events.notifications.error')),
       type: NotificationType.error,
     });
   }

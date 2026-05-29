@@ -1,34 +1,20 @@
-import { recordId } from '@common/lib/zod/custom-types';
+import { dateString, decimalString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { updateVentureEvent } from '@services/venture/events/update.service';
 import { z } from 'zod';
-
-const decimal = () =>
-  z.union([z.string(), z.number()]).transform((v) => {
-    const s = typeof v === 'number' ? v.toString() : v;
-    if (!/^-?\d+(\.\d+)?$/.test(s)) throw new Error('Invalid decimal');
-    return s;
-  });
 
 export default createController(
   z.object({
     params: z.object({ id: recordId() }),
     body: z
       .object({
-        eventDate: z
-          .string()
-          .regex(/^\d{4}-\d{2}-\d{2}$/)
-          .optional(),
-        grossAmount: decimal().nullable().optional(),
-        navAfter: decimal().nullable().optional(),
-        quantityPct: z
-          .union([z.string(), z.number()])
-          .transform((v) => (typeof v === 'number' ? v.toString() : v))
-          .nullable()
-          .optional(),
+        eventDate: dateString().optional(),
+        grossAmount: decimalString().nullable().optional(),
+        navAfter: decimalString().nullable().optional(),
+        quantityPct: decimalString().nullable().optional(),
         notes: z.string().max(5000).nullable().optional(),
-        gpCarryAmount: decimal().nullable().optional(),
-        lpNetAmount: decimal().nullable().optional(),
+        gpCarryAmount: decimalString().nullable().optional(),
+        lpNetAmount: decimalString().nullable().optional(),
         resetOverrides: z.boolean().optional(),
       })
       .strict()

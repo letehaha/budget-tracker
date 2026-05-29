@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getErrorMessage } from '@/common/utils/error-message';
+import { formatFractionAsPercent } from '@/common/utils/percentage';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import VentureDealForm from '@/components/forms/venture-deal-form.vue';
@@ -57,12 +59,6 @@ const statusMeta = (status: VENTURE_DEAL_STATUS): { label: string; cls: string; 
   return map[status];
 };
 
-const formatPct = (decimal: string): string => {
-  const n = Number(decimal);
-  if (!Number.isFinite(n)) return '0%';
-  return `${(n * 100).toFixed(2).replace(/\.?0+$/, '')}%`;
-};
-
 const formatDate = (iso: string): string => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -85,7 +81,7 @@ const onDelete = async () => {
     router.push({ name: ROUTES_NAMES.venture });
   } catch (err) {
     addNotification({
-      text: err instanceof Error && err.message ? err.message : t('venture.deals.notifications.error'),
+      text: getErrorMessage(err, t('venture.deals.notifications.error')),
       type: NotificationType.error,
     });
   }
@@ -163,11 +159,11 @@ const onDelete = async () => {
           </div>
           <div>
             <div class="text-muted-foreground text-xs">{{ $t('venture.deals.carry') }}</div>
-            <div class="mt-0.5 text-xl font-medium tabular-nums">{{ formatPct(deal.carryPct) }}</div>
+            <div class="mt-0.5 text-xl font-medium tabular-nums">{{ formatFractionAsPercent(deal.carryPct) }}</div>
           </div>
           <div>
             <div class="text-muted-foreground text-xs">{{ $t('venture.deals.hurdle') }}</div>
-            <div class="mt-0.5 text-xl font-medium tabular-nums">{{ formatPct(deal.hurdlePct) }}</div>
+            <div class="mt-0.5 text-xl font-medium tabular-nums">{{ formatFractionAsPercent(deal.hurdlePct) }}</div>
           </div>
           <div>
             <div class="text-muted-foreground text-xs">{{ $t('venture.deals.investmentDate') }}</div>

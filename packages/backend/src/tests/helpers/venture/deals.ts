@@ -120,7 +120,6 @@ export async function getVentureDealMetrics<R extends boolean | undefined = fals
       tvpi: string | null;
       dpi: string | null;
       irr: string | null;
-      moic: string | null;
     },
     R
   >({

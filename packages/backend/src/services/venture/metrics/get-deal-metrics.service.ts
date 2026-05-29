@@ -9,7 +9,7 @@ import { computeCostBasis } from './compute-cost-basis';
 import { computeCumulativeDistributions } from './compute-cumulative-distributions';
 import { computeCurrentValue } from './compute-current-value';
 import { computeIrr } from './compute-irr';
-import { computeDpi, computeMoic, computeTvpi } from './compute-tvpi-dpi';
+import { computeDpi, computeTvpi } from './compute-tvpi-dpi';
 
 interface GetDealMetricsParams {
   userId: number;
@@ -46,7 +46,6 @@ const getDealMetricsImpl = async ({
 
   const tvpi = computeTvpi({ currentValue, cumulativeDistributions, costBasis });
   const dpi = computeDpi({ cumulativeDistributions, costBasis });
-  const moic = computeMoic({ currentValue, cumulativeDistributions, costBasis });
   const irr = computeIrr({ deal, events, currentValue, asOfDate });
 
   const pnlAbsolute = new Big(currentValue).plus(cumulativeDistributions).minus(costBasis).toFixed(10);
@@ -62,7 +61,6 @@ const getDealMetricsImpl = async ({
     tvpi,
     dpi,
     irr,
-    moic,
   };
 };
 

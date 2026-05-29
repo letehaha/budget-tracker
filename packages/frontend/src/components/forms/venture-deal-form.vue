@@ -6,6 +6,8 @@ import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { getErrorMessage } from '@/common/utils/error-message';
+import { fractionToPercentInput, percentInputToFraction } from '@/common/utils/percentage';
 import { useCreateVentureDeal, useUpdateVentureDeal } from '@/composable/data-queries/venture/deals';
 import { useVenturePlatforms } from '@/composable/data-queries/venture/platforms';
 import { useCurrenciesStore } from '@/stores';
@@ -58,18 +60,6 @@ const form = reactive({
   hurdlePctPercent: '0',
 });
 
-const percentToDecimal = (percent: string): string => {
-  const num = Number(percent);
-  if (!Number.isFinite(num)) return '0';
-  return (num / 100).toString();
-};
-
-const decimalToPercent = (decimal: string): string => {
-  const num = Number(decimal);
-  if (!Number.isFinite(num)) return '0';
-  return (num * 100).toString();
-};
-
 // Auto-fill fees from platform defaults when platform changes (creation only)
 watch(
   () => form.platformId,
@@ -78,10 +68,10 @@ watch(
     if (!newPlatformId || newPlatformId === NO_PLATFORM) return;
     const platform = platforms.value.find((p) => p.id === newPlatformId);
     if (!platform) return;
-    form.entryFeePctPercent = decimalToPercent(platform.defaultEntryFeePct);
-    form.mgmtFeePctPercent = decimalToPercent(platform.defaultMgmtFeePct);
-    form.carryPctPercent = decimalToPercent(platform.defaultCarryPct);
-    form.hurdlePctPercent = decimalToPercent(platform.defaultHurdlePct);
+    form.entryFeePctPercent = fractionToPercentInput(platform.defaultEntryFeePct);
+    form.mgmtFeePctPercent = fractionToPercentInput(platform.defaultMgmtFeePct);
+    form.carryPctPercent = fractionToPercentInput(platform.defaultCarryPct);
+    form.hurdlePctPercent = fractionToPercentInput(platform.defaultHurdlePct);
   },
 );
 
@@ -99,10 +89,10 @@ watch(
     form.investmentDate = d.investmentDate;
     form.expectedExitDate = d.expectedExitDate ?? '';
     form.notes = d.notes ?? '';
-    form.entryFeePctPercent = decimalToPercent(d.entryFeePct);
-    form.mgmtFeePctPercent = decimalToPercent(d.mgmtFeePct);
-    form.carryPctPercent = decimalToPercent(d.carryPct);
-    form.hurdlePctPercent = decimalToPercent(d.hurdlePct);
+    form.entryFeePctPercent = fractionToPercentInput(d.entryFeePct);
+    form.mgmtFeePctPercent = fractionToPercentInput(d.mgmtFeePct);
+    form.carryPctPercent = fractionToPercentInput(d.carryPct);
+    form.hurdlePctPercent = fractionToPercentInput(d.hurdlePct);
   },
   { immediate: true },
 );
@@ -145,11 +135,11 @@ const buildPayload = () => ({
   platformId: form.platformId === NO_PLATFORM ? null : form.platformId,
   spvSubtype: form.spvSubtype,
   targetCompany: toStr(form.targetCompany) || null,
-  entryFeePct: percentToDecimal(form.entryFeePctPercent),
+  entryFeePct: percentInputToFraction(form.entryFeePctPercent),
   ...(toStr(form.entryFee) !== '' && { entryFee: toStr(form.entryFee) }),
-  mgmtFeePct: percentToDecimal(form.mgmtFeePctPercent),
-  carryPct: percentToDecimal(form.carryPctPercent),
-  hurdlePct: percentToDecimal(form.hurdlePctPercent),
+  mgmtFeePct: percentInputToFraction(form.mgmtFeePctPercent),
+  carryPct: percentInputToFraction(form.carryPctPercent),
+  hurdlePct: percentInputToFraction(form.hurdlePctPercent),
   expectedExitDate: toStr(form.expectedExitDate) || null,
   notes: toStr(form.notes) || null,
 });
@@ -169,7 +159,7 @@ const onSubmit = async () => {
     emit('saved', saved);
   } catch (err) {
     addNotification({
-      text: err instanceof Error && err.message ? err.message : t('venture.deals.notifications.error'),
+      text: getErrorMessage(err, t('venture.deals.notifications.error')),
       type: NotificationType.error,
     });
   }

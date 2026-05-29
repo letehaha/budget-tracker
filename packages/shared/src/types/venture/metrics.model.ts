@@ -8,5 +8,4 @@ export interface VentureDealMetricsModel {
   tvpi: string | null;
   dpi: string | null;
   irr: string | null;
-  moic: string | null;
 }

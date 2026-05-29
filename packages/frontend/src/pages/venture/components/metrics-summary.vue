@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatFractionAsPercent } from '@/common/utils/percentage';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useVentureDealMetrics } from '@/composable/data-queries/venture/deal-metrics';
 import { TrendingDownIcon, TrendingUpIcon } from '@lucide/vue';
@@ -19,13 +20,6 @@ const formatMultiple = (val: string | null): string => {
   const n = Number(val);
   if (!Number.isFinite(n)) return '—';
   return `${n.toFixed(2)}x`;
-};
-
-const formatPct = (val: string | null): string => {
-  if (val === null || val === undefined) return '—';
-  const n = Number(val);
-  if (!Number.isFinite(n)) return '—';
-  return `${(n * 100).toFixed(2)}%`;
 };
 
 const pnlSign = computed<'profit' | 'loss' | 'flat'>(() => {
@@ -76,7 +70,9 @@ const pnlClass = computed(() => {
             <TrendingUpIcon v-if="pnlSign === 'profit'" class="size-4" />
             <TrendingDownIcon v-else-if="pnlSign === 'loss'" class="size-4" />
             <span>{{ formatAmountByCurrencyCode(Number(metrics.pnlAbsolute), currencyCode) }}</span>
-            <span v-if="metrics.pnlPct" class="text-muted-foreground text-xs">({{ formatPct(metrics.pnlPct) }})</span>
+            <span v-if="metrics.pnlPct" class="text-muted-foreground text-xs"
+              >({{ formatFractionAsPercent(metrics.pnlPct) }})</span
+            >
           </div>
         </div>
       </div>
@@ -86,7 +82,7 @@ const pnlClass = computed(() => {
       <div class="text-muted-foreground mb-4 text-[10px] font-medium tracking-[0.12em] uppercase">
         {{ $t('venture.metrics.returnsSection') }}
       </div>
-      <div class="grid grid-cols-2 gap-4 @sm/venture-deal:grid-cols-4">
+      <div class="grid grid-cols-3 gap-4">
         <div>
           <div class="text-muted-foreground text-xs">{{ $t('venture.metrics.tvpi') }}</div>
           <div class="mt-0.5 text-2xl font-medium tabular-nums">{{ formatMultiple(metrics.tvpi) }}</div>
@@ -97,11 +93,7 @@ const pnlClass = computed(() => {
         </div>
         <div>
           <div class="text-muted-foreground text-xs">{{ $t('venture.metrics.irr') }}</div>
-          <div class="mt-0.5 text-2xl font-medium tabular-nums">{{ formatPct(metrics.irr) }}</div>
-        </div>
-        <div>
-          <div class="text-muted-foreground text-xs">{{ $t('venture.metrics.moic') }}</div>
-          <div class="mt-0.5 text-2xl font-medium tabular-nums">{{ formatMultiple(metrics.moic) }}</div>
+          <div class="mt-0.5 text-2xl font-medium tabular-nums">{{ formatFractionAsPercent(metrics.irr) }}</div>
         </div>
       </div>
     </div>
