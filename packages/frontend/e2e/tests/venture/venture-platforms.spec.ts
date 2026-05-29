@@ -16,7 +16,7 @@ test.beforeAll(async () => {
   await signUpAndVerify({ creds });
 });
 
-test.describe('Venture Platforms — Phase 1 CRUD', () => {
+test.describe('Venture Platforms — CRUD', () => {
   test.use({
     ignoreHTTPSErrors: true,
     actionTimeout: 15_000,
@@ -251,16 +251,3 @@ test.describe('Venture Platforms — Phase 1 CRUD', () => {
     await expect(page.getByRole('heading', { name: /^venture$/i, level: 1 })).toBeVisible();
   });
 });
-
-/**
- * The PRD's Appendix scenarios (1–9) cover the full deal lifecycle —
- * creating a deal, recording cash events (initial_investment, capital_call,
- * distribution, nav_update, exit, writedown, fee_payment), linking
- * transactions, carry overrides, multi-tx links, and metrics validation.
- *
- * Phase 1 ships ONLY the venture-platforms surface; deals, events, and
- * linking endpoints land in Phases 2–5 (see
- * docs/prds/venture-investment-tracking-module.md). Lifecycle specs
- * (deal-creation, event-recording, carry-override, multi-tx-link,
- * out-of-wallet, write-off) will be added alongside the corresponding UI.
- */

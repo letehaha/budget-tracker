@@ -15,12 +15,10 @@ import { loginViaUI } from '../../helpers/auth';
 import { buildTestCredentials, signUpAndVerify } from '../../helpers/test-setup';
 
 /**
- * Full venture investment lifecycle (PRD scenario 1).
- *
- * Drives the event chain via the API (Phase 3 FE event forms are a
- * follow-up), then verifies the deal status transitions surface in the
- * UI as the events fire — initial deposit, NAV update, partial
- * distribution → `partial_exit`, final exit → `fully_exited`.
+ * Full venture investment lifecycle. Drives the event chain via the API,
+ * then verifies the deal status transitions surface in the UI as the
+ * events fire — initial deposit, NAV update, partial distribution →
+ * `partial_exit`, final exit → `fully_exited`.
  */
 
 const CURRENCY = 'USD';
@@ -70,7 +68,7 @@ test.beforeAll(async ({ playwright }) => {
   dealId = extractId(dealResponse);
 });
 
-test.describe('Venture Investment Lifecycle — PRD scenario 1', () => {
+test.describe('Venture Investment Lifecycle', () => {
   test.use({
     ignoreHTTPSErrors: true,
     actionTimeout: 15_000,
@@ -198,7 +196,7 @@ test.describe('Venture Investment Lifecycle — PRD scenario 1', () => {
   });
 });
 
-test.describe('Venture Investment Failure Flows — PRD scenario 9', () => {
+test.describe('Venture Investment Failure Flows', () => {
   test("linking a tx that's already linked to a venture event is rejected", async ({ playwright }) => {
     const failCreds = buildTestCredentials({ prefix: 'vlf' });
     await signUpAndVerify({ creds: failCreds });

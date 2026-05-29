@@ -22,7 +22,7 @@ describe('Get Deal Metrics E2E', () => {
       expect(Number(metrics.dpi)).toBe(0);
     });
 
-    it('PRD scenario 1 final state — costBasis=17360, cumDist=27472, TVPI≈1.58, DPI≈1.58', async () => {
+    it('full lifecycle final state — costBasis=17360, cumDist=27472, TVPI≈1.58, DPI≈1.58', async () => {
       const baseCurrencyCode = global.BASE_CURRENCY.code;
       const account = await helpers.createAccount({ raw: true });
 

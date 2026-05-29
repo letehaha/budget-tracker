@@ -48,7 +48,7 @@ describe('computeCarry — European waterfall', () => {
     expect(Number(result.lpNetAmount)).toBeCloseTo(8000, 2);
   });
 
-  it('SK 116 final-exit case from PRD scenario 1', () => {
+  it('SK 116 final-exit case', () => {
     // gross=$25,000, costBasis=17360, cumulativeReturned=$5,000 (Year 1 dist)
     // principalRemaining=$12,360 → principal return $12,360, profit $12,640
     // carry = 0.2 * 12640 = 2528, lp = 22472

@@ -20,10 +20,10 @@ const API_BASE_URL = process.env.PLAYWRIGHT_API_BASE_URL || 'https://localhost:8
 test.describe.configure({ mode: 'serial' });
 
 // ─────────────────────────────────────────────────────────────────────
-// Test 1 — Write-off lifecycle (PRD scenario 2)
+// Test 1 — Write-off lifecycle
 // ─────────────────────────────────────────────────────────────────────
 
-test.describe('Venture Write-off Lifecycle — PRD scenario 2', () => {
+test.describe('Venture Write-off Lifecycle', () => {
   const creds = buildTestCredentials({ prefix: 'vwo' });
   let request: Awaited<ReturnType<typeof signInViaApi>>;
   let dealId: string;
@@ -107,7 +107,7 @@ test.describe('Venture Write-off Lifecycle — PRD scenario 2', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// Test 2 — Out-of-wallet UI flow (PRD scenario 4)
+// Test 2 — Out-of-wallet UI flow
 // ─────────────────────────────────────────────────────────────────────
 
 test.describe('Venture Out-of-wallet event — UI flow', () => {
@@ -133,6 +133,17 @@ test.describe('Venture Out-of-wallet event — UI flow', () => {
       },
     });
     dealId = extractId(deal);
+
+    // Backend rejects any event before an initial_investment exists on the deal.
+    await createVentureEvent({
+      request,
+      dealId,
+      payload: {
+        type: 'initial_investment',
+        eventDate: '2025-01-01',
+        cashFlowMode: 'out_of_wallet',
+      },
+    });
   });
 
   test('save fee_payment with cashFlowMode=out_of_wallet → timeline shows badge', async ({ page }) => {
@@ -169,7 +180,7 @@ test.describe('Venture Out-of-wallet event — UI flow', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// Test 3 — Multi-tx picker UI flow (PRD scenario 5)
+// Test 3 — Multi-tx picker UI flow
 // ─────────────────────────────────────────────────────────────────────
 
 test.describe('Venture multi-tx picker — UI flow', () => {
@@ -203,6 +214,17 @@ test.describe('Venture multi-tx picker — UI flow', () => {
       },
     });
     dealId = extractId(deal);
+
+    // Backend rejects any event before an initial_investment exists on the deal.
+    await createVentureEvent({
+      request,
+      dealId,
+      payload: {
+        type: 'initial_investment',
+        eventDate: '2026-03-24',
+        cashFlowMode: 'out_of_wallet',
+      },
+    });
 
     // Two expense txs of distinct, easily-spotted amounts.
     await createTransaction({ request, accountId, amount: 10000, transactionType: 'expense' });

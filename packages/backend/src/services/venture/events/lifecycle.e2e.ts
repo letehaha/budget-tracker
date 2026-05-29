@@ -5,13 +5,13 @@ import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 /**
- * Lifecycle e2e — exercises the full PRD scenario 1 happy path + scenario 9
- * failure flows against the venture event endpoints. All txs, accounts, and
- * deals run in the user's base currency (global.BASE_CURRENCY.code) to avoid
- * FX-rate lookups during ref-amount restamp.
+ * Lifecycle e2e — exercises the full happy-path lifecycle + failure flows
+ * against the venture event endpoints. All txs, accounts, and deals run in
+ * the user's base currency (global.BASE_CURRENCY.code) to avoid FX-rate
+ * lookups during ref-amount restamp.
  */
 describe('Venture Investment Lifecycle E2E', () => {
-  describe('SK 116 happy path — PRD scenario 1', () => {
+  describe('SK 116 happy path', () => {
     it('runs the full deal lifecycle: initial → nav → distribution → exit', async () => {
       const baseCurrencyCode = global.BASE_CURRENCY.code;
 
@@ -147,7 +147,7 @@ describe('Venture Investment Lifecycle E2E', () => {
     });
   });
 
-  describe('failure flows — PRD scenario 9', () => {
+  describe('failure flows', () => {
     it('rejects sum mismatch (tx sum ≠ event lpNet)', async () => {
       const account = await helpers.createAccount({ raw: true });
       const deal = await helpers.createVentureDeal({

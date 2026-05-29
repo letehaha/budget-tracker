@@ -2,8 +2,6 @@
   "venture": {
     "title": "Венчур",
     "subtitle": "Відстежуйте приватні венчурні інвестиції — SPV, синдикати, угоди фондів.",
-    "comingSoonTitle": "Угоди незабаром",
-    "comingSoonDescription": "Фаза 1 зосереджена на платформах. Відстеження угод, події та метрики з'являться в наступних фазах. Наразі налаштуйте платформи (GP / синдикати), через які ви інвестуєте.",
     "managePlatforms": "Керувати платформами",
     "platforms": {
       "title": "Венчурні платформи",
@@ -100,8 +98,6 @@
         "grossAmountLabel": "Сума брутто",
         "navAfterLabel": "NAV після",
         "cashFlowModeLabel": "Грошовий потік",
-        "transactionIdsLabel": "ID транзакцій (через кому)",
-        "transactionIdsPlaceholder": "uuid-1, uuid-2",
         "overrideCarryLabel": "Перевизначити автоматичний Carry",
         "gpCarryLabel": "GP Carry",
         "lpNetLabel": "LP net сума",
@@ -142,12 +138,9 @@
       "hurdle": "Hurdle",
       "investmentDate": "Дата інвестиції",
       "expectedExitDate": "Очікуваний вихід",
-      "targetCompany": "Цільова компанія",
       "notes": "Нотатки",
       "dealTerms": "Умови угоди",
-      "eventsComingSoon": "Хронологія подій з'явиться у Фазі 3 — розподіли, оновлення NAV, виходи та прив'язка транзакцій.",
       "status": {
-        "label": "Статус",
         "outstanding": "Активний",
         "partial_exit": "Частковий вихід",
         "fully_exited": "Повністю закритий",

@@ -2,8 +2,6 @@
   "venture": {
     "title": "Venture",
     "subtitle": "Track private venture investments — SPVs, syndicates, fund deals.",
-    "comingSoonTitle": "Deals coming soon",
-    "comingSoonDescription": "Phase 1 focuses on platforms. Deal tracking, events, and metrics arrive in upcoming phases. For now, set up the platforms (GPs / syndicates) you invest through.",
     "managePlatforms": "Manage platforms",
     "platforms": {
       "title": "Venture platforms",
@@ -100,8 +98,6 @@
         "grossAmountLabel": "Gross amount",
         "navAfterLabel": "NAV after",
         "cashFlowModeLabel": "Cash flow",
-        "transactionIdsLabel": "Transaction IDs (comma-separated)",
-        "transactionIdsPlaceholder": "uuid-1, uuid-2",
         "overrideCarryLabel": "Override auto-computed carry",
         "gpCarryLabel": "GP carry",
         "lpNetLabel": "LP net amount",
@@ -142,12 +138,9 @@
       "hurdle": "Hurdle",
       "investmentDate": "Investment date",
       "expectedExitDate": "Expected exit",
-      "targetCompany": "Target company",
       "notes": "Notes",
       "dealTerms": "Deal terms",
-      "eventsComingSoon": "Events timeline arrives in Phase 3 — distributions, NAV updates, exits, and tx linking.",
       "status": {
-        "label": "Status",
         "outstanding": "Outstanding",
         "partial_exit": "Partial exit",
         "fully_exited": "Fully exited",
