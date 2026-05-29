@@ -115,7 +115,9 @@
       "inflationTooltip": "Як швидко зростають ціни щороку, зменшуючи реальну вартість грошей.\n\n~1–2% — дуже низька, стабільна економіка\n~2–3% — нормальна (типова ціль)\n~4–6% — вище середнього\n~7%+ — кризова інфляція",
       "totalInvestedBreakdown": "{initial} початкові + {contributions} внески",
       "configure": "Налаштувати",
-      "hideInputs": "Сховати"
+      "hideInputs": "Сховати",
+      "portfolioReturnOption": "{name} (ваш ~{rate}%/рік)",
+      "portfolioNoHistoryOption": "{name} — недостатньо історії"
     }
   }
 }
