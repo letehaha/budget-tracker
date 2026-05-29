@@ -29,19 +29,17 @@ const NAV_ONLY_EVENT_TYPES: readonly VENTURE_EVENT_TYPE[] = [
  * STRICTLY BEFORE the given event (by date asc, then by createdAt asc as a
  * tiebreaker for events on the same day). Used by carry computation.
  *
- * "Principal returned" comes from each prior event's
- * `metaData.principalReturnedThisEvent` snapshot (written at create time).
- * Falls back to deriving it from the event's grossAmount when the snapshot
- * is missing (e.g., legacy data).
+ * Reads each prior event's `principalReturnedThisEvent` column (written at
+ * create/sync time). Carry-bearing events without the snapshot are skipped,
+ * which would only happen if the row was inserted outside the standard
+ * `prepareEventValues` pipeline.
  */
 export function computeCumulativePrincipalReturnedBefore({
   events,
   beforeEvent,
-  costBasis,
 }: {
   events: readonly VentureEvents[];
   beforeEvent: { eventDate: string; id: string | null };
-  costBasis: string;
 }): string {
   const sorted = [...events].sort((a, b) => {
     const dateCmp = a.eventDate.localeCompare(b.eventDate);
@@ -50,7 +48,6 @@ export function computeCumulativePrincipalReturnedBefore({
   });
 
   let cumulative = new Big(0);
-  const basis = new Big(costBasis);
 
   for (const event of sorted) {
     if (event.id === beforeEvent.id) continue;
@@ -58,19 +55,8 @@ export function computeCumulativePrincipalReturnedBefore({
     if (event.type !== VENTURE_EVENT_TYPE.distribution && event.type !== VENTURE_EVENT_TYPE.exit) {
       continue;
     }
-
-    const snapshot = event.metaData?.principalReturnedThisEvent;
-    if (typeof snapshot === 'string' && /^-?\d+(\.\d+)?$/.test(snapshot)) {
-      cumulative = cumulative.plus(snapshot);
-      continue;
-    }
-
-    // Fallback: derive from grossAmount capped by remaining principal.
-    const gross = event.grossAmount ? new Big(event.grossAmount.toDecimalString(10)) : new Big(0);
-    const principalRemaining = basis.minus(cumulative);
-    const remainingClamped = principalRemaining.gt(0) ? principalRemaining : new Big(0);
-    const principalThisEvent = gross.gt(remainingClamped) ? remainingClamped : gross;
-    cumulative = cumulative.plus(principalThisEvent);
+    if (event.principalReturnedThisEvent === null) continue;
+    cumulative = cumulative.plus(event.principalReturnedThisEvent);
   }
 
   return cumulative.toFixed(10);

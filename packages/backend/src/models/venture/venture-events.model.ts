@@ -121,6 +121,14 @@ export default class VentureEvents extends Model {
   @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
   gpCarryOverridden!: boolean;
 
+  /**
+   * Snapshot of the LP principal that this distribution/exit event returned.
+   * Load-bearing: every downstream carry computation reads it via
+   * `computeCumulativePrincipalReturnedBefore`. Null for non-carry events.
+   */
+  @Column({ type: DataType.DECIMAL(20, 10), allowNull: true })
+  principalReturnedThisEvent!: string | null;
+
   @ForeignKey(() => Currencies)
   @Index
   @Column({ type: DataType.STRING(3), allowNull: false })

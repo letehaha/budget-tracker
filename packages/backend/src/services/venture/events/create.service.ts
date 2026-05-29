@@ -96,6 +96,7 @@ const createVentureEventImpl = async (params: CreateVentureEventParams) => {
     quantityPct: prepared.quantityPct,
     lpNetAmountOverridden: prepared.lpNetAmountOverridden,
     gpCarryOverridden: prepared.gpCarryOverridden,
+    principalReturnedThisEvent: prepared.principalReturnedThisEvent,
     currencyCode: deal.currencyCode,
     cashFlowMode,
     notes: params.notes ?? null,

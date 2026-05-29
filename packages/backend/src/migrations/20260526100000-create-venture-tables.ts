@@ -347,6 +347,10 @@ module.exports = {
             allowNull: false,
             defaultValue: false,
           },
+          principalReturnedThisEvent: {
+            type: DataTypes.DECIMAL(20, 10),
+            allowNull: true,
+          },
           currencyCode: {
             type: DataTypes.STRING(3),
             allowNull: false,

@@ -42,8 +42,9 @@ interface PreparedEventValues {
   quantityPct: string | null;
   lpNetAmountOverridden: boolean;
   gpCarryOverridden: boolean;
+  /** Promoted to a dedicated column; null for non-carry events. */
+  principalReturnedThisEvent: string | null;
   metaDataExtras: {
-    principalReturnedThisEvent?: string;
     profitThisEvent?: string;
     hurdleCredit?: string;
     carryInputs?: {
@@ -80,6 +81,7 @@ export async function prepareEventValues(input: PrepareEventValuesInput): Promis
       quantityPct: input.quantityPct ?? null,
       lpNetAmountOverridden: false,
       gpCarryOverridden: false,
+      principalReturnedThisEvent: null,
       metaDataExtras: {},
     };
   }
@@ -113,6 +115,7 @@ export async function prepareEventValues(input: PrepareEventValuesInput): Promis
       quantityPct: null,
       lpNetAmountOverridden: false,
       gpCarryOverridden: false,
+      principalReturnedThisEvent: null,
       metaDataExtras: {},
     };
   }
@@ -139,6 +142,7 @@ export async function prepareEventValues(input: PrepareEventValuesInput): Promis
       quantityPct: input.quantityPct ?? null,
       lpNetAmountOverridden: false,
       gpCarryOverridden: false,
+      principalReturnedThisEvent: null,
       metaDataExtras: {},
     };
   }
@@ -155,7 +159,6 @@ export async function prepareEventValues(input: PrepareEventValuesInput): Promis
   const cumulativeReturned = computeCumulativePrincipalReturnedBefore({
     events: filteredPriorEvents,
     beforeEvent: { eventDate, id: excludeEventId ?? null },
-    costBasis,
   });
 
   const yearsHeld = computeYearsHeld({
@@ -193,8 +196,8 @@ export async function prepareEventValues(input: PrepareEventValuesInput): Promis
     quantityPct: input.quantityPct ?? null,
     lpNetAmountOverridden: input.lpNetAmountOverride !== null && input.lpNetAmountOverride !== undefined,
     gpCarryOverridden: input.gpCarryOverride !== null && input.gpCarryOverride !== undefined,
+    principalReturnedThisEvent: carryResult.principalReturnedThisEvent,
     metaDataExtras: {
-      principalReturnedThisEvent: carryResult.principalReturnedThisEvent,
       profitThisEvent: carryResult.profitThisEvent,
       hurdleCredit: carryResult.hurdleCredit,
       carryInputs: {

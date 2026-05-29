@@ -96,6 +96,7 @@ const updateVentureEventImpl = async (params: UpdateVentureEventParams) => {
     quantityPct: prepared.quantityPct,
     lpNetAmountOverridden: prepared.lpNetAmountOverridden,
     gpCarryOverridden: prepared.gpCarryOverridden,
+    principalReturnedThisEvent: prepared.principalReturnedThisEvent,
     notes: nextNotes,
     metaData: { ...event.metaData, ...prepared.metaDataExtras },
   });

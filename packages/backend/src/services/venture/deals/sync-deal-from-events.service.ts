@@ -59,6 +59,7 @@ export async function syncDealFromEvents({
       gpCarryAmount: prepared.gpCarryAmount !== null ? Money.fromDecimal(prepared.gpCarryAmount) : null,
       lpNetAmount: prepared.lpNetAmount !== null ? Money.fromDecimal(prepared.lpNetAmount) : null,
       refAmount: prepared.refAmount !== null ? Money.fromDecimal(prepared.refAmount) : null,
+      principalReturnedThisEvent: prepared.principalReturnedThisEvent,
       metaData: { ...event.metaData, ...prepared.metaDataExtras },
     });
 
