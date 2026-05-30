@@ -77,11 +77,11 @@
                 formatLargeNumber(tooltip.portfoliosBalance, { isFiat: true, currency: baseCurrency?.currency?.code })
               }}
             </div>
-            <div v-if="hasVentureData">
+            <div v-if="showVenturesRow">
               {{ $t('dashboard.widgets.balanceTrend.tooltip.ventures') }}
               {{ formatLargeNumber(tooltip.venturesBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
             </div>
-            <div v-if="hasVehicleData">
+            <div v-if="showVehiclesRow">
               {{ $t('dashboard.widgets.balanceTrend.tooltip.vehicles') }}
               {{ formatLargeNumber(tooltip.vehiclesBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
             </div>
@@ -235,6 +235,37 @@ const fitToLatestData = computed<boolean>(() => {
   return (cfg?.fitToLatestData as boolean | undefined) ?? true;
 });
 
+// User-controlled toggles for what counts toward the "Total" balance line.
+// Default true so behavior matches pre-toggle releases (no migration needed).
+// Affects the "total" chart line + tooltip total + headline number only; the
+// per-component balance types (vehicles, ventures) in the dropdown stay
+// unaffected so users can still drill into them directly.
+const includeVehiclesInTotal = computed<boolean>(() => {
+  const cfg = widgetConfigRef?.value?.config;
+  return (cfg?.includeVehiclesInTotal as boolean | undefined) ?? true;
+});
+const includeVenturesInTotal = computed<boolean>(() => {
+  const cfg = widgetConfigRef?.value?.config;
+  return (cfg?.includeVenturesInTotal as boolean | undefined) ?? true;
+});
+
+type BalancePoint = {
+  accountsBalance: number;
+  portfoliosBalance: number;
+  venturesBalance: number;
+  vehiclesBalance: number;
+  totalBalance: number;
+};
+
+const getEffectiveTotal = (point: BalancePoint): number => {
+  // Fast path: nothing excluded → use the server-computed total verbatim.
+  if (includeVehiclesInTotal.value && includeVenturesInTotal.value) return point.totalBalance;
+  let total = point.accountsBalance + point.portfoliosBalance;
+  if (includeVenturesInTotal.value) total += point.venturesBalance;
+  if (includeVehiclesInTotal.value) total += point.vehiclesBalance;
+  return total;
+};
+
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
 const tooltipRef = ref<HTMLDivElement | null>(null);
@@ -330,7 +361,9 @@ watch(
   { immediate: true },
 );
 
-const isDataEmpty = computed(() => !balanceHistory.value || balanceHistory.value.every((i) => i.totalBalance === 0));
+const isDataEmpty = computed(
+  () => !balanceHistory.value || balanceHistory.value.every((i) => getEffectiveTotal(i) === 0),
+);
 
 // True when the user has any venture activity reflected in the loaded series.
 // Gates the venture tooltip row and the venture option in the balance-type
@@ -344,6 +377,24 @@ const hasVentureData = computed(
 const hasVehicleData = computed(
   () => !!balanceHistory.value && balanceHistory.value.some((i) => i.vehiclesBalance !== 0),
 );
+
+// Tooltip rows for vehicles/ventures show when the component contributes to
+// what the user is currently viewing — either it's flowing into the Total
+// (and Total is the selected line), or the user explicitly picked that
+// component's line from the dropdown. Hidden when toggled out of Total to
+// avoid showing a value that doesn't add up to the displayed Total.
+const showVehiclesRow = computed(() => {
+  if (!hasVehicleData.value) return false;
+  if (selectedBalanceType.value.value === 'vehicles') return true;
+  if (selectedBalanceType.value.value === 'total') return includeVehiclesInTotal.value;
+  return includeVehiclesInTotal.value;
+});
+const showVenturesRow = computed(() => {
+  if (!hasVentureData.value) return false;
+  if (selectedBalanceType.value.value === 'ventures') return true;
+  if (selectedBalanceType.value.value === 'total') return includeVenturesInTotal.value;
+  return includeVenturesInTotal.value;
+});
 
 const balanceTypeOptions = computed<BalanceTypeOption[]>(() => {
   const options: BalanceTypeOption[] = [
@@ -416,6 +467,8 @@ const chartData = computed(() => {
   if (!balanceHistory.value) return [];
 
   return balanceHistory.value.map((point) => {
+    const effectiveTotal = getEffectiveTotal(point);
+
     let value: number;
     switch (selectedBalanceType.value.value) {
       case 'accounts':
@@ -431,7 +484,7 @@ const chartData = computed(() => {
         value = point.vehiclesBalance;
         break;
       default:
-        value = point.totalBalance;
+        value = effectiveTotal;
     }
 
     return {
@@ -441,7 +494,7 @@ const chartData = computed(() => {
       portfoliosBalance: point.portfoliosBalance,
       venturesBalance: point.venturesBalance,
       vehiclesBalance: point.vehiclesBalance,
-      totalBalance: point.totalBalance,
+      totalBalance: effectiveTotal,
     };
   });
 });
@@ -890,8 +943,8 @@ const displayBalance = computed(() => {
     case 'total':
     default:
       return {
-        current: latestEntry.totalBalance || 0,
-        previous: prevPeriodLastEntry?.totalBalance || 0,
+        current: getEffectiveTotal(latestEntry),
+        previous: prevPeriodLastEntry ? getEffectiveTotal(prevPeriodLastEntry) : 0,
       };
   }
 });

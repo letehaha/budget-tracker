@@ -53,7 +53,15 @@
           "fitToLatestData": "Fit to latest data",
           "fitToLatestDataTooltip": "When on, the chart only spans up to your latest data point. When off, the x-axis covers the full selected period, leaving empty space for any future dates.",
           "on": "On",
-          "off": "Off"
+          "off": "Off",
+          "includeInTotal": "Include in total"
+        },
+        "componentsSettings": {
+          "description": "Choose which components count toward the Total balance line.",
+          "vehicles": "Vehicles",
+          "ventures": "Ventures",
+          "allIncluded": "All components",
+          "excluding": "Excluding {items}"
         }
       },
       "expensesStructure": {
