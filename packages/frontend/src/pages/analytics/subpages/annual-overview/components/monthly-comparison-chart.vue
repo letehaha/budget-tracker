@@ -141,6 +141,7 @@ import { TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { useResizeObserver, useSessionStorage } from '@vueuse/core';
 import * as d3 from 'd3';
+import { endOfMonth, startOfMonth } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -225,10 +226,12 @@ const { updateTooltipPosition } = useChartTooltipPosition({
   tooltip,
 });
 
-// Query params
+// Query params — snap to whole months so partial first/last months don't
+// produce truncated bars (e.g. "May 30 2025 – May 30 2026" should still show
+// the full May 2025 bin, not just May 30–31).
 const queryParams = computed(() => ({
-  from: props.from,
-  to: props.to,
+  from: startOfMonth(props.from),
+  to: endOfMonth(props.to),
   granularity: 'monthly' as const,
   categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined,
 }));

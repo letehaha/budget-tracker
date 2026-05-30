@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DateField from '@/components/fields/date-field.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
@@ -7,7 +8,7 @@ import { Checkbox } from '@/components/lib/ui/checkbox';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getErrorMessage } from '@/common/utils/error-message';
-import { isDecimal, isValidDate } from '@/common/utils/validators';
+import { isDecimal } from '@/common/utils/validators';
 import { useCreateVentureEvent, useVentureEvents } from '@/composable/data-queries/venture/events';
 import VentureEventCashFlowPicker from '@/components/forms/venture-event-cash-flow-picker.vue';
 import {
@@ -17,6 +18,7 @@ import {
   type VentureDealModel,
   type VentureEventModel,
 } from '@bt/shared/types';
+import { format, isValid } from 'date-fns';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -52,13 +54,11 @@ watch(hasInitialInvestment, (has) => {
   }
 });
 
-const today = new Date().toISOString().slice(0, 10);
-
 const form = reactive({
   type: (hasInitialInvestment.value
     ? VENTURE_EVENT_TYPE.distribution
     : VENTURE_EVENT_TYPE.initial_investment) as VENTURE_EVENT_TYPE,
-  eventDate: today,
+  eventDate: new Date(),
   grossAmount: '',
   navAfter: '',
   cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet as VENTURE_CASH_FLOW_MODE,
@@ -87,7 +87,7 @@ const requiresNav = computed(
 const toStr = (val: unknown): string => (val == null ? '' : String(val).trim());
 
 const isFormValid = computed(() => {
-  if (!isValidDate(form.eventDate)) return false;
+  if (!isValid(form.eventDate)) return false;
   if (requiresGross.value && !isDecimal(form.grossAmount)) return false;
   if (requiresNav.value && !isDecimal(form.navAfter)) return false;
   if (form.cashFlowMode === VENTURE_CASH_FLOW_MODE.linked && selectedTransactions.value.length === 0) return false;
@@ -113,7 +113,7 @@ const onSubmit = async () => {
       dealId: props.deal.id,
       payload: {
         type: form.type,
-        eventDate: form.eventDate,
+        eventDate: format(form.eventDate, 'yyyy-MM-dd'),
         cashFlowMode: form.cashFlowMode,
         grossAmount: requiresGross.value ? toStr(form.grossAmount) : null,
         navAfter: requiresNav.value ? toStr(form.navAfter) : null,
@@ -156,12 +156,7 @@ const eventTypeLabel = (type: VENTURE_EVENT_TYPE): string => `venture.events.typ
       </FieldLabel>
     </div>
 
-    <InputField
-      v-model="form.eventDate"
-      type="date"
-      :label="$t('venture.events.form.eventDateLabel')"
-      :disabled="isPending"
-    />
+    <DateField v-model="form.eventDate" :label="$t('venture.events.form.eventDateLabel')" :disabled="isPending" />
 
     <InputField
       v-if="requiresGross"
