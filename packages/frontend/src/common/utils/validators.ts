@@ -8,6 +8,3 @@ export const isPositiveDecimal = (val: unknown): boolean => {
 
 /** Canonical decimal string (optional sign, optional fractional part). */
 export const isDecimal = (val: unknown): boolean => /^-?\d+(\.\d+)?$/.test(toTrimmedString(val));
-
-/** YYYY-MM-DD date string. */
-export const isValidDate = (val: unknown): boolean => /^\d{4}-\d{2}-\d{2}$/.test(toTrimmedString(val));

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PrecisionNumber from '@/components/common/precision-number.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InvestmentTransactionForm from '@/components/forms/investment-transaction-form.vue';
@@ -11,7 +12,7 @@ import { getGainColorClass } from '@/composable/gain-color';
 import { getApiErrorMessage } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
 import { useCurrenciesStore } from '@/stores/currencies';
-import type { HoldingModel } from '@bt/shared/types/investments';
+import { ASSET_CLASS, type HoldingModel } from '@bt/shared/types/investments';
 import {
   AlertCircleIcon,
   ArchiveIcon,
@@ -38,7 +39,13 @@ import {
   getTotalCost,
   groupHoldings,
   sortHoldings,
-} from './utils/sort-holdings';
+} from './utils/holding-display';
+
+// Crypto trades in much smaller units than typical stock fractional shares, so
+// it needs more visible precision before falling back to a hover-reveal.
+const QUANTITY_DECIMALS = { crypto: 4, default: 2 } as const;
+const decimalsForAssetClass = (assetClass: ASSET_CLASS | undefined) =>
+  assetClass === ASSET_CLASS.crypto ? QUANTITY_DECIMALS.crypto : QUANTITY_DECIMALS.default;
 
 const props = defineProps<{
   holdings: HoldingModel[];
@@ -372,7 +379,10 @@ const theadBgStyles = 'bg-muted';
                   {{ row.holding.security?.name }}
                 </td>
                 <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
-                  {{ Number(row.holding.quantity).toLocaleString() }}
+                  <PrecisionNumber
+                    :value="row.holding.quantity"
+                    :max-decimals="decimalsForAssetClass(row.holding.security?.assetClass)"
+                  />
                 </td>
                 <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
                   {{ formatCurrency(getPrice(row.holding), row.holding.currencyCode) }}
