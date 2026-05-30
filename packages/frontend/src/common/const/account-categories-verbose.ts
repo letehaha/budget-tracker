@@ -17,4 +17,5 @@ export const ACCOUNT_CATEGORIES_TRANSLATION_KEYS = Object.freeze({
   [ACCOUNT_CATEGORIES.mortgage]: 'common.accountCategories.mortgage',
   [ACCOUNT_CATEGORIES.overdraft]: 'common.accountCategories.overdraft',
   [ACCOUNT_CATEGORIES.crypto]: 'common.accountCategories.crypto',
+  [ACCOUNT_CATEGORIES.vehicle]: 'common.accountCategories.vehicle',
 });

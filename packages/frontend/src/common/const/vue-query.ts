@@ -155,6 +155,11 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   reminderDetails: ['reminder-details'] as const,
   reminderPeriods: ['reminder-periods'] as const,
 
+  // vehicles
+  vehiclesList: [transactionChange, 'vehicles-list'] as const,
+  vehicleDetail: [transactionChange, 'vehicle-detail'] as const,
+  vehicleOverrideHistory: [transactionChange, 'vehicle-override-history'] as const,
+
   // user settings
   userSettings: ['user-settings'] as const,
 

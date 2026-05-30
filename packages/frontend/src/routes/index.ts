@@ -39,6 +39,12 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/account', 'pages/transactions'] as I18nChunkName[] },
       },
       {
+        path: '/accounts/vehicles/:id',
+        name: ROUTES_NAMES.accountsVehicleDetails,
+        component: () => import('@/pages/accounts/vehicle-details.vue'),
+        meta: { i18nChunks: ['pages/accounts', 'pages/account', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
         path: '/accounts/integrations',
         name: ROUTES_NAMES.accountIntegrations,
         component: () => import('@/pages/accounts/integrations/index.vue'),

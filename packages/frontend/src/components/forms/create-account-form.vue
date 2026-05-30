@@ -52,6 +52,10 @@ const form = reactive<{
   creditLimit: 0,
 });
 
+const selectableAccountCategories = computed(() =>
+  Object.entries(ACCOUNT_CATEGORIES_TRANSLATION_KEYS).filter(([category]) => category !== ACCOUNT_CATEGORIES.vehicle),
+);
+
 const createAccountMutation = useMutation({ mutationFn: createAccount });
 
 const submit = async () => {
@@ -141,7 +145,7 @@ const submit = async () => {
           <Select.SelectValue :placeholder="$t('forms.createAccount.accountCategoryPlaceholder')" />
         </Select.SelectTrigger>
         <Select.SelectContent>
-          <template v-for="[category, labelKey] in Object.entries(ACCOUNT_CATEGORIES_TRANSLATION_KEYS)" :key="category">
+          <template v-for="[category, labelKey] in selectableAccountCategories" :key="category">
             <Select.SelectItem :value="category">
               {{ t(labelKey) }}
             </Select.SelectItem>

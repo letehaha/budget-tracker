@@ -1,4 +1,5 @@
 import {
+  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   CategorizationMeta,
   CATEGORIZATION_SOURCE,
@@ -428,6 +429,48 @@ export default class Transactions extends Model {
       raw: true,
     });
     (instance as unknown as Record<string, unknown>)._affectedGroupIds = groupItems.map((item) => item.groupId);
+  }
+
+  @AfterDestroy
+  static async reconcileVehicleAnchorOnDelete(instance: Transactions) {
+    // When a balance-adjustment ("transfer_out_wallet") tx on a vehicle account
+    // is deleted, the user's manual override is being undone. Re-derive the
+    // vehicle's depreciation anchor by walking the REMAINING overrides forward
+    // from purchase. The cents-arithmetic Account.currentBalance decremented by
+    // BeforeDestroy is not the right anchor value — once the override chain has
+    // more than one entry, the prior override's post-tx value depends on the
+    // curve between it and the deleted one, not on a flat subtraction.
+    if (instance.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return;
+
+    const account = await Accounts.findByPk(instance.accountId);
+    if (!account || account.accountCategory !== ACCOUNT_CATEGORIES.vehicle) return;
+
+    // Lazy-imported to avoid circular dep (Vehicles model is in the same model layer).
+    const { default: Vehicles } = await import('@models/vehicles.model');
+    const vehicle = await Vehicles.findOne({ where: { accountId: instance.accountId } });
+    if (!vehicle) return;
+
+    const { reconstructVehicleAnchor } = await import('@services/vehicles/reconstruct-vehicle-anchor');
+    const reconstructed = await reconstructVehicleAnchor({ vehicle });
+
+    if (reconstructed.hasOverrides) {
+      await vehicle.update({
+        valueAnchor: reconstructed.value,
+        valueAnchorDate: reconstructed.date,
+        valueLastComputedAt: null,
+      });
+    } else {
+      await vehicle.update({
+        valueAnchor: null,
+        valueAnchorDate: null,
+        valueLastComputedAt: null,
+      });
+    }
+
+    // Recompute synchronously so the response (and any immediate cache refetch)
+    // reflects today's curve-derived value, not the BeforeDestroy intermediate.
+    const { refreshVehicleValueIfStale } = await import('@services/vehicles/refresh-vehicle-value.service');
+    await refreshVehicleValueIfStale({ vehicleId: vehicle.id, force: true });
   }
 
   @AfterDestroy

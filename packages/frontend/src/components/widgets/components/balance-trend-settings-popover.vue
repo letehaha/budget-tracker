@@ -6,7 +6,7 @@
       </Button>
     </PopoverTrigger>
     <PopoverContent class="w-72 overflow-hidden p-0" align="end">
-      <SlidingPanels v-model="view" :panels="['main', 'spikes']">
+      <SlidingPanels v-model="view" :panels="['main', 'spikes', 'components']">
         <template #main>
           <div class="flex flex-col">
             <header class="border-b px-3 py-2 text-sm font-medium">
@@ -34,6 +34,22 @@
                 <ChevronRightIcon class="text-muted-foreground size-4" />
               </button>
 
+              <button
+                type="button"
+                class="hover:bg-accent flex items-center justify-between gap-2 rounded-md px-2 py-2 text-left transition-colors"
+                @click="goTo('components')"
+              >
+                <span class="flex flex-col">
+                  <span class="text-sm font-medium">
+                    {{ t('dashboard.widgets.balanceTrend.settings.includeInTotal') }}
+                  </span>
+                  <span class="text-muted-foreground text-xs">
+                    {{ includeInTotalSummary }}
+                  </span>
+                </span>
+                <ChevronRightIcon class="text-muted-foreground size-4" />
+              </button>
+
               <div class="flex items-center justify-between gap-2 rounded-md px-2 py-2">
                 <div class="flex items-center gap-1">
                   <span class="text-sm font-medium">
@@ -50,6 +66,45 @@
                 <Switch
                   :model-value="persistedSettings.fitToLatestData"
                   @update:model-value="onFitToLatestDataToggle"
+                />
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <template #components>
+          <div class="flex flex-col">
+            <header class="flex items-center gap-2 border-b px-2 py-2">
+              <Button size="icon-sm" variant="ghost" type="button" @click="goTo('main')">
+                <ArrowLeftIcon class="size-4" />
+              </Button>
+              <span class="text-sm font-medium">
+                {{ t('dashboard.widgets.balanceTrend.settings.includeInTotal') }}
+              </span>
+            </header>
+
+            <div class="flex flex-col p-2">
+              <p class="text-muted-foreground mb-2 px-2 text-xs">
+                {{ t('dashboard.widgets.balanceTrend.componentsSettings.description') }}
+              </p>
+
+              <div class="flex items-center justify-between gap-2 rounded-md px-2 py-2">
+                <span class="text-sm font-medium">
+                  {{ t('dashboard.widgets.balanceTrend.componentsSettings.vehicles') }}
+                </span>
+                <Switch
+                  :model-value="persistedSettings.includeVehiclesInTotal"
+                  @update:model-value="onIncludeVehiclesToggle"
+                />
+              </div>
+
+              <div class="flex items-center justify-between gap-2 rounded-md px-2 py-2">
+                <span class="text-sm font-medium">
+                  {{ t('dashboard.widgets.balanceTrend.componentsSettings.ventures') }}
+                </span>
+                <Switch
+                  :model-value="persistedSettings.includeVenturesInTotal"
+                  @update:model-value="onIncludeVenturesToggle"
                 />
               </div>
             </div>
@@ -176,6 +231,8 @@ const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-wid
 const { data: userSettingsData, mutateAsync: saveUserSettings } = useUserSettings();
 
 const FIT_TO_LATEST_DATA_DEFAULT = true;
+const INCLUDE_VEHICLES_DEFAULT = true;
+const INCLUDE_VENTURES_DEFAULT = true;
 
 const persistedSettings = computed(() => {
   const cfg = widgetConfigRef?.value?.config;
@@ -185,7 +242,22 @@ const persistedSettings = computed(() => {
     absoluteThreshold: (cfg?.spikeAbsoluteThreshold as number | undefined) ?? SPIKE_DEFAULTS.absoluteThreshold,
     maxSpikes: (cfg?.spikeMaxCount as number | undefined) ?? SPIKE_DEFAULTS.maxSpikes,
     fitToLatestData: (cfg?.fitToLatestData as boolean | undefined) ?? FIT_TO_LATEST_DATA_DEFAULT,
+    includeVehiclesInTotal: (cfg?.includeVehiclesInTotal as boolean | undefined) ?? INCLUDE_VEHICLES_DEFAULT,
+    includeVenturesInTotal: (cfg?.includeVenturesInTotal as boolean | undefined) ?? INCLUDE_VENTURES_DEFAULT,
   };
+});
+
+const includeInTotalSummary = computed(() => {
+  const excluded: string[] = [];
+  if (!persistedSettings.value.includeVehiclesInTotal) {
+    excluded.push(t('dashboard.widgets.balanceTrend.componentsSettings.vehicles'));
+  }
+  if (!persistedSettings.value.includeVenturesInTotal) {
+    excluded.push(t('dashboard.widgets.balanceTrend.componentsSettings.ventures'));
+  }
+  return excluded.length === 0
+    ? t('dashboard.widgets.balanceTrend.componentsSettings.allIncluded')
+    : t('dashboard.widgets.balanceTrend.componentsSettings.excluding', { items: excluded.join(', ') });
 });
 
 const form = reactive({
@@ -231,7 +303,8 @@ const isSpikeDirty = computed(() => {
 });
 
 const isOpen = ref(false);
-const view = ref<'main' | 'spikes'>('main');
+type View = 'main' | 'spikes' | 'components';
+const view = ref<View>('main');
 
 // Reset to the main view after the popover finishes closing.
 watch(isOpen, (open) => {
@@ -242,7 +315,7 @@ watch(isOpen, (open) => {
   }
 });
 
-function goTo(target: 'main' | 'spikes') {
+function goTo(target: View) {
   view.value = target;
 }
 
@@ -285,5 +358,13 @@ async function saveSpikes() {
 
 function onFitToLatestDataToggle(value: boolean) {
   persistConfig({ fitToLatestData: value });
+}
+
+function onIncludeVehiclesToggle(value: boolean) {
+  persistConfig({ includeVehiclesInTotal: value });
+}
+
+function onIncludeVenturesToggle(value: boolean) {
+  persistConfig({ includeVenturesInTotal: value });
 }
 </script>

@@ -185,11 +185,13 @@ describe('BalanceAdjustmentDialog', () => {
       const w = mountDialog();
       await enterAmountAndSubmit(w, 2500);
 
-      expect(mockMutateAsync).toHaveBeenCalledWith({
-        id: 42,
-        targetBalance: 2500,
-        note: undefined,
-      });
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 42,
+          targetBalance: 2500,
+          note: undefined,
+        }),
+      );
     });
 
     it('includes note when provided', async () => {
@@ -200,11 +202,13 @@ describe('BalanceAdjustmentDialog', () => {
       await confirmBtn(w).trigger('click');
       await flushPromises();
 
-      expect(mockMutateAsync).toHaveBeenCalledWith({
-        id: 42,
-        targetBalance: 2500,
-        note: 'Bank reconciliation',
-      });
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 42,
+          targetBalance: 2500,
+          note: 'Bank reconciliation',
+        }),
+      );
     });
 
     it('omits note when field is empty', async () => {

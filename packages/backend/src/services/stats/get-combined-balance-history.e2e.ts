@@ -1,4 +1,10 @@
-import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ASSET_CLASS,
+  INVESTMENT_TRANSACTION_CATEGORY,
+  SECURITY_PROVIDER,
+  TRANSACTION_TYPES,
+  VEHICLE_CLASS,
+} from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import Balances from '@models/balances.model';
 import ExchangeRates from '@models/exchange-rates.model';
@@ -747,6 +753,129 @@ describe('[Stats] Combined balance history', () => {
       const after = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
       expect(after).toBeDefined();
       expect(after!.venturesBalance).toBe(5000);
+    });
+  });
+
+  describe('Vehicles in combined balance history', () => {
+    const buildVehiclePayload = (overrides: Record<string, unknown> = {}) => ({
+      name: 'Vehicle for history',
+      currencyCode: global.BASE_CURRENCY_CODE,
+      make: 'Toyota',
+      model: 'Corolla',
+      year: 2022,
+      vehicleClass: VEHICLE_CLASS.sedan,
+      purchasePrice: 20000,
+      // Purchase a few days ago, fully inside the seeded ExchangeRates window so
+      // there's no missing-rate fallback even when the test currency is non-base.
+      purchaseDate: format(subDays(new Date(), 4), 'yyyy-MM-dd'),
+      ...overrides,
+    });
+
+    it('reports non-zero vehiclesBalance on days at/after purchase for a base-currency vehicle', async () => {
+      // Base-currency vehicle dodges all FX lookups — the depreciation curve
+      // alone drives vehiclesBalance, which must be > 0 from purchase onward.
+      const vehicle = await helpers.createVehicle({
+        ...buildVehiclePayload(),
+        raw: true,
+      });
+
+      const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+      const toDate = format(new Date(), 'yyyy-MM-dd');
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: fromDate,
+        to: toDate,
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      expect(data.length).toBeGreaterThan(0);
+
+      const purchaseDay = vehicle.purchaseDate;
+      const postPurchase = data.filter((entry) => entry.date >= purchaseDay);
+      expect(postPurchase.length).toBeGreaterThan(0);
+      for (const entry of postPurchase) {
+        expect(entry.vehiclesBalance).toBeGreaterThan(0);
+        // Sanity: vehicle never appears richer than its purchase price.
+        expect(entry.vehiclesBalance).toBeLessThanOrEqual(20000);
+      }
+    });
+
+    it('excludes vehicle from vehiclesBalance once the account has excludeFromStats=true', async () => {
+      // Seed a non-vehicle account so the combined history endpoint always
+      // returns a non-empty series — otherwise excluding the only vehicle would
+      // make the response `[]` and the vehiclesBalance assertions would pass
+      // vacuously without proving exclusion actually happened.
+      await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      const vehicle = await helpers.createVehicle({
+        ...buildVehiclePayload({ name: 'Hidden vehicle' }),
+        raw: true,
+      });
+
+      // Confirm baseline first — without excludeFromStats the vehicle contributes.
+      const before = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+      const baselineToday = before.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
+      expect(baselineToday).toBeDefined();
+      expect(baselineToday!.vehiclesBalance).toBeGreaterThan(0);
+
+      // Flip the vehicle account out of stats. `accountCategory` is omitted so
+      // the controller's vehicle-category guard does not trip.
+      const updateResponse = await helpers.updateAccount({
+        id: vehicle.accountId,
+        payload: { excludeFromStats: true },
+      });
+      expect(updateResponse.statusCode).toBe(200);
+
+      const after = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      expect(after.length).toBeGreaterThan(0);
+      // With the only vehicle excluded, vehiclesBalance must be 0 across the range.
+      for (const entry of after) {
+        expect(entry.vehiclesBalance).toBe(0);
+      }
+    });
+
+    it('contributes 0 to vehiclesBalance on days strictly before purchase', async () => {
+      // Pick a window entirely BEFORE the vehicle's purchase date but still
+      // inside the seeded ExchangeRates 10-day cushion. The series for those
+      // days must be flat 0 because the vehicle did not exist yet.
+      const purchaseDay = subDays(new Date(), 2);
+      const purchaseDateStr = format(purchaseDay, 'yyyy-MM-dd');
+
+      await helpers.createVehicle({
+        ...buildVehiclePayload({
+          name: 'Future-buy vehicle',
+          purchaseDate: purchaseDateStr,
+        }),
+        raw: true,
+      });
+
+      const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+      // Stop the range one day before purchase so every returned date is pre-purchase.
+      const toDate = format(subDays(purchaseDay, 1), 'yyyy-MM-dd');
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: fromDate,
+        to: toDate,
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      expect(data.length).toBeGreaterThan(0);
+      for (const entry of data) {
+        expect(entry.date < purchaseDateStr).toBe(true);
+        expect(entry.vehiclesBalance).toBe(0);
+      }
     });
   });
 });
