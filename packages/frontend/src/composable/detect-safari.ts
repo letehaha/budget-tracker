@@ -9,7 +9,9 @@ export function useSafariDetection() {
 
   // iOS uses navigator.standalone, other platforms use display-mode media query.
   const isIOSStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  const isDisplayModeStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  // Guard matchMedia for jsdom (vitest) and any non-browser host — jsdom omits it.
+  const isDisplayModeStandalone =
+    typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches;
   const isPWA = isIOSStandalone || isDisplayModeStandalone;
 
   const isSafari = isSafariBrowser;
