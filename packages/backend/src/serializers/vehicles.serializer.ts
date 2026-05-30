@@ -46,12 +46,7 @@ export function serializeVehicle(vehicle: Vehicles): VehicleApiResponse {
     vehicleClass: vehicle.vehicleClass,
     purchasePrice: centsToApiDecimal(vehicle.purchasePrice),
     purchaseDate: vehicle.purchaseDate,
-    // Money(0) is a truthy object — guard on actual null AND ignore stale
-    // zero-anchor rows left over from the legacy MoneyColumn default.
-    valueAnchor:
-      vehicle.valueAnchor !== null && vehicle.valueAnchor !== undefined && vehicle.valueAnchor.toCents() > 0
-        ? centsToApiDecimal(vehicle.valueAnchor)
-        : null,
+    valueAnchor: vehicle.valueAnchor !== null ? centsToApiDecimal(vehicle.valueAnchor) : null,
     valueAnchorDate: vehicle.valueAnchorDate,
     depreciationPreset: vehicle.depreciationPreset,
     customAnnualRatePct: vehicle.customAnnualRatePct ? Number(vehicle.customAnnualRatePct) : null,

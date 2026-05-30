@@ -386,13 +386,11 @@ const hasVehicleData = computed(
 const showVehiclesRow = computed(() => {
   if (!hasVehicleData.value) return false;
   if (selectedBalanceType.value.value === 'vehicles') return true;
-  if (selectedBalanceType.value.value === 'total') return includeVehiclesInTotal.value;
   return includeVehiclesInTotal.value;
 });
 const showVenturesRow = computed(() => {
   if (!hasVentureData.value) return false;
   if (selectedBalanceType.value.value === 'ventures') return true;
-  if (selectedBalanceType.value.value === 'total') return includeVenturesInTotal.value;
   return includeVenturesInTotal.value;
 });
 

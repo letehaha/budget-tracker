@@ -110,6 +110,21 @@ export const updateAccount = createController(
       }
     }
 
+    // Flipping accountCategory into or out of 'vehicle' breaks the 1:1 Vehicles
+    // sidecar invariant — the row would either point to a missing Vehicles
+    // record or strand an existing one. Vehicle accounts are created/destroyed
+    // via the /vehicles endpoints which create/cascade the sidecar; the generic
+    // updateAccount must not move accounts between categories that own sidecars.
+    if (accountCategory !== undefined && accountCategory !== account.accountCategory) {
+      const involvesVehicle =
+        accountCategory === ACCOUNT_CATEGORIES.vehicle || account.accountCategory === ACCOUNT_CATEGORIES.vehicle;
+      if (involvesVehicle) {
+        throw new ValidationError({
+          message: `Changing accountCategory into or out of '${ACCOUNT_CATEGORIES.vehicle}' is not supported. Delete and recreate via /vehicles.`,
+        });
+      }
+    }
+
     // Convert decimal amounts to cents
     const result = await accountsService.updateAccount({
       id,

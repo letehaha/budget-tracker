@@ -435,10 +435,11 @@ export default class Transactions extends Model {
   static async reconcileVehicleAnchorOnDelete(instance: Transactions) {
     // When a balance-adjustment ("transfer_out_wallet") tx on a vehicle account
     // is deleted, the user's manual override is being undone. Re-derive the
-    // vehicle's depreciation anchor from the most recent REMAINING adjustment
-    // (or clear it back to "depreciate from purchase" if none remain). Without
-    // this, Vehicle.valueAnchor stays pinned to a deleted override and the next
-    // stale-cache refresh re-applies it, undoing the user's delete.
+    // vehicle's depreciation anchor by walking the REMAINING overrides forward
+    // from purchase. The cents-arithmetic Account.currentBalance decremented by
+    // BeforeDestroy is not the right anchor value — once the override chain has
+    // more than one entry, the prior override's post-tx value depends on the
+    // curve between it and the deleted one, not on a flat subtraction.
     if (instance.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return;
 
     const account = await Accounts.findByPk(instance.accountId);
@@ -449,24 +450,16 @@ export default class Transactions extends Model {
     const vehicle = await Vehicles.findOne({ where: { accountId: instance.accountId } });
     if (!vehicle) return;
 
-    const latestRemaining = await Transactions.findOne({
-      where: {
-        accountId: instance.accountId,
-        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-      },
-      order: [['time', 'DESC']],
-    });
+    const { reconstructVehicleAnchor } = await import('@services/vehicles/reconstruct-vehicle-anchor');
+    const reconstructed = await reconstructVehicleAnchor({ vehicle });
 
-    if (latestRemaining) {
-      // Re-anchor to the running balance as of that remaining override.
-      // Account.currentBalance has already been decremented by BeforeDestroy.
+    if (reconstructed.hasOverrides) {
       await vehicle.update({
-        valueAnchor: account.currentBalance,
-        valueAnchorDate: latestRemaining.time.toISOString().slice(0, 10),
+        valueAnchor: reconstructed.value,
+        valueAnchorDate: reconstructed.date,
         valueLastComputedAt: null,
       });
     } else {
-      // No overrides remain — fall back to depreciation-from-purchase.
       await vehicle.update({
         valueAnchor: null,
         valueAnchorDate: null,
@@ -474,12 +467,8 @@ export default class Transactions extends Model {
       });
     }
 
-    // BeforeDestroy already decremented Account.currentBalance by the deleted
-    // tx amount — but that decrement is meaningless for a depreciating asset
-    // (the running balance and the depreciation model diverge whenever an
-    // override is backdated). Recompute synchronously so the response, and any
-    // immediate cache refetch, reflects today's curve-derived value rather than
-    // the post-decrement intermediate.
+    // Recompute synchronously so the response (and any immediate cache refetch)
+    // reflects today's curve-derived value, not the BeforeDestroy intermediate.
     const { refreshVehicleValueIfStale } = await import('@services/vehicles/refresh-vehicle-value.service');
     await refreshVehicleValueIfStale({ vehicleId: vehicle.id, force: true });
   }

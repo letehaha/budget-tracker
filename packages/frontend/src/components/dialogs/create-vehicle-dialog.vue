@@ -4,7 +4,7 @@ import CreateVehicleForm from '@/components/forms/create-vehicle-form.vue';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { ref } from 'vue';
 
-const emit = defineEmits(['created']);
+const emit = defineEmits<{ created: [] }>();
 
 const isOpen = ref(false);
 

@@ -30,11 +30,13 @@ const updateVehicleImpl = async (params: UpdateVehicleParams) => {
     throw new NotFoundError({ message: 'Vehicle not found' });
   }
 
+  const currentCustomRate = vehicle.customAnnualRatePct ? Number(vehicle.customAnnualRatePct) : null;
+  const currentSalvageFloor = Number(vehicle.salvageFloorPct);
   const curveAffectingChange =
-    rest.vehicleClass !== undefined ||
-    rest.depreciationPreset !== undefined ||
-    rest.customAnnualRatePct !== undefined ||
-    rest.salvageFloorPct !== undefined;
+    (rest.vehicleClass !== undefined && rest.vehicleClass !== vehicle.vehicleClass) ||
+    (rest.depreciationPreset !== undefined && rest.depreciationPreset !== vehicle.depreciationPreset) ||
+    (rest.customAnnualRatePct !== undefined && rest.customAnnualRatePct !== currentCustomRate) ||
+    (rest.salvageFloorPct !== undefined && rest.salvageFloorPct !== currentSalvageFloor);
 
   // If the user switched to custom preset, an annual rate must be present
   // (either supplied in this update or already stored).

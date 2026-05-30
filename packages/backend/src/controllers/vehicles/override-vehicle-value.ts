@@ -10,6 +10,7 @@ const schema = z.object({
   body: z.object({
     targetValue: decimalMoney().refine((m) => !m.isNegative(), { message: 'targetValue must be >= 0' }),
     note: z.string().max(500).optional(),
+    time: z.coerce.date().optional(),
   }),
 });
 
@@ -19,6 +20,7 @@ export default createController(schema, async ({ user, params, body }) => {
     vehicleId: params.id,
     targetValue: body.targetValue,
     note: body.note,
+    time: body.time,
   });
 
   return {

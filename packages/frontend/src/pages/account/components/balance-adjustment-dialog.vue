@@ -10,6 +10,7 @@ import { useAccountCurrencyCode } from '@/composable/use-account-currency-code';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
 import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
+import { captureException } from '@/lib/sentry';
 import { cn } from '@/lib/utils';
 import { ACCOUNT_CATEGORIES, AccountModel } from '@bt/shared/types';
 import { computed, ref, toRef, watch } from 'vue';
@@ -31,22 +32,15 @@ const isVehicle = computed(() => props.account.accountCategory === ACCOUNT_CATEG
  * Look up a copy key, preferring the vehicle-override namespace when the
  * underlying account is a vehicle, falling back to the generic
  * balance-adjustment namespace otherwise (or when no vehicle-specific copy
- * exists for that key).
+ * exists for that key). `params` is forwarded to `$t` when present.
  */
-const label = (key: string): string => {
+const label = (key: string, params?: Record<string, string | number>): string => {
   if (isVehicle.value) {
     const vehicleKey = `pages.vehicleDetails.valueOverrideDialog.${key}`;
-    if (te(vehicleKey)) return t(vehicleKey);
+    if (te(vehicleKey)) return params ? t(vehicleKey, params) : t(vehicleKey);
   }
-  return t(`pages.account.balanceAdjustmentDialog.${key}`);
-};
-
-const labelWithParams = (key: string, params: Record<string, string | number>): string => {
-  if (isVehicle.value) {
-    const vehicleKey = `pages.vehicleDetails.valueOverrideDialog.${key}`;
-    if (te(vehicleKey)) return t(vehicleKey, params);
-  }
-  return t(`pages.account.balanceAdjustmentDialog.${key}`, params);
+  const fallbackKey = `pages.account.balanceAdjustmentDialog.${key}`;
+  return params ? t(fallbackKey, params) : t(fallbackKey);
 };
 
 const isOpen = ref(true);
@@ -120,8 +114,9 @@ const submit = async () => {
     });
     addSuccessNotification(label('successNotification'));
     isOpen.value = false;
-  } catch {
+  } catch (error) {
     addErrorNotification(label('errorNotification'));
+    captureException({ error, context: { source: 'balanceAdjustmentDialog', accountId: props.account.id } });
   }
 };
 
@@ -244,11 +239,11 @@ watch(mode, () => {
           >
             {{
               previewType === 'income'
-                ? labelWithParams('incomeWillBeCreated', {
+                ? label('incomeWillBeCreated', {
                     amount: toLocalNumber(Math.abs(diff)),
                     currency: currencyCode,
                   })
-                : labelWithParams('expenseWillBeCreated', {
+                : label('expenseWillBeCreated', {
                     amount: toLocalNumber(Math.abs(diff)),
                     currency: currencyCode,
                   })

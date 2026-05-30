@@ -4,7 +4,7 @@
       <h1 class="text-2xl tracking-wider">{{ $t('accounts.title') }}</h1>
 
       <div class="flex flex-wrap gap-2">
-        <CreateVehicleDialog @created="onVehicleCreated">
+        <CreateVehicleDialog>
           <UiButton variant="outline">{{ $t('accounts.createVehicle') }}</UiButton>
         </CreateVehicleDialog>
 
@@ -116,7 +116,7 @@ const queryClient = useQueryClient();
 
 type AccountTypeKey = 'integrations' | 'manual' | 'sharedWithMe' | 'archived';
 
-const { data: vehicles, refetch: refetchVehicles } = useQuery({
+const { data: vehicles } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.vehiclesList,
   queryFn: getVehicles,
 });
@@ -146,10 +146,6 @@ const groupedAccounts = computed(() =>
     { integrations: [], manual: [], sharedWithMe: [], archived: [] } as Record<AccountTypeKey, AccountModel[]>,
   ),
 );
-
-const onVehicleCreated = () => {
-  refetchVehicles();
-};
 
 // Integration dialog state
 const isDialogOpen = ref(false);

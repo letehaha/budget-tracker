@@ -85,17 +85,23 @@ export async function overrideVehicleValue<R extends boolean | undefined = undef
   id,
   targetValue,
   note,
+  time,
   raw,
 }: {
   id: string;
   targetValue: number;
   note?: string;
+  time?: Date | string;
   raw?: R;
 }) {
   return makeRequest<OverrideVehicleValueApiResponse, R>({
     method: 'post',
     url: `/vehicles/${id}/value`,
-    payload: { targetValue, ...(note !== undefined ? { note } : {}) },
+    payload: {
+      targetValue,
+      ...(note !== undefined ? { note } : {}),
+      ...(time !== undefined ? { time: time instanceof Date ? time.toISOString() : time } : {}),
+    },
     raw,
   });
 }

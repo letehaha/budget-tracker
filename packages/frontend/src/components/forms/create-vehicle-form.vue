@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { createVehicle } from '@/api/vehicles';
-import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import {
   DEPRECIATION_PRESET_TRANSLATION_KEYS,
   VEHICLE_CLASS_TRANSLATION_KEYS,
@@ -13,6 +13,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCurrencyName } from '@/composable';
+import { captureException } from '@/lib/sentry';
 import { useCurrenciesStore } from '@/stores';
 import { DEPRECIATION_PRESET, VEHICLE_CLASS } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
@@ -21,7 +22,9 @@ import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const emit = defineEmits(['created']);
+const DEFAULT_SALVAGE_FLOOR_PCT = 10;
+
+const emit = defineEmits<{ created: [] }>();
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
@@ -32,8 +35,9 @@ const { baseCurrency, systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 
 const defaultCurrency = computed(
   () =>
-    systemCurrenciesVerbose.value.linked.find((i) => i.code === baseCurrency.value!.currencyCode)?.code ||
-    systemCurrenciesVerbose.value.linked[0]!.code,
+    systemCurrenciesVerbose.value.linked.find((i) => i.code === baseCurrency.value?.currencyCode)?.code ??
+    systemCurrenciesVerbose.value.linked[0]?.code ??
+    '',
 );
 
 interface FormState {
@@ -64,7 +68,7 @@ const form = reactive<FormState>({
   purchaseDate: new Date(),
   depreciationPreset: DEPRECIATION_PRESET.classDefault,
   customAnnualRatePct: null,
-  salvageFloorPct: 10,
+  salvageFloorPct: DEFAULT_SALVAGE_FLOOR_PCT,
   currentMileage: null,
 });
 
@@ -119,7 +123,8 @@ const submit = async () => {
       type: NotificationType.success,
     });
 
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.vehiclesList });
+    // Vehicle cache keys are prefixed with `transactionChange`, so a single
+    // predicate invalidation also covers vehiclesList.
     queryClient.invalidateQueries({
       predicate: (query) => {
         const queryKey = query.queryKey as string[];
@@ -128,11 +133,12 @@ const submit = async () => {
     });
 
     emit('created');
-  } catch {
+  } catch (error) {
     addNotification({
       text: t('forms.createVehicle.notifications.error'),
       type: NotificationType.error,
     });
+    captureException({ error, context: { source: 'createVehicleForm' } });
   }
 };
 </script>

@@ -10,7 +10,10 @@
       <div class="bg-card h-96 animate-pulse rounded-2xl"></div>
     </div>
 
-    <div v-else-if="!vehicle" class="flex flex-col items-center justify-center gap-3 py-20 text-center">
+    <div
+      v-else-if="!vehicle || !vehicle.account"
+      class="flex flex-col items-center justify-center gap-3 py-20 text-center"
+    >
       <CarIcon class="text-muted-foreground/40 size-12" />
       <h3 class="text-foreground text-lg font-medium">{{ $t('pages.vehicleDetails.notFound') }}</h3>
       <RouterLink :to="{ name: ROUTES_NAMES.accounts }">
@@ -253,6 +256,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
+import { captureException } from '@/lib/sentry';
 import BalanceAdjustmentDialog from '@/pages/account/components/balance-adjustment-dialog.vue';
 import DepreciationChart from '@/pages/accounts/components/vehicle-details/depreciation-chart.vue';
 import DetailRow from '@/pages/accounts/components/vehicle-details/detail-row.vue';
@@ -263,7 +267,7 @@ import { ROUTES_NAMES } from '@/routes/constants';
 import { useCurrenciesStore } from '@/stores';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { ArrowDownRightIcon, ArrowUpRightIcon, CarIcon, Trash2Icon, TrendingDownIcon } from '@lucide/vue';
-import { differenceInCalendarDays, format, parseISO } from 'date-fns';
+import { addMonths, differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -283,33 +287,41 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 const vehicleId = computed(() => route.params.id as string);
 
 const { data: vehicle, isLoading } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.vehicleDetail, vehicleId.value],
+  // Include `vehicleId` (the ref) — not `.value` — so the query refetches when
+  // the route param changes (sibling navigation between /vehicles/:id).
+  queryKey: [...VUE_QUERY_CACHE_KEYS.vehicleDetail, vehicleId],
   queryFn: () => getVehicleById({ id: vehicleId.value }),
 });
 
-const currencyCode = computed(() => vehicle.value?.account?.currencyCode ?? 'USD');
+// Empty string is a safe placeholder — the page body only renders inside a
+// `v-else` gated on `vehicle.account`, so this fallback never reaches the
+// formatter at runtime, but keeps the type as `string` for the helpers.
+const currencyCode = computed(() => vehicle.value?.account?.currencyCode ?? '');
 
 const { baseCurrency } = storeToRefs(useCurrenciesStore());
 const baseCurrencyCode = computed(() => baseCurrency.value?.currency?.code ?? '');
-const showRefValue = computed(() => baseCurrencyCode.value !== '' && baseCurrencyCode.value !== currencyCode.value);
 
 /**
  * Today's account→base FX rate, derived from the account's own current/ref balance pair.
- * Used to project per-row ref equivalents (purchase price, projection, salvage floor) that
- * aren't stored per-anchor on the backend. Historically-accurate ref values would require
- * per-date rates; today's rate is good enough for at-a-glance display of values that are
- * themselves model-estimated.
+ * Returns `null` when the rate can't be derived reliably (account missing, or current
+ * balance has fully depreciated to zero) — callers gate ref-value display on that null
+ * rather than silently rendering 1:1 across currencies. Historically-accurate ref values
+ * would require per-date rates; today's rate is good enough for at-a-glance display.
  */
-const fxRatio = computed(() => {
+const fxRatio = computed<number | null>(() => {
   const account = vehicle.value?.account;
-  if (!account || account.currentBalance === 0) return 1;
+  if (!account || account.currentBalance === 0) return null;
   return account.refCurrentBalance / account.currentBalance;
 });
 
+const showRefValue = computed(
+  () => baseCurrencyCode.value !== '' && baseCurrencyCode.value !== currencyCode.value && fxRatio.value !== null,
+);
+
 const refCurrentBalance = computed(() => vehicle.value?.account?.refCurrentBalance ?? 0);
-const refPurchasePrice = computed(() => (vehicle.value?.purchasePrice ?? 0) * fxRatio.value);
+const refPurchasePrice = computed(() => (vehicle.value?.purchasePrice ?? 0) * (fxRatio.value ?? 1));
 const refValueAnchor = computed(() =>
-  vehicle.value?.valueAnchor != null ? vehicle.value.valueAnchor * fxRatio.value : null,
+  vehicle.value?.valueAnchor != null ? vehicle.value.valueAnchor * (fxRatio.value ?? 1) : null,
 );
 
 const depreciationAmount = computed(() => {
@@ -368,7 +380,7 @@ const ownedYears = computed(() => {
 const projectedFiveYearValue = computed(() => {
   const tl = depreciationTimeline.value;
   if (tl.length === 0) return 0;
-  const targetMs = todayDate.value.getTime() + FIVE_YEAR_PROJECTION_MONTHS * 30.4 * 24 * 60 * 60 * 1000;
+  const targetMs = addMonths(todayDate.value, FIVE_YEAR_PROJECTION_MONTHS).getTime();
   const future = tl.find((p) => p.date.getTime() >= targetMs);
   return future ? future.value : tl[tl.length - 1]!.value;
 });
@@ -379,14 +391,16 @@ const projectedFiveYearLossPct = computed(() => {
   return ((current - projectedFiveYearValue.value) / current) * 100;
 });
 
-const refSalvageFloorValue = computed(() => salvageFloorValue.value * fxRatio.value);
-const refProjectedFiveYearValue = computed(() => projectedFiveYearValue.value * fxRatio.value);
+const refSalvageFloorValue = computed(() => salvageFloorValue.value * (fxRatio.value ?? 1));
+const refProjectedFiveYearValue = computed(() => projectedFiveYearValue.value * (fxRatio.value ?? 1));
 
 const refDepreciationTimeline = computed(() =>
-  depreciationTimeline.value.map((p) => ({ ...p, value: p.value * fxRatio.value })),
+  depreciationTimeline.value.map((p) => ({ ...p, value: p.value * (fxRatio.value ?? 1) })),
 );
 const refOverrideAnchor = computed<{ value: number; date: Date } | null>(() =>
-  overrideAnchor.value ? { value: overrideAnchor.value.value * fxRatio.value, date: overrideAnchor.value.date } : null,
+  overrideAnchor.value
+    ? { value: overrideAnchor.value.value * (fxRatio.value ?? 1), date: overrideAnchor.value.date }
+    : null,
 );
 
 const formatDisplayDate = (iso: string) => format(parseISO(iso), 'MMM d, yyyy');
@@ -397,8 +411,9 @@ const isDeleteOpen = ref(false);
 
 const onOverrideClosed = () => {
   isOverrideOpen.value = false;
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.vehicleDetail });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.vehiclesList });
+  // All three vehicle cache keys are prefixed with `transactionChange` (see
+  // common/const/vue-query.ts), so the predicate invalidation covers them too —
+  // no need for explicit per-key invalidations here.
   queryClient.invalidateQueries({
     predicate: (q) => (q.queryKey as string[]).includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange),
   });
@@ -414,16 +429,16 @@ const handleDelete = async () => {
       text: t('pages.vehicleDetails.deleteSuccess'),
       type: NotificationType.success,
     });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.vehiclesList });
     queryClient.invalidateQueries({
       predicate: (q) => (q.queryKey as string[]).includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange),
     });
     router.push({ name: ROUTES_NAMES.accounts });
-  } catch {
+  } catch (error) {
     addNotification({
       text: t('pages.vehicleDetails.deleteError'),
       type: NotificationType.error,
     });
+    captureException({ error, context: { source: 'vehicleDetailsDelete', vehicleId: vehicle.value.id } });
   }
 };
 </script>

@@ -1,6 +1,6 @@
 import { NotFoundError } from '@js/errors';
-import Accounts from '@models/accounts.model';
 import Vehicles from '@models/vehicles.model';
+import { deleteAccountById } from '@services/accounts.service';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteVehicleParams {
@@ -9,16 +9,19 @@ interface DeleteVehicleParams {
 }
 
 const deleteVehicleImpl = async ({ userId, vehicleId }: DeleteVehicleParams) => {
-  const vehicle = await Vehicles.findOne({ where: { id: vehicleId, userId } });
+  const vehicle = await Vehicles.findOne({
+    where: { id: vehicleId, userId },
+    attributes: ['accountId'],
+  });
 
   if (!vehicle) {
     throw new NotFoundError({ message: 'Vehicle not found' });
   }
 
-  // Cascade deletion runs from the Account row — Vehicles FK has ON DELETE
-  // CASCADE, and Transactions / Balances cascade from Accounts too. So we delete
-  // the underlying Account and Postgres tears down the rest.
-  await Accounts.destroy({ where: { id: vehicle.accountId, userId } });
+  // Delegate to the accounts service so share cleanup, cross-user transfer
+  // conversion, and post-commit notification fan-out all run. The Vehicles row
+  // is removed via FK ON DELETE CASCADE from Accounts.
+  await deleteAccountById({ id: vehicle.accountId, userId });
 
   return { id: vehicleId };
 };

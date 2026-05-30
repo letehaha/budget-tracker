@@ -1,5 +1,6 @@
 import { Money } from '@common/types/money';
 import { NotFoundError } from '@js/errors';
+import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import Vehicles from '@models/vehicles.model';
@@ -59,13 +60,9 @@ const refreshVehicleValueIfStaleImpl = async ({
     };
   }
 
-  // Treat a zero-cents anchor as "not set" — a real-world vehicle is never
-  // worth $0, so anchor=0 is always a leftover from the legacy MoneyColumn
-  // default rather than a user-set value. Fall back to the original purchase.
-  const hasAnchor =
-    vehicle.valueAnchor !== null && vehicle.valueAnchor !== undefined && vehicle.valueAnchor.toCents() > 0;
+  const hasAnchor = vehicle.valueAnchor !== null && vehicle.valueAnchorDate !== null;
   const anchorValue = hasAnchor ? vehicle.valueAnchor! : vehicle.purchasePrice;
-  const anchorDateString = hasAnchor && vehicle.valueAnchorDate ? vehicle.valueAnchorDate : vehicle.purchaseDate;
+  const anchorDateString = hasAnchor ? vehicle.valueAnchorDate! : vehicle.purchaseDate;
   const anchorDate = parseISO(anchorDateString);
 
   const newValue = computeVehicleValue({
@@ -112,10 +109,13 @@ interface RefreshBulkParams {
 /**
  * Bulk variant — refresh every vehicle for a user that is over the 7-day TTL.
  * Called from the accounts list endpoint so values are fresh in the response.
- * Errors on individual vehicles are swallowed (logged) so one stale row doesn't
- * break the whole list response.
+ *
+ * Each per-vehicle refresh runs in its own transaction (via the wrapped
+ * `refreshVehicleValueIfStale`) so a failure on one doesn't roll back the
+ * successful refreshes that came before it. Errors are logged but not thrown —
+ * the caller's response succeeds with whatever values were freshable.
  */
-const refreshStaleVehicleValuesForUserImpl = async ({
+export const refreshStaleVehicleValuesForUser = async ({
   userId,
   force = false,
   asOf,
@@ -141,14 +141,16 @@ const refreshStaleVehicleValuesForUserImpl = async ({
     if (cacheValid) continue;
 
     try {
-      await refreshVehicleValueIfStaleImpl({ vehicleId: vehicle.id, force, asOf });
+      await refreshVehicleValueIfStale({ vehicleId: vehicle.id, force, asOf });
       refreshedCount += 1;
-    } catch {
-      // Don't break the entire list — one bad vehicle shouldn't 500 the user.
+    } catch (err) {
+      logger.warn(`Failed to refresh vehicle value during bulk refresh`, {
+        userId,
+        vehicleId: vehicle.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
   return { refreshedCount };
 };
-
-export const refreshStaleVehicleValuesForUser = withTransaction(refreshStaleVehicleValuesForUserImpl);

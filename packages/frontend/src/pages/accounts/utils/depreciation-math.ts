@@ -1,34 +1,17 @@
-import { DEPRECIATION_PRESET, VEHICLE_CLASS } from '@bt/shared/types';
-import { differenceInCalendarDays } from 'date-fns';
-
-/**
- * Mirrors `packages/backend/src/services/vehicles/depreciation-curves.ts`.
- * Frontend-only copy lets the depreciation chart project the curve forward
- * without an extra API round-trip. If backend curves change, update both files.
- */
-const CLASS_DEFAULT_CURVES: Record<VEHICLE_CLASS, number[]> = {
-  [VEHICLE_CLASS.sedan]: [20, 15, 12, 10, 8, 7, 6, 5, 5, 4],
-  [VEHICLE_CLASS.suv]: [18, 14, 11, 10, 8, 7, 6, 5, 5, 4],
-  [VEHICLE_CLASS.truck]: [15, 12, 10, 9, 8, 7, 6, 5, 5, 4],
-  [VEHICLE_CLASS.luxury]: [25, 18, 14, 12, 10, 8, 7, 6, 5, 5],
-  [VEHICLE_CLASS.ev]: [22, 17, 13, 10, 8, 7, 6, 5, 5, 4],
-  [VEHICLE_CLASS.motorcycle]: [20, 15, 12, 10, 8, 7, 6, 5, 5, 4],
-  [VEHICLE_CLASS.other]: [20, 15, 12, 10, 8, 7, 6, 5, 5, 4],
-};
-
-const TAIL_RATE_PCT = 4;
-
-const PRESET_MULTIPLIERS = {
-  slow: 0.7,
-  average: 1.0,
-  fast: 1.3,
-} as const;
+import {
+  CLASS_DEFAULT_CURVES,
+  DEPRECIATION_PRESET,
+  PRESET_MULTIPLIERS,
+  TAIL_RATE_PCT,
+  VEHICLE_CLASS,
+} from '@bt/shared/types';
+import { addMonths, addYears, differenceInCalendarDays } from 'date-fns';
 
 interface ResolveRateParams {
   vehicleClass: VEHICLE_CLASS;
   preset: DEPRECIATION_PRESET;
   customAnnualRatePct?: number | null;
-  /** Years elapsed since the START of the current segment, not since purchase. */
+  /** Year index since segment anchor (0 = the first 12 months from anchor). */
   yearIndex: number;
 }
 
@@ -62,20 +45,74 @@ export interface DepreciationPoint {
   value: number;
 }
 
-interface SegmentParams extends CurveParams {
+interface SampleAtParams extends CurveParams {
   anchorValue: number;
   anchorDate: Date;
-  endDate: Date;
+  asOf: Date;
   /** Salvage floor is shared across segments — it's a fraction of original purchase. */
   floor: number;
 }
 
 /**
- * Walk a single curve segment month-by-month, depreciating from `anchorValue`
- * at `anchorDate` until `endDate`. Floors at `floor`. Year indexing resets at
- * the segment start — this matches Edmunds-style curves where the year-1 hit
- * is steepest and gentles out, applied freshly from any anchor (purchase or
- * override). Emits one point per month-end, plus the segment-start point.
+ * Pure depreciation math — mirrors the backend's `computeVehicleValue`:
+ * walk year-by-year from `anchorDate` applying compound annual depreciation,
+ * prorate the partial final year by elapsed days, floor at salvage.
+ *
+ * Keeping the frontend math identical to the backend's prevents the chart from
+ * silently diverging from the headline current-value figure.
+ */
+function sampleValueAt({
+  anchorValue,
+  anchorDate,
+  asOf,
+  vehicleClass,
+  preset,
+  customAnnualRatePct,
+  floor,
+}: SampleAtParams): number {
+  const daysElapsed = differenceInCalendarDays(asOf, anchorDate);
+  if (daysElapsed <= 0) {
+    return anchorValue;
+  }
+
+  let value = anchorValue;
+  let cursor = anchorDate;
+  let yearIndex = 0;
+
+  while (true) {
+    const nextAnniversary = addYears(cursor, 1);
+    if (asOf >= nextAnniversary) {
+      const rate = resolveAnnualRate({ vehicleClass, preset, customAnnualRatePct, yearIndex });
+      value = value * (1 - rate);
+      if (value < floor) return floor;
+      cursor = nextAnniversary;
+      yearIndex += 1;
+      continue;
+    }
+
+    const daysInYear = differenceInCalendarDays(nextAnniversary, cursor);
+    const partialDays = differenceInCalendarDays(asOf, cursor);
+    if (partialDays > 0 && daysInYear > 0) {
+      const rate = resolveAnnualRate({ vehicleClass, preset, customAnnualRatePct, yearIndex });
+      const proratedRate = rate * (partialDays / daysInYear);
+      value = value * (1 - proratedRate);
+      if (value < floor) return floor;
+    }
+    return value;
+  }
+}
+
+interface SegmentParams extends CurveParams {
+  anchorValue: number;
+  anchorDate: Date;
+  endDate: Date;
+  floor: number;
+}
+
+/**
+ * Walk a single segment month-by-month, sampling the curve at each month-end.
+ * The per-month sampling uses `sampleValueAt` (the backend-matching math), so
+ * every point on the line agrees with what the backend would say at that date.
  */
 function buildSegment({
   anchorValue,
@@ -88,23 +125,23 @@ function buildSegment({
 }: SegmentParams): DepreciationPoint[] {
   const points: DepreciationPoint[] = [{ date: new Date(anchorDate), value: anchorValue }];
 
-  let current = anchorValue;
   let month = 1;
-
   while (true) {
-    const date = new Date(anchorDate);
-    date.setMonth(date.getMonth() + month);
+    const date = addMonths(anchorDate, month);
     if (date > endDate) break;
 
-    const daysFromAnchor = differenceInCalendarDays(date, anchorDate);
-    const yearIndex = Math.floor(daysFromAnchor / 365);
-    const rate = resolveAnnualRate({ vehicleClass, preset, customAnnualRatePct, yearIndex });
-    const monthlyRate = rate / 12;
+    const value = sampleValueAt({
+      anchorValue,
+      anchorDate,
+      asOf: date,
+      vehicleClass,
+      preset,
+      customAnnualRatePct,
+      floor,
+      salvageFloorPct: 0,
+    });
 
-    current = current * (1 - monthlyRate);
-    if (current < floor) current = floor;
-
-    points.push({ date, value: current });
+    points.push({ date, value });
     month += 1;
   }
 
@@ -144,8 +181,7 @@ export function buildDepreciationTimeline({
   const hasOverride = override != null && override.date.getTime() > purchase.date.getTime();
 
   if (!hasOverride) {
-    const endDate = new Date(purchase.date);
-    endDate.setMonth(endDate.getMonth() + monthsHorizon);
+    const endDate = addMonths(purchase.date, monthsHorizon);
     return buildSegment({ ...curveParams, anchorValue: purchase.value, anchorDate: purchase.date, endDate, floor });
   }
 
@@ -169,8 +205,7 @@ export function buildDepreciationTimeline({
           { date: new Date(override!.date), value: override!.value },
         ];
 
-  const projectionEnd = new Date(override!.date);
-  projectionEnd.setMonth(projectionEnd.getMonth() + monthsHorizon);
+  const projectionEnd = addMonths(override!.date, monthsHorizon);
   const postOverride = buildSegment({
     ...curveParams,
     anchorValue: override!.value,

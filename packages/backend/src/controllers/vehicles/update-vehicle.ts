@@ -5,9 +5,6 @@ import { serializeVehicle } from '@root/serializers/vehicles.serializer';
 import { updateVehicle } from '@services/vehicles/update-vehicle.service';
 import { z } from 'zod';
 
-const vehicleClassValues = Object.values(VEHICLE_CLASS) as [VEHICLE_CLASS, ...VEHICLE_CLASS[]];
-const depreciationPresetValues = Object.values(DEPRECIATION_PRESET) as [DEPRECIATION_PRESET, ...DEPRECIATION_PRESET[]];
-
 const schema = z.object({
   params: z.object({ id: recordId() }),
   body: z.object({
@@ -21,8 +18,8 @@ const schema = z.object({
       .min(1900)
       .max(new Date().getFullYear() + 1)
       .optional(),
-    vehicleClass: z.enum(vehicleClassValues).optional(),
-    depreciationPreset: z.enum(depreciationPresetValues).optional(),
+    vehicleClass: z.nativeEnum(VEHICLE_CLASS).optional(),
+    depreciationPreset: z.nativeEnum(DEPRECIATION_PRESET).optional(),
     customAnnualRatePct: z.number().min(0).max(100).nullable().optional(),
     salvageFloorPct: z.number().min(0).max(100).optional(),
     currentMileage: z.number().int().min(0).nullable().optional(),

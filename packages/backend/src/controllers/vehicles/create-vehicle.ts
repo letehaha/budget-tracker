@@ -5,9 +5,6 @@ import { serializeVehicle } from '@root/serializers/vehicles.serializer';
 import { createVehicle } from '@services/vehicles/create-vehicle.service';
 import { z } from 'zod';
 
-const vehicleClassValues = Object.values(VEHICLE_CLASS) as [VEHICLE_CLASS, ...VEHICLE_CLASS[]];
-const depreciationPresetValues = Object.values(DEPRECIATION_PRESET) as [DEPRECIATION_PRESET, ...DEPRECIATION_PRESET[]];
-
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 const schema = z.object({
@@ -22,10 +19,10 @@ const schema = z.object({
       .int()
       .min(1900)
       .max(new Date().getFullYear() + 1),
-    vehicleClass: z.enum(vehicleClassValues),
+    vehicleClass: z.nativeEnum(VEHICLE_CLASS),
     purchasePrice: decimalMoney().refine((m) => m.isPositive(), { message: 'purchasePrice must be > 0' }),
     purchaseDate: z.string().regex(datePattern, 'purchaseDate must be YYYY-MM-DD'),
-    depreciationPreset: z.enum(depreciationPresetValues).optional(),
+    depreciationPreset: z.nativeEnum(DEPRECIATION_PRESET).optional(),
     customAnnualRatePct: z.number().min(0).max(100).nullable().optional(),
     salvageFloorPct: z.number().min(0).max(100).optional(),
     currentMileage: z.number().int().min(0).nullable().optional(),

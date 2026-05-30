@@ -6,12 +6,15 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
-import { FILTER_OPERATION, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { captureException } from '@/lib/sentry';
+import { FILTER_OPERATION, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { ArrowDownRightIcon, ArrowUpRightIcon, HistoryIcon, Trash2Icon } from '@lucide/vue';
 import { format, parseISO } from 'date-fns';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+const OVERRIDE_HISTORY_LIMIT = 100;
 
 const props = defineProps<{ accountId: string; currencyCode: string }>();
 
@@ -28,7 +31,7 @@ const { data, isLoading } = useQuery({
     loadTransactions({
       accountIds: [props.accountId],
       transferFilter: FILTER_OPERATION.only,
-      limit: 100,
+      limit: OVERRIDE_HISTORY_LIMIT,
       from: 0,
     }),
 });
@@ -54,17 +57,18 @@ const confirmDelete = async () => {
       text: t('pages.vehicleDetails.overrideHistory.deleteSuccess'),
       type: NotificationType.success,
     });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.vehicleOverrideHistory });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.vehicleDetail });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.vehiclesList });
+    // Vehicle cache keys are prefixed with `transactionChange`, so this single
+    // predicate invalidation also covers vehicleOverrideHistory / vehicleDetail /
+    // vehiclesList — no per-key invalidations needed.
     queryClient.invalidateQueries({
       predicate: (q) => (q.queryKey as string[]).includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange),
     });
-  } catch {
+  } catch (error) {
     addNotification({
       text: t('pages.vehicleDetails.overrideHistory.deleteError'),
       type: NotificationType.error,
     });
+    captureException({ error, context: { source: 'vehicleOverrideHistoryDelete', transactionId: id } });
   }
 };
 </script>
@@ -91,19 +95,28 @@ const confirmDelete = async () => {
         <div class="flex min-w-0 items-center gap-3">
           <span
             class="bg-muted/40 flex size-8 shrink-0 items-center justify-center rounded-full"
-            :class="tx.transactionType === 'income' ? 'text-app-income-color' : 'text-app-expense-color'"
+            :class="
+              tx.transactionType === TRANSACTION_TYPES.income ? 'text-app-income-color' : 'text-app-expense-color'
+            "
           >
-            <component :is="tx.transactionType === 'income' ? ArrowUpRightIcon : ArrowDownRightIcon" class="size-4" />
+            <component
+              :is="tx.transactionType === TRANSACTION_TYPES.income ? ArrowUpRightIcon : ArrowDownRightIcon"
+              class="size-4"
+            />
           </span>
           <div class="min-w-0">
             <div class="text-foreground text-sm font-medium tabular-nums">
-              <span :class="tx.transactionType === 'income' ? 'text-app-income-color' : 'text-app-expense-color'">
-                {{ tx.transactionType === 'income' ? '+' : '−' }}
+              <span
+                :class="
+                  tx.transactionType === TRANSACTION_TYPES.income ? 'text-app-income-color' : 'text-app-expense-color'
+                "
+              >
+                {{ tx.transactionType === TRANSACTION_TYPES.income ? '+' : '−' }}
                 {{ formatAmountByCurrencyCode(tx.amount, currencyCode) }}
               </span>
             </div>
             <div class="text-muted-foreground truncate text-xs">
-              {{ format(parseISO(tx.time as unknown as string), 'MMM d, yyyy') }}
+              {{ format(parseISO(String(tx.time)), 'MMM d, yyyy') }}
               <span v-if="tx.note">· {{ tx.note }}</span>
             </div>
           </div>

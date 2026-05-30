@@ -1,6 +1,8 @@
 import {
   ACCOUNT_CATEGORIES,
+  asDecimal,
   DEPRECIATION_PRESET,
+  RecordId,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
@@ -9,7 +11,7 @@ import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import Vehicles from '@models/vehicles.model';
 import * as helpers from '@tests/helpers';
-import { format, subDays, subYears } from 'date-fns';
+import { format, subDays, subHours, subYears } from 'date-fns';
 
 function todayString(): string {
   return format(new Date(), 'yyyy-MM-dd');
@@ -225,24 +227,27 @@ describe('Vehicles', () => {
   });
 
   describe('lazy 7-day cache', () => {
-    it('second GET within 7 days does not change valueLastComputedAt', async () => {
+    it('second list GET within 7 days does not change valueLastComputedAt', async () => {
+      // The 7-day cache applies to bulk/list reads (GET /vehicles, GET /accounts).
+      // GET /vehicles/:id force-refreshes deliberately, so this test deliberately
+      // uses the list endpoint to exercise the cache.
       const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
       const first = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
 
-      await helpers.getVehicleById({ id: vehicle.id, raw: true });
+      await helpers.getVehicles({ raw: true });
 
       const second = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
       expect(second).toBe(first);
     });
 
-    it('GET after the cache window expires refreshes valueLastComputedAt', async () => {
+    it('list GET after the cache window expires refreshes valueLastComputedAt', async () => {
       const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
 
       // Backdate the cache stamp to 10 days ago to simulate staleness.
       await Vehicles.update({ valueLastComputedAt: subDays(new Date(), 10) }, { where: { id: vehicle.id } });
       const before = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
 
-      await helpers.getVehicleById({ id: vehicle.id, raw: true });
+      await helpers.getVehicles({ raw: true });
 
       const after = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
       expect(after).toBeGreaterThan(before);
@@ -276,6 +281,167 @@ describe('Vehicles', () => {
     it('returns 404 for non-existent vehicle id', async () => {
       const response = await helpers.deleteVehicle({ id: generateRandomRecordId(), raw: false });
       expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('Override delete reconciliation', () => {
+    it('clears the anchor back to purchase when the only override is deleted', async () => {
+      // Create vehicle (no overrides yet) → anchor null. Override once → anchor
+      // set. Delete that override tx → anchor must go back to null, and the
+      // current balance must match the pure depreciation-curve value from purchase.
+      const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
+      const baselineBalance = vehicle.account!.currentBalance;
+      const purchasePrice = vehicle.purchasePrice;
+
+      const override = await helpers.overrideVehicleValue({
+        id: vehicle.id,
+        targetValue: baselineBalance + 4000,
+        raw: true,
+      });
+
+      expect(override.vehicle!.valueAnchor).not.toBeNull();
+      expect(override.transaction).not.toBeNull();
+      const overrideTxId = override.transaction!.id;
+
+      const deleteResponse = await helpers.makeRequest({
+        method: 'delete',
+        url: `/transactions/${overrideTxId}`,
+      });
+      expect(deleteResponse.statusCode).toBe(200);
+
+      const refreshed = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+
+      expect(refreshed.valueAnchor).toBeNull();
+      expect(refreshed.valueAnchorDate).toBeNull();
+      // Curve-derived value is less than purchase price (the vehicle was purchased
+      // 3 years ago in basePayload). It should match the pre-override baseline
+      // since no other state changed and we're back on the pure curve.
+      expect(refreshed.account!.currentBalance).toBeLessThan(purchasePrice);
+      expect(refreshed.account!.currentBalance).toBeCloseTo(baselineBalance, 0);
+    });
+
+    it('re-anchors to the prior override when the latest override is deleted', async () => {
+      // Two overrides at distinct effective times. Delete the LATEST → anchor
+      // must reconstruct to the prior override's (value, date), not zero out
+      // and not stick with the deleted value.
+      const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
+      const baseBalance = vehicle.account!.currentBalance;
+
+      const olderTime = subDays(new Date(), 5);
+      const olderOverride = await helpers.overrideVehicleValue({
+        id: vehicle.id,
+        targetValue: baseBalance + 2000,
+        time: olderTime,
+        raw: true,
+      });
+      expect(olderOverride.transaction).not.toBeNull();
+      const olderAnchorValue = olderOverride.vehicle!.valueAnchor!;
+      const olderAnchorDate = olderOverride.vehicle!.valueAnchorDate!;
+      // Sanity: backdated override re-anchored to the older date, not today.
+      expect(olderAnchorDate).toBe(format(olderTime, 'yyyy-MM-dd'));
+
+      // Make the latest override happen now — anchor flips to today.
+      const newerOverride = await helpers.overrideVehicleValue({
+        id: vehicle.id,
+        targetValue: baseBalance + 6000,
+        raw: true,
+      });
+      expect(newerOverride.transaction).not.toBeNull();
+      expect(newerOverride.vehicle!.valueAnchorDate).toBe(format(new Date(), 'yyyy-MM-dd'));
+
+      const newerTxId = newerOverride.transaction!.id;
+      const deleteResponse = await helpers.makeRequest({
+        method: 'delete',
+        url: `/transactions/${newerTxId}`,
+      });
+      expect(deleteResponse.statusCode).toBe(200);
+
+      const refreshed = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+
+      // After deleting the latest override, the reconstruction should collapse
+      // back to the prior override's anchor point. The value tolerance is
+      // generous: reconstruct walks the curve from purchase to the prior
+      // override's date and adds the signed tx amount, which can differ by a
+      // few days of depreciation from the value the override recorded live
+      // (which used today's account balance as its baseline).
+      expect(refreshed.valueAnchor).not.toBeNull();
+      expect(refreshed.valueAnchorDate).toBe(olderAnchorDate);
+      // ±$200 covers a few days of curve drift on any vehicle under $100k.
+      expect(Math.abs(refreshed.valueAnchor! - olderAnchorValue)).toBeLessThan(200);
+      // And the reconstructed anchor must NOT equal the deleted newer override's value.
+      expect(refreshed.valueAnchor!).toBeLessThan(baseBalance + 6000 - 100);
+    });
+
+    it('does not touch the anchor when deleting a non-override tx on a vehicle account', async () => {
+      // Set an anchor via one override, then create a regular (not_transfer)
+      // income tx on the vehicle account and delete it. The hook short-circuits
+      // on transferNature, so anchor must remain exactly where the override left it.
+      const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
+      const baseBalance = vehicle.account!.currentBalance;
+
+      const override = await helpers.overrideVehicleValue({
+        id: vehicle.id,
+        targetValue: baseBalance + 1500,
+        raw: true,
+      });
+      const anchoredValue = override.vehicle!.valueAnchor!;
+      const anchoredDate = override.vehicle!.valueAnchorDate!;
+      expect(anchoredValue).not.toBeNull();
+      expect(anchoredDate).not.toBeNull();
+
+      const regularTxResp = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: vehicle.accountId as RecordId,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+          time: subHours(new Date(), 1).toISOString(),
+        }),
+        raw: true,
+      });
+      const regularTxId = regularTxResp[0]!.id;
+
+      const deleteResponse = await helpers.makeRequest({
+        method: 'delete',
+        url: `/transactions/${regularTxId}`,
+      });
+      expect(deleteResponse.statusCode).toBe(200);
+
+      const refreshed = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+
+      // Anchor untouched by deletion of a non-override tx.
+      expect(refreshed.valueAnchor).toBeCloseTo(anchoredValue, 2);
+      expect(refreshed.valueAnchorDate).toBe(anchoredDate);
+    });
+
+    it('does not crash when deleting a balance-adjustment override on a non-vehicle account', async () => {
+      // The hook checks `accountCategory === vehicle` and short-circuits otherwise.
+      // Create a regular account, do a balance adjustment (which creates a
+      // transfer_out_wallet tx), then delete that tx — the AfterDestroy hook
+      // must not throw or attempt to reconcile a non-existent vehicle.
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      const adjustment = await helpers.balanceAdjustment({
+        id: account.id,
+        payload: { targetBalance: asDecimal(1500) },
+        raw: true,
+      });
+      expect(adjustment.transaction).not.toBeNull();
+      const adjustmentTxId = adjustment.transaction!.id;
+
+      const deleteResponse = await helpers.makeRequest({
+        method: 'delete',
+        url: `/transactions/${adjustmentTxId}`,
+      });
+
+      // The reconciliation hook must short-circuit cleanly — no 500.
+      expect(deleteResponse.statusCode).toBe(200);
+
+      // And the account itself still loads (balance reverts to pre-adjustment).
+      const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
+      expect(accountAfter).toBeDefined();
     });
   });
 });

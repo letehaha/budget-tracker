@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { updateVehicle, type VehicleModel } from '@/api/vehicles';
-import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import {
   DEPRECIATION_PRESET_TRANSLATION_KEYS,
   VEHICLE_CLASS_TRANSLATION_KEYS,
@@ -9,6 +9,7 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { captureException } from '@/lib/sentry';
 import { DEPRECIATION_PRESET, VEHICLE_CLASS } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive } from 'vue';
@@ -98,18 +99,19 @@ const submit = async () => {
       type: NotificationType.success,
     });
 
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.vehiclesList });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.vehicleDetail });
+    // Vehicle cache keys are prefixed with `transactionChange`, so the
+    // predicate invalidation also covers vehiclesList + vehicleDetail.
     queryClient.invalidateQueries({
       predicate: (q) => (q.queryKey as string[]).includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange),
     });
 
     emit('updated');
-  } catch {
+  } catch (error) {
     addNotification({
       text: t('forms.editVehicle.notifications.error'),
       type: NotificationType.error,
     });
+    captureException({ error, context: { source: 'editVehicleForm', vehicleId: props.vehicle.id } });
   }
 };
 </script>
