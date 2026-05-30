@@ -7,12 +7,17 @@ import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
 import { serializeAccount, serializeAccounts } from '@root/serializers';
 import * as accountsService from '@services/accounts.service';
+import { refreshStaleVehicleValuesForUser } from '@services/vehicles/refresh-vehicle-value.service';
 import { z } from 'zod';
 
 import { createController } from './helpers/controller-factory';
 
 export const getAccounts = createController(z.object({}), async ({ user }) => {
   const { id: userId } = user;
+  // Refresh vehicle balances whose 7-day cache has expired before reading the
+  // accounts list. Errors per-vehicle are swallowed inside so one bad row never
+  // breaks the response.
+  await refreshStaleVehicleValuesForUser({ userId });
   const accounts = await accountsService.getAccounts({ userId });
   // Serialize: convert cents to decimal for API response
   return { data: serializeAccounts(accounts) };

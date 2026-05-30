@@ -52,7 +52,9 @@
       "password": "Your password"
     },
     "dialogs": {
-      "createAccount": "Create account"
+      "createAccount": "Create account",
+      "createVehicle": "Add vehicle",
+      "editVehicle": "Edit vehicle"
     },
     "accountCategories": {
       "general": "General",
@@ -66,7 +68,8 @@
       "loan": "Loan",
       "mortgage": "Mortgage",
       "overdraft": "Overdraft",
-      "crypto": "Crypto"
+      "crypto": "Crypto",
+      "vehicle": "Vehicle"
     },
     "paymentTypes": {
       "creditCard": "Credit Card",
@@ -76,6 +79,22 @@
       "mobilePayment": "Mobile Payment",
       "voucher": "Voucher",
       "webPayment": "Web Payment"
+    },
+    "vehicleClasses": {
+      "sedan": "Sedan",
+      "suv": "SUV",
+      "truck": "Truck",
+      "luxury": "Luxury",
+      "ev": "Electric vehicle",
+      "motorcycle": "Motorcycle",
+      "other": "Other"
+    },
+    "depreciationPresets": {
+      "classDefault": "Class default",
+      "slow": "Slow",
+      "average": "Average",
+      "fast": "Fast",
+      "custom": "Custom rate"
     },
     "aiFeatures": {
       "categorization": {

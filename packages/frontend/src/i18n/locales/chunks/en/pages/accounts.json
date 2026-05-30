@@ -3,12 +3,14 @@
     "noNameSet": "No name set...",
     "title": "Accounts",
     "createAccount": "Create account",
+    "createVehicle": "Add vehicle",
     "bankIntegrations": "Bank Integrations",
     "sections": {
       "archived": "Archived",
       "manual": "Manual accounts",
       "connected": "Connected Accounts",
-      "sharedWithMe": "Shared with me"
+      "sharedWithMe": "Shared with me",
+      "vehicles": "Vehicles"
     },
     "empty": {
       "title": "No Accounts Yet",

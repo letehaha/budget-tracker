@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import DateField from '@/components/fields/date-field.vue';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -10,7 +11,7 @@ import { useAccountDisplayBalance } from '@/composable/use-account-display-balan
 import { toLocalNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { cn } from '@/lib/utils';
-import { AccountModel } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, AccountModel } from '@bt/shared/types';
 import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -22,11 +23,35 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const { hasCreditLimitAdjustment, displayBalance } = useAccountDisplayBalance({
   account: toRef(() => props.account),
 });
-const { t } = useI18n();
+const { t, te } = useI18n();
+
+const isVehicle = computed(() => props.account.accountCategory === ACCOUNT_CATEGORIES.vehicle);
+
+/**
+ * Look up a copy key, preferring the vehicle-override namespace when the
+ * underlying account is a vehicle, falling back to the generic
+ * balance-adjustment namespace otherwise (or when no vehicle-specific copy
+ * exists for that key).
+ */
+const label = (key: string): string => {
+  if (isVehicle.value) {
+    const vehicleKey = `pages.vehicleDetails.valueOverrideDialog.${key}`;
+    if (te(vehicleKey)) return t(vehicleKey);
+  }
+  return t(`pages.account.balanceAdjustmentDialog.${key}`);
+};
+
+const labelWithParams = (key: string, params: Record<string, string | number>): string => {
+  if (isVehicle.value) {
+    const vehicleKey = `pages.vehicleDetails.valueOverrideDialog.${key}`;
+    if (te(vehicleKey)) return t(vehicleKey, params);
+  }
+  return t(`pages.account.balanceAdjustmentDialog.${key}`, params);
+};
 
 const isOpen = ref(true);
 const mode = ref<'set-to' | 'adjust-by'>('set-to');
-const form = ref({ amount: null as number | null, note: '' });
+const form = ref({ amount: null as number | null, note: '', time: new Date() });
 const direction = ref<'income' | 'expense'>('income');
 
 const rules = computed(() => ({
@@ -91,11 +116,12 @@ const submit = async () => {
       id: props.account.id,
       targetBalance: computedTarget.value,
       note: form.value.note || undefined,
+      time: form.value.time,
     });
-    addSuccessNotification(t('pages.account.balanceAdjustmentDialog.successNotification'));
+    addSuccessNotification(label('successNotification'));
     isOpen.value = false;
   } catch {
-    addErrorNotification(t('pages.account.balanceAdjustmentDialog.errorNotification'));
+    addErrorNotification(label('errorNotification'));
   }
 };
 
@@ -107,13 +133,14 @@ watch(isOpen, (val) => {
 watch(mode, () => {
   form.value.amount = null;
   form.value.note = '';
+  form.value.time = new Date();
   resetValidation();
 });
 </script>
 
 <template>
   <ResponsiveDialog v-model:open="isOpen">
-    <template #title>{{ t('pages.account.balanceAdjustmentDialog.title') }}</template>
+    <template #title>{{ label('title') }}</template>
 
     <div class="grid gap-4 py-2">
       <!-- Mode toggle — styled tabs -->
@@ -130,7 +157,7 @@ watch(mode, () => {
           "
           @click="mode = 'set-to'"
         >
-          {{ t('pages.account.balanceAdjustmentDialog.setToBalance') }}
+          {{ label('setToBalance') }}
         </button>
         <button
           type="button"
@@ -144,7 +171,7 @@ watch(mode, () => {
           "
           @click="mode = 'adjust-by'"
         >
-          {{ t('pages.account.balanceAdjustmentDialog.adjustByAmount') }}
+          {{ label('adjustByAmount') }}
         </button>
       </div>
 
@@ -152,16 +179,8 @@ watch(mode, () => {
       <InputField
         v-model="form.amount"
         type="number"
-        :label="
-          mode === 'set-to'
-            ? t('pages.account.balanceAdjustmentDialog.newBalance')
-            : t('pages.account.balanceAdjustmentDialog.amount')
-        "
-        :placeholder="
-          mode === 'set-to'
-            ? t('pages.account.balanceAdjustmentDialog.enterTargetBalance')
-            : t('pages.account.balanceAdjustmentDialog.enterAmount')
-        "
+        :label="mode === 'set-to' ? label('newBalance') : label('amount')"
+        :placeholder="mode === 'set-to' ? label('enterTargetBalance') : label('enterAmount')"
         :only-positive="mode === 'adjust-by'"
         :error-message="getFieldErrorMessage('form.amount')"
         @blur="touchField('form.amount')"
@@ -185,7 +204,7 @@ watch(mode, () => {
           "
           @click="direction = 'income'"
         >
-          {{ t('pages.account.balanceAdjustmentDialog.income') }}
+          {{ label('income') }}
         </button>
         <button
           type="button"
@@ -199,18 +218,18 @@ watch(mode, () => {
           "
           @click="direction = 'expense'"
         >
-          {{ t('pages.account.balanceAdjustmentDialog.expense') }}
+          {{ label('expense') }}
         </button>
       </div>
 
       <!-- Live preview panel — fixed min-height to prevent layout shift -->
       <div class="border-border bg-muted/20 flex min-h-[calc(2lh+2rem)] flex-col justify-center rounded-lg border p-4">
         <template v-if="diff === null">
-          <p class="text-muted-foreground text-sm">{{ t('pages.account.balanceAdjustmentDialog.enterAmountAbove') }}</p>
+          <p class="text-muted-foreground text-sm">{{ label('enterAmountAbove') }}</p>
         </template>
         <template v-else-if="diff === 0">
           <p class="text-muted-foreground text-sm">
-            {{ t('pages.account.balanceAdjustmentDialog.noAdjustmentNeeded') }}
+            {{ label('noAdjustmentNeeded') }}
           </p>
         </template>
         <template v-else>
@@ -225,11 +244,11 @@ watch(mode, () => {
           >
             {{
               previewType === 'income'
-                ? t('pages.account.balanceAdjustmentDialog.incomeWillBeCreated', {
+                ? labelWithParams('incomeWillBeCreated', {
                     amount: toLocalNumber(Math.abs(diff)),
                     currency: currencyCode,
                   })
-                : t('pages.account.balanceAdjustmentDialog.expenseWillBeCreated', {
+                : labelWithParams('expenseWillBeCreated', {
                     amount: toLocalNumber(Math.abs(diff)),
                     currency: currencyCode,
                   })
@@ -238,21 +257,15 @@ watch(mode, () => {
         </template>
       </div>
 
-      <InputField
-        v-model="form.note"
-        :label="t('pages.account.balanceAdjustmentDialog.transactionNote')"
-        :placeholder="t('pages.account.balanceAdjustmentDialog.optionalNote')"
-      />
+      <DateField v-model="form.time" :label="label('effectiveDate')" />
+
+      <InputField v-model="form.note" :label="label('transactionNote')" :placeholder="label('optionalNote')" />
     </div>
 
     <template #footer="{ close }">
-      <Button variant="outline" @click="close">{{ t('pages.account.balanceAdjustmentDialog.cancel') }}</Button>
+      <Button variant="outline" @click="close">{{ label('cancel') }}</Button>
       <Button :disabled="!isValid || isPending" @click="submit">
-        {{
-          isPending
-            ? t('pages.account.balanceAdjustmentDialog.saving')
-            : t('pages.account.balanceAdjustmentDialog.confirm')
-        }}
+        {{ isPending ? label('saving') : label('confirm') }}
       </Button>
     </template>
   </ResponsiveDialog>

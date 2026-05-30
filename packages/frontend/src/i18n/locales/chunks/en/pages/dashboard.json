@@ -12,13 +12,15 @@
           "total": "Total",
           "accounts": "Accounts",
           "portfolios": "Portfolios",
-          "ventures": "Ventures"
+          "ventures": "Ventures",
+          "vehicles": "Vehicles"
         },
         "tooltip": {
           "accounts": "Accounts:",
           "portfolios": "Portfolios:",
           "total": "Total:",
-          "ventures": "Ventures:"
+          "ventures": "Ventures:",
+          "vehicles": "Vehicles:"
         },
         "today": "Today",
         "vsPreviousPeriod": "vs previous period",

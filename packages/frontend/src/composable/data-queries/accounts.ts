@@ -6,8 +6,17 @@ export const useAdjustAccountBalance = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, targetBalance, note }: { id: string; targetBalance: number; note?: string }) =>
-      apiBalanceAdjustment({ id, targetBalance, note }),
+    mutationFn: ({
+      id,
+      targetBalance,
+      note,
+      time,
+    }: {
+      id: string;
+      targetBalance: number;
+      note?: string;
+      time?: Date;
+    }) => apiBalanceAdjustment({ id, targetBalance, note, time }),
     onSuccess: () => {
       queryClient.invalidateQueries({
         predicate: (query) => {

@@ -3,12 +3,14 @@
     "noNameSet": "Назву не встановлено...",
     "title": "Рахунки",
     "createAccount": "Створити рахунок",
+    "createVehicle": "Додати транспорт",
     "bankIntegrations": "Банківські інтеграції",
     "sections": {
       "archived": "Архівовані",
       "manual": "Ручні рахунки",
       "connected": "Підключені рахунки",
-      "sharedWithMe": "Поділено зі мною"
+      "sharedWithMe": "Поділено зі мною",
+      "vehicles": "Транспорт"
     },
     "empty": {
       "title": "Рахунків ще немає",

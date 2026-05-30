@@ -81,6 +81,10 @@
               {{ $t('dashboard.widgets.balanceTrend.tooltip.ventures') }}
               {{ formatLargeNumber(tooltip.venturesBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
             </div>
+            <div v-if="hasVehicleData">
+              {{ $t('dashboard.widgets.balanceTrend.tooltip.vehicles') }}
+              {{ formatLargeNumber(tooltip.vehiclesBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
+            </div>
             <div class="font-medium">
               {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }}
               {{ formatLargeNumber(tooltip.totalBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
@@ -201,7 +205,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-type BalanceTypeValue = 'total' | 'accounts' | 'portfolios' | 'ventures';
+type BalanceTypeValue = 'total' | 'accounts' | 'portfolios' | 'ventures' | 'vehicles';
 type BalanceTypeOption = { value: BalanceTypeValue; label: string };
 
 const selectedBalanceType = ref<BalanceTypeOption>({
@@ -243,6 +247,7 @@ const tooltip = reactive({
   accountsBalance: 0,
   portfoliosBalance: 0,
   venturesBalance: 0,
+  vehiclesBalance: 0,
   totalBalance: 0,
   deltaAbsolute: 0,
   deltaPercent: 0,
@@ -334,6 +339,12 @@ const hasVentureData = computed(
   () => !!balanceHistory.value && balanceHistory.value.some((i) => i.venturesBalance !== 0),
 );
 
+// Same gating for vehicles — most users don't have any, so the option only
+// surfaces once a vehicle account exists.
+const hasVehicleData = computed(
+  () => !!balanceHistory.value && balanceHistory.value.some((i) => i.vehiclesBalance !== 0),
+);
+
 const balanceTypeOptions = computed<BalanceTypeOption[]>(() => {
   const options: BalanceTypeOption[] = [
     { value: 'total', label: t('dashboard.widgets.balanceTrend.balanceTypes.total') },
@@ -343,14 +354,22 @@ const balanceTypeOptions = computed<BalanceTypeOption[]>(() => {
   if (hasVentureData.value) {
     options.push({ value: 'ventures', label: t('dashboard.widgets.balanceTrend.balanceTypes.ventures') });
   }
+  if (hasVehicleData.value) {
+    options.push({ value: 'vehicles', label: t('dashboard.widgets.balanceTrend.balanceTypes.vehicles') });
+  }
   return options;
 });
 
-// Roll the user off the ventures view if their venture data disappears (last
-// deal deleted while the widget is mounted) — otherwise the select would still
-// display a stale 'ventures' label after the option vanishes from the list.
+// Roll the user off the ventures/vehicles views if the underlying data
+// disappears (last deal/vehicle deleted while widget mounted) — otherwise the
+// select would display a stale label after the option vanishes from the list.
 watch(hasVentureData, (val) => {
   if (!val && selectedBalanceType.value.value === 'ventures') {
+    selectedBalanceType.value = balanceTypeOptions.value[0]!;
+  }
+});
+watch(hasVehicleData, (val) => {
+  if (!val && selectedBalanceType.value.value === 'vehicles') {
     selectedBalanceType.value = balanceTypeOptions.value[0]!;
   }
 });
@@ -408,6 +427,9 @@ const chartData = computed(() => {
       case 'ventures':
         value = point.venturesBalance;
         break;
+      case 'vehicles':
+        value = point.vehiclesBalance;
+        break;
       default:
         value = point.totalBalance;
     }
@@ -418,6 +440,7 @@ const chartData = computed(() => {
       accountsBalance: point.accountsBalance,
       portfoliosBalance: point.portfoliosBalance,
       venturesBalance: point.venturesBalance,
+      vehiclesBalance: point.vehiclesBalance,
       totalBalance: point.totalBalance,
     };
   });
@@ -767,6 +790,7 @@ const renderChart = () => {
       tooltip.accountsBalance = d.accountsBalance;
       tooltip.portfoliosBalance = d.portfoliosBalance;
       tooltip.venturesBalance = d.venturesBalance;
+      tooltip.vehiclesBalance = d.vehiclesBalance;
       tooltip.totalBalance = d.totalBalance;
 
       // Compute day-over-day delta
@@ -857,6 +881,11 @@ const displayBalance = computed(() => {
       return {
         current: latestEntry.venturesBalance || 0,
         previous: prevPeriodLastEntry?.venturesBalance || 0,
+      };
+    case 'vehicles':
+      return {
+        current: latestEntry.vehiclesBalance || 0,
+        previous: prevPeriodLastEntry?.vehiclesBalance || 0,
       };
     case 'total':
     default:

@@ -1,18 +1,29 @@
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_TYPES,
+  PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import type Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
+import Vehicles from '@models/vehicles.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { createTransaction } from '@services/transactions/create-transaction';
+import { refreshVehicleValueIfStale } from '@services/vehicles/refresh-vehicle-value.service';
+import { format } from 'date-fns';
 
 interface AdjustAccountBalanceParams {
   userId: number;
   accountId: string;
   targetBalance: Money;
   note?: string;
+  /** Effective date of the adjustment. Defaults to now when omitted — pass a past date to backdate. */
+  time?: Date;
 }
 
 interface AdjustAccountBalanceResult {
@@ -27,6 +38,7 @@ export const adjustAccountBalance = withTransaction(
     accountId,
     targetBalance,
     note,
+    time,
   }: AdjustAccountBalanceParams): Promise<AdjustAccountBalanceResult> => {
     const account = await Accounts.findByPk(accountId);
 
@@ -47,6 +59,7 @@ export const adjustAccountBalance = withTransaction(
       };
     }
 
+    const effectiveTime = time ?? new Date();
     const transactionType = diff.isPositive() ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense;
 
     const defaultCategoryId = await getUserDefaultCategory({ id: userId });
@@ -61,13 +74,43 @@ export const adjustAccountBalance = withTransaction(
       paymentType: PAYMENT_TYPES.bankTransfer,
       note: note ?? t({ key: 'balanceAdjustment.defaultNote' }),
       categoryId: defaultCategoryId,
-      time: new Date(),
+      time: effectiveTime,
     });
+
+    // Vehicles aren't real accounts in the usual sense — they're an asset whose
+    // value drifts down a depreciation curve. When a user manually adjusts the
+    // balance, that IS an override of the model's projection, so we re-anchor
+    // the depreciation curve to (targetBalance, effectiveTime). Without this,
+    // the next stale-cache refresh would recompute from the original purchase
+    // and silently overwrite the user's adjustment.
+    let newBalance = targetBalance;
+    if (account.accountCategory === ACCOUNT_CATEGORIES.vehicle) {
+      const vehicle = await Vehicles.findOne({ where: { accountId } });
+      if (vehicle) {
+        await vehicle.update({
+          valueAnchor: targetBalance,
+          valueAnchorDate: format(effectiveTime, 'yyyy-MM-dd'),
+          // Null out the cache so the refresh below recomputes from the new
+          // (anchor, anchorDate) instead of returning a stale cached balance.
+          valueLastComputedAt: null,
+        });
+
+        // If the override is backdated, today's depreciated value is BELOW the
+        // target the user typed (which was the value at `effectiveTime`).
+        // Force-refresh so Account.currentBalance reflects the depreciated
+        // value as of now — otherwise the page header reads stale.
+        const refreshed = await refreshVehicleValueIfStale({
+          vehicleId: vehicle.id,
+          force: true,
+        });
+        newBalance = refreshed.value;
+      }
+    }
 
     return {
       transaction: transaction ?? null,
       previousBalance,
-      newBalance: targetBalance,
+      newBalance,
     };
   },
 );

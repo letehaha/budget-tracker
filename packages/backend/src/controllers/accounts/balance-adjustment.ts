@@ -14,18 +14,22 @@ export default createController(
     body: z.object({
       targetBalance: decimalMoney(),
       note: z.string().optional(),
+      // ISO date string ("2025-04-12" or full ISO). Effective date the user
+      // wants the adjustment recorded against — defaults to "now" server-side.
+      time: z.coerce.date().optional(),
     }),
   }),
   async ({ user, params, body }) => {
     const { id: accountId } = params;
     const { id: userId } = user;
-    const { targetBalance, note } = body;
+    const { targetBalance, note, time } = body;
 
     const result = await adjustAccountBalance({
       userId,
       accountId,
       targetBalance,
       note,
+      time,
     });
 
     const account = await getAccountById({ id: accountId, userId });

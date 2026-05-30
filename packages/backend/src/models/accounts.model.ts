@@ -120,7 +120,8 @@ export default class Accounts extends Model {
   @Column({
     allowNull: false,
     defaultValue: ACCOUNT_CATEGORIES.general,
-    type: DataType.ENUM({ values: Object.values(ACCOUNT_CATEGORIES) }),
+    type: DataType.STRING(50),
+    validate: { isIn: [Object.values(ACCOUNT_CATEGORIES)] },
   })
   accountCategory!: ACCOUNT_CATEGORIES;
 

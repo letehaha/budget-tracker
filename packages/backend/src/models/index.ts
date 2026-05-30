@@ -46,6 +46,7 @@ import UserMerchantCategoryCodesModel from './user-merchant-category-codes.model
 import UserSettingsModel from './user-settings.model';
 import UsersCurrenciesModel from './users-currencies.model';
 import UsersModel from './users.model';
+import VehiclesModel from './vehicles.model';
 import VentureDealsModel from './venture/venture-deals.model';
 import VentureEventLinksModel from './venture/venture-event-links.model';
 import VentureEventsModel from './venture/venture-events.model';
@@ -116,6 +117,7 @@ const models = [
   VentureDealsModel,
   VentureEventsModel,
   VentureEventLinksModel,
+  VehiclesModel,
 ];
 
 const sequelize = new Sequelize({

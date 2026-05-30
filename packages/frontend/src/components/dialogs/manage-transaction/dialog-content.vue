@@ -15,6 +15,7 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore, useUserStore } from '@/stores';
 import {
+  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
@@ -34,6 +35,7 @@ import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
 import PortfolioLinkedView from './components/portfolio-linked-view.vue';
+import VehicleLinkedView from './components/vehicle-linked-view.vue';
 import VentureLinkedView from './components/venture-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import SplitDialog from './components/split-dialog.vue';
@@ -93,6 +95,17 @@ watch(() => route.path, closeModal);
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const { accountsRecord, activeSystemAccounts, systemAccountsActiveFirst } = storeToRefs(useAccountsStore());
+
+// Vehicle balance-adjustments are reused `transfer_out_wallet` rows on a
+// vehicle-category account. Editing them in this generic dialog would let the
+// user desync amount/date from Vehicle.valueAnchor (which the override service
+// keeps in sync). Lock the form and bounce them to the vehicle detail page.
+const isVehicleLinkedView = computed(() => {
+  if (!props.transaction) return false;
+  if (props.transaction.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return false;
+  const account = accountsRecord.value[props.transaction.accountId];
+  return account?.accountCategory === ACCOUNT_CATEGORIES.vehicle;
+});
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
 const { user: currentUser } = storeToRefs(useUserStore());
 const tagsStore = useTagsStore();
@@ -597,6 +610,7 @@ onUnmounted(() => {
 
   <PortfolioLinkedView v-if="isPortfolioLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VentureLinkedView v-else-if="isVentureLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
+  <VehicleLinkedView v-else-if="isVehicleLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <div v-else class="rounded-t-xl">
     <div
       :class="[

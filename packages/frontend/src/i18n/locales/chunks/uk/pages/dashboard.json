@@ -12,13 +12,15 @@
           "total": "Загалом",
           "accounts": "Рахунки",
           "portfolios": "Портфелі",
-          "ventures": "Венчури"
+          "ventures": "Венчури",
+          "vehicles": "Транспорт"
         },
         "tooltip": {
           "accounts": "Рахунки:",
           "portfolios": "Портфелі:",
           "total": "Загалом:",
-          "ventures": "Венчури:"
+          "ventures": "Венчури:",
+          "vehicles": "Транспорт:"
         },
         "today": "Сьогодні",
         "vsPreviousPeriod": "до попереднього періоду",

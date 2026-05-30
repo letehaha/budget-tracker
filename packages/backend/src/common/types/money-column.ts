@@ -24,13 +24,19 @@ import { Money } from './money';
 export function MoneyColumn(opts: MoneyColumnCentsOptions): MoneyColumnConfig;
 export function MoneyColumn(opts: MoneyColumnDecimalOptions): MoneyColumnConfig;
 export function MoneyColumn(opts: MoneyColumnOptions): MoneyColumnConfig {
+  // When the column is nullable AND the caller did not explicitly supply a
+  // defaultValue, default to `null` instead of `0`/`'0'`. Storing 0 for a
+  // semantically-absent value loses the distinction between "no value set" and
+  // "value is zero" and breaks `valueAnchor ?? fallback` patterns downstream.
+  const nullableNoDefault = opts.allowNull === true && opts.defaultValue === undefined;
+
   if (opts.storage === 'cents') {
     // BIGINT (not INTEGER) so that low-denomination currencies (IDR, VND, etc.)
     // or any large balance can exceed the 32-bit INTEGER ceiling without overflow.
     return {
       type: DataType.BIGINT,
       allowNull: opts.allowNull ?? false,
-      defaultValue: opts.defaultValue ?? 0,
+      defaultValue: nullableNoDefault ? null : (opts.defaultValue ?? 0),
     };
   }
 
@@ -39,7 +45,7 @@ export function MoneyColumn(opts: MoneyColumnOptions): MoneyColumnConfig {
   return {
     type: DataType.DECIMAL(precision, scale),
     allowNull: opts.allowNull ?? false,
-    defaultValue: opts.defaultValue ?? '0',
+    defaultValue: nullableNoDefault ? null : (opts.defaultValue ?? '0'),
   };
 }
 
