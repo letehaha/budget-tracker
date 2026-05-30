@@ -1,6 +1,6 @@
 import type { HoldingModel } from '@bt/shared/types/investments';
 
-import { groupHoldings, isClosedPosition, sortHoldings } from './sort-holdings';
+import { groupHoldings, isClosedPosition, sortHoldings } from './holding-display';
 
 const makeHolding = (overrides: Partial<HoldingModel> & { symbol?: string }): HoldingModel => {
   const { symbol, ...rest } = overrides;
@@ -25,6 +25,8 @@ describe('isClosedPosition', () => {
   it('treats any non-zero quantity as active', () => {
     expect(isClosedPosition(makeHolding({ quantity: '10' }))).toBe(false);
     expect(isClosedPosition(makeHolding({ quantity: '0.5' }))).toBe(false);
+    // Crypto drift residue is still a real (if small) position, not closed.
+    expect(isClosedPosition(makeHolding({ quantity: '-0.000492' }))).toBe(false);
   });
 });
 
