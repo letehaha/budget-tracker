@@ -35,7 +35,21 @@
           }"
         ></div>
 
-        <div class="relative grid gap-6 p-5 @md/vehicle:grid-cols-[1fr_auto] @md/vehicle:items-end @md/vehicle:p-8">
+        <div class="absolute top-5 right-5 z-10 flex flex-wrap justify-end gap-2 @md/vehicle:top-6 @md/vehicle:right-6">
+          <UiButton variant="outline" @click="isOverrideOpen = true">
+            {{ $t('pages.vehicleDetails.overrideValueButton') }}
+          </UiButton>
+          <UiButton variant="outline" @click="isEditOpen = true">
+            {{ $t('pages.vehicleDetails.editButton') }}
+          </UiButton>
+          <DesktopOnlyTooltip :content="$t('pages.vehicleDetails.deleteTitle')">
+            <UiButton variant="soft-destructive" size="icon" @click="isDeleteOpen = true">
+              <Trash2Icon class="size-4" />
+            </UiButton>
+          </DesktopOnlyTooltip>
+        </div>
+
+        <div class="relative grid gap-6 p-5 pt-20 @md/vehicle:p-8 @md/vehicle:pt-8 @md/vehicle:pr-[26rem]">
           <div class="grid gap-4">
             <div class="flex items-center gap-3">
               <div class="bg-primary/10 text-primary flex size-9 items-center justify-center rounded-xl">
@@ -77,24 +91,13 @@
                   </span>
                 </span>
               </div>
+              <span v-if="showRefValue" class="text-muted-foreground text-sm tabular-nums">
+                ≈ {{ formatAmountByCurrencyCode(refCurrentBalance, baseCurrencyCode) }}
+              </span>
               <span class="text-muted-foreground text-xs">
                 {{ $t('pages.vehicleDetails.sinceAcquired', { date: formatDisplayDate(vehicle.purchaseDate) }) }}
               </span>
             </div>
-          </div>
-
-          <div class="flex flex-wrap gap-2 @md/vehicle:justify-end">
-            <UiButton variant="outline" size="sm" @click="isOverrideOpen = true">
-              {{ $t('pages.vehicleDetails.overrideValueButton') }}
-            </UiButton>
-            <UiButton variant="outline" size="sm" @click="isEditOpen = true">
-              {{ $t('pages.vehicleDetails.editButton') }}
-            </UiButton>
-            <DesktopOnlyTooltip :content="$t('pages.vehicleDetails.deleteTitle')">
-              <UiButton variant="soft-destructive" size="icon-sm" @click="isDeleteOpen = true">
-                <Trash2Icon class="size-4" />
-              </UiButton>
-            </DesktopOnlyTooltip>
           </div>
         </div>
       </section>
@@ -107,6 +110,9 @@
           </div>
           <div class="mt-2 text-2xl font-semibold tabular-nums">
             {{ formatAmountByCurrencyCode(vehicle.purchasePrice, currencyCode) }}
+          </div>
+          <div v-if="showRefValue" class="text-muted-foreground mt-0.5 text-xs tabular-nums">
+            ≈ {{ formatAmountByCurrencyCode(refPurchasePrice, baseCurrencyCode) }}
           </div>
           <div class="text-muted-foreground mt-1 text-xs">{{ formatDisplayDate(vehicle.purchaseDate) }}</div>
         </div>
@@ -123,6 +129,9 @@
               {{ Math.abs(depreciationPercent).toFixed(1) }}%
             </span>
           </div>
+          <div v-if="showRefValue" class="text-muted-foreground mt-0.5 text-xs tabular-nums">
+            ≈ {{ formatAmountByCurrencyCode(Math.abs(refDepreciationAmount), baseCurrencyCode) }}
+          </div>
           <div class="text-muted-foreground mt-1 text-xs">
             {{ $t('pages.vehicleDetails.depreciationCadence', { years: ownedYears.toFixed(1) }) }}
           </div>
@@ -134,6 +143,9 @@
           </div>
           <div class="mt-2 text-2xl font-semibold tabular-nums">
             {{ formatAmountByCurrencyCode(projectedFiveYearValue, currencyCode) }}
+          </div>
+          <div v-if="showRefValue" class="text-muted-foreground mt-0.5 text-xs tabular-nums">
+            ≈ {{ formatAmountByCurrencyCode(refProjectedFiveYearValue, baseCurrencyCode) }}
           </div>
           <div class="text-muted-foreground mt-1 text-xs">
             {{
@@ -154,12 +166,12 @@
           </div>
         </div>
         <DepreciationChart
-          :timeline="depreciationTimeline"
+          :timeline="showRefValue ? refDepreciationTimeline : depreciationTimeline"
           :purchase-date="purchaseDateAsDate"
-          :override="overrideAnchor"
+          :override="showRefValue ? refOverrideAnchor : overrideAnchor"
           :today-date="todayDate"
-          :salvage-floor="salvageFloorValue"
-          :currency-code="currencyCode"
+          :salvage-floor="showRefValue ? refSalvageFloorValue : salvageFloorValue"
+          :currency-code="showRefValue ? baseCurrencyCode : currencyCode"
         />
       </section>
 
@@ -187,10 +199,16 @@
             <span class="tabular-nums">{{ vehicle.salvageFloorPct }}%</span>
             <span class="text-muted-foreground ml-2 text-xs">
               ≈ {{ formatAmountByCurrencyCode(salvageFloorValue, currencyCode) }}
+              <span v-if="showRefValue">
+                ({{ formatAmountByCurrencyCode(refSalvageFloorValue, baseCurrencyCode) }})
+              </span>
             </span>
           </DetailRow>
           <DetailRow v-if="vehicle.valueAnchor !== null" :label="$t('pages.vehicleDetails.lastOverride')">
             <span class="tabular-nums">{{ formatAmountByCurrencyCode(vehicle.valueAnchor, currencyCode) }}</span>
+            <span v-if="showRefValue && refValueAnchor !== null" class="text-muted-foreground ml-2 text-xs">
+              ≈ {{ formatAmountByCurrencyCode(refValueAnchor, baseCurrencyCode) }}
+            </span>
             <span class="text-muted-foreground ml-2 text-xs">
               {{ formatDisplayDate(vehicle.valueAnchorDate ?? vehicle.purchaseDate) }}
             </span>
@@ -242,9 +260,11 @@ import DetailsCard from '@/pages/accounts/components/vehicle-details/details-car
 import OverrideHistoryCard from '@/pages/accounts/components/vehicle-details/override-history-card.vue';
 import { buildDepreciationTimeline, getSalvageFloorValue } from '@/pages/accounts/utils/depreciation-math';
 import { ROUTES_NAMES } from '@/routes/constants';
+import { useCurrenciesStore } from '@/stores';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { ArrowDownRightIcon, ArrowUpRightIcon, CarIcon, Trash2Icon, TrendingDownIcon } from '@lucide/vue';
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
+import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -269,10 +289,35 @@ const { data: vehicle, isLoading } = useQuery({
 
 const currencyCode = computed(() => vehicle.value?.account?.currencyCode ?? 'USD');
 
+const { baseCurrency } = storeToRefs(useCurrenciesStore());
+const baseCurrencyCode = computed(() => baseCurrency.value?.currency?.code ?? '');
+const showRefValue = computed(() => baseCurrencyCode.value !== '' && baseCurrencyCode.value !== currencyCode.value);
+
+/**
+ * Today's account→base FX rate, derived from the account's own current/ref balance pair.
+ * Used to project per-row ref equivalents (purchase price, projection, salvage floor) that
+ * aren't stored per-anchor on the backend. Historically-accurate ref values would require
+ * per-date rates; today's rate is good enough for at-a-glance display of values that are
+ * themselves model-estimated.
+ */
+const fxRatio = computed(() => {
+  const account = vehicle.value?.account;
+  if (!account || account.currentBalance === 0) return 1;
+  return account.refCurrentBalance / account.currentBalance;
+});
+
+const refCurrentBalance = computed(() => vehicle.value?.account?.refCurrentBalance ?? 0);
+const refPurchasePrice = computed(() => (vehicle.value?.purchasePrice ?? 0) * fxRatio.value);
+const refValueAnchor = computed(() =>
+  vehicle.value?.valueAnchor != null ? vehicle.value.valueAnchor * fxRatio.value : null,
+);
+
 const depreciationAmount = computed(() => {
   if (!vehicle.value?.account) return 0;
   return vehicle.value.purchasePrice - vehicle.value.account.currentBalance;
 });
+
+const refDepreciationAmount = computed(() => refPurchasePrice.value - refCurrentBalance.value);
 
 const depreciationPercent = computed(() => {
   if (!vehicle.value?.account || vehicle.value.purchasePrice === 0) return 0;
@@ -333,6 +378,16 @@ const projectedFiveYearLossPct = computed(() => {
   const current = vehicle.value.account.currentBalance;
   return ((current - projectedFiveYearValue.value) / current) * 100;
 });
+
+const refSalvageFloorValue = computed(() => salvageFloorValue.value * fxRatio.value);
+const refProjectedFiveYearValue = computed(() => projectedFiveYearValue.value * fxRatio.value);
+
+const refDepreciationTimeline = computed(() =>
+  depreciationTimeline.value.map((p) => ({ ...p, value: p.value * fxRatio.value })),
+);
+const refOverrideAnchor = computed<{ value: number; date: Date } | null>(() =>
+  overrideAnchor.value ? { value: overrideAnchor.value.value * fxRatio.value, date: overrideAnchor.value.date } : null,
+);
 
 const formatDisplayDate = (iso: string) => format(parseISO(iso), 'MMM d, yyyy');
 

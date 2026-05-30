@@ -54,7 +54,7 @@ import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-p
 import { useResizeObserver } from '@vueuse/core';
 import { differenceInCalendarDays, format } from 'date-fns';
 import * as d3 from 'd3';
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { DepreciationPoint } from '../../utils/depreciation-math';
@@ -70,7 +70,20 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { formatAmountByCurrencyCode, getCurrencySymbol } = useFormatCurrency();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
+
+const propCurrencySymbol = computed(() => {
+  try {
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: props.currencyCode,
+      currencyDisplay: 'narrowSymbol',
+    }).format(0);
+    return formatted.replace(/[\d.,\s]/g, '').trim();
+  } catch {
+    return props.currencyCode;
+  }
+});
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
@@ -99,7 +112,7 @@ const getMargins = ({ width }: { width: number }) => {
   };
 };
 
-const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: getCurrencySymbol() });
+const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: propCurrencySymbol.value });
 
 const formatRelative = (months: number): string => {
   if (months <= 0) return t('pages.vehicleDetails.chart.atPurchase');
