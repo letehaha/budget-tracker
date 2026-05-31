@@ -27,16 +27,17 @@ const mockedAlphaDaily = vi.mocked(mockAlphaVantage.data.daily);
 const mockedFmpClient = vi.mocked(FmpClient);
 const mockedFmpHistoricalPrices = vi.fn();
 
-mockedFmpClient.mockImplementation(
-  () =>
-    ({
-      getHistoricalPrices: mockedFmpHistoricalPrices,
-      search: vi.fn(),
-      getQuote: vi.fn(),
-      getHistoricalPricesFull: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
-);
+// Regular `function` (not arrow): vitest 4 invokes the mock implementation as a
+// constructor on `new FmpClient()`.
+mockedFmpClient.mockImplementation(function () {
+  return {
+    getHistoricalPrices: mockedFmpHistoricalPrices,
+    search: vi.fn(),
+    getQuote: vi.fn(),
+    getHistoricalPricesFull: vi.fn(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+});
 
 // Yahoo is now the primary provider for all operations.
 // Override constructor to use shared mocks so tests can configure per-test.
@@ -45,15 +46,16 @@ const mockedYahooSearch = vi.fn<any>();
 const mockedYahooQuote = vi.fn<any>();
 const mockedYahooChart = vi.fn<any>();
 
-mockedYahooFinance.mockImplementation(
-  () =>
-    ({
-      search: mockedYahooSearch,
-      quote: mockedYahooQuote,
-      chart: mockedYahooChart,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
-);
+// Regular `function` (not arrow): vitest 4 invokes the mock implementation as a
+// constructor on `new YahooFinance()`.
+mockedYahooFinance.mockImplementation(function () {
+  return {
+    search: mockedYahooSearch,
+    quote: mockedYahooQuote,
+    chart: mockedYahooChart,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+});
 
 // CoinGecko global mock (registered in setupIntegrationTests.ts). Rebound
 // per-test so a previous override doesn't leak.
@@ -63,20 +65,21 @@ const mockedCoingeckoSimplePriceGet = vi.fn<any>();
 const installCoingeckoMock = () => {
   mockedCoingeckoSimplePriceGet.mockReset();
   mockedCoingeckoSimplePriceGet.mockResolvedValue({});
-  mockedCoingecko.mockImplementation(
-    () =>
-      ({
-        search: { get: vi.fn<any>().mockResolvedValue({ coins: [] }) },
-        simple: { price: { get: mockedCoingeckoSimplePriceGet } },
-        coins: {
-          marketChart: {
-            get: vi.fn<any>().mockResolvedValue({ prices: [] }),
-            getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
-          },
+  // Regular `function` (not arrow): vitest 4 invokes the mock implementation as
+  // a constructor on `new Coingecko()`.
+  mockedCoingecko.mockImplementation(function () {
+    return {
+      search: { get: vi.fn<any>().mockResolvedValue({ coins: [] }) },
+      simple: { price: { get: mockedCoingeckoSimplePriceGet } },
+      coins: {
+        marketChart: {
+          get: vi.fn<any>().mockResolvedValue({ prices: [] }),
+          getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
-  );
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+  });
 };
 
 const createCryptoSecurity = async ({

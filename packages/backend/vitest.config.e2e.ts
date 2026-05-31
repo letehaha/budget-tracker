@@ -32,6 +32,27 @@ export default defineConfig({
         find: '@modelcontextprotocol/sdk/server/streamableHttp.js',
         replacement: resolve(__dirname, './src/tests/mocks/mcp-sdk/server-streamable-http.ts'),
       },
+      // Investment data-provider mocks. Wired as Vite aliases (not vi.mock):
+      // the setup file imports the app, which loads the real provider clients
+      // into the module cache before any vi.mock factory can register, and
+      // Vitest refuses to replace already-cached modules. Aliases swap at
+      // resolution time (before the cache), so they always apply.
+      { find: 'yahoo-finance2', replacement: resolve(__dirname, './src/tests/mocks/investments/yahoo-finance2.ts') },
+      { find: '@polygon.io/client-js', replacement: resolve(__dirname, './src/tests/mocks/investments/polygon.ts') },
+      { find: 'alphavantage', replacement: resolve(__dirname, './src/tests/mocks/investments/alphavantage.ts') },
+      {
+        find: '@coingecko/coingecko-typescript',
+        replacement: resolve(__dirname, './src/tests/mocks/investments/coingecko.ts'),
+      },
+      { find: 'pdf-parse', replacement: resolve(__dirname, './src/tests/mocks/investments/pdf-parse.ts') },
+      // The app imports FmpClient via the ./clients barrel and tests via the
+      // concrete file. Match the concrete path so both share one mock instance.
+      // Anchored full-match (^.*…$) because alias does `importee.replace(find, …)`
+      // — an unanchored regex would replace only the matched substring.
+      {
+        find: /^.*\/clients\/fmp-client(\.ts)?$/,
+        replacement: resolve(__dirname, './src/tests/mocks/investments/fmp-client.ts'),
+      },
       // Path aliases
       { find: '@bt/shared', replacement: resolve(__dirname, '../shared/src') },
       { find: '@routes', replacement: resolve(__dirname, './src/routes') },

@@ -180,23 +180,24 @@ function installCoingeckoMock({
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const searchGet = vi.fn<any>().mockResolvedValue({ coins });
-  mockedCoingecko.mockImplementation(
-    () =>
-      ({
-        search: { get: searchGet },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        simple: { price: { get: vi.fn<any>().mockResolvedValue({}) } },
-        coins: {
-          marketChart: {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            get: vi.fn<any>().mockResolvedValue({ prices: [] }),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
-          },
+  // Regular `function` (not arrow): vitest 4 invokes the mock implementation as
+  // a constructor on `new Coingecko()`.
+  mockedCoingecko.mockImplementation(function () {
+    return {
+      search: { get: searchGet },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      simple: { price: { get: vi.fn<any>().mockResolvedValue({}) } },
+      coins: {
+        marketChart: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          get: vi.fn<any>().mockResolvedValue({ prices: [] }),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
-  );
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+  });
   return { searchGet };
 }
 

@@ -5,7 +5,7 @@ import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAtt
 import { DataTypes, Model } from '@sequelize/core';
 import { Attribute, BelongsTo, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
-import Portfolios from './portfolios.model';
+import type Portfolios from './portfolios.model';
 import Securities from './securities.model';
 
 /**
@@ -144,6 +144,8 @@ export default class Holdings extends Model<InferAttributes<Holdings>, InferCrea
   @BelongsTo(() => Securities, 'securityId')
   declare security?: NonAttribute<Securities>;
 
-  @BelongsTo(() => Portfolios, 'portfolioId')
+  // The Portfolios↔Holdings association is defined once on Portfolios via
+  // `@HasMany(() => Holdings, { inverse: { as: 'portfolio' } })`; here we only
+  // type the inverse accessor.
   declare portfolio?: NonAttribute<Portfolios>;
 }

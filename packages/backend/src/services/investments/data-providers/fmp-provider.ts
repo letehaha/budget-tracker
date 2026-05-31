@@ -11,8 +11,8 @@ import type {
   SecurityPriceFetchInput,
 } from './base-provider';
 import { BaseSecurityDataProvider, toProviderSymbol } from './base-provider';
-import type { FmpSearchResult } from './clients';
-import { FmpClient } from './clients';
+import type { FmpSearchResult } from './clients/fmp-client';
+import { FmpClient } from './clients/fmp-client';
 
 export class FmpDataProvider extends BaseSecurityDataProvider {
   readonly providerName = SECURITY_PROVIDER.fmp;

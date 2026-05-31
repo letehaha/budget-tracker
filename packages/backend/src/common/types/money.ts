@@ -40,14 +40,18 @@ export class Money {
    * @example
    * Money.fromCents(1550) // represents $15.50
    */
-  static fromCents(n: number): Money {
-    if (!Number.isFinite(n)) {
+  static fromCents(n: number | string): Money {
+    // Cents columns are BIGINT, which the postgres driver returns as strings
+    // (precision-safe). Accept the numeric-string form alongside plain numbers
+    // so raw DB values flow into Money without per-call-site coercion.
+    const cents = typeof n === 'string' ? Number(n) : n;
+    if (!Number.isFinite(cents)) {
       throw new Error(`Money.fromCents: expected finite number, got ${n}`);
     }
-    if (!Number.isInteger(n)) {
+    if (!Number.isInteger(cents)) {
       throw new Error(`Money.fromCents: expected integer, got ${n}`);
     }
-    return new Money(new Big(n).div(100));
+    return new Money(new Big(cents).div(100));
   }
 
   /**

@@ -25,28 +25,33 @@ const mockedCoingeckoSearch = vi.fn<() => Promise<{ coins: unknown[] }>>();
 const installEmptyCoingeckoMock = () => {
   mockedCoingeckoSearch.mockReset();
   mockedCoingeckoSearch.mockResolvedValue({ coins: [] });
-  mockedCoingecko.mockImplementation(
-    () =>
-      ({
-        search: { get: mockedCoingeckoSearch },
-        simple: { price: { get: vi.fn<any>().mockResolvedValue({}) } },
-        coins: {
-          marketChart: {
-            get: vi.fn<any>().mockResolvedValue({ prices: [] }),
-            getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
-          },
+  // Regular `function` (not arrow): provider does `new Coingecko()`, and vitest 4
+  // invokes the mock implementation as a constructor on `new`.
+  mockedCoingecko.mockImplementation(function () {
+    return {
+      search: { get: mockedCoingeckoSearch },
+      simple: { price: { get: vi.fn<any>().mockResolvedValue({}) } },
+      coins: {
+        marketChart: {
+          get: vi.fn<any>().mockResolvedValue({ prices: [] }),
+          getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
-  );
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+  });
 };
 
 describe('GET /investments/securities/search', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     // Re-bind FMP and CoinGecko mocks so previous-test overrides don't leak.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockedFmpClient.mockImplementation(() => ({ search: mockedFmpSearch }) as any);
+    // Regular `function` (not arrow): vitest 4 invokes the mock impl as a
+    // constructor on `new FmpClient()`.
+    mockedFmpClient.mockImplementation(function () {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return { search: mockedFmpSearch } as any;
+    });
     installEmptyCoingeckoMock();
     dataProviderFactory.clearCache();
   });

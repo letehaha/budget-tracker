@@ -16,7 +16,7 @@ import {
 } from '@services/bank-data-providers/monobank/transaction-sync-queue';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
-import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest';
 
 import { resetSessionCounter } from './mocks/enablebanking/mock-api';
 import { setupMswServer } from './mocks/setup-mock-server';
@@ -24,82 +24,13 @@ import { retryWithBackoff } from './utils/retry-db-operation-with-backoff';
 
 const mswMockServer = setupMswServer();
 
-// Mock the entire module globally. Mocked implementation will be per-test
-vi.mock('@polygon.io/client-js', () => ({
-  restClient: vi.fn().mockReturnValue({
-    reference: {
-      tickers: vi.fn(),
-      exchanges: vi.fn(),
-    },
-    stocks: {
-      aggregatesGroupedDaily: vi.fn(),
-      aggregates: vi.fn(),
-    },
-  }),
-}));
-
-vi.mock('alphavantage', () => ({
-  default: vi.fn().mockReturnValue({
-    data: {
-      search: vi.fn(),
-      quote: vi.fn(),
-      daily: vi.fn(),
-    },
-  }),
-}));
-
-// Mock pdf-parse to avoid its known bug of opening test files on import
-vi.mock('pdf-parse', () => ({
-  default: vi.fn().mockResolvedValue({ text: '', numpages: 0, info: {} }),
-}));
-
-// Mock the FMP client globally
-vi.mock('../services/investments/data-providers/clients/fmp-client', () => ({
-  __esModule: true,
-  FmpClient: vi.fn(function (this: Record<string, unknown>) {
-    this.search = vi.fn();
-    this.getQuote = vi.fn();
-    this.getHistoricalPrices = vi.fn();
-    this.getHistoricalPricesFull = vi.fn();
-  }),
-}));
-
-// Mock yahoo-finance2 globally (v3 requires instantiation).
-// All methods reject by default so the composite provider falls back to other
-// providers (FMP, Polygon, etc.) in existing tests. Tests that specifically
-// exercise Yahoo behaviour must override these mocks per-test.
-vi.mock('yahoo-finance2', () => {
-  const MockYahooFinance = vi.fn(function (this: Record<string, unknown>) {
-    this.search = vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test'));
-    this.quote = vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test'));
-    this.chart = vi.fn<any>().mockRejectedValue(new Error('Yahoo mock: not configured for test'));
-  });
-  return { __esModule: true, default: MockYahooFinance };
-});
-
-// Mock the official CoinGecko TypeScript SDK globally. The composite provider
-// fans out to CoinGecko on every search, so without this mock every search
-// e2e test would either hit the live API or fail. Methods are no-ops by
-// default (empty results); crypto-specific tests override them per-suite.
-vi.mock('@coingecko/coingecko-typescript', () => {
-  const MockCoingecko = vi.fn().mockImplementation(() => ({
-    search: {
-      get: vi.fn<any>().mockResolvedValue({ coins: [] }),
-    },
-    simple: {
-      price: {
-        get: vi.fn<any>().mockResolvedValue({}),
-      },
-    },
-    coins: {
-      marketChart: {
-        get: vi.fn<any>().mockResolvedValue({ prices: [] }),
-        getRange: vi.fn<any>().mockResolvedValue({ prices: [] }),
-      },
-    },
-  }));
-  return { __esModule: true, default: MockCoingecko };
-});
+// Investment data-provider mocks (Polygon, Alpha Vantage, FMP, Yahoo,
+// CoinGecko, pdf-parse) are wired via `resolve.alias` in vitest.config.e2e.ts,
+// NOT vi.mock. This setup file imports the app below, which loads the real
+// provider clients into the module cache before a vi.mock factory could
+// register, and Vitest won't replace already-cached modules. A Vite alias
+// swaps at resolution time (before the cache), so it always applies.
+// See src/tests/mocks/investments/*.
 
 /**
  * Guard against stale local `.env.test`. The data-provider factory only

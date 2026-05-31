@@ -24,33 +24,35 @@ const mockedAlphaDaily = vi.mocked(mockAlphaVantage.data.daily);
 const mockedFmpClient = vi.mocked(FmpClient);
 const mockedFmpHistoricalPrices = vi.fn();
 
-mockedFmpClient.mockImplementation(
-  () =>
-    ({
-      getHistoricalPrices: mockedFmpHistoricalPrices,
-      search: vi.fn(),
-      getQuote: vi.fn(),
-      getHistoricalPricesFull: vi.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
-);
+// Regular `function` (not arrow): vitest 4 invokes the mock implementation as a
+// constructor on `new FmpClient()`.
+mockedFmpClient.mockImplementation(function () {
+  return {
+    getHistoricalPrices: mockedFmpHistoricalPrices,
+    search: vi.fn(),
+    getQuote: vi.fn(),
+    getHistoricalPricesFull: vi.fn(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+});
 
 const mockedCoingecko = vi.mocked(Coingecko);
 const mockedCoingeckoMarketChartGetRange = vi.fn<any>();
-mockedCoingecko.mockImplementation(
-  () =>
-    ({
-      search: { get: vi.fn<any>().mockResolvedValue({ coins: [] }) },
-      simple: { price: { get: vi.fn<any>().mockResolvedValue({}) } },
-      coins: {
-        marketChart: {
-          get: vi.fn<any>().mockResolvedValue({ prices: [] }),
-          getRange: mockedCoingeckoMarketChartGetRange,
-        },
+// Regular `function` (not arrow): vitest 4 invokes the mock implementation as a
+// constructor on `new Coingecko()`.
+mockedCoingecko.mockImplementation(function () {
+  return {
+    search: { get: vi.fn<any>().mockResolvedValue({ coins: [] }) },
+    simple: { price: { get: vi.fn<any>().mockResolvedValue({}) } },
+    coins: {
+      marketChart: {
+        get: vi.fn<any>().mockResolvedValue({ prices: [] }),
+        getRange: mockedCoingeckoMarketChartGetRange,
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
-);
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+});
 
 describe('Historical Price Sync Service (via Holdings Creation)', () => {
   let investmentPortfolio: Portfolios;

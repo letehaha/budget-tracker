@@ -80,7 +80,11 @@ export default class Portfolios extends Model<InferAttributes<Portfolios>, Infer
   @HasMany(() => PortfolioBalances, 'portfolioId')
   declare balances?: NonAttribute<PortfolioBalances[]>;
 
-  @HasMany(() => Holdings, 'portfolioId')
+  // Sole definition of the Portfolios↔Holdings association. `inverse` names the
+  // Holdings.portfolio (BelongsTo) side, so Holdings associates to Portfolios
+  // exactly once. Without it, Sequelize v7 auto-creates a second, ambiguous
+  // inverse on Holdings and `include: { model: Portfolios }` throws.
+  @HasMany(() => Holdings, { foreignKey: 'portfolioId', inverse: { as: 'portfolio' } })
   declare holdings?: NonAttribute<Holdings[]>;
 
   @HasMany(() => InvestmentTransaction, 'portfolioId')
