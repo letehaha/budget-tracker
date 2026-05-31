@@ -53,7 +53,11 @@ export const deleteTransaction = withTransaction(
         (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet && !transferId) ||
         // Venture-linked transactions are deleted directly; the venture event service
         // is responsible for unlinking its own VentureEventLink before calling this.
-        transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture
+        transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture ||
+        // Orphaned transfer leg: flagged as a common transfer but its pair is gone and
+        // `transferId` was cleared. There's no twin to delete alongside it, so treat it
+        // as a standalone row instead of falling through to the "unexpected" guard below.
+        (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && !transferId)
       ) {
         await Transactions.deleteTransactionById({ id, userId: creatorUserId });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {
