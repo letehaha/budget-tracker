@@ -81,6 +81,26 @@ describe('Delete transaction controller', () => {
       expect(txsAfterDeletion.length).toBe(0);
     });
   });
+  describe('orphaned transfer leg', () => {
+    it('should delete a common_transfer transaction whose pair is gone (transferId cleared)', async () => {
+      const [tx] = await helpers.createTransaction({ raw: true });
+
+      // Reproduces a corrupt row seen in production (Sentry MONEY-MATTER-BACKEND-6H/6G):
+      // a transaction flagged as a common transfer but with its `transferId` cleared, so
+      // there's no twin to delete alongside it. Previously this fell through to the
+      // "unexpected delete issue" guard and threw a 500.
+      await Transactions.update(
+        { transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer, transferId: null },
+        { where: { id: tx.id } },
+      );
+
+      const res = await helpers.deleteTransaction({ id: tx.id });
+      const txsAfterDeletion = await helpers.getTransactions({ raw: true });
+
+      expect(res.statusCode).toEqual(200);
+      expect(txsAfterDeletion.length).toBe(0);
+    });
+  });
   describe('transactions from external accounts', () => {
     it('cannot delete transactions from external account', async () => {
       await helpers.monobank.pair();
