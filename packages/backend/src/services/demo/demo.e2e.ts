@@ -1,11 +1,15 @@
 import {
+  ACCOUNT_CATEGORIES,
   API_ERROR_CODES,
   API_RESPONSE_STATUS,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   USER_ROLES,
+  VEHICLE_CLASS,
 } from '@bt/shared/types';
+import { ASSET_CLASS } from '@bt/shared/types/investments';
+import { VENTURE_DEAL_STATUS } from '@bt/shared/types/venture';
 import { authPool } from '@config/auth';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { connection } from '@models/index';
@@ -178,18 +182,27 @@ describe('Demo Mode', () => {
       }
     });
 
-    it('seeds 4 accounts with different currencies', async () => {
+    it('seeds 4 cash accounts with different currencies (plus 2 vehicle accounts)', async () => {
       const accountsRes = await makeRequest({
         method: 'get',
         url: '/accounts',
         raw: true,
       });
 
-      expect(accountsRes.length).toBe(4);
+      // Vehicle assets are tracked as system accounts (category 'vehicle'), so
+      // the accounts list now also contains the 2 seeded cars.
+      const cashAccounts = accountsRes.filter(
+        (a: { accountCategory: string }) => a.accountCategory !== ACCOUNT_CATEGORIES.vehicle,
+      );
+      const vehicleAccounts = accountsRes.filter(
+        (a: { accountCategory: string }) => a.accountCategory === ACCOUNT_CATEGORIES.vehicle,
+      );
 
-      // Verify currencies
-      const currencyCodes = accountsRes.map((a: { currencyId: number }) => a.currencyId);
-      // Should have at least USD (likely 2 USD accounts based on spec)
+      expect(cashAccounts.length).toBe(4);
+      expect(vehicleAccounts.length).toBe(2);
+
+      // Verify currencies on the cash accounts
+      const currencyCodes = cashAccounts.map((a: { currencyId: number }) => a.currencyId);
       expect(currencyCodes.length).toBe(4);
     });
 
@@ -251,6 +264,86 @@ describe('Demo Mode', () => {
       // Demo users should have default categories plus any custom ones
       expect(categoriesRes.length).toBeGreaterThan(0);
     });
+
+    it('seeds a crypto portfolio with BTC/ETH/SOL holdings', async () => {
+      const portfoliosRes = await makeRequest({
+        method: 'get',
+        url: '/investments/portfolios',
+        raw: true,
+      });
+
+      const cryptoPortfolio = portfoliosRes.data.find((p: { name: string }) => p.name === 'Crypto Portfolio');
+      expect(cryptoPortfolio).toBeDefined();
+
+      // getHoldings controller returns `{ data: holdings }`; createController
+      // sends `response = result.data`, so `raw` unwraps straight to the array.
+      const holdings = await makeRequest({
+        method: 'get',
+        url: `/investments/portfolios/${cryptoPortfolio.id}/holdings`,
+        raw: true,
+      });
+
+      expect(Array.isArray(holdings)).toBe(true);
+      expect(holdings.length).toBe(3);
+
+      const symbols = holdings.map((h: { security?: { symbol: string } }) => h.security?.symbol);
+      expect(symbols).toEqual(expect.arrayContaining(['BTC', 'ETH', 'SOL']));
+
+      // Every seeded holding is a crypto-class security
+      for (const holding of holdings) {
+        expect(holding.security?.assetClass).toBe(ASSET_CLASS.crypto);
+      }
+    });
+
+    it('seeds 2 vehicles, one with a mid-term value override', async () => {
+      // getVehicles returns `{ data: [...] }`, unwrapped by `raw` to the array.
+      const vehicles = await makeRequest({
+        method: 'get',
+        url: '/vehicles',
+        raw: true,
+      });
+
+      expect(vehicles.length).toBe(2);
+
+      const bmw = vehicles.find((v: { make: string }) => v.make === 'BMW');
+      const toyota = vehicles.find((v: { make: string }) => v.make === 'Toyota');
+      expect(bmw).toBeDefined();
+      expect(toyota).toBeDefined();
+
+      // The 5-year-old luxury car carries a manual override (anchored value);
+      // the newer sedan rides the default depreciation curve with no anchor.
+      expect(bmw.vehicleClass).toBe(VEHICLE_CLASS.luxury);
+      expect(bmw.valueAnchor).not.toBeNull();
+      expect(bmw.valueAnchorDate).not.toBeNull();
+
+      expect(toyota.vehicleClass).toBe(VEHICLE_CLASS.sedan);
+      expect(toyota.valueAnchor).toBeNull();
+    });
+
+    it('seeds 2 venture deals (one exited, one written off) on a platform', async () => {
+      // List controllers return `{ data: { data: [...], pagination } }`;
+      // createController unwraps one level, so `raw` yields `{ data, pagination }`.
+      const dealsRes = await makeRequest({
+        method: 'get',
+        url: '/venture/deals',
+        raw: true,
+      });
+
+      const deals = dealsRes.data;
+      expect(deals.length).toBe(2);
+
+      const statuses = deals.map((d: { status: string }) => d.status);
+      expect(statuses).toContain(VENTURE_DEAL_STATUS.fully_exited);
+      expect(statuses).toContain(VENTURE_DEAL_STATUS.written_off);
+
+      const platformsRes = await makeRequest({
+        method: 'get',
+        url: '/venture/platforms',
+        raw: true,
+      });
+      const platforms = platformsRes.data;
+      expect(platforms.some((p: { name: string }) => p.name === 'AngelList')).toBe(true);
+    });
   });
 
   describe('Demo User Restrictions', () => {
@@ -281,7 +374,7 @@ describe('Demo Mode', () => {
       expect(res.body.response.message).toContain('demo mode');
     });
 
-    it('allows demo users to view the seeded investment portfolio', async () => {
+    it('allows demo users to view the seeded investment portfolios', async () => {
       const res = await makeRequest({
         method: 'get',
         url: '/investments/portfolios',
@@ -289,8 +382,9 @@ describe('Demo Mode', () => {
       });
 
       expect(Array.isArray(res.data)).toBe(true);
-      expect(res.data.length).toBeGreaterThanOrEqual(1);
-      expect(res.data[0]?.name).toBe('Growth Portfolio');
+      const names = res.data.map((p: { name: string }) => p.name);
+      expect(names).toContain('Growth Portfolio');
+      expect(names).toContain('Crypto Portfolio');
     });
 
     it('blocks investment portfolio creation for demo users', async () => {
@@ -524,10 +618,15 @@ describe('Demo Mode', () => {
         raw: true,
       });
 
-      expect(accountsRes.length).toBe(4);
+      // Vehicle accounts are depreciation-driven: their balance is owned by the
+      // override/refresh flow, not `initialBalance + Σtx`, so exclude them here.
+      const cashAccounts = accountsRes.filter(
+        (a: { accountCategory: string }) => a.accountCategory !== ACCOUNT_CATEGORIES.vehicle,
+      );
+      expect(cashAccounts.length).toBe(4);
 
-      // For each account, verify currentBalance = initialBalance + sum of transactions
-      for (const account of accountsRes) {
+      // For each cash account, verify currentBalance = initialBalance + sum of transactions
+      for (const account of cashAccounts) {
         // Get all transactions for this account directly via SQL to get raw cents
         const [txRows] = await connection.sequelize.query(
           `SELECT "transactionType", amount FROM "Transactions" WHERE "accountId" = :accountId`,
@@ -561,7 +660,8 @@ describe('Demo Mode', () => {
       });
 
       const accountIds = accountsRes.map((a: { id: number }) => a.id);
-      expect(accountIds.length).toBe(4);
+      // 4 cash accounts + 2 vehicle accounts
+      expect(accountIds.length).toBe(6);
 
       // Verify Balances records exist
       const [balanceRows] = await connection.sequelize.query(
