@@ -1,22 +1,12 @@
 import type { FullConfig } from '@playwright/test';
 
+import { isReachable } from './helpers/is-reachable';
+
 // Allow self-signed certificates (local dev uses HTTPS with self-signed certs)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const POLL_INTERVAL_MS = 5_000;
 const MAX_WAIT_MS = 10 * 60 * 1_000; // 10 minutes
-
-async function isReachable({ url }: { url: string }): Promise<boolean> {
-  try {
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(10_000),
-    });
-    // Frontend should return 200; API may return 401 (auth-required but alive)
-    return response.status === 200 || response.status === 401;
-  } catch {
-    return false;
-  }
-}
 
 async function waitForService({ url, label }: { url: string; label: string }): Promise<void> {
   const start = Date.now();

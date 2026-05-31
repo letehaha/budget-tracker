@@ -71,8 +71,13 @@ export const bulkUploadSecurityPrices = async (params: bulkUploadSecurityPrices)
     });
   }
 
-  const oldestAllowedDate = startOfDay(Math.max(minAllowedDate.getTime(), oldestRate.date.getTime()));
-  const newestAllowedDate = startOfDay(newestRate.date);
+  // `raw: true` bypasses model parsing; under @sequelize/postgres a DATE column
+  // deserializes as an ISO string rather than a Date, so coerce before using Date methods.
+  const oldestRateDate = new Date(oldestRate.date);
+  const newestRateDate = new Date(newestRate.date);
+
+  const oldestAllowedDate = startOfDay(Math.max(minAllowedDate.getTime(), oldestRateDate.getTime()));
+  const newestAllowedDate = startOfDay(newestRateDate);
 
   // Filter or validate dates
   let filteredPrices = prices;
@@ -95,7 +100,7 @@ export const bulkUploadSecurityPrices = async (params: bulkUploadSecurityPrices)
 
     if (invalidDate) {
       throw new ValidationError({
-        message: `Date ${invalidDate.date} is outside available exchange rate range (${oldestRate.date.toISOString().split('T')[0]} to ${newestRate.date.toISOString().split('T')[0]})`,
+        message: `Date ${invalidDate.date} is outside available exchange rate range (${oldestRateDate.toISOString().split('T')[0]} to ${newestRateDate.toISOString().split('T')[0]})`,
       });
     }
   }

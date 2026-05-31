@@ -535,7 +535,10 @@ describe('Change Base Currency', () => {
       const originalUsdAccount = (await Accounts.findByPk(usdAccount.id))!;
 
       const originalInvestmentTx = await InvestmentTransaction.findByPk(investmentTx.id);
-      const originalTransfer = await PortfolioTransfers.findByPk(transfer.id);
+      // The transfer above is a self-transfer, which the service rejects, so `transfer` is an
+      // error body with no `id`. Sequelize v7's findByPk throws on an undefined PK (v6 returned
+      // null), so guard it — the recalc assertions below already tolerate a null transfer.
+      const originalTransfer = transfer.id ? await PortfolioTransfers.findByPk(transfer.id) : null;
 
       await Holdings.findOne({
         where: { portfolioId: portfolio.id, securityId: vooSecurity.id },
@@ -714,7 +717,7 @@ describe('Change Base Currency', () => {
 
       // ========== STEP 10: Verify portfolio transfers were recalculated correctly ==========
 
-      const updatedTransfer = await PortfolioTransfers.findByPk(transfer.id);
+      const updatedTransfer = transfer.id ? await PortfolioTransfers.findByPk(transfer.id) : null;
 
       if (updatedTransfer) {
         // Original amount preserved

@@ -21,14 +21,14 @@ Static Files (built application)
 
 ## Docker Build Process
 
-### Build Stage (Node.js)
+### Build Stage (Bun)
 
 **Dockerfile location:** `docker/prod/frontend/Dockerfile`
 
-1. **Base image:** `node:23.11.0`
-2. **Install dependencies:** `npm ci` (clean install from package-lock.json)
+1. **Base image:** `oven/bun:1.3.5`
+2. **Install dependencies:** `bun install --frozen-lockfile` (clean install from bun.lock)
 3. **Copy source code:** All frontend source files and shared packages
-4. **Build application:** `npm run build` in `packages/frontend`
+4. **Build application:** `bun run build` in `packages/frontend`
 5. **Output:** Static files in `packages/frontend/dist`
 
 ### Production Stage (Nginx)

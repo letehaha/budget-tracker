@@ -1,8 +1,9 @@
 import { test as base } from '@playwright/test';
 
+import { isReachable } from '../helpers/is-reachable';
 import { type TestUser, buildTestUser, createTestUser, deleteTestUser } from '../helpers/test-user';
 
-// Required for the raw fetch() in ensurePreviewAlive (local dev uses self-signed certs)
+// Local dev uses self-signed certs; allow them for any Node-side TLS in helpers.
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'https://localhost:8100';
@@ -33,16 +34,11 @@ export const test = base.extend<Pick<CustomFixtures, 'ensurePreviewAlive'>, Pick
   ensurePreviewAlive: [
     // eslint-disable-next-line no-empty-pattern
     async ({}, use, testInfo) => {
-      try {
-        const response = await fetch(BASE_URL, {
-          signal: AbortSignal.timeout(10_000),
-        });
-
-        if (!response.ok) {
-          testInfo.skip(true, 'Preview environment is not reachable');
-        }
-      } catch {
-        testInfo.skip(true, 'Preview environment torn down');
+      // Skip only when the server is genuinely unreachable (connection refused /
+      // timeout) — e.g. a CI preview env torn down mid-run. Any HTTP response
+      // means it's alive; see isReachable for why this can't use `fetch`.
+      if (!(await isReachable({ url: BASE_URL }))) {
+        testInfo.skip(true, 'Preview environment is not reachable');
       }
 
       await use();

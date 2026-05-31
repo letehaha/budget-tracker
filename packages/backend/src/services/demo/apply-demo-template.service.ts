@@ -8,6 +8,7 @@ import { connection } from '@models/index';
 import Transactions from '@models/transactions.model';
 import { QueryTypes } from '@sequelize/core';
 import { subDays } from 'date-fns';
+import { v7 as uuidv7 } from 'uuid';
 
 import { getDemoTemplate } from './demo-template-cache.service';
 import {
@@ -70,6 +71,9 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
     const refAmount = exchangeRate ? roundHalfToEven(tx.amount / exchangeRate) : tx.amount;
 
     return {
+      // bulkCreate below runs with hooks:false, which skips the global UUID
+      // primary-key hook, so assign the id explicitly (the column has no DB default).
+      id: uuidv7() as RecordId,
       userId,
       amount: Money.fromCents(tx.amount),
       refAmount: Money.fromCents(refAmount),
@@ -162,8 +166,10 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
 
   if (accountIds.length === 0) return;
 
-  // Delete initial balance records (will be replaced by full rebuild)
-  await sequelize.query(`DELETE FROM "Balances" WHERE "accountId" = ANY(:accountIds)`, {
+  // Delete initial balance records (will be replaced by full rebuild).
+  // Cast the uuid column to text for `= ANY(:array)`: the array param binds as
+  // text[] and Postgres has no `uuid = text` operator.
+  await sequelize.query(`DELETE FROM "Balances" WHERE "accountId"::text = ANY(:accountIds)`, {
     replacements: { accountIds },
     type: QueryTypes.DELETE,
   });
@@ -215,7 +221,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
   // Re-insert balance records for accounts with no transactions (e.g. Savings).
   // The rebuild CTE only covers accounts that appear in the Transactions table.
   const accountsWithBalances: { accountId: string }[] = await sequelize.query(
-    `SELECT DISTINCT "accountId" FROM "Balances" WHERE "accountId" = ANY(:accountIds)`,
+    `SELECT DISTINCT "accountId" FROM "Balances" WHERE "accountId"::text = ANY(:accountIds)`,
     { replacements: { accountIds }, type: QueryTypes.SELECT },
   );
 
@@ -226,7 +232,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
     await sequelize.query(
       `INSERT INTO "Balances" ("accountId", "date", "amount", "createdAt", "updatedAt")
        SELECT id, CURRENT_DATE, "refInitialBalance", NOW(), NOW()
-       FROM "Accounts" WHERE id = ANY(:ids)`,
+       FROM "Accounts" WHERE id::text = ANY(:ids)`,
       { replacements: { ids: accountsMissingBalances }, type: QueryTypes.INSERT },
     );
   }

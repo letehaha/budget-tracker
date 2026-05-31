@@ -1,5 +1,5 @@
 # 🏗️ Stage 1️⃣: Build
-FROM node:23.11.0 AS build-stage
+FROM oven/bun:1.3.5 AS build-stage
 
 WORKDIR /app
 
@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gettext-base &&
 
 # Copy root-level package files and post-install script
 COPY package*.json ./
+COPY bun.lock* ./
 COPY post-install.sh ./
 RUN chmod +x ./post-install.sh
 
@@ -40,8 +41,10 @@ RUN chmod +x ./post-install.sh
 COPY packages/frontend/package*.json ./packages/frontend/
 COPY packages/landing/package*.json ./packages/landing/
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with Bun (the repo's package manager). --frozen-lockfile
+# pins the production build to the committed bun.lock; --ignore-scripts skips the
+# git-only postinstall hook (no git repo in the build context).
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # Materialize a minimal .env.production from build args. vite.config.js does
 # loadEnv from /app, so it picks these up at build time. Only VITE_* values
@@ -68,11 +71,11 @@ COPY packages/landing ./packages/landing
 
 # Build frontend SPA
 WORKDIR /app/packages/frontend
-RUN npm run build
+RUN bun run build
 
 # Build Astro landing
 WORKDIR /app/packages/landing
-RUN npm run build
+RUN bun run build
 
 # Render CSP placeholders in nginx.conf. Self-hosters only need to set
 # VITE_APP_API_HTTP — CSP_EXTRA_CONNECT / CSP_EXTRA_FORM_ACTION default to

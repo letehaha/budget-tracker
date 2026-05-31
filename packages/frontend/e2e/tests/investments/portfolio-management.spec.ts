@@ -14,7 +14,7 @@ import { pickDialogSelect, waitForSuccessToast } from '../../helpers/ui';
 const CURRENCY = 'USD';
 const creds = buildTestCredentials({ prefix: 'pm' });
 
-let portfolioId: number;
+let portfolioId: string;
 let dataSeeded = false;
 
 test.describe.configure({ mode: 'serial' });

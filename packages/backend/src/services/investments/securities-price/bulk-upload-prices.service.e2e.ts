@@ -232,7 +232,7 @@ describe('POST /investments/securities/prices/bulk-upload', () => {
       }
 
       // Use the available date from the test DB
-      const validDate = exchangeRate.date.toISOString().split('T')[0]!;
+      const validDate = new Date(exchangeRate.date).toISOString().split('T')[0]!;
 
       // Only upload one price since test DB may only have one date with exchange rates
       const prices = [{ price: 100.5, date: validDate, currency: 'USD' }];
@@ -281,7 +281,7 @@ describe('POST /investments/securities/prices/bulk-upload', () => {
         throw new Error('No exchange rates found for USD');
       }
 
-      const testDateStr = exchangeRate.date.toISOString().split('T')[0]!;
+      const testDateStr = new Date(exchangeRate.date).toISOString().split('T')[0]!;
 
       const prices = [{ price: 100, date: testDateStr, currency: 'USD' }];
 
@@ -336,7 +336,7 @@ describe('POST /investments/securities/prices/bulk-upload', () => {
         throw new Error('No exchange rates found for USD');
       }
 
-      const testDateStr = exchangeRate.date.toISOString().split('T')[0]!;
+      const testDateStr = new Date(exchangeRate.date).toISOString().split('T')[0]!;
 
       const prices = [{ price: 100, date: testDateStr, currency: 'USD' }];
 

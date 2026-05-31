@@ -35,9 +35,9 @@ npm run docker:dev:prepare-offline
 
 This command:
 
-- Builds Docker images with npm dependencies cached
+- Builds Docker images with Bun dependencies cached
 - Pulls all required base images (postgres:16, redis:7, etc.)
-- Caches Node.js base images (node:23.11.0)
+- Caches the Bun base image (oven/bun:1.3.5)
 
 ### Using Offline
 
@@ -47,7 +47,7 @@ Once prepared, start Docker in offline mode:
 npm run docker:dev:offline
 ```
 
-This skips npm install/ci steps and uses the cached dependency layers from your previous build.
+This skips the bun install step and uses the cached dependency layers from your previous build.
 
 **Important**:
 
@@ -82,7 +82,7 @@ Required variables in `.env.development`:
 # Start services (rebuilds automatically)
 npm run docker:dev
 
-# Start services in offline mode (skip npm install)
+# Start services in offline mode (skip bun install)
 npm run docker:dev:offline
 
 # Prepare for offline work (run while online)
@@ -152,7 +152,7 @@ environment:
 
 When `DOCKER_OFFLINE_MODE=true`:
 
-1. **Build time**: Dockerfiles skip npm install/ci steps and use cached dependency layers from previous builds
+1. **Build time**: Dockerfiles skip the bun install step and use cached dependency layers from previous builds
 2. **Runtime**: Backend app checks `OFFLINE_MODE` env variable and skips background jobs that require internet:
    - `initializeHistoricalRates()` - Loading historical exchange rates
    - `loadCurrencyRatesJob` - Currency rates sync job

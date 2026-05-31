@@ -381,7 +381,9 @@ export async function setupInvestments({
   userId: number;
   referenceDate: Date;
 }): Promise<void> {
-  const transaction = await connection.sequelize.transaction();
+  // Sequelize v7 dropped the no-callback `transaction()` overload; the manual
+  // commit/rollback form below requires startUnmanagedTransaction().
+  const transaction = await connection.sequelize.startUnmanagedTransaction();
 
   try {
     const portfolio = await Portfolios.create(

@@ -73,6 +73,28 @@ const getTransactions = async () => {
   );
 };
 
+/**
+ * Wait until a monobank account's synced transaction count reaches `minCount` AND stops
+ * changing across consecutive polls. The BullMQ sync runs asynchronously and can land more
+ * rows than the initial batch shortly after the first ones, so a bare `>= minCount` check may
+ * snapshot mid-sync and yield a flaky baseline. Waiting for the count to stabilize gives a
+ * complete, deterministic baseline — this replaces a fixed `sleep` that was reliable only
+ * because it over-waited.
+ */
+const waitForSyncToSettle = async (accountId: RecordId, minCount: number): Promise<void> => {
+  let lastCount = -1;
+  await until(
+    async () => {
+      const txs = await getTransactions();
+      const count = txs.filter((t: { accountId: RecordId | null }) => t.accountId === accountId).length;
+      const settled = count >= minCount && count === lastCount;
+      lastCount = count;
+      return settled;
+    },
+    { timeout: 30000, interval: 500 },
+  );
+};
+
 const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promise<{
   account: Accounts;
   transactions: Transactions[];
@@ -125,15 +147,8 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
       });
       account = await Accounts.findByPk(syncedAccounts[0]!.id);
 
-      // Wait for auto-sync to complete via BullMQ — poll until all expected transactions are synced
-      const pollAccountId = account!.id;
-      await until(
-        async () => {
-          const txs = await getTransactions();
-          return txs.filter((t: { accountId: RecordId | null }) => t.accountId === pollAccountId).length >= amount;
-        },
-        { timeout: 30000, interval: 500 },
-      );
+      // Wait for the BullMQ auto-sync to fully settle before snapshotting the baseline.
+      await waitForSyncToSettle(account!.id, amount);
 
       const transactions = await getTransactions();
       return { account: account!, transactions };
@@ -157,15 +172,8 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
     });
     account = await Accounts.findByPk(syncedAccounts[0]!.id);
 
-    // Wait for auto-sync to complete via BullMQ — poll until monobank account has transactions
-    const accountIdForPoll = account!.id;
-    await until(
-      async () => {
-        const txs = await getTransactions();
-        return txs.some((t: { accountId: RecordId | null }) => t.accountId === accountIdForPoll);
-      },
-      { timeout: 15000, interval: 300 },
-    );
+    // Wait for the BullMQ auto-sync to fully settle before snapshotting the baseline.
+    await waitForSyncToSettle(account!.id, amount);
 
     const transactions = await getTransactions();
     return { account: account!, transactions };
@@ -185,15 +193,8 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
     raw: true,
   });
 
-  // Wait for BullMQ worker to process all expected transactions for this specific account
-  const targetAccountId = account.id;
-  await until(
-    async () => {
-      const txs = await getTransactions();
-      return txs.filter((t: { accountId: RecordId | null }) => t.accountId === targetAccountId).length >= amount;
-    },
-    { timeout: 30000, interval: 500 },
-  );
+  // Wait for the BullMQ sync to fully settle before snapshotting the baseline.
+  await waitForSyncToSettle(account.id, amount);
 
   const transactions = await getTransactions();
 

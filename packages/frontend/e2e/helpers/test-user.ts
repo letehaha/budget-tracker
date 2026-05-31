@@ -40,6 +40,20 @@ export async function createTestUser({ request, user }: { request: APIRequestCon
     const body = await response.text();
     throw new Error(`Failed to create test user ${user.email}: ${response.status()} ${body}`);
   }
+
+  // When the backend enforces email verification (requireEmailVerification is on
+  // whenever RESEND_API_KEY is set), an unverified user cannot sign in via the UI
+  // form. Verify the email so the created user is fully usable for sign-in. The
+  // /tests/* route only exists in dev/test; on production-like envs it 404s and
+  // verification is skipped (sign-up there returns a session directly anyway).
+  const verifyResponse = await request.post(`${API_BASE_URL}/api/v1/tests/verify-email`, {
+    data: { email: user.email },
+  });
+
+  if (!verifyResponse.ok() && verifyResponse.status() !== 404) {
+    const body = await verifyResponse.text();
+    throw new Error(`Failed to verify test user ${user.email}: ${verifyResponse.status()} ${body}`);
+  }
 }
 
 export async function deleteTestUser({ request, user }: { request: APIRequestContext; user: TestUser }): Promise<void> {

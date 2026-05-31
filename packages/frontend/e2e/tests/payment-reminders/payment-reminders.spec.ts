@@ -6,6 +6,7 @@ import {
   createAccount,
   createPaymentReminder,
   createTransaction,
+  extractId,
   markReminderPeriodPaid,
 } from '../../helpers/api-client';
 import { loginViaUI } from '../../helpers/auth';
@@ -14,27 +15,7 @@ import { buildTestCredentials, signUpAndVerify } from '../../helpers/test-setup'
 const CURRENCY = 'USD';
 const creds = buildTestCredentials({ prefix: 'pr' });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const extractId = (apiResult: any): string => {
-  const resp = apiResult.response;
-  const id = resp?.id ?? apiResult.id;
-  if (!id) {
-    throw new Error(`Failed to extract ID from API response: ${JSON.stringify(apiResult).slice(0, 200)}`);
-  }
-  return id;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const extractNumericId = (apiResult: any): number => {
-  const resp = apiResult.response;
-  const id = Array.isArray(resp) ? resp[0]?.id : (resp?.id ?? apiResult.id);
-  if (!id || id <= 0) {
-    throw new Error(`Failed to extract numeric ID: ${JSON.stringify(apiResult).slice(0, 200)}`);
-  }
-  return id;
-};
-
-let accountId: number;
+let accountId: string;
 let dataSeeded = false;
 
 // Due dates: today for "actionable" periods (due today counts as actionable),
@@ -70,7 +51,7 @@ test.describe('Payment Reminders', () => {
         currencyCode: CURRENCY,
         initialBalance: 50000,
       });
-      accountId = extractNumericId(account);
+      accountId = extractId(account);
       dataSeeded = true;
     }
   });
@@ -433,7 +414,7 @@ test.describe('Payment Reminders', () => {
       amount: 500,
       transactionType: 'expense',
     });
-    const txId = extractNumericId(tx);
+    const txId = extractId(tx);
 
     // Mark as paid with linked transaction
     await markReminderPeriodPaid({

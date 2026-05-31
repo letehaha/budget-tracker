@@ -10,9 +10,11 @@ import * as UsersCurrencies from './users-currencies.model';
 type UserExchangeRatesAttributes = Omit<UserExchangeRatesModel, 'custom'>;
 
 @Table({
-  timestamps: true,
-  createdAt: 'date',
-  updatedAt: false,
+  // `date` is the rate's effective date and the table's only time column. It is modeled as
+  // a plain PK attribute (defaulting to NOW) rather than a managed `createdAt` timestamp:
+  // Sequelize v7 ignores user-supplied values for managed timestamps on create(), which
+  // would make it impossible to seed a rate with an explicit historical date.
+  timestamps: false,
   tableName: 'UserExchangeRates',
   freezeTableName: true,
 })

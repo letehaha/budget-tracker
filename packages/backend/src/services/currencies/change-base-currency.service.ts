@@ -393,7 +393,8 @@ async function recalculateAccounts(params: {
           CASE WHEN "transactionType" = :income THEN "refAmount" ELSE -"refAmount" END
         ), 0) AS "refBalanceSum"
       FROM "Transactions"
-      WHERE "accountId" = ANY(:accountIds)
+      -- accountId cast to text: :accountIds binds as a text array and Postgres has no uuid = text operator
+      WHERE "accountId"::text = ANY(:accountIds)
       GROUP BY "accountId"`,
       {
         replacements: {

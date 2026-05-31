@@ -560,12 +560,13 @@ describe('Demo Mode', () => {
         raw: true,
       });
 
-      const accountIds = accountsRes.map((a: { id: number }) => a.id);
+      const accountIds = accountsRes.map((a: { id: string }) => a.id);
       expect(accountIds.length).toBe(4);
 
-      // Verify Balances records exist
+      // Verify Balances records exist. Cast the uuid column to text for `= ANY(:array)`:
+      // Sequelize binds the array param as text[] and Postgres has no `uuid = text` operator.
       const [balanceRows] = await connection.sequelize.query(
-        `SELECT COUNT(*) as count FROM "Balances" WHERE "accountId" = ANY(:accountIds)`,
+        `SELECT COUNT(*) as count FROM "Balances" WHERE "accountId"::text = ANY(:accountIds)`,
         { replacements: { accountIds } },
       );
 

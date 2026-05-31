@@ -296,7 +296,7 @@ jobs:
         id: playwright-version
         shell: bash
         run: |
-          VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")
+          VERSION=$(node -p "require('@playwright/test/package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers

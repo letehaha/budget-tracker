@@ -73,8 +73,10 @@ describe('Initialize Historical Rates Service', () => {
         baseCode: expect.any(String),
         quoteCode: expect.any(String),
         rate: expect.any(Number),
-        date: expect.any(Date),
       });
+      // `raw: true` returns the DATE column as an ISO timestamp string under
+      // @sequelize/postgres (Sequelize v6 returned a Date); assert it's a valid date value.
+      expect(Number.isNaN(new Date(rate.date).getTime())).toBe(false);
       expect(rate.baseCode).toBe('USD');
     });
   });
@@ -165,7 +167,9 @@ describe('Initialize Historical Rates Service', () => {
     expect(sampleRate!.baseCode).toBe('USD');
     expect(sampleRate!.quoteCode).toMatch(/^[A-Z]{3}$/); // 3-letter currency code
     expect(sampleRate!.rate).toBeGreaterThan(0);
-    expect(sampleRate!.date).toBeInstanceOf(Date);
+    // `raw: true` returns the DATE column as an ISO timestamp string under
+    // @sequelize/postgres (Sequelize v6 returned a Date); assert it parses to a valid date.
+    expect(Number.isNaN(new Date(sampleRate!.date).getTime())).toBe(false);
     // `source` must reflect the provider that supplied the rate, not the
     // UNKNOWN fallback — protects against providerType being dropped from
     // the insert path in a future refactor.
