@@ -1,11 +1,5 @@
-import {
-  ACCESS_SOURCES,
-  AccessSource,
-  ResourceType,
-  SHARE_PERMISSIONS,
-  SharePermission,
-  SharePolicy,
-} from '@bt/shared/types';
+import type { AccessSource, ResourceType, SharePermission, SharePolicy } from '@bt/shared/types';
+import { ACCESS_SOURCES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
@@ -13,7 +7,8 @@ import type { FindOptions, Includeable, Model, ModelStatic, WhereOptions } from 
 import { Op } from '@sequelize/core';
 
 import { canUserAccessResource } from './auth/can-user-access-resource.service';
-import { ShareUserSnapshot, snapshotShareUser } from './share-user-snapshot';
+import type { ShareUserSnapshot } from './share-user-snapshot';
+import { snapshotShareUser } from './share-user-snapshot';
 
 /**
  * Precedence ranks for collision tie-breaking when multiple sources match the same

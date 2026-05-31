@@ -41,7 +41,7 @@ export const createUser = withTransaction(
     middleName?: string;
     avatar?: string;
     totalBalance?: number;
-    authUserId?: string;
+    authUserId?: RecordId;
   }) => {
     const user = await Users.createUser({
       username,

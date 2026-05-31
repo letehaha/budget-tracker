@@ -9,15 +9,15 @@
  */
 import { logger } from '@js/utils';
 
-import { BaseExchangeRateProvider } from './base-provider';
-import {
-  EXCHANGE_RATE_PROVIDER_TYPE,
+import type { BaseExchangeRateProvider } from './base-provider';
+import type {
   ExchangeRateProviderMetadata,
   FetchHistoricalRatesWithFallbackResult,
   FetchRatesParams,
   FetchRatesRangeParams,
   FetchRatesWithFallbackResult,
 } from './types';
+import { EXCHANGE_RATE_PROVIDER_TYPE } from './types';
 
 class ExchangeRateProviderRegistry {
   private providers = new Map<EXCHANGE_RATE_PROVIDER_TYPE, BaseExchangeRateProvider>();

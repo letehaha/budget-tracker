@@ -1,8 +1,8 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
-import { createInvestmentTransaction as _createInvestmentTransaction } from '@services/investments/transactions/create.service';
-import { deleteInvestmentTransaction as _deleteInvestmentTransaction } from '@services/investments/transactions/delete.service';
-import { getTransactions as _getTransactions } from '@services/investments/transactions/get.service';
-import { updateInvestmentTransaction as _updateInvestmentTransaction } from '@services/investments/transactions/update.service';
+import type { createInvestmentTransaction as _createInvestmentTransaction } from '@services/investments/transactions/create.service';
+import type { deleteInvestmentTransaction as _deleteInvestmentTransaction } from '@services/investments/transactions/delete.service';
+import type { getTransactions as _getTransactions } from '@services/investments/transactions/get.service';
+import type { updateInvestmentTransaction as _updateInvestmentTransaction } from '@services/investments/transactions/update.service';
 
 import { makeRequest } from '../common';
 

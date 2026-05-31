@@ -375,7 +375,7 @@ const buildRefundAdjustments = ({
     }) => {
       const isExpense = tx.transactionType === TRANSACTION_TYPES.expense;
       const targetCategoryId = overrideCategoryId ?? tx.categoryId;
-      const resolved = isExpense ? resolveCategoryBucket(targetCategoryId) : null;
+      const resolved = isExpense && targetCategoryId !== null ? resolveCategoryBucket(targetCategoryId) : null;
       adjustments.push({
         time: tx.time,
         amount: adjustmentAmount,

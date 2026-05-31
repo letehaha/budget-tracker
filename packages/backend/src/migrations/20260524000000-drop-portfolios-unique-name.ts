@@ -12,7 +12,7 @@ import type { AbstractQueryInterface } from '@sequelize/core';
  * back, a code-level check (excluding soft-deleted rows) is enough — DB-level
  * uniqueness adds more friction than safety here.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.removeConstraint('Portfolios', 'portfolios_user_name_unique');
   },
@@ -20,7 +20,7 @@ module.exports = {
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.addConstraint('Portfolios', {
       fields: ['userId', 'name'],
-      type: 'unique',
+      type: 'UNIQUE',
       name: 'portfolios_user_name_unique',
     });
   },

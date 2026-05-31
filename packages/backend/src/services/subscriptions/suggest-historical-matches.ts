@@ -1,8 +1,9 @@
-import { SubscriptionMatchingRule } from '@bt/shared/types';
+import type { SubscriptionMatchingRule } from '@bt/shared/types';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import * as Transactions from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
-import { Op, WhereOptions } from '@sequelize/core';
+import type { WhereOptions } from '@sequelize/core';
+import { Op } from '@sequelize/core';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { subMonths } from 'date-fns';
 

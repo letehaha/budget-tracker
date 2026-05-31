@@ -1,12 +1,9 @@
+import type { ResourceType, ShareInvitationModel, SharePermission, SharePolicy } from '@bt/shared/types';
 import {
   RESOURCE_TYPES,
-  ResourceType,
   SHARE_INVITATION_STATUSES,
   SHARE_PERMISSIONS,
   SHARING_LIMITS,
-  ShareInvitationModel,
-  SharePermission,
-  SharePolicy,
   TRANSACTIONS_WRITE_SCOPES,
 } from '@bt/shared/types';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';

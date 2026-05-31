@@ -2,8 +2,8 @@ import { until } from '@common/helpers';
 import type Securities from '@models/investments/securities.model';
 import { FmpClient, type FmpSearchResult } from '@root/services/investments/data-providers/clients/fmp-client';
 import { addSecurityFromSearch } from '@root/services/investments/securities/add-from-search.service';
-import * as getSecuritiesService from '@root/services/investments/securities/get-all';
-import { searchSecurities as _searchSecurities } from '@root/services/investments/securities/search.service';
+import type * as getSecuritiesService from '@root/services/investments/securities/get-all';
+import type { searchSecurities as _searchSecurities } from '@root/services/investments/securities/search.service';
 import { vi } from 'vitest';
 
 import { type MakeRequestReturn, makeRequest } from '../common';

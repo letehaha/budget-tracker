@@ -1,5 +1,6 @@
+import type { RecordId } from '@bt/shared/types';
 import { BUDGET_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import type { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import BudgetCategories from '@models/budget-categories.model';
@@ -11,7 +12,7 @@ import { authorizeBudgetAccess } from './authorize-budget-access';
 import { expandCategoryIds } from './utils/expand-category-ids';
 
 interface EditBudgetPayload {
-  id: string;
+  id: RecordId;
   userId: number;
   name?: string;
   startDate?: string;

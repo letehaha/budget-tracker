@@ -1,17 +1,12 @@
-import { BUDGET_STATUSES, BUDGET_TYPES, RecordId } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import type { BUDGET_STATUSES, RecordId } from '@bt/shared/types';
+import { BUDGET_TYPES } from '@bt/shared/types';
+import type { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Categories from '@models/categories.model';
-import Transactions from '@models/transactions.model';
+import type Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,
@@ -26,7 +21,6 @@ import {
 import { v7 as uuidv7 } from 'uuid';
 
 import BudgetCategories from './budget-categories.model';
-import BudgetTransactions from './budget-transactions.model';
 
 @Table({
   timestamps: false,
@@ -82,11 +76,8 @@ export default class Budgets extends Model<InferAttributes<Budgets>, InferCreati
   @BelongsTo(() => Users, 'userId')
   declare user?: NonAttribute<Users>;
 
-  @BelongsToMany(() => Transactions, {
-    through: () => BudgetTransactions,
-    foreignKey: 'budgetId',
-    otherKey: 'transactionId',
-  })
+  // Inverse of Transactions.budgets — the BelongsToMany is declared on the
+  // Transactions model with `inverse: { as: 'transactions' }`; here we only type it.
   declare transactions?: NonAttribute<Transactions[]>;
 
   @BelongsToMany(() => Categories, {

@@ -1,10 +1,6 @@
-import { UserModel } from '@bt/shared/types';
-import {
-  ASSET_CLASS,
-  SECURITY_PROVIDER,
-  SUPPORTED_ASSET_CLASSES,
-  type SecuritySearchResult,
-} from '@bt/shared/types/investments';
+import type { UserModel } from '@bt/shared/types';
+import type { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { SUPPORTED_ASSET_CLASSES, type SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';

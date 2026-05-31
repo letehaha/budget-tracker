@@ -1,8 +1,9 @@
-import { ACCOUNT_TYPES } from '@bt/shared/types';
-import Accounts from '@models/accounts.model';
-import Users from '@models/users.model';
+import type { ACCOUNT_TYPES } from '@bt/shared/types';
+import type Accounts from '@models/accounts.model';
+import type Users from '@models/users.model';
 
-import { ShareContext, buildOwnerContext, loadSharedByIdFor, loadSharedFor } from './share-context-resolver';
+import type { ShareContext } from './share-context-resolver';
+import { buildOwnerContext, loadSharedByIdFor, loadSharedFor } from './share-context-resolver';
 import { accountShareable } from './shareables/account.shareable';
 
 /**

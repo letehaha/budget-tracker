@@ -1,4 +1,4 @@
-import { AbstractQueryInterface } from '@sequelize/core';
+import type { AbstractQueryInterface } from '@sequelize/core';
 
 /**
  * Migration to add index on externalData.importDetails.batchId for efficient

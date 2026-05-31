@@ -41,11 +41,22 @@
     "@emnapi/core": "1.10.0",
     "@emnapi/runtime": "1.10.0",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-    "@vue/compiler-sfc": "^3.5.13",
+    "@vue/compiler-sfc": "3.5.34",
     "husky": "9.1.7",
     "knip": "^5.85.0",
     "oxfmt": "^0.35.0",
     "oxlint": "^1.50.0",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@vue/compiler-core": "3.5.34",
+    "@vue/compiler-dom": "3.5.34",
+    "@vue/compiler-ssr": "3.5.34",
+    "@vue/reactivity": "3.5.34",
+    "@vue/runtime-core": "3.5.34",
+    "@vue/runtime-dom": "3.5.34",
+    "@vue/server-renderer": "3.5.34",
+    "@vue/shared": "3.5.34",
+    "vue": "3.5.34"
   }
 }

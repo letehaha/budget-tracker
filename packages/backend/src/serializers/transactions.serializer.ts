@@ -5,8 +5,8 @@
  * Money fields auto-convert via .toNumber().
  * Deserializers convert API decimal inputs to Money.
  */
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import type { RecordId } from '@bt/shared/types';
+import { ACCOUNT_TYPES } from '@bt/shared/types';
+import type { RecordId, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
 import type Tags from '@models/tags.model';
 import type TransactionGroups from '@models/transaction-groups.model';
@@ -91,12 +91,12 @@ interface CreateTransactionRequest {
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
   accountId: RecordId;
-  destinationAccountId?: string;
-  destinationTransactionId?: string;
+  destinationAccountId?: RecordId;
+  destinationTransactionId?: RecordId;
   categoryId?: RecordId;
   accountType?: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
-  refundForTxId?: string;
+  refundForTxId?: RecordId;
   refundForSplitId?: string;
   splits?: Array<{
     categoryId: RecordId;
@@ -119,12 +119,12 @@ interface CreateTransactionInternal {
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
   accountId: RecordId;
-  destinationAccountId?: string;
-  destinationTransactionId?: string;
+  destinationAccountId?: RecordId;
+  destinationTransactionId?: RecordId;
   categoryId?: RecordId;
   accountType: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
-  refundsTxId?: string;
+  refundsTxId?: RecordId;
   refundsSplitId?: string;
   splits?: Array<{
     categoryId: RecordId;

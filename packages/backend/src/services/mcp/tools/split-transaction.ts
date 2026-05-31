@@ -54,7 +54,7 @@ export function registerSplitTransaction(server: McpServer) {
           note: s.note,
         })),
         transactionAmount: transaction.amount,
-        transactionCurrencyCode: transaction.currencyCode,
+        transactionCurrencyCode: transaction.currencyCode!,
         transactionTime: transaction.time,
         transferNature: transaction.transferNature,
       });

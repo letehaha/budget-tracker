@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -13,8 +14,8 @@ import { syncHistoricalPrices } from '@services/investments/securities-price/his
 
 interface CreateHoldingParams {
   userId: number;
-  portfolioId: string;
-  securityId: string;
+  portfolioId: RecordId;
+  securityId: RecordId;
 }
 
 const createHoldingImpl = async ({ userId, portfolioId, securityId }: CreateHoldingParams) => {

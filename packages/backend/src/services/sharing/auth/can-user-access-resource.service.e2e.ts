@@ -1,7 +1,7 @@
 import { ACCESS_SOURCES, RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import ResourceShares from '@models/resource-shares.model';
 import * as helpers from '@tests/helpers';
-import { CustomResponse } from '@tests/helpers/common';
+import type { CustomResponse } from '@tests/helpers/common';
 import { describe, expect, it } from 'vitest';
 
 /**

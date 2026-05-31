@@ -4,7 +4,7 @@ import { OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import { createSessionHooks } from '@config/auth-hooks/session-hooks';
 import { logger } from '@js/utils/logger';
 import { identifyUser, trackSignup } from '@js/utils/posthog';
-import { createUserWithDefaults } from '@services/user/create-user-with-defaults.service';
+import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import bcrypt from 'bcryptjs';
 import { betterAuth } from 'better-auth';
 import { jwt } from 'better-auth/plugins';
@@ -288,10 +288,12 @@ export const auth = betterAuth({
           try {
             logger.info(`Creating app user profile for auth user: ${user.id}`);
 
-            const appUser = await createUserWithDefaults({
+            const appUser = await createAppUserWithUniqueUsername({
               username: user.name || user.email?.split('@')[0] || 'user',
               authUserId: user.id,
             });
+
+            await seedUserDefaults({ userId: appUser.id });
 
             logger.info(`Successfully created app user profile with id: ${appUser.id}`);
 

@@ -1,4 +1,5 @@
-import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import { DataTypes } from '@sequelize/core';
 
 /**
  * Migration to add authUserId column to Users table for linking to better-auth.

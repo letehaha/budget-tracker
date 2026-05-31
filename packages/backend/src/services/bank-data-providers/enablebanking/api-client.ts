@@ -7,10 +7,11 @@
 import { t } from '@i18n/index';
 import { BadGateway, BadRequestError, ForbiddenError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import axios, { AxiosInstance } from 'axios';
+import type { AxiosInstance } from 'axios';
+import axios from 'axios';
 
 import { generateJWT } from './jwt-utils';
-import {
+import type {
   ASPSP,
   ASPSPsResponse,
   CreateSessionRequest,

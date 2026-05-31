@@ -1,9 +1,8 @@
-import type { RecordId } from '@bt/shared/types';
+import type { RecordId, Cents } from '@bt/shared/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ACCOUNT_TYPES,
   BANK_PROVIDER_TYPE,
-  Cents,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -17,21 +16,21 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
 import { and, literal, where } from '@sequelize/core';
-import {
-  BaseBankDataProvider,
+import type {
   DateRange,
   ProviderAccount,
   ProviderBalance,
   ProviderMetadata,
   ProviderTransaction,
 } from '@services/bank-data-providers';
+import { BaseBankDataProvider } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
 import { LunchFlowApiClient } from './api-client';
-import {
+import type {
   LunchFlowApiAccountsResponse,
   LunchFlowApiTransactionsResponse,
   LunchFlowCredentials,

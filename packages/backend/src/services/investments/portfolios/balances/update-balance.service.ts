@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -10,7 +11,7 @@ import { Big } from 'big.js';
 
 interface UpdatePortfolioBalanceParams {
   userId: number;
-  portfolioId: string;
+  portfolioId: RecordId;
   currencyCode: string;
   availableCashDelta?: string; // Amount to add/subtract from available cash
   totalCashDelta?: string; // Amount to add/subtract from total cash

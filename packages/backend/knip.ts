@@ -9,7 +9,9 @@ const config: KnipConfig = {
     'src/**/*.unit.ts',
     'src/tests/**',
   ],
-  ignoreBinaries: ['knip', 'cross-env', 'oxlint', 'tsc'],
+  // vite/vitest binaries resolve from the hoisted root node_modules/.bin (bun workspace),
+  // so knip can't see them from this package — they're real deps, just hoisted.
+  ignoreBinaries: ['knip', 'cross-env', 'oxlint', 'tsc', 'vite', 'vitest'],
   ignore: [
     'src/migrations/**',
     // False positive: imported via @common/types path alias which knip doesn't resolve

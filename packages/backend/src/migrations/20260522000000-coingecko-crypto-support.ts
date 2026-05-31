@@ -6,9 +6,9 @@ const ENUM_ASSET_CLASS = 'enum_asset_class';
 
 const UNIQUE_PROVIDER_SYMBOL_INDEX = 'securities_provider_name_provider_symbol_unique_idx';
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. Convert Securities.providerName from ENUM to VARCHAR
@@ -64,7 +64,7 @@ module.exports = {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // 1. Drop unique index and providerSymbol column

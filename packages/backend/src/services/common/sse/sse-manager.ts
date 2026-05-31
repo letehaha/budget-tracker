@@ -1,7 +1,7 @@
 import { logger } from '@js/utils/logger';
-import { Response } from 'express';
+import type { Response } from 'express';
 
-import { SSEEventPayload, SSEEventType } from './types';
+import type { SSEEventPayload, SSEEventType } from './types';
 
 interface SSEConnection {
   res: Response;

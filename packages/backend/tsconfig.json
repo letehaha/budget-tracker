@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": true,
+    "verbatimModuleSyntax": true,
     "target": "ES2023",
     "lib": ["ES2023"],
     "module": "ESNext",

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
@@ -15,8 +16,8 @@ import { computeRestampForExistingTransaction, findPortfolioOrThrow, negateAmoun
 
 interface LinkTransactionToPortfolioParams {
   userId: number;
-  transactionId: string;
-  portfolioId: string;
+  transactionId: RecordId;
+  portfolioId: RecordId;
 }
 
 const DISALLOWED_TRANSFER_NATURES = [

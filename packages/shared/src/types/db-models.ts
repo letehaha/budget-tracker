@@ -1,4 +1,4 @@
-import {
+import type {
   ACCOUNT_CATEGORIES,
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
@@ -28,7 +28,7 @@ import {
   TransactionsWriteScope,
   UserRole,
 } from './enums';
-import { RecordId } from './record-id';
+import type { RecordId } from './record-id';
 
 export interface UserModel {
   id: number;

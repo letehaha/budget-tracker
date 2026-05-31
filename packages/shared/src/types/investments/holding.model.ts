@@ -1,5 +1,5 @@
-import { PortfolioModel } from './portfolio-models';
-import { SecurityModel } from './security.model';
+import type { PortfolioModel } from './portfolio-models';
+import type { SecurityModel } from './security.model';
 
 export interface HoldingModel {
   portfolioId: string;

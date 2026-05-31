@@ -1,9 +1,9 @@
-import Currencies from '@models/currencies.model';
-import ExchangeRates from '@models/exchange-rates.model';
-import { UpdateExchangeRatePair } from '@models/user-exchange-rates.model';
-import UsersCurrencies from '@models/users-currencies.model';
-import { addUserCurrencies as apiAddUserCurrencies } from '@root/services/currencies/add-user-currency';
-import { editUserCurrency as apiEditUserCurrency } from '@root/services/user.service';
+import type Currencies from '@models/currencies.model';
+import type ExchangeRates from '@models/exchange-rates.model';
+import type { UpdateExchangeRatePair } from '@models/user-exchange-rates.model';
+import type UsersCurrencies from '@models/users-currencies.model';
+import type { addUserCurrencies as apiAddUserCurrencies } from '@root/services/currencies/add-user-currency';
+import type { editUserCurrency as apiEditUserCurrency } from '@root/services/user.service';
 
 import { makeRequest } from './common';
 

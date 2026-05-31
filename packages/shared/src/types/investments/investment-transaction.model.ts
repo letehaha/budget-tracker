@@ -1,7 +1,7 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '../enums';
-import { INVESTMENT_TRANSACTION_CATEGORY } from './enums';
-import { PortfolioModel } from './portfolio-models';
-import { SecurityModel } from './security.model';
+import type { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '../enums';
+import type { INVESTMENT_TRANSACTION_CATEGORY } from './enums';
+import type { PortfolioModel } from './portfolio-models';
+import type { SecurityModel } from './security.model';
 
 export interface InvestmentTransactionModel {
   id: string;

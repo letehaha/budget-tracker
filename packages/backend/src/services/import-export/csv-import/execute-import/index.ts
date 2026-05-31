@@ -15,6 +15,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { trackImportCompleted } from '@js/utils/posthog';
@@ -32,8 +33,8 @@ interface ExecuteImportParams {
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
-  defaultAccountId?: string;
-  defaultCategoryId?: string;
+  defaultAccountId?: RecordId;
+  defaultCategoryId?: RecordId;
 }
 
 /**
@@ -190,7 +191,7 @@ interface CreateAccountsParams {
   userId: number;
   rowsToImport: ParsedTransactionRow[];
   accountMapping: AccountMappingConfig;
-  defaultAccountId?: string;
+  defaultAccountId?: RecordId;
 }
 
 async function createAccountsIfNeeded({
@@ -198,8 +199,8 @@ async function createAccountsIfNeeded({
   rowsToImport,
   accountMapping,
   defaultAccountId,
-}: CreateAccountsParams): Promise<Map<string, string>> {
-  const accountNameToId = new Map<string, string>();
+}: CreateAccountsParams): Promise<Map<string, RecordId>> {
+  const accountNameToId = new Map<string, RecordId>();
 
   // Get unique account names from rows
   const uniqueAccountNames = new Set(rowsToImport.map((r) => r.accountName));
@@ -286,8 +287,8 @@ async function createCategoriesIfNeeded({
   userId,
   rowsToImport,
   categoryMapping,
-}: CreateCategoriesParams): Promise<Map<string, string>> {
-  const categoryNameToId = new Map<string, string>();
+}: CreateCategoriesParams): Promise<Map<string, RecordId>> {
+  const categoryNameToId = new Map<string, RecordId>();
 
   // Get unique category names from rows (excluding empty/null)
   const uniqueCategoryNames = new Set(rowsToImport.filter((r) => r.categoryName).map((r) => r.categoryName!));

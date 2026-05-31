@@ -1,6 +1,6 @@
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import AccountGroup from '@models/accounts-groups/account-groups.model';
-import Accounts from '@models/accounts.model';
+import type AccountGroup from '@models/accounts-groups/account-groups.model';
+import type Accounts from '@models/accounts.model';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 

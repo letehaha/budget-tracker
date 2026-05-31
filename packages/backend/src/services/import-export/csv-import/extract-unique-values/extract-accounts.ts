@@ -1,4 +1,5 @@
-import { AccountOption, AccountOptionValue, SourceAccount } from '@bt/shared/types';
+import type { AccountOption, SourceAccount } from '@bt/shared/types';
+import { AccountOptionValue } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
 
 interface AccountExtractionResult {

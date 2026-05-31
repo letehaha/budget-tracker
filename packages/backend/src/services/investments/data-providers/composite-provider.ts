@@ -1,10 +1,10 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import { isAxiosError } from 'axios';
 
 import { AlphaVantageDataProvider } from './alphavantage-provider';
-import {
-  BaseSecurityDataProvider,
+import type {
   BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
@@ -12,6 +12,7 @@ import {
   SearchOptions,
   SecurityPriceFetchInput,
 } from './base-provider';
+import { BaseSecurityDataProvider } from './base-provider';
 import { CoinGeckoDataProvider } from './coingecko-provider';
 import { FmpDataProvider } from './fmp-provider';
 import { PolygonDataProvider } from './polygon-provider';

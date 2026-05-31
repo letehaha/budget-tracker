@@ -1,4 +1,4 @@
-import { SetupServerApi } from 'msw/node';
+import type { SetupServerApi } from 'msw/node';
 
 export const createCallsCounter = (mockServerInstance: SetupServerApi, url: RegExp | string) => {
   const counter = {

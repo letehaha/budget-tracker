@@ -1,7 +1,8 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
-import { bulkUploadSecurityPrices as _bulkUploadSecurityPrices } from '@root/services/investments/securities-price/bulk-upload-prices.service';
-import { getPriceUploadInfo as _getPriceUploadInfo } from '@root/services/investments/securities-price/get-price-upload-info.service';
-import { getPrices } from '@root/services/investments/securities-price/get-prices.service';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import type { bulkUploadSecurityPrices as _bulkUploadSecurityPrices } from '@root/services/investments/securities-price/bulk-upload-prices.service';
+import type { getPriceUploadInfo as _getPriceUploadInfo } from '@root/services/investments/securities-price/get-price-upload-info.service';
+import type { getPrices } from '@root/services/investments/securities-price/get-prices.service';
 
 import { makeRequest } from '../common';
 

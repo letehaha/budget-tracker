@@ -1,12 +1,6 @@
-import { ResourceShareModel, ResourceType, SharePermission, SharePolicy, RecordId } from '@bt/shared/types';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { ResourceShareModel, ResourceType, SharePermission, SharePolicy, RecordId } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,
@@ -37,7 +31,7 @@ export default class ResourceShares
   @BeforeCreate
   static generateUUIDv7(instance: ResourceShares) {
     if (!instance.id) {
-      instance.id = uuidv7();
+      instance.id = uuidv7() as RecordId;
     }
   }
 

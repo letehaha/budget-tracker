@@ -1,12 +1,13 @@
 import type { RecordId } from '@bt/shared/types';
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { ListExternalAccountsResponseData } from '@controllers/bank-data-providers/connections/list-external-accounts';
-import * as connectProviderService from '@services/bank-data-providers/connection/connect-provider';
-import * as getConnectionDetailsService from '@services/bank-data-providers/connection/get-connection-details';
-import * as listUserConnectionsService from '@services/bank-data-providers/connection/list-user-connections';
-import { listSupportedProviders } from '@services/bank-data-providers/list-supported-providers.service';
+import type { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import type { ListExternalAccountsResponseData } from '@controllers/bank-data-providers/connections/list-external-accounts';
+import type * as connectProviderService from '@services/bank-data-providers/connection/connect-provider';
+import type * as getConnectionDetailsService from '@services/bank-data-providers/connection/get-connection-details';
+import type * as listUserConnectionsService from '@services/bank-data-providers/connection/list-user-connections';
+import type { listSupportedProviders } from '@services/bank-data-providers/list-supported-providers.service';
 
-import { MakeRequestReturn, UtilizeReturnType, makeRequest } from './common';
+import type { MakeRequestReturn, UtilizeReturnType } from './common';
+import { makeRequest } from './common';
 
 export function getSupportedBankProviders<R extends boolean | undefined = false>({ raw }: { raw?: R } = {}) {
   return makeRequest<{ providers: Awaited<ReturnType<typeof listSupportedProviders>> }, R>({

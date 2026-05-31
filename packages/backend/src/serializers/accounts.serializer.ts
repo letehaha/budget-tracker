@@ -4,7 +4,7 @@
  * Serializes account model instances for API responses.
  * Money fields auto-convert via .toNumber().
  */
-import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE, ResourceShareInfo } from '@bt/shared/types';
+import type { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE, ResourceShareInfo } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Accounts from '@models/accounts.model';
 import type { AccountShareContext } from '@services/sharing/get-shared-accounts.service';

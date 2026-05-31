@@ -1,6 +1,7 @@
 'use strict';
 
-import { DataTypes, AbstractQueryInterface } from '@sequelize/core';
+import type { AbstractQueryInterface } from '@sequelize/core';
+import { DataTypes } from '@sequelize/core';
 
 /**
  * Migration to remove the old Monobank integration that used direct API tokens.

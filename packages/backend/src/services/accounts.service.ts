@@ -1,6 +1,6 @@
-import type { RecordId } from '@bt/shared/types';
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountExternalData, BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import type { RecordId, AccountExternalData, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES } from '@bt/shared/types';
+import type { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError, UnexpectedError } from '@js/errors';
@@ -17,8 +17,8 @@ import {
   notifyAccountDeleteRecipients,
   type AccountShareCleanupResult,
 } from '@services/sharing/cleanup/cleanup-account-shares.service';
+import type { AccountShareContext } from '@services/sharing/get-shared-accounts.service';
 import {
-  AccountShareContext,
   buildOwnerShareContext,
   getSharedAccountById,
   getSharedAccountsForUser,

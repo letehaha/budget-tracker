@@ -1,13 +1,7 @@
-import { RecordId } from '@bt/shared/types';
-import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { RecordId } from '@bt/shared/types';
+import type { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,

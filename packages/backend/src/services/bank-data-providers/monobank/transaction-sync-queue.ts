@@ -1,9 +1,10 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import type { RecordId } from '@bt/shared/types';
-import { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
+import type { ExternalMonobankTransactionResponse } from '@bt/shared/types/external-services';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
-import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
+import type { SentryTraceData } from '@js/utils/sentry';
+import { withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as MerchantCategoryCodes from '@models/merchant-category-codes.model';
@@ -13,7 +14,8 @@ import * as Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
 import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
-import { Job, Queue, Worker } from 'bullmq';
+import type { Job } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
@@ -81,7 +83,7 @@ transactionSyncQueue.on('error', (err) => {
  */
 async function createMonobankTransaction(
   data: ExternalMonobankTransactionResponse,
-  accountId: string,
+  accountId: RecordId,
   userId: number,
 ): Promise<string | undefined> {
   // Check if transaction already exists (duplicate prevention)
@@ -112,7 +114,7 @@ async function createMonobankTransaction(
     userId,
   });
 
-  let categoryId: string;
+  let categoryId: RecordId;
 
   if (userMcc.length) {
     categoryId = userMcc[0]!.get('categoryId');

@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import Currencies from '@models/currencies.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -9,7 +10,7 @@ import { reverseTransferBalanceChanges } from './transfer-validations';
 
 interface UnlinkTransactionFromPortfolioParams {
   userId: number;
-  transactionId: string;
+  transactionId: RecordId;
 }
 
 const unlinkTransactionFromPortfolioImpl = async ({ userId, transactionId }: UnlinkTransactionFromPortfolioParams) => {

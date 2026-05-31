@@ -1,5 +1,5 @@
 import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import type { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import BudgetCategories from '@models/budget-categories.model';

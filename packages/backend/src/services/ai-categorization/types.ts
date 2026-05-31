@@ -1,4 +1,5 @@
-import { Money } from '@common/types/money';
+import type { RecordId } from '@bt/shared/types';
+import type { Money } from '@common/types/money';
 
 /**
  * Transaction data sent to AI for categorization
@@ -26,7 +27,7 @@ export interface CategoryForCategorization {
  */
 export interface CategorizationResult {
   transactionId: string;
-  categoryId: string;
+  categoryId: RecordId;
 }
 
 /**

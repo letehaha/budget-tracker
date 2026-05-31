@@ -3,8 +3,8 @@ import { Money } from '@common/types/money';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
-import Portfolios from '@models/investments/portfolios.model';
-import Securities from '@models/investments/securities.model';
+import type Portfolios from '@models/investments/portfolios.model';
+import type Securities from '@models/investments/securities.model';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 

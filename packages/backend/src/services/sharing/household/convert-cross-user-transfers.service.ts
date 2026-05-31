@@ -33,8 +33,9 @@ const convertPairLegs = async ({
   errorContext: { code: string; trigger: string };
 }) => {
   const [first, second] = legs;
-  const firstAccount = accountById.get(first.accountId);
-  const secondAccount = accountById.get(second.accountId);
+  // accountId is null only for portfolio-linked transactions; those never appear in cross-user transfer legs
+  const firstAccount = accountById.get(first.accountId!);
+  const secondAccount = accountById.get(second.accountId!);
   if (!firstAccount || !secondAccount) return false;
 
   for (const leg of legs) {
@@ -137,8 +138,8 @@ export const convertCrossUserTransfersToOutOfWallet = async ({
   for (const [, legs] of byTransferId) {
     if (legs.length !== 2) continue;
     const [first, second] = legs as [Transactions.default, Transactions.default];
-    const firstAccount = accountById.get(first.accountId);
-    const secondAccount = accountById.get(second.accountId);
+    const firstAccount = accountById.get(first.accountId!);
+    const secondAccount = accountById.get(second.accountId!);
     if (!firstAccount || !secondAccount) continue;
     const ownerPair = new Set([firstAccount.userId, secondAccount.userId]);
     const isAcrossThisPair = ownerPair.has(userIdA) && ownerPair.has(userIdB);
@@ -243,8 +244,8 @@ export const convertCrossUserTransfersForAccountIds = async ({
   for (const [, legs] of byTransferId) {
     if (legs.length !== 2) continue;
     const [first, second] = legs as [Transactions.default, Transactions.default];
-    const firstAccount = accountById.get(first.accountId);
-    const secondAccount = accountById.get(second.accountId);
+    const firstAccount = accountById.get(first.accountId!);
+    const secondAccount = accountById.get(second.accountId!);
     if (!firstAccount || !secondAccount) continue;
 
     // Same-user pairs cascade-delete naturally (both legs go with the user's accounts

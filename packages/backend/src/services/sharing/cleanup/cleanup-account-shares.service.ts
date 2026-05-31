@@ -1,7 +1,8 @@
-import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SharePermission, RecordId } from '@bt/shared/types';
+import type { SharePermission, RecordId } from '@bt/shared/types';
+import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES } from '@bt/shared/types';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
-import Users from '@models/users.model';
+import type Users from '@models/users.model';
 import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 

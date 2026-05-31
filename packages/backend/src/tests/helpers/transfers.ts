@@ -1,8 +1,8 @@
-import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
-import { BulkTransferScanResponse } from '@bt/shared/types/endpoints';
+import type { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import type { BulkTransferScanResponse } from '@bt/shared/types/endpoints';
 import * as helpers from '@tests/helpers';
 
-import { MakeRequestReturn } from './common';
+import type { MakeRequestReturn } from './common';
 
 interface GetTransferRecommendationsParams {
   transactionId?: string;

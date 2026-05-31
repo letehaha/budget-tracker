@@ -1,15 +1,10 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, RecordId } from '@bt/shared/types';
-import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
-import { Money } from '@common/types/money';
+import type { TRANSACTION_TYPES, RecordId } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import type { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import type { Money } from '@common/types/money';
 import { moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,

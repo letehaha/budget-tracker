@@ -10,7 +10,7 @@ import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import * as helpers from '@tests/helpers';
-import { CustomResponse, ErrorResponse } from '@tests/helpers/common';
+import type { CustomResponse, ErrorResponse } from '@tests/helpers/common';
 import { describe, expect, it } from 'vitest';
 
 /**

@@ -1,11 +1,13 @@
 import { logger } from '@js/utils/logger';
-import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
+import type { SentryTraceData } from '@js/utils/sentry';
+import { withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import { connection } from '@models/index';
 import PaymentReminderNotifications from '@models/payment-reminder-notifications.model';
 import Users from '@models/users.model';
 import { appName, appUrl, buildEmailShell, escapeHtml, fromEmail } from '@services/email';
 import { sendEmail } from '@services/email/send-email';
-import { Job, Queue, Worker } from 'bullmq';
+import type { Job } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 
 interface ReminderEmailJobData extends SentryTraceData {
   userId: number;

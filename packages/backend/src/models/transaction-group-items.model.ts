@@ -1,4 +1,5 @@
-import { DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import type { InferAttributes, InferCreationAttributes } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import { Attribute, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 @Table({ tableName: 'TransactionGroupItems', timestamps: false })

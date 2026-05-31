@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import Categories from '@models/categories.model';
 import { Op } from '@sequelize/core';
 
@@ -11,7 +12,7 @@ export const expandCategoryIds = async ({
 }: {
   userId: number;
   categoryIds: string[];
-}): Promise<string[]> => {
+}): Promise<RecordId[]> => {
   if (!categoryIds.length) return [];
 
   // Find all categories that match the given IDs OR have a parentId matching given IDs
@@ -24,5 +25,5 @@ export const expandCategoryIds = async ({
     raw: true,
   });
 
-  return [...new Set(allCategories.map((c) => c.id))];
+  return [...new Set(allCategories.map((c) => c.id as RecordId))];
 };

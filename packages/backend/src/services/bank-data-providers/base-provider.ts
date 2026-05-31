@@ -7,7 +7,7 @@ import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
-import { IBankDataProvider, ProviderAccount, ProviderMetadata } from './types';
+import type { IBankDataProvider, ProviderAccount, ProviderMetadata } from './types';
 
 /**
  * Shape of connection-metadata fields used by the shared auth-failure

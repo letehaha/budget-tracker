@@ -7,7 +7,8 @@ import SecurityPricing from '@models/investments/security-pricing.model';
 import { withLock } from '@services/common/lock';
 import { withTransaction } from '@services/common/with-transaction';
 import { dataProviderFactory } from '@services/investments/data-providers';
-import { PriceData, toProviderSymbol } from '@services/investments/data-providers/base-provider';
+import type { PriceData } from '@services/investments/data-providers/base-provider';
+import { toProviderSymbol } from '@services/investments/data-providers/base-provider';
 import { format, subYears } from 'date-fns';
 
 import { bucketByUtcDay } from './pricing-anchor';
@@ -37,11 +38,14 @@ const syncHistoricalPricesImpl = async (securityId: string): Promise<{ count: nu
     `Fetching historical prices for ${security.symbol ?? security.providerSymbol} (${security.assetClass}, ${yearsBack}yr) using composite provider`,
   );
 
-  const prices: PriceData[] = await compositeProvider.getHistoricalPrices(toProviderSymbol(security.providerSymbol), {
-    startDate,
-    endDate,
-    assetClass: security.assetClass,
-  });
+  const prices: PriceData[] = await compositeProvider.getHistoricalPrices(
+    toProviderSymbol(security.providerSymbol ?? ''),
+    {
+      startDate,
+      endDate,
+      assetClass: security.assetClass,
+    },
+  );
 
   if (prices.length === 0) {
     logger.warn(`No historical prices found for ${security.symbol ?? security.providerSymbol}.`);
@@ -52,7 +56,7 @@ const syncHistoricalPricesImpl = async (securityId: string): Promise<{ count: nu
 
   const pricesToCreate = dailyPrices.map((price) => ({
     securityId: security.id,
-    date: format(price.date, 'yyyy-MM-dd'),
+    date: price.date,
     priceClose: Money.fromDecimal(price.priceClose),
     source: price.providerName ?? null,
   }));

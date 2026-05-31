@@ -1,4 +1,4 @@
-FROM oven/bun:1
+FROM oven/bun:1.3.5
 
 LABEL com.docker.compose.project=test
 

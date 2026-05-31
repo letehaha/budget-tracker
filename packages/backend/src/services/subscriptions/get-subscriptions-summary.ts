@@ -1,4 +1,5 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import type { SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Subscriptions from '@models/subscriptions.model';

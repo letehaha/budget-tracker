@@ -1,7 +1,7 @@
 import type { AbstractQueryInterface } from '@sequelize/core';
 import { DataTypes } from '@sequelize/core';
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.addColumn('Portfolios', 'deletedAt', {
       type: DataTypes.DATE,

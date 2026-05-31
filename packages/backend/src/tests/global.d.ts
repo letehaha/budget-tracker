@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 import type { RecordId } from '@bt/shared/types';
-import { Currencies } from '@bt/shared/types';
-import { SetupServerApi } from 'msw/node';
+import type { Currencies } from '@bt/shared/types';
+import type { SetupServerApi } from 'msw/node';
 
 declare global {
   // eslint-disable-next-line no-var

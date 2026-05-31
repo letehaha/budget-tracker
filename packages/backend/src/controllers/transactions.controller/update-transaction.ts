@@ -1,4 +1,5 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
@@ -127,7 +128,7 @@ export default createController(schema, async ({ user, params, body }) => {
   }));
 
   const transactions = await transactionsService.updateTransaction({
-    id,
+    id: id as RecordId,
     ...removeUndefinedKeys({
       amount: amountAsMoney,
       destinationAmount: destinationAmountAsMoney,

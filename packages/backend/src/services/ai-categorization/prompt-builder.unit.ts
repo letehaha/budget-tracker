@@ -2,7 +2,7 @@ import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { Money } from '@common/types/money';
 
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
-import { CategoryForCategorization, TransactionForCategorization } from './types';
+import type { CategoryForCategorization, TransactionForCategorization } from './types';
 
 describe('buildSystemPrompt', () => {
   it('should return base prompt without custom instructions', () => {

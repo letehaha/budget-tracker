@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import Currencies from '@models/currencies.model';
@@ -18,8 +19,8 @@ import {
 
 interface AccountToPortfolioTransferParams {
   userId: number;
-  accountId: string;
-  portfolioId: string;
+  accountId: RecordId;
+  portfolioId: RecordId;
   amount: string;
   date: string;
   description?: string | null;

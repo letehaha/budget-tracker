@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import {
   ACCOUNT_TYPES,
   API_ERROR_CODES,
@@ -13,7 +14,7 @@ import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import Transactions from '@models/transactions.model';
+import type Transactions from '@models/transactions.model';
 import { bankProviderRegistry } from '@services/bank-data-providers';
 import { syncTransactionsForAccount } from '@services/bank-data-providers/connection/sync-transactions-for-account';
 import { withTransaction } from '@services/common/with-transaction';
@@ -27,8 +28,8 @@ const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
 };
 
 interface LinkAccountToBankConnectionPayload {
-  accountId: string;
-  connectionId: string;
+  accountId: RecordId;
+  connectionId: RecordId;
   externalAccountId: string;
   userId: number;
 }

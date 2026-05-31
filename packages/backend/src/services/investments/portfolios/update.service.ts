@@ -1,4 +1,4 @@
-import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import type { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import Portfolios from '@models/investments/portfolios.model';

@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -11,8 +12,8 @@ import { withTransaction } from '../common/with-transaction';
 
 interface CreateSingleRefundParams {
   userId: number;
-  originalTxId: string | null;
-  refundTxId: string;
+  originalTxId: RecordId | null;
+  refundTxId: RecordId;
   splitId?: string;
 }
 

@@ -105,7 +105,7 @@ const hintToAssetClass = ({ hint }: { hint: 'crypto' | 'stocks' }): ASSET_CLASS 
 function buildResolvedRef({ security }: { security: Securities }): ResolvedSecurityRef {
   return {
     securityId: security.id,
-    providerSymbol: security.providerSymbol,
+    providerSymbol: security.providerSymbol ?? '',
     symbol: security.symbol ?? '',
     name: security.name ?? '',
     assetClass: security.assetClass,

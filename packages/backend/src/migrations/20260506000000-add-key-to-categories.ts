@@ -401,9 +401,9 @@ const SUB_VALUES_LITERAL = Object.values(NAME_TO_KEY_PER_LOCALE)
   .map(([parent, name, subKey]) => `(${sqlEscape(parent)}, ${sqlEscape(name)}, ${sqlEscape(subKey)})`)
   .join(', ');
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.addColumn(

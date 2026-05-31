@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import Users from '@models/users.model';
 import { makeRequest } from '@tests/helpers/common';
 import { describe, expect, it } from 'vitest';
@@ -112,7 +113,7 @@ describe('PUT /user/update — username', () => {
     it('returns 422 with a friendly message instead of a 500 when the username is taken', async () => {
       // Seed a second user so there is something to collide with.
       const otherUsername = 'quentin-blackwood';
-      await Users.create({ username: otherUsername, authUserId: 'other-auth-user-id' });
+      await Users.create({ username: otherUsername, authUserId: 'other-auth-user-id' as RecordId });
 
       const res = await makeRequest({
         method: 'put',

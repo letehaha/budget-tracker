@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AbstractQueryInterface, DataTypes, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import { DataTypes } from '@sequelize/core';
 
 const ENUM_SECURITY_PROVIDER = 'enum_security_provider';
 const TABLE_NAME = 'SecurityCurrencyCaches';

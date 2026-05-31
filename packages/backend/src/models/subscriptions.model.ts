@@ -1,14 +1,9 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import type { RecordId, SubscriptionMatchingRules } from '@bt/shared/types';
+import type { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,
@@ -43,7 +38,7 @@ export default class Subscriptions extends Model<
   @BeforeCreate
   static generateUUIDv7(instance: Subscriptions) {
     if (!instance.id) {
-      instance.id = uuidv7();
+      instance.id = uuidv7() as RecordId;
     }
   }
 

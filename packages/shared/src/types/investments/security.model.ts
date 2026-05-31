@@ -1,7 +1,7 @@
-import { ASSET_CLASS, SECURITY_PROVIDER } from './enums';
-import { HoldingModel } from './holding.model';
-import { InvestmentTransactionModel } from './investment-transaction.model';
-import { SecurityPricingModel } from './security-pricing.model';
+import type { ASSET_CLASS, SECURITY_PROVIDER } from './enums';
+import type { HoldingModel } from './holding.model';
+import type { InvestmentTransactionModel } from './investment-transaction.model';
+import type { SecurityPricingModel } from './security-pricing.model';
 
 export interface SecurityModel {
   id: string;

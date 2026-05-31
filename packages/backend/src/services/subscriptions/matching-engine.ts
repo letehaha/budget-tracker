@@ -1,5 +1,6 @@
-import { CATEGORIZATION_SOURCE, SUBSCRIPTION_MATCH_SOURCE, SubscriptionMatchingRule } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { CATEGORIZATION_SOURCE, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
+import type { RecordId, SubscriptionMatchingRule } from '@bt/shared/types';
+import type { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import Subscriptions from '@models/subscriptions.model';
@@ -83,10 +84,10 @@ export const matchTransactionToSubscriptions = withTransaction(
       await Transactions.updateTransactionById({
         id: transaction.id,
         userId,
-        categoryId: best.subscription.categoryId,
+        categoryId: best.subscription.categoryId as RecordId | null,
         categorizationMeta: {
           source: CATEGORIZATION_SOURCE.subscriptionRule,
-          subscriptionId: best.subscription.id,
+          subscriptionId: best.subscription.id as RecordId,
           categorizedAt: new Date().toISOString(),
         },
       });

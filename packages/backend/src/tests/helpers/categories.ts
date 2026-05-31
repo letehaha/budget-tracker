@@ -1,6 +1,6 @@
-import { CategoryModel } from '@bt/shared/types';
+import type { CategoryModel } from '@bt/shared/types';
 import * as helpers from '@tests/helpers';
-import { Response } from 'express';
+import type { Response } from 'express';
 
 interface BaseCreationPayload {
   parentId?: string;

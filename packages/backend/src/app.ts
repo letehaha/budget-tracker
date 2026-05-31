@@ -1,5 +1,11 @@
 import './bootstrap';
 import './redis-client';
+// Initialize the DB connection and register all Sequelize models. Must run here:
+// after env is loaded (./bootstrap) and before any service/route that queries, so
+// the shared connection holder (@models/connection) is populated at boot. Other
+// modules read the live instance from the holder, never from this barrel, to avoid
+// re-entering model registration mid-init (circular import).
+import '@models/index';
 
 import { logger } from '@js/utils/logger';
 import { Sentry } from '@js/utils/sentry';

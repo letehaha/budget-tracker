@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
@@ -44,7 +45,7 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
   const accounts = await createAccounts({ userId });
 
   // Build lookup maps from created accounts
-  const accountKeyToId: Record<string, string> = {};
+  const accountKeyToId: Record<string, RecordId> = {};
   const accountKeyToAccountType: Record<string, ACCOUNT_TYPES> = {};
   const accountKeyToCurrency: Record<string, string> = {};
   for (const account of accounts) {
@@ -56,11 +57,11 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
     }
   }
 
-  const fallbackCategoryId = categoryMap.get('other') || undefined;
+  const fallbackCategoryId = categoryMap.get('other') ?? null;
 
   const rows = template.transactions.map((tx) => {
     const accountId = accountKeyToId[tx.accountKey];
-    const categoryId = categoryMap.get(tx.categoryKey) || fallbackCategoryId;
+    const categoryId = categoryMap.get(tx.categoryKey) ?? fallbackCategoryId;
     const currencyCode = accountKeyToCurrency[tx.accountKey] || DEMO_CONFIG.baseCurrency;
     const accountType = accountKeyToAccountType[tx.accountKey] || ACCOUNT_TYPES.system;
     const time = subDays(template.generatedAt, tx.dayOffset);
@@ -73,8 +74,8 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
       amount: Money.fromCents(tx.amount),
       refAmount: Money.fromCents(refAmount),
       transactionType: tx.transactionType,
-      categoryId,
-      accountId,
+      categoryId: categoryId as RecordId | null,
+      accountId: accountId ?? null,
       currencyCode,
       refCurrencyCode: DEMO_CONFIG.baseCurrency,
       accountType,

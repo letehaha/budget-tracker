@@ -1,5 +1,5 @@
+import type { CategoryModel } from '@bt/shared/types';
 import {
-  CategoryModel,
   RESOURCE_TYPES,
   SHARE_PERMISSIONS,
   TRANSACTIONS_WRITE_SCOPES,

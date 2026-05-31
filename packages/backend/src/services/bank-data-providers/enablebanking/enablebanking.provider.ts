@@ -19,14 +19,14 @@ import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import { Op, literal, where } from '@sequelize/core';
-import {
-  BaseBankDataProvider,
+import type {
   DateRange,
   ProviderAccount,
   ProviderBalance,
   ProviderMetadata,
   ProviderTransaction,
 } from '@services/bank-data-providers';
+import { BaseBankDataProvider } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 import crypto from 'crypto';
 import { addDays, startOfDay, subDays } from 'date-fns';
@@ -36,17 +36,16 @@ import { encryptCredentials } from '../utils/credential-encryption';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
 import { EnableBankingApiClient } from './api-client';
 import { generateState, validatePrivateKey, validateState } from './jwt-utils';
-import {
-  CreditDebitIndicator,
+import type {
   EnableBankingAccount,
   EnableBankingConnectionParams,
   EnableBankingCredentials,
   EnableBankingMetadata,
   EnableBankingTransaction,
   OAuthCallbackParams,
-  PSUType,
   StartAuthorizationResponse,
 } from './types';
+import { CreditDebitIndicator, PSUType } from './types';
 
 /**
  * Enable Banking provider implementation

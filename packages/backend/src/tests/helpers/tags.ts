@@ -1,12 +1,11 @@
-import {
-  TAG_REMINDER_FREQUENCIES,
-  TAG_REMINDER_TYPES,
+import type {
   TagModel,
   TagReminderFrequency,
   TagReminderModel,
   TagReminderSettings,
   TagReminderType,
 } from '@bt/shared/types';
+import { TAG_REMINDER_FREQUENCIES, TAG_REMINDER_TYPES } from '@bt/shared/types';
 
 import { makeRequest } from './common';
 

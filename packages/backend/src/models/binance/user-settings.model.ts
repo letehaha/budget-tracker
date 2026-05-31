@@ -1,5 +1,6 @@
-import { UnwrapArray } from '@common/types';
-import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import type { UnwrapArray } from '@common/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import { Attribute, AutoIncrement, Index, NotNull, PrimaryKey, Table, Unique } from '@sequelize/core/decorators-legacy';
 
 @Table({

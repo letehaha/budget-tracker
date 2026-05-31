@@ -29,7 +29,7 @@ const CURRENCY_RATES_API_EXCLUSIVE_QUOTES = ['UAH', 'EGP', 'GEL', 'KZT', 'LBP', 
 // Currency-rates-api supplies ~37 quotes/day, frankfurter ~31, api-layer ~170.
 const API_LAYER_ROW_COUNT_THRESHOLD = 100;
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
       await queryInterface.addColumn(

@@ -1,13 +1,7 @@
-import type { RecordId } from '@bt/shared/types';
-import { UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { RecordId, UserModel, UserRole } from '@bt/shared/types';
+import { USER_ROLES } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   AutoIncrement,
@@ -102,7 +96,7 @@ export const getUsers = async () => {
   return users;
 };
 
-export const getUserDefaultCategory = async ({ id }: { id: number }): Promise<number> => {
+export const getUserDefaultCategory = async ({ id }: { id: number }): Promise<RecordId> => {
   const user = await Users.findOne({
     where: { id },
     attributes: ['defaultCategoryId'],
@@ -133,7 +127,7 @@ export const createUser = async ({
   middleName?: string;
   avatar?: string;
   totalBalance?: number;
-  authUserId?: string;
+  authUserId?: RecordId;
   role?: UserRole;
 }): Promise<UserModel> => {
   const user = await Users.create({

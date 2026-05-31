@@ -1,14 +1,7 @@
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-  Op,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model, Op } from '@sequelize/core';
 import { Attribute, Default, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 import Users from './users.model';

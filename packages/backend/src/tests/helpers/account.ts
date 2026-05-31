@@ -1,15 +1,15 @@
+import type { ACCOUNT_STATUSES } from '@bt/shared/types';
 import {
   ACCOUNT_CATEGORIES,
-  ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
   type Decimal,
   type TransactionModel,
   type endpointsTypes,
 } from '@bt/shared/types';
-import Accounts from '@models/accounts.model';
-import Currencies from '@models/currencies.model';
-import { updateAccount as apiUpdateAccount } from '@root/services/accounts.service';
-import { Response } from 'express';
+import type Accounts from '@models/accounts.model';
+import type Currencies from '@models/currencies.model';
+import type { updateAccount as apiUpdateAccount } from '@root/services/accounts.service';
+import type { Response } from 'express';
 
 import { makeRequest } from './common';
 import { addUserCurrencies, getCurrenciesRates } from './currencies';

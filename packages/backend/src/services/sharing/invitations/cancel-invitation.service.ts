@@ -1,9 +1,5 @@
-import {
-  NOTIFICATION_STATUSES,
-  NOTIFICATION_TYPES,
-  SHARE_INVITATION_STATUSES,
-  ShareInvitationModel,
-} from '@bt/shared/types';
+import type { ShareInvitationModel } from '@bt/shared/types';
+import { NOTIFICATION_STATUSES, NOTIFICATION_TYPES, SHARE_INVITATION_STATUSES } from '@bt/shared/types';
 import { ConflictError, NotFoundError } from '@js/errors';
 import Notifications from '@models/notifications.model';
 import ShareInvitations from '@models/share-invitations.model';

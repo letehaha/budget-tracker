@@ -2,7 +2,8 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createGroq } from '@ai-sdk/groq';
 import { createOpenAI } from '@ai-sdk/openai';
-import { AI_FEATURE, AI_PROVIDER, getModelNameFromModelId } from '@bt/shared/types';
+import type { AI_FEATURE } from '@bt/shared/types';
+import { AI_PROVIDER, getModelNameFromModelId } from '@bt/shared/types';
 import type { LanguageModel } from 'ai';
 
 import { resolveAIConfiguration } from './ai-model-resolver';

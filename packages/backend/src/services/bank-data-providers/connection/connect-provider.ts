@@ -1,7 +1,7 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
-import { EnableBankingProvider } from '../enablebanking';
+import type { EnableBankingProvider } from '../enablebanking';
 import { bankProviderRegistry } from '../registry';
 
 export const connectProvider = async ({

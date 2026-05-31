@@ -1,4 +1,4 @@
-import { UserModel } from '@bt/shared/types';
+import type { UserModel } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import z from 'zod';
 

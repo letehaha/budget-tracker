@@ -2,7 +2,7 @@
  * Transaction Types
  * https://enablebanking.com/docs/api/reference/
  */
-import {
+import type {
   AccountIdentification,
   AmountType,
   BankTransactionCode,
@@ -11,7 +11,7 @@ import {
   PartyIdentification,
   ReferenceNumber,
 } from './common';
-import { CreditDebitIndicator, TransactionStatus } from './enums';
+import type { CreditDebitIndicator, TransactionStatus } from './enums';
 
 /**
  * Transaction from Enable Banking

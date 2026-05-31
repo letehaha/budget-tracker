@@ -1,14 +1,8 @@
-import { BANK_PROVIDER_TYPE, RecordId } from '@bt/shared/types';
+import type { BANK_PROVIDER_TYPE, RecordId } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import Users from '@models/users.model';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,

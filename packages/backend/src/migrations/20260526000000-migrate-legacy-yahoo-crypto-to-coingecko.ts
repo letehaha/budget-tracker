@@ -57,9 +57,9 @@ const LEGACY_YAHOO_CRYPTO_TO_COINGECKO_SLUG: Record<string, string> = {
   'APT-USD': 'aptos',
 };
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       for (const [legacySymbol, slug] of Object.entries(LEGACY_YAHOO_CRYPTO_TO_COINGECKO_SLUG)) {

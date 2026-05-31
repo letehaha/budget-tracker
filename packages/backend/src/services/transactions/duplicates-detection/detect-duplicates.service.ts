@@ -1,4 +1,5 @@
-import { Cents, TRANSACTION_TYPES, asCents } from '@bt/shared/types';
+import type { Cents } from '@bt/shared/types';
+import { TRANSACTION_TYPES, asCents } from '@bt/shared/types';
 import * as Transactions from '@models/transactions.model';
 
 /**

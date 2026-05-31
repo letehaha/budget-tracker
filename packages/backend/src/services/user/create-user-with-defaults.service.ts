@@ -46,7 +46,7 @@ export async function createAppUserWithUniqueUsername({
   const slug = slugifyUsername(username);
   const { firstName, middleName, lastName } = parseFullName(fullName);
 
-  const baseInput = { firstName, middleName, lastName, authUserId };
+  const baseInput = { firstName, middleName, lastName, authUserId: authUserId as RecordId };
 
   try {
     return await userService.createUser({ username: slug, ...baseInput });

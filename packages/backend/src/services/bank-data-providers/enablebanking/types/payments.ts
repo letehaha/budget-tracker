@@ -2,8 +2,8 @@
  * Payment Types
  * https://enablebanking.com/docs/api/reference/
  */
-import { ASPSP } from './aspsp';
-import {
+import type { ASPSP } from './aspsp';
+import type {
   AmountType,
   ContactDetails,
   FinancialInstitutionIdentification,
@@ -12,7 +12,7 @@ import {
   ReferenceNumber,
   StatusReasonInformation,
 } from './common';
-import { ChargeBearerCode, ExecutionRule, FrequencyCode, PSUType, PaymentStatus, PaymentType } from './enums';
+import type { ChargeBearerCode, ExecutionRule, FrequencyCode, PSUType, PaymentStatus, PaymentType } from './enums';
 
 /**
  * Payment identification

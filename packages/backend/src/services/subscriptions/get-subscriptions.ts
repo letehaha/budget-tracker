@@ -1,11 +1,12 @@
 import { SUBSCRIPTION_LINK_STATUS } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import type { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions from '@models/transactions.model';
-import { fn, literal, InferAttributes } from '@sequelize/core';
+import type { InferAttributes } from '@sequelize/core';
+import { fn, literal } from '@sequelize/core';
 
 import { computeNextExpectedDate } from './subscription-date.utils';
 

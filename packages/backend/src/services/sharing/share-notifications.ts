@@ -1,7 +1,5 @@
-import {
-  NOTIFICATION_TYPES,
+import type {
   RecordId,
-  RESOURCE_TYPES,
   ResourceType,
   ShareInvitationNotificationPayload,
   ShareInvitationSendFailedPayload,
@@ -9,7 +7,8 @@ import {
   SharePermission,
   SharePolicy,
 } from '@bt/shared/types';
-import Users from '@models/users.model';
+import { NOTIFICATION_TYPES, RESOURCE_TYPES } from '@bt/shared/types';
+import type Users from '@models/users.model';
 import { createNotification } from '@services/notifications';
 
 import { SHARE_SNAPSHOT_MISSING_USER_ID, snapshotShareUser } from './share-user-snapshot';

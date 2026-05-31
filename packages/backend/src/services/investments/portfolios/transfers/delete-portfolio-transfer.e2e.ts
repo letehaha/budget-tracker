@@ -1,7 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import Accounts from '@models/accounts.model';
-import Portfolios from '@models/investments/portfolios.model';
+import type Accounts from '@models/accounts.model';
+import type Portfolios from '@models/investments/portfolios.model';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 

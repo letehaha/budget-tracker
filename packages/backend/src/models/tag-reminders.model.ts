@@ -1,14 +1,9 @@
-import { TagReminderFrequency, TagReminderSettings, TagReminderType } from '@bt/shared/types';
+import type { TagReminderFrequency, TagReminderSettings, TagReminderType } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import Tags from '@models/tags.model';
 import Users from '@models/users.model';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,
@@ -45,7 +40,7 @@ export default class TagReminders extends Model<InferAttributes<TagReminders>, I
   @Attribute(DataTypes.UUID)
   @NotNull
   @Index
-  declare tagId: string;
+  declare tagId: RecordId;
 
   @Attribute(DataTypes.STRING(20))
   @NotNull

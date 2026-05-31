@@ -4,7 +4,7 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { invalidateAppUserCache } from '@middlewares/better-auth';
-import { ExchangeRatePair } from '@models/user-exchange-rates.model';
+import type { ExchangeRatePair } from '@models/user-exchange-rates.model';
 import { UniqueConstraintError } from '@sequelize/core';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';

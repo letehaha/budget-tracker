@@ -1,10 +1,5 @@
-import {
-  HouseholdSharePermission,
-  RecordId,
-  RESOURCE_TYPES,
-  SharePermission,
-  TransactionCreatorSnapshot,
-} from '@bt/shared/types';
+import type { HouseholdSharePermission, RecordId, SharePermission, TransactionCreatorSnapshot } from '@bt/shared/types';
+import { RESOURCE_TYPES } from '@bt/shared/types';
 import { authPool } from '@config/auth';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';

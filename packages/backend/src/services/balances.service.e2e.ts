@@ -1,7 +1,7 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import Balances from '@models/balances.model';
-import Currencies from '@models/currencies.model';
-import Transactions from '@models/transactions.model';
+import type Balances from '@models/balances.model';
+import type Currencies from '@models/currencies.model';
+import type Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { addDays, addMonths, format, startOfDay, startOfMonth, subDays } from 'date-fns';
 import { describe, expect, it } from 'vitest';

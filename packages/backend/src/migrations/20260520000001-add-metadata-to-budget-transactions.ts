@@ -1,9 +1,9 @@
 import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 import { DataTypes } from '@sequelize/core';
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Nullable per-row JSONB used to record who attached a transaction to a shared
@@ -31,7 +31,7 @@ module.exports = {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.removeColumn('BudgetTransactions', 'metadata', { transaction: t });

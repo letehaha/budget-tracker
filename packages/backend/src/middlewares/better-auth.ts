@@ -4,7 +4,7 @@ import { auth } from '@config/auth';
 import { CacheClient } from '@js/utils/cache';
 import { setSentryUser } from '@js/utils/sentry';
 import Users from '@models/users.model';
-import { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
 type AppUser = Pick<Users, 'username' | 'id' | 'authUserId' | 'role'>;
 

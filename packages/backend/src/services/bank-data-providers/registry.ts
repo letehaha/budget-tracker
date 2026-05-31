@@ -1,9 +1,9 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import type { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { logger } from '@js/utils';
 
-import { BaseBankDataProvider } from './base-provider';
-import { ProviderMetadata } from './types';
+import type { BaseBankDataProvider } from './base-provider';
+import type { ProviderMetadata } from './types';
 
 /**
  * Registry for managing bank data providers.

@@ -1,4 +1,5 @@
-import { CATEGORY_TYPES, CategoryModel } from '@bt/shared/types';
+import type { CategoryModel } from '@bt/shared/types';
+import { CATEGORY_TYPES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from 'vitest';
 

@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -108,7 +109,7 @@ export const linkTransactions = withTransaction(
 
         const [, results] = await Transactions.default.update(
           {
-            transferId: uuidv4(),
+            transferId: uuidv4() as RecordId,
             transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
           },
           {

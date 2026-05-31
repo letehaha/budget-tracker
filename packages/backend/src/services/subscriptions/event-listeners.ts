@@ -1,6 +1,7 @@
 import { logger } from '@js/utils/logger';
 import * as Transactions from '@models/transactions.model';
-import { DOMAIN_EVENTS, TransactionsSyncedPayload, eventBus } from '@services/common/event-bus';
+import type { TransactionsSyncedPayload } from '@services/common/event-bus';
+import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import debounce from 'lodash/debounce';
 
 import { matchTransactionToSubscriptions } from './matching-engine';

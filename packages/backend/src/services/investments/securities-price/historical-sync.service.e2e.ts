@@ -1,7 +1,7 @@
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
 import { Money } from '@common/types/money';
-import Portfolios from '@models/investments/portfolios.model';
+import type Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import { restClient } from '@polygon.io/client-js';
@@ -95,7 +95,7 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
     // Pre-populate existing security with some price data
     await SecurityPricing.create({
       securityId: existingSecurity.id,
-      date: format(subDays(new Date(), 1), 'yyyy-MM-dd'),
+      date: subDays(new Date(), 1),
       priceClose: Money.fromDecimal('100.00'),
       source: SECURITY_PROVIDER.polygon,
     });

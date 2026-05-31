@@ -1,4 +1,5 @@
-import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId, TRANSACTION_TYPES } from '@bt/shared/types';
+import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -165,14 +166,14 @@ export const getCategoryBudgetTransactions = async ({
 };
 
 interface TransactionWithCategory {
-  id: string;
+  id: RecordId;
   time: Date;
   transactionType: TRANSACTION_TYPES;
   refAmount: number;
   amount: number;
   note: string | null;
-  categoryId: string | null;
-  accountId: string;
+  categoryId: RecordId | null;
+  accountId: RecordId | null;
   /** For split transactions, this is the split's category */
   effectiveCategory?: {
     id: string;
@@ -185,7 +186,7 @@ interface TransactionWithCategory {
 
 interface GetCategoryBudgetTransactionsParams {
   userId: number;
-  budgetId: string;
+  budgetId: RecordId;
   from?: number;
   limit?: number;
 }

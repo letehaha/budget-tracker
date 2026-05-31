@@ -5,7 +5,7 @@ import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { bankProviderRegistry } from '@root/services/bank-data-providers';
-import { EnableBankingProvider } from '@root/services/bank-data-providers/enablebanking';
+import type { EnableBankingProvider } from '@root/services/bank-data-providers/enablebanking';
 import z from 'zod';
 
 const schema = z.object({

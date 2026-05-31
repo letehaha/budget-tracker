@@ -7,7 +7,7 @@ import {
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import ShareInvitations from '@models/share-invitations.model';
 import * as helpers from '@tests/helpers';
-import { CustomResponse } from '@tests/helpers/common';
+import type { CustomResponse } from '@tests/helpers/common';
 import { describe, expect, it } from 'vitest';
 
 /**

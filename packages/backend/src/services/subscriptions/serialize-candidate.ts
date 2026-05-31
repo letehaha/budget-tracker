@@ -1,5 +1,5 @@
-import SubscriptionCandidates from '@models/subscription-candidates.model';
-import Subscriptions from '@models/subscriptions.model';
+import type SubscriptionCandidates from '@models/subscription-candidates.model';
+import type Subscriptions from '@models/subscriptions.model';
 
 import { isFuzzyNameMatch } from './detect-candidates-utils';
 

@@ -1,4 +1,4 @@
-import { SecuritySearchResult } from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/securities.model';
 import { Op } from '@sequelize/core';
@@ -28,7 +28,7 @@ const addOrUpdateFromProviderImpl = async (
     attributes: ['providerName', 'providerSymbol'],
     raw: true,
   });
-  const existingKeys = new Set(existingSecurities.map((s) => dedupKey(s.providerName, s.providerSymbol)));
+  const existingKeys = new Set(existingSecurities.map((s) => dedupKey(s.providerName, s.providerSymbol ?? '')));
   logger.info(`Found ${existingKeys.size} matching existing securities for ${incomingKeys.length} incoming entries.`);
 
   // Partition incoming securities into new inserts vs updates in a single pass

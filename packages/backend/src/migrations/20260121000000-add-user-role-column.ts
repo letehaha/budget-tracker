@@ -1,4 +1,4 @@
-import { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 /**
  * Migration to add role and createdAt columns to Users table.

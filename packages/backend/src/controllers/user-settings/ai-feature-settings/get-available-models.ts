@@ -1,4 +1,5 @@
-import { AIModelInfoWithRecommendation, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
+import type { AIModelInfoWithRecommendation } from '@bt/shared/types';
+import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { getAvailableModels, isModelRecommendedForFeature } from '@services/ai';
 import { z } from 'zod';

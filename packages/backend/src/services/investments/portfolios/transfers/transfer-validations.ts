@@ -1,12 +1,13 @@
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import Currencies from '@models/currencies.model';
-import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
+import type PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
-import Transactions from '@models/transactions.model';
+import type Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
@@ -24,7 +25,7 @@ export async function findPortfolioOrThrow({
   userId,
   role,
 }: {
-  portfolioId: string;
+  portfolioId: RecordId;
   userId: number;
   role: 'source' | 'destination' | 'generic';
 }): Promise<Portfolios> {
@@ -45,7 +46,7 @@ export async function findAccountOrThrow({
   userId,
   role,
 }: {
-  accountId: string;
+  accountId: RecordId;
   userId: number;
   role: 'source' | 'destination';
 }): Promise<NonNullable<Awaited<ReturnType<typeof Accounts.getAccountById>>>> {
@@ -176,7 +177,7 @@ export async function computeRestampForExistingTransaction({
   const refCurrencyCode = await getUserBaseCurrencyCode({ userId });
   const refAmount = await computeRefAmount({
     amount: tx.amount.toDecimalString(10),
-    currencyCode: tx.currencyCode,
+    currencyCode: tx.currencyCode!,
     userId,
     date: format(tx.time, 'yyyy-MM-dd'),
     baseCurrencyCode: refCurrencyCode,

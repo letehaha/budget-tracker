@@ -1,4 +1,4 @@
-import Users from '@models/users.model';
+import type Users from '@models/users.model';
 
 /**
  * Minimal user descriptor embedded into share-related responses and notification payloads.

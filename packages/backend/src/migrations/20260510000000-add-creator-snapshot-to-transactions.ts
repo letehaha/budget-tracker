@@ -1,9 +1,9 @@
 import { DataTypes } from '@sequelize/core';
 import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Holds a frozen `{ userId, username, avatar }` snapshot of a transaction's original
@@ -61,7 +61,7 @@ module.exports = {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Restore the prior CASCADE behaviour first so the column drop stays a clean

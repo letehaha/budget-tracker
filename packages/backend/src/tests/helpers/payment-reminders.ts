@@ -1,4 +1,4 @@
-import { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import type { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
 import type { createReminder as apiCreateReminder } from '@services/payment-reminders/create-reminder';
 import type { deleteReminder as apiDeleteReminder } from '@services/payment-reminders/delete-reminder';
 import type { getPeriods as apiGetPeriods } from '@services/payment-reminders/get-periods';

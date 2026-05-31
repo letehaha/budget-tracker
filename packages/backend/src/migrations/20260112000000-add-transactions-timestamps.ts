@@ -1,4 +1,5 @@
-import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import { DataTypes } from '@sequelize/core';
 
 /**
  * Migration to add createdAt and updatedAt columns to Transactions table.

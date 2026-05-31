@@ -1,7 +1,7 @@
-import { AccountModel, CurrencyModel, UserModel } from '../db-models';
-import { PORTFOLIO_TYPE } from './enums';
-import { HoldingModel } from './holding.model';
-import { InvestmentTransactionModel } from './investment-transaction.model';
+import type { AccountModel, CurrencyModel, UserModel } from '../db-models';
+import type { PORTFOLIO_TYPE } from './enums';
+import type { HoldingModel } from './holding.model';
+import type { InvestmentTransactionModel } from './investment-transaction.model';
 
 /**
  * How long a soft-deleted (trashed) portfolio is retained before the purge

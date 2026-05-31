@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
@@ -23,13 +24,13 @@ import {
 
 interface PortfolioToAccountTransferParams {
   userId: number;
-  portfolioId: string;
-  accountId: string;
+  portfolioId: RecordId;
+  accountId: RecordId;
   amount: string;
   currencyCode: string;
   date: string;
   description?: string | null;
-  existingTransactionId?: string;
+  existingTransactionId?: RecordId;
 }
 
 const portfolioToAccountTransferImpl = async ({
@@ -51,7 +52,7 @@ const portfolioToAccountTransferImpl = async ({
   const refCurrencyCode = await getUserBaseCurrencyCode({ userId });
   const refAmount = await computeRefAmount({ amount, currencyCode, userId, date, baseCurrencyCode: refCurrencyCode });
 
-  let linkedTransactionId: string;
+  let linkedTransactionId: RecordId;
 
   if (existingTransactionId) {
     const existingTx = await findOrThrowNotFound({

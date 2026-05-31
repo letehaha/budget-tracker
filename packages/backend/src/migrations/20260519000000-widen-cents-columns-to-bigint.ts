@@ -29,7 +29,7 @@ const CENTS_COLUMNS: [string, string][] = [
   ['Transactions', 'cashbackAmount'],
 ];
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
       for (const [table, column] of CENTS_COLUMNS) {

@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -109,7 +110,7 @@ const unlinkRefundTransaction = withTransaction(async (id: string) => {
   if (!refundTx) return undefined;
 
   const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter(
-    (i): i is number => i != null && i !== id,
+    (i): i is RecordId => i != null && i !== id,
   );
 
   if (transactionIdsToUpdate.length) {

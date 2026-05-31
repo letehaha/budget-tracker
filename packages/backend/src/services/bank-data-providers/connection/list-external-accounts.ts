@@ -1,10 +1,12 @@
-import { API_ERROR_CODES, BANK_PROVIDER_TYPE, Decimal } from '@bt/shared/types';
+import type { BANK_PROVIDER_TYPE, Decimal } from '@bt/shared/types';
+import { API_ERROR_CODES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
-import { ProviderAccount, bankProviderRegistry } from '@services/bank-data-providers';
+import type { ProviderAccount } from '@services/bank-data-providers';
+import { bankProviderRegistry } from '@services/bank-data-providers';
 
 export const listExternalAccounts = withTransaction(
   async ({

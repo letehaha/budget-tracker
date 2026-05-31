@@ -1,4 +1,4 @@
-import { CategoryForCategorization, TransactionForCategorization } from './types';
+import type { CategoryForCategorization, TransactionForCategorization } from './types';
 
 /**
  * Build the system prompt for transaction categorization

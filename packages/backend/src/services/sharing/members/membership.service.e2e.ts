@@ -1,14 +1,9 @@
-import {
-  NOTIFICATION_TYPES,
-  RESOURCE_TYPES,
-  SHARE_PERMISSIONS,
-  SharePermission,
-  TRANSACTIONS_WRITE_SCOPES,
-} from '@bt/shared/types';
+import type { SharePermission } from '@bt/shared/types';
+import { NOTIFICATION_TYPES, RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
 import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
 import * as helpers from '@tests/helpers';
-import { ErrorResponse } from '@tests/helpers/common';
+import type { ErrorResponse } from '@tests/helpers/common';
 import { describe, expect, it } from 'vitest';
 
 /**

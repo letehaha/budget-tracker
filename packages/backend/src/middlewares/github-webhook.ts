@@ -1,6 +1,6 @@
 import { logger } from '@js/utils/logger';
 import crypto from 'crypto';
-import { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
 /**
  * Verifies that the request is a valid GitHub webhook by checking the signature.

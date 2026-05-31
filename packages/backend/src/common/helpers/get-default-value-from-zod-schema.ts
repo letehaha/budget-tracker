@@ -1,4 +1,5 @@
-import { ZodArray, ZodObject, ZodOptional, ZodTypeAny, z } from 'zod';
+import type { ZodTypeAny } from 'zod';
+import { ZodArray, ZodObject, ZodOptional, z } from 'zod';
 
 // Utility to derive default values from a Zod schema
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

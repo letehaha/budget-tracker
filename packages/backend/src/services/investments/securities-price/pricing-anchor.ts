@@ -1,4 +1,4 @@
-import { PriceData } from '../data-providers/base-provider';
+import type { PriceData } from '../data-providers/base-provider';
 
 /**
  * Midnight UTC of the given date (00:00:00 UTC of the same calendar day in UTC).

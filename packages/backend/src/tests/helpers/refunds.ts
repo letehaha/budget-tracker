@@ -1,8 +1,8 @@
-import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import type { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import type { GetRefundTransactionsParams } from '@services/tx-refunds/get-refunds.service';
 import * as helpers from '@tests/helpers';
 
-import { MakeRequestReturn } from './common';
+import type { MakeRequestReturn } from './common';
 
 export const createSingleRefund = async (
   payload: { originalTxId: string | null; refundTxId: string; splitId?: string },

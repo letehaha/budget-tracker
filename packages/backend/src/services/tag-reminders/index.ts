@@ -1,4 +1,5 @@
-import { TAG_REMINDER_TYPES, TagReminderFrequency, TagReminderSettings, TagReminderType } from '@bt/shared/types';
+import { TAG_REMINDER_TYPES } from '@bt/shared/types';
+import type { RecordId, TagReminderFrequency, TagReminderSettings, TagReminderType } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ConflictError, ValidationError } from '@js/errors';
@@ -12,7 +13,7 @@ const MAX_REMINDERS_PER_USER = 50;
 
 interface CreateReminderPayload {
   userId: number;
-  tagId: string;
+  tagId: RecordId;
   type: TagReminderType;
   frequency?: TagReminderFrequency | null; // `null` for realtime
   dayOfMonth?: number | null;

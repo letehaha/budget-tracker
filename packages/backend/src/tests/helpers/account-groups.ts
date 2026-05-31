@@ -1,4 +1,4 @@
-import * as accountGroupService from '@root/services/account-groups';
+import type * as accountGroupService from '@root/services/account-groups';
 
 import { makeRequest } from './common';
 

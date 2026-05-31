@@ -1,11 +1,5 @@
-import {
-  API_ERROR_CODES,
-  RESOURCE_TYPES,
-  ResourceShareModel,
-  SHARE_INVITATION_STATUSES,
-  SHARING_LIMITS,
-  ShareInvitationModel,
-} from '@bt/shared/types';
+import type { ResourceShareModel, ShareInvitationModel } from '@bt/shared/types';
+import { API_ERROR_CODES, RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SHARING_LIMITS } from '@bt/shared/types';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { connection } from '@models/index';

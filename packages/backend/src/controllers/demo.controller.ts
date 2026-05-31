@@ -4,7 +4,7 @@ import { errorHandler } from '@controllers/helpers';
 import { logger } from '@js/utils/logger';
 import { applyDemoTemplate } from '@services/demo/apply-demo-template.service';
 import { createDemoUserFast } from '@services/demo/create-demo-user.service';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 
 /**
  * POST /api/v1/demo

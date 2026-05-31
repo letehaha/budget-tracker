@@ -1,4 +1,4 @@
-import { SecurityModel } from './security.model';
+import type { SecurityModel } from './security.model';
 
 export interface SecurityPricingModel {
   id: string; // PR

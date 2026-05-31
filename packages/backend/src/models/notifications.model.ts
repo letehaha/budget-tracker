@@ -1,20 +1,14 @@
-import {
+import type {
   NotificationModel,
   NotificationPayload,
   NotificationPriority,
   NotificationStatus,
   NotificationType,
-  NOTIFICATION_PRIORITIES,
-  NOTIFICATION_STATUSES,
+  RecordId,
 } from '@bt/shared/types';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import { NOTIFICATION_PRIORITIES, NOTIFICATION_STATUSES } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,
@@ -39,12 +33,12 @@ export default class Notifications
 {
   @Attribute(DataTypes.UUID)
   @PrimaryKey
-  declare id: CreationOptional<string>;
+  declare id: CreationOptional<RecordId>;
 
   @BeforeCreate
   static generateUUIDv7(instance: Notifications) {
     if (!instance.id) {
-      instance.id = uuidv7();
+      instance.id = uuidv7() as RecordId;
     }
   }
 

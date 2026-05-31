@@ -1,7 +1,8 @@
 import { CustomError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { McpAuthInfo, verifyMcpToken } from '@services/mcp/auth';
+import type { McpAuthInfo } from '@services/mcp/auth';
+import { verifyMcpToken } from '@services/mcp/auth';
 import { createMcpServer } from '@services/mcp/server';
 import {
   getSession,
@@ -10,7 +11,8 @@ import {
   startSessionCleanup,
   touchSession,
 } from '@services/mcp/transport-manager';
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 
 import { MCP_BASE_URL } from '../config';

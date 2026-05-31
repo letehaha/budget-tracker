@@ -1,17 +1,11 @@
-import { RecordId } from '@bt/shared/types';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { RecordId } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
-import Accounts from '../accounts.model';
-import AccountGroup from './account-groups.model';
+import type Accounts from '../accounts.model';
+import type AccountGroup from './account-groups.model';
 
 /**
  * This model represents the many-to-many relationship between Accounts and AccountGroups.

@@ -1,14 +1,13 @@
+import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { endpointsTypes } from '@bt/shared/types';
-import { UnwrapPromise } from '@common/types';
+import type { endpointsTypes } from '@bt/shared/types';
+import type { UnwrapPromise } from '@common/types';
 import RefundTransactions from '@models/refund-transactions.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import Transactions from '@models/transactions.model';
 import { Op } from '@sequelize/core';
-import {
-  AccessibleCategoryInfo,
-  getAccessibleCategoryMap,
-} from '@services/categories/get-accessible-category-map.service';
+import type { AccessibleCategoryInfo } from '@services/categories/get-accessible-category-map.service';
+import { getAccessibleCategoryMap } from '@services/categories/get-accessible-category-map.service';
 
 import { getExpensesHistory } from '../get-expenses-history';
 
@@ -237,7 +236,8 @@ function groupAndAdjustData(params: {
   }
 
   // Helper to add amount to a category
-  const addToCategory = (categoryId: string, amount: number) => {
+  const addToCategory = (categoryId: RecordId | null, amount: number) => {
+    if (categoryId === null) return;
     const groupId = getGroupId(categoryId);
     if (groupId === null) return;
 
@@ -289,7 +289,7 @@ function groupAndAdjustData(params: {
     if (!baseTx || !refundTx) continue;
 
     // Determine which category to adjust based on refund target
-    let wantedCategoryId: string;
+    let wantedCategoryId: RecordId | null;
 
     if (refund.splitId) {
       // Refund targets a specific split - O(1) lookup instead of searching

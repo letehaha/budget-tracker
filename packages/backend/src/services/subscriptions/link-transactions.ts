@@ -84,7 +84,7 @@ export const linkTransactionsToSubscription = withTransaction(
     if (matchSource === SUBSCRIPTION_MATCH_SOURCE.rule && subscription.categoryId) {
       await Transactions.default.update(
         {
-          categoryId: subscription.categoryId,
+          categoryId: subscription.categoryId as RecordId | null,
           categorizationMeta: {
             source: CATEGORIZATION_SOURCE.subscriptionRule,
             subscriptionId,

@@ -2,7 +2,7 @@ import type { RecordId } from '@bt/shared/types';
 import { SUBSCRIPTION_FREQUENCIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
-import Transactions from '@models/transactions.model';
+import type Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { buildTransactionPayload } from '@tests/helpers/transactions';
 import { describe, expect, it } from 'vitest';

@@ -4,14 +4,8 @@ import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import Categories from '@models/categories.model';
 
-import {
-  MAX_SPLITS_PER_TRANSACTION,
-  MAX_SPLIT_NOTE_LENGTH,
-  MIN_SPLIT_AMOUNT,
-  SPLIT_ERROR_CODES,
-  SplitInput,
-  SplitValidationError,
-} from './types';
+import type { SplitInput, SplitValidationError } from './types';
+import { MAX_SPLITS_PER_TRANSACTION, MAX_SPLIT_NOTE_LENGTH, MIN_SPLIT_AMOUNT, SPLIT_ERROR_CODES } from './types';
 
 interface ValidateSplitsParams {
   splits: SplitInput[];

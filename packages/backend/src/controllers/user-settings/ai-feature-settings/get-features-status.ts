@@ -1,4 +1,5 @@
-import { AIFeatureStatus, AI_FEATURE, getProviderFromModelId } from '@bt/shared/types';
+import type { AIFeatureStatus } from '@bt/shared/types';
+import { AI_FEATURE, getProviderFromModelId } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { getDefaultModelForFeature, getModelInfo } from '@services/ai';
 import { hasAiApiKey } from '@services/user-settings/ai-api-key';

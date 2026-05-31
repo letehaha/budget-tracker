@@ -1,15 +1,17 @@
-import {
-  ACCOUNT_TYPES,
+import type {
   CATEGORIZATION_SOURCE,
   CategorizationMeta,
+  RecordId,
+  TransactionCreatorSnapshot,
+  TransactionModel,
+} from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
   FILTER_OPERATION,
   PAYMENT_TYPES,
-  RecordId,
   SORT_DIRECTIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  TransactionCreatorSnapshot,
-  TransactionModel,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
@@ -26,20 +28,18 @@ import TransactionGroupItems from '@models/transaction-group-items.model';
 import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
-import {
+import type {
   BelongsToManyAddAssociationsMixin,
   BelongsToManyRemoveAssociationsMixin,
   BelongsToManySetAssociationsMixin,
   CreationOptional,
-  DataTypes,
   Includeable,
   InferAttributes,
   InferCreationAttributes,
-  Model,
   NonAttribute,
-  Op,
   WhereOptions,
 } from '@sequelize/core';
+import { DataTypes, Model, Op } from '@sequelize/core';
 import { literal } from '@sequelize/core';
 import {
   AfterCreate,
@@ -77,7 +77,7 @@ const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
 };
 
 export interface TransactionsAttributes {
-  id: string;
+  id: RecordId;
   amount: Money;
   /** Amount in user's base currency */
   refAmount: Money;
@@ -86,8 +86,8 @@ export interface TransactionsAttributes {
   userId: number;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
-  accountId: string;
-  categoryId: string;
+  accountId: RecordId | null;
+  categoryId: RecordId | null;
   currencyCode: string;
   accountType: ACCOUNT_TYPES;
   refCurrencyCode: string;
@@ -95,7 +95,7 @@ export interface TransactionsAttributes {
   // is transaction transfer?
   transferNature: TRANSACTION_TRANSFER_NATURE;
   // (hash, used to connect two transactions, to easily search the opposite tx)
-  transferId: string;
+  transferId: RecordId | null;
 
   originalId: string; // Stores the original id from external source
   // JSON of any addition fields
@@ -172,6 +172,9 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
     through: () => BudgetTransactions,
     foreignKey: 'transactionId',
     otherKey: 'budgetId',
+    // Sequelize v7 declares a BelongsToMany on one side only and auto-creates the
+    // reverse. Name it explicitly so the Budget side keeps its `transactions` alias.
+    inverse: { as: 'transactions' },
   })
   declare budgets?: NonAttribute<Budgets[]>;
 
@@ -182,9 +185,9 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
   })
   declare tags?: NonAttribute<Tags[]>;
 
-  declare setTags: BelongsToManySetAssociationsMixin<Tags, number>;
-  declare addTags: BelongsToManyAddAssociationsMixin<Tags, number>;
-  declare removeTags: BelongsToManyRemoveAssociationsMixin<Tags, number>;
+  declare setTags: BelongsToManySetAssociationsMixin<Tags, string>;
+  declare addTags: BelongsToManyAddAssociationsMixin<Tags, string>;
+  declare removeTags: BelongsToManyRemoveAssociationsMixin<Tags, string>;
 
   @BelongsToMany(() => TransactionGroups, {
     through: () => TransactionGroupItems,
@@ -373,7 +376,6 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
         // Update old tx
         if (prevData.accountId !== null) {
           await updateAccountBalanceForChangedTx({
-            userId: prevData.userId,
             accountId: prevData.accountId,
             prevAmount: prevData.amount,
             prevRefAmount: prevData.refAmount,
@@ -385,7 +387,6 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
         // Update new tx
         if (newData.accountId !== null) {
           await updateAccountBalanceForChangedTx({
-            userId: newData.userId,
             accountId: newData.accountId,
             amount: newData.amount,
             refAmount: newData.refAmount,
@@ -898,7 +899,7 @@ export const createTransaction = async ({ userId, ...rest }: CreateTransactionPa
 };
 
 export interface UpdateTransactionByIdParams {
-  id: string;
+  id: RecordId;
   userId: number;
   amount?: Money;
   refAmount?: Money;
@@ -906,12 +907,12 @@ export interface UpdateTransactionByIdParams {
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
-  accountId?: string;
-  categoryId?: string;
+  accountId?: RecordId | null;
+  categoryId?: RecordId | null;
   currencyCode?: string;
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
-  transferId?: string | null;
+  transferId?: RecordId | null;
   refundLinked?: boolean;
   categorizationMeta?: CategorizationMeta | null;
 }
@@ -942,8 +943,8 @@ export const updateTransactions = (
     time?: Date;
     transactionType?: TRANSACTION_TYPES;
     paymentType?: PAYMENT_TYPES;
-    accountId?: string;
-    categoryId?: string;
+    accountId?: RecordId | null;
+    categoryId?: RecordId | null;
     accountType?: ACCOUNT_TYPES;
     currencyCode?: string;
     refCurrencyCode?: string;

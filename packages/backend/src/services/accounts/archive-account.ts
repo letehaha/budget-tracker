@@ -1,5 +1,5 @@
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
-import Accounts from '@models/accounts.model';
+import type Accounts from '@models/accounts.model';
 import Subscriptions from '@models/subscriptions.model';
 
 import { unlinkAccountFromBankConnection } from './unlink-from-bank-connection';

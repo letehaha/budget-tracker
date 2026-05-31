@@ -1,12 +1,12 @@
-import { BUDGET_STATUSES, BudgetModel } from '@bt/shared/types';
+import type { BUDGET_STATUSES, BudgetModel } from '@bt/shared/types';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import Users from '@models/users.model';
 import { Op } from '@sequelize/core';
 
 import { withTransaction } from './common/with-transaction';
+import type { BudgetShareContext } from './sharing/get-shared-budgets.service';
 import {
-  BudgetShareContext,
   buildOwnerBudgetShareContext,
   getSharedBudgetById,
   getSharedBudgetsForUser,

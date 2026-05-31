@@ -5,8 +5,8 @@ import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
+import type { BudgetShareCleanupResult } from '@services/sharing/cleanup/cleanup-budget-shares.service';
 import {
-  BudgetShareCleanupResult,
   cleanupBudgetSharesInTx,
   notifyBudgetDeleteRecipients,
 } from '@services/sharing/cleanup/cleanup-budget-shares.service';

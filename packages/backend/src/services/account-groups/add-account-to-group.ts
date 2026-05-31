@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -15,8 +16,8 @@ export const addAccountToGroup = withTransaction(
     groupId,
     userId,
   }: {
-    accountId: string;
-    groupId: string;
+    accountId: RecordId;
+    groupId: RecordId;
     userId: number;
   }): Promise<AccountGrouping> => {
     // Grouping is the caller's personal sidebar organization, not a write on the account

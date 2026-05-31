@@ -1,6 +1,7 @@
-import { UserExchangeRatesModel } from '@bt/shared/types';
+import type { UserExchangeRatesModel } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
-import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, Op } from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes } from '@sequelize/core';
+import { DataTypes, Model, Op } from '@sequelize/core';
 import { Attribute, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 import * as Currencies from './currencies.model';

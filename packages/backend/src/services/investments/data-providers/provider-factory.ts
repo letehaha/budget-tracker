@@ -1,7 +1,7 @@
 import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
 
 import { AlphaVantageDataProvider } from './alphavantage-provider';
-import { BaseSecurityDataProvider } from './base-provider';
+import type { BaseSecurityDataProvider } from './base-provider';
 import { CoinGeckoDataProvider } from './coingecko-provider';
 import { CompositeDataProvider } from './composite-provider';
 import { FmpDataProvider } from './fmp-provider';

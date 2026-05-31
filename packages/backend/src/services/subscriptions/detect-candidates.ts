@@ -11,9 +11,8 @@ import Subscriptions from '@models/subscriptions.model';
 import Transactions from '@models/transactions.model';
 import { Op, QueryTypes } from '@sequelize/core';
 
+import type { TransactionForGrouping, TransactionGroup } from './detect-candidates-utils';
 import {
-  TransactionForGrouping,
-  TransactionGroup,
   buildGroupingKey,
   computeCV,
   computeConfidenceScore,

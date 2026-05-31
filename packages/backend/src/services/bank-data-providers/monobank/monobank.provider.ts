@@ -1,27 +1,27 @@
 import type { RecordId } from '@bt/shared/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
-import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
+import type { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
-import {
-  BaseBankDataProvider,
+import type {
   DateRange,
   ProviderAccount,
   ProviderBalance,
   ProviderMetadata,
   ProviderTransaction,
 } from '@services/bank-data-providers';
+import { BaseBankDataProvider } from '@services/bank-data-providers';
 import cc from 'currency-codes';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { MonobankApiClient } from './api-client';
 import { getJobGroupProgress, queueTransactionSync } from './transaction-sync-queue';
-import { MonobankCredentials, MonobankMetadata } from './types';
+import type { MonobankCredentials, MonobankMetadata } from './types';
 
 /**
  * Monobank provider implementation

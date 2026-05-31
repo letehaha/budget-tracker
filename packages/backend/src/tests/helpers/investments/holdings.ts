@@ -1,4 +1,4 @@
-import * as holdingsService from '@services/investments/holdings';
+import type * as holdingsService from '@services/investments/holdings';
 import { makeRequest } from '@tests/helpers';
 
 export async function createHolding<R extends boolean | undefined = false>({

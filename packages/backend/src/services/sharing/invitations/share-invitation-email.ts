@@ -1,11 +1,5 @@
-import {
-  RESOURCE_TYPES,
-  ResourceType,
-  SHARE_PERMISSIONS,
-  SharePermission,
-  SharePolicy,
-  TRANSACTIONS_WRITE_SCOPES,
-} from '@bt/shared/types';
+import type { ResourceType, SharePermission, SharePolicy } from '@bt/shared/types';
+import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { appName, appUrl, buildEmailShell, escapeHtml, fromEmail, resend } from '@services/email';
 

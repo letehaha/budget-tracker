@@ -15,14 +15,14 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
 import { and, literal, Op, where } from '@sequelize/core';
-import {
-  BaseBankDataProvider,
+import type {
   DateRange,
   ProviderAccount,
   ProviderBalance,
   ProviderMetadata,
   ProviderTransaction,
 } from '@services/bank-data-providers';
+import { BaseBankDataProvider } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
 
@@ -31,7 +31,7 @@ import { encryptCredentials } from '../utils/credential-encryption';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
 import { type HistoryItem, type WalletBalance, WalutomatApiClient, WalutomatHttpError } from './api-client';
 import { linkCrossProviderTransfers } from './cross-provider-linking';
-import { WalutomatCredentials, WalutomatMetadata } from './types';
+import type { WalutomatCredentials, WalutomatMetadata } from './types';
 
 const WALLET_EXTERNAL_ID_PREFIX = 'wallet-';
 const DEFAULT_SYNC_MONTHS = 12;

@@ -9,7 +9,7 @@ import Notifications from '@models/notifications.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { expireOverdueInvitations } from '@services/sharing/invitations/expire-invitations.service';
 import * as helpers from '@tests/helpers';
-import { ErrorResponse } from '@tests/helpers/common';
+import type { ErrorResponse } from '@tests/helpers/common';
 import { describe, expect, it } from 'vitest';
 
 /** Owner-side scaffold reused across resend / cancel tests. */

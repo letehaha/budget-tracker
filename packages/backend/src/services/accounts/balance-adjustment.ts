@@ -1,5 +1,6 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import type { RecordId } from '@bt/shared/types';
+import type { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -10,7 +11,7 @@ import { createTransaction } from '@services/transactions/create-transaction';
 
 interface AdjustAccountBalanceParams {
   userId: number;
-  accountId: string;
+  accountId: RecordId;
   targetBalance: Money;
   note?: string;
 }

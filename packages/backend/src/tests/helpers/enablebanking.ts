@@ -1,6 +1,6 @@
 import * as helpers from '@tests/helpers';
+import type { FixedTransaction } from '@tests/mocks/enablebanking/data';
 import {
-  FixedTransaction,
   MOCK_AUTHORIZATION_ID,
   MOCK_AUTH_CODE,
   MOCK_BANK_COUNTRY,

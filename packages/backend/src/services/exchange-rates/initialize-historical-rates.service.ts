@@ -5,7 +5,7 @@ import { addYears, format, min, startOfDay } from 'date-fns';
 import chunk from 'lodash/chunk';
 
 import { exchangeRateProviderRegistry } from './providers';
-import { EXCHANGE_RATE_PROVIDER_TYPE, ExchangeRateResult } from './providers/types';
+import type { EXCHANGE_RATE_PROVIDER_TYPE, ExchangeRateResult } from './providers/types';
 
 // Fallback date if no providers are registered (should not happen in practice)
 const FALLBACK_START_DATE = new Date('1999-01-04');

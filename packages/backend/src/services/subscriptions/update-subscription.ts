@@ -1,4 +1,5 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
+import type { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { withTransaction } from '@services/common/with-transaction';
 
@@ -14,8 +15,8 @@ interface UpdateSubscriptionParams {
   frequency?: SUBSCRIPTION_FREQUENCIES;
   startDate?: string;
   endDate?: string | null;
-  accountId?: string | null;
-  categoryId?: string | null;
+  accountId?: RecordId | null;
+  categoryId?: RecordId | null;
   matchingRules?: SubscriptionMatchingRules;
   isActive?: boolean;
   notes?: string | null;

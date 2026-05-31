@@ -9,13 +9,16 @@ interface ModelDataAccess {
   setDataValue(key: string, value: unknown): void;
 }
 
-/** Getter helper for INTEGER (cents) columns → returns Money */
+/** Getter helper for INTEGER/BIGINT (cents) columns → returns Money */
 export function moneyGetCents(model: ModelDataAccess, field: string): Money {
   const raw = model.getDataValue(field);
   if (raw === null || raw === undefined) return null as unknown as Money;
-  // Pass through non-numbers (e.g. Sequelize Literals from Model.update())
-  if (typeof raw !== 'number') return raw as unknown as Money;
-  return Money.fromCents(raw as number);
+  // node-postgres returns BIGINT columns as strings and INTEGER columns as numbers.
+  // Normalize both to Money (cents stay well below Number.MAX_SAFE_INTEGER).
+  if (typeof raw === 'number') return Money.fromCents(raw);
+  if (typeof raw === 'string') return Money.fromCents(Number(raw));
+  // Pass through non-primitive values (e.g. Sequelize Literals from Model.update())
+  return raw as unknown as Money;
 }
 
 /** Setter helper for INTEGER (cents) columns ← accepts Money or raw number */

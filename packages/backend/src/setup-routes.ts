@@ -2,7 +2,7 @@ import { requestContext } from '@common/request-context';
 import { logger } from '@js/utils/logger';
 import { Sentry } from '@js/utils/sentry';
 import { toNodeHandler } from 'better-auth/node';
-import { Express, Request, Response } from 'express';
+import type { Express, Request, Response } from 'express';
 import http from 'node:http';
 
 import { API_PREFIX } from './config';

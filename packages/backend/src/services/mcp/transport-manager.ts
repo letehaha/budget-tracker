@@ -1,7 +1,7 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { CustomError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import type { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
 interface McpSession {
   transport: StreamableHTTPServerTransport;

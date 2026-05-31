@@ -11,7 +11,7 @@ import Notifications from '@models/notifications.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import * as helpers from '@tests/helpers';
-import { ErrorResponse } from '@tests/helpers/common';
+import type { ErrorResponse } from '@tests/helpers/common';
 import { describe, expect, it } from 'vitest';
 
 describe('Share invitations: create + list', () => {

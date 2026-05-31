@@ -1,9 +1,10 @@
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import axios, { AxiosInstance } from 'axios';
+import type { AxiosInstance } from 'axios';
+import axios from 'axios';
 
-import { LunchFlowApiAccountsResponse, LunchFlowApiBalance, LunchFlowApiTransactionsResponse } from './types';
+import type { LunchFlowApiAccountsResponse, LunchFlowApiBalance, LunchFlowApiTransactionsResponse } from './types';
 
 /**
  * LunchFlow API client

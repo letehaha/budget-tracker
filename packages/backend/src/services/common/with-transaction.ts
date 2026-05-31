@@ -1,4 +1,4 @@
-import { connection } from '@models/index';
+import { connection } from '@models/connection';
 
 type AsyncFunction<T extends unknown[], R> = (...args: T) => Promise<R>;
 

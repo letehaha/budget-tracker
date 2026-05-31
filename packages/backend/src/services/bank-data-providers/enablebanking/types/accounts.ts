@@ -2,14 +2,14 @@
  * Account and Balance Types
  * https://enablebanking.com/docs/api/reference/
  */
-import {
+import type {
   AccountIdentification,
   AmountType,
   FinancialInstitutionIdentification,
   GenericIdentification,
   PostalAddress,
 } from './common';
-import { BalanceStatus, CashAccountType, Usage } from './enums';
+import type { BalanceStatus, CashAccountType, Usage } from './enums';
 
 /**
  * Account details from Enable Banking

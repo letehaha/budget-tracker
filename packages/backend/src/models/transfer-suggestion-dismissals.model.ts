@@ -1,12 +1,6 @@
-import { RecordId } from '@bt/shared/types';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { RecordId } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import { Attribute, BelongsTo, Default, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 import Transactions from './transactions.model';

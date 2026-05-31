@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_STATUSES,
@@ -46,7 +47,7 @@ const createAccountsForConnection = withTransaction(
     userId,
     accountExternalIds,
   }: {
-    connectionId: string;
+    connectionId: RecordId;
     userId: number;
     accountExternalIds: string[];
   }): Promise<Accounts[]> => {
@@ -169,7 +170,7 @@ const createAccountsForConnection = withTransaction(
           refInitialBalance: accountRefBalance,
           currentBalance: Money.fromCents(providerAccount.balance),
           refCurrentBalance: accountRefBalance,
-          creditLimit: creditLimitCents,
+          creditLimit: Money.fromCents(creditLimitCents),
           refCreditLimit,
           externalId: providerAccount.externalId,
           externalData: providerAccount.metadata || {},
@@ -225,7 +226,7 @@ export const connectSelectedAccounts = async ({
   userId,
   accountExternalIds,
 }: {
-  connectionId: string;
+  connectionId: RecordId;
   userId: number;
   accountExternalIds: string[];
 }): Promise<Accounts[]> => {

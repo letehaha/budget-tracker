@@ -1,11 +1,6 @@
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { RecordId } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,
@@ -52,13 +47,13 @@ export default class RefundTransactions extends Model<
   // consider that not all user real-life accounts will be present in the system
   @Attribute(DataTypes.UUID)
   @Index
-  declare originalTxId: string | null;
+  declare originalTxId: RecordId | null;
 
   @Attribute(DataTypes.UUID)
   @NotNull
   @Unique
   @Index
-  declare refundTxId: string;
+  declare refundTxId: RecordId;
 
   // Optional: when set, the refund applies to a specific split rather than the whole transaction
   @Attribute(DataTypes.UUID)
@@ -87,8 +82,8 @@ export const createRefundTransaction = async ({
   splitId,
 }: {
   userId: number;
-  originalTxId: string | null;
-  refundTxId: string;
+  originalTxId: RecordId | null;
+  refundTxId: RecordId;
   splitId?: string | null;
 }) => {
   return RefundTransactions.create({ userId, originalTxId, refundTxId, splitId });

@@ -1,4 +1,5 @@
-import { DataTypes, AbstractQueryInterface } from '@sequelize/core';
+import type { AbstractQueryInterface } from '@sequelize/core';
+import { DataTypes } from '@sequelize/core';
 
 /**
  * Migration to add categorizationMeta JSONB field to Transactions table.

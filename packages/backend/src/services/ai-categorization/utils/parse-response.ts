@@ -1,6 +1,7 @@
+import type { RecordId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 
-import { CategorizationResult } from '../types';
+import type { CategorizationResult } from '../types';
 
 /**
  * Parse AI response into categorization results
@@ -40,7 +41,7 @@ export function parseCategorizationResponse({
       continue;
     }
 
-    results.push({ transactionId, categoryId });
+    results.push({ transactionId, categoryId: categoryId as RecordId });
   }
 
   return results;

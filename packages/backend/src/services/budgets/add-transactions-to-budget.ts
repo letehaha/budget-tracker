@@ -1,8 +1,10 @@
+import type { RecordId } from '@bt/shared/types';
 import { BUDGET_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import BudgetTransactions, { BudgetTransactionMetadata } from '@models/budget-transactions.model';
+import type { BudgetTransactionMetadata } from '@models/budget-transactions.model';
+import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Transactions from '@models/transactions.model';
 import { Op } from '@sequelize/core';
@@ -11,9 +13,9 @@ import { withTransaction } from '@services/common/with-transaction';
 import { authorizeBudgetAccess } from './authorize-budget-access';
 
 interface AddTransactionsPayload {
-  budgetId: string;
+  budgetId: RecordId;
   userId: number;
-  transactionIds: string[];
+  transactionIds: RecordId[];
 }
 
 export const addTransactionsToBudget = withTransaction(async (payload: AddTransactionsPayload) => {

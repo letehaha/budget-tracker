@@ -4,10 +4,10 @@
  */
 import type { DeactivationReason } from '@bt/shared/types';
 
-import { EnableBankingAccount } from './accounts';
-import { ASPSP } from './aspsp';
-import { AccountIdentification } from './common';
-import { EnvironmentType, PSUType, ServiceType } from './enums';
+import type { EnableBankingAccount } from './accounts';
+import type { ASPSP } from './aspsp';
+import type { AccountIdentification } from './common';
+import type { EnvironmentType, PSUType, ServiceType } from './enums';
 
 /**
  * Credentials required to connect to Enable Banking

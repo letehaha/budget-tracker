@@ -1,6 +1,6 @@
-import { CategoryModel } from '@bt/shared/types';
+import type { CategoryModel } from '@bt/shared/types';
 
-import { CategoryForCategorization } from '../types';
+import type { CategoryForCategorization } from '../types';
 
 /**
  * Build category list from flat CategoryModel array

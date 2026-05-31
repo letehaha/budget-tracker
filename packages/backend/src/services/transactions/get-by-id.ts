@@ -1,4 +1,5 @@
-import { ACCESS_SOURCES, RESOURCE_TYPES, SHARE_PERMISSIONS, SharePermission } from '@bt/shared/types';
+import type { SharePermission } from '@bt/shared/types';
+import { ACCESS_SOURCES, RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ForbiddenError, NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -61,7 +62,8 @@ export const getTransactionById = withTransaction(
       // be misclassified as "owner of everything", which then makes
       // `accountOwnerUserId === callerUserId` downstream and breaks owner-scoped lookups.
       const parentAccount = (await Accounts.findOne({
-        where: { id: authored.accountId },
+        // accountId is null only for portfolio-linked transactions; those don't author regular txs
+        where: { id: authored.accountId! },
         attributes: ['userId'],
         raw: true,
       })) as { userId: number } | null;
@@ -84,7 +86,7 @@ export const getTransactionById = withTransaction(
       const access = await canUserAccessResource({
         userId,
         resourceType: RESOURCE_TYPES.account,
-        resourceId: authored.accountId,
+        resourceId: authored.accountId!,
         requiredPermission,
       });
       if (!access.granted) return null;
@@ -99,7 +101,7 @@ export const getTransactionById = withTransaction(
     const access = await canUserAccessResource({
       userId,
       resourceType: RESOURCE_TYPES.account,
-      resourceId: tx.accountId,
+      resourceId: tx.accountId!,
       requiredPermission,
     });
     if (access.granted) {

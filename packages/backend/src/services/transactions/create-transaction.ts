@@ -5,7 +5,8 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
-import { UnwrapPromise } from '@common/types';
+import type { RecordId } from '@bt/shared/types';
+import type { UnwrapPromise } from '@common/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -139,7 +140,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   const destOwnerUserId = destAccess.ownerUserId;
   const isCrossUser = destOwnerUserId !== baseTransaction.userId;
 
-  const transferId = uuidv4();
+  const transferId = uuidv4() as RecordId;
 
   let baseTx = await Transactions.updateTransactionById({
     id: baseTransaction.id,
@@ -258,9 +259,10 @@ export const createTransaction = withTransaction(
       // `accountOwnerUserId` scopes downstream owner-only lookups (account row, category
       // set) so a shared-account write resolves correctly. Phase-1 guards block recipient
       // flows that need their own follow-up slices.
+      // accountId is null only for portfolio-linked transactions which are created elsewhere
       const { isOwner, accountOwnerUserId } = await authorizeAccountWrite({
         userId,
-        accountId,
+        accountId: accountId!,
       });
       assertSharedWritePhase1Guards({
         isOwner,
@@ -282,7 +284,7 @@ export const createTransaction = withTransaction(
 
       const { currency: generalTxCurrency } = await Accounts.getAccountCurrency({
         userId: accountOwnerUserId,
-        id: accountId,
+        id: accountId!,
       });
 
       // Recipients writing on a shared account whose currency they haven't connected

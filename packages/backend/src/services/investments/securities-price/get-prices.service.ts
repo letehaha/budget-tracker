@@ -1,5 +1,6 @@
 import SecurityPricing from '@models/investments/security-pricing.model';
-import { Op, WhereOptions } from '@sequelize/core';
+import type { WhereOptions } from '@sequelize/core';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface PriceQueryOptions {

@@ -1,5 +1,6 @@
-import { RecordId } from '@bt/shared/types';
-import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import type { RecordId } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import { Attribute, BeforeCreate, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -69,7 +70,7 @@ export const createEntry = async ({
 }: {
   mccId: number;
   userId: number;
-  categoryId: number;
+  categoryId: RecordId;
 }) => {
   const userMcc = await UserMerchantCategoryCodes.create({
     mccId,

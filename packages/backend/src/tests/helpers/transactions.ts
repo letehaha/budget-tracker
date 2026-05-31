@@ -1,15 +1,16 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
 import type { RecordId } from '@bt/shared/types';
-import Transactions from '@models/transactions.model';
+import type Transactions from '@models/transactions.model';
 import type { TransactionApiResponse } from '@root/serializers/transactions.serializer';
-import * as transactionsService from '@services/transactions';
+import type * as transactionsService from '@services/transactions';
 import type { getTransactionsByTransferId as apiGetTransactionsByTransferId } from '@services/transactions/get-by-transfer-id';
 import type { getTransactions as apiGetTransactions } from '@services/transactions/get-transactions';
 import { startOfDay } from 'date-fns';
-import { Response } from 'express';
+import type { Response } from 'express';
 
 import { createAccount } from './account';
-import { CustomResponse, makeRequest } from './common';
+import type { CustomResponse } from './common';
+import { makeRequest } from './common';
 
 type BuildTxPartialField = 'amount' | 'time' | 'transferNature' | 'paymentType' | 'transactionType';
 export const buildTransactionPayload = (

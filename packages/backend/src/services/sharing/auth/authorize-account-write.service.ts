@@ -1,4 +1,5 @@
-import { RESOURCE_TYPES, SHARE_PERMISSIONS, SharePolicy, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
+import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
+import type { RecordId, SharePolicy } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError, Unauthorized, ValidationError } from '@js/errors';
 
@@ -36,13 +37,15 @@ export const assertTxWriteAccess = async ({
   notFoundKey,
 }: {
   userId: number;
-  tx: { accountId: string; userId: number };
+  tx: { accountId: RecordId | null; userId: number };
   notFoundKey: 'transactions.linkCannotFind' | 'transactions.oppositeTransactionNotFound';
 }): Promise<GrantedAccessResult> => {
+  // accountId is null only for portfolio-linked transactions, which never reach the link/unlink
+  // paths. Asserting non-null is safe — a null here would be a data integrity bug upstream.
   const access = await canUserAccessResource({
     userId,
     resourceType: RESOURCE_TYPES.account,
-    resourceId: tx.accountId,
+    resourceId: tx.accountId!,
     requiredPermission: SHARE_PERMISSIONS.write,
   });
   if (!access.granted) {

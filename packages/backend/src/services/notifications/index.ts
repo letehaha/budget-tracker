@@ -1,12 +1,11 @@
-import {
-  NOTIFICATION_PRIORITIES,
-  NOTIFICATION_STATUSES,
+import type {
   NotificationModel,
   NotificationPayload,
   NotificationPriority,
   NotificationStatus,
   NotificationType,
 } from '@bt/shared/types';
+import { NOTIFICATION_PRIORITIES, NOTIFICATION_STATUSES } from '@bt/shared/types';
 import Notifications from '@models/notifications.model';
 
 import { withTransaction } from '../common/with-transaction';

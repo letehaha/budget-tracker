@@ -1,4 +1,4 @@
-import { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 import crypto from 'crypto';
 
 interface ExistingUser {

@@ -1,12 +1,7 @@
-import { PaymentReminderStatus, PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { PaymentReminderStatus } from '@bt/shared/types';
+import { PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,

@@ -1,17 +1,17 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
 import { logger } from '@js/utils';
 import { subYears } from 'date-fns';
 
-import {
-  BaseSecurityDataProvider,
+import type {
   BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
   SecurityPriceFetchInput,
-  toProviderSymbol,
 } from './base-provider';
+import { BaseSecurityDataProvider, toProviderSymbol } from './base-provider';
 
 /**
  * CoinGecko Demo tier serves at most 1 year of daily/hourly history (5-minutely

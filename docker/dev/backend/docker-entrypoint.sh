@@ -16,7 +16,7 @@ fi
 
 if [ "$CURRENT_HASH" != "$STORED_HASH" ]; then
     echo "Dependencies changed, running bun install..."
-    bun install
+    bun install --ignore-scripts
     echo "$CURRENT_HASH" > "$LOCK_HASH_FILE"
     echo "Dependencies updated successfully"
 else

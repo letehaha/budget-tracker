@@ -5,7 +5,7 @@ import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import { MonobankProvider } from '@root/services/bank-data-providers/monobank/monobank.provider';
+import type { MonobankProvider } from '@root/services/bank-data-providers/monobank/monobank.provider';
 import { bankProviderRegistry } from '@root/services/bank-data-providers/registry';
 import z from 'zod';
 

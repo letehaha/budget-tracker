@@ -1,17 +1,18 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { sleep } from '@common/helpers';
 import { logger } from '@js/utils';
 
-import {
-  BaseSecurityDataProvider,
+import type {
   BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
   SecurityPriceFetchInput,
-  toProviderSymbol,
 } from './base-provider';
-import { FmpClient, FmpSearchResult } from './clients';
+import { BaseSecurityDataProvider, toProviderSymbol } from './base-provider';
+import type { FmpSearchResult } from './clients';
+import { FmpClient } from './clients';
 
 export class FmpDataProvider extends BaseSecurityDataProvider {
   readonly providerName = SECURITY_PROVIDER.fmp;

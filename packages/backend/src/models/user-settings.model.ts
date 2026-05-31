@@ -1,19 +1,8 @@
 import { SUPPORTED_LOCALES } from '@bt/shared/i18n/locales';
-import {
-  AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH,
-  AI_FEATURE,
-  AI_PROVIDER,
-  NOTIFICATION_TYPES,
-  RecordId,
-} from '@bt/shared/types';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { RecordId } from '@bt/shared/types';
+import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH, AI_FEATURE, AI_PROVIDER, NOTIFICATION_TYPES } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,

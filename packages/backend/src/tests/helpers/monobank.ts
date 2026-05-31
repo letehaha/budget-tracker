@@ -1,8 +1,9 @@
-import { BANK_PROVIDER_TYPE, ExternalMonobankTransactionResponse, asCents } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
+import type { RecordId, ExternalMonobankTransactionResponse } from '@bt/shared/types';
 import { until } from '@common/helpers';
 import { faker } from '@faker-js/faker';
 import Accounts from '@models/accounts.model';
-import Transactions from '@models/transactions.model';
+import type Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { getMockedClientData } from '@tests/mocks/monobank/data';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
@@ -129,7 +130,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
       await until(
         async () => {
           const txs = await getTransactions();
-          return txs.filter((t: { accountId: number }) => t.accountId === pollAccountId).length >= amount;
+          return txs.filter((t: { accountId: RecordId | null }) => t.accountId === pollAccountId).length >= amount;
         },
         { timeout: 30000, interval: 500 },
       );
@@ -161,7 +162,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
     await until(
       async () => {
         const txs = await getTransactions();
-        return txs.some((t: { accountId: number }) => t.accountId === accountIdForPoll);
+        return txs.some((t: { accountId: RecordId | null }) => t.accountId === accountIdForPoll);
       },
       { timeout: 15000, interval: 300 },
     );
@@ -189,7 +190,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
   await until(
     async () => {
       const txs = await getTransactions();
-      return txs.filter((t: { accountId: number }) => t.accountId === targetAccountId).length >= amount;
+      return txs.filter((t: { accountId: RecordId | null }) => t.accountId === targetAccountId).length >= amount;
     },
     { timeout: 30000, interval: 500 },
   );

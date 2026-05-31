@@ -1,4 +1,4 @@
-import { ResourceType } from '@bt/shared/types';
+import type { ResourceType } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { appName, appUrl, buildEmailShell, escapeHtml, fromEmail, resend } from '@services/email';
 

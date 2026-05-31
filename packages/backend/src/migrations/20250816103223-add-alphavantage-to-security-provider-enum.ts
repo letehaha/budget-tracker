@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 // Define constants for enum names to prevent typos
 const ENUM_SECURITY_PROVIDER = 'enum_security_provider';

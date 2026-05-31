@@ -1,4 +1,5 @@
-import { PAYMENT_REMINDER_STATUSES, RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import type { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
+import { PAYMENT_REMINDER_STATUSES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';

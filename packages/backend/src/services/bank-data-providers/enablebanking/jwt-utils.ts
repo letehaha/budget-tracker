@@ -5,7 +5,7 @@
 import { logger } from '@js/utils';
 import * as crypto from 'crypto';
 
-import { EnableBankingJWTPayload } from './types';
+import type { EnableBankingJWTPayload } from './types';
 
 /**
  * Base64 URL encode (without padding)

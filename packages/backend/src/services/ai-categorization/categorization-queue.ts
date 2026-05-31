@@ -1,6 +1,8 @@
 import { logger } from '@js/utils/logger';
-import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
-import { Job, Queue, Worker } from 'bullmq';
+import type { SentryTraceData } from '@js/utils/sentry';
+import { withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
+import type { Job } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 
 import { SSE_EVENT_TYPES, sseManager } from '../common/sse';
 import { categorizeTransactions } from './categorization-service';

@@ -1,7 +1,7 @@
 import { API_ERROR_CODES, RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import ResourceShares from '@models/resource-shares.model';
 import * as helpers from '@tests/helpers';
-import { ErrorResponse } from '@tests/helpers/common';
+import type { ErrorResponse } from '@tests/helpers/common';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 /**

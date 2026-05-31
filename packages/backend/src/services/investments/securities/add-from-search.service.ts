@@ -62,7 +62,7 @@ const addSecurityFromSearchImpl = async ({
       // Store the price in SecurityPricing table
       await SecurityPricing.create({
         securityId: security.id,
-        date: format(priceData.date, 'yyyy-MM-dd'),
+        date: priceData.date,
         priceClose: Money.fromDecimal(priceData.priceClose),
         source: provider.providerName,
       });

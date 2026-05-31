@@ -2,7 +2,8 @@ import type { RecordId } from '@bt/shared/types';
 import { BANK_PROVIDER_TYPE, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
-import { FixedTransaction, MOCK_IDENTIFICATION_HASH_1 } from '@tests/mocks/enablebanking/data';
+import type { FixedTransaction } from '@tests/mocks/enablebanking/data';
+import { MOCK_IDENTIFICATION_HASH_1 } from '@tests/mocks/enablebanking/data';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 /**
@@ -311,7 +312,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       if (resolvedCategoryId === undefined) {
         const existing = await helpers.getTransactions({ accountIds: [accountId], raw: true });
         if (existing.length > 0) {
-          resolvedCategoryId = existing[0]!.categoryId;
+          resolvedCategoryId = existing[0]!.categoryId ?? undefined;
         } else {
           const userCategory = (await helpers.getCategoriesList()) as { id: RecordId }[];
           resolvedCategoryId = userCategory[0]!.id;

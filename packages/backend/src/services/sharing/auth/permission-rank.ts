@@ -1,4 +1,5 @@
-import { SHARE_PERMISSIONS, SharePermission } from '@bt/shared/types';
+import type { SharePermission } from '@bt/shared/types';
+import { SHARE_PERMISSIONS } from '@bt/shared/types';
 
 const PERMISSION_RANK: Record<SharePermission, number> = {
   [SHARE_PERMISSIONS.read]: 1,

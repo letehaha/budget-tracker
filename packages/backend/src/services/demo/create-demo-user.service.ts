@@ -1,4 +1,5 @@
 import { USER_ROLES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { authPool } from '@config/auth';
 import { logger } from '@js/utils/logger';
 import { createUser } from '@models/users.model';
@@ -23,7 +24,7 @@ export async function createDemoUserFast(): Promise<DemoUserResult> {
 
   logger.info(`Creating demo user: ${demoUsername}`);
 
-  const authUserId = uuidv4();
+  const authUserId = uuidv4() as RecordId;
   const now = new Date();
 
   await authPool.query(

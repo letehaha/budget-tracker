@@ -3,7 +3,7 @@ import { t } from '@i18n/index';
 import Currencies from '@models/currencies.model';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
 import Portfolios from '@models/investments/portfolios.model';
-import { WhereOptions } from '@sequelize/core';
+import type { WhereOptions } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface GetPortfolioBalancesParams {

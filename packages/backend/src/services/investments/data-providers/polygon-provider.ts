@@ -1,5 +1,5 @@
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
-import { SecuritySearchResult } from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import * as requestsUtils from '@js/utils/requests-calling.utils';
 import {
@@ -12,15 +12,14 @@ import {
 import { isAxiosError } from 'axios';
 import { formatDate, subYears } from 'date-fns';
 
-import {
-  BaseSecurityDataProvider,
+import type {
   BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
   SecurityPriceFetchInput,
-  toProviderSymbol,
 } from './base-provider';
+import { BaseSecurityDataProvider, toProviderSymbol } from './base-provider';
 
 // Since the library doesn't export these types directly, we derive them.
 type TickerTypes = ITickersQuery['type'];

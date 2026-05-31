@@ -679,7 +679,7 @@ describe('Investment transactions AI import — E2E', () => {
               parsedName: 'Bitcoin',
               resolvedSecurity: {
                 securityId: btc!.id,
-                providerSymbol: btc!.providerSymbol,
+                providerSymbol: btc!.providerSymbol!,
                 symbol: 'BTC',
                 name: 'Bitcoin',
                 assetClass: btc!.assetClass,
@@ -739,7 +739,7 @@ describe('Investment transactions AI import — E2E', () => {
               parsedName: 'Bitcoin',
               resolvedSecurity: {
                 securityId: btc!.id,
-                providerSymbol: btc!.providerSymbol,
+                providerSymbol: btc!.providerSymbol!,
                 symbol: 'BTC',
                 name: 'Bitcoin',
                 assetClass: btc!.assetClass,
@@ -842,7 +842,7 @@ describe('Investment transactions AI import — E2E', () => {
               parsedName: null,
               resolvedSecurity: {
                 securityId: btc!.id,
-                providerSymbol: btc!.providerSymbol,
+                providerSymbol: btc!.providerSymbol!,
                 symbol: 'BTC',
                 name: 'Bitcoin',
                 assetClass: btc!.assetClass,
@@ -899,7 +899,7 @@ describe('Investment transactions AI import — E2E', () => {
               parsedName: null,
               resolvedSecurity: {
                 securityId: btc!.id,
-                providerSymbol: btc!.providerSymbol,
+                providerSymbol: btc!.providerSymbol!,
                 symbol: 'BTC',
                 name: 'Bitcoin',
                 assetClass: btc!.assetClass,
@@ -950,7 +950,7 @@ describe('Investment transactions AI import — E2E', () => {
         parsedName: 'Bitcoin',
         resolvedSecurity: {
           securityId: btc!.id,
-          providerSymbol: btc!.providerSymbol,
+          providerSymbol: btc!.providerSymbol!,
           symbol: 'BTC',
           name: 'Bitcoin',
           assetClass: btc!.assetClass,
@@ -1025,7 +1025,7 @@ describe('Investment transactions AI import — E2E', () => {
         parsedName: security.name,
         resolvedSecurity: {
           securityId: security.id,
-          providerSymbol: security.providerSymbol,
+          providerSymbol: security.providerSymbol!,
           symbol: security.symbol!,
           name: security.name!,
           assetClass: security.assetClass,

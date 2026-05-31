@@ -16,8 +16,14 @@
  * imports are a legitimate outcome anyway (one bad row shouldn't bin the rest).
  * Instead we collect per-row errors and return them.
  */
-import { INVESTMENT_TRANSACTION_CATEGORY, isTradeSide } from '@bt/shared/types/investments';
-import type { InvestmentImportExecuteResponse, InvestmentImportHolding } from '@bt/shared/types/investments';
+import type { RecordId } from '@bt/shared/types';
+import { isTradeSide } from '@bt/shared/types/investments';
+import type {
+  InvestmentImportExecuteResponse,
+  InvestmentImportHolding,
+  INVESTMENT_TRANSACTION_CATEGORY,
+} from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -147,14 +153,12 @@ export async function executeInvestmentImport({
         mergedHoldings += 1;
       } else {
         await Holdings.create({
-          portfolioId: holding.portfolioId,
+          portfolioId: holding.portfolioId as RecordId,
           securityId: security.id,
           currencyCode: holding.currencyCode,
-          quantity: '0',
-          costBasis: '0',
-          refCostBasis: '0',
-          value: '0',
-          refValue: '0',
+          quantity: Money.zero(),
+          costBasis: Money.zero(),
+          refCostBasis: Money.zero(),
         });
         createdHoldings += 1;
         loadedHolding = await Holdings.findOne({
@@ -208,7 +212,7 @@ export async function executeInvestmentImport({
         // to the matching INVESTMENT_TRANSACTION_CATEGORY members.
         await createInvestmentTransaction({
           userId,
-          portfolioId: holding.portfolioId,
+          portfolioId: holding.portfolioId as RecordId,
           securityId: security.id,
           category: tx.side as INVESTMENT_TRANSACTION_CATEGORY,
           date: tx.date,

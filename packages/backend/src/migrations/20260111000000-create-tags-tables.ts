@@ -1,4 +1,5 @@
-import { DataTypes, AbstractQueryInterface, QueryTypes, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import { DataTypes, QueryTypes } from '@sequelize/core';
 
 // Inlined to avoid path alias issues in migration context
 const DEFAULT_TAG_STRUCTURE = [

@@ -1,6 +1,6 @@
 import { logger } from '@js/utils/logger';
 import { createReleaseNotifications } from '@services/notifications/release-notifications';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 
 /**
  * GitHub release webhook payload structure (subset of fields we care about)

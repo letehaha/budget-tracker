@@ -1,6 +1,7 @@
-import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import type { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import Portfolios from '@models/investments/portfolios.model';
-import { FindOptions, InferAttributes, Op, WhereOptions } from '@sequelize/core';
+import type { FindOptions, InferAttributes, WhereOptions } from '@sequelize/core';
+import { Op } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface ListPortfoliosParams {

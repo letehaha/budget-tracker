@@ -22,7 +22,7 @@ import {
   VALID_MONOBANK_TOKEN,
   getMonobankTransactionsMock,
 } from '@tests/mocks/monobank/mock-api';
-import { Job } from 'bullmq';
+import type { Job } from 'bullmq';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
@@ -127,7 +127,13 @@ describe('Monobank Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: string; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: {
+          externalId: string | null;
+          id: string;
+          name: string;
+          currentBalance: number;
+          currencyCode: string;
+        }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');

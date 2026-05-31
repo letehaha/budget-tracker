@@ -1,14 +1,9 @@
-import {
-  AmountThresholdSettings,
-  NOTIFICATION_TYPES,
-  TAG_REMINDER_FREQUENCIES,
-  TAG_REMINDER_TYPES,
-  TagReminderNotificationPayload,
-} from '@bt/shared/types';
+import type { AmountThresholdSettings, TagReminderNotificationPayload } from '@bt/shared/types';
+import { NOTIFICATION_TYPES, TAG_REMINDER_FREQUENCIES, TAG_REMINDER_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
-import TagReminders from '@models/tag-reminders.model';
+import type TagReminders from '@models/tag-reminders.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import * as notificationsService from '@services/notifications';

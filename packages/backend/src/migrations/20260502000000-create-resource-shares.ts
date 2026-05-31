@@ -7,9 +7,9 @@ const INVITATION_STATUSES = ['pending', 'accepted', 'declined', 'revoked', 'expi
 
 const inClause = (values: readonly string[]) => values.map((v) => `'${v}'`).join(', ');
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.createTable(
@@ -23,14 +23,14 @@ module.exports = {
           ownerUserId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { model: 'Users', key: 'id' },
+            references: { table: 'Users', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
           sharedWithUserId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { model: 'Users', key: 'id' },
+            references: { table: 'Users', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -81,7 +81,7 @@ module.exports = {
           ownerUserId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { model: 'Users', key: 'id' },
+            references: { table: 'Users', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
           },
@@ -92,7 +92,7 @@ module.exports = {
           inviteeUserId: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            references: { model: 'Users', key: 'id' },
+            references: { table: 'Users', key: 'id' },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
           },
@@ -209,7 +209,7 @@ module.exports = {
       });
       await queryInterface.addConstraint('ResourceShares', {
         fields: ['sharedWithUserId', 'resourceType', 'resourceId'],
-        type: 'unique',
+        type: 'UNIQUE',
         name: 'uq_resource_shares_recipient_resource',
         transaction: t,
       });
@@ -244,7 +244,7 @@ module.exports = {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.dropTable('ShareInvitations', { transaction: t });

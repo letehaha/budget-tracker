@@ -1,4 +1,5 @@
-import { TRANSACTION_TRANSFER_NATURE, endpointsTypes } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import type { RecordId, endpointsTypes } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Categories from '@models/categories.model';
@@ -12,7 +13,7 @@ import { withTransaction } from '../common/with-transaction';
 interface BulkUpdateParams {
   userId: number;
   transactionIds: string[];
-  categoryId?: string;
+  categoryId?: RecordId;
   tagIds?: string[];
   tagMode?: endpointsTypes.BulkUpdateTagMode;
   note?: string;
@@ -97,7 +98,7 @@ export const bulkUpdate = withTransaction(
     }
 
     // Build update payload for non-relationship fields
-    const updatePayload: { categoryId?: string; note?: string } = {};
+    const updatePayload: { categoryId?: RecordId; note?: string } = {};
     if (hasCategory) {
       updatePayload.categoryId = categoryId;
     }

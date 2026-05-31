@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -17,8 +18,8 @@ import {
 
 interface CreatePortfolioTransferParams {
   userId: number;
-  fromPortfolioId: string;
-  toPortfolioId: string;
+  fromPortfolioId: RecordId;
+  toPortfolioId: RecordId;
   currencyCode: string;
   amount: string;
   date: string;

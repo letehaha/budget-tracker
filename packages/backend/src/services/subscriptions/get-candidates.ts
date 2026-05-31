@@ -1,4 +1,4 @@
-import { SUBSCRIPTION_CANDIDATE_STATUS } from '@bt/shared/types';
+import type { SUBSCRIPTION_CANDIDATE_STATUS } from '@bt/shared/types';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import Subscriptions from '@models/subscriptions.model';
 

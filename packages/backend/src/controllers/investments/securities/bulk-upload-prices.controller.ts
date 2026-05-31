@@ -1,4 +1,5 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { createController } from '@controllers/helpers/controller-factory';
 import { bulkUploadSecurityPrices } from '@root/services/investments/securities-price/bulk-upload-prices.service';
 import z from 'zod';

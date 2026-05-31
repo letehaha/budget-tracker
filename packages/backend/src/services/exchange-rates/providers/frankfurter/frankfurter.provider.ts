@@ -9,13 +9,13 @@
 import axios from 'axios';
 
 import { BaseExchangeRateProvider } from '../base-provider';
-import {
-  EXCHANGE_RATE_PROVIDER_TYPE,
+import type {
   ExchangeRateProviderMetadata,
   ExchangeRateResult,
   FetchRatesParams,
   FetchRatesRangeParams,
 } from '../types';
+import { EXCHANGE_RATE_PROVIDER_TYPE } from '../types';
 
 /**
  * Response format from Frankfurter for single date

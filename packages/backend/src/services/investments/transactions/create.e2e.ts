@@ -1,7 +1,7 @@
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
-import Portfolios from '@models/investments/portfolios.model';
+import type Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import * as helpers from '@tests/helpers';
 import { beforeEach, describe, expect, it } from 'vitest';

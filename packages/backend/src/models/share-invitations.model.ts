@@ -1,20 +1,14 @@
-import {
+import type {
   ResourceType,
   RecordId,
-  SHARE_INVITATION_STATUSES,
   ShareInvitationModel,
   ShareInvitationStatus,
   SharePermission,
   SharePolicy,
 } from '@bt/shared/types';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import { SHARE_INVITATION_STATUSES } from '@bt/shared/types';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,
@@ -46,7 +40,7 @@ export default class ShareInvitations
   @BeforeCreate
   static generateUUIDv7(instance: ShareInvitations) {
     if (!instance.id) {
-      instance.id = uuidv7();
+      instance.id = uuidv7() as RecordId;
     }
   }
 

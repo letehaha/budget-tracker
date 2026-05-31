@@ -1,4 +1,5 @@
-import { RESOURCE_TYPES, ResourceType, SHARE_PERMISSIONS } from '@bt/shared/types';
+import type { ResourceType } from '@bt/shared/types';
+import { RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import ResourceShares from '@models/resource-shares.model';

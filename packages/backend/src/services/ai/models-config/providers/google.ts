@@ -1,4 +1,5 @@
-import { AIModelInfo, AI_PROVIDER } from '@bt/shared/types';
+import type { AIModelInfo } from '@bt/shared/types';
+import { AI_PROVIDER } from '@bt/shared/types';
 
 import { AI_MODEL_ID } from '../model-ids';
 

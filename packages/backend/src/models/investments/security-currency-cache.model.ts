@@ -1,5 +1,6 @@
-import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
-import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import type { SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import type { CreationOptional, InferAttributes, InferCreationAttributes } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import { Attribute, Default, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 
 @Table({

@@ -1,5 +1,6 @@
-import { API_RESPONSE_STATUS, endpointsTypes } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
+import type { endpointsTypes } from '@bt/shared/types';
+import { API_RESPONSE_STATUS } from '@bt/shared/types';
+import type { CustomResponse } from '@common/types';
 import { errorHandler } from '@controllers/helpers';
 import { ValidationError } from '@js/errors';
 import { serializeTransaction } from '@root/serializers';

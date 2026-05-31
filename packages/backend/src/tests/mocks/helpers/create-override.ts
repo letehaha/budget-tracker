@@ -1,5 +1,5 @@
 import { HttpResponse, http } from 'msw';
-import { SetupServerApi } from 'msw/node';
+import type { SetupServerApi } from 'msw/node';
 
 type OverrideOptions = {
   status?: number;

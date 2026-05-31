@@ -1,4 +1,5 @@
-import { Op, WhereOptions } from '@sequelize/core';
+import type { WhereOptions } from '@sequelize/core';
+import { Op } from '@sequelize/core';
 
 /**
  * Builds a Sequelize where clause for filtering by date range.

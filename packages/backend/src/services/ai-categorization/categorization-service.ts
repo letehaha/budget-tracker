@@ -1,16 +1,18 @@
+import type { RecordId } from '@bt/shared/types';
 import { AI_FEATURE, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES, getProviderFromModelId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
 import { getCategories } from '@models/categories.model';
 import Transactions from '@models/transactions.model';
-import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
+import type { AIClientResult } from '@services/ai';
+import { createAIClient, isAuthError, isTemporaryError } from '@services/ai';
 import { sseManager } from '@services/common/sse';
 import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
 import { getCustomInstructions } from '@services/user-settings/ai-custom-instructions';
 import { generateText } from 'ai';
 
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
-import { CategorizationBatchResult, CategorizationResult, TransactionForCategorization } from './types';
+import type { CategorizationBatchResult, CategorizationResult, TransactionForCategorization } from './types';
 import { buildCategoryList } from './utils/build-category-list';
 import { parseCategorizationResponse } from './utils/parse-response';
 
@@ -138,7 +140,7 @@ async function applyCategorizationResults({
   const now = new Date().toISOString();
 
   // Group transaction IDs by categoryId
-  const groupedByCategory = new Map<string, string[]>();
+  const groupedByCategory = new Map<RecordId, string[]>();
   for (const result of results) {
     if (!groupedByCategory.has(result.categoryId)) {
       groupedByCategory.set(result.categoryId, []);

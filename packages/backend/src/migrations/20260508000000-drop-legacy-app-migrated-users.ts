@@ -1,6 +1,6 @@
 import type { AbstractQueryInterface } from '@sequelize/core';
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     // Drop synthetic '@app.migrated' users left over from the pre-better-auth
     // system. They were only reachable via the legacy username-login flow

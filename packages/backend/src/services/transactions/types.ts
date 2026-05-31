@@ -1,44 +1,45 @@
-import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { Money } from '@common/types/money';
-import * as Transactions from '@models/transactions.model';
+import type { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
+import type { Money } from '@common/types/money';
+import type * as Transactions from '@models/transactions.model';
 
-import { SplitInput } from './splits/types';
+import type { SplitInput } from './splits/types';
 
 export type CreateTransactionParams = Omit<
   Transactions.CreateTransactionPayload,
   'refAmount' | 'transferId' | 'currencyCode' | 'refCurrencyCode'
 > & {
   destinationAmount?: Money;
-  destinationAccountId?: string;
-  destinationTransactionId?: string;
-  refundsTxId?: string;
+  destinationAccountId?: RecordId;
+  destinationTransactionId?: RecordId;
+  refundsTxId?: RecordId;
   refundsSplitId?: string;
   splits?: SplitInput[];
   tagIds?: string[];
 };
 
 interface UpdateParams {
-  id: string;
+  id: RecordId;
   userId: number;
   amount?: Money;
   note?: string | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
-  accountId?: string;
-  categoryId?: string;
+  accountId?: RecordId;
+  categoryId?: RecordId | null;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
-  refundsTxId?: string | null;
+  refundsTxId?: RecordId | null;
   refundsSplitId?: string | null;
-  refundedByTxIds?: string[] | null;
+  refundedByTxIds?: RecordId[] | null;
   splits?: SplitInput[] | null; // null to clear all splits
   tagIds?: string[] | null; // null to clear all tags
 }
 
 interface UpdateTransferParams {
   destinationAmount?: Money;
-  destinationTransactionId?: string;
-  destinationAccountId?: string;
+  destinationTransactionId?: RecordId;
+  destinationAccountId?: RecordId;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
   transferId?: string;
 }

@@ -1,8 +1,10 @@
-import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import type { SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { SUBSCRIPTION_LINK_STATUS } from '@bt/shared/types';
 import Categories from '@models/categories.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions from '@models/transactions.model';
-import { InferAttributes, Op } from '@sequelize/core';
+import type { InferAttributes } from '@sequelize/core';
+import { Op } from '@sequelize/core';
 
 import { computeNextExpectedDate } from './get-subscriptions';
 

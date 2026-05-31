@@ -3,7 +3,7 @@
  * This system allows users to connect multiple bank accounts from various providers
  * (Monobank, Enable Banking, etc.) in a unified, modular way.
  */
-import { BANK_PROVIDER_TYPE, Cents } from '@bt/shared/types';
+import type { BANK_PROVIDER_TYPE, Cents } from '@bt/shared/types';
 
 // ============================================================================
 // Provider Types and Enums

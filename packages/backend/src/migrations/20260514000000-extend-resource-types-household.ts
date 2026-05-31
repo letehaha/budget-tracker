@@ -17,9 +17,9 @@ const NO_SELF_SHARE = `
   "sharedWithUserId" IS NULL OR "sharedWithUserId" <> "ownerUserId"
 `;
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       // Replace the original single-value resource-type CHECKs (`'account'`-only) with shape
@@ -79,7 +79,7 @@ module.exports = {
   },
 
   down: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       await queryInterface.sequelize.query(

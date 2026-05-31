@@ -1,6 +1,8 @@
-import { Sequelize } from '@sequelize/core';
+import type { RecordId } from '@bt/shared/types';
+import { DataTypes, type Model, Sequelize } from '@sequelize/core';
 import { PostgresDialect } from '@sequelize/postgres';
 import pg from 'pg';
+import { v7 as uuidv7 } from 'uuid';
 
 // Ensure TIMESTAMP/TIMESTAMPTZ/DATE columns are parsed as Date objects.
 // @sequelize/postgres uses pg's nested pg-types instance, so we register via
@@ -126,6 +128,28 @@ const sequelize = new Sequelize({
   models,
   pool: process.env.NODE_ENV === 'test' ? { max: 50, min: 0, evict: 10_000 } : { max: 50, min: 5, evict: 60_000 },
   logging: process.env.DB_QUERY_LOGGING === 'true' ? console.log : false,
+});
+
+// Most models generate their UUID primary key via a per-row @BeforeCreate hook,
+// but that hook fires too late under Sequelize v7: validation (which enforces the
+// NOT NULL primary key) runs before beforeCreate, and bulkCreate skips per-row
+// create hooks altogether. Assign the uuidv7 id here instead — in beforeValidate
+// (runs before validation; covers create()/save()) and in beforeBulkCreate (covers
+// bulkCreate) — so single and bulk inserts produce the same time-ordered ids.
+// Integer ids and composite primary keys (whose columns are always caller-provided)
+// are left untouched.
+const assignUuidPrimaryKeyIfMissing = (instance: Model) => {
+  const definition = instance.modelDefinition;
+  if (!definition.primaryKeysAttributeNames.has('id')) return;
+  const idAttribute = definition.attributes.get('id');
+  if (idAttribute?.type instanceof DataTypes.UUID && instance.get('id') == null) {
+    instance.set('id', uuidv7() as RecordId);
+  }
+};
+
+sequelize.beforeValidate((instance) => assignUuidPrimaryKeyIfMissing(instance));
+sequelize.beforeBulkCreate((instances) => {
+  for (const instance of instances) assignUuidPrimaryKeyIfMissing(instance);
 });
 
 if (process.env.NODE_ENV === 'development') {

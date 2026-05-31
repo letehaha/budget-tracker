@@ -1,5 +1,5 @@
 import Securities from '@models/investments/securities.model';
-import { FindOptions } from '@sequelize/core';
+import type { FindOptions } from '@sequelize/core';
 import { withTransaction } from '@services/common/with-transaction';
 
 /**

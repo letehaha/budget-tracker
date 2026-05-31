@@ -1,4 +1,5 @@
-import { AI_FEATURE, AI_PROVIDER, getProviderFromModelId } from '@bt/shared/types';
+import type { AI_FEATURE } from '@bt/shared/types';
+import { AI_PROVIDER, getProviderFromModelId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 
 import { getAiApiKey } from '../user-settings/ai-api-key';

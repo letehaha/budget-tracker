@@ -1,4 +1,5 @@
-import { SHARE_INVITATION_STATUSES, ShareInvitationModel } from '@bt/shared/types';
+import type { ShareInvitationModel } from '@bt/shared/types';
+import { SHARE_INVITATION_STATUSES } from '@bt/shared/types';
 import { ConflictError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import ShareInvitations from '@models/share-invitations.model';

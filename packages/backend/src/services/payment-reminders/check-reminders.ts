@@ -1,9 +1,5 @@
-import {
-  NOTIFICATION_TYPES,
-  PAYMENT_REMINDER_STATUSES,
-  REMIND_BEFORE_DAYS,
-  RemindBeforePreset,
-} from '@bt/shared/types';
+import type { RemindBeforePreset } from '@bt/shared/types';
+import { NOTIFICATION_TYPES, PAYMENT_REMINDER_STATUSES, REMIND_BEFORE_DAYS } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import PaymentReminderNotifications from '@models/payment-reminder-notifications.model';

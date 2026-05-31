@@ -1,4 +1,4 @@
-import { CategoryModel } from '@bt/shared/types';
+import type { CategoryModel } from '@bt/shared/types';
 import * as helpers from '@tests/helpers';
 
 function assertNoNamesAreI18nPaths(categories: CategoryModel[]) {

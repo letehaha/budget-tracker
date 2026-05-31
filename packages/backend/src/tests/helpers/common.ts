@@ -1,5 +1,5 @@
-import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types/api';
-import { CustomResponse as ExpressCustomResponse } from '@common/types';
+import type { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types/api';
+import type { CustomResponse as ExpressCustomResponse } from '@common/types';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
 import request from 'supertest';

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
@@ -18,8 +19,8 @@ import { calculateCashDelta } from './cash-balance-utils';
 
 interface CreateTxParams {
   userId: number;
-  portfolioId: string;
-  securityId: string;
+  portfolioId: RecordId;
+  securityId: RecordId;
   category: INVESTMENT_TRANSACTION_CATEGORY;
   date: string;
   quantity: string;

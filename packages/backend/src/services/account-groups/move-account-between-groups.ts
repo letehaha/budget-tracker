@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
@@ -10,8 +11,8 @@ export const moveAccountGroup = withTransaction(
     newParentGroupId,
     userId,
   }: {
-    groupId: string;
-    newParentGroupId: string | null;
+    groupId: RecordId;
+    newParentGroupId: RecordId | null;
     userId: number;
   }): Promise<[number, AccountGroup[]]> => {
     if (newParentGroupId !== null) {

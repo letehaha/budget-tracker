@@ -1,4 +1,4 @@
-FROM oven/bun:1
+FROM oven/bun:1.3.5
 
 # Build arg to control offline mode
 ARG OFFLINE_MODE=false
@@ -21,7 +21,7 @@ COPY packages/shared/tsconfig*.json ./packages/shared/
 # In offline mode, skip installation (use cached layer from previous build)
 RUN chmod +x ./post-install.sh
 RUN if [ "$OFFLINE_MODE" = "false" ]; then \
-      bun install; \
+      bun install --ignore-scripts; \
     else \
       echo "Offline mode: skipping bun install, using cached dependencies"; \
     fi

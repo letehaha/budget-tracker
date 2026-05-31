@@ -1,9 +1,5 @@
-import {
-  ASSET_CLASS,
-  SECURITY_PROVIDER,
-  SUPPORTED_ASSET_CLASSES,
-  SecuritySearchResult,
-} from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER, SUPPORTED_ASSET_CLASSES } from '@bt/shared/types/investments';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';

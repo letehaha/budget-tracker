@@ -46,9 +46,7 @@ export function registerCreateTransaction(server: McpServer) {
           .number()
           .optional()
           .describe('For transfers: amount received in destination account (decimal)'),
-        destinationTransactionId: z
-          .string()
-          .uuid()
+        destinationTransactionId: recordId()
           .optional()
           .describe('For transfers: link to an existing destination transaction instead of creating one'),
         splits: z

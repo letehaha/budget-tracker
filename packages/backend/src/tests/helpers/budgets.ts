@@ -1,10 +1,10 @@
-import { BUDGET_TYPES, BudgetModel, endpointsTypes } from '@bt/shared/types';
-import addTransactionsToBudget from '@controllers/budgets/add-transaction-to-budget';
-import removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
-import * as getBudgetService from '@root/services/budget.service';
-import * as createBudgetService from '@root/services/budgets/create-budget';
+import type { BUDGET_TYPES, BudgetModel, endpointsTypes } from '@bt/shared/types';
+import type addTransactionsToBudget from '@controllers/budgets/add-transaction-to-budget';
+import type removeTransactionsFromBudget from '@controllers/budgets/remove-transaction-from-budget';
+import type * as getBudgetService from '@root/services/budget.service';
+import type * as createBudgetService from '@root/services/budgets/create-budget';
 import type { getBudgetStats } from '@root/services/budgets/stats';
-import { Response } from 'express';
+import type { Response } from 'express';
 
 import { makeRequest } from './common';
 

@@ -1,4 +1,6 @@
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import Balances from '@models/balances.model';
 import ExchangeRates from '@models/exchange-rates.model';
 import Securities from '@models/investments/securities.model';
@@ -10,7 +12,7 @@ import * as helpers from '@tests/helpers';
 import { format, subDays } from 'date-fns';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { CombinedBalanceHistoryItem } from './get-combined-balance-history';
+import type { CombinedBalanceHistoryItem } from './get-combined-balance-history';
 
 describe('[Stats] Combined balance history', () => {
   it('Returns correct combined balance data for accounts only', async () => {
@@ -347,7 +349,7 @@ describe('[Stats] Combined balance history', () => {
       await SecurityPricing.create({
         securityId: cryptoSecurity.id,
         date: new Date(pickedDayUtcMidnight + 22 * 60 * 60 * 1000),
-        priceClose: '67000',
+        priceClose: Money.fromDecimal('67000'),
         source: SECURITY_PROVIDER.coingecko,
       });
 
@@ -369,7 +371,7 @@ describe('[Stats] Combined balance history', () => {
       await SecurityPricing.create({
         securityId: cryptoSecurity.id,
         date: new Date(pickedDayUtcMidnight + 6 * 60 * 60 * 1000),
-        priceClose: '50000',
+        priceClose: Money.fromDecimal('50000'),
         source: SECURITY_PROVIDER.coingecko,
       });
 
@@ -412,8 +414,8 @@ describe('[Stats] Combined balance history', () => {
       dayKey,
       price = '100',
     }: {
-      portfolioId: string;
-      securityId: string;
+      portfolioId: RecordId;
+      securityId: RecordId;
       pickedDay: Date;
       dayKey: string;
       price?: string;
@@ -427,7 +429,7 @@ describe('[Stats] Combined balance history', () => {
       await SecurityPricing.create({
         securityId,
         date: pickedDay,
-        priceClose: price,
+        priceClose: Money.fromDecimal(price),
         source: SECURITY_PROVIDER.yahoo,
       });
 

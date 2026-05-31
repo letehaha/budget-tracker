@@ -1,4 +1,5 @@
-import { DataTypes, AbstractQueryInterface, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import { DataTypes } from '@sequelize/core';
 
 /**
  * Migration to create TransactionSplits table for split transaction feature.

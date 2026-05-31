@@ -28,7 +28,7 @@ export const resolveTransferPairs = async ({
     raw: true,
   });
 
-  const transferIds = transferTxs.map((tx) => tx.transferId).filter((id): id is string => Boolean(id));
+  const transferIds = transferTxs.map((tx) => tx.transferId).filter((id): id is RecordId => Boolean(id));
 
   if (transferIds.length === 0) return transactionIds;
 

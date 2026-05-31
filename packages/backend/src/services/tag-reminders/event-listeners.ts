@@ -1,5 +1,6 @@
 import { logger } from '@js/utils/logger';
-import { DOMAIN_EVENTS, TransactionsTaggedPayload, eventBus } from '@services/common/event-bus';
+import type { TransactionsTaggedPayload } from '@services/common/event-bus';
+import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import debounce from 'lodash/debounce';
 
 import { triggerRealTimeRemindersForTags } from './index';

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
@@ -46,7 +47,7 @@ async function updateAccountBalanceForChangedTxImpl({
   prevRefAmount = Money.zero(),
   prevTransactionType = transactionType,
 }: {
-  accountId: string;
+  accountId: RecordId;
   transactionType: TRANSACTION_TYPES;
   amount?: Money;
   prevAmount?: Money;

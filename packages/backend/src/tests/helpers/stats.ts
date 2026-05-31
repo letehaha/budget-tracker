@@ -1,5 +1,5 @@
-import { BalanceModel, endpointsTypes } from '@bt/shared/types';
-import {
+import type { BalanceModel, endpointsTypes } from '@bt/shared/types';
+import type {
   getCombinedBalanceHistory as _getCombinedBalanceHistory,
   getEarliestTransactionDate as _getEarliestTransactionDate,
 } from '@root/services/stats';

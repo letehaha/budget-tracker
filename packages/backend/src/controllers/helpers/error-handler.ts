@@ -1,5 +1,5 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
-import { CustomResponse } from '@common/types';
+import type { CustomResponse } from '@common/types';
 import { CustomError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 

@@ -1,12 +1,5 @@
-import {
-  ACCESS_SOURCES,
-  AccessSource,
-  RESOURCE_TYPES,
-  ResourceType,
-  SHARE_PERMISSIONS,
-  SharePermission,
-  SharePolicy,
-} from '@bt/shared/types';
+import type { AccessSource, ResourceType, SharePermission, SharePolicy } from '@bt/shared/types';
+import { ACCESS_SOURCES, RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';

@@ -1,4 +1,5 @@
-import { AbstractQueryInterface, QueryTypes } from '@sequelize/core';
+import type { AbstractQueryInterface } from '@sequelize/core';
+import { QueryTypes } from '@sequelize/core';
 import crypto from 'crypto';
 
 /**

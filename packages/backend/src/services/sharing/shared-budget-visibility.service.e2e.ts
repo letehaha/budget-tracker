@@ -11,7 +11,7 @@ import { ACCESS_SOURCES, BUDGET_TYPES, RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSA
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
-import { CustomResponse } from '@tests/helpers/common';
+import type { CustomResponse } from '@tests/helpers/common';
 import { describe, expect, it } from 'vitest';
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { faker } from '@faker-js/faker';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -31,7 +32,7 @@ describe('Unlink transfer transactions', () => {
 
     // Now unlink them
     const transactions = await helpers.getTransactions({ raw: true });
-    const transferIds = transactions.map((item) => item.transferId).filter((id): id is string => id !== null);
+    const transferIds = transactions.map((item) => item.transferId).filter((id): id is RecordId => id !== null);
 
     const updatedTransactions = await helpers.unlinkTransferTransactions({
       transferIds,
@@ -167,7 +168,9 @@ describe('Unlink transfer transactions', () => {
     });
 
     // Now unlink all of them
-    const transferIds = [...updatedA!, ...updatedB!].map((t) => t.transferId).filter((id): id is string => id !== null);
+    const transferIds = [...updatedA!, ...updatedB!]
+      .map((t) => t.transferId)
+      .filter((id): id is RecordId => id !== null);
 
     const result = await helpers.unlinkTransferTransactions({
       transferIds,

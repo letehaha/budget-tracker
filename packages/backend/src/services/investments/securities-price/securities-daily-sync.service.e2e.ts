@@ -2,7 +2,7 @@ import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
 import { Money } from '@common/types/money';
 import Holdings from '@models/investments/holdings.model';
-import Portfolios from '@models/investments/portfolios.model';
+import type Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import { restClient } from '@polygon.io/client-js';
@@ -179,7 +179,7 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
     // Add some existing price data to test prioritization
     await SecurityPricing.create({
       securityId: securityWithStaleData.id,
-      date: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+      date: subDays(new Date(), 5),
       priceClose: Money.fromDecimal('100.00'),
       source: SECURITY_PROVIDER.polygon,
     });

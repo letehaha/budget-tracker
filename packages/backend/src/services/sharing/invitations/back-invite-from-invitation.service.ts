@@ -1,4 +1,5 @@
-import { HouseholdSharePermission, RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SharePolicy } from '@bt/shared/types';
+import type { HouseholdSharePermission, SharePolicy } from '@bt/shared/types';
+import { RESOURCE_TYPES, SHARE_INVITATION_STATUSES } from '@bt/shared/types';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { connection } from '@models/index';

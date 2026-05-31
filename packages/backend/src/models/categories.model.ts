@@ -1,14 +1,9 @@
-import { CATEGORY_TYPES, RecordId } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
+import { CATEGORY_TYPES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,
@@ -105,7 +100,7 @@ export interface CreateCategoryPayload {
   name: string;
   icon?: string | null;
   color?: string;
-  parentId?: string;
+  parentId?: RecordId;
   type?: CATEGORY_TYPES;
 }
 

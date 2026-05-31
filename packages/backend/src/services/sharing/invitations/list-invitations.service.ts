@@ -1,8 +1,9 @@
-import { SHARE_INVITATION_STATUSES, ShareInvitationModel } from '@bt/shared/types';
+import type { ShareInvitationModel } from '@bt/shared/types';
+import { SHARE_INVITATION_STATUSES } from '@bt/shared/types';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
 import { Op } from '@sequelize/core';
-import type { WhereOptions } from '@sequelize/core';
+import type { InferAttributes } from '@sequelize/core';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
@@ -75,7 +76,8 @@ export const listReceivedInvitations = async ({
   inviteeUserId: number;
 }): Promise<InvitationListItem[]> => {
   const callerEmail = await getEmailForUser({ userId: inviteeUserId });
-  const recipientPredicates: WhereOptions[] = [{ inviteeUserId }];
+  type InvitationWhere = Partial<InferAttributes<ShareInvitations>>;
+  const recipientPredicates: InvitationWhere[] = [{ inviteeUserId }];
   if (callerEmail) {
     recipientPredicates.push({
       inviteeUserId: null,
@@ -92,5 +94,5 @@ export const listReceivedInvitations = async ({
     },
     order: [['createdAt', 'DESC']],
   });
-  return hydrate(rows);
+  return hydrate(rows as ShareInvitations[]);
 };

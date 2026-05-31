@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import Currencies from '@models/currencies.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
@@ -15,7 +16,7 @@ import {
 
 interface DirectCashTransactionParams {
   userId: number;
-  portfolioId: string;
+  portfolioId: RecordId;
   type: 'deposit' | 'withdrawal';
   amount: string;
   currencyCode: string;

@@ -25,7 +25,7 @@ import { QueryTypes } from '@sequelize/core';
  * SecurityPricings is roughly one row per security per day; for typical
  * deployments this is manageable. For very large datasets, plan the window.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.query(
       `ALTER TABLE "SecurityPricings"

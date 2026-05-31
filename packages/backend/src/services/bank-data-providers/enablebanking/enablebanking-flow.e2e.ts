@@ -4,8 +4,8 @@ import { ERROR_CODES } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { connection as dbConnection } from '@models/index';
 import * as helpers from '@tests/helpers';
+import type { FixedTransaction } from '@tests/mocks/enablebanking/data';
 import {
-  FixedTransaction,
   INVALID_ENABLE_BANKING_APP_ID,
   INVALID_ENABLE_BANKING_PRIVATE_KEY,
   MOCK_BANK_COUNTRY,
@@ -183,7 +183,13 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(connectionDetails.accounts.length).toBe(accountIdsToConnect.length);
 
       connectionDetails.accounts.forEach(
-        (account: { externalId: string; id: string; name: string; currentBalance: number; currencyCode: string }) => {
+        (account: {
+          externalId: string | null;
+          id: string;
+          name: string;
+          currentBalance: number;
+          currencyCode: string;
+        }) => {
           expect(accountIdsToConnect).toContain(account.externalId);
           expect(account).toHaveProperty('id');
           expect(account).toHaveProperty('name');
@@ -681,7 +687,7 @@ describe('Enable Banking Data Provider E2E', () => {
       expect(transactions.length).toBeGreaterThan(0);
 
       // Verify transactions belong to the correct account
-      transactions.forEach((tx: { accountId: string }) => {
+      transactions.forEach((tx: { accountId: string | null }) => {
         expect(tx.accountId).toBe(createdAccountId);
       });
     });

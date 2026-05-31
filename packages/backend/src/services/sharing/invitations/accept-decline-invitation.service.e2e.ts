@@ -13,7 +13,7 @@ import { API_PREFIX } from '@root/config';
 import { Op } from '@sequelize/core';
 import { generateInvitationToken } from '@services/sharing/invitations/generate-invitation-token';
 import * as helpers from '@tests/helpers';
-import { ErrorResponse } from '@tests/helpers/common';
+import type { ErrorResponse } from '@tests/helpers/common';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 

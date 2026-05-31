@@ -1,9 +1,10 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types/api';
-import { CustomRequest, CustomResponse } from '@common/types';
+import type { CustomRequest, CustomResponse } from '@common/types';
 import { ERROR_CODES } from '@js/errors';
 import { logger } from '@js/utils';
-import { NextFunction, Request } from 'express';
-import { ZodError, ZodType } from 'zod';
+import type { NextFunction, Request } from 'express';
+import type { ZodType } from 'zod';
+import { ZodError } from 'zod';
 
 export const validateEndpoint =
   <T extends ZodType>(schema: T) =>

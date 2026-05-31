@@ -1,4 +1,4 @@
-import { CategoryModel } from '@bt/shared/types';
+import type { CategoryModel } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';

@@ -1,5 +1,6 @@
 import { logger } from '@js/utils/logger';
-import { DOMAIN_EVENTS, TransactionsSyncedPayload, eventBus } from '@services/common/event-bus';
+import type { TransactionsSyncedPayload } from '@services/common/event-bus';
+import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 
 import { queueCategorizationJob } from './categorization-queue';
 

@@ -1,4 +1,4 @@
-import { AbstractQueryInterface, Transaction } from '@sequelize/core';
+import type { AbstractQueryInterface, Transaction } from '@sequelize/core';
 
 // exactly fully lowercase to avoid any case-sensitivity issues
 const ENUM_TRANSACTION_TYPE = 'enum_transactions_transaction_type';

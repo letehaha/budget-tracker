@@ -2,7 +2,7 @@
  * Common/Shared Enable Banking Types
  * https://enablebanking.com/docs/api/reference/
  */
-import { AddressType, RateType, ReferenceNumberScheme } from './enums';
+import type { AddressType, RateType, ReferenceNumberScheme } from './enums';
 
 /**
  * Amount type with currency

@@ -85,9 +85,9 @@ function parseFullName(input: string | null | undefined): {
  * Idempotent: rows already at their desired slug are skipped, and name
  * fields are only set when they're NULL.
  */
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
-    const t: Transaction = await queryInterface.sequelize.transaction();
+    const t: Transaction = await queryInterface.sequelize.startUnmanagedTransaction();
 
     try {
       const [rows] = (await queryInterface.sequelize.query(

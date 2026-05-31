@@ -25,7 +25,7 @@ import type { AbstractQueryInterface } from '@sequelize/core';
 // We surface their count so operators can reconcile manually; without the
 // log, the new `@BeforeUpdate` validator would later reject any update to
 // those rows with no breadcrumb pointing back to this migration.
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
       const [orphanRow] = await queryInterface.sequelize.query<{ count: string }>(

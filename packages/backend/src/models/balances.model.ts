@@ -1,19 +1,12 @@
-import { ACCOUNT_TYPES, RecordId, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils';
 import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-  Op,
-  sql,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model, Op, sql } from '@sequelize/core';
 import {
   Attribute,
   BeforeCreate,
@@ -28,7 +21,8 @@ import { startOfDay, startOfMonth, subDays } from 'date-fns';
 import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
-import Transactions, { TransactionsAttributes } from './transactions.model';
+import type { TransactionsAttributes } from './transactions.model';
+import type Transactions from './transactions.model';
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -273,7 +267,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
     date,
     amount,
   }: {
-    accountId: string;
+    accountId: RecordId;
     date: Date;
     amount: Money;
   }) {
@@ -451,7 +445,7 @@ export default class Balances extends Model<InferAttributes<Balances>, InferCrea
     date,
     refBalance,
   }: {
-    accountId: string;
+    accountId: RecordId;
     date: Date;
     refBalance: Money;
   }) {

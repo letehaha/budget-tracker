@@ -1,8 +1,8 @@
-import { API_RESPONSE_STATUS } from '@bt/shared/types';
-import Users from '@models/users.model';
-import { InferAttributes, Model } from '@sequelize/core';
-import * as Express from 'express';
-import { ZodIssue, z } from 'zod';
+import type { API_RESPONSE_STATUS } from '@bt/shared/types';
+import type Users from '@models/users.model';
+import type { InferAttributes, Model } from '@sequelize/core';
+import type * as Express from 'express';
+import type { ZodIssue, z } from 'zod';
 
 // Enforce res.json(object) to always have `status` field and optional `response`
 // with ability to pass `response` type using res.json<Type>()

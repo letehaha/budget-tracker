@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { INVESTMENT_DECIMAL_SCALE } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -13,8 +14,8 @@ import { Big } from 'big.js';
 
 interface DeleteParams {
   userId: number;
-  portfolioId: string;
-  securityId: string;
+  portfolioId: RecordId;
+  securityId: RecordId;
   /**
    * When true, also deletes every InvestmentTransaction for this
    * (portfolioId, securityId) and bypasses the non-zero quantity guard.
@@ -30,7 +31,7 @@ const reverseCashImpactForDeletedHolding = async ({
   transactions,
 }: {
   userId: number;
-  portfolioId: string;
+  portfolioId: RecordId;
   transactions: InvestmentTransaction[];
 }) => {
   // Group net reversal delta per currency so we issue a single balance

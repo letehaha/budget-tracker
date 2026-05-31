@@ -5,7 +5,7 @@ import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 
-import { EnableBankingProvider } from '../enablebanking/enablebanking.provider';
+import type { EnableBankingProvider } from '../enablebanking/enablebanking.provider';
 import { bankProviderRegistry } from '../registry';
 
 /**

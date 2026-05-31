@@ -1,4 +1,5 @@
-import { AI_FEATURE, AI_PROVIDER } from '../enums';
+import type { AI_FEATURE } from '../enums';
+import { AI_PROVIDER } from '../enums';
 
 /**
  * Model capability types for display in UI

@@ -1,4 +1,4 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import type { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
@@ -9,8 +9,8 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import Users from '@models/users.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { unlinkAccountFromBankConnection } from '@services/accounts/unlink-from-bank-connection';
+import type { AccountShareCleanupResult } from '@services/sharing/cleanup/cleanup-account-shares.service';
 import {
-  AccountShareCleanupResult,
   cleanupAccountSharesInTx,
   notifyAccountDeleteRecipients,
 } from '@services/sharing/cleanup/cleanup-account-shares.service';

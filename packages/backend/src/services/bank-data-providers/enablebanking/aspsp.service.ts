@@ -2,7 +2,7 @@
  * Service for managing Enable Banking ASPSPs (banks)
  */
 import { EnableBankingApiClient } from './api-client';
-import { ASPSP, EnableBankingCredentials } from './types';
+import type { ASPSP, EnableBankingCredentials } from './types';
 
 /**
  * Get list of all supported ASPSPs

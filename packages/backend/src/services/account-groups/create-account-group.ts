@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
@@ -13,7 +14,7 @@ export const createAccountGroup = withTransaction(
   }: {
     userId: number;
     name: string;
-    parentGroupId?: string | null;
+    parentGroupId?: RecordId | null;
   }): Promise<AccountGroup> => {
     if (parentGroupId) {
       await findOrThrowNotFound({

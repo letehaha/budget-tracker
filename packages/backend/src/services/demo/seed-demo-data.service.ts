@@ -17,7 +17,7 @@ import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
-import Accounts from '@models/accounts.model';
+import type Accounts from '@models/accounts.model';
 import { connection } from '@models/index';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
@@ -430,8 +430,8 @@ export async function setupInvestments({
         where: { securityId: security.id, date: pricingDate },
         defaults: {
           securityId: security.id,
-          date: pricingDate,
-          priceClose: sec.currentPrice.toFixed(10),
+          date: referenceDate,
+          priceClose: Money.fromDecimal(sec.currentPrice.toFixed(10)),
           priceAsOf: referenceDate,
           source: 'demo',
         },
@@ -446,9 +446,9 @@ export async function setupInvestments({
           portfolioId: portfolio.id,
           securityId: security.id,
           currencyCode: sec.currencyCode,
-          quantity: quantityStr,
-          costBasis: costBasisStr,
-          refCostBasis: costBasisStr,
+          quantity: Money.fromDecimal(quantityStr),
+          costBasis: Money.fromDecimal(costBasisStr),
+          refCostBasis: Money.fromDecimal(costBasisStr),
           excluded: false,
         },
         { transaction },
@@ -462,13 +462,13 @@ export async function setupInvestments({
           transactionType: TRANSACTION_TYPES.expense,
           date: buyDate,
           name: `Bought ${sec.quantity} shares of ${sec.symbol}`,
-          amount: costBasisStr,
-          refAmount: costBasisStr,
-          fees: '0',
-          refFees: '0',
-          quantity: quantityStr,
-          price: sec.purchasePrice.toFixed(10),
-          refPrice: sec.purchasePrice.toFixed(10),
+          amount: Money.fromDecimal(costBasisStr),
+          refAmount: Money.fromDecimal(costBasisStr),
+          fees: Money.zero(),
+          refFees: Money.zero(),
+          quantity: Money.fromDecimal(quantityStr),
+          price: Money.fromDecimal(sec.purchasePrice.toFixed(10)),
+          refPrice: Money.fromDecimal(sec.purchasePrice.toFixed(10)),
           currencyCode: sec.currencyCode,
           category: INVESTMENT_TRANSACTION_CATEGORY.buy,
         },
@@ -483,10 +483,10 @@ export async function setupInvestments({
       {
         portfolioId: portfolio.id,
         currencyCode: 'USD',
-        availableCash: remainingCash,
-        totalCash: remainingCash,
-        refAvailableCash: remainingCash,
-        refTotalCash: remainingCash,
+        availableCash: Money.fromDecimal(remainingCash),
+        totalCash: Money.fromDecimal(remainingCash),
+        refAvailableCash: Money.fromDecimal(remainingCash),
+        refTotalCash: Money.fromDecimal(remainingCash),
       },
       { transaction },
     );

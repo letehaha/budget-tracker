@@ -1,5 +1,6 @@
-import { AIFeatureConfig, AI_FEATURE } from '@bt/shared/types';
-import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
+import type { AIFeatureConfig, AI_FEATURE } from '@bt/shared/types';
+import type { SettingsSchema } from '@models/user-settings.model';
+import UserSettings, { DEFAULT_SETTINGS } from '@models/user-settings.model';
 
 import { withTransaction } from '../common/with-transaction';
 

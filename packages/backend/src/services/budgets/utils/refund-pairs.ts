@@ -1,17 +1,17 @@
 import type { RecordId } from '@bt/shared/types';
-import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import type { TRANSACTION_TYPES } from '@bt/shared/types';
+import type { Money } from '@common/types/money';
 import RefundTransactions from '@models/refund-transactions.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
 import { Op } from '@sequelize/core';
 
 interface RefundTxData {
-  id: string;
+  id: RecordId;
   refAmount: Money;
   transactionType: TRANSACTION_TYPES;
   time: Date;
-  categoryId: RecordId;
+  categoryId: RecordId | null;
 }
 
 export interface RefundPair {
@@ -80,7 +80,7 @@ export const fetchBudgetRefundPairs = async ({
       : Promise.resolve([] as TransactionSplits[]),
   ]);
 
-  const txById = new Map<string, RefundTxData>(
+  const txById = new Map<RecordId, RefundTxData>(
     refundTxs.map((t) => [
       t.id,
       {

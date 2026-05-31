@@ -1,8 +1,9 @@
-import { AI_PROVIDER } from '@bt/shared/types';
-import { getUserSettings as apiGetUserSettings } from '@root/services/user-settings/get-user-settings';
-import { updateUserSettings as apiUpdateUserSettings } from '@root/services/user-settings/update-settings';
+import type { AI_PROVIDER } from '@bt/shared/types';
+import type { getUserSettings as apiGetUserSettings } from '@root/services/user-settings/get-user-settings';
+import type { updateUserSettings as apiUpdateUserSettings } from '@root/services/user-settings/update-settings';
 
-import { CustomResponse, makeRequest } from './common';
+import type { CustomResponse } from './common';
+import { makeRequest } from './common';
 
 export async function getUserSettings<R extends boolean | undefined = undefined>({ raw }: { raw?: R }) {
   return makeRequest<Awaited<ReturnType<typeof apiGetUserSettings>>, R>({

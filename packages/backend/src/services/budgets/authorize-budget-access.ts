@@ -1,4 +1,5 @@
-import { RESOURCE_TYPES, SHARE_PERMISSIONS, SharePermission, SharePolicy } from '@bt/shared/types';
+import type { SharePermission, SharePolicy } from '@bt/shared/types';
+import { RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError } from '@js/errors';
 import {

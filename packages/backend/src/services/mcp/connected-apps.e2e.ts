@@ -1,6 +1,6 @@
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
 import { app } from '@root/app';
-import { CustomResponse } from '@tests/helpers';
+import type { CustomResponse } from '@tests/helpers';
 import * as mcpHelpers from '@tests/helpers/mcp';
 import request from 'supertest';
 

@@ -147,10 +147,10 @@ const translateIdArray = (value: unknown, map: Map<number, string>): string[] | 
   return next;
 };
 
-module.exports = {
+export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {
     const sequelize = queryInterface.sequelize;
-    const t: Transaction = await sequelize.transaction();
+    const t: Transaction = await sequelize.startUnmanagedTransaction();
 
     try {
       // pgcrypto provides gen_random_uuid() on every supported Postgres version.
@@ -187,7 +187,7 @@ module.exports = {
          AND c.column_name       = kcu.column_name
          AND c.table_schema      = tc.table_schema
         WHERE tc.constraint_type = 'FOREIGN KEY'
-          AND ccu.table_name IN (:tables)
+          AND ccu.table_name::text = ANY(:tables)
           AND ccu.column_name = 'id'
         `,
         {
@@ -266,7 +266,7 @@ module.exports = {
         SELECT tc.table_name, tc.constraint_name
           FROM information_schema.table_constraints tc
          WHERE tc.constraint_type = 'PRIMARY KEY'
-           AND tc.table_name IN (:tables)
+           AND tc.table_name::text = ANY(:tables)
         `,
         {
           replacements: { tables: allPkOwners },

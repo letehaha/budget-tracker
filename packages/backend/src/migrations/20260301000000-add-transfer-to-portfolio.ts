@@ -1,4 +1,5 @@
-import { AbstractQueryInterface, DataTypes, Op } from '@sequelize/core';
+import type { AbstractQueryInterface } from '@sequelize/core';
+import { DataTypes, Op } from '@sequelize/core';
 
 export default {
   up: async (queryInterface: AbstractQueryInterface): Promise<void> => {

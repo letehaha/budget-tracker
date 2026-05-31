@@ -1,17 +1,12 @@
-import {
-  ACCESS_SOURCES,
-  RESOURCE_TYPES,
-  ResourceType,
-  SharePermission,
-  SharePolicy,
-  SharedWithMeAccessSource,
-} from '@bt/shared/types';
+import type { ResourceType, SharePermission, SharePolicy, SharedWithMeAccessSource } from '@bt/shared/types';
+import { ACCESS_SOURCES, RESOURCE_TYPES } from '@bt/shared/types';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
 import { Op } from '@sequelize/core';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
-import { ShareUserSnapshot, snapshotShareUser } from '../share-user-snapshot';
+import type { ShareUserSnapshot } from '../share-user-snapshot';
+import { snapshotShareUser } from '../share-user-snapshot';
 
 export interface SharedWithMeItem {
   shareId: string;

@@ -1,4 +1,5 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { sleep } from '@common/helpers';
 import { logger } from '@js/utils';
 import SecurityCurrencyCache from '@models/investments/security-currency-cache.model';
@@ -6,15 +7,14 @@ import { Op } from '@sequelize/core';
 import { subYears } from 'date-fns';
 import YahooFinance from 'yahoo-finance2';
 
-import {
-  BaseSecurityDataProvider,
+import type {
   BulkPriceData,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
   SecurityPriceFetchInput,
-  toProviderSymbol,
 } from './base-provider';
+import { BaseSecurityDataProvider, toProviderSymbol } from './base-provider';
 
 const DEFAULT_HISTORY_YEARS = 5;
 const CURRENCY_RESOLVE_CONCURRENCY = 5;

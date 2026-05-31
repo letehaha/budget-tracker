@@ -1,4 +1,4 @@
-import { Express, Request, Response } from 'express';
+import type { Express, Request, Response } from 'express';
 
 import { API_PREFIX, MCP_BASE_URL } from '../config';
 

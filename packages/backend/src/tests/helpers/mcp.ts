@@ -1,7 +1,7 @@
 import { authPool } from '@config/auth';
-import { ConnectedApp } from '@services/mcp/connected-apps';
+import type { ConnectedApp } from '@services/mcp/connected-apps';
 import * as helpers from '@tests/helpers';
-import { CustomResponse } from '@tests/helpers';
+import type { CustomResponse } from '@tests/helpers';
 
 export async function getOAuthClientInfo({
   clientId,

@@ -1,4 +1,4 @@
-import {
+import type {
   ExternalMonobankClientInfoResponse,
   ExternalMonobankTransactionResponse,
 } from '@bt/shared/types/external-services';
@@ -6,7 +6,8 @@ import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, TooManyRequests } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
-import axios, { AxiosInstance } from 'axios';
+import type { AxiosInstance } from 'axios';
+import axios from 'axios';
 import crypto from 'crypto';
 
 /**

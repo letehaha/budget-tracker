@@ -7,7 +7,7 @@ import { removeUndefinedKeys } from '@js/helpers';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
-import RefundTransactions from '@models/refund-transactions.model';
+import type RefundTransactions from '@models/refund-transactions.model';
 import Tags from '@models/tags.model';
 import { deleteSplitsForTransaction } from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
@@ -62,7 +62,8 @@ const validateTransaction = async (
   const account = await findOrThrowNotFound({
     query: Accounts.getAccountById({
       userId: ctx.accountOwnerUserId,
-      id: prevData.accountId,
+      // accountId is null only for portfolio-linked transactions which don't flow here
+      id: prevData.accountId!,
     }),
     message: t({ key: 'accounts.accountNotFoundForTransaction' }),
   });
@@ -127,7 +128,7 @@ const makeBasicBaseTxUpdation = async (
   // accountId is null only for portfolio-linked transactions, which don't flow through this service.
   const account = await Accounts.getAccountById({
     userId: ctx.accountOwnerUserId,
-    id: prevData.accountId,
+    id: prevData.accountId!,
   });
 
   const isSystemAccount = account?.type === ACCOUNT_TYPES.system;
@@ -484,7 +485,7 @@ export const updateTransaction = withTransaction(
         if (prevData.currencyCode !== callerDefaultCurrency.code) {
           await ensureUserCurrencyConnected({
             userId: ctx.callerUserId,
-            currencyCode: prevData.currencyCode,
+            currencyCode: prevData.currencyCode!,
           });
         }
       }

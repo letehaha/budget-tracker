@@ -1,5 +1,6 @@
 import { ForbiddenError } from '@js/errors';
-import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
+import type { SettingsSchema } from '@models/user-settings.model';
+import UserSettings, { DEFAULT_SETTINGS } from '@models/user-settings.model';
 
 import { withTransaction } from '../common/with-transaction';
 

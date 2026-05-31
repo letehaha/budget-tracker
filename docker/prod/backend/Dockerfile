@@ -1,5 +1,5 @@
 # 🏗️ Stage 1️⃣: Build
-FROM oven/bun:1-alpine AS build-stage
+FROM oven/bun:1.3.5-alpine AS build-stage
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ WORKDIR /app/packages/backend
 RUN bun run build
 
 # 🚀 Stage 2️⃣: Production
-FROM oven/bun:1-alpine AS production
+FROM oven/bun:1.3.5-alpine AS production
 
 WORKDIR /app
 

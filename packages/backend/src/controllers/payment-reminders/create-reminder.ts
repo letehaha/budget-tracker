@@ -1,8 +1,8 @@
+import type { RemindBeforePreset } from '@bt/shared/types';
 import {
   PREFERRED_TIME_SLOTS,
   MAX_REMIND_BEFORE_PRESETS,
   REMIND_BEFORE_PRESETS,
-  RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
 } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';

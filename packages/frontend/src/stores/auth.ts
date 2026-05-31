@@ -21,7 +21,7 @@ function identifyUserForTracking(user: UserModel) {
   // PostHog analytics
   identifyUser({
     userId: user.id,
-    email: user.email,
+    email: user.email ?? undefined,
     username: user.username,
     properties: {
       is_demo: isDemo,
@@ -32,7 +32,7 @@ function identifyUserForTracking(user: UserModel) {
   // Sentry error tracking
   setSentryUser({
     userId: user.id,
-    email: user.email,
+    email: user.email ?? undefined,
     username: user.username,
   });
 }

@@ -1,20 +1,13 @@
-import { RecordId } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { removeUndefinedKeys } from '@js/helpers';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-  Op,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model, Op } from '@sequelize/core';
 import { Attribute, BeforeCreate, Default, Index, NotNull, PrimaryKey, Table } from '@sequelize/core/decorators-legacy';
 import { v7 as uuidv7 } from 'uuid';
 
 import Currencies from './currencies.model';
-import Users from './users.model';
+import type Users from './users.model';
 
 @Table({
   timestamps: false,

@@ -1,4 +1,4 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import type { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { createController } from '@controllers/helpers/controller-factory';

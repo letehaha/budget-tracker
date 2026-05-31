@@ -1,4 +1,5 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import type { endpointsTypes } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
 import * as Transactions from '@models/transactions.model';
 import { Op } from '@sequelize/core';

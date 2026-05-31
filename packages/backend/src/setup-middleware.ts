@@ -2,7 +2,8 @@ import { logger } from '@js/utils/logger';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
 import cors from 'cors';
-import express, { Express, Request } from 'express';
+import type { Express, Request } from 'express';
+import express from 'express';
 import morgan from 'morgan';
 
 import { API_PREFIX } from './config';

@@ -2,7 +2,7 @@ import { sessionIdNamespace } from '@common/lib/cls/session-id';
 import { SESSION_ID_KEY_NAME } from '@common/types';
 import { logger } from '@js/utils';
 import { createHmac } from 'crypto';
-import { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 
 const SECRET_KEY = process.env.APP_SESSION_ID_SECRET as string;

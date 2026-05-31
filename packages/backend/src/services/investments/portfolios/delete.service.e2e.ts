@@ -1,6 +1,7 @@
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
+import { Money } from '@common/types/money';
 import { ERROR_CODES } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
@@ -45,13 +46,10 @@ describe('Delete Portfolio Service E2E', () => {
 
         await Holdings.create({
           portfolioId: created.id,
-          accountId: investmentAccount.id,
           securityId: vooSecurity!.id,
-          quantity: '0',
-          costBasis: '0',
-          refCostBasis: '0',
-          value: '0',
-          refValue: '0',
+          quantity: Money.zero(),
+          costBasis: Money.zero(),
+          refCostBasis: Money.zero(),
           currencyCode: 'USD',
         });
 
@@ -142,13 +140,10 @@ describe('Delete Portfolio Service E2E', () => {
 
         await Holdings.create({
           portfolioId: created.id,
-          accountId: investmentAccount.id,
           securityId: aapl!.id,
-          quantity: '0',
-          costBasis: '0',
-          refCostBasis: '0',
-          value: '0',
-          refValue: '0',
+          quantity: Money.zero(),
+          costBasis: Money.zero(),
+          refCostBasis: Money.zero(),
           currencyCode: 'USD',
         });
 

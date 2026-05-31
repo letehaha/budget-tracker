@@ -1,14 +1,14 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { removeUndefinedKeys } from '@js/helpers';
-import { getPortfolioBalances as _getPortfolioBalances } from '@services/investments/portfolios/balances';
-import { updatePortfolioBalance as _updatePortfolioBalance } from '@services/investments/portfolios/balances';
-import { createPortfolio as _createPortfolio } from '@services/investments/portfolios/create.service';
-import { deletePortfolio as _deletePortfolio } from '@services/investments/portfolios/delete.service';
-import { getPortfolioSummary as _getPortfolioSummary } from '@services/investments/portfolios/get-portfolio-summary.service';
-import { getPortfolio as _getPortfolio } from '@services/investments/portfolios/get.service';
-import { listPortfolios as _listPortfolios } from '@services/investments/portfolios/list.service';
-import { restorePortfolio as _restorePortfolio } from '@services/investments/portfolios/restore.service';
-import { updatePortfolio as _updatePortfolio } from '@services/investments/portfolios/update.service';
+import type { getPortfolioBalances as _getPortfolioBalances } from '@services/investments/portfolios/balances';
+import type { updatePortfolioBalance as _updatePortfolioBalance } from '@services/investments/portfolios/balances';
+import type { createPortfolio as _createPortfolio } from '@services/investments/portfolios/create.service';
+import type { deletePortfolio as _deletePortfolio } from '@services/investments/portfolios/delete.service';
+import type { getPortfolioSummary as _getPortfolioSummary } from '@services/investments/portfolios/get-portfolio-summary.service';
+import type { getPortfolio as _getPortfolio } from '@services/investments/portfolios/get.service';
+import type { listPortfolios as _listPortfolios } from '@services/investments/portfolios/list.service';
+import type { restorePortfolio as _restorePortfolio } from '@services/investments/portfolios/restore.service';
+import type { updatePortfolio as _updatePortfolio } from '@services/investments/portfolios/update.service';
 
 import { makeRequest } from '../common';
 

@@ -1,6 +1,6 @@
-import { AccountModel, CategoryModel, TransactionModel } from './db-models';
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES, FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TYPES } from './enums';
-import { RecordId } from './record-id';
+import type { AccountModel, CategoryModel, TransactionModel } from './db-models';
+import type { ACCOUNT_STATUSES, ACCOUNT_TYPES, FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TYPES } from './enums';
+import type { RecordId } from './record-id';
 
 export type BodyPayload = {
   [key: string | number]: string | number | boolean | undefined;

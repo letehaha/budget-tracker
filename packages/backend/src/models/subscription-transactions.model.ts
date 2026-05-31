@@ -1,5 +1,6 @@
 import { SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
-import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import { Attribute, Default, NotNull, PrimaryKey, Table, Unique } from '@sequelize/core/decorators-legacy';
 
 @Table({

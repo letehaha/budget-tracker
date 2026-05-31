@@ -11,6 +11,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { trackImportCompleted } from '@js/utils/posthog';
@@ -24,7 +25,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface ExecuteImportParams {
   userId: number;
-  accountId: string;
+  accountId: RecordId;
   transactions: ExtractedTransaction[];
   skipIndices: number[];
 }

@@ -1,11 +1,13 @@
-import { ResourceType, SHARE_PERMISSIONS, SharePermission, SharePolicy } from '@bt/shared/types';
+import type { ResourceType, SharePermission, SharePolicy } from '@bt/shared/types';
+import { SHARE_PERMISSIONS } from '@bt/shared/types';
 import { NotFoundError } from '@js/errors';
 import ResourceShares from '@models/resource-shares.model';
 import Users from '@models/users.model';
 import { Op } from '@sequelize/core';
 
 import { canUserAccessResource, resolveResourceName } from '../auth/can-user-access-resource.service';
-import { ShareUserSnapshot, snapshotShareUser } from '../share-user-snapshot';
+import type { ShareUserSnapshot } from '../share-user-snapshot';
+import { snapshotShareUser } from '../share-user-snapshot';
 
 type ShareMemberRole = 'owner' | 'recipient';
 

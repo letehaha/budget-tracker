@@ -11,12 +11,8 @@ import axios, { isAxiosError } from 'axios';
 
 import { ApiKeyRateLimitService } from '../../api-key-rate-limit.service';
 import { BaseExchangeRateProvider } from '../base-provider';
-import {
-  EXCHANGE_RATE_PROVIDER_TYPE,
-  ExchangeRateProviderMetadata,
-  ExchangeRateResult,
-  FetchRatesParams,
-} from '../types';
+import type { ExchangeRateProviderMetadata, ExchangeRateResult, FetchRatesParams } from '../types';
+import { EXCHANGE_RATE_PROVIDER_TYPE } from '../types';
 
 /**
  * Response format from ApiLayer Fixer API

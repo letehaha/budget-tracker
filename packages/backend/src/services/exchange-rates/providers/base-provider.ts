@@ -6,7 +6,7 @@ import { logger } from '@js/utils';
 import { isAxiosError } from 'axios';
 import { format, startOfDay } from 'date-fns';
 
-import {
+import type {
   ExchangeRateProviderMetadata,
   ExchangeRateResult,
   FetchRatesParams,

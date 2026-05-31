@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -17,7 +18,7 @@ import {
 
 interface ExchangeCurrencyParams {
   userId: number;
-  portfolioId: string;
+  portfolioId: RecordId;
   fromCurrencyCode: string;
   toCurrencyCode: string;
   fromAmount: string;

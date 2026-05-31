@@ -2,7 +2,7 @@
  * ASPSP (Bank/Financial Institution) Types
  * https://enablebanking.com/docs/api/reference/
  */
-import { AuthenticationApproach, PSUType } from './enums';
+import type { AuthenticationApproach, PSUType } from './enums';
 
 /**
  * Authentication method credential field

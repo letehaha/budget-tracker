@@ -1,5 +1,5 @@
-import { getExchangeRatesForDate } from '@root/services/exchange-rates';
-import { editUserExchangeRates } from '@root/services/user-exchange-rate';
+import type { getExchangeRatesForDate } from '@root/services/exchange-rates';
+import type { editUserExchangeRates } from '@root/services/user-exchange-rate';
 
 import { makeRequest } from './common';
 

@@ -1,3 +1,4 @@
+import type { RecordId } from '@bt/shared/types';
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
@@ -5,13 +6,15 @@ import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
-import { Op, WhereOptions } from '@sequelize/core';
+import type { WhereOptions } from '@sequelize/core';
+import { Op } from '@sequelize/core';
 import { withLock } from '@services/common/lock';
 import { withTransaction } from '@services/common/with-transaction';
 import { subDays } from 'date-fns';
 
 import { dataProviderFactory } from '../data-providers';
-import { BulkPriceData, toProviderSymbol } from '../data-providers/base-provider';
+import type { BulkPriceData } from '../data-providers/base-provider';
+import { toProviderSymbol } from '../data-providers/base-provider';
 import { partitionByMarketStatus } from '../data-providers/utils';
 import { startOfDayUtc } from './pricing-anchor';
 
@@ -128,8 +131,8 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
   const securitiesById = new Map<string, Securities>(securitiesFromDb.map((s) => [s.id, s]));
   const securitiesInputs = securitiesFromDb.map((s) => ({
     securityId: s.id,
-    symbol: s.symbol ?? s.providerSymbol,
-    providerSymbol: toProviderSymbol(s.providerSymbol),
+    symbol: s.symbol ?? s.providerSymbol ?? '',
+    providerSymbol: toProviderSymbol(s.providerSymbol ?? ''),
     assetClass: s.assetClass,
   }));
 
@@ -164,10 +167,10 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
   }
 
   const securityPricesToUpsert: {
-    securityId: string;
+    securityId: RecordId;
     date: Date;
-    priceClose: string;
-    source: SECURITY_PROVIDER | undefined;
+    priceClose: Money;
+    source: SECURITY_PROVIDER | null;
   }[] = [];
 
   let securitiesIdsToPatch: string[] = [];
@@ -186,10 +189,10 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
     }
 
     securityPricesToUpsert.push({
-      securityId,
+      securityId: securityId as RecordId,
       date: computeStoredDate(priceData),
-      priceClose: priceData.priceClose.toString(),
-      source: priceData.providerName,
+      priceClose: Money.fromDecimal(priceData.priceClose),
+      source: priceData.providerName ?? null,
     });
 
     securitiesIdsToPatch.push(securityId);

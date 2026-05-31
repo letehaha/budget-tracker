@@ -1,8 +1,9 @@
 import { SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
-import Transactions from '@models/transactions.model';
+import type Transactions from '@models/transactions.model';
 import { getDismissalsForUser } from '@models/transfer-suggestion-dismissals.model';
-import { serializeTransaction, TransactionApiResponse } from '@root/serializers/transactions.serializer';
+import type { TransactionApiResponse } from '@root/serializers/transactions.serializer';
+import { serializeTransaction } from '@root/serializers/transactions.serializer';
 import * as transactionsService from '@services/transactions';
 import { addDays, endOfDay, startOfDay, subDays } from 'date-fns';
 import { z } from 'zod';

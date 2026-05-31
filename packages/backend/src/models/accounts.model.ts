@@ -1,24 +1,13 @@
-import {
-  ACCOUNT_CATEGORIES,
-  ACCOUNT_STATUSES,
-  ACCOUNT_TYPES,
-  type AccountExternalData,
-  RecordId,
-} from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import type { RecordId } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES, type AccountExternalData } from '@bt/shared/types';
+import type { Money } from '@common/types/money';
 import { moneyGetCents, moneySetCents } from '@common/types/money-column';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Currencies from '@models/currencies.model';
 import Transactions from '@models/transactions.model';
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from '@sequelize/core';
+import type { CreationOptional, InferAttributes, InferCreationAttributes, NonAttribute } from '@sequelize/core';
+import { DataTypes, Model } from '@sequelize/core';
 import {
   AfterCreate,
   Attribute,
