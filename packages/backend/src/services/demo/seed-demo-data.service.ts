@@ -3,8 +3,10 @@ import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   BUDGET_STATUSES,
+  DEPRECIATION_PRESET,
   SUBSCRIPTION_FREQUENCIES,
   TRANSACTION_TYPES,
+  VEHICLE_CLASS,
 } from '@bt/shared/types';
 import {
   ASSET_CLASS,
@@ -12,6 +14,7 @@ import {
   PORTFOLIO_TYPE,
   SECURITY_PROVIDER,
 } from '@bt/shared/types/investments';
+import { VENTURE_CASH_FLOW_MODE, VENTURE_EVENT_TYPE, VENTURE_SPV_SUBTYPE } from '@bt/shared/types/venture';
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { Money } from '@common/types/money';
@@ -32,8 +35,14 @@ import { createBudget } from '@services/budgets/create-budget';
 import * as categoriesService from '@services/categories.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
+import { createVehicle } from '@services/vehicles/create-vehicle.service';
+import { overrideVehicleValue } from '@services/vehicles/override-vehicle-value.service';
+import { createVentureDeal } from '@services/venture/deals/create.service';
+import { createVentureEvent } from '@services/venture/events/create.service';
+import { createVenturePlatform } from '@services/venture/platforms/create.service';
 import { Big } from 'big.js';
-import { format, setDate, subDays, subMonths } from 'date-fns';
+import { format, setDate, subDays, subMonths, subYears } from 'date-fns';
+import { type Transaction } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 
 // Demo data configuration based on PRD
@@ -317,12 +326,22 @@ export async function setupDashboardSettings({
 
 interface DemoSecurityConfig {
   symbol: string;
+  providerSymbol: string;
   name: string;
   assetClass: ASSET_CLASS;
+  providerName: SECURITY_PROVIDER;
   currencyCode: string;
-  exchangeAcronym: string;
-  exchangeMic: string;
-  exchangeName: string;
+  cryptoCurrencyCode?: string | null;
+  exchangeAcronym?: string | null;
+  exchangeMic?: string | null;
+  exchangeName?: string | null;
+  /**
+   * Logo shown in the holdings UI. Stocks leave this null and the frontend
+   * derives a logo.dev URL from the ticker (needs VITE_LOGO_DEV_TOKEN); crypto
+   * stores the CoinGecko CDN URL the live sync would produce, so demo crypto
+   * logos render even without a logo.dev token configured.
+   */
+  logoUrl?: string | null;
   currentPrice: number;
   purchasePrice: number;
   quantity: number;
@@ -332,8 +351,10 @@ interface DemoSecurityConfig {
 const DEMO_SECURITIES: DemoSecurityConfig[] = [
   {
     symbol: 'AAPL',
+    providerSymbol: 'AAPL',
     name: 'Apple Inc.',
     assetClass: ASSET_CLASS.stocks,
+    providerName: SECURITY_PROVIDER.yahoo,
     currencyCode: 'USD',
     exchangeAcronym: 'NASDAQ',
     exchangeMic: 'XNAS',
@@ -345,8 +366,10 @@ const DEMO_SECURITIES: DemoSecurityConfig[] = [
   },
   {
     symbol: 'VOO',
+    providerSymbol: 'VOO',
     name: 'Vanguard S&P 500 ETF',
     assetClass: ASSET_CLASS.stocks,
+    providerName: SECURITY_PROVIDER.yahoo,
     currencyCode: 'USD',
     exchangeAcronym: 'NYSEARCA',
     exchangeMic: 'ARCX',
@@ -358,8 +381,10 @@ const DEMO_SECURITIES: DemoSecurityConfig[] = [
   },
   {
     symbol: 'MSFT',
+    providerSymbol: 'MSFT',
     name: 'Microsoft Corporation',
     assetClass: ASSET_CLASS.stocks,
+    providerName: SECURITY_PROVIDER.yahoo,
     currencyCode: 'USD',
     exchangeAcronym: 'NASDAQ',
     exchangeMic: 'XNAS',
@@ -371,7 +396,160 @@ const DEMO_SECURITIES: DemoSecurityConfig[] = [
   },
 ];
 
+// CoinGecko-sourced crypto holdings. `providerSymbol` is the CoinGecko coin id
+// (what the price-sync pipeline queries), while `symbol`/`cryptoCurrencyCode`
+// hold the ticker. Shape mirrors `coingecko-provider.ts` so the demo holdings
+// are indistinguishable from a real synced crypto security.
+const DEMO_CRYPTO: DemoSecurityConfig[] = [
+  {
+    symbol: 'BTC',
+    providerSymbol: 'bitcoin',
+    name: 'Bitcoin',
+    assetClass: ASSET_CLASS.crypto,
+    providerName: SECURITY_PROVIDER.coingecko,
+    currencyCode: 'USD',
+    cryptoCurrencyCode: 'BTC',
+    exchangeName: 'CoinGecko',
+    logoUrl: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png',
+    currentPrice: 67500,
+    purchasePrice: 42000,
+    quantity: 0.35,
+    purchaseDaysAgo: 220,
+  },
+  {
+    symbol: 'ETH',
+    providerSymbol: 'ethereum',
+    name: 'Ethereum',
+    assetClass: ASSET_CLASS.crypto,
+    providerName: SECURITY_PROVIDER.coingecko,
+    currencyCode: 'USD',
+    cryptoCurrencyCode: 'ETH',
+    exchangeName: 'CoinGecko',
+    logoUrl: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png',
+    currentPrice: 3500,
+    purchasePrice: 2400,
+    quantity: 4,
+    purchaseDaysAgo: 160,
+  },
+  {
+    symbol: 'SOL',
+    providerSymbol: 'solana',
+    name: 'Solana',
+    assetClass: ASSET_CLASS.crypto,
+    providerName: SECURITY_PROVIDER.coingecko,
+    currencyCode: 'USD',
+    cryptoCurrencyCode: 'SOL',
+    exchangeName: 'CoinGecko',
+    logoUrl: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png',
+    currentPrice: 145,
+    purchasePrice: 95,
+    quantity: 40,
+    purchaseDaysAgo: 100,
+  },
+];
+
 const DEMO_INVESTMENT_STARTING_CASH = 5000;
+const DEMO_CRYPTO_STARTING_CASH = 1500;
+
+/**
+ * Seeds securities, pricing, holdings and the opening buy transaction for a
+ * single portfolio. Shared by the stock and crypto portfolios so both asset
+ * classes follow the exact same holding-creation path.
+ */
+async function seedPortfolioHoldings({
+  portfolioId,
+  securities,
+  referenceDate,
+  transaction,
+}: {
+  portfolioId: string;
+  securities: DemoSecurityConfig[];
+  referenceDate: Date;
+  transaction: Transaction;
+}): Promise<void> {
+  const pricingDate = format(referenceDate, 'yyyy-MM-dd');
+
+  for (const sec of securities) {
+    const [security, created] = await Securities.findOrCreate({
+      where: { providerName: sec.providerName, providerSymbol: sec.providerSymbol },
+      defaults: {
+        symbol: sec.symbol,
+        providerSymbol: sec.providerSymbol,
+        name: sec.name,
+        assetClass: sec.assetClass,
+        currencyCode: sec.currencyCode,
+        cryptoCurrencyCode: sec.cryptoCurrencyCode ?? null,
+        providerName: sec.providerName,
+        exchangeAcronym: sec.exchangeAcronym ?? null,
+        exchangeMic: sec.exchangeMic ?? null,
+        exchangeName: sec.exchangeName ?? null,
+        logoUrl: sec.logoUrl ?? null,
+        pricingLastSyncedAt: referenceDate,
+        isBrokerageCash: false,
+      },
+      transaction,
+    });
+
+    // Securities is a shared reference table. If a row for the same symbol
+    // already exists (e.g. seeded by a real user sync), findOrCreate silently
+    // reuses it and `defaults` are not applied. Surface metadata drift so
+    // demo inconsistencies are at least visible in logs.
+    if (!created && security.exchangeMic !== (sec.exchangeMic ?? null)) {
+      logger.warn(
+        `Demo security ${sec.symbol}: existing exchangeMic=${security.exchangeMic} differs from demo config exchangeMic=${sec.exchangeMic}. Using existing row.`,
+      );
+    }
+
+    await SecurityPricing.findOrCreate({
+      where: { securityId: security.id, date: pricingDate },
+      defaults: {
+        securityId: security.id,
+        date: pricingDate,
+        priceClose: sec.currentPrice.toFixed(10),
+        priceAsOf: referenceDate,
+        source: 'demo',
+      },
+      transaction,
+    });
+
+    const quantityStr = new Big(sec.quantity).toFixed(10);
+    const costBasisStr = new Big(sec.purchasePrice).times(sec.quantity).toFixed(10);
+
+    await Holdings.create(
+      {
+        portfolioId,
+        securityId: security.id,
+        currencyCode: sec.currencyCode,
+        quantity: quantityStr,
+        costBasis: costBasisStr,
+        refCostBasis: costBasisStr,
+        excluded: false,
+      },
+      { transaction },
+    );
+
+    const buyDate = format(subDays(referenceDate, sec.purchaseDaysAgo), 'yyyy-MM-dd');
+    await InvestmentTransaction.create(
+      {
+        portfolioId,
+        securityId: security.id,
+        transactionType: TRANSACTION_TYPES.expense,
+        date: buyDate,
+        name: `Bought ${sec.quantity} ${sec.symbol}`,
+        amount: costBasisStr,
+        refAmount: costBasisStr,
+        fees: '0',
+        refFees: '0',
+        quantity: quantityStr,
+        price: sec.purchasePrice.toFixed(10),
+        refPrice: sec.purchasePrice.toFixed(10),
+        currencyCode: sec.currencyCode,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+      },
+      { transaction },
+    );
+  }
+}
 
 export async function setupInvestments({
   userId,
@@ -383,7 +561,7 @@ export async function setupInvestments({
   const transaction = await connection.sequelize.transaction();
 
   try {
-    const portfolio = await Portfolios.create(
+    const stockPortfolio = await Portfolios.create(
       {
         userId,
         name: 'Growth Portfolio',
@@ -394,98 +572,56 @@ export async function setupInvestments({
       { transaction },
     );
 
-    const pricingDate = format(referenceDate, 'yyyy-MM-dd');
+    await seedPortfolioHoldings({
+      portfolioId: stockPortfolio.id,
+      securities: DEMO_SECURITIES,
+      referenceDate,
+      transaction,
+    });
 
-    for (const sec of DEMO_SECURITIES) {
-      const [security, created] = await Securities.findOrCreate({
-        where: { providerName: SECURITY_PROVIDER.yahoo, providerSymbol: sec.symbol },
-        defaults: {
-          symbol: sec.symbol,
-          providerSymbol: sec.symbol,
-          name: sec.name,
-          assetClass: sec.assetClass,
-          currencyCode: sec.currencyCode,
-          providerName: SECURITY_PROVIDER.yahoo,
-          exchangeAcronym: sec.exchangeAcronym,
-          exchangeMic: sec.exchangeMic,
-          exchangeName: sec.exchangeName,
-          pricingLastSyncedAt: referenceDate,
-          isBrokerageCash: false,
-        },
-        transaction,
-      });
-
-      // Securities is a shared reference table. If a row for the same symbol
-      // already exists (e.g. seeded by a real user sync), findOrCreate silently
-      // reuses it and `defaults` are not applied. Surface metadata drift so
-      // demo inconsistencies are at least visible in logs.
-      if (!created && security.exchangeMic !== sec.exchangeMic) {
-        logger.warn(
-          `Demo security ${sec.symbol}: existing exchangeMic=${security.exchangeMic} differs from demo config exchangeMic=${sec.exchangeMic}. Using existing row.`,
-        );
-      }
-
-      await SecurityPricing.findOrCreate({
-        where: { securityId: security.id, date: pricingDate },
-        defaults: {
-          securityId: security.id,
-          date: pricingDate,
-          priceClose: sec.currentPrice.toFixed(10),
-          priceAsOf: referenceDate,
-          source: 'demo',
-        },
-        transaction,
-      });
-
-      const quantityStr = new Big(sec.quantity).toFixed(10);
-      const costBasisStr = new Big(sec.purchasePrice).times(sec.quantity).toFixed(10);
-
-      await Holdings.create(
-        {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          currencyCode: sec.currencyCode,
-          quantity: quantityStr,
-          costBasis: costBasisStr,
-          refCostBasis: costBasisStr,
-          excluded: false,
-        },
-        { transaction },
-      );
-
-      const buyDate = format(subDays(referenceDate, sec.purchaseDaysAgo), 'yyyy-MM-dd');
-      await InvestmentTransaction.create(
-        {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          transactionType: TRANSACTION_TYPES.expense,
-          date: buyDate,
-          name: `Bought ${sec.quantity} shares of ${sec.symbol}`,
-          amount: costBasisStr,
-          refAmount: costBasisStr,
-          fees: '0',
-          refFees: '0',
-          quantity: quantityStr,
-          price: sec.purchasePrice.toFixed(10),
-          refPrice: sec.purchasePrice.toFixed(10),
-          currencyCode: sec.currencyCode,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-        },
-        { transaction },
-      );
-    }
-
-    const remainingCash = new Big(DEMO_INVESTMENT_STARTING_CASH).toFixed(10);
+    const stockCash = new Big(DEMO_INVESTMENT_STARTING_CASH).toFixed(10);
 
     // Demo base currency is USD, so ref amounts mirror direct amounts 1:1.
     await PortfolioBalances.create(
       {
-        portfolioId: portfolio.id,
+        portfolioId: stockPortfolio.id,
         currencyCode: 'USD',
-        availableCash: remainingCash,
-        totalCash: remainingCash,
-        refAvailableCash: remainingCash,
-        refTotalCash: remainingCash,
+        availableCash: stockCash,
+        totalCash: stockCash,
+        refAvailableCash: stockCash,
+        refTotalCash: stockCash,
+      },
+      { transaction },
+    );
+
+    const cryptoPortfolio = await Portfolios.create(
+      {
+        userId,
+        name: 'Crypto Portfolio',
+        portfolioType: PORTFOLIO_TYPE.investment,
+        description: 'Demo portfolio of crypto holdings',
+        isEnabled: true,
+      },
+      { transaction },
+    );
+
+    await seedPortfolioHoldings({
+      portfolioId: cryptoPortfolio.id,
+      securities: DEMO_CRYPTO,
+      referenceDate,
+      transaction,
+    });
+
+    const cryptoCash = new Big(DEMO_CRYPTO_STARTING_CASH).toFixed(10);
+
+    await PortfolioBalances.create(
+      {
+        portfolioId: cryptoPortfolio.id,
+        currencyCode: 'USD',
+        availableCash: cryptoCash,
+        totalCash: cryptoCash,
+        refAvailableCash: cryptoCash,
+        refTotalCash: cryptoCash,
       },
       { transaction },
     );
@@ -496,5 +632,194 @@ export async function setupInvestments({
     throw error;
   }
 
-  logger.info(`Created demo portfolio with ${DEMO_SECURITIES.length} holdings for user ${userId}`);
+  logger.info(
+    `Created demo portfolios (${DEMO_SECURITIES.length} stock + ${DEMO_CRYPTO.length} crypto holdings) for user ${userId}`,
+  );
+}
+
+interface DemoVehicleConfig {
+  name: string;
+  make: string;
+  model: string;
+  trim: string;
+  vehicleClass: VEHICLE_CLASS;
+  /** Years before the reference date the vehicle was purchased. */
+  ageYears: number;
+  purchasePrice: number;
+  currentMileage: number;
+  /**
+   * Optional mid-term manual revaluation, so the demo shows how an override
+   * re-anchors the depreciation curve away from the smooth class default.
+   */
+  override?: {
+    /** Months before the reference date the override took effect. */
+    monthsAgo: number;
+    targetValue: number;
+    note: string;
+  };
+}
+
+const DEMO_VEHICLES: DemoVehicleConfig[] = [
+  {
+    name: 'BMW X5',
+    make: 'BMW',
+    model: 'X5',
+    trim: 'xDrive40i',
+    vehicleClass: VEHICLE_CLASS.luxury,
+    ageYears: 5,
+    purchasePrice: 72000,
+    currentMileage: 58000,
+    override: {
+      monthsAgo: 30,
+      targetValue: 41000,
+      note: 'Independent appraisal after major service',
+    },
+  },
+  {
+    name: 'Toyota Corolla',
+    make: 'Toyota',
+    model: 'Corolla',
+    trim: 'LE',
+    vehicleClass: VEHICLE_CLASS.sedan,
+    ageYears: 1,
+    purchasePrice: 26500,
+    currentMileage: 12000,
+  },
+];
+
+export async function setupVehicles({ userId, referenceDate }: { userId: number; referenceDate: Date }): Promise<void> {
+  for (const config of DEMO_VEHICLES) {
+    const vehicle = await createVehicle({
+      userId,
+      name: config.name,
+      currencyCode: DEMO_CONFIG.baseCurrency,
+      make: config.make,
+      model: config.model,
+      trim: config.trim,
+      year: referenceDate.getFullYear() - config.ageYears,
+      vehicleClass: config.vehicleClass,
+      purchasePrice: Money.fromDecimal(config.purchasePrice),
+      purchaseDate: format(subYears(referenceDate, config.ageYears), 'yyyy-MM-dd'),
+      depreciationPreset: DEPRECIATION_PRESET.classDefault,
+      currentMileage: config.currentMileage,
+    });
+
+    if (vehicle && config.override) {
+      await overrideVehicleValue({
+        userId,
+        vehicleId: vehicle.id,
+        targetValue: Money.fromDecimal(config.override.targetValue),
+        note: config.override.note,
+        time: subMonths(referenceDate, config.override.monthsAgo),
+      });
+    }
+  }
+
+  logger.info(`Created ${DEMO_VEHICLES.length} demo vehicles for user ${userId}`);
+}
+
+/**
+ * Seeds three venture SPV deals so demo users can see every outcome:
+ *  - a successful full exit (~3.8x gross), which auto-progresses to
+ *    `fully_exited` and splits carry to the GP,
+ *  - a total write-off, which auto-progresses to `written_off`, and
+ *  - an in-progress holding marked up via `nav_update`, which stays
+ *    `outstanding` and carries a live current value (so it doesn't read as $0).
+ * Cash flows use `out_of_wallet` so no linked wallet transactions are needed.
+ */
+export async function setupVentures({ userId, referenceDate }: { userId: number; referenceDate: Date }): Promise<void> {
+  const platform = await createVenturePlatform({
+    userId,
+    name: 'AngelList',
+    website: 'https://angellist.com',
+    description: 'Syndicate platform for early-stage startup investments',
+    defaultEntryFeePct: '0',
+    defaultMgmtFeePct: '0.02',
+    defaultCarryPct: '0.20',
+    defaultHurdlePct: '0',
+  });
+
+  // Winner — invested ~4y ago, acquired recently for a ~3.8x gross return.
+  const winner = await createVentureDeal({
+    userId,
+    name: 'Nimbus AI — Series A',
+    currencyCode: DEMO_CONFIG.baseCurrency,
+    principal: '25000',
+    investmentDate: format(subYears(referenceDate, 4), 'yyyy-MM-dd'),
+    platformId: platform.id,
+    spvSubtype: VENTURE_SPV_SUBTYPE.single_company,
+    targetCompany: 'Nimbus AI',
+    carryPct: '0.20',
+    hurdlePct: '0',
+    expectedExitDate: format(subYears(referenceDate, 1), 'yyyy-MM-dd'),
+    notes: 'Cloud infrastructure startup — strong growth, acquired by a strategic buyer.',
+    initialInvestment: { cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet },
+  });
+
+  await createVentureEvent({
+    userId,
+    dealId: winner.id,
+    type: VENTURE_EVENT_TYPE.exit,
+    eventDate: format(subMonths(referenceDate, 2), 'yyyy-MM-dd'),
+    grossAmount: '95000',
+    navAfter: '0',
+    quantityPct: '1',
+    cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet,
+    notes: 'Full exit via acquisition.',
+  });
+
+  // Loser — invested ~3y ago, company shut down and the position was written off.
+  const loser = await createVentureDeal({
+    userId,
+    name: 'QuickBite — Seed',
+    currencyCode: DEMO_CONFIG.baseCurrency,
+    principal: '15000',
+    investmentDate: format(subYears(referenceDate, 3), 'yyyy-MM-dd'),
+    platformId: platform.id,
+    spvSubtype: VENTURE_SPV_SUBTYPE.single_company,
+    targetCompany: 'QuickBite',
+    carryPct: '0.20',
+    hurdlePct: '0',
+    notes: 'Food delivery startup — ran out of runway and shut down.',
+    initialInvestment: { cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet },
+  });
+
+  await createVentureEvent({
+    userId,
+    dealId: loser.id,
+    type: VENTURE_EVENT_TYPE.writedown,
+    eventDate: format(subMonths(referenceDate, 6), 'yyyy-MM-dd'),
+    navAfter: '0',
+    cashFlowMode: VENTURE_CASH_FLOW_MODE.none,
+    notes: 'Company ceased operations; position written off.',
+  });
+
+  // In progress — invested ~2y ago, marked up at the last round and still held,
+  // so it shows a live (non-zero) current value while staying `outstanding`.
+  const inProgress = await createVentureDeal({
+    userId,
+    name: 'Helios Robotics — Series B',
+    currencyCode: DEMO_CONFIG.baseCurrency,
+    principal: '30000',
+    investmentDate: format(subYears(referenceDate, 2), 'yyyy-MM-dd'),
+    platformId: platform.id,
+    spvSubtype: VENTURE_SPV_SUBTYPE.single_company,
+    targetCompany: 'Helios Robotics',
+    carryPct: '0.20',
+    hurdlePct: '0',
+    notes: 'Industrial robotics startup — growing fast, still privately held.',
+    initialInvestment: { cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet },
+  });
+
+  await createVentureEvent({
+    userId,
+    dealId: inProgress.id,
+    type: VENTURE_EVENT_TYPE.nav_update,
+    eventDate: format(subMonths(referenceDate, 1), 'yyyy-MM-dd'),
+    navAfter: '48000',
+    cashFlowMode: VENTURE_CASH_FLOW_MODE.none,
+    notes: 'Series B markup — valuation stepped up on strong revenue growth.',
+  });
+
+  logger.info(`Created 3 demo venture deals for user ${userId}`);
 }
