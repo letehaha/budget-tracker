@@ -94,7 +94,7 @@ const { t } = useI18n();
 watch(() => route.path, closeModal);
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
-const { accountsRecord, activeSystemAccounts, systemAccountsActiveFirst } = storeToRefs(useAccountsStore());
+const { accountsRecord, txTargetableAccountsActiveFirst } = storeToRefs(useAccountsStore());
 
 // Vehicle balance-adjustments are reused `transfer_out_wallet` rows on a
 // vehicle-category account. Editing them in this generic dialog would let the
@@ -521,7 +521,7 @@ const hasPrepopulated = ref(false);
 const prepopulateIfReady = () => {
   if (hasPrepopulated.value) return;
   if (!transaction.value) {
-    form.value.account = activeSystemAccounts.value[0] ?? null;
+    form.value.account = txTargetableAccountsActiveFirst.value[0] ?? null;
     hasPrepopulated.value = true;
     return;
   }
@@ -677,7 +677,7 @@ onUnmounted(() => {
             :is-transfer-transaction="isTransferTx"
             :is-transaction-linking="!!linkedTransaction"
             :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
-            :accounts="isTransferTx ? transferSourceAccounts : systemAccountsActiveFirst"
+            :accounts="isTransferTx ? transferSourceAccounts : txTargetableAccountsActiveFirst"
             :from-account-disabled="fromAccountFieldDisabled"
             :to-account-disabled="toAccountFieldDisabled"
             :filtered-accounts="transferDestinationAccounts"

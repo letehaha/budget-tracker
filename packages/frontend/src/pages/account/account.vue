@@ -13,6 +13,22 @@
       :link-to="{ name: ROUTES_NAMES.accounts }"
     />
 
+    <!-- Vehicle accounts have a dedicated detail page; the redirect fires in the
+         script. Show a loading state while the query is in-flight; show a
+         terminal "not found" state if the query failed or no matching vehicle
+         record exists (deleted sidecar / stale cache). -->
+    <ResourceNotFound
+      v-else-if="isVehicleAccount && (isVehiclesError || isVehicleNotFound)"
+      class="m-6"
+      :title="t('pages.account.notFound')"
+      :description="t('pages.account.notFoundDescription')"
+      :link-label="t('pages.account.goToAccounts')"
+      :link-to="{ name: ROUTES_NAMES.accounts }"
+    />
+    <div v-else-if="isVehicleAccount" class="flex h-100 items-center justify-center">
+      <div class="text-muted-foreground text-sm">{{ t('pages.account.loading') }}</div>
+    </div>
+
     <div v-else class="flex flex-col justify-start gap-4 p-6 @[800px]/settings:flex-row">
       <Card.Card class="w-full max-w-150">
         <Header :account="account" />
@@ -88,8 +104,10 @@
 
 <script setup lang="ts">
 import { loadTransactions } from '@/api';
+import { getVehicles } from '@/api/vehicles';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
+import { captureException } from '@/lib/sentry';
 import * as Card from '@/components/lib/ui/card';
 import { Callout } from '@/components/lib/ui/callout';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
@@ -99,11 +117,12 @@ import * as Tabs from '@/components/lib/ui/tabs';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
-import { useInfiniteQuery } from '@tanstack/vue-query';
+import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
+import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import Header from './components/header.vue';
 import BankConnectionView from './types/bank-connection/index.vue';
@@ -111,9 +130,53 @@ import SystemAccount from './types/system/system.vue';
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const accountsStore = useAccountsStore();
 const { accountsRecord, isAccountsFetched } = storeToRefs(accountsStore);
 const account = computed(() => accountsRecord.value[route.params.id as string] ?? null);
+
+// A vehicle is stored as a regular `system` account, so its id can land on this
+// generic page. The generic page exposes balance-adjustment / add-transaction /
+// archive actions that are all invalid for a vehicle (the backend rejects them),
+// so bounce to the dedicated vehicle detail page instead.
+const isVehicleAccount = computed(() => account.value?.accountCategory === ACCOUNT_CATEGORIES.vehicle);
+
+const {
+  data: vehicles,
+  isError: isVehiclesError,
+  isSuccess: isVehiclesSuccess,
+} = useQuery({
+  queryKey: VUE_QUERY_CACHE_KEYS.vehiclesList,
+  queryFn: getVehicles,
+  enabled: isVehicleAccount,
+});
+
+// Derived: query settled but no vehicle matches this account id (stale cache /
+// sidecar deleted). Treat it the same as an error — both are terminal states.
+const isVehicleNotFound = computed(
+  () => isVehiclesSuccess.value && !vehicles.value?.find((v) => v.accountId === account.value?.id),
+);
+
+watch(
+  [isVehicleAccount, vehicles],
+  ([isVehicle, list]) => {
+    if (!isVehicle) return;
+    const vehicleId = list?.find((v) => v.accountId === account.value?.id)?.id;
+    if (vehicleId) {
+      router.replace({ name: ROUTES_NAMES.accountsVehicleDetails, params: { id: vehicleId } });
+    }
+  },
+  { immediate: true },
+);
+
+// Log unexpected "query succeeded but no matching vehicle" so it reaches Sentry.
+watch(isVehicleNotFound, (notFound) => {
+  if (!notFound) return;
+  captureException({
+    error: new Error('Vehicle account has no matching vehicle record'),
+    context: { accountId: account.value?.id, source: 'accountPage' },
+  });
+});
 
 const limit = 10;
 

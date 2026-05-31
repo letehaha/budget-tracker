@@ -50,7 +50,9 @@ const emit = defineEmits<Emit>();
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
-const { systemAccountsActiveFirst, accountsRecord } = storeToRefs(useAccountsStore());
+// Vehicle accounts can't take part in account↔portfolio transfers — the backend
+// rejects any transfer touching them. Keep them out of both pickers.
+const { txTargetableAccountsActiveFirst, accountsRecord } = storeToRefs(useAccountsStore());
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { data: portfolios } = usePortfolios();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
@@ -164,12 +166,12 @@ const availableToPortfolios = computed(() => {
 const availableFromAccounts = computed(() => {
   if (props.context === 'portfolio') return [];
   if (transferType.value !== 'account-to-portfolio') return [];
-  return systemAccountsActiveFirst.value.filter((a) => a.id !== form.toAccount?.id);
+  return txTargetableAccountsActiveFirst.value.filter((a) => a.id !== form.toAccount?.id);
 });
 
 const availableToAccounts = computed(() => {
   if (transferType.value === 'portfolio-to-portfolio' || transferType.value === 'account-to-portfolio') return [];
-  return systemAccountsActiveFirst.value.filter((a) => a.id !== form.fromAccount?.id);
+  return txTargetableAccountsActiveFirst.value.filter((a) => a.id !== form.fromAccount?.id);
 });
 
 // Field visibility based on context and transfer type

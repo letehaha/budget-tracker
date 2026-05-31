@@ -125,6 +125,10 @@ export const updateAccount = createController(
       }
     }
 
+    // NOTE: the "currentBalance can't be set directly on a vehicle account"
+    // guard lives in `accountsService.updateAccount` (not here) so every caller
+    // — HTTP, MCP, internal — is covered, not just this controller.
+
     // Convert decimal amounts to cents
     const result = await accountsService.updateAccount({
       id,

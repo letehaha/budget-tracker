@@ -320,6 +320,48 @@ export default class Transactions extends Model {
     }
   }
 
+  /**
+   * Vehicle-account write invariant — enforced at the lowest funnel every
+   * transaction write passes through.
+   *
+   * A vehicle is a regular `Accounts` row (accountCategory: 'vehicle') whose
+   * balance is owned by the lazy-depreciation model plus manual overrides. Its
+   * value may ONLY change through the override flow, which records a
+   * `transfer_out_wallet` row AND keeps `Vehicle.valueAnchor` in sync. Any other
+   * transaction (income/expense, transfers in or out, transfer-to-portfolio or
+   * -venture) would move `Account.currentBalance` without touching the anchor —
+   * so the next lazy refresh recomputes from the stale anchor and silently
+   * discards the change. That is data loss, not just a confusing UI state.
+   *
+   * Rejecting every nature except `transfer_out_wallet` here covers every path
+   * that creates or moves a transaction row: the manage-transaction UI, MCP
+   * tools, bank sync, CSV import, direct API calls and any future endpoint all
+   * funnel through this model. The legit override path passes for free — it IS a
+   * `transfer_out_wallet`. (Note: a vehicle's `currentBalance` can also move
+   * WITHOUT a transaction row — via `accountsService.updateAccount` — so that
+   * path is guarded separately in the service; this hook is not the whole story.)
+   */
+  @BeforeCreate
+  @BeforeUpdate
+  static async enforceVehicleAccountInvariant(instance: Transactions) {
+    // `transfer_out_wallet` is the only nature ever valid on a vehicle account,
+    // so short-circuit before the account lookup. The lookup still runs for
+    // every other write (most income/expense/transfer rows) — it's a narrow
+    // single-column PK read, and only the override/adjustment rows skip it.
+    if (instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return;
+
+    const account = await Accounts.findByPk(instance.accountId, {
+      attributes: ['accountCategory'],
+    });
+    // A missing account isn't a vehicle (FK / other validation rejects orphan
+    // rows); only vehicle accounts are locked down here.
+    if (account?.accountCategory !== ACCOUNT_CATEGORIES.vehicle) return;
+
+    throw new ValidationError({
+      message: t({ key: 'transactions.vehicleAccountReadonly' }),
+    });
+  }
+
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
     const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;

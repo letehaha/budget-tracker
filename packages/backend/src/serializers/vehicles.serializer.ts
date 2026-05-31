@@ -6,14 +6,14 @@
  * value all come from Accounts; metadata + depreciation params come from
  * Vehicles).
  */
-import { DEPRECIATION_PRESET, VEHICLE_CLASS } from '@bt/shared/types';
+import { DEPRECIATION_PRESET, type RecordId, VEHICLE_CLASS } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Vehicles from '@models/vehicles.model';
 import { serializeAccount, type AccountApiResponse } from '@root/serializers/accounts.serializer';
 
 export interface VehicleApiResponse {
   id: string;
-  accountId: string;
+  accountId: RecordId;
   userId: number;
   make: string;
   model: string;
