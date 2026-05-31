@@ -2,6 +2,7 @@ import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types
 import { faker } from '@faker-js/faker';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Transactions from '@models/transactions.model';
 import { EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS } from '@services/transactions/update-transaction';
 import * as helpers from '@tests/helpers';
 
@@ -1069,6 +1070,34 @@ describe('Update transaction controller', () => {
       });
 
       expect(updatedTx.note).toBe('edited after unlink');
+    });
+  });
+
+  describe('orphaned transfer leg', () => {
+    it('should update a common_transfer transaction whose pair is gone (transferId cleared)', async () => {
+      const [tx] = await helpers.createTransaction({ raw: true });
+
+      // Reproduces a corrupt row seen in production (Sentry MONEY-MATTER-BACKEND-6J): a
+      // transaction flagged as a common transfer but with its `transferId` cleared. The
+      // opposite-tx lookup did `findAll({ transferId: null })`, which matches every other
+      // null-transferId row in the DB, picked a bogus "opposite", and failed its auth gate
+      // — surfacing as a misleading "Cannot find opposite tx to make an updation".
+      await Transactions.update(
+        { transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer, transferId: null },
+        { where: { id: tx.id } },
+      );
+
+      const newAmount = Number(tx.amount) + 500;
+      const res = await helpers.updateTransaction({
+        id: tx.id,
+        payload: { amount: newAmount },
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(200);
+
+      const [updated] = await helpers.getTransactions({ raw: true });
+      expect(updated!.amount).toEqual(newAmount);
     });
   });
 });
