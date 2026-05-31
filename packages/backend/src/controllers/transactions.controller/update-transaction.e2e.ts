@@ -1099,5 +1099,50 @@ describe('Update transaction controller', () => {
       const [updated] = await helpers.getTransactions({ raw: true });
       expect(updated!.amount).toEqual(newAmount);
     });
+
+    it("should update an orphaned common_transfer leg (type change) without touching another user's transactions", async () => {
+      // Primary user's orphaned leg: flagged common_transfer but with transferId cleared.
+      const [leg] = await helpers.createTransaction({ raw: true });
+      await Transactions.update(
+        { transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer, transferId: null },
+        { where: { id: leg.id } },
+      );
+
+      // A second, unrelated user owning their own null-transferId transaction. The opposite
+      // lookup in `unlinkOppositeTransaction` queries `findAll({ transferId: null })` with NO
+      // userId filter, so before the guard it matched this foreign row, treated it as the
+      // "opposite", and failed its write-access gate — surfacing as a spurious 404 (the prod
+      // shape of MONEY-MATTER-BACKEND-6J on the unlink code path).
+      const secondUser = await helpers.signUpSecondUser();
+      let foreignTxId = '';
+      await helpers.asUser({
+        cookies: secondUser.cookies,
+        fn: async () => {
+          await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
+          const account = await helpers.createAccount({ raw: true });
+          const category = await helpers.addCustomCategory({ name: 'second-user-cat', color: '#123456', raw: true });
+          const [tx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({ accountId: account.id, categoryId: category.id }),
+            raw: true,
+          });
+          foreignTxId = tx.id;
+        },
+      });
+
+      // Changing transactionType routes the update through `unlinkOppositeTransaction`.
+      const res = await helpers.updateTransaction({
+        id: leg.id,
+        payload: { transactionType: TRANSACTION_TYPES.income },
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(200);
+
+      // The foreign transaction must be left completely untouched.
+      const foreignTx = await Transactions.findByPk(foreignTxId);
+      expect(foreignTx).not.toBeNull();
+      expect(foreignTx!.transferId).toBeNull();
+      expect(foreignTx!.transferNature).toEqual(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    });
   });
 });

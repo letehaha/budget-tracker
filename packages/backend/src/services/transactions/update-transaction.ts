@@ -386,26 +386,32 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData, baseTransaction] = params;
 
-  // Cross-user safe fetch — see `updateTransferTransaction` for the rationale.
-  const notBaseTransaction = (
-    await Transactions.default.findAll({
-      where: { transferId: prevData.transferId },
-    })
-  ).find((item) => item.id !== newData.id);
+  // Orphaned transfer leg: `transferId` was cleared, so there's no pair to unlink. Querying
+  // `findAll({ transferId: null })` would match unrelated rows (including other users') and
+  // pick a bogus "opposite" — failing the auth gate (spurious 404) or, if writable, mutating
+  // an unrelated row. Only the base tx needs clearing. See `updateTransferTransaction`.
+  if (prevData.transferId) {
+    // Cross-user safe fetch — see `updateTransferTransaction` for the rationale.
+    const notBaseTransaction = (
+      await Transactions.default.findAll({
+        where: { transferId: prevData.transferId },
+      })
+    ).find((item) => item.id !== newData.id);
 
-  if (notBaseTransaction) {
-    await assertTxWriteAccess({
-      userId: newData.userId,
-      tx: notBaseTransaction,
-      notFoundKey: 'transactions.oppositeTransactionNotFound',
-    });
+    if (notBaseTransaction) {
+      await assertTxWriteAccess({
+        userId: newData.userId,
+        tx: notBaseTransaction,
+        notFoundKey: 'transactions.oppositeTransactionNotFound',
+      });
 
-    await Transactions.updateTransactionById({
-      id: notBaseTransaction.id,
-      userId: notBaseTransaction.userId,
-      transferId: null,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-    });
+      await Transactions.updateTransactionById({
+        id: notBaseTransaction.id,
+        userId: notBaseTransaction.userId,
+        transferId: null,
+        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      });
+    }
   }
 
   await Transactions.updateTransactionById({
