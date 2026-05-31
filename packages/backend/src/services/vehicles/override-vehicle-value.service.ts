@@ -36,6 +36,9 @@ const overrideVehicleValueImpl = async ({ userId, vehicleId, targetValue, note, 
     targetBalance: targetValue,
     note,
     time,
+    // The sole sanctioned caller allowed to move a vehicle account's balance —
+    // adjustAccountBalance re-anchors the depreciation curve for vehicles.
+    allowVehicle: true,
   });
 
   return {

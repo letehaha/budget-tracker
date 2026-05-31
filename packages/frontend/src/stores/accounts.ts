@@ -7,7 +7,7 @@ import {
   unlinkAccountFromBankConnection as apiUnlinkAccountFromBankConnection,
 } from '@/api';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -53,6 +53,15 @@ export const useAccountsStore = defineStore('accounts', () => {
     ...activeSystemAccounts.value,
     ...systemAccounts.value.filter((item) => item.status === ACCOUNT_STATUSES.archived),
   ]);
+
+  // Vehicle accounts are assets whose balance is owned by the depreciation model
+  // and the override flow — the backend rejects any income/expense/transfer
+  // targeting them (only `transfer_out_wallet` overrides are allowed). Exclude
+  // them from transaction/transfer account pickers so users never select an
+  // account that would 422 on submit. Their value is edited from the vehicle page.
+  const txTargetableAccountsActiveFirst = computed(() =>
+    systemAccountsActiveFirst.value.filter((item) => item.accountCategory !== ACCOUNT_CATEGORIES.vehicle),
+  );
 
   /**
    * Accounts that need to be re-linked due to schema migration.
@@ -105,6 +114,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     systemAccounts,
     activeSystemAccounts,
     systemAccountsActiveFirst,
+    txTargetableAccountsActiveFirst,
     accountsCurrencyCodes,
     accountsNeedingRelink,
     isAccountsFetched,

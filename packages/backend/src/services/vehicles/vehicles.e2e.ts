@@ -2,7 +2,6 @@ import {
   ACCOUNT_CATEGORIES,
   asDecimal,
   DEPRECIATION_PRESET,
-  RecordId,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
@@ -11,7 +10,7 @@ import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import Vehicles from '@models/vehicles.model';
 import * as helpers from '@tests/helpers';
-import { format, subDays, subHours, subYears } from 'date-fns';
+import { format, subDays, subYears } from 'date-fns';
 
 function todayString(): string {
   return format(new Date(), 'yyyy-MM-dd');
@@ -372,46 +371,11 @@ describe('Vehicles', () => {
       expect(refreshed.valueAnchor!).toBeLessThan(baseBalance + 6000 - 100);
     });
 
-    it('does not touch the anchor when deleting a non-override tx on a vehicle account', async () => {
-      // Set an anchor via one override, then create a regular (not_transfer)
-      // income tx on the vehicle account and delete it. The hook short-circuits
-      // on transferNature, so anchor must remain exactly where the override left it.
-      const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
-      const baseBalance = vehicle.account!.currentBalance;
-
-      const override = await helpers.overrideVehicleValue({
-        id: vehicle.id,
-        targetValue: baseBalance + 1500,
-        raw: true,
-      });
-      const anchoredValue = override.vehicle!.valueAnchor!;
-      const anchoredDate = override.vehicle!.valueAnchorDate!;
-      expect(anchoredValue).not.toBeNull();
-      expect(anchoredDate).not.toBeNull();
-
-      const regularTxResp = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: vehicle.accountId as RecordId,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.income,
-          time: subHours(new Date(), 1).toISOString(),
-        }),
-        raw: true,
-      });
-      const regularTxId = regularTxResp[0]!.id;
-
-      const deleteResponse = await helpers.makeRequest({
-        method: 'delete',
-        url: `/transactions/${regularTxId}`,
-      });
-      expect(deleteResponse.statusCode).toBe(200);
-
-      const refreshed = await helpers.getVehicleById({ id: vehicle.id, raw: true });
-
-      // Anchor untouched by deletion of a non-override tx.
-      expect(refreshed.valueAnchor).toBeCloseTo(anchoredValue, 2);
-      expect(refreshed.valueAnchorDate).toBe(anchoredDate);
-    });
+    // NOTE: the "deleting a non-override tx on a vehicle account" case is no longer
+    // testable — the model invariant (enforceVehicleAccountInvariant) forbids creating
+    // any non-`transfer_out_wallet` transaction on a vehicle account, so the reconcile
+    // hook's transferNature short-circuit can never be reached via the API. The
+    // rejection itself is covered in vehicle-write-guards.e2e.ts.
 
     it('does not crash when deleting a balance-adjustment override on a non-vehicle account', async () => {
       // The hook checks `accountCategory === vehicle` and short-circuits otherwise.

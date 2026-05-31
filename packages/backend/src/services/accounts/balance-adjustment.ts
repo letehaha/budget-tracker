@@ -7,7 +7,7 @@ import {
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
-import { NotFoundError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import type Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
@@ -24,6 +24,15 @@ interface AdjustAccountBalanceParams {
   note?: string;
   /** Effective date of the adjustment. Defaults to now when omitted — pass a past date to backdate. */
   time?: Date;
+  /**
+   * Vehicle accounts may only have their value changed through the dedicated
+   * override endpoint (`POST /vehicles/:id/value` → `overrideVehicleValue`),
+   * which sets this to `true`. Every other caller (the public
+   * `POST /accounts/:id/balance-adjustment` controller) leaves it falsy, so a
+   * vehicle account is rejected below — there is exactly one sanctioned path to
+   * a vehicle's value, keeping `Vehicle.valueAnchor` authoritative.
+   */
+  allowVehicle?: boolean;
 }
 
 interface AdjustAccountBalanceResult {
@@ -39,12 +48,23 @@ export const adjustAccountBalance = withTransaction(
     targetBalance,
     note,
     time,
+    allowVehicle,
   }: AdjustAccountBalanceParams): Promise<AdjustAccountBalanceResult> => {
     const account = await Accounts.findByPk(accountId);
 
     if (!account || account.userId !== userId) {
       throw new NotFoundError({
         message: t({ key: 'balanceAdjustment.accountNotFound', variables: { accountId } }),
+      });
+    }
+
+    // A vehicle's value is owned by the depreciation model + override flow. The
+    // generic balance-adjustment path leaves `allowVehicle` falsy, so reject it
+    // here and point the caller at the override endpoint — only that path keeps
+    // `Vehicle.valueAnchor` in sync.
+    if (account.accountCategory === ACCOUNT_CATEGORIES.vehicle && !allowVehicle) {
+      throw new ValidationError({
+        message: t({ key: 'balanceAdjustment.vehicleUseOverride' }),
       });
     }
 

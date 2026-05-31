@@ -28,7 +28,9 @@ export const useTransferFormLogic = ({
   transferDestinationType: Ref<TransferDestinationType>;
 }) => {
   const { currenciesMap } = storeToRefs(useCurrenciesStore());
-  const { systemAccountsActiveFirst } = storeToRefs(useAccountsStore());
+  // Vehicle accounts can't be a transfer source or destination — the backend
+  // rejects transfers touching them, so keep them out of both pickers.
+  const { txTargetableAccountsActiveFirst } = storeToRefs(useAccountsStore());
 
   const toAccount = computed(() => form.value.toAccount);
 
@@ -77,7 +79,7 @@ export const useTransferFormLogic = ({
     return false;
   });
 
-  const transferSourceAccounts = computed(() => [OUT_OF_WALLET_ACCOUNT_MOCK, ...systemAccountsActiveFirst.value]);
+  const transferSourceAccounts = computed(() => [OUT_OF_WALLET_ACCOUNT_MOCK, ...txTargetableAccountsActiveFirst.value]);
 
   const transferDestinationAccounts = computed(() =>
     transferSourceAccounts.value.filter((item) => item.id !== form.value.account?.id),
