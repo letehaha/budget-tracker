@@ -335,6 +335,13 @@ interface DemoSecurityConfig {
   exchangeAcronym?: string | null;
   exchangeMic?: string | null;
   exchangeName?: string | null;
+  /**
+   * Logo shown in the holdings UI. Stocks leave this null and the frontend
+   * derives a logo.dev URL from the ticker (needs VITE_LOGO_DEV_TOKEN); crypto
+   * stores the CoinGecko CDN URL the live sync would produce, so demo crypto
+   * logos render even without a logo.dev token configured.
+   */
+  logoUrl?: string | null;
   currentPrice: number;
   purchasePrice: number;
   quantity: number;
@@ -403,6 +410,7 @@ const DEMO_CRYPTO: DemoSecurityConfig[] = [
     currencyCode: 'USD',
     cryptoCurrencyCode: 'BTC',
     exchangeName: 'CoinGecko',
+    logoUrl: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png',
     currentPrice: 67500,
     purchasePrice: 42000,
     quantity: 0.35,
@@ -417,6 +425,7 @@ const DEMO_CRYPTO: DemoSecurityConfig[] = [
     currencyCode: 'USD',
     cryptoCurrencyCode: 'ETH',
     exchangeName: 'CoinGecko',
+    logoUrl: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png',
     currentPrice: 3500,
     purchasePrice: 2400,
     quantity: 4,
@@ -431,6 +440,7 @@ const DEMO_CRYPTO: DemoSecurityConfig[] = [
     currencyCode: 'USD',
     cryptoCurrencyCode: 'SOL',
     exchangeName: 'CoinGecko',
+    logoUrl: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png',
     currentPrice: 145,
     purchasePrice: 95,
     quantity: 40,
@@ -473,6 +483,7 @@ async function seedPortfolioHoldings({
         exchangeAcronym: sec.exchangeAcronym ?? null,
         exchangeMic: sec.exchangeMic ?? null,
         exchangeName: sec.exchangeName ?? null,
+        logoUrl: sec.logoUrl ?? null,
         pricingLastSyncedAt: referenceDate,
         isBrokerageCash: false,
       },
@@ -708,10 +719,12 @@ export async function setupVehicles({ userId, referenceDate }: { userId: number;
 }
 
 /**
- * Seeds two venture SPV deals so demo users can see both outcomes:
+ * Seeds three venture SPV deals so demo users can see every outcome:
  *  - a successful full exit (~3.8x gross), which auto-progresses to
- *    `fully_exited` and splits carry to the GP, and
- *  - a total write-off, which auto-progresses to `written_off`.
+ *    `fully_exited` and splits carry to the GP,
+ *  - a total write-off, which auto-progresses to `written_off`, and
+ *  - an in-progress holding marked up via `nav_update`, which stays
+ *    `outstanding` and carries a live current value (so it doesn't read as $0).
  * Cash flows use `out_of_wallet` so no linked wallet transactions are needed.
  */
 export async function setupVentures({ userId, referenceDate }: { userId: number; referenceDate: Date }): Promise<void> {
@@ -781,5 +794,32 @@ export async function setupVentures({ userId, referenceDate }: { userId: number;
     notes: 'Company ceased operations; position written off.',
   });
 
-  logger.info(`Created 2 demo venture deals for user ${userId}`);
+  // In progress — invested ~2y ago, marked up at the last round and still held,
+  // so it shows a live (non-zero) current value while staying `outstanding`.
+  const inProgress = await createVentureDeal({
+    userId,
+    name: 'Helios Robotics — Series B',
+    currencyCode: DEMO_CONFIG.baseCurrency,
+    principal: '30000',
+    investmentDate: format(subYears(referenceDate, 2), 'yyyy-MM-dd'),
+    platformId: platform.id,
+    spvSubtype: VENTURE_SPV_SUBTYPE.single_company,
+    targetCompany: 'Helios Robotics',
+    carryPct: '0.20',
+    hurdlePct: '0',
+    notes: 'Industrial robotics startup — growing fast, still privately held.',
+    initialInvestment: { cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet },
+  });
+
+  await createVentureEvent({
+    userId,
+    dealId: inProgress.id,
+    type: VENTURE_EVENT_TYPE.nav_update,
+    eventDate: format(subMonths(referenceDate, 1), 'yyyy-MM-dd'),
+    navAfter: '48000',
+    cashFlowMode: VENTURE_CASH_FLOW_MODE.none,
+    notes: 'Series B markup — valuation stepped up on strong revenue growth.',
+  });
+
+  logger.info(`Created 3 demo venture deals for user ${userId}`);
 }

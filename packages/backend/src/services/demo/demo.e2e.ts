@@ -320,7 +320,7 @@ describe('Demo Mode', () => {
       expect(toyota.valueAnchor).toBeNull();
     });
 
-    it('seeds 2 venture deals (one exited, one written off) on a platform', async () => {
+    it('seeds 3 venture deals (exited, written off, in progress) on a platform', async () => {
       // List controllers return `{ data: { data: [...], pagination } }`;
       // createController unwraps one level, so `raw` yields `{ data, pagination }`.
       const dealsRes = await makeRequest({
@@ -330,11 +330,24 @@ describe('Demo Mode', () => {
       });
 
       const deals = dealsRes.data;
-      expect(deals.length).toBe(2);
+      expect(deals.length).toBe(3);
 
       const statuses = deals.map((d: { status: string }) => d.status);
       expect(statuses).toContain(VENTURE_DEAL_STATUS.fully_exited);
       expect(statuses).toContain(VENTURE_DEAL_STATUS.written_off);
+      expect(statuses).toContain(VENTURE_DEAL_STATUS.outstanding);
+
+      // The in-progress deal must carry a live (non-zero) current value — that's
+      // the whole point of seeding it alongside the two $0 terminal deals.
+      const outstanding = deals.find((d: { status: string }) => d.status === VENTURE_DEAL_STATUS.outstanding);
+      expect(outstanding).toBeDefined();
+
+      const metrics = await makeRequest({
+        method: 'get',
+        url: `/venture/deals/${outstanding.id}/metrics`,
+        raw: true,
+      });
+      expect(Number(metrics.currentValue)).toBeGreaterThan(0);
 
       const platformsRes = await makeRequest({
         method: 'get',
