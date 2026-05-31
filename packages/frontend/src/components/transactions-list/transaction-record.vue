@@ -143,7 +143,7 @@ import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from
 import { format } from 'date-fns';
 import { ArrowRight, BriefcaseIcon, UsersIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { computed, reactive } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import RefundIndicator from './indicators/refund-indicator.vue';
@@ -180,19 +180,23 @@ const emit = defineEmits<{
   'selection-change': [{ value: boolean; id: string; index: number }];
 }>();
 
-const transaction = reactive(props.tx);
+// Track props.tx reactively rather than snapshotting it: a list row can be reused
+// (kept by :key) while its tx is swapped — e.g. transfer_out_wallet → common_transfer
+// after linking. A reactive(props.tx) snapshot would freeze the original object and
+// never pick up the new transferId, leaving the opposite leg unresolved.
+const transaction = computed(() => props.tx);
 const isTransferTransaction = computed(() =>
   [TRANSACTION_TRANSFER_NATURE.common_transfer, TRANSACTION_TRANSFER_NATURE.transfer_out_wallet].includes(
-    transaction.transferNature,
+    transaction.value.transferNature,
   ),
 );
 
-const { data: oppositeTransferTransaction, isLoading: isLoadingOpposite } = useOppositeTxRecord(transaction);
+const { data: oppositeTransferTransaction, isLoading: isLoadingOpposite } = useOppositeTxRecord(() => props.tx);
 
 const isPortfolioLinked = computed(
-  () => transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+  () => transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
 );
-const portfolioLinkId = computed(() => (isPortfolioLinked.value ? transaction.id : undefined));
+const portfolioLinkId = computed(() => (isPortfolioLinked.value ? transaction.value.id : undefined));
 const { data: portfolioLinkData, isLoading: isLoadingPortfolioLink } = useTransactionPortfolioLink(portfolioLinkId);
 const portfolioName = computed(() => portfolioLinkData.value?.portfolioName ?? '');
 const isPortfolioDeleted = computed(() => portfolioLinkData.value?.isPortfolioDeleted ?? false);
@@ -201,7 +205,7 @@ const isPortfolioDeleted = computed(() => portfolioLinkData.value?.isPortfolioDe
 const shouldShowGroupedTransfer = computed(() => {
   return (
     isTransferTransaction.value &&
-    transaction.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+    transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
     oppositeTransferTransaction.value
   );
 });
@@ -210,20 +214,20 @@ const shouldShowGroupedTransfer = computed(() => {
 const isLoadingGroupedTransfer = computed(() => {
   return (
     isTransferTransaction.value &&
-    transaction.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+    transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
     isLoadingOpposite.value
   );
 });
 
-const category = computed(() => categoriesMap.value[transaction.categoryId]);
-const accountFrom = computed(() => accountsRecord.value[transaction.accountId]);
+const category = computed(() => categoriesMap.value[transaction.value.categoryId]);
+const accountFrom = computed(() => accountsRecord.value[transaction.value.accountId]);
 
 // Budget-scoped fetches enrich each tx with `addedBy = { id, username }` describing who
 // attached the row to the budget (recipient via metadata.addedByUserId, else the budget
 // owner). The icon is only meaningful when the attacher is someone other than the
 // viewer — otherwise it reads "Added by yourself", which is noise.
 const addedByTooltip = computed(() => {
-  const addedBy = transaction.addedBy;
+  const addedBy = transaction.value.addedBy;
   if (!addedBy || addedBy.id === currentUser.value?.id) return undefined;
   return t('transactions.addedByTooltip', { handle: `@${addedBy.username}` });
 });
@@ -232,9 +236,9 @@ const accountTo = computed(() =>
 );
 
 const accountMovement = computed(() => {
-  const separator = transaction.transactionType === TRANSACTION_TYPES.expense ? '=>' : '<=';
+  const separator = transaction.value.transactionType === TRANSACTION_TYPES.expense ? '=>' : '<=';
 
-  if (transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
+  if (transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
     return `${accountFrom.value?.name} ${separator} Out of wallet`;
   }
   // accountTo can be undefined when the counterpart account is hidden from the caller —
@@ -249,7 +253,7 @@ const accountMovement = computed(() => {
 const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');
 
 const transactionEmit = () => {
-  emit('record-click', [transaction, oppositeTransferTransaction.value ?? undefined]);
+  emit('record-click', [transaction.value, oppositeTransferTransaction.value ?? undefined]);
 };
 
 // Computed with get/set for v-model binding
@@ -259,16 +263,16 @@ const checkedModel = computed({
     if (!props.isSelectable) return;
     emit('selection-change', {
       value: value === true,
-      id: transaction.id,
+      id: transaction.value.id,
       index: props.index,
     });
   },
 });
 
 const formattedAmount = computed(() => {
-  let amount = transaction.amount;
+  let amount = transaction.value.amount;
 
-  if (transaction.transactionType === TRANSACTION_TYPES.expense) {
+  if (transaction.value.transactionType === TRANSACTION_TYPES.expense) {
     amount *= -1;
   }
 
@@ -278,7 +282,7 @@ const formattedAmount = computed(() => {
 });
 
 const formattedExpenseAmount = computed(() => {
-  return formatUIAmount(-transaction.amount, {
+  return formatUIAmount(-transaction.value.amount, {
     currency: props.tx.currencyCode,
   });
 });
