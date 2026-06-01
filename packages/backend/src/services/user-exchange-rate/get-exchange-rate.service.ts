@@ -17,11 +17,31 @@ import { Op } from 'sequelize';
 // Round to 5 precision
 const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;
 
-const exchangeRateCache = new CacheClient<ExchangeRateReturnType>({
-  logPrefix: 'ExchangeRate',
+/**
+ * Global cache for computed cross-rates.
+ *
+ * The conversion `baseCode → quoteCode on date D` is the same number for every
+ * user — there is nothing user-scoped about USD→EUR on 2020-03-15. Keying by
+ * user would store N identical copies and miss N times before populating. The
+ * per-user custom-rate override (liveRateUpdate=false) deliberately bypasses
+ * this cache and is resolved from the DB on every call instead.
+ */
+type CachedCrossRate = { rate: number; dateISO: string };
+const crossRateCache = new CacheClient<CachedCrossRate>({
+  logPrefix: 'CrossRate',
   ttl: 3600 * 4, // 4 hours
   parseJson: true,
 });
+
+/**
+ * Build a stable cache key from the request. Date is sliced to YYYY-MM-DD so
+ * callers asking for the same day at different times of day collapse to one
+ * entry, and codes are uppercased so case variations don't split the cache.
+ */
+function buildCacheKey({ date, baseCode, quoteCode }: { date: Date; baseCode: string; quoteCode: string }): string {
+  const dateISO = date.toISOString().slice(0, 10);
+  return `cross_rate:${dateISO}:${baseCode.toUpperCase()}:${quoteCode.toUpperCase()}`;
+}
 
 export async function getExchangeRate({
   userId,
@@ -29,39 +49,24 @@ export async function getExchangeRate({
   baseCode,
   quoteCode,
 }: ExchangeRateParams): Promise<ExchangeRateReturnType> {
-  // **REDIS CACHE CHECK - FIRST THING, before any expensive operations**
-  const cacheKey = `exchange_rate:${JSON.stringify({ userId, date, baseCode, quoteCode })}`;
+  const pair = {
+    baseCode: baseCode.toUpperCase(),
+    quoteCode: quoteCode.toUpperCase(),
+  };
 
-  const cachedResult = await exchangeRateCache.read(cacheKey);
-
-  if (cachedResult) {
-    return {
-      ...cachedResult,
-      date: new Date(cachedResult.date),
-    };
-  }
-
-  const pair = { baseCode, quoteCode };
-
-  // If base and qoute are the same currency, early return with `1`
+  // Same currency → 1, no auth or cache needed.
   if (pair.baseCode === pair.quoteCode) {
-    const result = {
+    return {
       baseCode: pair.baseCode,
       quoteCode: pair.quoteCode,
       rate: 1,
       date,
     };
-
-    // Cache this simple result too
-    await exchangeRateCache.write({ key: cacheKey, value: result });
-    return result;
   }
 
-  pair.baseCode = pair.baseCode.toUpperCase();
-  pair.quoteCode = pair.quoteCode.toUpperCase();
-
-  // When currencies are different, make sure that base_code currency is linked
-  // to user's currencies, since usually quite is always a user_default_currency
+  // Auth runs BEFORE the cache read on purpose: the cache is now global, so
+  // a hit cannot be allowed to silently bypass "is the user actually allowed
+  // to use this currency?". Single indexed lookup, cheap.
   const userCurrency = await findOrThrowNotFound({
     query: UsersCurrencies.findOne({
       where: { userId },
@@ -81,7 +86,8 @@ export async function getExchangeRate({
   const userDefaultCurrency = await getBaseCurrency({ userId });
 
   // If user has custom live rate AND quote_code is user's base_currency, then
-  // skip any checks and calculations and simply return what user has set
+  // skip any checks and calculations and simply return what user has set.
+  // Per-user value, deliberately not cached via the global cross-rate cache.
   if (userCurrency.liveRateUpdate === false && pair.quoteCode === userDefaultCurrency.currency.code) {
     const [userExchangeRate] = await UserExchangeRates.getRates({
       userId,
@@ -95,6 +101,19 @@ export async function getExchangeRate({
         custom: true,
       };
     }
+  }
+
+  // Global cross-rate cache check. Sits AFTER auth + custom-rate so neither
+  // gate is bypassed by a hit, and uncached paths above remain per-user-correct.
+  const cacheKey = buildCacheKey({ date, baseCode: pair.baseCode, quoteCode: pair.quoteCode });
+  const cachedResult = await crossRateCache.read(cacheKey);
+  if (cachedResult) {
+    return {
+      baseCode: pair.baseCode,
+      quoteCode: pair.quoteCode,
+      rate: cachedResult.rate,
+      date: new Date(cachedResult.dateISO),
+    };
   }
 
   let baseRate: ExchangeRateReturnType | null = null;
@@ -178,7 +197,10 @@ export async function getExchangeRate({
     };
   }
 
-  await exchangeRateCache.write({ key: cacheKey, value: result });
+  await crossRateCache.write({
+    key: cacheKey,
+    value: { rate: result.rate, dateISO: result.date.toISOString() },
+  });
 
   return result;
 }
