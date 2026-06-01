@@ -56,22 +56,23 @@ export const fetchExchangeRatesForDate = withDeduplication(
         baseCurrency: API_LAYER_BASE_CURRENCY_CODE,
       });
 
-      if (!fetchResult || Object.keys(fetchResult.result.rates).length === 0) {
+      if (!fetchResult || Object.keys(fetchResult.merged.rates).length === 0) {
         throw new BadGateway({
           code: API_ERROR_CODES.currencyProviderUnavailable,
           message: 'Failed to load exchange rates from all providers',
         });
       }
 
-      const { result, providerName, providerType } = fetchResult;
+      const { merged, providersUsed } = fetchResult;
 
-      // Convert rates to database format
-      const rateEntries = Object.entries(result.rates).map(([quoteCode, rate]) => ({
-        baseCode: result.baseCurrency,
+      // Convert rates to database format. Each rate carries its own source — the
+      // provider that actually supplied it (rates are merged across providers).
+      const rateEntries = Object.entries(merged.rates).map(([quoteCode, { rate, source }]) => ({
+        baseCode: merged.baseCurrency,
         quoteCode,
         rate,
         date: normalizedDate,
-        source: providerType,
+        source,
       }));
 
       // Bulk insert with duplicate handling
@@ -79,9 +80,10 @@ export const fetchExchangeRatesForDate = withDeduplication(
         ignoreDuplicates: true,
       });
 
+      const providerSummary = providersUsed.map((p) => `${p.name}(${p.ratesContributed})`).join(', ');
       logger.info(
-        `[Exchange Rates: ${providerName}] Rates for ${formattedDate} successfully processed. ` +
-          `Fetched ${rateEntries.length} rates. (Duplicates automatically ignored)`,
+        `[Exchange Rates] Rates for ${formattedDate} successfully processed. ` +
+          `Fetched ${rateEntries.length} rates from: ${providerSummary}. (Duplicates automatically ignored)`,
       );
     } catch (error) {
       if (error instanceof CustomError) {

@@ -8,16 +8,32 @@
  *   - Fetch with fallback: registry.fetchRatesWithFallback({ date: new Date() })
  */
 import { logger } from '@js/utils';
+import { getAllCurrencies } from '@models/currencies.model';
 
 import { BaseExchangeRateProvider } from './base-provider';
 import {
+  findMissingCurrencies,
+  mergeProviderRates,
+  ProviderContribution,
+  ProviderRatesInput,
+} from './merge-provider-rates';
+import {
+  DEFAULT_BASE_CURRENCY,
   EXCHANGE_RATE_PROVIDER_TYPE,
   ExchangeRateProviderMetadata,
   FetchHistoricalRatesWithFallbackResult,
   FetchRatesParams,
   FetchRatesRangeParams,
   FetchRatesWithFallbackResult,
+  MergedRatesForDate,
 } from './types';
+
+/** A provider that was registered but did not contribute rates this run. */
+interface ProviderFailure {
+  name: string;
+  type: EXCHANGE_RATE_PROVIDER_TYPE;
+  reason: string;
+}
 
 class ExchangeRateProviderRegistry {
   private providers = new Map<EXCHANGE_RATE_PROVIDER_TYPE, BaseExchangeRateProvider>();
@@ -120,78 +136,142 @@ class ExchangeRateProviderRegistry {
   }
 
   /**
-   * Fetch exchange rates with automatic fallback through providers by priority.
-   * Tries each provider in order until one succeeds.
+   * Fetch exchange rates by merging across providers in priority order.
+   *
+   * Each provider is queried and its rates are merged into the result, but a
+   * lower-priority provider only fills currencies the higher-priority ones did
+   * NOT supply. This is a gap-filling merge, not first-success-wins: the primary
+   * provider (currency-rates-api) covers ~38 currencies, so the chain MUST
+   * continue to the comprehensive fallback (ApiLayer) to refresh the long tail
+   * of exotic currencies — otherwise those rates go permanently stale.
+   *
    * @param params - Fetch parameters
-   * @returns Exchange rate result with provider info, or null if all providers fail
+   * @returns Merged exchange rates with per-currency attribution, or null if
+   *          every provider failed to return any rates.
    */
   async fetchRatesWithFallback(params: FetchRatesParams): Promise<FetchRatesWithFallbackResult | null> {
-    const providers = await this.getByPriority();
+    const registered = Array.from(this.providers.values());
+    const available = await this.getByPriority();
 
-    if (providers.length === 0) {
-      logger.error('No exchange rate providers are available');
+    // A registered provider missing from `available` was skipped by isAvailable()
+    // (e.g. the primary's health check failed). That degradation never enters the
+    // fetch loop, so it must be tracked separately or it would go unreported.
+    const unavailable: ProviderFailure[] = registered
+      .filter((p) => !available.includes(p))
+      .map((p) => ({
+        name: p.metadata.name,
+        type: p.metadata.type,
+        reason: 'Unavailable (isAvailable() returned false)',
+      }));
+
+    if (available.length === 0) {
+      logger.error('No exchange rate providers are available', { unavailable, date: params.date.toISOString() });
       return null;
     }
 
-    const failedProviders: { name: string; type: EXCHANGE_RATE_PROVIDER_TYPE; error?: string }[] = [];
+    const baseCurrency = params.baseCurrency ?? DEFAULT_BASE_CURRENCY;
+    const providerRates: ProviderRatesInput[] = [];
+    const failed: ProviderFailure[] = [];
+    let resultDate: string | undefined;
 
-    for (const provider of providers) {
+    for (const provider of available) {
       try {
         logger.info(`Attempting to fetch rates from ${provider.metadata.name}`);
         const result = await provider.fetchRatesForDate(params);
 
-        if (result && Object.keys(result.rates).length > 0) {
-          logger.info(`Successfully fetched ${Object.keys(result.rates).length} rates from ${provider.metadata.name}`);
-
-          // Alert: Frankfurter was used (ideally should never happen if currency-rates-api works)
-          if (provider.metadata.type === EXCHANGE_RATE_PROVIDER_TYPE.FRANKFURTER) {
-            logger.warn(`[ALERT:FRANKFURTER_USED] Frankfurter fallback was triggered`, {
-              failedProviders: failedProviders.map((p) => p.name),
-              date: params.date.toISOString(),
-            });
-          }
-
-          // Alert: Currency Rates API failed but another provider succeeded
-          const currencyRatesApiFailed = failedProviders.some(
-            (p) => p.type === EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API,
-          );
-          if (currencyRatesApiFailed) {
-            const failedProvider = failedProviders.find(
-              (p) => p.type === EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API,
-            );
-            logger.warn(`[ALERT:CURRENCY_RATES_API_FAILED] Primary provider failed`, {
-              error: failedProvider?.error,
-              fallbackProvider: provider.metadata.name,
-              date: params.date.toISOString(),
-            });
-          }
-
-          return {
-            result,
-            providerName: provider.metadata.name,
-            providerType: provider.metadata.type,
-          };
+        if (!result || Object.keys(result.rates).length === 0) {
+          logger.warn(`${provider.metadata.name} returned no rates, continuing to next provider`);
+          failed.push({ name: provider.metadata.name, type: provider.metadata.type, reason: 'No rates returned' });
+          continue;
         }
 
-        logger.warn(`${provider.metadata.name} returned no rates, trying next provider`);
-        failedProviders.push({
-          name: provider.metadata.name,
-          type: provider.metadata.type,
-          error: 'No rates returned',
-        });
+        resultDate ??= result.date;
+        providerRates.push({ type: provider.metadata.type, name: provider.metadata.name, rates: result.rates });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.warn(`${provider.metadata.name} failed, trying next provider`, { error: errorMessage });
-        failedProviders.push({
-          name: provider.metadata.name,
-          type: provider.metadata.type,
-          error: errorMessage,
-        });
+        const reason = error instanceof Error ? error.message : String(error);
+        logger.warn(`${provider.metadata.name} failed, continuing to next provider`, { error: reason });
+        failed.push({ name: provider.metadata.name, type: provider.metadata.type, reason });
       }
     }
 
-    logger.error('All exchange rate providers failed to fetch rates');
-    return null;
+    const { rates, providersUsed } = mergeProviderRates({ providerRates, baseCurrency });
+
+    if (Object.keys(rates).length === 0) {
+      logger.error('All exchange rate providers failed to fetch rates', {
+        failed,
+        unavailable,
+        date: params.date.toISOString(),
+      });
+      return null;
+    }
+
+    const merged: MergedRatesForDate = {
+      date: resultDate ?? params.date.toISOString().slice(0, 10),
+      baseCurrency,
+      rates,
+    };
+
+    await this.reportDegradedSync({ failed, unavailable, providersUsed, merged });
+
+    return { merged, providersUsed };
+  }
+
+  /**
+   * Surface a degraded sync to Sentry (via logger.error). Two independent signals:
+   *  1. Provider degradation — a registered provider failed, returned nothing, or
+   *     was unavailable, even if others covered the gap (the long-tail-staleness
+   *     risk this whole path exists to prevent).
+   *  2. Coverage gap — an enabled currency is absent from the merged result.
+   * Both are reported because either can leave a user's currency without a fresh
+   * rate while the sync still "succeeds".
+   */
+  private async reportDegradedSync({
+    failed,
+    unavailable,
+    providersUsed,
+    merged,
+  }: {
+    failed: ProviderFailure[];
+    unavailable: ProviderFailure[];
+    providersUsed: ProviderContribution[];
+    merged: MergedRatesForDate;
+  }): Promise<void> {
+    const degradedProviders = [...failed, ...unavailable];
+
+    if (degradedProviders.length > 0) {
+      const primaryDegraded = degradedProviders.some((p) => p.type === EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API);
+      // Preserve the [ALERT:CURRENCY_RATES_API_FAILED] keyword for the primary so
+      // existing monitoring keyed off it keeps firing.
+      const message = primaryDegraded
+        ? '[ALERT:CURRENCY_RATES_API_FAILED] Primary provider degraded; rates served by fallbacks'
+        : '[exchange-rates] Degraded sync: fallback provider(s) failed or unavailable';
+      logger.error(message, {
+        degradedProviders,
+        contributingProviders: providersUsed.map((p) => p.name),
+        date: merged.date,
+      });
+    }
+
+    // Compare against the currencies users can actually select.
+    try {
+      const enabled = (await getAllCurrencies()).map((c) => c.code);
+      const missingCurrencies = findMissingCurrencies({
+        expected: enabled,
+        covered: Object.keys(merged.rates),
+        baseCurrency: merged.baseCurrency,
+      });
+      if (missingCurrencies.length > 0) {
+        logger.error('[exchange-rates] Enabled currencies missing from sync result', {
+          missingCurrencies,
+          missingCount: missingCurrencies.length,
+          date: merged.date,
+        });
+      }
+    } catch (error) {
+      logger.warn('Could not check currency coverage for sync result', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   /**
@@ -205,45 +285,106 @@ class ExchangeRateProviderRegistry {
   }
 
   /**
-   * Fetch historical exchange rates for a date range with automatic fallback.
-   * Only tries providers that support efficient historical data loading.
+   * Fetch historical exchange rates for a date range, merging across providers
+   * by priority — the SAME gap-filling semantics as the daily path, applied
+   * per-date. Each lower-priority provider only fills currencies a higher one
+   * didn't supply for that date, so the exotic long tail (covered only by the
+   * comprehensive provider) is backfilled instead of dropped.
+   * Only providers that support efficient historical data loading are queried.
    * @param params - Fetch parameters including date range
-   * @returns Historical rate results with provider info, or null if no provider supports it
+   * @returns Merged historical rates per date, or null if no provider returned data
    */
   async fetchHistoricalRatesWithFallback(
     params: FetchRatesRangeParams,
   ): Promise<FetchHistoricalRatesWithFallbackResult | null> {
+    const registeredHistorical = Array.from(this.providers.values()).filter(
+      (p) => p.metadata.supportsHistoricalDataLoading === true,
+    );
     const providers = await this.getHistoricalDataProviders();
 
+    // A registered historical provider missing from `providers` was skipped by
+    // isAvailable(). The daily path tracks this; the historical path must too,
+    // or a provider silently dropping out of the backfill goes unreported.
+    const unavailable: ProviderFailure[] = registeredHistorical
+      .filter((p) => !providers.includes(p))
+      .map((p) => ({
+        name: p.metadata.name,
+        type: p.metadata.type,
+        reason: 'Unavailable (isAvailable() returned false)',
+      }));
+
     if (providers.length === 0) {
-      logger.error('No exchange rate providers support historical data loading');
+      logger.error('No exchange rate providers support historical data loading', { unavailable });
       return null;
     }
+
+    const baseCurrency = params.baseCurrency ?? DEFAULT_BASE_CURRENCY;
+    // date -> provider rates for that date, accumulated in provider-priority order
+    // (outer loop is priority order) so the per-date merge keeps precedence.
+    const ratesByDate = new Map<string, ProviderRatesInput[]>();
+    const failed: ProviderFailure[] = [];
 
     for (const provider of providers) {
       try {
         logger.info(`Attempting to fetch historical rates from ${provider.metadata.name}`);
         const results = await provider.fetchRatesForDateRange(params);
 
-        if (results && results.length > 0) {
-          logger.info(`Successfully fetched ${results.length} date entries from ${provider.metadata.name}`);
-          return {
-            results,
-            providerName: provider.metadata.name,
-            providerType: provider.metadata.type,
-          };
+        if (!results || results.length === 0) {
+          logger.warn(`${provider.metadata.name} returned no historical rates, continuing to next provider`);
+          failed.push({ name: provider.metadata.name, type: provider.metadata.type, reason: 'No rates returned' });
+          continue;
         }
 
-        logger.warn(`${provider.metadata.name} returned no historical rates, trying next provider`);
+        for (const result of results) {
+          const forDate = ratesByDate.get(result.date) ?? [];
+          forDate.push({ type: provider.metadata.type, name: provider.metadata.name, rates: result.rates });
+          ratesByDate.set(result.date, forDate);
+        }
       } catch (error) {
-        logger.warn(`${provider.metadata.name} failed to fetch historical rates, trying next provider`, {
-          error: error instanceof Error ? error.message : String(error),
+        const reason = error instanceof Error ? error.message : String(error);
+        logger.warn(`${provider.metadata.name} failed to fetch historical rates, continuing to next provider`, {
+          error: reason,
         });
+        failed.push({ name: provider.metadata.name, type: provider.metadata.type, reason });
       }
     }
 
-    logger.error('All providers failed to fetch historical rates');
-    return null;
+    if (ratesByDate.size === 0) {
+      logger.error('All providers failed to fetch historical rates', { failed });
+      return null;
+    }
+
+    const results: MergedRatesForDate[] = [];
+    const contributionByType = new Map<EXCHANGE_RATE_PROVIDER_TYPE, ProviderContribution>();
+
+    for (const [date, providerRates] of ratesByDate) {
+      const { rates, providersUsed } = mergeProviderRates({ providerRates, baseCurrency });
+      results.push({ date, baseCurrency, rates });
+
+      // Aggregate per-provider contribution across all dates for the summary.
+      for (const used of providersUsed) {
+        const existing = contributionByType.get(used.type);
+        if (existing) {
+          existing.ratesContributed += used.ratesContributed;
+        } else {
+          contributionByType.set(used.type, { ...used });
+        }
+      }
+    }
+
+    // Degradation here is unusual (no per-date coverage check, since the historical
+    // providers never cover the exotic long tail and missing exotics across years
+    // would be expected noise) but a failed OR unavailable provider during backfill
+    // is still worth a Sentry signal so a silently-skipped provider is visible.
+    const degradedProviders = [...failed, ...unavailable];
+    if (degradedProviders.length > 0) {
+      logger.error('[exchange-rates] Historical backfill degraded: provider(s) failed or unavailable', {
+        degradedProviders,
+        date: `${params.startDate.toISOString().slice(0, 10)}..${params.endDate.toISOString().slice(0, 10)}`,
+      });
+    }
+
+    return { results, providersUsed: Array.from(contributionByType.values()) };
   }
 
   /**

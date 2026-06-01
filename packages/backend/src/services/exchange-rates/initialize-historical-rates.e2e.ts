@@ -1,4 +1,5 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from '@jest/globals';
+import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from '@jest/globals';
+import { logger } from '@js/utils';
 import ExchangeRates from '@models/exchange-rates.model';
 import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
@@ -7,6 +8,13 @@ import { CURRENCY_RATES_API_ENDPOINT_REGEX, FRANKFURTER_ENDPOINT_REGEX } from '.
 import { initializeHistoricalRates, providerAvailabilityConfig } from './initialize-historical-rates.service';
 import { exchangeRateProviderRegistry } from './providers';
 import { EXCHANGE_RATE_PROVIDER_TYPE } from './providers/types';
+
+// logger.error is an overloaded fn, so jest infers its call args as `never`.
+// Read the recorded calls through a widened tuple type for assertions.
+const loggerErrorCalledWith = (errorSpy: ReturnType<typeof jest.spyOn>, substring: string): boolean =>
+  (errorSpy.mock.calls as unknown as Array<[unknown, Record<string, unknown>?]>).some(
+    ([arg]) => typeof arg === 'string' && arg.includes(substring),
+  );
 
 describe('Initialize Historical Rates Service', () => {
   let currencyRatesApiOverride: ReturnType<typeof createOverride>;
@@ -48,6 +56,9 @@ describe('Initialize Historical Rates Service', () => {
         ignoreDuplicates: true,
       });
     }
+
+    // Drop any logger spies installed by degradation-signal tests
+    jest.restoreAllMocks();
   });
 
   afterAll(() => {
@@ -171,6 +182,35 @@ describe('Initialize Historical Rates Service', () => {
     // the insert path in a future refactor.
     expect(sampleRate!.source).not.toBe(EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN);
     expect(Object.values(EXCHANGE_RATE_PROVIDER_TYPE)).toContain(sampleRate!.source);
+  });
+
+  it('attributes backfilled rates to the highest-priority provider that supplied them', async () => {
+    // Both historical providers (Currency Rates API p1, Frankfurter p2) are healthy.
+    // The primary's mock is a superset of Frankfurter's, so the per-date merge must
+    // attribute EVERY row to the primary — proving priority precedence holds in the
+    // historical path (a lower-priority value never overwrites a higher-priority one).
+    await ExchangeRates.destroy({ where: {} });
+
+    await initializeHistoricalRates();
+
+    const rates = await ExchangeRates.findAll({ raw: true });
+    expect(rates.length).toBeGreaterThan(0);
+    rates.forEach((rate) => {
+      expect(rate.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API);
+    });
+  });
+
+  it('reports a Sentry event (logger.error) when a historical provider is unavailable', async () => {
+    const errorSpy = jest.spyOn(logger, 'error');
+    // Primary stays healthy and backfills the data; the secondary provider fails its
+    // health check (500), so it is skipped by isAvailable(). That degradation used to
+    // go unreported on the historical path (only `failed`, never `unavailable`, was
+    // signalled) — the exact asymmetry this guards against.
+    frankfurterOverride.setOverride({ status: 500 });
+
+    await initializeHistoricalRates();
+
+    expect(loggerErrorCalledWith(errorSpy, 'Historical backfill degraded')).toBe(true);
   });
 
   it('should work as a fire-and-forget operation (non-blocking startup pattern)', async () => {
