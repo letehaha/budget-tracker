@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 const ALREADY_LINKED_NATURES = [
   TRANSACTION_TRANSFER_NATURE.common_transfer,
   TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+  TRANSACTION_TRANSFER_NATURE.transfer_to_venture,
 ];
 
 const validateTransactionLinking = ({

@@ -187,7 +187,11 @@ const isTransferTransaction = computed(() =>
   ),
 );
 
-const { data: oppositeTransferTransaction, isLoading: isLoadingOpposite } = useOppositeTxRecord(transaction);
+const {
+  data: oppositeTransferTransaction,
+  isLoading: isLoadingOpposite,
+  refetch: refetchOppositeTx,
+} = useOppositeTxRecord(transaction);
 
 const isPortfolioLinked = computed(
   () => transaction.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
@@ -248,8 +252,17 @@ const accountMovement = computed(() => {
 
 const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');
 
-const transactionEmit = () => {
-  emit('record-click', [transaction, oppositeTransferTransaction.value ?? undefined]);
+const transactionEmit = async () => {
+  let oppositeTx = oppositeTransferTransaction.value ?? undefined;
+  // A transfer's opposite leg is fetched lazily; on the first interaction right
+  // after a page load the query can still be in flight. Emitting undefined here
+  // opens the manage-transaction dialog in an unlinked state (no Unlink button),
+  // so resolve the opposite leg before opening for transfers that have one.
+  if (isTransferTransaction.value && transaction.transferId && !oppositeTx) {
+    const { data } = await refetchOppositeTx();
+    oppositeTx = data ?? undefined;
+  }
+  emit('record-click', [transaction, oppositeTx]);
 };
 
 // Computed with get/set for v-model binding

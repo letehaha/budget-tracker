@@ -10,10 +10,7 @@ import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
 import { categorizationQueue, categorizationWorker } from '@services/ai-categorization/categorization-queue';
 import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
-import {
-  transactionSyncQueue,
-  transactionSyncWorker,
-} from '@services/bank-data-providers/monobank/transaction-sync-queue';
+import { closeAllMonobankQueueBundles } from '@services/bank-data-providers/monobank/transaction-sync-queue';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest';
@@ -351,8 +348,7 @@ afterAll(async () => {
 
     // Close ALL BullMQ workers and queues first to ensure no pending operations
     // This prevents "The client is closed" errors when workers try to access Redis
-    await transactionSyncWorker.close();
-    await transactionSyncQueue.close();
+    await closeAllMonobankQueueBundles();
     await categorizationWorker.close();
     await categorizationQueue.close();
 

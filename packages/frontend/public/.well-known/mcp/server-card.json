@@ -313,6 +313,70 @@
     {
       "name": "delete_tag",
       "description": "Permanently delete a tag and unlink it from all transactions. Requires finance:delete scope."
+    },
+    {
+      "name": "list_venture_platforms",
+      "description": "List the user's venture investment platforms with their default fee fractions (entry fee, mgmt fee, carry, hurdle)."
+    },
+    {
+      "name": "get_venture_platform",
+      "description": "Retrieve a single venture platform by id, including its default fee fractions."
+    },
+    {
+      "name": "create_venture_platform",
+      "description": "Create a venture investment platform (syndicator, fund manager) with default fees that auto-apply to new deals. Requires finance:write scope."
+    },
+    {
+      "name": "update_venture_platform",
+      "description": "Update a venture platform's name, website, description, or default fees. Does not change fees on existing deals. Requires finance:write scope."
+    },
+    {
+      "name": "delete_venture_platform",
+      "description": "Delete a venture platform; deals referencing it have their platformId cleared. Supports soft-delete or hard-delete via force. Requires finance:delete scope."
+    },
+    {
+      "name": "list_venture_deals",
+      "description": "List the user's venture deals (illiquid private investments) with status, platform, currency, principal, fees, and dates."
+    },
+    {
+      "name": "get_venture_deal",
+      "description": "Retrieve a single venture deal by id with platform and currency; optionally embed its event history."
+    },
+    {
+      "name": "get_venture_deal_metrics",
+      "description": "Compute aggregated metrics for a venture deal: cost basis, current value, distributions, P&L, TVPI, DPI, and IRR (as of an optional date)."
+    },
+    {
+      "name": "create_venture_deal",
+      "description": "Create a venture deal. Snapshots platform fees by default. Optionally creates the initial_investment event in the same operation. Requires finance:write scope."
+    },
+    {
+      "name": "update_venture_deal",
+      "description": "Update a venture deal. Terms (principal, fees, dates, currency) are locked once events exist. Requires finance:write scope."
+    },
+    {
+      "name": "delete_venture_deal",
+      "description": "Delete a venture deal; cascade-deletes its events. Linked bank transactions are unlinked and restored. Requires finance:delete scope."
+    },
+    {
+      "name": "list_venture_events",
+      "description": "List events for a venture deal in chronological order, with their amounts, cash-flow modes, and linked bank transactions."
+    },
+    {
+      "name": "get_venture_event",
+      "description": "Retrieve a single venture event by id, including its linked bank transactions."
+    },
+    {
+      "name": "create_venture_event",
+      "description": "Record an event on a venture deal (initial_investment must come first). Auto-computes carry on distributions and exits. Requires finance:write scope."
+    },
+    {
+      "name": "update_venture_event",
+      "description": "Update a venture event. Manual gpCarry/lpNet values set override flags; resetOverrides=true re-runs auto-compute. Requires finance:write scope."
+    },
+    {
+      "name": "delete_venture_event",
+      "description": "Delete a venture event; unlinks bank transactions first. Cannot delete initial_investment while other events exist. Requires finance:delete scope."
     }
   ],
   "prompts": [

@@ -5,6 +5,7 @@ import type { updatePortfolioBalance as _updatePortfolioBalance } from '@service
 import type { createPortfolio as _createPortfolio } from '@services/investments/portfolios/create.service';
 import type { deletePortfolio as _deletePortfolio } from '@services/investments/portfolios/delete.service';
 import type { getPortfolioSummary as _getPortfolioSummary } from '@services/investments/portfolios/get-portfolio-summary.service';
+import type { getPortfoliosAnnualizedReturns as _getPortfoliosAnnualizedReturns } from '@services/investments/portfolios/get-portfolios-annualized-returns.service';
 import type { getPortfolio as _getPortfolio } from '@services/investments/portfolios/get.service';
 import type { listPortfolios as _listPortfolios } from '@services/investments/portfolios/list.service';
 import type { restorePortfolio as _restorePortfolio } from '@services/investments/portfolios/restore.service';
@@ -195,6 +196,18 @@ export async function getPortfolioSummary<R extends boolean | undefined = false>
     method: 'get',
     url: `/investments/portfolios/${portfolioId}/summary`,
     payload: removeUndefinedKeys({ date }),
+    raw,
+  });
+}
+
+export async function getPortfoliosAnnualizedReturns<R extends boolean | undefined = false>({
+  raw,
+}: {
+  raw?: R;
+} = {}) {
+  return makeRequest<Awaited<ReturnType<typeof _getPortfoliosAnnualizedReturns>>, R>({
+    method: 'get',
+    url: '/investments/portfolios/annualized-returns',
     raw,
   });
 }

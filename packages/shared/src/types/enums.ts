@@ -89,6 +89,35 @@ export enum ACCOUNT_CATEGORIES {
   mortgage = 'mortgage',
   overdraft = 'overdraft',
   crypto = 'crypto',
+  vehicle = 'vehicle',
+}
+
+/**
+ * Vehicle body / drivetrain class used to pick the default depreciation curve.
+ * VARCHAR in DB, TS-side enum for type safety (per project's no-DB-enums rule).
+ */
+export enum VEHICLE_CLASS {
+  sedan = 'sedan',
+  suv = 'suv',
+  truck = 'truck',
+  luxury = 'luxury',
+  ev = 'ev',
+  motorcycle = 'motorcycle',
+  other = 'other',
+}
+
+/**
+ * How a vehicle's depreciation is parameterized:
+ * - classDefault: use the per-class default curve as-is.
+ * - slow / average / fast: scale the per-class default curve by a preset multiplier.
+ * - custom: ignore class curve, apply a single flat annual rate (customAnnualRatePct).
+ */
+export enum DEPRECIATION_PRESET {
+  classDefault = 'class-default',
+  slow = 'slow',
+  average = 'average',
+  fast = 'fast',
+  custom = 'custom',
 }
 
 export enum PAYMENT_TYPES {
@@ -129,6 +158,7 @@ export enum TRANSACTION_TRANSFER_NATURE {
   common_transfer = 'transfer_between_user_accounts',
   transfer_out_wallet = 'transfer_out_wallet',
   transfer_to_portfolio = 'transfer_to_portfolio',
+  transfer_to_venture = 'transfer_to_venture',
 }
 
 export enum BUDGET_STATUSES {

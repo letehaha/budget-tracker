@@ -3,12 +3,18 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">{{ $t('accounts.title') }}</h1>
 
-      <CreateAccountDialog>
-        <UiButton> {{ $t('accounts.createAccount') }} </UiButton>
-      </CreateAccountDialog>
+      <div class="flex flex-wrap gap-2">
+        <CreateVehicleDialog>
+          <UiButton variant="outline">{{ $t('accounts.createVehicle') }}</UiButton>
+        </CreateVehicleDialog>
+
+        <CreateAccountDialog>
+          <UiButton> {{ $t('accounts.createAccount') }} </UiButton>
+        </CreateAccountDialog>
+      </div>
     </div>
 
-    <template v-if="accounts?.length">
+    <template v-if="accounts?.length || vehicles?.length">
       <div class="grid gap-6">
         <template v-for="key in Object.keys(groupedAccounts) as AccountTypeKey[]">
           <template v-if="groupedAccounts[key].length">
@@ -31,6 +37,21 @@
               </template>
             </Section>
           </template>
+        </template>
+
+        <template v-if="vehicles && vehicles.length">
+          <Section :default-open="true">
+            <template #trigger-content>
+              <h2 class="xs:text-lg text-base font-semibold">{{ $t('accounts.sections.vehicles') }}</h2>
+            </template>
+            <template #content>
+              <div class="xs:gap-3 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))]">
+                <template v-for="vehicle in vehicles" :key="vehicle.id">
+                  <VehicleCard :vehicle="vehicle" />
+                </template>
+              </div>
+            </template>
+          </Section>
         </template>
       </div>
     </template>
@@ -72,13 +93,15 @@
 
 <script lang="ts" setup>
 import { type BankProvider, listProviders } from '@/api/bank-data-providers';
+import { getVehicles } from '@/api/vehicles';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
+import CreateVehicleDialog from '@/components/dialogs/create-vehicle-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-integration-dialog.vue';
 import { useAccountsStore } from '@/stores';
-import { ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { LandmarkIcon, LinkIcon, PlusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
@@ -86,15 +109,27 @@ import { computed, ref } from 'vue';
 
 import AccountCard from './components/account-card.vue';
 import Section from './components/section.vue';
+import VehicleCard from './components/vehicle-card.vue';
 
 const { accounts } = storeToRefs(useAccountsStore());
 const queryClient = useQueryClient();
 
 type AccountTypeKey = 'integrations' | 'manual' | 'sharedWithMe' | 'archived';
 
+const { data: vehicles } = useQuery({
+  queryKey: VUE_QUERY_CACHE_KEYS.vehiclesList,
+  queryFn: getVehicles,
+});
+
+const vehicleAccountIds = computed(() => new Set((vehicles.value ?? []).map((v) => v.accountId)));
+
 const groupedAccounts = computed(() =>
   (accounts.value ?? []).reduce(
     (acc, account) => {
+      // Vehicles render in their own section — keep them out of the manual list.
+      if (account.accountCategory === ACCOUNT_CATEGORIES.vehicle || vehicleAccountIds.value.has(account.id)) {
+        return acc;
+      }
       if (account.share?.isOwner === false) {
         // Shared accounts always render in their own section, regardless of archive status
         // or connection origin (the recipient doesn't see the owner's bank-link metadata).

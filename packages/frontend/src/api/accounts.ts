@@ -39,15 +39,17 @@ export const balanceAdjustment = async ({
   id,
   targetBalance,
   note,
+  time,
 }: {
   id: string;
   targetBalance: number;
   note?: string;
+  time?: Date;
 }): Promise<{
   transaction: TransactionModel | null;
   previousBalance: number;
   newBalance: number;
-}> => api.post(`/accounts/${id}/balance-adjustment`, { targetBalance, note });
+}> => api.post(`/accounts/${id}/balance-adjustment`, { targetBalance, note, time });
 
 export const unlinkAccountFromBankConnection = async ({
   id,

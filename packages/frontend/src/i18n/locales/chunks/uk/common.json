@@ -52,7 +52,9 @@
       "password": "Ваш пароль"
     },
     "dialogs": {
-      "createAccount": "Створити рахунок"
+      "createAccount": "Створити рахунок",
+      "createVehicle": "Додати транспорт",
+      "editVehicle": "Редагувати транспорт"
     },
     "accountCategories": {
       "general": "Загальний",
@@ -66,7 +68,8 @@
       "loan": "Позика",
       "mortgage": "Іпотека",
       "overdraft": "Овердрафт",
-      "crypto": "Криптовалюта"
+      "crypto": "Криптовалюта",
+      "vehicle": "Транспорт"
     },
     "paymentTypes": {
       "creditCard": "Кредитна картка",
@@ -76,6 +79,22 @@
       "mobilePayment": "Мобільний платіж",
       "voucher": "Ваучер",
       "webPayment": "Інтернет-платіж"
+    },
+    "vehicleClasses": {
+      "sedan": "Седан",
+      "suv": "Позашляховик",
+      "truck": "Вантажівка",
+      "luxury": "Преміум",
+      "ev": "Електромобіль",
+      "motorcycle": "Мотоцикл",
+      "other": "Інше"
+    },
+    "depreciationPresets": {
+      "classDefault": "За замовчуванням",
+      "slow": "Повільна",
+      "average": "Середня",
+      "fast": "Швидка",
+      "custom": "Власна ставка"
     },
     "aiFeatures": {
       "categorization": {

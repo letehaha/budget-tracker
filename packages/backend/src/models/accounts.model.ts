@@ -125,7 +125,13 @@ export default class Accounts extends Model<InferAttributes<Accounts>, InferCrea
   @Default(ACCOUNT_TYPES.system)
   declare type: CreationOptional<ACCOUNT_TYPES>;
 
-  @Attribute(DataTypes.ENUM({ values: Object.values(ACCOUNT_CATEGORIES) }))
+  // VARCHAR(50) + isIn validation (not a DB ENUM) per the project's no-DB-enums
+  // rule. The create-vehicles migration converts the legacy enum column to VARCHAR
+  // so new categories (e.g. 'vehicle') can be added without altering a PG type.
+  @Attribute({
+    type: DataTypes.STRING(50),
+    validate: { isIn: [Object.values(ACCOUNT_CATEGORIES)] },
+  })
   @NotNull
   @Default(ACCOUNT_CATEGORIES.general)
   declare accountCategory: CreationOptional<ACCOUNT_CATEGORIES>;

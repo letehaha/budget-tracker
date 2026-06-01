@@ -11,12 +11,16 @@
         "balanceTypes": {
           "total": "Total",
           "accounts": "Accounts",
-          "portfolios": "Portfolios"
+          "portfolios": "Portfolios",
+          "ventures": "Ventures",
+          "vehicles": "Vehicles"
         },
         "tooltip": {
           "accounts": "Accounts:",
           "portfolios": "Portfolios:",
-          "total": "Total:"
+          "total": "Total:",
+          "ventures": "Ventures:",
+          "vehicles": "Vehicles:"
         },
         "today": "Today",
         "vsPreviousPeriod": "vs previous period",
@@ -49,7 +53,15 @@
           "fitToLatestData": "Fit to latest data",
           "fitToLatestDataTooltip": "When on, the chart only spans up to your latest data point. When off, the x-axis covers the full selected period, leaving empty space for any future dates.",
           "on": "On",
-          "off": "Off"
+          "off": "Off",
+          "includeInTotal": "Include in total"
+        },
+        "componentsSettings": {
+          "description": "Choose which components count toward the Total balance line.",
+          "vehicles": "Vehicles",
+          "ventures": "Ventures",
+          "allIncluded": "All components",
+          "excluding": "Excluding {items}"
         }
       },
       "expensesStructure": {

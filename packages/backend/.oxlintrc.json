@@ -6,6 +6,12 @@
   },
   "rules": {
     "typescript/no-empty-object-type": "off",
+    "no-underscore-dangle": [
+      "warn",
+      {
+        "allow": ["_shareContext", "_bankProviderType"]
+      }
+    ],
     "no-unused-vars": [
       "warn",
       {

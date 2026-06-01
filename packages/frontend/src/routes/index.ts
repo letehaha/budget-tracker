@@ -39,6 +39,12 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/account', 'pages/transactions'] as I18nChunkName[] },
       },
       {
+        path: '/accounts/vehicles/:id',
+        name: ROUTES_NAMES.accountsVehicleDetails,
+        component: () => import('@/pages/accounts/vehicle-details.vue'),
+        meta: { i18nChunks: ['pages/accounts', 'pages/account', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
         path: '/accounts/integrations',
         name: ROUTES_NAMES.accountIntegrations,
         component: () => import('@/pages/accounts/integrations/index.vue'),
@@ -83,6 +89,24 @@ const routes: RouteRecordRaw[] = [
         meta: {
           i18nChunks: ['pages/investments-import', 'pages/portfolio-detail'] as I18nChunkName[],
         },
+      },
+      {
+        path: '/venture',
+        name: ROUTES_NAMES.venture,
+        component: () => import('@/pages/venture/venture.vue'),
+        meta: { i18nChunks: ['pages/venture'] as I18nChunkName[] },
+      },
+      {
+        path: '/venture/platforms',
+        name: ROUTES_NAMES.venturePlatformsList,
+        component: () => import('@/pages/venture/platforms.vue'),
+        meta: { i18nChunks: ['pages/venture'] as I18nChunkName[] },
+      },
+      {
+        path: '/venture/deals/:dealId',
+        name: ROUTES_NAMES.ventureDealDetail,
+        component: () => import('@/pages/venture/deal-detail.vue'),
+        meta: { i18nChunks: ['pages/venture', 'pages/transactions'] as I18nChunkName[] },
       },
       {
         path: '/analytics',
@@ -360,6 +384,12 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: { name: ROUTES_NAMES.dashboard },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: ROUTES_NAMES.notFound,
+    component: () => import('@/pages/not-found/not-found.vue'),
+    meta: { i18nChunks: ['errors'] as I18nChunkName[] },
   },
 ];
 

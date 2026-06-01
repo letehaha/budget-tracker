@@ -14,8 +14,11 @@ import * as Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
 import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
+import { AsyncLocalStorage } from 'async_hooks';
 import type { Job } from 'bullmq';
 import { Queue, Worker } from 'bullmq';
+import crypto from 'crypto';
+import IORedis from 'ioredis';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
@@ -43,125 +46,77 @@ const connection = {
   retryStrategy: (times: number) => Math.min(times * 100, 3000), // Exponential backoff, max 3s
 };
 
-// Namespace queue by Jest worker ID in test environment to prevent cross-contamination
-// when multiple test files run in parallel. Each worker gets its own isolated queue.
-const queueName =
+// Monobank's API rate limit (~1 req / 60s per endpoint) is enforced per
+// API token, not per IP. A single global queue + worker therefore serializes
+// every Monobank user — Dmytro syncing blocks Evelina syncing even though
+// their tokens are independent. We instead create one queue + worker per
+// API-token hash, so each token gets its own rate-limited lane and tokens
+// run in parallel.
+//
+// Bundles are created lazily on first enqueue and re-created at startup via
+// `ensureMonobankQueueRecovery()` so pending jobs in Redis resume processing
+// after a restart, even before any new sync is requested for that token.
+//
+// The per-worker suffix isolates each parallel test worker's namespace;
+// the tokenHash suffix isolates per-token traffic. Tests run under Vitest
+// (VITEST_POOL_ID); JEST_WORKER_ID is kept as a fallback for any legacy runner.
+const QUEUE_NAME_BASE =
   process.env.NODE_ENV === 'test' && (process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID)
     ? `monobank-transaction-sync-worker-${process.env.VITEST_POOL_ID || process.env.JEST_WORKER_ID}`
     : 'monobank-transaction-sync';
 
-// Create queue for transaction sync jobs
-export const transactionSyncQueue = new Queue<TransactionSyncJobData>(queueName, {
-  connection,
-  defaultJobOptions: {
-    attempts: 2,
-    backoff: {
-      type: 'exponential',
-      delay: 60000, // Start with 60 seconds due to Monobank rate limits
-    },
-    removeOnComplete: {
-      age: 1800, // Keep completed jobs for 30 mins (just in case)
-      count: 20, // Keep last 20 completed jobs
-    },
-    removeOnFail: {
-      age: 7200, // Keep failed jobs for 2 hours
-    },
-  },
-});
+const TOKEN_HASH_LENGTH = 16;
 
-// Handle Queue error events to prevent unhandled exceptions in CI
-transactionSyncQueue.on('error', (err) => {
-  // Ignore "Connection is closed" errors during test teardown
-  if (!err.message.includes('Connection is closed')) {
-    logger.error({ message: 'Queue error', error: err });
-  }
-});
-
-/**
- * Create transaction from Monobank API response.
- * Returns the created transaction ID, or undefined if skipped (duplicate).
- */
-async function createMonobankTransaction(
-  data: ExternalMonobankTransactionResponse,
-  accountId: RecordId,
-  userId: number,
-): Promise<string | undefined> {
-  // Check if transaction already exists (duplicate prevention)
-  const isTransactionExists = await Transactions.findOne({
-    where: {
-      originalId: data.id,
-      accountId,
-      userId,
-    },
-  });
-
-  if (isTransactionExists) {
-    logger.info(`Transaction ${data.id} already exists, skipping`);
-    return undefined;
-  }
-
-  // Get or create MCC code (convert numeric MCC from Monobank API to string)
-  const mccCode = String(data.mcc);
-  let mccRecord = await MerchantCategoryCodes.getByCode({ code: mccCode });
-
-  if (!mccRecord) {
-    mccRecord = await MerchantCategoryCodes.addCode({ code: mccCode });
-  }
-
-  // Get or create user MCC mapping to category
-  const userMcc = await UserMerchantCategoryCodes.getByPassedParams({
-    mccId: mccRecord.get('id'),
-    userId,
-  });
-
-  let categoryId: RecordId;
-
-  if (userMcc.length) {
-    categoryId = userMcc[0]!.get('categoryId');
-  } else {
-    // Use default category for this user
-    categoryId = await Users.getUserDefaultCategory({ id: userId });
-
-    // Create mapping for future transactions
-    await UserMerchantCategoryCodes.createEntry({
-      mccId: mccRecord.get('id'),
-      userId,
-      categoryId,
-    });
-  }
-
-  // Create transaction in database
-  const [createdTx] = await transactionsService.createTransaction({
-    originalId: data.id,
-    note: data.description,
-    amount: Money.fromCents(Math.abs(data.amount)),
-    time: new Date(data.time * 1000),
-    externalData: {
-      operationAmount: data.operationAmount,
-      receiptId: data.receiptId,
-      balance: data.balance,
-      hold: data.hold,
-    },
-    commissionRate: Money.fromCents(data.commissionRate),
-    cashbackAmount: Money.fromCents(data.cashbackAmount),
-    accountId,
-    userId,
-    transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
-    paymentType: PAYMENT_TYPES.creditCard,
-    categoryId,
-    transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-    accountType: ACCOUNT_TYPES.monobank,
-  });
-
-  logger.info(`Created Monobank transaction: ${data.id}, amount: ${data.amount}`);
-  return createdTx.id;
+function hashApiToken(apiToken: string): string {
+  return crypto.createHash('sha256').update(apiToken).digest('hex').slice(0, TOKEN_HASH_LENGTH);
 }
 
-// Create worker to process transaction sync jobs
-// Uses the same namespaced queue name to ensure worker processes jobs from the correct queue
-export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
-  queueName,
-  async (job: Job<TransactionSyncJobData>) => {
+// BullMQ rejects `:` in queue names (it uses `:` internally for Redis key
+// segments), so a non-colon separator is required between the base and the
+// per-token suffix.
+const QUEUE_NAME_SEP = '_';
+
+function queueNameForTokenHash(tokenHash: string): string {
+  return `${QUEUE_NAME_BASE}${QUEUE_NAME_SEP}${tokenHash}`;
+}
+
+interface QueueBundle {
+  tokenHash: string;
+  queueName: string;
+  queue: Queue<TransactionSyncJobData>;
+  worker: Worker<TransactionSyncJobData>;
+}
+
+const bundles = new Map<string, QueueBundle>();
+
+// Captured at module load — before any request-scoped Sequelize transaction
+// exists. Sequelize v7 propagates managed transactions through AsyncLocalStorage,
+// so a per-token Worker created lazily inside a request's withTransaction() would
+// otherwise capture that transaction in its long-lived run-loop; once the request
+// commits, every query the worker runs throws "commit has been called on this
+// transaction". Running bundle creation through this snapshot roots the worker
+// (and all its job processing) in the clean module-load context, detached from any
+// request transaction — mirroring how the AI-categorization worker is created at
+// module scope.
+const runInRootContext = AsyncLocalStorage.snapshot();
+
+const queueDefaultJobOptions = {
+  attempts: 2,
+  backoff: {
+    type: 'exponential' as const,
+    delay: 60000, // Start with 60 seconds due to Monobank rate limits
+  },
+  removeOnComplete: {
+    age: 1800, // Keep completed jobs for 30 mins (just in case)
+    count: 20, // Keep last 20 completed jobs
+  },
+  removeOnFail: {
+    age: 7200, // Keep failed jobs for 2 hours
+  },
+};
+
+function buildJobProcessor(queueName: string) {
+  return async (job: Job<TransactionSyncJobData>) => {
     return withQueueProcessSpan({
       queueName,
       job,
@@ -324,19 +279,236 @@ export const transactionSyncWorker = new Worker<TransactionSyncJobData>(
         }
       },
     });
-  },
-  {
+  };
+}
+
+function createBundle(tokenHash: string): QueueBundle {
+  const queueName = queueNameForTokenHash(tokenHash);
+
+  const queue = new Queue<TransactionSyncJobData>(queueName, {
     connection,
-    concurrency: 1, // Process one job at a time per worker
+    defaultJobOptions: queueDefaultJobOptions,
+  });
+
+  queue.on('error', (err) => {
+    // Ignore "Connection is closed" errors during test teardown
+    if (!err.message.includes('Connection is closed')) {
+      logger.error({ message: `Queue error (${queueName})`, error: err });
+    }
+  });
+
+  const worker = new Worker<TransactionSyncJobData>(queueName, buildJobProcessor(queueName), {
+    connection,
+    concurrency: 1, // Process one job at a time per worker (one token's rate-limit lane)
     // Only enable rate limiter in production (not in tests)
     ...(process.env.NODE_ENV !== 'test' && {
       limiter: {
         max: 1, // Max jobs per duration
-        duration: 60000, // 60 seconds - Monobank rate limit
+        duration: 60000, // 60 seconds - Monobank per-token rate limit
       },
     }),
-  },
-);
+  });
+
+  worker.on('completed', (job) => handleCompletedBatch(job));
+
+  worker.on('failed', (job, err) => {
+    logger.error({ message: `Job ${job?.id} failed (${queueName})`, error: err });
+  });
+
+  worker.on('error', (err) => {
+    // Ignore "Connection is closed" errors during test teardown
+    if (!err.message.includes('Connection is closed')) {
+      logger.error({ message: `Worker error (${queueName})`, error: err });
+    }
+  });
+
+  return { tokenHash, queueName, queue, worker };
+}
+
+function getOrCreateBundle(apiToken: string): QueueBundle {
+  const tokenHash = hashApiToken(apiToken);
+  let bundle = bundles.get(tokenHash);
+  if (!bundle) {
+    bundle = runInRootContext(() => createBundle(tokenHash));
+    bundles.set(tokenHash, bundle);
+  }
+  return bundle;
+}
+
+/**
+ * Snapshot of all currently-instantiated per-token queue+worker pairs.
+ * Used by sweep-style operations (read-across-queues, bulk close, user delete).
+ */
+function getAllMonobankQueueBundles(): readonly QueueBundle[] {
+  return [...bundles.values()];
+}
+
+/**
+ * Tear down every queue + worker. Used in test teardown and graceful shutdown.
+ */
+export async function closeAllMonobankQueueBundles(): Promise<void> {
+  const all = [...bundles.values()];
+  bundles.clear();
+  await Promise.all(all.map((b) => b.worker.close()));
+  await Promise.all(all.map((b) => b.queue.close()));
+}
+
+// Recovery runs at most once per process. Read-side callers await the same
+// promise so they don't act on an empty bundle Map immediately after boot.
+let recoveryPromise: Promise<void> | undefined;
+
+/**
+ * Scan Redis for existing per-token queues and re-create their in-memory
+ * bundles so workers resume processing pending jobs after a restart.
+ *
+ * Without this, jobs sitting in Redis for tokens that haven't been re-used
+ * since the restart would never be picked up — no worker is bound to that
+ * queue name until something calls `getOrCreateBundle` for that token again.
+ */
+export function ensureMonobankQueueRecovery(): Promise<void> {
+  if (!recoveryPromise) {
+    recoveryPromise = recoverExistingQueues().catch((error) => {
+      // Reset so a later call can retry; recovery failure shouldn't permanently
+      // wedge the module.
+      recoveryPromise = undefined;
+      logger.error({ message: '[Monobank] Queue recovery scan failed', error: error as Error });
+      throw error;
+    });
+  }
+  return recoveryPromise;
+}
+
+async function recoverExistingQueues(): Promise<void> {
+  // Use a dedicated short-lived Redis client without keyPrefix so we can
+  // SCAN BullMQ's raw `bull:*` keys (the shared redisClient has a Jest-worker
+  // prefix that would mis-scope the pattern).
+  const scanClient = new IORedis({
+    host: process.env.APPLICATION_REDIS_HOST,
+    lazyConnect: true,
+    maxRetriesPerRequest: 3,
+  });
+
+  try {
+    await scanClient.connect();
+
+    const pattern = `bull:${QUEUE_NAME_BASE}${QUEUE_NAME_SEP}*`;
+    const discovered = new Set<string>();
+    let cursor = '0';
+
+    do {
+      const [next, keys] = await scanClient.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
+      cursor = next;
+      const prefix = `bull:${QUEUE_NAME_BASE}${QUEUE_NAME_SEP}`;
+      for (const key of keys) {
+        if (!key.startsWith(prefix)) continue;
+        // key = bull:<QUEUE_NAME_BASE>_<tokenHash>[:<sub-key>]
+        const rest = key.slice(prefix.length);
+        const colon = rest.indexOf(':');
+        const tokenHash = colon === -1 ? rest : rest.slice(0, colon);
+        if (tokenHash.length === TOKEN_HASH_LENGTH) {
+          discovered.add(tokenHash);
+        }
+      }
+    } while (cursor !== '0');
+
+    for (const tokenHash of discovered) {
+      if (!bundles.has(tokenHash)) {
+        bundles.set(
+          tokenHash,
+          runInRootContext(() => createBundle(tokenHash)),
+        );
+      }
+    }
+
+    logger.info(
+      `[Monobank] Queue recovery: discovered ${discovered.size} existing queue(s), ${bundles.size} bundle(s) now active`,
+    );
+  } finally {
+    await scanClient.quit().catch(() => {
+      // ignore — short-lived scan client
+    });
+  }
+}
+
+/**
+ * Create transaction from Monobank API response.
+ * Returns the created transaction ID, or undefined if skipped (duplicate).
+ */
+async function createMonobankTransaction(
+  data: ExternalMonobankTransactionResponse,
+  accountId: RecordId,
+  userId: number,
+): Promise<string | undefined> {
+  // Check if transaction already exists (duplicate prevention)
+  const isTransactionExists = await Transactions.findOne({
+    where: {
+      originalId: data.id,
+      accountId,
+      userId,
+    },
+  });
+
+  if (isTransactionExists) {
+    logger.info(`Transaction ${data.id} already exists, skipping`);
+    return undefined;
+  }
+
+  // Get or create MCC code (convert numeric MCC from Monobank API to string)
+  const mccCode = String(data.mcc);
+  let mccRecord = await MerchantCategoryCodes.getByCode({ code: mccCode });
+
+  if (!mccRecord) {
+    mccRecord = await MerchantCategoryCodes.addCode({ code: mccCode });
+  }
+
+  // Get or create user MCC mapping to category
+  const userMcc = await UserMerchantCategoryCodes.getByPassedParams({
+    mccId: mccRecord.get('id'),
+    userId,
+  });
+
+  let categoryId: RecordId;
+
+  if (userMcc.length) {
+    categoryId = userMcc[0]!.get('categoryId');
+  } else {
+    // Use default category for this user
+    categoryId = await Users.getUserDefaultCategory({ id: userId });
+
+    // Create mapping for future transactions
+    await UserMerchantCategoryCodes.createEntry({
+      mccId: mccRecord.get('id'),
+      userId,
+      categoryId,
+    });
+  }
+
+  // Create transaction in database
+  const [createdTx] = await transactionsService.createTransaction({
+    originalId: data.id,
+    note: data.description,
+    amount: Money.fromCents(Math.abs(data.amount)),
+    time: new Date(data.time * 1000),
+    externalData: {
+      operationAmount: data.operationAmount,
+      receiptId: data.receiptId,
+      balance: data.balance,
+      hold: data.hold,
+    },
+    commissionRate: Money.fromCents(data.commissionRate),
+    cashbackAmount: Money.fromCents(data.cashbackAmount),
+    accountId,
+    userId,
+    transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
+    paymentType: PAYMENT_TYPES.creditCard,
+    categoryId,
+    transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+    accountType: ACCOUNT_TYPES.monobank,
+  });
+
+  logger.info(`Created Monobank transaction: ${data.id}, amount: ${data.amount}`);
+  return createdTx.id;
+}
 
 // 24h safety TTL: if the worker crashes between intermediate batches, the
 // counter key expires rather than lingering in Redis forever.
@@ -385,25 +557,6 @@ export async function handleCompletedBatch(job: Job<TransactionSyncJobData>): Pr
   logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
 }
 
-// Worker event listeners
-transactionSyncWorker.on('completed', (job) => handleCompletedBatch(job));
-
-transactionSyncWorker.on('failed', (job, err) => {
-  const validationErrors = (err as any).errors?.map((e: any) => `${e.type}:${e.path}:${e.validatorKey}`).join(', ');
-  console.error('[WORKER FAILED]', job?.id, err.constructor.name, validationErrors || err.message);
-  logger.error({ message: `Job ${job?.id} failed`, error: err });
-});
-transactionSyncWorker.on('completed', (job) => {
-  console.log('[WORKER COMPLETED]', job?.id);
-});
-
-transactionSyncWorker.on('error', (err) => {
-  // Ignore "Connection is closed" errors during test teardown
-  if (!err.message.includes('Connection is closed')) {
-    logger.error({ message: 'Worker error', error: err });
-  }
-});
-
 /**
  * Split date range into 31-day chunks (Monobank API limitation)
  * Returns chunks in DESCENDING order (newest first) for better UX
@@ -446,6 +599,8 @@ export async function queueTransactionSync(params: {
 }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
   const { userId, accountId, connectionId, externalAccountId, apiToken, from, to } = params;
 
+  const bundle = getOrCreateBundle(apiToken);
+
   // Split date range into chunks
   const chunks = splitDateRangeIntoChunks(from, to);
 
@@ -454,7 +609,7 @@ export async function queueTransactionSync(params: {
 
   // Queue jobs for each chunk, wrapped in a Sentry publish span
   await withQueuePublishSpan({
-    queueName,
+    queueName: bundle.queueName,
     messageId: jobGroupId,
     payloadSize: chunks.length * 200, // approximate per-job size
     fn: async (traceData) => {
@@ -477,11 +632,13 @@ export async function queueTransactionSync(params: {
         },
       }));
 
-      await transactionSyncQueue.addBulk(jobs);
+      await bundle.queue.addBulk(jobs);
     },
   });
 
-  logger.info(`[QUEUE] Queued ${chunks.length} batch(es) for transaction sync (group: ${jobGroupId})`);
+  logger.info(
+    `[QUEUE] Queued ${chunks.length} batch(es) for transaction sync (group: ${jobGroupId}, queue: ${bundle.queueName})`,
+  );
 
   // Each batch takes ~60 seconds due to rate limiting
   const estimatedMinutes = Math.max(1, chunks.length - 1); // First batch starts immediately
@@ -494,7 +651,12 @@ export async function queueTransactionSync(params: {
 }
 
 /**
- * Get job progress for a group of jobs
+ * Get job progress for a group of jobs.
+ *
+ * A jobGroupId lives in exactly one per-token queue (the one that owned the
+ * token at enqueue time), but the caller doesn't know which. We scan every
+ * known bundle and aggregate — cost scales with active-token count, which is
+ * small (one entry per Monobank user with traffic since boot/recovery).
  */
 export async function getJobGroupProgress(jobGroupId: string): Promise<{
   totalBatches: number;
@@ -505,19 +667,28 @@ export async function getJobGroupProgress(jobGroupId: string): Promise<{
   status: 'waiting' | 'active' | 'completed' | 'failed' | 'partial';
   progress?: unknown;
 }> {
-  // Fetch jobs by state separately to avoid duplicates
-  const [waitingJobs, activeJobs, completedJobs, failedJobs] = await Promise.all([
-    transactionSyncQueue.getJobs(['waiting']),
-    transactionSyncQueue.getJobs(['active']),
-    transactionSyncQueue.getJobs(['completed']),
-    transactionSyncQueue.getJobs(['failed']),
-  ]);
+  await ensureMonobankQueueRecovery();
 
-  // Filter jobs belonging to this group for each state
-  const waitingGroupJobs = waitingJobs.filter((job) => job.id?.startsWith(jobGroupId));
-  const activeGroupJobs = activeJobs.filter((job) => job.id?.startsWith(jobGroupId));
-  const completedGroupJobs = completedJobs.filter((job) => job.id?.startsWith(jobGroupId));
-  const failedGroupJobs = failedJobs.filter((job) => job.id?.startsWith(jobGroupId));
+  const allBundles = getAllMonobankQueueBundles();
+
+  // Fetch jobs by state separately to avoid duplicates
+  const perBundle = await Promise.all(
+    allBundles.map(async (bundle) => {
+      const [waitingJobs, activeJobs, completedJobs, failedJobs] = await Promise.all([
+        bundle.queue.getJobs(['waiting']),
+        bundle.queue.getJobs(['active']),
+        bundle.queue.getJobs(['completed']),
+        bundle.queue.getJobs(['failed']),
+      ]);
+      return { waitingJobs, activeJobs, completedJobs, failedJobs };
+    }),
+  );
+
+  const matches = (jobs: Job[]) => jobs.filter((job) => job.id?.startsWith(jobGroupId));
+  const waitingGroupJobs = perBundle.flatMap((b) => matches(b.waitingJobs));
+  const activeGroupJobs = perBundle.flatMap((b) => matches(b.activeJobs));
+  const completedGroupJobs = perBundle.flatMap((b) => matches(b.completedJobs));
+  const failedGroupJobs = perBundle.flatMap((b) => matches(b.failedJobs));
 
   const waitingBatches = waitingGroupJobs.length;
   const activeBatches = activeGroupJobs.length;
@@ -581,7 +752,11 @@ export async function getActiveJobsForUser(userId: number): Promise<
     status: 'waiting' | 'active';
   }>
 > {
-  const jobs = await transactionSyncQueue.getJobs(['waiting', 'active']);
+  await ensureMonobankQueueRecovery();
+
+  const allBundles = getAllMonobankQueueBundles();
+  const jobsPerBundle = await Promise.all(allBundles.map((b) => b.queue.getJobs(['waiting', 'active'])));
+  const jobs = jobsPerBundle.flat();
 
   // Group jobs by jobGroupId
   const jobGroups = new Map<string, Array<{ accountId: string }>>();
@@ -602,9 +777,6 @@ export async function getActiveJobsForUser(userId: number): Promise<
 
     // Extract accountId from job data
     const { accountId } = job.data;
-
-    // Extract connectionId from jobGroupId (format: userId-accountId-timestamp)
-    // We'll get it from the first job's data when we process the group
 
     if (!jobGroups.has(jobGroupId)) {
       jobGroups.set(jobGroupId, []);
@@ -643,4 +815,29 @@ export async function getActiveJobsForUser(userId: number): Promise<
   }
 
   return result;
+}
+
+/**
+ * Remove all pending/delayed jobs belonging to a user across every per-token
+ * queue. Used during user deletion so leftover work doesn't try to touch
+ * tables of a user that no longer exists. 'active' jobs are locked by their
+ * worker and intentionally skipped — they finish on their own.
+ */
+export async function removePendingJobsForUser({ userId }: { userId: number }): Promise<void> {
+  await ensureMonobankQueueRecovery();
+
+  const allBundles = getAllMonobankQueueBundles();
+  const jobsPerBundle = await Promise.all(allBundles.map((b) => b.queue.getJobs(['waiting', 'delayed'])));
+  const userJobs = jobsPerBundle.flat().filter((job) => job.data.userId === userId);
+
+  await Promise.all(
+    userJobs.map((job) =>
+      job.remove().catch((error) => {
+        // Job may have become active between getJobs and remove - ignore lock errors,
+        // but log the actual error so we can spot non-lock failures (Redis disconnect,
+        // etc.) instead of misattributing every miss to a transient lock race.
+        logger.warn(`Could not remove job during user deletion. jobId: ${job.id}`, { error: error as Error });
+      }),
+    ),
+  );
 }

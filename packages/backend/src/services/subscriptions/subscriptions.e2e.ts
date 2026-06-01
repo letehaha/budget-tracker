@@ -365,7 +365,7 @@ describe('Subscriptions', () => {
 
       const list = await helpers.getSubscriptions({ raw: true });
       const found = list.find((s: { id: string }) => s.id === sub.id);
-      expect((found as Record<string, unknown>).linkedTransactionsCount).toBe(1);
+      expect(found?.linkedTransactionsCount).toBe(1);
     });
   });
 

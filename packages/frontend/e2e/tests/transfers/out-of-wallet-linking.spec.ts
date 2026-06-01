@@ -122,8 +122,15 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
     const mainDialog = page.getByRole('dialog').first();
     await expect(mainDialog.getByRole('button', { name: /cancel/i })).toBeVisible({ timeout: 5_000 });
 
-    // Submit the form (button says "Edit" when editing existing transaction)
+    // Submit the form. Wait for the link PUT to actually commit before we let the
+    // test end — without this, the next test can navigate before the backend has
+    // flipped both legs to common_transfer, and the dialog re-opens in the stale
+    // (still out_of_wallet) state.
+    const linkResponse = page.waitForResponse(
+      (r) => r.url().endsWith('/api/v1/transactions/link') && r.request().method() === 'PUT' && r.ok(),
+    );
     await mainDialog.getByRole('button', { name: /edit transaction/i }).click();
+    await linkResponse;
 
     // Dialog should close after successful linking
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 15_000 });

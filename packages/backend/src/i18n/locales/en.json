@@ -13,7 +13,8 @@
   },
   "balanceAdjustment": {
     "defaultNote": "Balance adjustment",
-    "accountNotFound": "Account with id \"{{accountId}}\" not found."
+    "accountNotFound": "Account with id \"{{accountId}}\" not found.",
+    "vehicleUseOverride": "A vehicle's value can only be changed from its vehicle page."
   },
   "accountGroups": {
     "groupNotFound": "Group not found",
@@ -51,6 +52,7 @@
     "invalidTagIds": "One or more tag IDs are invalid or do not belong to this user",
     "cannotEditPortfolioLinkedTransaction": "Cannot edit a transaction linked to a portfolio. Unlink it first.",
     "refFieldsRequiredForTransferToPortfolio": "Reference currency and reference amount must be set for portfolio-transfer transactions.",
+    "vehicleAccountReadonly": "This account tracks a vehicle. Its value can only be changed from the vehicle page.",
     "splits": {
       "splitsOnTransfer": "Cannot add splits to transfer transactions",
       "splitLimitExceeded": "Maximum {{max}} splits allowed per transaction",
@@ -135,6 +137,7 @@
     "cannotDeleteHoldingWithActivePosition": "Cannot delete a holding with an active position. Please sell or transfer all shares first.",
     "transactionAlreadyTransfer": "Transaction is already marked as a transfer and cannot be linked to a portfolio.",
     "transactionAlreadyLinkedToPortfolio": "Transaction is already linked to a portfolio transfer.",
+    "transactionAlreadyLinkedToVenture": "Transaction is already linked to a venture deal",
     "portfolioTransferNotFound": "Portfolio transfer not found",
     "exchangeCurrenciesMustDiffer": "Exchange currencies must be different"
   },

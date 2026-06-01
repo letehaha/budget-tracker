@@ -2,6 +2,7 @@ import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { serializeAccounts } from '@root/serializers/accounts.serializer';
 import { getAccounts } from '@services/accounts.service';
+import { slimAccountsForMcp } from '@services/mcp/serializers';
 import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
@@ -34,7 +35,7 @@ export function registerGetAccounts(server: McpServer) {
         result = result.filter((a) => !a.excludeFromStats);
       }
 
-      return jsonContent({ data: result });
+      return jsonContent({ data: slimAccountsForMcp(result) });
     },
   );
 }

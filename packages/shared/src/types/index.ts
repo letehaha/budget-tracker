@@ -7,6 +7,8 @@ export * from './db-models';
 export * from './external-services';
 
 export * from './investments/index';
+export * from './venture/index';
+export * from './vehicles';
 export * from './api';
 export * from './import-export';
 export * from './statement-parser';

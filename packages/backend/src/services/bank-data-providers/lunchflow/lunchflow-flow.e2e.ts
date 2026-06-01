@@ -8,6 +8,7 @@ import {
 } from '@bt/shared/types';
 import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { ERROR_CODES } from '@js/errors';
+import Accounts from '@models/accounts.model';
 import Transactions from '@models/transactions.model';
 import { Op } from '@sequelize/core';
 import * as helpers from '@tests/helpers';
@@ -798,7 +799,9 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(account.type).toBe(ACCOUNT_TYPES.system);
       expect(account.bankDataProviderConnectionId).toBeNull();
       expect(account.externalId).toBeNull();
-      expect(account.externalData).toHaveProperty('connectionHistory');
+      // externalData isn't exposed via API — read it directly from the DB.
+      const accountRow = await Accounts.findByPk(accountId);
+      expect(accountRow!.externalData).toHaveProperty('connectionHistory');
     });
 
     it('should remove accounts when disconnecting with removeAssociatedAccounts', async () => {
@@ -987,7 +990,9 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(disconnectedAccount.type).toBe(ACCOUNT_TYPES.system);
       expect(disconnectedAccount.bankDataProviderConnectionId).toBeNull();
       expect(disconnectedAccount.externalId).toBeNull();
-      expect(disconnectedAccount.externalData).toHaveProperty('connectionHistory');
+      // externalData isn't exposed via API — read it directly from the DB.
+      const disconnectedAccountRow = await Accounts.findByPk(accountId);
+      expect(disconnectedAccountRow!.externalData).toHaveProperty('connectionHistory');
 
       // Verify transactions were reset to system type too
       const resetTxs = await Transactions.findAll({

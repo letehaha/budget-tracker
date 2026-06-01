@@ -18,7 +18,8 @@
       "subscriptions": "Підписки",
       "budgets": "Бюджети",
       "reminders": "Нагадування"
-    }
+    },
+    "venture": "Венчур"
   },
   "sidebar": {
     "accountsView": {
@@ -29,6 +30,7 @@
       "portfolios": "Портфелі",
       "newPortfolio": "Новий портфель",
       "noPortfolios": "Поки немає портфелів",
+      "ventures": "Венчури",
       "collapseNavigation": "Згорнути навігацію",
       "viaHousehold": "Через сім'ю {handle}",
       "sharedBy": "Поділено з {handle}",

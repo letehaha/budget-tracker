@@ -183,6 +183,37 @@
         "success": "Currency exchanged successfully",
         "error": "Failed to exchange currency"
       }
+    },
+    "createVehicle": {
+      "nameLabel": "Vehicle name",
+      "namePlaceholder": "e.g. My Camry",
+      "currencyLabel": "Currency",
+      "makeLabel": "Make",
+      "modelLabel": "Model",
+      "trimLabel": "Trim (optional)",
+      "yearLabel": "Year",
+      "vehicleClassLabel": "Vehicle class",
+      "purchasePriceLabel": "Purchase price",
+      "purchaseDateLabel": "Purchase date",
+      "depreciationPresetLabel": "Depreciation pattern",
+      "customAnnualRatePctLabel": "Custom annual depreciation rate (%)",
+      "salvageFloorPctLabel": "Salvage floor (% of purchase price)",
+      "currentMileageLabel": "Current mileage (optional)",
+      "currentMileagePlaceholder": "e.g. 45000",
+      "submitButton": "Add vehicle",
+      "submitButtonLoading": "Adding...",
+      "notifications": {
+        "success": "Vehicle added",
+        "error": "Failed to add vehicle"
+      }
+    },
+    "editVehicle": {
+      "submitButton": "Save changes",
+      "submitButtonLoading": "Saving...",
+      "notifications": {
+        "success": "Vehicle updated",
+        "error": "Failed to update vehicle"
+      }
     }
   },
   "fields": {

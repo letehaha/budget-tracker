@@ -4,6 +4,7 @@ import {
   apiPost,
   completeOnboarding,
   createHolding,
+  createInvestmentTransaction,
   createPortfolio,
   setPortfolioCash,
 } from '../../helpers/api-client';
@@ -31,7 +32,7 @@ async function seedTestData({ request }: { request: import('@playwright/test').A
   const pRes = await createPortfolio({ request, name: 'E2E Portfolio' });
   portfolioId = pRes.response.id;
 
-  await createHolding({
+  const holdingRes = await createHolding({
     request,
     portfolioId,
     searchResult: {
@@ -44,6 +45,19 @@ async function seedTestData({ request }: { request: import('@playwright/test').A
   });
 
   await setPortfolioCash({ request, portfolioId, currencyCode: CURRENCY, amount: '10000' });
+
+  // Seed a buy tx so the holding has quantity > 0. Zero-quantity holdings now
+  // collapse under a "Closed positions" group in the holdings table, hiding
+  // the row from the assertions below.
+  await createInvestmentTransaction({
+    request,
+    portfolioId,
+    securityId: holdingRes.response.securityId,
+    category: 'buy',
+    date: '2026-01-02',
+    quantity: '10',
+    price: '100',
+  });
 
   dataSeeded = true;
 }

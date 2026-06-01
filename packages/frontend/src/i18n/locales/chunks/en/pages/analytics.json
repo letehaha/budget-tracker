@@ -115,7 +115,9 @@
       "inflationTooltip": "How fast prices rise each year, reducing your money's real value.\n\n~1–2% — very low, stable economy\n~2–3% — normal (typical target)\n~4–6% — above average\n~7%+ — crisis-level inflation",
       "totalInvestedBreakdown": "{initial} initial + {contributions} contributions",
       "configure": "Configure",
-      "hideInputs": "Hide"
+      "hideInputs": "Hide",
+      "portfolioReturnOption": "{name} (your ~{rate}%/yr)",
+      "portfolioNoHistoryOption": "{name} — not enough history"
     }
   }
 }

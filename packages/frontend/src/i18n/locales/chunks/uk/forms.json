@@ -183,6 +183,37 @@
         "success": "Валюту успішно обміняно",
         "error": "Не вдалося обміняти валюту"
       }
+    },
+    "createVehicle": {
+      "nameLabel": "Назва транспорту",
+      "namePlaceholder": "напр. Моя Camry",
+      "currencyLabel": "Валюта",
+      "makeLabel": "Марка",
+      "modelLabel": "Модель",
+      "trimLabel": "Комплектація (необов'язково)",
+      "yearLabel": "Рік",
+      "vehicleClassLabel": "Тип транспорту",
+      "purchasePriceLabel": "Ціна придбання",
+      "purchaseDateLabel": "Дата придбання",
+      "depreciationPresetLabel": "Шаблон амортизації",
+      "customAnnualRatePctLabel": "Власна річна ставка амортизації (%)",
+      "salvageFloorPctLabel": "Мінімальна вартість (% від ціни придбання)",
+      "currentMileageLabel": "Поточний пробіг (необов'язково)",
+      "currentMileagePlaceholder": "напр. 45000",
+      "submitButton": "Додати транспорт",
+      "submitButtonLoading": "Додаю...",
+      "notifications": {
+        "success": "Транспорт додано",
+        "error": "Не вдалося додати транспорт"
+      }
+    },
+    "editVehicle": {
+      "submitButton": "Зберегти зміни",
+      "submitButtonLoading": "Зберігаю...",
+      "notifications": {
+        "success": "Транспорт оновлено",
+        "error": "Не вдалося оновити транспорт"
+      }
     }
   },
   "fields": {
@@ -217,6 +248,11 @@
     "tagSelect": {
       "placeholder": "Виберіть теги...",
       "noTagsAvailable": "Немає доступних тегів"
+    },
+    "categoryMultiSelect": {
+      "placeholder": "Виберіть категорії...",
+      "searchPlaceholder": "Шукати категорії...",
+      "noCategoriesFound": "Категорій не знайдено"
     }
   }
 }

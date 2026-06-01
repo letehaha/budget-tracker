@@ -6,6 +6,7 @@ import type {
   TransactionModel,
 } from '@bt/shared/types';
 import {
+  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   FILTER_OPERATION,
   PAYMENT_TYPES,
@@ -313,7 +314,8 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
         }
         return;
       }
-      case TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio: {
+      case TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio:
+      case TRANSACTION_TRANSFER_NATURE.transfer_to_venture: {
         // Single-leg transfer: no paired transferId, but ref fields must still be set so
         // downstream aggregations can find the row. `refAmount == null` matches both null
         // and undefined returned by the Money getter when the underlying cents are null.
@@ -332,6 +334,48 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
         throw new Error(`Unhandled transferNature in validateTransferRelatedFields: ${_exhaustiveCheck}`);
       }
     }
+  }
+
+  /**
+   * Vehicle-account write invariant — enforced at the lowest funnel every
+   * transaction write passes through.
+   *
+   * A vehicle is a regular `Accounts` row (accountCategory: 'vehicle') whose
+   * balance is owned by the lazy-depreciation model plus manual overrides. Its
+   * value may ONLY change through the override flow, which records a
+   * `transfer_out_wallet` row AND keeps `Vehicle.valueAnchor` in sync. Any other
+   * transaction (income/expense, transfers in or out, transfer-to-portfolio or
+   * -venture) would move `Account.currentBalance` without touching the anchor —
+   * so the next lazy refresh recomputes from the stale anchor and silently
+   * discards the change. That is data loss, not just a confusing UI state.
+   *
+   * Rejecting every nature except `transfer_out_wallet` here covers every path
+   * that creates or moves a transaction row: the manage-transaction UI, MCP
+   * tools, bank sync, CSV import, direct API calls and any future endpoint all
+   * funnel through this model. The legit override path passes for free — it IS a
+   * `transfer_out_wallet`. (Note: a vehicle's `currentBalance` can also move
+   * WITHOUT a transaction row — via `accountsService.updateAccount` — so that
+   * path is guarded separately in the service; this hook is not the whole story.)
+   */
+  @BeforeCreate
+  @BeforeUpdate
+  static async enforceVehicleAccountInvariant(instance: Transactions) {
+    // `transfer_out_wallet` is the only nature ever valid on a vehicle account,
+    // so short-circuit before the account lookup. The lookup still runs for
+    // every other write (most income/expense/transfer rows) — it's a narrow
+    // single-column PK read, and only the override/adjustment rows skip it.
+    if (instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return;
+
+    const account = await Accounts.findByPk(instance.accountId, {
+      attributes: ['accountCategory'],
+    });
+    // A missing account isn't a vehicle (FK / other validation rejects orphan
+    // rows); only vehicle accounts are locked down here.
+    if (account?.accountCategory !== ACCOUNT_CATEGORIES.vehicle) return;
+
+    throw new ValidationError({
+      message: t({ key: 'transactions.vehicleAccountReadonly' }),
+    });
   }
 
   @AfterCreate
@@ -447,6 +491,51 @@ export default class Transactions extends Model<InferAttributes<Transactions>, I
       raw: true,
     });
     (instance as unknown as Record<string, unknown>)._affectedGroupIds = groupItems.map((item) => item.groupId);
+  }
+
+  @AfterDestroy
+  static async reconcileVehicleAnchorOnDelete(instance: Transactions) {
+    // When a balance-adjustment ("transfer_out_wallet") tx on a vehicle account
+    // is deleted, the user's manual override is being undone. Re-derive the
+    // vehicle's depreciation anchor by walking the REMAINING overrides forward
+    // from purchase. The cents-arithmetic Account.currentBalance decremented by
+    // BeforeDestroy is not the right anchor value — once the override chain has
+    // more than one entry, the prior override's post-tx value depends on the
+    // curve between it and the deleted one, not on a flat subtraction.
+    if (instance.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return;
+
+    const { accountId } = instance;
+    if (!accountId) return;
+
+    const account = await Accounts.findByPk(accountId);
+    if (!account || account.accountCategory !== ACCOUNT_CATEGORIES.vehicle) return;
+
+    // Lazy-imported to avoid circular dep (Vehicles model is in the same model layer).
+    const { default: Vehicles } = await import('@models/vehicles.model');
+    const vehicle = await Vehicles.findOne({ where: { accountId } });
+    if (!vehicle) return;
+
+    const { reconstructVehicleAnchor } = await import('@services/vehicles/reconstruct-vehicle-anchor');
+    const reconstructed = await reconstructVehicleAnchor({ vehicle });
+
+    if (reconstructed.hasOverrides) {
+      await vehicle.update({
+        valueAnchor: reconstructed.value,
+        valueAnchorDate: reconstructed.date,
+        valueLastComputedAt: null,
+      });
+    } else {
+      await vehicle.update({
+        valueAnchor: null,
+        valueAnchorDate: null,
+        valueLastComputedAt: null,
+      });
+    }
+
+    // Recompute synchronously so the response (and any immediate cache refetch)
+    // reflects today's curve-derived value, not the BeforeDestroy intermediate.
+    const { refreshVehicleValueIfStale } = await import('@services/vehicles/refresh-vehicle-value.service');
+    await refreshVehicleValueIfStale({ vehicleId: vehicle.id, force: true });
   }
 
   @AfterDestroy

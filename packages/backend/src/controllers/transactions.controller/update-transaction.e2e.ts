@@ -1,6 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { faker } from '@faker-js/faker';
 import { ERROR_CODES } from '@js/errors';
+import Transactions from '@models/transactions.model';
 import { EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS } from '@services/transactions/update-transaction';
 import * as helpers from '@tests/helpers';
 import { describe, expect, it } from 'vitest';
@@ -1069,6 +1070,79 @@ describe('Update transaction controller', () => {
       });
 
       expect(updatedTx.note).toBe('edited after unlink');
+    });
+  });
+
+  describe('orphaned transfer leg', () => {
+    it('should update a common_transfer transaction whose pair is gone (transferId cleared)', async () => {
+      const [tx] = await helpers.createTransaction({ raw: true });
+
+      // Reproduces a corrupt row seen in production (Sentry MONEY-MATTER-BACKEND-6J): a
+      // transaction flagged as a common transfer but with its `transferId` cleared. The
+      // opposite-tx lookup did `findAll({ transferId: null })`, which matches every other
+      // null-transferId row in the DB, picked a bogus "opposite", and failed its auth gate
+      // — surfacing as a misleading "Cannot find opposite tx to make an updation".
+      await Transactions.update(
+        { transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer, transferId: null },
+        { where: { id: tx.id } },
+      );
+
+      const newAmount = Number(tx.amount) + 500;
+      const res = await helpers.updateTransaction({
+        id: tx.id,
+        payload: { amount: newAmount },
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(200);
+
+      const [updated] = await helpers.getTransactions({ raw: true });
+      expect(updated!.amount).toEqual(newAmount);
+    });
+
+    it("should update an orphaned common_transfer leg (type change) without touching another user's transactions", async () => {
+      // Primary user's orphaned leg: flagged common_transfer but with transferId cleared.
+      const [leg] = await helpers.createTransaction({ raw: true });
+      await Transactions.update(
+        { transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer, transferId: null },
+        { where: { id: leg.id } },
+      );
+
+      // A second, unrelated user owning their own null-transferId transaction. The opposite
+      // lookup in `unlinkOppositeTransaction` queries `findAll({ transferId: null })` with NO
+      // userId filter, so before the guard it matched this foreign row, treated it as the
+      // "opposite", and failed its write-access gate — surfacing as a spurious 404 (the prod
+      // shape of MONEY-MATTER-BACKEND-6J on the unlink code path).
+      const secondUser = await helpers.signUpSecondUser();
+      let foreignTxId = '';
+      await helpers.asUser({
+        cookies: secondUser.cookies,
+        fn: async () => {
+          await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
+          const account = await helpers.createAccount({ raw: true });
+          const category = await helpers.addCustomCategory({ name: 'second-user-cat', color: '#123456', raw: true });
+          const [tx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({ accountId: account.id, categoryId: category.id }),
+            raw: true,
+          });
+          foreignTxId = tx.id;
+        },
+      });
+
+      // Changing transactionType routes the update through `unlinkOppositeTransaction`.
+      const res = await helpers.updateTransaction({
+        id: leg.id,
+        payload: { transactionType: TRANSACTION_TYPES.income },
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(200);
+
+      // The foreign transaction must be left completely untouched.
+      const foreignTx = await Transactions.findByPk(foreignTxId);
+      expect(foreignTx).not.toBeNull();
+      expect(foreignTx!.transferId).toBeNull();
+      expect(foreignTx!.transferNature).toEqual(TRANSACTION_TRANSFER_NATURE.not_transfer);
     });
   });
 });

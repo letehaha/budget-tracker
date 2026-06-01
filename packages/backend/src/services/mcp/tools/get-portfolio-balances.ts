@@ -30,7 +30,18 @@ export function registerGetPortfolioBalances(server: McpServer) {
         currencyCode: args.currencyCode,
       });
 
-      return jsonContent({ data: balances });
+      // Drop the embedded full Currencies model (redundant with currencyCode)
+      // and audit timestamps. Money fields serialize to plain decimal numbers.
+      const slimmed = balances.map((b) => ({
+        portfolioId: b.portfolioId,
+        currencyCode: b.currencyCode,
+        totalCash: b.totalCash,
+        availableCash: b.availableCash,
+        refTotalCash: b.refTotalCash,
+        refAvailableCash: b.refAvailableCash,
+      }));
+
+      return jsonContent({ data: slimmed });
     },
   );
 }

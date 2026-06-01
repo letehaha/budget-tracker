@@ -249,6 +249,18 @@
         "unlinkDescription": "Original transaction details will be restored.",
         "cancelButton": "Cancel",
         "confirmUnlink": "Confirm Unlink"
+      },
+      "ventureLinked": {
+        "title": "Venture-linked transaction",
+        "description": "This transaction is linked to a venture event.",
+        "editHint": "Edit or unlink it from the related venture deal's events timeline.",
+        "openVenture": "Open Venture"
+      },
+      "vehicleLinked": {
+        "title": "Vehicle adjustment",
+        "description": "This transaction is the audit trail of a manual value override for {name}.",
+        "editHint": "To change the value, date, or delete this override, manage it from the vehicle's detail page.",
+        "openVehicle": "Open {name}"
       }
     },
     "portfolioTransfer": {

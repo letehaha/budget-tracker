@@ -12,3 +12,7 @@ export * from './budgets.serializer';
 export * from './refund-transactions.serializer';
 export * from './tag-reminders.serializer';
 export * from './stats.serializer';
+export * from './currency.serializer';
+export * from './venture-deals.serializer';
+export * from './venture-events.serializer';
+export * from './venture-platforms.serializer';

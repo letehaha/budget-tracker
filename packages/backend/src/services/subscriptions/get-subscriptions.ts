@@ -53,11 +53,17 @@ export const getSubscriptions = async ({ userId, isActive, type }: GetSubscripti
   });
 
   return subscriptions.map((s) => {
-    const plain = s.toJSON();
+    // toJSON() drops eager-loaded associations + the computed count from its type;
+    // they are present at runtime (see include/attributes above), so describe them.
+    const plain = s.toJSON() as InferAttributes<Subscriptions> & {
+      account: Pick<Accounts, 'id' | 'name' | 'currencyCode'> | null;
+      category: Pick<Categories, 'id' | 'name' | 'color' | 'icon'> | null;
+      linkedTransactionsCount: number | string | null;
+    };
     return {
       ...plain,
       expectedAmount: plain.expectedAmount !== null ? plain.expectedAmount.toNumber() : null,
-      linkedTransactionsCount: Number((plain as Record<string, unknown>).linkedTransactionsCount ?? 0),
+      linkedTransactionsCount: Number(plain.linkedTransactionsCount ?? 0),
     };
   });
 };

@@ -56,6 +56,7 @@
         :loading="isLoading"
         :error="!!error"
         :portfolio-id="portfolioId"
+        :is-filtering="isFiltering"
         @add-symbol="isAddSymbolsOpen = true"
         @import-transactions="goToImport"
       />
@@ -87,9 +88,11 @@ function goToImport() {
   router.push({ name: ROUTES_NAMES.portfolioTransactionsImport, params: { portfolioId: portfolioId.value } });
 }
 
+const isFiltering = computed(() => !!filterText.value.trim());
+
 const filteredHoldings = computed(() => {
   if (!holdings.value) return null;
-  if (!filterText.value.trim()) return holdings.value;
+  if (!isFiltering.value) return holdings.value;
 
   const searchTerm = filterText.value.toLowerCase().trim();
   return holdings.value.filter((holding) => {

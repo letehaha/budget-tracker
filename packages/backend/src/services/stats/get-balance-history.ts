@@ -1,9 +1,34 @@
+import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import * as Accounts from '@models/accounts.model';
 import * as Balances from '@models/balances.model';
+import type { WhereOptions } from '@sequelize/core';
 import { Op } from '@sequelize/core';
 import { format } from 'date-fns';
 
 import { getWhereConditionForTime } from './utils';
+
+interface AccountCategoryFilter {
+  /** Exclude these categories from the result. Mutually exclusive with `only`. */
+  exclude?: ACCOUNT_CATEGORIES[];
+  /** Include only these categories. Mutually exclusive with `exclude`. */
+  only?: ACCOUNT_CATEGORIES[];
+}
+
+function buildAccountWhere({
+  userId,
+  categoryFilter,
+}: {
+  userId: number;
+  categoryFilter?: AccountCategoryFilter;
+}): WhereOptions {
+  const where: Record<string, unknown> = { userId, excludeFromStats: false };
+  if (categoryFilter?.only?.length) {
+    where.accountCategory = { [Op.in]: categoryFilter.only };
+  } else if (categoryFilter?.exclude?.length) {
+    where.accountCategory = { [Op.notIn]: categoryFilter.exclude };
+  }
+  return where;
+}
 
 function formatDate(date: string | Date): string {
   return format(new Date(date), 'yyyy-MM-dd');
@@ -29,16 +54,19 @@ export const getBalanceHistory = async ({
   userId,
   from,
   to,
+  categoryFilter,
 }: {
   userId: number;
   from?: string;
   to?: string;
+  categoryFilter?: AccountCategoryFilter;
 }): Promise<Balances.default[]> => {
   const dataAttributes: ('date' | 'amount' | 'accountId')[] = ['date', 'amount', 'accountId'];
+  const accountWhere = buildAccountWhere({ userId, categoryFilter });
 
   const [allUserAccounts, balancesInRange] = await Promise.all([
     Accounts.default.findAll({
-      where: { userId, excludeFromStats: false },
+      where: accountWhere,
       attributes: ['id'],
     }),
     Balances.default.findAll({
@@ -47,7 +75,7 @@ export const getBalanceHistory = async ({
       include: [
         {
           model: Accounts.default,
-          where: { userId, excludeFromStats: false },
+          where: accountWhere,
           attributes: [],
         },
       ],
@@ -292,12 +320,14 @@ export const getAggregatedBalanceHistory = async ({
   userId,
   from,
   to,
+  categoryFilter,
 }: {
   userId: number;
   from: string;
   to: string;
+  categoryFilter?: AccountCategoryFilter;
 }): Promise<AggregatedBalanceHistoryItem[]> => {
-  const rawBalanceHistory = await getBalanceHistory({ userId, from, to });
+  const rawBalanceHistory = await getBalanceHistory({ userId, from, to, categoryFilter });
 
   return aggregateBalanceTrendData(rawBalanceHistory, from, to);
 };

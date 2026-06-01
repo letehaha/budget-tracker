@@ -32,7 +32,20 @@ export function registerSearchSecurities(server: McpServer) {
         user: { id: userId } as any,
       });
 
-      return jsonContent({ data: results });
+      // Drop provider routing keys (providerName/providerSymbol — not accepted by
+      // any MCP tool), regulatory ids (cusip/isin, usually null), and UI-only hints
+      // (logoUrl, matchType, exchange MIC/acronym).
+      const slimmed = results.map((r) => ({
+        symbol: r.symbol,
+        name: r.name,
+        assetClass: r.assetClass,
+        currencyCode: r.currencyCode,
+        exchangeName: r.exchangeName,
+        marketCapRank: r.marketCapRank,
+        isInPortfolio: r.isInPortfolio,
+      }));
+
+      return jsonContent({ data: slimmed });
     },
   );
 }

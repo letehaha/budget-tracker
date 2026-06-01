@@ -3,7 +3,7 @@ import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { sleep } from '@common/helpers';
 import { logger } from '@js/utils';
 import alpha from 'alphavantage';
-import { endOfDay, isWithinInterval, startOfDay } from 'date-fns';
+import { differenceInCalendarDays, endOfDay, isWithinInterval, startOfDay } from 'date-fns';
 
 import type {
   BulkPriceData,
@@ -13,6 +13,16 @@ import type {
   SecurityPriceFetchInput,
 } from './base-provider';
 import { BaseSecurityDataProvider, toProviderSymbol } from './base-provider';
+
+/**
+ * `outputsize=compact` returns the latest 100 trading days, which span ~140
+ * calendar days at minimum (5 trading days ≈ 7 calendar days, holidays only
+ * widen the window). Any requested range that starts within this many calendar
+ * days is therefore guaranteed to fall inside the compact response, so we can
+ * avoid the premium-only `full` parameter. Kept conservative (below the ~140
+ * lower bound) so we never silently miss data near the edge.
+ */
+const ALPHA_VANTAGE_COMPACT_WINDOW_DAYS = 100;
 
 export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
   readonly providerName = SECURITY_PROVIDER.alphavantage;
@@ -106,8 +116,18 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
         `Fetching historical prices for: ${providerSymbol}${startDate && endDate ? ` from ${startDate.toISOString()} to ${endDate.toISOString()}` : ' (full dataset)'}`,
       );
 
+      // `outputsize=full` is a premium-only parameter for TIME_SERIES_DAILY:
+      // free-tier keys reject it with HTTP 402 ("premium feature"). `compact`
+      // (latest 100 trading days) is available on every tier and covers the
+      // daily-sync use-case (recent single-day ranges). Only request `full`
+      // when the caller needs data older than the compact window — for those a
+      // free key would 402 regardless, so asking for `full` loses nothing.
+      const withinCompactWindow =
+        !!startDate && differenceInCalendarDays(new Date(), startDate) <= ALPHA_VANTAGE_COMPACT_WINDOW_DAYS;
+      const outputSize: 'compact' | 'full' = withinCompactWindow ? 'compact' : 'full';
+
       // Alpha Vantage TIME_SERIES_DAILY gives us historical data
-      const timeSeriesResponse = await this.client.data.daily(providerSymbol, 'full');
+      const timeSeriesResponse = await this.client.data.daily(providerSymbol, outputSize);
 
       if (!timeSeriesResponse || !timeSeriesResponse['Time Series (Daily)']) {
         throw new Error(`No historical data found for symbol: ${providerSymbol}`);

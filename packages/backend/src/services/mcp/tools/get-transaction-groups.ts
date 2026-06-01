@@ -1,6 +1,12 @@
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { serializeTransactions } from '@root/serializers/transactions.serializer';
+import { slimTransactionsForMcp } from '@services/mcp/serializers';
 import { getTransactionGroups } from '@services/transaction-groups';
+import type {
+  TransactionGroupWithAggregates,
+  TransactionGroupWithTransactions,
+} from '@services/transaction-groups/get-transaction-groups';
 import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
@@ -24,7 +30,31 @@ export function registerGetTransactionGroups(server: McpServer) {
 
       const result = await getTransactionGroups({ userId, includeTransactions: args.includeTransactions });
 
-      return jsonContent({ data: result });
+      if (args.includeTransactions) {
+        const groups = result as TransactionGroupWithTransactions[];
+        const slimmed = groups.map((group) => ({
+          id: group.id,
+          name: group.name,
+          note: group.note,
+          // Embedded transactions are full models; run through the REST serializer
+          // (Money → decimals) then keep only the AI-relevant fields.
+          transactions: slimTransactionsForMcp(serializeTransactions(group.transactions)),
+        }));
+
+        return jsonContent({ data: slimmed });
+      }
+
+      const groups = result as TransactionGroupWithAggregates[];
+      const slimmed = groups.map((group) => ({
+        id: group.id,
+        name: group.name,
+        note: group.note,
+        transactionCount: group.transactionCount,
+        dateFrom: group.dateFrom,
+        dateTo: group.dateTo,
+      }));
+
+      return jsonContent({ data: slimmed });
     },
   );
 }

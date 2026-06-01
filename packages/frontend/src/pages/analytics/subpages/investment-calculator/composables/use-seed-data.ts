@@ -14,18 +14,20 @@ const PERIOD_MONTHS: Record<Exclude<NetIncomePeriod, 'all'>, number> = {
 };
 
 export function useSeedData({ selectedPeriod }: { selectedPeriod: Ref<NetIncomePeriod> }) {
-  // Fetch combined balance history to get the latest total balance
-  const { data: balanceHistory } = useQuery({
+  // Fetch only today's combined balance — the calculator just needs the seed
+  // value for "Initial balance", not the full multi-year series the dashboard
+  // chart consumes. `today` is computed inside queryFn so each refetch
+  // re-reads the date (the request stays correct across a midnight boundary).
+  const { data: latestBalance } = useQuery({
     queryKey: [...VUE_QUERY_CACHE_KEYS.widgetBalanceTrend, 'investment-calc-balance'],
-    queryFn: () => getCombinedBalanceHistory(),
+    queryFn: () => {
+      const today = new Date();
+      return getCombinedBalanceHistory({ from: today, to: today });
+    },
     staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
   });
 
-  const currentTotalBalance = computed(() => {
-    const history = balanceHistory.value;
-    if (!history || history.length === 0) return 0;
-    return history[history.length - 1]!.totalBalance;
-  });
+  const currentTotalBalance = computed(() => latestBalance.value?.[0]?.totalBalance ?? 0);
 
   // Compute the cash flow query params based on selected period
   const cashFlowParams = computed(() => {

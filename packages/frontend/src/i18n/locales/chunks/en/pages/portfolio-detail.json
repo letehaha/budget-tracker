@@ -79,6 +79,7 @@
         "empty": "No transactions found.",
         "addFirstButton": "Add first Transaction"
       },
+      "closedPositions": "Closed positions ({count})",
       "deleteHolding": {
         "ariaLabel": "Delete holding",
         "title": "Delete holding",

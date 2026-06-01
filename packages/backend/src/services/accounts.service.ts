@@ -1,9 +1,9 @@
 import type { RecordId, AccountExternalData, BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES } from '@bt/shared/types';
 import type { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, UnexpectedError } from '@js/errors';
+import { NotFoundError, UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
@@ -225,6 +225,18 @@ export const updateAccount = withTransaction(
       query: Accounts.getAccountById({ id, userId: payload.userId }),
       message: t({ key: 'accounts.accountNotFound' }),
     });
+
+    // A vehicle's value is owned by the depreciation model + override flow.
+    // Setting `currentBalance` here (directly, no adjustment transaction) would
+    // leave `Vehicle.valueAnchor` stale, so the next lazy refresh would silently
+    // overwrite the edit. Enforced in the service — not just the controller — so
+    // non-HTTP callers (MCP tools, internal services) can't bypass it; value
+    // changes must go through the override flow (`POST /vehicles/:id/value`).
+    if (accountData.accountCategory === ACCOUNT_CATEGORIES.vehicle && payload.currentBalance !== undefined) {
+      throw new ValidationError({
+        message: t({ key: 'balanceAdjustment.vehicleUseOverride' }),
+      });
+    }
 
     // Handle archive side effects when transitioning to archived status
     const isArchiving =

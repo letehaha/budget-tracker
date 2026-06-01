@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PrecisionNumber from '@/components/common/precision-number.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InvestmentTransactionForm from '@/components/forms/investment-transaction-form.vue';
@@ -11,9 +12,10 @@ import { getGainColorClass } from '@/composable/gain-color';
 import { getApiErrorMessage } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
 import { useCurrenciesStore } from '@/stores/currencies';
-import type { HoldingModel } from '@bt/shared/types/investments';
+import { ASSET_CLASS, type HoldingModel } from '@bt/shared/types/investments';
 import {
   AlertCircleIcon,
+  ArchiveIcon,
   ArrowDownIcon,
   ArrowUpIcon,
   ChevronDownIcon,
@@ -30,8 +32,30 @@ import SecurityLogo from '@/components/common/security-logo.vue';
 
 import HoldingTransactionsSection from './holding-transactions-section.vue';
 import { useHoldingRowExpansion } from './composables/use-holding-row-expansion';
+import {
+  type HoldingSortKey,
+  getAverageCost,
+  getPrice,
+  getTotalCost,
+  groupHoldings,
+  sortHoldings,
+} from './utils/holding-display';
 
-const props = defineProps<{ holdings: HoldingModel[]; loading?: boolean; error?: boolean; portfolioId: string }>();
+// Crypto trades in much smaller units than typical stock fractional shares, so
+// it needs more visible precision before falling back to a hover-reveal.
+const QUANTITY_DECIMALS = { crypto: 4, default: 2 } as const;
+const decimalsForAssetClass = (assetClass: ASSET_CLASS | undefined) =>
+  assetClass === ASSET_CLASS.crypto ? QUANTITY_DECIMALS.crypto : QUANTITY_DECIMALS.default;
+
+const props = defineProps<{
+  holdings: HoldingModel[];
+  loading?: boolean;
+  error?: boolean;
+  portfolioId: string;
+  // When the user is filtering via search, closed positions are shown inline
+  // alongside active ones (no collapsible section).
+  isFiltering?: boolean;
+}>();
 const emit = defineEmits<{ (e: 'addSymbol'): void; (e: 'importTransactions'): void }>();
 
 const { t } = useI18n();
@@ -45,9 +69,7 @@ const openTransactionModal = (holding: HoldingModel | null = null) => {
   isTransactionModalOpen.value = true;
 };
 
-const sortKey = ref<'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost' | 'unrealizedGain' | 'realizedGain'>(
-  'totalCost',
-);
+const sortKey = ref<HoldingSortKey>('totalCost');
 const sortDir = ref<'asc' | 'desc'>('desc');
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();
@@ -63,9 +85,7 @@ const formatCurrency = (amount: number, currencyCode: string) => {
   return formatAmountByCurrencyCode(amount, userCurrency.currencyCode);
 };
 
-const toggleSort = (
-  key: 'symbol' | 'quantity' | 'value' | 'avgCost' | 'totalCost' | 'unrealizedGain' | 'realizedGain',
-) => {
+const toggleSort = (key: HoldingSortKey) => {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
   } else {
@@ -74,66 +94,39 @@ const toggleSort = (
   }
 };
 
-const sortedHoldings = computed(() => {
-  if (!props.holdings) return [];
-  return [...props.holdings].sort((a, b) => {
-    let av: string | number;
-    let bv: string | number;
+// Collapsible "Closed positions" section, collapsed by default.
+const closedExpanded = ref(false);
 
-    switch (sortKey.value) {
-      case 'symbol':
-        av = a.security?.symbol ?? '';
-        bv = b.security?.symbol ?? '';
-        break;
-      case 'quantity':
-        av = Number(a.quantity);
-        bv = Number(b.quantity);
-        break;
-      case 'value':
-        av = Number(a.marketValue || 0);
-        bv = Number(b.marketValue || 0);
-        break;
-      case 'avgCost':
-        av = getAverageCost(a);
-        bv = getAverageCost(b);
-        break;
-      case 'totalCost':
-        av = getTotalCost(a);
-        bv = getTotalCost(b);
-        break;
-      case 'unrealizedGain':
-        av = Number(a.unrealizedGainValue || 0);
-        bv = Number(b.unrealizedGainValue || 0);
-        break;
-      case 'realizedGain':
-        av = Number(a.realizedGainValue || 0);
-        bv = Number(b.realizedGainValue || 0);
-        break;
-    }
-    if (typeof av === 'string') av = av.toLocaleLowerCase();
-    if (typeof bv === 'string') bv = bv.toLocaleLowerCase();
-    return sortDir.value === 'asc' ? (av > bv ? 1 : -1) : av < bv ? 1 : -1;
-  });
-});
+const groupedHoldings = computed(() =>
+  groupHoldings({ holdings: props.holdings ?? [], sortKey: sortKey.value, sortDir: sortDir.value }),
+);
 
-const getPrice = (holding: HoldingModel) => {
-  if (holding.latestPrice) {
-    return Number(holding.latestPrice);
+type DisplayRow = { kind: 'holding'; holding: HoldingModel } | { kind: 'closedToggle'; count: number };
+
+/**
+ * Flat list of rows to render. While filtering we show every match in one
+ * combined sorted list; otherwise active positions come first, followed by a
+ * collapsible "Closed positions" toggle and (when expanded) the closed ones.
+ */
+const displayRows = computed<DisplayRow[]>(() => {
+  if (props.isFiltering) {
+    return sortHoldings({ holdings: props.holdings ?? [], sortKey: sortKey.value, sortDir: sortDir.value }).map(
+      (holding) => ({ kind: 'holding', holding }),
+    );
   }
-  const quantity = Number(holding.quantity);
-  const marketValue = Number(holding.marketValue || 0);
-  return quantity > 0 && marketValue > 0 ? marketValue / quantity : 0;
-};
 
-const getAverageCost = (holding: HoldingModel) => {
-  const quantity = Number(holding.quantity);
-  const costBasis = Number(holding.costBasis);
-  return quantity > 0 && costBasis > 0 ? costBasis / quantity : 0;
-};
+  const { active, closed } = groupedHoldings.value;
+  const rows: DisplayRow[] = active.map((holding) => ({ kind: 'holding', holding }));
 
-const getTotalCost = (holding: HoldingModel) => {
-  return Number(holding.costBasis);
-};
+  if (closed.length > 0) {
+    rows.push({ kind: 'closedToggle', count: closed.length });
+    if (closedExpanded.value) {
+      rows.push(...closed.map((holding) => ({ kind: 'holding', holding }) as const));
+    }
+  }
+
+  return rows;
+});
 
 const getUnrealizedGain = (holding: HoldingModel) => {
   return {
@@ -345,72 +338,111 @@ const theadBgStyles = 'bg-muted';
           </tr>
         </thead>
         <tbody class="divide-border divide-y">
-          <template v-for="h in sortedHoldings" :key="h.securityId">
-            <tr class="hover:bg-muted/30 text-sm transition-colors">
+          <template
+            v-for="row in displayRows"
+            :key="row.kind === 'closedToggle' ? 'closed-positions-toggle' : row.holding.securityId"
+          >
+            <!-- Inline collapsible "Closed positions" section header -->
+            <tr
+              v-if="row.kind === 'closedToggle'"
+              class="bg-muted/40 hover:bg-muted/70 cursor-pointer text-sm transition-colors"
+              @click="closedExpanded = !closedExpanded"
+            >
               <td :class="[cellStyles, 'py-1']">
-                <Button variant="ghost" size="icon" class="size-8" @click="toggleExpand(h.securityId)">
-                  <ChevronDownIcon v-if="isExpanded(h.securityId)" class="size-4" />
+                <Button variant="ghost" size="icon" class="size-8" @click.stop="closedExpanded = !closedExpanded">
+                  <ChevronDownIcon v-if="closedExpanded" class="size-4" />
                   <ChevronRightIcon v-else class="size-4" />
                 </Button>
               </td>
-              <td :class="[cellStyles, 'px-3 font-semibold']">
-                <div class="flex items-center gap-2">
-                  <SecurityLogo v-if="h.security" :security="h.security" />
-                  <span>{{ h.security?.symbol }}</span>
+              <td colspan="10" :class="[cellStyles, 'px-3']">
+                <div class="text-muted-foreground flex items-center gap-2 font-medium">
+                  <ArchiveIcon class="size-4" />
+                  {{ $t('portfolioDetail.holdingsTable.closedPositions', { count: row.count }) }}
                 </div>
               </td>
-              <td :class="[cellStyles, 'text-muted-foreground max-w-50 truncate px-3']">
-                {{ h.security?.name }}
-              </td>
-              <td :class="[cellStyles, 'px-3 text-right tabular-nums']">{{ Number(h.quantity).toLocaleString() }}</td>
-              <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
-                {{ formatCurrency(getPrice(h), h.currencyCode) }}
-              </td>
-              <td :class="[cellStyles, 'text-muted-foreground px-3 text-right tabular-nums']">
-                {{ formatCurrency(getAverageCost(h), h.currencyCode) }}
-              </td>
-              <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
-                {{ formatCurrency(getTotalCost(h), h.currencyCode) }}
-              </td>
-              <td :class="[cellStyles, 'px-3 text-right font-medium tabular-nums']">
-                {{ formatCurrency(Number(h.marketValue || 0), h.currencyCode) }}
-              </td>
-              <td :class="[cellStyles, 'px-3 text-right']">
-                <div :class="getGainColorClass({ gainValue: getUnrealizedGain(h).value })" class="tabular-nums">
-                  <div class="font-semibold">{{ formatCurrency(getUnrealizedGain(h).value, h.currencyCode) }}</div>
-                  <div class="text-xs">{{ getUnrealizedGain(h).percent.toFixed(2) }}%</div>
-                </div>
-              </td>
-              <td :class="[cellStyles, 'px-3 text-right']">
-                <div :class="getGainColorClass({ gainValue: getRealizedGain(h).value })" class="tabular-nums">
-                  <div class="font-semibold">{{ formatCurrency(getRealizedGain(h).value, h.currencyCode) }}</div>
-                  <div class="text-xs">{{ getRealizedGain(h).percent.toFixed(2) }}%</div>
-                </div>
-              </td>
-              <td :class="[cellStyles, 'py-1 pr-2 text-right']">
-                <DesktopOnlyTooltip :content="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')">
-                  <Button
-                    variant="ghost-destructive"
-                    size="icon"
-                    class="size-8"
-                    :aria-label="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')"
-                    @click="openDeleteConfirm(h)"
-                  >
-                    <Trash2Icon class="size-4" />
+            </tr>
+            <template v-else>
+              <tr class="hover:bg-muted/30 text-sm transition-colors">
+                <td :class="[cellStyles, 'py-1']">
+                  <Button variant="ghost" size="icon" class="size-8" @click="toggleExpand(row.holding.securityId)">
+                    <ChevronDownIcon v-if="isExpanded(row.holding.securityId)" class="size-4" />
+                    <ChevronRightIcon v-else class="size-4" />
                   </Button>
-                </DesktopOnlyTooltip>
-              </td>
-            </tr>
-            <!-- Expanded transactions section -->
-            <tr v-if="isExpanded(h.securityId)" class="bg-muted/20">
-              <td colspan="11" class="p-0">
-                <HoldingTransactionsSection
-                  :portfolio-id="portfolioId"
-                  :security-id="h.securityId"
-                  @add-transaction="openTransactionModal(h)"
-                />
-              </td>
-            </tr>
+                </td>
+                <td :class="[cellStyles, 'px-3 font-semibold']">
+                  <div class="flex items-center gap-2">
+                    <SecurityLogo v-if="row.holding.security" :security="row.holding.security" />
+                    <span>{{ row.holding.security?.symbol }}</span>
+                  </div>
+                </td>
+                <td :class="[cellStyles, 'text-muted-foreground max-w-50 truncate px-3']">
+                  {{ row.holding.security?.name }}
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
+                  <PrecisionNumber
+                    :value="row.holding.quantity"
+                    :max-decimals="decimalsForAssetClass(row.holding.security?.assetClass)"
+                  />
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
+                  {{ formatCurrency(getPrice(row.holding), row.holding.currencyCode) }}
+                </td>
+                <td :class="[cellStyles, 'text-muted-foreground px-3 text-right tabular-nums']">
+                  {{ formatCurrency(getAverageCost(row.holding), row.holding.currencyCode) }}
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
+                  {{ formatCurrency(getTotalCost(row.holding), row.holding.currencyCode) }}
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right font-medium tabular-nums']">
+                  {{ formatCurrency(Number(row.holding.marketValue || 0), row.holding.currencyCode) }}
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right']">
+                  <div
+                    :class="getGainColorClass({ gainValue: getUnrealizedGain(row.holding).value })"
+                    class="tabular-nums"
+                  >
+                    <div class="font-semibold">
+                      {{ formatCurrency(getUnrealizedGain(row.holding).value, row.holding.currencyCode) }}
+                    </div>
+                    <div class="text-xs">{{ getUnrealizedGain(row.holding).percent.toFixed(2) }}%</div>
+                  </div>
+                </td>
+                <td :class="[cellStyles, 'px-3 text-right']">
+                  <div
+                    :class="getGainColorClass({ gainValue: getRealizedGain(row.holding).value })"
+                    class="tabular-nums"
+                  >
+                    <div class="font-semibold">
+                      {{ formatCurrency(getRealizedGain(row.holding).value, row.holding.currencyCode) }}
+                    </div>
+                    <div class="text-xs">{{ getRealizedGain(row.holding).percent.toFixed(2) }}%</div>
+                  </div>
+                </td>
+                <td :class="[cellStyles, 'py-1 pr-2 text-right']">
+                  <DesktopOnlyTooltip :content="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')">
+                    <Button
+                      variant="ghost-destructive"
+                      size="icon"
+                      class="size-8"
+                      :aria-label="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')"
+                      @click="openDeleteConfirm(row.holding)"
+                    >
+                      <Trash2Icon class="size-4" />
+                    </Button>
+                  </DesktopOnlyTooltip>
+                </td>
+              </tr>
+              <!-- Expanded transactions section -->
+              <tr v-if="isExpanded(row.holding.securityId)" class="bg-muted/20">
+                <td colspan="11" class="p-0">
+                  <HoldingTransactionsSection
+                    :portfolio-id="portfolioId"
+                    :security-id="row.holding.securityId"
+                    @add-transaction="openTransactionModal(row.holding)"
+                  />
+                </td>
+              </tr>
+            </template>
           </template>
         </tbody>
       </table>

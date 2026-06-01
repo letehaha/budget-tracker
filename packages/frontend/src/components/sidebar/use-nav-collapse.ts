@@ -1,8 +1,9 @@
-import { computed, ref } from 'vue';
+import { useLocalStorage } from '@vueuse/core';
+import { computed } from 'vue';
 
-const isAccountsOpen = ref(false);
-const isTransactionsOpen = ref(false);
-const isPlannedOpen = ref(false);
+const isAccountsOpen = useLocalStorage('sidebar:nav-accounts-open', false);
+const isTransactionsOpen = useLocalStorage('sidebar:nav-transactions-open', false);
+const isPlannedOpen = useLocalStorage('sidebar:nav-planned-open', false);
 
 export function useSidebarNavCollapse() {
   const hasAnyOpen = computed(() => isAccountsOpen.value || isTransactionsOpen.value || isPlannedOpen.value);

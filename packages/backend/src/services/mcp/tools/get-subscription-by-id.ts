@@ -1,5 +1,6 @@
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { type SubscriptionDetailForMcp, slimSubscriptionDetailForMcp } from '@services/mcp/serializers';
 import { getSubscriptionById } from '@services/subscriptions';
 import { z } from 'zod';
 
@@ -21,7 +22,10 @@ export function registerGetSubscriptionById(server: McpServer) {
 
       const result = await getSubscriptionById({ id: args.id, userId });
 
-      return jsonContent({ data: result });
+      // The service hands back a loosely-typed toJSON() blob (associations + computed
+      // fields aren't in InferAttributes, and the transactions carry an index
+      // signature); narrow it to the slimmer's input shape.
+      return jsonContent({ data: slimSubscriptionDetailForMcp(result as unknown as SubscriptionDetailForMcp) });
     },
   );
 }

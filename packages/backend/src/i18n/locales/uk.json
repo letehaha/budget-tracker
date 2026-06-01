@@ -13,7 +13,8 @@
   },
   "balanceAdjustment": {
     "defaultNote": "Коригування балансу",
-    "accountNotFound": "Рахунок з id \"{{accountId}}\" не знайдено."
+    "accountNotFound": "Рахунок з id \"{{accountId}}\" не знайдено.",
+    "vehicleUseOverride": "Вартість транспортного засобу можна змінити лише на його сторінці."
   },
   "accountGroups": {
     "groupNotFound": "Групу не знайдено",
@@ -51,6 +52,7 @@
     "invalidTagIds": "Один або декілька ID тегів недійсні або не належать цьому користувачу",
     "cannotEditPortfolioLinkedTransaction": "Неможливо редагувати транзакцію, прив'язану до портфеля. Спочатку від'єднайте її.",
     "refFieldsRequiredForTransferToPortfolio": "Для транзакцій переказу в портфель необхідно задати валюту обліку та суму в ній.",
+    "vehicleAccountReadonly": "Цей рахунок відстежує транспортний засіб. Його вартість можна змінити лише на сторінці транспортного засобу.",
     "splits": {
       "splitsOnTransfer": "Не можна додавати розбиття до транзакцій-переказів",
       "splitLimitExceeded": "Максимально дозволено {{max}} розбиттів на транзакцію",
@@ -138,6 +140,7 @@
     "cannotDeleteHoldingWithActivePosition": "Не можна видалити актив з активною позицією. Будь ласка, спочатку продайте або перекажіть всі акції.",
     "transactionAlreadyTransfer": "Транзакція вже позначена як переказ і не може бути прив'язана до портфеля.",
     "transactionAlreadyLinkedToPortfolio": "Транзакція вже прив'язана до переказу в портфель.",
+    "transactionAlreadyLinkedToVenture": "Транзакція вже прив'язана до венчурної угоди",
     "portfolioTransferNotFound": "Переказ портфеля не знайдено",
     "exchangeCurrenciesMustDiffer": "Валюти обміну мають бути різними"
   },

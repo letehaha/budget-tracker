@@ -11,12 +11,16 @@
         "balanceTypes": {
           "total": "Загалом",
           "accounts": "Рахунки",
-          "portfolios": "Портфелі"
+          "portfolios": "Портфелі",
+          "ventures": "Венчури",
+          "vehicles": "Транспорт"
         },
         "tooltip": {
           "accounts": "Рахунки:",
           "portfolios": "Портфелі:",
-          "total": "Загалом:"
+          "total": "Загалом:",
+          "ventures": "Венчури:",
+          "vehicles": "Транспорт:"
         },
         "today": "Сьогодні",
         "vsPreviousPeriod": "до попереднього періоду",
@@ -49,7 +53,15 @@
           "fitToLatestData": "Підлаштувати під останні дані",
           "fitToLatestDataTooltip": "Коли увімкнено, графік відображається лише до останньої точки даних. Коли вимкнено, вісь X охоплює весь вибраний період, залишаючи порожнє місце для майбутніх дат.",
           "on": "Увімк.",
-          "off": "Вимк."
+          "off": "Вимк.",
+          "includeInTotal": "Включити в загальну суму"
+        },
+        "componentsSettings": {
+          "description": "Виберіть, які компоненти враховуються в лінії загального балансу.",
+          "vehicles": "Транспорт",
+          "ventures": "Венчури",
+          "allIncluded": "Усі компоненти",
+          "excluding": "Виключено: {items}"
         }
       },
       "expensesStructure": {

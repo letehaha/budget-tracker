@@ -90,7 +90,10 @@ const validateTransaction = async (
     });
   }
 
-  if (prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {
+  if (
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio ||
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture
+  ) {
     throw new ValidationError({
       message: t({ key: 'transactions.cannotEditPortfolioLinkedTransaction' }),
     });
@@ -298,6 +301,15 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 
   const { userId, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } = newData;
 
+  // Orphaned transfer leg: flagged as a transfer but `transferId` was cleared, so it has
+  // no pair to update. Querying `findAll({ transferId: null })` would match every other
+  // null-transferId row in the DB and pick a bogus "opposite" (which then trips the auth
+  // gate below and surfaces as a misleading "opposite not found"). Skip opposite handling
+  // and keep just the base update that already ran upstream.
+  if (!prevData.transferId) {
+    return { baseTx: baseTransaction, oppositeTx: undefined };
+  }
+
   // Fetch the opposite without a userId filter — on a shared-account transfer, the two
   // sides can belong to different users (recipient links owner-authored tx with their own).
   // The auth gate immediately below verifies the caller has `write` on the opposite's
@@ -376,26 +388,32 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
 const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData, baseTransaction] = params;
 
-  // Cross-user safe fetch — see `updateTransferTransaction` for the rationale.
-  const notBaseTransaction = (
-    await Transactions.default.findAll({
-      where: { transferId: prevData.transferId },
-    })
-  ).find((item) => item.id !== newData.id);
+  // Orphaned transfer leg: `transferId` was cleared, so there's no pair to unlink. Querying
+  // `findAll({ transferId: null })` would match unrelated rows (including other users') and
+  // pick a bogus "opposite" — failing the auth gate (spurious 404) or, if writable, mutating
+  // an unrelated row. Only the base tx needs clearing. See `updateTransferTransaction`.
+  if (prevData.transferId) {
+    // Cross-user safe fetch — see `updateTransferTransaction` for the rationale.
+    const notBaseTransaction = (
+      await Transactions.default.findAll({
+        where: { transferId: prevData.transferId },
+      })
+    ).find((item) => item.id !== newData.id);
 
-  if (notBaseTransaction) {
-    await assertTxWriteAccess({
-      userId: newData.userId,
-      tx: notBaseTransaction,
-      notFoundKey: 'transactions.oppositeTransactionNotFound',
-    });
+    if (notBaseTransaction) {
+      await assertTxWriteAccess({
+        userId: newData.userId,
+        tx: notBaseTransaction,
+        notFoundKey: 'transactions.oppositeTransactionNotFound',
+      });
 
-    await Transactions.updateTransactionById({
-      id: notBaseTransaction.id,
-      userId: notBaseTransaction.userId,
-      transferId: null,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-    });
+      await Transactions.updateTransactionById({
+        id: notBaseTransaction.id,
+        userId: notBaseTransaction.userId,
+        transferId: null,
+        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      });
+    }
   }
 
   await Transactions.updateTransactionById({

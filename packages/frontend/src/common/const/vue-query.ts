@@ -20,12 +20,17 @@ export const VUE_QUERY_GLOBAL_PREFIXES = Object.freeze({
   // queries should be invalidated
   bankConnectionChange: 'global-query-bank-connection-change',
 
+  // When venture deals/events change, combined-balance-history (and other
+  // venture-aware queries) need to refresh.
+  ventureChange: 'global-query-venture-change',
+
   currencies: 'currencies',
 
   notifications: 'notifications',
 });
 
-const { transactionChange, securityPriceChange, bankConnectionChange, notifications } = VUE_QUERY_GLOBAL_PREFIXES;
+const { transactionChange, securityPriceChange, bankConnectionChange, ventureChange, notifications } =
+  VUE_QUERY_GLOBAL_PREFIXES;
 
 export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // currencies
@@ -34,10 +39,20 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   baseCurrency: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'base'] as const,
 
   // widget balance trend
-  widgetBalanceTrend: [transactionChange, securityPriceChange, 'widget-balance-trend'] as const,
-  widgetBalanceTrendPrev: [transactionChange, securityPriceChange, 'widget-balance-trend-prev'] as const,
-  widgetBalanceTotalBalance: [transactionChange, securityPriceChange, 'widget-balance-total-balance'] as const,
-  widgetBalancePreviousBalance: [transactionChange, securityPriceChange, 'widget-balance-previous-balance'] as const,
+  widgetBalanceTrend: [transactionChange, securityPriceChange, ventureChange, 'widget-balance-trend'] as const,
+  widgetBalanceTrendPrev: [transactionChange, securityPriceChange, ventureChange, 'widget-balance-trend-prev'] as const,
+  widgetBalanceTotalBalance: [
+    transactionChange,
+    securityPriceChange,
+    ventureChange,
+    'widget-balance-total-balance',
+  ] as const,
+  widgetBalancePreviousBalance: [
+    transactionChange,
+    securityPriceChange,
+    ventureChange,
+    'widget-balance-previous-balance',
+  ] as const,
 
   // widget expenses structure
   widgetExpensesStructureTotal: [transactionChange, 'widget-expenses-structure-total'] as const,
@@ -56,7 +71,12 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   widgetCashFlowTrend: [transactionChange, 'widget-cash-flow-trend'] as const,
 
   // analytics
-  analyticsBalanceHistoryTrend: [transactionChange, securityPriceChange, 'analytics-balance-history-trend'] as const,
+  analyticsBalanceHistoryTrend: [
+    transactionChange,
+    securityPriceChange,
+    ventureChange,
+    'analytics-balance-history-trend',
+  ] as const,
   analyticsCashFlow: [transactionChange, 'analytics-cash-flow'] as const,
   analyticsCumulative: [transactionChange, 'analytics-cumulative'] as const,
   analyticsSpendingsByCategories: [transactionChange, 'analytics-spendings-by-categories'] as const,
@@ -93,6 +113,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   portfolioDetails: [securityPriceChange, 'portfolio-details'] as const,
   portfolioTransfers: [securityPriceChange, 'portfolio-transfers'] as const,
   portfolioSummary: [securityPriceChange, 'portfolio-summary'] as const,
+  portfolioAnnualizedReturns: [securityPriceChange, 'portfolio-annualized-returns'] as const,
   portfolioBalances: [securityPriceChange, 'portfolio-balances'] as const,
   transactionPortfolioLink: [transactionChange, 'transaction-portfolio-link'] as const,
 
@@ -134,6 +155,11 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   reminderDetails: ['reminder-details'] as const,
   reminderPeriods: ['reminder-periods'] as const,
 
+  // vehicles
+  vehiclesList: [transactionChange, 'vehicles-list'] as const,
+  vehicleDetail: [transactionChange, 'vehicle-detail'] as const,
+  vehicleOverrideHistory: [transactionChange, 'vehicle-override-history'] as const,
+
   // user settings
   userSettings: ['user-settings'] as const,
 
@@ -153,4 +179,11 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // categories
   categoriesByAccount: ['categories-by-account'] as const,
+
+  // venture
+  venturePlatformsList: [ventureChange, 'venture-platforms-list'] as const,
+  ventureDealsList: [ventureChange, 'venture-deals-list'] as const,
+  ventureDealDetails: [ventureChange, 'venture-deal-details'] as const,
+  ventureDealMetrics: [ventureChange, 'venture-deal-metrics'] as const,
+  ventureDealEvents: [ventureChange, 'venture-deal-events'] as const,
 });
