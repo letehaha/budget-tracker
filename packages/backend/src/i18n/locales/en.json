@@ -219,6 +219,7 @@
       "claimFailed": "Could not claim a SimpleFIN access URL from the setup token.",
       "accountNotFound": "SimpleFIN account not found.",
       "accountNoExternalId": "This account is not linked to a SimpleFIN account.",
+      "accountAbsentFromResponse": "SimpleFIN did not return data for this account in the latest sync. The account may have been disabled at the bank — try syncing again, or reconnect if the issue persists.",
       "apiError": "SimpleFIN API error: {{message}}",
       "rateLimited": "SimpleFIN is receiving too many requests right now. Please wait a little and try again."
     },

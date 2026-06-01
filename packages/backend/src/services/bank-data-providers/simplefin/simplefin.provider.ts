@@ -12,6 +12,7 @@ import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
+import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
@@ -23,8 +24,9 @@ import {
   ProviderMetadata,
   ProviderTransaction,
 } from '@services/bank-data-providers';
+import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { createTransaction } from '@services/transactions';
-import { subDays } from 'date-fns';
+import { startOfDay, subDays } from 'date-fns';
 import { Sequelize } from 'sequelize';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
@@ -47,8 +49,9 @@ import {
  * range exceeds a *recommended* 45 days ("In the future, this may be capped").
  * We page in 44-day windows to stay safely under that recommendation (and the
  * exclusive end-date means a window spans exactly its width). Batched fetching
- * keeps the request count low despite the smaller windows, so this costs ~9
- * requests for a 1-year backfill regardless of how many accounts are synced.
+ * keeps the request count low despite the smaller windows: ~5 requests for the
+ * 180-day initial backfill, ~9 for a full-year period load, regardless of how
+ * many accounts are synced.
  */
 const MAX_WINDOW_MS = 44 * 24 * 60 * 60 * 1000;
 
@@ -287,10 +290,13 @@ export class SimplefinProvider extends BaseBankDataProvider {
       externalId: tx.id,
       amount: Money.fromDecimal(tx.amount).toCents(),
       currency: (currency || '').toUpperCase(),
-      date: new Date(tx.posted * 1000),
+      // `transacted_at` is the actual purchase moment; `posted` is when the
+      // bank cleared it. Prefer the former when the bridge supplies it so
+      // transactions land on the day the user spent the money.
+      date: new Date((tx.transacted_at ?? tx.posted) * 1000),
       description: tx.description || tx.payee || tx.memo || '',
       merchantName: tx.payee,
-      metadata: { payee: tx.payee, memo: tx.memo, posted: tx.posted },
+      metadata: { payee: tx.payee, memo: tx.memo, posted: tx.posted, transactedAt: tx.transacted_at },
     }));
   }
 
@@ -304,7 +310,8 @@ export class SimplefinProvider extends BaseBankDataProvider {
     userId: number;
   }): Promise<void> {
     // Incremental window: from the latest stored transaction (re-fetching it
-    // is harmless — dedup catches it), or a 1-year backfill on first sync.
+    // is harmless — dedup catches it), or an INITIAL_BACKFILL_DAYS backfill on
+    // first sync.
     const latestTransaction = await Transactions.findOne({
       where: { accountId: systemAccountId },
       order: [['time', 'DESC']],
@@ -353,9 +360,10 @@ export class SimplefinProvider extends BaseBankDataProvider {
     const apiClient = new SimplefinApiClient(accessUrl);
 
     // One shared window range covering every account: the earliest `from` any
-    // account needs (its latest stored transaction, else a 1-year backfill).
-    // Recently-synced accounts re-fetch a little extra, which dedup drops — the
-    // connection is still fetched in one pass per window.
+    // account needs (its latest stored transaction, else an
+    // INITIAL_BACKFILL_DAYS backfill). Recently-synced accounts re-fetch a
+    // little extra, which dedup drops — the connection is still fetched in
+    // one pass per window.
     const to = new Date();
     const froms = await Promise.all(
       accounts.map(async (account) => {
@@ -391,17 +399,26 @@ export class SimplefinProvider extends BaseBankDataProvider {
 
         const bucket = byExternalId.get(account.externalId);
         if (!bucket) {
-          logger.warn(`[SimpleFIN] Sync: account ${account.externalId} absent from /accounts response`);
+          // The bridge returned data but omitted this account — usually means
+          // the account was disabled at the bank, the conn_id is stale, or the
+          // response was truncated. Treat it as a per-account failure so the
+          // user sees a real error instead of a "synced, 0 transactions" lie.
+          throw new NotFoundError({
+            message: t({ key: 'bankDataProviders.simplefin.accountAbsentFromResponse' }),
+          });
         }
 
         const createdIds = await this.persistAccountTransactions({
           connection,
           account,
-          transactions: bucket?.transactions ?? [],
+          transactions: bucket.transactions,
         });
 
-        if (bucket?.balance != null) {
-          await account.update({ currentBalance: Money.fromDecimal(bucket.balance) });
+        if (bucket.balance != null) {
+          await this.updateAccountBalanceWithHistory({
+            account,
+            balance: Money.fromDecimal(bucket.balance),
+          });
         }
 
         emitTransactionsSyncEvent({ userId: connection.userId, accountId: account.id, transactionIds: createdIds });
@@ -488,7 +505,45 @@ export class SimplefinProvider extends BaseBankDataProvider {
     }
 
     const balance = await this.fetchBalance(connectionId, account.externalId);
-    await account.update({ currentBalance: Money.fromCents(balance.amount) });
+    await this.updateAccountBalanceWithHistory({
+      account,
+      balance: Money.fromCents(balance.amount),
+    });
+  }
+
+  /**
+   * Persist the latest balance everywhere the rest of the app reads from:
+   * the account row (`currentBalance` + `refCurrentBalance` in base currency)
+   * and a `Balances` snapshot for today (so the analytics chart picks up the
+   * point). SimpleFIN doesn't include a per-transaction balance, so this is
+   * the only writer of balance history for the provider — without it the
+   * chart stays flat at the linking-day value.
+   */
+  private async updateAccountBalanceWithHistory({
+    account,
+    balance,
+  }: {
+    account: Accounts;
+    balance: Money;
+  }): Promise<void> {
+    const today = startOfDay(new Date());
+    const refBalance = await calculateRefAmount({
+      amount: balance,
+      userId: account.userId,
+      date: today,
+      baseCode: account.currencyCode,
+    });
+
+    await account.update({
+      currentBalance: balance,
+      refCurrentBalance: refBalance,
+    });
+
+    await Balances.updateAccountBalance({
+      accountId: account.id,
+      date: today,
+      refBalance,
+    });
   }
 
   // ============================================================================
@@ -540,7 +595,10 @@ export class SimplefinProvider extends BaseBankDataProvider {
       });
 
       if (balance !== null) {
-        await account.update({ currentBalance: Money.fromDecimal(balance) });
+        await this.updateAccountBalanceWithHistory({
+          account,
+          balance: Money.fromDecimal(balance),
+        });
       } else {
         logger.info(`[SimpleFIN] ${logLabel}: balance unavailable for account ${account.id}, left unchanged`);
       }
@@ -767,12 +825,16 @@ export class SimplefinProvider extends BaseBankDataProvider {
         originalId: tx.id,
         note: tx.description || tx.payee || tx.memo || '',
         amount: amountMoney.abs(),
-        time: new Date(tx.posted * 1000),
+        // `transacted_at` (when it actually happened) beats `posted` (when the
+        // bank cleared it) for user-facing date. Falls back to `posted` for
+        // bridges/banks that don't expose `transacted_at`.
+        time: new Date((tx.transacted_at ?? tx.posted) * 1000),
         externalData: {
           payee: tx.payee,
           memo: tx.memo,
           sfinAccountId: account.externalId,
           posted: tx.posted,
+          transactedAt: tx.transacted_at,
         },
         commissionRate: Money.fromCents(0),
         cashbackAmount: Money.fromCents(0),

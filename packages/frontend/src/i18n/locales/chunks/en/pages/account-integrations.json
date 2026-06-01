@@ -228,8 +228,6 @@
         "importButton": "Import {count} account(s)",
         "importingButton": "Importing…",
         "importSuccess": "Successfully imported {count} account(s)",
-        "skipButton": "Skip for now",
-        "skipTooltip": "You can import accounts later from the connection details page.",
         "errors": {
           "connectFailed": "Failed to connect to SimpleFIN. Check your setup token and try again.",
           "importFailed": "Failed to import accounts. Please try again."

@@ -7,7 +7,14 @@ import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
-import { IBankDataProvider, ProviderAccount, ProviderMetadata } from './types';
+import {
+  DateRange,
+  IBankDataProvider,
+  ProviderAccount,
+  ProviderBalance,
+  ProviderMetadata,
+  ProviderTransaction,
+} from './types';
 
 /**
  * Shape of connection-metadata fields used by the shared auth-failure
@@ -232,7 +239,11 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param dateRange - Optional date range to filter transactions
    * @returns List of transactions
    */
-  abstract fetchTransactions(connectionId: string, accountExternalId: string, dateRange?: any): Promise<any[]>;
+  abstract fetchTransactions(
+    connectionId: string,
+    accountExternalId: string,
+    dateRange?: DateRange,
+  ): Promise<ProviderTransaction[]>;
 
   /**
    * Sync transactions for a specific account to our database
@@ -257,7 +268,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param accountExternalId - Provider's account ID
    * @returns Current balance
    */
-  abstract fetchBalance(connectionId: string, accountExternalId: string): Promise<any>;
+  abstract fetchBalance(connectionId: string, accountExternalId: string): Promise<ProviderBalance>;
 
   /**
    * Refresh balance for a specific account in our system

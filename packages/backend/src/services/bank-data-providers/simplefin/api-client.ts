@@ -108,13 +108,17 @@ export class SimplefinApiClient {
   }
 
   /**
-   * Verify the Access URL works. Returns false ONLY for auth failures
-   * (401/403); network/5xx errors propagate so callers can distinguish
-   * "invalid credentials" from "provider is down".
+   * Verify the Access URL works. Returns false for auth failures whether
+   * surfaced as 401/403 or as a `*.auth` entry inside an HTTP 200 `errlist`
+   * (the bridge does both — protocol v2 explicitly says to inspect errlist);
+   * network/5xx errors propagate so callers can distinguish "invalid
+   * credentials" from "provider is down".
    */
   async testConnection(): Promise<boolean> {
     try {
-      await this.getAccounts({ balancesOnly: true });
+      const accountSet = await this.getAccounts({ balancesOnly: true });
+      const hasAuthError = (accountSet.errlist ?? []).some((entry) => entry.code.endsWith('.auth'));
+      if (hasAuthError) return false;
       return true;
     } catch (error) {
       if (axios.isAxiosError(error)) {

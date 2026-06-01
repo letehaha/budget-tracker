@@ -2,6 +2,7 @@ import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE, DEACTIVATION_REASON, TRANSACTION_TYP
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Balances from '@models/balances.model';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import {
@@ -337,6 +338,40 @@ describe('SimpleFIN Data Provider E2E', () => {
       const account2Id = syncedAccounts.find((a) => a.externalId === SIMPLEFIN_ACCOUNT_2)!.id;
       expect(await Transactions.count({ where: { accountId: account1Id } })).toBe(4);
       expect(await Transactions.count({ where: { accountId: account2Id } })).toBe(0);
+    });
+
+    it('persists current balance and writes a Balance history snapshot for today', async () => {
+      // SimpleFIN does not provide a per-transaction balance, so the batched
+      // sync is the only writer of balance history for the provider — without
+      // this assertion a regression to "currentBalance updated, but no Balance
+      // row written" would silently flatten the analytics chart.
+      const connectionId = await connectSimplefin();
+
+      // Default mock balances: ACCOUNT_1 = "1523.45" USD, ACCOUNT_2 = "850.00" USD.
+      global.mswMockServer.use(getSimplefinAccountsMock({ response: getMockedSimplefinAccountSet() }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1, SIMPLEFIN_ACCOUNT_2],
+        raw: true,
+      });
+
+      const account1Id = syncedAccounts.find((a) => a.externalId === SIMPLEFIN_ACCOUNT_1)!.id;
+      const account2Id = syncedAccounts.find((a) => a.externalId === SIMPLEFIN_ACCOUNT_2)!.id;
+
+      const account1 = await helpers.getAccount({ id: account1Id, raw: true });
+      const account2 = await helpers.getAccount({ id: account2Id, raw: true });
+
+      // Account row carries the decimal-serialized balance from the response.
+      expect(Number(account1.currentBalance)).toBe(1523.45);
+      expect(Number(account2.currentBalance)).toBe(850);
+
+      // A Balance row exists for today (date-only column) for each account.
+      const balances1 = await Balances.findAll({ where: { accountId: account1Id } });
+      const balances2 = await Balances.findAll({ where: { accountId: account2Id } });
+      const today = new Date().toISOString().slice(0, 10);
+      expect(balances1.some((b) => new Date(b.date).toISOString().slice(0, 10) === today)).toBe(true);
+      expect(balances2.some((b) => new Date(b.date).toISOString().slice(0, 10) === today)).toBe(true);
     });
   });
 

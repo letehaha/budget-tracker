@@ -130,7 +130,7 @@ export const linkAccountToBankConnection = withTransaction(
     // 7. Create balance adjustment transaction if needed
     let balanceAdjustmentTransaction: Transactions | null = null;
 
-    if (Math.abs(balanceDifference) > 0.01) {
+    if (balanceDifference !== 0) {
       // Create transfer_out_wallet transaction to reconcile the difference
       // Note: The transaction hook will automatically update the account balance
       const [createdTransaction] = await createTransaction({

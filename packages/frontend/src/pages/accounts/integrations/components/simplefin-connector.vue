@@ -77,37 +77,19 @@
               {{ t('pages.integrations.simplefin.backButton') }}
             </UiButton>
 
-            <div class="flex items-center gap-2">
-              <Tooltip.TooltipProvider>
-                <Tooltip.Tooltip :delay-duration="0">
-                  <Tooltip.TooltipTrigger as-child>
-                    <UiButton variant="ghost" size="sm" :disabled="isLoading" @click="handleSkipImport">
-                      {{ t('pages.integrations.simplefin.skipButton') }}
-                      <InfoIcon class="text-muted-foreground ml-1 size-3.5" />
-                    </UiButton>
-                  </Tooltip.TooltipTrigger>
-                  <Tooltip.TooltipContent class="max-w-60 p-3">
-                    <p class="text-sm leading-5">
-                      {{ t('pages.integrations.simplefin.skipTooltip') }}
-                    </p>
-                  </Tooltip.TooltipContent>
-                </Tooltip.Tooltip>
-              </Tooltip.TooltipProvider>
-
-              <DemoRestricted :message="t('demo.featureNotAvailable')">
-                <UiButton
-                  @click="handleImportAccounts"
-                  :disabled="selectedAccountIds.length === 0 || isLoading || isDemo"
-                  :loading="isLoading"
-                >
-                  {{
-                    isLoading
-                      ? t('pages.integrations.simplefin.importingButton')
-                      : t('pages.integrations.simplefin.importButton', { count: selectedAccountIds.length })
-                  }}
-                </UiButton>
-              </DemoRestricted>
-            </div>
+            <DemoRestricted :message="t('demo.featureNotAvailable')">
+              <UiButton
+                @click="handleImportAccounts"
+                :disabled="selectedAccountIds.length === 0 || isLoading || isDemo"
+                :loading="isLoading"
+              >
+                {{
+                  isLoading
+                    ? t('pages.integrations.simplefin.importingButton')
+                    : t('pages.integrations.simplefin.importButton', { count: selectedAccountIds.length })
+                }}
+              </UiButton>
+            </DemoRestricted>
           </div>
         </template>
       </div>
@@ -190,10 +172,6 @@ const handleConnectProvider = async () => {
   }
 };
 
-const handleSkipImport = () => {
-  emit('connected');
-};
-
 const handleImportAccounts = () => {
   if (!connectionId.value || selectedAccountIds.value.length === 0 || isDemo.value) {
     return;
@@ -211,13 +189,16 @@ const handleImportAccounts = () => {
   void syncStatus.watchSync();
 
   // Refresh accounts + onboarding once the request resolves; surface failures
-  // via a toast (the dialog is already closed).
+  // via a toast (the dialog is already closed). Accounts are persisted even
+  // when the initial sync fails — refetch in both branches so the user sees
+  // them appear with FAILED sync status instead of nothing.
   importPromise
     .then(async () => {
       await accountsStore.refetchAccounts();
       useOnboardingStore().completeTask('connect-bank');
     })
-    .catch((error) => {
+    .catch(async (error) => {
+      await accountsStore.refetchAccounts();
       addErrorNotification(getErrorMessage(error) || t('pages.integrations.simplefin.errors.importFailed'));
     });
 
