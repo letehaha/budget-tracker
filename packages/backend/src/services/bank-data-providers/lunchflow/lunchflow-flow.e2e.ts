@@ -1512,4 +1512,39 @@ describe('LunchFlow Data Provider E2E', () => {
       expect(result.status).toBeGreaterThanOrEqual(400);
     });
   });
+
+  describe('Period load not supported', () => {
+    it('rejects /load-transactions-for-period for providers without the capability', async () => {
+      // LunchFlow does not implement loadTransactionsForPeriod — the controller
+      // must reject the request with ValidationError instead of falling through
+      // to a "method not a function" runtime error.
+      const { connectionId } = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId,
+        raw: true,
+      });
+
+      global.mswMockServer.use(getLunchFlowTransactionsMock(), getLunchFlowBalanceMock());
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      const result = await helpers.bankDataProviders.loadTransactionsForPeriod({
+        connectionId,
+        accountId: syncedAccounts[0]!.id,
+        from: subDays(new Date(), 30).toISOString(),
+        to: new Date().toISOString(),
+      });
+
+      expect(result.status).toEqual(ERROR_CODES.ValidationError);
+    });
+  });
 });

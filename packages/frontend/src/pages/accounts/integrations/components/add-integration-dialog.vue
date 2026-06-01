@@ -107,6 +107,11 @@
             @connected="handleProviderConnected"
             @cancel="handleCancel"
           />
+          <SimplefinConnector
+            v-else-if="selectedProviderType === BANK_PROVIDER_TYPE.SIMPLEFIN"
+            @connected="handleProviderConnected"
+            @cancel="handleCancel"
+          />
         </template>
       </div>
     </DialogContent>
@@ -134,6 +139,7 @@ import { useI18n } from 'vue-i18n';
 import EnableBankingConnector from './enable-banking-connector.vue';
 import LunchFlowConnector from './lunchflow-connector.vue';
 import MonobankConnector from './monobank-connector.vue';
+import SimplefinConnector from './simplefin-connector.vue';
 import WalutomatConnector from './walutomat-connector.vue';
 
 const { t } = useI18n();

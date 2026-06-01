@@ -62,35 +62,52 @@ export const unlinkAccountFromBankConnection = withTransaction(
       externalData: updatedAccountExternalData,
     });
 
-    // Update all transactions associated with this account
+    // Capture each transaction's original bank metadata (originalId + accountType)
+    // BEFORE the bulk wipe below, so the per-row externalData snapshot still has
+    // the pre-unlink values to record in `originalSource`.
     const transactions = await Transactions.findAll({
       where: { accountId },
     });
 
-    // Update each transaction to system type and preserve original IDs
-    await Promise.all(
-      transactions.map(async (transaction) => {
-        const existingTxExternalData = (transaction.externalData as Record<string, unknown>) || {};
-
-        // Only add originalSource if transaction actually had an originalId
-        const updatedTxExternalData = transaction.originalId
-          ? {
-              ...existingTxExternalData,
-              originalSource: {
-                originalId: transaction.originalId,
-                importedFrom: bankConnection?.providerType || null,
-                accountType: transaction.accountType,
-              },
-            }
-          : existingTxExternalData;
-
-        await transaction.update({
-          accountType: ACCOUNT_TYPES.system,
-          originalId: null,
-          externalData: updatedTxExternalData,
-        });
-      }),
+    // Bulk-flip every transaction to `system` in a single SQL UPDATE. We
+    // deliberately skip Sequelize hooks: the `@AfterUpdate` hook on Transactions
+    // recomputes the account's `currentBalance` and rewrites the historical
+    // `Balances` rows for every transaction that fires it. Unlink does NOT touch
+    // any balance-relevant field (`amount` / `refAmount` / `transactionType` /
+    // `time` are unchanged) — every recomputation is a no-op delta but still
+    // runs a `findOne` + `update` per row, serialised on one PG connection.
+    // For an account with N transactions that turns into O(N) wasted DB ops
+    // (~5/tx) and pushed real-world unlinks past 80 seconds for ~350 rows.
+    // `Transactions.update(...)` (static bulk) skips instance hooks by default,
+    // but `hooks: false` makes the intent explicit and also blocks any future
+    // `@BeforeBulkUpdate` hook from sneaking back in.
+    await Transactions.update(
+      { accountType: ACCOUNT_TYPES.system, originalId: null },
+      { where: { accountId }, hooks: false },
     );
+
+    // Per-row `externalData` merge — JSONB shape differs per row (the
+    // `originalSource` snapshot only applies to txs that came from the bank,
+    // i.e. had an `originalId`). Still skip hooks for the same reason as above;
+    // touches only one column, runs in milliseconds even for thousands of rows.
+    for (const transaction of transactions) {
+      if (!transaction.originalId) continue;
+
+      const existingTxExternalData = (transaction.externalData as Record<string, unknown>) || {};
+      const updatedTxExternalData = {
+        ...existingTxExternalData,
+        originalSource: {
+          originalId: transaction.originalId,
+          importedFrom: bankConnection?.providerType || null,
+          accountType: transaction.accountType,
+        },
+      };
+
+      await Transactions.update(
+        { externalData: updatedTxExternalData },
+        { where: { id: transaction.id }, hooks: false },
+      );
+    }
 
     // Fetch and return the updated account
     const updatedAccount = await Accounts.findByPk(accountId);

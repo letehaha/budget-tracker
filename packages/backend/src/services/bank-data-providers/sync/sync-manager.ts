@@ -1,7 +1,9 @@
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Bottleneck from 'bottleneck';
 
 import { syncTransactionsForAccount } from '../connection/sync-transactions-for-account';
+import { bankProviderRegistry } from '../registry';
 import { type AccountWithConnection, getUserBankAccounts } from './get-user-sync-status';
 import { SyncStatus, setAccountSyncStatus, shouldTriggerAutoSync, updateLastAutoSync } from './sync-status-tracker';
 
@@ -65,15 +67,40 @@ export async function syncAllUserAccounts(userId: number): Promise<SyncResult> {
     accounts.map((account) => setAccountSyncStatus({ accountId: account.id, status: SyncStatus.QUEUED, userId })),
   );
 
+  // Group by connection so batch-capable providers (e.g. SimpleFIN) sync the
+  // whole connection in one windowed pass instead of a per-account fan-out —
+  // important for providers with a tight daily request budget.
+  const accountsByConnection = new Map<string, AccountWithConnection[]>();
+  for (const account of accounts) {
+    const connectionId = account.bankDataProviderConnectionId as string;
+    const group = accountsByConnection.get(connectionId);
+    if (group) group.push(account);
+    else accountsByConnection.set(connectionId, [account]);
+  }
+
   // Trigger all syncs with concurrency control (fire and forget)
   // Providers will update status to SYNCING when they actually start
-  accounts.forEach((account) => {
-    syncLimiter
-      .schedule(() => syncSingleAccount(account, userId))
-      .catch((err: Error) => {
-        logger.error({ message: 'Unhandled sync error', error: err }, { accountId: account.id });
+  for (const [connectionId, connectionAccounts] of accountsByConnection) {
+    const providerType = connectionAccounts[0]!.bankDataProviderConnection.providerType as BANK_PROVIDER_TYPE;
+    const provider = bankProviderRegistry.get(providerType);
+
+    if (typeof provider.syncConnectionAccounts === 'function') {
+      const systemAccountIds = connectionAccounts.map((account) => account.id);
+      syncLimiter
+        .schedule(() => provider.syncConnectionAccounts!({ connectionId, userId, systemAccountIds }))
+        .catch((err: Error) => {
+          logger.error({ message: 'Unhandled batched sync error', error: err }, { connectionId });
+        });
+    } else {
+      connectionAccounts.forEach((account) => {
+        syncLimiter
+          .schedule(() => syncSingleAccount(account, userId))
+          .catch((err: Error) => {
+            logger.error({ message: 'Unhandled sync error', error: err }, { accountId: account.id });
+          });
       });
-  });
+    }
+  }
 
   // Return immediately - frontend will poll /sync/status for updates
   return {

@@ -178,6 +178,8 @@
     "transactionLoadingQueued": "Завантаження транзакцій додано в чергу. Орієнтовний час: {{minutes}} хв.",
     "noValidAccountIds": "Жоден з обраних ID рахунків не є дійсним",
     "accountCurrencyNotSupported": "Валюта рахунку \"{{currency}}\" не підтримується системою.",
+    "periodLoadNotSupported": "Завантаження транзакцій за довільний період не підтримується цим провайдером.",
+    "transactionsLoadedCount": "Завантажено {{count}} транзакцій.",
     "monobank": {
       "invalidCredentialsFormat": "Недійсний формат облікових даних для Monobank",
       "invalidApiToken": "Недійсний API токен Monobank",
@@ -212,6 +214,17 @@
       "accountNoExternalId": "Обліковий запис не має зовнішнього ID для синхронізації LunchFlow.",
       "accountNotFound": "Обліковий запис LunchFlow не знайдено.",
       "apiError": "Помилка API LunchFlow: {{message}}"
+    },
+    "simplefin": {
+      "invalidCredentialsFormat": "Невірний формат облікових даних SimpleFIN.",
+      "invalidSetupToken": "Недійсний або вже використаний токен налаштування SimpleFIN. Згенеруйте новий у SimpleFIN Bridge і спробуйте знову.",
+      "invalidAccessUrl": "Недійсна або неавторизована URL-адреса доступу SimpleFIN.",
+      "claimFailed": "Не вдалося отримати URL-адресу доступу SimpleFIN із токена налаштування.",
+      "accountNotFound": "Рахунок SimpleFIN не знайдено.",
+      "accountNoExternalId": "Цей рахунок не прив'язаний до облікового запису SimpleFIN.",
+      "accountAbsentFromResponse": "SimpleFIN не повернув дані для цього рахунку під час останньої синхронізації. Можливо, рахунок було вимкнено в банку — спробуйте синхронізувати знову або підключіть наново, якщо проблема не зникає.",
+      "apiError": "Помилка API SimpleFIN: {{message}}",
+      "rateLimited": "SimpleFIN зараз отримує забагато запитів. Зачекайте трохи і спробуйте ще раз."
     },
     "walutomat": {
       "invalidCredentialsFormat": "Invalid Walutomat credentials format. API key and private key are required.",

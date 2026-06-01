@@ -24,6 +24,7 @@ const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
   [BANK_PROVIDER_TYPE.ENABLE_BANKING]: ACCOUNT_TYPES.enableBanking,
   [BANK_PROVIDER_TYPE.LUNCHFLOW]: ACCOUNT_TYPES.lunchflow,
   [BANK_PROVIDER_TYPE.WALUTOMAT]: ACCOUNT_TYPES.walutomat,
+  [BANK_PROVIDER_TYPE.SIMPLEFIN]: ACCOUNT_TYPES.simplefin,
 };
 
 interface LinkAccountToBankConnectionPayload {
@@ -129,7 +130,7 @@ export const linkAccountToBankConnection = withTransaction(
     // 7. Create balance adjustment transaction if needed
     let balanceAdjustmentTransaction: Transactions | null = null;
 
-    if (Math.abs(balanceDifference) > 0.01) {
+    if (balanceDifference !== 0) {
       // Create transfer_out_wallet transaction to reconcile the difference
       // Note: The transaction hook will automatically update the account balance
       const [createdTransaction] = await createTransaction({

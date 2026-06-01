@@ -94,11 +94,23 @@ export const useAccountsStore = defineStore('accounts', () => {
   const unlinkAccountFromBankConnection = async ({ id }: UnlinkAccountFromBankConnectionPayload) => {
     await apiUnlinkAccountFromBankConnection({ id });
     await refetchAccounts();
-    // Invalidate all queries that depend on transaction changes
-    // since unlinking updates all associated transactions
+
+    // The account-details transactions list is an infinite query that retains
+    // every page the user scrolled (staleTime: Infinity). A plain invalidate
+    // makes TanStack refetch *all* of those pages one-by-one (from=0,10,…,N) — a
+    // request storm that scales with scroll depth. Reset it instead: drop the
+    // cached pages and reload only the first page.
+    const [, accountTransactionsSegment] = VUE_QUERY_CACHE_KEYS.accountSpecificTransactions;
+    queryClient.resetQueries({ queryKey: VUE_QUERY_CACHE_KEYS.accountSpecificTransactions });
+
+    // Everything else that depends on the now-rewritten transactions / bank
+    // connection still needs a normal invalidate (none of these are multi-page
+    // infinite caches, so they cost one request each). Skip the account-specific
+    // list — it was already reset above.
     queryClient.invalidateQueries({
       predicate: (query) => {
         const queryKey = query.queryKey as string[];
+        if (queryKey.includes(accountTransactionsSegment)) return false;
         return (
           queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange) ||
           queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange)

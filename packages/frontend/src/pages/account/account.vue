@@ -120,7 +120,7 @@ import { useAccountsStore } from '@/stores';
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -134,6 +134,26 @@ const router = useRouter();
 const accountsStore = useAccountsStore();
 const { accountsRecord, isAccountsFetched } = storeToRefs(accountsStore);
 const account = computed(() => accountsRecord.value[route.params.id as string] ?? null);
+
+// The accounts store's query has staleTime: Infinity and is only refetched on
+// explicit refetchAccounts() calls (e.g. after connecting a bank). When the
+// user lands on this page right after a fresh bank connection, the store may
+// not yet contain the newly-created account — even though the backend has it.
+// Without this safeguard, the page would render "not found" until a full page
+// reload. Try one refetch per id before deciding the account is really gone.
+const refetchAttemptedForId = ref<string | null>(null);
+watch(
+  [() => route.params.id, isAccountsFetched],
+  async ([id, fetched]) => {
+    const accountId = id as string;
+    if (!fetched || !accountId) return;
+    if (accountsRecord.value[accountId]) return;
+    if (refetchAttemptedForId.value === accountId) return;
+    refetchAttemptedForId.value = accountId;
+    await accountsStore.refetchAccounts();
+  },
+  { immediate: true },
+);
 
 // A vehicle is stored as a regular `system` account, so its id can land on this
 // generic page. The generic page exposes balance-adjustment / add-transaction /
