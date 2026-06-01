@@ -114,7 +114,10 @@ export async function getExchangeRate({
 
   if (needsFetch || hasStaleRates) {
     try {
-      await fetchExchangeRatesForDate(date);
+      // When a required rate is entirely absent, force past the "looks
+      // comprehensive" count-skip in the fetcher — otherwise a date that
+      // already holds many other rates would never backfill this one.
+      await fetchExchangeRatesForDate(date, { force: needsFetch });
     } catch (e) {
       // If we have no rates at all, propagate the error
       if (needsFetch) throw e;

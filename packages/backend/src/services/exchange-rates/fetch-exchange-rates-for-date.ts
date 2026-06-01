@@ -23,9 +23,18 @@ export const API_LAYER_BASE_CURRENCY_CODE = 'USD';
  * 3. ApiLayer (comprehensive, paid)
  *
  * Includes deduplication to prevent concurrent calls for the same date.
+ *
+ * `force` bypasses the "already comprehensive" short-circuit. Callers that
+ * have detected a SPECIFIC missing rate (e.g. the lazy gap-fill in
+ * `getExchangeRate`) must set it: a date can hold 50+ rates yet still be
+ * missing the exact currency that was just requested (a currency added after
+ * the date was first synced, or one a caller explicitly cleared). Skipping on
+ * raw count alone would strand that currency permanently, so when the caller
+ * knows the rate it needs is absent we fetch regardless of how many other
+ * rates the date already has.
  */
 export const fetchExchangeRatesForDate = withDeduplication(
-  async (date: Date): Promise<void> => {
+  async (date: Date, { force = false }: { force?: boolean } = {}): Promise<void> => {
     const normalizedDate = startOfDay(date);
     const formattedDate = format(normalizedDate, API_LAYER_DATE_FORMAT);
 
@@ -36,8 +45,9 @@ export const fetchExchangeRatesForDate = withDeduplication(
       });
 
       // If we have a substantial number of rates, skip to avoid redundant API calls
-      // 50+ rates indicates a comprehensive provider (ApiLayer) was already used
-      if (existingRatesCount > 50) {
+      // 50+ rates indicates a comprehensive provider (ApiLayer) was already used.
+      // `force` callers opt out: they already know a specific rate is missing.
+      if (!force && existingRatesCount > 50) {
         logger.info(
           `Found ${existingRatesCount} rates for ${formattedDate}, skipping sync to avoid redundant API calls`,
         );
@@ -101,7 +111,9 @@ export const fetchExchangeRatesForDate = withDeduplication(
     }
   },
   {
-    keyGenerator: (date: Date) => format(date, 'yyyy-MM-dd'),
+    // Dedup by date only — a forced and an unforced call for the same date
+    // are the same fetch; the in-flight one serves both.
+    keyGenerator: (date: Date, _options?: { force?: boolean }) => format(date, 'yyyy-MM-dd'),
     ttl: 30000, // Keep cache for 30 seconds after completion
   },
 );
