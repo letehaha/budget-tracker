@@ -104,6 +104,7 @@ import {
   getAvailableAccounts,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { DemoRestricted } from '@/components/demo';
 import ExternalLink from '@/components/external-link.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -114,6 +115,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { useQueryClient } from '@tanstack/vue-query';
 import { InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { ref, watch } from 'vue';
@@ -131,6 +133,7 @@ const emit = defineEmits<{
 const { addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 const syncStatus = useSyncStatus();
+const queryClient = useQueryClient();
 const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
@@ -192,13 +195,30 @@ const handleImportAccounts = () => {
   // via a toast (the dialog is already closed). Accounts are persisted even
   // when the initial sync fails — refetch in both branches so the user sees
   // them appear with FAILED sync status instead of nothing.
+  //
+  // The parent's `integration-added` handler invalidates bank-connection
+  // queries as soon as we emit, but the backend hasn't created the accounts
+  // yet at that point. Re-invalidate here so the integrations card's
+  // accountsCount catches up once the backend finishes, instead of staying
+  // pinned at 0 until the page is reloaded.
+  const invalidateBankConnectionQueries = () => {
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange);
+      },
+    });
+  };
+
   importPromise
     .then(async () => {
       await accountsStore.refetchAccounts();
+      invalidateBankConnectionQueries();
       useOnboardingStore().completeTask('connect-bank');
     })
     .catch(async (error) => {
       await accountsStore.refetchAccounts();
+      invalidateBankConnectionQueries();
       addErrorNotification(getErrorMessage(error) || t('pages.integrations.simplefin.errors.importFailed'));
     });
 
