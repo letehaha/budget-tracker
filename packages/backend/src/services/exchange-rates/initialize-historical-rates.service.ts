@@ -5,7 +5,7 @@ import { addYears, format, min, startOfDay } from 'date-fns';
 import chunk from 'lodash/chunk';
 
 import { exchangeRateProviderRegistry } from './providers';
-import { EXCHANGE_RATE_PROVIDER_TYPE, ExchangeRateResult } from './providers/types';
+import { EXCHANGE_RATE_PROVIDER_TYPE, MergedRatesForDate } from './providers/types';
 
 // Fallback date if no providers are registered (should not happen in practice)
 const FALLBACK_START_DATE = new Date('1999-01-04');
@@ -49,16 +49,17 @@ async function waitForProviderAvailability(): Promise<boolean> {
 }
 
 /**
- * Process and insert rates from a single fetch result
+ * Process and insert merged rates from a fetch result.
+ *
+ * Rates are merged per-date across providers, so each rate carries its own
+ * source — there is no single provider for the whole chunk.
  */
 async function insertRatesChunk({
   results,
   validCurrencyCodes,
-  providerType,
 }: {
-  results: ExchangeRateResult[];
+  results: MergedRatesForDate[];
   validCurrencyCodes: Set<string>;
-  providerType: EXCHANGE_RATE_PROVIDER_TYPE;
 }): Promise<{ totalRates: number; insertedRates: number }> {
   // Convert provider results to rate entries, filtering as we go to reduce memory.
   // `source` is part of the intermediate shape so a future refactor cannot drop
@@ -73,14 +74,14 @@ async function insertRatesChunk({
 
   for (const result of results) {
     const rateDate = startOfDay(new Date(result.date));
-    for (const [quoteCode, rate] of Object.entries(result.rates)) {
+    for (const [quoteCode, { rate, source }] of Object.entries(result.rates)) {
       if (validCurrencyCodes.has(result.baseCurrency) && validCurrencyCodes.has(quoteCode)) {
         validRates.push({
           baseCode: result.baseCurrency,
           quoteCode,
           rate,
           date: rateDate,
-          source: providerType,
+          source,
         });
       }
     }
@@ -174,12 +175,11 @@ export async function initializeHistoricalRates(): Promise<void> {
           `No provider available for range ${format(currentStartDate, 'yyyy-MM-dd')} to ${format(currentEndDate, 'yyyy-MM-dd')}, skipping`,
         );
       } else {
-        providerName = fetchResult.providerName;
+        providerName = fetchResult.providersUsed.map((p) => p.name).join(', ') || null;
 
         const { insertedRates } = await insertRatesChunk({
           results: fetchResult.results,
           validCurrencyCodes,
-          providerType: fetchResult.providerType,
         });
 
         totalInserted += insertedRates;

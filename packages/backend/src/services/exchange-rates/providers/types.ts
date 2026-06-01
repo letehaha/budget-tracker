@@ -5,10 +5,15 @@
  */
 import { EXCHANGE_RATE_PROVIDER_TYPE } from '@bt/shared/types';
 
+import { AttributedRate, ProviderContribution } from './merge-provider-rates';
+
 // Re-exported so service-internal modules can keep importing from `./types`.
 // The model imports the enum directly from `@bt/shared/types` to avoid a
 // model → service layer dependency.
 export { EXCHANGE_RATE_PROVIDER_TYPE };
+
+/** Default base currency used across providers and the merge logic. */
+export const DEFAULT_BASE_CURRENCY = 'USD';
 
 // ============================================================================
 // Provider Configuration
@@ -81,27 +86,41 @@ export interface ExchangeRateResult {
 }
 
 /**
- * Result from fetchRatesWithFallback including provider info
+ * Merged exchange rates for a single date.
+ *
+ * Rates are MERGED across providers by priority: each lower-priority provider
+ * only fills currencies the higher-priority ones didn't supply. Because rates
+ * can originate from different providers, each rate carries its own `source`
+ * (see `AttributedRate`) — rate and provenance always travel together, so a
+ * rate can never be persisted without a known source.
  */
-export interface FetchRatesWithFallbackResult {
-  /** The exchange rate data */
-  result: ExchangeRateResult;
-  /** Name of the provider that successfully fetched the rates */
-  providerName: string;
-  /** Type of the provider */
-  providerType: EXCHANGE_RATE_PROVIDER_TYPE;
+export interface MergedRatesForDate {
+  /** ISO date string (yyyy-MM-dd) */
+  date: string;
+  /** Base currency code */
+  baseCurrency: string;
+  /** quoteCode -> { rate, source } */
+  rates: Record<string, AttributedRate>;
 }
 
 /**
- * Result from fetchHistoricalRatesWithFallback including provider info
+ * Result from fetchRatesWithFallback — merged rates for one date plus the
+ * per-provider contribution summary.
+ */
+export interface FetchRatesWithFallbackResult {
+  merged: MergedRatesForDate;
+  /** Providers that contributed at least one rate, in priority order */
+  providersUsed: ProviderContribution[];
+}
+
+/**
+ * Result from fetchHistoricalRatesWithFallback — merged rates per date across
+ * the range, with the same priority-merge semantics as the daily path.
  */
 export interface FetchHistoricalRatesWithFallbackResult {
-  /** Array of exchange rate results for the date range */
-  results: ExchangeRateResult[];
-  /** Name of the provider that successfully fetched the rates */
-  providerName: string;
-  /** Type of the provider */
-  providerType: EXCHANGE_RATE_PROVIDER_TYPE;
+  results: MergedRatesForDate[];
+  /** Providers that contributed at least one rate across the range */
+  providersUsed: ProviderContribution[];
 }
 
 // ============================================================================
