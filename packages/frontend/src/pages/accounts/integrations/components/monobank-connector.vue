@@ -71,21 +71,7 @@
             {{ t('pages.integrations.monobank.selectAccountsHint') }}
           </div>
 
-          <div class="space-y-2">
-            <label
-              v-for="account in availableAccounts"
-              :key="account.externalId"
-              class="hover:bg-accent flex cursor-pointer items-center gap-3 rounded-md border p-3"
-            >
-              <input type="checkbox" :value="account.externalId" v-model="selectedAccountIds" class="size-4" />
-              <div class="flex-1">
-                <div class="font-medium">{{ account.name }}</div>
-                <div class="text-muted-foreground text-sm">
-                  {{ formatBalance(account.balance, account.currency) }}
-                </div>
-              </div>
-            </label>
-          </div>
+          <AccountSelectionList v-model="selectedAccountIds" :accounts="availableAccounts" />
 
           <div class="flex justify-between gap-2 pt-4">
             <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading">
@@ -126,6 +112,8 @@ import { InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import AccountSelectionList from './account-selection-list.vue';
 
 const { t } = useI18n();
 
@@ -206,12 +194,5 @@ const handleSyncAccounts = async () => {
   } finally {
     isLoading.value = false;
   }
-};
-
-const formatBalance = (balance: number, currency: string) => {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: currency,
-  }).format(balance);
 };
 </script>

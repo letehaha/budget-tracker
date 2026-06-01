@@ -1,11 +1,10 @@
-import { API_ERROR_CODES, BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { API_ERROR_CODES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import { MonobankProvider } from '@root/services/bank-data-providers/monobank/monobank.provider';
 import { bankProviderRegistry } from '@root/services/bank-data-providers/registry';
 import { z } from 'zod';
 
@@ -94,18 +93,18 @@ export default createController(
       });
     }
 
-    // Get provider - currently only Monobank supports this feature
+    // Dispatch to the provider. Only providers that support date-range
+    // historical loads implement loadTransactionsForPeriod — Monobank via a
+    // job queue, SimpleFIN inline. Providers without it reject the request.
     const provider = bankProviderRegistry.get(connection.providerType);
 
-    if (connection.providerType !== BANK_PROVIDER_TYPE.MONOBANK) {
+    if (typeof provider.loadTransactionsForPeriod !== 'function') {
       throw new ValidationError({
-        message: t({ key: 'bankDataProviders.onlySupportedForMonobank' }),
+        message: t({ key: 'bankDataProviders.periodLoadNotSupported' }),
       });
     }
 
-    // Call the loadTransactionsForPeriod method
-    const monobankProvider = provider as MonobankProvider;
-    const result = await monobankProvider.loadTransactionsForPeriod({
+    const result = await provider.loadTransactionsForPeriod({
       connectionId,
       systemAccountId: accountId,
       userId: user.id,
@@ -113,15 +112,27 @@ export default createController(
       to: toDate,
     });
 
+    // `jobGroupId === null` is the explicit marker for an inline provider
+    // (e.g. SimpleFIN) that already finished — report the real created count.
+    // A non-null jobGroupId means the work was queued (e.g. Monobank) and
+    // progress arrives asynchronously.
+    const isInlineLoad = result.jobGroupId === null;
+
     return {
       data: {
         jobGroupId: result.jobGroupId,
         totalBatches: result.totalBatches,
         estimatedMinutes: result.estimatedMinutes,
-        message: t({
-          key: 'bankDataProviders.transactionLoadingQueued',
-          variables: { minutes: result.estimatedMinutes },
-        }),
+        createdCount: result.createdCount,
+        message: isInlineLoad
+          ? t({
+              key: 'bankDataProviders.transactionsLoadedCount',
+              variables: { count: result.createdCount ?? 0 },
+            })
+          : t({
+              key: 'bankDataProviders.transactionLoadingQueued',
+              variables: { minutes: result.estimatedMinutes },
+            }),
       },
     };
   },

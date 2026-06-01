@@ -30,6 +30,9 @@ const isAccountSyncing = computed(() => {
 const PROVIDERS_WITHOUT_PERIOD_SYNC: ACCOUNT_TYPES[] = [ACCOUNT_TYPES.lunchflow];
 const isPeriodSyncSupported = computed(() => !PROVIDERS_WITHOUT_PERIOD_SYNC.includes(props.account.type));
 
+// Backend caps a historical load at one year (see load-transactions-for-period controller).
+const MAX_DATE_RANGE_DAYS = 365;
+
 const yesterday = startOfDay(subDays(new Date(), 1));
 
 const dateRange = ref<Period>({
@@ -54,7 +57,7 @@ const handlePeriodUpdate = async (period: Period) => {
 
     // Validate date range (max 1 year)
     const daysDiff = differenceInDays(to, from);
-    if (daysDiff > 365) {
+    if (daysDiff > MAX_DATE_RANGE_DAYS) {
       addNotification({
         text: t('pages.account.loadTransactions.dateRangeExceeds'),
         type: NotificationType.error,
@@ -74,12 +77,16 @@ const handlePeriodUpdate = async (period: Period) => {
       to.toISOString(),
     );
 
+    // Inline providers (jobGroupId === null, e.g. SimpleFIN) have already
+    // finished — surface the backend's result message as a success. Queue-based
+    // providers (e.g. Monobank) return a non-null jobGroupId and report async
+    // progress, so show their queued message as info.
     addNotification({
-      text: `${result.message}. Processing ${result.totalBatches} batch(es)...`,
-      type: NotificationType.info,
+      text: result.message,
+      type: result.jobGroupId === null ? NotificationType.success : NotificationType.info,
     });
 
-    // SSE will provide updates as sync progresses
+    // SSE will provide updates as sync progresses (queue-based providers)
   } catch (error) {
     const e = error as { data?: { message?: string } };
     addNotification({

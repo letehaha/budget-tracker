@@ -38,6 +38,12 @@ const logos: Record<BANK_PROVIDER_TYPE, { icon: { dark: string; light: string } 
         'https://cdn.brandfetch.io/idMxRWw7fO/w/400/h/400/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1765355825327',
     },
   },
+  [BANK_PROVIDER_TYPE.SIMPLEFIN]: {
+    icon: {
+      dark: 'https://cdn.brandfetch.io/simplefin.org/w/400/h/400/theme/light/icon.jpeg',
+      light: 'https://cdn.brandfetch.io/simplefin.org/w/400/h/400/theme/dark/icon.jpeg',
+    },
+  },
 };
 
 defineProps<{ provider: BANK_PROVIDER_TYPE }>();

@@ -115,7 +115,10 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
 
     try {
       const connection = await this.getConnection(connectionId);
-      const metadata = ((connection.metadata as AuthTrackingMetadata) || {}) as AuthTrackingMetadata;
+      // Spread into a NEW object: Sequelize only flags a JSON(B) column dirty
+      // when its reference changes, so mutating the existing metadata in place
+      // and re-assigning the same reference would not persist on save().
+      const metadata: AuthTrackingMetadata = { ...(connection.metadata as AuthTrackingMetadata) };
       const failures = (metadata.consecutiveAuthFailures || 0) + 1;
       metadata.consecutiveAuthFailures = failures;
 
@@ -128,7 +131,11 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
       }
 
       connection.metadata = metadata as any;
-      await connection.save();
+      // `{ transaction: null }` bypasses the ambient CLS transaction: an auth
+      // failure surfaces while a sync is being rolled back, so this write must
+      // commit independently or the failure count (and deactivation) would be
+      // undone by that rollback.
+      await connection.save({ transaction: null });
     } catch (metaError) {
       logger.error({
         message: `[${this.metadata.name}] Failed to update auth failure metadata:`,
@@ -145,12 +152,14 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
   protected async resetAuthFailures(connectionId: string): Promise<void> {
     try {
       const connection = await this.getConnection(connectionId);
-      const metadata = ((connection.metadata as AuthTrackingMetadata) || {}) as AuthTrackingMetadata;
+      // New object reference so Sequelize persists the reset (see handleAuthError).
+      const metadata: AuthTrackingMetadata = { ...(connection.metadata as AuthTrackingMetadata) };
 
       if (metadata.consecutiveAuthFailures && metadata.consecutiveAuthFailures > 0) {
         metadata.consecutiveAuthFailures = 0;
         connection.metadata = metadata as any;
-        await connection.save();
+        // Commit outside any ambient sync transaction (see handleAuthError).
+        await connection.save({ transaction: null });
       }
     } catch {
       // Non-critical, ignore
@@ -271,4 +280,37 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * @param payload - Webhook payload from provider
    */
   handleWebhook?(payload: unknown): Promise<void>;
+
+  /**
+   * Load transactions for an explicit historical window (the account-details
+   * "load data for period" picker). Optional — only providers that support
+   * date-range historical loads implement it.
+   *
+   * `jobGroupId === null` is the explicit marker that the provider loaded
+   * inline and already finished (so `createdCount` reports rows actually
+   * created); a non-null `jobGroupId` means the work was queued and the caller
+   * should poll progress.
+   */
+  loadTransactionsForPeriod?(args: {
+    connectionId: string;
+    systemAccountId: string;
+    userId: number;
+    from: Date;
+    to: Date;
+  }): Promise<{
+    jobGroupId: string | null;
+    totalBatches: number;
+    estimatedMinutes: number;
+    /** Rows created during an inline load (`jobGroupId === null`). */
+    createdCount?: number;
+  }>;
+
+  /**
+   * Sync several accounts of one connection in a single batched pass (optional).
+   * Implemented only by providers whose upstream returns every account (with
+   * transactions) in one response — e.g. SimpleFIN's `/accounts` — so the
+   * orchestrators can fetch once per window instead of once per account.
+   * Marks each account's sync status internally.
+   */
+  syncConnectionAccounts?(args: { connectionId: string; userId: number; systemAccountIds: string[] }): Promise<void>;
 }

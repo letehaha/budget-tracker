@@ -73,10 +73,21 @@ export const METAINFO_FROM_TYPE: Record<string, ProviderMetainfo> = {
     difficulty: 'medium',
     regions: [REGIONS.poland],
   },
+  [BANK_PROVIDER_TYPE.SIMPLEFIN]: {
+    nameKey: 'pages.integrations.providers.simplefin.name',
+    descriptionKey: 'pages.integrations.providers.simplefin.description',
+    pricingLabelKey: 'pages.integrations.labels.paid',
+    difficultyLabelKey: 'pages.integrations.labels.easySetup',
+    difficultyTooltipKey: 'pages.integrations.tooltips.simplefin',
+    pricing: 'paid',
+    difficulty: 'easy',
+    regions: [REGIONS.usa, REGIONS.canada],
+  },
 };
 
 export const PROVIDER_DISPLAY_ORDER: readonly string[] = [
   BANK_PROVIDER_TYPE.LUNCHFLOW,
+  BANK_PROVIDER_TYPE.SIMPLEFIN,
   BANK_PROVIDER_TYPE.MONOBANK,
   BANK_PROVIDER_TYPE.ENABLE_BANKING,
   BANK_PROVIDER_TYPE.WALUTOMAT,

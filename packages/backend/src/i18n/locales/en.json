@@ -175,6 +175,8 @@
     "transactionLoadingQueued": "Transaction loading queued. Estimated time: {{minutes}} minute(s)",
     "noValidAccountIds": "None of the selected account IDs are valid",
     "accountCurrencyNotSupported": "Account currency \"{{currency}}\" is not supported by this system.",
+    "periodLoadNotSupported": "Loading transactions for a custom period is not supported by this provider.",
+    "transactionsLoadedCount": "Loaded {{count}} transactions.",
     "monobank": {
       "invalidCredentialsFormat": "Invalid credentials format for Monobank",
       "invalidApiToken": "Invalid Monobank API token",
@@ -209,6 +211,16 @@
       "accountNoExternalId": "Account has no external ID for LunchFlow sync.",
       "accountNotFound": "LunchFlow account not found.",
       "apiError": "LunchFlow API error: {{message}}"
+    },
+    "simplefin": {
+      "invalidCredentialsFormat": "Invalid SimpleFIN credentials format.",
+      "invalidSetupToken": "Invalid or already-used SimpleFIN setup token. Generate a new one from the SimpleFIN Bridge and try again.",
+      "invalidAccessUrl": "Invalid or unauthorized SimpleFIN access URL.",
+      "claimFailed": "Could not claim a SimpleFIN access URL from the setup token.",
+      "accountNotFound": "SimpleFIN account not found.",
+      "accountNoExternalId": "This account is not linked to a SimpleFIN account.",
+      "apiError": "SimpleFIN API error: {{message}}",
+      "rateLimited": "SimpleFIN is receiving too many requests right now. Please wait a little and try again."
     },
     "walutomat": {
       "invalidCredentialsFormat": "Invalid Walutomat credentials format. API key and private key are required.",

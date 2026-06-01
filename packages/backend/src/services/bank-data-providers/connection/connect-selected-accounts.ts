@@ -27,6 +27,7 @@ const PROVIDER_TO_ANALYTICS_TYPE: Record<BANK_PROVIDER_TYPE, BankProvider> = {
   [BANK_PROVIDER_TYPE.ENABLE_BANKING]: 'enable_banking',
   [BANK_PROVIDER_TYPE.LUNCHFLOW]: 'lunchflow',
   [BANK_PROVIDER_TYPE.WALUTOMAT]: 'walutomat',
+  [BANK_PROVIDER_TYPE.SIMPLEFIN]: 'simplefin',
 };
 
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
@@ -34,6 +35,7 @@ const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
   [BANK_PROVIDER_TYPE.ENABLE_BANKING]: ACCOUNT_TYPES.enableBanking,
   [BANK_PROVIDER_TYPE.LUNCHFLOW]: ACCOUNT_TYPES.lunchflow,
   [BANK_PROVIDER_TYPE.WALUTOMAT]: ACCOUNT_TYPES.walutomat,
+  [BANK_PROVIDER_TYPE.SIMPLEFIN]: ACCOUNT_TYPES.simplefin,
 };
 
 /**
@@ -236,20 +238,40 @@ export const connectSelectedAccounts = async ({
     accountExternalIds,
   });
 
-  // Step 2: Trigger sync AFTER the transaction commits.
+  // Step 2: Trigger initial sync AFTER the transaction commits.
   // Sync errors should not affect account creation.
-  for (const account of createdAccounts) {
+  const connection = await BankDataProviderConnections.findByPk(connectionId);
+  const provider = connection ? bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE) : null;
+
+  if (provider && typeof provider.syncConnectionAccounts === 'function') {
+    // Batch-capable provider (e.g. SimpleFIN): one windowed fetch per connection
+    // covering every selected account, instead of a per-account fan-out.
     try {
-      await syncTransactionsForAccount({
+      await provider.syncConnectionAccounts({
         connectionId,
         userId,
-        accountId: account.id,
+        systemAccountIds: createdAccounts.map((account) => account.id),
       });
     } catch (error) {
       logger.error({
-        message: `[connectSelectedAccounts] Initial transaction sync failed for account ${account.id}, will retry on next sync`,
+        message: `[connectSelectedAccounts] Initial batched sync failed for connection ${connectionId}, will retry on next sync`,
         error: error as Error,
       });
+    }
+  } else {
+    for (const account of createdAccounts) {
+      try {
+        await syncTransactionsForAccount({
+          connectionId,
+          userId,
+          accountId: account.id,
+        });
+      } catch (error) {
+        logger.error({
+          message: `[connectSelectedAccounts] Initial transaction sync failed for account ${account.id}, will retry on next sync`,
+          error: error as Error,
+        });
+      }
     }
   }
 

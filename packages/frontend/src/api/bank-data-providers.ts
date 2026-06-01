@@ -165,9 +165,12 @@ export const syncSelectedAccounts = async (
 };
 
 interface SyncJobResult {
-  jobGroupId: string;
+  // null for providers that load inline (e.g. SimpleFIN) rather than via a job queue.
+  jobGroupId: string | null;
   totalBatches: number;
   estimatedMinutes: number;
+  // Rows created during an inline load (jobGroupId === null).
+  createdCount?: number;
   message: string;
 }
 

@@ -216,6 +216,12 @@ export default class Balances extends Model {
         break;
       }
 
+      case ACCOUNT_TYPES.simplefin: {
+        // SimpleFIN doesn't provide per-transaction balance info.
+        // Balance is updated from the API after the full sync completes.
+        break;
+      }
+
       default: {
         const exhaustiveCheck: never = data.accountType;
 

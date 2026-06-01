@@ -261,6 +261,23 @@ export function useSyncStatus() {
   };
 
   /**
+   * Start watching an already-running sync: open SSE and load current status
+   * WITHOUT triggering a new sync. Used after a flow kicks one off server-side
+   * (e.g. connecting a bank) so the header spinner + per-account status reflect
+   * it without double-syncing.
+   */
+  const watchSync = async () => {
+    try {
+      subscribeToSSE();
+      await connect();
+      await fetchStatus();
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to watch sync';
+      console.error('Error watching sync:', err);
+    }
+  };
+
+  /**
    * Check if auto-sync should run and trigger if needed
    */
   const checkAndAutoSync = async () => {
@@ -319,6 +336,7 @@ export function useSyncStatus() {
     // Methods
     fetchStatus,
     triggerSync,
+    watchSync,
     checkAndAutoSync,
     subscribeToSSE,
     unsubscribeFromSSE,

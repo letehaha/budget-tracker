@@ -204,6 +204,16 @@ export interface IBankDataProvider {
     userId: number;
   }): Promise<void | { jobGroupId: string; totalBatches: number; estimatedMinutes: number }>;
 
+  /**
+   * Sync several accounts of one connection in a single batched pass (optional).
+   * Only providers whose upstream returns every account (with transactions) in
+   * one response — e.g. SimpleFIN's `/accounts` — implement this; it lets the
+   * orchestrators fetch once per window instead of once per account, respecting
+   * tight request budgets. Providers without it fall back to the per-account
+   * `syncTransactions`. Marks each account's sync status internally.
+   */
+  syncConnectionAccounts?(args: { connectionId: string; userId: number; systemAccountIds: string[] }): Promise<void>;
+
   // ========================================
   // Balance Operations
   // ========================================
@@ -239,4 +249,28 @@ export interface IBankDataProvider {
    * @param payload - Webhook payload from provider
    */
   handleWebhook?(payload: unknown): Promise<void>;
+
+  /**
+   * Load transactions for an explicit historical window (the account-details
+   * "load data for period" picker). Optional — only providers that support
+   * date-range historical loads implement it.
+   *
+   * `jobGroupId === null` is the explicit marker that the provider loaded
+   * inline and already finished (so `createdCount` reports rows actually
+   * created); a non-null `jobGroupId` means the work was queued and the caller
+   * should poll progress.
+   */
+  loadTransactionsForPeriod?(args: {
+    connectionId: string;
+    systemAccountId: string;
+    userId: number;
+    from: Date;
+    to: Date;
+  }): Promise<{
+    jobGroupId: string | null;
+    totalBatches: number;
+    estimatedMinutes: number;
+    /** Rows created during an inline load (`jobGroupId === null`). */
+    createdCount?: number;
+  }>;
 }

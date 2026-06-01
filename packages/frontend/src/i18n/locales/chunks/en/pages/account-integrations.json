@@ -34,6 +34,10 @@
           "name": "Lunch Flow",
           "description": "Sync transactions from 20,000+ banks worldwide via LunchFlow"
         },
+        "simplefin": {
+          "name": "SimpleFIN",
+          "description": "Sync transactions from US & Canadian banks via the SimpleFIN Bridge"
+        },
         "walutomat": {
           "name": "Walutomat",
           "description": "Polish currency exchange platform with 23 currencies"
@@ -205,6 +209,30 @@
         "errors": {
           "connectFailed": "Failed to connect to LunchFlow",
           "importFailed": "Failed to import accounts"
+        }
+      },
+      "common": {
+        "selectAll": "Select all"
+      },
+      "simplefin": {
+        "setupTokenLabel": "Setup token",
+        "setupTokenPlaceholder": "Paste your SimpleFIN setup token",
+        "setupTokenHint": "Where do I get a setup token?",
+        "setupTokenInstructions": "Create a SimpleFIN Bridge account at {link}, connect your bank, then generate a setup token and paste it here.",
+        "connectButton": "Connect",
+        "connectingButton": "Connecting…",
+        "backButton": "Back",
+        "loadingAccounts": "Loading accounts…",
+        "accountsPreviewHint": "Found {count} account(s). Choose which to import.",
+        "backfillNote": "We'll load the last 6 months of transactions now. You can load older history anytime from the account's page using the date-range picker.",
+        "importButton": "Import {count} account(s)",
+        "importingButton": "Importing…",
+        "importSuccess": "Successfully imported {count} account(s)",
+        "skipButton": "Skip for now",
+        "skipTooltip": "You can import accounts later from the connection details page.",
+        "errors": {
+          "connectFailed": "Failed to connect to SimpleFIN. Check your setup token and try again.",
+          "importFailed": "Failed to import accounts. Please try again."
         }
       },
       "walutomat": {
@@ -396,6 +424,7 @@
         "monobank": "Requires manually copying an API token from the Monobank mobile app",
         "enableBanking": "Since smooth integration requires several thousands $ per month to be paid, it's only possible to connect by creating own EnableBanking dev account, and setting up \"test\" application with real connection to own banks, storing certificates and keys and uploading them here. Moderate technical knowledge required",
         "lunchflow": "Just connect your banks on the LunchFlow side, then create and paste your LunchFlow API key",
+        "simplefin": "SimpleFIN Bridge is a paid service. You create a bridge account, link your bank, and paste a setup token — no developer setup required.",
         "walutomat": "Requires generating an RSA key pair and uploading the public key to Walutomat dashboard"
       }
     },
