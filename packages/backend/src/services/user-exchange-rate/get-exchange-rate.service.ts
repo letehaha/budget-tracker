@@ -4,24 +4,39 @@ import { UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils';
 import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/currencies.model';
-import * as ExchangeRates from '@models/exchange-rates.model';
 import * as UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies, { getBaseCurrency } from '@models/users-currencies.model';
-import {
-  API_LAYER_BASE_CURRENCY_CODE,
-  fetchExchangeRatesForDate,
-} from '@services/exchange-rates/fetch-exchange-rates-for-date';
-import { endOfDay, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
+import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
+import { type RateLookup, resolveUsdRates } from '@services/exchange-rates/resolve-usd-rates';
 
 // Round to 5 precision
 const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;
 
-const exchangeRateCache = new CacheClient<ExchangeRateReturnType>({
-  logPrefix: 'ExchangeRate',
+/**
+ * Global cache for computed cross-rates.
+ *
+ * The conversion `baseCode → quoteCode on date D` is the same number for every
+ * user – there is nothing user-scoped about USD→EUR on 2020-03-15. Keying by
+ * user would store N identical copies and miss N times before populating. The
+ * per-user custom-rate override (liveRateUpdate=false) deliberately bypasses
+ * this cache and is resolved from the DB on every call instead.
+ */
+type CachedCrossRate = { rate: number; dateISO: string };
+const crossRateCache = new CacheClient<CachedCrossRate>({
+  logPrefix: 'CrossRate',
   ttl: 3600 * 4, // 4 hours
   parseJson: true,
 });
+
+/**
+ * Build a stable cache key from the request. Date is sliced to YYYY-MM-DD so
+ * callers asking for the same day at different times of day collapse to one
+ * entry, and codes are uppercased so case variations don't split the cache.
+ */
+function buildCacheKey({ date, baseCode, quoteCode }: { date: Date; baseCode: string; quoteCode: string }): string {
+  const dateISO = date.toISOString().slice(0, 10);
+  return `cross_rate:${dateISO}:${baseCode.toUpperCase()}:${quoteCode.toUpperCase()}`;
+}
 
 export async function getExchangeRate({
   userId,
@@ -29,116 +44,110 @@ export async function getExchangeRate({
   baseCode,
   quoteCode,
 }: ExchangeRateParams): Promise<ExchangeRateReturnType> {
-  // **REDIS CACHE CHECK - FIRST THING, before any expensive operations**
-  const cacheKey = `exchange_rate:${JSON.stringify({ userId, date, baseCode, quoteCode })}`;
+  const pair = {
+    baseCode: baseCode.toUpperCase(),
+    quoteCode: quoteCode.toUpperCase(),
+  };
 
-  const cachedResult = await exchangeRateCache.read(cacheKey);
-
-  if (cachedResult) {
-    return {
-      ...cachedResult,
-      date: new Date(cachedResult.date),
-    };
-  }
-
-  const pair = { baseCode, quoteCode };
-
-  // If base and qoute are the same currency, early return with `1`
+  // Same currency → 1, no auth or cache needed.
   if (pair.baseCode === pair.quoteCode) {
-    const result = {
-      baseCode: pair.baseCode,
-      quoteCode: pair.quoteCode,
-      rate: 1,
-      date,
-    };
-
-    // Cache this simple result too
-    await exchangeRateCache.write({ key: cacheKey, value: result });
-    return result;
+    return { ...pair, rate: 1, date };
   }
 
-  pair.baseCode = pair.baseCode.toUpperCase();
-  pair.quoteCode = pair.quoteCode.toUpperCase();
+  // Order matters: auth and the custom-rate override both run before the global
+  // cache, so a cache hit can never skip the "is the user allowed this currency?"
+  // check or the user's own manual rate.
+  const { liveRateUpdate } = await assertUserConnectedTo({ userId, code: pair.baseCode });
 
-  // When currencies are different, make sure that base_code currency is linked
-  // to user's currencies, since usually quite is always a user_default_currency
+  const customRate = await resolveCustomRate({ userId, pair, liveRateUpdate });
+  if (customRate) return customRate;
+
+  const cacheKey = buildCacheKey({ date, baseCode: pair.baseCode, quoteCode: pair.quoteCode });
+  const cached = await crossRateCache.read(cacheKey);
+  if (cached) {
+    return { ...pair, rate: cached.rate, date: new Date(cached.dateISO) };
+  }
+
+  const { result, cacheable } = await computeCrossRate({ pair, date });
+  if (cacheable) {
+    await crossRateCache.write({ key: cacheKey, value: { rate: result.rate, dateISO: result.date.toISOString() } });
+  }
+
+  return result;
+}
+
+/**
+ * Assert the user is connected to `code` and return their live-rate preference.
+ * Throws not-found if they aren't – which is why it has to run before the cache.
+ */
+async function assertUserConnectedTo({
+  userId,
+  code,
+}: {
+  userId: number;
+  code: string;
+}): Promise<{ liveRateUpdate: boolean | null }> {
   const userCurrency = await findOrThrowNotFound({
     query: UsersCurrencies.findOne({
       where: { userId },
       attributes: ['liveRateUpdate'],
-      include: [
-        {
-          model: Currencies.default,
-          where: { code: pair.baseCode },
-          attributes: [], // No need to fetch extra attributes
-        },
-      ],
+      include: [{ model: Currencies.default, where: { code }, attributes: [] }],
       raw: true,
     }),
     message: t({ key: 'currencies.currencyNotConnected' }),
   });
 
-  const userDefaultCurrency = await getBaseCurrency({ userId });
+  return { liveRateUpdate: userCurrency.liveRateUpdate };
+}
 
-  // If user has custom live rate AND quote_code is user's base_currency, then
-  // skip any checks and calculations and simply return what user has set
-  if (userCurrency.liveRateUpdate === false && pair.quoteCode === userDefaultCurrency.currency.code) {
-    const [userExchangeRate] = await UserExchangeRates.getRates({
-      userId,
-      pair,
-    });
+/**
+ * The user's manual rate, if any. It only applies when they turned live rates
+ * off AND are converting into their own base currency; otherwise there is no
+ * custom rate and the caller falls through to the market cross-rate. Never
+ * cached globally – it belongs to one user.
+ */
+async function resolveCustomRate({
+  userId,
+  pair,
+  liveRateUpdate,
+}: {
+  userId: number;
+  pair: { baseCode: string; quoteCode: string };
+  liveRateUpdate: boolean | null;
+}): Promise<ExchangeRateReturnType | null> {
+  if (liveRateUpdate !== false) return null;
 
-    if (userExchangeRate) {
-      return {
-        ...userExchangeRate,
-        rate: formatRate(userExchangeRate.rate),
-        custom: true,
-      };
-    }
-  }
+  const userDefault = await getBaseCurrency({ userId });
+  if (pair.quoteCode !== userDefault.currency.code) return null;
 
-  let baseRate: ExchangeRateReturnType | null = null;
-  let quoteRate: ExchangeRateReturnType | null = null;
+  const [userRate] = await UserExchangeRates.getRates({ userId, pair });
+  if (!userRate) return null;
 
-  baseRate = await loadRate(pair.baseCode, date);
-  quoteRate = await loadRate(pair.quoteCode, date);
+  return { ...userRate, rate: formatRate(userRate.rate), custom: true };
+}
 
-  // Fetch exchange rates if we're missing data
-  // Note: loadRate returns { rate: 1 } for USD, so we only need to check for null
-  const needsFetch = !baseRate || !quoteRate;
+/**
+ * Resolve the market cross-rate for `pair` on `date` through the USD pivot, plus
+ * whether it's safe to cache: only a rate built from exact-date rows on both
+ * legs is `cacheable` – a fallback (a rate from another date) must not be served
+ * as authoritative for the whole cache TTL.
+ */
+async function computeCrossRate({
+  pair,
+  date,
+}: {
+  pair: { baseCode: string; quoteCode: string };
+  date: Date;
+}): Promise<{ result: ExchangeRateReturnType; cacheable: boolean }> {
+  const lookups = await resolveUsdRates({ codes: [pair.baseCode, pair.quoteCode], date });
+  const baseLookup = lookups.get(pair.baseCode)!;
+  const quoteLookup = lookups.get(pair.quoteCode)!;
 
-  // Also fetch if we only have stale fallback rates from a different date.
-  // loadRate returns the most recent rate as fallback when no exact-date match exists,
-  // but we should still attempt to fetch current rates for the requested date.
-  const hasStaleRates = !needsFetch && (!isRateForDate(baseRate, date) || !isRateForDate(quoteRate, date));
-
-  if (needsFetch || hasStaleRates) {
-    try {
-      // When a required rate is entirely absent, force past the "looks
-      // comprehensive" count-skip in the fetcher — otherwise a date that
-      // already holds many other rates would never backfill this one.
-      await fetchExchangeRatesForDate(date, { force: needsFetch });
-    } catch (e) {
-      // If we have no rates at all, propagate the error
-      if (needsFetch) throw e;
-      // If we have fallback rates from a different date, log and continue
-      logger.warn(`[getExchangeRate] Failed to fetch rates for ${date.toISOString()}, using fallback rates`);
-    }
-
-    // Retry fetching missing or stale rates after the API call
-    if (!baseRate || !isRateForDate(baseRate, date)) {
-      baseRate = await loadRate(pair.baseCode, date);
-    }
-    if (!quoteRate || !isRateForDate(quoteRate, date)) {
-      quoteRate = await loadRate(pair.quoteCode, date);
-    }
-  }
-
-  // If still no rates found in the DB after fetching, it means the currency
-  // is not available from the exchange rate providers
+  // A leg with no rate at all (and not USD itself) means the currency isn't
+  // available from any provider for this date.
   if (
-    (!baseRate && pair.baseCode !== API_LAYER_BASE_CURRENCY_CODE) ||
-    (!quoteRate && pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE)
+    (baseLookup.kind === 'missing' && pair.baseCode !== API_LAYER_BASE_CURRENCY_CODE) ||
+    (quoteLookup.kind === 'missing' && pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE)
   ) {
     logger.error(
       `[getExchangeRate] Rate unavailable: pair=${pair.baseCode}/${pair.quoteCode}, date=${date.toISOString()}`,
@@ -146,103 +155,39 @@ export async function getExchangeRate({
     throw new UnexpectedError({
       message: t({
         key: 'currencies.exchangeRateNotAvailable',
-        variables: {
-          baseCode: pair.baseCode,
-          quoteCode: pair.quoteCode,
-          date: date.toISOString(),
-        },
+        variables: { baseCode: pair.baseCode, quoteCode: pair.quoteCode, date: date.toISOString() },
       }),
     });
   }
 
   let result: ExchangeRateReturnType;
-
   if (pair.baseCode === API_LAYER_BASE_CURRENCY_CODE) {
-    result = {
-      ...pair,
-      rate: formatRate(quoteRate!.rate), // Directly use the base rate
-      date: quoteRate!.date,
-    };
+    // base is USD → use the quote rate directly
+    result = { ...pair, rate: formatRate(rateValue(quoteLookup)), date: rateDateOf(quoteLookup, date) };
   } else if (pair.quoteCode === API_LAYER_BASE_CURRENCY_CODE) {
-    result = {
-      ...pair,
-      rate: formatRate(1 / baseRate!.rate), // Invert the quote rate
-      date: baseRate!.date,
-    };
+    // quote is USD → invert the base rate
+    result = { ...pair, rate: formatRate(1 / rateValue(baseLookup)), date: rateDateOf(baseLookup, date) };
   } else {
-    const crossRate = quoteRate!.rate / baseRate!.rate;
     result = {
       ...pair,
-      rate: formatRate(crossRate),
-      date: quoteRate!.date,
+      rate: formatRate(rateValue(quoteLookup) / rateValue(baseLookup)),
+      date: rateDateOf(quoteLookup, date),
     };
   }
 
-  await exchangeRateCache.write({ key: cacheKey, value: result });
-
-  return result;
+  const cacheable = baseLookup.kind === 'exact' && quoteLookup.kind === 'exact';
+  return { result, cacheable };
 }
 
-const isRateForDate = (rate: ExchangeRateReturnType | null, requestedDate: Date): boolean => {
-  if (!rate) return false;
-  return startOfDay(rate.date).getTime() === startOfDay(requestedDate).getTime();
-};
+// Helpers over the resolved RateLookup (imported from resolve-usd-rates).
+// `rateValue` returns NaN only for `missing`, which the guard in
+// `computeCrossRate` makes unreachable before any cross-rate math runs.
+const rateValue = (lookup: RateLookup): number => (lookup.kind === 'missing' ? NaN : lookup.rate);
 
-const loadRate = async (code: string, rateDate: Date): Promise<ExchangeRateReturnType | null> => {
-  if (code === API_LAYER_BASE_CURRENCY_CODE) {
-    // No need to fetch if it's the API's default base currency
-    return {
-      baseCode: code,
-      quoteCode: code,
-      rate: 1,
-      date: rateDate,
-    };
-  }
-  const liveRateWhereCondition = {
-    date: { [Op.between]: [startOfDay(rateDate), endOfDay(rateDate)] },
-  };
-
-  const result = await ExchangeRates.default.findOne({
-    where: {
-      ...liveRateWhereCondition,
-      baseCode: API_LAYER_BASE_CURRENCY_CODE,
-      quoteCode: code,
-    },
-    raw: true,
-  });
-
-  if (result) {
-    return {
-      baseCode: result.baseCode,
-      quoteCode: result.quoteCode,
-      rate: result.rate,
-      date: result.date,
-    };
-  }
-
-  // Fallback: find the most recent rate regardless of date
-  const fallback = await ExchangeRates.default.findOne({
-    where: {
-      baseCode: API_LAYER_BASE_CURRENCY_CODE,
-      quoteCode: code,
-    },
-    order: [['date', 'DESC']],
-    raw: true,
-  });
-
-  if (fallback) {
-    logger.info(
-      `[loadRate] Using fallback rate for ${code} from ${fallback.date} (requested ${rateDate.toISOString()})`,
-    );
-    return {
-      baseCode: fallback.baseCode,
-      quoteCode: fallback.quoteCode,
-      rate: fallback.rate,
-      date: fallback.date,
-    };
-  }
-
-  return null;
+const rateDateOf = (lookup: RateLookup, requestedDate: Date): Date => {
+  if (lookup.kind === 'exact') return lookup.date;
+  if (lookup.kind === 'fallback') return lookup.rateDate;
+  return requestedDate;
 };
 
 type ExchangeRateParams = {

@@ -7,7 +7,7 @@ import Transactions from '@models/transactions.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import Vehicles from '@models/vehicles.model';
-import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
+import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
 import { computeVehicleValue } from '@services/vehicles/compute-vehicle-value';
 import { endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
