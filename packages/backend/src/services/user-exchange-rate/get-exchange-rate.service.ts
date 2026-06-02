@@ -16,7 +16,7 @@ const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;
  * Global cache for computed cross-rates.
  *
  * The conversion `baseCode → quoteCode on date D` is the same number for every
- * user — there is nothing user-scoped about USD→EUR on 2020-03-15. Keying by
+ * user – there is nothing user-scoped about USD→EUR on 2020-03-15. Keying by
  * user would store N identical copies and miss N times before populating. The
  * per-user custom-rate override (liveRateUpdate=false) deliberately bypasses
  * this cache and is resolved from the DB on every call instead.
@@ -51,75 +51,100 @@ export async function getExchangeRate({
 
   // Same currency → 1, no auth or cache needed.
   if (pair.baseCode === pair.quoteCode) {
-    return {
-      baseCode: pair.baseCode,
-      quoteCode: pair.quoteCode,
-      rate: 1,
-      date,
-    };
+    return { ...pair, rate: 1, date };
   }
 
-  // Auth runs BEFORE the cache read on purpose: the cache is now global, so
-  // a hit cannot be allowed to silently bypass "is the user actually allowed
-  // to use this currency?". Single indexed lookup, cheap.
+  // Order matters: auth and the custom-rate override both run before the global
+  // cache, so a cache hit can never skip the "is the user allowed this currency?"
+  // check or the user's own manual rate.
+  const { liveRateUpdate } = await assertUserConnectedTo({ userId, code: pair.baseCode });
+
+  const customRate = await resolveCustomRate({ userId, pair, liveRateUpdate });
+  if (customRate) return customRate;
+
+  const cacheKey = buildCacheKey({ date, baseCode: pair.baseCode, quoteCode: pair.quoteCode });
+  const cached = await crossRateCache.read(cacheKey);
+  if (cached) {
+    return { ...pair, rate: cached.rate, date: new Date(cached.dateISO) };
+  }
+
+  const { result, cacheable } = await computeCrossRate({ pair, date });
+  if (cacheable) {
+    await crossRateCache.write({ key: cacheKey, value: { rate: result.rate, dateISO: result.date.toISOString() } });
+  }
+
+  return result;
+}
+
+/**
+ * Assert the user is connected to `code` and return their live-rate preference.
+ * Throws not-found if they aren't – which is why it has to run before the cache.
+ */
+async function assertUserConnectedTo({
+  userId,
+  code,
+}: {
+  userId: number;
+  code: string;
+}): Promise<{ liveRateUpdate: boolean | null }> {
   const userCurrency = await findOrThrowNotFound({
     query: UsersCurrencies.findOne({
       where: { userId },
       attributes: ['liveRateUpdate'],
-      include: [
-        {
-          model: Currencies.default,
-          where: { code: pair.baseCode },
-          attributes: [], // No need to fetch extra attributes
-        },
-      ],
+      include: [{ model: Currencies.default, where: { code }, attributes: [] }],
       raw: true,
     }),
     message: t({ key: 'currencies.currencyNotConnected' }),
   });
 
-  const userDefaultCurrency = await getBaseCurrency({ userId });
+  return { liveRateUpdate: userCurrency.liveRateUpdate };
+}
 
-  // If user has custom live rate AND quote_code is user's base_currency, then
-  // skip any checks and calculations and simply return what user has set.
-  // Per-user value, deliberately not cached via the global cross-rate cache.
-  if (userCurrency.liveRateUpdate === false && pair.quoteCode === userDefaultCurrency.currency.code) {
-    const [userExchangeRate] = await UserExchangeRates.getRates({
-      userId,
-      pair,
-    });
+/**
+ * The user's manual rate, if any. It only applies when they turned live rates
+ * off AND are converting into their own base currency; otherwise there is no
+ * custom rate and the caller falls through to the market cross-rate. Never
+ * cached globally – it belongs to one user.
+ */
+async function resolveCustomRate({
+  userId,
+  pair,
+  liveRateUpdate,
+}: {
+  userId: number;
+  pair: { baseCode: string; quoteCode: string };
+  liveRateUpdate: boolean | null;
+}): Promise<ExchangeRateReturnType | null> {
+  if (liveRateUpdate !== false) return null;
 
-    if (userExchangeRate) {
-      return {
-        ...userExchangeRate,
-        rate: formatRate(userExchangeRate.rate),
-        custom: true,
-      };
-    }
-  }
+  const userDefault = await getBaseCurrency({ userId });
+  if (pair.quoteCode !== userDefault.currency.code) return null;
 
-  // Global cross-rate cache check. Sits AFTER auth + custom-rate so neither
-  // gate is bypassed by a hit, and uncached paths above remain per-user-correct.
-  const cacheKey = buildCacheKey({ date, baseCode: pair.baseCode, quoteCode: pair.quoteCode });
-  const cachedResult = await crossRateCache.read(cacheKey);
-  if (cachedResult) {
-    return {
-      baseCode: pair.baseCode,
-      quoteCode: pair.quoteCode,
-      rate: cachedResult.rate,
-      date: new Date(cachedResult.dateISO),
-    };
-  }
+  const [userRate] = await UserExchangeRates.getRates({ userId, pair });
+  if (!userRate) return null;
 
-  // Resolve both legs in one shot. resolveUsdRates owns the whole read → gate →
-  // fetch-once → re-read decision and returns the resolved lookup per code, so
-  // there's no second round of DB reads or coverage logic to keep in sync here.
+  return { ...userRate, rate: formatRate(userRate.rate), custom: true };
+}
+
+/**
+ * Resolve the market cross-rate for `pair` on `date` through the USD pivot, plus
+ * whether it's safe to cache: only a rate built from exact-date rows on both
+ * legs is `cacheable` – a fallback (a rate from another date) must not be served
+ * as authoritative for the whole cache TTL.
+ */
+async function computeCrossRate({
+  pair,
+  date,
+}: {
+  pair: { baseCode: string; quoteCode: string };
+  date: Date;
+}): Promise<{ result: ExchangeRateReturnType; cacheable: boolean }> {
   const lookups = await resolveUsdRates({ codes: [pair.baseCode, pair.quoteCode], date });
   const baseLookup = lookups.get(pair.baseCode)!;
   const quoteLookup = lookups.get(pair.quoteCode)!;
 
-  // Still nothing for a non-USD currency after the fetch attempt → the currency
-  // is not available from any provider for this date.
+  // A leg with no rate at all (and not USD itself) means the currency isn't
+  // available from any provider for this date.
   if (
     (baseLookup.kind === 'missing' && pair.baseCode !== API_LAYER_BASE_CURRENCY_CODE) ||
     (quoteLookup.kind === 'missing' && pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE)
@@ -130,57 +155,33 @@ export async function getExchangeRate({
     throw new UnexpectedError({
       message: t({
         key: 'currencies.exchangeRateNotAvailable',
-        variables: {
-          baseCode: pair.baseCode,
-          quoteCode: pair.quoteCode,
-          date: date.toISOString(),
-        },
+        variables: { baseCode: pair.baseCode, quoteCode: pair.quoteCode, date: date.toISOString() },
       }),
     });
   }
 
   let result: ExchangeRateReturnType;
-
   if (pair.baseCode === API_LAYER_BASE_CURRENCY_CODE) {
-    result = {
-      ...pair,
-      rate: formatRate(rateValue(quoteLookup)), // base is USD → use the quote rate directly
-      date: rateDateOf(quoteLookup, date),
-    };
+    // base is USD → use the quote rate directly
+    result = { ...pair, rate: formatRate(rateValue(quoteLookup)), date: rateDateOf(quoteLookup, date) };
   } else if (pair.quoteCode === API_LAYER_BASE_CURRENCY_CODE) {
-    result = {
-      ...pair,
-      rate: formatRate(1 / rateValue(baseLookup)), // quote is USD → invert the base rate
-      date: rateDateOf(baseLookup, date),
-    };
+    // quote is USD → invert the base rate
+    result = { ...pair, rate: formatRate(1 / rateValue(baseLookup)), date: rateDateOf(baseLookup, date) };
   } else {
-    const crossRate = rateValue(quoteLookup) / rateValue(baseLookup);
     result = {
       ...pair,
-      rate: formatRate(crossRate),
+      rate: formatRate(rateValue(quoteLookup) / rateValue(baseLookup)),
       date: rateDateOf(quoteLookup, date),
     };
   }
 
-  // Only cache results derived from exact-date rates on BOTH legs. A `fallback`
-  // (most-recent rate from another date) must not be written under the requested
-  // date's key: the real rate for that date can still land within the 4h TTL
-  // (e.g. today's rate published after an early lookup), and a cached fallback
-  // would keep being served as authoritative until it expired. Exact rows for a
-  // given date don't change within the TTL, so caching those is safe.
-  if (baseLookup.kind === 'exact' && quoteLookup.kind === 'exact') {
-    await crossRateCache.write({
-      key: cacheKey,
-      value: { rate: result.rate, dateISO: result.date.toISOString() },
-    });
-  }
-
-  return result;
+  const cacheable = baseLookup.kind === 'exact' && quoteLookup.kind === 'exact';
+  return { result, cacheable };
 }
 
 // Helpers over the resolved RateLookup (imported from resolve-usd-rates).
-// `rateValue` returns NaN only for `missing`, which the guard above makes
-// unreachable before any cross-rate math runs.
+// `rateValue` returns NaN only for `missing`, which the guard in
+// `computeCrossRate` makes unreachable before any cross-rate math runs.
 const rateValue = (lookup: RateLookup): number => (lookup.kind === 'missing' ? NaN : lookup.rate);
 
 const rateDateOf = (lookup: RateLookup, requestedDate: Date): Date => {
