@@ -2,7 +2,7 @@ import {
   API_LAYER_ENDPOINT_REGEX,
   CURRENCY_RATES_API_ENDPOINT_REGEX,
   FRANKFURTER_ENDPOINT_REGEX,
-} from '@services/exchange-rates/fetch-exchange-rates-for-date';
+} from '@tests/mocks/exchange-rates/endpoints';
 import { HttpResponse, http } from 'msw';
 
 import { getApiLayerResposeMock, getCurrencyRatesApiResponseMock, getFrankfurterResponseMock } from './data';

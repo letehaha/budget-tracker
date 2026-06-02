@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { format } from 'date-fns';
 
-import { API_LAYER_DATE_FORMAT } from './fetch-exchange-rates-for-date';
+import { API_LAYER_DATE_FORMAT } from './constants';
 
 describe('Live exchange rates flows', () => {
   it('uses live exchange rate on account creation', async () => {

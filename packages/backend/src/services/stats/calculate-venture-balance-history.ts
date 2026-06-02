@@ -6,7 +6,7 @@ import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import VentureDeals from '@models/venture/venture-deals.model';
 import VentureEvents from '@models/venture/venture-events.model';
-import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
+import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
 import Big from 'big.js';
 import { endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';

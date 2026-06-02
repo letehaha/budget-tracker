@@ -5,7 +5,7 @@ import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
-import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/fetch-exchange-rates-for-date';
+import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
 import * as helpers from '@tests/helpers';
 import { format, parseISO, subDays } from 'date-fns';
 

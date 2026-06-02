@@ -1,10 +1,10 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from '@jest/globals';
 import { logger } from '@js/utils';
 import ExchangeRates from '@models/exchange-rates.model';
+import { CURRENCY_RATES_API_ENDPOINT_REGEX, FRANKFURTER_ENDPOINT_REGEX } from '@tests/mocks/exchange-rates/endpoints';
 import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
 
-import { CURRENCY_RATES_API_ENDPOINT_REGEX, FRANKFURTER_ENDPOINT_REGEX } from './fetch-exchange-rates-for-date';
 import { initializeHistoricalRates, providerAvailabilityConfig } from './initialize-historical-rates.service';
 import { exchangeRateProviderRegistry } from './providers';
 import { EXCHANGE_RATE_PROVIDER_TYPE } from './providers/types';
