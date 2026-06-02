@@ -1,11 +1,12 @@
 import {
   ASSET_CLASS,
+  EXCHANGE_RATE_PROVIDER_TYPE,
   INVESTMENT_TRANSACTION_CATEGORY,
   SECURITY_PROVIDER,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
 } from '@bt/shared/types';
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
 import Balances from '@models/balances.model';
 import ExchangeRates from '@models/exchange-rates.model';
 import Securities from '@models/investments/securities.model';
@@ -19,6 +20,50 @@ import { Op } from 'sequelize';
 import { CombinedBalanceHistoryItem } from './get-combined-balance-history';
 
 describe('[Stats] Combined balance history', () => {
+  // `ExchangeRates` / `UserExchangeRates` survive test truncation (they are seed
+  // data — see `SEED_DATA_TABLES`). Blocks below delete AED/EUR rows to force a
+  // known conversion (or a 1:1 fallback). Those deletions would otherwise leak
+  // into every later suite — e.g. portfolio-transfer tests that resolve `USD→AED`
+  // for today on demand and would see it permanently missing once the source-gate
+  // treats the date as already "comprehensive". Snapshot the AED/EUR rows on entry
+  // and re-insert them on exit so deleted seed rows are put back. Restoring at the
+  // FILE level (not per-describe) is deliberate: the venture/vehicle blocks rely on
+  // the cleared state left by the cross-currency block, so the table must only be
+  // healed after the whole file has run.
+  const FX_SNAPSHOT_QUOTES = ['AED', 'EUR'];
+  let fxSnapshot: {
+    baseCode: string;
+    quoteCode: string;
+    date: Date;
+    rate: number;
+    source: EXCHANGE_RATE_PROVIDER_TYPE;
+  }[] = [];
+  let userFxSnapshot: { userId: number; baseCode: string; quoteCode: string; date: Date; rate: number }[] = [];
+
+  beforeAll(async () => {
+    fxSnapshot = (
+      await ExchangeRates.findAll({
+        where: { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: { [Op.in]: FX_SNAPSHOT_QUOTES } },
+        raw: true,
+      })
+    ).map(({ baseCode, quoteCode, date, rate, source }) => ({ baseCode, quoteCode, date, rate, source }));
+    userFxSnapshot = (await UserExchangeRates.findAll({ where: { userId: 1 }, raw: true })).map(
+      ({ userId, baseCode, quoteCode, date, rate }) => ({ userId, baseCode, quoteCode, date, rate }),
+    );
+  });
+
+  // Re-insert (ignoring still-present rows) rather than wipe-then-restore: a wipe
+  // would also drop today-dated rows fetched mid-file, which is what later suites
+  // need. This only puts back the seed rows this file deleted.
+  afterAll(async () => {
+    if (fxSnapshot.length > 0) {
+      await ExchangeRates.bulkCreate(fxSnapshot, { ignoreDuplicates: true });
+    }
+    if (userFxSnapshot.length > 0) {
+      await UserExchangeRates.bulkCreate(userFxSnapshot, { ignoreDuplicates: true });
+    }
+  });
+
   it('Returns correct combined balance data for accounts only', async () => {
     const account = await helpers.createAccount({
       payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
@@ -437,6 +482,22 @@ describe('[Stats] Combined balance history', () => {
         priceClose: price,
         source: SECURITY_PROVIDER.yahoo,
       });
+
+      // `createInvestmentTransaction` → `calculateRefAmount` resolves
+      // `<securityCurrency> → AED (user base)` for `dayKey` through the real
+      // `getExchangeRate`. Seed the USD-pivot legs up front so that resolve hits
+      // a stored rate instead of a live provider fetch: once an earlier test has
+      // made the date look "comprehensive", the on-demand fetch is skipped and an
+      // absent rate throws — which would fail the holding setup, not the assertion.
+      // These rows are ephemeral; the `wipeFxState()` below clears them before
+      // each test seeds the rates it actually asserts on.
+      await ExchangeRates.bulkCreate(
+        [
+          { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'AED', rate: 1, date: pickedDay },
+          { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'EUR', rate: 1, date: pickedDay },
+        ],
+        { ignoreDuplicates: true },
+      );
 
       await helpers.createInvestmentTransaction({
         payload: {

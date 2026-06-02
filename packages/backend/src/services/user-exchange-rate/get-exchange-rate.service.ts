@@ -4,13 +4,10 @@ import { UnexpectedError } from '@js/errors';
 import { logger } from '@js/utils';
 import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/currencies.model';
-import * as ExchangeRates from '@models/exchange-rates.model';
 import * as UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies, { getBaseCurrency } from '@models/users-currencies.model';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
-import { ensureRatesForDate } from '@services/exchange-rates/ensure-rates-for-date';
-import { endOfDay, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
+import { type RateLookup, resolveUsdRates } from '@services/exchange-rates/resolve-usd-rates';
 
 // Round to 5 precision
 const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;
@@ -114,28 +111,12 @@ export async function getExchangeRate({
     };
   }
 
-  let baseLookup = await loadRate(pair.baseCode, date);
-  let quoteLookup = await loadRate(pair.quoteCode, date);
-
-  // Backfill when either side is not an exact-date rate — either entirely
-  // missing, or only a stale fallback from another date. ensureRatesForDate
-  // gates the provider call internally (coverage + ApiLayer-comprehensiveness),
-  // so calling it here is a no-op when the date is already covered or when
-  // ApiLayer has already established the currency is unavailable.
-  if (baseLookup.kind !== 'exact' || quoteLookup.kind !== 'exact') {
-    try {
-      await ensureRatesForDate(date, { currencies: [pair.baseCode, pair.quoteCode] });
-    } catch (e) {
-      // A needed currency has NO rate at all → propagate. If both sides at least
-      // have a stale fallback, swallow the error and use the approximation.
-      const anyMissing = baseLookup.kind === 'missing' || quoteLookup.kind === 'missing';
-      if (anyMissing) throw e;
-      logger.warn(`[getExchangeRate] Failed to fetch rates for ${date.toISOString()}, using fallback rates`);
-    }
-
-    if (baseLookup.kind !== 'exact') baseLookup = await loadRate(pair.baseCode, date);
-    if (quoteLookup.kind !== 'exact') quoteLookup = await loadRate(pair.quoteCode, date);
-  }
+  // Resolve both legs in one shot. resolveUsdRates owns the whole read → gate →
+  // fetch-once → re-read decision and returns the resolved lookup per code, so
+  // there's no second round of DB reads or coverage logic to keep in sync here.
+  const lookups = await resolveUsdRates({ codes: [pair.baseCode, pair.quoteCode], date });
+  const baseLookup = lookups.get(pair.baseCode)!;
+  const quoteLookup = lookups.get(pair.quoteCode)!;
 
   // Still nothing for a non-USD currency after the fetch attempt → the currency
   // is not available from any provider for this date.
@@ -197,68 +178,15 @@ export async function getExchangeRate({
   return result;
 }
 
-/**
- * Result of looking up a single USD-base rate for a date.
- *  - `exact`:    an exact-date row exists.
- *  - `fallback`: no exact-date row, but the most-recent row from another date is
- *                returned as an approximation — the caller decides if that's OK.
- *  - `missing`:  no rate at all, on any date.
- *
- * The fallback case is a distinct `kind` (rather than a row silently returned as
- * if exact) so callers can't confuse "the real rate for this date" with "a stale
- * substitute". That distinction is what drives the backfill decision above.
- */
-type RateLookup =
-  | { kind: 'exact'; rate: number; date: Date }
-  | { kind: 'fallback'; rate: number; rateDate: Date; requestedDate: Date }
-  | { kind: 'missing' };
-
+// Helpers over the resolved RateLookup (imported from resolve-usd-rates).
+// `rateValue` returns NaN only for `missing`, which the guard above makes
+// unreachable before any cross-rate math runs.
 const rateValue = (lookup: RateLookup): number => (lookup.kind === 'missing' ? NaN : lookup.rate);
 
 const rateDateOf = (lookup: RateLookup, requestedDate: Date): Date => {
   if (lookup.kind === 'exact') return lookup.date;
   if (lookup.kind === 'fallback') return lookup.rateDate;
   return requestedDate;
-};
-
-const loadRate = async (code: string, rateDate: Date): Promise<RateLookup> => {
-  if (code === API_LAYER_BASE_CURRENCY_CODE) {
-    // The base currency converts to itself at 1 — always exact, never fetched.
-    return { kind: 'exact', rate: 1, date: rateDate };
-  }
-
-  const exact = await ExchangeRates.default.findOne({
-    where: {
-      date: { [Op.between]: [startOfDay(rateDate), endOfDay(rateDate)] },
-      baseCode: API_LAYER_BASE_CURRENCY_CODE,
-      quoteCode: code,
-    },
-    raw: true,
-  });
-
-  if (exact) {
-    return { kind: 'exact', rate: exact.rate, date: exact.date };
-  }
-
-  // Fallback: the most recent rate regardless of date. Surfaced as its own
-  // `kind` so the caller treats it as an approximation, not an exact-date hit.
-  const fallback = await ExchangeRates.default.findOne({
-    where: {
-      baseCode: API_LAYER_BASE_CURRENCY_CODE,
-      quoteCode: code,
-    },
-    order: [['date', 'DESC']],
-    raw: true,
-  });
-
-  if (fallback) {
-    logger.info(
-      `[loadRate] Using fallback rate for ${code} from ${fallback.date} (requested ${rateDate.toISOString()})`,
-    );
-    return { kind: 'fallback', rate: fallback.rate, rateDate: fallback.date, requestedDate: rateDate };
-  }
-
-  return { kind: 'missing' };
 };
 
 type ExchangeRateParams = {

@@ -32,7 +32,7 @@ flowchart TD
 
     GetRate --> Lookup{exact-date rate<br/>for D in DB?}
     Lookup -- yes --> Done([return])
-    Lookup -- no / stale --> Fetch[ensureRatesForDate D]
+    Lookup -- no / stale --> Fetch[resolveUsdRates D]
 
     Hist --> HistReg[(fetchHistoricalRatesWithFallback<br/>HISTORICAL providers only)]
     Sync --> DayReg[(fetchRatesWithFallback)]
@@ -69,7 +69,7 @@ If no historical provider is available at startup (Docker still booting, network
 
 `crons/exchange-rates/index.ts`, fires at **18:00 UTC** every day. That's after ECB's ~16:00 CET publish, so the rates are actually there when we ask.
 
-It calls `syncExchangeRates` → `ensureRatesForDate(today)` (no currency list = full sync). All three providers run on this path — and this is exactly the reason the gap-filling merge matters. Currency Rates API and Frankfurter handle the ~40 mainstream currencies; ApiLayer is what keeps the long-tail currencies from drifting stale.
+It calls `syncExchangeRates` → `ensureRatesForDate(today)` (the full-sync entry). All three providers run on this path — and this is exactly the reason the gap-filling merge matters. Currency Rates API and Frankfurter handle the ~40 mainstream currencies; ApiLayer is what keeps the long-tail currencies from drifting stale.
 
 ---
 
@@ -77,11 +77,10 @@ It calls `syncExchangeRates` → `ensureRatesForDate(today)` (no currency list =
 
 This is the path most people don't think about. When you edit (or create) a transaction dated five years ago, the ref-amount calculation needs the historical rate. `getExchangeRate({ userId, date, baseCode, quoteCode })` runs:
 
-1. Look up `baseCode` and `quoteCode` for `date`. Each lookup comes back as one of three kinds: `exact` (a row for that exact date), `fallback` (no exact row, so the most-recent row from another date is returned as an approximation — and logged), or `missing` (nothing at all). The three kinds are a discriminated type, so a fallback can never be silently mistaken for a real exact-date rate.
-2. If either side isn't `exact`, call `ensureRatesForDate(date, { currencies: [base, quote] })` to try to fill the gap, then re-read.
-3. Compute the cross-rate via USD. If a needed currency is still `missing` after the fetch, throw — it genuinely isn't available from any provider for that date.
+1. `resolveUsdRates({ codes: [base, quote], date })` resolves each currency to one of three kinds: `exact` (a row for that exact date), `fallback` (no exact row, so the most-recent row from another date is returned as an approximation — and logged), or `missing` (nothing at all). The three kinds are a discriminated type, so a fallback can never be silently mistaken for a real exact-date rate. It reads what's stored and, if a leg isn't `exact`, tries to fill the gap (see below) and re-reads — returning the resolved lookups so the caller never re-queries.
+2. Compute the cross-rate via USD. If a needed currency is still `missing`, throw — it genuinely isn't available from any provider for that date.
 
-`ensureRatesForDate` is where the "do I actually need to hit a provider?" decision lives, and it asks two precise questions:
+`resolveUsdRates` is where the "do I actually need to hit a provider?" decision lives, and it asks two precise questions:
 
 - **Coverage** — are the requested currencies already present as exact-date rows? If so, do nothing.
 - **Comprehensiveness** — has the comprehensive provider (ApiLayer) already run for this date? We detect this by the presence of _any_ ApiLayer-sourced row on that date (the `source` column). ApiLayer answers per-_date_ — its whole ~150-currency basket — so if it ran and a currency is still absent, that currency is genuinely unavailable for that date and re-fetching is futile. Skip, and the caller uses its fallback.
@@ -91,7 +90,7 @@ One edge worth knowing: if ApiLayer returns **zero** rows for a date (it was dow
 Two guards keep this from melting things under load — bulk-editing old transactions, stats jobs sweeping years of history, that kind of thing:
 
 - A **4-hour Redis cache** inside `getExchangeRate`, keyed globally by `(date, baseCode, quoteCode)`. The cross-rate `USD→EUR on 2020-03-15` is the same number for everyone — keying by user would store N identical copies. Sits _after_ the user-currency auth check and _after_ the custom-rate-override branch, so neither gate is bypassed by a hit. The per-user custom rate path (`liveRateUpdate=false`) deliberately doesn't cache here — it's resolved from the DB on every call. Only results where **both** legs resolved to an exact-date rate are cached; a fallback (stale rate from another date) is never cached, so once the real rate for the date lands it's served immediately instead of being masked by a cached approximation for up to 4h.
-- A **30-second in-flight dedup** on `ensureRatesForDate`, keyed by date. A hundred parallel callers needing the same date trigger exactly one upstream fetch.
+- A **30-second in-flight dedup** on `fetchAndStoreRatesForDate`, keyed by date. A hundred parallel callers needing the same date trigger exactly one upstream fetch.
 
 ---
 
