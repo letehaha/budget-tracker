@@ -6,11 +6,17 @@ import { ApiBaseError } from '@/common/types';
  * @class
  */
 export class AuthError extends Error {
-  data;
+  data: ApiBaseError;
+  url?: string;
 
-  constructor(message: string, data: ApiBaseError) {
-    super(message);
+  constructor(data: ApiBaseError, url?: string) {
+    const code = data?.code ?? 'unknown';
+    const detail = data?.message ?? data?.statusText ?? 'no detail';
+    const where = url ? ` @ ${url}` : '';
+    super(`[${code}] ${detail}${where}`);
 
+    this.name = 'AuthError';
     this.data = data;
+    this.url = url;
   }
 }
