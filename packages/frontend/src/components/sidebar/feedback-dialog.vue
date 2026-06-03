@@ -9,17 +9,10 @@ import { useVModel } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import FeedbackPulseButton from './feedback-pulse-button.vue';
-
 type FeedbackType = 'bug' | 'feature_request' | 'other';
 
 const props = defineProps<{
   open?: boolean;
-  /**
-   * Suppresses the bundled sidebar pulse-button trigger. Use when opening the
-   * dialog programmatically via v-model:open from another surface.
-   */
-  triggerless?: boolean;
   /** Initial feedback type when the dialog is opened. */
   defaultType?: FeedbackType;
 }>();
@@ -73,10 +66,6 @@ const submit = () => {
 
 <template>
   <ResponsiveDialog v-model:open="isOpen">
-    <template v-if="!triggerless" #trigger>
-      <FeedbackPulseButton :label="t('dialogs.feedback.sidebarButton')" />
-    </template>
-
     <template #title>{{ t('dialogs.feedback.title') }}</template>
     <template #description>{{ t('dialogs.feedback.description') }}</template>
 

@@ -3,6 +3,19 @@
     "preferences": {
       "title": "Preferences",
       "description": "Customize your app experience",
+      "theme": {
+        "title": "Theme",
+        "description": "Choose how the app looks. System matches your device setting."
+      },
+      "language": {
+        "title": "Language",
+        "description": "Display language for the app interface."
+      },
+      "sidebar": {
+        "title": "Sidebar sections",
+        "description": "Pick which sections appear in the sidebar.",
+        "alwaysVisibleTooltip": "This section is always visible."
+      },
       "quickStart": {
         "title": "Quick Start Guide",
         "description": "The Quick Start guide helps you learn about the app's features. You can reopen it anytime if you previously dismissed it.",

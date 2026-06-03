@@ -11,6 +11,7 @@ import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useVentureDeals } from '@/composable/data-queries/venture/deals';
 import { waitForAnimationEnd } from '@/composable/wait-for-animation-end';
 import { ROUTES_NAMES } from '@/routes/constants';
@@ -95,17 +96,31 @@ const venturesCount = computed(() => (ventureDeals.value?.data ?? []).length);
 
 const carsCount = computed(() => vehicleAccounts.value.length);
 
+const { data: userSettings } = useUserSettings();
+const showPortfolios = computed(() => userSettings.value?.sidebarSections?.portfolios ?? true);
+const showVentures = computed(() => userSettings.value?.sidebarSections?.ventures ?? true);
+const showVehicles = computed(() => userSettings.value?.sidebarSections?.vehicles ?? true);
+
+const venturesVisible = computed(() => showVentures.value && venturesCount.value > 0);
+const carsVisible = computed(() => showVehicles.value && carsCount.value > 0);
+
 // Section headers stick stacked at the top (each ~2.25rem tall) and pile up at
-// the bottom on scroll-up. The bottom/top offsets therefore depend on how many
-// optional sections (ventures, cars) are actually present below a given header.
+// the bottom on scroll-up. Offsets factor in BOTH user prefs (hidden sections)
+// and emptiness (zero-count ventures/cars auto-hide).
 const portfoliosBottomClass = computed(() => {
-  const sectionsBelow = (venturesCount.value ? 1 : 0) + (carsCount.value ? 1 : 0);
+  const sectionsBelow = (venturesVisible.value ? 1 : 0) + (carsVisible.value ? 1 : 0);
   if (sectionsBelow >= 2) return 'bottom-18';
   if (sectionsBelow === 1) return 'bottom-9';
   return 'bottom-0';
 });
-const venturesBottomClass = computed(() => (carsCount.value ? 'bottom-9' : 'bottom-0'));
-const carsTopClass = computed(() => (venturesCount.value ? 'top-27' : 'top-18'));
+const venturesBottomClass = computed(() => (carsVisible.value ? 'bottom-9' : 'bottom-0'));
+const venturesTopClass = computed(() => (showPortfolios.value ? 'top-18' : 'top-9'));
+const carsTopClass = computed(() => {
+  const above = (showPortfolios.value ? 1 : 0) + (venturesVisible.value ? 1 : 0);
+  if (above === 2) return 'top-27';
+  if (above === 1) return 'top-18';
+  return 'top-9';
+});
 
 const route = useRoute();
 const isPortfolioRoute = computed(
@@ -249,38 +264,40 @@ const onSectionHeaderClick = async (section: SidebarSection) => {
           </Collapsible>
         </div>
 
-        <button
-          ref="portfoliosHeaderRef"
-          type="button"
-          class="bg-card hover:bg-accent sticky top-9 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
-          :class="portfoliosBottomClass"
-          @click="onSectionHeaderClick('portfolios')"
-        >
-          <ChevronRightIcon
-            :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isPortfoliosOpen }]"
-          />
-          <TrendingUpIcon class="text-muted-foreground size-4 shrink-0" />
-          <span>{{ $t('sidebar.accountsView.portfolios') }}</span>
-          <span v-if="portfoliosCount" class="text-muted-foreground ml-auto text-xs tabular-nums">
-            {{ portfoliosCount }}
-          </span>
-        </button>
-        <div ref="portfoliosCollapsibleWrapperRef">
-          <Collapsible v-model:open="isPortfoliosOpen">
-            <CollapsibleContent>
-              <div class="mt-0.5 mb-2">
-                <PortfoliosList />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+        <template v-if="showPortfolios">
+          <button
+            ref="portfoliosHeaderRef"
+            type="button"
+            class="bg-card hover:bg-accent sticky top-9 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
+            :class="portfoliosBottomClass"
+            @click="onSectionHeaderClick('portfolios')"
+          >
+            <ChevronRightIcon
+              :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isPortfoliosOpen }]"
+            />
+            <TrendingUpIcon class="text-muted-foreground size-4 shrink-0" />
+            <span>{{ $t('sidebar.accountsView.portfolios') }}</span>
+            <span v-if="portfoliosCount" class="text-muted-foreground ml-auto text-xs tabular-nums">
+              {{ portfoliosCount }}
+            </span>
+          </button>
+          <div ref="portfoliosCollapsibleWrapperRef">
+            <Collapsible v-model:open="isPortfoliosOpen">
+              <CollapsibleContent>
+                <div class="mt-0.5 mb-2">
+                  <PortfoliosList />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        </template>
 
-        <template v-if="venturesCount">
+        <template v-if="venturesVisible">
           <button
             ref="venturesHeaderRef"
             type="button"
-            class="bg-card hover:bg-accent sticky top-18 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
-            :class="venturesBottomClass"
+            class="bg-card hover:bg-accent sticky z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
+            :class="[venturesTopClass, venturesBottomClass]"
             @click="onSectionHeaderClick('ventures')"
           >
             <ChevronRightIcon
@@ -303,7 +320,7 @@ const onSectionHeaderClick = async (section: SidebarSection) => {
           </div>
         </template>
 
-        <template v-if="carsCount">
+        <template v-if="carsVisible">
           <button
             ref="carsHeaderRef"
             type="button"

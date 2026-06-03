@@ -7,11 +7,18 @@ export interface DashboardWidgetConfig {
   config?: Record<string, unknown>;
 }
 
+export interface SidebarSectionsConfig {
+  portfolios: boolean;
+  ventures: boolean;
+  vehicles: boolean;
+}
+
 export interface UserSettingsSchema {
   dashboard?: {
     widgets: DashboardWidgetConfig[];
   };
   includeCreditLimitInStats?: boolean;
+  sidebarSections?: SidebarSectionsConfig;
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

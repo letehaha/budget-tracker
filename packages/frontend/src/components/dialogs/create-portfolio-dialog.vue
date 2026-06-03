@@ -111,7 +111,7 @@ const createPortfolio = async () => {
         </i18n-t>
       </Callout>
 
-      <FeedbackDialog v-model:open="isFeedbackOpen" triggerless default-type="feature_request" />
+      <FeedbackDialog v-model:open="isFeedbackOpen" default-type="feature_request" />
 
       <InputField
         v-model="form.name"

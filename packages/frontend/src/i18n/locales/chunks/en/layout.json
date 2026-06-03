@@ -43,6 +43,8 @@
     "importData": "Import data",
     "language": "Language",
     "newTransaction": "New Transaction",
+    "settings": "Settings",
+    "feedback": "Send feedback",
     "sync": {
       "syncing": "Syncing",
       "synchronizing": "Synchronizing...",
