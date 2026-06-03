@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { deleteUserAccount } from '@/api/user';
-import { AlertDialog, ClickToCopy } from '@/components/common';
+import { ClickToCopy } from '@/components/common';
+import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -17,6 +18,7 @@ const { user } = storeToRefs(useUserStore());
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 
+const isDialogOpen = ref(false);
 const confirmEmail = ref('');
 const isDeleting = ref(false);
 
@@ -37,64 +39,67 @@ const handleDeleteAccount = async () => {
     isDeleting.value = false;
   }
 };
+
+const handleOpenChange = (open: boolean) => {
+  isDialogOpen.value = open;
+  if (!open) confirmEmail.value = '';
+};
 </script>
 
 <template>
-  <div class="border-destructive mt-6 grid gap-4 rounded-xl border p-4">
-    <p class="text-xl font-medium">{{ $t('settings.security.deleteAccount.dangerZone') }}</p>
-
-    <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-      <div>
-        <p class="mb-2 font-bold">{{ $t('settings.security.deleteAccount.title') }}</p>
-        <i18n-t keypath="settings.security.deleteAccount.warningFull" tag="p" class="text-sm">
-          <template #strong>
-            <b>{{ $t('settings.security.deleteAccount.warningStrong') }}</b>
-          </template>
-        </i18n-t>
-      </div>
-
-      <AlertDialog
-        :title="$t('settings.security.deleteAccount.dialog.title')"
-        :accept-disabled="isDeleteDisabled"
-        accept-variant="destructive"
-        :accept-label="
-          isDeleting
-            ? $t('settings.security.deleteAccount.dialog.acceptButtonLoading')
-            : $t('settings.security.deleteAccount.dialog.acceptButton')
-        "
-        @accept="handleDeleteAccount"
-      >
-        <template #trigger>
-          <Button variant="destructive" class="shrink-0"> {{ $t('settings.security.deleteAccount.button') }} </Button>
+  <div class="flex flex-col justify-between gap-4 @md/danger-zone:flex-row @md/danger-zone:items-center">
+    <div>
+      <p class="mb-2 font-bold">{{ $t('settings.security.deleteAccount.title') }}</p>
+      <i18n-t keypath="settings.security.deleteAccount.warningFull" tag="p" class="text-sm">
+        <template #strong>
+          <b>{{ $t('settings.security.deleteAccount.warningStrong') }}</b>
         </template>
-        <template #description>
-          <div class="text-left">
-            {{ $t('settings.security.deleteAccount.dialog.description') }}
-            <ul class="mt-2 list-inside list-disc text-sm">
-              <li>{{ $t('settings.security.deleteAccount.dialog.dataList.accounts') }}</li>
-              <li>{{ $t('settings.security.deleteAccount.dialog.dataList.categories') }}</li>
-              <li>{{ $t('settings.security.deleteAccount.dialog.dataList.portfolios') }}</li>
-              <li>{{ $t('settings.security.deleteAccount.dialog.dataList.settings') }}</li>
-            </ul>
-          </div>
-        </template>
-        <template #content>
-          <i18n-t
-            keypath="settings.security.deleteAccount.dialog.confirmFull"
-            tag="div"
-            class="mt-4 mb-2 text-left text-sm"
-          >
-            <template #email>
-              <ClickToCopy :value="user?.email ?? ''" />
-            </template>
-          </i18n-t>
-          <InputField
-            v-model="confirmEmail"
-            :placeholder="$t('settings.security.deleteAccount.dialog.placeholder')"
-            class="border-destructive focus-visible:outline-destructive"
-          />
-        </template>
-      </AlertDialog>
+      </i18n-t>
     </div>
+
+    <Button variant="destructive" class="shrink-0" @click="isDialogOpen = true">
+      {{ $t('settings.security.deleteAccount.button') }}
+    </Button>
+
+    <ResponsiveAlertDialog
+      :open="isDialogOpen"
+      :confirm-disabled="isDeleteDisabled"
+      confirm-variant="destructive"
+      :confirm-label="
+        isDeleting
+          ? $t('settings.security.deleteAccount.dialog.acceptButtonLoading')
+          : $t('settings.security.deleteAccount.dialog.acceptButton')
+      "
+      @update:open="handleOpenChange"
+      @confirm="handleDeleteAccount"
+    >
+      <template #title>{{ $t('settings.security.deleteAccount.dialog.title') }}</template>
+      <template #description>
+        <div class="text-left">
+          {{ $t('settings.security.deleteAccount.dialog.description') }}
+          <ul class="mt-2 list-inside list-disc text-sm">
+            <li>{{ $t('settings.security.deleteAccount.dialog.dataList.accounts') }}</li>
+            <li>{{ $t('settings.security.deleteAccount.dialog.dataList.categories') }}</li>
+            <li>{{ $t('settings.security.deleteAccount.dialog.dataList.portfolios') }}</li>
+            <li>{{ $t('settings.security.deleteAccount.dialog.dataList.settings') }}</li>
+          </ul>
+        </div>
+      </template>
+
+      <i18n-t
+        keypath="settings.security.deleteAccount.dialog.confirmFull"
+        tag="div"
+        class="mt-4 mb-2 text-left text-sm"
+      >
+        <template #email>
+          <ClickToCopy :value="user?.email ?? ''" />
+        </template>
+      </i18n-t>
+      <InputField
+        v-model="confirmEmail"
+        :placeholder="$t('settings.security.deleteAccount.dialog.placeholder')"
+        class="border-destructive focus-visible:outline-destructive"
+      />
+    </ResponsiveAlertDialog>
   </div>
 </template>

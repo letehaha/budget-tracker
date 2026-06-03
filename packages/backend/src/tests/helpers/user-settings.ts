@@ -1,4 +1,4 @@
-import { AI_PROVIDER } from '@bt/shared/types';
+import { AI_PROVIDER, WipeDataSharedResources } from '@bt/shared/types';
 import { getUserSettings as apiGetUserSettings } from '@root/services/user-settings/get-user-settings';
 import { updateUserSettings as apiUpdateUserSettings } from '@root/services/user-settings/update-settings';
 
@@ -30,6 +30,28 @@ export async function deleteUserAccount(): Promise<CustomResponse<void>> {
   return makeRequest<void>({
     method: 'delete',
     url: '/user/delete',
+  });
+}
+
+/**
+ * Returns the raw envelope so callers can assert on `statusCode`, `body.response.code`,
+ * and `body.response.details` — needed for the 409 sharing-acknowledgement branch.
+ */
+export async function wipeUserData({
+  acknowledgeSharing,
+}: {
+  acknowledgeSharing?: boolean;
+} = {}): Promise<
+  CustomResponse<{
+    code?: string;
+    message?: string;
+    details?: { sharedResources?: WipeDataSharedResources };
+  }>
+> {
+  return makeRequest({
+    method: 'post',
+    url: '/user/wipe-data',
+    payload: { acknowledgeSharing: acknowledgeSharing ?? false },
   });
 }
 

@@ -228,8 +228,15 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
     // Now verify via UI that the linked transaction shows "Unlink"
     await page.goto(`/account/${accountA.id}`);
 
-    // Find the linked transaction (50 amount)
-    const txRecord = page.locator('[aria-haspopup="true"]').filter({ hasText: /50/ }).first();
+    // Find the linked 50 transaction. Filter on the destination account name so we wait for the
+    // row to render in its post-link state (common_transfer renders "Source → Destination") —
+    // without this guard, the click can race the transactions refetch and open the dialog with
+    // the stale pre-link snapshot (still out_of_wallet, no Unlink button).
+    const txRecord = page
+      .locator('[aria-haspopup="true"]')
+      .filter({ hasText: accountB.name })
+      .filter({ hasText: /50/ })
+      .first();
     await expect(txRecord).toBeVisible({ timeout: 10_000 });
     await txRecord.click();
 
