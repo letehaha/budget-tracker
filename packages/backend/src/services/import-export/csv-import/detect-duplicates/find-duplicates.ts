@@ -21,6 +21,10 @@ export async function findDuplicates({
 }: FindDuplicatesParams): Promise<DuplicateMatch[]> {
   const duplicates: DuplicateMatch[] = [];
 
+  if (validRows.length === 0) {
+    return duplicates;
+  }
+
   // Get all account IDs that are already in the system (not null = not new)
   const existingAccountIds = new Set(Array.from(accountNameToId.values()).filter((id): id is string => id !== null));
 
