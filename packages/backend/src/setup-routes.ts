@@ -14,7 +14,6 @@ import bankDataProvidersRoutes from './routes/bank-data-providers.route';
 import betterAuthExtensionsRoutes from './routes/better-auth-extensions.route';
 import budgetsRoutes from './routes/budgets.route';
 import categoriesRoutes from './routes/categories.route';
-import binanceRoutes from './routes/crypto/binance.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
 import demoRoutes from './routes/demo.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
@@ -163,7 +162,6 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/categories`, categoriesRoutes);
   app.use(`${API_PREFIX}/models/currencies`, modelsCurrenciesRoutes);
   app.use(`${API_PREFIX}/bank-data-providers`, bankDataProvidersRoutes);
-  app.use(`${API_PREFIX}/crypto/binance`, binanceRoutes);
   app.use(`${API_PREFIX}/stats`, statsRoutes);
   app.use(`${API_PREFIX}/account-group`, accountGroupsRoutes);
   app.use(`${API_PREFIX}/currencies/rates`, exchangeRatesRoutes);
