@@ -1,3 +1,6 @@
+import type { HouseholdSharePermission } from './enums';
+import type { RecordId } from './record-id';
+
 export enum API_RESPONSE_STATUS {
   error = 'error',
   success = 'success',
@@ -32,6 +35,9 @@ export enum API_ERROR_CODES {
   baseCurrencyLockedByShares = 'BASE_CURRENCY_LOCKED_BY_SHARES',
   baseCurrencyLockedByHousehold = 'BASE_CURRENCY_LOCKED_BY_HOUSEHOLD',
 
+  // wipe-data
+  wipeDataSharingAcknowledgementRequired = 'WIPE_DATA_SHARING_ACK_REQUIRED',
+
   // crypto/binance
   cryptoBinanceBothAPIKeysDoesNotexist = 10101,
   cryptoBinancePublicAPIKeyNotDefined = 10102,
@@ -44,3 +50,15 @@ export enum API_ERROR_CODES {
  * each blocker without re-deriving the shape from the error code.
  */
 export type BaseCurrencyBlocker = { type: 'household' | 'share'; count: number };
+
+/**
+ * Preflight summary returned in the `details` of a 409 with code
+ * `wipeDataSharingAcknowledgementRequired`. UI uses it to render a follow-up
+ * acknowledgement dialog listing which resources will lose external access.
+ */
+export interface WipeDataSharedResources {
+  /** Accounts the user OWNS that another user currently has share access to. */
+  accounts: Array<{ id: RecordId; name: string; recipientUserId: number }>;
+  /** Households the user OWNS with at least one accepted member. */
+  households: Array<{ shareId: RecordId; recipientUserId: number; permission: HouseholdSharePermission }>;
+}

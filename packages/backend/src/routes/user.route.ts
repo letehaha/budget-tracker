@@ -34,6 +34,7 @@ import {
   removeUserCurrencyExchangeRate,
   setBaseUserCurrency,
   updateUser,
+  wipeUserData,
 } from '@controllers/user.controller';
 import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
@@ -44,6 +45,7 @@ const router = Router({});
 router.get('/', authenticateSession, validateEndpoint(getUser.schema), getUser.handler);
 router.put('/update', authenticateSession, validateEndpoint(updateUser.schema), updateUser.handler);
 router.delete('/delete', authenticateSession, validateEndpoint(deleteUser.schema), deleteUser.handler);
+router.post('/wipe-data', authenticateSession, validateEndpoint(wipeUserData.schema), wipeUserData.handler);
 
 router.get('/currencies', authenticateSession, validateEndpoint(getUserCurrencies.schema), getUserCurrencies.handler);
 router.get(

@@ -117,8 +117,41 @@
           "updateFailed": "Failed to update password"
         }
       },
+      "dangerZone": "Danger zone",
+      "wipeData": {
+        "title": "Wipe all data",
+        "warningFull": "{strong} This action removes everything in your workspace. Your login stays so you can start over.",
+        "warningStrong": "Warning:",
+        "button": "Wipe data",
+        "dialog": {
+          "title": "Wipe all your data?",
+          "description": "This permanently deletes everything in your workspace, including:",
+          "list": {
+            "accounts": "Accounts and balances",
+            "transactions": "Transactions, refunds, and transfers",
+            "budgets": "Budgets, tags, and categories",
+            "portfolios": "Investments, portfolios, and holdings",
+            "settings": "User settings, AI keys, and onboarding state",
+            "baseCurrency": "Base currency and exchange rates"
+          },
+          "kept": "Your login and profile remain. You'll restart from the onboarding flow.",
+          "typeConfirm": "To confirm, type {phrase} below:",
+          "confirmLabel": "Wipe data",
+          "confirmLoading": "Wiping…"
+        },
+        "sharingDialog": {
+          "title": "You're sharing data with other users",
+          "warning": "Others will lose access immediately",
+          "description": "Wiping your data revokes access to the following shared resources:",
+          "householdsCount": "And {count} household member will lose access. | And {count} household members will lose access.",
+          "confirmLabel": "Wipe anyway"
+        },
+        "notifications": {
+          "success": "All data wiped. Starting fresh.",
+          "failed": "Couldn't wipe data. Please try again."
+        }
+      },
       "deleteAccount": {
-        "dangerZone": "Danger zone",
         "title": "Delete your account",
         "warningFull": "Once you delete your account, there is no going back. {strong} Please be certain.",
         "warningStrong": "All your data will be permanently erased.",

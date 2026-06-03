@@ -118,17 +118,20 @@ Always use the project's field components from `@/components/fields/`. Never use
 
 ### Icons
 
-Always use `lucide-vue-next` icons. Never use raw SVGs or other icon libraries.
+Always use `@lucide/vue` icons. Never use raw SVGs or other icon libraries. Do **not** use `lucide-vue-next` — that's the old package and has been replaced.
 
 Always import icons with the **`Icon` suffix** — e.g., `CircleCheckIcon`, `Trash2Icon`, `ChevronDownIcon`. Never use the short form without the suffix.
 
 ```vue
 <!-- WRONG -->
-import { CircleCheck, Trash2 } from 'lucide-vue-next'
+import { CircleCheck, Trash2 } from '@lucide/vue'
 <CircleCheck />
 
-<!-- CORRECT -->
+<!-- WRONG — old package -->
 import { CircleCheckIcon, Trash2Icon } from 'lucide-vue-next'
+
+<!-- CORRECT -->
+import { CircleCheckIcon, Trash2Icon } from '@lucide/vue'
 <CircleCheckIcon />
 ```
 

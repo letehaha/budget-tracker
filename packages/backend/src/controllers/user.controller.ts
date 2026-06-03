@@ -1,13 +1,18 @@
+import { API_ERROR_CODES } from '@bt/shared/types';
 import { currencyCode } from '@common/lib/zod/custom-types';
 import { authPool } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
-import { ValidationError } from '@js/errors';
+import { ConflictError, ValidationError } from '@js/errors';
 import { invalidateAppUserCache } from '@middlewares/better-auth';
 import { ExchangeRatePair } from '@models/user-exchange-rates.model';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
 import { deleteUser as deleteUserService } from '@services/user/delete-user.service';
+import {
+  getOwnedSharedResourceSummary,
+  wipeUserData as wipeUserDataService,
+} from '@services/user/wipe-user-data.service';
 import { UniqueConstraintError } from 'sequelize';
 import { z } from 'zod';
 
@@ -79,6 +84,28 @@ export const updateUser = createController(
 export const deleteUser = createController(z.object({}), async ({ user }) => {
   await deleteUserService({ userId: user.id });
 });
+
+export const wipeUserData = createController(
+  z.object({
+    body: z.object({
+      acknowledgeSharing: z.boolean().optional(),
+    }),
+  }),
+  async ({ user, body }) => {
+    if (!body.acknowledgeSharing) {
+      const summary = await getOwnedSharedResourceSummary({ userId: user.id });
+      if (summary.accounts.length > 0 || summary.households.length > 0) {
+        throw new ConflictError({
+          code: API_ERROR_CODES.wipeDataSharingAcknowledgementRequired,
+          message: 'Wiping your data will revoke access for other users currently sharing your resources.',
+          details: { sharedResources: summary },
+        });
+      }
+    }
+
+    await wipeUserDataService({ userId: user.id });
+  },
+);
 
 export const getUserCurrencies = createController(z.object({}), async ({ user }) => {
   const result = await userService.getUserCurrencies({
