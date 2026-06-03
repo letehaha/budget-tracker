@@ -6,12 +6,16 @@
       "tags": "Теги",
       "accountsGroups": "Групи рахунків",
       "importData": "Імпорт даних",
-      "preferences": "Налаштування",
       "ai": "ШІ",
       "security": "Безпека",
       "admin": "Адміністратор",
       "sharedWithMe": "Поділилися зі мною",
-      "household": "Сім'я"
+      "household": "Сім'я",
+      "personalGroup": "Особисте",
+      "workspaceGroup": "Робочий простір",
+      "appearance": "Зовнішній вигляд",
+      "language": "Мова",
+      "statistics": "Статистика"
     },
     "backToSettings": "Назад до налаштувань"
   }

@@ -1,0 +1,8 @@
+{
+  "settings": {
+    "language": {
+      "title": "Language",
+      "description": "Display language for the app interface."
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { api } from '@/api/_api';
+import type { SupportedLocale } from '@bt/shared/i18n/locales';
 
 export interface DashboardWidgetConfig {
   widgetId: string;
@@ -14,6 +15,7 @@ export interface SidebarSectionsConfig {
 }
 
 export interface UserSettingsSchema {
+  locale?: SupportedLocale;
   dashboard?: {
     widgets: DashboardWidgetConfig[];
   };

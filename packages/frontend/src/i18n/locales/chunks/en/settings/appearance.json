@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "appearance": {
+      "title": "Appearance",
+      "description": "Customize how the app looks and which sections appear in the sidebar.",
+      "theme": {
+        "title": "Theme",
+        "description": "Choose how the app looks. System matches your device setting."
+      },
+      "sidebar": {
+        "title": "Sidebar sections",
+        "description": "Pick which sections appear in the sidebar.",
+        "alwaysVisibleTooltip": "This section is always visible."
+      }
+    }
+  }
+}
