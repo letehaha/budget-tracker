@@ -1,5 +1,4 @@
 import { EXCHANGE_RATE_PROVIDER_TYPE } from '@bt/shared/types';
-import { Op } from 'sequelize';
 import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
 
 import Currencies from './currencies.model';
@@ -32,23 +31,4 @@ export default class ExchangeRates extends Model {
     defaultValue: EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN,
   })
   source!: EXCHANGE_RATE_PROVIDER_TYPE;
-}
-
-export async function getRatesForCurrenciesPairs(
-  pairs: {
-    baseCode: string;
-    quoteCode: string;
-  }[],
-) {
-  return ExchangeRates.findAll({
-    where: {
-      [Op.or]: pairs.map((item) => ({
-        [Op.and]: {
-          baseCode: item.baseCode,
-          quoteCode: item.quoteCode,
-        },
-      })),
-    },
-    raw: true,
-  });
 }

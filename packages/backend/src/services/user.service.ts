@@ -4,7 +4,6 @@ import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import * as Currencies from '@models/currencies.model';
-import * as ExchangeRates from '@models/exchange-rates.model';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
 import * as Transactions from '@models/transactions.model';
@@ -122,21 +121,13 @@ export const setBaseUserCurrency = withTransaction(
       });
     }
 
-    const [exchangeRate] = await ExchangeRates.getRatesForCurrenciesPairs([
-      { baseCode: currency.code, quoteCode: currency.code },
-    ]);
-
-    if (!exchangeRate) {
-      throw new ValidationError({
-        message: t({ key: 'userCurrencies.noExchangeRateForPair' }),
-      });
-    }
-
+    // UsersCurrencies.exchangeRate is always relative to the user's base currency,
+    // so the base currency's rate against itself is trivially 1.
     await addUserCurrencies([
       {
         userId,
         currencyCode,
-        exchangeRate: exchangeRate.rate,
+        exchangeRate: 1,
       },
     ]);
 
