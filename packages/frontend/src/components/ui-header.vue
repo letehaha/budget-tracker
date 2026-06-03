@@ -1,7 +1,9 @@
 <template>
   <div ref="headerRef">
     <DemoBanner />
-    <div class="shadow-header border-border flex items-center justify-between border-b px-4 py-2 sm:px-6">
+    <div
+      class="shadow-header border-border @container/header-bar flex items-center justify-between border-b px-4 py-2 sm:px-6"
+    >
       <div class="flex items-center gap-4">
         <template v-if="isMobileView">
           <Sheet.Sheet :open="isMobileSheetOpen" @update:open="isMobileSheetOpen = $event">
@@ -42,7 +44,20 @@
       </div>
 
       <div class="ml-auto flex items-center gap-2">
-        <ThemeSelector />
+        <DesktopOnlyTooltip :content="$t('header.feedback')">
+          <Button
+            variant="ghost-primary"
+            size="sm"
+            :class="['flex items-center gap-1.5', { 'feedback-pulse': isFeedbackPulsing }]"
+            :aria-label="$t('header.feedback')"
+            @mouseenter="onFeedbackEnter"
+            @click="openFeedback"
+          >
+            <FeedbackIcon class="size-5" />
+            <span class="hidden @[890px]/header-bar:inline">{{ $t('header.feedback') }}</span>
+          </Button>
+        </DesktopOnlyTooltip>
+        <FeedbackDialog v-model:open="isFeedbackOpen" />
 
         <template v-if="accountsNeedingRelink.length > 0">
           <AccountsRelinkWarning />
@@ -112,8 +127,13 @@
 
         <NotificationsPopover />
 
-        <!-- Language Switcher -->
-        <LanguageSelector variant="secondary" show-header persist-to-backend />
+        <RouterLink :to="{ name: ROUTES_NAMES.settings }">
+          <DesktopOnlyTooltip :content="$t('header.settings')">
+            <Button variant="secondary" size="icon" :aria-label="$t('header.settings')">
+              <SettingsIcon class="size-4" />
+            </Button>
+          </DesktopOnlyTooltip>
+        </RouterLink>
       </div>
     </div>
   </div>
@@ -121,14 +141,15 @@
 
 <script setup lang="ts">
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
-import LanguageSelector from '@/components/common/language-selector.vue';
-import ThemeSelector from '@/components/common/theme-selector.vue';
+import FeedbackIcon from '@/components/common/icons/feedback-icon.vue';
 import DemoBanner from '@/components/demo/demo-banner.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import * as Sheet from '@/components/lib/ui/sheet';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import NotificationsPopover from '@/components/notifications-popover/index.vue';
+import FeedbackDialog from '@/components/sidebar/feedback-dialog.vue';
 import Sidebar from '@/components/sidebar/index.vue';
 import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
@@ -136,6 +157,7 @@ import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { useCategorizationStatus } from '@/composable/use-categorization-status';
 import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
 import { useDateLocale } from '@/composable/use-date-locale';
+import { useFeedbackAttention } from '@/composable/use-feedback-attention';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes/constants';
@@ -147,6 +169,7 @@ import {
   MenuIcon,
   PlusIcon,
   RefreshCcw,
+  SettingsIcon,
   SparklesIcon,
 } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
@@ -166,6 +189,14 @@ const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 const isCompactView = useWindowBreakpoints(1024);
 const showConfirmDialog = ref(false);
 const isPopoverOpen = ref(false);
+const isFeedbackOpen = ref(false);
+
+const { isPulsing: isFeedbackPulsing, onEnter: onFeedbackEnter, onClick: onFeedbackClick } = useFeedbackAttention();
+
+const openFeedback = () => {
+  onFeedbackClick();
+  isFeedbackOpen.value = true;
+};
 
 // Use new sync status system
 const syncStatus = useSyncStatus();

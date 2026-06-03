@@ -109,6 +109,14 @@ const ZodDashboardSettingsSchema = z.object({
   widgets: z.array(ZodDashboardWidgetSchema).default([]),
 });
 
+// Per-section visibility for the sidebar's Accounts panel. The "Bank Accounts"
+// section is always visible and intentionally not configurable here.
+const ZodSidebarSectionsSchema = z.object({
+  portfolios: z.boolean().default(true),
+  ventures: z.boolean().default(true),
+  vehicles: z.boolean().default(true),
+});
+
 export const ZodSettingsSchema = z.object({
   locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN]).default(SUPPORTED_LOCALES.ENGLISH),
   ai: ZodAiSettingsSchema.optional(),
@@ -116,6 +124,7 @@ export const ZodSettingsSchema = z.object({
   onboarding: ZodOnboardingStateSchema.optional(),
   dashboard: ZodDashboardSettingsSchema.optional(),
   includeCreditLimitInStats: z.boolean().optional(),
+  sidebarSections: ZodSidebarSectionsSchema.optional(),
 });
 
 // Infer the TypeScript type from the Zod schema

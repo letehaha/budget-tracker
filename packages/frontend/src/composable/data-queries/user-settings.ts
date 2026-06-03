@@ -28,6 +28,7 @@ export const useUserSettings = (
     invalidate,
     mutate: mutation.mutate,
     mutateAsync: mutation.mutateAsync,
+    isUpdating: mutation.isPending,
     ...query,
   };
 };

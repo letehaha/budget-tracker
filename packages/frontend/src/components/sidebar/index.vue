@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
-import { ROUTES_NAMES } from '@/routes';
-import { SettingsIcon } from '@lucide/vue';
 
 import AccountsView from './accounts-view/index.vue';
-import FeedbackDialog from './feedback-dialog.vue';
 import NavigationLinks from './navigation-links.vue';
 import UserMenu from './user-menu.vue';
 
@@ -24,24 +21,6 @@ defineProps<{ mobileView?: boolean }>();
       <div class="bg-border/50 mx-1 h-px" />
 
       <AccountsView />
-
-      <div class="bg-border/50 mx-1 h-px" />
-
-      <div class="grid gap-0.5">
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.settings }">
-          <span
-            :class="[
-              'hover:bg-accent hover:text-accent-foreground inline-flex h-10 w-full items-center gap-2 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors',
-              isActive ? 'bg-primary/10 text-foreground' : 'text-muted-foreground',
-            ]"
-          >
-            <SettingsIcon class="size-4 shrink-0" />
-            <span>{{ $t('navigation.settings') }}</span>
-          </span>
-        </router-link>
-
-        <FeedbackDialog />
-      </div>
 
       <div class="bg-border/50 mx-1 h-px" />
 

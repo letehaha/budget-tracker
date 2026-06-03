@@ -19,26 +19,33 @@
         !isCompactLayout && 'lg:w-52',
       ]"
     >
-      <ul class="sticky top-(--header-height) flex flex-col gap-1">
-        <li v-for="tab in tabs" :key="tab.name">
-          <router-link
-            :to="tab.to"
-            :class="
-              cn(
-                'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
-                'hover:bg-accent hover:text-foreground',
-                '[&.router-link-active]:bg-accent [&.router-link-active]:text-foreground',
-                isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
-              )
-            "
-          >
-            <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
-            {{ tab.label }}
-            <NewBadge v-if="tab.badgeSince" :since="tab.badgeSince" :ttl-days="tab.badgeTtlDays" />
-            <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
-          </router-link>
-        </li>
-      </ul>
+      <div class="sticky top-(--header-height) flex flex-col gap-4">
+        <div v-for="group in groups" :key="group.key" class="flex flex-col gap-1">
+          <div class="text-muted-foreground px-3 pt-1 text-[11px] font-semibold tracking-wider uppercase">
+            {{ group.label }}
+          </div>
+          <ul class="flex flex-col gap-1">
+            <li v-for="tab in group.tabs" :key="tab.name">
+              <router-link
+                :to="tab.to"
+                :class="
+                  cn(
+                    'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
+                    'hover:bg-accent hover:text-foreground',
+                    '[&.router-link-active]:bg-accent [&.router-link-active]:text-foreground',
+                    isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
+                  )
+                "
+              >
+                <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
+                {{ tab.label }}
+                <NewBadge v-if="tab.badgeSince" :since="tab.badgeSince" :ttl-days="tab.badgeTtlDays" />
+                <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
+              </router-link>
+            </li>
+          </ul>
+        </div>
+      </div>
     </nav>
 
     <!-- Content Area (wide: always visible, compact: only on child routes) -->
@@ -62,13 +69,15 @@ import { ROUTES_NAMES } from '@/routes';
 import { useUserStore } from '@/stores';
 import { useElementSize } from '@vueuse/core';
 import {
+  BarChart3Icon,
   ChevronRightIcon,
   CircleDollarSignIcon,
   HomeIcon,
   KeyRoundIcon,
+  LanguagesIcon,
   LayersIcon,
+  PaletteIcon,
   PlugIcon,
-  SettingsIcon,
   ShieldIcon,
   SparklesIcon,
   TagIcon,
@@ -90,6 +99,12 @@ interface Tab {
   badgeTtlDays?: number;
 }
 
+interface TabGroup {
+  key: string;
+  label: string;
+  tabs: Tab[];
+}
+
 const route = useRoute();
 const router = useRouter();
 const { user } = storeToRefs(useUserStore());
@@ -107,66 +122,35 @@ const showAdminTab = ref(user.value?.isAdmin ?? false);
 
 const isOnChildRoute = computed(() => route.name !== ROUTES_NAMES.settings);
 
-// On wide layout, redirect to currencies if on root settings
+// On wide layout, redirect to first Personal tab if on root settings
 watch(
   [isCompactLayout, () => route.name],
   ([compact, routeName]) => {
     if (!compact && routeName === ROUTES_NAMES.settings) {
-      router.replace({ name: ROUTES_NAMES.settingsCurrencies });
+      router.replace({ name: ROUTES_NAMES.settingsAppearance });
     }
   },
   { immediate: true },
 );
 
-const baseTabs = computed<Tab[]>(() => [
+const personalTabs = computed<Tab[]>(() => [
   {
-    name: 'currencies',
-    label: t('settings.navigation.currencies'),
-    to: { name: ROUTES_NAMES.settingsCurrencies },
-    icon: CircleDollarSignIcon,
+    name: 'appearance',
+    label: t('settings.navigation.appearance'),
+    to: { name: ROUTES_NAMES.settingsAppearance },
+    icon: PaletteIcon,
   },
   {
-    name: 'categories',
-    label: t('settings.navigation.categories'),
-    to: { name: ROUTES_NAMES.settingsCategories },
-    icon: TagsIcon,
+    name: 'language',
+    label: t('settings.navigation.language'),
+    to: { name: ROUTES_NAMES.settingsLanguage },
+    icon: LanguagesIcon,
   },
   {
-    name: 'tags',
-    label: t('settings.navigation.tags'),
-    to: { name: ROUTES_NAMES.settingsTags },
-    icon: TagIcon,
-  },
-  {
-    name: 'accounts',
-    label: t('settings.navigation.accountsGroups'),
-    to: { name: ROUTES_NAMES.settingsAccounts },
-    icon: LayersIcon,
-  },
-  {
-    name: 'data-management',
-    label: t('settings.navigation.importData'),
-    to: { name: ROUTES_NAMES.settingsDataManagement },
-    icon: UploadIcon,
-  },
-  {
-    name: 'preferences',
-    label: t('settings.navigation.preferences'),
-    to: { name: ROUTES_NAMES.settingsPreferences },
-    icon: SettingsIcon,
-  },
-  {
-    name: 'ai',
-    label: t('settings.navigation.ai'),
-    to: { name: ROUTES_NAMES.settingsAi },
-    icon: SparklesIcon,
-  },
-  {
-    name: 'ai-integrations',
-    label: 'AI Integrations', // TODO: replace with t('settings.navigation.aiIntegrations') when i18n key is added
-    to: { name: ROUTES_NAMES.settingsAiIntegrations },
-    icon: PlugIcon,
-    badgeSince: '2026-04-01',
+    name: 'statistics',
+    label: t('settings.navigation.statistics'),
+    to: { name: ROUTES_NAMES.settingsStatistics },
+    icon: BarChart3Icon,
   },
   {
     name: 'security',
@@ -174,33 +158,90 @@ const baseTabs = computed<Tab[]>(() => [
     to: { name: ROUTES_NAMES.settingsSecurity },
     icon: KeyRoundIcon,
   },
-  {
-    name: 'shared-with-me',
-    label: t('settings.navigation.sharedWithMe'),
-    to: { name: ROUTES_NAMES.settingsSharedWithMe },
-    icon: UsersIcon,
-  },
-  {
-    name: 'household',
-    label: t('settings.navigation.household'),
-    to: { name: ROUTES_NAMES.settingsHousehold },
-    icon: HomeIcon,
-    badgeSince: '2026-05-14',
-  },
 ]);
 
-const adminTab = computed<Tab>(() => ({
-  name: 'admin',
-  label: t('settings.navigation.admin'),
-  to: { name: ROUTES_NAMES.settingsAdmin },
-  icon: ShieldIcon,
-}));
+const workspaceTabs = computed<Tab[]>(() => {
+  const tabs: Tab[] = [
+    {
+      name: 'currencies',
+      label: t('settings.navigation.currencies'),
+      to: { name: ROUTES_NAMES.settingsCurrencies },
+      icon: CircleDollarSignIcon,
+    },
+    {
+      name: 'categories',
+      label: t('settings.navigation.categories'),
+      to: { name: ROUTES_NAMES.settingsCategories },
+      icon: TagsIcon,
+    },
+    {
+      name: 'tags',
+      label: t('settings.navigation.tags'),
+      to: { name: ROUTES_NAMES.settingsTags },
+      icon: TagIcon,
+    },
+    {
+      name: 'accounts',
+      label: t('settings.navigation.accountsGroups'),
+      to: { name: ROUTES_NAMES.settingsAccounts },
+      icon: LayersIcon,
+    },
+    {
+      name: 'data-management',
+      label: t('settings.navigation.importData'),
+      to: { name: ROUTES_NAMES.settingsDataManagement },
+      icon: UploadIcon,
+    },
+    {
+      name: 'ai',
+      label: t('settings.navigation.ai'),
+      to: { name: ROUTES_NAMES.settingsAi },
+      icon: SparklesIcon,
+    },
+    {
+      name: 'ai-integrations',
+      label: 'AI Integrations', // TODO: replace with t('settings.navigation.aiIntegrations') when i18n key is added
+      to: { name: ROUTES_NAMES.settingsAiIntegrations },
+      icon: PlugIcon,
+      badgeSince: '2026-04-01',
+    },
+    {
+      name: 'shared-with-me',
+      label: t('settings.navigation.sharedWithMe'),
+      to: { name: ROUTES_NAMES.settingsSharedWithMe },
+      icon: UsersIcon,
+    },
+    {
+      name: 'household',
+      label: t('settings.navigation.household'),
+      to: { name: ROUTES_NAMES.settingsHousehold },
+      icon: HomeIcon,
+      badgeSince: '2026-05-14',
+    },
+  ];
 
-const tabs = computed(() => {
-  const allTabs = [...baseTabs.value];
   if (showAdminTab.value) {
-    allTabs.push(adminTab.value);
+    tabs.push({
+      name: 'admin',
+      label: t('settings.navigation.admin'),
+      to: { name: ROUTES_NAMES.settingsAdmin },
+      icon: ShieldIcon,
+    });
   }
-  return allTabs;
+
+  return tabs;
 });
+
+const groups = computed<TabGroup[]>(() => [
+  {
+    key: 'personal',
+    label: t('settings.navigation.personalGroup'),
+    tabs: personalTabs.value,
+  },
+  {
+    key: 'workspace',
+    label: t('settings.navigation.workspaceGroup'),
+    tabs: workspaceTabs.value,
+  },
+]);
 </script>

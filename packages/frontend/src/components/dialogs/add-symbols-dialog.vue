@@ -148,7 +148,7 @@ async function addSymbol(sec: SecuritySearchResult) {
           </template>
         </ResponsiveTooltip>
 
-        <FeedbackDialog v-model:open="isFeedbackOpen" triggerless default-type="feature_request" />
+        <FeedbackDialog v-model:open="isFeedbackOpen" default-type="feature_request" />
       </span>
     </template>
 
