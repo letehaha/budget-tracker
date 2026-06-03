@@ -277,7 +277,7 @@ class ApiCaller {
           type: NotificationType.error,
         });
 
-        throw new errors.AuthError(response.statusText, response);
+        throw new errors.AuthError(response, url);
       }
 
       if (response.code === API_ERROR_CODES.unexpected) {

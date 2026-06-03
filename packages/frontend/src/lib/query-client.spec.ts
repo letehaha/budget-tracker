@@ -8,7 +8,7 @@ const apiError = (code: API_ERROR_CODES) => new ApiErrorResponseError('boom', { 
 
 describe('shouldRetryQuery', () => {
   it('never retries AuthError', () => {
-    expect(shouldRetryQuery(0, new AuthError('nope', { code: API_ERROR_CODES.unauthorized }))).toBe(false);
+    expect(shouldRetryQuery(0, new AuthError({ code: API_ERROR_CODES.unauthorized }))).toBe(false);
   });
 
   it('never retries UnexpectedError', () => {

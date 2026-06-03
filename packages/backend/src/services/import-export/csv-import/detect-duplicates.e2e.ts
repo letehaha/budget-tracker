@@ -676,6 +676,33 @@ describe('Detect Duplicates endpoint', () => {
       expect(result.invalidRows).toHaveLength(0);
       expect(result.duplicates).toHaveLength(0);
     });
+
+    it('should handle CSV where every row is invalid but mapped to an existing account', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // Every row has an invalid date so validRows ends up empty, but the
+      // accountMapping links to a real account so existingAccountIds is non-empty.
+      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+not-a-date,100.50,Bad row 1,Food,USD,expense,Main Account
+also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvContent,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows).toHaveLength(0);
+      expect(result.invalidRows).toHaveLength(2);
+      expect(result.duplicates).toHaveLength(0);
+    });
   });
 
   describe('transaction type edge cases', () => {

@@ -1,5 +1,7 @@
 import { logger } from '@js/utils';
 
+import { ProviderHttpError } from '../errors';
+
 export class FmpClient {
   private apiKey: string;
   private baseUrl: string;
@@ -109,7 +111,11 @@ export class FmpClient {
       const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`FMP API error: ${response.status} ${response.statusText}`);
+        throw new ProviderHttpError({
+          provider: 'FMP',
+          status: response.status,
+          statusText: response.statusText,
+        });
       }
 
       const data = await response.json();
