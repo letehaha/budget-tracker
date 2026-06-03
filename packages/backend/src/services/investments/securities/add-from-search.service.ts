@@ -6,6 +6,7 @@ import { withTransaction } from '@services/common/with-transaction';
 
 import { dataProviderFactory } from '../data-providers';
 import { toProviderSymbol } from '../data-providers/base-provider';
+import { ProviderHttpError } from '../data-providers/errors';
 import { addOrUpdateFromProvider } from '../securities-manage';
 
 interface AddSecurityFromSearchParams {
@@ -34,7 +35,7 @@ const addSecurityFromSearchImpl = async ({
   await addOrUpdateFromProvider([searchResult]);
 
   // Step 2: Get the created/updated security from database via the canonical
-  // (providerName, providerSymbol) tuple — symbol alone is not unique across providers.
+  // (providerName, providerSymbol) tuple – symbol alone is not unique across providers.
   const security = await Securities.findOne({
     where: {
       providerName: searchResult.providerName,
@@ -78,9 +79,14 @@ const addSecurityFromSearchImpl = async ({
     } catch (error) {
       // The immediate price fetch is optional and best-effort: the security was
       // created successfully and the daily price-sync cron backfills its price on
-      // the next run. Log at warn (operator visibility — e.g. a provider is
-      // 402-ing) rather than error, since this is a recoverable, non-fatal path.
-      logger.warn(`Failed to fetch latest price for ${searchResult.symbol} (will be backfilled by daily sync)`, {
+      // the next run.
+      //
+      // 402 Payment Required is a known, expected failure mode for non-US-exchange
+      // tickers on free-tier provider plans (e.g. FMP). It's not actionable – keep
+      // it visible in Loki via info, but don't page Sentry on every occurrence.
+      const isExpectedPaywall = error instanceof ProviderHttpError && error.status === 402;
+      const severity = isExpectedPaywall ? 'info' : 'warn';
+      logger[severity](`Failed to fetch latest price for ${searchResult.symbol} (will be backfilled by daily sync)`, {
         error: error instanceof Error ? error.message : String(error),
       });
       // Don't throw - the security creation succeeded, price fetch is optional
