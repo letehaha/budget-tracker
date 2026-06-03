@@ -37,11 +37,6 @@ export enum API_ERROR_CODES {
 
   // wipe-data
   wipeDataSharingAcknowledgementRequired = 'WIPE_DATA_SHARING_ACK_REQUIRED',
-
-  // crypto/binance
-  cryptoBinanceBothAPIKeysDoesNotexist = 10101,
-  cryptoBinancePublicAPIKeyNotDefined = 10102,
-  cryptoBinanceSecretAPIKeyNotDefined = 10103,
 }
 
 /**

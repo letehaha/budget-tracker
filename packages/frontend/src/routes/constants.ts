@@ -21,7 +21,6 @@ export const ROUTES_NAMES = Object.freeze({
   plannedReminderDetails: `${ROUTER_LAYOUTS.dashboard}.planned.reminder-details`,
   budgets: `${ROUTER_LAYOUTS.dashboard}.budgets`,
   budgetsInfo: `${ROUTER_LAYOUTS.dashboard}.budgets.info`,
-  crypto: `${ROUTER_LAYOUTS.dashboard}.crypto`,
   analytics: `${ROUTER_LAYOUTS.dashboard}.analytics`,
   analyticsCashFlow: `${ROUTER_LAYOUTS.dashboard}.analytics.cash-flow`,
   analyticsInvestmentCalculator: `${ROUTER_LAYOUTS.dashboard}.analytics.investment-calculator`,

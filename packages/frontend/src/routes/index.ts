@@ -63,12 +63,6 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/account-integrations'] as I18nChunkName[] },
       },
       {
-        path: '/crypto',
-        name: ROUTES_NAMES.crypto,
-        component: () => import('@/pages/crypto/crypto.vue'),
-        meta: { i18nChunks: ['pages/crypto'] as I18nChunkName[] },
-      },
-      {
         path: '/investments',
         name: ROUTES_NAMES.investments,
         component: () => import('@/pages/investments/investments.vue'),

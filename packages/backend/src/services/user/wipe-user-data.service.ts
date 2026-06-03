@@ -2,7 +2,6 @@ import { HouseholdSharePermission, RecordId, RESOURCE_TYPES } from '@bt/shared/t
 import AccountGroups from '@models/accounts-groups/account-groups.model';
 import * as Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import BinanceUserSettings from '@models/binance/user-settings.model';
 import Budget from '@models/budget.model';
 import Categories from '@models/categories.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
@@ -157,7 +156,6 @@ export const wipeUserData = async ({ userId }: { userId: number }) => {
       await UsersCurrencies.destroy({ where: { userId: user.id } });
       await UserExchangeRates.destroy({ where: { userId: user.id } });
       await UserSettings.destroy({ where: { userId: user.id } });
-      await BinanceUserSettings.destroy({ where: { userId: user.id } });
 
       // Reseed default categories + tags + default-category pointer. A wiped user lands
       // on the same starter state a brand-new signup would — empty-state with common
