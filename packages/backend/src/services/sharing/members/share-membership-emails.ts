@@ -1,4 +1,4 @@
-import { ResourceType } from '@bt/shared/types';
+import { ResourceType, isTestEmail } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { appName, appUrl, buildEmailShell, escapeHtml, fromEmail, resend } from '@services/email';
 
@@ -48,6 +48,11 @@ export const sendShareRevokedEmail = async ({
     return null;
   }
 
+  if (isTestEmail(toEmail)) {
+    logger.info(`[ShareRevokedEmail] Skipped (test recipient): ${toEmail}`);
+    return null;
+  }
+
   const sharedWithMeUrl = `${appUrl}/shared-with-me`;
   const html = buildShareRevokedHtml({
     ownerDisplayName,
@@ -93,6 +98,11 @@ export const sendShareLeftEmail = async ({
 }: SendShareLeftEmailParams): Promise<string | null> => {
   if (!resend) {
     logger.warn('[ShareLeftEmail] Resend not configured; skipping send');
+    return null;
+  }
+
+  if (isTestEmail(toEmail)) {
+    logger.info(`[ShareLeftEmail] Skipped (test recipient): ${toEmail}`);
     return null;
   }
 

@@ -5,6 +5,7 @@ import {
   SharePermission,
   SharePolicy,
   TRANSACTIONS_WRITE_SCOPES,
+  isTestEmail,
 } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { appName, appUrl, buildEmailShell, escapeHtml, fromEmail, resend } from '@services/email';
@@ -79,6 +80,11 @@ export const sendInvitationEmail = async ({
 }: SendInvitationEmailParams): Promise<SendInvitationEmailOutcome> => {
   if (!resend) {
     logger.warn('[ShareInvitationEmail] Resend not configured; skipping send');
+    return { status: 'skipped' };
+  }
+
+  if (isTestEmail(toEmail)) {
+    logger.info(`[ShareInvitationEmail] Skipped (test recipient): ${toEmail}`);
     return { status: 'skipped' };
   }
 

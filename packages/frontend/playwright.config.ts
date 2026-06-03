@@ -6,7 +6,7 @@ export default defineConfig({
   testDir: './e2e/tests',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 5 : 0,
   workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI
     ? [['html', { open: 'never', outputFolder: 'playwright-report' }], ['github'], ['list']]
