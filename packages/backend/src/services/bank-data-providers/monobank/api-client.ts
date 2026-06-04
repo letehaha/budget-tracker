@@ -10,6 +10,23 @@ import axios, { AxiosInstance } from 'axios';
 import crypto from 'crypto';
 
 /**
+ * Marker thrown when Monobank's edge (AWS ELB) rejects the request with a
+ * plain-text 403 telling the user to disable VPN / change IP. Distinct from
+ * an invalid-token ForbiddenError so the worker can skip the retry — the IP
+ * isn't going to change between attempts.
+ */
+export class MonobankGeoBlockedError extends ForbiddenError {
+  public readonly isGeoBlocked = true as const;
+}
+
+const GEO_BLOCK_RESPONSE_PATTERNS = [/Change your IP/i, /Змініть IP/i];
+
+function isGeoBlockResponseBody(body: unknown): boolean {
+  if (typeof body !== 'string') return false;
+  return GEO_BLOCK_RESPONSE_PATTERNS.some((pattern) => pattern.test(body));
+}
+
+/**
  * Monobank API client
  * Handles all HTTP communication with Monobank's API
  *
@@ -125,14 +142,38 @@ export class MonobankApiClient {
       const status = error.response?.status;
       const errorDescription = error.response?.data?.errorDescription;
 
-      logger.error(`[MonobankApiClient] ${method} failed:`, {
-        status,
-        errorDescription,
-        message: error.message,
-      });
+      // `message:` in winston extras gets spread on top of the log record and
+      // would overwrite the message field — keep raw axios text under a
+      // different key so the prefix survives. `responseBody` carries whatever
+      // Monobank actually returned, which is the only way to tell a revoked
+      // token from an anti-fraud block / IP block / unknown-body 403.
+      logger.error(
+        { message: `[MonobankApiClient] ${method} failed`, error: error as Error },
+        {
+          status,
+          errorDescription,
+          axiosMessage: error.message,
+          axiosCode: error.code,
+          url: error.config?.url,
+          httpMethod: error.config?.method,
+          responseBody: error.response?.data,
+          responseHeaders: error.response?.headers,
+        },
+      );
 
       // Handle specific error cases with proper error types
-      if (errorDescription === "Unknown 'X-Token'") {
+      if (status === 403 && isGeoBlockResponseBody(error.response?.data)) {
+        logger.warn(`[MonobankApiClient] Geo-blocked (VPN / non-UA IP) in ${method}`);
+        // Dev runs locally — surface the actionable "disable VPN" hint.
+        // Prod runs on a VPS the end-user can't reconfigure, so a "we know,
+        // contact support" message is more honest. Sentry still gets the
+        // rich error via the logger.error above either way.
+        const geoBlockedKey =
+          process.env.NODE_ENV === 'production'
+            ? 'bankDataProviders.monobank.geoBlockedProduction'
+            : 'bankDataProviders.monobank.geoBlocked';
+        throw new MonobankGeoBlockedError({ message: t({ key: geoBlockedKey }) });
+      } else if (errorDescription === "Unknown 'X-Token'") {
         logger.warn(`[MonobankApiClient] Invalid API token used in ${method}`);
         throw new ForbiddenError({ message: t({ key: 'bankDataProviders.monobank.invalidApiToken' }) });
       } else if (status === 429) {

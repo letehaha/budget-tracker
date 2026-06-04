@@ -187,7 +187,9 @@
       "apiError": "Помилка API Monobank: {{message}}",
       "accountNotFound": "Рахунок {{accountExternalId}} не знайдено в Monobank",
       "webhookNotImplemented": "handleWebhook ще не реалізовано для Monobank",
-      "unknownCurrencyCode": "Невідомий код валюти: {{numericCode}}"
+      "unknownCurrencyCode": "Невідомий код валюти: {{numericCode}}",
+      "geoBlocked": "Monobank блокує запити з IP-адреси цього сервера. Вимкніть VPN або використайте українську IP-адресу.",
+      "geoBlockedProduction": "Синхронізація Monobank тимчасово недоступна. Ми отримали сповіщення і працюємо над виправленням. Зверніться до підтримки, якщо це терміново."
     },
     "enableBanking": {
       "invalidCredentialsFormat": "Недійсний формат облікових даних для Enable Banking",

@@ -184,7 +184,9 @@
       "apiError": "Monobank API error: {{message}}",
       "accountNotFound": "Account {{accountExternalId}} not found in Monobank",
       "webhookNotImplemented": "handleWebhook not yet implemented for Monobank",
-      "unknownCurrencyCode": "Unknown currency code: {{numericCode}}"
+      "unknownCurrencyCode": "Unknown currency code: {{numericCode}}",
+      "geoBlocked": "Monobank is blocking requests from this server's IP. Disable VPN or use a Ukrainian IP address.",
+      "geoBlockedProduction": "Monobank sync is temporarily unavailable. We've been notified and are working on it. Please contact support if this is urgent."
     },
     "enableBanking": {
       "invalidCredentialsFormat": "Invalid credentials format for Enable Banking",
