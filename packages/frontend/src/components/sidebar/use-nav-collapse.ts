@@ -1,24 +1,30 @@
-import { useLocalStorage } from '@vueuse/core';
+import { createSharedComposable, useLocalStorage } from '@vueuse/core';
 import { computed } from 'vue';
 
-const isAccountsOpen = useLocalStorage('sidebar:nav-accounts-open', false);
-const isTransactionsOpen = useLocalStorage('sidebar:nav-transactions-open', false);
-const isPlannedOpen = useLocalStorage('sidebar:nav-planned-open', false);
+type NavSection = 'accounts' | 'transactions' | 'planned';
 
-export function useSidebarNavCollapse() {
-  const hasAnyOpen = computed(() => isAccountsOpen.value || isTransactionsOpen.value || isPlannedOpen.value);
+export const useSidebarNavCollapse = createSharedComposable(() => {
+  const openSection = useLocalStorage<NavSection | null>('sidebar:nav-open-section', null);
 
-  const collapseAll = () => {
-    isAccountsOpen.value = false;
-    isTransactionsOpen.value = false;
-    isPlannedOpen.value = false;
-  };
+  const sectionOpen = (section: NavSection) =>
+    computed<boolean>({
+      get: () => openSection.value === section,
+      set: (val) => {
+        if (val) {
+          openSection.value = section;
+        } else if (openSection.value === section) {
+          openSection.value = null;
+        }
+      },
+    });
 
   return {
-    isAccountsOpen,
-    isTransactionsOpen,
-    isPlannedOpen,
-    hasAnyOpen,
-    collapseAll,
+    isAccountsOpen: sectionOpen('accounts'),
+    isTransactionsOpen: sectionOpen('transactions'),
+    isPlannedOpen: sectionOpen('planned'),
+    hasAnyOpen: computed(() => openSection.value !== null),
+    collapseAll: () => {
+      openSection.value = null;
+    },
   };
-}
+});
