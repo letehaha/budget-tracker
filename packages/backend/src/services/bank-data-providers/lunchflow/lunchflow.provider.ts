@@ -364,6 +364,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
           categoryId: defaultCategoryId,
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           accountType: ACCOUNT_TYPES.lunchflow,
+          rawMerchantName: tx.merchant?.trim() || null,
         });
 
         createdTransactionIds.push(createdTx.id);

@@ -78,6 +78,13 @@ export const prepareTxCreationParams = ({
     if (apiSplits && apiSplits.length > 0) {
       creationParams.splits = apiSplits;
     }
+
+    // Manual Payee assignment from the dialog also locks the row server-side
+    // so future provider syncs leave it alone.
+    if (form.payeeId !== undefined && form.payeeId !== null) {
+      creationParams.payeeId = form.payeeId as RecordId;
+      creationParams.payeeLocked = true;
+    }
   }
 
   // Handle transfer_out_wallet

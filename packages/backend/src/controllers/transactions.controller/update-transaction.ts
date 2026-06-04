@@ -34,6 +34,8 @@ const bodyZodSchema = z
     refundsSplitId: recordId().nullish(),
     splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').nullish(),
     tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').nullish(),
+    payeeId: recordId().nullable().optional(),
+    payeeLocked: z.boolean().optional(),
   })
   .refine((data) => !(data.refundsSplitId && !data.refundsTxId), {
     message: '"refundsSplitId" can only be provided when "refundsTxId" is specified',
@@ -115,6 +117,8 @@ export default createController(schema, async ({ user, params, body }) => {
     refundsSplitId,
     splits,
     tagIds,
+    payeeId,
+    payeeLocked,
   } = body;
   const { id: userId } = user;
 
@@ -144,7 +148,10 @@ export default createController(schema, async ({ user, params, body }) => {
       refundedByTxIds,
       refundsTxId,
       refundsSplitId,
+      payeeLocked,
     }),
+    // payeeId can be null to clear the link, so don't strip undefined here.
+    ...(payeeId !== undefined ? { payeeId } : {}),
     // splits can be null to clear all splits, so don't use removeUndefinedKeys
     ...(splits !== undefined ? { splits: splits === null ? null : splitsAsMoney } : {}),
     // tagIds can be null to clear all tags, so don't use removeUndefinedKeys

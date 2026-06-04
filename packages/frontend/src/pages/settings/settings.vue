@@ -80,6 +80,7 @@ import {
   PlugIcon,
   ShieldIcon,
   SparklesIcon,
+  StoreIcon,
   TagIcon,
   TagsIcon,
   UploadIcon,
@@ -179,6 +180,13 @@ const workspaceTabs = computed<Tab[]>(() => {
       label: t('settings.navigation.tags'),
       to: { name: ROUTES_NAMES.settingsTags },
       icon: TagIcon,
+    },
+    {
+      name: 'payees',
+      label: t('settings.navigation.payees'),
+      to: { name: ROUTES_NAMES.settingsPayees },
+      icon: StoreIcon,
+      badgeSince: '2026-06-04',
     },
     {
       name: 'accounts',

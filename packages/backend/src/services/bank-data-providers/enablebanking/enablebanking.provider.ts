@@ -751,6 +751,14 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
         const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
 
+        // `merchantName` here is the debtor/creditor name lifted from the raw
+        // Enable Banking payload (or the literal 'Unknown' sentinel when both
+        // sides were absent — which is NOT a real merchant string). Forward
+        // the cleaned value into `externalData.merchantName` for audit and
+        // historical Payee-promotion scans, and as `rawMerchantName` for
+        // the per-row extraction pipeline.
+        const merchantNameClean = tx.merchantName && tx.merchantName !== 'Unknown' ? tx.merchantName.trim() : '';
+
         // TODO: consider creating transactions in batch?
         // Create transaction using service (handles all required fields)
         const [createdTx] = await createTransaction({
@@ -758,7 +766,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           note: tx.description,
           amount: Money.fromCents(Math.abs(tx.amount)), // Ensure positive value
           time: tx.date,
-          externalData: tx.metadata,
+          externalData: {
+            ...tx.metadata,
+            merchantName: merchantNameClean || undefined,
+          },
           commissionRate: Money.zero(),
           cashbackAmount: Money.zero(),
           accountId: account.id,
@@ -768,6 +779,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           categoryId: defaultCategoryId,
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           accountType: ACCOUNT_TYPES.enableBanking,
+          rawMerchantName: merchantNameClean || null,
         });
 
         createdTransactionIds.push(createdTx.id);

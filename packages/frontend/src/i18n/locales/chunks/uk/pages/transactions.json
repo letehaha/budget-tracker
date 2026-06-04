@@ -54,6 +54,13 @@
         "tagPlural": "тегів",
         "selected": "обрано",
         "searchPlaceholder": "Шукати теги..."
+      },
+      "payeeChip": "Отримувач платежу",
+      "payees": {
+        "label": "Отримувачі",
+        "searchPlaceholder": "Пошук отримувачів",
+        "selectedOne": "1 Платник вибраний",
+        "selectedMany": "{n} Платників вибрано"
       }
     },
     "list": {

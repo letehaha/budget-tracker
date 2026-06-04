@@ -3,6 +3,7 @@ import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
 import Accounts from '@models/accounts.model';
 import { getCategories } from '@models/categories.model';
+import Payees from '@models/payees.model';
 import Transactions from '@models/transactions.model';
 import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
 import { sseManager } from '@services/common/sse';
@@ -192,8 +193,13 @@ async function getUncategorizedTransactions({
         model: Accounts,
         attributes: ['name'],
       },
+      {
+        model: Payees,
+        attributes: ['name'],
+        required: false,
+      },
     ],
-    attributes: ['id', 'amount', 'currencyCode', 'time', 'note', 'accountId'],
+    attributes: ['id', 'amount', 'currencyCode', 'time', 'note', 'accountId', 'payeeId'],
   });
 
   return transactions.map((tx) => ({
@@ -203,6 +209,7 @@ async function getUncategorizedTransactions({
     accountName: (tx as unknown as { account?: { name: string } }).account?.name || 'Unknown',
     datetime: tx.time.toISOString(),
     note: tx.note,
+    payeeName: (tx as unknown as { payee?: { name: string } }).payee?.name ?? null,
   }));
 }
 

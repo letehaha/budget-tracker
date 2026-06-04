@@ -125,6 +125,11 @@ export const ZodSettingsSchema = z.object({
   dashboard: ZodDashboardSettingsSchema.optional(),
   includeCreditLimitInStats: z.boolean().optional(),
   sidebarSections: ZodSidebarSectionsSchema.optional(),
+  // When true, Payee auto-extraction (Type A + Type B) falls back to the
+  // transaction description/note if the provider's dedicated merchant field
+  // is empty. Off by default — Monobank's `counterName` is empty for most
+  // card purchases, so users have to opt in to use `description` instead.
+  payeeExtractionUsesDescription: z.boolean().optional(),
 });
 
 // Infer the TypeScript type from the Zod schema

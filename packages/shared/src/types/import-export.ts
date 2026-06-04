@@ -102,6 +102,9 @@ export interface ColumnMappingConfig {
   date: string;
   amount: string;
   description?: string;
+  /** Optional CSV column whose value becomes `rawMerchantName` on the imported
+   *  transaction — drives Payee extraction + `payee_rule` auto-categorization. */
+  payee?: string;
   category: CategoryOption;
   currency: CurrencyOption;
   transactionType: TransactionTypeOption;
@@ -148,6 +151,8 @@ export interface ParsedTransactionRow {
   date: string; // ISO format
   amount: Cents;
   description: string;
+  /** Raw value from the user-mapped Payee column, if mapping included one. */
+  payeeName?: string;
   categoryName?: string;
   accountName: string;
   currencyCode: string;

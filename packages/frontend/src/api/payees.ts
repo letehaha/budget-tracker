@@ -1,0 +1,111 @@
+import { api } from '@/api/_api';
+import { CATEGORIZATION_MODE, PayeeModel, PayeeStats } from '@bt/shared/types';
+
+export type PayeeWithStats = PayeeModel & { stats: PayeeStats | null };
+
+export interface CreatePayeePayload {
+  name: string;
+  defaultCategoryId?: string | null;
+  categorizationMode?: CATEGORIZATION_MODE;
+}
+
+export interface UpdatePayeePayload {
+  name?: string;
+  defaultCategoryId?: string | null;
+  categorizationMode?: CATEGORIZATION_MODE;
+}
+
+export type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount';
+export type PayeeSortDir = 'asc' | 'desc';
+
+interface ListPayeesParams {
+  q?: string;
+  limit?: number;
+  offset?: number;
+  sortBy?: PayeeSortBy;
+  sortDir?: PayeeSortDir;
+}
+
+export const loadPayees = async (params: ListPayeesParams = {}): Promise<PayeeWithStats[]> => {
+  const search = new URLSearchParams();
+  if (params.q !== undefined) search.set('q', params.q);
+  if (params.limit !== undefined) search.set('limit', String(params.limit));
+  if (params.offset !== undefined) search.set('offset', String(params.offset));
+  if (params.sortBy !== undefined) search.set('sortBy', params.sortBy);
+  if (params.sortDir !== undefined) search.set('sortDir', params.sortDir);
+  const qs = search.toString();
+  return api.get(`/payees${qs ? `?${qs}` : ''}`);
+};
+
+export const loadPayeeById = async ({ id }: { id: string }): Promise<PayeeWithStats> => {
+  return api.get(`/payees/${id}`);
+};
+
+export const createPayee = async (payload: CreatePayeePayload): Promise<PayeeModel> => {
+  return api.post('/payees', payload);
+};
+
+export const updatePayee = async ({
+  id,
+  payload,
+}: {
+  id: string;
+  payload: UpdatePayeePayload;
+}): Promise<PayeeModel> => {
+  return api.patch(`/payees/${id}`, payload);
+};
+
+export const deletePayee = async ({ id }: { id: string }): Promise<void> => {
+  return api.delete(`/payees/${id}`, {});
+};
+
+export const deletePayeeAndIgnore = async ({ id }: { id: string }): Promise<{ ignoredAddedCount: number }> => {
+  return api.delete(`/payees/${id}?ignoreFuture=true`, {});
+};
+
+export interface IgnoredName {
+  id: string;
+  normalizedName: string;
+  rawSample: string | null;
+  createdAt: string;
+}
+
+export const listIgnoredNames = async (): Promise<IgnoredName[]> => {
+  return api.get('/payees/ignored-names');
+};
+
+export const addIgnoredName = async ({
+  rawName,
+  force,
+}: {
+  rawName: string;
+  force?: boolean;
+}): Promise<IgnoredName> => {
+  return api.post('/payees/ignored-names', { rawName, force });
+};
+
+export const removeIgnoredName = async ({ id }: { id: string }): Promise<void> => {
+  return api.delete(`/payees/ignored-names/${id}`, {});
+};
+
+export const mergePayees = async ({
+  sourceId,
+  targetPayeeId,
+}: {
+  sourceId: string;
+  targetPayeeId: string;
+}): Promise<PayeeModel> => {
+  return api.post(`/payees/${sourceId}/merge`, { targetPayeeId });
+};
+
+export const deletePayeeAlias = async ({ payeeId, aliasId }: { payeeId: string; aliasId: string }): Promise<void> => {
+  return api.delete(`/payees/${payeeId}/aliases/${aliasId}`, {});
+};
+
+export const bulkUpdateCategorizationMode = async ({
+  mode,
+}: {
+  mode: CATEGORIZATION_MODE;
+}): Promise<{ updatedCount: number }> => {
+  return api.patch('/payees/bulk-categorization-mode', { mode });
+};

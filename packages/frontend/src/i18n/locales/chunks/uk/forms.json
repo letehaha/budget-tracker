@@ -253,6 +253,14 @@
       "placeholder": "Виберіть категорії...",
       "searchPlaceholder": "Шукати категорії...",
       "noCategoriesFound": "Категорій не знайдено"
+    },
+    "payeeSelect": {
+      "placeholder": "Виберіть отримувача платежу",
+      "searchPlaceholder": "Шукати отримувачів…",
+      "empty": "Отримувачів платежу поки немає",
+      "createAffordance": "+ Створити отримувача \"{name}\"",
+      "createdToast": "Отримувача \"{name}\" створено",
+      "createFailed": "Не вдалося створити отримувача платежу"
     }
   }
 }

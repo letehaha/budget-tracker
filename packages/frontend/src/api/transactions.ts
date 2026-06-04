@@ -35,6 +35,8 @@ export const loadTransactions = async (params: {
   categoryIds?: string[];
   tagIds?: string[];
   excludedTagIds?: string[];
+  payeeIds?: string[];
+  categorizationSource?: string;
   sort?: SORT_DIRECTIONS;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;

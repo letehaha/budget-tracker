@@ -253,6 +253,18 @@ const routes: RouteRecordRaw[] = [
             meta: { i18nChunks: ['settings/tags'] as I18nChunkName[] },
           },
           {
+            path: 'payees',
+            name: ROUTES_NAMES.settingsPayees,
+            component: () => import('@/pages/settings/subpages/payees/index.vue'),
+            meta: { i18nChunks: ['pages/payees'] as I18nChunkName[] },
+          },
+          {
+            path: 'payees/:id',
+            name: ROUTES_NAMES.settingsPayeeDetail,
+            component: () => import('@/pages/settings/subpages/payees/detail.vue'),
+            meta: { i18nChunks: ['pages/payees'] as I18nChunkName[] },
+          },
+          {
             path: 'currencies',
             name: ROUTES_NAMES.settingsCurrencies,
             component: () => import('@/pages/settings/subpages/currencies/index.vue'),

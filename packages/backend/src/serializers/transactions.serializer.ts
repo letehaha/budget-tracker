@@ -6,7 +6,7 @@
  * Deserializers convert API decimal inputs to Money.
  */
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import type { RecordId } from '@bt/shared/types';
+import type { CategorizationMeta, RecordId } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
 import type Tags from '@models/tags.model';
 import type TransactionGroups from '@models/transaction-groups.model';
@@ -53,6 +53,12 @@ export interface TransactionApiResponse {
   originalId: string | null;
   externalData: Record<string, unknown> | null;
   refundLinked: boolean;
+  payeeId: string | null;
+  payeeLocked: boolean;
+  /** How this tx's category was assigned (manual / ai / payee_rule / etc.). `null`
+   *  means "no rule has stamped this row yet" — the AI categorization listener
+   *  uses that as its filter, so the field doubles as a precedence stamp. */
+  categorizationMeta: CategorizationMeta | null;
   createdAt: Date;
   updatedAt: Date;
   splits?: TransactionSplitApiResponse[];
@@ -104,6 +110,8 @@ interface CreateTransactionRequest {
     note?: string | null;
   }>;
   tagIds?: string[];
+  payeeId?: RecordId | null;
+  payeeLocked?: boolean;
 }
 
 // ============================================================================
@@ -133,6 +141,8 @@ interface CreateTransactionInternal {
   }>;
   tagIds?: string[];
   userId: number;
+  payeeId?: RecordId | null;
+  payeeLocked?: boolean;
 }
 
 // ============================================================================
@@ -196,6 +206,9 @@ export function serializeTransaction(
     originalId: tx.originalId,
     externalData: tx.externalData,
     refundLinked: tx.refundLinked,
+    payeeId: tx.payeeId ?? null,
+    payeeLocked: tx.payeeLocked ?? false,
+    categorizationMeta: tx.categorizationMeta ?? null,
     createdAt: tx.createdAt,
     updatedAt: tx.updatedAt,
     ...(tx.splits && {
@@ -289,5 +302,7 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
     })),
     tagIds: req.tagIds,
     userId,
+    payeeId: req.payeeId,
+    payeeLocked: req.payeeLocked,
   };
 }

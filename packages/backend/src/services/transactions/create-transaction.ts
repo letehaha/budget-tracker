@@ -13,17 +13,21 @@ import { NotFoundError, UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
+import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
+import { applyPayeeCategorization } from '@services/payees/apply-categorization';
+import { resolvePayeeForRawMerchant } from '@services/payees/extraction.service';
 import {
   assertSharedWritePhase1Guards,
   authorizeAccountWrite,
 } from '@services/sharing/auth/authorize-account-write.service';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
+import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { v4 as uuidv4 } from 'uuid';
 
 import { withTransaction } from '../common/with-transaction';
@@ -231,6 +235,9 @@ export const createTransaction = withTransaction(
     refundsSplitId,
     splits,
     tagIds,
+    rawMerchantName,
+    payeeId: callerPayeeId,
+    payeeLocked: callerPayeeLocked,
     ...payload
   }: CreateTransactionParams) => {
     try {
@@ -292,6 +299,55 @@ export const createTransaction = withTransaction(
         await ensureUserCurrencyConnected({ userId, currencyCode: generalTxCurrency.code });
       }
 
+      // Resolve Payee for provider-sync rows. Caller-supplied `payeeId` wins
+      // (manual UI assignment); otherwise extract from `rawMerchantName` only
+      // when the row isn't locked. Transfers skip extraction entirely — they
+      // model internal account moves, not merchant interactions.
+      //
+      // When the dedicated merchant field is empty, the user-level
+      // `payeeExtractionUsesDescription` setting can authorize falling back
+      // to the transaction note. Off by default; opt-in for users whose
+      // provider (e.g. Monobank) returns the merchant in `description` only.
+      //
+      // Caller-supplied ids are validated against `userId` here. The DB FK
+      // only references `Payees(id)`, so without this guard a caller could
+      // stamp a foreign user's Payee onto their own row. Same idea as the
+      // tagIds check below.
+      let resolvedPayeeId: string | null = null;
+      if (callerPayeeId) {
+        const ownedPayee = await Payees.findOne({
+          where: { id: callerPayeeId, userId },
+          attributes: ['id'],
+        });
+        if (!ownedPayee) {
+          throw new NotFoundError({ message: t({ key: 'payees.notFound' }) });
+        }
+        resolvedPayeeId = callerPayeeId;
+      }
+      if (!callerPayeeLocked && !resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+        let effectiveRawMerchant: string | null | undefined = rawMerchantName;
+        if (!effectiveRawMerchant && payload.note) {
+          const settings = await getUserSettings({ userId });
+          if (settings.payeeExtractionUsesDescription) {
+            effectiveRawMerchant = payload.note;
+          }
+        }
+        if (effectiveRawMerchant) {
+          try {
+            const extraction = await resolvePayeeForRawMerchant({
+              userId,
+              rawMerchantName: effectiveRawMerchant,
+            });
+            resolvedPayeeId = extraction.payeeId;
+          } catch (error) {
+            logger.error({
+              message: 'Failed to resolve Payee during createTransaction; continuing without link',
+              error: error as Error,
+            });
+          }
+        }
+      }
+
       const generalTxParams: Transactions.CreateTransactionPayload & {
         time: Date;
       } = {
@@ -307,6 +363,8 @@ export const createTransaction = withTransaction(
         currencyCode: generalTxCurrency.code,
         transferId: undefined,
         refCurrencyCode: defaultUserCurrency.code,
+        payeeId: resolvedPayeeId,
+        payeeLocked: callerPayeeLocked ?? false,
       };
 
       if (defaultUserCurrency.code !== generalTxCurrency.code) {
@@ -425,6 +483,28 @@ export const createTransaction = withTransaction(
         } catch (error) {
           logger.error({
             message: 'Failed to match transaction to subscriptions',
+            error: error as Error,
+          });
+        }
+      }
+
+      // Auto-categorize via `payee_rule` — runs AFTER subscription matching so
+      // subscription_rule wins on conflict. The helper itself handles the
+      // mode-based meta stamping and the overridable-source precedence; we
+      // just hand it the linked payeeId.
+      if (resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+        try {
+          const updated = await applyPayeeCategorization({
+            userId,
+            transactionId: baseTransaction!.id,
+            payeeId: resolvedPayeeId,
+          });
+          if (updated) {
+            transactions[0] = updated;
+          }
+        } catch (error) {
+          logger.error({
+            message: 'Failed to apply payee_rule categorization; leaving transaction uncategorized',
             error: error as Error,
           });
         }

@@ -1,0 +1,189 @@
+import { CATEGORIZATION_MODE, PayeeModel, PayeeStats } from '@bt/shared/types';
+
+import { makeRequest } from './common';
+
+export interface CreatePayeePayload {
+  name: string;
+  defaultCategoryId?: string | null;
+  categorizationMode?: CATEGORIZATION_MODE;
+}
+
+export interface UpdatePayeePayload {
+  name?: string;
+  defaultCategoryId?: string | null;
+  categorizationMode?: CATEGORIZATION_MODE;
+}
+
+export type PayeeWithStats = PayeeModel & { stats: PayeeStats | null };
+
+export async function createPayee<R extends boolean | undefined = undefined>({
+  payload,
+  raw,
+}: {
+  payload: CreatePayeePayload;
+  raw?: R;
+}) {
+  return makeRequest<PayeeModel, R>({
+    method: 'post',
+    url: '/payees',
+    payload,
+    raw,
+  });
+}
+
+export async function listPayees<R extends boolean | undefined = undefined>({ q, raw }: { q?: string; raw?: R } = {}) {
+  const qs = q !== undefined ? `?q=${encodeURIComponent(q)}` : '';
+  return makeRequest<PayeeWithStats[], R>({
+    method: 'get',
+    url: `/payees${qs}`,
+    raw,
+  });
+}
+
+export async function getPayeeById<R extends boolean | undefined = undefined>({ id, raw }: { id: string; raw?: R }) {
+  return makeRequest<PayeeWithStats, R>({
+    method: 'get',
+    url: `/payees/${id}`,
+    raw,
+  });
+}
+
+export async function updatePayee<R extends boolean | undefined = undefined>({
+  id,
+  payload,
+  raw,
+}: {
+  id: string;
+  payload: UpdatePayeePayload;
+  raw?: R;
+}) {
+  return makeRequest<PayeeModel, R>({
+    method: 'patch',
+    url: `/payees/${id}`,
+    payload,
+    raw,
+  });
+}
+
+export async function deletePayee<R extends boolean | undefined = undefined>({ id, raw }: { id: string; raw?: R }) {
+  return makeRequest<void, R>({
+    method: 'delete',
+    url: `/payees/${id}`,
+    raw,
+  });
+}
+
+export async function mergePayees<R extends boolean | undefined = undefined>({
+  sourceId,
+  targetId,
+  raw,
+}: {
+  sourceId: string;
+  targetId: string;
+  raw?: R;
+}) {
+  return makeRequest<PayeeModel, R>({
+    method: 'post',
+    url: `/payees/${sourceId}/merge`,
+    payload: { targetPayeeId: targetId },
+    raw,
+  });
+}
+
+export async function deletePayeeAlias<R extends boolean | undefined = undefined>({
+  payeeId,
+  aliasId,
+  raw,
+}: {
+  payeeId: string;
+  aliasId: string;
+  raw?: R;
+}) {
+  return makeRequest<void, R>({
+    method: 'delete',
+    url: `/payees/${payeeId}/aliases/${aliasId}`,
+    raw,
+  });
+}
+
+export function buildPayeePayload(overrides: Partial<CreatePayeePayload> = {}): CreatePayeePayload {
+  return {
+    name: `Test Payee ${Date.now()}`,
+    ...overrides,
+  };
+}
+
+export interface IgnoredNameRow {
+  id: string;
+  normalizedName: string;
+  rawSample: string | null;
+  createdAt: string;
+}
+
+export async function listIgnoredNames<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
+  return makeRequest<IgnoredNameRow[], R>({
+    method: 'get',
+    url: '/payees/ignored-names',
+    raw,
+  });
+}
+
+export async function addIgnoredName<R extends boolean | undefined = undefined>({
+  rawName,
+  force,
+  raw,
+}: {
+  rawName: string;
+  force?: boolean;
+  raw?: R;
+}) {
+  return makeRequest<IgnoredNameRow, R>({
+    method: 'post',
+    url: '/payees/ignored-names',
+    payload: { rawName, force },
+    raw,
+  });
+}
+
+export async function removeIgnoredName<R extends boolean | undefined = undefined>({
+  id,
+  raw,
+}: {
+  id: string;
+  raw?: R;
+}) {
+  return makeRequest<void, R>({
+    method: 'delete',
+    url: `/payees/ignored-names/${id}`,
+    raw,
+  });
+}
+
+export async function deletePayeeAndIgnore<R extends boolean | undefined = undefined>({
+  id,
+  raw,
+}: {
+  id: string;
+  raw?: R;
+}) {
+  return makeRequest<{ ignoredAddedCount: number }, R>({
+    method: 'delete',
+    url: `/payees/${id}?ignoreFuture=true`,
+    raw,
+  });
+}
+
+export async function bulkUpdatePayeeCategorizationMode<R extends boolean | undefined = undefined>({
+  mode,
+  raw,
+}: {
+  mode: CATEGORIZATION_MODE;
+  raw?: R;
+}) {
+  return makeRequest<{ updatedCount: number }, R>({
+    method: 'patch',
+    url: '/payees/bulk-categorization-mode',
+    payload: { mode },
+    raw,
+  });
+}

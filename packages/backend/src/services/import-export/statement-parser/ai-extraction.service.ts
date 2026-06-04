@@ -97,6 +97,7 @@ export async function extractTransactionsWithAI({
     const transactions: ExtractedTransaction[] = parsed.transactions.map((tx) => ({
       date: tx.date,
       description: tx.description,
+      merchant: tx.merchant,
       amount: tx.amount,
       type: tx.type,
       balance: tx.balance ?? undefined,

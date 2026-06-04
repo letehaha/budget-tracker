@@ -1,0 +1,10 @@
+{
+  "bankDataProviders": {
+    "monobank": {
+      "geoBlocked": "bankDataProviders.monobank.geoBlocked"
+    }
+  },
+  "payees": {
+    "notFound": "payees.notFound"
+  }
+}

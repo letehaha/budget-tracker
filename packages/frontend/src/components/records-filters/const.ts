@@ -14,6 +14,7 @@ export interface FiltersStruct {
   noteIncludes: string;
   categoryIds: string[];
   tagIds: string[];
+  payeeIds: string[];
   categorizationSource: CATEGORIZATION_SOURCE | null;
 }
 
@@ -30,5 +31,6 @@ export const DEFAULT_FILTERS: FiltersStruct = {
   noteIncludes: '',
   categoryIds: [],
   tagIds: [],
+  payeeIds: [],
   categorizationSource: null,
 };

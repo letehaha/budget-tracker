@@ -1,4 +1,10 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  CATEGORIZATION_MODE,
+  CATEGORIZATION_SOURCE,
+  type RecordId,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -565,6 +571,240 @@ describe('Create transaction controller', () => {
       });
 
       expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('Payee linking', () => {
+    it('stores the caller-supplied payeeId on the transaction', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Linked Co' }),
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: account.id }),
+          payeeId: payee.id,
+        },
+        raw: true,
+      });
+
+      expect(tx.payeeId).toBe(payee.id);
+      // Without explicit payeeLocked, the row defaults to unlocked even when a
+      // payee is attached — locking is a separate, intentional gesture (manual
+      // override).
+      expect(tx.payeeLocked).toBe(false);
+    });
+
+    it('stores payeeLocked=true when the caller passes it explicitly', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Locked Co' }),
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: account.id }),
+          payeeId: payee.id,
+          payeeLocked: true,
+        },
+        raw: true,
+      });
+
+      expect(tx.payeeId).toBe(payee.id);
+      expect(tx.payeeLocked).toBe(true);
+    });
+
+    it('applies the payee defaultCategoryId via payee_rule auto-categorization', async () => {
+      // The caller passes a different categoryId than the payee's default —
+      // the payee_rule pass should overwrite it because the row carries no
+      // higher-precedence categorizationMeta source.
+      const account = await helpers.createAccount({ raw: true });
+      const otherCategory = await helpers.addCustomCategory({
+        raw: true,
+        name: `Other Cat ${Date.now()}`,
+        color: '#ffffff',
+      });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({
+          name: 'CatRule Co',
+          defaultCategoryId: global.DEFAULT_CATEGORY_ID,
+        }),
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: otherCategory.id,
+          }),
+          payeeId: payee.id,
+        },
+        raw: true,
+      });
+
+      expect(tx.payeeId).toBe(payee.id);
+      expect(tx.categoryId).toBe(global.DEFAULT_CATEGORY_ID);
+    });
+
+    it('with mode=enforce, stamps categorizationMeta.source=payee_rule so AI skips the row', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const otherCategory = await helpers.addCustomCategory({
+        raw: true,
+        name: `Enforce Other Cat ${Date.now()}`,
+        color: '#ffffff',
+      });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({
+          name: 'EnforceMode Co',
+          defaultCategoryId: global.DEFAULT_CATEGORY_ID,
+          categorizationMode: CATEGORIZATION_MODE.enforce,
+        }),
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: otherCategory.id,
+          }),
+          payeeId: payee.id,
+        },
+        raw: true,
+      });
+
+      expect(tx.categoryId).toBe(global.DEFAULT_CATEGORY_ID);
+      expect(tx.categorizationMeta?.source).toBe(CATEGORIZATION_SOURCE.payeeRule);
+    });
+
+    it('with mode=hint, applies the default category but leaves categorizationMeta null', async () => {
+      // `hint` is the "Amazon iPhone vs Garden tool" case — the Payee provides
+      // a reasonable starting category, but AI is still free to override based
+      // on the transaction's own details. The null meta is the signal AI's
+      // listener uses to decide it may run.
+      const account = await helpers.createAccount({ raw: true });
+      const otherCategory = await helpers.addCustomCategory({
+        raw: true,
+        name: `Hint Other Cat ${Date.now()}`,
+        color: '#ffffff',
+      });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({
+          name: 'HintMode Co',
+          defaultCategoryId: global.DEFAULT_CATEGORY_ID,
+          categorizationMode: CATEGORIZATION_MODE.hint,
+        }),
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: otherCategory.id,
+          }),
+          payeeId: payee.id,
+        },
+        raw: true,
+      });
+
+      expect(tx.categoryId).toBe(global.DEFAULT_CATEGORY_ID);
+      expect(tx.categorizationMeta).toBeNull();
+    });
+
+    it('with mode=off, leaves both categoryId and categorizationMeta untouched', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const otherCategory = await helpers.addCustomCategory({
+        raw: true,
+        name: `Off Other Cat ${Date.now()}`,
+        color: '#ffffff',
+      });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({
+          name: 'OffMode Co',
+          defaultCategoryId: global.DEFAULT_CATEGORY_ID,
+          categorizationMode: CATEGORIZATION_MODE.off,
+        }),
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: otherCategory.id,
+          }),
+          payeeId: payee.id,
+        },
+        raw: true,
+      });
+
+      // Payee is still linked — only the categorization side is disabled.
+      expect(tx.payeeId).toBe(payee.id);
+      expect(tx.categoryId).toBe(otherCategory.id);
+      expect(tx.categorizationMeta).toBeNull();
+    });
+
+    it('rejects a foreign-user payeeId with 404 (cross-user injection guard)', async () => {
+      // The DB FK on `Transactions.payeeId` only references `Payees(id)`, not
+      // `(id, userId)`. Without the service-layer guard, any caller could
+      // stamp a foreign user's Payee onto their own row. Verify the guard
+      // throws NotFoundError instead of silently linking.
+      const secondUser = await helpers.signUpSecondUser();
+      let foreignPayeeId: RecordId | null = null;
+      await helpers.asUser({
+        cookies: secondUser.cookies,
+        fn: async () => {
+          await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
+          const payee = await helpers.createPayee({
+            payload: helpers.buildPayeePayload({ name: `Foreign Co ${Date.now()}` }),
+            raw: true,
+          });
+          foreignPayeeId = payee.id;
+        },
+      });
+
+      const account = await helpers.createAccount({ raw: true });
+      const result = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: account.id }),
+          payeeId: foreignPayeeId!,
+        },
+        raw: false,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it('leaves categoryId untouched when the payee has no defaultCategoryId', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const otherCategory = await helpers.addCustomCategory({
+        raw: true,
+        name: `Untouched Cat ${Date.now()}`,
+        color: '#ffffff',
+      });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'NoDefault Co' }),
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: otherCategory.id,
+          }),
+          payeeId: payee.id,
+        },
+        raw: true,
+      });
+
+      expect(tx.payeeId).toBe(payee.id);
+      expect(tx.categoryId).toBe(otherCategory.id);
     });
   });
 });

@@ -40,6 +40,8 @@ export const ROUTES_NAMES = Object.freeze({
   settingsCurrencies: `${ROUTER_LAYOUTS.dashboard}.settings.currencies`,
   settingsCategories: `${ROUTER_LAYOUTS.dashboard}.settings.categories`,
   settingsTags: `${ROUTER_LAYOUTS.dashboard}.settings.tags`,
+  settingsPayees: `${ROUTER_LAYOUTS.dashboard}.settings.payees`,
+  settingsPayeeDetail: `${ROUTER_LAYOUTS.dashboard}.settings.payee-detail`,
   settingsAccounts: `${ROUTER_LAYOUTS.dashboard}.settings.accounts-groups`,
   settingsDataManagement: `${ROUTER_LAYOUTS.dashboard}.settings.data-management`,
   settingsAppearance: `${ROUTER_LAYOUTS.dashboard}.settings.appearance`,

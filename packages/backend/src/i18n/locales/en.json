@@ -245,7 +245,8 @@
     "unknownTransactionType": "Unknown transaction type value: \"{{typeValue}}\"",
     "dateColumnNotFound": "Date column \"{{columnName}}\" not found in CSV",
     "amountColumnNotFound": "Amount column \"{{columnName}}\" not found in CSV",
-    "invalidDefaultCurrency": "Invalid default currency code: \"{{defaultCurrency}}\""
+    "invalidDefaultCurrency": "Invalid default currency code: \"{{defaultCurrency}}\"",
+    "payeeColumnNotFound": "Payee column \"{{column}}\" not found in CSV headers"
   },
   "statementParser": {
     "invalidFile": "Invalid file",
@@ -407,5 +408,17 @@
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user."
+  },
+  "payees": {
+    "aliasNotFound": "Alias not found",
+    "cannotDeleteCanonicalAlias": "Can't delete the alias matching the Payee's canonical name. Rename the Payee instead if you want to change its primary name.",
+    "defaultCategoryNotOwned": "The selected default category doesn't belong to your account",
+    "duplicateName": "A payee with this name already exists",
+    "ignoredNameCollidesWithPayee": "An existing Payee matches this name. Delete the Payee first, or pass `force: true` to delete it as part of this operation.",
+    "ignoredNameNotFound": "Ignored name not found.",
+    "mergeSelf": "Cannot merge a payee with itself",
+    "nameRequired": "Payee name is required",
+    "notFound": "Payee not found",
+    "renameCollision": "Another payee already uses this name — merge them instead"
   }
 }

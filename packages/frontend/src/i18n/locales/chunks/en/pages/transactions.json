@@ -54,6 +54,13 @@
         "tagPlural": "tags",
         "selected": "selected",
         "searchPlaceholder": "Search tags..."
+      },
+      "payeeChip": "Payee",
+      "payees": {
+        "label": "Payees",
+        "searchPlaceholder": "Search payees",
+        "selectedOne": "1 Payee selected",
+        "selectedMany": "{n} Payees selected"
       }
     },
     "list": {

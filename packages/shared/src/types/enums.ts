@@ -214,6 +214,30 @@ export enum CATEGORIZATION_SOURCE {
   mccRule = 'mcc_rule',
   userRule = 'user_rule',
   subscriptionRule = 'subscription_rule',
+  payeeRule = 'payee_rule',
+}
+
+/**
+ * How aggressively a Payee's `defaultCategoryId` overrides other categorization
+ * sources.
+ *
+ * - `enforce`: `payee_rule` always wins — sets `categoryId` AND stamps
+ *   `categorizationMeta.source = payee_rule`, so AI then skips the row via its
+ *   "categorizationMeta IS NULL" filter. Good for narrow merchants where every
+ *   transaction is clearly the same category (Spotify → Subscriptions).
+ * - `hint`: `payee_rule` fills `categoryId` but leaves
+ *   `categorizationMeta = null`. AI still runs and can pick a better category
+ *   from the transaction description. Good for catch-all merchants where the
+ *   default category is a reasonable fallback but per-tx context matters
+ *   (Amazon → "iPhone" vs "Garden tool").
+ * - `off`: `payee_rule` does NOT apply at all. The Payee is still linked, but
+ *   `categoryId` and `categorizationMeta` are left untouched so AI starts from
+ *   scratch.
+ */
+export enum CATEGORIZATION_MODE {
+  enforce = 'enforce',
+  hint = 'hint',
+  off = 'off',
 }
 
 /**

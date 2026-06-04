@@ -253,6 +253,14 @@
       "placeholder": "Select categories...",
       "searchPlaceholder": "Search categories...",
       "noCategoriesFound": "No categories found"
+    },
+    "payeeSelect": {
+      "placeholder": "Select a payee",
+      "searchPlaceholder": "Search payees…",
+      "empty": "No payees yet",
+      "createAffordance": "+ Create payee \"{name}\"",
+      "createdToast": "Payee \"{name}\" created",
+      "createFailed": "Failed to create payee"
     }
   }
 }

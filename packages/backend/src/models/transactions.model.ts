@@ -23,6 +23,7 @@ import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import Currencies from '@models/currencies.model';
+import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import TransactionGroupItems from '@models/transaction-group-items.model';
 import TransactionGroups from '@models/transaction-groups.model';
@@ -98,6 +99,8 @@ export interface TransactionsAttributes {
   cashbackAmount: Money;
   refundLinked: boolean;
   categorizationMeta: CategorizationMeta | null;
+  payeeId: string | null;
+  payeeLocked: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -272,12 +275,28 @@ export default class Transactions extends Model {
   })
   refundLinked!: boolean;
 
-  // Metadata about how this transaction was categorized (manual, ai, mcc_rule, user_rule)
+  // Metadata about how this transaction was categorized (manual, ai, mcc_rule, user_rule, subscription_rule, payee_rule)
   @Column({
     type: DataType.JSONB,
     allowNull: true,
   })
   categorizationMeta!: CategorizationMeta | null;
+
+  @ForeignKey(() => Payees)
+  @Column({ allowNull: true, type: DataType.UUID })
+  payeeId!: RecordId | null;
+
+  @BelongsTo(() => Payees)
+  payee!: Payees;
+
+  // True when the user explicitly assigned or cleared payeeId; extraction and Type B
+  // fuzzy matching skip rows with this flag set so manual overrides survive resyncs.
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  payeeLocked!: boolean;
 
   // Managed by Sequelize (timestamps: true)
   declare createdAt: Date;
@@ -583,6 +602,7 @@ export const findWithFilters = async ({
   refAmountGte,
   refAmountLte,
   categoryIds,
+  payeeIds,
   noteSearch,
   attributes,
   categorizationSource,
@@ -625,6 +645,7 @@ export const findWithFilters = async ({
   /** Filter: refAmount <= this value - for cross-currency matching */
   refAmountLte?: Money;
   categoryIds?: string[];
+  payeeIds?: string[];
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
   categorizationSource?: CATEGORIZATION_SOURCE;
@@ -686,6 +707,12 @@ export const findWithFilters = async ({
         [Op.in]: categoryIds,
       };
     }
+  }
+
+  if (payeeIds && payeeIds.length > 0) {
+    whereClause.payeeId = {
+      [Op.in]: payeeIds,
+    };
   }
 
   if (accountIds && accountIds.length > 0) {
@@ -947,6 +974,9 @@ type CreateTxOptionalParams = Partial<
     | 'commissionRate'
     | 'refCommissionRate'
     | 'cashbackAmount'
+    | 'categorizationMeta'
+    | 'payeeId'
+    | 'payeeLocked'
   >
 >;
 
@@ -978,6 +1008,8 @@ export interface UpdateTransactionByIdParams {
   transferId?: string | null;
   refundLinked?: boolean;
   categorizationMeta?: CategorizationMeta | null;
+  payeeId?: string | null;
+  payeeLocked?: boolean;
 }
 
 export const updateTransactionById = async (

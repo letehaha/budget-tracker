@@ -17,6 +17,10 @@ export interface ExtractedTransaction {
   date: string;
   /** Original description from statement */
   description: string;
+  /** Merchant / counterparty name when the AI could separate it from the
+   *  description. When present, this drives Payee linking + payee_rule
+   *  auto-categorization the same way bank-sync providers' merchant fields do. */
+  merchant?: string;
   /** Transaction amount (always positive) */
   amount: number;
   /** Transaction type: income or expense */

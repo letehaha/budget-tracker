@@ -88,6 +88,7 @@ describe('buildUserMessage', () => {
       accountName: 'Main Account',
       datetime: '2024-01-15T10:00:00Z',
       note: 'Starbucks coffee',
+      payeeName: 'Starbucks',
     },
     {
       id: TX2,
@@ -96,6 +97,7 @@ describe('buildUserMessage', () => {
       accountName: 'Savings',
       datetime: '2024-01-16T14:30:00Z',
       note: null,
+      payeeName: null,
     },
   ];
 
@@ -121,7 +123,7 @@ describe('buildUserMessage', () => {
       categories: mockCategories,
     });
 
-    expect(message).toContain('id|amount|currency|account|datetime|note');
+    expect(message).toContain('id|amount|currency|account|datetime|note|payee');
     expect(message).toContain(`${TX1}|`);
     expect(message).toContain('Starbucks coffee');
   });
@@ -146,6 +148,7 @@ describe('buildUserMessage', () => {
         accountName: 'Test',
         datetime: '2024-01-15T10:00:00Z',
         note: 'Note with | pipe character',
+        payeeName: null,
       },
     ];
 
@@ -164,6 +167,7 @@ describe('buildUserMessage', () => {
         accountName: 'Test',
         datetime: '2024-01-15T10:00:00Z',
         note: 'Line one\nLine two',
+        payeeName: null,
       },
     ];
 
@@ -182,15 +186,16 @@ describe('buildUserMessage', () => {
         accountName: 'Test',
         datetime: '2024-01-15T10:00:00Z',
         note: longNote,
+        payeeName: null,
       },
     ];
 
     const message = buildUserMessage({ transactions, categories: mockCategories });
 
-    // The note portion should be at most 200 chars
     const lines = message.split('\n');
     const txLine = lines.find((l) => l.startsWith(`${TX1}|`));
-    const notePart = txLine!.split('|').pop()!;
+    const segments = txLine!.split('|');
+    const notePart = segments[segments.length - 2]!;
     expect(notePart.length).toBe(200);
   });
 
@@ -203,6 +208,7 @@ describe('buildUserMessage', () => {
         accountName: 'Test',
         datetime: '2024-01-15T10:00:00Z',
         note: null,
+        payeeName: null,
       },
     ];
 
@@ -220,7 +226,7 @@ describe('buildUserMessage', () => {
 
     expect(message).toContain('CATEGORIES:');
     expect(message).toContain('TRANSACTIONS:');
-    expect(message).toContain('id|amount|currency|account|datetime|note');
+    expect(message).toContain('id|amount|currency|account|datetime|note|payee');
     expect(message).toContain('id|parentId|name');
   });
 

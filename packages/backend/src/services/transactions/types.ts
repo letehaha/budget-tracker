@@ -15,6 +15,14 @@ export type CreateTransactionParams = Omit<
   refundsSplitId?: string;
   splits?: SplitInput[];
   tagIds?: string[];
+  /**
+   * Raw merchant string supplied by a bank-data provider (Monobank `counterName`,
+   * SimpleFIN `payee`, EnableBanking debtor/creditor name, LunchFlow `merchant`).
+   * When set and the row isn't `payeeLocked` and no `payeeId` was explicitly
+   * provided, the create path runs Payee extraction and links + auto-categorizes
+   * via `payee_rule` if applicable.
+   */
+  rawMerchantName?: string | null;
 };
 
 interface UpdateParams {
@@ -33,6 +41,8 @@ interface UpdateParams {
   refundedByTxIds?: string[] | null;
   splits?: SplitInput[] | null; // null to clear all splits
   tagIds?: string[] | null; // null to clear all tags
+  payeeId?: string | null;
+  payeeLocked?: boolean;
 }
 
 interface UpdateTransferParams {

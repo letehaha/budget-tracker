@@ -463,9 +463,15 @@ async function createMonobankTransaction(
   });
 
   let categoryId: string;
+  // Distinguishes "this categoryId came from the user's MCC mapping" (which
+  // `payee_rule` is allowed to override) from "this is just the default
+  // fallback" (which leaves `categorizationMeta` null so any later source can
+  // claim the row).
+  let mccFromUserMapping = false;
 
   if (userMcc.length) {
     categoryId = userMcc[0]!.get('categoryId');
+    mccFromUserMapping = true;
   } else {
     // Use default category for this user
     categoryId = await Users.getUserDefaultCategory({ id: userId });
@@ -478,7 +484,19 @@ async function createMonobankTransaction(
     });
   }
 
-  // Create transaction in database
+  // Create transaction in database. `counterName` is the Monobank-reported
+  // merchant string — surfaced both into `externalData` for audit and as
+  // `rawMerchantName` so the createTransaction pipeline can resolve a Payee.
+  // `categorizationMeta` flags MCC-derived categories so `payee_rule` knows it
+  // may override them; the user-default fallback path leaves meta null on
+  // purpose so any later source can still win.
+  const counterName = data.counterName?.trim() ?? '';
+  const mccDerivedMeta = mccFromUserMapping
+    ? {
+        source: CATEGORIZATION_SOURCE.mccRule,
+        categorizedAt: new Date().toISOString(),
+      }
+    : null;
   const [createdTx] = await transactionsService.createTransaction({
     originalId: data.id,
     note: data.description,
@@ -489,6 +507,7 @@ async function createMonobankTransaction(
       receiptId: data.receiptId,
       balance: data.balance,
       hold: data.hold,
+      counterName: counterName || undefined,
     },
     commissionRate: Money.fromCents(data.commissionRate),
     cashbackAmount: Money.fromCents(data.cashbackAmount),
@@ -497,8 +516,10 @@ async function createMonobankTransaction(
     transactionType: data.amount > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     paymentType: PAYMENT_TYPES.creditCard,
     categoryId,
+    categorizationMeta: mccDerivedMeta,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     accountType: ACCOUNT_TYPES.monobank,
+    rawMerchantName: counterName || null,
   });
 
   logger.info(`Created Monobank transaction: ${data.id}, amount: ${data.amount}`);

@@ -15,7 +15,8 @@
       "workspaceGroup": "Робочий простір",
       "appearance": "Зовнішній вигляд",
       "language": "Мова",
-      "statistics": "Статистика"
+      "statistics": "Статистика",
+      "payees": "Отримувачі"
     },
     "backToSettings": "Назад до налаштувань"
   }

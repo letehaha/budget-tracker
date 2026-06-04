@@ -15,6 +15,7 @@ import { registerBulkUpdateTransactions } from './tools/bulk-update-transactions
 import { registerCreateBudget } from './tools/create-budget';
 import { registerCreateCategory } from './tools/create-category';
 import { registerCreateInvestmentTransaction } from './tools/create-investment-transaction';
+import { registerCreatePayee } from './tools/create-payee';
 import { registerCreatePortfolio } from './tools/create-portfolio';
 import { registerCreateSubscription } from './tools/create-subscription';
 import { registerCreateTag } from './tools/create-tag';
@@ -23,6 +24,7 @@ import { registerCreateTransactionGroup } from './tools/create-transaction-group
 import { registerDeleteBudget } from './tools/delete-budget';
 import { registerDeleteCategory } from './tools/delete-category';
 import { registerDeleteInvestmentTransaction } from './tools/delete-investment-transaction';
+import { registerDeletePayee } from './tools/delete-payee';
 import { registerDeletePortfolio } from './tools/delete-portfolio';
 import { registerDeleteSplit } from './tools/delete-split';
 import { registerDeleteSubscription } from './tools/delete-subscription';
@@ -39,6 +41,8 @@ import { registerGetCashFlow } from './tools/get-cash-flow';
 import { registerGetCategories } from './tools/get-categories';
 import { registerGetExpensesForPeriod } from './tools/get-expenses-for-period';
 import { registerGetInvestmentTransactions } from './tools/get-investment-transactions';
+import { registerGetPayee } from './tools/get-payee';
+import { registerGetPayees } from './tools/get-payees';
 import { registerGetPortfolioBalances } from './tools/get-portfolio-balances';
 import { registerGetPortfolioHoldings } from './tools/get-portfolio-holdings';
 import { registerGetPortfolioSummary } from './tools/get-portfolio-summary';
@@ -55,6 +59,7 @@ import { registerLinkRefund } from './tools/link-refund';
 import { registerLinkTransactionsToSubscription } from './tools/link-transactions-to-subscription';
 import { registerLinkTransfer } from './tools/link-transfer';
 import { registerListSubscriptionCandidates } from './tools/list-subscription-candidates';
+import { registerMergePayees } from './tools/merge-payees';
 import { registerRemoveTagsFromTransaction } from './tools/remove-tags-from-transaction';
 import { registerRemoveTransactionsFromBudget } from './tools/remove-transactions-from-budget';
 import { registerRemoveTransactionsFromGroup } from './tools/remove-transactions-from-group';
@@ -68,6 +73,7 @@ import { registerUnlinkTransfer } from './tools/unlink-transfer';
 import { registerUpdateBudget } from './tools/update-budget';
 import { registerUpdateCategory } from './tools/update-category';
 import { registerUpdateInvestmentTransaction } from './tools/update-investment-transaction';
+import { registerUpdatePayee } from './tools/update-payee';
 import { registerUpdatePortfolio } from './tools/update-portfolio';
 import { registerUpdateSubscription } from './tools/update-subscription';
 import { registerUpdateTag } from './tools/update-tag';
@@ -156,6 +162,14 @@ export function createMcpServer(): McpServer {
   registerDeleteTag(server);
   registerAssignTagsToTransaction(server);
   registerRemoveTagsFromTransaction(server);
+
+  // Payees
+  registerGetPayees(server);
+  registerGetPayee(server);
+  registerCreatePayee(server);
+  registerUpdatePayee(server);
+  registerDeletePayee(server);
+  registerMergePayees(server);
 
   // Budgets
   registerGetBudgets(server);

@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
+import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import { captureException } from '@/lib/sentry';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
+import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
@@ -130,7 +132,33 @@ const form = ref<UI_FORM_STRUCT>({
   refundedByTxs: undefined,
   refundsTx: undefined,
   tagIds: [],
+  payeeId: null,
+  categoryUserTouched: false,
 });
+
+// PayeeField → category auto-fill (one-shot).
+// The form is unaware whether the category was set by the user or by Payee
+// auto-fill; mark `categoryUserTouched` whenever the user opens the picker so
+// later Payee selections respect their intent. The Payee's explicit default
+// wins; the top (most-used) category is a fallback so users who never set
+// defaults still get a useful suggestion.
+const handlePayeeSelected = ({
+  defaultCategoryId,
+  topCategoryId,
+}: {
+  payeeId: string;
+  defaultCategoryId: string | null;
+  topCategoryId: string | null;
+}) => {
+  if (form.value.categoryUserTouched) return;
+  const targetId = defaultCategoryId ?? topCategoryId;
+  if (!targetId) return;
+  const match = findFormattedCategoryById(effectiveFormattedCategories.value, targetId);
+  if (match) form.value.category = match;
+};
+const handleCategoryUserTouched = () => {
+  form.value.categoryUserTouched = true;
+};
 
 const transferDestinationType = ref<TransferDestinationType>('account');
 
@@ -694,6 +722,7 @@ onUnmounted(() => {
                 :shared-owner-username="isAccountSharedWithCaller ? accountShare?.owner.username : undefined"
                 label-key="name"
                 :disabled="isFormFieldsDisabled"
+                @update:model-value="handleCategoryUserTouched"
               />
             </form-row>
 
@@ -796,6 +825,17 @@ onUnmounted(() => {
               }"
             />
           </form-row>
+
+          <template v-if="currentTxType !== FORM_TYPES.transfer">
+            <form-row>
+              <payee-select-field
+                v-model="form.payeeId"
+                :label="$t('dialogs.manageTransaction.form.payeeLabel')"
+                :disabled="isFormFieldsDisabled"
+                @payee-selected="handlePayeeSelected"
+              />
+            </form-row>
+          </template>
         </div>
 
         <template v-if="isMobileView">

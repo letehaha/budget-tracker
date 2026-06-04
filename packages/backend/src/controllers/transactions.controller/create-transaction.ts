@@ -34,6 +34,8 @@ const schema = z.object({
       refundForSplitId: recordId().optional(),
       splits: z.array(splitSchema).max(10, 'Maximum 10 splits allowed').optional(),
       tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').optional(),
+      payeeId: recordId().nullable().optional(),
+      payeeLocked: z.boolean().optional(),
     })
     .refine(
       (data) =>

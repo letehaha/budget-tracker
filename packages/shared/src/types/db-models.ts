@@ -5,6 +5,7 @@ import {
   AccessSource,
   BANK_PROVIDER_TYPE,
   BUDGET_TYPES,
+  CATEGORIZATION_MODE,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
   NotificationPriority,
@@ -161,6 +162,8 @@ export interface CategorizationMeta {
   ruleId?: number;
   /** Subscription ID for subscription_rule categorization */
   subscriptionId?: RecordId;
+  /** Payee ID for payee_rule categorization */
+  payeeId?: RecordId;
   /** ISO timestamp when categorization was applied */
   categorizedAt?: string;
 }
@@ -225,6 +228,28 @@ export interface TransactionModel {
   refundLinked: boolean;
   /** Metadata about how this transaction was categorized */
   categorizationMeta?: CategorizationMeta | null;
+  /** Linked Payee. Null when no Payee resolved (raw merchant missing/unmatched). */
+  payeeId?: RecordId | null;
+  /**
+   * Stops background Payee auto-linking from touching this row.
+   *
+   * Two auto-linkers run on every bank sync: the inline matcher that reads
+   * the raw merchant string, and a fuzzy post-sync pass that re-tries
+   * unlinked rows against the user's Payees + aliases. Both filter on
+   * `payeeLocked = false`, so locked rows are invisible to them.
+   *
+   * Flips to `true` automatically when the user assigns or clears the
+   * Payee in the UI. Prevents the next sync from undoing manual edits.
+   *
+   * Example: user sets a tx to Payee "Netflix Premium". Bank re-syncs the
+   * same row with merchant "NETFLIX.COM"; without the lock the matcher
+   * would revert it to plain "Netflix".
+   *
+   * `(payeeLocked: true, payeeId: null)` is valid — means "user deliberately
+   * chose no payee here; don't auto-link one." Lock does not affect user
+   * edits, categorization rules, or any other column.
+   */
+  payeeLocked?: boolean;
   /** Optional splits for multi-category transactions */
   splits?: TransactionSplitModel[];
   /** Optional tags associated with the transaction (loaded when includeTags=true) */
@@ -650,4 +675,42 @@ export interface ShareInvitationModel {
   recentResendsAt: string[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface PayeeAliasModel {
+  id: RecordId;
+  payeeId: RecordId;
+  rawName: string;
+  normalizedName: string;
+  createdAt: Date;
+}
+
+export interface PayeeModel {
+  id: RecordId;
+  userId: number;
+  name: string;
+  normalizedName: string;
+  defaultCategoryId: RecordId | null;
+  /** Controls how strongly `defaultCategoryId` applies during create-tx —
+   *  see CATEGORIZATION_MODE in enums.ts for semantics. */
+  categorizationMode: CATEGORIZATION_MODE;
+  createdAt: Date;
+  updatedAt: Date;
+  aliases?: PayeeAliasModel[];
+  defaultCategory?: CategoryModel | null;
+}
+
+/**
+ * Stats aggregated at query time from `Transactions` for a Payee. Not stored —
+ * computed from the `(userId, payeeId, time DESC)` index. Signed `netFlowRef`
+ * works naturally for both income and expense Payees (income positive, expense
+ * negative) and is reported in the user's ref currency as a decimal.
+ */
+export interface PayeeStats {
+  payeeId: RecordId;
+  transactionCount: number;
+  netFlowRef: number;
+  firstSeenAt: Date | null;
+  lastSeenAt: Date | null;
+  topCategoryId: RecordId | null;
 }

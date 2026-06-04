@@ -21,6 +21,7 @@ export interface UserSettingsSchema {
   };
   includeCreditLimitInStats?: boolean;
   sidebarSections?: SidebarSectionsConfig;
+  payeeExtractionUsesDescription?: boolean;
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

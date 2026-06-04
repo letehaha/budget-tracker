@@ -13,6 +13,7 @@ import { API_PREFIX } from './config';
 import { registerAiCategorizationListeners } from './services/ai-categorization';
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
+import { registerPayeeTypeBListeners } from './services/payees';
 import { registerSubscriptionMatchingListeners } from './services/subscriptions';
 import { registerTagReminderListeners } from './services/tag-reminders';
 import { setupMiddleware } from './setup-middleware';
@@ -33,6 +34,7 @@ initializeExchangeRateProviders();
 registerAiCategorizationListeners();
 registerTagReminderListeners();
 registerSubscriptionMatchingListeners();
+registerPayeeTypeBListeners();
 
 setupRoutes(app);
 

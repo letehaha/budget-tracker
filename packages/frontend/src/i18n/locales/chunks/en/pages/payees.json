@@ -1,0 +1,125 @@
+{
+  "payees": {
+    "title": "Payees",
+    "subtitle": "Master list of merchants you transact with",
+    "newPayeeButton": "New Payee",
+    "searchPlaceholder": "Search payees…",
+    "columns": {
+      "name": "Name",
+      "transactionCount": "# tx",
+      "netFlow": "Net flow",
+      "category": "Category",
+      "categoryHint": "Effective category for this payee. Shows the default if you've set one — otherwise the category most frequently used in past transactions. Auto-filled when creating a new transaction.",
+      "topCategory": "Top category",
+      "defaultCategory": "Default category"
+    },
+    "sort": {
+      "label": "Sort by",
+      "transactionCount": "Tx amount",
+      "netFlow": "Net flow",
+      "name": "Name",
+      "lastSeen": "Recent activity"
+    },
+    "actions": {
+      "menu": "Actions",
+      "rename": "Rename",
+      "merge": "Merge into…",
+      "delete": "Delete",
+      "deleteAndIgnore": "Delete & ignore"
+    },
+    "emptyState": {
+      "title": "No payees yet",
+      "description": "Connect a bank to detect payees automatically, or create one manually."
+    },
+    "form": {
+      "namePlaceholder": "Enter payee name",
+      "categorizationMode": {
+        "label": "AI categorization",
+        "enforce": {
+          "label": "Always use payee category",
+          "hint": "Payee's default category is always used. AI categorization is skipped for this payee."
+        },
+        "hint": {
+          "label": "Use as a hint",
+          "hint": "Sets the payee's default category, but AI can still override it based on the transaction details."
+        },
+        "off": {
+          "label": "Off",
+          "hint": "Payee's default category is ignored. Categorization is handled by AI or your other rules."
+        }
+      }
+    },
+    "detail": {
+      "aliasesHeading": "Aliases",
+      "cannotDeleteCanonicalAlias": "Cannot delete the alias matching the Payee's name. Rename the Payee instead.",
+      "deleteAliasConfirm": "Remove this alias?",
+      "deletePayeeTitle": "Delete payee?",
+      "deletePayeeDescription": "Linked transactions keep their category but lose the payee link. This cannot be undone.",
+      "deleteAndIgnoreTitle": "Delete this Payee and ignore future matches?",
+      "deleteAndIgnoreDescription": "Deletes this Payee AND adds its names (canonical + all aliases) to the ignored-names blocklist. Future syncs won't recreate it from raw merchant text. Linked transactions stay but lose their payee link.",
+      "mergeTitle": "Merge into another payee",
+      "mergeDescription": "Pick the target payee. All transactions and aliases move to the target; this payee is deleted.",
+      "mergeButton": "Merge",
+      "confirmMerge": "Merge",
+      "noTransactions": "No transactions yet",
+      "topCategoryHint": "The category most frequently used in transactions linked to this payee. Used as a fallback when no default category is set.",
+      "defaultCategoryPlaceholder": "Select a category"
+    },
+    "transactionsDialog": {
+      "title": "{name} — transactions",
+      "empty": "No transactions linked to this payee."
+    },
+    "toasts": {
+      "created": "Payee created",
+      "updated": "Payee updated",
+      "deleted": "Payee deleted",
+      "merged": "Payees merged",
+      "aliasDeleted": "Alias removed",
+      "deletedAndIgnored": "Payee deleted and added to ignored-names list"
+    },
+    "errors": {
+      "collision": "A payee with this name already exists. Merge instead.",
+      "generic": "Something went wrong, please try again."
+    },
+    "tabs": {
+      "manage": "Manage",
+      "settings": "Settings"
+    },
+    "settings": {
+      "title": "Payee detection settings",
+      "description": "Control how the app auto-detects Payees from your synced transactions.",
+      "payeeFromDescription": {
+        "label": "Detect payees from transaction descriptions",
+        "description": "When your bank doesn't provide a dedicated merchant field, fall back to the transaction description (note) to auto-detect Payees. Useful for Monobank — its `counterName` is empty for most card purchases. May produce noisier Payee names (e.g. installment-payment prefixes) which you can rename or merge afterwards.",
+        "successNotification": "Preference updated",
+        "errorNotification": "Failed to update preference"
+      },
+      "bulkCategorizationMode": {
+        "label": "Apply categorization mode to all payees",
+        "description": "Choose how the categorization should behave for every existing payee. This overrides each payee's individual setting.",
+        "applyButton": "Apply to all",
+        "confirmTitle": "Apply to all payees?",
+        "confirmDescription": "All payees will be switched to {mode}. You can still change each payee individually later.",
+        "successNotification": "Updated {count} payees.",
+        "errorNotification": "Failed to update payees. Please try again."
+      }
+    },
+    "ignoredNames": {
+      "title": "Ignored merchant names",
+      "description": "Raw merchant strings that should never automatically create a Payee. Useful for noise like 'Card transfer', 'From: <name>', or refund prefixes. You can still link these names to a Payee manually — only automatic matching is blocked.",
+      "addPlaceholder": "e.g. Spotify",
+      "addButton": "Add",
+      "addedToast": "Added to ignored names",
+      "addError": "Failed to add to ignored names",
+      "removeTooltip": "Remove from ignored list",
+      "removedToast": "Removed from ignored names",
+      "removeError": "Failed to remove",
+      "empty": "No ignored names yet.",
+      "normalizedLabel": "Normalized",
+      "conflictTitle": "An existing Payee matches",
+      "conflictDescription": "A Payee with the same normalized name as \"{name}\" already exists. Continuing will delete that Payee (transactions stay, lose link).",
+      "forceConfirm": "Delete Payee and ignore"
+    },
+    "loadingMore": "Loading more…"
+  }
+}
