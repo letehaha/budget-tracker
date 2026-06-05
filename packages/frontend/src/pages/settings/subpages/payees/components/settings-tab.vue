@@ -22,27 +22,29 @@
         />
       </div>
 
-      <div class="flex flex-col gap-3">
+      <div class="@container/bulk-row flex flex-col gap-3">
         <div>
           <div class="text-sm font-medium">{{ $t('payees.settings.bulkCategorizationMode.label') }}</div>
           <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
             {{ $t('payees.settings.bulkCategorizationMode.description') }}
           </p>
         </div>
-        <div class="flex flex-col gap-2 @sm:flex-row @sm:items-end">
-          <div class="flex-1">
+
+        <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-2 @[440px]/bulk-row:flex-row @[440px]/bulk-row:items-end">
             <SelectField
               v-model="bulkMode"
               :values="bulkModeOptions"
               label-key="label"
               value-key="value"
               :label="$t('payees.form.categorizationMode.label')"
+              class="min-w-0 flex-1"
             />
-            <p class="text-muted-foreground mt-1 text-xs">{{ bulkMode.hint }}</p>
+            <Button class="shrink-0" :disabled="bulkMut.isPending.value" @click="openBulkConfirm">
+              {{ $t('payees.settings.bulkCategorizationMode.applyButton') }}
+            </Button>
           </div>
-          <Button :disabled="bulkMut.isPending.value" @click="openBulkConfirm">
-            {{ $t('payees.settings.bulkCategorizationMode.applyButton') }}
-          </Button>
+          <p class="text-muted-foreground text-xs">{{ bulkMode.hint }}</p>
         </div>
       </div>
 

@@ -50,7 +50,9 @@
       }
     },
     "detail": {
+      "categorizationSection": "Categorization",
       "aliasesHeading": "Aliases",
+      "aliasesEmpty": "No aliases yet. New variants will appear here when this Payee matches another merchant name.",
       "cannotDeleteCanonicalAlias": "Cannot delete the alias matching the Payee's name. Rename the Payee instead.",
       "deleteAliasConfirm": "Remove this alias?",
       "deletePayeeTitle": "Delete payee?",
@@ -90,7 +92,7 @@
       "description": "Control how the app auto-detects Payees from your synced transactions.",
       "payeeFromDescription": {
         "label": "Detect payees from transaction descriptions",
-        "description": "When your bank doesn't provide a dedicated merchant field, fall back to the transaction description (note) to auto-detect Payees. Useful for Monobank — its `counterName` is empty for most card purchases. May produce noisier Payee names (e.g. installment-payment prefixes) which you can rename or merge afterwards.",
+        "description": "When your bank doesn't provide a dedicated merchant field, fall back to the transaction description (note) to auto-detect Payees. Useful for bank connections that have merchant fields empty or absent. May produce noisier Payee names (e.g. installment-payment prefixes) which you can rename or merge afterwards.",
         "successNotification": "Preference updated",
         "errorNotification": "Failed to update preference"
       },

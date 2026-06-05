@@ -1,32 +1,97 @@
 <template>
-  <div class="@container space-y-4">
-    <Card class="px-4 py-4">
-      <div class="flex flex-col gap-3 @sm:flex-row @sm:items-start @sm:justify-between">
-        <div class="min-w-0">
-          <RouterLink
-            :to="{ name: ROUTES_NAMES.settingsPayees }"
-            class="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline"
-          >
-            <ChevronLeftIcon class="size-3.5" />
-            {{ $t('payees.title') }}
-          </RouterLink>
-          <h2 class="mt-2 text-xl font-semibold">{{ payeeData?.name ?? '…' }}</h2>
-        </div>
-        <div class="shrink-0">
-          <PayeeActionsDropdown
-            :disabled="!payeeData"
-            @rename="openRename"
-            @merge="openMerge"
-            @delete="openDelete"
-            @delete-and-ignore="openDeleteAndIgnore"
-          />
-        </div>
+  <div class="@container/detail space-y-4">
+    <Card class="overflow-hidden">
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
+        <RouterLink
+          :to="{ name: ROUTES_NAMES.settingsPayees }"
+          class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
+        >
+          <ChevronLeftIcon class="size-3.5" />
+          {{ $t('payees.title') }}
+        </RouterLink>
+        <PayeeActionsDropdown
+          :disabled="!payeeData"
+          @rename="openRename"
+          @merge="openMerge"
+          @delete="openDelete"
+          @delete-and-ignore="openDeleteAndIgnore"
+        />
       </div>
 
-      <div v-if="payeeData" class="mt-4 grid gap-3 @md:grid-cols-2">
-        <div class="flex flex-col gap-3">
-          <div>
-            <p class="text-muted-foreground text-xs">{{ $t('payees.columns.defaultCategory') }}</p>
+      <div class="mt-3 flex items-center gap-3 px-5 sm:px-6">
+        <div
+          class="bg-muted/60 ring-border/60 text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg text-base font-semibold uppercase ring-1"
+        >
+          {{ monogram }}
+        </div>
+        <h2 class="min-w-0 flex-1 truncate text-xl font-semibold tracking-tight sm:text-2xl">
+          {{ payeeData?.name ?? '…' }}
+        </h2>
+      </div>
+
+      <dl
+        v-if="payeeData?.stats"
+        class="divide-border/50 border-border/50 bg-muted/15 mx-5 mt-5 flex flex-col divide-y overflow-hidden rounded-lg border sm:mx-6 @[650px]/detail:grid @[650px]/detail:grid-cols-3 @[650px]/detail:divide-x @[650px]/detail:divide-y-0"
+      >
+        <button
+          type="button"
+          :disabled="payeeData.stats.transactionCount === 0"
+          class="enabled:hover:bg-muted/40 focus-visible:ring-ring flex flex-row items-center justify-between gap-3 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none enabled:cursor-pointer disabled:cursor-default @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
+          @click="openTransactionsDialog"
+        >
+          <dt class="text-muted-foreground text-[10px] font-medium tracking-[0.08em] uppercase">
+            {{ $t('payees.columns.transactionCount') }}
+          </dt>
+          <dd class="text-base font-semibold tabular-nums @[650px]/detail:text-2xl">
+            {{ payeeData.stats.transactionCount }}
+          </dd>
+        </button>
+
+        <div
+          class="flex flex-row items-center justify-between gap-3 px-4 py-3 @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
+        >
+          <dt class="text-muted-foreground text-[10px] font-medium tracking-[0.08em] uppercase">
+            {{ $t('payees.columns.netFlow') }}
+          </dt>
+          <dd
+            class="text-base font-semibold tabular-nums @[650px]/detail:text-2xl"
+            :class="netFlowToneClass(payeeData.stats.netFlowRef)"
+          >
+            {{ formatNetFlow(payeeData.stats.netFlowRef) }}
+          </dd>
+        </div>
+
+        <div
+          class="flex flex-row items-center justify-between gap-3 px-4 py-3 @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
+        >
+          <dt
+            class="text-muted-foreground flex shrink-0 items-center gap-1.5 text-[10px] font-medium tracking-[0.08em] uppercase"
+          >
+            {{ $t('payees.columns.topCategory') }}
+            <ResponsiveTooltip :delay-duration="100" :content="$t('payees.detail.topCategoryHint')">
+              <InfoIcon class="size-3 cursor-help" @click.prevent.stop />
+            </ResponsiveTooltip>
+          </dt>
+          <dd class="flex min-w-0 items-center gap-2 text-sm font-semibold @[650px]/detail:text-lg">
+            <CategoryCircle
+              v-if="payeeData.stats.topCategoryId"
+              :category-id="payeeData.stats.topCategoryId"
+              class="size-5 shrink-0"
+            />
+            <span class="truncate">{{ categoryName(payeeData.stats.topCategoryId) || '—' }}</span>
+          </dd>
+        </div>
+      </dl>
+
+      <div v-if="payeeData" class="border-border/40 mt-6 border-t px-5 pt-5 pb-5 sm:px-6 sm:pt-6 sm:pb-6">
+        <h3 class="text-muted-foreground mb-4 text-[10px] font-medium tracking-widest uppercase">
+          {{ $t('payees.detail.categorizationSection') }}
+        </h3>
+        <div class="grid gap-5 @[650px]/detail:grid-cols-2 @[650px]/detail:gap-6">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-foreground text-xs font-medium">
+              {{ $t('payees.columns.defaultCategory') }}
+            </label>
             <CategorySelectField
               v-model="defaultCategoryProxy"
               :values="formattedCategories"
@@ -34,49 +99,42 @@
               :placeholder="$t('payees.detail.defaultCategoryPlaceholder')"
             />
           </div>
-          <div>
-            <p class="text-muted-foreground text-xs">{{ $t('payees.form.categorizationMode.label') }}</p>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-foreground text-xs font-medium">
+              {{ $t('payees.form.categorizationMode.label') }}
+            </label>
             <SelectField
               v-model="categorizationModeProxy"
               :values="categorizationModeOptions"
               label-key="label"
               value-key="value"
             />
-            <p class="text-muted-foreground mt-1 text-xs">{{ categorizationModeProxy.hint }}</p>
+            <p class="text-muted-foreground text-xs leading-snug">
+              {{ categorizationModeProxy.hint }}
+            </p>
           </div>
-        </div>
-        <div v-if="payeeData.stats" class="grid grid-cols-3 gap-2">
-          <Stat
-            :label="$t('payees.columns.transactionCount')"
-            :value="String(payeeData.stats.transactionCount)"
-            :clickable="payeeData.stats.transactionCount > 0"
-            @click="openTransactionsDialog"
-          />
-          <Stat
-            :label="$t('payees.columns.netFlow')"
-            :value="formatNetFlow(payeeData.stats.netFlowRef)"
-            :tone="netFlowTone(payeeData.stats.netFlowRef)"
-          />
-          <Stat
-            :label="$t('payees.columns.topCategory')"
-            :value="categoryName(payeeData.stats.topCategoryId) || '—'"
-            :hint="$t('payees.detail.topCategoryHint')"
-          >
-            <template v-if="payeeData.stats.topCategoryId" #valuePrefix>
-              <CategoryCircle :category-id="payeeData.stats.topCategoryId" class="size-5" />
-            </template>
-          </Stat>
         </div>
       </div>
     </Card>
 
-    <Card class="px-4 py-4">
-      <h3 class="text-sm font-semibold">{{ $t('payees.detail.aliasesHeading') }}</h3>
-      <ul v-if="payeeData?.aliases && payeeData.aliases.length > 0" class="mt-2 grid gap-1">
+    <Card class="px-5 py-5 sm:px-6 sm:py-6">
+      <div class="flex items-baseline justify-between">
+        <h3 class="text-sm font-semibold">
+          {{ $t('payees.detail.aliasesHeading') }}
+          <span class="text-muted-foreground ml-1.5 text-xs font-normal tabular-nums">
+            {{ payeeData?.aliases?.length ?? 0 }}
+          </span>
+        </h3>
+      </div>
+
+      <ul
+        v-if="payeeData?.aliases && payeeData.aliases.length > 0"
+        class="divide-border/40 border-border/40 mt-3 divide-y overflow-hidden rounded-md border"
+      >
         <li
           v-for="alias in payeeData.aliases"
           :key="alias.id"
-          class="bg-muted/40 flex items-center justify-between rounded px-3 py-2 text-sm"
+          class="hover:bg-muted/20 flex items-center justify-between gap-2 px-3 py-2 text-sm transition-colors"
         >
           <span class="truncate">{{ alias.rawName }}</span>
           <DesktopOnlyTooltip
@@ -98,7 +156,14 @@
           </DesktopOnlyTooltip>
         </li>
       </ul>
-      <p v-else class="text-muted-foreground mt-2 text-xs">—</p>
+
+      <div
+        v-else
+        class="border-border/50 bg-muted/10 text-muted-foreground mt-3 flex flex-col items-center gap-1.5 rounded-md border border-dashed px-4 py-6 text-center"
+      >
+        <TagsIcon class="size-5" />
+        <p class="text-xs leading-snug">{{ $t('payees.detail.aliasesEmpty') }}</p>
+      </div>
     </Card>
 
     <PayeeFormDialog v-model:open="renameOpen" :payee="payeeData ?? null" @saved="refetch()" />
@@ -163,6 +228,7 @@ import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
@@ -171,7 +237,7 @@ import { Card } from '@/components/lib/ui/card';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { CATEGORIZATION_MODE } from '@bt/shared/types';
-import { ChevronLeftIcon, Trash2Icon } from '@lucide/vue';
+import { ChevronLeftIcon, InfoIcon, TagsIcon, Trash2Icon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -179,7 +245,6 @@ import { useI18n } from 'vue-i18n';
 
 import PayeeActionsDropdown from './components/payee-actions-dropdown.vue';
 import PayeeFormDialog from './components/payee-form-dialog.vue';
-import Stat from './components/payee-stat.vue';
 import PayeeTransactionsDialog from './components/payee-transactions-dialog.vue';
 
 defineOptions({ name: 'settings-payee-detail' });
@@ -196,6 +261,8 @@ const { data: payeeData, refetch } = usePayee({ id: payeeId });
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
 
 const categoryName = (id: string | null) => (id ? (categoriesMap.value?.[id]?.name ?? '') : '');
+
+const monogram = computed(() => payeeData.value?.name?.trim().charAt(0)?.toUpperCase() || '·');
 
 const updateMut = useUpdatePayee();
 const defaultCategoryProxy = computed({
@@ -270,10 +337,10 @@ const formatNetFlow = (val: number) =>
     maximumFractionDigits: 0,
   }).format(val);
 
-const netFlowTone = (val: number) => {
-  if (val > 0) return 'income' as const;
-  if (val < 0) return 'expense' as const;
-  return undefined;
+const netFlowToneClass = (val: number) => {
+  if (val > 0) return 'text-app-income-color';
+  if (val < 0) return 'text-app-expense-color';
+  return '';
 };
 
 const renameOpen = ref(false);
@@ -318,7 +385,11 @@ const deleteAndIgnoreOpen = ref(false);
 const openDeleteAndIgnore = () => (deleteAndIgnoreOpen.value = true);
 
 const transactionsDialogOpen = ref(false);
-const openTransactionsDialog = () => (transactionsDialogOpen.value = true);
+const openTransactionsDialog = () => {
+  if (payeeData.value?.stats && payeeData.value.stats.transactionCount > 0) {
+    transactionsDialogOpen.value = true;
+  }
+};
 const deleteAndIgnoreMut = useDeletePayeeAndIgnore();
 async function handleDeleteAndIgnore() {
   if (!payeeData.value) return;
