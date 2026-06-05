@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { useAccountPayees, useCreatePayee, usePayees } from '@/composable/data-queries/payees';
-import { useNotificationCenter } from '@/components/notification-center';
+import { useAccountPayees, usePayees } from '@/composable/data-queries/payees';
 import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { Button } from '@/components/lib/ui/button';
@@ -9,6 +8,8 @@ import { PlusIcon, SearchIcon, XIcon } from '@lucide/vue';
 import { useDebounce } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import type { PayeeModel } from '@bt/shared/types';
+import PayeeFormDialog from '@/pages/settings/subpages/payees/components/payee-form-dialog.vue';
 import FieldLabel from './components/field-label.vue';
 
 const DEBOUNCE_MS = 200;
@@ -60,7 +61,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
 const isOpen = ref(false);
 const inputValue = ref('');
@@ -96,17 +96,14 @@ const displayPayees = computed(() =>
   props.excludeId ? allPayees.value.filter((p) => p.id !== props.excludeId) : allPayees.value,
 );
 
-const exactMatch = computed(() => {
-  if (debouncedQuery.value.length === 0) return null;
-  const lowered = debouncedQuery.value.toLowerCase();
-  return allPayees.value.find((p) => p.name.toLowerCase() === lowered) ?? null;
-});
-
-// Inline create is disabled in owner-scoped mode — the caller can't create
+// Inline create is hidden in owner-scoped mode — the caller can't create
 // payees in the account owner's namespace from the transaction form.
-const canCreateInline = computed(
-  () => !props.ownerScoped && debouncedQuery.value.length > 0 && exactMatch.value === null,
-);
+const showCreateAffordance = computed(() => !props.ownerScoped);
+
+const createLabel = computed(() => {
+  if (debouncedQuery.value.length === 0) return t('fields.payeeSelect.createNew');
+  return t('fields.payeeSelect.createAffordance', { name: debouncedQuery.value });
+});
 
 const selectedLabel = computed(() => {
   if (!props.modelValue) return '';
@@ -135,18 +132,18 @@ function clearSelection() {
   emit('update:modelValue', null);
 }
 
-const createMutation = useCreatePayee();
+const createDialogOpen = ref(false);
+const createDialogInitialName = ref('');
 
-async function createInline() {
-  const name = debouncedQuery.value;
-  if (!name) return;
-  try {
-    const created = await createMutation.mutateAsync({ name });
-    addSuccessNotification(t('fields.payeeSelect.createdToast', { name: created.name }));
-    selectPayee({ id: created.id, defaultCategoryId: created.defaultCategoryId });
-  } catch (error) {
-    addErrorNotification(t('fields.payeeSelect.createFailed'));
-  }
+function openCreateDialog() {
+  createDialogInitialName.value = debouncedQuery.value;
+  createDialogOpen.value = true;
+  // Close the popover so it doesn't stack under the dialog.
+  isOpen.value = false;
+}
+
+function handlePayeeCreated(payee: PayeeModel) {
+  selectPayee({ id: payee.id, defaultCategoryId: payee.defaultCategoryId });
 }
 </script>
 
@@ -201,7 +198,7 @@ async function createInline() {
           </div>
         </div>
 
-        <ScrollArea :class="canCreateInline ? 'max-h-72' : 'max-h-64'">
+        <ScrollArea :class="showCreateAffordance ? 'max-h-72' : 'max-h-64'">
           <div role="listbox">
             <button
               v-for="item in displayPayees"
@@ -217,26 +214,35 @@ async function createInline() {
             </button>
 
             <div
-              v-if="displayPayees.length === 0 && !isFetching && !canCreateInline"
+              v-if="displayPayees.length === 0 && !isFetching && !showCreateAffordance"
               class="text-muted-foreground p-4 text-center text-sm"
             >
               {{ $t('fields.payeeSelect.empty') }}
             </div>
-
-            <Button
-              v-if="canCreateInline"
-              variant="ghost"
-              class="w-full justify-start gap-2 rounded-none border-t"
-              :disabled="createMutation.isPending.value"
-              data-test="payee-select-create"
-              @click="createInline"
-            >
-              <PlusIcon class="size-4" />
-              {{ $t('fields.payeeSelect.createAffordance', { name: debouncedQuery }) }}
-            </Button>
           </div>
         </ScrollArea>
+
+        <!-- Pinned outside the ScrollArea so it stays visible while the user
+             scrolls the list. -->
+
+        <Button
+          v-if="showCreateAffordance"
+          variant="ghost"
+          class="w-full justify-start gap-2 rounded-none border-t"
+          data-test="payee-select-create"
+          @click="openCreateDialog"
+        >
+          <PlusIcon class="size-4" />
+          {{ createLabel }}
+        </Button>
       </Popover.PopoverContent>
     </Popover.Popover>
+
+    <PayeeFormDialog
+      v-model:open="createDialogOpen"
+      :payee="null"
+      :initial-name="createDialogInitialName"
+      @saved="handlePayeeCreated"
+    />
   </FieldLabel>
 </template>

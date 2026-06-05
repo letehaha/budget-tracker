@@ -258,9 +258,8 @@
       "placeholder": "Select a payee",
       "searchPlaceholder": "Search payees…",
       "empty": "No payees yet",
-      "createAffordance": "+ Create payee \"{name}\"",
-      "createdToast": "Payee \"{name}\" created",
-      "createFailed": "Failed to create payee",
+      "createAffordance": "Create payee \"{name}\"",
+      "createNew": "Create new payee",
       "sharedOwnerPayeesLoadError": "Couldn't load payees for the shared account. Please try again."
     }
   }

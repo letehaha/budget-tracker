@@ -61,11 +61,15 @@ import { useI18n } from 'vue-i18n';
 interface Props {
   open: boolean;
   payee: PayeeModel | null;
+  /** Seed the name input in create mode. Ignored in edit mode. */
+  initialName?: string;
 }
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  initialName: '',
+});
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
-  (e: 'saved'): void;
+  (e: 'saved', payee: PayeeModel): void;
 }>();
 
 const { t } = useI18n();
@@ -121,7 +125,7 @@ watch(
   () => props.open,
   (open) => {
     if (!open) return;
-    form.name = props.payee?.name ?? '';
+    form.name = props.payee?.name ?? props.initialName ?? '';
     const defaultCatId = props.payee?.defaultCategoryId ?? null;
     form.category = defaultCatId ? (formattedCategories.value.find((c) => c.id === defaultCatId) ?? null) : null;
     const existingMode = props.payee?.categorizationMode ?? CATEGORIZATION_MODE.enforce;
@@ -137,8 +141,9 @@ const isPending = computed(() => createMut.isPending.value || updateMut.isPendin
 
 async function handleSave() {
   try {
+    let saved: PayeeModel;
     if (isEdit.value && props.payee) {
-      await updateMut.mutateAsync({
+      saved = await updateMut.mutateAsync({
         id: props.payee.id,
         payload: {
           name: form.name,
@@ -148,14 +153,14 @@ async function handleSave() {
       });
       addSuccessNotification(t('payees.toasts.updated'));
     } else {
-      await createMut.mutateAsync({
+      saved = await createMut.mutateAsync({
         name: form.name,
         defaultCategoryId: form.category?.id ?? null,
         categorizationMode: form.categorizationMode.value,
       });
       addSuccessNotification(t('payees.toasts.created'));
     }
-    emit('saved');
+    emit('saved', saved);
     isOpen.value = false;
   } catch (err) {
     addErrorNotification(t('payees.errors.generic'));
