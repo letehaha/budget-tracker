@@ -575,6 +575,135 @@ describe('Subscriptions', () => {
         expect(summary.estimatedMonthlyCost).toBe(10);
         expect(summary.projectedYearlyCost).toBe(120);
       });
+
+      it('returns null percentOfIncome when no income transactions exist', async () => {
+        await helpers.createSubscription({
+          name: 'Netflix',
+          expectedAmount: 1500,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+        expect(summary.averageMonthlyIncome).toBe(0);
+        expect(summary.percentOfIncome).toBeNull();
+      });
+
+      it('returns averageMonthlyIncome and percentOfIncome based on income in last 6 months', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        // 6 income transactions across last 6 complete months, $600 each
+        // → $3600 total, $600/month average
+        for (let monthsAgo = 1; monthsAgo <= 6; monthsAgo++) {
+          const date = new Date();
+          date.setMonth(date.getMonth() - monthsAgo);
+          date.setDate(15);
+          await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 600,
+              transactionType: TRANSACTION_TYPES.income,
+              time: date.toISOString(),
+            }),
+            raw: true,
+          });
+        }
+
+        await helpers.createSubscription({
+          name: 'Netflix',
+          expectedAmount: 6000,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+        expect(summary.estimatedMonthlyCost).toBe(60);
+        expect(summary.averageMonthlyIncome).toBe(600);
+        // 60 / 600 = 10%
+        expect(summary.percentOfIncome).toBe(10);
+      });
+
+      it('honors lookbackMonths query param when averaging income', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        // Income only in the most recent complete month: $900
+        const recent = new Date();
+        recent.setMonth(recent.getMonth() - 1);
+        recent.setDate(10);
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 900,
+            transactionType: TRANSACTION_TYPES.income,
+            time: recent.toISOString(),
+          }),
+          raw: true,
+        });
+
+        // lookback=1 → avg = 900
+        const oneMonth = await helpers.getSubscriptionsSummary({ lookbackMonths: 1, raw: true });
+        expect(oneMonth.averageMonthlyIncome).toBe(900);
+        expect(oneMonth.lookbackMonths).toBe(1);
+
+        // lookback=12 → 900 / 12 = 75
+        const twelveMonths = await helpers.getSubscriptionsSummary({ lookbackMonths: 12, raw: true });
+        expect(twelveMonths.averageMonthlyIncome).toBe(75);
+        expect(twelveMonths.lookbackMonths).toBe(12);
+      });
+
+      it('rejects invalid lookbackMonths values', async () => {
+        const res = await helpers.getSubscriptionsSummary({ lookbackMonths: 5 });
+        expect(res.statusCode).toBe(422);
+      });
+
+      it('excludes current-month and >6-month-old income from the average', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        // Current month — should NOT count
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 9999,
+            transactionType: TRANSACTION_TYPES.income,
+            time: new Date().toISOString(),
+          }),
+          raw: true,
+        });
+
+        // 10 months ago — outside lookback window, should NOT count
+        const old = new Date();
+        old.setMonth(old.getMonth() - 10);
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 9999,
+            transactionType: TRANSACTION_TYPES.income,
+            time: old.toISOString(),
+          }),
+          raw: true,
+        });
+
+        // 2 months ago — counts. $300, divided by 6 → $50/month
+        const recent = new Date();
+        recent.setMonth(recent.getMonth() - 2);
+        recent.setDate(10);
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 300,
+            transactionType: TRANSACTION_TYPES.income,
+            time: recent.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+        expect(summary.averageMonthlyIncome).toBe(50);
+      });
     });
   });
 

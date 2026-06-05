@@ -116,20 +116,30 @@ export const loadUpcomingPayments = async ({ limit, type }: { limit?: number; ty
   return api.get('/subscriptions/upcoming', query);
 };
 
+export const INCOME_LOOKBACK_MONTHS_OPTIONS = [1, 3, 6, 12] as const;
+export type IncomeLookbackMonths = (typeof INCOME_LOOKBACK_MONTHS_OPTIONS)[number];
+export const DEFAULT_INCOME_LOOKBACK_MONTHS: IncomeLookbackMonths = 6;
+
 interface SubscriptionsSummary {
   estimatedMonthlyCost: number;
   projectedYearlyCost: number;
   activeCount: number;
   currencyCode: string;
+  averageMonthlyIncome: number;
+  percentOfIncome: number | null;
+  lookbackMonths: IncomeLookbackMonths;
 }
 
 export const loadSubscriptionsSummary = async ({
   type,
+  lookbackMonths,
 }: {
   type?: string;
+  lookbackMonths?: IncomeLookbackMonths;
 } = {}): Promise<SubscriptionsSummary> => {
   const query: Record<string, string> = {};
   if (type) query.type = type;
+  if (lookbackMonths !== undefined) query.lookbackMonths = String(lookbackMonths);
 
   return api.get('/subscriptions/summary', query);
 };

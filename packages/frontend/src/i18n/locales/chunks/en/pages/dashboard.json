@@ -88,12 +88,24 @@
         "title": "Subscriptions & Bills",
         "titleSubscriptions": "Subscriptions",
         "titleBills": "Bills",
-        "configType": "Type",
         "configTypeAll": "All",
         "configTypeSubscriptions": "Subscriptions",
         "configTypeBills": "Bills",
         "activeSummary": "{count} active",
-        "perYear": " per year"
+        "perYear": " per year",
+        "percentOfIncome": "{percent}% of avg income",
+        "settings": {
+          "title": "Settings",
+          "show": "Show",
+          "incomeWindow": "Income window",
+          "incomeWindowTooltip": "We average your incoming transactions over this period to compute the % of income spent on recurring payments.",
+          "lookbackOption": {
+            "1": "Last month",
+            "3": "Last 3 months",
+            "6": "Last 6 months",
+            "12": "Last 12 months"
+          }
+        }
       },
       "categoryTracker": {
         "title": "Categories Watchlist",

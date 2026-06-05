@@ -1,11 +1,53 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import {
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
+import Accounts from '@models/accounts.model';
 import Subscriptions from '@models/subscriptions.model';
+import Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
 import { Op } from 'sequelize';
+
+export const INCOME_LOOKBACK_MONTHS_OPTIONS = [1, 3, 6, 12] as const;
+type IncomeLookbackMonths = (typeof INCOME_LOOKBACK_MONTHS_OPTIONS)[number];
+const DEFAULT_INCOME_LOOKBACK_MONTHS: IncomeLookbackMonths = 6;
+
+const getAverageMonthlyIncome = async ({
+  userId,
+  lookbackMonths,
+}: {
+  userId: number;
+  lookbackMonths: IncomeLookbackMonths;
+}): Promise<Money> => {
+  const now = new Date();
+  const from = startOfMonth(subMonths(now, lookbackMonths));
+  const to = endOfMonth(subMonths(now, 1));
+
+  const incomeTxs = await Transactions.findAll({
+    where: {
+      userId,
+      transactionType: TRANSACTION_TYPES.income,
+      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      time: { [Op.between]: [from, to] },
+    },
+    include: [{ model: Accounts, where: { excludeFromStats: false }, attributes: [] }],
+    attributes: ['refAmount'],
+  });
+
+  let total = Money.zero();
+  for (const tx of incomeTxs) {
+    total = total.add(tx.refAmount);
+  }
+
+  return total.divide(lookbackMonths);
+};
 
 const MONTHLY_MULTIPLIERS: Record<SUBSCRIPTION_FREQUENCIES, number> = {
   [SUBSCRIPTION_FREQUENCIES.weekly]: 4.33,
@@ -19,9 +61,14 @@ const MONTHLY_MULTIPLIERS: Record<SUBSCRIPTION_FREQUENCIES, number> = {
 interface GetSubscriptionsSummaryParams {
   userId: number;
   type?: SUBSCRIPTION_TYPES;
+  lookbackMonths?: IncomeLookbackMonths;
 }
 
-const getSubscriptionsSummaryImpl = async ({ userId, type }: GetSubscriptionsSummaryParams) => {
+const getSubscriptionsSummaryImpl = async ({
+  userId,
+  type,
+  lookbackMonths = DEFAULT_INCOME_LOOKBACK_MONTHS,
+}: GetSubscriptionsSummaryParams) => {
   const where: Record<string, unknown> = {
     userId,
     isActive: true,
@@ -64,11 +111,19 @@ const getSubscriptionsSummaryImpl = async ({ userId, type }: GetSubscriptionsSum
   const monthlyMoney = totalMonthly.round();
   const yearlyMoney = monthlyMoney.multiply(12);
 
+  const averageMonthlyIncomeMoney = await getAverageMonthlyIncome({ userId, lookbackMonths });
+  const averageMonthlyIncome = averageMonthlyIncomeMoney.toNumber();
+  const percentOfIncome =
+    averageMonthlyIncome > 0 ? Math.round((monthlyMoney.toNumber() / averageMonthlyIncome) * 1000) / 10 : null;
+
   return {
     estimatedMonthlyCost: monthlyMoney.toNumber(),
     projectedYearlyCost: yearlyMoney.toNumber(),
     activeCount: subscriptions.length,
     currencyCode: baseCurrencyCode,
+    averageMonthlyIncome,
+    percentOfIncome,
+    lookbackMonths,
   };
 };
 
