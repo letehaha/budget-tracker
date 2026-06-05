@@ -61,8 +61,8 @@ describe('Payee Ignored Names', () => {
   describe('extraction Step 3 suppression', () => {
     it('does NOT auto-promote a Payee for a normalizedName on the ignored list', async () => {
       // Opt the user into description-based extraction so manual tx creates
-      // funnel `note` into Type A — that's the only way to exercise Step 3
-      // promotion without a real bank sync.
+      // funnel `note` into the inline sync-time extractor — that's the only
+      // way to exercise Step 3 promotion without a real bank sync.
       await helpers.updateUserSettings({
         settings: { locale: 'en', payeeExtractionUsesDescription: true },
       });

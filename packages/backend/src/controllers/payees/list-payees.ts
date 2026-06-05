@@ -1,3 +1,4 @@
+import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as payeesService from '@services/payees';
 import { z } from 'zod';
@@ -12,6 +13,13 @@ const schema = z.object({
       offset: z.coerce.number().int().min(0).optional(),
       sortBy: z.enum(['lastSeen', 'name', 'netFlow', 'transactionCount']).optional(),
       sortDir: z.enum(['asc', 'desc']).optional(),
+      // Scope to a single account's owner (mirrors the categories
+      // `?accountId=` pattern). On a shared account the recipient sees the
+      // owner's payee set; on an owned account it falls through to the
+      // caller's own set. Required for the transaction form's payee picker
+      // on shared accounts so it resolves to the same namespace that the
+      // backend write paths validate against.
+      accountId: recordId().optional(),
     })
     .optional(),
 });
@@ -24,6 +32,7 @@ export default createController(schema, async ({ user, query }) => {
     offset: query?.offset,
     sortBy: query?.sortBy,
     sortDir: query?.sortDir,
+    accountId: query?.accountId,
   });
   return { data: rows.map((row) => serializePayeeWithStats(row)) };
 });

@@ -1,4 +1,4 @@
-import { CATEGORIZATION_MODE, type RecordId } from '@bt/shared/types';
+import { CATEGORIZATION_MODE, RESOURCE_TYPES, SHARE_PERMISSIONS, type RecordId } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import Categories from '@models/categories.model';
@@ -6,6 +6,7 @@ import { connection } from '@models/connection';
 import PayeeAliases from '@models/payee-aliases.model';
 import Payees from '@models/payees.model';
 import Transactions from '@models/transactions.model';
+import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { Op, QueryTypes } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -54,6 +55,15 @@ interface ListPayeesParams {
   offset?: number;
   sortBy?: PayeeSortBy;
   sortDir?: PayeeSortDir;
+  /**
+   * Scope to a single account's owner. On a shared account the recipient
+   * sees the owner's payee set; on an owned account it behaves like the
+   * no-arg path. Mirrors the categories `?accountId=` pattern so the
+   * recipient's transaction-form picker resolves to the same namespace
+   * that backend write paths validate against. Stranger `accountId`
+   * returns 404 to keep the param from leaking other users' resources.
+   */
+  accountId?: string;
 }
 
 interface PayeeListRow {
@@ -90,7 +100,22 @@ export const listPayees = withTransaction(
     offset = 0,
     sortBy = 'transactionCount',
     sortDir = 'desc',
+    accountId,
   }: ListPayeesParams): Promise<PayeeListRow[]> => {
+    let scopedUserId = userId;
+    if (accountId !== undefined) {
+      const access = await canUserAccessResource({
+        userId,
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: accountId,
+        requiredPermission: SHARE_PERMISSIONS.read,
+      });
+      if (!access.granted) {
+        throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+      }
+      scopedUserId = access.isOwner ? userId : access.ownerUserId!;
+    }
+
     let effectiveLimit = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
     let normalizedQuery: string | null = null;
     if (q && q.trim().length > 0) {
@@ -123,10 +148,10 @@ export const listPayees = withTransaction(
                  ) AS "netFlowRefCents",
                  MAX("time") AS "lastSeenAt"
             FROM "Transactions"
-           WHERE "userId" = :userId
+           WHERE "userId" = :scopedUserId
            GROUP BY "payeeId"
         ) s ON s."payeeId" = p.id
-       WHERE p."userId" = :userId
+       WHERE p."userId" = :scopedUserId
          ${nameWhere}
        ORDER BY ${orderBy}
        LIMIT :limit OFFSET :offset
@@ -134,7 +159,7 @@ export const listPayees = withTransaction(
       {
         type: QueryTypes.SELECT,
         replacements: {
-          userId,
+          scopedUserId,
           nameLike: normalizedQuery !== null ? `%${normalizedQuery}%` : null,
           limit: effectiveLimit,
           offset,
@@ -151,7 +176,7 @@ export const listPayees = withTransaction(
         where: { id: { [Op.in]: ids } },
         include: [{ model: PayeeAliases, as: 'aliases' }],
       }),
-      getPayeeStatsMap({ userId, payeeIds: ids }),
+      getPayeeStatsMap({ userId: scopedUserId, payeeIds: ids }),
     ]);
 
     const payeesById = new Map<string, Payees>(payees.map((p) => [p.id, p]));
@@ -389,9 +414,9 @@ interface DeletePayeeAliasParams {
  *
  * Refuses to delete the alias whose normalized form matches the Payee's
  * canonical normalizedName: deletion would leave the Payee with no link to
- * its own name, and the next sync would just re-create the alias via Type A.
- * The user can rename the Payee instead if they want a different canonical
- * form.
+ * its own name, and the next sync's inline extraction would just re-create
+ * the alias via Step 1 exact match. The user can rename the Payee instead
+ * if they want a different canonical form.
  */
 export const deletePayeeAlias = withTransaction(
   async ({ userId, payeeId, aliasId }: DeletePayeeAliasParams): Promise<void> => {

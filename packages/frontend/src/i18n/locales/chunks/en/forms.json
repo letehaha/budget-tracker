@@ -260,7 +260,8 @@
       "empty": "No payees yet",
       "createAffordance": "+ Create payee \"{name}\"",
       "createdToast": "Payee \"{name}\" created",
-      "createFailed": "Failed to create payee"
+      "createFailed": "Failed to create payee",
+      "sharedOwnerPayeesLoadError": "Couldn't load payees for the shared account. Please try again."
     }
   }
 }

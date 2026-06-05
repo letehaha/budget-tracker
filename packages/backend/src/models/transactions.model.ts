@@ -289,8 +289,9 @@ export default class Transactions extends Model {
   @BelongsTo(() => Payees)
   payee!: Payees;
 
-  // True when the user explicitly assigned or cleared payeeId; extraction and Type B
-  // fuzzy matching skip rows with this flag set so manual overrides survive resyncs.
+  // True when the user explicitly assigned or cleared payeeId; both the inline
+  // sync-time extraction and the post-sync note fuzzy backfill skip rows with
+  // this flag set so manual overrides survive resyncs.
   @Column({
     type: DataType.BOOLEAN,
     allowNull: false,

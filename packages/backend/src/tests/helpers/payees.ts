@@ -31,11 +31,18 @@ export async function createPayee<R extends boolean | undefined = undefined>({
   });
 }
 
-export async function listPayees<R extends boolean | undefined = undefined>({ q, raw }: { q?: string; raw?: R } = {}) {
-  const qs = q !== undefined ? `?q=${encodeURIComponent(q)}` : '';
+export async function listPayees<R extends boolean | undefined = undefined>({
+  q,
+  accountId,
+  raw,
+}: { q?: string; accountId?: string; raw?: R } = {}) {
+  const search = new URLSearchParams();
+  if (q !== undefined) search.set('q', q);
+  if (accountId !== undefined) search.set('accountId', accountId);
+  const qs = search.toString();
   return makeRequest<PayeeWithStats[], R>({
     method: 'get',
-    url: `/payees${qs}`,
+    url: `/payees${qs ? `?${qs}` : ''}`,
     raw,
   });
 }

@@ -166,14 +166,16 @@ const makeBasicBaseTxUpdation = async (
   // future provider syncs won't revert it. The controller can still pass
   // `payeeLocked` explicitly for transfer-conversion flows.
   //
-  // Validate non-null payeeId against the row owner's id. Payees are per-user
-  // and the row's `payeeId` is required to reference one owned by the row's
-  // `userId`. Without this guard a caller could stamp a foreign user's
-  // Payee — the DB FK only references `Payees(id)`, not `(id, userId)`.
+  // Validate non-null payeeId against the *account owner*, mirroring the
+  // category-scoping pattern (see `categoryId` lookup above). Payees are
+  // owned by the account holder, so on a shared-account write the recipient
+  // must pick from the owner's payee list. The DB FK only references
+  // `Payees(id)` — without this scope check a caller could stamp a foreign
+  // Payee onto an owner's row.
   if (newData.payeeId !== undefined) {
     if (newData.payeeId !== null) {
       const ownedPayee = await Payees.findOne({
-        where: { id: newData.payeeId, userId: ctx.txCreatorUserId },
+        where: { id: newData.payeeId, userId: ctx.accountOwnerUserId },
         attributes: ['id'],
       });
       if (!ownedPayee) {

@@ -1,4 +1,11 @@
-import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  CATEGORIZATION_MODE,
+  CATEGORIZATION_SOURCE,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  TRANSACTIONS_WRITE_SCOPES,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -1061,6 +1068,365 @@ describe('Shared account writes — S4', () => {
       });
       // No additional currency rows added when account currency == recipient base.
       expect(afterCurrencies.length).toBe(beforeCount);
+    });
+  });
+
+  /**
+   * Payee linking mirrors the category-on-shared-account contract: Payees are
+   * scoped to the account owner, so on a shared-account write the recipient
+   * must pick from the owner's payee list. Their own private payees are
+   * irrelevant to rows that live on the owner's account.
+   *
+   * Categorization (`payee_rule`) is also owner-scoped: it only fires when the
+   * caller IS the account owner. A recipient-authored row gets the owner's
+   * payeeId stamped but leaves `categorizationMeta` untouched — the owner can
+   * apply their rules later via the post-sync note fuzzy backfill or a manual
+   * re-categorize. Owner's rules, owner's account.
+   */
+  describe('Payee linking on shared accounts', () => {
+    it("links a recipient-created tx to the owner's payeeId when supplied", async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const ownerCategory = await ownerCreatesCategory('Payee-owner-cat');
+      const ownerPayee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: `Owner Payee ${Date.now()}` }),
+        raw: true,
+      });
+      const recipient = await provisionRecipient();
+      await shareAccount({
+        accountId: account.id,
+        recipient,
+        permission: SHARE_PERMISSIONS.write,
+        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      });
+
+      const [tx] = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: {
+              ...helpers.buildTransactionPayload({
+                accountId: account.id,
+                amount: 100,
+                categoryId: ownerCategory.id,
+              }),
+              payeeId: ownerPayee.id,
+            },
+            raw: true,
+          }),
+      });
+
+      expect(tx.payeeId).toBe(ownerPayee.id);
+    });
+
+    it('rejects a recipient supplying their own payeeId on a shared account (must be owner-set)', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const ownerCategory = await ownerCreatesCategory('Payee-owner-cat-2');
+      const recipient = await provisionRecipient();
+      await shareAccount({
+        accountId: account.id,
+        recipient,
+        permission: SHARE_PERMISSIONS.write,
+        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      });
+
+      const recipientPayee = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createPayee({
+            payload: helpers.buildPayeePayload({ name: `Recipient-side Payee ${Date.now()}` }),
+            raw: true,
+          }),
+      });
+
+      const res = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: {
+              ...helpers.buildTransactionPayload({
+                accountId: account.id,
+                amount: 100,
+                categoryId: ownerCategory.id,
+              }),
+              payeeId: recipientPayee.id,
+            },
+          }),
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it("allows a recipient to attach an owner's payee via PUT", async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const ownerCategory = await ownerCreatesCategory('Payee-owner-cat-update');
+      const ownerPayee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: `Owner Payee Update ${Date.now()}` }),
+        raw: true,
+      });
+      const [ownerTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          categoryId: ownerCategory.id,
+        }),
+        raw: true,
+      });
+      const recipient = await provisionRecipient();
+      await shareAccount({
+        accountId: account.id,
+        recipient,
+        permission: SHARE_PERMISSIONS.write,
+        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      });
+
+      const res = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.updateTransaction({
+            id: ownerTx.id,
+            payload: { payeeId: ownerPayee.id },
+          }),
+      });
+
+      expect(res.statusCode).toBe(200);
+      const fetched = await helpers.getTransactionById({ id: ownerTx.id, raw: true });
+      expect(fetched!.payeeId).toBe(ownerPayee.id);
+    });
+
+    it('rejects a recipient supplying their own payeeId via PUT on a shared-account tx', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const ownerCategory = await ownerCreatesCategory('Payee-owner-cat-update-2');
+      const [ownerTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          categoryId: ownerCategory.id,
+        }),
+        raw: true,
+      });
+      const recipient = await provisionRecipient();
+      await shareAccount({
+        accountId: account.id,
+        recipient,
+        permission: SHARE_PERMISSIONS.write,
+        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      });
+
+      const recipientPayee = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createPayee({
+            payload: helpers.buildPayeePayload({ name: `Recipient Payee Update ${Date.now()}` }),
+            raw: true,
+          }),
+      });
+
+      const res = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.updateTransaction({
+            id: ownerTx.id,
+            payload: { payeeId: recipientPayee.id },
+          }),
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it("note-extraction respects the owner's payeeExtractionUsesDescription setting", async () => {
+      // Owner enables description-based extraction and seeds an exact-match
+      // payee. A recipient-side create with a matching note must hit the
+      // owner's namespace — even though the recipient's own setting is off by
+      // default, the owner's policy is what governs writes on their account.
+      const ownerCategory = await ownerCreatesCategory('Note-extract-owner-cat');
+      await helpers.updateUserSettings({
+        settings: { locale: 'en', payeeExtractionUsesDescription: true },
+      });
+      const ownerPayee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({
+          name: `OwnerMerchantNote-${Date.now()}`,
+          defaultCategoryId: ownerCategory.id,
+        }),
+        raw: true,
+      });
+
+      const account = await helpers.createAccount({ raw: true });
+      const recipient = await provisionRecipient();
+      await shareAccount({
+        accountId: account.id,
+        recipient,
+        permission: SHARE_PERMISSIONS.write,
+        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      });
+
+      const [tx] = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 100,
+              categoryId: ownerCategory.id,
+              note: ownerPayee.name,
+            }),
+            raw: true,
+          }),
+      });
+
+      expect(tx.payeeId).toBe(ownerPayee.id);
+    });
+
+    it('owner-authored write with an enforce-mode payee stamps categorizationMeta', async () => {
+      // Baseline check: nothing here changed for owner-on-own-account writes.
+      // Confirms the recipient-skip case below is a deliberate divergence, not
+      // a regression in the enforce-mode path.
+      const enforceCategory = await ownerCreatesCategory(`Enforce-target-${Date.now()}`);
+      const otherCategory = await ownerCreatesCategory(`Other-${Date.now()}`);
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({
+          name: `Enforce Payee ${Date.now()}`,
+          defaultCategoryId: enforceCategory.id,
+          categorizationMode: CATEGORIZATION_MODE.enforce,
+        }),
+        raw: true,
+      });
+      const account = await helpers.createAccount({ raw: true });
+
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            categoryId: otherCategory.id,
+          }),
+          payeeId: payee.id,
+        },
+        raw: true,
+      });
+
+      expect(tx.payeeId).toBe(payee.id);
+      expect(tx.categoryId).toBe(enforceCategory.id);
+      expect(tx.categorizationMeta?.source).toBe(CATEGORIZATION_SOURCE.payeeRule);
+    });
+
+    /**
+     * Picker-side coverage: the transaction form's payee dropdown must
+     * resolve to the same namespace that the write paths validate against.
+     * Mirrors `GET /categories?accountId=` for the categories picker.
+     */
+    describe('GET /payees?accountId=', () => {
+      it("returns the caller's payees when no accountId is provided (back-compat)", async () => {
+        const ownPayee = await helpers.createPayee({
+          payload: helpers.buildPayeePayload({ name: `Own Payee List ${Date.now()}` }),
+          raw: true,
+        });
+
+        const list = await helpers.listPayees({ raw: true });
+        expect(list.find((p) => p.id === ownPayee.id)).toBeDefined();
+      });
+
+      it("returns the caller's payees when accountId is an owned account", async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const ownPayee = await helpers.createPayee({
+          payload: helpers.buildPayeePayload({ name: `Own Payee Account ${Date.now()}` }),
+          raw: true,
+        });
+
+        const list = await helpers.listPayees({ accountId: account.id, raw: true });
+        expect(list.find((p) => p.id === ownPayee.id)).toBeDefined();
+      });
+
+      it("returns the *owner's* payees when accountId is shared with the caller", async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const ownerPayee = await helpers.createPayee({
+          payload: helpers.buildPayeePayload({ name: `Owner Picker Payee ${Date.now()}` }),
+          raw: true,
+        });
+        const recipient = await provisionRecipient();
+        await shareAccount({
+          accountId: account.id,
+          recipient,
+          permission: SHARE_PERMISSIONS.write,
+          transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+        });
+
+        const recipientPayee = await helpers.asUser({
+          cookies: recipient.cookies,
+          fn: () =>
+            helpers.createPayee({
+              payload: helpers.buildPayeePayload({ name: `Recipient Side Payee ${Date.now()}` }),
+              raw: true,
+            }),
+        });
+
+        const list = await helpers.asUser({
+          cookies: recipient.cookies,
+          fn: () => helpers.listPayees({ accountId: account.id, raw: true }),
+        });
+
+        expect(list.find((p) => p.id === ownerPayee.id)).toBeDefined();
+        // Recipient's own payees are not in the owner's namespace and must
+        // not bleed into the owner-scoped picker — otherwise the user could
+        // pick one and trip the write-path 404.
+        expect(list.find((p) => p.id === recipientPayee.id)).toBeUndefined();
+      });
+
+      it('returns 404 when accountId references an account the caller has no claim on', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const stranger = await provisionRecipient();
+
+        const res = await helpers.asUser({
+          cookies: stranger.cookies,
+          fn: () => helpers.listPayees({ accountId: account.id, raw: false }),
+        });
+
+        expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+      });
+    });
+
+    it("recipient-authored write skips payee_rule even when owner's payee is enforce-mode", async () => {
+      // The row gets the owner's payeeId, but `categorizationMeta` stays null
+      // because the caller doesn't own the account. The owner can apply their
+      // own rules later via the post-sync backfill or a manual re-categorize.
+      const enforceCategory = await ownerCreatesCategory(`Enforce-target-rec-${Date.now()}`);
+      const otherCategory = await ownerCreatesCategory(`Other-rec-${Date.now()}`);
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({
+          name: `Enforce Payee Rec ${Date.now()}`,
+          defaultCategoryId: enforceCategory.id,
+          categorizationMode: CATEGORIZATION_MODE.enforce,
+        }),
+        raw: true,
+      });
+      const account = await helpers.createAccount({ raw: true });
+      const recipient = await provisionRecipient();
+      await shareAccount({
+        accountId: account.id,
+        recipient,
+        permission: SHARE_PERMISSIONS.write,
+        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      });
+
+      const [tx] = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: {
+              ...helpers.buildTransactionPayload({
+                accountId: account.id,
+                amount: 100,
+                categoryId: otherCategory.id,
+              }),
+              payeeId: payee.id,
+            },
+            raw: true,
+          }),
+      });
+
+      expect(tx.payeeId).toBe(payee.id);
+      // categoryId stays as supplied — payee_rule did NOT overwrite it.
+      expect(tx.categoryId).toBe(otherCategory.id);
+      expect(tx.categorizationMeta).toBeNull();
     });
   });
 });

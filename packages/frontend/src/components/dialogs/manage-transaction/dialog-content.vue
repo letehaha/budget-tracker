@@ -832,6 +832,8 @@ onUnmounted(() => {
                 v-model="form.payeeId"
                 :label="$t('dialogs.manageTransaction.form.payeeLabel')"
                 :disabled="isFormFieldsDisabled"
+                :account-id="resolvedAccountId"
+                :owner-scoped="isAccountSharedWithCaller"
                 @payee-selected="handlePayeeSelected"
               />
             </form-row>

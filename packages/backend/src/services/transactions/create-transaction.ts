@@ -309,14 +309,17 @@ export const createTransaction = withTransaction(
       // to the transaction note. Off by default; opt-in for users whose
       // provider (e.g. Monobank) returns the merchant in `description` only.
       //
-      // Caller-supplied ids are validated against `userId` here. The DB FK
-      // only references `Payees(id)`, so without this guard a caller could
-      // stamp a foreign user's Payee onto their own row. Same idea as the
-      // tagIds check below.
+      // Caller-supplied ids are validated against `accountOwnerUserId`, not
+      // the caller — Payees are scoped to the account owner just like
+      // Categories. On a shared-account write the recipient must pick from
+      // the owner's payee list; their own private payees are out of scope
+      // for rows that live on someone else's account. The owner's user-level
+      // `payeeExtractionUsesDescription` setting also drives the description
+      // fallback so behavior matches what the owner configured.
       let resolvedPayeeId: string | null = null;
       if (callerPayeeId) {
         const ownedPayee = await Payees.findOne({
-          where: { id: callerPayeeId, userId },
+          where: { id: callerPayeeId, userId: accountOwnerUserId },
           attributes: ['id'],
         });
         if (!ownedPayee) {
@@ -327,7 +330,7 @@ export const createTransaction = withTransaction(
       if (!callerPayeeLocked && !resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
         let effectiveRawMerchant: string | null | undefined = rawMerchantName;
         if (!effectiveRawMerchant && payload.note) {
-          const settings = await getUserSettings({ userId });
+          const settings = await getUserSettings({ userId: accountOwnerUserId });
           if (settings.payeeExtractionUsesDescription) {
             effectiveRawMerchant = payload.note;
           }
@@ -335,7 +338,7 @@ export const createTransaction = withTransaction(
         if (effectiveRawMerchant) {
           try {
             const extraction = await resolvePayeeForRawMerchant({
-              userId,
+              userId: accountOwnerUserId,
               rawMerchantName: effectiveRawMerchant,
             });
             resolvedPayeeId = extraction.payeeId;
@@ -492,10 +495,20 @@ export const createTransaction = withTransaction(
       // subscription_rule wins on conflict. The helper itself handles the
       // mode-based meta stamping and the overridable-source precedence; we
       // just hand it the linked payeeId.
-      if (resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      //
+      // Gated on `isOwner`: when a recipient writes on the owner's shared
+      // account we resolve the payee from the owner's namespace but skip
+      // categorization here. The row's account belongs to the owner, so the
+      // owner's post-sync note fuzzy backfill (or a manual re-categorize) is
+      // the appropriate actor for applying their categorization rules.
+      // `applyPayeeCategorization` itself filters by `userId` against both
+      // the Payee and the Transaction row, which doesn't fit a recipient
+      // caller — short-circuiting here also keeps that helper's contract
+      // narrow.
+      if (isOwner && resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
         try {
           const updated = await applyPayeeCategorization({
-            userId,
+            accountOwnerUserId,
             transactionId: baseTransaction!.id,
             payeeId: resolvedPayeeId,
           });

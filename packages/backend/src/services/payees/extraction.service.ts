@@ -86,8 +86,9 @@ async function findExactMatch({
  *
  * The set is bounded by `STEP3_CANDIDATE_LIMIT` so a one-time bulk import on
  * an unusually large account doesn't degrade per-row create cost. Anything
- * beyond the cap will be picked up by Type B / the future history-backfill
- * tool on the Transactions Optimizations page.
+ * beyond the cap will be picked up by the post-sync note fuzzy backfill
+ * (`note-fuzzy-backfill.ts`) or the future history-backfill tool on the
+ * Transactions Optimizations page.
  */
 async function collectPriorUnmatched({
   userId,

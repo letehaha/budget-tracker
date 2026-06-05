@@ -2,24 +2,34 @@ import { logger } from '@js/utils/logger';
 import { DOMAIN_EVENTS, TransactionsSyncedPayload, eventBus } from '@services/common/event-bus';
 import { getUserSettings } from '@services/user-settings/get-user-settings';
 
-import { runTypeBFuzzyPass } from './type-b-pass';
+import { runNoteFuzzyBackfill } from './note-fuzzy-backfill';
 
 const DEBOUNCE_MS = 4000;
+const LOG_PREFIX = '[Payee note-backfill]';
 
 const pendingTransactions = new Map<number, Set<string>>();
 const debounceTimers = new Map<number, NodeJS.Timeout>();
 
 /**
- * Register Payee Type B event listeners.
+ * Register the post-sync note fuzzy backfill listeners.
  *
- * The Type B pass runs after `TRANSACTIONS_SYNCED` with a small debounce so
- * multiple accounts syncing in quick succession produce a single batch
- * instead of one pass per account. Runs at lower priority than the primary
- * extraction (which already ran inside createTransaction during the sync).
+ * Runs after `TRANSACTIONS_SYNCED` with a small debounce so multiple
+ * accounts syncing in quick succession produce a single batch instead of
+ * one pass per account. Lower priority than the inline sync-time
+ * extraction inside `createTransaction`, which has already run for these
+ * rows — this pass only fills the gap for rows where the provider's
+ * dedicated merchant column was empty and the user has opted into using
+ * `description` (note) as the fuzzy-match source.
+ *
+ * Scoping: the backfill processes every uncategorized row on accounts
+ * the requesting user *owns* — `runNoteFuzzyBackfill` joins `Accounts`
+ * and gates by `Account.userId`, so a shared-account row authored by a
+ * recipient is still picked up under the owner's pass. Matches the same
+ * pattern used by `ai-categorization/event-listeners.ts`.
  */
-export function registerPayeeTypeBListeners(): void {
+export function registerPayeeNoteBackfillListeners(): void {
   eventBus.on(DOMAIN_EVENTS.TRANSACTIONS_SYNCED, handleTransactionsSynced);
-  logger.info('Payee Type B event listeners registered');
+  logger.info('Payee note-backfill event listeners registered');
 }
 
 function handleTransactionsSynced(payload: TransactionsSyncedPayload): void {
@@ -35,38 +45,39 @@ function handleTransactionsSynced(payload: TransactionsSyncedPayload): void {
 
   debounceTimers.set(
     userId,
-    setTimeout(() => flushPendingTypeBBatch(userId), DEBOUNCE_MS),
+    setTimeout(() => flushPendingNoteBackfillBatch(userId), DEBOUNCE_MS),
   );
 }
 
-async function flushPendingTypeBBatch(userId: number): Promise<void> {
+async function flushPendingNoteBackfillBatch(userId: number): Promise<void> {
   const bucket = pendingTransactions.get(userId);
   debounceTimers.delete(userId);
   pendingTransactions.delete(userId);
   if (!bucket || bucket.size === 0) return;
 
   try {
-    // Type B uses `note` (transaction description) as the fuzzy-match signal,
-    // so it's only valid when the user has opted into description-driven
-    // Payee inference. For strict users (default), this pass is a no-op.
+    // The note-based backfill uses `note` (transaction description) as the
+    // fuzzy-match signal, so it's only valid when the user has opted into
+    // description-driven Payee inference. For strict users (default), this
+    // pass is a no-op.
     const settings = await getUserSettings({ userId });
     if (!settings.payeeExtractionUsesDescription) {
-      logger.info('[Payee Type B] skipped: user has not opted into description-based extraction', {
+      logger.info(`${LOG_PREFIX} skipped: user has not opted into description-based extraction`, {
         userId,
         bucketSize: bucket.size,
       });
       return;
     }
 
-    const result = await runTypeBFuzzyPass({ userId, transactionIds: Array.from(bucket) });
-    logger.info('[Payee Type B] batch complete', {
+    const result = await runNoteFuzzyBackfill({ userId, transactionIds: Array.from(bucket) });
+    logger.info(`${LOG_PREFIX} batch complete`, {
       userId,
       scanned: result.scanned,
       linked: result.linked,
     });
   } catch (error) {
     logger.error({
-      message: '[Payee Type B] batch failed',
+      message: `${LOG_PREFIX} batch failed`,
       error: error as Error,
     });
   }

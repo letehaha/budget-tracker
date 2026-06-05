@@ -2,4 +2,4 @@ export * from './payees.service';
 export * from './payee-stats';
 export * from './normalize-name';
 export * from './ignored-names.service';
-export { registerPayeeTypeBListeners } from './event-listeners';
+export { registerPayeeNoteBackfillListeners } from './event-listeners';

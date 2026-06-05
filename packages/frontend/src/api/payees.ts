@@ -24,6 +24,7 @@ interface ListPayeesParams {
   offset?: number;
   sortBy?: PayeeSortBy;
   sortDir?: PayeeSortDir;
+  accountId?: string;
 }
 
 export const loadPayees = async (params: ListPayeesParams = {}): Promise<PayeeWithStats[]> => {
@@ -33,9 +34,27 @@ export const loadPayees = async (params: ListPayeesParams = {}): Promise<PayeeWi
   if (params.offset !== undefined) search.set('offset', String(params.offset));
   if (params.sortBy !== undefined) search.set('sortBy', params.sortBy);
   if (params.sortDir !== undefined) search.set('sortDir', params.sortDir);
+  if (params.accountId !== undefined) search.set('accountId', params.accountId);
   const qs = search.toString();
   return api.get(`/payees${qs ? `?${qs}` : ''}`);
 };
+
+/**
+ * Mirror of `loadCategoriesByAccount` — used by the transaction-form payee
+ * picker on a shared account so it resolves to the account owner's payee
+ * namespace (matching the backend write paths' validation scope).
+ */
+export const loadPayeesByAccount = async ({
+  accountId,
+  q,
+  sortBy,
+  sortDir,
+}: {
+  accountId: string;
+  q?: string;
+  sortBy?: PayeeSortBy;
+  sortDir?: PayeeSortDir;
+}): Promise<PayeeWithStats[]> => loadPayees({ accountId, q, sortBy, sortDir });
 
 export const loadPayeeById = async ({ id }: { id: string }): Promise<PayeeWithStats> => {
   return api.get(`/payees/${id}`);

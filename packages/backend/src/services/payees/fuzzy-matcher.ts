@@ -54,9 +54,9 @@ interface FuzzyMatchResult {
 }
 
 /**
- * Build a Fuse index once, then call `search` many times against it. Type B
- * batch matching reuses the same index across an entire freshly-synced batch
- * to avoid rebuilding per transaction.
+ * Build a Fuse index once, then call `search` many times against it. The
+ * post-sync note fuzzy backfill reuses the same index across an entire
+ * freshly-synced batch to avoid rebuilding per transaction.
  */
 export function buildFuzzyIndex({ haystack }: { haystack: HaystackEntry[] }) {
   const fuse = new Fuse(haystack, FUSE_OPTIONS);

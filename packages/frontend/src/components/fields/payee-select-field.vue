@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { usePayees, useCreatePayee } from '@/composable/data-queries/payees';
+import { useAccountPayees, useCreatePayee, usePayees } from '@/composable/data-queries/payees';
 import { useNotificationCenter } from '@/components/notification-center';
 import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
@@ -20,12 +20,29 @@ interface Props {
   disabled?: boolean;
   /** When set, this Payee id is filtered out of the dropdown (e.g. the source of a merge). */
   excludeId?: string | null;
+  /**
+   * Account context for the picker. When provided AND the account is shared
+   * with the caller, swap to the owner-scoped list so the picker matches the
+   * payee namespace the backend write paths validate against. When the
+   * account is owned by the caller, it's the caller's own list (same as
+   * undefined). Owner-scoped fetch is enabled by `ownerScoped`.
+   */
+  accountId?: string | null;
+  /**
+   * Set by the parent when `accountId` resolves to a shared account, telling
+   * this component to route through `useAccountPayees` instead of `usePayees`.
+   * Inline create is hidden in this mode (recipient can't create payees in the
+   * owner's namespace from a transaction form).
+   */
+  ownerScoped?: boolean;
 }
 const props = withDefaults(defineProps<Props>(), {
   label: undefined,
   placeholder: undefined,
   disabled: false,
   excludeId: null,
+  accountId: null,
+  ownerScoped: false,
 });
 
 const emit = defineEmits<{
@@ -54,11 +71,26 @@ const debouncedQuery = computed(() => debouncedRaw.value.trim());
 // user typically reaches for when entering a new transaction. The backend
 // default is `transactionCount`, which would surface lifetime favourites
 // instead of "what I just paid".
-const { list: allPayees, isFetching } = usePayees({
+//
+// On a shared account we swap to `useAccountPayees` so the dropdown shows
+// the account owner's payees (matching the backend write-path validation).
+// The inactive composable is left disabled to keep cache keys distinct and
+// avoid double fetches.
+const ownerFetch = useAccountPayees({
+  accountId: () => props.accountId ?? undefined,
   q: computed(() => (debouncedQuery.value.length > 0 ? debouncedQuery.value : undefined)),
   sortBy: 'lastSeen',
   sortDir: 'desc',
+  enabled: computed(() => props.ownerScoped && props.accountId !== null),
 });
+const callerFetch = usePayees({
+  q: computed(() => (debouncedQuery.value.length > 0 ? debouncedQuery.value : undefined)),
+  sortBy: 'lastSeen',
+  sortDir: 'desc',
+  enabled: computed(() => !props.ownerScoped),
+});
+const allPayees = computed(() => (props.ownerScoped ? ownerFetch.list.value : callerFetch.list.value));
+const isFetching = computed(() => (props.ownerScoped ? ownerFetch.isFetching.value : callerFetch.isFetching.value));
 
 const displayPayees = computed(() =>
   props.excludeId ? allPayees.value.filter((p) => p.id !== props.excludeId) : allPayees.value,
@@ -70,7 +102,11 @@ const exactMatch = computed(() => {
   return allPayees.value.find((p) => p.name.toLowerCase() === lowered) ?? null;
 });
 
-const canCreateInline = computed(() => debouncedQuery.value.length > 0 && exactMatch.value === null);
+// Inline create is disabled in owner-scoped mode — the caller can't create
+// payees in the account owner's namespace from the transaction form.
+const canCreateInline = computed(
+  () => !props.ownerScoped && debouncedQuery.value.length > 0 && exactMatch.value === null,
+);
 
 const selectedLabel = computed(() => {
   if (!props.modelValue) return '';
