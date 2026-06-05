@@ -88,12 +88,24 @@
         "title": "Підписки та рахунки",
         "titleSubscriptions": "Підписки",
         "titleBills": "Рахунки",
-        "configType": "Тип",
         "configTypeAll": "Всі",
         "configTypeSubscriptions": "Підписки",
         "configTypeBills": "Рахунки",
         "activeSummary": "{count} активна",
-        "perYear": " на рік"
+        "perYear": " на рік",
+        "percentOfIncome": "{percent}% від сер. доходу",
+        "settings": {
+          "title": "Налаштування",
+          "show": "Показати",
+          "incomeWindow": "Період доходу",
+          "incomeWindowTooltip": "За цей період усереднюються ваші доходи для розрахунку відсотка регулярних платежів від доходу.",
+          "lookbackOption": {
+            "1": "Минулий місяць",
+            "3": "Останні 3 місяці",
+            "6": "Останні 6 місяців",
+            "12": "Останні 12 місяців"
+          }
+        }
       },
       "categoryTracker": {
         "title": "Спостереження Категорій",

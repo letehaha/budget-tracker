@@ -188,12 +188,15 @@ export async function getSuggestedMatches<R extends boolean | undefined = undefi
 export async function getSubscriptionsSummary<R extends boolean | undefined = undefined>({
   raw,
   type,
+  lookbackMonths,
 }: {
   raw?: R;
   type?: string;
+  lookbackMonths?: number;
 } = {}) {
   const query: Record<string, string> = {};
   if (type) query.type = type;
+  if (lookbackMonths !== undefined) query.lookbackMonths = String(lookbackMonths);
 
   return makeRequest<Awaited<ReturnType<typeof apiGetSubscriptionsSummary>>, R>({
     method: 'get',

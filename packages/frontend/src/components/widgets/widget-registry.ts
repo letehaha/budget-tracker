@@ -116,17 +116,6 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
     ],
     component: () => import('@/components/widgets/subscriptions-overview.vue'),
     needsPeriod: false,
-    configOptions: [
-      {
-        key: 'type',
-        label: 'dashboard.widgets.subscriptions.configType',
-        choices: [
-          { value: '', label: 'dashboard.widgets.subscriptions.configTypeAll' },
-          { value: 'subscription', label: 'dashboard.widgets.subscriptions.configTypeSubscriptions' },
-          { value: 'bill', label: 'dashboard.widgets.subscriptions.configTypeBills' },
-        ],
-      },
-    ],
   },
 };
 
