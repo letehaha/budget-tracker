@@ -9,7 +9,7 @@
     "no-underscore-dangle": [
       "warn",
       {
-        "allow": ["_shareContext", "_bankProviderType"]
+        "allow": ["_shareContext", "_bankProviderType", "_previousDataValues"]
       }
     ],
     "no-unused-vars": [

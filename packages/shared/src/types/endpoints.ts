@@ -151,6 +151,8 @@ export interface BulkUpdateTransactionsBody {
   tagIds?: string[];
   tagMode?: BulkUpdateTagMode;
   note?: string;
+  // Nullable: explicit `null` clears the Payee, undefined leaves it untouched.
+  payeeId?: RecordId | null;
 }
 
 export interface BulkUpdateTransactionsResponse {

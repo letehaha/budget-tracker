@@ -1045,6 +1045,8 @@ export const updateTransactions = (
     currencyCode?: string;
     refCurrencyCode?: string;
     refundLinked?: boolean;
+    payeeId?: string | null;
+    payeeLocked?: boolean;
   },
   where: Record<string, unknown> & { userId: number },
   {

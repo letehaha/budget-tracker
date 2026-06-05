@@ -1,7 +1,9 @@
 import { TRANSACTION_TRANSFER_NATURE, endpointsTypes } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { NotFoundError, ValidationError } from '@js/errors';
+import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
+import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import * as Transactions from '@models/transactions.model';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
@@ -16,6 +18,11 @@ interface BulkUpdateParams {
   tagIds?: string[];
   tagMode?: endpointsTypes.BulkUpdateTagMode;
   note?: string;
+  // Nullable: explicit `null` clears the Payee on each affected row, `undefined`
+  // leaves it untouched. Payee writes are restricted to transactions on
+  // accounts owned by the caller — shared-account rows are silently skipped to
+  // match the per-owner Payee namespace.
+  payeeId?: string | null;
 }
 
 interface BulkUpdateResult {
@@ -31,13 +38,15 @@ export const bulkUpdate = withTransaction(
     tagIds,
     tagMode = 'add',
     note,
+    payeeId,
   }: BulkUpdateParams): Promise<BulkUpdateResult> => {
     // Validate at least one field is being updated
     const hasCategory = categoryId !== undefined;
     const hasTags = tagIds !== undefined;
     const hasNote = note !== undefined;
+    const hasPayee = payeeId !== undefined;
 
-    if (!hasCategory && !hasTags && !hasNote) {
+    if (!hasCategory && !hasTags && !hasNote && !hasPayee) {
       throw new ValidationError({
         message: 'At least one field must be provided for bulk update',
       });
@@ -50,6 +59,16 @@ export const bulkUpdate = withTransaction(
           where: { id: categoryId, userId },
         }),
         message: 'Category not found',
+      });
+    }
+
+    // Validate payee if a concrete id is provided (null clears, so no lookup needed).
+    if (hasPayee && payeeId !== null) {
+      await findOrThrowNotFound({
+        query: Payees.findOne({
+          where: { id: payeeId, userId },
+        }),
+        message: 'Payee not found',
       });
     }
 
@@ -72,7 +91,7 @@ export const bulkUpdate = withTransaction(
         id: { [Op.in]: transactionIds },
         userId,
       },
-      attributes: ['id', 'transferNature'],
+      attributes: ['id', 'transferNature', 'accountId'],
     });
 
     if (transactions.length === 0) {
@@ -94,6 +113,22 @@ export const bulkUpdate = withTransaction(
       throw new ValidationError({
         message: 'No valid transactions to update. Transfer transactions cannot have their category changed.',
       });
+    }
+
+    // Payee writes are scoped to transactions on accounts owned by the caller.
+    // A user can have created a transaction on someone else's shared account —
+    // that row has the caller's `userId` but lives in a different Payee
+    // namespace (the account owner's), so we cannot stamp the caller's Payee
+    // onto it. Same goes for clearing: silently skip those rows.
+    let ownedAccountTxIds: string[] = [];
+    if (hasPayee) {
+      const candidateAccountIds = Array.from(new Set(transactions.map((tx) => tx.accountId)));
+      const ownedAccounts = await Accounts.findAll({
+        where: { userId, id: { [Op.in]: candidateAccountIds } },
+        attributes: ['id'],
+      });
+      const ownedAccountIdSet = new Set(ownedAccounts.map((a) => a.id));
+      ownedAccountTxIds = transactions.filter((tx) => ownedAccountIdSet.has(tx.accountId)).map((tx) => tx.id);
     }
 
     // Build update payload for non-relationship fields
@@ -130,6 +165,20 @@ export const bulkUpdate = withTransaction(
           { individualHooks: false },
         );
       }
+    }
+
+    // Stamp Payee + lock it on every eligible row. Mirrors single-tx update:
+    // a manual assign/clear from the UI implicitly flips `payeeLocked` so future
+    // syncs and post-sync backfills won't revert the user's choice.
+    if (hasPayee && ownedAccountTxIds.length > 0) {
+      await Transactions.updateTransactions(
+        { payeeId, payeeLocked: true },
+        {
+          userId,
+          id: { [Op.in]: ownedAccountTxIds },
+        },
+        { individualHooks: false },
+      );
     }
 
     // Handle tags update separately (many-to-many relationship)
@@ -175,8 +224,18 @@ export const bulkUpdate = withTransaction(
       }
     }
 
-    // Return the appropriate count based on what was updated
-    const updatedIds = hasCategory ? nonTransferIds : allTransactionIds;
+    // Return the appropriate count based on what was updated. Category remains
+    // the primary signal when present; otherwise prefer the Payee-restricted
+    // set (owned accounts only) when Payee was the trigger; fall back to the
+    // full set for tag/note-only updates.
+    let updatedIds: string[];
+    if (hasCategory) {
+      updatedIds = nonTransferIds;
+    } else if (hasPayee && !hasTags && !hasNote) {
+      updatedIds = ownedAccountTxIds;
+    } else {
+      updatedIds = allTransactionIds;
+    }
 
     return {
       updatedCount: updatedIds.length,

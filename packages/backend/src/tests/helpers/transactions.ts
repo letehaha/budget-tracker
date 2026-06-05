@@ -230,6 +230,7 @@ interface BulkUpdateTransactionsPayload {
   tagIds?: string[];
   tagMode?: 'add' | 'replace' | 'remove';
   note?: string;
+  payeeId?: string | null;
 }
 
 interface BulkUpdateResult {

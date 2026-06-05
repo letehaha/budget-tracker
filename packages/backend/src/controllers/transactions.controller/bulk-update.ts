@@ -12,17 +12,26 @@ const bodyZodSchema = z
     tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').optional(),
     tagMode: tagModeSchema.optional(),
     note: z.string().max(1000, 'Note must not exceed 1000 characters').optional(),
+    // Nullable on the wire: explicit `null` clears the Payee, undefined leaves it untouched.
+    payeeId: recordId().nullable().optional(),
   })
-  .refine((data) => data.categoryId !== undefined || data.tagIds !== undefined || data.note !== undefined, {
-    message: 'At least one field (categoryId, tagIds, or note) must be provided',
-  });
+  .refine(
+    (data) =>
+      data.categoryId !== undefined ||
+      data.tagIds !== undefined ||
+      data.note !== undefined ||
+      data.payeeId !== undefined,
+    {
+      message: 'At least one field (categoryId, tagIds, note, or payeeId) must be provided',
+    },
+  );
 
 const schema = z.object({
   body: bodyZodSchema,
 });
 
 export default createController(schema, async ({ user, body }) => {
-  const { transactionIds, categoryId, tagIds, tagMode, note } = body;
+  const { transactionIds, categoryId, tagIds, tagMode, note, payeeId } = body;
   const { id: userId } = user;
 
   const result = await transactionsService.bulkUpdate({
@@ -32,6 +41,7 @@ export default createController(schema, async ({ user, body }) => {
     tagIds,
     tagMode,
     note,
+    payeeId,
   });
 
   return { data: result };

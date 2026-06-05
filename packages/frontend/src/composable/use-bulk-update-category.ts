@@ -1,5 +1,5 @@
 import { bulkUpdateTransactions } from '@/api/transactions';
-import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
 import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
@@ -12,6 +12,7 @@ interface BulkUpdateParams {
   tagIds?: string[];
   tagMode?: 'add' | 'replace' | 'remove';
   note?: string;
+  payeeId?: RecordId | null;
 }
 
 export function useBulkUpdateCategory({ onSuccess }: { onSuccess?: () => void } = {}) {
@@ -26,6 +27,12 @@ export function useBulkUpdateCategory({ onSuccess }: { onSuccess?: () => void } 
       queryClient.invalidateQueries({
         queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
       });
+      // Payee assignments change every dropdown's stats (txCount, lastSeenAt,
+      // topCategoryId), so refresh the Payee caches on every bulk update —
+      // cheap and keeps autocomplete ordering accurate.
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesByAccount });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeeById });
 
       addSuccessNotification(i18n.global.t('transactions.bulkEdit.successMessage', { count: result.updatedCount }));
 

@@ -4,8 +4,10 @@ import TagIcon from '@/components/common/icons/tag-icon.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
+import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
+import { usePayees } from '@/composable/data-queries/payees';
 import { Button } from '@/components/lib/ui/button';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
@@ -22,6 +24,7 @@ export interface BulkEditFormValues {
   tagIds?: string[];
   tagMode?: TagMode;
   note?: string;
+  payeeId?: RecordId;
 }
 
 const props = defineProps<{
@@ -51,6 +54,7 @@ const form = reactive({
   tagIds: [] as string[],
   tagMode: 'add' as TagMode,
   note: '',
+  payeeId: null as string | null,
 });
 
 const isConfirmDialogOpen = ref(false);
@@ -60,6 +64,7 @@ const resetForm = () => {
   form.tagIds = [];
   form.tagMode = 'add';
   form.note = '';
+  form.payeeId = null;
 };
 
 watch(isOpen, (open) => {
@@ -71,8 +76,17 @@ watch(isOpen, (open) => {
 const hasCategory = computed(() => form.category !== null);
 const hasTags = computed(() => form.tagIds.length > 0);
 const hasNote = computed(() => form.note.trim().length > 0);
+const hasPayee = computed(() => form.payeeId !== null);
 
-const hasAnyChanges = computed(() => hasCategory.value || hasTags.value || hasNote.value);
+const hasAnyChanges = computed(() => hasCategory.value || hasTags.value || hasNote.value || hasPayee.value);
+
+// Need the Payee name in the confirm dialog summary; pull from the same list
+// the picker uses so the cache is shared.
+const { list: payeesList } = usePayees();
+const selectedPayeeName = computed(() => {
+  if (!form.payeeId) return '';
+  return payeesList.value.find((p) => p.id === form.payeeId)?.name ?? '';
+});
 
 const isApplyDisabled = computed(() => {
   if (props.isLoading) return true;
@@ -117,6 +131,9 @@ const handleConfirmedApply = () => {
   if (hasNote.value) {
     values.note = form.note.trim();
   }
+  if (hasPayee.value) {
+    values.payeeId = form.payeeId as RecordId;
+  }
 
   emit('apply', values);
   isConfirmDialogOpen.value = false;
@@ -139,6 +156,12 @@ const handleConfirmedApply = () => {
         :label="t('transactions.bulkEdit.categoryLabel')"
         :values="formattedCategories"
         :placeholder="t('transactions.bulkEdit.categoryPlaceholder')"
+      />
+
+      <PayeeSelectField
+        v-model="form.payeeId"
+        :label="t('transactions.bulkEdit.payeeLabel')"
+        :placeholder="t('transactions.bulkEdit.payeePlaceholder')"
       />
 
       <TagSelectField
@@ -202,6 +225,10 @@ const handleConfirmedApply = () => {
         <li v-if="hasCategory" class="flex items-center gap-2">
           <span class="text-muted-foreground">{{ t('transactions.bulkEdit.confirmCategoryLabel') }}:</span>
           <span class="font-medium">{{ form.category?.name }}</span>
+        </li>
+        <li v-if="hasPayee" class="flex items-center gap-2">
+          <span class="text-muted-foreground">{{ t('transactions.bulkEdit.confirmPayeeLabel') }}:</span>
+          <span class="font-medium">{{ selectedPayeeName }}</span>
         </li>
         <li v-if="hasTags" class="space-y-1">
           <div class="flex items-center gap-2">

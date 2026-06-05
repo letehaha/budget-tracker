@@ -175,6 +175,7 @@ const handleBulkApply = (values: BulkEditFormValues) => {
     ...(values.categoryId !== undefined && { categoryId: values.categoryId }),
     ...(values.tagIds !== undefined && { tagIds: values.tagIds, tagMode: values.tagMode }),
     ...(values.note !== undefined && { note: values.note }),
+    ...(values.payeeId !== undefined && { payeeId: values.payeeId }),
   });
 };
 
