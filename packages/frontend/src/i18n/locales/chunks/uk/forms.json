@@ -253,6 +253,14 @@
       "placeholder": "Виберіть категорії...",
       "searchPlaceholder": "Шукати категорії...",
       "noCategoriesFound": "Категорій не знайдено"
+    },
+    "payeeSelect": {
+      "placeholder": "Виберіть отримувача платежу",
+      "searchPlaceholder": "Шукати отримувачів…",
+      "empty": "Отримувачів платежу поки немає",
+      "createAffordance": "Створити отримувача \"{name}\"",
+      "createNew": "Створити нового отримувача",
+      "sharedOwnerPayeesLoadError": "Не вдалося завантажити отримувачів платежу спільного рахунку. Спробуйте ще раз."
     }
   }
 }

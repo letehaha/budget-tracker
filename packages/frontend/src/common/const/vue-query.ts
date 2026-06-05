@@ -180,6 +180,13 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // categories
   categoriesByAccount: ['categories-by-account'] as const,
 
+  // payees
+  payeesList: ['payees-list'] as const,
+  payeesByAccount: ['payees-by-account'] as const,
+  payeeById: ['payee-by-id'] as const,
+  payeesIgnoredNames: ['payees-ignored-names'] as const,
+  payeeTransactionsDialog: [transactionChange, 'payee-tx-dialog'] as const,
+
   // venture
   venturePlatformsList: [ventureChange, 'venture-platforms-list'] as const,
   ventureDealsList: [ventureChange, 'venture-deals-list'] as const,

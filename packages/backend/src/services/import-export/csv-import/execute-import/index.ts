@@ -20,10 +20,10 @@ import { ValidationError } from '@js/errors';
 import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
-import * as Transactions from '@models/transactions.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
+import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ExecuteImportParams {
@@ -119,38 +119,33 @@ async function executeImportImpl({
 
       const categoryId = row.categoryName ? categoryNameToId.get(row.categoryName) : defaultCategoryId;
 
-      // Calculate refAmount
-      // Note: row.amount is already in cents (from parseAmount in detect-duplicates)
-      const refAmount = await calculateRefAmount({
-        userId,
-        amount: Money.fromCents(row.amount),
-        baseCode: row.currencyCode,
-        date: new Date(row.date),
-      });
-
       const importDetails: TransactionImportDetails = {
         batchId,
         importedAt: importedAt.toISOString(),
         source: ImportSource.csv,
       };
 
-      // Create transaction
-      const transaction = await Transactions.createTransaction({
+      // Service-layer createTransaction handles refAmount + currency from the
+      // account, plus Payee extraction + payee_rule via `rawMerchantName` when
+      // the user mapped a Payee column. Without this path the imported row
+      // would arrive at AI with `categorizationMeta = null` and bypass any
+      // Payee defaults the user has already set up.
+      const [transaction] = await createTransaction({
         userId,
         amount: Money.fromCents(row.amount),
-        refAmount,
+        commissionRate: Money.zero(),
         note: row.description,
         time: new Date(row.date),
         transactionType: row.transactionType === 'income' ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
-        paymentType: PAYMENT_TYPES.creditCard, // Default payment type
+        paymentType: PAYMENT_TYPES.creditCard,
         accountId,
         categoryId: categoryId || undefined,
-        currencyCode: row.currencyCode,
         accountType: ACCOUNT_TYPES.system,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         externalData: {
           importDetails,
         },
+        rawMerchantName: row.payeeName || null,
       });
 
       if (transaction) {

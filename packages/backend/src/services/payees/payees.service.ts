@@ -1,0 +1,460 @@
+import { CATEGORIZATION_MODE, RESOURCE_TYPES, SHARE_PERMISSIONS, type RecordId } from '@bt/shared/types';
+import { t } from '@i18n/index';
+import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
+import Categories from '@models/categories.model';
+import { connection } from '@models/connection';
+import PayeeAliases from '@models/payee-aliases.model';
+import Payees from '@models/payees.model';
+import Transactions from '@models/transactions.model';
+import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
+import { Op, QueryTypes } from 'sequelize';
+
+import { withTransaction } from '../common/with-transaction';
+import { ensureAliasExists } from './extraction.service';
+import { normalizePayeeName } from './normalize-name';
+import { getPayeeStatsMap, PayeeStatsRow } from './payee-stats';
+
+const MAX_LIST_LIMIT = 200;
+const DEFAULT_LIST_LIMIT = 50;
+const AUTOCOMPLETE_LIMIT = 20;
+
+type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount';
+type PayeeSortDir = 'asc' | 'desc';
+
+async function assertCategoryOwnedByUser({
+  userId,
+  categoryId,
+}: {
+  userId: number;
+  categoryId: string;
+}): Promise<void> {
+  const category = await Categories.findOne({
+    where: { id: categoryId, userId },
+    attributes: ['id'],
+  });
+  if (!category) {
+    throw new ValidationError({ message: t({ key: 'payees.defaultCategoryNotOwned' }) });
+  }
+}
+
+async function loadPayeeOrThrow({ userId, id }: { userId: number; id: string }): Promise<Payees> {
+  const payee = await Payees.findOne({
+    where: { id, userId },
+    include: [{ model: PayeeAliases, as: 'aliases' }],
+  });
+  if (!payee) {
+    throw new NotFoundError({ message: t({ key: 'payees.notFound' }) });
+  }
+  return payee;
+}
+
+interface ListPayeesParams {
+  userId: number;
+  q?: string;
+  limit?: number;
+  offset?: number;
+  sortBy?: PayeeSortBy;
+  sortDir?: PayeeSortDir;
+  /**
+   * Scope to a single account's owner. On a shared account the recipient
+   * sees the owner's payee set; on an owned account it behaves like the
+   * no-arg path. Mirrors the categories `?accountId=` pattern so the
+   * recipient's transaction-form picker resolves to the same namespace
+   * that backend write paths validate against. Stranger `accountId`
+   * returns 404 to keep the param from leaking other users' resources.
+   */
+  accountId?: string;
+}
+
+interface PayeeListRow {
+  payee: Payees;
+  stats: PayeeStatsRow | null;
+}
+
+const SORT_COLUMN_BY_KEY: Record<PayeeSortBy, string> = {
+  // LOWER() so the alphabetical order is case-insensitive, matching what users
+  // expect when they pick "Name" from the sort menu.
+  name: 'LOWER(p."name")',
+  transactionCount: 's."transactionCount"',
+  netFlow: 's."netFlowRefCents"',
+  lastSeen: 's."lastSeenAt"',
+};
+
+/**
+ * List Payees for the user, optionally filtered by autocomplete query `q`
+ * (substring match against `normalizedName`).
+ *
+ * Sorted by the requested column at the SQL layer so pagination is stable
+ * across pages. Default is `transactionCount` DESC, which surfaces the most
+ * actively used Payees first. Payees with no transactions sort to the end via
+ * NULLS LAST regardless of direction.
+ *
+ * Stats (count, net flow, first/last seen, top category) are computed at query
+ * time and joined in-memory. No denormalized counters.
+ */
+export const listPayees = withTransaction(
+  async ({
+    userId,
+    q,
+    limit = DEFAULT_LIST_LIMIT,
+    offset = 0,
+    sortBy = 'transactionCount',
+    sortDir = 'desc',
+    accountId,
+  }: ListPayeesParams): Promise<PayeeListRow[]> => {
+    let scopedUserId = userId;
+    if (accountId !== undefined) {
+      const access = await canUserAccessResource({
+        userId,
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: accountId,
+        requiredPermission: SHARE_PERMISSIONS.read,
+      });
+      if (!access.granted) {
+        throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+      }
+      scopedUserId = access.isOwner ? userId : access.ownerUserId!;
+    }
+
+    let effectiveLimit = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
+    let normalizedQuery: string | null = null;
+    if (q && q.trim().length > 0) {
+      const normalized = normalizePayeeName({ raw: q.trim() });
+      if (normalized.length > 0) {
+        normalizedQuery = normalized;
+      }
+      effectiveLimit = AUTOCOMPLETE_LIMIT;
+    }
+
+    const sortColumn = SORT_COLUMN_BY_KEY[sortBy];
+    const sortDirSql = sortDir === 'asc' ? 'ASC' : 'DESC';
+    // p.id ASC as a tiebreaker keeps the order deterministic across pages
+    // when two rows share the same primary sort key.
+    const orderBy = `${sortColumn} ${sortDirSql} NULLS LAST, p.id ASC`;
+    const nameWhere = normalizedQuery !== null ? 'AND p."normalizedName" LIKE :nameLike' : '';
+
+    const idRows: { id: string }[] = await connection.sequelize.query(
+      `
+      SELECT p.id
+        FROM "Payees" p
+        LEFT JOIN (
+          SELECT "payeeId",
+                 COUNT(*) AS "transactionCount",
+                 SUM(
+                   CASE WHEN "transactionType" = 'expense'
+                        THEN -"refAmount"
+                        ELSE "refAmount"
+                   END
+                 ) AS "netFlowRefCents",
+                 MAX("time") AS "lastSeenAt"
+            FROM "Transactions"
+           WHERE "userId" = :scopedUserId
+           GROUP BY "payeeId"
+        ) s ON s."payeeId" = p.id
+       WHERE p."userId" = :scopedUserId
+         ${nameWhere}
+       ORDER BY ${orderBy}
+       LIMIT :limit OFFSET :offset
+      `,
+      {
+        type: QueryTypes.SELECT,
+        replacements: {
+          scopedUserId,
+          nameLike: normalizedQuery !== null ? `%${normalizedQuery}%` : null,
+          limit: effectiveLimit,
+          offset,
+        },
+      },
+    );
+
+    if (idRows.length === 0) return [];
+
+    const ids = idRows.map((r) => r.id);
+
+    const [payees, statsMap] = await Promise.all([
+      Payees.findAll({
+        where: { id: { [Op.in]: ids } },
+        include: [{ model: PayeeAliases, as: 'aliases' }],
+      }),
+      getPayeeStatsMap({ userId: scopedUserId, payeeIds: ids }),
+    ]);
+
+    const payeesById = new Map<string, Payees>(payees.map((p) => [p.id, p]));
+
+    // Preserve the SQL-driven order — `findAll` returns rows in PK order, not
+    // in our sort order, so re-project through the id list.
+    return ids
+      .map((id) => {
+        const payee = payeesById.get(id);
+        if (!payee) return null;
+        return { payee, stats: statsMap.get(id) ?? null };
+      })
+      .filter((row): row is PayeeListRow => row !== null);
+  },
+);
+
+interface CreatePayeeParams {
+  userId: number;
+  name: string;
+  defaultCategoryId?: string | null;
+  categorizationMode?: CATEGORIZATION_MODE;
+}
+
+export const createPayee = withTransaction(
+  async ({ userId, name, defaultCategoryId, categorizationMode }: CreatePayeeParams): Promise<Payees> => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
+    }
+    const normalized = normalizePayeeName({ raw: trimmed });
+    if (!normalized) {
+      throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
+    }
+
+    if (defaultCategoryId) {
+      await assertCategoryOwnedByUser({ userId, categoryId: defaultCategoryId });
+    }
+
+    const existing = await Payees.findOne({ where: { userId, normalizedName: normalized } });
+    if (existing) {
+      throw new ConflictError({
+        message: t({ key: 'payees.duplicateName' }),
+      });
+    }
+
+    const created = await Payees.create({
+      userId,
+      name: trimmed,
+      normalizedName: normalized,
+      defaultCategoryId: defaultCategoryId ?? null,
+      categorizationMode: categorizationMode ?? CATEGORIZATION_MODE.enforce,
+    });
+    return loadPayeeOrThrow({ userId, id: created.id });
+  },
+);
+
+interface GetPayeeParams {
+  userId: number;
+  id: string;
+}
+
+export const getPayee = withTransaction(
+  async ({ userId, id }: GetPayeeParams): Promise<{ payee: Payees; stats: PayeeStatsRow | null }> => {
+    const payee = await loadPayeeOrThrow({ userId, id });
+    const statsMap = await getPayeeStatsMap({ userId, payeeIds: [id] });
+    return { payee, stats: statsMap.get(id) ?? null };
+  },
+);
+
+interface UpdatePayeeParams {
+  userId: number;
+  id: string;
+  name?: string;
+  defaultCategoryId?: string | null;
+  categorizationMode?: CATEGORIZATION_MODE;
+}
+
+/**
+ * Rename + default-category change. Renaming preserves the OLD canonical name
+ * as an alias so future syncs that match the old string keep linking — this is
+ * the contract the extraction pipeline expects.
+ *
+ * Collisions on `normalizedName` produce a 409 with a hint to merge instead.
+ */
+export const updatePayee = withTransaction(
+  async ({ userId, id, name, defaultCategoryId, categorizationMode }: UpdatePayeeParams): Promise<Payees> => {
+    const payee = await loadPayeeOrThrow({ userId, id });
+
+    if (defaultCategoryId === null) {
+      payee.defaultCategoryId = null;
+    } else if (defaultCategoryId !== undefined) {
+      await assertCategoryOwnedByUser({ userId, categoryId: defaultCategoryId });
+      payee.defaultCategoryId = defaultCategoryId as RecordId;
+    }
+
+    if (categorizationMode !== undefined) {
+      payee.categorizationMode = categorizationMode;
+    }
+
+    if (name !== undefined) {
+      const trimmed = name.trim();
+      if (!trimmed) {
+        throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
+      }
+      const normalized = normalizePayeeName({ raw: trimmed });
+      if (!normalized) {
+        throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
+      }
+
+      if (normalized !== payee.normalizedName) {
+        const collision = await Payees.findOne({
+          where: {
+            userId,
+            normalizedName: normalized,
+            id: { [Op.ne]: id },
+          },
+          attributes: ['id'],
+        });
+        if (collision) {
+          throw new ConflictError({ message: t({ key: 'payees.renameCollision' }) });
+        }
+
+        const oldName = payee.name;
+        const oldNormalized = payee.normalizedName;
+        payee.name = trimmed;
+        payee.normalizedName = normalized;
+
+        // Preserve the old canonical name as an alias so historical extractions
+        // still match. `ensureAliasExists` is idempotent and race-safe.
+        await ensureAliasExists({
+          payeeId: id,
+          rawName: oldName,
+          normalizedName: oldNormalized,
+        });
+      } else {
+        // Same normalized form (e.g. casing-only change) — just stamp the new
+        // display name without alias bookkeeping.
+        payee.name = trimmed;
+      }
+    }
+
+    await payee.save();
+    return loadPayeeOrThrow({ userId, id });
+  },
+);
+
+interface DeletePayeeParams {
+  userId: number;
+  id: string;
+}
+
+export const deletePayee = withTransaction(async ({ userId, id }: DeletePayeeParams): Promise<void> => {
+  const payee = await Payees.findOne({ where: { id, userId }, attributes: ['id'] });
+  if (!payee) {
+    throw new NotFoundError({ message: t({ key: 'payees.notFound' }) });
+  }
+  // FK `SET NULL` on `Transactions.payeeId` unlinks transactions automatically.
+  // Aliases cascade-delete via FK.
+  await Payees.destroy({ where: { id, userId } });
+});
+
+interface MergePayeesParams {
+  userId: number;
+  sourceId: string;
+  targetId: string;
+}
+
+/**
+ * Move all transactions + aliases from source → target, then delete source.
+ * Target's `defaultCategoryId` wins silently on conflict.
+ */
+export const mergePayees = withTransaction(
+  async ({ userId, sourceId, targetId }: MergePayeesParams): Promise<Payees> => {
+    if (sourceId === targetId) {
+      throw new ValidationError({ message: t({ key: 'payees.mergeSelf' }) });
+    }
+    const [source, target] = await Promise.all([
+      loadPayeeOrThrow({ userId, id: sourceId }),
+      loadPayeeOrThrow({ userId, id: targetId }),
+    ]);
+
+    // Move transactions.
+    await Transactions.update({ payeeId: target.id }, { where: { userId, payeeId: source.id } });
+
+    // `categorizationMeta.payeeId` on previously-categorized rows still points
+    // at the source id after merge — accepted as an audit-only dangling
+    // reference (mirrors the documented behavior for deletes).
+
+    // Carry the source's canonical name into target as an alias so historic
+    // raw-merchant strings still resolve. Track every normalizedName that
+    // ends up on the target so the alias-move loop below skips duplicates
+    // — including the canonical-name alias we may have just inserted.
+    const targetAliasNormalized = new Set((target.aliases ?? []).map((a) => a.normalizedName));
+    const sourceCanonAliasExists =
+      targetAliasNormalized.has(source.normalizedName) ||
+      (await PayeeAliases.findOne({
+        where: { payeeId: target.id, normalizedName: source.normalizedName },
+        attributes: ['id'],
+      })) !== null;
+    if (!sourceCanonAliasExists) {
+      await PayeeAliases.create({
+        payeeId: target.id,
+        rawName: source.name,
+        normalizedName: source.normalizedName,
+      });
+    }
+    targetAliasNormalized.add(source.normalizedName);
+
+    // Move aliases. Source aliases that collide with target aliases on
+    // `normalizedName` are skipped (we keep the target's existing one). The
+    // source row gets deleted at the end, so its now-orphaned aliases go
+    // with it via the FK CASCADE.
+    const sourceAliases = source.aliases ?? [];
+    for (const alias of sourceAliases) {
+      if (targetAliasNormalized.has(alias.normalizedName)) continue;
+      if (alias.normalizedName === target.normalizedName) continue;
+      await PayeeAliases.update({ payeeId: target.id }, { where: { id: alias.id } });
+      targetAliasNormalized.add(alias.normalizedName);
+    }
+
+    await Payees.destroy({ where: { id: source.id, userId } });
+    return loadPayeeOrThrow({ userId, id: target.id });
+  },
+);
+
+interface DeletePayeeAliasParams {
+  userId: number;
+  payeeId: string;
+  aliasId: string;
+}
+
+/**
+ * Removes a single alias. Transactions previously linked via that alias keep
+ * their `payeeId` — deletion only affects future extraction.
+ *
+ * Refuses to delete the alias whose normalized form matches the Payee's
+ * canonical normalizedName: deletion would leave the Payee with no link to
+ * its own name, and the next sync's inline extraction would just re-create
+ * the alias via Step 1 exact match. The user can rename the Payee instead
+ * if they want a different canonical form.
+ */
+export const deletePayeeAlias = withTransaction(
+  async ({ userId, payeeId, aliasId }: DeletePayeeAliasParams): Promise<void> => {
+    // Authorize through Payees scope.
+    const payee = await Payees.findOne({
+      where: { id: payeeId, userId },
+      attributes: ['id', 'normalizedName'],
+    });
+    if (!payee) {
+      throw new NotFoundError({ message: t({ key: 'payees.notFound' }) });
+    }
+    const alias = await PayeeAliases.findOne({
+      where: { id: aliasId, payeeId },
+      attributes: ['id', 'normalizedName'],
+    });
+    if (!alias) {
+      throw new NotFoundError({ message: t({ key: 'payees.aliasNotFound' }) });
+    }
+    if (alias.normalizedName === payee.normalizedName) {
+      throw new ValidationError({ message: t({ key: 'payees.cannotDeleteCanonicalAlias' }) });
+    }
+    await PayeeAliases.destroy({ where: { id: aliasId, payeeId } });
+  },
+);
+
+interface BulkUpdateCategorizationModeParams {
+  userId: number;
+  mode: CATEGORIZATION_MODE;
+}
+
+/**
+ * "Apply to all" quick action — flips every Payee owned by the user to the
+ * same `categorizationMode`. Returns the count actually updated so the UI can
+ * surface a precise success toast.
+ */
+export const bulkUpdateCategorizationMode = withTransaction(
+  async ({ userId, mode }: BulkUpdateCategorizationModeParams): Promise<{ updatedCount: number }> => {
+    const [updatedCount] = await Payees.update({ categorizationMode: mode }, { where: { userId } });
+    return { updatedCount };
+  },
+);

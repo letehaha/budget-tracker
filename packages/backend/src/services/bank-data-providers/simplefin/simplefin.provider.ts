@@ -845,6 +845,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
         categoryId: defaultCategoryId,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         accountType: ACCOUNT_TYPES.simplefin,
+        rawMerchantName: tx.payee?.trim() || null,
       });
 
       createdIds.push(createdTx.id);

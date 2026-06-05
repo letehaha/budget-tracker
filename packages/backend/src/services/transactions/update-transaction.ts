@@ -7,6 +7,7 @@ import { removeUndefinedKeys } from '@js/helpers';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
+import Payees from '@models/payees.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import Tags from '@models/tags.model';
 import { deleteSplitsForTransaction } from '@models/transaction-splits.model';
@@ -160,6 +161,33 @@ const makeBasicBaseTxUpdation = async (
     currencyCode: prevData.currencyCode,
     refundLinked: prevData.refundLinked,
   };
+
+  // Manual Payee assign/clear from the UI also implicitly locks the row so
+  // future provider syncs won't revert it. The controller can still pass
+  // `payeeLocked` explicitly for transfer-conversion flows.
+  //
+  // Validate non-null payeeId against the *account owner*, mirroring the
+  // category-scoping pattern (see `categoryId` lookup above). Payees are
+  // owned by the account holder, so on a shared-account write the recipient
+  // must pick from the owner's payee list. The DB FK only references
+  // `Payees(id)` — without this scope check a caller could stamp a foreign
+  // Payee onto an owner's row.
+  if (newData.payeeId !== undefined) {
+    if (newData.payeeId !== null) {
+      const ownedPayee = await Payees.findOne({
+        where: { id: newData.payeeId, userId: ctx.accountOwnerUserId },
+        attributes: ['id'],
+      });
+      if (!ownedPayee) {
+        throw new NotFoundError({ message: t({ key: 'payees.notFound' }) });
+      }
+    }
+    baseTransactionUpdateParams.payeeId = newData.payeeId;
+    baseTransactionUpdateParams.payeeLocked = true;
+  }
+  if (newData.payeeLocked !== undefined) {
+    baseTransactionUpdateParams.payeeLocked = newData.payeeLocked;
+  }
 
   const isBaseTxAccountChanged = newData.accountId && newData.accountId !== prevData.accountId;
 

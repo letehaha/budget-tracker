@@ -1,5 +1,6 @@
 {
   "common": {
+    "loading": "Loading...",
     "from": "From",
     "to": "To",
     "new": "New",
@@ -25,7 +26,9 @@
       "viewAll": "View all",
       "scan": "Scan",
       "link": "Link",
-      "loadMore": "Load more"
+      "loadMore": "Load more",
+      "clear": "Clear",
+      "apply": "Apply"
     },
     "ui": {
       "close": "Close",

@@ -93,6 +93,7 @@
       },
       "recordList": {},
       "form": {
+        "payeeLabel": "Отримувач платежу",
         "paymentTypeLabel": "Тип платежу",
         "noteLabel": "Примітка (необов'язково)",
         "notePlaceholder": "Примітка",

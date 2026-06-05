@@ -93,6 +93,7 @@
       },
       "recordList": {},
       "form": {
+        "payeeLabel": "Payee",
         "paymentTypeLabel": "Payment Type",
         "noteLabel": "Note (optional)",
         "notePlaceholder": "Note",

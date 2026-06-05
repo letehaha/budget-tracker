@@ -50,4 +50,8 @@ export interface UI_FORM_STRUCT {
   splits?: FormSplit[];
   /** Optional tag IDs to associate with the transaction */
   tagIds?: string[];
+  /** Linked Payee id; null = no Payee set. Manual UI assignment also locks the row server-side. */
+  payeeId?: string | null;
+  /** True when the form initialized from an existing tx whose category was already user-touched. Used to gate the Payee auto-fill so we don't clobber an explicit category. */
+  categoryUserTouched?: boolean;
 }

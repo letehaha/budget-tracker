@@ -41,6 +41,11 @@
     />
 
     <TagFilter :tag-ids="filters.tagIds" @update:tag-ids="$emit('update:filters', { ...filters, tagIds: $event })" />
+
+    <PayeeFilter
+      :payee-ids="filters.payeeIds"
+      @update:payee-ids="$emit('update:filters', { ...filters, payeeIds: $event })"
+    />
   </div>
 
   <div class="lg:bg-card max-lg:bg-background sticky -bottom-px mt-4 flex gap-2">
@@ -72,6 +77,7 @@ import AccountsFilter from './filters/combobox-accounts.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';
 import NoteIncludesFilter from './filters/note-includes.vue';
+import PayeeFilter from './filters/payee-filter.vue';
 import TagFilter from './filters/tag-filter.vue';
 import TransactionTypeFilter from './filters/transaction-type-filter.vue';
 

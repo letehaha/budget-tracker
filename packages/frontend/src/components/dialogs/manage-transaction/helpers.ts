@@ -149,6 +149,10 @@ export const prepopulateForm = ({
       refundsTx: undefined,
       // Extract tag IDs from transaction tags if present
       tagIds: transaction.tags?.map((tag) => tag.id as string) ?? [],
+      payeeId: transaction.payeeId ?? null,
+      // Existing tx has a categoryId already, so treat the picker as user-touched
+      // to prevent later Payee selections from silently overwriting it.
+      categoryUserTouched: transaction.categoryId !== null && transaction.categoryId !== undefined,
     } as UI_FORM_STRUCT;
 
     // Convert transaction splits to form splits

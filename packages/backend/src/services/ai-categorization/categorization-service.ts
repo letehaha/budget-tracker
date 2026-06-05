@@ -3,6 +3,7 @@ import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
 import Accounts from '@models/accounts.model';
 import { getCategories } from '@models/categories.model';
+import Payees from '@models/payees.model';
 import Transactions from '@models/transactions.model';
 import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
 import { sseManager } from '@services/common/sse';
@@ -127,13 +128,7 @@ async function categorizeBatch({
  * Apply categorization results to transactions
  * Groups by categoryId for efficient bulk updates
  */
-async function applyCategorizationResults({
-  results,
-  userId,
-}: {
-  results: CategorizationResult[];
-  userId: number;
-}): Promise<void> {
+async function applyCategorizationResults({ results }: { results: CategorizationResult[] }): Promise<void> {
   if (results.length === 0) return;
 
   const now = new Date().toISOString();
@@ -147,7 +142,12 @@ async function applyCategorizationResults({
     groupedByCategory.get(result.categoryId)!.push(result.transactionId);
   }
 
-  // Bulk update per category (parallel)
+  // Bulk update per category (parallel). Update by id only — auth was
+  // already established by `getUncategorizedTransactions`, which joins
+  // `Accounts` to gate every id in this batch on the requesting user's
+  // account ownership. Adding a `userId` filter here would silently drop
+  // shared-account rows authored by a recipient on the owner's account
+  // (a row the JOIN correctly included as in-scope).
   await Promise.all(
     Array.from(groupedByCategory.entries()).map(([categoryId, transactionIds]) =>
       Transactions.update(
@@ -159,7 +159,7 @@ async function applyCategorizationResults({
           },
         },
         {
-          where: { id: transactionIds, userId },
+          where: { id: transactionIds },
           // Disable hooks to avoid unnecessary balance recalculations
           // Category change doesn't affect balances
           individualHooks: false,
@@ -170,8 +170,15 @@ async function applyCategorizationResults({
 }
 
 /**
- * Get uncategorized transactions for a user
- * A transaction is considered uncategorized if its categoryId matches the user's default category
+ * Get uncategorized transactions for a user.
+ *
+ * Scoped by `Account.userId` (account ownership), not `Transactions.userId`
+ * (row creator), via the Accounts INNER JOIN. The intent of the AI
+ * auto-categorize listener is "categorize rows in *my* accounts", and on
+ * shared accounts the row's creator can be a recipient even though the
+ * account belongs to the requesting user. Joining on Accounts expresses
+ * that intent directly instead of leaning on the implicit emit-site
+ * contract documented in `event-listeners.ts`.
  */
 async function getUncategorizedTransactions({
   userId,
@@ -183,17 +190,23 @@ async function getUncategorizedTransactions({
   const transactions = await Transactions.findAll({
     where: {
       id: transactionIds,
-      userId,
       // Only get transactions that haven't been AI-categorized before
       categorizationMeta: null,
     },
     include: [
       {
         model: Accounts,
+        where: { userId },
+        required: true,
         attributes: ['name'],
       },
+      {
+        model: Payees,
+        attributes: ['name'],
+        required: false,
+      },
     ],
-    attributes: ['id', 'amount', 'currencyCode', 'time', 'note', 'accountId'],
+    attributes: ['id', 'amount', 'currencyCode', 'time', 'note', 'accountId', 'payeeId'],
   });
 
   return transactions.map((tx) => ({
@@ -203,6 +216,7 @@ async function getUncategorizedTransactions({
     accountName: (tx as unknown as { account?: { name: string } }).account?.name || 'Unknown',
     datetime: tx.time.toISOString(),
     note: tx.note,
+    payeeName: (tx as unknown as { payee?: { name: string } }).payee?.name ?? null,
   }));
 }
 
@@ -370,7 +384,7 @@ export async function categorizeTransactions({
 
     // Apply successful categorizations immediately
     if (batchResult.successful.length > 0) {
-      await applyCategorizationResults({ results: batchResult.successful, userId });
+      await applyCategorizationResults({ results: batchResult.successful });
 
       // If using user's key and it succeeded, mark it as valid (update lastValidatedAt)
       if (aiClient.usingUserKey) {

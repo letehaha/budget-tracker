@@ -63,6 +63,7 @@ export const useTransactionsWithFilters = ({
           accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
           categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
           tagIds: filter.tagIds.length ? filter.tagIds : undefined,
+          payeeIds: filter.payeeIds.length ? filter.payeeIds : undefined,
           categorizationSource: filter.categorizationSource ?? undefined,
           budgetIds: staticFilters.budgetIds ?? undefined,
           excludedBudgetIds: staticFilters.excludedBudgetIds ?? undefined,

@@ -1,4 +1,5 @@
 import { logger } from '@js/utils/logger';
+import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
 import { DOMAIN_EVENTS, TransactionsSyncedPayload, eventBus } from '@services/common/event-bus';
 import debounce from 'lodash/debounce';
@@ -21,8 +22,24 @@ const processMatching = debounce(
 
       try {
         for (const txId of ids) {
+          // Fetch by id with an Accounts JOIN scoped to `userId` (the
+          // pass user = account owner). Subscriptions are owner-scoped,
+          // so we only want to match rows on accounts this user owns —
+          // regardless of who authored each row. The earlier `{id, userId}`
+          // filter implicitly assumed `row.userId == account.userId`,
+          // which holds for current bank-sync emit sites but would
+          // silently skip cross-creator rows on a shared account if any
+          // future emit site sent mixed-author batches.
           const transaction = await Transactions.default.findOne({
-            where: { id: txId, userId },
+            where: { id: txId },
+            include: [
+              {
+                model: Accounts,
+                where: { userId },
+                required: true,
+                attributes: [],
+              },
+            ],
           });
 
           if (!transaction) continue;

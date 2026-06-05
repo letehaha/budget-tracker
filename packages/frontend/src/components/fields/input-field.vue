@@ -18,7 +18,7 @@
 
       <div class="relative">
         <template v-if="isLeadingIconExist">
-          <div :class="['absolute top-0 left-0 flex h-full items-center px-6', leadingIconCssClass]">
+          <div :class="['absolute top-0 left-0 flex h-full items-center px-4', leadingIconCssClass]">
             <slot name="iconLeading" />
           </div>
         </template>

@@ -217,5 +217,14 @@ export const prepareTxUpdationParams = ({
     editionParams.tagIds = formTagIds.length > 0 ? formTagIds : [];
   }
 
+  // Payee delta — manual changes (assign new, clear, or leave alone). When the
+  // user touches the field the backend update path stamps `payeeLocked = true`
+  // unconditionally, so we only forward the id (or null).
+  const originalPayeeId = transaction.payeeId ?? null;
+  const formPayeeId = form.payeeId ?? null;
+  if (originalPayeeId !== formPayeeId) {
+    editionParams.payeeId = formPayeeId as RecordId | null;
+  }
+
   return editionParams;
 };

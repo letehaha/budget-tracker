@@ -3,6 +3,7 @@
   "compilerOptions": {
     "target": "esnext",
     "strict": true,
+    "noEmit": true,
     "module": "esnext",
     "jsx": "preserve",
     "isolatedModules": true,

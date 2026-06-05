@@ -8,7 +8,7 @@ export function buildSystemPrompt({ customInstructions }: { customInstructions?:
 
 RULES:
 1. Only use category IDs from the provided list
-2. Consider the transaction note/description to determine the category
+2. Consider the transaction note/description AND the payee column to determine the category. The payee column is the canonical merchant name when present (e.g. "Starbucks", "Amazon") — treat it as a strong signal; the note may add disambiguating context.
 3. If a category has a parentId, prefer using the more specific child category when appropriate
 4. If you cannot confidently determine a category, omit that transaction from your response
 5. Output ONLY the categorization results in the exact format specified, nothing else
@@ -46,11 +46,11 @@ These are preferences from the user to help guide categorization. Always follow 
  * Format transactions as pipe-separated values for efficient token usage
  */
 function formatTransactionsForPrompt(transactions: TransactionForCategorization[]): string {
-  const header = 'id|amount|currency|account|datetime|note';
+  const header = 'id|amount|currency|account|datetime|note|payee';
   const rows = transactions.map((tx) => {
-    // Escape pipe characters in note and truncate if too long
     const note = (tx.note || '').replace(/\|/g, ',').replace(/\n/g, ' ').slice(0, 200);
-    return `${tx.id}|${tx.amount}|${tx.currencyCode}|${tx.accountName}|${tx.datetime}|${note}`;
+    const payee = (tx.payeeName || '').replace(/\|/g, ',').replace(/\n/g, ' ').slice(0, 100);
+    return `${tx.id}|${tx.amount}|${tx.currencyCode}|${tx.accountName}|${tx.datetime}|${note}|${payee}`;
   });
 
   return [header, ...rows].join('\n');

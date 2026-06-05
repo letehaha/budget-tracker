@@ -10,6 +10,7 @@ export interface TransactionForCategorization {
   accountName: string;
   datetime: string;
   note: string | null;
+  payeeName: string | null;
 }
 
 /**

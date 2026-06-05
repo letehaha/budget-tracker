@@ -15,6 +15,21 @@ const sortCategoriesWithInternalLast = (categories: FormattedCategory[]): Format
   });
 };
 
+/**
+ * Walks the tree built by `buildCategoriesObjectGraph` and returns the node
+ * whose id matches. A plain `Array.find()` over the top-level array only sees
+ * roots — subcategories live under each root's `subCategories`, so a flat find
+ * silently misses them.
+ */
+export const findFormattedCategoryById = (categories: FormattedCategory[], id: string): FormattedCategory | null => {
+  for (const cat of categories) {
+    if (cat.id === id) return cat;
+    const found = findFormattedCategoryById(cat.subCategories ?? [], id);
+    if (found) return found;
+  }
+  return null;
+};
+
 export const buildCategoriesObjectGraph = (items: CategoryModel[]): FormattedCategory[] => {
   const itemsById: Record<string, FormattedCategory> = {};
   const roots: FormattedCategory[] = [];

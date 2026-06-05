@@ -18,7 +18,7 @@ METADATA LINE FORMAT (first line):
 bankName,accountLast4,periodFrom,periodTo,currencyCode
 
 TRANSACTION LINE FORMAT (remaining lines):
-date,description,amount,type,balance,confidence
+date,description,merchant,amount,type,balance,confidence
 
 RULES:
 1. Output ONLY CSV data - no headers, no markdown, no explanations
@@ -28,9 +28,13 @@ RULES:
 5. Type: E for expense, I for income
 6. Confidence: number 0-100 (integer)
 7. Empty value = field not available (just leave empty between commas)
-8. If description contains commas, wrap it in double quotes
+8. If a field contains commas, wrap it in double quotes
 9. Include ALL transactions from the statement
 10. If time is available for a transaction, ALWAYS include it - this data is valuable
+11. merchant: the counterparty / merchant name when separately identifiable
+    (e.g. "AMAZON", "Spotify", "UBER TRIP"). Leave EMPTY when no clear merchant
+    exists — internal transfers, fees, interest, salary, etc. Do NOT duplicate
+    the description if no real merchant is identifiable.
 
 TYPE RULES:
 - E (expense): money OUT (purchases, payments, withdrawals, debits)
@@ -38,9 +42,10 @@ TYPE RULES:
 
 EXAMPLE OUTPUT:
 PrivatBank,1234,2025-01-01,2025-01-31,UAH
-2025-01-15 14:32:10,Grocery store purchase,250.50,E,,95
-2025-01-16 09:15:00,"Payment, utilities",1200.00,E,5000.00,90
-2025-01-20,Salary deposit,50000.00,I,55000.00,98`;
+2025-01-15 14:32:10,Grocery store purchase ATB #123,ATB,250.50,E,,95
+2025-01-16 09:15:00,"Payment, utilities",,1200.00,E,5000.00,90
+2025-01-18,Spotify subscription,Spotify,9.99,E,,95
+2025-01-20,Salary deposit,,50000.00,I,55000.00,98`;
 
 /**
  * User prompt template for text-based extraction
@@ -62,6 +67,7 @@ interface AIExtractionOutput {
   transactions: Array<{
     date: string;
     description: string;
+    merchant?: string;
     amount: number;
     type: 'income' | 'expense';
     balance?: number | null;
@@ -151,17 +157,19 @@ export function parseAIResponse({ response }: { response: string }): AIExtractio
     for (let i = 1; i < lines.length; i++) {
       const fields = parseCSVLine({ line: lines[i]! });
 
-      if (fields.length < 4) {
+      // Minimum 5 fields: date, description, merchant (may be empty), amount, type.
+      if (fields.length < 5) {
         console.warn(`[Statement Parser] CSV parsing: Skipping invalid line ${i + 1}: ${lines[i]}`);
         continue;
       }
 
       const date = fields[0] || '';
       const description = fields[1] || '';
-      const amountStr = fields[2] || '0';
-      const typeChar = fields[3]?.toUpperCase() || 'E';
-      const balanceStr = fields[4] || '';
-      const confidenceStr = fields[5] || '80';
+      const merchant = fields[2] || '';
+      const amountStr = fields[3] || '0';
+      const typeChar = fields[4]?.toUpperCase() || 'E';
+      const balanceStr = fields[5] || '';
+      const confidenceStr = fields[6] || '80';
 
       // Validate date format: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS
       if (!/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/.test(date)) {
@@ -182,6 +190,7 @@ export function parseAIResponse({ response }: { response: string }): AIExtractio
       transactions.push({
         date,
         description,
+        merchant: merchant || undefined,
         amount,
         type,
         balance: balance !== null && !isNaN(balance) ? balance : undefined,

@@ -54,6 +54,13 @@
         "tagPlural": "tags",
         "selected": "selected",
         "searchPlaceholder": "Search tags..."
+      },
+      "payeeChip": "Payee",
+      "payees": {
+        "label": "Payees",
+        "searchPlaceholder": "Search payees",
+        "selectedOne": "1 Payee selected",
+        "selectedMany": "{n} Payees selected"
       }
     },
     "list": {
@@ -70,6 +77,8 @@
       "dialogDescription": "Changes will be applied to all selected transactions. Only filled fields will be updated.",
       "categoryLabel": "Category",
       "categoryPlaceholder": "Select category...",
+      "payeeLabel": "Payee",
+      "payeePlaceholder": "Select payee...",
       "tagsLabel": "Tags",
       "tagsPlaceholder": "Select tags...",
       "noteLabel": "Note",
@@ -79,6 +88,7 @@
       "confirmTitle": "Confirm changes",
       "confirmDescription": "You are about to update {count} transactions:",
       "confirmCategoryLabel": "Category",
+      "confirmPayeeLabel": "Payee",
       "confirmTagsLabel": "Tags",
       "confirmNoteLabel": "Note",
       "cancelButton": "Cancel",

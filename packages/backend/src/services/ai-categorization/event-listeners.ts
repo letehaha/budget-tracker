@@ -12,6 +12,17 @@ const debounceTimers = new Map<number, NodeJS.Timeout>();
 /**
  * Register AI categorization event listeners.
  * Call this once on app startup.
+ *
+ * Scoping: `TRANSACTIONS_SYNCED` is emitted only by bank-data providers
+ * today, but the listener doesn't lean on that to filter rows. The
+ * row-selection query in `getUncategorizedTransactions` joins `Accounts`
+ * and scopes by `Account.userId = payload.userId`, so AI categorization
+ * runs against every uncategorized row on accounts the requesting user
+ * *owns* — independent of who authored each row. That covers the case
+ * where a future emit site (e.g. a "re-categorize history" tool) sends
+ * mixed-creator batches, or where a shared-account recipient authored
+ * some of the rows. Manual API writes still don't trigger AI auto-fire
+ * because none of those write paths emit this event.
  */
 export function registerAiCategorizationListeners(): void {
   eventBus.on(DOMAIN_EVENTS.TRANSACTIONS_SYNCED, handleTransactionsSynced);

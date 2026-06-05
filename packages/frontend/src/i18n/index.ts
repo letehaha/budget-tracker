@@ -49,6 +49,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/optimizations': () => import('./locales/chunks/en/pages/optimizations.json'),
     'pages/shared-with-me': () => import('./locales/chunks/en/pages/shared-with-me.json'),
     'pages/household': () => import('./locales/chunks/en/pages/household.json'),
+    'pages/payees': () => import('./locales/chunks/en/pages/payees.json'),
     // Settings chunks
     'settings/index': () => import('./locales/chunks/en/settings/index.json'),
     'settings/categories': () => import('./locales/chunks/en/settings/categories.json'),
@@ -95,6 +96,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/optimizations': () => import('./locales/chunks/uk/pages/optimizations.json'),
     'pages/shared-with-me': () => import('./locales/chunks/uk/pages/shared-with-me.json'),
     'pages/household': () => import('./locales/chunks/uk/pages/household.json'),
+    'pages/payees': () => import('./locales/chunks/uk/pages/payees.json'),
     // Settings chunks
     'settings/index': () => import('./locales/chunks/uk/settings/index.json'),
     'settings/categories': () => import('./locales/chunks/uk/settings/categories.json'),

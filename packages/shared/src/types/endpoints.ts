@@ -100,6 +100,10 @@ export interface CreateTransactionBody {
   splits?: SplitInput[];
   // Optional tag IDs to associate with the transaction
   tagIds?: string[];
+  /** Pre-resolved Payee — typically null for manual creates; set by provider sync. */
+  payeeId?: RecordId | null;
+  /** True when the caller wants future syncs to leave this row's Payee link alone. */
+  payeeLocked?: boolean;
 }
 
 export interface UpdateTransactionBody {
@@ -126,6 +130,8 @@ export interface UpdateTransactionBody {
   splits?: SplitInput[] | null;
   // Optional tag IDs to associate with the transaction (null to clear all tags)
   tagIds?: string[] | null;
+  payeeId?: RecordId | null;
+  payeeLocked?: boolean;
 }
 
 export interface UnlinkTransferTransactionsBody {
@@ -145,6 +151,8 @@ export interface BulkUpdateTransactionsBody {
   tagIds?: string[];
   tagMode?: BulkUpdateTagMode;
   note?: string;
+  // Nullable: explicit `null` clears the Payee, undefined leaves it untouched.
+  payeeId?: RecordId | null;
 }
 
 export interface BulkUpdateTransactionsResponse {

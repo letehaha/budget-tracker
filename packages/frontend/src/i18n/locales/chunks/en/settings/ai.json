@@ -88,6 +88,7 @@
             "override": "You can always manually override AI-suggested categories."
           }
         },
+        "payeeTip": "Tip: setting a default category on a payee skips the AI for those transactions entirely.",
         "loading": "Loading models..."
       },
       "statementParsing": {

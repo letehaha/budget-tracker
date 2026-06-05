@@ -15,11 +15,10 @@ import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/accounts.model';
-import * as Transactions from '@models/transactions.model';
 import * as Users from '@models/users.model';
 import { queueCategorizationJob } from '@services/ai-categorization';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ExecuteImportParams {
@@ -61,15 +60,15 @@ async function executeImportImpl({
     };
   }
 
-  // Verify account exists and belongs to user
+  // Verify account exists and belongs to user. The service-layer
+  // createTransaction below derives currency from the account on its own;
+  // we only need the existence check here.
   const account = await Accounts.getAccountById({ userId, id: accountId });
   if (!account) {
     throw new ValidationError({
       message: `Account with ID ${accountId} not found`,
     });
   }
-
-  const currencyCode = account.currencyCode;
 
   // Get user's default category
   const defaultCategoryId = await Users.getUserDefaultCategory({ id: userId });
@@ -128,15 +127,8 @@ async function executeImportImpl({
         continue;
       }
 
-      // Calculate refAmount
       // Note: tx.amount is in decimal format from AI extraction (e.g., 35 means 35.00)
       const amount = Money.fromDecimal(tx.amount);
-      const refAmount = await calculateRefAmount({
-        userId,
-        amount,
-        baseCode: currencyCode,
-        date: txDate,
-      });
 
       const importDetails: TransactionImportDetails = {
         batchId,
@@ -144,23 +136,27 @@ async function executeImportImpl({
         source: ImportSource.statementParser,
       };
 
-      // Create transaction
-      const transaction = await Transactions.createTransaction({
+      // Service-layer createTransaction handles refAmount, payee extraction
+      // (via `rawMerchantName`), and inline `payee_rule` auto-categorization.
+      // Without this path the imported row would arrive at AI with
+      // `categorizationMeta = null` and bypass any Payee defaults the user has
+      // already set up.
+      const [transaction] = await createTransaction({
         userId,
         amount,
-        refAmount,
+        commissionRate: Money.zero(),
         note: tx.description,
         time: txDate,
         transactionType: tx.type === 'income' ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
-        paymentType: PAYMENT_TYPES.creditCard, // Default payment type
+        paymentType: PAYMENT_TYPES.creditCard,
         accountId,
-        categoryId: defaultCategoryId, // Use user's default category
-        currencyCode,
+        categoryId: defaultCategoryId,
         accountType: ACCOUNT_TYPES.system,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         externalData: {
           importDetails,
         },
+        rawMerchantName: tx.merchant?.trim() || null,
       });
 
       if (transaction) {

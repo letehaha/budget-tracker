@@ -68,6 +68,17 @@ export async function detectDuplicates({
   const dateIndex = headers.indexOf(columnMapping.date);
   const amountIndex = headers.indexOf(columnMapping.amount);
   const descriptionIndex = columnMapping.description ? headers.indexOf(columnMapping.description) : -1;
+  const payeeIndex = columnMapping.payee ? headers.indexOf(columnMapping.payee) : -1;
+  // A typo'd / case-mismatched `payee` mapping previously fell through as -1
+  // here and silently ran the entire import with no payee data — the row
+  // never picked up `rawMerchantName`, payee_rule never fired, and the user
+  // saw "imported" without ever learning their mapped column was unreachable.
+  // Fail validation upfront so the UI can surface the bad column.
+  if (columnMapping.payee && payeeIndex === -1) {
+    throw new ValidationError({
+      message: t({ key: 'csvImport.payeeColumnNotFound', variables: { column: columnMapping.payee } }),
+    });
+  }
   const categoryIndex = getCategoryColumnIndex(headers, columnMapping);
   const accountIndex = getAccountColumnIndex(headers, columnMapping);
   const currencyIndex = getCurrencyColumnIndex(headers, columnMapping);
@@ -102,6 +113,11 @@ export async function detectDuplicates({
 
     // Get description
     const description = descriptionIndex !== -1 ? row[descriptionIndex]?.trim() || '' : '';
+
+    // Get Payee name (if mapped). Stored unconditionally — extraction
+    // (Step 1 exact / Step 2 fuzzy / Step 3 promotion) is the same code path
+    // bank-sync providers exercise via `rawMerchantName`.
+    const payeeName = payeeIndex !== -1 ? row[payeeIndex]?.trim() || undefined : undefined;
 
     // Get category name (if from column)
     const categoryName = categoryIndex !== -1 ? row[categoryIndex]?.trim() || undefined : undefined;
@@ -160,6 +176,7 @@ export async function detectDuplicates({
         date: parsedDate!,
         amount: asCents(Math.abs(parsedAmount!)), // Store absolute value in cents, sign determined by transactionType
         description,
+        payeeName,
         categoryName,
         accountName,
         currencyCode,

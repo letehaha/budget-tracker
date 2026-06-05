@@ -1,4 +1,4 @@
-import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -313,6 +313,183 @@ describe('Bulk update transactions controller', () => {
       });
 
       expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+  });
+
+  describe('payee updates', () => {
+    it('assigns payeeId and flips payeeLocked=true on owned-account transactions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const payee = await helpers.createPayee({ payload: { name: 'Amazon' }, raw: true });
+
+      const [tx1] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+      const [tx2] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+
+      const result = await helpers.bulkUpdateTransactions({
+        payload: {
+          transactionIds: [tx1.id, tx2.id],
+          payeeId: payee.id,
+        },
+        raw: true,
+      });
+
+      expect(result.updatedCount).toBe(2);
+
+      const transactions = (await helpers.getTransactions({ raw: true }))!;
+      const updatedTx1 = transactions.find((t) => t.id === tx1.id);
+      const updatedTx2 = transactions.find((t) => t.id === tx2.id);
+
+      expect(updatedTx1?.payeeId).toBe(payee.id);
+      expect(updatedTx1?.payeeLocked).toBe(true);
+      expect(updatedTx2?.payeeId).toBe(payee.id);
+      expect(updatedTx2?.payeeLocked).toBe(true);
+    });
+
+    it('clears payeeId when null is passed and keeps payeeLocked=true', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const payee = await helpers.createPayee({ payload: { name: 'Glovo' }, raw: true });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+
+      await helpers.bulkUpdateTransactions({
+        payload: { transactionIds: [tx.id], payeeId: payee.id },
+        raw: true,
+      });
+
+      const result = await helpers.bulkUpdateTransactions({
+        payload: { transactionIds: [tx.id], payeeId: null },
+        raw: true,
+      });
+
+      expect(result.updatedCount).toBe(1);
+
+      const transactions = (await helpers.getTransactions({ raw: true }))!;
+      const updatedTx = transactions.find((t) => t.id === tx.id);
+      expect(updatedTx?.payeeId).toBeNull();
+      expect(updatedTx?.payeeLocked).toBe(true);
+    });
+
+    it('returns NotFound when payeeId does not belong to the caller', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+
+      const result = await helpers.bulkUpdateTransactions({
+        payload: {
+          transactionIds: [tx.id],
+          payeeId: generateRandomRecordId(),
+        },
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it('skips recipient-authored rows on a shared account when payeeId is set', async () => {
+      // Owner sets up an account + a category and shares the account with the recipient.
+      // Recipients writing on a shared account must reuse the owner's category (per-owner
+      // validation), so we need an owner-side category id for the shared-account tx.
+      const ownerAccount = await helpers.createAccount({ raw: true });
+      const ownerCategory = await helpers.addCustomCategory({
+        name: 'owner-cat',
+        color: '#123456',
+        raw: true,
+      });
+
+      const recipient = await helpers.signUpSecondUser();
+      await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: async () => {
+          const res = await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
+          if (res.statusCode !== 200) {
+            throw new Error(`Failed to set base currency: ${res.statusCode} ${JSON.stringify(res.body)}`);
+          }
+        },
+      });
+
+      const invitation = await helpers.createShareInvitation({
+        inviteeEmail: recipient.email,
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: ownerAccount.id,
+        permission: SHARE_PERMISSIONS.write,
+        raw: true,
+      });
+      await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: true }),
+      });
+
+      // Recipient creates one tx on the shared (owner-owned) account and one on their own account.
+      const { recipientOwnAccountTxId, recipientSharedAccountTxId, recipientPayeeId } = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: async () => {
+          const recipientOwnAccount = await helpers.createAccount({ raw: true });
+          const recipientCategory = await helpers.addCustomCategory({
+            name: 'recipient-cat',
+            color: '#ABCDEF',
+            raw: true,
+          });
+          const [ownTx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: recipientOwnAccount.id,
+              categoryId: recipientCategory.id,
+            }),
+            raw: true,
+          });
+          const [sharedTx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: ownerAccount.id,
+              // Owner-scoped — see comment on `ownerCategory` above.
+              categoryId: ownerCategory.id,
+            }),
+            raw: true,
+          });
+          const payee = await helpers.createPayee({ payload: { name: 'Spotify' }, raw: true });
+          return {
+            recipientOwnAccountTxId: ownTx.id,
+            recipientSharedAccountTxId: sharedTx.id,
+            recipientPayeeId: payee.id,
+          };
+        },
+      });
+
+      // Bulk update — only the recipient's own-account tx should be touched.
+      const result = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.bulkUpdateTransactions({
+            payload: {
+              transactionIds: [recipientOwnAccountTxId, recipientSharedAccountTxId],
+              payeeId: recipientPayeeId,
+            },
+            raw: true,
+          }),
+      });
+
+      expect(result.updatedCount).toBe(1);
+      expect(result.updatedIds).toContain(recipientOwnAccountTxId);
+      expect(result.updatedIds).not.toContain(recipientSharedAccountTxId);
+
+      const txList = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getTransactions({ raw: true }),
+      });
+      const updatedOwn = txList!.find((t) => t.id === recipientOwnAccountTxId);
+      const skippedShared = txList!.find((t) => t.id === recipientSharedAccountTxId);
+
+      expect(updatedOwn?.payeeId).toBe(recipientPayeeId);
+      expect(updatedOwn?.payeeLocked).toBe(true);
+      expect(skippedShared?.payeeId).toBeNull();
+      expect(skippedShared?.payeeLocked).toBe(false);
     });
   });
 });

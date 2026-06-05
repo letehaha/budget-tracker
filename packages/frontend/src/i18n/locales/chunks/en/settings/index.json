@@ -15,7 +15,8 @@
       "workspaceGroup": "Workspace",
       "appearance": "Appearance",
       "language": "Language",
-      "statistics": "Statistics"
+      "statistics": "Statistics",
+      "payees": "Payees"
     },
     "backToSettings": "Back to Settings"
   }

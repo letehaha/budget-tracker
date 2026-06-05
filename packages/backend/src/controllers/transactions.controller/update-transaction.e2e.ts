@@ -1,4 +1,4 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { type RecordId, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { faker } from '@faker-js/faker';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -1143,6 +1143,35 @@ describe('Update transaction controller', () => {
       expect(foreignTx).not.toBeNull();
       expect(foreignTx!.transferId).toBeNull();
       expect(foreignTx!.transferNature).toEqual(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    });
+  });
+
+  describe('Payee linking', () => {
+    it('rejects a foreign-user payeeId on PATCH with 404 (cross-user injection guard)', async () => {
+      // Mirrors the same guard exercised by the create path — the row's
+      // `payeeId` must reference a Payee owned by the row's `userId`.
+      const secondUser = await helpers.signUpSecondUser();
+      let foreignPayeeId: RecordId | null = null;
+      await helpers.asUser({
+        cookies: secondUser.cookies,
+        fn: async () => {
+          await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
+          const payee = await helpers.createPayee({
+            payload: helpers.buildPayeePayload({ name: `Foreign Patch Co ${Date.now()}` }),
+            raw: true,
+          });
+          foreignPayeeId = payee.id;
+        },
+      });
+
+      const [tx] = await helpers.createTransaction({ raw: true });
+      const result = await helpers.updateTransaction({
+        id: tx.id,
+        payload: { payeeId: foreignPayeeId! },
+        raw: false,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
   });
 });

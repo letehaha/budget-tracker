@@ -54,6 +54,13 @@
         "tagPlural": "тегів",
         "selected": "обрано",
         "searchPlaceholder": "Шукати теги..."
+      },
+      "payeeChip": "Отримувач платежу",
+      "payees": {
+        "label": "Отримувачі",
+        "searchPlaceholder": "Пошук отримувачів",
+        "selectedOne": "1 Платник вибраний",
+        "selectedMany": "{n} Платників вибрано"
       }
     },
     "list": {
@@ -70,6 +77,8 @@
       "dialogDescription": "Зміни буде застосовано до всіх вибраних транзакцій. Оновлені будуть лише заповнені поля.",
       "categoryLabel": "Категорія",
       "categoryPlaceholder": "Оберіть категорію...",
+      "payeeLabel": "Контрагент",
+      "payeePlaceholder": "Виберіть контрагента...",
       "tagsLabel": "Теги",
       "tagsPlaceholder": "Оберіть теги...",
       "noteLabel": "Примітка",
@@ -79,6 +88,7 @@
       "confirmTitle": "Підтвердження змін",
       "confirmDescription": "Ви збираєтесь оновити {count} транзакцій:",
       "confirmCategoryLabel": "Категорія",
+      "confirmPayeeLabel": "Контрагент",
       "confirmTagsLabel": "Теги",
       "confirmNoteLabel": "Примітка",
       "cancelButton": "Скасувати",

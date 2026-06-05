@@ -5,10 +5,13 @@
 #
 # Usage:
 #   chmod +x ./scripts/restore-backup.sh
-#   ./scripts/restore-backup.sh [path/to/backup.sql.gz]
+#   ./scripts/restore-backup.sh [path/to/backup.sql.gz | r2-filename.sql.gz]
 #
-# If no path is provided, the latest dump is downloaded from CF R2,
-# used for restore, and then deleted.
+# Argument resolution:
+#   - If the argument points to an existing local file, that file is used.
+#   - Otherwise, it is treated as a filename in the R2 backup bucket and
+#     downloaded (the file is deleted after restore).
+#   - If no argument is provided, the latest dump is downloaded from CF R2.
 #
 
 set -e
@@ -48,19 +51,7 @@ cleanup_download() {
 
 trap cleanup_download EXIT
 
-if [[ -n "$1" ]]; then
-    BACKUP_FILE="$1"
-
-    if [[ ! -f "$BACKUP_FILE" ]]; then
-        echo -e "${RED}Error:${NC} Backup file not found: $BACKUP_FILE"
-        exit 1
-    fi
-else
-    # Download the latest dump from R2
-    echo ""
-    echo -e "${YELLOW}No local file provided. Downloading latest dump from R2...${NC}"
-
-    # Validate R2 config
+setup_r2() {
     if [[ -z "$R2_ENDPOINT_URL" || -z "$R2_ACCESS_KEY_ID" || -z "$R2_SECRET_ACCESS_KEY" || -z "$R2_BACKUP_BUCKET" ]]; then
         echo -e "${RED}Error:${NC} R2 configuration is incomplete in $ENV_FILE"
         echo "Required vars: R2_ENDPOINT_URL, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BACKUP_BUCKET"
@@ -75,6 +66,39 @@ else
     export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
     export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
     export AWS_DEFAULT_REGION="auto"
+}
+
+if [[ -n "$1" && -f "$1" ]]; then
+    BACKUP_FILE="$1"
+elif [[ -n "$1" ]]; then
+    # Treat the argument as a filename in the R2 backup bucket
+    echo ""
+    echo -e "${YELLOW}Local file not found. Treating '$1' as an R2 filename...${NC}"
+
+    setup_r2
+
+    R2_PREFIX="${R2_BACKUP_PREFIX:-}"
+    R2_KEY="${R2_PREFIX}$1"
+
+    DOWNLOADED_FILE="/tmp/$(basename "$1")"
+
+    echo "Downloading s3://$R2_BACKUP_BUCKET/$R2_KEY ..."
+
+    if ! aws s3 cp "s3://$R2_BACKUP_BUCKET/$R2_KEY" "$DOWNLOADED_FILE" \
+        --endpoint-url "$R2_ENDPOINT_URL"; then
+        echo -e "${RED}Error:${NC} Failed to download '$1' from R2. Check the filename and R2_BACKUP_PREFIX."
+        exit 1
+    fi
+
+    echo -e "${GREEN}✓${NC} Downloaded to $DOWNLOADED_FILE"
+
+    BACKUP_FILE="$DOWNLOADED_FILE"
+else
+    # Download the latest dump from R2
+    echo ""
+    echo -e "${YELLOW}No local file provided. Downloading latest dump from R2...${NC}"
+
+    setup_r2
 
     R2_PREFIX="${R2_BACKUP_PREFIX:-}"
 

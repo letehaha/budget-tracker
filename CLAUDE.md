@@ -129,5 +129,10 @@ Other instructions:
     - **Default to container-based responsiveness**: use Tailwind's container queries (`@container` + `@sm:`, `@md:`, `@lg:` variants), CSS `@container` queries, or `ResizeObserver` on the component's wrapper. Mark the nearest layout wrapper with `@container` so children can react to its actual width.
     - Only use screen/viewport breakpoints when the change genuinely depends on the **viewport itself** — sidebar collapse, mobile nav switch, top-level page shell. Inside a page, prefer container queries.
     - When in doubt, ask: "would this breakpoint behave correctly if the sidebar collapsed/expanded?" If no — it should be a container query.
+14. **Comments describe current code, not history**
+    - No "X was easy to trigger", "instead of quick-creating", "previously did Y", "replaced X with Y", "no longer". Comment must read cold — explain _why the current code is what it is_, standalone.
+    - Change history goes in commits/PRs, not code.
+    - Rare exception: if the abolished alternative is a footgun a future contributor will reach for, name it briefly as the **"abolished alternative"** — not "the old version".
+    - Applies to backend, frontend, JSDoc, Vue templates, SQL migration headers.
 
 Always use the caveman skill

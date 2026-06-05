@@ -23,6 +23,7 @@ export * from './webhooks';
 export * from './tags';
 export * from './transaction-groups';
 export * from './subscriptions';
+export * from './payees';
 export * from './payment-reminders';
 export * from './vehicles';
 export * from './share';

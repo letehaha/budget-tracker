@@ -315,6 +315,30 @@
       "description": "Permanently delete a tag and unlink it from all transactions. Requires finance:delete scope."
     },
     {
+      "name": "get_payees",
+      "description": "List Payees (merchants/counterparties) for the user, optionally filtered by a substring query. Returns Payee id, name, defaultCategoryId, and aggregated stats (transactionCount, netFlowRef, top category, last seen)."
+    },
+    {
+      "name": "get_payee",
+      "description": "Fetch a single Payee with aliases and computed stats. Useful when the user references a merchant by id and wants its full record."
+    },
+    {
+      "name": "create_payee",
+      "description": "Create a Payee (merchant/counterparty) for the user. Use when the user wants to register a new merchant before linking transactions. Requires finance:write scope."
+    },
+    {
+      "name": "update_payee",
+      "description": "Rename a Payee or set/clear its defaultCategoryId. Renaming preserves the previous canonical name as an alias so historical matches still resolve. Requires finance:write scope."
+    },
+    {
+      "name": "merge_payees",
+      "description": "Merge a source Payee into a target Payee. Transactions and aliases move to the target; the target wins silently on defaultCategoryId conflict; the source is deleted. Requires finance:write scope."
+    },
+    {
+      "name": "delete_payee",
+      "description": "Delete a Payee. Linked transactions retain their categoryId but their payeeId is set to null. Requires finance:write scope."
+    },
+    {
       "name": "list_venture_platforms",
       "description": "List the user's venture investment platforms with their default fee fractions (entry fee, mgmt fee, carry, hurdle)."
     },

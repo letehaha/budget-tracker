@@ -23,6 +23,9 @@ import SecurityCurrencyCacheModel from './investments/security-currency-cache.mo
 import SecurityPricingModel from './investments/security-pricing.model';
 import MerchantCategoryCodesModel from './merchant-category-codes.model';
 import NotificationsModel from './notifications.model';
+import PayeeAliasesModel from './payee-aliases.model';
+import PayeeIgnoredNamesModel from './payee-ignored-names.model';
+import PayeesModel from './payees.model';
 import PaymentReminderNotificationsModel from './payment-reminder-notifications.model';
 import PaymentReminderPeriodsModel from './payment-reminder-periods.model';
 import PaymentRemindersModel from './payment-reminders.model';
@@ -107,6 +110,9 @@ const models = [
   SubscriptionsModel,
   SubscriptionTransactionsModel,
   SubscriptionCandidatesModel,
+  PayeesModel,
+  PayeeAliasesModel,
+  PayeeIgnoredNamesModel,
   PaymentRemindersModel,
   PaymentReminderPeriodsModel,
   PaymentReminderNotificationsModel,
