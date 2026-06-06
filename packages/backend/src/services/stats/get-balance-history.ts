@@ -70,7 +70,15 @@ export const getBalanceHistory = async ({
     }),
     Balances.default.findAll({
       where: getWhereConditionForTime({ from, to, columnName: 'date' }),
-      order: [['date', 'ASC']],
+      // `accountId` as secondary sort to make ties deterministic across query
+      // plans. Without it, Postgres returns same-date rows in whatever order
+      // the chosen access path produces (heap order under a seq scan, index
+      // order under the `(accountId, date)` unique index), which differs
+      // between environments and across schema changes.
+      order: [
+        ['date', 'ASC'],
+        ['accountId', 'ASC'],
+      ],
       include: [
         {
           model: Accounts.default,
@@ -179,8 +187,13 @@ export const getBalanceHistory = async ({
       }
     }
 
-    // Combine results
-    data = [...data, ...latestBalances].toSorted((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // Combine results — same `(date, accountId)` order as the main query so
+    // the merged stream stays deterministic.
+    data = [...data, ...latestBalances].toSorted((a, b) => {
+      const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return a.accountId.localeCompare(b.accountId);
+    });
   }
 
   return data;

@@ -6,7 +6,7 @@ import { logger } from '@js/utils';
 import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { subDays, startOfMonth, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
+import { Op, UniqueConstraintError } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -283,12 +283,17 @@ export default class Balances extends Model {
       });
 
       if (latestBalancePrior) {
-        // Create a record for the 1st day of the month
-        firstDayBalance = await this.create({
-          accountId,
-          date: firstDayOfMonth,
-          amount: latestBalancePrior.amount,
-        });
+        try {
+          firstDayBalance = await this.create({
+            accountId,
+            date: firstDayOfMonth,
+            amount: latestBalancePrior.amount,
+          });
+        } catch (err) {
+          if (!(err instanceof UniqueConstraintError)) throw err;
+          // Seed row computed from the same `latestBalancePrior` by every
+          // racing writer — the existing row already carries the right seed.
+        }
       }
     }
 
@@ -330,35 +335,45 @@ export default class Balances extends Model {
           where: { id: accountId },
         });
 
-        // if (account) {
         // (1) Firstly we now need to create one more record that will represent the
         // balance before that transaction
-        await this.create({
-          accountId,
-          date: subDays(new Date(date), 1),
-          amount: account!.refInitialBalance,
-        });
+        try {
+          await this.create({
+            accountId,
+            date: subDays(new Date(date), 1),
+            amount: account!.refInitialBalance,
+          });
+        } catch (err) {
+          if (!(err instanceof UniqueConstraintError)) throw err;
+          // Seed row computed from the same `refInitialBalance` by every
+          // racing writer — the existing row already carries the right seed.
+        }
 
         // (2) Then we create a record for that transaction
-        await this.create({
-          accountId,
-          date,
-          amount: account!.refInitialBalance.add(amount),
-        });
-        // }
+        try {
+          await this.create({
+            accountId,
+            date,
+            amount: account!.refInitialBalance.add(amount),
+          });
+        } catch (err) {
+          if (!(err instanceof UniqueConstraintError)) throw err;
+          await this.applyIncrementAtSql({ accountId, date, delta: amount });
+        }
       } else {
-        // And then create a new record with the amount + latestBalance
-        balanceForTxDate = await this.create({
-          accountId,
-          date,
-          amount: latestBalancePrior.amount.add(amount),
-        });
+        try {
+          balanceForTxDate = await this.create({
+            accountId,
+            date,
+            amount: latestBalancePrior.amount.add(amount),
+          });
+        } catch (err) {
+          if (!(err instanceof UniqueConstraintError)) throw err;
+          await this.applyIncrementAtSql({ accountId, date, delta: amount });
+        }
       }
     } else {
-      // If a balance already exists, update its amount
-      balanceForTxDate.amount = balanceForTxDate.amount.add(amount);
-
-      await balanceForTxDate.save();
+      await this.applyIncrementAtSql({ accountId, date, delta: amount });
     }
 
     // Update the amount of all balances for the account that come after the date
@@ -419,6 +434,32 @@ export default class Balances extends Model {
     }
   }
 
+  // SQL-side `amount += delta` against the `(accountId, date)` row. Used in
+  // place of `findOne → save` so a concurrent cascade UPDATE (`Op.gt:
+  // olderDate` from another writer's later step) can't slip in and clobber.
+  private static async applyIncrementAtSql({
+    accountId,
+    date,
+    delta,
+  }: {
+    accountId: string;
+    date: Date;
+    delta: Money;
+  }): Promise<void> {
+    await Balances.sequelize!.query(
+      `UPDATE "Balances"
+       SET "amount" = "amount" + :delta, "updatedAt" = NOW()
+       WHERE "accountId" = :accountId AND "date" = :date`,
+      {
+        replacements: {
+          delta: delta.toCents(),
+          accountId,
+          date,
+        },
+      },
+    );
+  }
+
   /**
    * Update account balance with an absolute value (not incremental).
    * Used by external bank providers (e.g., Monobank, EnableBanking) to set balance
@@ -426,6 +467,15 @@ export default class Balances extends Model {
    *
    * Transactions should be sorted by time before processing so the last transaction
    * for each day sets the correct end-of-day balance.
+   *
+   * Race-safe via the `balances_account_id_date_unique` index on (accountId, date)
+   * paired with `INSERT ... ON CONFLICT DO UPDATE` — concurrent writers (auto-sync
+   * vs. user-clicked refresh, multi-batch BullMQ workers, Bottleneck-parallel
+   * sync-manager fan-out, the per-tx `@AfterCreate` hook firing alongside the
+   * end-of-sync write) serialize on the unique index and the last writer's
+   * `refBalance` wins. The raw query is used instead of `Model.upsert` to
+   * guarantee `id` and `createdAt` are NOT overwritten when the conflict path
+   * fires.
    *
    * @param accountId - The account to update
    * @param date - The date for the balance record
@@ -442,22 +492,19 @@ export default class Balances extends Model {
   }) {
     const normalizedDate = startOfDay(date);
 
-    const existingRecord = await this.findOne({
-      where: {
-        accountId,
-        date: normalizedDate,
+    await Balances.sequelize!.query(
+      `INSERT INTO "Balances" ("id", "accountId", "date", "amount", "createdAt", "updatedAt")
+       VALUES (:id, :accountId, :date, :amount, NOW(), NOW())
+       ON CONFLICT ("accountId", "date") DO UPDATE
+       SET "amount" = EXCLUDED."amount", "updatedAt" = NOW()`,
+      {
+        replacements: {
+          id: uuidv7(),
+          accountId,
+          date: normalizedDate,
+          amount: refBalance.toCents(),
+        },
       },
-    });
-
-    if (existingRecord) {
-      existingRecord.amount = refBalance;
-      await existingRecord.save();
-    } else {
-      await this.create({
-        accountId,
-        date: normalizedDate,
-        amount: refBalance,
-      });
-    }
+    );
   }
 }
