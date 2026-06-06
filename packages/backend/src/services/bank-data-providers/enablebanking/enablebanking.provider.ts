@@ -367,7 +367,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         await apiClient.deleteSession(credentials.sessionId);
       } catch (error) {
         // Log but continue - session might already be expired
-        console.error('Failed to revoke existing session during reauthorization:', error);
+        logger.error(
+          { message: 'Failed to revoke existing Enable Banking session during reauthorization', error: error as Error },
+          { connectionId },
+        );
       }
     }
 
@@ -424,7 +427,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       }
     } catch (error) {
       // Log error but continue with disconnection
-      console.error('Failed to revoke Enable Banking session:', error);
+      logger.error(
+        { message: 'Failed to revoke Enable Banking session on disconnect', error: error as Error },
+        { connectionId },
+      );
     }
 
     // Delete the connection (CASCADE will handle related accounts)
