@@ -108,7 +108,7 @@ async function collectPriorUnmatched({
   });
 
   if (candidates.length === STEP3_CANDIDATE_LIMIT) {
-    logger.warn('[Payee extraction] Step 3 candidate scan hit cap; older unmatched transactions skipped', {
+    logger.info('[Payee extraction] Step 3 candidate scan hit cap; older unmatched transactions skipped', {
       userId,
       normalizedQuery,
       cap: STEP3_CANDIDATE_LIMIT,
