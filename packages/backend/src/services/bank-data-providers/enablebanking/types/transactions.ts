@@ -133,9 +133,3 @@ export interface TransactionsQuery {
   /** Continuation key for pagination */
   continuation_key?: string;
 }
-
-/**
- * Response from transactions endpoint
- * @deprecated Use HalTransactions instead
- */
-export interface TransactionsResponse extends HalTransactions {}

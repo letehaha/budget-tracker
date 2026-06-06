@@ -141,6 +141,12 @@ function loggerErrorHandler(
         if (typeof messageParam === 'object' && 'message' in messageParam && messageParam.message) {
           scope.setExtra('errorContext', messageParam.message);
         }
+        // Surface CustomError.details so wrapped HTTP/upstream context lands
+        // in Sentry — Sentry's default capture only serializes name/message/stack.
+        const errorDetails = (errorObj as { details?: unknown }).details;
+        if (errorDetails && typeof errorDetails === 'object') {
+          scope.setExtras(errorDetails as Record<string, unknown>);
+        }
         Sentry.captureException(errorObj);
       } else {
         Sentry.captureMessage(messageResult, 'error');

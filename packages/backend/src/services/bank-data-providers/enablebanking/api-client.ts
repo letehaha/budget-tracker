@@ -22,7 +22,7 @@ import {
   StartAuthorizationRequest,
   StartAuthorizationResponse,
   TransactionsQuery,
-  TransactionsResponse,
+  HalTransactions,
 } from './types';
 
 /**
@@ -111,6 +111,29 @@ export function classifyAspspError({
   return { matched: false };
 }
 
+/**
+ * Exponential backoff delays for transient-error retries on slow ASPSP
+ * transactions endpoints. List length defines the max retry count.
+ */
+const RETRY_DELAYS_MS = [500, 1500, 3500];
+
+const RETRYABLE_AXIOS_CODES = new Set(['ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND']);
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Retry only on transient signals — timeouts, dropped connections, and 5xx —
+ * never on 4xx, since those won't change on retry and would either burn time
+ * (BadRequestError) or hide a real auth failure (ForbiddenError).
+ */
+function isRetryableAxiosError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  if (error.code && RETRYABLE_AXIOS_CODES.has(error.code)) return true;
+  if (!error.response) return true;
+  const status = error.response.status;
+  return status >= 500 && status < 600;
+}
+
 export class EnableBankingApiClient {
   private readonly baseURL = 'https://api.enablebanking.com';
   private client: AxiosInstance;
@@ -180,17 +203,17 @@ export class EnableBankingApiClient {
       // Prefer real upstream message over the generic wrapper "Error interacting with ASPSP".
       const message = aspspMessage || (typeof data.message === 'string' ? data.message : error.message);
 
-      const errorDetails = { aspspError, aspspErrorName, aspspMessage, aspspErrorDataStr };
-      const errorContext = {
+      const errorDetails = {
+        method,
+        aspspError,
+        aspspErrorName,
+        aspspMessage,
+        aspspErrorDataStr,
         status,
         httpMethod,
         httpUrl,
-        message,
-        ...errorDetails,
         rawData: safeStringify(data),
       };
-
-      logger.error(`[EnableBankingApiClient] ${method} failed:`, errorContext);
 
       // Detect ASPSP-wrapped session/token expiry. Upstream returns 401/403 but
       // Enable Banking surfaces it as 400 ASPSP_ERROR — promote to ForbiddenError
@@ -204,7 +227,7 @@ export class EnableBankingApiClient {
           // (false negative) or kills a working one (false positive).
           logger.warn(
             `[EnableBankingApiClient] Classified ASPSP_ERROR as auth failure (reason=${classification.reason})`,
-            errorContext,
+            { ...errorDetails, message },
           );
           throw new ForbiddenError({
             message: t({ key: 'bankDataProviders.enableBanking.sessionExpiredReconnect' }),
@@ -400,16 +423,25 @@ export class EnableBankingApiClient {
     accountId: string,
     query?: TransactionsQuery,
     psuContext?: PSUContext,
-  ): Promise<TransactionsResponse> {
-    try {
-      const response = await this.client.get<TransactionsResponse>(`/accounts/${accountId}/transactions`, {
-        headers: this.getAuthHeaders(psuContext),
-        params: query,
-      });
-      return response.data;
-    } catch (error) {
-      this.handleApiError(error, 'getAccountTransactions');
+  ): Promise<HalTransactions> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+      try {
+        const response = await this.client.get<HalTransactions>(`/accounts/${accountId}/transactions`, {
+          headers: this.getAuthHeaders(psuContext),
+          params: query,
+        });
+        return response.data;
+      } catch (error) {
+        lastError = error;
+        if (attempt < RETRY_DELAYS_MS.length && isRetryableAxiosError(error)) {
+          await sleep(RETRY_DELAYS_MS[attempt]!);
+          continue;
+        }
+        break;
+      }
     }
+    this.handleApiError(lastError, 'getAccountTransactions');
   }
 
   /**
@@ -420,8 +452,8 @@ export class EnableBankingApiClient {
     accountId: string,
     query?: Omit<TransactionsQuery, 'continuation_key'>,
     psuContext?: PSUContext,
-  ): Promise<TransactionsResponse['transactions']> {
-    const allTransactions: TransactionsResponse['transactions'] = [];
+  ): Promise<HalTransactions['transactions']> {
+    const allTransactions: HalTransactions['transactions'] = [];
     let continuationKey: string | undefined;
 
     do {
