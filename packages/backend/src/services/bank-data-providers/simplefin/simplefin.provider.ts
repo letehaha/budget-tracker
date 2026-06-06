@@ -571,58 +571,48 @@ export class SimplefinProvider extends BaseBankDataProvider {
     to: Date;
     logLabel: string;
   }): Promise<string[]> {
-    await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.SYNCING, userId });
+    const { transactionIds } = await this.runSyncWithStatus({
+      systemAccountId,
+      userId,
+      connectionId,
+      errorLogMessage: `[SimpleFIN] ${logLabel} error:`,
+      work: async () => {
+        const account = await this.getSystemAccount(systemAccountId);
+        const connection = await this.getConnection(connectionId);
+        this.validateProviderType(connection);
 
-    try {
-      const account = await this.getSystemAccount(systemAccountId);
-      const connection = await this.getConnection(connectionId);
-      this.validateProviderType(connection);
+        if (!account.externalId) {
+          throw new BadRequestError({ message: t({ key: 'bankDataProviders.simplefin.accountNoExternalId' }) });
+        }
 
-      if (!account.externalId) {
-        throw new BadRequestError({ message: t({ key: 'bankDataProviders.simplefin.accountNoExternalId' }) });
-      }
+        const { accessUrl } = await this.getValidatedCredentials(connectionId);
+        const apiClient = new SimplefinApiClient(accessUrl);
 
-      const { accessUrl } = await this.getValidatedCredentials(connectionId);
-      const apiClient = new SimplefinApiClient(accessUrl);
-
-      const { createdIds, balance } = await this.ingestTransactions({
-        connectionId,
-        apiClient,
-        connection,
-        account,
-        from,
-        to,
-      });
-
-      if (balance !== null) {
-        await this.updateAccountBalanceWithHistory({
+        const { createdIds, balance } = await this.ingestTransactions({
+          connectionId,
+          apiClient,
+          connection,
           account,
-          balance: Money.fromDecimal(balance),
+          from,
+          to,
         });
-      } else {
-        logger.info(`[SimpleFIN] ${logLabel}: balance unavailable for account ${account.id}, left unchanged`);
-      }
 
-      await this.updateLastSync(connectionId);
+        if (balance !== null) {
+          await this.updateAccountBalanceWithHistory({
+            account,
+            balance: Money.fromDecimal(balance),
+          });
+        } else {
+          logger.info(`[SimpleFIN] ${logLabel}: balance unavailable for account ${account.id}, left unchanged`);
+        }
 
-      emitTransactionsSyncEvent({ userId: connection.userId, accountId: account.id, transactionIds: createdIds });
+        logger.info(`[SimpleFIN] ${logLabel}: ${createdIds.length} transactions created for account ${account.id}`);
 
-      logger.info(`[SimpleFIN] ${logLabel}: ${createdIds.length} transactions created for account ${account.id}`);
+        return { transactionIds: createdIds };
+      },
+    });
 
-      await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.COMPLETED, userId });
-
-      return createdIds;
-    } catch (error) {
-      logger.error({ message: `[SimpleFIN] ${logLabel} error:`, error: error as Error });
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await setAccountSyncStatus({
-        accountId: systemAccountId,
-        status: SyncStatus.FAILED,
-        error: errorMessage,
-        userId,
-      });
-      throw error;
-    }
+    return transactionIds;
   }
 
   /**

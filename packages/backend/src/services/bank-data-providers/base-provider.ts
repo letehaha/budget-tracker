@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DEACTIVATION_REASON, type DeactivationReason } from '@bt/shared/types';
+import { DEACTIVATION_REASON, type DeactivationReason, type RecordId } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ForbiddenError } from '@js/errors';
@@ -7,6 +7,7 @@ import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
+import { SyncStatus, setAccountSyncStatus } from './sync/sync-status-tracker';
 import {
   DateRange,
   IBankDataProvider,
@@ -15,6 +16,7 @@ import {
   ProviderMetadata,
   ProviderTransaction,
 } from './types';
+import { emitTransactionsSyncEvent } from './utils/emit-transactions-sync-event';
 
 /**
  * Shape of connection-metadata fields used by the shared auth-failure
@@ -190,6 +192,107 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
           },
         }),
       );
+    }
+  }
+
+  // ============================================================================
+  // Sync Lifecycle Scaffolding
+  // ============================================================================
+
+  /**
+   * Wrap a provider's inline sync work with the shared status lifecycle:
+   * SYNCING → work → updateLastSync → emit event → COMPLETED. On error, log
+   * via `errorLogMessage`, record FAILED with the error message, then rethrow.
+   *
+   * `work` must return an object containing `transactionIds` — the ids created
+   * during persistence — so the emit event can carry them. Any extra fields on
+   * the result are passed through to the caller untouched.
+   *
+   * Providers whose upstream uses a job queue (Monobank) should use
+   * {@link runQueuedSync} instead — the worker, not this helper, owns the
+   * SYNCING → COMPLETED transition there.
+   */
+  protected async runSyncWithStatus<T extends { transactionIds: string[] }>({
+    systemAccountId,
+    userId,
+    connectionId,
+    errorLogMessage,
+    work,
+  }: {
+    systemAccountId: RecordId;
+    userId: number;
+    connectionId: string;
+    errorLogMessage: string;
+    work: () => Promise<T>;
+  }): Promise<T> {
+    await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.SYNCING, userId });
+
+    try {
+      const result = await work();
+
+      await this.updateLastSync(connectionId);
+
+      emitTransactionsSyncEvent({
+        userId,
+        accountId: systemAccountId,
+        transactionIds: result.transactionIds,
+      });
+
+      await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.COMPLETED, userId });
+
+      return result;
+    } catch (error) {
+      logger.error({ message: errorLogMessage, error: error as Error });
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      await setAccountSyncStatus({
+        accountId: systemAccountId,
+        status: SyncStatus.FAILED,
+        error: message,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Variant of {@link runSyncWithStatus} for providers whose sync hands work
+   * off to a job queue (Monobank → BullMQ). Marks the account QUEUED, runs the
+   * `enqueue` callback (which returns the queue's job descriptor), and returns
+   * it. On error, records FAILED with the error message and rethrows.
+   *
+   * Critically, this helper NEVER touches SYNCING or COMPLETED — those are the
+   * worker's responsibility. Calling it on an inline-sync provider would leave
+   * the account stuck in QUEUED.
+   */
+  protected async runQueuedSync<T>({
+    systemAccountId,
+    userId,
+    errorLogMessage,
+    enqueue,
+  }: {
+    systemAccountId: RecordId;
+    userId: number;
+    errorLogMessage?: string;
+    enqueue: () => Promise<T>;
+  }): Promise<T> {
+    await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.QUEUED, userId });
+
+    try {
+      return await enqueue();
+    } catch (error) {
+      // Just in case, catch any errors that happened before and during queueing
+      // Everything that happens inside workers is handled by workers
+      if (errorLogMessage) {
+        logger.error({ message: errorLogMessage, error: error as Error });
+      }
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      await setAccountSyncStatus({
+        accountId: systemAccountId,
+        status: SyncStatus.FAILED,
+        error: message,
+        userId,
+      });
+      throw error;
     }
   }
 

@@ -16,7 +16,6 @@ import {
 } from '@services/bank-data-providers';
 import cc from 'currency-codes';
 
-import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { MonobankApiClient } from './api-client';
 import { getJobGroupProgress, queueTransactionSync } from './transaction-sync-queue';
@@ -189,45 +188,37 @@ export class MonobankProvider extends BaseBankDataProvider {
     systemAccountId: RecordId;
     userId: number;
   }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
-    // Set status to QUEUED (jobs are queued, not actively syncing yet)
-    await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.QUEUED, userId });
+    // The worker (transaction-sync-queue) advances QUEUED → SYNCING → COMPLETED
+    // once it picks up the job, so runQueuedSync only owns QUEUED and FAILED here.
+    return this.runQueuedSync({
+      systemAccountId,
+      userId,
+      enqueue: async () => {
+        const account = await this.getSystemAccount(systemAccountId);
 
-    try {
-      const account = await this.getSystemAccount(systemAccountId);
+        // Find the most recent transaction for this account
+        const latestTransaction = await Transactions.findOne({
+          where: {
+            accountId: account.id,
+          },
+          order: [['time', 'DESC']],
+        });
 
-      // Find the most recent transaction for this account
-      const latestTransaction = await Transactions.findOne({
-        where: {
-          accountId: account.id,
-        },
-        order: [['time', 'DESC']],
-      });
+        // Default to last 31 days if no transactions found
+        const from = latestTransaction
+          ? new Date(latestTransaction.time)
+          : new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+        const to = new Date();
 
-      // Default to last 31 days if no transactions found
-      const from = latestTransaction
-        ? new Date(latestTransaction.time)
-        : new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
-      const to = new Date();
-
-      return this.loadTransactionsForPeriod({
-        connectionId,
-        systemAccountId,
-        userId,
-        from,
-        to,
-      });
-      // Worker will set SYNCING when it starts, then COMPLETED when done
-    } catch (error) {
-      // Set status to FAILED on error
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await setAccountSyncStatus({
-        accountId: systemAccountId,
-        status: SyncStatus.FAILED,
-        error: errorMessage,
-        userId,
-      });
-      throw error;
-    }
+        return this.loadTransactionsForPeriod({
+          connectionId,
+          systemAccountId,
+          userId,
+          from,
+          to,
+        });
+      },
+    });
   }
 
   /**
