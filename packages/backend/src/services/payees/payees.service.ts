@@ -415,7 +415,7 @@ interface DeletePayeeAliasParams {
  * Refuses to delete the alias whose normalized form matches the Payee's
  * canonical normalizedName: deletion would leave the Payee with no link to
  * its own name, and the next sync's inline extraction would just re-create
- * the alias via Step 1 exact match. The user can rename the Payee instead
+ * the alias via the exact-match path. The user can rename the Payee instead
  * if they want a different canonical form.
  */
 export const deletePayeeAlias = withTransaction(
