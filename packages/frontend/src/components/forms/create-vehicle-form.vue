@@ -13,16 +13,23 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCurrencyName } from '@/composable';
+import { useFormValidation } from '@/composable/form-validator';
 import { captureException } from '@/lib/sentry';
 import { useCurrenciesStore } from '@/stores';
 import { DEPRECIATION_PRESET, VEHICLE_CLASS } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import { between, helpers, maxValue, minValue, required, requiredIf } from '@vuelidate/validators';
 import { format } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const DEFAULT_SALVAGE_FLOOR_PCT = 10;
+const MIN_YEAR = 1900;
+const MAX_YEAR = new Date().getFullYear() + 1;
+const MAX_MILEAGE = 10_000_000;
+
+const positiveNumber = helpers.withMessage('Must be greater than 0', (v: unknown) => v != null && Number(v) > 0);
 
 const emit = defineEmits<{ created: [] }>();
 
@@ -96,10 +103,28 @@ const selectedDepreciationPreset = computed(
 
 const showCustomRate = computed(() => form.depreciationPreset === DEPRECIATION_PRESET.custom);
 
+const validationRules = {
+  name: { required },
+  make: { required },
+  model: { required },
+  year: { required, between: between(MIN_YEAR, MAX_YEAR) },
+  purchasePrice: { positive: positiveNumber, maxValue: maxValue(Number.MAX_SAFE_INTEGER) },
+  salvageFloorPct: { required, between: between(0, 100) },
+  customAnnualRatePct: {
+    requiredIfCustom: requiredIf(() => form.depreciationPreset === DEPRECIATION_PRESET.custom),
+    between: between(0, 100),
+  },
+  currentMileage: { minValue: minValue(0), maxValue: maxValue(MAX_MILEAGE) },
+};
+
+const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation({ form }, { form: validationRules });
+
 const createVehicleMutation = useMutation({ mutationFn: createVehicle });
 
 const submit = async () => {
   if (createVehicleMutation.isPending.value) return;
+
+  if (!isFormValid()) return;
 
   try {
     await createVehicleMutation.mutateAsync({
@@ -149,6 +174,8 @@ const submit = async () => {
       v-model="form.name"
       :label="$t('forms.createVehicle.nameLabel')"
       :placeholder="$t('forms.createVehicle.namePlaceholder')"
+      :error-message="getFieldErrorMessage('form.name')"
+      @blur="touchField('form.name')"
     />
 
     <div>
@@ -169,13 +196,31 @@ const submit = async () => {
     </div>
 
     <div class="grid grid-cols-2 gap-4">
-      <input-field v-model="form.make" :label="$t('forms.createVehicle.makeLabel')" placeholder="Toyota" />
-      <input-field v-model="form.model" :label="$t('forms.createVehicle.modelLabel')" placeholder="Camry" />
+      <input-field
+        v-model="form.make"
+        :label="$t('forms.createVehicle.makeLabel')"
+        placeholder="Toyota"
+        :error-message="getFieldErrorMessage('form.make')"
+        @blur="touchField('form.make')"
+      />
+      <input-field
+        v-model="form.model"
+        :label="$t('forms.createVehicle.modelLabel')"
+        placeholder="Camry"
+        :error-message="getFieldErrorMessage('form.model')"
+        @blur="touchField('form.model')"
+      />
     </div>
 
     <div class="grid grid-cols-2 gap-4">
       <input-field v-model="form.trim" :label="$t('forms.createVehicle.trimLabel')" placeholder="XLE" />
-      <input-field v-model="form.year" type="number" :label="$t('forms.createVehicle.yearLabel')" />
+      <input-field
+        v-model="form.year"
+        type="number"
+        :label="$t('forms.createVehicle.yearLabel')"
+        :error-message="getFieldErrorMessage('form.year')"
+        @blur="touchField('form.year')"
+      />
     </div>
 
     <SelectField
@@ -187,7 +232,13 @@ const submit = async () => {
       @update:model-value="(v) => v && (form.vehicleClass = v.value)"
     />
 
-    <input-field v-model="form.purchasePrice" type="number" :label="$t('forms.createVehicle.purchasePriceLabel')" />
+    <input-field
+      v-model="form.purchasePrice"
+      type="number"
+      :label="$t('forms.createVehicle.purchasePriceLabel')"
+      :error-message="getFieldErrorMessage('form.purchasePrice')"
+      @blur="touchField('form.purchasePrice')"
+    />
 
     <DateField v-model="form.purchaseDate" :label="$t('forms.createVehicle.purchaseDateLabel')" />
 
@@ -205,15 +256,25 @@ const submit = async () => {
       v-model="form.customAnnualRatePct"
       type="number"
       :label="$t('forms.createVehicle.customAnnualRatePctLabel')"
+      :error-message="getFieldErrorMessage('form.customAnnualRatePct')"
+      @blur="touchField('form.customAnnualRatePct')"
     />
 
-    <input-field v-model="form.salvageFloorPct" type="number" :label="$t('forms.createVehicle.salvageFloorPctLabel')" />
+    <input-field
+      v-model="form.salvageFloorPct"
+      type="number"
+      :label="$t('forms.createVehicle.salvageFloorPctLabel')"
+      :error-message="getFieldErrorMessage('form.salvageFloorPct')"
+      @blur="touchField('form.salvageFloorPct')"
+    />
 
     <input-field
       v-model="form.currentMileage"
       type="number"
       :label="$t('forms.createVehicle.currentMileageLabel')"
       :placeholder="$t('forms.createVehicle.currentMileagePlaceholder')"
+      :error-message="getFieldErrorMessage('form.currentMileage')"
+      @blur="touchField('form.currentMileage')"
     />
 
     <div class="flex">

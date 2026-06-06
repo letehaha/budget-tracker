@@ -9,9 +9,11 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { useFormValidation } from '@/composable/form-validator';
 import { captureException } from '@/lib/sentry';
 import { DEPRECIATION_PRESET, VEHICLE_CLASS } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import { between, maxValue, minValue, required, requiredIf } from '@vuelidate/validators';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -72,10 +74,31 @@ const selectedDepreciationPreset = computed(
 
 const showCustomRate = computed(() => form.depreciationPreset === DEPRECIATION_PRESET.custom);
 
+const MIN_YEAR = 1900;
+const MAX_YEAR = new Date().getFullYear() + 1;
+const MAX_MILEAGE = 10_000_000;
+
+const validationRules = {
+  name: { required },
+  make: { required },
+  model: { required },
+  year: { required, between: between(MIN_YEAR, MAX_YEAR) },
+  salvageFloorPct: { required, between: between(0, 100) },
+  customAnnualRatePct: {
+    requiredIfCustom: requiredIf(() => form.depreciationPreset === DEPRECIATION_PRESET.custom),
+    between: between(0, 100),
+  },
+  currentMileage: { minValue: minValue(0), maxValue: maxValue(MAX_MILEAGE) },
+};
+
+const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation({ form }, { form: validationRules });
+
 const updateMutation = useMutation({ mutationFn: updateVehicle });
 
 const submit = async () => {
   if (updateMutation.isPending.value) return;
+
+  if (!isFormValid()) return;
 
   try {
     await updateMutation.mutateAsync({
@@ -118,16 +141,37 @@ const submit = async () => {
 
 <template>
   <form class="grid gap-6" @submit.prevent="submit">
-    <input-field v-model="form.name" :label="$t('forms.createVehicle.nameLabel')" />
+    <input-field
+      v-model="form.name"
+      :label="$t('forms.createVehicle.nameLabel')"
+      :error-message="getFieldErrorMessage('form.name')"
+      @blur="touchField('form.name')"
+    />
 
     <div class="grid grid-cols-2 gap-4">
-      <input-field v-model="form.make" :label="$t('forms.createVehicle.makeLabel')" />
-      <input-field v-model="form.model" :label="$t('forms.createVehicle.modelLabel')" />
+      <input-field
+        v-model="form.make"
+        :label="$t('forms.createVehicle.makeLabel')"
+        :error-message="getFieldErrorMessage('form.make')"
+        @blur="touchField('form.make')"
+      />
+      <input-field
+        v-model="form.model"
+        :label="$t('forms.createVehicle.modelLabel')"
+        :error-message="getFieldErrorMessage('form.model')"
+        @blur="touchField('form.model')"
+      />
     </div>
 
     <div class="grid grid-cols-2 gap-4">
       <input-field v-model="form.trim" :label="$t('forms.createVehicle.trimLabel')" />
-      <input-field v-model="form.year" type="number" :label="$t('forms.createVehicle.yearLabel')" />
+      <input-field
+        v-model="form.year"
+        type="number"
+        :label="$t('forms.createVehicle.yearLabel')"
+        :error-message="getFieldErrorMessage('form.year')"
+        @blur="touchField('form.year')"
+      />
     </div>
 
     <SelectField
@@ -153,15 +197,25 @@ const submit = async () => {
       v-model="form.customAnnualRatePct"
       type="number"
       :label="$t('forms.createVehicle.customAnnualRatePctLabel')"
+      :error-message="getFieldErrorMessage('form.customAnnualRatePct')"
+      @blur="touchField('form.customAnnualRatePct')"
     />
 
-    <input-field v-model="form.salvageFloorPct" type="number" :label="$t('forms.createVehicle.salvageFloorPctLabel')" />
+    <input-field
+      v-model="form.salvageFloorPct"
+      type="number"
+      :label="$t('forms.createVehicle.salvageFloorPctLabel')"
+      :error-message="getFieldErrorMessage('form.salvageFloorPct')"
+      @blur="touchField('form.salvageFloorPct')"
+    />
 
     <input-field
       v-model="form.currentMileage"
       type="number"
       :label="$t('forms.createVehicle.currentMileageLabel')"
       :placeholder="$t('forms.createVehicle.currentMileagePlaceholder')"
+      :error-message="getFieldErrorMessage('form.currentMileage')"
+      @blur="touchField('form.currentMileage')"
     />
 
     <div class="flex">
