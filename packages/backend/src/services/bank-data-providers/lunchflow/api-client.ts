@@ -107,8 +107,8 @@ export class LunchFlowApiClient {
           message:
             errorMessage ||
             t({
-              key: 'bankDataProviders.lunchflow.apiError',
-              variables: { message: error.message },
+              key: 'bankDataProviders.apiError',
+              variables: { provider: 'LunchFlow', message: error.message },
             }),
         });
       }

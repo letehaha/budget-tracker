@@ -180,11 +180,11 @@
     "accountCurrencyNotSupported": "Валюта рахунку \"{{currency}}\" не підтримується системою.",
     "periodLoadNotSupported": "Завантаження транзакцій за довільний період не підтримується цим провайдером.",
     "transactionsLoadedCount": "Завантажено {{count}} транзакцій.",
+    "apiError": "Помилка API {{provider}}: {{message}}",
     "monobank": {
       "invalidCredentialsFormat": "Недійсний формат облікових даних для Monobank",
       "invalidApiToken": "Недійсний API токен Monobank",
       "rateLimitExceeded": "Перевищено ліміт запитів до API Monobank. Спробуйте ще раз через хвилину.",
-      "apiError": "Помилка API Monobank: {{message}}",
       "accountNotFound": "Рахунок {{accountExternalId}} не знайдено в Monobank",
       "webhookNotImplemented": "handleWebhook ще не реалізовано для Monobank",
       "unknownCurrencyCode": "Невідомий код валюти: {{numericCode}}",
@@ -214,8 +214,7 @@
       "invalidCredentialsFormat": "Невірний формат облікових даних LunchFlow. Будь ласка, надайте дійсний API-ключ.",
       "invalidApiKey": "Невірний API-ключ LunchFlow. Будь ласка, перевірте ваші облікові дані.",
       "accountNoExternalId": "Обліковий запис не має зовнішнього ID для синхронізації LunchFlow.",
-      "accountNotFound": "Обліковий запис LunchFlow не знайдено.",
-      "apiError": "Помилка API LunchFlow: {{message}}"
+      "accountNotFound": "Обліковий запис LunchFlow не знайдено."
     },
     "simplefin": {
       "invalidCredentialsFormat": "Невірний формат облікових даних SimpleFIN.",
@@ -225,7 +224,6 @@
       "accountNotFound": "Рахунок SimpleFIN не знайдено.",
       "accountNoExternalId": "Цей рахунок не прив'язаний до облікового запису SimpleFIN.",
       "accountAbsentFromResponse": "SimpleFIN не повернув дані для цього рахунку під час останньої синхронізації. Можливо, рахунок було вимкнено в банку – спробуйте синхронізувати знову або підключіть наново, якщо проблема не зникає.",
-      "apiError": "Помилка API SimpleFIN: {{message}}",
       "rateLimited": "SimpleFIN зараз отримує забагато запитів. Зачекайте трохи і спробуйте ще раз."
     },
     "walutomat": {
