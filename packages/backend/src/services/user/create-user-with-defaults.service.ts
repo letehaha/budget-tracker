@@ -61,7 +61,7 @@ export async function createAppUserWithUniqueUsername({
     // Surface collision retries so a sudden spike (or a slug pointing at a
     // popular human name) is visible in logs / log-based metrics. Without
     // this, the first-attempt failure is swallowed entirely.
-    logger.warn(
+    logger.info(
       `Username collision on signup: requested="${slug}", retrying with="${uniqueUsername}", authUserId="${authUserId}"`,
     );
 
