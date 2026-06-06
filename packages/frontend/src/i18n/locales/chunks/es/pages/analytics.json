@@ -1,0 +1,123 @@
+{
+  "analytics": {
+    "backToAnalytics": "Volver a Analítica",
+    "timePeriods": {},
+    "navigation": {
+      "cashFlow": "Flujo de caja",
+      "trendsComparison": "Comparación de tendencias",
+      "investmentCalculator": "Calculadora de inversiones",
+      "collapse": "Contraer"
+    },
+    "cashFlow": {
+      "income": "Ingresos",
+      "expenses": "Gastos",
+      "netSavings": "Ahorro neto",
+      "netFlow": "Flujo neto",
+      "savingsRate": "Tasa de ahorro",
+      "loadError": "Error al cargar los datos de flujo de caja",
+      "noData": "No se encontraron transacciones",
+      "noDataHint": "Pruebe a seleccionar un período diferente o compruebe si tiene alguna transacción",
+      "excludeCategories": "Aplicar exclusiones de categorías",
+      "excludeCategoriesHint": "Usa las exclusiones de Ajustes → Estadísticas",
+      "showTrendLine": "Mostrar línea de tendencia",
+      "showTrendLineHint": "Media suavizada del flujo de caja neto",
+      "trendLine": "Línea de tendencia",
+      "vsPreviousPeriod": "vs período anterior",
+      "chartTypes": {
+        "stacked": "Apilado",
+        "mirrored": "Espejo",
+        "grouped": "Agrupado"
+      },
+      "granularity": {
+        "monthly": "Mensual",
+        "biweekly": "Quincenal",
+        "weekly": "Semanal"
+      },
+      "periods": {
+        "last3Months": "Últimos 3 meses",
+        "last6Months": "Últimos 6 meses",
+        "last12Months": "Últimos 12 meses",
+        "thisYear": "Este año",
+        "previousYear": "Año anterior"
+      },
+      "periodSelector": {
+        "quickSelect": "Selección rápida",
+        "year": "Año {year}"
+      }
+    },
+    "trends": {
+      "metrics": {
+        "expenses": "Gastos",
+        "income": "Ingresos",
+        "savings": "Ahorros"
+      },
+      "chart": {
+        "selectedPeriod": "Período seleccionado",
+        "comparisonPeriod": "Período anterior",
+        "cumulativeNote": "Total acumulado hasta este punto"
+      },
+      "categoryBreakdown": {
+        "title": "Desglose por categorías",
+        "noData": "Sin datos para este período",
+        "viewAll": "Ver todas las categorías",
+        "moreCount": "{count} más"
+      },
+      "monthlyComparison": {
+        "title": "Comparación mensual",
+        "allCategories": "Todas las categorías",
+        "categorySelected": "{count} categoría",
+        "categoriesSelected": "{count} categorías",
+        "searchCategories": "Buscar categorías...",
+        "average": "Media",
+        "total": "Total",
+        "vsLastMonth": "vs mes anterior",
+        "viewTransactions": "Ver transacciones"
+      },
+      "cumulativeProgress": {
+        "title": "Progreso acumulado"
+      },
+      "vsPreviousPeriod": "vs período anterior",
+      "loadError": "Error al cargar los datos",
+      "noData": "Sin datos disponibles",
+      "noDataHint": "No se registraron transacciones para este período"
+    },
+    "investmentCalculator": {
+      "initialBalance": "Saldo inicial",
+      "useCurrentBalance": "Usar saldo actual",
+      "monthlyContribution": "Aportación mensual",
+      "useAvgNetIncome": "Usar ingreso neto promedio →",
+      "timeHorizon": "Horizonte temporal (años)",
+      "years": "Años",
+      "annualReturn": "Rentabilidad anual (%)",
+      "annualInflation": "Inflación anual (%)",
+      "perMonth": "al mes",
+      "totalInvested": "Total invertido",
+      "nominalFinalValue": "Valor final nominal",
+      "growth": "crecimiento",
+      "realFinalValue": "Valor final real",
+      "realGrowth": "crecimiento real",
+      "realMultiplier": "Multiplicador real",
+      "realMultiplierTooltip": "Cuánto crece su inversión total descontando la inflación. A diferencia de los rendimientos nominales, esto muestra el poder adquisitivo real. 1,5x significa que cada $1 invertido se convierte en $1,50 en dinero de hoy.",
+      "ofMoneyInvested": "del dinero invertido",
+      "customIndicator": "Personalizado",
+      "customReturnRate": "Introduzca la tasa (%)",
+      "customInflationRate": "Introduzca la tasa (%)",
+      "inflationPresets": {
+        "low": "Baja — Objetivos de los bancos centrales (Fed, BCE)",
+        "moderate": "Moderada — Promedio histórico de EE. UU./UE a largo plazo",
+        "elevated": "Elevada — Niveles post-2020, mercados emergentes",
+        "high": "Alta — Economías con alta inflación"
+      },
+      "inflationAdjustedSuffix": "(ajustado por inflación)",
+      "yearN": "Año {n}",
+      "disclaimer": "Basado en una rentabilidad constante del {rate}%/año. La media histórica del S&P 500 es ~10%/año. No tiene en cuenta impuestos ni comisiones.",
+      "useAvgNetIncomeTooltip": "Su ingreso neto mensual promedio (ingresos menos gastos) durante el período seleccionado, basado en su historial de transacciones",
+      "inflationTooltip": "La rapidez con que suben los precios cada año, reduciendo el valor real de su dinero.\n\n~1–2% — muy baja, economía estable\n~2–3% — normal (objetivo habitual)\n~4–6% — por encima de la media\n~7%+ — inflación a nivel de crisis",
+      "totalInvestedBreakdown": "{initial} inicial + {contributions} aportaciones",
+      "configure": "Configurar",
+      "hideInputs": "Ocultar",
+      "portfolioReturnOption": "{name} (su ~{rate}%/año)",
+      "portfolioNoHistoryOption": "{name} — historial insuficiente"
+    }
+  }
+}

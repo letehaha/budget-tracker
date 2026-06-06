@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "accountGroups": {
+      "title": "Gestionar grupos de cuentas",
+      "addButton": "Añadir nuevo grupo",
+      "table": {
+        "placeholder": "Nombre de la cuenta",
+        "saveButton": "Guardar",
+        "editButton": "Editar",
+        "deleteButton": "Eliminar",
+        "deleteDisabledTooltip": "Este grupo está vinculado a una conexión bancaria y no se puede eliminar manualmente. Desconecte el banco para eliminarlo automáticamente.",
+        "unlinkButton": "Desvincular",
+        "noData": "No hay datos de grupos de cuentas",
+        "deleteDialog": {
+          "title": "¿Desea eliminar este grupo de cuentas?",
+          "unlinkWarning": "Antes de eliminar, desvincule las cuentas indicadas a continuación"
+        },
+        "notifications": {
+          "unlinked": "La cuenta ha sido desvinculada",
+          "deleted": "El grupo ha sido eliminado"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "investments": {
+    "title": "Inversiones",
+    "createButton": "Crear cartera",
+    "loadError": "Error al cargar las carteras",
+    "tryAgain": "Intentar de nuevo",
+    "menu": {
+      "view": "Ver",
+      "delete": "Eliminar"
+    },
+    "card": {
+      "hidden": "Oculta",
+      "portfolioType": "Cartera {type}",
+      "costBasis": "Coste base"
+    },
+    "empty": {
+      "title": "Aún no hay carteras",
+      "description": "Cree su primera cartera de inversión para empezar a seguir sus posiciones, transacciones y rendimiento.",
+      "createFirstButton": "Crear su primera cartera"
+    },
+    "trash": {
+      "title": "Papelera",
+      "retentionHint": "Los elementos aquí se eliminan permanentemente tras {days} días",
+      "loading": "Cargando papelera…",
+      "loadError": "No se pudieron cargar las carteras eliminadas.",
+      "deletedAgo": "Eliminada {time}",
+      "restoreButton": "Restaurar",
+      "restoringButton": "Restaurando…",
+      "purgeButton": "Eliminar ahora",
+      "purgingButton": "Eliminando…",
+      "deletedBadge": "Eliminada",
+      "confirmPurgeTitle": "¿Eliminar cartera permanentemente?",
+      "confirmPurge": "¿Eliminar permanentemente \"{name}\"? Esta acción no se puede deshacer.",
+      "tryAgain": "Intentar de nuevo",
+      "notifications": {
+        "restored": "Cartera restaurada",
+        "restoreError": "Error al restaurar la cartera",
+        "purged": "Cartera eliminada permanentemente",
+        "purgeError": "Error al eliminar la cartera"
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "pages": {
+    "sharedWithMe": {
+      "title": "Compartido conmigo",
+      "loadError": "Error al cargar los recursos compartidos.",
+      "empty": {
+        "title": "Aún no hay nada compartido con usted",
+        "description": "Cuando alguien comparta una cuenta con usted, aparecerá aquí."
+      },
+      "sections": {
+        "account": "Cuentas",
+        "household": "Hogares",
+        "budget": "Presupuestos compartidos con usted"
+      },
+      "sharedBy": "Compartido por {handle}",
+      "viaHousehold": "A través del hogar de {handle}",
+      "unnamedResource": "Sin título",
+      "permissions": {
+        "read": "Lectura",
+        "write": "Escritura",
+        "manage": "Gestión"
+      },
+      "leave": "Abandonar",
+      "leaveTitle": "¿Abandonar el recurso compartido?",
+      "leaveDescription": "Perderá el acceso a {resource} propiedad de {owner}. El propietario no recibirá notificación.",
+      "leaveConfirm": "Abandonar",
+      "leaveSuccess": "Ha abandonado el recurso compartido.",
+      "leaveError": "No se pudo abandonar el recurso compartido.",
+      "pending": {
+        "heading": "Invitaciones pendientes",
+        "review": "Revisar",
+        "empty": "No hay invitaciones pendientes."
+      }
+    }
+  }
+}

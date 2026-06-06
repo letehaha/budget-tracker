@@ -1,0 +1,105 @@
+{
+  "pages": {
+    "budgets": {
+      "transactionsList": {
+        "selectionModeWarning": "Modo de selección — elija transacciones para desvincular",
+        "selectAll": "Seleccionar todo",
+        "selected": "{count} seleccionada(s)",
+        "unlink": "Desvincular",
+        "cancel": "Cancelar",
+        "unlinkSelected": "Desvincular seleccionadas",
+        "noMatchingTransactions": "No hay transacciones coincidentes",
+        "noTransactionsLinked": "No hay transacciones vinculadas",
+        "filterAdjustmentHint": "Intente ajustar sus filtros para ver más transacciones.",
+        "addTransactionsHint": "Añada transacciones a este presupuesto para comenzar a hacer seguimiento de sus gastos.",
+        "resetFilters": "Restablecer filtros",
+        "addTransactions": "Añadir transacciones",
+        "add": "Añadir",
+        "loadingMore": "Cargando más..."
+      }
+    },
+    "budgetDetails": {
+      "notSet": "Sin definir",
+      "saving": "Guardando...",
+      "saveChanges": "Guardar cambios",
+      "loading": "Cargando...",
+      "uncategorized": "Sin categoría",
+      "stats": {
+        "income": "Ingresos",
+        "expenses": "Gastos",
+        "netBalance": "Saldo neto"
+      },
+      "utilization": {
+        "title": "Utilización del presupuesto",
+        "summary": "{spent} de {limit} de límite",
+        "na": "N/D"
+      },
+      "backToBudgets": "Volver a presupuestos",
+      "noTransactionsYet": "Aún no hay transacciones",
+      "transactions": "Transacciones",
+      "transactionsLinked": "{count} transacción vinculada a este presupuesto | {count} transacciones vinculadas a este presupuesto",
+      "tabs": {
+        "statistics": "Estadísticas",
+        "transactions": "Transacciones",
+        "sharing": "Compartir"
+      },
+      "statistics": {
+        "tabs": {
+          "categories": "Categorías",
+          "timeline": "Cronología"
+        },
+        "errorTitle": "Error al cargar las estadísticas",
+        "errorDescription": "Algo salió mal al cargar los datos. Por favor, inténtelo de nuevo más tarde.",
+        "noDataTitle": "Sin datos de gasto",
+        "noDataDescription": "Aún no hay datos de gasto disponibles para este presupuesto.",
+        "noCategoryData": "Sin datos de gasto por categoría.",
+        "noTimelineData": "Sin datos de cronología.",
+        "total": "Total",
+        "income": "Ingresos",
+        "expenses": "Gastos",
+        "incomeLabel": "Ingresos:",
+        "expensesLabel": "Gastos:"
+      },
+      "sharing": {
+        "title": "Compartir",
+        "description": "Gestione quién puede ver este presupuesto y contribuir a él.",
+        "inviteAnother": "Invitar a alguien",
+        "membersHeading": "Miembros",
+        "pendingHeading": "Invitaciones pendientes",
+        "loadError": "No se pudieron cargar los miembros.",
+        "permissions": {
+          "read": "Solo lectura",
+          "write": "Añadir transacciones propias",
+          "manage": "Gestionar"
+        },
+        "member": {
+          "you": "usted",
+          "roleOwner": "Propietario",
+          "roleRecipient": "Miembro",
+          "ownerHint": "Control total de este presupuesto",
+          "updateSuccess": "Permiso actualizado.",
+          "updateError": "No se pudo actualizar el permiso.",
+          "revoke": "Revocar acceso",
+          "revokeConfirm": "Revocar",
+          "revokeTitle": "¿Revocar acceso?",
+          "revokeDescription": "{user} perderá el acceso a {budget}.",
+          "revokeSuccess": "Acceso revocado.",
+          "revokeError": "No se pudo revocar el acceso."
+        },
+        "pending": {
+          "empty": "No hay invitaciones pendientes.",
+          "resend": "Reenviar",
+          "resendSuccess": "Invitación reenviada.",
+          "resendError": "No se pudo reenviar la invitación.",
+          "resendDeliveryFailed": "Reenviada, pero el correo electrónico no pudo entregarse.",
+          "cancel": "Cancelar",
+          "cancelConfirm": "Cancelar invitación",
+          "cancelTitle": "¿Cancelar invitación?",
+          "cancelDescription": "La invitación a {email} será cancelada.",
+          "cancelSuccess": "Invitación cancelada.",
+          "cancelError": "No se pudo cancelar la invitación."
+        }
+      }
+    }
+  }
+}

@@ -37,6 +37,7 @@ const { data: userSettings, mutateAsync, isUpdating } = useUserSettings();
 const FLAG_SRCS: Record<SupportedLocale, string> = {
   [SUPPORTED_LOCALES.ENGLISH]: '/img/flags/gb.svg',
   [SUPPORTED_LOCALES.UKRAINIAN]: '/img/flags/ua.svg',
+  [SUPPORTED_LOCALES.SPANISH]: '/img/flags/es.png',
 };
 
 const currentLocale = ref<SupportedLocale>(getCurrentLocale() as SupportedLocale);
@@ -51,6 +52,11 @@ const availableLocales = [
     value: SUPPORTED_LOCALES.UKRAINIAN,
     native: LOCALE_NAMES[SUPPORTED_LOCALES.UKRAINIAN].native,
     flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.UKRAINIAN],
+  },
+  {
+    value: SUPPORTED_LOCALES.SPANISH,
+    native: LOCALE_NAMES[SUPPORTED_LOCALES.SPANISH].native,
+    flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.SPANISH],
   },
 ];
 

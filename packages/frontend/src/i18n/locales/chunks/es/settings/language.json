@@ -1,0 +1,8 @@
+{
+  "settings": {
+    "language": {
+      "title": "Idioma",
+      "description": "Idioma de visualización de la interfaz de la aplicación."
+    }
+  }
+}

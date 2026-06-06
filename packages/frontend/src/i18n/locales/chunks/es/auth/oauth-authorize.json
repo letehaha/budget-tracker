@@ -1,0 +1,43 @@
+{
+  "oauth": {
+    "authorize": {
+      "title": "{name} solicita acceso a sus datos de MoneyMatter",
+      "description": "Esta aplicación solicita los siguientes permisos:",
+      "approve": "Aprobar",
+      "deny": "Denegar",
+      "footer": "Puede revocar el acceso en cualquier momento desde Configuración > Integraciones de IA.",
+      "error": "No se pudo procesar la solicitud. Por favor, inténtelo de nuevo.",
+      "unexpected_response": "Respuesta inesperada del servidor. Por favor, inténtelo de nuevo.",
+      "always_granted": "Siempre concedido",
+      "optional": "Opcional",
+      "delete_warning": "Conceda acceso solo a aplicaciones en las que confíe plenamente",
+      "unknown_app": "Una aplicación"
+    },
+    "scopes": {
+      "finance_read": {
+        "label": "Ver sus datos financieros",
+        "desc": "Leer cuentas, transacciones, presupuestos, categorías, etiquetas, carteras y estadísticas de gasto."
+      },
+      "finance_write": {
+        "label": "Crear y editar sus datos financieros",
+        "desc": "Agregar y actualizar transacciones, presupuestos, suscripciones, posiciones de inversión y más."
+      },
+      "finance_delete": {
+        "label": "Eliminar sus datos financieros",
+        "desc": "Eliminar permanentemente transacciones, cuentas, presupuestos y otros registros."
+      },
+      "profile_read": {
+        "label": "Ver su perfil",
+        "desc": "Ver su nombre, correo electrónico y moneda predeterminada."
+      },
+      "offline_access": {
+        "label": "Mantenerse conectado en segundo plano",
+        "desc": "Mantener el acceso activo sin solicitarle autorización en cada sesión."
+      },
+      "unknown": {
+        "label": "Permiso adicional",
+        "desc": "La aplicación solicitó un permiso que MoneyMatter no reconoce."
+      }
+    }
+  }
+}

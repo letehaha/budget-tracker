@@ -1,0 +1,274 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "from": "Desde",
+    "to": "Hasta",
+    "new": "Nuevo",
+    "actions": {
+      "loading": "Cargando...",
+      "signUp": "Registrarse",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "accept": "Aceptar",
+      "delete": "Eliminar",
+      "edit": "Editar",
+      "create": "Crear",
+      "addSubcategory": "Añadir subcategoría",
+      "settings": "Ajustes",
+      "confirm": "Confirmar",
+      "viewTransactions": "Ver transacciones",
+      "viewAnalytics": "Ver análisis",
+      "saving": "Guardando...",
+      "saveChanges": "Guardar cambios",
+      "scrollToTop": "Arriba",
+      "done": "Hecho",
+      "failed": "Error",
+      "viewAll": "Ver todo",
+      "scan": "Escanear",
+      "link": "Vincular",
+      "loadMore": "Cargar más",
+      "clear": "Limpiar",
+      "apply": "Aplicar"
+    },
+    "ui": {
+      "close": "Cerrar",
+      "actions": "Acciones",
+      "chooseAction": "Elija una acción",
+      "other": "Otro",
+      "refund": "Reembolso",
+      "split": "Dividir"
+    },
+    "errors": {
+      "copyToClipboardFailed": "Error al copiar al portapapeles"
+    },
+    "notifications": {},
+    "labels": {
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "username": "Nombre de usuario",
+      "system": "sistema",
+      "unknown": "Desconocido",
+      "total": "Total"
+    },
+    "placeholders": {
+      "email": "su{'@'}correo.com",
+      "password": "Su contraseña"
+    },
+    "dialogs": {
+      "createAccount": "Crear cuenta",
+      "createVehicle": "Añadir vehículo",
+      "editVehicle": "Editar vehículo"
+    },
+    "accountCategories": {
+      "general": "General",
+      "cash": "Efectivo",
+      "currentAccount": "Cuenta corriente",
+      "creditCard": "Tarjeta de crédito",
+      "saving": "Cuenta de ahorro",
+      "bonus": "Bonificación",
+      "insurance": "Seguro",
+      "investment": "Inversión",
+      "loan": "Préstamo",
+      "mortgage": "Hipoteca",
+      "overdraft": "Descubierto",
+      "crypto": "Cripto",
+      "vehicle": "Vehículo"
+    },
+    "paymentTypes": {
+      "creditCard": "Tarjeta de crédito",
+      "bankTransfer": "Transferencia bancaria",
+      "cash": "Efectivo",
+      "debitCard": "Tarjeta de débito",
+      "mobilePayment": "Pago móvil",
+      "voucher": "Vale",
+      "webPayment": "Pago web"
+    },
+    "vehicleClasses": {
+      "sedan": "Sedán",
+      "suv": "SUV",
+      "truck": "Camión",
+      "luxury": "Lujo",
+      "ev": "Vehículo eléctrico",
+      "motorcycle": "Motocicleta",
+      "other": "Otro"
+    },
+    "depreciationPresets": {
+      "classDefault": "Predeterminado de clase",
+      "slow": "Lenta",
+      "average": "Media",
+      "fast": "Rápida",
+      "custom": "Tasa personalizada"
+    },
+    "aiFeatures": {
+      "categorization": {
+        "name": "Categorización de transacciones",
+        "description": "Categoriza automáticamente las transacciones según su descripción y comercio"
+      },
+      "statementParsing": {
+        "name": "Analizador de extractos",
+        "description": "Extrae transacciones de extractos bancarios (PDF, CSV, TXT) mediante IA"
+      },
+      "investmentTransactionsParsing": {
+        "name": "Importación de transacciones de inversión",
+        "description": "Transacciones de compra/venta extraídas por IA de exportaciones de exchanges, extractos de brokers o texto pegado."
+      }
+    },
+    "transactions": {
+      "delete": {
+        "success": "Eliminado correctamente",
+        "error": "Error al eliminar la transacción"
+      },
+      "submit": {
+        "unexpectedError": "Error inesperado"
+      },
+      "unlink": {
+        "error": "Error al desvincular las transacciones"
+      }
+    },
+    "outOfWallet": "Fuera de cartera",
+    "dateSelector": {
+      "dueDate": "Fecha de vencimiento",
+      "quickSelect": "Selección rápida",
+      "apply": "Aplicar",
+      "periodTypes": {
+        "day": "Día",
+        "month": "Mes",
+        "quarter": "Trimestre",
+        "halfYear": "Semestre",
+        "year": "Año"
+      },
+      "filterModes": {
+        "is": "es",
+        "before": "antes de",
+        "after": "después de",
+        "between": "entre"
+      },
+      "currentMonth": "Mes actual",
+      "placeholders": {
+        "day": "Ej.: 2025-03-15, 03/15/2025",
+        "month": "Ej.: Jan 2025, 03/2025",
+        "quarter": "Ej.: Q1, Q4 2025",
+        "halfYear": "Ej.: H1, H2 2025",
+        "year": "Ej.: 2025, 2024",
+        "default": "Ej.: 2025, Q4, Jan 2025"
+      }
+    }
+  },
+  "validation": {
+    "minLength": "La longitud mínima es {length}.",
+    "emailInvalid": "Introduzca una dirección de correo electrónico válida.",
+    "passwordsNoMatch": "Las contraseñas no coinciden"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllAsRead": "Marcar todas como leídas",
+    "empty": "No hay notificaciones todavía",
+    "viewOnGitHub": "Ver en GitHub",
+    "newVersion": "Nueva versión {version}",
+    "newRelease": "Nueva versión publicada",
+    "tagReminder": {
+      "thresholdMessage": "gastado {amount} (umbral: {threshold})",
+      "existenceMessage": "{count} transacción | {count} transacciones"
+    },
+    "share": {
+      "sendFailedHint": "Abra el panel de compartir para reenviar."
+    }
+  },
+  "currencyNames": {
+    "UAH": "Grivna ucraniana",
+    "USD": "Dólar estadounidense",
+    "EUR": "Euro",
+    "GBP": "Libra esterlina británica",
+    "JPY": "Yen japonés",
+    "CHF": "Franco suizo",
+    "CAD": "Dólar canadiense",
+    "AUD": "Dólar australiano",
+    "NZD": "Dólar neozelandés",
+    "CNY": "Yuan chino",
+    "HKD": "Dólar de Hong Kong",
+    "SGD": "Dólar de Singapur",
+    "SEK": "Corona sueca",
+    "NOK": "Corona noruega",
+    "DKK": "Corona danesa",
+    "PLN": "Esloti polaco",
+    "CZK": "Corona checa",
+    "HUF": "Forinto húngaro",
+    "RON": "Leu rumano",
+    "BGN": "Lev búlgaro",
+    "HRK": "Kuna croata",
+    "RSD": "Dinar serbio",
+    "TRY": "Lira turca",
+    "RUB": "Rublo ruso",
+    "BYN": "Rublo bielorruso",
+    "KZT": "Tenge kazajo",
+    "INR": "Rupia india",
+    "IDR": "Rupia indonesia",
+    "MYR": "Ringgit malayo",
+    "PHP": "Peso filipino",
+    "THB": "Baht tailandés",
+    "VND": "Dong vietnamita",
+    "KRW": "Won surcoreano",
+    "TWD": "Nuevo dólar taiwanés",
+    "BRL": "Real brasileño",
+    "MXN": "Peso mexicano",
+    "ARS": "Peso argentino",
+    "CLP": "Peso chileno",
+    "COP": "Peso colombiano",
+    "PEN": "Sol peruano",
+    "ZAR": "Rand sudafricano",
+    "EGP": "Libra egipcia",
+    "AED": "Dírham de los EAU",
+    "SAR": "Riyal saudí",
+    "ILS": "Nuevo séquel israelí",
+    "QAR": "Riyal catarí",
+    "KWD": "Dinar kuwaití",
+    "BHD": "Dinar bareiní",
+    "OMR": "Rial omaní",
+    "JOD": "Dinar jordano",
+    "MAD": "Dírham marroquí",
+    "NGN": "Naira nigeriana",
+    "KES": "Chelín keniata",
+    "GHS": "Cedi ghanés",
+    "XOF": "Franco CFA BCEAO",
+    "XAF": "Franco CFA BEAC",
+    "BTC": "Bitcoin",
+    "ETH": "Ethereum"
+  },
+  "fileDropzone": {
+    "clickOrDrag": "Haga clic o arrastre un archivo aquí",
+    "dropHere": "Suelte el archivo para cargarlo",
+    "removeFile": "Eliminar archivo",
+    "fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es {max}.",
+    "onlyFirstFileTaken": "Se soltaron varios archivos — solo se usó el primero."
+  },
+  "demo": {
+    "loadingOverlay": {
+      "messages": [
+        "Procesando números para usted...",
+        "Creando sus cuentas personales...",
+        "Añadiendo transacciones realistas...",
+        "Ajustando su panel...",
+        "Casi listo, aplicando los últimos retoques..."
+      ]
+    },
+    "featureNotAvailable": "Esta función no está disponible en el modo de demostración",
+    "bankConnectionsRestricted": {
+      "title": "Conexiones bancarias"
+    },
+    "signUpToUnlock": "Regístrese para desbloquear esta función",
+    "passwordChangeRestricted": "Los cambios de contraseña no están disponibles en el modo de demostración",
+    "investmentsRestricted": {
+      "title": "Inversiones no disponibles en la demostración",
+      "description": "La función de inversiones no está disponible en el modo de demostración. Regístrese para obtener una cuenta completa y acceder al seguimiento de inversiones."
+    },
+    "banner": {
+      "message": "Está explorando una demostración{time}. {signUpLink} para conservar sus datos de forma permanente.",
+      "resets": "se reinicia en {time}",
+      "signUp": "Registrarse",
+      "timeFormat": {
+        "hoursMinutes": "{hours}h {minutes}m",
+        "minutes": "{minutes}m"
+      }
+    }
+  }
+}

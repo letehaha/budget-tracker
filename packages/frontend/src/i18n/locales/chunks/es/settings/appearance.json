@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "appearance": {
+      "title": "Apariencia",
+      "description": "Personalice el aspecto de la aplicación y qué secciones aparecen en la barra lateral.",
+      "theme": {
+        "title": "Tema",
+        "description": "Elija el aspecto de la aplicación. La opción Sistema sigue la configuración de su dispositivo."
+      },
+      "sidebar": {
+        "title": "Secciones de la barra lateral",
+        "description": "Elija qué secciones aparecen en la barra lateral.",
+        "alwaysVisibleTooltip": "Esta sección siempre es visible."
+      }
+    }
+  }
+}

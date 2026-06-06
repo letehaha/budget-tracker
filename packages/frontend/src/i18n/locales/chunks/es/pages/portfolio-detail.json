@@ -1,0 +1,128 @@
+{
+  "portfolioDetail": {
+    "loading": "Cargando…",
+    "loadingDetails": "Cargando detalles de la cartera…",
+    "loadError": "Error al cargar los detalles de la cartera.",
+    "tryAgain": "Intentar de nuevo",
+    "notFoundTitle": "Cartera no encontrada",
+    "notFoundDescription": "No pudimos encontrar esta cartera. Es posible que haya sido eliminada o que no tenga acceso a ella.",
+    "backToInvestments": "Volver a inversiones",
+    "subtitle": "Resumen de la cartera",
+    "actions": {
+      "transfer": "Transferir",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "exchangeCurrency": "Cambiar moneda"
+    },
+    "balance": {
+      "totalValue": "Valor total",
+      "loadError": "Error al cargar el resumen de la cartera.",
+      "metrics": {
+        "costBasis": "Coste base",
+        "unrealized": "No realizada",
+        "realized": "Realizada",
+        "totalReturn": "Rentabilidad total"
+      }
+    },
+    "cashBalances": {
+      "title": "Saldos en efectivo",
+      "subtitle": "{count} monedas",
+      "emptyState": "Sin saldos en efectivo",
+      "tabs": {
+        "overview": "Resumen",
+        "balances": "Saldos",
+        "cashTransactions": "Transacciones",
+        "buysSells": "Compras y ventas"
+      },
+      "cashTransactions": {
+        "addButton": "Añadir transacción en efectivo",
+        "emptyState": "Aún no hay transacciones en efectivo",
+        "deposit": "Depósito",
+        "withdrawal": "Retiro",
+        "transferIn": "Transferencia entrante",
+        "transferOut": "Transferencia saliente",
+        "exchange": "Cambio de moneda",
+        "deleteConfirm": "¿Eliminar esta transacción en efectivo?",
+        "linkedTransactionNote": "Esta transferencia tiene una transacción de cuenta vinculada. ¿Qué desea hacer con ella?",
+        "keepLinkedTransaction": "Conservar la transacción de cuenta. Se restaurarán los detalles originales de la transacción.",
+        "deleteLinkedTransaction": "Eliminar también la transacción de cuenta vinculada"
+      },
+      "buysSells": {
+        "emptyState": "Sin transacciones de compra/venta",
+        "shares": "acciones"
+      }
+    },
+    "holdings": {
+      "title": "Posiciones",
+      "subtitle": "{count} símbolos",
+      "filterPlaceholder": "Filtrar por símbolo o nombre…",
+      "addButton": "Añadir símbolo",
+      "importButton": "Importar transacciones",
+      "importButtonShort": "Importar"
+    },
+    "holdingsTable": {
+      "loadError": "No se pudieron cargar las posiciones",
+      "empty": "Aún no hay posiciones",
+      "headers": {
+        "symbol": "Símbolo",
+        "name": "Nombre",
+        "shares": "Acciones",
+        "price": "Precio",
+        "avgCostPerShare": "Coste med./acc.",
+        "totalCost": "Coste total",
+        "marketValue": "Valor de mercado",
+        "unrealizedGain": "Ganancia no realizada",
+        "realizedGain": "Ganancia realizada"
+      },
+      "transactions": {
+        "loading": "Cargando transacciones…",
+        "empty": "No se encontraron transacciones.",
+        "addFirstButton": "Añadir primera transacción"
+      },
+      "closedPositions": "Posiciones cerradas ({count})",
+      "deleteHolding": {
+        "ariaLabel": "Eliminar posición",
+        "title": "Eliminar posición",
+        "description": "Se eliminará permanentemente la posición {symbol} y todas sus transacciones. Esta acción no se puede deshacer.",
+        "confirmLabel": "Eliminar posición",
+        "success": "Posición eliminada.",
+        "error": "Error al eliminar la posición."
+      },
+      "addTransactionDialog": {
+        "title": "Añadir transacción",
+        "description": "Añada una nueva transacción a su cartera."
+      },
+      "tryAgainLater": "Por favor, inténtelo más tarde",
+      "emptyDescription": "Añada su primera transacción para empezar a registrar sus inversiones",
+      "addFirstHolding": "Añadir primera posición",
+      "importTransactions": "O importar desde un archivo"
+    },
+    "transactionsList": {
+      "title": "Transacciones",
+      "addButton": "Añadir transacción",
+      "loadingMore": "Cargando más transacciones…",
+      "headers": {
+        "date": "Fecha",
+        "type": "Tipo",
+        "note": "Nota",
+        "quantity": "Cantidad",
+        "price": "Precio",
+        "fees": "Comisiones",
+        "amount": "Importe"
+      },
+      "categories": {
+        "buy": "Compra",
+        "sell": "Venta",
+        "dividend": "Dividendo",
+        "transfer": "Transferencia",
+        "tax": "Impuesto",
+        "fee": "Comisión",
+        "cancel": "Cancelar",
+        "other": "Otro"
+      },
+      "deleteTransaction": {
+        "tooltip": "Eliminar transacción"
+      }
+    }
+  }
+}

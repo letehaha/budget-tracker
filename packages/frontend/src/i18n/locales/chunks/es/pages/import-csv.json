@@ -1,0 +1,194 @@
+{
+  "pages": {
+    "importExport": {
+      "csvImport": {
+        "pageTitle": "Importar transacciones desde CSV",
+        "pageDescription": "Suba el exportado CSV de su banco o el archivo de historial de transacciones para importar transacciones a su cuenta.",
+        "steps": {
+          "uploadTitle": "Subir archivo CSV",
+          "uploadDescription": "Seleccione su archivo CSV para comenzar",
+          "mappingTitle": "Mapear columnas",
+          "mappingDescription": "Relacione las columnas CSV con los campos de transacción",
+          "reviewTitle": "Revisar duplicados",
+          "reviewDescription": "Compruebe si hay transacciones duplicadas",
+          "completeTitle": "Importación completada",
+          "completeDescription": "Revise los resultados de la importación"
+        },
+        "fileUpload": {
+          "stepTitle": "Subir archivo CSV",
+          "description": "Seleccione su archivo CSV para importar transacciones",
+          "dragDrop": "Arrastre y suelte su archivo CSV aquí",
+          "orBrowse": "o haga clic para explorar",
+          "maxSize": "Tamaño máximo del archivo: 50 MB",
+          "removeFile": "Eliminar archivo",
+          "parsing": "Procesando...",
+          "continueToMapping": "Continuar al mapeo",
+          "errors": {
+            "invalidFormat": "Formato de archivo no válido. Por favor, suba un archivo CSV.",
+            "fileTooLarge": "El tamaño del archivo ({size}) supera el máximo permitido (50 MB)",
+            "parseFailed": "Error al procesar el archivo. Compruebe el formato e inténtelo de nuevo."
+          }
+        },
+        "columnMapping": {
+          "stepTitle": "Mapear columnas",
+          "description": "Relacione las columnas de su CSV con los campos requeridos",
+          "file": "Archivo",
+          "totalRows": "Total de filas",
+          "delimiter": "Delimitador",
+          "extracting": "Extrayendo...",
+          "nextExtract": "Siguiente: Extraer valores",
+          "continueToDuplicates": "Continuar a verificación de duplicados"
+        },
+        "review": {
+          "stepTitle": "Revisar importación",
+          "description": "Revise los datos antes de importar",
+          "totalRows": "Total de filas",
+          "validRows": "Filas válidas",
+          "invalidRows": "Filas inválidas",
+          "duplicates": "Duplicados",
+          "invalidRowsTitle": "Filas inválidas",
+          "rowNumber": "Fila n.º",
+          "errors": "Errores",
+          "rawData": "Datos sin procesar",
+          "duplicatesTitle": "Se encontraron {count} posibles duplicados",
+          "duplicatesHint": "Desmarque las filas que desee importar de todas formas",
+          "skip": "Omitir",
+          "match": "Coincidencia",
+          "csvTransaction": "Transacción CSV",
+          "existingTransaction": "Transacción existente",
+          "importSummary": "Resumen de importación",
+          "willBeImported": "transacciones serán importadas.",
+          "invalidWillBeSkipped": "filas inválidas serán omitidas.",
+          "duplicatesWillBeSkipped": "duplicados serán omitidos.",
+          "backToMapping": "Volver al mapeo",
+          "importing": "Importando...",
+          "importButton": "Importar {count} transacciones"
+        },
+        "results": {
+          "completeTitle": "¡Importación completada!",
+          "completeWithIssuesTitle": "Importación completada con incidencias",
+          "successDescription": "Todas las transacciones se han importado correctamente.",
+          "partialDescription": "Algunas transacciones no pudieron importarse.",
+          "imported": "Importadas",
+          "skippedDuplicates": "Omitidas (duplicados)",
+          "accountsCreated": "Cuentas creadas",
+          "categoriesCreated": "Categorías creadas",
+          "importErrors": "Errores de importación",
+          "rowNumber": "Fila n.º",
+          "error": "Error",
+          "batchIdLabel": "ID de lote",
+          "batchIdDescription": "Use este ID para encontrar todas las transacciones de esta importación.",
+          "viewTransactions": "Ver transacciones",
+          "startNewImport": "Iniciar nueva importación"
+        }
+      },
+      "common": {
+        "selectOption": "Seleccione una opción...",
+        "selectColumn": "Seleccione una columna...",
+        "noneOptional": "Ninguna (opcional)",
+        "selectAction": "Seleccione una acción..."
+      },
+      "transactionTypeMapping": {
+        "title": "Determinación del tipo de transacción",
+        "methodLabel": "Método",
+        "methodDescription": "Elija cómo deben determinarse los tipos de transacción (ingreso/gasto)",
+        "columnLabel": "Columna de tipo de transacción",
+        "columnDescription": "Seleccione la columna CSV que contiene la información del tipo de transacción",
+        "incomeValuesLabel": "Valores de ingreso",
+        "expenseValuesLabel": "Valores de gasto",
+        "commaSeparatedHint": "Valores separados por coma",
+        "selectMethod": "Seleccione un método...",
+        "selectColumn": "Seleccione una columna...",
+        "incomeValuesPlaceholder": "p. ej., Crédito, Depósito, Ingreso",
+        "expenseValuesPlaceholder": "p. ej., Débito, Retiro, Gasto",
+        "methodOptions": {
+          "amountSign": "Por signo del importe (negativo = gasto, positivo = ingreso)",
+          "dataSourceColumn": "Por columna (especificar valores)"
+        },
+        "amountSignInfo": "ℹ️ Los tipos de transacción se determinarán automáticamente: importes negativos = gastos, importes positivos = ingresos"
+      },
+      "currencyMapping": {
+        "title": "Asignación de moneda",
+        "optionLabel": "¿Cómo desea asignar las monedas?",
+        "optionDescription": "Elija cómo deben asignarse las monedas a las transacciones importadas",
+        "columnLabel": "Columna de moneda",
+        "columnDescription": "Seleccione la columna CSV que contiene los códigos de moneda",
+        "currencyLabel": "Moneda",
+        "currencyDescription": "Todas las transacciones importadas usarán esta moneda",
+        "selectCurrency": "Seleccione una moneda...",
+        "methodOptions": {
+          "dataSourceColumn": "Mapear desde columna CSV",
+          "existingCurrency": "Usar la misma moneda para todas las transacciones"
+        },
+        "dataSourceColumnInfo": "ℹ️ Cada transacción usará la moneda especificada en la columna CSV seleccionada"
+      },
+      "categoryMapping": {
+        "selectCategory": "Seleccione una categoría..."
+      },
+      "accountMapping": {
+        "selectAccount": "Seleccione una cuenta..."
+      },
+      "accountAssignment": {
+        "title": "Asignación de cuenta",
+        "howToAssign": "¿Cómo desea asignar las cuentas?",
+        "description": "Elija cómo deben asignarse las cuentas a las transacciones importadas",
+        "accountColumn": "Columna de cuenta",
+        "columnDescription": "Seleccione la columna CSV que contiene los nombres de cuenta",
+        "accountLabel": "Cuenta",
+        "singleAccountDescription": "Todas las transacciones importadas serán asignadas a esta cuenta",
+        "mapOnNextStep": "En el siguiente paso mapeará cada cuenta CSV a sus cuentas existentes",
+        "options": {
+          "mapToExisting": "Mapear cada cuenta CSV a cuentas existentes (en el siguiente paso)",
+          "assignToSingle": "Asignar todas a una sola cuenta existente"
+        }
+      },
+      "accountMappingTable": {
+        "title": "Mapeo de cuentas",
+        "description": "Relacione los nombres de cuenta del CSV con sus cuentas existentes o cree nuevas. Solo se mostrarán cuentas con moneda coincidente.",
+        "csvAccountName": "Nombre de cuenta CSV",
+        "currency": "Moneda",
+        "action": "Acción",
+        "targetAccount": "Cuenta destino",
+        "actions": {
+          "createNew": "Crear nueva cuenta",
+          "mapToExisting": "Mapear a cuenta existente"
+        },
+        "noMatchingCurrency": "No hay cuentas disponibles con moneda coincidente ({currency})",
+        "willBeCreated": "Se creará la nueva cuenta \"{name}\" con moneda {currency}",
+        "defaultCurrency": "predeterminada",
+        "mappedTo": "mapeada a \"{name}\"",
+        "selectAccount": "Seleccione una cuenta..."
+      },
+      "categoryMappingTable": {
+        "title": "Mapeo de categorías",
+        "description": "Relacione los nombres de categoría del CSV con sus categorías existentes o cree nuevas.",
+        "csvCategoryName": "Nombre de categoría CSV",
+        "action": "Acción",
+        "targetCategory": "Categoría destino",
+        "actions": {
+          "createNew": "Crear nueva categoría",
+          "mapToExisting": "Mapear a categoría existente"
+        },
+        "willBeCreated": "Se creará la nueva categoría \"{name}\"",
+        "mappedTo": "mapeada a \"{name}\"",
+        "selectCategory": "Seleccione una categoría..."
+      },
+      "categoryAssignment": {
+        "title": "Asignación de categoría",
+        "howToAssign": "¿Cómo desea asignar las categorías?",
+        "description": "Elija cómo deben asignarse las categorías a las transacciones importadas",
+        "categoryColumn": "Columna de categoría",
+        "columnDescription": "Seleccione la columna CSV que contiene los nombres de categoría",
+        "categoryLabel": "Categoría",
+        "singleCategoryDescription": "Todas las transacciones importadas serán asignadas a esta categoría",
+        "mapOnNextStep": "En el siguiente paso mapeará cada categoría CSV a sus categorías existentes",
+        "createFromCSV": "Se crearán automáticamente nuevas categorías de alto nivel a partir de los valores únicos de su archivo CSV",
+        "options": {
+          "mapToExisting": "Mapear cada categoría CSV a categorías existentes (en el siguiente paso)",
+          "createNew": "Crear nuevas categorías a partir de los valores del CSV",
+          "assignToSingle": "Asignar todas a una sola categoría existente"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "settings": {
+    "dataManagement": {
+      "title": "Importar datos",
+      "description": "Importe sus datos financieros desde diversas fuentes",
+      "textSource": {
+        "title": "Importar desde cualquier fuente de texto",
+        "description": "Analice e importe transacciones desde extractos bancarios, correos electrónicos o cualquier fuente de texto. Utiliza IA para extraer datos de transacciones automáticamente.",
+        "button": "Importar desde texto (PDF, CSV, TXT, etc.)",
+        "aiBadge": "Impulsado por IA",
+        "cta": "Importar desde texto"
+      },
+      "csv": {
+        "title": "Importar CSV",
+        "description": "Importe transacciones desde un archivo CSV. Puede asignar columnas, gestionar duplicados y crear nuevas cuentas o categorías según sea necesario.",
+        "button": "Importar archivo CSV",
+        "cta": "Importar archivo CSV"
+      }
+    }
+  }
+}

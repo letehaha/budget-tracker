@@ -1,0 +1,76 @@
+{
+  "pages": {
+    "household": {
+      "title": "Hogar",
+      "description": "Invite a personas de confianza para compartir el acceso a todas las cuentas que posee. Los miembros ven sus cuentas y (con acceso de escritura) pueden registrar transacciones en ellas.",
+      "myHousehold": {
+        "title": "Mi hogar",
+        "description": "Las personas aquí tienen acceso a cada cuenta que posee. Los accesos por cuenta siempre tienen prioridad sobre el acceso del hogar."
+      },
+      "youOwner": "Usted — propietario",
+      "noMembers": "Aún nadie se ha unido a su hogar.",
+      "loadMembersError": "No se pudieron cargar los miembros del hogar. Intente actualizar.",
+      "permissions": {
+        "read": "Lectura",
+        "write": "Escritura",
+        "manage": "Gestionar"
+      },
+      "writeScope": {
+        "all": "Puede editar cualquier transacción",
+        "own": "Solo puede editar sus propias transacciones"
+      },
+      "invite": {
+        "emailLabel": "Correo electrónico",
+        "emailPlaceholder": "persona{'@'}ejemplo.com",
+        "permissionLabel": "Permiso",
+        "writeScopeLabel": "Alcance de escritura",
+        "submit": "Enviar invitación al hogar",
+        "sent": "Invitación enviada.",
+        "error": "No se pudo enviar la invitación.",
+        "emailDeliveryFailed": "Invitación creada, pero el correo electrónico no pudo entregarse. Puede reenviarla desde el panel de invitaciones."
+      },
+      "revoke": {
+        "action": "Eliminar",
+        "title": "¿Eliminar miembro del hogar?",
+        "description": "{handle} perderá el acceso a todas las cuentas de su hogar. Los accesos por cuenta (si los hay) no se ven afectados.",
+        "confirm": "Eliminar",
+        "success": "Miembro eliminado.",
+        "error": "No se pudo eliminar este miembro."
+      },
+      "permissionChange": {
+        "setRead": "Establecer como solo lectura",
+        "setWrite": "Permitir escritura",
+        "success": "Permiso actualizado.",
+        "error": "No se pudo actualizar el permiso."
+      },
+      "imIn": {
+        "title": "Hogares a los que pertenezco",
+        "description": "Hogares de otras personas a los que se ha unido. Al salir, perderá el acceso a todas las cuentas que compartieron de esta manera.",
+        "empty": "No se ha unido al hogar de ninguna otra persona.",
+        "unnamedHousehold": "{'@'}{handle}'s household",
+        "loadError": "No se pudieron cargar los hogares a los que pertenece. Inténtelo de nuevo más tarde."
+      },
+      "leave": {
+        "action": "Salir",
+        "title": "¿Salir de este hogar?",
+        "description": "Perderá el acceso a todas las cuentas que {owner} comparte a través de su hogar. Los accesos por cuenta (si los hay) no se ven afectados.",
+        "confirm": "Salir",
+        "success": "Ha salido del hogar.",
+        "error": "No se pudo salir del hogar."
+      },
+      "pending": {
+        "badge": "Pendiente",
+        "resend": "Reenviar",
+        "cancel": "Cancelar",
+        "cancelTitle": "¿Cancelar invitación?",
+        "cancelDescription": "¿Cancelar la invitación pendiente enviada a {email}? Ya no podrán aceptarla.",
+        "cancelConfirm": "Cancelar invitación",
+        "cancelSuccess": "Invitación cancelada.",
+        "cancelError": "Error al cancelar la invitación.",
+        "resendSuccess": "Invitación reenviada.",
+        "resendError": "Error al reenviar la invitación.",
+        "resendDeliveryFailed": "Invitación actualizada, pero el correo electrónico no pudo enviarse. Inténtelo de nuevo más tarde."
+      }
+    }
+  }
+}

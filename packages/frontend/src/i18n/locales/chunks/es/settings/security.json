@@ -1,0 +1,180 @@
+{
+  "settings": {
+    "security": {
+      "title": "Ajustes de seguridad",
+      "description": "Gestione sus métodos de inicio de sesión, sesiones activas y contraseña",
+      "tabs": {
+        "loginMethods": "Métodos de inicio de sesión",
+        "loginMethodsShort": "Inicio de sesión",
+        "activeSessions": "Sesiones activas",
+        "activeSessionsShort": "Sesiones",
+        "password": "Contraseña"
+      },
+      "loginMethods": {
+        "title": "Métodos de inicio de sesión",
+        "description": "Gestione cómo inicia sesión en su cuenta",
+        "oauth": {
+          "connectedAs": "Conectado como {email}",
+          "accountName": "Cuenta de {provider}",
+          "notConnected": "No conectado",
+          "disconnect": "Desconectar",
+          "connect": "Conectar"
+        },
+        "password": {
+          "title": "Contraseña",
+          "passwordSet": "Contraseña establecida",
+          "noPassword": "Sin contraseña establecida",
+          "manageInTab": "Gestionar en la pestaña Contraseña",
+          "setupInTab": "Configurar en la pestaña Contraseña"
+        },
+        "passkeys": {
+          "title": "Claves de acceso",
+          "noPasskeys": "No hay claves de acceso registradas",
+          "passkeyCount": "{count} clave(s) de acceso registrada(s)",
+          "addButton": "Añadir clave de acceso",
+          "passkeyName": "Clave de acceso",
+          "added": "Añadida el {date}"
+        },
+        "warningOneMethod": "Añada otro método de inicio de sesión antes de desconectar su cuenta OAuth.",
+        "notifications": {
+          "oauthConnectFailed": "Error al conectar la cuenta de {provider}",
+          "oauthDisconnectSuccess": "Cuenta de {provider} desconectada",
+          "oauthDisconnectFailed": "Error al desconectar la cuenta de {provider}",
+          "passkeyAddSuccess": "Clave de acceso añadida correctamente",
+          "passkeyAddFailed": "Error al añadir la clave de acceso. Asegúrese de que su dispositivo admite claves de acceso.",
+          "passkeyRemoveSuccess": "Clave de acceso eliminada",
+          "passkeyRemoveFailed": "Error al eliminar la clave de acceso"
+        }
+      },
+      "activeSessions": {
+        "title": "Sesiones activas",
+        "description": "Gestione los dispositivos en los que tiene sesión iniciada actualmente",
+        "currentBadge": "Actual",
+        "unknownLocation": "Ubicación desconocida",
+        "lastActive": "Última actividad: {date}",
+        "noSessions": "No se encontraron sesiones activas",
+        "revokeAllButton": "Cerrar sesión en todos los demás dispositivos",
+        "deviceTypes": {
+          "unknownDevice": "Dispositivo desconocido",
+          "unknownBrowser": "Navegador desconocido"
+        },
+        "timeAgo": {
+          "justNow": "Ahora mismo",
+          "minutesAgo": "Hace {count} minuto | Hace {count} minutos",
+          "hoursAgo": "Hace {count} hora | Hace {count} horas",
+          "daysAgo": "Hace {count} día | Hace {count} días"
+        },
+        "notifications": {
+          "loadFailed": "Error al cargar las sesiones",
+          "revokeSuccess": "Sesión revocada",
+          "revokeFailed": "Error al revocar la sesión",
+          "revokeAllSuccess": "Se han cerrado todas las demás sesiones",
+          "revokeAllFailed": "Error al revocar las sesiones"
+        }
+      },
+      "passwordSection": {
+        "title": "Contraseña",
+        "descriptionChange": "Cambie su contraseña",
+        "descriptionSet": "Establezca una contraseña para su cuenta",
+        "labels": {
+          "currentPassword": "Contraseña actual",
+          "newPassword": "Nueva contraseña",
+          "password": "Contraseña",
+          "confirmPassword": "Confirmar contraseña"
+        },
+        "placeholders": {
+          "currentPassword": "Introduzca la contraseña actual",
+          "newPassword": "Introduzca la nueva contraseña",
+          "confirmPassword": "Confirme la nueva contraseña"
+        },
+        "buttons": {
+          "change": "Cambiar contraseña",
+          "set": "Establecer contraseña"
+        },
+        "strength": {
+          "veryWeak": "Muy débil",
+          "weak": "Débil",
+          "fair": "Regular",
+          "strong": "Fuerte",
+          "veryStrong": "Muy fuerte"
+        },
+        "requirements": {
+          "title": "Requisitos de la contraseña",
+          "minLength": "Mínimo 8 caracteres",
+          "mixedCase": "Se recomienda combinar letras mayúsculas y minúsculas",
+          "specialChars": "Incluya números y caracteres especiales para mayor seguridad"
+        },
+        "validation": {
+          "minLength": "La contraseña debe tener al menos 8 caracteres",
+          "passwordsNoMatch": "Las contraseñas no coinciden"
+        },
+        "notifications": {
+          "changeSuccess": "Contraseña cambiada correctamente",
+          "changeFailed": "Error al cambiar la contraseña",
+          "setSuccess": "Contraseña establecida correctamente",
+          "setFailed": "Error al establecer la contraseña",
+          "unexpectedError": "Se ha producido un error inesperado",
+          "updateFailed": "Error al actualizar la contraseña"
+        }
+      },
+      "dangerZone": "Zona de peligro",
+      "wipeData": {
+        "title": "Borrar todos los datos",
+        "warningFull": "{strong} Esta acción elimina todo lo que hay en su espacio de trabajo. Su inicio de sesión se conserva para que pueda volver a empezar.",
+        "warningStrong": "Advertencia:",
+        "button": "Borrar datos",
+        "dialog": {
+          "title": "¿Borrar todos sus datos?",
+          "description": "Esto eliminará permanentemente todo lo que hay en su espacio de trabajo, incluyendo:",
+          "list": {
+            "accounts": "Cuentas y saldos",
+            "transactions": "Transacciones, reembolsos y transferencias",
+            "budgets": "Presupuestos, etiquetas y categorías",
+            "portfolios": "Inversiones, carteras y posiciones",
+            "settings": "Ajustes de usuario, claves de IA y estado de incorporación",
+            "baseCurrency": "Moneda base y tipos de cambio"
+          },
+          "kept": "Su inicio de sesión y perfil se conservan. Comenzará de nuevo desde el flujo de incorporación.",
+          "typeConfirm": "Para confirmar, escriba {phrase} a continuación:",
+          "confirmLabel": "Borrar datos",
+          "confirmLoading": "Borrando…"
+        },
+        "sharingDialog": {
+          "title": "Está compartiendo datos con otros usuarios",
+          "warning": "Los demás perderán el acceso inmediatamente",
+          "description": "Borrar sus datos revoca el acceso a los siguientes recursos compartidos:",
+          "householdsCount": "Y {count} miembro del hogar perderá el acceso. | Y {count} miembros del hogar perderán el acceso.",
+          "confirmLabel": "Borrar de todos modos"
+        },
+        "notifications": {
+          "success": "Todos los datos borrados. Empezando de cero.",
+          "failed": "No se pudieron borrar los datos. Inténtelo de nuevo."
+        }
+      },
+      "deleteAccount": {
+        "title": "Eliminar su cuenta",
+        "warningFull": "Una vez que elimine su cuenta, no hay marcha atrás. {strong} Por favor, asegúrese antes de continuar.",
+        "warningStrong": "Todos sus datos se borrarán permanentemente.",
+        "button": "Eliminar mi cuenta",
+        "dialog": {
+          "title": "¿Está completamente seguro?",
+          "description": "Esta acción no se puede deshacer. Eliminará permanentemente su cuenta y borrará todos sus datos, incluyendo:",
+          "dataList": {
+            "accounts": "Todas las cuentas y transacciones",
+            "categories": "Todas las categorías y presupuestos",
+            "portfolios": "Todas las carteras de inversión",
+            "settings": "Todos los ajustes y preferencias"
+          },
+          "confirmFull": "Escriba {email} para confirmar",
+          "placeholder": "Introduzca su correo electrónico",
+          "acceptButton": "Eliminar mi cuenta",
+          "acceptButtonLoading": "Eliminando..."
+        },
+        "notifications": {
+          "success": "Su cuenta ha sido eliminada correctamente",
+          "failed": "Se ha producido un error al intentar eliminar su cuenta"
+        }
+      }
+    }
+  }
+}

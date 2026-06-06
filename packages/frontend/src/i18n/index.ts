@@ -6,7 +6,7 @@ import enCommon from './locales/chunks/en/common.json';
 import type { ChunkRegistry, I18nChunkName, LoadedChunksMap } from './types';
 
 // Supported locales
-const SUPPORTED_LOCALES = ['en', 'uk'] as const;
+const SUPPORTED_LOCALES = ['en', 'uk', 'es'] as const;
 const DEFAULT_LOCALE: SupportedLocale = 'en';
 
 // Type for supported locales
@@ -110,6 +110,53 @@ const chunkRegistry: ChunkRegistry = {
     'settings/ai': () => import('./locales/chunks/uk/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/uk/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/uk/settings/admin.json'),
+  },
+  es: {
+    // Core chunks
+    common: () => import('./locales/chunks/es/common.json'),
+    layout: () => import('./locales/chunks/es/layout.json'),
+    dialogs: () => import('./locales/chunks/es/dialogs.json'),
+    forms: () => import('./locales/chunks/es/forms.json'),
+    errors: () => import('./locales/chunks/es/errors.json'),
+    // Auth chunks
+    'auth/sign-in': () => import('./locales/chunks/es/auth/sign-in.json'),
+    'auth/sign-up': () => import('./locales/chunks/es/auth/sign-up.json'),
+    'auth/verify-email': () => import('./locales/chunks/es/auth/verify-email.json'),
+    'auth/welcome': () => import('./locales/chunks/es/auth/welcome.json'),
+    'auth/oauth-authorize': () => import('./locales/chunks/es/auth/oauth-authorize.json'),
+    // Page chunks
+    'pages/dashboard': () => import('./locales/chunks/es/pages/dashboard.json'),
+    'pages/accounts': () => import('./locales/chunks/es/pages/accounts.json'),
+    'pages/account': () => import('./locales/chunks/es/pages/account.json'),
+    'pages/account-integrations': () => import('./locales/chunks/es/pages/account-integrations.json'),
+    'pages/transactions': () => import('./locales/chunks/es/pages/transactions.json'),
+    'pages/budgets': () => import('./locales/chunks/es/pages/budgets.json'),
+    'pages/budget-details': () => import('./locales/chunks/es/pages/budget-details.json'),
+    'pages/analytics': () => import('./locales/chunks/es/pages/analytics.json'),
+    'pages/investments': () => import('./locales/chunks/es/pages/investments.json'),
+    'pages/portfolio-detail': () => import('./locales/chunks/es/pages/portfolio-detail.json'),
+    'pages/venture': () => import('./locales/chunks/es/pages/venture.json'),
+    'pages/import-csv': () => import('./locales/chunks/es/pages/import-csv.json'),
+    'pages/import-statement': () => import('./locales/chunks/es/pages/import-statement.json'),
+    'pages/investments-import': () => import('./locales/chunks/es/pages/investments-import.json'),
+    'pages/planned': () => import('./locales/chunks/es/pages/planned.json'),
+    'pages/optimizations': () => import('./locales/chunks/es/pages/optimizations.json'),
+    'pages/shared-with-me': () => import('./locales/chunks/es/pages/shared-with-me.json'),
+    'pages/household': () => import('./locales/chunks/es/pages/household.json'),
+    'pages/payees': () => import('./locales/chunks/es/pages/payees.json'),
+    // Settings chunks
+    'settings/index': () => import('./locales/chunks/es/settings/index.json'),
+    'settings/categories': () => import('./locales/chunks/es/settings/categories.json'),
+    'settings/tags': () => import('./locales/chunks/es/settings/tags.json'),
+    'settings/currencies': () => import('./locales/chunks/es/settings/currencies.json'),
+    'settings/accounts-groups': () => import('./locales/chunks/es/settings/accounts-groups.json'),
+    'settings/data-management': () => import('./locales/chunks/es/settings/data-management.json'),
+    'settings/appearance': () => import('./locales/chunks/es/settings/appearance.json'),
+    'settings/language': () => import('./locales/chunks/es/settings/language.json'),
+    'settings/statistics': () => import('./locales/chunks/es/settings/statistics.json'),
+    'settings/ai': () => import('./locales/chunks/es/settings/ai.json'),
+    'settings/security': () => import('./locales/chunks/es/settings/security.json'),
+    'settings/admin': () => import('./locales/chunks/es/settings/admin.json'),
   },
 };
 

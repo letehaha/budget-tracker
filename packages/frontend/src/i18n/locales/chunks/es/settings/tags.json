@@ -1,0 +1,98 @@
+{
+  "settings": {
+    "tags": {
+      "title": "Etiquetas",
+      "addButton": "Añadir etiqueta",
+      "empty": "Aún no hay etiquetas. Cree su primera etiqueta para organizar sus transacciones.",
+      "tabs": {
+        "details": "Detalles",
+        "reminders": "Recordatorios"
+      },
+      "form": {
+        "createTitle": "Crear etiqueta",
+        "editTitle": "Editar etiqueta",
+        "name": "Nombre",
+        "namePlaceholder": "Nombre de la etiqueta",
+        "color": "Color",
+        "icon": "Icono",
+        "iconPlaceholder": "Seleccionar icono",
+        "iconSearchPlaceholder": "Buscar iconos...",
+        "clearIcon": "Quitar icono",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Descripción opcional",
+        "saveButton": "Guardar",
+        "previewPlaceholder": "Nombre de la etiqueta"
+      },
+      "delete": {
+        "title": "¿Eliminar etiqueta?",
+        "description": "Esto eliminará permanentemente «{name}» y la quitará de todas las transacciones. Esta acción no se puede deshacer.",
+        "deleteButton": "Eliminar",
+        "cancelButton": "Cancelar"
+      },
+      "notifications": {
+        "createSuccess": "Etiqueta creada",
+        "createFailed": "Error al crear la etiqueta",
+        "updateSuccess": "Etiqueta actualizada",
+        "updateFailed": "Error al actualizar la etiqueta",
+        "deleteSuccess": "Etiqueta eliminada",
+        "deleteFailed": "Error al eliminar la etiqueta"
+      },
+      "reminders": {
+        "addButton": "Añadir recordatorio",
+        "empty": "Aún no hay recordatorios. Cree un recordatorio para recibir notificaciones sobre la actividad de esta etiqueta.",
+        "enabled": "Habilitado",
+        "disabled": "Deshabilitado",
+        "form": {
+          "createTitle": "Crear recordatorio",
+          "editTitle": "Editar recordatorio",
+          "type": "Tipo de recordatorio",
+          "typePlaceholder": "Seleccionar tipo",
+          "amountThreshold": "Umbral de importe",
+          "amountThresholdPlaceholder": "Introduzca el importe umbral",
+          "amountThresholdHint": "Reciba una notificación cuando el gasto en esta etiqueta supere este importe",
+          "frequency": "Frecuencia",
+          "frequencyPlaceholder": "Seleccionar frecuencia",
+          "dayOfMonth": "Día del mes",
+          "dayOfMonthPlaceholder": "Seleccionar día",
+          "dayOfMonthHint": "Para los meses con menos días, se usará el último día",
+          "isEnabled": "Habilitado",
+          "saveButton": "Guardar"
+        },
+        "types": {
+          "amountThreshold": "Umbral de importe",
+          "amountThresholdDescription": "Notificar cuando el gasto supere un importe determinado",
+          "existenceCheck": "Verificación de actividad",
+          "existenceCheckDescription": "Notificar cuando haya transacciones con esta etiqueta"
+        },
+        "frequencies": {
+          "immediate": "Inmediato",
+          "immediateDescription": "Se activa cuando se etiquetan transacciones (tiempo de espera de 24 h)",
+          "daily": "Diario",
+          "dailyDescription": "Comprobar cada día",
+          "weekly": "Semanal",
+          "weeklyDescription": "Comprobar cada lunes",
+          "monthly": "Mensual",
+          "monthlyDescription": "Comprobar un día específico cada mes",
+          "quarterly": "Trimestral",
+          "quarterlyDescription": "Comprobar cada 3 meses (ene, abr, jul, oct)",
+          "yearly": "Anual",
+          "yearlyDescription": "Comprobar una vez al año en enero"
+        },
+        "delete": {
+          "title": "¿Eliminar recordatorio?",
+          "description": "Esto eliminará permanentemente este recordatorio. Esta acción no se puede deshacer.",
+          "deleteButton": "Eliminar",
+          "cancelButton": "Cancelar"
+        },
+        "notifications": {
+          "createSuccess": "Recordatorio creado",
+          "createFailed": "Error al crear el recordatorio",
+          "updateSuccess": "Recordatorio actualizado",
+          "updateFailed": "Error al actualizar el recordatorio",
+          "deleteSuccess": "Recordatorio eliminado",
+          "deleteFailed": "Error al eliminar el recordatorio"
+        }
+      }
+    }
+  }
+}

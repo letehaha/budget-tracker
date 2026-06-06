@@ -1,0 +1,176 @@
+{
+  "dashboard": {
+    "editMode": {
+      "customize": "Personalizar",
+      "addWidgets": "Añadir widgets",
+      "emptyState": "Haga clic en Personalizar para añadir widgets"
+    },
+    "widgets": {
+      "balanceTrend": {
+        "title": "Tendencia de saldo",
+        "balanceTypes": {
+          "total": "Total",
+          "accounts": "Cuentas",
+          "portfolios": "Carteras",
+          "ventures": "Proyectos",
+          "vehicles": "Vehículos"
+        },
+        "tooltip": {
+          "accounts": "Cuentas:",
+          "portfolios": "Carteras:",
+          "total": "Total:",
+          "ventures": "Proyectos:",
+          "vehicles": "Vehículos:"
+        },
+        "today": "Hoy",
+        "vsPreviousPeriod": "vs período anterior",
+        "spikePanel": {
+          "accounts": "Cuentas",
+          "portfolios": "Carteras",
+          "priceDrivenChange": "Cambio impulsado por precios — detalles de transacciones próximamente",
+          "noSignificantTransactions": "No hay transacciones significativas para esta fecha.",
+          "seeAllTransactions": "Ver todas las transacciones"
+        },
+        "spikeSettings": {
+          "showMarkers": "Mostrar marcadores de pico",
+          "showMarkersTooltip": "Activa o desactiva los marcadores de color en el gráfico que destacan cambios significativos de saldo.",
+          "percentThreshold": "Cambio mín. %",
+          "percentThresholdTooltip": "Porcentaje mínimo de cambio de saldo entre dos días consecutivos para marcarlo como pico. Se debe superar este umbral o el absoluto. Valores bajos muestran más marcadores.",
+          "absoluteThreshold": "Cambio mín. $",
+          "absoluteThresholdTooltip": "Cambio de saldo absoluto mínimo (en su moneda base) para calificar como pico. Se debe superar este umbral o el de porcentaje.",
+          "maxMarkers": "Máx. marcadores",
+          "maxMarkersTooltip": "Número máximo de marcadores de pico mostrados en el gráfico. Cuando hay más picos que este límite, solo se muestran los más significativos.",
+          "resetDefaults": "Restablecer valores predeterminados",
+          "accept": "Aceptar",
+          "validation": {
+            "outOfRange": "El valor está fuera del rango permitido",
+            "integer": "Debe ser un número entero"
+          }
+        },
+        "settings": {
+          "title": "Ajustes",
+          "spikeMarkers": "Marcadores de pico",
+          "fitToLatestData": "Ajustar a los últimos datos",
+          "fitToLatestDataTooltip": "Cuando está activado, el gráfico solo abarca hasta su último punto de datos. Cuando está desactivado, el eje X cubre todo el período seleccionado, dejando espacio vacío para fechas futuras.",
+          "on": "Activado",
+          "off": "Desactivado",
+          "includeInTotal": "Incluir en el total"
+        },
+        "componentsSettings": {
+          "description": "Elija qué componentes cuentan hacia la línea de saldo Total.",
+          "vehicles": "Vehículos",
+          "ventures": "Proyectos",
+          "allIncluded": "Todos los componentes",
+          "excluding": "Excluyendo {items}"
+        }
+      },
+      "expensesStructure": {
+        "title": "Estructura de gastos",
+        "excludedCategories": {
+          "message": "Algunas categorías están excluidas de este widget"
+        },
+        "excludeSettings": {
+          "title": "Ajustes",
+          "excludeCategories": "Excluir categorías",
+          "dialogTitle": "Excluir categorías",
+          "dialogDescription": "Seleccione las categorías a excluir del gráfico y totales de este widget",
+          "save": "Guardar"
+        },
+        "today": "Hoy",
+        "vsPreviousPeriod": "vs período anterior",
+        "viewButton": "Ver"
+      },
+      "latestTransactions": {
+        "title": "Últimas transacciones",
+        "showAll": "Ver todas"
+      },
+      "subscriptions": {
+        "title": "Suscripciones y facturas",
+        "titleSubscriptions": "Suscripciones",
+        "titleBills": "Facturas",
+        "configTypeAll": "Todo",
+        "configTypeSubscriptions": "Suscripciones",
+        "configTypeBills": "Facturas",
+        "activeSummary": "{count} activa(s)",
+        "perYear": " al año",
+        "percentOfIncome": "{percent}% del ingreso promedio",
+        "settings": {
+          "title": "Ajustes",
+          "show": "Mostrar",
+          "incomeWindow": "Ventana de ingresos",
+          "incomeWindowTooltip": "Calculamos el promedio de sus transacciones entrantes durante este período para calcular el % de ingresos gastado en pagos recurrentes.",
+          "lookbackOption": {
+            "1": "Último mes",
+            "3": "Últimos 3 meses",
+            "6": "Últimos 6 meses",
+            "12": "Últimos 12 meses"
+          }
+        }
+      },
+      "categoryTracker": {
+        "title": "Lista de seguimiento de categorías",
+        "addCategory": "Añadir categoría",
+        "addCategories": "Añadir categorías para seguir",
+        "selectCategories": "Seleccionar categorías"
+      },
+      "cashFlow": {
+        "title": "Flujo de caja",
+        "description": "Muestra su ahorro neto: ingresos menos gastos para el período seleccionado, con una tendencia de períodos anteriores",
+        "vsPrevious": "vs anterior",
+        "income": "Ingresos",
+        "expenses": "Gastos",
+        "saved": "Ahorrado",
+        "previousPeriodsTrend": "Tendencia de períodos anteriores"
+      },
+      "creditUtilization": {
+        "title": "Utilización de crédito",
+        "description": "Muestra cuánto de sus límites de crédito está siendo utilizado actualmente en todas las cuentas",
+        "utilized": "utilizado",
+        "noAccounts": "No hay cuentas con límites de crédito"
+      },
+      "emptyState": "No hay datos en el intervalo de tiempo seleccionado.",
+      "registry": {
+        "balanceTrend": {
+          "name": "Tendencia de saldo",
+          "description": "Haga seguimiento de su saldo a lo largo del tiempo"
+        },
+        "categoryTracker": {
+          "name": "Lista de seguimiento de categorías",
+          "description": "Supervise gastos e ingresos de categorías seleccionadas"
+        },
+        "spendingCategories": {
+          "name": "Gasto por categorías",
+          "description": "Vea a dónde va su dinero"
+        },
+        "latestRecords": {
+          "name": "Últimos registros",
+          "description": "Sus transacciones más recientes"
+        },
+        "subscriptions": {
+          "name": "Suscripciones y facturas",
+          "description": "Resumen de pagos recurrentes"
+        },
+        "cashFlow": {
+          "name": "Flujo de caja",
+          "description": "Ingresos vs gastos con tasa de ahorro"
+        },
+        "creditUtilization": {
+          "name": "Utilización de crédito",
+          "description": "Uso del límite de crédito en sus cuentas"
+        }
+      }
+    },
+    "periodSelector": {
+      "quickSelect": "Selección rápida",
+      "year": "{year}",
+      "presets": {
+        "currentMonth": "Mes actual",
+        "last3Months": "Últimos 3 meses",
+        "last6Months": "Últimos 6 meses",
+        "lastYear": "Últimos 12 meses",
+        "thisYear": "Este año",
+        "previousYear": "Año anterior"
+      }
+    }
+  }
+}

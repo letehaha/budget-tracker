@@ -1,0 +1,39 @@
+{
+  "auth": {
+    "signup": {
+      "title": "Crear una cuenta",
+      "divider": "O continúe con su correo electrónico",
+      "submitButton": "Registrarse",
+      "alreadyHaveAccount": "¿Ya tiene una cuenta?",
+      "signInLink": "Iniciar sesión",
+      "labels": {
+        "displayName": "Nombre para mostrar",
+        "verifyPassword": "Verificar contraseña"
+      },
+      "placeholders": {
+        "displayName": "ej. Juan García",
+        "verifyPassword": "Verificar contraseña"
+      },
+      "errors": {
+        "invalidEmail": "Por favor, introduzca una dirección de correo electrónico válida.",
+        "passwordTooShort": "La contraseña es demasiado corta.",
+        "passwordTooLong": "La contraseña es demasiado larga.",
+        "invalidPassword": "Contraseña no válida.",
+        "userExists": "Ya existe un usuario con ese correo electrónico.",
+        "genericErrorRetry": "Se ha producido un error. Por favor, inténtelo de nuevo.",
+        "oauthFailed": "No se pudo registrar con {provider}. Por favor, inténtelo de nuevo."
+      }
+    },
+    "shared": {
+      "divider": "O continúe con",
+      "passkeyButton": {
+        "signIn": "Iniciar sesión con clave de acceso",
+        "register": "Añadir clave de acceso"
+      },
+      "oauthButton": {
+        "signIn": "Iniciar sesión con {provider}",
+        "signUp": "Registrarse con {provider}"
+      }
+    }
+  }
+}

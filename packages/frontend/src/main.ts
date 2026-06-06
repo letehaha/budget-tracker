@@ -27,7 +27,7 @@ const initI18n = async () => {
   if (initialLocale !== 'en') {
     // For non-English locales, load the common chunk
     await loadChunks({ locale: initialLocale, chunks: ['common'] });
-    i18n.global.locale.value = initialLocale as 'en' | 'uk';
+    i18n.global.locale.value = initialLocale as 'en' | 'uk' | 'es';
   }
 };
 

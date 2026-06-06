@@ -1,0 +1,24 @@
+{
+  "accounts": {
+    "noNameSet": "Sin nombre...",
+    "title": "Cuentas",
+    "createAccount": "Crear cuenta",
+    "createVehicle": "Añadir vehículo",
+    "bankIntegrations": "Integraciones bancarias",
+    "sections": {
+      "archived": "Archivadas",
+      "manual": "Cuentas manuales",
+      "connected": "Cuentas conectadas",
+      "sharedWithMe": "Compartidas conmigo",
+      "vehicles": "Vehículos"
+    },
+    "empty": {
+      "title": "Aún no hay cuentas",
+      "description": "Conecte su banco o cree una cuenta manual para comenzar a hacer seguimiento de sus finanzas, saldos y transacciones.",
+      "connectBank": "Conectar cuenta bancaria",
+      "createManual": "Crear cuenta manual"
+    },
+    "sharedBy": "Compartida por {handle}",
+    "viaHousehold": "Compartida a través del hogar de {handle}"
+  }
+}
