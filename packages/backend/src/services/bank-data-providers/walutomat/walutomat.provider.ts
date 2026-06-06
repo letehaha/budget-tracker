@@ -27,6 +27,7 @@ import { linkTransactions } from '@services/transactions/transactions-linking/li
 import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
+import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { type HistoryItem, type WalletBalance, WalutomatApiClient, WalutomatHttpError } from './api-client';
 import { linkCrossProviderTransfers } from './cross-provider-linking';
 import { WalutomatCredentials, WalutomatMetadata } from './types';
@@ -402,7 +403,7 @@ export class WalutomatProvider extends BaseBankDataProvider {
           const wallet = balances.find((b) => b.currency === currency);
           if (wallet) {
             const balanceMoney = Money.fromDecimal(parseFloat(wallet.balanceAvailable));
-            await account.update({ currentBalance: balanceMoney });
+            await writeBankBalanceWithHistory({ account, balance: balanceMoney });
           }
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
@@ -457,9 +458,7 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
-    await account.update({
-      currentBalance: balance.amount,
-    });
+    await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
   }
 
   // Walutomat surfaces 401/403 via its own HTTP error class as well as

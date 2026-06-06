@@ -101,6 +101,20 @@ export default class Balances extends Model {
   // 1. ✅ Add a new record to Balances table with a `currentBalance` that is specified in Accounts table
 
   // ### Account deletion will be handled by `cascade` deletion
+  //
+  // Bank-provider accounts use a two-layer balance-population scheme. Per-tx
+  // hooks below (Monobank, Enable Banking) backfill historical days as
+  // transactions land — that is how the analytics chart gets in-between days
+  // populated, not just "today". The authoritative end-of-sync write goes
+  // through `writeBankBalanceWithHistory`
+  // (services/bank-data-providers/utils/), which writes
+  // `Accounts.currentBalance` + `refCurrentBalance` and overwrites today's
+  // `Balances` row with the bank's reported balance. For providers whose
+  // upstream has no per-transaction balance (LunchFlow, Walutomat, SimpleFIN)
+  // only the authoritative layer runs — the chart fills in over time as new
+  // syncs land each day. Either layer races safely against the other via the
+  // unique `(accountId, date)` index plus `INSERT ... ON CONFLICT DO UPDATE`
+  // in `updateAccountBalance`.
   static async handleTransactionChange({
     data,
     prevData,
@@ -152,13 +166,13 @@ export default class Balances extends Model {
       }
 
       case ACCOUNT_TYPES.monobank: {
-        // Monobank provides the actual account balance after each transaction.
-        // Transactions are sorted by time before processing, so the last transaction
-        // for each day will set the correct end-of-day balance.
-        //
-        // Balance is in account's currency (e.g., UAH), but Balances.amount must be
-        // stored in BASE currency (refBalance). We use the exchange rate service to
-        // get consistent market rates.
+        // Per-tx backfill layer. Each Monobank transaction carries the bank's
+        // post-tx balance in `externalData.balance` (in account currency, e.g.
+        // UAH). Convert to base currency via the exchange-rate service and
+        // upsert the day's `Balances` row — last tx processed for a date wins
+        // the end-of-day value. The end-of-sync `writeBankBalanceWithHistory`
+        // call (worker) then overwrites today's row with the bank's
+        // authoritative balance.
         // TODO: we probably need to avoid updating opposite_tx refAmount based on
         // original-tx refAmount
         const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
@@ -178,13 +192,12 @@ export default class Balances extends Model {
       }
 
       case ACCOUNT_TYPES.enableBanking: {
-        // EnableBanking transactions are sorted by booking_date before processing,
-        // so the last transaction processed for each day will have the correct end-of-day balance.
-        // After all transactions are synced, Balances.updateAccountBalance() is called
-        // with the authoritative balance from the bank's API to ensure accuracy.
-        //
-        // balance_after_transaction is optional in the EnableBanking API - not all banks provide it.
-        // When available, we use it to build historical balance data for smooth trend indicators.
+        // Per-tx backfill layer. `balance_after_transaction` is optional in the
+        // EnableBanking API — when the ASPSP populates it, convert to base
+        // currency and upsert the day's `Balances` row (transactions sorted by
+        // booking_date so the last for a date wins). The end-of-sync
+        // `writeBankBalanceWithHistory` call then overwrites today's row with
+        // the bank's authoritative balance.
         const externalData = data.externalData as { balanceAfter?: AmountType } | undefined;
         const balanceAfter = externalData?.balanceAfter;
 
@@ -200,25 +213,17 @@ export default class Balances extends Model {
 
           await this.updateAccountBalance({ accountId, date, refBalance });
         }
-        // If no balanceAfter, skip - balance will be set by updateAccountBalance() after sync
+        // No `balanceAfter` from the ASPSP → in-between days stay empty for
+        // this tx. The end-of-sync authoritative write still fills today.
         break;
       }
 
-      case ACCOUNT_TYPES.lunchflow: {
-        // LunchFlow doesn't provide per-transaction balance info.
-        // Balance is updated from the API after the full sync completes.
-        break;
-      }
-
-      case ACCOUNT_TYPES.walutomat: {
-        // Walutomat doesn't provide per-transaction balance info.
-        // Balance is updated from the API after the full sync completes.
-        break;
-      }
-
+      case ACCOUNT_TYPES.lunchflow:
+      case ACCOUNT_TYPES.walutomat:
       case ACCOUNT_TYPES.simplefin: {
-        // SimpleFIN doesn't provide per-transaction balance info.
-        // Balance is updated from the API after the full sync completes.
+        // No per-tx balance from upstream — only the authoritative end-of-sync
+        // `writeBankBalanceWithHistory` writes for these providers. Chart
+        // gaps for past days fill in over time as new syncs land each day.
         break;
       }
 

@@ -13,11 +13,9 @@ import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
-import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
-import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -28,10 +26,11 @@ import {
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 import crypto from 'crypto';
-import { addDays, startOfDay, subDays } from 'date-fns';
+import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
+import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { EnableBankingApiClient } from './api-client';
 import { generateState, validatePrivateKey, validateState } from './jwt-utils';
 import {
@@ -807,7 +806,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // Always update account balance from bank when syncing
           // This ensures balance stays accurate even if no new transactions were found
           const balance = await this.fetchBalance(connectionId, apiUid);
-          await this.updateAccountBalance({ account, balance: balance.amount });
+          await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
 
           return { transactionIds: createdTransactionIds };
         },
@@ -866,36 +865,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     const balance = await this.fetchBalance(connectionId, apiUid);
 
-    await this.updateAccountBalance({ account, balance: balance.amount });
-  }
-
-  /**
-   * Update account balance and record it in balance history.
-   * This ensures both currentBalance/refCurrentBalance and the Balances table are in sync.
-   */
-  private async updateAccountBalance({ account, balance }: { account: Accounts; balance: number }): Promise<void> {
-    const today = startOfDay(new Date());
-
-    // Calculate ref balance (in user's base currency)
-    const refBalance = await calculateRefAmount({
-      amount: Money.fromCents(balance),
-      userId: account.userId,
-      date: today,
-      baseCode: account.currencyCode,
-    });
-
-    // Update account balance
-    await account.update({
-      currentBalance: balance,
-      refCurrentBalance: refBalance,
-    });
-
-    // Update balance history using centralized Balances model method
-    await Balances.updateAccountBalance({
-      accountId: account.id,
-      date: today,
-      refBalance,
-    });
+    await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
   }
 
   // ============================================================================

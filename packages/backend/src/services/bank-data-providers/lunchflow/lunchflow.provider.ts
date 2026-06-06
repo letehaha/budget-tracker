@@ -28,6 +28,7 @@ import { createTransaction } from '@services/transactions';
 import { Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
+import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { LunchFlowApiClient } from './api-client';
 import {
   LunchFlowApiAccountsResponse,
@@ -381,7 +382,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         try {
           const balanceResponse = await apiClient.getBalance({ accountId });
           const balanceMoney = Money.fromDecimal(balanceResponse.balance.amount);
-          await account.update({ currentBalance: balanceMoney });
+          await writeBankBalanceWithHistory({ account, balance: balanceMoney });
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
           logger.warn(`[LunchFlow] Failed to update balance for account ${account.id}: ${errorMsg}`);
@@ -419,9 +420,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
-    await account.update({
-      currentBalance: balance.amount,
-    });
+    await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
   }
 
   // ============================================================================

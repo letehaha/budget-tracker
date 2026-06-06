@@ -2,6 +2,7 @@ import type { RecordId } from '@bt/shared/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { ExternalMonobankClientInfoResponse } from '@bt/shared/types/external-services';
+import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
@@ -17,6 +18,7 @@ import {
 import cc from 'currency-codes';
 
 import { encryptCredentials } from '../utils/credential-encryption';
+import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankApiClient } from './api-client';
 import { getJobGroupProgress, queueTransactionSync } from './transaction-sync-queue';
 import { MonobankCredentials, MonobankMetadata } from './types';
@@ -309,10 +311,7 @@ export class MonobankProvider extends BaseBankDataProvider {
 
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
-    await account.update({
-      currentBalance: balance.amount,
-      // TODO: calculate and update refCurrentBalance
-    });
+    await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
   }
 
   // ============================================================================
