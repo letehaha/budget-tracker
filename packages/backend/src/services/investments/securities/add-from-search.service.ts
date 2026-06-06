@@ -84,7 +84,17 @@ const addSecurityFromSearchImpl = async ({
       // 402 Payment Required is a known, expected failure mode for non-US-exchange
       // tickers on free-tier provider plans (e.g. FMP). It's not actionable – keep
       // it visible in Loki via info, but don't page Sentry on every occurrence.
-      const isExpectedPaywall = error instanceof ProviderHttpError && error.status === 402;
+      //
+      // Leaf providers wrap their thrown errors via base-provider.formatProviderError,
+      // which returns a plain Error with the original attached as `cause`. Unwrap one
+      // level to recover the ProviderHttpError so the paywall check still matches.
+      const httpError =
+        error instanceof ProviderHttpError
+          ? error
+          : error instanceof Error && error.cause instanceof ProviderHttpError
+            ? error.cause
+            : null;
+      const isExpectedPaywall = httpError?.status === 402;
       const severity = isExpectedPaywall ? 'info' : 'warn';
       logger[severity](`Failed to fetch latest price for ${searchResult.symbol} (will be backfilled by daily sync)`, {
         error: error instanceof Error ? error.message : String(error),
