@@ -1,0 +1,495 @@
+{
+  "dialogs": {
+    "linkAccountGroup": {
+      "title": "Vincular grupo de cuentas",
+      "createNewGroup": "Crear nuevo grupo"
+    },
+    "reassignCategory": {
+      "title": "Reasignar transacciones",
+      "description": "Esta categoría tiene {count} transacción(es). Seleccione una nueva categoría para las transacciones de \"{categoryName}\" antes de eliminarla.",
+      "newCategoryLabel": "Nueva categoría",
+      "newCategoryPlaceholder": "Seleccione una categoría",
+      "cancelButton": "Cancelar",
+      "reassignButton": "Reasignar y eliminar",
+      "reassignButtonLoading": "Reasignando...",
+      "notifications": {
+        "success": "{count} transacción(es) reasignada(s) a {newCategoryName}",
+        "error": "Error al reasignar las transacciones"
+      }
+    },
+    "syncConfirmation": {
+      "title": "Sincronización completada recientemente",
+      "description": "Sincronizó sus cuentas hace {time}. ¿Está seguro de que desea sincronizar de nuevo?",
+      "syncAnyway": "Sincronizar de todos modos",
+      "cancel": "Cancelar",
+      "timeUnits": {
+        "someTime": "algún tiempo",
+        "hours": "{count} hora | {count} horas",
+        "minutes": "{count} minuto | {count} minutos"
+      }
+    },
+    "createPortfolio": {
+      "title": "Crear cartera",
+      "description": "Cree una nueva cartera de inversión para hacer seguimiento de sus posiciones y transacciones.",
+      "assetSupportNotice": "Actualmente admite acciones, ETFs y cripto. Los bonos, opciones y otros valores están en el {roadmapLink} — comparta lo que necesita a través de {feedbackLink}.",
+      "assetSupportRoadmapLink": "vote por lo próximo",
+      "assetSupportFeedbackLink": "solicite una función",
+      "form": {
+        "nameLabel": "Nombre de la cartera",
+        "namePlaceholder": "Mi cartera de inversión",
+        "typeLabel": "Tipo de cartera",
+        "typePlaceholder": "Seleccione el tipo de cartera",
+        "portfolioTypes": {
+          "investment": "Inversión",
+          "retirement": "Jubilación",
+          "savings": "Ahorro",
+          "other": "Otro"
+        },
+        "descriptionLabel": "Descripción (opcional)",
+        "descriptionPlaceholder": "Breve descripción de esta cartera...",
+        "submitButton": "Crear cartera",
+        "submitButtonLoading": "Creando..."
+      },
+      "notifications": {
+        "success": "Cartera creada correctamente.",
+        "error": "Error al crear la cartera. Inténtelo de nuevo."
+      }
+    },
+    "editPortfolio": {
+      "title": "Editar cartera",
+      "description": "Actualice el nombre, tipo o descripción de su cartera."
+    },
+    "deletePortfolio": {
+      "title": "Eliminar cartera",
+      "description": "Esta cartera se moverá a la papelera y podrá restaurarse en un plazo de 30 días. Transcurrido ese tiempo, se eliminará permanentemente junto con todas las posiciones y transacciones.",
+      "cancelButton": "Cancelar",
+      "deleteButton": "Mover a la papelera",
+      "deleteButtonLoading": "Moviendo...",
+      "notifications": {
+        "success": "Cartera movida a la papelera. Puede restaurarla en un plazo de 30 días desde la página de Inversiones.",
+        "error": "Error al eliminar la cartera."
+      }
+    },
+    "manageTransaction": {
+      "addTitle": "Añadir transacción",
+      "editTitle": "Editar transacción",
+      "detailsTitle": "Detalles de la transacción",
+      "title": "Gestionar transacción",
+      "description": "Crear o editar una transacción",
+      "linkSection": {
+        "linkButton": "Vincular transacción existente",
+        "title": "Vincular transacción existente",
+        "description": "Seleccione una transacción para vincular",
+        "unlinkButton": "Desvincular transacciones",
+        "cancelLinkingAriaLabel": "Cancelar vinculación"
+      },
+      "typeSelector": {
+        "expense": "Gasto",
+        "income": "Ingreso",
+        "transfer": "Transferencia",
+        "selectExpense": "Seleccionar gasto",
+        "selectIncome": "Seleccionar ingreso",
+        "selectTransfer": "Seleccionar transferencia"
+      },
+      "recordList": {},
+      "form": {
+        "payeeLabel": "Beneficiario",
+        "paymentTypeLabel": "Tipo de pago",
+        "noteLabel": "Nota (opcional)",
+        "notePlaceholder": "Nota",
+        "tagsLabel": "Etiquetas (opcional)",
+        "amountLabel": "Importe",
+        "amountPlaceholder": "Importe",
+        "categoryLabel": "Categoría",
+        "targetAmountLabel": "Importe objetivo",
+        "targetAmountPlaceholder": "Importe objetivo",
+        "datetimeLabel": "Fecha y hora",
+        "splitInfo": "Dividido en {count} categorías",
+        "editSplit": "Editar",
+        "addSplitButton": "Dividir en categorías",
+        "moreOptionsButton": "Más opciones",
+        "closeButton": "Cerrar",
+        "deleteButton": "Eliminar",
+        "deleteAriaLabel": "Eliminar transacción",
+        "createAriaLabel": "Crear transacción",
+        "editAriaLabel": "Editar transacción",
+        "loadingButton": "Cargando...",
+        "createButton": "Crear",
+        "editButton": "Editar",
+        "fromAccountLabel": "Cuenta de origen",
+        "toAccountLabel": "Cuenta de destino",
+        "accountLabel": "Cuenta",
+        "selectAccountPlaceholder": "Seleccione una cuenta",
+        "noAccountExists": "No existe ninguna cuenta",
+        "addNewAccountButton": "Añadir nueva cuenta +",
+        "createAccountLink": "Crear cuenta",
+        "destinationTypeAccount": "Cuenta",
+        "destinationTypePortfolio": "Cartera",
+        "toPortfolioLabel": "A la cartera",
+        "selectPortfolioPlaceholder": "Seleccione una cartera",
+        "noPortfoliosExist": "No existe ninguna cartera",
+        "validation": {
+          "required": "Este campo es obligatorio",
+          "minValue": "El importe debe ser mayor que cero"
+        }
+      },
+      "refundRecordsList": {
+        "filtersDialogTitle": "Seleccionar filtros",
+        "fromDateLabel": "Desde fecha",
+        "toDateLabel": "Hasta fecha",
+        "amountFromLabel": "Importe desde (gte)",
+        "amountFromPlaceholder": ">= que",
+        "amountToLabel": "Hasta (lte)",
+        "amountToPlaceholder": "<= que",
+        "resetButton": "Restablecer",
+        "applyButton": "Aplicar",
+        "loadMoreButton": "Cargar más",
+        "noMoreTransactions": "No hay más transacciones para cargar",
+        "noIncomeTransactions": "No hay transacciones de ingreso en el sistema que no estén ya marcadas como reembolsos. Cree alguna para continuar",
+        "noExpenseTransactions": "No hay transacciones de gasto en el sistema que no estén ya marcadas como reembolsos. Cree alguna para continuar",
+        "noTransactions": "No hay transacciones para seleccionar. Cree alguna para continuar",
+        "resetFiltersButton": "Restablecer filtros",
+        "recommendedLabel": "Recomendado",
+        "allTransactionsLabel": "Todas las transacciones"
+      },
+      "splitDialog": {
+        "title": "Dividir en categorías",
+        "description": "Distribuya esta transacción entre varias categorías. La categoría principal conserva el importe no asignado.",
+        "mainCategoryLabel": "Categoría principal",
+        "selectCategoryPlaceholder": "Seleccionar categoría",
+        "amountPlaceholder": "0",
+        "addCategoryButton": "Añadir categoría",
+        "totalAmountLabel": "Importe total",
+        "splitTotalLabel": "Total dividido",
+        "mainCategoryKeepsLabel": "La categoría principal conserva",
+        "exceedsTransactionTotal": "Los importes divididos superan el total de la transacción",
+        "cancelButton": "Cancelar",
+        "removeSplitsButton": "Eliminar divisiones",
+        "saveSplitsButton": "Guardar divisiones",
+        "errors": {
+          "amountMustBePositive": "El importe debe ser positivo",
+          "duplicateCategory": "Categoría duplicada",
+          "cannotUseMainCategory": "No se puede usar la categoría principal en las divisiones"
+        }
+      },
+      "markAsRefund": {
+        "linkRefund": "Vincular reembolso",
+        "selectTransaction": "Seleccionar transacción",
+        "selectRefundingTransaction": "Seleccione la transacción original que este registro está reembolsando.",
+        "selectRefundedByTransactions": "Seleccione las transacciones que reembolsan el registro actual.",
+        "refundsLabel": "Reembolsos",
+        "refundedByLabel": "Reembolsado por",
+        "saveButton": "Guardar",
+        "confirmButton": "Confirmar",
+        "linkedRefunds": "Reembolsos vinculados",
+        "refundsPortion": "Reembolsa la parte de {name}",
+        "selectOnlyOne": "* solo puede seleccionar una transacción",
+        "selectMultipleWithLimit": "* puede seleccionar varias transacciones, pero su importe total no puede superar el importe de la transacción original",
+        "selectWhichPartToRefund": "Seleccione qué parte reembolsar",
+        "transactionSplitInfo": "Esta transacción está dividida entre varias categorías. Seleccione qué parte desea reembolsar.",
+        "amountTooSmallWarning": "Opciones con importe inferior al de su reembolso",
+        "amountDisabled": "están deshabilitadas.",
+        "amountMayBeSmaller": "Algunas opciones pueden ser inferiores al importe de su reembolso",
+        "finalValidationWarning": "La validación final utilizará importes convertidos.",
+        "mainCategoryLabel": "(principal)"
+      },
+      "refundInfo": {
+        "trigger": "¿Cómo funciona?",
+        "title": "Acerca de las transacciones de reembolso",
+        "description": "Esta acción vincula la transacción actual [gasto/ingreso] como reembolso de una transacción anterior existente.",
+        "howItWorks": {
+          "title": "Cómo funciona:",
+          "expenseRefund": "Para reembolsar un gasto: seleccione la transacción de ingreso original.",
+          "incomeRefund": "Para reembolsar un ingreso: seleccione la transacción de gasto original.",
+          "noOriginal": "Puede marcar cualquier transacción como reembolso aunque no exista una transacción «original» en el sistema. Resulta útil si no tiene la cuenta con la transacción original en el sistema."
+        },
+        "benefits": {
+          "title": "Ventajas:",
+          "accuracy": "Mejora la exactitud financiera ajustando las estadísticas de gasto o ingreso para excluir los importes reembolsados.",
+          "tracking": "Ayuda a rastrear transacciones relacionadas para mejorar su historial."
+        },
+        "notes": {
+          "title": "Notas importantes:",
+          "recordKeeping": "Este vínculo es solo para fines de registro.",
+          "noBalanceAdjust": "No ajusta el saldo de la transacción original de ningún modo.",
+          "canUnlink": "Siempre puede desvincular las transacciones."
+        },
+        "examples": {
+          "title": "Ejemplos:",
+          "customerPayment": "Reembolsar un pago a un cliente: cree un gasto y vincúlelo al ingreso original.",
+          "vendorRefund": "Recibir un reembolso de un proveedor: cree un ingreso y vincúlelo al gasto original.",
+          "noOriginalTx": "Registrar un reembolso sin transacción original: a veces puede necesitar registrar un reembolso de una transacción que no está en su sistema. Por ejemplo, si está registrando un reembolso de un pago en efectivo que no se registró inicialmente, puede crear igualmente una entrada de reembolso. Esto ayuda a mantener registros precisos aunque la transacción original no esté registrada digitalmente."
+        }
+      },
+      "transferRecordsList": {
+        "filtersDialogTitle": "Filtros",
+        "fromDateLabel": "Desde fecha",
+        "toDateLabel": "Hasta fecha",
+        "amountFromLabel": "Importe desde",
+        "amountFromPlaceholder": "Mín.",
+        "amountToLabel": "Importe hasta",
+        "amountToPlaceholder": "Máx.",
+        "resetButton": "Restablecer",
+        "applyButton": "Aplicar",
+        "recommendedLabel": "Recomendado",
+        "allTransactionsLabel": "Todas las transacciones",
+        "loadMoreButton": "Cargar más",
+        "noMoreTransactions": "No hay más transacciones",
+        "noIncomeTransactions": "No se encontraron transacciones de ingreso. Intente ajustar los filtros.",
+        "noExpenseTransactions": "No se encontraron transacciones de gasto. Intente ajustar los filtros.",
+        "noTransactions": "No se encontraron transacciones. Intente ajustar los filtros.",
+        "resetFiltersButton": "Restablecer filtros"
+      },
+      "portfolioLinked": {
+        "title": "Transacción vinculada a cartera",
+        "linkedAs": "Esta transacción está vinculada como {type} a",
+        "deposit": "depósito",
+        "withdrawal": "retirada",
+        "unlinkButton": "Desvincular de la cartera",
+        "unlinkWarning": "Desvincular reducirá el saldo en efectivo de la cartera {portfolio}.",
+        "unlinkDescription": "Se restaurarán los detalles originales de la transacción.",
+        "cancelButton": "Cancelar",
+        "confirmUnlink": "Confirmar desvinculación"
+      },
+      "ventureLinked": {
+        "title": "Transacción vinculada a un venture",
+        "description": "Esta transacción está vinculada a un evento de venture.",
+        "editHint": "Edítela o desvincúlela desde la línea de tiempo de eventos del deal de venture relacionado.",
+        "openVenture": "Abrir Venture"
+      },
+      "vehicleLinked": {
+        "title": "Ajuste de vehículo",
+        "description": "Esta transacción es el registro de auditoría de una anulación manual del valor de {name}.",
+        "editHint": "Para cambiar el valor, la fecha o eliminar esta anulación, gestiónelo desde la página de detalles del vehículo.",
+        "openVehicle": "Abrir {name}"
+      }
+    },
+    "portfolioTransfer": {
+      "portfolio": {
+        "title": "Transferir desde cartera",
+        "description": "Transfiera fondos desde esta cartera a otra cartera o cuenta."
+      },
+      "account": {
+        "title": "Transferir desde cuenta",
+        "description": "Transfiera fondos desde esta cuenta a una cartera."
+      }
+    },
+    "addSymbols": {
+      "title": "Añadir valores",
+      "searchLabel": "Buscar símbolo o nombre",
+      "searchPlaceholder": "AAPL",
+      "searching": "Buscando…",
+      "searchError": "Error al buscar valores.",
+      "addedIndicator": "(Añadido)",
+      "noResults": "Sin resultados.",
+      "emptyState": {
+        "title": "Busque un símbolo",
+        "description": "Escriba un ticker o nombre para encontrar acciones o cripto que pueda añadir a esta cartera."
+      },
+      "noResultsHint": "Pruebe con otro ticker, el nombre completo, o cambie el filtro de arriba.",
+      "clearSearch": "Limpiar búsqueda",
+      "endOfList": "Eso es todo",
+      "assetClass": {
+        "crypto": "Cripto"
+      },
+      "filters": {
+        "all": "Todo",
+        "stocks": "Acciones",
+        "crypto": "Cripto"
+      },
+      "marketCapRank": "#{rank}",
+      "notifications": {
+        "success": "Posición añadida.",
+        "error": "Error al añadir la posición."
+      }
+    },
+    "deleteInvestmentTransaction": {
+      "title": "Eliminar transacción",
+      "description": "¿Está seguro de que desea eliminar esta transacción? Esta acción no se puede deshacer.",
+      "cancelButton": "Cancelar",
+      "deleteButton": "Eliminar",
+      "deleteButtonLoading": "Eliminando...",
+      "notifications": {
+        "success": "Transacción eliminada correctamente.",
+        "error": "Error al eliminar la transacción."
+      }
+    },
+    "categoryForm": {
+      "title": {
+        "edit": "Editar categoría",
+        "add": "Añadir categoría"
+      },
+      "description": {
+        "addSubcategory": "Añadiendo subcategoría a {parentName}",
+        "edit": "Actualizar el nombre o los ajustes de la categoría",
+        "add": "Crear una nueva categoría"
+      },
+      "nameLabel": "Nombre de la categoría",
+      "namePlaceholder": "Introduzca el nombre de la categoría",
+      "colorLabel": "Color",
+      "iconLabel": "Icono",
+      "iconPlaceholder": "Seleccionar icono",
+      "settingsDivider": "Ajustes",
+      "excludeFromStatsLabel": "Excluir de las estadísticas de gasto",
+      "excludeFromStatsTooltip": "Las transacciones de esta categoría no se contabilizarán en las estadísticas de gasto ni en los informes.",
+      "saveButton": "Guardar",
+      "createButton": "Crear",
+      "notifications": {
+        "updated": "Categoría actualizada",
+        "created": "Categoría creada",
+        "saveFailed": "Error al guardar la categoría",
+        "unexpectedError": "Error inesperado"
+      }
+    },
+    "addCurrency": {
+      "title": "Añadir nueva moneda",
+      "description": "Seleccione una moneda para añadir",
+      "selectPlaceholder": "Seleccionar moneda",
+      "addButton": "Añadir",
+      "notifications": {
+        "success": "¡Moneda añadida correctamente!",
+        "error": "Error inesperado. La moneda no se ha añadido."
+      }
+    },
+    "accountGroups": {
+      "createDialog": {
+        "title": "Crear grupo",
+        "nameLabel": "Nombre del grupo",
+        "namePlaceholder": "Inversiones",
+        "createButton": "Crear"
+      }
+    },
+    "directCashTransaction": {
+      "title": "Transacción en efectivo",
+      "description": "Añadir un depósito o retirada a la cartera"
+    },
+    "pickTransaction": {
+      "title": "Seleccionar transacción"
+    },
+    "feedback": {
+      "sidebarButton": "Comentarios",
+      "title": "Enviar comentarios",
+      "description": "Ayúdenos a mejorar compartiendo sus opiniones",
+      "typeLabel": "Tipo",
+      "types": {
+        "bug": "Informe de error",
+        "featureRequest": "Solicitud de función",
+        "other": "Otro"
+      },
+      "messageLabel": "Mensaje",
+      "messagePlaceholder": "Describa qué ocurrió o qué le gustaría ver...",
+      "cancelButton": "Cancelar",
+      "submitButton": "Enviar comentarios",
+      "notifications": {
+        "success": "¡Gracias por sus comentarios!",
+        "error": "Error al enviar los comentarios. Inténtelo de nuevo."
+      }
+    },
+    "exchangeCurrency": {
+      "title": "Cambiar moneda",
+      "description": "Cambie efectivo entre distintas monedas dentro de su cartera"
+    },
+    "shareAccountDialog": {
+      "title": "Compartir cuenta",
+      "description": "Invite a alguien a acceder a {name}.",
+      "emailLabel": "Correo del destinatario",
+      "emailPlaceholder": "nombre{'@'}ejemplo.com",
+      "permissionLabel": "Permiso",
+      "permissions": {
+        "read": "Solo lectura",
+        "write": "Leer y añadir transacciones",
+        "manage": "Acceso completo"
+      },
+      "writeScopeLabel": "Ámbito de edición de transacciones",
+      "writeScope": {
+        "all": "Todas las transacciones de la cuenta",
+        "own": "Solo las transacciones que hayan creado"
+      },
+      "householdOverrideHint": "{invitee} ya está en su hogar con acceso de {permission}. Este permiso anulará el del hogar para esta cuenta específica.",
+      "householdLookupFailed": "No se pudo verificar la pertenencia al hogar — se continúa sin el aviso de anulación.",
+      "cancel": "Cancelar",
+      "send": "Enviar invitación",
+      "success": "Solicitud de invitación enviada. Si hay un usuario registrado con esa dirección, recibirá una invitación.",
+      "error": "No se pudo enviar la invitación. Inténtelo de nuevo.",
+      "emailSendFailedWarning": "Invitación guardada, pero no se pudo enviar el correo electrónico. Es posible que el destinatario no haya recibido la notificación — inténtelo de nuevo más tarde."
+    },
+    "shareBudgetDialog": {
+      "title": "Compartir presupuesto",
+      "description": "Invite a alguien a ver este presupuesto y contribuir con sus propias transacciones. {name}.",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "Correo del destinatario",
+      "permissionLabel": "Permiso",
+      "permissions": {
+        "read": "Solo visualización",
+        "write": "Adjuntar transacciones propias",
+        "manage": "Gestionar"
+      },
+      "cancel": "Cancelar",
+      "send": "Enviar invitación",
+      "success": "Invitación enviada.",
+      "error": "No se pudo enviar la invitación.",
+      "emailSendFailedWarning": "Invitación creada, pero no se pudo entregar el correo electrónico."
+    },
+    "shareInvitationDialog": {
+      "titlePending": "{owner} quiere compartir con usted",
+      "titleAccepted": "Invitación aceptada",
+      "titleDeclined": "Invitación rechazada",
+      "titleCurrencyMismatch": "La moneda base no coincide",
+      "titleLoading": "Cargando invitación…",
+      "titleLoadError": "No se pudo cargar la invitación",
+      "titleNotFound": "Invitación no disponible",
+      "loadErrorBody": "Algo salió mal al obtener esta invitación. Compruebe su conexión e inténtelo de nuevo.",
+      "retry": "Volver a intentarlo",
+      "pendingMessage": "Ha sido invitado a acceder a {resource}. Revise los detalles a continuación y elija cómo responder.",
+      "acceptedBody": "Ahora tiene acceso a este recurso compartido. Ábralo para empezar a trabajar juntos.",
+      "declinedBody": "Hemos informado al remitente.",
+      "currencyMismatch": "Su moneda base debe ser {currency} para aceptar esta invitación. Actualice su moneda base e inténtelo de nuevo.",
+      "currencyMismatchUnknown": "Su moneda base debe coincidir con la del invitador para aceptar esta invitación.",
+      "acceptDataRefreshFailed": "Invitación aceptada, pero la actualización de sus cuentas ha fallado. Recargue la página si algo parece desactualizado.",
+      "notFoundBody": "Esta invitación puede haber caducado, sido revocada o ya haberse procesado. Pida al remitente una nueva si aún necesita acceso.",
+      "unexpectedError": "Algo salió mal. Inténtelo de nuevo en un momento.",
+      "loading": "Obteniendo invitación…",
+      "householdResourceLabel": "todas sus cuentas y transacciones compartidas",
+      "permissionLabel": "Nivel de acceso",
+      "expiresLabel": "Vence",
+      "permissions": {
+        "read": "Solo lectura",
+        "write": "Leer + escribir",
+        "manage": "Gestionar"
+      },
+      "unknownOwner": "Un usuario de MoneyMatter",
+      "unknownResource": "un recurso compartido",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "close": "Cerrar",
+      "goToAccount": "Ir a la cuenta",
+      "goToBudget": "Ir al presupuesto",
+      "updateBaseCurrency": "Actualizar moneda base",
+      "acceptSuccess": "Ahora forma parte de este recurso compartido.",
+      "acceptError": "No se pudo aceptar la invitación. Inténtelo de nuevo.",
+      "declineSuccess": "Invitación rechazada.",
+      "declineError": "No se pudo rechazar la invitación. Inténtelo de nuevo.",
+      "backInvite": {
+        "prompt": "¿Desea compartir su hogar con {owner} también? Podrá ver y gestionar sus cuentas.",
+        "permissionLabel": "Su permiso",
+        "writeScopeLabel": "Ámbito de escritura",
+        "permissions": {
+          "read": "Solo lectura",
+          "write": "Escritura"
+        },
+        "writeScope": {
+          "all": "Cualquier cuenta",
+          "own": "Solo las transacciones que creen"
+        },
+        "send": "Compartir de vuelta",
+        "notNow": "Ahora no",
+        "done": "Hecho",
+        "sentTitle": "Invitación enviada",
+        "sentBody": "Hemos enviado una invitación a {owner}. Obtendrá acceso una vez que la acepte.",
+        "success": "Invitación enviada.",
+        "deliveryFailed": "Invitación creada, pero no se pudo enviar el correo electrónico. Inténtelo de nuevo más tarde.",
+        "error": "Error al enviar la invitación."
+      }
+    }
+  }
+}

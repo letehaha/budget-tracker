@@ -1,0 +1,23 @@
+{
+  "settings": {
+    "categories": {
+      "title": "Categorías",
+      "addButton": "Añadir categoría",
+      "empty": "Aún no hay categorías. Cree su primera categoría para comenzar.",
+      "delete": {
+        "title": "¿Eliminar categoría?",
+        "description": "Esto eliminará permanentemente «{name}». Esta acción no se puede deshacer.",
+        "deleteButton": "Eliminar",
+        "cancelButton": "Cancelar"
+      },
+      "errors": {
+        "cannotLoad": "No se pueden cargar las categorías"
+      },
+      "notifications": {
+        "deleteSuccess": "Categoría eliminada",
+        "deleteFailed": "Error al eliminar la categoría",
+        "checkFailed": "Error al verificar la categoría"
+      }
+    }
+  }
+}

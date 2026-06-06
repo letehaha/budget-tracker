@@ -1,0 +1,17 @@
+{
+  "auth": {
+    "verifyEmail": {
+      "title": "Revise su correo electrónico",
+      "description": "Hemos enviado un enlace de verificación a",
+      "descriptionYourEmail": "su dirección de correo electrónico",
+      "descriptionContinued": ". Por favor, haga clic en el enlace para verificar su cuenta.",
+      "didntReceive": "¿No recibió el correo? Revise su carpeta de spam o",
+      "resend": "haga clic aquí para reenviar",
+      "sending": "Enviando...",
+      "resendIn": "Reenviar en {count}s",
+      "backToSignIn": "Volver a Iniciar sesión",
+      "resendSuccess": "¡Correo de verificación enviado! Por favor, revise su bandeja de entrada.",
+      "resendError": "No se pudo reenviar el correo de verificación. Por favor, inténtelo de nuevo."
+    }
+  }
+}

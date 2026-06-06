@@ -1,0 +1,115 @@
+{
+  "budgets": {
+    "title": "Presupuestos",
+    "description": "Haga seguimiento del gasto y supervise eventos financieros",
+    "notFound": "Presupuesto no encontrado",
+    "notFoundDescription": "No pudimos encontrar este presupuesto. Es posible que haya sido eliminado o que no tenga acceso a él.",
+    "backToList": "Volver a presupuestos",
+    "newBudget": "Nuevo presupuesto",
+    "createBudget": "Crear presupuesto",
+    "creation": {
+      "success": "Presupuesto creado",
+      "error": "¡Error inesperado!",
+      "nameLabel": "Nombre del presupuesto",
+      "namePlaceholder": "Introduzca el nombre",
+      "typeLabel": "Tipo de presupuesto",
+      "typeManual": "Manual",
+      "typeManualDescription": "Añada transacciones manualmente a este presupuesto",
+      "typeCategory": "Basado en categorías",
+      "typeCategoryDescription": "Seguimiento automático del gasto por categorías",
+      "categoriesLabel": "Categorías a seguir",
+      "categoriesRequired": "Seleccione al menos una categoría",
+      "fromDateLabel": "Desde la fecha",
+      "toDateLabel": "Hasta la fecha",
+      "autoIncludeLabel": "Incluir transacciones automáticamente",
+      "limitLabel": "Límite del presupuesto",
+      "limitPlaceholder": "Introduzca el límite",
+      "submitButton": "Añadir presupuesto"
+    },
+    "list": {
+      "tabCategory": "Presupuestos por categoría",
+      "tabManual": "Presupuestos manuales",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "deleteSuccess": "¡Presupuesto eliminado correctamente!",
+      "deleteError": "¡Error inesperado!",
+      "updateSuccess": "¡Presupuesto actualizado correctamente!",
+      "updateError": "Error al actualizar el presupuesto",
+      "unlinkTransactionsSuccess": "¡Transacciones desvinculadas correctamente!",
+      "deleteDialog": {
+        "title": "¿Desea eliminar este presupuesto?",
+        "description": "Al hacer clic en \"Aceptar\", todas las transacciones asociadas se desvincularán del presupuesto pero permanecerán en el sistema."
+      },
+      "limitLabel": "Límite: {amount}",
+      "transactionsCount": "{count} transacciones",
+      "categoriesCount": "{count} categorías",
+      "noTransactions": "Aún no hay transacciones",
+      "noTimePeriod": "Sin período de tiempo",
+      "autoTracked": "Seguimiento automático",
+      "status": {
+        "ended": "Finalizado",
+        "lastDay": "Último día",
+        "oneDayLeft": "1 día restante",
+        "daysLeft": "{count} días restantes",
+        "startsToday": "Comienza hoy",
+        "startsTomorrow": "Comienza mañana",
+        "startsInDays": "Comienza en {count} días"
+      },
+      "income": "Ingresos",
+      "expenses": "Gastos",
+      "net": "Neto",
+      "used": "Usado",
+      "archive": "Archivar",
+      "unarchive": "Desarchivar",
+      "archivedLabel": "Archivado",
+      "archiveError": "Error al actualizar el estado de archivo",
+      "showArchived": "Mostrar archivados",
+      "hideArchived": "Ocultar archivados",
+      "emptyState": {
+        "title": "Aún no hay presupuestos",
+        "description": "Cree un presupuesto para comenzar a hacer seguimiento de sus gastos o supervisar eventos específicos."
+      }
+    },
+    "settings": {
+      "nameLabel": "Nombre del presupuesto",
+      "namePlaceholder": "Introduzca el nombre del presupuesto",
+      "limitLabel": "Límite del presupuesto",
+      "limitPlaceholder": "Introduzca el importe del límite (opcional)",
+      "startDateLabel": "Fecha de inicio",
+      "endDateLabel": "Fecha de fin",
+      "notSet": "Sin definir"
+    },
+    "addTransactionsDialog": {
+      "title": "Añadir transacciones al presupuesto",
+      "addSelected": "Añadir seleccionadas",
+      "clearSelection": "Limpiar selección"
+    },
+    "categoryBudget": {
+      "backToBudgets": "Volver a presupuestos",
+      "trackedCategories": "Categorías seguidas",
+      "categoriesCount": "{count} categorías en seguimiento",
+      "autoTrackedInfo": "Las transacciones se registran automáticamente según las categorías",
+      "transactionsTitle": "Transacciones",
+      "transactionsCount": "{count} transacciones",
+      "noTransactions": "Aún no hay transacciones",
+      "noTransactionsDescription": "Las transacciones que coincidan con sus categorías seguidas aparecerán aquí automáticamente.",
+      "transactionsLoadError": "Error al cargar las transacciones",
+      "categoryBreakdown": "Desglose por categorías",
+      "edit": "Editar",
+      "editTitle": "Editar presupuesto",
+      "showMore": "Mostrar más",
+      "showLess": "Mostrar menos",
+      "loadMore": "Cargar más",
+      "settings": {
+        "categoriesLabel": "Categorías seguidas"
+      }
+    },
+    "manualBudget": {
+      "edit": "Editar",
+      "editTitle": "Editar presupuesto"
+    },
+    "share": {
+      "sharedByBadge": "Compartido por {handle}"
+    }
+  }
+}

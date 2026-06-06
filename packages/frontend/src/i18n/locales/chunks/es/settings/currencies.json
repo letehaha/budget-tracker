@@ -1,0 +1,71 @@
+{
+  "settings": {
+    "currencies": {
+      "addNew": {
+        "loading": "Cargando...",
+        "selectCurrency": "Seleccionar moneda",
+        "addButton": "Añadir",
+        "howItWorks": "¿Cómo funciona?",
+        "tooltip": "Al añadir monedas personalizadas, puede crear y gestionar cuentas y transacciones en esas monedas. También podrá ajustar y actualizar sus tipos de cambio relativos a su moneda base. Las cuentas vinculadas crearán automáticamente las monedas necesarias.",
+        "errors": {
+          "addFailed": "Error inesperado. La moneda no ha sido añadida."
+        }
+      },
+      "list": {
+        "editCurrency": "Editar moneda",
+        "baseCurrencyBadge": "Moneda base",
+        "baseCurrencyTooltip": "Su moneda base. Toda la información del panel se muestra en esta moneda"
+      },
+      "exchangeRate": {
+        "disableLiveUpdate": "Deshabilite la actualización en tiempo real para poder establecer un tipo de cambio personalizado.",
+        "liveUpdateInfo": "Cuando está habilitada, se ignora el tipo personalizado.",
+        "liveUpdateLabel": "Actualización en tiempo real",
+        "saveButton": "Guardar",
+        "successfullyUpdated": "Actualizado correctamente.",
+        "errors": {
+          "unexpectedError": "Error inesperado",
+          "updateFailed": "Error inesperado. La moneda no ha sido actualizada."
+        }
+      },
+      "delete": {
+        "description": "La moneda solo puede eliminarse/desconectarse si no hay cuentas ni transacciones asociadas a ella.",
+        "button": "Eliminar moneda",
+        "disabledTooltip": "No puede eliminar esta moneda porque aún está conectada a una o más cuentas.",
+        "successfullyDeleted": "Eliminada correctamente.",
+        "errors": {
+          "deleteFailed": "Error inesperado. La moneda no ha sido eliminada."
+        }
+      },
+      "setBase": {
+        "label": "Establecer como moneda base",
+        "button": "Establecer como moneda base",
+        "processing": "Procesando...",
+        "tooltip": "Marcar como moneda base. Todas las estadísticas e información del panel se mostrarán en esta moneda.\n\nLas transacciones se recalcularán según el tipo de cambio de la fecha en que se registró cada transacción.",
+        "dialog": {
+          "title": "¿Cambiar la moneda base?",
+          "warningTitle": "Advertencia:",
+          "warningText": "Cambiar la moneda base debe ser una decisión muy bien considerada. Idealmente, esta acción debería realizarse una sola vez, aunque no existen restricciones técnicas.",
+          "descriptionText": "Cada vez que cambie la moneda base, todas las transacciones se recalcularán usando tipos de cambio históricos. Debido a la aritmética de coma flotante y las variaciones normales entre los tipos de moneda base y cotización, los recálculos repetidos pueden introducir pequeñas discrepancias en sus importes de referencia con el tiempo. Los importes de referencia se usan para mostrar estadísticas y establecer los límites de su presupuesto.",
+          "roundingTitle": "¿Cómo se calcula exactamente el redondeo?",
+          "roundingIntro": "Las conversiones de moneda utilizan el redondeo bancario (estándar IEEE 754), también conocido como «redondear al par más cercano». Esto minimiza los errores de redondeo acumulados en muchos cálculos.",
+          "roundingHow": "Cómo funciona:",
+          "roundingRule1": "Cuando un valor está exactamente a mitad (p. ej., 0,5), se redondea al número par más cercano",
+          "roundingRule2": "Ejemplo: 0,5 → 0; 1,5 → 2; 2,5 → 2; 3,5 → 4",
+          "roundingStandard": "Este método está recomendado por las normas contables IFRS/GAAP y es utilizado por los principales sistemas financieros para evitar sesgos sistemáticos en las conversiones de moneda.",
+          "untouchedWarning": "¡El importe original de las transacciones siempre permanecerá intacto!",
+          "processingTimeInfo": "Esto puede tardar un tiempo si su moneda no es de uso común.",
+          "restrictionWarning": "No podrá crear nuevas cuentas, transacciones ni nada relacionado con «importes» mientras el proceso esté en curso.",
+          "confirmation": "¿Está seguro de que desea continuar?",
+          "changeButton": "Cambiar moneda base",
+          "cancelButton": "Cancelar"
+        },
+        "successMessage": "Moneda base cambiada correctamente.",
+        "errors": {
+          "changeFailed": "Error inesperado. No se pudo cambiar la moneda base.",
+          "lockedHousehold": "Usted pertenece a {count} membresía de hogar activa. Abandónela desde Ajustes → Hogar primero. | Usted pertenece a {count} membresías de hogar activas. Abandónelas desde Ajustes → Hogar primero.",
+          "lockedShares": "Tiene {count} cuenta compartida activa. Revóquela desde la cuenta primero. | Tiene {count} cuentas compartidas activas. Revóquelas desde cada cuenta primero."
+        }
+      }
+    }
+  }
+}

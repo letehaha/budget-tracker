@@ -1,0 +1,135 @@
+{
+  "investmentsImport": {
+    "title": "Importar transacciones",
+    "description": "Suba un CSV de una bolsa, un PDF de un bróker, o pegue su historial de transacciones. La IA extraerá compras y ventas. Podrá revisar todo antes de importar.",
+    "backToPortfolio": "Volver a la cartera",
+    "upload": {
+      "fileTab": "Archivo",
+      "pasteTab": "Pegar texto",
+      "fileHintFormats": "CSV, TXT o PDF",
+      "pastePlaceholder": "Pegue aquí su lista de transacciones…",
+      "estimatedCost": "Coste estimado",
+      "model": "Modelo",
+      "estimateButton": "Estimar coste",
+      "extractButton": "Extraer",
+      "extracting": "Extrayendo…",
+      "modeAi": "Importación con IA",
+      "modeCsv": "Importación CSV",
+      "modeAiHint": "Suba cualquier archivo — la IA extrae sus transacciones automáticamente. Consume tokens.",
+      "modeCsvHint": "Suba un CSV de su bróker y mapee las columnas manualmente. Sin uso de IA.",
+      "csvHintFormats": "Solo archivos CSV.",
+      "parsingCsv": "Procesando…",
+      "continueToMapping": "Continuar al mapeo"
+    },
+    "review": {
+      "warningsTitle": "Advertencias",
+      "empty": "La IA no encontró ninguna transacción en este archivo.",
+      "pickSecurity": "Seleccionar valor…",
+      "pickCurrency": "Moneda…",
+      "searchPlaceholder": "Buscar por símbolo…",
+      "searching": "Buscando…",
+      "parsedSymbolHint": "No pudimos asociar automáticamente {symbol} — seleccione el valor correcto a continuación.",
+      "startTyping": "Empiece a escribir para buscar",
+      "noResults": "Sin resultados",
+      "alreadyPicked": "ya seleccionado",
+      "duplicateSecurity": "El mismo valor está seleccionado en otra fila",
+      "willMerge": "Se combinará con la posición existente",
+      "txns": "{count} transacción | {count} transacciones",
+      "expand": "Expandir",
+      "collapse": "Contraer",
+      "deleteHolding": "Eliminar posición",
+      "deleteTransaction": "Eliminar transacción",
+      "buy": "Compra",
+      "sell": "Venta",
+      "possibleDup": "Posible duplicado",
+      "skipping": "Omitiendo",
+      "duplicateBadgeTooltip": "Esto parece un posible duplicado de una transacción existente. Haga clic para omitirlo — de lo contrario, se creará una nueva transacción junto a la existente (sin combinación ni sobreescritura).",
+      "back": "Volver",
+      "commit": "Importar",
+      "cols": {
+        "date": "Fecha",
+        "side": "Tipo",
+        "qty": "Cantidad",
+        "price": "Precio",
+        "fees": "Comisiones",
+        "amount": "Importe",
+        "security": "Valor",
+        "currency": "Moneda",
+        "txCount": "Transacciones"
+      },
+      "tooltips": {
+        "security": "Seleccionamos un valor automáticamente basándonos en el ticker extraído por la IA. Haga clic en el campo para corregir la asociación si es incorrecta.",
+        "currency": "Moneda en la que se liquidó la parte en efectivo de la operación (p. ej., USD, EUR). No cambia cómo se almacena la posición — los importes se normalizan a su moneda base usando tipos de cambio históricos en la fecha de la operación.",
+        "parentRowDuplicates": "{count} posible duplicado en esta posición se importará como nueva transacción salvo que se omita. | {count} posibles duplicados en esta posición se importarán como nuevas transacciones salvo que se omitan."
+      }
+    },
+    "done": {
+      "title": "Importación completada",
+      "transactions": "Transacciones añadidas",
+      "holdingsCreated": "Posiciones creadas",
+      "holdingsMerged": "Posiciones actualizadas",
+      "skipped": "Duplicados omitidos",
+      "close": "Cerrar"
+    },
+    "notifications": {
+      "imported": "Se importaron {count} transacciones",
+      "extractFailed": "No se pudieron extraer transacciones del archivo.",
+      "importFailed": "No se pudieron importar las transacciones.",
+      "skippedHoldings": "Posiciones omitidas: {count}",
+      "failedTransactions": "Transacciones fallidas: {count}",
+      "estimateFailed": "No se pudo estimar el coste de importación",
+      "csvParseFailed": "No se pudo procesar el CSV. Compruebe el formato del archivo e inténtelo de nuevo."
+    },
+    "columnMapping": {
+      "rowsAndDelimiter": "{rows} filas · delimitador '{delimiter}'",
+      "backToUpload": "Volver",
+      "previewTitle": "Vista previa",
+      "requiredTitle": "Columnas obligatorias",
+      "optionalTitle": "Columnas opcionales",
+      "defaultsTitle": "Valores predeterminados",
+      "sideValueMappingTitle": "Mapeo de valores de tipo",
+      "sideValueMappingHint": "Indique qué significa cada valor en la columna de tipo.",
+      "sideValueMappingEmpty": "Aún no se encontraron valores en esta columna.",
+      "selectColumn": "Seleccionar columna…",
+      "notMapped": "Sin mapear",
+      "pickCategory": "Seleccionar categoría…",
+      "cashMovementsNote": "Los depósitos y retiros en efectivo aún no están disponibles. Seleccione 'Omitir estas filas' para esos valores de tipo y excluirlos de la importación.",
+      "extractButton": "Continuar a revisión",
+      "extracting": "Extrayendo…",
+      "fields": {
+        "symbol": "Símbolo",
+        "date": "Fecha",
+        "side": "Tipo / Acción",
+        "quantity": "Cantidad",
+        "price": "Precio",
+        "fees": "Comisiones",
+        "currency": "Moneda",
+        "name": "Nombre",
+        "defaultCurrency": "Moneda predeterminada",
+        "defaultAssetClass": "Clase de activo predeterminada"
+      },
+      "tooltips": {
+        "fees": "Columna con comisiones por transacción. Si no se mapea, las comisiones son 0 por defecto.",
+        "currency": "Columna de moneda de cotización (p. ej., USD, EUR, USDT). Determina la parte en efectivo de cada operación. Usa la moneda predeterminada indicada abajo cuando está vacía o sin mapear.",
+        "name": "Nombre de visualización opcional del valor (p. ej., 'Apple Inc.'). Se usa solo para mostrar en el paso de revisión — el ticker sigue siendo el identificador principal.",
+        "defaultCurrency": "Se usa cuando la columna de moneda está vacía o sin mapear.",
+        "defaultAssetClass": "Orientación para asociar sus símbolos a valores. Seleccione la clase que corresponda a la mayoría de las filas del archivo — puede modificarla por valor en el paso de revisión."
+      }
+    },
+    "categories": {
+      "buy": "Compra",
+      "sell": "Venta",
+      "dividend": "Dividendo",
+      "transfer": "Transferencia",
+      "tax": "Impuesto",
+      "fee": "Comisión",
+      "cancel": "Cancelar",
+      "other": "Otro",
+      "skip": "Omitir estas filas"
+    },
+    "assetClasses": {
+      "stocks": "Acciones",
+      "crypto": "Criptomonedas"
+    }
+  }
+}

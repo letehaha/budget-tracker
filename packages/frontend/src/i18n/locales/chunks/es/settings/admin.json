@@ -1,0 +1,119 @@
+{
+  "settings": {
+    "admin": {
+      "title": "Panel de administración",
+      "description": "Herramientas administrativas y gestión del sistema",
+      "priceSync": {
+        "title": "Sincronización de precios de valores",
+        "description": "Activar manualmente la sincronización de precios para todos los valores con posiciones",
+        "button": "Activar sincronización de precios",
+        "buttonLoading": "Sincronizando...",
+        "notifications": {
+          "success": "Sincronización de precios de valores completada con éxito",
+          "failed": "Error al activar la sincronización de precios",
+          "rateLimited": "No permitido. Inténtelo de nuevo en {time}.",
+          "adminRequired": "Se requieren privilegios de administrador para esta acción"
+        }
+      },
+      "priceUpload": {
+        "title": "Carga manual de precios de valores",
+        "description": "Cargue datos históricos de precios para valores mediante archivos CSV o JSON",
+        "button": "Cargar precios de valores",
+        "dialogTitle": "Cargar precios de valores",
+        "selectSecurity": {
+          "searchLabel": "Buscar símbolo o nombre",
+          "searchPlaceholder": "AAPL",
+          "searching": "Buscando…",
+          "failed": "Error al buscar valores.",
+          "noResults": "Sin resultados.",
+          "changeButton": "Cambiar"
+        },
+        "dateRangeInfo": {
+          "loading": "Cargando información del intervalo de fechas...",
+          "title": "Intervalo de fechas de tipos de cambio disponibles ({currency}):",
+          "tooltipText": "Solo puede cargar precios de valores para fechas en las que dispongamos de tipos de cambio. De lo contrario, no será posible convertir el precio del valor a otras monedas. Si necesita datos más antiguos, cargue primero los tipos de cambio. De lo contrario, según la opción que elija en los siguientes pasos, los registros se filtrarán automáticamente (se omitirán) o la solicitud de carga fallará."
+        },
+        "fileUpload": {
+          "title": "Cargar archivo",
+          "dragText": "Haga clic para cargar o arrastre y suelte",
+          "supportedFormats": "Formatos admitidos: CSV o JSON",
+          "errors": {
+            "unsupportedFormat": "Formato de archivo no admitido. Cargue un archivo CSV o JSON.",
+            "parseFailed": "Error al analizar el archivo {fileType}: {error}"
+          }
+        },
+        "fieldMapper": {
+          "title": "Asignar campos",
+          "description": "Relacione los campos de su archivo con los campos requeridos a continuación.",
+          "selectField": "Seleccionar campo...",
+          "dateFormatLabel": "Formato de fecha",
+          "dateFormatDescription": "Seleccione el formato de fecha utilizado en su archivo",
+          "dateFormats": {
+            "ddMMyyyySlash": "DD/MM/AAAA (p. ej., 31/12/2024)",
+            "MMddyyyySlash": "MM/DD/AAAA (p. ej., 12/31/2024)",
+            "yyyyMMddDash": "AAAA-MM-DD (p. ej., 2024-12-31)",
+            "ddMMyyyyDash": "DD-MM-AAAA (p. ej., 31-12-2024)",
+            "MMddyyyyDash": "MM-DD-AAAA (p. ej., 12-31-2024)"
+          },
+          "mappingComplete": "Todos los campos requeridos asignados",
+          "mappingIncomplete": "Asigne todos los campos requeridos para continuar",
+          "fileInfo": "Archivo:",
+          "records": "{count} registros",
+          "changeFileButton": "Cambiar archivo",
+          "continueButton": "Continuar a la vista previa"
+        },
+        "preview": {
+          "title": "Vista previa de datos",
+          "recordsCount": "{count} registro se cargará | {count} registros se cargarán",
+          "recordsPeriod": "para el período entre {oldest} y {newest}",
+          "loadingExisting": "Cargando precios existentes para comparación...",
+          "warnings": {
+            "significantDifferences": "Se detectaron diferencias de precio significativas",
+            "differencesDetails": "{count} registro tiene una diferencia de precio superior al 4% respecto a los datos existentes. Revíselo con atención. | {count} registros tienen una diferencia de precio superior al 4% respecto a los datos existentes. Revíselos con atención."
+          },
+          "filterCheckbox": "Mostrar solo registros con diferencias significativas (>4%)",
+          "tableHeaders": {
+            "date": "Fecha",
+            "newPrice": "Precio nuevo",
+            "existingPrice": "Precio existente",
+            "difference": "Diferencia (%)"
+          },
+          "noExistingPrice": "N/D",
+          "scrollForMore": "Desplácese para ver más...",
+          "noDifferences": "No se encontraron registros con diferencias significativas.",
+          "backButton": "Volver a asignación",
+          "continueButton": "Continuar a opciones"
+        },
+        "options": {
+          "title": "Opciones de carga",
+          "autoFilter": {
+            "title": "Filtrar automáticamente fechas fuera del intervalo disponible",
+            "description": "Eliminar automáticamente fechas que estén fuera del intervalo de tipos de cambio disponibles"
+          },
+          "override": {
+            "title": "Sobrescribir registros existentes",
+            "description": "Actualizar registros de precios existentes en lugar de omitir duplicados"
+          },
+          "backButton": "Atrás",
+          "uploadButton": "Cargar precios",
+          "uploadingButton": "Cargando..."
+        },
+        "result": {
+          "title": "¡Carga completada!",
+          "inserted": "✓ {count} registro nuevo insertado | ✓ {count} registros nuevos insertados",
+          "duplicates": "• {count} duplicado {action}",
+          "duplicatesUpdated": "actualizado",
+          "duplicatesSkipped": "omitido",
+          "filtered": "• {count} fecha filtrada (fuera del intervalo) | • {count} fechas filtradas (fuera del intervalo)",
+          "closeButton": "Cerrar",
+          "uploadMoreButton": "Cargar más"
+        },
+        "notifications": {
+          "dateInfoLoadFailed": "Error al cargar la información de fechas: {error}",
+          "uploadSuccess": "Se cargó correctamente {count} registro de precios | Se cargaron correctamente {count} registros de precios",
+          "uploadFailed": "Error en la carga: {error}"
+        }
+      }
+    }
+  }
+}

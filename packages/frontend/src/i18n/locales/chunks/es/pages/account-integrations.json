@@ -1,0 +1,454 @@
+{
+  "pages": {
+    "integrations": {
+      "title": "Integraciones bancarias",
+      "addButton": "Añadir",
+      "addButtonFull": "Integración",
+      "loading": "Cargando...",
+      "empty": {
+        "title": "Aún no hay integraciones bancarias",
+        "description": "Conecte sus cuentas bancarias para importar transacciones automáticamente y mantener sus finanzas al día.",
+        "addFirstButton": "Añadir su primera integración"
+      },
+      "card": {
+        "connectedAccounts": "Cuentas conectadas:",
+        "lastSync": "Última sincronización: {date}",
+        "disconnectButton": "Desconectar"
+      },
+      "addDialog": {
+        "titleSelect": "Añadir integración",
+        "titleConnect": "Conectar {provider}",
+        "selectProviderHint": "Seleccione un proveedor de datos bancarios para conectar",
+        "betaBadge": "Beta"
+      },
+      "providers": {
+        "monobank": {
+          "name": "Monobank",
+          "description": "Banco digital ucraniano"
+        },
+        "enableBanking": {
+          "name": "Enable Banking",
+          "description": "Acceda a más de 6000 bancos europeos mediante la banca abierta PSD2"
+        },
+        "lunchflow": {
+          "name": "Lunch Flow",
+          "description": "Sincronice transacciones de más de 20.000 bancos en todo el mundo a través de LunchFlow"
+        },
+        "simplefin": {
+          "name": "SimpleFIN",
+          "description": "Sincronice transacciones de bancos de EE. UU. y Canadá a través del puente SimpleFIN"
+        },
+        "walutomat": {
+          "name": "Walutomat",
+          "description": "Plataforma polaca de cambio de divisas con 23 monedas"
+        }
+      },
+      "monobank": {
+        "apiTokenLabel": "Token de API",
+        "connectionNameLabel": "Nombre de la conexión (opcional)",
+        "tokenPlaceholder": "Introduzca su token de API de Monobank",
+        "accountNamePlaceholder": "p. ej., Cuenta Personal",
+        "tokenHint": "Puede obtener su token de API desde la aplicación móvil de Monobank",
+        "tokenInstructions": "Para obtener un token de uso personal, visite {link} y siga las instrucciones. Una vez generado el token, guárdelo en algún lugar e introdúzcalo en el campo.",
+        "tokenReadOnlyNote": "Nota:",
+        "tokenReadOnlyText": "No se preocupe, el token de API es estrictamente de solo lectura.",
+        "backButton": "Atrás",
+        "connectingButton": "Conectando...",
+        "connectButton": "Conectar",
+        "loadingAccounts": "Cargando cuentas...",
+        "selectAccountsHint": "Seleccione las cuentas que desea sincronizar con MoneyMatter",
+        "syncingButton": "Sincronizando...",
+        "syncButton": "Sincronizar {count} cuenta(s)",
+        "syncSuccess": "{count} cuenta(s) sincronizada(s) correctamente",
+        "errors": {
+          "connectFailed": "Error al conectar el proveedor",
+          "syncFailed": "Error al sincronizar las cuentas"
+        }
+      },
+      "enableBankingConnector": {
+        "beta": {
+          "title": "Función Beta — Orientada a desarrolladores",
+          "description": "Esta integración requiere conocimientos técnicos para configurarla. Deberá registrar su propia aplicación de Enable Banking y proporcionar credenciales de API. El proceso de configuración y la API pueden cambiar en futuras actualizaciones."
+        },
+        "credentials": {
+          "helpText": "¿No tiene credenciales de Enable Banking?",
+          "helpLink": "Aprenda cómo obtenerlas",
+          "appIdLabel": "ID de aplicación",
+          "appIdHint": "Obténgalo del portal de Enable Banking tras subir su certificado",
+          "privateKeyLabel": "Clave privada",
+          "privateKeyHint": "Su clave privada RSA codificada en PEM (almacenada cifrada)",
+          "bicLabel": "BIC:"
+        },
+        "steps": {
+          "loadingCountries": "Cargando países...",
+          "selectCountryHint": "Seleccione el país de su banco",
+          "countryLabel": "País",
+          "loadingBanks": "Cargando bancos...",
+          "selectBankHint": "Seleccione su banco en {country}",
+          "bankLabel": "Banco",
+          "connectingToBank": "Conectando con {bank}...",
+          "authDescription": "Haga clic en el botón de abajo para autorizar el acceso a su cuenta de {bank}.",
+          "authWarning": "Será redirigido al sitio web de {bank} para iniciar sesión y aprobar la conexión.",
+          "authorizeButton": "Autorizar con {bank}",
+          "loadingAccounts": "Cargando cuentas...",
+          "selectAccountsHint": "Seleccione las cuentas que desea sincronizar con MoneyMatter"
+        },
+        "buttons": {
+          "back": "Atrás",
+          "loading": "Cargando...",
+          "next": "Siguiente",
+          "syncing": "Sincronizando...",
+          "sync": "Sincronizar {count} cuenta(s)"
+        },
+        "errors": {
+          "loadCountriesFailed": "Error al cargar países. Compruebe sus credenciales.",
+          "loadAccountsFailed": "Error al cargar las cuentas",
+          "syncFailed": "Error al sincronizar las cuentas"
+        },
+        "syncSuccess": "{count} cuenta(s) sincronizada(s) correctamente"
+      },
+      "instructionsDialog": {
+        "title": "Cómo obtener credenciales de Enable Banking",
+        "description": "Instrucciones paso a paso para registrar y configurar las credenciales de Enable Banking",
+        "overview": {
+          "title": "Descripción general",
+          "text": "Enable Banking requiere que registre una aplicación y genere credenciales de seguridad para acceder a los datos bancarios. Siga estos pasos para obtener su ID de aplicación y clave privada."
+        },
+        "step1": {
+          "title": "Registrarse y crear una aplicación",
+          "intro": "Visite {link} y cree una cuenta si aún no tiene una.",
+          "createApp": "A continuación, cree una aplicación:",
+          "steps": {
+            "login": "Inicie sesión en el portal de Enable Banking",
+            "navigate": "Vaya a {link}",
+            "lookForm": "Busque el formulario \"Crear aplicación\"",
+            "selectEnv": "Seleccione el entorno {strong}",
+            "selectEnvStrong": "\"Producción\"",
+            "generateKey": "Marque la casilla {strong}. Una vez creada la aplicación, la clave .pem se guardará automáticamente en su equipo como archivo. {warning} por cualquier motivo, deberá volver a crear la aplicación.",
+            "generateKeyStrong": "\"Generar clave RSA privada en el navegador\"",
+            "generateKeyWarning": "Si el archivo no se guardó",
+            "fillForm": "Complete el formulario con los siguientes valores:",
+            "appName": "Nombre de la aplicación:",
+            "redirectUrls": "URLs de redirección permitidas:",
+            "appDescription": "Descripción de la aplicación:",
+            "emailProtection": "Correo electrónico para asuntos de protección de datos:",
+            "privacyUrl": "URL de privacidad:",
+            "termsUrl": "URL de términos:",
+            "clickRegister": "Haga clic en \"Registrar\"",
+            "downloadKey": "Se le sugerirá descargar un archivo. Es su clave RSA, que debe guardar en algún lugar, ya que forma parte de sus credenciales."
+          }
+        },
+        "step2": {
+          "title": "Vincular sus cuentas bancarias",
+          "intro": "Antes de usar la aplicación con MoneyMatter, debe vincular primero sus cuentas bancarias a través del portal de Enable Banking. Busque el botón \"Vincular cuentas\" dentro del mosaico de la aplicación creada y siga todos los pasos requeridos.",
+          "breakdown": "Aquí el detalle:",
+          "steps": {
+            "clickLink": "Haga clic en \"Vincular cuentas\" y espere a que el indicador de carga termine",
+            "newFields": "Aparecerán nuevos campos en el mismo lugar: \"País\", \"ASPSP\", \"Tipo de uso\"",
+            "country": "País:",
+            "countryValue": "El país de su banco",
+            "aspsp": "ASPSP:",
+            "aspspValue": "El nombre de su banco",
+            "usageType": "Tipo de uso:",
+            "usageTypeValue": "Privado",
+            "clickSave": "Haga clic en \"Guardar\"",
+            "redirect": "Será redirigido a la página de autenticación de su banco. Inicie sesión y seleccione todas las cuentas que desea conectar.",
+            "finishAuth": "Una vez finalizado el flujo de autenticación, será redirigido de vuelta a EnableBanking.",
+            "waitAccounts": "Espere hasta que las cuentas seleccionadas se muestren en la tarjeta de la aplicación bajo el campo \"Cuentas vinculadas\"."
+          },
+          "warningNotLinked": "Es posible que algunas cuentas seleccionadas no estén vinculadas. Este es un problema del lado de su banco que usted no puede resolver por sí mismo. Solo puede esperar unas horas o días hasta que se resuelva. Si el problema no se resuelve, la única opción es reportarlo a EnableBanking.",
+          "infoAddMore": "En caso de que en el futuro desee conectar más cuentas, deberá repetir el proceso de vinculación. {strong}: al añadir cuentas NUEVAS, debe seleccionar también las cuentas ANTIGUAS — básicamente debe seleccionar TODAS las cuentas que desea conectar.",
+          "infoAddMoreStrong": "Tenga en cuenta"
+        },
+        "step3": {
+          "title": "Obtener sus credenciales",
+          "intro": "Desde el portal de Enable Banking:",
+          "appId": "{strong} Copie el {code} de los detalles de su aplicación",
+          "appIdStrong": "ID de aplicación:",
+          "appIdCode": "app_id",
+          "appIdExample": "Ejemplo:",
+          "privateKey": "{strong} Abra su archivo {code} guardado con un editor de texto (TextEdit en macOS o Bloc de notas en Windows) y copie todo el contenido (incluidas las líneas BEGIN y END).",
+          "privateKeyStrong": "Clave privada:",
+          "privateKeyCode": "private.pem"
+        },
+        "securityNote": {
+          "title": "Nota de seguridad",
+          "text": "Su clave privada se almacena cifrada en nuestra base de datos y solo se usa para autenticarse con Enable Banking en su nombre. El token está limitado a datos de solo lectura. No obstante, nunca comparta su clave privada con nadie."
+        },
+        "gotItButton": "Entendido"
+      },
+      "enableBanking": {
+        "instructions": {},
+        "placeholders": {
+          "appId": "Introduzca su app_id de Enable Banking",
+          "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+          "searchCountries": "Buscar países...",
+          "searchBanks": "Buscar bancos..."
+        },
+        "errors": {
+          "noAuthUrl": "No se recibió URL de autorización del servidor",
+          "failedToLoadBanks": "Error al cargar los bancos",
+          "failedToConnectProvider": "Error al conectar el proveedor"
+        }
+      },
+      "lunchflow": {
+        "apiKeyLabel": "Clave de API",
+        "apiKeyPlaceholder": "Introduzca su clave de API de LunchFlow",
+        "apiKeyHint": "¿Dónde encuentro mi clave de API?",
+        "apiKeyInstructions": "Vaya a su {link} → Ajustes → Destinos de API para encontrar su clave de API",
+        "backButton": "Atrás",
+        "connectingButton": "Conectando...",
+        "connectButton": "Conectar",
+        "loadingAccounts": "Cargando cuentas...",
+        "accountsPreviewHint": "Se encontraron {count} cuenta(s). Se importarán todas las cuentas.",
+        "importingButton": "Importando...",
+        "importButton": "Importar {count} cuenta(s)",
+        "importSuccess": "{count} cuenta(s) importada(s) correctamente",
+        "skipButton": "Omitir",
+        "skipTooltip": "Omita la importación para conectar solo cuentas específicas más tarde, o para volver a vincular cuentas existentes desde su configuración.",
+        "errors": {
+          "connectFailed": "Error al conectar con LunchFlow",
+          "importFailed": "Error al importar las cuentas"
+        }
+      },
+      "common": {
+        "selectAll": "Seleccionar todo"
+      },
+      "simplefin": {
+        "setupTokenLabel": "Token de configuración",
+        "setupTokenPlaceholder": "Pegue su token de configuración de SimpleFIN",
+        "setupTokenHint": "¿Dónde obtengo un token de configuración?",
+        "setupTokenInstructions": "Cree una cuenta en SimpleFIN Bridge en {link}, conecte su banco, luego genere un token de configuración y péguelo aquí.",
+        "connectButton": "Conectar",
+        "connectingButton": "Conectando…",
+        "backButton": "Atrás",
+        "loadingAccounts": "Cargando cuentas…",
+        "accountsPreviewHint": "Se encontraron {count} cuenta(s). Elija cuáles importar.",
+        "backfillNote": "Cargaremos los últimos 6 meses de transacciones ahora. Puede cargar el historial más antiguo en cualquier momento desde la página de la cuenta usando el selector de rango de fechas.",
+        "importButton": "Importar {count} cuenta(s)",
+        "importingButton": "Importando…",
+        "importSuccess": "{count} cuenta(s) importada(s) correctamente",
+        "errors": {
+          "connectFailed": "Error al conectar con SimpleFIN. Compruebe su token de configuración e inténtelo de nuevo.",
+          "importFailed": "Error al importar las cuentas. Por favor, inténtelo de nuevo."
+        }
+      },
+      "walutomat": {
+        "helpText": "¿Necesita ayuda para configurar el acceso a la API de Walutomat?",
+        "viewInstructions": "Ver instrucciones de configuración",
+        "apiKeyLabel": "Clave de API",
+        "apiKeyPlaceholder": "Introduzca su clave de API de Walutomat",
+        "apiKeyHint": "Encuéntrela en su panel de Walutomat en Ajustes → API",
+        "privateKeyLabel": "Clave privada (PEM)",
+        "privateKeyPlaceholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+        "privateKeyHint": "Pegue el contenido de su archivo private.key (formato PEM RSA de 4096 bits)",
+        "backButton": "Atrás",
+        "connectButton": "Conectar",
+        "connectingButton": "Conectando...",
+        "loadingWallets": "Cargando carteras...",
+        "selectWalletsHint": "Seleccione qué carteras de monedas sincronizar ({count} disponibles)",
+        "selectAll": "Seleccionar todo",
+        "importButton": "Importar {count} cartera(s)",
+        "importingButton": "Importando...",
+        "importSuccess": "{count} cartera(s) de Walutomat importada(s) correctamente",
+        "errors": {
+          "connectFailed": "Error al conectar con Walutomat. Compruebe sus credenciales.",
+          "importFailed": "Error al importar las carteras."
+        },
+        "instructions": {
+          "title": "Instrucciones de configuración de la API de Walutomat",
+          "description": "Guía paso a paso para configurar el acceso a la API de Walutomat",
+          "overviewTitle": "Descripción general",
+          "overviewText": "Para conectar Walutomat, necesita una clave de API y una clave privada RSA. La clave de API autentica su cuenta, mientras que la clave privada firma cada solicitud por seguridad.",
+          "step1Title": "Generar par de claves RSA",
+          "step1Intro": "Abra un terminal y ejecute estos comandos:",
+          "step1FilesCreated": "Esto crea dos archivos: {privateKey} (¡manténgalo en secreto!) y {publicKey} (súbalo a Walutomat).",
+          "step2Title": "Subir clave pública a Walutomat",
+          "step2Login": "1. Inicie sesión en",
+          "step2GoToSettings": "2. Vaya a {settings} → {api}",
+          "step2Upload": "3. Suba su archivo {publicKey}",
+          "step2ApiKeyGenerated": "4. Walutomat generará una clave de API para usted",
+          "step3Title": "Introduzca las credenciales aquí",
+          "step3Intro": "Necesita dos cosas:",
+          "step3ApiKeyDesc": "{apiKey} — Cópiela desde la página de ajustes de API de Walutomat",
+          "step3PrivateKeyDesc": "{privateKey} — Abra {filename} en un editor de texto y copie todo el contenido (incluidas las líneas BEGIN/END)",
+          "securityNoteTitle": "Nota de seguridad",
+          "securityNoteText": "Su clave privada se cifra antes de almacenarse y solo se usa para firmar solicitudes de API. Nunca se expone ni se transmite a nadie que no sea Walutomat.",
+          "closeButton": "Entendido"
+        }
+      },
+      "notifications": {
+        "disconnectSuccess": "Integración desconectada correctamente",
+        "disconnectFailed": "Error al desconectar la integración",
+        "connectAccountsSuccess": "Cuentas conectadas correctamente",
+        "connectAccountsFailed": "Error al conectar las cuentas",
+        "updateNameSuccess": "Nombre de la conexión actualizado correctamente",
+        "updateNameFailed": "Error al actualizar el nombre de la conexión",
+        "connectionEstablished": "¡Conexión bancaria establecida correctamente!"
+      },
+      "details": {
+        "loading": "Cargando...",
+        "error": {
+          "loadFailed": "Error al cargar los detalles de la integración. Por favor, inténtelo de nuevo.",
+          "notFoundTitle": "Integración no encontrada",
+          "notFoundDescription": "Es posible que esta integración haya sido eliminada o que el enlace sea incorrecto. Consulte su lista de integraciones para encontrar lo que busca.",
+          "unexpectedTitle": "Algo salió mal",
+          "unexpectedDescription": "No pudimos cargar esta conexión. Por favor, inténtelo de nuevo más tarde.",
+          "backButton": "Volver a integraciones"
+        },
+        "connectionDetails": {
+          "title": "Detalles de la conexión",
+          "type": "Tipo",
+          "status": "Estado",
+          "statusActive": "Activa",
+          "statusInactive": "Inactiva",
+          "autoSync": "Sincronización automática",
+          "autoSyncTooltip": "La sincronización automática se activa cada vez que inicia sesión, si han pasado más de 12 horas desde la última sincronización. También puede activar una sincronización manual desde el encabezado en cualquier momento.",
+          "every12Hours": "Cada 12 horas",
+          "lastSync": "(última vez {time})",
+          "connectedAccounts": "Cuentas conectadas"
+        },
+        "connectionValidity": {
+          "title": "Validez de la conexión",
+          "statusExpired": "Caducada",
+          "statusExpiringSoon": "Próxima a caducar",
+          "statusActive": "Activa",
+          "expiredTitle": "Conexión caducada",
+          "expiredDescription": "Su conexión bancaria ha caducado. Reconéctese para continuar sincronizando transacciones.",
+          "expiringSoonTitle": "⚠️ Próxima a caducar",
+          "expiringSoonDescription": "Su conexión bancaria caducará en {days} día(s). Reconéctese pronto para evitar interrupciones.",
+          "validFrom": "Válida desde",
+          "validUntil": "Válida hasta",
+          "daysRemaining": "Días restantes",
+          "daysCount": "{count} día | {count} días",
+          "notAvailable": "N/D",
+          "validConnectionHint": "La conexión es válida. Aún puede reconectarse para actualizar las cuentas disponibles o ampliar la validez de la conexión.",
+          "reconnectButton": "Reconectar ahora"
+        },
+        "connectedAccounts": {
+          "title": "Cuentas conectadas",
+          "connectRemainingButton": "Conectar cuentas restantes",
+          "empty": "Aún no hay cuentas conectadas.",
+          "connectButton": "Conectar cuentas",
+          "externalId": "ID externo: {id}"
+        },
+        "actions": {
+          "title": "Acciones",
+          "disconnectButton": "Desconectar integración"
+        },
+        "fetchAccountsDialog": {
+          "title": "Conectar cuentas restantes",
+          "description": "Seleccione las cuentas disponibles de {providerName} que aún no están conectadas.",
+          "missingAccountsQuestion": "¿No ve sus cuentas?",
+          "missingAccountsHint": "Si no puede ver algunas de sus cuentas, intente reconectar su conexión bancaria desde la sección {section} haciendo clic en {button}.",
+          "missingAccountsSectionName": "Validez de la conexión",
+          "missingAccountsButtonName": "Reconectar ahora",
+          "missingAccountsPersist": "Si el problema persiste, repórtelo para una investigación más detallada.",
+          "loadingAccounts": "Cargando cuentas disponibles...",
+          "sessionExpired": "Su sesión ha caducado. Reconecte su conexión bancaria para continuar.",
+          "loadFailed": "Error al cargar las cuentas disponibles. Por favor, inténtelo de nuevo.",
+          "noAdditionalAccounts": "No hay cuentas adicionales disponibles para conectar.",
+          "connectedBadge": "Conectada",
+          "connectSelectedButton": "Conectar cuentas seleccionadas ({count})",
+          "selectAccountsButton": "Seleccionar cuentas"
+        },
+        "relativeTime": {
+          "never": "nunca",
+          "justNow": "ahora mismo",
+          "minutesAgo": "hace {count} min",
+          "hoursAgo": "hace {count} hora | hace {count} horas",
+          "daysAgo": "hace {count} día | hace {count} días"
+        },
+        "errors": {
+          "reauthorizationFailed": "Error al iniciar la reautorización"
+        }
+      },
+      "dialogs": {
+        "disconnect": {
+          "title": "Desconectar integración",
+          "description": "¿Está seguro de que desea desconectar esta integración? Esta acción no se puede deshacer.",
+          "removeAccounts": "Eliminar también las cuentas asociadas",
+          "removeAccountsHint": "Esto eliminará permanentemente todas las cuentas vinculadas a esta integración",
+          "disconnecting": "Desconectando...",
+          "disconnect": "Desconectar"
+        },
+        "editName": {
+          "title": "Editar nombre de la conexión",
+          "description": "Asigne un nombre personalizado a su conexión para identificarla fácilmente.",
+          "label": "Nombre de la conexión",
+          "saving": "Guardando...",
+          "save": "Guardar"
+        },
+        "reconnect": {
+          "title": "Reconectar integración",
+          "description": "Al iniciar el proceso de reconexión, {warning}. Debe completar el proceso para que la conexión vuelva a estar activa.",
+          "warning": "su conexión actual dejará de ser válida de inmediato",
+          "preparing": "Preparando...",
+          "continue": "Continuar"
+        }
+      },
+      "authFailure": {
+        "title": "Autenticación fallida",
+        "description": "Sus credenciales han caducado. Por favor, actualícelas para continuar sincronizando transacciones.",
+        "updateButton": "Actualizar credenciales"
+      },
+      "updateCredentials": {
+        "title": "Actualizar credenciales",
+        "apiKeyLabel": "Clave de API",
+        "apiKeyPlaceholder": "Introduzca su clave de API",
+        "updatingButton": "Actualizando...",
+        "updateButton": "Actualizar",
+        "success": "Credenciales actualizadas correctamente",
+        "failed": "Error al actualizar las credenciales"
+      },
+      "labels": {
+        "free": "Gratuito",
+        "paid": "De pago",
+        "easySetup": "Configuración sencilla",
+        "mediumSetup": "Configuración intermedia",
+        "veryDifficultSetup": "Configuración muy difícil"
+      },
+      "regions": {
+        "ukraine": "Ucrania",
+        "eu": "UE",
+        "uk": "Reino Unido",
+        "usa": "EE. UU.",
+        "poland": "Polonia",
+        "canada": "Canadá",
+        "australia": "Australia",
+        "newZealand": "Nueva Zelanda"
+      },
+      "tooltips": {
+        "monobank": "Requiere copiar manualmente un token de API desde la aplicación móvil de Monobank",
+        "enableBanking": "Dado que una integración fluida requiere el pago de varios miles de dólares al mes, solo es posible conectarse creando su propia cuenta de desarrollador de EnableBanking y configurando una aplicación de \"prueba\" con conexión real a sus propios bancos, almacenando certificados y claves y subiéndolos aquí. Se requieren conocimientos técnicos moderados.",
+        "lunchflow": "Simplemente conecte sus bancos en el lado de LunchFlow, luego cree y pegue su clave de API de LunchFlow",
+        "simplefin": "SimpleFIN Bridge es un servicio de pago. Cree una cuenta puente, vincule su banco y pegue un token de configuración — no se requiere configuración de desarrollador.",
+        "walutomat": "Requiere generar un par de claves RSA y subir la clave pública al panel de Walutomat"
+      }
+    },
+    "connectionName": {
+      "placeholder": "p. ej., Cuenta Personal"
+    },
+    "bankCallback": {
+      "processing": {
+        "title": "Completando la autorización...",
+        "description": "Por favor, espere mientras verificamos su conexión bancaria"
+      },
+      "error": {
+        "title": "Autorización fallida",
+        "backToIntegrations": "Volver a integraciones"
+      },
+      "success": {
+        "title": "¡Conexión exitosa!",
+        "description": "Su cuenta bancaria se ha conectado correctamente.",
+        "viewAccounts": "Ver cuentas"
+      },
+      "errors": {
+        "authorizationDenied": "La autorización fue denegada o falló",
+        "missingParameters": "Faltan parámetros requeridos (código o estado)",
+        "connectionIdNotFound": "ID de conexión no encontrado. Por favor, inicie el proceso de conexión de nuevo.",
+        "failedToComplete": "Error al completar la autorización"
+      }
+    }
+  }
+}

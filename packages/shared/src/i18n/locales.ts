@@ -5,6 +5,7 @@
 export const SUPPORTED_LOCALES = {
   ENGLISH: 'en',
   UKRAINIAN: 'uk',
+  SPANISH: 'es',
 } as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[keyof typeof SUPPORTED_LOCALES];
@@ -19,6 +20,10 @@ export const LOCALE_NAMES: Record<SupportedLocale, { native: string; english: st
   [SUPPORTED_LOCALES.UKRAINIAN]: {
     native: 'Українська',
     english: 'Ukrainian',
+  },
+  [SUPPORTED_LOCALES.SPANISH]: {
+    native: 'Español',
+    english: 'Spanish',
   },
 };
 

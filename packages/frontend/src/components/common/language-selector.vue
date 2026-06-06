@@ -72,6 +72,7 @@ const currentLocale = ref<SupportedLocale>(getCurrentLocale() as SupportedLocale
 const FLAG_SRCS: Record<SupportedLocale, string> = {
   [SUPPORTED_LOCALES.ENGLISH]: '/img/flags/gb.svg',
   [SUPPORTED_LOCALES.UKRAINIAN]: '/img/flags/ua.svg',
+  [SUPPORTED_LOCALES.SPANISH]: '/img/flags/es.png',
 };
 
 const currentFlagSrc = computed(() => FLAG_SRCS[currentLocale.value]);

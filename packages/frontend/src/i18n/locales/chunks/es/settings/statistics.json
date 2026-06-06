@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "statistics": {
+      "title": "Estadísticas",
+      "description": "Controle cómo se calculan y muestran sus datos financieros en la aplicación.",
+      "creditLimit": {
+        "label": "Incluir límites de crédito en el saldo",
+        "description": "Cuando está habilitado, los límites de crédito se restan de los saldos de las cuentas en las estadísticas y en el gráfico de tendencia del saldo. Esto muestra su posición financiera real en lugar del crédito disponible.",
+        "successNotification": "Ajuste actualizado correctamente",
+        "errorNotification": "Error al actualizar el ajuste"
+      }
+    }
+  }
+}

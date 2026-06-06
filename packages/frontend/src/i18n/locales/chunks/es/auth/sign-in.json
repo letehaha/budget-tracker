@@ -1,0 +1,34 @@
+{
+  "auth": {
+    "login": {
+      "title": "Iniciar sesión en la cuenta",
+      "divider": "O continúe con su correo electrónico",
+      "submitButton": "Iniciar sesión",
+      "noAccount": "¿No tiene una cuenta?",
+      "errors": {
+        "incorrectEmailOrPassword": "Correo electrónico o contraseña incorrectos.",
+        "incorrectPassword": "Contraseña incorrecta.",
+        "userNotFound": "Usuario no encontrado.",
+        "emailNotVerified": "Por favor, verifique su correo electrónico antes de iniciar sesión.",
+        "sessionExpired": "Su sesión ha expirado. Por favor, inicie sesión de nuevo.",
+        "noPasswordSet": "No hay contraseña establecida para esta cuenta. Intente iniciar sesión con Google.",
+        "passwordInvalid": "La contraseña no es válida.",
+        "genericError": "Se ha producido un error.",
+        "genericErrorRetry": "Se ha producido un error. Por favor, inténtelo de nuevo.",
+        "oauthFailed": "No se pudo iniciar sesión con {provider}. Por favor, inténtelo de nuevo.",
+        "passkeyFailed": "No se pudo iniciar sesión con la clave de acceso. Por favor, inténtelo de nuevo."
+      }
+    },
+    "shared": {
+      "divider": "O continúe con",
+      "passkeyButton": {
+        "signIn": "Iniciar sesión con clave de acceso",
+        "register": "Añadir clave de acceso"
+      },
+      "oauthButton": {
+        "signIn": "Iniciar sesión con {provider}",
+        "signUp": "Registrarse con {provider}"
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "errors": {
+    "api": {
+      "failedToFetch": "Error al obtener datos del servidor.",
+      "unexpectedError": "Error inesperado.",
+      "sessionExpired": "Su sesión ha caducado. Inicie sesión de nuevo",
+      "payloadTooLarge": "La solicitud es demasiado grande. Intente importar menos elementos a la vez"
+    },
+    "notFound": {
+      "title": "Esta página no está en los registros",
+      "description": "No hemos podido encontrar lo que buscaba. El enlace puede estar roto o la página puede haberse movido.",
+      "attemptedLabel": "Intentó visitar: ",
+      "goBack": "Volver",
+      "goHome": "Ir al inicio"
+    }
+  }
+}

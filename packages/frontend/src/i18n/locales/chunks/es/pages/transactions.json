@@ -1,0 +1,176 @@
+{
+  "transactions": {
+    "filters": {
+      "filtersLabel": "Filtros:",
+      "selectFilters": "Seleccionar filtros",
+      "reset": "Restablecer",
+      "apply": "Aplicar",
+      "dateRange": {
+        "tabs": {
+          "range": "Rango",
+          "single": "Individual"
+        },
+        "selectDateOrRange": "Seleccionar fecha o rango",
+        "fromDate": "Desde",
+        "toDate": "Hasta",
+        "clear": "Limpiar",
+        "presets": {
+          "thisMonth": "Este mes",
+          "last3Months": "Últimos 3 meses",
+          "last6Months": "Últimos 6 meses",
+          "last12Months": "Últimos 12 meses"
+        }
+      },
+      "transactionType": {
+        "label": "Tipo de transacción:",
+        "both": "Ambos",
+        "income": "Ingreso",
+        "expense": "Gasto"
+      },
+      "amountRange": {
+        "from": "Importe desde (≥)",
+        "to": "Hasta (≤)",
+        "placeholderFrom": ">= que",
+        "placeholderTo": "<= que"
+      },
+      "refundsFilter": {
+        "label": "Reembolsos"
+      },
+      "transferFilter": {
+        "label": "Transferencias"
+      },
+      "filterOperation": {
+        "all": "Todos",
+        "exclude": "Excluir",
+        "only": "Solo"
+      },
+      "noteIncludes": {
+        "label": "La nota incluye (separado por comas):",
+        "placeholder": "Amazon,nike"
+      },
+      "tags": {
+        "allTags": "Todas las etiquetas",
+        "tagSingular": "etiqueta",
+        "tagPlural": "etiquetas",
+        "selected": "seleccionadas",
+        "searchPlaceholder": "Buscar etiquetas…"
+      },
+      "payeeChip": "Beneficiario",
+      "payees": {
+        "label": "Beneficiarios",
+        "searchPlaceholder": "Buscar beneficiarios",
+        "selectedOne": "1 beneficiario seleccionado",
+        "selectedMany": "{n} beneficiarios seleccionados"
+      }
+    },
+    "list": {
+      "noMoreData": "No hay más transacciones",
+      "loadingMore": "Cargando más…",
+      "detailsTitle": "Detalles de la transacción",
+      "detailsDescription": "Ver y editar transacción"
+    },
+    "bulkEdit": {
+      "selectAll": "Seleccionar todo",
+      "editButton": "Editar",
+      "selectedCount": "{count} seleccionadas",
+      "dialogTitle": "Editar {count} transacciones",
+      "dialogDescription": "Los cambios se aplicarán a todas las transacciones seleccionadas. Solo se actualizarán los campos completados.",
+      "categoryLabel": "Categoría",
+      "categoryPlaceholder": "Seleccionar categoría…",
+      "payeeLabel": "Beneficiario",
+      "payeePlaceholder": "Seleccionar beneficiario…",
+      "tagsLabel": "Etiquetas",
+      "tagsPlaceholder": "Seleccionar etiquetas…",
+      "noteLabel": "Nota",
+      "notePlaceholder": "Introducir nota…",
+      "applyButton": "Aplicar cambios",
+      "applyingButton": "Aplicando…",
+      "confirmTitle": "Confirmar cambios",
+      "confirmDescription": "Está a punto de actualizar {count} transacciones:",
+      "confirmCategoryLabel": "Categoría",
+      "confirmPayeeLabel": "Beneficiario",
+      "confirmTagsLabel": "Etiquetas",
+      "confirmNoteLabel": "Nota",
+      "cancelButton": "Cancelar",
+      "confirmApplyButton": "Aplicar",
+      "successMessage": "Se actualizaron correctamente {count} transacciones",
+      "unexpectedError": "Se produjo un error inesperado",
+      "tagModeLabel": "Acción de etiqueta",
+      "tagModeAdd": "Añadir a etiquetas existentes",
+      "tagModeReplace": "Reemplazar todas las etiquetas",
+      "tagModeRemove": "Eliminar estas etiquetas"
+    },
+    "transactionGroups": {
+      "bulkActions": {
+        "createNewGroup": "Crear nuevo grupo",
+        "addToExistingGroup": "Añadir a grupo existente",
+        "groupButton": "Agrupar"
+      },
+      "addToGroupDialog": {
+        "title": "Añadir a grupo existente",
+        "searchPlaceholder": "Buscar grupos…",
+        "noGroupsMessage": "Aún no hay grupos. Cree uno primero.",
+        "noSearchResultsMessage": "Ningún grupo coincide con su búsqueda.",
+        "loadingText": "Cargando grupos…",
+        "addingText": "Añadiendo…",
+        "buttonLabel": "Añadir al grupo",
+        "cancelButton": "Cancelar",
+        "transactionCountLabel": "transacciones"
+      },
+      "createGroupDialog": {
+        "title": "Crear grupo de transacciones",
+        "descriptionPrefix": "Grupo",
+        "groupNameLabel": "Nombre",
+        "groupNamePlaceholder": "p. ej., Transferencia de nómina de mayo",
+        "noteLabel": "Nota (opcional)",
+        "notePlaceholder": "Descripción opcional…",
+        "creatingText": "Creando…",
+        "buttonLabel": "Crear grupo",
+        "cancelButton": "Cancelar"
+      },
+      "groupsPage": {
+        "title": "Grupos de transacciones",
+        "searchPlaceholder": "Buscar grupos…",
+        "noGroupsMessage": "Aún no hay grupos de transacciones.",
+        "emptyStateHint": "Seleccione transacciones en la página de Transacciones y haga clic en \"Crear grupo\" para empezar.",
+        "transactionCountLabel": "transacciones"
+      },
+      "groupDialog": {
+        "editTitle": "Editar grupo",
+        "nameLabel": "Nombre",
+        "noteLabel": "Nota (opcional)",
+        "notePlaceholder": "Nota opcional…",
+        "loadingText": "Cargando…",
+        "savingText": "Guardando…",
+        "savingAction": "Guardar",
+        "cancelButton": "Cancelar",
+        "deletingText": "Eliminando…",
+        "editAction": "Editar",
+        "deleteAction": "Eliminar grupo",
+        "transactionsLabel": "Transacciones",
+        "deleteGroupTitle": "Eliminar grupo",
+        "deleteGroupDescription": "¿Está seguro de que desea eliminar \"{groupName}\"? Las transacciones no se eliminarán.",
+        "removeTransactionTitle": "Eliminar transacción del grupo",
+        "removeTransactionDescription": "Esto dejará menos de 2 transacciones en el grupo, por lo que el grupo se eliminará. ¿Continuar?",
+        "removeTransactionDescriptionNormal": "¿Está seguro de que desea eliminar esta transacción del grupo?",
+        "removeButtonText": "Eliminar",
+        "removeAndDeleteButtonText": "Eliminar y eliminar grupo",
+        "transactionCountSuffix": "transacciones"
+      },
+      "transactionGroupRecord": {
+        "transactionCountLabel": "transacciones"
+      },
+      "errors": {
+        "nameRequired": "El nombre del grupo es obligatorio",
+        "minTransactions": "Seleccione al menos {min} transacciones",
+        "alreadyInGroup": "Algunas transacciones seleccionadas ya pertenecen a un grupo",
+        "createFailed": "Error al crear el grupo",
+        "addFailed": "Error al añadir transacciones al grupo"
+      }
+    },
+    "transfer": {
+      "hiddenAccount": "Cuenta oculta"
+    },
+    "addedByTooltip": "Esta transacción fue añadida al presupuesto por {handle}"
+  }
+}
