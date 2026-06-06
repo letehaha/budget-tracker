@@ -68,12 +68,7 @@ export type {
 export type { EnableBankingAccount, EnableBankingBalance, HalBalances } from './accounts';
 
 // Transaction types
-export type {
-  EnableBankingTransaction,
-  HalTransactions,
-  TransactionsQuery,
-  TransactionsResponse,
-} from './transactions';
+export type { EnableBankingTransaction, HalTransactions, TransactionsQuery } from './transactions';
 
 // Auth types
 export type {

@@ -20,8 +20,8 @@ interface ExtractionResult {
 }
 
 const MERCHANT_KEYS = ['payee', 'merchant', 'merchantName', 'counterName'] as const;
-/** Cap on the historical scan in Step 3 to keep the per-create-tx cost bounded. */
-const STEP3_CANDIDATE_LIMIT = 2000;
+/** Per-call cap on the prior-unmatched scan; keeps per-create-tx cost bounded on large accounts. */
+const PRIOR_UNMATCHED_SCAN_LIMIT = 2000;
 
 /**
  * Pulls the historical raw merchant text from a Transactions row, falling
@@ -46,7 +46,7 @@ function extractRawFromTransaction({
   return note ?? '';
 }
 
-/** Step 1 — exact match against either `Payees.normalizedName` or `PayeeAliases.normalizedName`. */
+/** Exact match against either `Payees.normalizedName` or `PayeeAliases.normalizedName`. */
 async function findExactMatch({
   userId,
   normalizedQuery,
@@ -79,16 +79,16 @@ async function findExactMatch({
 }
 
 /**
- * Step 3 — count and collect prior unmatched transactions whose normalized
- * raw merchant equals `normalizedQuery`. Scoped to `payeeId IS NULL AND
+ * Count and collect prior unmatched transactions whose normalized raw
+ * merchant equals `normalizedQuery`. Scoped to `payeeId IS NULL AND
  * payeeLocked = false`. Returns the ids so the caller can backfill them in
  * the same DB write.
  *
- * The set is bounded by `STEP3_CANDIDATE_LIMIT` so a one-time bulk import on
- * an unusually large account doesn't degrade per-row create cost. Anything
- * beyond the cap will be picked up by the post-sync note fuzzy backfill
- * (`note-fuzzy-backfill.ts`) or the future history-backfill tool on the
- * Transactions Optimizations page.
+ * The set is bounded by `PRIOR_UNMATCHED_SCAN_LIMIT` so a one-time bulk
+ * import on an unusually large account doesn't degrade per-row create cost.
+ * Anything beyond the cap will be picked up by the post-sync note fuzzy
+ * backfill (`note-fuzzy-backfill.ts`) or the future history-backfill tool on
+ * the Transactions Optimizations page.
  */
 async function collectPriorUnmatched({
   userId,
@@ -104,14 +104,14 @@ async function collectPriorUnmatched({
       payeeLocked: false,
     },
     attributes: ['id', 'externalData', 'note'],
-    limit: STEP3_CANDIDATE_LIMIT,
+    limit: PRIOR_UNMATCHED_SCAN_LIMIT,
   });
 
-  if (candidates.length === STEP3_CANDIDATE_LIMIT) {
-    logger.warn('[Payee extraction] Step 3 candidate scan hit cap; older unmatched transactions skipped', {
+  if (candidates.length === PRIOR_UNMATCHED_SCAN_LIMIT) {
+    logger.info('[Payee extraction] prior-unmatched scan hit cap; older transactions skipped', {
       userId,
       normalizedQuery,
-      cap: STEP3_CANDIDATE_LIMIT,
+      cap: PRIOR_UNMATCHED_SCAN_LIMIT,
     });
   }
 
@@ -133,11 +133,11 @@ async function collectPriorUnmatched({
 /**
  * Resolve a Payee for a raw provider merchant string. Pure resolver — does
  * not write the returned `payeeId` onto the caller's transaction; the caller
- * is expected to set it on the create payload. Aliases and any Step 3 Payee
- * promotion ARE written here (they need to land before the caller inserts
- * the current row).
+ * is expected to set it on the create payload. Aliases and any newly
+ * promoted Payee ARE written here (they need to land before the caller
+ * inserts the current row).
  *
- * Step 0 (`payeeLocked` skip) is the caller's responsibility — pass `null`
+ * Skipping `payeeLocked` rows is the caller's responsibility — pass `null`
  * for `rawMerchantName` or skip the call entirely when the row is locked.
  */
 export const resolvePayeeForRawMerchant = withTransaction(

@@ -49,7 +49,7 @@ const LOG_PREFIX = '[Payee note-backfill]';
  * `payeeLocked = false`, AND `note IS NOT NULL`. Builds a single Fuse
  * index over the user's Payees + aliases and searches each candidate's
  * `note`. On a match: link to that Payee and add the note as an alias so
- * future syncs hit the Step 1 exact-match path. Does NOT do
+ * future syncs hit the exact-match path. Does NOT do
  * occurrence-based promotion (i.e. never spins up new Payees here) — the
  * signal from `note` is weaker than a provider-supplied merchant name,
  * so promotion stays inline-only.
