@@ -2,6 +2,7 @@
   "errors": {
     "api": {
       "failedToFetch": "Failed to fetch data from the server.",
+      "failedToFetchSelfHost": "Cannot reach the server. The backend may still be starting (~30s after startup), or your ALLOWED_ORIGINS env var does not include this URL.",
       "unexpectedError": "Unexpected error.",
       "sessionExpired": "Your session has expired. Please sign in again",
       "payloadTooLarge": "The request is too large. Please try importing fewer items at a time"

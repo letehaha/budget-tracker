@@ -26,10 +26,38 @@ export function setupMiddleware(app: Express) {
     });
   }
 
-  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  // AUTH_ORIGIN is the frontend host – the primary CORS origin. ALLOWED_ORIGINS
+  // is documented as "extra origins beyond AUTH_ORIGIN" (.env.production.example),
+  // so seed AUTH_ORIGIN first. Without this, a self-host that sets only the
+  // documented AUTH_ORIGIN gets an empty CORS allow-list and every preflight
+  // returns 404 – auth POSTs silently fail in the browser.
+  const authOrigin = (process.env.AUTH_ORIGIN || '').trim();
+  const ALLOWED_ORIGINS = Array.from(
+    new Set([
+      ...(authOrigin ? [authOrigin] : []),
+      ...(process.env.ALLOWED_ORIGINS || '')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    ]),
+  );
+
+  const isDevMode = process.env.NODE_ENV === 'development';
+  const LOCALHOST_HOSTNAMES = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
+
+  // In dev mode, trust any localhost origin regardless of port/protocol.
+  // Self-hosters frequently hit CORS due to minor URL mismatches (http vs https,
+  // localhost vs 127.0.0.1, or a port number drift). This eliminates the class
+  // of bug for local setups while leaving prod CORS strict to ALLOWED_ORIGINS.
+  const isDevLocalhostOrigin = (origin: string): boolean => {
+    if (!isDevMode) return false;
+    try {
+      const url = new URL(origin);
+      return LOCALHOST_HOSTNAMES.has(url.hostname);
+    } catch {
+      return false;
+    }
+  };
 
   // MCP/OAuth paths must allow any origin (MCP spec requires CORS for browser-based clients
   // like Claude.ai that perform discovery and registration from the browser)
@@ -52,7 +80,7 @@ export function setupMiddleware(app: Express) {
         return callback(null, true);
       }
 
-      if (ALLOWED_ORIGINS.includes(requestOrigin)) {
+      if (ALLOWED_ORIGINS.includes(requestOrigin) || isDevLocalhostOrigin(requestOrigin)) {
         return callback(null, true);
       }
 
@@ -80,7 +108,7 @@ export function setupMiddleware(app: Express) {
 
   // Body parser with conditional limits
   app.use((req, res, next) => {
-    // Skip body parsing for better-auth routes — toNodeHandler reads the raw
+    // Skip body parsing for better-auth routes – toNodeHandler reads the raw
     // request stream and re-parses the body itself.  If Express consumes the
     // stream first (especially for application/x-www-form-urlencoded), the
     // body gets re-serialized as JSON while the Content-Type header stays
@@ -100,7 +128,7 @@ export function setupMiddleware(app: Express) {
         // Statement parser endpoints need 10MB for base64 encoded files (max 10MB = ~13.3MB base64)
         `${API_PREFIX}/import/text-source/estimate-cost`,
         `${API_PREFIX}/import/text-source/extract`,
-        // Investment import execute carries full per-holding tx arrays — easily multi-MB for large CSVs.
+        // Investment import execute carries full per-holding tx arrays – easily multi-MB for large CSVs.
         `${API_PREFIX}/investments/transactions-import/execute`,
       ],
     };

@@ -12,6 +12,7 @@ export enum ERROR_CODES {
   TooManyRequests = 429,
   UnexpectedError = 500,
   BadGateway = 502,
+  ServiceUnavailable = 503,
 }
 
 export class CustomError extends Error {
@@ -136,6 +137,20 @@ export class BadGateway extends CustomError {
     details?: Record<string, unknown>;
   }) {
     super(ERROR_CODES.BadGateway, code, message, details);
+  }
+}
+
+export class ServiceUnavailableError extends CustomError {
+  constructor({
+    code = API_ERROR_CODES.serviceUnavailable,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(ERROR_CODES.ServiceUnavailable, code, message, details);
   }
 }
 

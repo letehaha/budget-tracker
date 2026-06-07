@@ -3,6 +3,7 @@ import { AIModelInfo, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { AI_MODEL_ID } from './model-ids';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, GROQ_MODELS, OPENAI_MODELS } from './providers';
 import { FEATURE_DEFAULTS, FEATURE_RECOMMENDATIONS } from './recommendations';
+import { RETIRED_MODELS } from './retired-models';
 
 export { AI_MODEL_ID } from './model-ids';
 
@@ -49,6 +50,12 @@ export function isValidModelId({ modelId }: { modelId: string }): boolean {
   return modelId in AVAILABLE_MODELS;
 }
 
+// True when `modelId` is in `RETIRED_MODELS`. Lets the write path accept stale
+// picks (service then upgrades) while still rejecting fully unknown IDs.
+export function isRetiredModelId({ modelId }: { modelId: string }): boolean {
+  return modelId in RETIRED_MODELS;
+}
+
 /**
  * Check if a model is recommended for a specific feature
  */
@@ -63,6 +70,15 @@ export function isModelRecommendedForFeature({ modelId, feature }: { modelId: st
 export function getProviderFromModelId({ modelId }: { modelId: string }): AI_PROVIDER | null {
   const model = AVAILABLE_MODELS[modelId as AI_MODEL_ID];
   return model?.provider ?? null;
+}
+
+// Walks `RETIRED_MODELS` until a live ID is reached. Falls back to the feature
+// default if the chain dead-ends. Cycles impossible by type construction.
+export function resolveLiveModelId({ modelId, feature }: { modelId: string; feature: AI_FEATURE }): AI_MODEL_ID {
+  if (modelId in AVAILABLE_MODELS) return modelId as AI_MODEL_ID;
+  const replacement = RETIRED_MODELS[modelId];
+  if (replacement) return resolveLiveModelId({ modelId: replacement, feature });
+  return FEATURE_DEFAULTS[feature];
 }
 
 /**

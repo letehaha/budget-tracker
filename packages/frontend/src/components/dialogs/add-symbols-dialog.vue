@@ -10,7 +10,9 @@ import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import FeedbackDialog from '@/components/sidebar/feedback-dialog.vue';
 import { useCreateHolding } from '@/composable/data-queries/holdings';
+import { isApiErrorWithCode } from '@/js/errors';
 import { cn } from '@/lib/utils';
+import { API_ERROR_CODES } from '@bt/shared/types';
 import { ASSET_CLASS, type SecuritySearchResult } from '@bt/shared/types/investments';
 import { useQuery } from '@tanstack/vue-query';
 import { AlertTriangleIcon, CheckCheckIcon, SearchIcon, SearchXIcon } from '@lucide/vue';
@@ -84,6 +86,11 @@ const isSearchPending = computed(
 const results = computed(() => query.data.value ?? []);
 const hasResults = computed(() => results.value.length > 0);
 const showEndIndicator = computed(() => hasResults.value && results.value.length <= 3);
+
+// self-hosting operator might miss setting the crypto-api key, so we handle it
+const isCryptoProviderNotConfiguredError = computed(() =>
+  isApiErrorWithCode(query.error.value, API_ERROR_CODES.cryptoProviderNotConfigured),
+);
 
 function clearSearch() {
   searchTerm.value = '';
@@ -171,8 +178,14 @@ async function addSymbol(sec: SecuritySearchResult) {
             v-if="query.error.value && !isSearchPending"
             class="flex h-full flex-col items-center justify-center gap-3 text-center"
           >
-            <SearchXIcon class="text-muted-foreground size-8" />
-            <p class="text-destructive-text text-sm">{{ $t('dialogs.addSymbols.searchError') }}</p>
+            <SearchXIcon class="text-destructive-text size-8" />
+            <p class="text-destructive-text text-sm">
+              {{
+                isCryptoProviderNotConfiguredError
+                  ? $t('dialogs.addSymbols.cryptoProviderNotConfigured')
+                  : $t('dialogs.addSymbols.searchError')
+              }}
+            </p>
             <Button v-if="hasQuery" size="sm" variant="outline" @click="clearSearch">
               {{ $t('dialogs.addSymbols.clearSearch') }}
             </Button>

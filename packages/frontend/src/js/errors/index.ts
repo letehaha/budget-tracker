@@ -15,8 +15,17 @@ export class ApiErrorResponseError extends Error {
   }
 }
 
+/**
+ * Type guard: true iff `error` is an `ApiErrorResponseError` carrying the given
+ * API error code. Prefer this over inlining `err instanceof ApiErrorResponseError &&
+ * err.data?.code === ...` at call sites — keeps the unwrap shape in one place and
+ * narrows `error` so `error.data` is accessible without re-asserting the type.
+ */
+export const isApiErrorWithCode = (error: unknown, code: API_ERROR_CODES): error is ApiErrorResponseError =>
+  error instanceof ApiErrorResponseError && error.data?.code === code;
+
 export const isNotFoundError = (error: unknown): error is ApiErrorResponseError =>
-  error instanceof ApiErrorResponseError && error.data?.code === API_ERROR_CODES.notFound;
+  isApiErrorWithCode(error, API_ERROR_CODES.notFound);
 
 /**
  * Detects whether every Zod validation failure on the response originated from
@@ -44,8 +53,8 @@ const isPurelyUrlParamValidationError = (error: ApiErrorResponseError): boolean 
  * those should keep producing field-level error UI, not a "not found" page.
  */
 export const isResourceMissingError = (error: unknown): error is ApiErrorResponseError => {
+  if (isApiErrorWithCode(error, API_ERROR_CODES.notFound)) return true;
   if (!(error instanceof ApiErrorResponseError)) return false;
-  if (error.data?.code === API_ERROR_CODES.notFound) return true;
   return isPurelyUrlParamValidationError(error);
 };
 
@@ -78,13 +87,11 @@ export const getApiErrorMessage = ({
   conflictKey: string;
   fallbackKey: string;
 }): string => {
-  if (e instanceof ApiErrorResponseError) {
-    if (e.data?.code === API_ERROR_CODES.conflict) {
-      return t(conflictKey);
-    }
-    if (e.data?.code === API_ERROR_CODES.validationError) {
-      return getFirstValidationMessage({ error: e }) || t(fallbackKey);
-    }
+  if (isApiErrorWithCode(e, API_ERROR_CODES.conflict)) {
+    return t(conflictKey);
+  }
+  if (isApiErrorWithCode(e, API_ERROR_CODES.validationError)) {
+    return getFirstValidationMessage({ error: e }) || t(fallbackKey);
   }
   return t(fallbackKey);
 };

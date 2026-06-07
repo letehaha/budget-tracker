@@ -6,6 +6,7 @@ export {
   getAvailableModels,
   getModelInfo,
   isValidModelId,
+  isRetiredModelId,
   isModelRecommendedForFeature,
   getProviderFromModelId,
   getFirstAvailableRecommendedModel,

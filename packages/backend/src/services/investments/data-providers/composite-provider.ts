@@ -1,4 +1,6 @@
+import { API_ERROR_CODES } from '@bt/shared/types';
 import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import { ServiceUnavailableError } from '@js/errors';
 import { logger } from '@js/utils';
 import { isAxiosError } from 'axios';
 
@@ -71,7 +73,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
    *
    * Crypto results from stock providers (e.g. Yahoo's "BTC-USD") are dropped
    * unconditionally because CoinGecko is now the sole source of truth for
-   * crypto — keeping both would surface the same coin twice in the UI.
+   * crypto – keeping both would surface the same coin twice in the UI.
    *
    * `options.assetClass` skips the irrelevant provider entirely (saves a
    * round-trip when the user has filtered to one class).
@@ -84,10 +86,24 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
     const cryptoRequested = !options?.assetClass || options.assetClass === ASSET_CLASS.crypto;
 
     if (cryptoRequested && !cryptoProvider) {
-      // Configuration error: a crypto search was routed to us but CoinGecko isn't
-      // registered (likely missing COINGECKO_API_KEY in env). Without this log the
-      // user sees an empty result list and no operator alert.
-      logger.error(
+      // Crypto search routed here without CoinGecko registered (typically
+      // COINGECKO_API_KEY missing or set to the .env.template placeholder).
+      //
+      // When the caller explicitly asked for crypto (`assetClass=crypto`), fail
+      // loudly so the API responds 503 and the UI can surface the actionable
+      // "set COINGECKO_API_KEY" hint. Returning [] here would leave self-hosters
+      // staring at an empty result list with no breadcrumb.
+      //
+      // For mixed search (assetClass omitted) we still have stock results to
+      // return – log + continue so the stock half isn't sunk by the missing
+      // optional integration.
+      if (options?.assetClass === ASSET_CLASS.crypto) {
+        throw new ServiceUnavailableError({
+          code: API_ERROR_CODES.cryptoProviderNotConfigured,
+          message: 'Crypto search is unavailable. Set COINGECKO_API_KEY in your environment to enable crypto support.',
+        });
+      }
+      logger.warn(
         `Crypto search requested for "${query}" but CoinGecko provider is not configured. ` +
           `Set COINGECKO_API_KEY to enable crypto search.`,
       );
@@ -116,7 +132,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
     const [rawStockResults, cryptoResults] = await Promise.all([stockSearch, cryptoSearch]);
 
     // Crypto results from a stock provider are duplicates of what CoinGecko
-    // returns — drop them so the UI never shows e.g. both Yahoo's "BTC-USD"
+    // returns – drop them so the UI never shows e.g. both Yahoo's "BTC-USD"
     // and CoinGecko's "BTC".
     const stockResults = rawStockResults.filter((r) => r.assetClass !== ASSET_CLASS.crypto);
 
@@ -212,7 +228,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
       );
 
       // Securities still missing after fallbacks simply stay absent from
-      // `allResults` — by contract (see the class doc) the caller diffs the
+      // `allResults` – by contract (see the class doc) the caller diffs the
       // requested ids against the returned keys to detect partial failures and
       // owns the user-facing report at the right severity. We deliberately do
       // NOT re-derive / log "missing" here: the sole caller (daily-sync) already
@@ -239,7 +255,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
           } catch (error) {
             const status = isAxiosError(error) ? error.response?.status : undefined;
             // 404 = provider doesn't carry this symbol; 429 = rate-limited after retries.
-            // Both are normal "try the next fallback" cases — keep them out of Sentry.
+            // Both are normal "try the next fallback" cases – keep them out of Sentry.
             const isExpected = status === 404 || status === 429;
             if (isExpected) {
               logger.info(`Fallback ${fallbackName} skipped ${security.symbol} (HTTP ${status})`);
@@ -315,7 +331,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
         logger.info(`Successfully completed ${operationName} with ${providerName}`);
         return result;
       } catch (error) {
-        // Exhausted the chain — rethrow without logging. The caller owns the
+        // Exhausted the chain – rethrow without logging. The caller owns the
         // user-facing outcome and logs it once (search swallows to [] and logs;
         // historical/bulk consumers log in their own `.catch`). Logging here too
         // would double-report every genuine total failure in Sentry.
@@ -323,7 +339,7 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
           throw error;
         }
 
-        // A non-final provider failing is the expected, designed-for case — a
+        // A non-final provider failing is the expected, designed-for case – a
         // fallback chain exists precisely so the next provider can take over.
         // Breadcrumb at info (never Sentry); move on.
         logger.info(
