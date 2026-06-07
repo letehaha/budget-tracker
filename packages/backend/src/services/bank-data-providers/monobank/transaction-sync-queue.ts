@@ -201,7 +201,14 @@ function buildJobProcessor(queueName: string) {
                   userId,
                   accountId,
                 },
-                order: [['time', 'DESC']],
+                // When two transactions share the same `time`, prefer the one
+                // created most recently. Without ['createdAt', 'DESC'] the
+                // database can return an older row – after a re-sync that
+                // means we'd save its outdated balance
+                order: [
+                  ['time', 'DESC'],
+                  ['createdAt', 'DESC'],
+                ],
                 attributes: ['externalData'],
                 raw: true,
               });
