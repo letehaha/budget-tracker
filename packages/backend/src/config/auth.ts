@@ -35,6 +35,14 @@ const pool = new Pool({
       : process.env.APPLICATION_DB_DATABASE,
 });
 
+// In dev mode, trust the common localhost variants of the frontend port so a
+// self-host setup with a misconfigured ALLOWED_ORIGINS still completes auth.
+// Mirrors the localhost allow-list in setup-middleware.ts's CORS check.
+const DEV_TRUSTED_ORIGINS =
+  process.env.NODE_ENV === 'development'
+    ? ['http://localhost:8100', 'https://localhost:8100', 'http://127.0.0.1:8100', 'https://127.0.0.1:8100']
+    : [];
+
 export const auth = betterAuth({
   database: pool,
   basePath: '/api/v1/auth',
@@ -45,6 +53,7 @@ export const auth = betterAuth({
       .split(',')
       .map((o) => o.trim())
       .filter(Boolean),
+    ...DEV_TRUSTED_ORIGINS,
   ],
 
   // Custom table names with ba_ prefix to avoid conflicts
@@ -55,7 +64,7 @@ export const auth = betterAuth({
     modelName: 'ba_session',
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // Refresh session daily
-    // Required by @better-auth/oauth-provider — sessions must be persisted in DB
+    // Required by @better-auth/oauth-provider – sessions must be persisted in DB
     storeSessionInDatabase: true,
     // Cache session data in a signed cookie to avoid DB lookups on every request.
     // Reduces ba_user queries from ~3.7k/week to ~100-200 (once per 5min per session).
@@ -167,14 +176,14 @@ export const auth = betterAuth({
       // See: https://github.com/anthropics/claude-ai-mcp/issues/111
       // finance:write and finance:delete gate mutation tools. They're accepted by the
       // consent flow but not advertised in public metadata until the first tool using
-      // them ships — see oauth-metadata.route.ts and the static .well-known mirrors.
+      // them ships – see oauth-metadata.route.ts and the static .well-known mirrors.
       scopes: ['finance:read', 'finance:write', 'finance:delete', 'profile:read', 'offline_access', 'claudeai'],
       accessTokenExpiresIn: 72 * 60 * 60, // 72 hours
       refreshTokenExpiresIn: 60 * 24 * 60 * 60, // 60 days
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
       grantTypes: ['authorization_code', 'refresh_token'],
-      // Use opaque tokens stored in DB (not JWTs) — our MCP auth verifies via DB lookup
+      // Use opaque tokens stored in DB (not JWTs) – our MCP auth verifies via DB lookup
       disableJwtPlugin: true,
       // MCP clients send the resource URL (e.g. https://mcp.moneymatter.app/mcp) as the token audience
       validAudiences: [
@@ -238,16 +247,16 @@ export const auth = betterAuth({
         //
         //   2. Default seeding fails AFTER the user row exists. The account
         //      is usable; categories/tags can be reconciled manually. We log
-        //      to Sentry and return — better than locking out a working
+        //      to Sentry and return – better than locking out a working
         //      account because of a non-critical seed step.
         after: async (user) => {
           // Trim user.name at the source so whitespace-only values (e.g. " ")
-          // are treated as missing — without this they're truthy and skip
+          // are treated as missing – without this they're truthy and skip
           // the email-prefix fallback, producing a generic "user" slug.
           const trimmedName = typeof user.name === 'string' ? user.name.trim() : '';
           // `username` becomes the slug; `fullName` becomes firstName/lastName.
           // We deliberately don't pass the email-prefix or "user" fallbacks as
-          // fullName — those aren't real human names and would clutter the
+          // fullName – those aren't real human names and would clutter the
           // display fields.
           const usernameSource = trimmedName || user.email?.split('@')[0] || 'user';
           let appUser: Awaited<ReturnType<typeof createAppUserWithUniqueUsername>>;
@@ -262,7 +271,7 @@ export const auth = betterAuth({
             logger.info(`Successfully created app user profile with id: ${appUser.id}`);
           } catch (error) {
             logger.error({
-              message: 'Failed to create app user — rolling back ba_user',
+              message: 'Failed to create app user – rolling back ba_user',
               error: error as Error,
             });
             captureException({

@@ -34,7 +34,7 @@ interface ApiCall {
     needRaw?: boolean;
     /** When true, suppresses error toast notifications for failed requests */
     silent?: boolean;
-    /** AbortSignal forwarded to fetch — lets callers cancel in-flight requests. */
+    /** AbortSignal forwarded to fetch – lets callers cancel in-flight requests. */
     signal?: AbortSignal;
   };
 }
@@ -44,6 +44,16 @@ export const API_HTTP = import.meta.env.DEV
   : import.meta.env.VITE_APP_API_HTTP;
 const API_VER = import.meta.env.VITE_APP_API_VER;
 const SESSION_ID_KEY = 'session-id';
+
+// Distinguishes the managed cloud deployment from local/self-host setups.
+// We only want to show the verbose "is the backend running / check ALLOWED_ORIGINS"
+// hint to operators – for cloud users a network failure is almost always transient
+// and the technical hint would be more confusing than helpful.
+const CLOUD_HOSTNAME = 'moneymatter.app';
+const isCloudDeployment = (): boolean => {
+  const hostname = window.location.hostname;
+  return hostname === CLOUD_HOSTNAME || hostname.endsWith(`.${CLOUD_HOSTNAME}`);
+};
 
 // eslint-disable-next-line no-console
 console.log('API_HTTP', API_HTTP);
@@ -194,13 +204,21 @@ class ApiCaller {
     try {
       result = await fetch(url, config);
     } catch (e) {
-      // Caller-initiated abort (signal) — rethrow silently so the caller can
+      // Caller-initiated abort (signal) – rethrow silently so the caller can
       // discard the in-flight request without showing a network error toast.
       if (e instanceof DOMException && e.name === 'AbortError') {
         throw e;
       }
       if (e instanceof TypeError && e.toString().includes('Failed to fetch')) {
-        const message = t('errors.api.failedToFetch', 'Failed to connect to server');
+        // Self-hosters and local devs are the system operators – give them the
+        // actionable hint (backend not running, CORS misconfigured). Cloud users
+        // can't act on either and should see a generic message.
+        const message = isCloudDeployment()
+          ? t('errors.api.failedToFetch', 'Failed to connect to server')
+          : t(
+              'errors.api.failedToFetchSelfHost',
+              'Cannot reach the server. The backend may still be starting (~30s after startup), or your ALLOWED_ORIGINS env var does not include this URL.',
+            );
         if (!isSilent) {
           addNotification({
             id: 'api-fetching-error',
@@ -242,7 +260,7 @@ class ApiCaller {
       parsed = await result.json();
     } catch {
       // Response body is not JSON. Happens for raw infrastructure errors that
-      // never reach our `apiResponseMiddleware` envelope — e.g. body-parser's
+      // never reach our `apiResponseMiddleware` envelope – e.g. body-parser's
       // 413 Payload Too Large (plain text) or a gateway HTML 5xx page.
       // Without this, `result.json()` throws a SyntaxError that escapes to the
       // caller and surfaces as "Unexpected token <".
