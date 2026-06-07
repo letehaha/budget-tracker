@@ -26,10 +26,21 @@ export function setupMiddleware(app: Express) {
     });
   }
 
-  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  // AUTH_ORIGIN is the frontend host – the primary CORS origin. ALLOWED_ORIGINS
+  // is documented as "extra origins beyond AUTH_ORIGIN" (.env.production.example),
+  // so seed AUTH_ORIGIN first. Without this, a self-host that sets only the
+  // documented AUTH_ORIGIN gets an empty CORS allow-list and every preflight
+  // returns 404 – auth POSTs silently fail in the browser.
+  const authOrigin = (process.env.AUTH_ORIGIN || '').trim();
+  const ALLOWED_ORIGINS = Array.from(
+    new Set([
+      ...(authOrigin ? [authOrigin] : []),
+      ...(process.env.ALLOWED_ORIGINS || '')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    ]),
+  );
 
   const isDevMode = process.env.NODE_ENV === 'development';
   const LOCALHOST_HOSTNAMES = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
