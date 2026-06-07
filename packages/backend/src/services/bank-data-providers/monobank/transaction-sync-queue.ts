@@ -17,7 +17,6 @@ import Transactions from '@models/transactions.model';
 import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
 import * as Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
-import * as accountsService from '@services/accounts.service';
 import * as transactionsService from '@services/transactions';
 import { Job, Queue, UnrecoverableError, Worker } from 'bullmq';
 import crypto from 'crypto';
@@ -25,6 +24,7 @@ import IORedis from 'ioredis';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
+import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankApiClient, MonobankGeoBlockedError } from './api-client';
 
 interface TransactionSyncJobData extends SentryTraceData {
@@ -178,41 +178,37 @@ function buildJobProcessor(queueName: string) {
           // Emit event for this batch's transactions (AI categorization, etc.)
           emitTransactionsSyncEvent({ userId, accountId, transactionIds: createdTransactionIds });
 
-          // Update account metadata and balance after processing all transactions in this batch
-          const account: Pick<Accounts, 'externalData' | 'currentBalance'> | null = await Accounts.findByPk(accountId, {
-            attributes: ['externalData', 'currentBalance'],
-          });
+          // Update account metadata and balance after processing all transactions in this batch.
+          const account = await Accounts.findByPk(accountId);
 
           if (account) {
-            const accountDataToUpdate: Parameters<typeof accountsService.updateAccount>[0] = {
-              id: accountId,
-              userId,
-            };
-            // Update sync timestamp in externalData
+            // Update sync timestamp in externalData (independent of the balance write).
             const externalData = (account.externalData as Record<string, unknown>) || {};
             externalData.lastSyncedAt = new Date().toISOString();
-            accountDataToUpdate.externalData = externalData;
+            await account.update({ externalData });
 
-            // Update account balance to reflect the current state from Monobank
+            // Update account balance to reflect the current state from Monobank.
             // Monobank API returns transactions in chronological order (oldest to newest),
             // and each transaction includes the account balance AFTER that transaction.
-            //
-            // To ensure we always have the most up-to-date balance regardless of batch processing
-            // order, we fetch the most recent transaction from the database and use its balance.
-            // This approach is more stable and race-condition safe compared to relying on batchIndex.
-            //
-            // This ensures that:
-            // 1. The account balance stays synchronized with Monobank's records
-            // 2. We don't need to manually calculate balance by summing transactions
-            // 3. Multiple batches can process in any order without overwriting with stale data
+            // The most recent stored transaction's `externalData.balance` is the
+            // authoritative current balance, regardless of which batch finished last.
+            // `writeBankBalanceWithHistory` writes the row, refCurrentBalance, and the
+            // Balances snapshot for today via a race-safe upsert — concurrent batches
+            // serialize at the unique (accountId, date) index.
             if (transactions.length > 0) {
-              // Fetch the most recent transaction from database for this account
               const newestTransactionInDb = await Transactions.findOne({
                 where: {
                   userId,
                   accountId,
                 },
-                order: [['time', 'DESC']],
+                // When two transactions share the same `time`, prefer the one
+                // created most recently. Without ['createdAt', 'DESC'] the
+                // database can return an older row – after a re-sync that
+                // means we'd save its outdated balance
+                order: [
+                  ['time', 'DESC'],
+                  ['createdAt', 'DESC'],
+                ],
                 attributes: ['externalData'],
                 raw: true,
               });
@@ -226,7 +222,10 @@ function buildJobProcessor(queueName: string) {
                 );
 
                 if (balanceFromExternalData !== undefined) {
-                  accountDataToUpdate.currentBalance = Money.fromCents(balanceFromExternalData);
+                  await writeBankBalanceWithHistory({
+                    account,
+                    balance: Money.fromCents(balanceFromExternalData),
+                  });
                 } else {
                   logger.error(
                     "[Monobank transactions sync]: latest monobank transaction doesn't have balance in externalData",
@@ -240,7 +239,6 @@ function buildJobProcessor(queueName: string) {
               }
             }
 
-            await accountsService.updateAccount(accountDataToUpdate);
             logger.info(`Account ${accountId} balance after save: ${account.currentBalance}`);
           }
 

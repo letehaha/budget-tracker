@@ -160,6 +160,7 @@
     "dateInvalid": "\"date\" es una fecha no válida."
   },
   "bankDataProviders": {
+    "apiError": "Error de API de {{provider}}: {{message}}",
     "reauthorizationStarted": "Reautorización iniciada. Por favor, complete el flujo de OAuth.",
     "connectionEstablished": "Conexión establecida correctamente",
     "failedToFetchBanks": "No se pudieron obtener los bancos. Por favor, verifique sus credenciales y el código de país.",
@@ -181,7 +182,6 @@
       "invalidCredentialsFormat": "Formato de credenciales no válido para Monobank",
       "invalidApiToken": "Token de API de Monobank no válido",
       "rateLimitExceeded": "Se superó el límite de solicitudes de la API de Monobank. Por favor, inténtelo de nuevo en un minuto.",
-      "apiError": "Error de la API de Monobank: {{message}}",
       "accountNotFound": "Cuenta {{accountExternalId}} no encontrada en Monobank",
       "webhookNotImplemented": "handleWebhook aún no está implementado para Monobank",
       "unknownCurrencyCode": "Código de moneda desconocido: {{numericCode}}",
@@ -211,8 +211,7 @@
       "invalidCredentialsFormat": "Formato de credenciales de LunchFlow no válido. Por favor, proporcione una clave de API válida.",
       "invalidApiKey": "Clave de API de LunchFlow no válida. Por favor, verifique sus credenciales.",
       "accountNoExternalId": "La cuenta no tiene ID externo para la sincronización con LunchFlow.",
-      "accountNotFound": "Cuenta de LunchFlow no encontrada.",
-      "apiError": "Error de la API de LunchFlow: {{message}}"
+      "accountNotFound": "Cuenta de LunchFlow no encontrada."
     },
     "simplefin": {
       "invalidCredentialsFormat": "Formato de credenciales de SimpleFIN no válido.",
@@ -222,7 +221,6 @@
       "accountNotFound": "Cuenta de SimpleFIN no encontrada.",
       "accountNoExternalId": "Esta cuenta no está vinculada a una cuenta de SimpleFIN.",
       "accountAbsentFromResponse": "SimpleFIN no devolvió datos para esta cuenta en la última sincronización. Es posible que la cuenta haya sido desactivada en el banco; intente sincronizar de nuevo o reconecte si el problema persiste.",
-      "apiError": "Error de la API de SimpleFIN: {{message}}",
       "rateLimited": "SimpleFIN está recibiendo demasiadas solicitudes en este momento. Por favor, espere un momento e inténtelo de nuevo."
     },
     "walutomat": {

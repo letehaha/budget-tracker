@@ -13,11 +13,9 @@ import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
-import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
-import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -28,12 +26,11 @@ import {
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
 import crypto from 'crypto';
-import { addDays, startOfDay, subDays } from 'date-fns';
+import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
-import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
-import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
+import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { EnableBankingApiClient } from './api-client';
 import { generateState, validatePrivateKey, validateState } from './jwt-utils';
 import {
@@ -367,7 +364,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         await apiClient.deleteSession(credentials.sessionId);
       } catch (error) {
         // Log but continue - session might already be expired
-        console.error('Failed to revoke existing session during reauthorization:', error);
+        logger.error(
+          { message: 'Failed to revoke existing Enable Banking session during reauthorization', error: error as Error },
+          { connectionId },
+        );
       }
     }
 
@@ -424,7 +424,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       }
     } catch (error) {
       // Log error but continue with disconnection
-      console.error('Failed to revoke Enable Banking session:', error);
+      logger.error(
+        { message: 'Failed to revoke Enable Banking session on disconnect', error: error as Error },
+        { connectionId },
+      );
     }
 
     // Delete the connection (CASCADE will handle related accounts)
@@ -636,189 +639,179 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     systemAccountId: RecordId;
     userId: number;
   }): Promise<void> {
-    // Set status to SYNCING
-    await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.SYNCING, userId });
-
     try {
-      const account = await this.getSystemAccount(systemAccountId);
-      const connection = await this.getConnection(connectionId);
-      this.validateProviderType(connection);
-
-      if (!account.externalId) {
-        throw new BadRequestError({ message: t({ key: 'accounts.accountNoExternalIdEnableBanking' }) });
-      }
-
-      // Get metadata for API calls and migrations
-      let metadata = account.externalData as Record<string, unknown> | null;
-      let rawAccountData = metadata?.rawAccountData as EnableBankingAccount | undefined;
-
-      // Check if we need to refresh account metadata from the API
-      // This happens for accounts created before rawAccountData/uid were stored
-      const needsMetadataRefresh = !rawAccountData || !metadata?.uid;
-
-      if (needsMetadataRefresh) {
-        logger.info(`Account ${account.id} is missing rawAccountData or uid, refreshing from API...`);
-        const freshAccountData = await this.refreshAccountMetadata({ connectionId, account });
-        if (freshAccountData) {
-          // Reload account to get updated externalData
-          await account.reload();
-          metadata = account.externalData as Record<string, unknown> | null;
-          rawAccountData = metadata?.rawAccountData as EnableBankingAccount | undefined;
-        }
-      }
-
-      // Get uid from metadata for API calls (session-specific)
-      // Fall back to externalId for backward compatibility
-      const apiUid = (metadata?.uid as string) || account.externalId;
-
-      // Check if we need to migrate transaction hashes
-      // This happens when account was created with uid as externalId but now has identification_hash available
-      if (rawAccountData?.identification_hash && account.externalId !== rawAccountData.identification_hash) {
-        await this.migrateTransactionHashes({
-          account,
-          newExternalId: rawAccountData.identification_hash,
-        });
-        // Reload account to get updated externalId
-        await account.reload();
-      }
-
-      // Find the most recent transaction
-      const latestTransaction = await Transactions.findOne({
-        where: { accountId: account.id },
-        order: [['time', 'DESC']],
-      });
-
-      // Default to last 3 years if no transactions found
-      const days = 1095;
-      const from = latestTransaction
-        ? new Date(latestTransaction.time)
-        : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-      const to = new Date();
-
-      // Fetch transactions using uid for API calls, but externalId (identification_hash) for hashing
-      const providerTransactions = await this.fetchTransactions(connectionId, apiUid, { from, to }, account.externalId);
-
-      // Sort transactions by date (ascending) so the last transaction for each day
-      // will have the correct end-of-day balance in balance_after_transaction.
-      // This is important for Balances.handleTransactionChange() which uses the
-      // balance from the last-processed transaction for each date.
-      providerTransactions.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-      // Process each transaction and collect created/updated transaction IDs
-      const createdTransactionIds: string[] = [];
-      let updatedCount = 0;
-
-      for (const tx of providerTransactions) {
-        // Match an existing tx using a tiered strategy that survives hash drift:
-        //   1. by entry_reference (ASPSP-promised stable id, may appear later)
-        //   2. by current originalId (the legacy hash)
-        //   3. by ±2-day fingerprint (amount + counterparty IBAN), as a final
-        //      fallback for ASPSPs that never populate entry_reference and
-        //      shift the date used in the hash between syncs
-        const existingTx = await this.findExistingTransactionForSync({
-          accountId: account.id,
-          tx,
-        });
-
-        if (existingTx) {
-          // Re-anchor originalId when matched by a non-hash path so subsequent
-          // syncs hit the canonical hash directly and don't pay the fallback cost.
-          const updates: Partial<{ originalId: string; time: Date; externalData: typeof tx.metadata }> = {};
-          if (existingTx.originalId !== tx.externalId) {
-            updates.originalId = tx.externalId;
-          }
-          // Backfill bookingDate / refresh metadata when the bank populates
-          // fields after the initial sync.
-          const existingMeta = existingTx.externalData as typeof tx.metadata;
-          const bookingDateAppeared = !existingMeta?.bookingDate && tx.metadata?.bookingDate;
-          if (bookingDateAppeared) {
-            updates.time = tx.date;
-            updates.externalData = tx.metadata;
-          } else if (updates.originalId) {
-            // Even without a date change, refresh metadata so entryReference is persisted.
-            updates.externalData = { ...existingMeta, ...tx.metadata };
-          }
-
-          if (Object.keys(updates).length > 0) {
-            await existingTx.update(updates);
-            updatedCount++;
-          }
-          continue;
-        }
-
-        // Determine transaction type from metadata
-        const isExpense = tx.metadata?.isExpense === true;
-
-        const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
-
-        // `merchantName` here is the debtor/creditor name lifted from the raw
-        // Enable Banking payload (or the literal 'Unknown' sentinel when both
-        // sides were absent — which is NOT a real merchant string). Forward
-        // the cleaned value into `externalData.merchantName` for audit and
-        // historical Payee-promotion scans, and as `rawMerchantName` for
-        // the per-row extraction pipeline.
-        const merchantNameClean = tx.merchantName && tx.merchantName !== 'Unknown' ? tx.merchantName.trim() : '';
-
-        // TODO: consider creating transactions in batch?
-        // Create transaction using service (handles all required fields)
-        const [createdTx] = await createTransaction({
-          originalId: tx.externalId,
-          note: tx.description,
-          amount: Money.fromCents(Math.abs(tx.amount)), // Ensure positive value
-          time: tx.date,
-          externalData: {
-            ...tx.metadata,
-            merchantName: merchantNameClean || undefined,
-          },
-          commissionRate: Money.zero(),
-          cashbackAmount: Money.zero(),
-          accountId: account.id,
-          userId: connection.userId,
-          transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
-          paymentType: PAYMENT_TYPES.bankTransfer,
-          categoryId: defaultCategoryId,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-          accountType: ACCOUNT_TYPES.enableBanking,
-          rawMerchantName: merchantNameClean || null,
-        });
-
-        createdTransactionIds.push(createdTx.id);
-      }
-
-      // Log sync stats
-      if (createdTransactionIds.length > 0 || updatedCount > 0) {
-        logger.info(
-          `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated for account ${account.id}`,
-        );
-      }
-
-      // Always update account balance from bank when syncing
-      // This ensures balance stays accurate even if no new transactions were found
-      const balance = await this.fetchBalance(connectionId, apiUid);
-      await this.updateAccountBalance({ account, balance: balance.amount });
-
-      await this.updateLastSync(connectionId);
-
-      // Emit event for downstream services (e.g., AI categorization)
-      emitTransactionsSyncEvent({
-        userId: connection.userId,
-        accountId: account.id,
-        transactionIds: createdTransactionIds,
-      });
-
-      // Set status to COMPLETED on success
-      await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.COMPLETED, userId });
-    } catch (error) {
-      logger.error({ message: 'Enable Banking sync error', error: error as Error });
-      // Set status to FAILED on error
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await setAccountSyncStatus({
-        accountId: systemAccountId,
-        status: SyncStatus.FAILED,
-        error: errorMessage,
+      await this.runSyncWithStatus({
+        systemAccountId,
         userId,
-      });
+        connectionId,
+        errorLogMessage: 'Enable Banking sync error',
+        work: async () => {
+          const account = await this.getSystemAccount(systemAccountId);
+          const connection = await this.getConnection(connectionId);
+          this.validateProviderType(connection);
 
+          if (!account.externalId) {
+            throw new BadRequestError({ message: t({ key: 'accounts.accountNoExternalIdEnableBanking' }) });
+          }
+
+          // Get metadata for API calls and migrations
+          let metadata = account.externalData as Record<string, unknown> | null;
+          let rawAccountData = metadata?.rawAccountData as EnableBankingAccount | undefined;
+
+          // Check if we need to refresh account metadata from the API
+          // This happens for accounts created before rawAccountData/uid were stored
+          const needsMetadataRefresh = !rawAccountData || !metadata?.uid;
+
+          if (needsMetadataRefresh) {
+            logger.info(`Account ${account.id} is missing rawAccountData or uid, refreshing from API...`);
+            const freshAccountData = await this.refreshAccountMetadata({ connectionId, account });
+            if (freshAccountData) {
+              // Reload account to get updated externalData
+              await account.reload();
+              metadata = account.externalData as Record<string, unknown> | null;
+              rawAccountData = metadata?.rawAccountData as EnableBankingAccount | undefined;
+            }
+          }
+
+          // Get uid from metadata for API calls (session-specific)
+          // Fall back to externalId for backward compatibility
+          const apiUid = (metadata?.uid as string) || account.externalId;
+
+          // Check if we need to migrate transaction hashes
+          // This happens when account was created with uid as externalId but now has identification_hash available
+          if (rawAccountData?.identification_hash && account.externalId !== rawAccountData.identification_hash) {
+            await this.migrateTransactionHashes({
+              account,
+              newExternalId: rawAccountData.identification_hash,
+            });
+            // Reload account to get updated externalId
+            await account.reload();
+          }
+
+          // Find the most recent transaction
+          const latestTransaction = await Transactions.findOne({
+            where: { accountId: account.id },
+            order: [['time', 'DESC']],
+          });
+
+          // Default to last 3 years if no transactions found
+          const days = 1095;
+          const from = latestTransaction
+            ? new Date(latestTransaction.time)
+            : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+          const to = new Date();
+
+          // Fetch transactions using uid for API calls, but externalId (identification_hash) for hashing
+          const providerTransactions = await this.fetchTransactions(
+            connectionId,
+            apiUid,
+            { from, to },
+            account.externalId,
+          );
+
+          // Sort transactions by date (ascending) so the last transaction for each day
+          // will have the correct end-of-day balance in balance_after_transaction.
+          // This is important for Balances.handleTransactionChange() which uses the
+          // balance from the last-processed transaction for each date.
+          providerTransactions.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+          // Process each transaction and collect created/updated transaction IDs
+          const createdTransactionIds: string[] = [];
+          let updatedCount = 0;
+
+          for (const tx of providerTransactions) {
+            // Match an existing tx using a tiered strategy that survives hash drift:
+            //   1. by entry_reference (ASPSP-promised stable id, may appear later)
+            //   2. by current originalId (the legacy hash)
+            //   3. by ±2-day fingerprint (amount + counterparty IBAN), as a final
+            //      fallback for ASPSPs that never populate entry_reference and
+            //      shift the date used in the hash between syncs
+            const existingTx = await this.findExistingTransactionForSync({
+              accountId: account.id,
+              tx,
+            });
+
+            if (existingTx) {
+              // Re-anchor originalId when matched by a non-hash path so subsequent
+              // syncs hit the canonical hash directly and don't pay the fallback cost.
+              const updates: Partial<{ originalId: string; time: Date; externalData: typeof tx.metadata }> = {};
+              if (existingTx.originalId !== tx.externalId) {
+                updates.originalId = tx.externalId;
+              }
+              // Backfill bookingDate / refresh metadata when the bank populates
+              // fields after the initial sync.
+              const existingMeta = existingTx.externalData as typeof tx.metadata;
+              const bookingDateAppeared = !existingMeta?.bookingDate && tx.metadata?.bookingDate;
+              if (bookingDateAppeared) {
+                updates.time = tx.date;
+                updates.externalData = tx.metadata;
+              } else if (updates.originalId) {
+                // Even without a date change, refresh metadata so entryReference is persisted.
+                updates.externalData = { ...existingMeta, ...tx.metadata };
+              }
+
+              if (Object.keys(updates).length > 0) {
+                await existingTx.update(updates);
+                updatedCount++;
+              }
+              continue;
+            }
+
+            // Determine transaction type from metadata
+            const isExpense = tx.metadata?.isExpense === true;
+
+            const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
+
+            // `merchantName` here is the debtor/creditor name lifted from the raw
+            // Enable Banking payload (or the literal 'Unknown' sentinel when both
+            // sides were absent — which is NOT a real merchant string). Forward
+            // the cleaned value into `externalData.merchantName` for audit and
+            // historical Payee-promotion scans, and as `rawMerchantName` for
+            // the per-row extraction pipeline.
+            const merchantNameClean = tx.merchantName && tx.merchantName !== 'Unknown' ? tx.merchantName.trim() : '';
+
+            // TODO: consider creating transactions in batch?
+            // Create transaction using service (handles all required fields)
+            const [createdTx] = await createTransaction({
+              originalId: tx.externalId,
+              note: tx.description,
+              amount: Money.fromCents(Math.abs(tx.amount)), // Ensure positive value
+              time: tx.date,
+              externalData: {
+                ...tx.metadata,
+                merchantName: merchantNameClean || undefined,
+              },
+              commissionRate: Money.zero(),
+              cashbackAmount: Money.zero(),
+              accountId: account.id,
+              userId: connection.userId,
+              transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
+              paymentType: PAYMENT_TYPES.bankTransfer,
+              categoryId: defaultCategoryId,
+              transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+              accountType: ACCOUNT_TYPES.enableBanking,
+              rawMerchantName: merchantNameClean || null,
+            });
+
+            createdTransactionIds.push(createdTx.id);
+          }
+
+          // Log sync stats
+          if (createdTransactionIds.length > 0 || updatedCount > 0) {
+            logger.info(
+              `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated for account ${account.id}`,
+            );
+          }
+
+          // Always update account balance from bank when syncing
+          // This ensures balance stays accurate even if no new transactions were found
+          const balance = await this.fetchBalance(connectionId, apiUid);
+          await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
+
+          return { transactionIds: createdTransactionIds };
+        },
+      });
+    } catch (error) {
       return this.handleProviderError({ error, connectionId });
     }
   }
@@ -872,36 +865,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     const balance = await this.fetchBalance(connectionId, apiUid);
 
-    await this.updateAccountBalance({ account, balance: balance.amount });
-  }
-
-  /**
-   * Update account balance and record it in balance history.
-   * This ensures both currentBalance/refCurrentBalance and the Balances table are in sync.
-   */
-  private async updateAccountBalance({ account, balance }: { account: Accounts; balance: number }): Promise<void> {
-    const today = startOfDay(new Date());
-
-    // Calculate ref balance (in user's base currency)
-    const refBalance = await calculateRefAmount({
-      amount: Money.fromCents(balance),
-      userId: account.userId,
-      date: today,
-      baseCode: account.currencyCode,
-    });
-
-    // Update account balance
-    await account.update({
-      currentBalance: balance,
-      refCurrentBalance: refBalance,
-    });
-
-    // Update balance history using centralized Balances model method
-    await Balances.updateAccountBalance({
-      accountId: account.id,
-      date: today,
-      refBalance,
-    });
+    await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
   }
 
   // ============================================================================

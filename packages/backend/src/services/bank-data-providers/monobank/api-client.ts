@@ -90,7 +90,6 @@ export class MonobankApiClient {
       return response.data;
     } catch (error) {
       this.handleApiError(error, 'getClientInfo');
-      throw error;
     }
   }
 
@@ -112,7 +111,6 @@ export class MonobankApiClient {
       return response.data;
     } catch (error) {
       this.handleApiError(error, 'getStatement');
-      throw error;
     }
   }
 
@@ -128,7 +126,6 @@ export class MonobankApiClient {
       await this.client.post('/personal/webhook', { webHookUrl: webhookUrl });
     } catch (error) {
       this.handleApiError(error, 'setWebhook');
-      throw error;
     }
   }
 
@@ -186,7 +183,10 @@ export class MonobankApiClient {
         throw new BadRequestError({
           message:
             errorDescription ||
-            t({ key: 'bankDataProviders.monobank.apiError', variables: { message: error.message } }),
+            t({
+              key: 'bankDataProviders.apiError',
+              variables: { provider: 'Monobank', message: error.message },
+            }),
         });
       }
     }

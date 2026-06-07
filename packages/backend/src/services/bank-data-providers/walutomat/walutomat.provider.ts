@@ -26,9 +26,8 @@ import { createTransaction } from '@services/transactions';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
 import { Op, Sequelize } from 'sequelize';
 
-import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
-import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
+import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { type HistoryItem, type WalletBalance, WalutomatApiClient, WalutomatHttpError } from './api-client';
 import { linkCrossProviderTransfers } from './cross-provider-linking';
 import { WalutomatCredentials, WalutomatMetadata } from './types';
@@ -282,160 +281,146 @@ export class WalutomatProvider extends BaseBankDataProvider {
     systemAccountId: RecordId;
     userId: number;
   }): Promise<void> {
-    await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.SYNCING, userId });
+    await this.runSyncWithStatus({
+      systemAccountId,
+      userId,
+      connectionId,
+      errorLogMessage: '[Walutomat] Sync error:',
+      work: async () => {
+        const account = await this.getSystemAccount(systemAccountId);
+        const connection = await this.getConnection(connectionId);
+        this.validateProviderType(connection);
+
+        if (!account.externalId) {
+          throw new BadRequestError({ message: t({ key: 'bankDataProviders.walutomat.accountNoExternalId' }) });
+        }
+
+        const credentials = await this.getValidatedCredentials(connectionId);
+        const client = this.createApiClient(credentials);
+        const currency = currencyFromExternalId(account.externalId);
+
+        // Determine sync start date
+        const latestTransaction = await Transactions.findOne({
+          where: { accountId: account.id },
+          order: [['time', 'DESC']],
+        });
+
+        const now = new Date();
+        let fromDate: Date;
+        if (latestTransaction) {
+          fromDate = new Date(latestTransaction.time);
+        } else {
+          fromDate = new Date(now);
+          fromDate.setMonth(fromDate.getMonth() - DEFAULT_SYNC_MONTHS);
+        }
+
+        const historyItems: HistoryItem[] = [];
+        try {
+          for await (const item of client.getHistoryIterator({
+            currencies: [currency],
+            dateFrom: fromDate.toISOString(),
+            dateTo: now.toISOString(),
+            itemLimit: 200,
+            sortOrder: 'ASC',
+          })) {
+            historyItems.push(item);
+          }
+          await this.resetAuthFailures(connectionId);
+        } catch (error) {
+          await this.handleAuthError({ connectionId, error });
+          throw error;
+        }
+
+        const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
+        const createdTransactionIds: string[] = [];
+
+        for (const item of historyItems) {
+          // Primary dedup: check by originalId
+          const existingTx = await Transactions.findOne({
+            where: {
+              accountId: account.id,
+              originalId: item.transactionId,
+            },
+          });
+
+          if (existingTx) {
+            continue;
+          }
+
+          // Secondary dedup: check externalData.originalSource.originalId
+          // Covers the unlink→relink flow where originalId was cleared
+          const existingByOriginalSource = await Transactions.findOne({
+            where: Sequelize.and(
+              { accountId: account.id, originalId: null },
+              Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), item.transactionId),
+            ),
+          });
+
+          if (existingByOriginalSource) {
+            await existingByOriginalSource.update({ originalId: item.transactionId });
+            continue;
+          }
+
+          const operationAmount = parseFloat(item.operationAmount);
+          const isExpense = operationAmount < 0;
+
+          const [createdTx] = await createTransaction({
+            originalId: item.transactionId,
+            note: buildTransactionDescription(item),
+            amount: Money.fromDecimal(Math.abs(operationAmount)),
+            time: new Date(item.ts),
+            externalData: {
+              historyItemId: item.historyItemId,
+              transactionId: item.transactionId,
+              operationType: item.operationType,
+              operationDetailedType: item.operationDetailedType,
+              operationDetails: item.operationDetails,
+              balanceAfter: item.balanceAfter,
+            },
+            commissionRate: Money.fromCents(0),
+            cashbackAmount: Money.fromCents(0),
+            accountId: account.id,
+            userId: connection.userId,
+            transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
+            paymentType: PAYMENT_TYPES.bankTransfer,
+            categoryId: defaultCategoryId,
+            transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+            accountType: ACCOUNT_TYPES.walutomat,
+          });
+
+          createdTransactionIds.push(createdTx.id);
+        }
+
+        if (createdTransactionIds.length > 0) {
+          logger.info(
+            `[Walutomat] Sync: ${createdTransactionIds.length} transactions created for account ${account.id}`,
+          );
+        }
+
+        // Update account balance
+        try {
+          const balances = await client.getBalances();
+          const wallet = balances.find((b) => b.currency === currency);
+          if (wallet) {
+            const balanceMoney = Money.fromDecimal(parseFloat(wallet.balanceAvailable));
+            await writeBankBalanceWithHistory({ account, balance: balanceMoney });
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          logger.warn(`[Walutomat] Failed to update balance for account ${account.id}: ${errorMsg}`);
+        }
+
+        return { transactionIds: createdTransactionIds };
+      },
+    });
+
+    await this.linkFxTransfers({ userId });
 
     try {
-      const account = await this.getSystemAccount(systemAccountId);
-      const connection = await this.getConnection(connectionId);
-      this.validateProviderType(connection);
-
-      if (!account.externalId) {
-        throw new BadRequestError({ message: t({ key: 'bankDataProviders.walutomat.accountNoExternalId' }) });
-      }
-
-      const credentials = await this.getValidatedCredentials(connectionId);
-      const client = this.createApiClient(credentials);
-      const currency = currencyFromExternalId(account.externalId);
-
-      // Determine sync start date
-      const latestTransaction = await Transactions.findOne({
-        where: { accountId: account.id },
-        order: [['time', 'DESC']],
-      });
-
-      const now = new Date();
-      let fromDate: Date;
-      if (latestTransaction) {
-        fromDate = new Date(latestTransaction.time);
-      } else {
-        fromDate = new Date(now);
-        fromDate.setMonth(fromDate.getMonth() - DEFAULT_SYNC_MONTHS);
-      }
-
-      const historyItems: HistoryItem[] = [];
-      try {
-        for await (const item of client.getHistoryIterator({
-          currencies: [currency],
-          dateFrom: fromDate.toISOString(),
-          dateTo: now.toISOString(),
-          itemLimit: 200,
-          sortOrder: 'ASC',
-        })) {
-          historyItems.push(item);
-        }
-        await this.resetAuthFailures(connectionId);
-      } catch (error) {
-        await this.handleAuthError({ connectionId, error });
-        throw error;
-      }
-
-      const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
-      const createdTransactionIds: string[] = [];
-
-      for (const item of historyItems) {
-        // Primary dedup: check by originalId
-        const existingTx = await Transactions.findOne({
-          where: {
-            accountId: account.id,
-            originalId: item.transactionId,
-          },
-        });
-
-        if (existingTx) {
-          continue;
-        }
-
-        // Secondary dedup: check externalData.originalSource.originalId
-        // Covers the unlink→relink flow where originalId was cleared
-        const existingByOriginalSource = await Transactions.findOne({
-          where: Sequelize.and(
-            { accountId: account.id, originalId: null },
-            Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), item.transactionId),
-          ),
-        });
-
-        if (existingByOriginalSource) {
-          await existingByOriginalSource.update({ originalId: item.transactionId });
-          continue;
-        }
-
-        const operationAmount = parseFloat(item.operationAmount);
-        const isExpense = operationAmount < 0;
-
-        const [createdTx] = await createTransaction({
-          originalId: item.transactionId,
-          note: buildTransactionDescription(item),
-          amount: Money.fromDecimal(Math.abs(operationAmount)),
-          time: new Date(item.ts),
-          externalData: {
-            historyItemId: item.historyItemId,
-            transactionId: item.transactionId,
-            operationType: item.operationType,
-            operationDetailedType: item.operationDetailedType,
-            operationDetails: item.operationDetails,
-            balanceAfter: item.balanceAfter,
-          },
-          commissionRate: Money.fromCents(0),
-          cashbackAmount: Money.fromCents(0),
-          accountId: account.id,
-          userId: connection.userId,
-          transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
-          paymentType: PAYMENT_TYPES.bankTransfer,
-          categoryId: defaultCategoryId,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-          accountType: ACCOUNT_TYPES.walutomat,
-        });
-
-        createdTransactionIds.push(createdTx.id);
-      }
-
-      if (createdTransactionIds.length > 0) {
-        logger.info(`[Walutomat] Sync: ${createdTransactionIds.length} transactions created for account ${account.id}`);
-      }
-
-      // Update account balance
-      try {
-        const balances = await client.getBalances();
-        const wallet = balances.find((b) => b.currency === currency);
-        if (wallet) {
-          const balanceMoney = Money.fromDecimal(parseFloat(wallet.balanceAvailable));
-          await account.update({ currentBalance: balanceMoney });
-        }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(`[Walutomat] Failed to update balance for account ${account.id}: ${errorMsg}`);
-      }
-
-      await this.updateLastSync(connectionId);
-
-      emitTransactionsSyncEvent({
-        userId: connection.userId,
-        accountId: account.id,
-        transactionIds: createdTransactionIds,
-      });
-
-      // Auto-link FX trade pairs as transfers across walutomat wallets
-      await this.linkFxTransfers({ userId: connection.userId });
-
-      // Auto-link PAYIN/PAYOUT to matching transactions in other bank accounts (by IBAN)
-      try {
-        await linkCrossProviderTransfers({ userId: connection.userId });
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(`[Walutomat] Failed to auto-link cross-provider transfers: ${errorMsg}`);
-      }
-
-      await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.COMPLETED, userId });
+      await linkCrossProviderTransfers({ userId });
     } catch (error) {
-      logger.error({ message: '[Walutomat] Sync error:', error: error as Error });
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await setAccountSyncStatus({
-        accountId: systemAccountId,
-        status: SyncStatus.FAILED,
-        error: errorMessage,
-        userId,
-      });
-      throw error;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.warn(`[Walutomat] Failed to auto-link cross-provider transfers: ${errorMsg}`);
     }
   }
 
@@ -473,9 +458,7 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
-    await account.update({
-      currentBalance: balance.amount,
-    });
+    await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
   }
 
   // Walutomat surfaces 401/403 via its own HTTP error class as well as

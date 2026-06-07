@@ -99,7 +99,10 @@ export class SimplefinApiClient {
         // "invalid token". 5xx / network errors fall through and propagate.
         if (status && status >= 400 && status < 500) {
           throw new BadRequestError({
-            message: t({ key: 'bankDataProviders.simplefin.apiError', variables: { message: error.message } }),
+            message: t({
+              key: 'bankDataProviders.apiError',
+              variables: { provider: 'SimpleFIN', message: error.message },
+            }),
           });
         }
       }
@@ -173,7 +176,10 @@ export class SimplefinApiClient {
         throw new NotFoundError({ message: t({ key: 'bankDataProviders.simplefin.accountNotFound' }) });
       } else if (status && status >= 400) {
         throw new BadRequestError({
-          message: t({ key: 'bankDataProviders.simplefin.apiError', variables: { message: error.message } }),
+          message: t({
+            key: 'bankDataProviders.apiError',
+            variables: { provider: 'SimpleFIN', message: error.message },
+          }),
         });
       }
     }

@@ -6,7 +6,7 @@ import { logger } from '@js/utils';
 import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { subDays, startOfMonth, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
+import { Op, UniqueConstraintError } from 'sequelize';
 import { Model, Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -101,6 +101,20 @@ export default class Balances extends Model {
   // 1. ✅ Add a new record to Balances table with a `currentBalance` that is specified in Accounts table
 
   // ### Account deletion will be handled by `cascade` deletion
+  //
+  // Bank-provider accounts use a two-layer balance-population scheme. Per-tx
+  // hooks below (Monobank, Enable Banking) backfill historical days as
+  // transactions land — that is how the analytics chart gets in-between days
+  // populated, not just "today". The authoritative end-of-sync write goes
+  // through `writeBankBalanceWithHistory`
+  // (services/bank-data-providers/utils/), which writes
+  // `Accounts.currentBalance` + `refCurrentBalance` and overwrites today's
+  // `Balances` row with the bank's reported balance. For providers whose
+  // upstream has no per-transaction balance (LunchFlow, Walutomat, SimpleFIN)
+  // only the authoritative layer runs — the chart fills in over time as new
+  // syncs land each day. Either layer races safely against the other via the
+  // unique `(accountId, date)` index plus `INSERT ... ON CONFLICT DO UPDATE`
+  // in `updateAccountBalance`.
   static async handleTransactionChange({
     data,
     prevData,
@@ -152,13 +166,13 @@ export default class Balances extends Model {
       }
 
       case ACCOUNT_TYPES.monobank: {
-        // Monobank provides the actual account balance after each transaction.
-        // Transactions are sorted by time before processing, so the last transaction
-        // for each day will set the correct end-of-day balance.
-        //
-        // Balance is in account's currency (e.g., UAH), but Balances.amount must be
-        // stored in BASE currency (refBalance). We use the exchange rate service to
-        // get consistent market rates.
+        // Per-tx backfill layer. Each Monobank transaction carries the bank's
+        // post-tx balance in `externalData.balance` (in account currency, e.g.
+        // UAH). Convert to base currency via the exchange-rate service and
+        // upsert the day's `Balances` row — last tx processed for a date wins
+        // the end-of-day value. The end-of-sync `writeBankBalanceWithHistory`
+        // call (worker) then overwrites today's row with the bank's
+        // authoritative balance.
         // TODO: we probably need to avoid updating opposite_tx refAmount based on
         // original-tx refAmount
         const balance = (data.externalData as TransactionsAttributes['externalData']).balance;
@@ -178,13 +192,12 @@ export default class Balances extends Model {
       }
 
       case ACCOUNT_TYPES.enableBanking: {
-        // EnableBanking transactions are sorted by booking_date before processing,
-        // so the last transaction processed for each day will have the correct end-of-day balance.
-        // After all transactions are synced, Balances.updateAccountBalance() is called
-        // with the authoritative balance from the bank's API to ensure accuracy.
-        //
-        // balance_after_transaction is optional in the EnableBanking API - not all banks provide it.
-        // When available, we use it to build historical balance data for smooth trend indicators.
+        // Per-tx backfill layer. `balance_after_transaction` is optional in the
+        // EnableBanking API — when the ASPSP populates it, convert to base
+        // currency and upsert the day's `Balances` row (transactions sorted by
+        // booking_date so the last for a date wins). The end-of-sync
+        // `writeBankBalanceWithHistory` call then overwrites today's row with
+        // the bank's authoritative balance.
         const externalData = data.externalData as { balanceAfter?: AmountType } | undefined;
         const balanceAfter = externalData?.balanceAfter;
 
@@ -200,25 +213,17 @@ export default class Balances extends Model {
 
           await this.updateAccountBalance({ accountId, date, refBalance });
         }
-        // If no balanceAfter, skip - balance will be set by updateAccountBalance() after sync
+        // No `balanceAfter` from the ASPSP → in-between days stay empty for
+        // this tx. The end-of-sync authoritative write still fills today.
         break;
       }
 
-      case ACCOUNT_TYPES.lunchflow: {
-        // LunchFlow doesn't provide per-transaction balance info.
-        // Balance is updated from the API after the full sync completes.
-        break;
-      }
-
-      case ACCOUNT_TYPES.walutomat: {
-        // Walutomat doesn't provide per-transaction balance info.
-        // Balance is updated from the API after the full sync completes.
-        break;
-      }
-
+      case ACCOUNT_TYPES.lunchflow:
+      case ACCOUNT_TYPES.walutomat:
       case ACCOUNT_TYPES.simplefin: {
-        // SimpleFIN doesn't provide per-transaction balance info.
-        // Balance is updated from the API after the full sync completes.
+        // No per-tx balance from upstream — only the authoritative end-of-sync
+        // `writeBankBalanceWithHistory` writes for these providers. Chart
+        // gaps for past days fill in over time as new syncs land each day.
         break;
       }
 
@@ -283,12 +288,17 @@ export default class Balances extends Model {
       });
 
       if (latestBalancePrior) {
-        // Create a record for the 1st day of the month
-        firstDayBalance = await this.create({
-          accountId,
-          date: firstDayOfMonth,
-          amount: latestBalancePrior.amount,
-        });
+        try {
+          firstDayBalance = await this.create({
+            accountId,
+            date: firstDayOfMonth,
+            amount: latestBalancePrior.amount,
+          });
+        } catch (err) {
+          if (!(err instanceof UniqueConstraintError)) throw err;
+          // Seed row computed from the same `latestBalancePrior` by every
+          // racing writer — the existing row already carries the right seed.
+        }
       }
     }
 
@@ -330,35 +340,45 @@ export default class Balances extends Model {
           where: { id: accountId },
         });
 
-        // if (account) {
         // (1) Firstly we now need to create one more record that will represent the
         // balance before that transaction
-        await this.create({
-          accountId,
-          date: subDays(new Date(date), 1),
-          amount: account!.refInitialBalance,
-        });
+        try {
+          await this.create({
+            accountId,
+            date: subDays(new Date(date), 1),
+            amount: account!.refInitialBalance,
+          });
+        } catch (err) {
+          if (!(err instanceof UniqueConstraintError)) throw err;
+          // Seed row computed from the same `refInitialBalance` by every
+          // racing writer — the existing row already carries the right seed.
+        }
 
         // (2) Then we create a record for that transaction
-        await this.create({
-          accountId,
-          date,
-          amount: account!.refInitialBalance.add(amount),
-        });
-        // }
+        try {
+          await this.create({
+            accountId,
+            date,
+            amount: account!.refInitialBalance.add(amount),
+          });
+        } catch (err) {
+          if (!(err instanceof UniqueConstraintError)) throw err;
+          await this.applyIncrementAtSql({ accountId, date, delta: amount });
+        }
       } else {
-        // And then create a new record with the amount + latestBalance
-        balanceForTxDate = await this.create({
-          accountId,
-          date,
-          amount: latestBalancePrior.amount.add(amount),
-        });
+        try {
+          balanceForTxDate = await this.create({
+            accountId,
+            date,
+            amount: latestBalancePrior.amount.add(amount),
+          });
+        } catch (err) {
+          if (!(err instanceof UniqueConstraintError)) throw err;
+          await this.applyIncrementAtSql({ accountId, date, delta: amount });
+        }
       }
     } else {
-      // If a balance already exists, update its amount
-      balanceForTxDate.amount = balanceForTxDate.amount.add(amount);
-
-      await balanceForTxDate.save();
+      await this.applyIncrementAtSql({ accountId, date, delta: amount });
     }
 
     // Update the amount of all balances for the account that come after the date
@@ -419,6 +439,32 @@ export default class Balances extends Model {
     }
   }
 
+  // SQL-side `amount += delta` against the `(accountId, date)` row. Used in
+  // place of `findOne → save` so a concurrent cascade UPDATE (`Op.gt:
+  // olderDate` from another writer's later step) can't slip in and clobber.
+  private static async applyIncrementAtSql({
+    accountId,
+    date,
+    delta,
+  }: {
+    accountId: string;
+    date: Date;
+    delta: Money;
+  }): Promise<void> {
+    await Balances.sequelize!.query(
+      `UPDATE "Balances"
+       SET "amount" = "amount" + :delta, "updatedAt" = NOW()
+       WHERE "accountId" = :accountId AND "date" = :date`,
+      {
+        replacements: {
+          delta: delta.toCents(),
+          accountId,
+          date,
+        },
+      },
+    );
+  }
+
   /**
    * Update account balance with an absolute value (not incremental).
    * Used by external bank providers (e.g., Monobank, EnableBanking) to set balance
@@ -426,6 +472,15 @@ export default class Balances extends Model {
    *
    * Transactions should be sorted by time before processing so the last transaction
    * for each day sets the correct end-of-day balance.
+   *
+   * Race-safe via the `balances_account_id_date_unique` index on (accountId, date)
+   * paired with `INSERT ... ON CONFLICT DO UPDATE` — concurrent writers (auto-sync
+   * vs. user-clicked refresh, multi-batch BullMQ workers, Bottleneck-parallel
+   * sync-manager fan-out, the per-tx `@AfterCreate` hook firing alongside the
+   * end-of-sync write) serialize on the unique index and the last writer's
+   * `refBalance` wins. The raw query is used instead of `Model.upsert` to
+   * guarantee `id` and `createdAt` are NOT overwritten when the conflict path
+   * fires.
    *
    * @param accountId - The account to update
    * @param date - The date for the balance record
@@ -442,22 +497,19 @@ export default class Balances extends Model {
   }) {
     const normalizedDate = startOfDay(date);
 
-    const existingRecord = await this.findOne({
-      where: {
-        accountId,
-        date: normalizedDate,
+    await Balances.sequelize!.query(
+      `INSERT INTO "Balances" ("id", "accountId", "date", "amount", "createdAt", "updatedAt")
+       VALUES (:id, :accountId, :date, :amount, NOW(), NOW())
+       ON CONFLICT ("accountId", "date") DO UPDATE
+       SET "amount" = EXCLUDED."amount", "updatedAt" = NOW()`,
+      {
+        replacements: {
+          id: uuidv7(),
+          accountId,
+          date: normalizedDate,
+          amount: refBalance.toCents(),
+        },
       },
-    });
-
-    if (existingRecord) {
-      existingRecord.amount = refBalance;
-      await existingRecord.save();
-    } else {
-      await this.create({
-        accountId,
-        date: normalizedDate,
-        amount: refBalance,
-      });
-    }
+    );
   }
 }

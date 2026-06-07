@@ -27,9 +27,8 @@ import {
 import { createTransaction } from '@services/transactions';
 import { Sequelize } from 'sequelize';
 
-import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
-import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
+import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { LunchFlowApiClient } from './api-client';
 import {
   LunchFlowApiAccountsResponse,
@@ -269,141 +268,129 @@ export class LunchFlowProvider extends BaseBankDataProvider {
     systemAccountId: RecordId;
     userId: number;
   }): Promise<void> {
-    await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.SYNCING, userId });
+    await this.runSyncWithStatus({
+      systemAccountId,
+      userId,
+      connectionId,
+      errorLogMessage: '[LunchFlow] Sync error:',
+      work: async () => {
+        const account = await this.getSystemAccount(systemAccountId);
+        const connection = await this.getConnection(connectionId);
+        this.validateProviderType(connection);
 
-    try {
-      const account = await this.getSystemAccount(systemAccountId);
-      const connection = await this.getConnection(connectionId);
-      this.validateProviderType(connection);
+        if (!account.externalId) {
+          throw new BadRequestError({ message: t({ key: 'bankDataProviders.lunchflow.accountNoExternalId' }) });
+        }
 
-      if (!account.externalId) {
-        throw new BadRequestError({ message: t({ key: 'bankDataProviders.lunchflow.accountNoExternalId' }) });
-      }
+        const { apiKey } = await this.getValidatedCredentials(connectionId);
+        const apiClient = new LunchFlowApiClient(apiKey);
+        const accountId = parseInt(account.externalId, 10);
 
-      const { apiKey } = await this.getValidatedCredentials(connectionId);
-      const apiClient = new LunchFlowApiClient(apiKey);
-      const accountId = parseInt(account.externalId, 10);
+        let transactionsResponse: LunchFlowApiTransactionsResponse;
+        try {
+          transactionsResponse = await apiClient.getTransactions({ accountId });
+          await this.resetAuthFailures(connectionId);
+        } catch (error) {
+          await this.handleAuthError({ connectionId, error });
+          throw error;
+        }
 
-      let transactionsResponse: LunchFlowApiTransactionsResponse;
-      try {
-        transactionsResponse = await apiClient.getTransactions({ accountId });
-        await this.resetAuthFailures(connectionId);
-      } catch (error) {
-        await this.handleAuthError({ connectionId, error });
-        throw error;
-      }
+        // Filter out pending transactions (those with null IDs)
+        let postedTransactions = transactionsResponse.transactions.filter((tx) => tx.id !== null);
 
-      // Filter out pending transactions (those with null IDs)
-      let postedTransactions = transactionsResponse.transactions.filter((tx) => tx.id !== null);
+        // LunchFlow API doesn't support date-range filtering, so we filter in runtime.
+        // Only process transactions on or after the latest existing transaction date.
+        const latestTransaction = await Transactions.findOne({
+          where: { accountId: account.id },
+          order: [['time', 'DESC']],
+        });
 
-      // LunchFlow API doesn't support date-range filtering, so we filter in runtime.
-      // Only process transactions on or after the latest existing transaction date.
-      const latestTransaction = await Transactions.findOne({
-        where: { accountId: account.id },
-        order: [['time', 'DESC']],
-      });
+        if (latestTransaction) {
+          const fromDate = new Date(latestTransaction.time);
+          postedTransactions = postedTransactions.filter((tx) => new Date(tx.date) >= fromDate);
+        }
 
-      if (latestTransaction) {
-        const fromDate = new Date(latestTransaction.time);
-        postedTransactions = postedTransactions.filter((tx) => new Date(tx.date) >= fromDate);
-      }
+        // Sort by date ascending
+        postedTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      // Sort by date ascending
-      postedTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
+        const createdTransactionIds: string[] = [];
 
-      const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
-      const createdTransactionIds: string[] = [];
+        for (const tx of postedTransactions) {
+          // Primary dedup: check by originalId (covers normal re-sync)
+          const existingTx = await Transactions.findOne({
+            where: {
+              accountId: account.id,
+              originalId: tx.id!,
+            },
+          });
 
-      for (const tx of postedTransactions) {
-        // Primary dedup: check by originalId (covers normal re-sync)
-        const existingTx = await Transactions.findOne({
-          where: {
-            accountId: account.id,
+          if (existingTx) {
+            continue;
+          }
+
+          // Secondary dedup: check externalData.originalSource.originalId
+          // This covers the unlink→relink flow where originalId was cleared to null
+          // but the original value was preserved in externalData
+          const existingByOriginalSource = await Transactions.findOne({
+            where: Sequelize.and(
+              { accountId: account.id, originalId: null },
+              Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), tx.id!),
+            ),
+          });
+
+          if (existingByOriginalSource) {
+            // Restore the originalId so future syncs use the fast primary path
+            await existingByOriginalSource.update({ originalId: tx.id! });
+            continue;
+          }
+
+          const isExpense = tx.amount < 0;
+
+          const [createdTx] = await createTransaction({
             originalId: tx.id!,
-          },
-        });
+            note: tx.description || tx.merchant || '',
+            amount: Money.fromDecimal(Math.abs(tx.amount)),
+            time: new Date(tx.date),
+            externalData: {
+              merchant: tx.merchant,
+              description: tx.description,
+              lunchflowAccountId: tx.accountId,
+            },
+            commissionRate: Money.fromCents(0),
+            cashbackAmount: Money.fromCents(0),
+            accountId: account.id,
+            userId: connection.userId,
+            transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
+            paymentType: PAYMENT_TYPES.bankTransfer,
+            categoryId: defaultCategoryId,
+            transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+            accountType: ACCOUNT_TYPES.lunchflow,
+            rawMerchantName: tx.merchant?.trim() || null,
+          });
 
-        if (existingTx) {
-          continue;
+          createdTransactionIds.push(createdTx.id);
         }
 
-        // Secondary dedup: check externalData.originalSource.originalId
-        // This covers the unlink→relink flow where originalId was cleared to null
-        // but the original value was preserved in externalData
-        const existingByOriginalSource = await Transactions.findOne({
-          where: Sequelize.and(
-            { accountId: account.id, originalId: null },
-            Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), tx.id!),
-          ),
-        });
-
-        if (existingByOriginalSource) {
-          // Restore the originalId so future syncs use the fast primary path
-          await existingByOriginalSource.update({ originalId: tx.id! });
-          continue;
+        if (createdTransactionIds.length > 0) {
+          logger.info(
+            `[LunchFlow] Sync: ${createdTransactionIds.length} transactions created for account ${account.id}`,
+          );
         }
 
-        const isExpense = tx.amount < 0;
+        // Update account balance
+        try {
+          const balanceResponse = await apiClient.getBalance({ accountId });
+          const balanceMoney = Money.fromDecimal(balanceResponse.balance.amount);
+          await writeBankBalanceWithHistory({ account, balance: balanceMoney });
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          logger.warn(`[LunchFlow] Failed to update balance for account ${account.id}: ${errorMsg}`);
+        }
 
-        const [createdTx] = await createTransaction({
-          originalId: tx.id!,
-          note: tx.description || tx.merchant || '',
-          amount: Money.fromDecimal(Math.abs(tx.amount)),
-          time: new Date(tx.date),
-          externalData: {
-            merchant: tx.merchant,
-            description: tx.description,
-            lunchflowAccountId: tx.accountId,
-          },
-          commissionRate: Money.fromCents(0),
-          cashbackAmount: Money.fromCents(0),
-          accountId: account.id,
-          userId: connection.userId,
-          transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
-          paymentType: PAYMENT_TYPES.bankTransfer,
-          categoryId: defaultCategoryId,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-          accountType: ACCOUNT_TYPES.lunchflow,
-          rawMerchantName: tx.merchant?.trim() || null,
-        });
-
-        createdTransactionIds.push(createdTx.id);
-      }
-
-      if (createdTransactionIds.length > 0) {
-        logger.info(`[LunchFlow] Sync: ${createdTransactionIds.length} transactions created for account ${account.id}`);
-      }
-
-      // Update account balance
-      try {
-        const balanceResponse = await apiClient.getBalance({ accountId });
-        const balanceMoney = Money.fromDecimal(balanceResponse.balance.amount);
-        await account.update({ currentBalance: balanceMoney });
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(`[LunchFlow] Failed to update balance for account ${account.id}: ${errorMsg}`);
-      }
-
-      await this.updateLastSync(connectionId);
-
-      emitTransactionsSyncEvent({
-        userId: connection.userId,
-        accountId: account.id,
-        transactionIds: createdTransactionIds,
-      });
-
-      await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.COMPLETED, userId });
-    } catch (error) {
-      logger.error({ message: '[LunchFlow] Sync error:', error: error as Error });
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await setAccountSyncStatus({
-        accountId: systemAccountId,
-        status: SyncStatus.FAILED,
-        error: errorMessage,
-        userId,
-      });
-      throw error;
-    }
+        return { transactionIds: createdTransactionIds };
+      },
+    });
   }
 
   // ============================================================================
@@ -433,9 +420,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
     const balance = await this.fetchBalance(connectionId, account.externalId);
 
-    await account.update({
-      currentBalance: balance.amount,
-    });
+    await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
   }
 
   // ============================================================================

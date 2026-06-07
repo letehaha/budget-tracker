@@ -177,11 +177,11 @@
     "accountCurrencyNotSupported": "Account currency \"{{currency}}\" is not supported by this system.",
     "periodLoadNotSupported": "Loading transactions for a custom period is not supported by this provider.",
     "transactionsLoadedCount": "Loaded {{count}} transactions.",
+    "apiError": "{{provider}} API error: {{message}}",
     "monobank": {
       "invalidCredentialsFormat": "Invalid credentials format for Monobank",
       "invalidApiToken": "Invalid Monobank API token",
       "rateLimitExceeded": "Monobank API rate limit exceeded. Please try again in a minute.",
-      "apiError": "Monobank API error: {{message}}",
       "accountNotFound": "Account {{accountExternalId}} not found in Monobank",
       "webhookNotImplemented": "handleWebhook not yet implemented for Monobank",
       "unknownCurrencyCode": "Unknown currency code: {{numericCode}}",
@@ -211,8 +211,7 @@
       "invalidCredentialsFormat": "Invalid LunchFlow credentials format. Please provide a valid API key.",
       "invalidApiKey": "Invalid LunchFlow API key. Please check your credentials.",
       "accountNoExternalId": "Account has no external ID for LunchFlow sync.",
-      "accountNotFound": "LunchFlow account not found.",
-      "apiError": "LunchFlow API error: {{message}}"
+      "accountNotFound": "LunchFlow account not found."
     },
     "simplefin": {
       "invalidCredentialsFormat": "Invalid SimpleFIN credentials format.",
@@ -222,7 +221,6 @@
       "accountNotFound": "SimpleFIN account not found.",
       "accountNoExternalId": "This account is not linked to a SimpleFIN account.",
       "accountAbsentFromResponse": "SimpleFIN did not return data for this account in the latest sync. The account may have been disabled at the bank – try syncing again, or reconnect if the issue persists.",
-      "apiError": "SimpleFIN API error: {{message}}",
       "rateLimited": "SimpleFIN is receiving too many requests right now. Please wait a little and try again."
     },
     "walutomat": {
