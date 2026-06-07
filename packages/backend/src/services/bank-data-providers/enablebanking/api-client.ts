@@ -39,7 +39,7 @@ interface PSUContext {
 /**
  * JSON.stringify that falls back to `String(value)` when serialization throws
  * (circular references, BigInt members, throwing toJSON, etc.). Logs a warning
- * on the fallback path so a degraded serialization is at least visible —
+ * on the fallback path so a degraded serialization is at least visible –
  * silently returning "[object Object]" would destroy debugging info in Sentry.
  */
 export function safeStringify(value: unknown): string {
@@ -61,7 +61,7 @@ type AspspAuthFailureReason = 'nested-code' | 'nested-status' | 'keyword-match';
  * Strict keyword pattern for cases where Enable Banking strips `error_data`
  * (seen in dev) but the wrapper / nested message still describes an auth or
  * consent failure. Each alternative is anchored to phrases that strongly
- * imply auth state — bare words like "forbidden" or "unauthorized" were
+ * imply auth state – bare words like "forbidden" or "unauthorized" were
  * intentionally removed to avoid promoting unrelated 400s (e.g. "Operation
  * forbidden by bank during maintenance") into connection deactivations.
  */
@@ -112,6 +112,46 @@ export function classifyAspspError({
 }
 
 /**
+ * True when 400 from /transactions means the bank refused the lookback as too wide.
+ * Callers shrink the window and retry on true.
+ *
+ * PSD2 caps vary per ASPSP (BNP Fortis BE: 2y; others: 90d; German banks: up to 7y)
+ * with no API to query the limit up-front.
+ *
+ * Match: concept anchor + limit verb + time window, all three required.
+ *   concept    – datefrom/dateto OR range/period/window/lookback/history/interval/transactions
+ *   limit verb – within/exceed/maximum/limited to/older than
+ *   time       – N day/week/month/year
+ * Each alone is too permissive (e.g. "account opened within last 30 days" hits
+ * limit + time but has no concept anchor).
+ */
+export function isAspspDateRangeRejection(error: unknown): boolean {
+  if (!(error instanceof BadRequestError)) return false;
+
+  const details = error.details as
+    | { method?: unknown; aspspError?: unknown; aspspMessage?: unknown; aspspErrorDataStr?: unknown }
+    | undefined;
+  if (!details) return false;
+  if (details.method !== 'getAccountTransactions') return false;
+  if (details.aspspError !== 'ASPSP_ERROR') return false;
+
+  const parts: string[] = [];
+  if (typeof details.aspspMessage === 'string') parts.push(details.aspspMessage);
+  if (typeof details.aspspErrorDataStr === 'string') parts.push(details.aspspErrorDataStr);
+  if (typeof error.message === 'string') parts.push(error.message);
+  const haystack = parts.join(' ').toLowerCase();
+  if (haystack === '') return false;
+
+  const hasLimitVerb = /\b(?:within|exceed|exceeds|maximum|max|limited?\s+to|older\s+than)\b/.test(haystack);
+  const hasTimeWindow = /\b\d+\s*(?:day|week|month|year)s?\b/.test(haystack);
+  if (!hasLimitVerb || !hasTimeWindow) return false;
+
+  const hasFieldName = /\b(?:datefrom|dateto)\b/.test(haystack);
+  const hasRangeNoun = /\b(?:range|period|window|lookback|history|interval|transactions?)\b/.test(haystack);
+  return hasFieldName || hasRangeNoun;
+}
+
+/**
  * Exponential backoff delays for transient-error retries on slow ASPSP
  * transactions endpoints. List length defines the max retry count.
  */
@@ -122,7 +162,7 @@ const RETRYABLE_AXIOS_CODES = new Set(['ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET'
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Retry only on transient signals — timeouts, dropped connections, and 5xx —
+ * Retry only on transient signals – timeouts, dropped connections, and 5xx –
  * never on 4xx, since those won't change on retry and would either burn time
  * (BadRequestError) or hide a real auth failure (ForbiddenError).
  */
@@ -216,13 +256,13 @@ export class EnableBankingApiClient {
       };
 
       // Detect ASPSP-wrapped session/token expiry. Upstream returns 401/403 but
-      // Enable Banking surfaces it as 400 ASPSP_ERROR — promote to ForbiddenError
+      // Enable Banking surfaces it as 400 ASPSP_ERROR – promote to ForbiddenError
       // so the provider's handleProviderError marks the connection inactive and
       // the UI prompts the user to reconnect.
       if (status === 400 && aspspError === 'ASPSP_ERROR') {
         const classification = classifyAspspError({ detail, aspspMessage });
         if (classification.matched) {
-          // Audit log so we can review classifications in Sentry — the wrong
+          // Audit log so we can review classifications in Sentry – the wrong
           // call here either silently lets a broken connection keep failing
           // (false negative) or kills a working one (false positive).
           logger.warn(
