@@ -43,26 +43,27 @@ describe('Change Base Currency', () => {
         raw: true,
       });
 
-      // Create some transactions
-      const tx1 = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 5000, // 50 EUR
-          transactionType: TRANSACTION_TYPES.expense,
-          time: new Date('2024-01-15').toISOString(),
+      // Create some transactions in parallel
+      const [tx1, tx2] = await Promise.all([
+        helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 5000, // 50 EUR
+            transactionType: TRANSACTION_TYPES.expense,
+            time: new Date('2024-01-15').toISOString(),
+          }),
+          raw: true,
         }),
-        raw: true,
-      });
-
-      const tx2 = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 2000, // 20 EUR
-          transactionType: TRANSACTION_TYPES.income,
-          time: new Date('2024-01-20').toISOString(),
+        helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 2000, // 20 EUR
+            transactionType: TRANSACTION_TYPES.income,
+            time: new Date('2024-01-20').toISOString(),
+          }),
+          raw: true,
         }),
-        raw: true,
-      });
+      ]);
 
       // Store original refAmounts for comparison
       const originalTx1RefAmount = tx1[0].refAmount;
@@ -88,8 +89,10 @@ describe('Change Base Currency', () => {
       expect(newBaseCurrency.isDefaultCurrency).toBe(true);
 
       // Verify transactions were recalculated
-      const updatedTx1 = await Transactions.findByPk(tx1[0].id, { raw: true });
-      const updatedTx2 = await Transactions.findByPk(tx2[0].id, { raw: true });
+      const [updatedTx1, updatedTx2] = await Promise.all([
+        Transactions.findByPk(tx1[0].id, { raw: true }),
+        Transactions.findByPk(tx2[0].id, { raw: true }),
+      ]);
 
       expect(updatedTx1!.refCurrencyCode).toEqual('USD');
       expect(updatedTx2!.refCurrencyCode).toEqual('USD');
@@ -129,49 +132,51 @@ describe('Change Base Currency', () => {
       // Additionally add EUR currency
       await helpers.addUserCurrencies({ currencyCodes: ['EUR'], raw: true });
 
-      // Create accounts in different currencies
-      const uahAccount = await helpers.createAccount({
-        payload: {
-          name: 'EUR Account',
-          currencyCode: 'EUR',
-          initialBalance: 10000,
-          creditLimit: 0,
-          accountCategory: ACCOUNT_CATEGORIES.general,
-        },
-        raw: true,
-      });
-
-      const eurAccount = await helpers.createAccount({
-        payload: {
-          name: 'EUR Account',
-          currencyCode: 'EUR',
-          initialBalance: 5000,
-          creditLimit: 0,
-          accountCategory: ACCOUNT_CATEGORIES.general,
-        },
-        raw: true,
-      });
-
-      // Create transactions for each account
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: uahAccount.id,
-          amount: 2000,
-          transactionType: TRANSACTION_TYPES.expense,
-          time: new Date('2024-01-15').toISOString(),
+      // Create accounts in different currencies in parallel
+      const [uahAccount, eurAccount] = await Promise.all([
+        helpers.createAccount({
+          payload: {
+            name: 'EUR Account',
+            currencyCode: 'EUR',
+            initialBalance: 10000,
+            creditLimit: 0,
+            accountCategory: ACCOUNT_CATEGORIES.general,
+          },
+          raw: true,
         }),
-        raw: true,
-      });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: eurAccount.id,
-          amount: 1000,
-          transactionType: TRANSACTION_TYPES.income,
-          time: new Date('2024-01-16').toISOString(),
+        helpers.createAccount({
+          payload: {
+            name: 'EUR Account',
+            currencyCode: 'EUR',
+            initialBalance: 5000,
+            creditLimit: 0,
+            accountCategory: ACCOUNT_CATEGORIES.general,
+          },
+          raw: true,
         }),
-        raw: true,
-      });
+      ]);
+
+      // Create transactions for each account in parallel
+      await Promise.all([
+        helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: uahAccount.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: new Date('2024-01-15').toISOString(),
+          }),
+          raw: true,
+        }),
+        helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: eurAccount.id,
+            amount: 1000,
+            transactionType: TRANSACTION_TYPES.income,
+            time: new Date('2024-01-16').toISOString(),
+          }),
+          raw: true,
+        }),
+      ]);
 
       // Change base currency to USD
       const response = await helpers.makeRequest({
@@ -186,8 +191,10 @@ describe('Change Base Currency', () => {
       expect(response.body.response.accountsUpdated).toEqual(2);
 
       // Verify all accounts were recalculated
-      const updatedUahAccount = await Accounts.findByPk(uahAccount.id);
-      const updatedEurAccount = await Accounts.findByPk(eurAccount.id);
+      const [updatedUahAccount, updatedEurAccount] = await Promise.all([
+        Accounts.findByPk(uahAccount.id),
+        Accounts.findByPk(eurAccount.id),
+      ]);
 
       expect(updatedUahAccount!.refInitialBalance).toBeDefined();
       expect(updatedEurAccount!.refInitialBalance).toBeDefined();
@@ -329,36 +336,36 @@ describe('Change Base Currency', () => {
         raw: true,
       });
 
-      // Create transactions on different dates
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 2000,
-          transactionType: TRANSACTION_TYPES.expense,
-          time: new Date('2024-01-10').toISOString(),
+      // Create transactions on different dates in parallel
+      await Promise.all([
+        helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 2000,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: new Date('2024-01-10').toISOString(),
+          }),
+          raw: true,
         }),
-        raw: true,
-      });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 3000,
-          transactionType: TRANSACTION_TYPES.income,
-          time: new Date('2024-01-15').toISOString(),
+        helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 3000,
+            transactionType: TRANSACTION_TYPES.income,
+            time: new Date('2024-01-15').toISOString(),
+          }),
+          raw: true,
         }),
-        raw: true,
-      });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 1000,
-          transactionType: TRANSACTION_TYPES.expense,
-          time: new Date('2024-01-20').toISOString(),
+        helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 1000,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: new Date('2024-01-20').toISOString(),
+          }),
+          raw: true,
         }),
-        raw: true,
-      });
+      ]);
 
       // Change base currency
       await helpers.makeRequest({
@@ -525,25 +532,33 @@ describe('Change Base Currency', () => {
 
       // ========== STEP 4: Store original ref values and calculate expected values for new base (USD) ==========
 
-      // Get original values before currency change
-      const originalUahTransactions = await Transactions.findAll({ where: { accountId: uahAccount.id }, raw: true });
-      const originalEurTransactions = await Transactions.findAll({ where: { accountId: eurAccount.id }, raw: true });
-      const originalUsdTransactions = await Transactions.findAll({ where: { accountId: usdAccount.id }, raw: true });
-
-      const originalUahAccount = (await Accounts.findByPk(uahAccount.id))!;
-      const originalEurAccount = (await Accounts.findByPk(eurAccount.id))!;
-      const originalUsdAccount = (await Accounts.findByPk(usdAccount.id))!;
-
-      const originalInvestmentTx = await InvestmentTransaction.findByPk(investmentTx.id);
-      const originalTransfer = await PortfolioTransfers.findByPk(transfer.id);
-
-      await Holdings.findOne({
-        where: { portfolioId: portfolio.id, securityId: vooSecurity.id },
-      });
-
-      const originalPortfolioBalance = await PortfolioBalances.findOne({
-        where: { portfolioId: portfolio.id, currencyCode: 'USD' },
-      });
+      // Get original values before currency change.
+      // ORDER BY id keeps the row order stable across the pre/post snapshots so
+      // the index-based comparisons below pair the same row to itself. Without
+      // ORDER BY Postgres returns rows in whatever order it pleases – after the
+      // UUID v7 PK migration, post-UPDATE row order no longer matches the
+      // pre-UPDATE order, and the comparisons would line up different rows.
+      const [
+        originalUahTransactions,
+        originalEurTransactions,
+        originalUsdTransactions,
+        originalUahAccount,
+        originalEurAccount,
+        originalUsdAccount,
+        originalInvestmentTx,
+        originalTransfer,
+        originalPortfolioBalance,
+      ] = await Promise.all([
+        Transactions.findAll({ where: { accountId: uahAccount.id }, order: [['id', 'ASC']], raw: true }),
+        Transactions.findAll({ where: { accountId: eurAccount.id }, order: [['id', 'ASC']], raw: true }),
+        Transactions.findAll({ where: { accountId: usdAccount.id }, order: [['id', 'ASC']], raw: true }),
+        Accounts.findByPk(uahAccount.id),
+        Accounts.findByPk(eurAccount.id),
+        Accounts.findByPk(usdAccount.id),
+        InvestmentTransaction.findByPk(investmentTx.id),
+        PortfolioTransfers.findByPk(transfer.id),
+        PortfolioBalances.findOne({ where: { portfolioId: portfolio.id, currencyCode: 'USD' } }),
+      ]);
 
       // Store what the current base currency is for verification
       const currentBaseCurrency = (await helpers.getUserCurrencies()).find((i) => i.isDefaultCurrency)!;
@@ -590,9 +605,11 @@ describe('Change Base Currency', () => {
 
       // ========== STEP 7: Verify transactions were recalculated correctly ==========
 
-      const updatedUahTransactions = await Transactions.findAll({ where: { accountId: uahAccount.id }, raw: true });
-      const updatedEurTransactions = await Transactions.findAll({ where: { accountId: eurAccount.id }, raw: true });
-      const updatedUsdTransactions = await Transactions.findAll({ where: { accountId: usdAccount.id }, raw: true });
+      const [updatedUahTransactions, updatedEurTransactions, updatedUsdTransactions] = await Promise.all([
+        Transactions.findAll({ where: { accountId: uahAccount.id }, order: [['id', 'ASC']], raw: true }),
+        Transactions.findAll({ where: { accountId: eurAccount.id }, order: [['id', 'ASC']], raw: true }),
+        Transactions.findAll({ where: { accountId: usdAccount.id }, order: [['id', 'ASC']], raw: true }),
+      ]);
 
       // All transactions should now have USD as refCurrencyCode
       expect(updatedUahTransactions.every((tx) => tx.refCurrencyCode === 'USD')).toBe(true);
@@ -639,21 +656,11 @@ describe('Change Base Currency', () => {
       const uahTxDate = new Date(sampleUahTx.time);
       const eurTxDate = new Date(sampleEurTx.time);
 
-      // Get UAH->USD rate using the actual service (same as what the service uses)
-      const uahExchangeRate = await userExchangeRateService.getExchangeRate({
-        userId,
-        date: uahTxDate,
-        baseCode: 'UAH',
-        quoteCode: 'USD',
-      });
-
-      // Get EUR->USD rate using the actual service
-      const eurExchangeRate = await userExchangeRateService.getExchangeRate({
-        userId,
-        date: eurTxDate,
-        baseCode: 'EUR',
-        quoteCode: 'USD',
-      });
+      // Get UAH->USD and EUR->USD rates using the actual service (same as what the service uses)
+      const [uahExchangeRate, eurExchangeRate] = await Promise.all([
+        userExchangeRateService.getExchangeRate({ userId, date: uahTxDate, baseCode: 'UAH', quoteCode: 'USD' }),
+        userExchangeRateService.getExchangeRate({ userId, date: eurTxDate, baseCode: 'EUR', quoteCode: 'USD' }),
+      ]);
 
       // Validate UAH transaction calculation using the actual service function
       const expectedUahRefAmount = calculateRefAmountFromParams({
@@ -674,9 +681,11 @@ describe('Change Base Currency', () => {
 
       // ========== STEP 8: Verify accounts were recalculated correctly ==========
 
-      const updatedUahAccount = await Accounts.findByPk(uahAccount.id);
-      const updatedEurAccount = await Accounts.findByPk(eurAccount.id);
-      const updatedUsdAccount = await Accounts.findByPk(usdAccount.id);
+      const [updatedUahAccount, updatedEurAccount, updatedUsdAccount] = await Promise.all([
+        Accounts.findByPk(uahAccount.id),
+        Accounts.findByPk(eurAccount.id),
+        Accounts.findByPk(usdAccount.id),
+      ]);
 
       // Original balances and currencies should be preserved
       expect(updatedUahAccount!.initialBalance).toEqual(originalUahAccount!.initialBalance);
@@ -698,9 +707,16 @@ describe('Change Base Currency', () => {
       // Note: refCurrentBalance might differ from currentBalance due to calculation timing
       expect(updatedUsdAccount!.refCurrentBalance).toBeDefined();
 
-      // ========== STEP 9: Verify investment transactions were recalculated correctly ==========
+      // ========== STEPS 9-12: Fetch all post-change records in parallel ==========
 
-      const updatedInvestmentTx = await InvestmentTransaction.findByPk(investmentTx.id);
+      const [updatedInvestmentTx, updatedTransfer, updatedHolding, updatedPortfolioBalance] = await Promise.all([
+        InvestmentTransaction.findByPk(investmentTx.id),
+        PortfolioTransfers.findByPk(transfer.id),
+        Holdings.findOne({ where: { portfolioId: portfolio.id, securityId: vooSecurity.id } }),
+        PortfolioBalances.findOne({ where: { portfolioId: portfolio.id, currencyCode: 'USD' } }),
+      ]);
+
+      // ========== STEP 9: Verify investment transactions were recalculated correctly ==========
 
       // Original values preserved
       expect(updatedInvestmentTx!.amount).toEqual(originalInvestmentTx!.amount);
@@ -714,8 +730,6 @@ describe('Change Base Currency', () => {
 
       // ========== STEP 10: Verify portfolio transfers were recalculated correctly ==========
 
-      const updatedTransfer = await PortfolioTransfers.findByPk(transfer.id);
-
       if (updatedTransfer) {
         // Original amount preserved
         expect(updatedTransfer.amount).toEqual(originalTransfer!.amount);
@@ -727,10 +741,6 @@ describe('Change Base Currency', () => {
 
       // ========== STEP 11: Verify holdings were recalculated correctly ==========
 
-      const updatedHolding = (await Holdings.findOne({
-        where: { portfolioId: portfolio.id, securityId: vooSecurity.id },
-      }))!;
-
       // Values should exist
       expect(updatedHolding!.refCostBasis).toBeDefined();
 
@@ -738,10 +748,6 @@ describe('Change Base Currency', () => {
       expect(updatedHolding!.refCostBasis.toNumber()).toEqual(updatedHolding!.costBasis.toNumber());
 
       // ========== STEP 12: Verify portfolio balances were recalculated correctly ==========
-
-      const updatedPortfolioBalance = await PortfolioBalances.findOne({
-        where: { portfolioId: portfolio.id, currencyCode: 'USD' },
-      });
 
       // Original values preserved
       expect(updatedPortfolioBalance!.availableCash).toEqual(originalPortfolioBalance!.availableCash);
@@ -755,15 +761,10 @@ describe('Change Base Currency', () => {
 
       // ========== STEP 13: Verify balance history was rebuilt ==========
 
-      const uahBalances = await Balances.findAll({
-        where: { accountId: uahAccount.id },
-        order: [['date', 'ASC']],
-      });
-
-      const eurBalances = await Balances.findAll({
-        where: { accountId: eurAccount.id },
-        order: [['date', 'ASC']],
-      });
+      const [uahBalances, eurBalances] = await Promise.all([
+        Balances.findAll({ where: { accountId: uahAccount.id }, order: [['date', 'ASC']] }),
+        Balances.findAll({ where: { accountId: eurAccount.id }, order: [['date', 'ASC']] }),
+      ]);
 
       // Should have balance records
       expect(uahBalances.length).toBeGreaterThan(0);
@@ -771,36 +772,38 @@ describe('Change Base Currency', () => {
 
       // ========== STEP 14: Verify new entities use new base currency ==========
 
-      // Create a new transaction after currency change
-      const newTx = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: eurAccount.id,
-          amount: 10000, // 100 EUR
-          transactionType: TRANSACTION_TYPES.expense,
-          time: new Date().toISOString(),
+      // Create a new transaction and a new account in parallel after the currency change
+      const [newTx, newAccount] = await Promise.all([
+        helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: eurAccount.id,
+            amount: 10000, // 100 EUR
+            transactionType: TRANSACTION_TYPES.expense,
+            time: new Date().toISOString(),
+          }),
+          raw: true,
         }),
-        raw: true,
-      });
+        helpers.createAccount({
+          payload: {
+            name: 'New EUR Account',
+            currencyCode: 'EUR',
+            initialBalance: 10000,
+            creditLimit: 0,
+            accountCategory: ACCOUNT_CATEGORIES.general,
+          },
+          raw: true,
+        }),
+      ]);
+
+      const [newTxFromDb, newAccountFromDb] = await Promise.all([
+        Transactions.findByPk(newTx[0].id),
+        Accounts.findByPk(newAccount.id),
+      ]);
 
       // New transaction should have USD as refCurrencyCode
-      const newTxFromDb = await Transactions.findByPk(newTx[0].id);
       expect(newTxFromDb!.refCurrencyCode).toEqual('USD');
 
-      // Create new account
-      const newAccount = await helpers.createAccount({
-        payload: {
-          name: 'New EUR Account',
-          currencyCode: 'EUR',
-          initialBalance: 10000,
-          creditLimit: 0,
-          accountCategory: ACCOUNT_CATEGORIES.general,
-        },
-        raw: true,
-      });
-
       // New account ref values should be in USD terms
-      const newAccountFromDb = await Accounts.findByPk(newAccount.id);
-      // EUR to USD conversion should result in different values
       expect(newAccountFromDb!.refInitialBalance).toBeDefined();
       // Since EUR != USD, ref should differ from original
       expect(newAccountFromDb!.refInitialBalance).not.toEqual(newAccountFromDb!.initialBalance);
@@ -819,26 +822,25 @@ describe('Change Base Currency', () => {
         raw: true,
       });
 
-      // Get original values from DB (in cents) for consistent comparison
-      const originalAccount = await Accounts.findByPk(accountWithInitialBalance.id);
+      // Get original values, the balance record, and the balance-history API snapshot in parallel
+      const [originalAccount, balanceBeforeChange, balanceHistoryBefore] = await Promise.all([
+        Accounts.findByPk(accountWithInitialBalance.id),
+        Balances.findOne({ where: { accountId: accountWithInitialBalance.id } }),
+        helpers.makeRequest({
+          method: 'get',
+          url: '/stats/balance-history',
+          payload: { accountId: accountWithInitialBalance.id },
+        }),
+      ]);
       const originalRefInitialBalance = originalAccount!.refInitialBalance;
 
       // Verify balance record exists before currency change
-      const balanceBeforeChange = await Balances.findOne({
-        where: { accountId: accountWithInitialBalance.id },
-      });
       expect(balanceBeforeChange).toBeDefined();
       expect(balanceBeforeChange!.amount).toEqual(originalRefInitialBalance);
 
-      // Get balance history via API before change (response is in decimals)
-      const balanceHistoryBefore = await helpers.makeRequest({
-        method: 'get',
-        url: '/stats/balance-history',
-        payload: { accountId: accountWithInitialBalance.id },
-      });
+      // Verify balance history API response (in decimals) matches the account's refInitialBalance
       const balancesBeforeData = helpers.extractResponse(balanceHistoryBefore);
       expect(balancesBeforeData.length).toEqual(1);
-      // API response is in decimals, so compare with API response value
       expect(balancesBeforeData[0].amount).toEqual(accountWithInitialBalance.refInitialBalance);
 
       // Change base currency to USD
@@ -848,28 +850,30 @@ describe('Change Base Currency', () => {
         payload: { newCurrencyCode: 'USD' },
       });
 
+      // Fetch the balance row plus per-account and combined balance-history snapshots in parallel
+      const [balanceAfterChange, balanceHistoryAfter, combinedBalanceHistory] = await Promise.all([
+        Balances.findOne({ where: { accountId: accountWithInitialBalance.id } }),
+        helpers.makeRequest({
+          method: 'get',
+          url: '/stats/balance-history',
+          payload: { accountId: accountWithInitialBalance.id },
+        }),
+        helpers.makeRequest({
+          method: 'get',
+          url: '/stats/balance-history',
+        }),
+      ]);
+
       // Verify balance record still exists after currency change
-      const balanceAfterChange = await Balances.findOne({
-        where: { accountId: accountWithInitialBalance.id },
-      });
       expect(balanceAfterChange).toBeDefined();
       expect(balanceAfterChange!.amount.toNumber()).toBeGreaterThan(0);
 
       // Verify balance history is still available via API
-      const balanceHistoryAfter = await helpers.makeRequest({
-        method: 'get',
-        url: '/stats/balance-history',
-        payload: { accountId: accountWithInitialBalance.id },
-      });
       const balancesAfterData = helpers.extractResponse(balanceHistoryAfter);
       expect(balancesAfterData.length).toBeGreaterThan(0);
       expect(balancesAfterData[0].amount).toBeGreaterThan(0);
 
       // Verify combined balance history includes this account
-      const combinedBalanceHistory = await helpers.makeRequest({
-        method: 'get',
-        url: '/stats/balance-history',
-      });
       const combinedData = helpers.extractResponse(combinedBalanceHistory);
       const accountBalances = combinedData.filter(
         (b: { accountId: string }) => b.accountId === accountWithInitialBalance.id,
