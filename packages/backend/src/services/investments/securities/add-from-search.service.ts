@@ -1,4 +1,4 @@
-import type { SecuritySearchResult } from '@bt/shared/types/investments';
+import { type SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
@@ -8,6 +8,7 @@ import { dataProviderFactory } from '../data-providers';
 import { toProviderSymbol } from '../data-providers/base-provider';
 import { ProviderHttpError } from '../data-providers/errors';
 import { addOrUpdateFromProvider } from '../securities-manage';
+import { findSecurityByIdentity } from './identity';
 
 interface AddSecurityFromSearchParams {
   searchResult: SecuritySearchResult;
@@ -34,14 +35,12 @@ const addSecurityFromSearchImpl = async ({
   // Step 1: Create or update the security using existing service
   await addOrUpdateFromProvider([searchResult]);
 
-  // Step 2: Get the created/updated security from database via the canonical
-  // (providerName, providerSymbol) tuple – symbol alone is not unique across providers.
-  const security = await Securities.findOne({
-    where: {
-      providerName: searchResult.providerName,
-      providerSymbol: searchResult.providerSymbol,
-    },
-  });
+  // Step 2: Resolve the created/updated row via the shared identity helper –
+  // the same key shape `addOrUpdateFromProvider` used for dedup. A non-crypto
+  // search result whose existing row was sourced from a different provider
+  // (e.g. an FMP-sourced VOO matched against a Yahoo hit) resolves to that
+  // existing row instead of looking like a fresh insert.
+  const security = await findSecurityByIdentity(searchResult);
 
   if (!security) {
     throw new Error(
@@ -52,11 +51,17 @@ const addSecurityFromSearchImpl = async ({
   // Step 3: Fetch and store the latest price immediately (unless skipped)
   let latestPrice: AddSecurityFromSearchResult['latestPrice'];
 
+  // Route the latest-price call through `priceSourceSymbol` when set so the
+  // row's first stored price comes from a venue with dense data instead of
+  // the sparse ISIN-suffix listing (Yahoo ISIN-fallback path). Declared outside
+  // the try so the catch can reference it when annotating failure logs.
+  const priceQuerySymbol = searchResult.priceSourceSymbol ?? searchResult.providerSymbol;
+
   if (!skipPriceFetch) {
     try {
       const provider = dataProviderFactory.getProvider(searchResult.providerName);
-      // TODO: conside using composite provider here
-      const priceData = await provider.getLatestPrice(toProviderSymbol(searchResult.providerSymbol));
+      // TODO: consider using composite provider here
+      const priceData = await provider.getLatestPrice(toProviderSymbol(priceQuerySymbol));
 
       // Store the price in SecurityPricing table
       await SecurityPricing.create({
@@ -96,9 +101,14 @@ const addSecurityFromSearchImpl = async ({
             : null;
       const isExpectedPaywall = httpError?.status === 402;
       const severity = isExpectedPaywall ? 'info' : 'warn';
-      logger[severity](`Failed to fetch latest price for ${searchResult.symbol} (will be backfilled by daily sync)`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
+      const routedVia =
+        priceQuerySymbol !== searchResult.providerSymbol ? ` (routed via priceSourceSymbol=${priceQuerySymbol})` : '';
+      logger[severity](
+        `Failed to fetch latest price for ${searchResult.symbol}${routedVia} (will be backfilled by daily sync)`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
       // Don't throw - the security creation succeeded, price fetch is optional
     }
   }

@@ -3,6 +3,7 @@ import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Securities from '@models/investments/securities.model';
 import * as helpers from '@tests/helpers';
 
 import { FmpClient, type FmpSearchResult } from '../data-providers/clients/fmp-client';
@@ -481,5 +482,92 @@ describe('GET /investments/securities/search', () => {
     // GOOG should not be marked as in portfolio
     const googleResult = results.find((r) => r.symbol === 'GOOG');
     expect(googleResult?.isInPortfolio).toBe(false);
+  });
+
+  it('marks isInPortfolio=true when the holding was sourced via a different provider than the current search hit', async () => {
+    // Repro for the bug: existing holdings created when primary search was FMP
+    // have `providerName='fmp'`. After the yahoo-finance2 bump those same
+    // logical securities returned via Yahoo carry `providerName='yahoo'`.
+    // Dedup must treat them as the same row for the badge to render.
+    const portfolio = await helpers.createPortfolio({ raw: true });
+    const [security] = await helpers.seedSecurities([{ symbol: 'MSFT', name: 'Microsoft', currencyCode: 'USD' }]);
+    if (!security) throw new Error('Failed to seed security');
+    await helpers.createHolding({
+      payload: { portfolioId: portfolio.id, securityId: security.id },
+      raw: true,
+    });
+
+    // Confirm the seeded security is NOT under providerName=yahoo (so the
+    // legacy (providerName, providerSymbol) key would have missed it).
+    expect(security.providerName).not.toBe(SECURITY_PROVIDER.yahoo);
+
+    // The mock now returns MSFT via Yahoo (the post-bump flow).
+    dataProviderFactory.clearCache();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockedFmpClient.mockImplementation(() => ({ search: mockedFmpSearch }) as any);
+    // Make FMP empty so Yahoo is the sole hit
+    mockedFmpSearch.mockResolvedValue([]);
+    const YahooFinance = (await import('yahoo-finance2')).default;
+    const mockedYahoo = jest.mocked(YahooFinance);
+    const mockedYahooSearch = jest.fn<any>().mockResolvedValue({
+      quotes: [{ symbol: 'MSFT', longname: 'Microsoft', typeDisp: 'Equity', isYahooFinance: true }],
+    });
+    const mockedYahooQuote = jest.fn<any>().mockResolvedValue({ symbol: 'MSFT', currency: 'USD' });
+    mockedYahoo.mockImplementation(
+      () =>
+        ({
+          search: mockedYahooSearch,
+          quote: mockedYahooQuote,
+          chart: jest.fn<any>(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any,
+    );
+
+    const results = await helpers.searchSecurities({
+      payload: { query: 'MSFT', portfolioId: portfolio.id },
+      raw: true,
+    });
+
+    const msftResult = results.find((r) => r.symbol === 'MSFT');
+    expect(msftResult).toBeDefined();
+    expect(msftResult?.providerName).toBe(SECURITY_PROVIDER.yahoo);
+    expect(msftResult?.isInPortfolio).toBe(true);
+  });
+
+  it('keeps crypto dedup keyed by (providerName, providerSymbol) so the existing CoinGecko BTC matches', async () => {
+    // Crypto dedup MUST stay (providerName, providerSymbol) – the ticker "BTC"
+    // alone is ambiguous (could be Bitcoin's CoinGecko slug, a different chain's
+    // wrapped BTC, etc.). Sanity-checks that the crypto branch of
+    // `securityIdentityKey` matches an existing BTC holding to a fresh
+    // CoinGecko search hit for the same coin.
+    const portfolio = await helpers.createPortfolio({ raw: true });
+
+    // Seed BTC directly via the model so we control the providerSymbol slug.
+    const btc = await Securities.create({
+      symbol: 'BTC',
+      providerSymbol: 'bitcoin',
+      providerName: SECURITY_PROVIDER.coingecko,
+      assetClass: ASSET_CLASS.crypto,
+      currencyCode: 'USD',
+      cryptoCurrencyCode: 'BTC',
+      name: 'Bitcoin',
+    });
+    await helpers.createHolding({
+      payload: { portfolioId: portfolio.id, securityId: btc.id },
+      raw: true,
+    });
+
+    mockedCoingeckoSearch.mockResolvedValue({
+      coins: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', market_cap_rank: 1 }],
+    });
+
+    const results = await helpers.searchSecurities({
+      payload: { query: 'BTC', portfolioId: portfolio.id, assetClass: ASSET_CLASS.crypto },
+      raw: true,
+    });
+
+    const btcResult = results.find((r) => r.providerSymbol === 'bitcoin');
+    expect(btcResult).toBeDefined();
+    expect(btcResult?.isInPortfolio).toBe(true);
   });
 });

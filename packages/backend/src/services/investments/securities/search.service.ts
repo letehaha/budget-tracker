@@ -12,6 +12,7 @@ import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 
 import { dataProviderFactory } from '../data-providers';
+import { securityIdentityKey } from './identity';
 
 interface SearchOptions {
   query: string;
@@ -35,10 +36,11 @@ interface HoldingProviderLookup {
   security?: {
     providerName: SECURITY_PROVIDER;
     providerSymbol: string;
+    symbol: string | null;
+    currencyCode: string;
+    assetClass: ASSET_CLASS;
   };
 }
-
-const portfolioKey = (providerName: string, providerSymbol: string) => `${providerName}:${providerSymbol}`;
 
 export const searchSecurities = async ({
   query,
@@ -79,7 +81,7 @@ export const searchSecurities = async ({
           {
             model: Securities,
             as: 'security',
-            attributes: ['providerName', 'providerSymbol'],
+            attributes: ['providerName', 'providerSymbol', 'symbol', 'currencyCode', 'assetClass'],
           },
           {
             model: Portfolios,
@@ -91,18 +93,17 @@ export const searchSecurities = async ({
         ],
       })) as unknown as HoldingProviderLookup[];
 
-      // Set of `${providerName}:${providerSymbol}` tuples already held in this portfolio.
-      // Keying on symbol alone would yield false positives when the same ticker exists
-      // under multiple providers (common with crypto).
+      // Set of identity keys already held in this portfolio. The key shape
+      // differs by assetClass – see `securityIdentityKey` for rationale.
       const portfolioKeys = new Set(
         holdings
-          .map((h) => (h.security ? portfolioKey(h.security.providerName, h.security.providerSymbol) : null))
+          .map((h) => (h.security ? securityIdentityKey(h.security) : null))
           .filter((key): key is string => key !== null),
       );
 
       limitedResults = limitedResults.map((result) => ({
         ...result,
-        isInPortfolio: portfolioKeys.has(portfolioKey(result.providerName, result.providerSymbol)),
+        isInPortfolio: portfolioKeys.has(securityIdentityKey(result)),
       }));
     }
 

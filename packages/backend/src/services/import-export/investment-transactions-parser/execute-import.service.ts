@@ -3,16 +3,16 @@
  *
  * For each holding row:
  *   1. Ensure the Security exists (create from the resolvedSecurity snapshot if not).
- *   2. Ensure the Holding for (portfolio, security) exists — create or merge.
+ *   2. Ensure the Holding for (portfolio, security) exists – create or merge.
  *   3. Insert each child transaction via the canonical
  *      `createInvestmentTransaction` service so cash balance, refAmount, and
  *      holding recalculation all run.
  *
  * Each holding now carries its own asset class (via `resolvedSecurity.assetClass`).
- * The batch may mix stocks and crypto freely — no top-level assetClass.
+ * The batch may mix stocks and crypto freely – no top-level assetClass.
  *
  * Wrapping the whole thing in one transaction would deadlock against
- * `createInvestmentTransaction`'s own withTransaction usage — and partial
+ * `createInvestmentTransaction`'s own withTransaction usage – and partial
  * imports are a legitimate outcome anyway (one bad row shouldn't bin the rest).
  * Instead we collect per-row errors and return them.
  */
@@ -25,6 +25,7 @@ import Securities from '@models/investments/securities.model';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { addOrUpdateFromProvider } from '@services/investments/securities-manage';
 import { syncHistoricalPrices } from '@services/investments/securities-price/historical-sync.service';
+import { findSecurityByIdentity } from '@services/investments/securities/identity';
 import { createInvestmentTransaction } from '@services/investments/transactions/create.service';
 
 interface ExecuteImportParams {
@@ -53,7 +54,7 @@ export async function executeInvestmentImport({
   const newSecurityIds = new Set<string>();
 
   for (const holding of holdings) {
-    // Guard rails — UI is meant to block these but the API contract still has
+    // Guard rails – UI is meant to block these but the API contract still has
     // to defend itself. Same for the per-row validation below. Each guard
     // bumps `skippedHoldings` and pushes a warning so the response actually
     // tells the user why N rows didn't land.
@@ -72,7 +73,7 @@ export async function executeInvestmentImport({
       continue;
     }
 
-    // Verify the target portfolio belongs to this user. Important — the API
+    // Verify the target portfolio belongs to this user. Important – the API
     // shape lets the client pass arbitrary portfolio ids.
     const portfolio = await Portfolios.findOne({
       where: { id: holding.portfolioId, userId },
@@ -93,7 +94,7 @@ export async function executeInvestmentImport({
     // unique-key collisions from concurrent imports, or provider lookups that
     // hit a transient error. Without this wrapper a single throw would abort
     // the entire batch and leave the user with prior holdings half-committed
-    // and a generic 500 — instead we skip just this holding and continue.
+    // and a generic 500 – instead we skip just this holding and continue.
     let security: Securities | null = null;
     let preloadedHoldingRef: Holdings | null = null;
     try {
@@ -102,25 +103,24 @@ export async function executeInvestmentImport({
         security = await Securities.findByPk(resolvedSecurity.securityId);
       }
       if (!security) {
-        // Build a SecuritySearchResult from the full resolvedSecurity snapshot —
+        // Build a SecuritySearchResult from the full resolvedSecurity snapshot –
         // it carries every field the upsert needs (assetClass, providerName,
-        // currencyCode, exchangeName, cryptoCurrencyCode). No more hardcoded
-        // CoinGecko-specific fallbacks.
-        await addOrUpdateFromProvider([
-          {
-            symbol: resolvedSecurity.symbol.toUpperCase(),
-            providerSymbol: resolvedSecurity.providerSymbol,
-            name: resolvedSecurity.name,
-            assetClass: resolvedSecurity.assetClass,
-            providerName,
-            currencyCode: resolvedSecurity.currencyCode,
-            cryptoCurrencyCode: resolvedSecurity.cryptoCurrencyCode,
-            exchangeName: resolvedSecurity.exchangeName,
-          },
-        ]);
-        security = await Securities.findOne({
-          where: { providerName, providerSymbol: resolvedSecurity.providerSymbol },
-        });
+        // currencyCode, exchangeName, cryptoCurrencyCode).
+        const provisional = {
+          symbol: resolvedSecurity.symbol.toUpperCase(),
+          providerSymbol: resolvedSecurity.providerSymbol,
+          name: resolvedSecurity.name,
+          assetClass: resolvedSecurity.assetClass,
+          providerName,
+          currencyCode: resolvedSecurity.currencyCode,
+          cryptoCurrencyCode: resolvedSecurity.cryptoCurrencyCode,
+          exchangeName: resolvedSecurity.exchangeName,
+        };
+        await addOrUpdateFromProvider([provisional]);
+        // Resolve via the same identity helper the upsert used so a non-crypto
+        // row sourced under a different provider name still finds the existing
+        // securityId instead of looking like a fresh insert.
+        security = await findSecurityByIdentity(provisional);
         if (!security) {
           throw new Error('Provider upsert completed but the security row was not created.');
         }
@@ -131,7 +131,7 @@ export async function executeInvestmentImport({
       // 2. Resolve or create Holding for (portfolio, security).
       await addUserCurrencies([{ userId, currencyCode: holding.currencyCode }]);
 
-      // Load with the same includes `createInvestmentTransaction` would —
+      // Load with the same includes `createInvestmentTransaction` would –
       // `security` for the crypto/stocks branch and `portfolio` for ownership.
       // Loading once here lets the per-row inner loop skip those queries.
       const holdingIncludes = [
@@ -176,12 +176,12 @@ export async function executeInvestmentImport({
       continue;
     }
 
-    // Defensive — the catch above already `continue`s on failure, but narrow
+    // Defensive – the catch above already `continue`s on failure, but narrow
     // `security` to non-null for the per-transaction loop below.
     if (!security) continue;
 
     // 3. Insert child transactions one by one through the canonical service
-    // — it handles refAmount, recalculation, and cash-balance updates.
+    // – it handles refAmount, recalculation, and cash-balance updates.
     for (const tx of holding.transactions) {
       if (skipSet.has(tx.tempId)) {
         skippedPossibleDuplicates += 1;
@@ -190,7 +190,7 @@ export async function executeInvestmentImport({
 
       // Non-trade categories (dividend, transfer, tax, fee, cancel, other) ride
       // the same wire shape but `createInvestmentTransaction` only models
-      // buy/sell properly today — running them through would silently
+      // buy/sell properly today – running them through would silently
       // misclassify the row's transactionType (everything-not-buy becomes
       // income, which is wrong for fee/tax). Surface them as failures with a
       // clear reason instead.
@@ -204,7 +204,7 @@ export async function executeInvestmentImport({
 
       try {
         // `preloadedHoldingRef` skips a portfolio + holding lookup per row.
-        // tx.side is now narrowed to 'buy' | 'sell' — identical string values
+        // tx.side is now narrowed to 'buy' | 'sell' – identical string values
         // to the matching INVESTMENT_TRANSACTION_CATEGORY members.
         await createInvestmentTransaction({
           userId,
@@ -220,7 +220,7 @@ export async function executeInvestmentImport({
         });
         createdTransactions += 1;
       } catch (error) {
-        // Don't abort the whole batch — surface the failure in the response so
+        // Don't abort the whole batch – surface the failure in the response so
         // the user knows N rows didn't actually land despite the 200.
         const message = error instanceof Error ? error.message : String(error);
         const reason = `Failed to import a "${holding.parsedSymbol}" ${tx.side} on ${tx.date}: ${message}`;
@@ -235,7 +235,7 @@ export async function executeInvestmentImport({
   }
 
   // Fire historical price sync for any newly-created securities. Fire-and-forget,
-  // lock-protected per security inside the service — mirrors createHolding.
+  // lock-protected per security inside the service – mirrors createHolding.
   for (const securityId of newSecurityIds) {
     syncHistoricalPrices(securityId).catch((error) => {
       logger.error({

@@ -32,18 +32,29 @@ const syncHistoricalPricesImpl = async (securityId: string): Promise<{ count: nu
   // Use composite provider which automatically handles US vs non-US routing and fallbacks
   const compositeProvider = dataProviderFactory.getProvider();
 
+  // `priceQuerySymbol` returns the same value as `providerSymbol` for ordinary
+  // securities; for rows with `priceSourceSymbol` set it returns the local-ticker
+  // venue the Yahoo ISIN-fallback path chose for dense historical data.
+  const querySymbol = security.priceQuerySymbol;
+  const routedVia = querySymbol !== security.providerSymbol ? ` (routed via priceSourceSymbol=${querySymbol})` : '';
+
   logger.info(
-    `Fetching historical prices for ${security.symbol ?? security.providerSymbol} (${security.assetClass}, ${yearsBack}yr) using composite provider`,
+    `Fetching historical prices for ${security.symbol ?? security.providerSymbol} (${security.assetClass}, ${yearsBack}yr)${routedVia} using composite provider`,
   );
 
-  const prices: PriceData[] = await compositeProvider.getHistoricalPrices(toProviderSymbol(security.providerSymbol), {
+  const prices: PriceData[] = await compositeProvider.getHistoricalPrices(toProviderSymbol(querySymbol), {
     startDate,
     endDate,
     assetClass: security.assetClass,
   });
 
   if (prices.length === 0) {
-    logger.warn(`No historical prices found for ${security.symbol ?? security.providerSymbol}.`);
+    // When the row has an explicit `priceSourceSymbol` and the provider still
+    // returns nothing, that source is broken (delisted, renamed, throttled) –
+    // not the silent "no data on this ticker" case for ordinary rows. Warn so
+    // it shows up in alerts instead of getting buried in info-level noise.
+    const severity = querySymbol !== security.providerSymbol ? 'warn' : 'info';
+    logger[severity](`No historical prices found for ${security.symbol ?? security.providerSymbol}${routedVia}.`);
     return { count: 0 };
   }
 

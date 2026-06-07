@@ -13,7 +13,7 @@ export interface SecurityModel {
 
   /**
    * The trading symbol or ticker associated with the security, used to uniquely
-   * identify it on stock exchanges. NOT globally unique on its own — for
+   * identify it on stock exchanges. NOT globally unique on its own – for
    * crypto, many coins share a symbol (e.g. "BTC"). Use providerSymbol +
    * providerName as the canonical identifier.
    */
@@ -27,6 +27,17 @@ export interface SecurityModel {
    * the canonical lookup key for a Security row.
    */
   providerSymbol: string;
+
+  /**
+   * Symbol the price-sync pipeline queries instead of `providerSymbol`. Set
+   * when `providerSymbol` identifies a venue with sparse historical data on
+   * the provider (e.g. an ISIN-suffix UCITS registration listing like
+   * `IE00B53L3W79.IR`) but the same fund trades on another exchange (`SXRT.DE`,
+   * `MEUD.PA`, …) under a local ticker with full daily history. Same currency
+   * as the row by construction so stored prices remain meaningful against
+   * `currencyCode`. NULL for ordinary securities.
+   */
+  priceSourceSymbol: string | null;
 
   /**
    * The CUSIP number (Committee on Uniform Securities Identification Procedures) is a unique identifier
@@ -97,7 +108,7 @@ export interface SecurityModel {
   /**
    * Optional URL pointing to a logo/icon for this security. Populated for
    * providers that surface image assets (e.g. CoinGecko returns thumb/small/large
-   * URLs in its search response). Stocks/ETFs are left null — the frontend
+   * URLs in its search response). Stocks/ETFs are left null – the frontend
    * derives a logo.dev URL from the ticker symbol on render.
    */
   logoUrl: string | null;
@@ -141,6 +152,14 @@ export interface SecuritySearchResult {
    * (providerName, providerSymbol) instead of the non-unique ticker.
    */
   providerSymbol: string;
+  /**
+   * Symbol the backend should query for this security's prices instead of
+   * `providerSymbol`. Set by the Yahoo ISIN-fallback path when the ISIN-suffix
+   * row would otherwise have no usable historical data and a same-currency
+   * local-ticker listing exists. See `SecurityModel.priceSourceSymbol`.
+   * Nullable to match the model column; omitted by clients that don't supply it.
+   */
+  priceSourceSymbol?: string | null;
   name: string;
   assetClass: ASSET_CLASS;
   providerName: SECURITY_PROVIDER; // The provider that sourced this security data.

@@ -30,6 +30,22 @@ export default class Securities extends Model {
   @Column({ type: DataType.STRING, allowNull: false })
   providerSymbol!: string;
 
+  // Symbol the price-sync pipeline queries instead of `providerSymbol`. Set
+  // when `providerSymbol` identifies a venue with sparse historical data on
+  // Yahoo (e.g. an ISIN-suffix UCITS registration listing like
+  // `IE00B53L3W79.IR`) but the same fund trades on another exchange (`SXRT.DE`,
+  // `MEUD.PA`, …) under a local ticker with full daily history. Same currency
+  // as the row by construction so stored prices remain meaningful against
+  // `currencyCode`. NULL for ordinary securities – sync reads `providerSymbol`.
+  // Read via the `priceQuerySymbol` getter so call sites don't repeat the
+  // `?? providerSymbol` fallback.
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  priceSourceSymbol!: string | null;
+
+  get priceQuerySymbol(): string {
+    return this.priceSourceSymbol ?? this.providerSymbol;
+  }
+
   @Index
   @Column({ type: DataType.STRING, allowNull: true })
   cusip!: string | null;

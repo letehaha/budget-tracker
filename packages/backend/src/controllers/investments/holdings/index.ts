@@ -17,6 +17,7 @@ import { z } from 'zod';
 const SecuritySearchResultSchema = z.object({
   symbol: z.string(),
   providerSymbol: z.string(),
+  priceSourceSymbol: z.string().trim().min(1).max(255).optional(),
   name: z.string(),
   assetClass: z.nativeEnum(ASSET_CLASS),
   providerName: z.nativeEnum(SECURITY_PROVIDER),

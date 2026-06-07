@@ -1,4 +1,4 @@
-import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import { SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
 import { sleep } from '@common/helpers';
 import { logger } from '@js/utils';
 import SecurityCurrencyCache from '@models/investments/security-currency-cache.model';
@@ -15,6 +15,8 @@ import {
   SecurityPriceFetchInput,
   toProviderSymbol,
 } from './base-provider';
+import { resolveByIsinFallback } from './yahoo/isin-resolver';
+import { ISIN_PATTERN, mapYahooTypeToAssetClass, remapUcitsType } from './yahoo/utils';
 
 const DEFAULT_HISTORY_YEARS = 5;
 const CURRENCY_RESOLVE_CONCURRENCY = 5;
@@ -40,26 +42,36 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
     try {
       logger.info(`Searching Yahoo Finance for: ${query}`);
 
-      const searchResult = await this.client.search(query, { newsCount: 0 });
-      const quotes = searchResult.quotes ?? [];
+      const normalizedQuery = query.trim().toUpperCase();
+      const isIsinQuery = ISIN_PATTERN.test(normalizedQuery);
 
-      if (quotes.length === 0) {
-        logger.info(`No search results found for query: ${query}`);
-        return [];
-      }
+      // `validateResult: false` is load-bearing. yahoo-finance2 ships fixed
+      // JSON Schemas against an evolving Yahoo response shape; one renamed
+      // field makes the validator throw `FailedYahooValidationError` even
+      // though the parsed payload is intact. The fields we read (`symbol`,
+      // `typeDisp`, `exchange`, `exchDisp`, `isYahooFinance`, `longname`,
+      // `shortname`) are read defensively below.
+      const searchResult = (await this.client.search(query, { newsCount: 0 }, { validateResult: false })) as {
+        quotes?: Array<Record<string, unknown>>;
+      };
+      const quotes = Array.isArray(searchResult.quotes) ? searchResult.quotes : [];
 
-      // Filter to only Yahoo Finance results with symbols
-      const validQuotes = quotes.filter((q) => 'symbol' in q && !!q.symbol && q.isYahooFinance !== false);
+      // Filter to only Yahoo Finance results with string-typed symbols.
+      // `'symbol' in q` doesn't guarantee value type; `validateResult: false`
+      // means every read is defensive.
+      const validQuotes = quotes.filter(
+        (q) => typeof q.symbol === 'string' && q.symbol.length > 0 && q.isYahooFinance !== false,
+      );
 
-      // Resolve currencies via 2-tier cache
-      const symbols = validQuotes.map((q) => String(q.symbol));
+      const symbols = validQuotes.map((q) => q.symbol as string);
       const currencyMap = await this.resolveCurrencies(symbols);
 
       const results: SecuritySearchResult[] = [];
+      const seenSymbols = new Set<string>();
       const droppedSymbols: string[] = [];
 
       for (const q of validQuotes) {
-        const symbol = String(q.symbol);
+        const symbol = q.symbol as string;
         const currencyCode = currencyMap.get(symbol);
         if (!currencyCode) {
           droppedSymbols.push(symbol);
@@ -67,22 +79,31 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
         }
 
         const name =
-          ('longname' in q ? String(q.longname) : undefined) ||
-          ('shortname' in q ? String(q.shortname) : undefined) ||
+          (typeof q.longname === 'string' ? q.longname : undefined) ||
+          (typeof q.shortname === 'string' ? q.shortname : undefined) ||
           symbol;
 
+        // Yahoo tags UCITS ETFs as `MUTUALFUND` even though they trade
+        // intraday. For an ISIN-shaped query the primary search only returns
+        // exchange-traded forms – none are real NAV-priced mutuals – so the
+        // remap is safe here. Non-ISIN queries keep the original classifier
+        // so genuine mutual funds still route to `fixed_income`.
+        const rawType = typeof q.typeDisp === 'string' ? q.typeDisp : undefined;
+        const effectiveType = remapUcitsType({ rawType, isIsinQuery });
+
+        seenSymbols.add(symbol);
         results.push({
           symbol,
           providerSymbol: symbol,
           name,
-          assetClass: this.mapTypeToAssetClass('typeDisp' in q ? String(q.typeDisp) : undefined),
+          assetClass: mapYahooTypeToAssetClass(effectiveType),
           providerName: this.providerName,
-          exchangeName: 'exchDisp' in q ? String(q.exchDisp) : undefined,
-          exchangeAcronym: 'exchange' in q ? String(q.exchange) : undefined,
+          exchangeName: typeof q.exchDisp === 'string' ? q.exchDisp : undefined,
+          exchangeAcronym: typeof q.exchange === 'string' ? q.exchange : undefined,
           exchangeMic: undefined,
           currencyCode,
           cusip: undefined,
-          isin: undefined,
+          isin: isIsinQuery ? normalizedQuery : undefined,
         });
       }
 
@@ -90,6 +111,29 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
         logger.info(
           `Yahoo search: dropped ${droppedSymbols.length} symbols without currency: ${droppedSymbols.join(', ')}`,
         );
+      }
+
+      // For ISIN-shaped queries, also run the multi-venue fanout regardless of
+      // primary hit count. Yahoo's `search()` for an ISIN returns at most one
+      // "canonical" venue match (often Milan or Frankfurt), but users typing
+      // an ISIN want to pick their broker's listing – that's what the fallback
+      // surfaces. Dedupe against `seenSymbols` so primary hits aren't lost.
+      if (isIsinQuery) {
+        logger.info(`Yahoo: running ISIN fallback for ${normalizedQuery} (primary returned ${results.length})`);
+        const fallbackResults = await resolveByIsinFallback({
+          client: this.client,
+          isin: normalizedQuery,
+          seenSymbolsFromPrimary: seenSymbols,
+        });
+        for (const r of fallbackResults) {
+          if (!seenSymbols.has(r.symbol)) {
+            seenSymbols.add(r.symbol);
+            results.push(r);
+          }
+        }
+        if (fallbackResults.length > 0) {
+          logger.info(`Yahoo ISIN fallback added ${fallbackResults.length} match(es) for ${normalizedQuery}`);
+        }
       }
 
       logger.info(`Yahoo search returned ${results.length} results for: ${query}`);
@@ -240,7 +284,10 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      logger.info(`Failed to read currency cache: ${errorMsg}. Proceeding with API calls`);
+      // Cache miss isn't routine – the read is a single Postgres SELECT; a
+      // failure here usually means pool exhaustion, replica lag, or schema
+      // drift. Demoting to info hides real ops issues.
+      logger.warn(`Failed to read currency cache: ${errorMsg}. Proceeding with API calls`);
     }
 
     // Tier 2: Fetch uncached symbols from Yahoo API in batches
@@ -273,24 +320,14 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
       if (toCache.length > 0) {
         SecurityCurrencyCache.bulkCreate(toCache, { ignoreDuplicates: true }).catch((error) => {
           const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-          logger.info(`Failed to store currency cache entries: ${errorMsg}`);
+          // bulkCreate failures are real (UQ violation aside – that's the
+          // ignoreDuplicates case): pool exhaustion, RO replica, schema drift.
+          // Surface at warn so cache thrash gets noticed instead of buried.
+          logger.warn(`Failed to store currency cache entries: ${errorMsg}`);
         });
       }
     }
 
     return currencyMap;
-  }
-
-  private mapTypeToAssetClass(typeDisp?: string): ASSET_CLASS {
-    if (!typeDisp) return ASSET_CLASS.stocks;
-
-    const type = typeDisp.toLowerCase();
-
-    if (type === 'cryptocurrency') return ASSET_CLASS.crypto;
-    if (type === 'option') return ASSET_CLASS.options;
-    if (type === 'bond' || type === 'mutualfund') return ASSET_CLASS.fixed_income;
-
-    // equity, etf, index, and others → stocks
-    return ASSET_CLASS.stocks;
   }
 }
