@@ -178,7 +178,14 @@ export const i18n: I18n<any, {}, {}, string, false> = createI18n<{}, string, fal
  * Load a specific chunk for a locale
  */
 async function loadChunk({ locale, chunk }: { locale: string; chunk: I18nChunkName }): Promise<void> {
-  const localeChunks = loadedChunks.get(locale) ?? new Set<I18nChunkName>();
+  // Create + store the per-locale Set synchronously (pre-await) so parallel
+  // loadChunk calls share one reference; otherwise the last resolver overwrites
+  // the others and the tracked Set loses chunks setLocale() then re-fetches.
+  let localeChunks = loadedChunks.get(locale);
+  if (!localeChunks) {
+    localeChunks = new Set<I18nChunkName>();
+    loadedChunks.set(locale, localeChunks);
+  }
 
   // Skip if already loaded
   if (localeChunks.has(chunk)) {
@@ -205,7 +212,6 @@ async function loadChunk({ locale, chunk }: { locale: string; chunk: I18nChunkNa
 
     // Track as loaded
     localeChunks.add(chunk);
-    loadedChunks.set(locale, localeChunks);
 
     if (process.env.NODE_ENV === 'development') {
       console.log(`[i18n] Loaded chunk "${chunk}" for locale "${locale}"`);
