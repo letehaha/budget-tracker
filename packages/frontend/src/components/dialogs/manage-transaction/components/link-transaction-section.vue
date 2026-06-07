@@ -41,7 +41,7 @@ const showLinkButton = computed(
   () => props.isTransferTx && !linkedTransaction.value && !props.isFormCreation && !props.oppositeTransaction,
 );
 
-const showUnlinkButton = computed(() => props.isTransferTx && props.oppositeTransaction);
+const showUnlinkButton = computed(() => props.isTransferTx && props.oppositeTransaction && !props.isFormCreation);
 
 const showLinkedTransaction = computed(() => linkedTransaction.value && props.isTransferTx && !props.isFormCreation);
 
