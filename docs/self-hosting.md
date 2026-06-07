@@ -408,6 +408,7 @@ This mode skips TLS — do not run it on a public VPS.
 | `POLYGON_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `FMP_API_KEY` | Investments / market data          |
 | `API_LAYER_API_KEYS`                                      | Premium currency-rate fallback     |
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / etc.             | AI transaction categorisation      |
+| `VITE_LOGO_DEV_TOKEN`                                     | Brand logos (subs, banks, tickers) |
 | `SENTRY_DSN`, `POSTHOG_KEY` (+ `VITE_*` twins)            | Error tracking / analytics         |
 | `ADMIN_USERS`                                             | Comma-separated admin usernames    |
 | `AUTH_RP_ID`, `AUTH_RP_NAME`                              | WebAuthn / passkey support         |

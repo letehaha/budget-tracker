@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { getBankInstitutionLogoUrl } from './find-bank-institution';
+
+vi.stubEnv('VITE_LOGO_DEV_TOKEN', 'test-token');
 
 describe('getBankInstitutionLogoUrl', () => {
   it('returns a logo URL for an exact bank name match', () => {
@@ -40,5 +42,15 @@ describe('getBankInstitutionLogoUrl', () => {
     const url = getBankInstitutionLogoUrl({ bankName: '   ' });
 
     expect(url).toBeNull();
+  });
+
+  it('returns null when VITE_LOGO_DEV_TOKEN is missing', () => {
+    vi.stubEnv('VITE_LOGO_DEV_TOKEN', '');
+
+    const url = getBankInstitutionLogoUrl({ bankName: 'Wise' });
+
+    expect(url).toBeNull();
+
+    vi.stubEnv('VITE_LOGO_DEV_TOKEN', 'test-token');
   });
 });
