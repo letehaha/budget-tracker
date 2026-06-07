@@ -509,9 +509,10 @@ const submit = () => {
 };
 
 const unlinkTransactions = () => {
+  if (!transaction.value) return;
   unlinkMutation.mutate({
-    transferIds: [transaction.value!.transferId],
-    transactionId: transaction.value?.id,
+    transferIds: [transaction.value.transferId],
+    transactionId: transaction.value.id,
     oppositeTransactionId: oppositeTransaction.value?.id,
   });
 };

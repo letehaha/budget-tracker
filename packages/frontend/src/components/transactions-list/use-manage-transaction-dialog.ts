@@ -62,8 +62,14 @@ export function useManageTransactionDialog() {
     } else if (baseTx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
       const isValid = baseTx.transactionType === TRANSACTION_TYPES.expense;
 
-      modalOptions.transaction = isValid ? baseTx : oppositeTx;
-      modalOptions.oppositeTransaction = isValid ? oppositeTx : baseTx;
+      // Swap only when the opposite half is available. Otherwise the dialog
+      // would open with transaction=undefined while still carrying an
+      // oppositeTransaction, putting the form in "creation mode" with stale
+      // linking state that the unlink path can't handle.
+      if (isValid || oppositeTx) {
+        modalOptions.transaction = isValid ? baseTx : oppositeTx;
+        modalOptions.oppositeTransaction = isValid ? oppositeTx : baseTx;
+      }
     }
 
     isDialogVisible.value = true;
