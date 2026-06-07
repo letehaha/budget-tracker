@@ -64,6 +64,7 @@ jobs:
           csp-extra-connect: https://*.preview.moneymatter.app
           csp-extra-form-action: https://*.preview.moneymatter.app
           logo-dev-token: ${{ secrets.VITE_LOGO_DEV_TOKEN }}
+          app-commit-hash: ${{ github.sha }}
           image-tag: pr-${{ env.PR_NUMBER }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}

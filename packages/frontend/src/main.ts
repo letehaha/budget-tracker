@@ -1,6 +1,7 @@
 import '@/styles/global.css';
 import './registerServiceWorker';
 
+import { installChunkReloadHandler } from '@/common/utils/chunk-reload-handler';
 import { identifyCurrentTheme } from '@/common/utils/color-theme';
 import { patchMetaViewportMaxScaleForiOS } from '@/common/utils/meta-viewport-max-scale';
 import { i18n, initializeLocale, loadChunks } from '@/i18n';
@@ -17,6 +18,9 @@ import App from './app.vue';
 
 identifyCurrentTheme();
 patchMetaViewportMaxScaleForiOS();
+if (!import.meta.env.DEV) {
+  installChunkReloadHandler();
+}
 
 // Initialize locale from localStorage/browser
 const initialLocale = initializeLocale();
