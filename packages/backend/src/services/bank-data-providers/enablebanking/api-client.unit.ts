@@ -8,7 +8,9 @@ jest.mock('@js/utils/logger', () => ({
   },
 }));
 
-import { classifyAspspError, safeStringify } from './api-client';
+import { BadRequestError, ForbiddenError } from '@js/errors';
+
+import { classifyAspspError, isAspspDateRangeRejection, safeStringify } from './api-client';
 
 describe('safeStringify', () => {
   it('serializes plain objects normally', () => {
@@ -134,5 +136,133 @@ describe('classifyAspspError', () => {
         }).matched,
       ).toBe(false);
     });
+  });
+});
+
+const makeAspspBadRequest = ({
+  method = 'getAccountTransactions',
+  aspspError = 'ASPSP_ERROR',
+  aspspMessage,
+  aspspErrorDataStr,
+  message = 'Some upstream error',
+}: {
+  method?: string;
+  aspspError?: string;
+  aspspMessage?: string;
+  aspspErrorDataStr?: string;
+  message?: string;
+}): BadRequestError =>
+  new BadRequestError({
+    message,
+    details: { method, aspspError, aspspMessage, aspspErrorDataStr },
+  });
+
+describe('isAspspDateRangeRejection', () => {
+  it.each([
+    'The dateFrom and dateTo must be within 2 years',
+    'The dateFrom and dateTo must be within 730 days',
+    'dateFrom cannot be older than 24 months',
+  ])('matches BNP-Fortis-style "dateFrom/dateTo" phrasing: "%s"', (aspspMessage) => {
+    expect(isAspspDateRangeRejection(makeAspspBadRequest({ aspspMessage }))).toBe(true);
+  });
+
+  it.each([
+    'Date range cannot exceed 90 days',
+    'Maximum lookback is 365 days',
+    'Transaction history limited to 13 months',
+    'Requested period exceeds 2 years',
+    'Transactions older than 90 days are not available',
+  ])('matches generic limit phrasings: "%s"', (aspspMessage) => {
+    expect(isAspspDateRangeRejection(makeAspspBadRequest({ aspspMessage }))).toBe(true);
+  });
+
+  it('matches when limit phrasing is in aspspErrorDataStr only', () => {
+    expect(
+      isAspspDateRangeRejection(
+        makeAspspBadRequest({
+          aspspMessage: 'Error interacting with ASPSP',
+          aspspErrorDataStr: '{"status":400,"message":"date range cannot exceed 90 days"}',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('does NOT match generic 400s from the transactions endpoint with no date vocabulary', () => {
+    expect(isAspspDateRangeRejection(makeAspspBadRequest({ aspspMessage: 'Account not found for this session' }))).toBe(
+      false,
+    );
+  });
+
+  it('does NOT match a limit-keyword without a time-unit number', () => {
+    expect(isAspspDateRangeRejection(makeAspspBadRequest({ aspspMessage: 'Date range cannot be empty' }))).toBe(false);
+  });
+
+  it('does NOT match a time-unit number without a limit keyword', () => {
+    expect(isAspspDateRangeRejection(makeAspspBadRequest({ aspspMessage: 'Transaction posted 5 days ago' }))).toBe(
+      false,
+    );
+  });
+
+  it('does NOT match errors from other endpoints', () => {
+    expect(
+      isAspspDateRangeRejection(
+        makeAspspBadRequest({
+          method: 'createSession',
+          aspspMessage: 'The dateFrom and dateTo must be within 2 years',
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('does NOT match non-BadRequest errors', () => {
+    const forbidden = new ForbiddenError({
+      message: 'auth failure',
+      details: { method: 'getAccountTransactions', aspspMessage: 'dateFrom expired' },
+    });
+    expect(isAspspDateRangeRejection(forbidden)).toBe(false);
+  });
+
+  it('does NOT match plain Error instances', () => {
+    expect(isAspspDateRangeRejection(new Error('dateFrom 2 years'))).toBe(false);
+  });
+
+  it('does NOT match BadRequestError with no details', () => {
+    expect(isAspspDateRangeRejection(new BadRequestError({ message: 'dateFrom 2 years' }))).toBe(false);
+  });
+
+  it('does NOT match Enable Banking own-validation 400s (different aspspError tag)', () => {
+    expect(
+      isAspspDateRangeRejection(
+        makeAspspBadRequest({ aspspError: 'INVALID_REQUEST', aspspMessage: 'dateTo is required' }),
+      ),
+    ).toBe(false);
+  });
+
+  it('does NOT match when aspspError tag is missing entirely', () => {
+    const err = new BadRequestError({
+      message: 'something',
+      details: { method: 'getAccountTransactions', aspspMessage: 'history limited to 13 months' },
+    });
+    expect(isAspspDateRangeRejection(err)).toBe(false);
+  });
+
+  it('does NOT match "dateTo is required" – field name without a limit verb', () => {
+    expect(isAspspDateRangeRejection(makeAspspBadRequest({ aspspMessage: 'dateTo is required' }))).toBe(false);
+  });
+
+  it('does NOT match limit-verb + time-window without a concept anchor (no field name, no range noun)', () => {
+    expect(
+      isAspspDateRangeRejection(
+        makeAspspBadRequest({ aspspMessage: 'Account opened within last 30 days; limited access' }),
+      ),
+    ).toBe(false);
+  });
+
+  it('matches when the limit phrasing appears only in error.message (not aspspMessage)', () => {
+    const err = new BadRequestError({
+      message: 'Date range cannot exceed 90 days',
+      details: { method: 'getAccountTransactions', aspspError: 'ASPSP_ERROR' },
+    });
+    expect(isAspspDateRangeRejection(err)).toBe(true);
   });
 });

@@ -31,7 +31,18 @@ import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
-import { EnableBankingApiClient } from './api-client';
+import { EnableBankingApiClient, isAspspDateRangeRejection } from './api-client';
+
+/**
+ * Initial-sync lookback schedule. PSD2 cap unknown per bank, no API to query,
+ * so try widest first then shrink on rejection.
+ *   1095d ≈ 3y – German banks
+ *   730d  = 2y – BNP Paribas Fortis BE
+ *   365d  = 1y – Swedbank, Baltic ASPSPs
+ *   90d   = PSD2 baseline (unattended access)
+ */
+const INITIAL_SYNC_FALLBACK_DAYS = [1095, 730, 365, 90] as const;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 import { generateState, validatePrivateKey, validateState } from './jwt-utils';
 import {
   CreditDebitIndicator,
@@ -221,7 +232,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       state: undefined, // Clear state after successful auth
       consentValidFrom: consentValidFrom.toISOString(),
       consentValidUntil: consentValidUntil.toISOString(),
-      // Clear the "needs reauth" markers — successful OAuth means the prior
+      // Clear the "needs reauth" markers – successful OAuth means the prior
       // auth failure is resolved. Without this, the connection would still
       // appear in `connectionsNeedingReauth` whenever it's later marked
       // inactive for any reason (manual disconnect, future failure path).
@@ -694,20 +705,24 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             order: [['time', 'DESC']],
           });
 
-          // Default to last 3 years if no transactions found
-          const days = 1095;
-          const from = latestTransaction
-            ? new Date(latestTransaction.time)
-            : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
           const to = new Date();
 
-          // Fetch transactions using uid for API calls, but externalId (identification_hash) for hashing
-          const providerTransactions = await this.fetchTransactions(
-            connectionId,
-            apiUid,
-            { from, to },
-            account.externalId,
-          );
+          // Incremental: `from` anchored to last tx – bank lookback can't be exceeded.
+          // Initial: no anchor, must negotiate window with bank.
+          const providerTransactions = latestTransaction
+            ? await this.fetchTransactions(
+                connectionId,
+                apiUid,
+                { from: new Date(latestTransaction.time), to },
+                account.externalId,
+              )
+            : await this.fetchInitialTransactionsWithShrinkingWindow({
+                connectionId,
+                apiUid,
+                accountExternalId: account.externalId,
+                accountId: account.id,
+                to,
+              });
 
           // Sort transactions by date (ascending) so the last transaction for each day
           // will have the correct end-of-day balance in balance_after_transaction.
@@ -764,7 +779,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
             // `merchantName` here is the debtor/creditor name lifted from the raw
             // Enable Banking payload (or the literal 'Unknown' sentinel when both
-            // sides were absent — which is NOT a real merchant string). Forward
+            // sides were absent – which is NOT a real merchant string). Forward
             // the cleaned value into `externalData.merchantName` for audit and
             // historical Payee-promotion scans, and as `rawMerchantName` for
             // the per-row extraction pipeline.
@@ -814,6 +829,55 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     } catch (error) {
       return this.handleProviderError({ error, connectionId });
     }
+  }
+
+  /**
+   * Initial-sync: shrink lookback until bank accepts it. Schedule in
+   * INITIAL_SYNC_FALLBACK_DAYS. Only date-range rejections retry –
+   * auth/network/5xx rethrow immediately. On full exhaustion, log the
+   * cascade before rethrowing (caller would otherwise see only the 90d failure).
+   */
+  private async fetchInitialTransactionsWithShrinkingWindow({
+    connectionId,
+    apiUid,
+    accountExternalId,
+    accountId,
+    to,
+  }: {
+    connectionId: string;
+    apiUid: string;
+    accountExternalId: string;
+    accountId: string;
+    to: Date;
+  }): Promise<ProviderTransaction[]> {
+    let lastError: unknown;
+    for (const days of INITIAL_SYNC_FALLBACK_DAYS) {
+      const from = new Date(to.getTime() - days * MS_PER_DAY);
+      try {
+        return await this.fetchTransactions(connectionId, apiUid, { from, to }, accountExternalId);
+      } catch (error) {
+        if (!isAspspDateRangeRejection(error)) {
+          logger.info(`Enable Banking initial sync: non-retryable error during ${days}-day window attempt`, {
+            connectionId,
+            accountId,
+          });
+          throw error;
+        }
+        lastError = error;
+        logger.info(`Enable Banking initial sync: ASPSP rejected ${days}-day lookback; trying smaller window`, {
+          connectionId,
+          accountId,
+        });
+      }
+    }
+    logger.error(
+      {
+        message: 'Enable Banking initial sync: every fallback lookback window rejected by ASPSP',
+        error: lastError as Error,
+      },
+      { connectionId, accountId, attempted: [...INITIAL_SYNC_FALLBACK_DAYS] },
+    );
+    throw lastError;
   }
 
   // ============================================================================
@@ -1140,7 +1204,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
   /**
    * Tiered match for an incoming provider transaction against existing rows.
-   * Order matters — earlier paths are stronger guarantees.
+   * Order matters – earlier paths are stronger guarantees.
    */
   private async findExistingTransactionForSync({
     accountId,
@@ -1152,7 +1216,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const entryReference = tx.metadata?.entryReference as string | undefined;
 
     // (1) entry_reference: ASPSP promises this is unique + immutable per account.
-    // Cheapest, strongest match — short-circuits the rest.
+    // Cheapest, strongest match – short-circuits the rest.
     if (entryReference) {
       const byEntryRef = await Transactions.findOne({
         where: {
@@ -1195,7 +1259,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         Sequelize.literal(`"externalData"->>'${isExpense ? 'creditorAccount' : 'debtorAccount'}'`),
         counterpartyIban,
       ),
-      // Only consider rows that have no entryReference yet — anything with
+      // Only consider rows that have no entryReference yet – anything with
       // one already would have been handled by step (1).
       Sequelize.where(Sequelize.literal(`"externalData"->>'entryReference'`), { [Op.is]: null as unknown as null }),
     ];
@@ -1217,9 +1281,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * entryReference, one without) within ±2 days and delete the orphan.
    *
    * Conservative: only collapses when (a) both rows share the same
-   * counterparty IBAN — mirroring the live-sync gate in
+   * counterparty IBAN – mirroring the live-sync gate in
    * findExistingTransactionForSync so different-party same-amount payments
-   * don't get merged — and (b) the orphan has no dependent rows and no
+   * don't get merged – and (b) the orphan has no dependent rows and no
    * user-edited scalars (note / categoryId / paymentType) that diverge from
    * the canonical. Returns counts for observability and idempotency
    * assertions.
@@ -1265,7 +1329,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         // IBAN gate: require both rows to share the same counterparty IBAN.
         // Expenses use creditorAccount (money going out to a creditor), income
         // uses debtorAccount. If the orphan has no IBAN (e.g. a manual entry
-        // that happens to share amount/currency/type with a bank row), skip —
+        // that happens to share amount/currency/type with a bank row), skip –
         // same rule findExistingTransactionForSync applies for live syncs.
         const orphanIban = this.getCounterpartyIban(orphan);
         if (!orphanIban) continue;
@@ -1282,7 +1346,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         if (!safeToDelete) {
           skippedCount++;
           logger.info(
-            `Reconcile: skipping orphan tx ${orphan.id} (account ${account.id}) — has dependent rows or divergent user edits`,
+            `Reconcile: skipping orphan tx ${orphan.id} (account ${account.id}) – has dependent rows or divergent user edits`,
           );
           continue;
         }
@@ -1312,7 +1376,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    *   - dependent rows exist (splits, tags, refunds, transferId, group
    *     membership, etc.), OR
    *   - the orphan has user-mutable scalars (note, categoryId, paymentType)
-   *     that diverge from the canonical — those values would be silently lost
+   *     that diverge from the canonical – those values would be silently lost
    *     on destroy(), which is strictly worse than leaving a duplicate behind.
    */
   private async orphanIsSafeToDelete({
