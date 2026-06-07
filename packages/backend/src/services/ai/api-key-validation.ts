@@ -9,7 +9,7 @@ import { AI_MODEL_ID } from './models-config';
  */
 const VALIDATION_MODELS: Record<AI_PROVIDER, AI_MODEL_ID> = {
   [AI_PROVIDER.openai]: AI_MODEL_ID['openai/gpt-4o-mini'],
-  [AI_PROVIDER.anthropic]: AI_MODEL_ID['anthropic/claude-3-5-haiku-latest'],
+  [AI_PROVIDER.anthropic]: AI_MODEL_ID['anthropic/claude-haiku-4-5'],
   [AI_PROVIDER.google]: AI_MODEL_ID['google/gemini-2.5-flash-lite'],
   [AI_PROVIDER.groq]: AI_MODEL_ID['groq/llama-3.1-8b-instant'],
 };

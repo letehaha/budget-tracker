@@ -43,14 +43,4 @@ export const ANTHROPIC_MODELS: Record<Extract<AI_MODEL_ID, `anthropic/${string}`
     costTier: 'medium',
     pricing: { inputPerMillion: 3, outputPerMillion: 15 },
   },
-  [AI_MODEL_ID['anthropic/claude-3-5-haiku-latest']]: {
-    id: AI_MODEL_ID['anthropic/claude-3-5-haiku-latest'],
-    name: 'Claude 3.5 Haiku',
-    provider: AI_PROVIDER.anthropic,
-    description: 'Fast and cost-effective',
-    contextWindow: 200_000,
-    capabilities: ['text-generation', 'structured-output', 'fast-inference'],
-    costTier: 'low',
-    pricing: { inputPerMillion: 0.8, outputPerMillion: 4 },
-  },
 };
