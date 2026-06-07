@@ -66,6 +66,38 @@ function resetProviderMocks() {
   mockedYahooChart.mockRejectedValue(new Error('Yahoo mock: not configured'));
 }
 
+/**
+ * Number of exchange suffixes the Yahoo provider fans out across when the
+ * primary search returns empty for an ISIN-shaped query. Must stay in sync
+ * with `ISIN_EXCHANGE_SUFFIXES` in yahoo-provider.ts.
+ */
+const ISIN_EXCHANGE_SUFFIXES_COUNT = 6;
+
+/**
+ * Queues `count` consecutive "Not Found" rejections on the Yahoo quote mock.
+ * Used after the ISIN-suffix fan-out tests seed N successful resolves to
+ * stub out the remaining suffixes. The thrown Error's message satisfies the
+ * provider's `isExpectedNotFoundError` check so it stays at info-level
+ * instead of error-logging.
+ */
+function rejectRemainingQuotesAsNotFound(count: number) {
+  for (let i = 0; i < count; i++) {
+    mockedYahooQuote.mockRejectedValueOnce(new Error('Quote not found'));
+  }
+}
+
+/**
+ * Builds a faux `FailedYahooValidationError` matching yahoo-finance2's shape.
+ * The provider narrows its broad catch on `err.name === 'FailedYahooValidationError'`,
+ * so the rejection must carry that name to be treated as schema drift (info)
+ * rather than an operational failure (error).
+ */
+function makeYahooSchemaError(): Error {
+  const err = new Error('Failed Yahoo Schema validation');
+  err.name = 'FailedYahooValidationError';
+  return err;
+}
+
 // ---------------------------------------------------------------------------
 // 1. Yahoo as primary search provider (happy-path)
 // ---------------------------------------------------------------------------
@@ -160,6 +192,365 @@ describe('GET /investments/securities/search - Yahoo as primary provider', () =>
 
     expect(results).toHaveLength(2);
     expect(results.map((r) => r.symbol)).toEqual(['AAPL', 'MSFT']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 1b. Yahoo ISIN fallback: search() returns nothing, quote() resolves by suffix
+// ---------------------------------------------------------------------------
+describe('GET /investments/securities/search - Yahoo ISIN fallback', () => {
+  const TEST_ISIN = 'IE00B53L3W79';
+
+  beforeEach(() => {
+    resetProviderMocks();
+    // Yahoo's search endpoint isn't indexed by ISIN, so an ISIN query lands empty.
+    mockedYahooSearch.mockResolvedValue({ quotes: [] });
+  });
+
+  it('resolves a bare ISIN via the Euronext (.IR) suffix when search is empty', async () => {
+    // Fan-out order matches ISIN_EXCHANGE_SUFFIXES: .IR, .DE, .PA, .AS, .MI, .L.
+    // Yahoo categorizes UCITS ETFs as `MUTUALFUND`, not `ETF` – the fallback
+    // remaps this to stocks so the service-layer filter doesn't drop it.
+    mockedYahooQuote.mockResolvedValueOnce({
+      symbol: 'IE00B53L3W79.IR',
+      longName: 'iShares Core EURO STOXX 50',
+      currency: 'EUR',
+      exchange: 'PAR',
+      fullExchangeName: 'Paris',
+      quoteType: 'MUTUALFUND',
+    });
+    rejectRemainingQuotesAsNotFound(5);
+
+    const results = await helpers.searchSecurities({ payload: { query: TEST_ISIN }, raw: true });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      symbol: 'IE00B53L3W79.IR',
+      providerSymbol: 'IE00B53L3W79.IR',
+      name: 'iShares Core EURO STOXX 50',
+      currencyCode: 'EUR',
+      providerName: SECURITY_PROVIDER.yahoo,
+      assetClass: ASSET_CLASS.stocks,
+      isin: TEST_ISIN,
+    });
+    // Primary search returns empty, then name-lookup search runs against the
+    // resolved fund longName (also empty in this test → no extra listings).
+    expect(mockedYahooSearch).toHaveBeenCalledTimes(2);
+    expect(mockedYahooQuote).toHaveBeenCalledTimes(ISIN_EXCHANGE_SUFFIXES_COUNT);
+  });
+
+  it('surfaces additional local-ticker listings (e.g. MEUD.PA, CS51.DE) via name search', async () => {
+    // The ISIN-suffix form (e.g. `IE00B53L3W79.IR`) maps to the Irish registration
+    // venue, where Yahoo's chart() returns only sparse anchor points. The same
+    // ETF trades under local tickers on other exchanges (`MEUD.PA` Paris,
+    // `CS51.DE` Xetra) with full daily history. After finding the ISIN-suffix
+    // hit we search by the fund's longName, then quote() each candidate to
+    // confirm currency, and surface all of them so the user picks their venue.
+    mockedYahooSearch
+      .mockResolvedValueOnce({ quotes: [] }) // primary ISIN search – empty as usual
+      .mockResolvedValueOnce({
+        quotes: [
+          { symbol: 'MEUD.PA', longname: 'iShares Core EURO STOXX 50', exchange: 'PAR', isYahooFinance: true },
+          { symbol: 'CS51.DE', longname: 'iShares Core EURO STOXX 50', exchange: 'GER', isYahooFinance: true },
+          // The ISIN.suffix form itself – must be skipped (already collected).
+          { symbol: 'IE00B53L3W79.IR', exchange: 'ISE', isYahooFinance: true },
+        ],
+      });
+
+    // Suffix fanout: only .IR resolves (Irish listing).
+    mockedYahooQuote.mockResolvedValueOnce({
+      symbol: 'IE00B53L3W79.IR',
+      longName: 'iShares Core EURO STOXX 50',
+      currency: 'EUR',
+      exchange: 'ISE',
+      fullExchangeName: 'Irish Stock Exchange',
+      quoteType: 'MUTUALFUND',
+    });
+    rejectRemainingQuotesAsNotFound(5);
+    // Name-lookup verification quotes for the two local-ticker candidates.
+    mockedYahooQuote
+      .mockResolvedValueOnce({
+        symbol: 'MEUD.PA',
+        longName: 'iShares Core EURO STOXX 50',
+        currency: 'EUR',
+        exchange: 'PAR',
+        fullExchangeName: 'Paris',
+        quoteType: 'ETF',
+      })
+      .mockResolvedValueOnce({
+        symbol: 'CS51.DE',
+        longName: 'iShares Core EURO STOXX 50',
+        currency: 'EUR',
+        exchange: 'GER',
+        fullExchangeName: 'XETRA',
+        quoteType: 'ETF',
+      });
+
+    const results = await helpers.searchSecurities({ payload: { query: TEST_ISIN }, raw: true });
+
+    expect(results.map((r) => r.symbol).toSorted()).toEqual(['CS51.DE', 'IE00B53L3W79.IR', 'MEUD.PA']);
+    expect(results.every((r) => r.isin === TEST_ISIN)).toBe(true);
+    expect(results.every((r) => r.assetClass === ASSET_CLASS.stocks)).toBe(true);
+
+    const meud = results.find((r) => r.symbol === 'MEUD.PA');
+    expect(meud).toMatchObject({
+      providerSymbol: 'MEUD.PA',
+      currencyCode: 'EUR',
+      exchangeAcronym: 'PAR',
+    });
+
+    // The ISIN-suffix row gets the FIRST same-currency local ticker attached
+    // as its price source. Yahoo's name-lookup results stream in candidate
+    // order; pinning "first wins" here makes the contract explicit so a
+    // regression that re-orders candidates is caught.
+    const isinRow = results.find((r) => r.symbol === 'IE00B53L3W79.IR');
+    expect(isinRow?.priceSourceSymbol).toBe('MEUD.PA');
+    expect(meud?.priceSourceSymbol).toBeUndefined();
+  });
+
+  it('does NOT attach a cross-currency local ticker as priceSourceSymbol', async () => {
+    // The ISIN-suffix row is EUR; the only name-lookup hit is GBP (London).
+    // Storing GBP prices against an EUR row would silently corrupt the chart,
+    // so we leave priceSourceSymbol unset and accept sparse history for
+    // this particular row.
+    mockedYahooSearch.mockResolvedValueOnce({ quotes: [] }).mockResolvedValueOnce({
+      quotes: [{ symbol: 'EUNL.L', longname: 'iShares Core EURO STOXX 50', exchange: 'LSE', isYahooFinance: true }],
+    });
+
+    mockedYahooQuote.mockResolvedValueOnce({
+      symbol: 'IE00B53L3W79.IR',
+      longName: 'iShares Core EURO STOXX 50',
+      currency: 'EUR',
+      exchange: 'ISE',
+      quoteType: 'MUTUALFUND',
+    });
+    rejectRemainingQuotesAsNotFound(5);
+    // Name-lookup quote: London listing in GBP.
+    mockedYahooQuote.mockResolvedValueOnce({
+      symbol: 'EUNL.L',
+      longName: 'iShares Core EURO STOXX 50',
+      currency: 'GBP',
+      exchange: 'LSE',
+      quoteType: 'ETF',
+    });
+
+    const results = await helpers.searchSecurities({ payload: { query: TEST_ISIN }, raw: true });
+
+    expect(results.map((r) => r.symbol).toSorted()).toEqual(['EUNL.L', 'IE00B53L3W79.IR']);
+    const isinRow = results.find((r) => r.symbol === 'IE00B53L3W79.IR');
+    // Same-currency requirement failed → no source attached.
+    expect(isinRow?.priceSourceSymbol).toBeUndefined();
+  });
+
+  it('keeps the ISIN-suffix form when the name-lookup search throws (schema validation)', async () => {
+    mockedYahooSearch
+      .mockResolvedValueOnce({ quotes: [] }) // primary ISIN search – empty
+      .mockRejectedValueOnce(makeYahooSchemaError()); // name lookup throws
+
+    mockedYahooQuote
+      .mockResolvedValueOnce({
+        symbol: 'IE00B53L3W79.IR',
+        longName: 'iShares Core EURO STOXX 50',
+        currency: 'EUR',
+        exchange: 'ISE',
+        quoteType: 'MUTUALFUND',
+      })
+      .mockRejectedValue(new Error('Quote not found'));
+
+    const results = await helpers.searchSecurities({ payload: { query: TEST_ISIN }, raw: true });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.symbol).toBe('IE00B53L3W79.IR');
+  });
+
+  it('still maps a real ETF quoteType to stocks (sanity check, non-UCITS path)', async () => {
+    mockedYahooQuote
+      .mockResolvedValueOnce({
+        symbol: 'IE00B53L3W79.L',
+        longName: 'iShares Core EURO STOXX 50',
+        currency: 'GBP',
+        exchange: 'LSE',
+        quoteType: 'ETF',
+      })
+      .mockRejectedValue(new Error('Quote not found'));
+
+    const results = await helpers.searchSecurities({ payload: { query: TEST_ISIN }, raw: true });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.assetClass).toBe(ASSET_CLASS.stocks);
+  });
+
+  it('returns every venue that resolves so the user can pick (.IR + .DE both match)', async () => {
+    mockedYahooQuote
+      .mockResolvedValueOnce({
+        symbol: 'IE00B53L3W79.IR',
+        shortName: 'iShares EURO STOXX 50',
+        currency: 'EUR',
+        exchange: 'PAR',
+        quoteType: 'ETF',
+      })
+      .mockResolvedValueOnce({
+        symbol: 'IE00B53L3W79.DE',
+        shortName: 'iShares EURO STOXX 50',
+        currency: 'EUR',
+        exchange: 'GER',
+        quoteType: 'ETF',
+      });
+    rejectRemainingQuotesAsNotFound(4);
+
+    const results = await helpers.searchSecurities({ payload: { query: TEST_ISIN }, raw: true });
+
+    expect(results).toHaveLength(2);
+    expect(results.map((r) => r.symbol).toSorted()).toEqual(['IE00B53L3W79.DE', 'IE00B53L3W79.IR']);
+    expect(results.every((r) => r.isin === TEST_ISIN)).toBe(true);
+  });
+
+  it('returns empty when search is empty and no exchange suffix resolves', async () => {
+    mockedYahooQuote.mockRejectedValue(new Error('Quote not found'));
+
+    const results = await helpers.searchSecurities({ payload: { query: TEST_ISIN }, raw: true });
+
+    expect(results).toHaveLength(0);
+    expect(mockedYahooQuote).toHaveBeenCalledTimes(ISIN_EXCHANGE_SUFFIXES_COUNT);
+  });
+
+  it('normalizes lowercase ISIN input to uppercase before fallback', async () => {
+    mockedYahooQuote
+      .mockResolvedValueOnce({
+        symbol: 'IE00B53L3W79.IR',
+        longName: 'iShares Core EURO STOXX 50',
+        currency: 'EUR',
+        exchange: 'PAR',
+        quoteType: 'ETF',
+      })
+      .mockRejectedValue(new Error('Quote not found'));
+
+    const results = await helpers.searchSecurities({ payload: { query: TEST_ISIN.toLowerCase() }, raw: true });
+
+    expect(results).toHaveLength(1);
+    // Fallback was triggered for every exchange suffix even though the input was lowercase
+    expect(mockedYahooQuote).toHaveBeenCalledTimes(ISIN_EXCHANGE_SUFFIXES_COUNT);
+    expect(mockedYahooQuote).toHaveBeenNthCalledWith(1, `${TEST_ISIN}.IR`);
+  });
+
+  it('does NOT trigger fallback for non-ISIN queries that return empty', async () => {
+    // "ZZZZZZ" is short and not ISIN-shaped, so empty search should not fan out to quote()
+    const results = await helpers.searchSecurities({ payload: { query: 'ZZZZZZ' }, raw: true });
+
+    expect(results).toHaveLength(0);
+    expect(mockedYahooQuote).not.toHaveBeenCalled();
+  });
+
+  it('merges primary search hits with ISIN fallback when the ISIN-shaped query DOES return a primary result', async () => {
+    // Real-world case (IE00B5BMR087 → CSSPX.MI): Yahoo's primary search now
+    // sometimes resolves an ISIN directly to a single "canonical" venue
+    // (often Milan or Frankfurt) – but users searching by ISIN want every
+    // tradable venue so they can pick their broker's listing. The fallback
+    // must run even when primary returned a hit.
+    mockedYahooSearch
+      .mockResolvedValueOnce({
+        quotes: [
+          {
+            symbol: 'CSSPX.MI',
+            longname: 'iShares Core S&P 500 UCITS ETF',
+            shortname: 'iShares S&P 500',
+            typeDisp: 'ETF',
+            exchange: 'MIL',
+            exchDisp: 'Milan',
+            isYahooFinance: true,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        // Name-lookup surfaces extra venues the primary didn't include.
+        quotes: [
+          { symbol: 'SXR8.DE', longname: 'iShares Core S&P 500', exchange: 'GER', isYahooFinance: true },
+          { symbol: 'CSPX.AS', longname: 'iShares Core S&P 500', exchange: 'AMS', isYahooFinance: true },
+        ],
+      });
+
+    // Currency resolution for the primary search hit.
+    mockedYahooQuote.mockResolvedValueOnce({ symbol: 'CSSPX.MI', currency: 'USD' });
+    // ISIN-suffix fanout: only .IR resolves.
+    mockedYahooQuote.mockResolvedValueOnce({
+      symbol: 'IE00B5BMR087.IR',
+      shortName: 'iShares Core S&P 500',
+      currency: 'USD',
+      exchange: 'ISE',
+      quoteType: 'MUTUALFUND',
+    });
+    rejectRemainingQuotesAsNotFound(5);
+    // Name-lookup verification quotes.
+    mockedYahooQuote
+      .mockResolvedValueOnce({
+        symbol: 'SXR8.DE',
+        longName: 'iShares Core S&P 500',
+        currency: 'USD',
+        exchange: 'GER',
+        quoteType: 'ETF',
+      })
+      .mockResolvedValueOnce({
+        symbol: 'CSPX.AS',
+        longName: 'iShares Core S&P 500',
+        currency: 'USD',
+        exchange: 'AMS',
+        quoteType: 'ETF',
+      });
+
+    const results = await helpers.searchSecurities({ payload: { query: 'IE00B5BMR087' }, raw: true });
+
+    const symbols = results.map((r) => r.symbol).toSorted();
+    expect(symbols).toEqual(['CSPX.AS', 'CSSPX.MI', 'IE00B5BMR087.IR', 'SXR8.DE']);
+    // Every result for an ISIN-shaped query carries the queried ISIN.
+    expect(results.every((r) => r.isin === 'IE00B5BMR087')).toBe(true);
+    // All ETF/MUTUALFUND map to stocks under the ISIN remap.
+    expect(results.every((r) => r.assetClass === ASSET_CLASS.stocks)).toBe(true);
+
+    // The ISIN-suffix row gets a same-currency local ticker as its source.
+    const isinRow = results.find((r) => r.symbol === 'IE00B5BMR087.IR');
+    expect(isinRow?.priceSourceSymbol).toBe('SXR8.DE');
+  });
+
+  it('calls primary search with validateResult:false so Yahoo schema drift cannot kill ISIN results', async () => {
+    // Regression guard: yahoo-finance2 ships fixed JSON Schemas against an
+    // evolving Yahoo response shape. Without `validateResult: false`, any
+    // new/renamed field in Yahoo's payload makes the validator throw
+    // FailedYahooValidationError, the searchSecurities catch re-throws via
+    // formatProviderError, the composite logs an error and returns [], and
+    // the ISIN-fallback path never runs – producing the zero-results bug
+    // every user hit when searching by ISIN in production.
+    mockedYahooSearch.mockResolvedValue({ quotes: [] });
+    mockedYahooQuote.mockRejectedValue(new Error('Quote not found'));
+
+    await helpers.searchSecurities({ payload: { query: 'IE00B5BMR087' }, raw: true });
+
+    // The first call is the primary search; we don't care about subsequent
+    // name-lookup calls inside the fallback (those already use validateResult:false).
+    expect(mockedYahooSearch).toHaveBeenNthCalledWith(1, 'IE00B5BMR087', { newsCount: 0 }, { validateResult: false });
+  });
+
+  it('drops fallback results that have no currency', async () => {
+    mockedYahooQuote
+      .mockResolvedValueOnce({
+        symbol: 'IE00B53L3W79.IR',
+        longName: 'iShares Core EURO STOXX 50',
+        currency: 'EUR',
+        exchange: 'PAR',
+        quoteType: 'ETF',
+      })
+      .mockResolvedValueOnce({
+        symbol: 'IE00B53L3W79.DE',
+        longName: 'No Currency Quote',
+        exchange: 'GER',
+        quoteType: 'ETF',
+        // currency intentionally missing
+      });
+    rejectRemainingQuotesAsNotFound(4);
+
+    const results = await helpers.searchSecurities({ payload: { query: TEST_ISIN }, raw: true });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]!.symbol).toBe('IE00B53L3W79.IR');
   });
 });
 
@@ -631,7 +1022,7 @@ describe('Yahoo getHistoricalPrices via composite provider', () => {
 
     const results = await helpers.searchSecurities({ payload: { query: 'test' }, raw: true });
 
-    // Both options and bonds are unsupported asset classes — search service drops them.
+    // Both options and bonds are unsupported asset classes – search service drops them.
     expect(results).toHaveLength(0);
   });
 

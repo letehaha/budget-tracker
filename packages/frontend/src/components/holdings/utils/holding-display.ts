@@ -29,10 +29,20 @@ export const getAverageCost = (holding: HoldingModel) => {
 export const getTotalCost = (holding: HoldingModel) => Number(holding.costBasis);
 
 /**
- * A position is considered "closed" once its quantity reaches zero — the user
- * has fully divested but the holding row is kept around for its realized gains.
+ * A position is "closed" once its quantity reaches zero AND the holding has
+ * recorded activity – either a non-zero cost basis (an open partial-fill
+ * leftover) or a non-zero realized gain (a completed buy-then-sell cycle).
+ *
+ * Zero-quantity / zero-cost / zero-realized-gain holdings represent a security
+ * that was just added but hasn't received its first transaction yet; those stay
+ * out of the closed section so the user can keep building it up.
  */
-export const isClosedPosition = (holding: HoldingModel) => Number(holding.quantity) === 0;
+export const isClosedPosition = (holding: HoldingModel) => {
+  if (Number(holding.quantity) !== 0) return false;
+  const costBasis = Number(holding.costBasis);
+  const realizedGain = Number(holding.realizedGainValue ?? '0');
+  return costBasis > 0 || realizedGain !== 0;
+};
 
 const compareHoldings = ({
   a,
@@ -95,25 +105,43 @@ export const sortHoldings = ({
 }) => [...holdings].sort((a, b) => compareHoldings({ a, b, sortKey, sortDir }));
 
 /**
- * Split holdings into active vs. closed groups, each independently sorted with
- * the same key/direction. Used to keep closed (zero-quantity) positions tucked
- * under their own collapsible section instead of intermixed with active ones.
+ * Split holdings into three groups – just-added, active, closed – each
+ * independently sorted with the same key/direction.
+ *
+ * The just-added group is for securities the user picked from the Add Symbols
+ * dialog during the current session; pinning them at the top lets the user
+ * keep adding transactions to a fresh holding without scrolling. Membership
+ * is in-memory only and resets on page reload.
+ *
+ * Closed positions live in their own collapsible section. A just-added id wins
+ * over the closed classification – even a zero-everything holding stays in the
+ * just-added bucket while the session remembers it.
  */
 export const groupHoldings = ({
   holdings,
   sortKey,
   sortDir,
+  justAddedIds,
 }: {
   holdings: HoldingModel[];
   sortKey: HoldingSortKey;
   sortDir: SortDirection;
+  justAddedIds?: ReadonlySet<string>;
 }) => {
+  const justAdded: HoldingModel[] = [];
   const active: HoldingModel[] = [];
   const closed: HoldingModel[] = [];
   for (const holding of holdings) {
-    (isClosedPosition(holding) ? closed : active).push(holding);
+    if (justAddedIds?.has(holding.securityId)) {
+      justAdded.push(holding);
+    } else if (isClosedPosition(holding)) {
+      closed.push(holding);
+    } else {
+      active.push(holding);
+    }
   }
   return {
+    justAdded: sortHoldings({ holdings: justAdded, sortKey, sortDir }),
     active: sortHoldings({ holdings: active, sortKey, sortDir }),
     closed: sortHoldings({ holdings: closed, sortKey, sortDir }),
   };

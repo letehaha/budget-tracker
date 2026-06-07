@@ -18,8 +18,20 @@ const makeHolding = (overrides: Partial<HoldingModel> & { symbol?: string }): Ho
 };
 
 describe('isClosedPosition', () => {
-  it('treats a zero quantity as closed', () => {
-    expect(isClosedPosition(makeHolding({ quantity: '0' }))).toBe(true);
+  it('treats zero quantity with a realized gain as closed (fully sold out)', () => {
+    expect(isClosedPosition(makeHolding({ quantity: '0', costBasis: '0', realizedGainValue: '500' }))).toBe(true);
+    expect(isClosedPosition(makeHolding({ quantity: '0', costBasis: '0', realizedGainValue: '-120' }))).toBe(true);
+  });
+
+  it('treats zero quantity with a remaining cost basis as closed', () => {
+    expect(isClosedPosition(makeHolding({ quantity: '0', costBasis: '100', realizedGainValue: '0' }))).toBe(true);
+  });
+
+  it('does NOT treat zero quantity with no activity as closed (freshly-added security)', () => {
+    // Newly added via search → no transactions yet → must stay in the active list
+    // so the user can add their first buy without scrolling into "Closed positions".
+    expect(isClosedPosition(makeHolding({ quantity: '0', costBasis: '0', realizedGainValue: '0' }))).toBe(false);
+    expect(isClosedPosition(makeHolding({ quantity: '0', costBasis: '0' }))).toBe(false);
   });
 
   it('treats any non-zero quantity as active', () => {
@@ -75,9 +87,10 @@ describe('groupHoldings', () => {
   it('separates active from closed positions, each sorted independently', () => {
     const holdings = [
       makeHolding({ symbol: 'SONY', quantity: '20', marketValue: '434' }),
-      makeHolding({ symbol: 'BAC', quantity: '0', marketValue: '0' }),
+      // BAC and VST have realized gains – fully sold out, so they're truly closed.
+      makeHolding({ symbol: 'BAC', quantity: '0', marketValue: '0', realizedGainValue: '120' }),
       makeHolding({ symbol: 'FIG', quantity: '14', marketValue: '328' }),
-      makeHolding({ symbol: 'VST', quantity: '0', marketValue: '0' }),
+      makeHolding({ symbol: 'VST', quantity: '0', marketValue: '0', realizedGainValue: '-50' }),
     ];
 
     const { active, closed } = groupHoldings({ holdings, sortKey: 'symbol', sortDir: 'asc' });
@@ -86,10 +99,64 @@ describe('groupHoldings', () => {
     expect(closed.map((h) => h.security?.symbol)).toEqual(['BAC', 'VST']);
   });
 
+  it('keeps freshly-added (zero-everything) holdings in active, not closed', () => {
+    const holdings = [
+      makeHolding({ symbol: 'SONY', quantity: '20', marketValue: '434' }),
+      // Freshly added security – no transactions yet, must stay in active.
+      makeHolding({ symbol: 'NEW', quantity: '0', costBasis: '0', realizedGainValue: '0' }),
+      makeHolding({ symbol: 'OLD', quantity: '0', costBasis: '0', realizedGainValue: '300' }),
+    ];
+
+    const { active, closed } = groupHoldings({ holdings, sortKey: 'symbol', sortDir: 'asc' });
+
+    expect(active.map((h) => h.security?.symbol)).toEqual(['NEW', 'SONY']);
+    expect(closed.map((h) => h.security?.symbol)).toEqual(['OLD']);
+  });
+
   it('returns empty closed group when no positions are closed', () => {
     const holdings = [makeHolding({ symbol: 'A', quantity: '1' }), makeHolding({ symbol: 'B', quantity: '2' })];
     const { active, closed } = groupHoldings({ holdings, sortKey: 'symbol', sortDir: 'asc' });
     expect(active).toHaveLength(2);
     expect(closed).toHaveLength(0);
+  });
+
+  it('pins just-added holdings into the justAdded bucket, ahead of active/closed', () => {
+    const holdings = [
+      makeHolding({ symbol: 'SONY', quantity: '20', marketValue: '434', securityId: 'sec-sony' }),
+      makeHolding({ symbol: 'NEW', quantity: '0', costBasis: '0', realizedGainValue: '0', securityId: 'sec-new' }),
+      makeHolding({ symbol: 'OLD', quantity: '0', costBasis: '0', realizedGainValue: '120', securityId: 'sec-old' }),
+    ];
+    const justAddedIds = new Set(['sec-new']);
+
+    const { justAdded, active, closed } = groupHoldings({
+      holdings,
+      sortKey: 'symbol',
+      sortDir: 'asc',
+      justAddedIds,
+    });
+
+    expect(justAdded.map((h) => h.security?.symbol)).toEqual(['NEW']);
+    expect(active.map((h) => h.security?.symbol)).toEqual(['SONY']);
+    expect(closed.map((h) => h.security?.symbol)).toEqual(['OLD']);
+  });
+
+  it('keeps an already-funded holding in the justAdded bucket if its id was tracked', () => {
+    // Once the session marks a holding as "just added", it stays pinned until
+    // a hard refresh – even after the first buy transaction lands.
+    const holdings = [
+      makeHolding({ symbol: 'NEW', quantity: '5', marketValue: '500', securityId: 'sec-new' }),
+      makeHolding({ symbol: 'SONY', quantity: '20', marketValue: '434', securityId: 'sec-sony' }),
+    ];
+    const justAddedIds = new Set(['sec-new']);
+
+    const { justAdded, active } = groupHoldings({
+      holdings,
+      sortKey: 'symbol',
+      sortDir: 'asc',
+      justAddedIds,
+    });
+
+    expect(justAdded.map((h) => h.security?.symbol)).toEqual(['NEW']);
+    expect(active.map((h) => h.security?.symbol)).toEqual(['SONY']);
   });
 });

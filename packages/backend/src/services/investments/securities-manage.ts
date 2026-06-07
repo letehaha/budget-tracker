@@ -2,9 +2,8 @@ import { SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
 import Securities from '@models/investments/securities.model';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
-const dedupKey = (providerName: string, providerSymbol: string) => `${providerName}:${providerSymbol}`;
+import { securityIdentityBatchWhere, securityIdentityKey } from './securities/identity';
 
 const addOrUpdateFromProviderImpl = async (
   securitiesFromProvider: SecuritySearchResult[],
@@ -14,29 +13,35 @@ const addOrUpdateFromProviderImpl = async (
     return { newCount: 0 };
   }
 
-  // Look up existing (providerName, providerSymbol) tuples in one query — this is the
-  // canonical identity now that crypto symbols may collide across providers.
-  const incomingKeys = securitiesFromProvider.map((s) => dedupKey(s.providerName, s.providerSymbol));
-  const providerNames = Array.from(new Set(securitiesFromProvider.map((s) => s.providerName)));
-  const providerSymbols = Array.from(new Set(securitiesFromProvider.map((s) => s.providerSymbol)));
+  // Look up potential existing matches in a single query. The where clause
+  // mixes a crypto branch (providerName + providerSymbol) and a non-crypto
+  // branch (symbol + currency) so the same logical security doesn't get a
+  // second row when an incoming search comes from a different provider.
+  const lookupWhere = securityIdentityBatchWhere(securitiesFromProvider);
 
-  const existingSecurities = await Securities.findAll({
-    where: {
-      providerName: { [Op.in]: providerNames },
-      providerSymbol: { [Op.in]: providerSymbols },
-    },
-    attributes: ['providerName', 'providerSymbol'],
-    raw: true,
-  });
-  const existingKeys = new Set(existingSecurities.map((s) => dedupKey(s.providerName, s.providerSymbol)));
-  logger.info(`Found ${existingKeys.size} matching existing securities for ${incomingKeys.length} incoming entries.`);
+  const existingSecurities =
+    lookupWhere === null
+      ? []
+      : await Securities.findAll({
+          where: lookupWhere,
+          attributes: ['id', 'providerName', 'providerSymbol', 'symbol', 'currencyCode', 'assetClass'],
+          raw: true,
+        });
+
+  const existingByKey = new Map<string, (typeof existingSecurities)[number]>();
+  for (const e of existingSecurities) {
+    existingByKey.set(securityIdentityKey(e), e);
+  }
+  logger.info(
+    `Found ${existingByKey.size} matching existing securities for ${securitiesFromProvider.length} incoming entries.`,
+  );
 
   // Partition incoming securities into new inserts vs updates in a single pass
   const [newSecurities, existingToUpdate] = securitiesFromProvider.reduce<
     [SecuritySearchResult[], SecuritySearchResult[]]
   >(
     (acc, sec) => {
-      (existingKeys.has(dedupKey(sec.providerName, sec.providerSymbol)) ? acc[1] : acc[0]).push(sec);
+      (existingByKey.has(securityIdentityKey(sec)) ? acc[1] : acc[0]).push(sec);
       return acc;
     },
     [[], []],
@@ -49,6 +54,7 @@ const addOrUpdateFromProviderImpl = async (
   const securitiesToCreate = newSecurities.map((security) => ({
     symbol: security.symbol,
     providerSymbol: security.providerSymbol,
+    priceSourceSymbol: security.priceSourceSymbol ?? null,
     name: security.name,
     assetClass: security.assetClass,
     providerName: security.providerName,
@@ -65,10 +71,15 @@ const addOrUpdateFromProviderImpl = async (
     await Securities.bulkCreate(securitiesToCreate);
   }
 
-  // Update existing securities metadata where necessary
+  // Update existing securities metadata where necessary. Update BY ID because
+  // the existing row's (providerName, providerSymbol) may differ from the
+  // incoming search result's – they were matched by symbol+currency for non-crypto.
+  // The row's canonical (providerName, providerSymbol) is preserved; only
+  // mutable metadata is refreshed.
   if (existingToUpdate.length) {
-    const updatePromises = existingToUpdate.map((sec) =>
-      Securities.update(
+    const updatePromises = existingToUpdate.map((sec) => {
+      const existing = existingByKey.get(securityIdentityKey(sec))!;
+      return Securities.update(
         {
           symbol: sec.symbol,
           name: sec.name,
@@ -78,14 +89,19 @@ const addOrUpdateFromProviderImpl = async (
           exchangeMic: sec.exchangeMic,
           exchangeAcronym: sec.exchangeAcronym || null,
           exchangeName: sec.exchangeName || null,
-          // Preserve existing logoUrl when the provider doesn't supply one —
-          // stock providers leave the field undefined, and we don't want to
-          // wipe a value that another provider (e.g. CoinGecko) populated.
+          // Preserve existing logoUrl when the incoming row doesn't carry one.
+          // Stock providers leave logoUrl undefined; overwriting would wipe a
+          // value another provider (e.g. CoinGecko) populated.
           ...(sec.logoUrl !== undefined ? { logoUrl: sec.logoUrl } : {}),
+          // Preserve existing priceSourceSymbol when the incoming row doesn't
+          // carry one. The field is only set by the Yahoo ISIN-fallback path;
+          // ordinary search results would otherwise clear a previously chosen
+          // local-ticker source.
+          ...(sec.priceSourceSymbol != null ? { priceSourceSymbol: sec.priceSourceSymbol } : {}),
         },
-        { where: { providerName: sec.providerName, providerSymbol: sec.providerSymbol } },
-      ),
-    );
+        { where: { id: existing.id } },
+      );
+    });
     await Promise.all(updatePromises);
   }
 

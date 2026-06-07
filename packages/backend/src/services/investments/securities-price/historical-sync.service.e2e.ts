@@ -425,6 +425,83 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
     });
   });
 
+  describe('priceSourceSymbol routing (Yahoo ISIN fallback path)', () => {
+    it('queries provider with priceSourceSymbol instead of providerSymbol when set', async () => {
+      // Simulates a security added via the Yahoo ISIN-fallback path: the row's
+      // identity is the sparse ISIN-suffix listing, but its priceSourceSymbol
+      // points at a dense local-ticker venue. The historical-sync pipeline
+      // must query the provider with the source symbol, not the canonical one.
+      const isinSecurity = await Securities.create({
+        symbol: 'IE00B53L3W79.IR',
+        providerSymbol: 'IE00B53L3W79.IR',
+        priceSourceSymbol: 'MEUD.PA',
+        name: 'iShares Core EURO STOXX 50',
+        currencyCode: 'EUR',
+        providerName: SECURITY_PROVIDER.yahoo,
+        assetClass: ASSET_CLASS.stocks,
+      });
+
+      // Non-US symbol → composite tries Yahoo (rejects globally by default),
+      // then falls back to Alpha Vantage. Alpha Vantage must receive the
+      // local-ticker symbol, not the ISIN-suffix one.
+      mockedAlphaDaily.mockResolvedValue({
+        'Time Series (Daily)': {
+          '2024-01-15': { '4. close': '92.50' },
+          '2024-01-16': { '4. close': '93.10' },
+        },
+      });
+
+      const response = await helpers.createHolding({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: isinSecurity.id,
+        },
+      });
+      expect(response.statusCode).toBe(201);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(mockedAlphaDaily).toHaveBeenCalled();
+      expect(mockedAlphaDaily).toHaveBeenCalledWith('MEUD.PA', 'full');
+      // Crucially, the ISIN-suffix symbol must NEVER be passed to the provider.
+      const calledSymbols = mockedAlphaDaily.mock.calls.map((call) => call[0]);
+      expect(calledSymbols).not.toContain('IE00B53L3W79.IR');
+
+      const storedPrices = await SecurityPricing.findAll({
+        where: { securityId: isinSecurity.id },
+        order: [['date', 'ASC']],
+      });
+      expect(storedPrices).toHaveLength(2);
+      expect(storedPrices[0]?.source).toBe(SECURITY_PROVIDER.alphavantage);
+
+      // The row's identity stays honest – providerSymbol is NOT mutated by the
+      // sync path even though prices were sourced from a different symbol.
+      const reloaded = await Securities.findByPk(isinSecurity.id);
+      expect(reloaded?.providerSymbol).toBe('IE00B53L3W79.IR');
+      expect(reloaded?.symbol).toBe('IE00B53L3W79.IR');
+      expect(reloaded?.priceSourceSymbol).toBe('MEUD.PA');
+    });
+
+    it('falls back to providerSymbol when priceSourceSymbol is null (default)', async () => {
+      // Sanity check that the routing logic doesn't break ordinary securities.
+      mockedAlphaDaily.mockResolvedValue({
+        'Time Series (Daily)': {
+          '2024-01-15': { '4. close': '714.80' },
+        },
+      });
+
+      const response = await helpers.createHolding({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: nonUsSecurity.id,
+        },
+      });
+      expect(response.statusCode).toBe(201);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(mockedAlphaDaily).toHaveBeenCalledWith('ASML.AS', 'full');
+    });
+  });
+
   describe('Crypto historical bucketing (bucketByUtcDay)', () => {
     it('collapses multiple intraday provider points onto one UTC-midnight row per day, latest timestamp wins', async () => {
       const cryptoSecurity = await Securities.create({
@@ -445,7 +522,7 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
         prices: [
           [dayMidnightUtc + 6 * 60 * 60 * 1000, 60000], // 06:00 UTC
           [dayMidnightUtc + 14 * 60 * 60 * 1000, 61500], // 14:00 UTC
-          [dayMidnightUtc + 22 * 60 * 60 * 1000, 67000], // 22:00 UTC — latest
+          [dayMidnightUtc + 22 * 60 * 60 * 1000, 67000], // 22:00 UTC – latest
         ],
       });
 
