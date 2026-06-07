@@ -301,7 +301,8 @@
       "notifications": {
         "success": "Posición añadida.",
         "error": "Error al añadir la posición."
-      }
+      },
+      "cryptoProviderNotConfigured": "La búsqueda de criptomonedas no está disponible. Configura COINGECKO_API_KEY en tu entorno para habilitarla."
     },
     "deleteInvestmentTransaction": {
       "title": "Eliminar transacción",

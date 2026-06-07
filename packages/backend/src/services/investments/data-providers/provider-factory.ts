@@ -1,4 +1,7 @@
+import { API_ERROR_CODES } from '@bt/shared/types';
 import { SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { EnvVar, isEnvConfigured } from '@common/utils/env';
+import { ServiceUnavailableError } from '@js/errors';
 
 import { AlphaVantageDataProvider } from './alphavantage-provider';
 import { BaseSecurityDataProvider } from './base-provider';
@@ -7,6 +10,12 @@ import { CompositeDataProvider } from './composite-provider';
 import { FmpDataProvider } from './fmp-provider';
 import { PolygonDataProvider } from './polygon-provider';
 import { YahooDataProvider } from './yahoo-provider';
+
+const COINGECKO_NOT_CONFIGURED_MESSAGE =
+  'Crypto search is unavailable. Set COINGECKO_API_KEY in your environment to enable crypto support.';
+
+const getCoinGeckoKey = (): string | undefined =>
+  isEnvConfigured(EnvVar.COINGECKO_API_KEY, process.env.COINGECKO_API_KEY) ? process.env.COINGECKO_API_KEY : undefined;
 
 class DataProviderFactory {
   private providers = new Map<SECURITY_PROVIDER, BaseSecurityDataProvider>();
@@ -49,9 +58,12 @@ class DataProviderFactory {
       }
 
       case SECURITY_PROVIDER.coingecko: {
-        const apiKey = process.env.COINGECKO_API_KEY as string;
+        const apiKey = getCoinGeckoKey();
         if (!apiKey) {
-          throw new Error('CoinGecko API key not configured');
+          throw new ServiceUnavailableError({
+            code: API_ERROR_CODES.cryptoProviderNotConfigured,
+            message: COINGECKO_NOT_CONFIGURED_MESSAGE,
+          });
         }
         return new CoinGeckoDataProvider({ apiKey });
       }
@@ -61,7 +73,7 @@ class DataProviderFactory {
           fmpApiKey: process.env.FMP_API_KEY,
           polygonApiKey: process.env.POLYGON_API_KEY,
           alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY,
-          coingeckoApiKey: process.env.COINGECKO_API_KEY,
+          coingeckoApiKey: getCoinGeckoKey(),
           yahooEnabled: process.env.YAHOO_FINANCE_ENABLED !== 'false',
         });
       }

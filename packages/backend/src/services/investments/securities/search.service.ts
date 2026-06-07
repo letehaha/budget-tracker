@@ -5,6 +5,7 @@ import {
   SUPPORTED_ASSET_CLASSES,
   type SecuritySearchResult,
 } from '@bt/shared/types/investments';
+import { CustomError } from '@js/errors';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -60,7 +61,7 @@ export const searchSecurities = async ({
 
     // Compose two filters:
     //   1. Drop classes the product doesn't support end-to-end (cash, options, …)
-    //   2. Honour the UI filter (post-filter is defense in depth — composite already
+    //   2. Honour the UI filter (post-filter is defense in depth – composite already
     //      skips the irrelevant provider, but some providers return mixed-class hits).
     const supportedResults = searchResults.filter(
       (r) => SUPPORTED_ASSET_CLASSES.includes(r.assetClass) && (!assetClass || r.assetClass === assetClass),
@@ -108,10 +109,17 @@ export const searchSecurities = async ({
     logger.info(`Found ${limitedResults.length} securities for query: ${query}`);
     return limitedResults;
   } catch (error) {
+    // CustomError instances carry a deliberate HTTP status + API error code
+    // (e.g. cryptoProviderNotConfigured → 503). Surface them to the controller
+    // so the UI can render an actionable hint instead of a generic empty list.
+    if (error instanceof CustomError) {
+      throw error;
+    }
+
     logger.error({ message: 'Securities search failed', error: error as Error });
 
-    // For search failures, return empty array rather than throwing
-    // This allows the UI to show "no results found" instead of an error
+    // Unexpected provider failures fall through to "no results" so the UI
+    // stays usable rather than throwing a 500 at the user.
     return [];
   }
 };

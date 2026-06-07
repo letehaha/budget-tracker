@@ -31,7 +31,7 @@
     "createPortfolio": {
       "title": "Create Portfolio",
       "description": "Create a new investment portfolio to track your holdings and transactions.",
-      "assetSupportNotice": "Currently supports stocks, ETFs and crypto. Bonds, options & other securities are on the {roadmapLink} — share what you need via {feedbackLink}.",
+      "assetSupportNotice": "Currently supports stocks, ETFs and crypto. Bonds, options & other securities are on the {roadmapLink} – share what you need via {feedbackLink}.",
       "assetSupportRoadmapLink": "vote for what's next",
       "assetSupportFeedbackLink": "request a feature",
       "form": {
@@ -301,7 +301,8 @@
       "notifications": {
         "success": "Holding added.",
         "error": "Failed to add holding."
-      }
+      },
+      "cryptoProviderNotConfigured": "Crypto search is unavailable. Set COINGECKO_API_KEY in your environment to enable it."
     },
     "deleteInvestmentTransaction": {
       "title": "Delete Transaction",
@@ -406,12 +407,12 @@
         "own": "Only transactions they created"
       },
       "householdOverrideHint": "{invitee} is already in your household with {permission} access. This share will override the household grant for this specific account.",
-      "householdLookupFailed": "Couldn't check household membership — proceeding without the override hint.",
+      "householdLookupFailed": "Couldn't check household membership – proceeding without the override hint.",
       "cancel": "Cancel",
       "send": "Send invitation",
       "success": "Invitation request submitted. If a user with that address is registered, they'll receive an invitation.",
       "error": "Could not send invitation. Please try again.",
-      "emailSendFailedWarning": "Invitation saved, but the email could not be sent. The recipient may not have received a notification — try again later."
+      "emailSendFailedWarning": "Invitation saved, but the email could not be sent. The recipient may not have received a notification – try again later."
     },
     "shareBudgetDialog": {
       "title": "Share budget",

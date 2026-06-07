@@ -1,3 +1,4 @@
+import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
 import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -80,7 +81,7 @@ describe('GET /investments/securities/search', () => {
       currencyCode: 'USD',
       exchangeName: 'NASDAQ Global Select',
     });
-    // Stock providers don't surface logo URLs — the frontend derives them
+    // Stock providers don't surface logo URLs – the frontend derives them
     // from the ticker via logo.dev, so logoUrl is absent here.
     expect(results[0]?.logoUrl).toBeFalsy();
 
@@ -291,7 +292,7 @@ describe('GET /investments/securities/search', () => {
 
     // CoinGecko returns Ethereum (exact match) plus several partial-match coins
     // including a scam coin sharing the "ETH" ticker that should still surface
-    // (we don't filter — we just cap by market cap).
+    // (we don't filter – we just cap by market cap).
     mockedCoingeckoSearch.mockResolvedValue({
       coins: [
         // Two coins with the exact ticker "ETH"; the lower market_cap_rank wins.
@@ -319,7 +320,7 @@ describe('GET /investments/securities/search', () => {
           symbol: 'etc',
           name: 'Ethereum Classic',
           market_cap_rank: 30,
-          // Only thumb — verifies the `large -> thumb` fallback chain in mapCoin.
+          // Only thumb – verifies the `large -> thumb` fallback chain in mapCoin.
           thumb: 'https://coin-images.coingecko.com/coins/images/453/thumb/ethereum-classic.png',
         },
         { id: 'ethereum-name-service', symbol: 'ens', name: 'Ethereum Name Service', market_cap_rank: 95 },
@@ -338,7 +339,7 @@ describe('GET /investments/securities/search', () => {
     expect(ethereum?.matchType).toBe('exact');
     expect(ethereum?.marketCapRank).toBe(2);
     // The mapper rewrites the CoinGecko image path to /small/ regardless of
-    // which size the SDK exposed — saves ~10x bandwidth at our display size.
+    // which size the SDK exposed – saves ~10x bandwidth at our display size.
     expect(ethereum?.logoUrl).toBe('https://coin-images.coingecko.com/coins/images/279/small/ethereum.png');
 
     // Partial-match coin appears with matchType = 'partial'
@@ -355,6 +356,72 @@ describe('GET /investments/securities/search', () => {
     // Non-CoinGecko-CDN URL bypasses the rewrite and passes through unchanged.
     const scamEth = cryptoResults.find((r) => r.providerSymbol === 'scam-eth');
     expect(scamEth?.logoUrl).toBe('https://example.com/scam-eth.png');
+  });
+
+  describe('COINGECKO_API_KEY missing or placeholder', () => {
+    // Temporarily mutate process.env and re-bind the data-provider factory so the
+    // composite provider re-reads the env. Each test restores the original value
+    // in `finally` to keep the integration suite hermetic – REQUIRED_TEST_ENV_VARS
+    // in setupIntegrationTests would otherwise reject the next test file in line.
+    const swapCoinGeckoKey = async (value: string | undefined, fn: () => Promise<void>) => {
+      const original = process.env.COINGECKO_API_KEY;
+      if (value === undefined) delete process.env.COINGECKO_API_KEY;
+      else process.env.COINGECKO_API_KEY = value;
+      dataProviderFactory.clearCache();
+      try {
+        await fn();
+      } finally {
+        process.env.COINGECKO_API_KEY = original;
+        dataProviderFactory.clearCache();
+      }
+    };
+
+    it('returns 503 with cryptoProviderNotConfigured when assetClass=crypto and key is unset', async () => {
+      await swapCoinGeckoKey(undefined, async () => {
+        const response = await helpers.searchSecurities({
+          payload: { query: 'BTC', assetClass: ASSET_CLASS.crypto },
+        });
+
+        expect(response.statusCode).toBe(ERROR_CODES.ServiceUnavailable);
+        expect(response.body.status).toBe(API_RESPONSE_STATUS.error);
+        expect((response.body.response as unknown as { code: string }).code).toBe(
+          API_ERROR_CODES.cryptoProviderNotConfigured,
+        );
+        expect(mockedCoingeckoSearch).not.toHaveBeenCalled();
+      });
+    });
+
+    it('rejects placeholder values (e.g. "your-coingecko-api-key") the same as missing', async () => {
+      await swapCoinGeckoKey('your-coingecko-api-key', async () => {
+        const response = await helpers.searchSecurities({
+          payload: { query: 'BTC', assetClass: ASSET_CLASS.crypto },
+        });
+
+        expect(response.statusCode).toBe(ERROR_CODES.ServiceUnavailable);
+        expect((response.body.response as unknown as { code: string }).code).toBe(
+          API_ERROR_CODES.cryptoProviderNotConfigured,
+        );
+      });
+    });
+
+    it('mixed search (no assetClass) still returns stock results when key is unset', async () => {
+      await swapCoinGeckoKey(undefined, async () => {
+        mockedFmpSearch.mockResolvedValue([
+          {
+            symbol: 'AAPL',
+            name: 'Apple Inc.',
+            currency: 'USD',
+            stockExchange: 'NASDAQ Global Select',
+            exchangeShortName: 'NASDAQ',
+          },
+        ]);
+
+        const results = await helpers.searchSecurities({ payload: { query: 'AAPL' }, raw: true });
+
+        expect(results.find((r) => r.symbol === 'AAPL')).toBeDefined();
+        expect(mockedCoingeckoSearch).not.toHaveBeenCalled();
+      });
+    });
   });
 
   it('should mark securities as in portfolio when they exist in holdings', async () => {

@@ -21,6 +21,7 @@ export enum API_ERROR_CODES {
   baseCurrencyChangeInProgress = 'BASE_CURRENCY_CHANGE_IN_PROGRESS',
   badGateway = 'BAD_GATEWAY',
   payloadTooLarge = 'PAYLOAD_TOO_LARGE',
+  serviceUnavailable = 'SERVICE_UNAVAILABLE',
 
   // auth
   unauthorized = 'UNAUTHENTICATED',
@@ -29,6 +30,9 @@ export enum API_ERROR_CODES {
 
   // currencies-related
   currencyProviderUnavailable = 'CURRENCY_PROVIDER_UNAVAILABLE',
+
+  // investments-related
+  cryptoProviderNotConfigured = 'CRYPTO_PROVIDER_NOT_CONFIGURED',
 
   // sharing-related
   shareCurrencyMismatch = 'SHARE_CURRENCY_MISMATCH',

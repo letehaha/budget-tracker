@@ -1,7 +1,32 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
-import { ApiErrorResponseError, isNotFoundError, isResourceMissingError } from './index';
+import { ApiErrorResponseError, isApiErrorWithCode, isNotFoundError, isResourceMissingError } from './index';
+
+describe('isApiErrorWithCode', () => {
+  it('returns true when error is ApiErrorResponseError with matching code', () => {
+    const error = new ApiErrorResponseError('boom', { code: API_ERROR_CODES.conflict });
+    expect(isApiErrorWithCode(error, API_ERROR_CODES.conflict)).toBe(true);
+  });
+
+  it('returns false when code does not match', () => {
+    const error = new ApiErrorResponseError('boom', { code: API_ERROR_CODES.conflict });
+    expect(isApiErrorWithCode(error, API_ERROR_CODES.notFound)).toBe(false);
+  });
+
+  it('returns false for plain Error', () => {
+    expect(isApiErrorWithCode(new Error('plain'), API_ERROR_CODES.notFound)).toBe(false);
+  });
+
+  it('returns false when ApiErrorResponseError is constructed without data', () => {
+    const error = new ApiErrorResponseError('broken', undefined as never);
+    expect(isApiErrorWithCode(error, API_ERROR_CODES.notFound)).toBe(false);
+  });
+
+  it.each([null, undefined, 'string', 42, {}])('returns false for non-Error value %s', (value) => {
+    expect(isApiErrorWithCode(value, API_ERROR_CODES.notFound)).toBe(false);
+  });
+});
 
 describe('isNotFoundError', () => {
   it('returns true for ApiErrorResponseError with notFound code', () => {

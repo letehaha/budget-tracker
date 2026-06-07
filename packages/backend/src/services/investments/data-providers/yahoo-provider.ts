@@ -25,7 +25,15 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
 
   constructor() {
     super();
-    this.client = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'] });
+    this.client = new YahooFinance({
+      suppressNotices: ['yahooSurvey', 'ripHistorical'],
+      // Yahoo evolves response casing/shape faster than yahoo-finance2 ships
+      // schema updates (e.g. `quoteType: "EQUITY"` vs schema's `"equity"`). The
+      // lib still returns the parsed payload – only its post-hoc validator
+      // complains – so we silence both validator log paths to keep the search
+      // log readable. Real failures still surface via thrown exceptions.
+      validation: { logErrors: false, logOptionsErrors: false },
+    });
   }
 
   public async searchSecurities(query: string): Promise<SecuritySearchResult[]> {
