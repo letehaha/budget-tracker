@@ -222,6 +222,28 @@ export async function loadChunks({ locale, chunks }: { locale: string; chunks: I
   await Promise.all(chunks.map((chunk) => loadChunk({ locale, chunk })));
 }
 
+// Per-chunk load promises keyed by chunk name. Used by components that can
+// appear outside their owning route (e.g. dialogs opened from a global field)
+// to dedupe concurrent ensure-calls across component instances. The locale
+// dimension is intentionally omitted: setLocale() reloads every chunk already
+// tracked in loadedChunks, so a resolved promise from a prior locale still
+// reflects messages-present in the new locale.
+const ensureChunkPromises = new Map<I18nChunkName, Promise<void>>();
+
+/**
+ * Ensure a chunk is loaded for the current locale. Subsequent calls reuse the
+ * in-flight or resolved promise, so callers can invoke this on every mount
+ * without worrying about duplicate network requests.
+ */
+export function ensureChunkLoaded(chunk: I18nChunkName): Promise<void> {
+  let promise = ensureChunkPromises.get(chunk);
+  if (!promise) {
+    promise = loadChunks({ locale: getCurrentLocale(), chunks: [chunk] });
+    ensureChunkPromises.set(chunk, promise);
+  }
+  return promise;
+}
+
 /**
  * Load chunks required for a route (collects from route and all parent routes)
  */

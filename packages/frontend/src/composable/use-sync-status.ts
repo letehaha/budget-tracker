@@ -1,7 +1,7 @@
 import * as bankDataProvidersApi from '@/api/bank-data-providers';
 import type { SyncStatusResponse } from '@/api/bank-data-providers';
 import type { AccountGroups } from '@/common/types/models';
-import { getCurrentLocale, loadChunks } from '@/i18n';
+import { ensureChunkLoaded } from '@/i18n';
 import type { AccountModel } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -32,20 +32,6 @@ const justCompleted = ref(false); // Track if sync just completed
 const syncStuck = ref(false);
 let stuckTimer: ReturnType<typeof setTimeout> | null = null;
 
-// Provider names are used by sync-status-tooltip in the always-visible header
-// but live in the integrations chunk that's only auto-loaded on that route.
-// Trigger the load lazily on first composable use.
-let providerChunkLoadPromise: Promise<void> | null = null;
-function ensureProviderChunkLoaded(): Promise<void> {
-  if (!providerChunkLoadPromise) {
-    providerChunkLoadPromise = loadChunks({
-      locale: getCurrentLocale(),
-      chunks: ['pages/account-integrations'],
-    });
-  }
-  return providerChunkLoadPromise;
-}
-
 // SSE subscription state
 let sseUnsubscribe: (() => void) | null = null;
 let isSSESubscribed = false;
@@ -54,9 +40,10 @@ export function useSyncStatus() {
   const { t } = useI18n();
   const { connect, disconnect, on, isConnected } = useSSE();
 
-  // Kick off provider-name chunk load eagerly; provider names show up in the
-  // popover regardless of which page the user is on.
-  void ensureProviderChunkLoaded();
+  // Provider names show up in the always-visible header popover regardless of
+  // which page the user is on, but live in the integrations route chunk —
+  // pull it eagerly so the tooltip resolves before the user hovers.
+  void ensureChunkLoaded('pages/account-integrations');
 
   const rawIsSyncing = computed(() => {
     if (!syncStatusData.value) return false;

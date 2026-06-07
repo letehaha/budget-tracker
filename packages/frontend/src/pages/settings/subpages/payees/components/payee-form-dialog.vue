@@ -53,6 +53,7 @@ import CategorySelectField from '@/components/fields/category-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import { Button } from '@/components/lib/ui/button';
+import { ensureChunkLoaded } from '@/i18n';
 import { CATEGORIZATION_MODE, PayeeModel } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, watch } from 'vue';
@@ -74,6 +75,12 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+
+// The dialog can mount from any route (e.g. via PayeeSelectField inside the
+// transaction-create dialog from /dashboard), so eagerly pull the payees chunk
+// that owns every key this form renders. Falls through to fallbackLocale
+// messages until the promise resolves.
+void ensureChunkLoaded('pages/payees');
 
 const isOpen = computed({
   get: () => props.open,
@@ -115,7 +122,7 @@ const form = reactive<{
 }>({
   name: '',
   category: null,
-  // Default is `enforce` — matches the backend default for new Payees.
+  // Default is `enforce` – matches the backend default for new Payees.
   categorizationMode: categorizationModeOptions.value[0]!,
 });
 
