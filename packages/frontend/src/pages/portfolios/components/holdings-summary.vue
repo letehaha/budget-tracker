@@ -41,7 +41,7 @@
             </UiButton>
           </RouterLink>
 
-          <AddSymbolsDialog v-model:open="isAddSymbolsOpen" :portfolio-id="portfolioId" @updated="invalidate">
+          <AddSymbolsDialog v-model:open="isAddSymbolsOpen" :portfolio-id="portfolioId" @updated="onHoldingAdded">
             <UiButton size="sm">
               <PlusIcon class="mr-1 size-4" />
               {{ $t('portfolioDetail.holdings.addButton') }}
@@ -57,6 +57,7 @@
         :error="!!error"
         :portfolio-id="portfolioId"
         :is-filtering="isFiltering"
+        :just-added-ids="justAddedIds"
         @add-symbol="isAddSymbolsOpen = true"
         @import-transactions="goToImport"
       />
@@ -83,6 +84,19 @@ const { data: holdings, isLoading, error, invalidate } = useHoldings(portfolioId
 
 const isAddSymbolsOpen = ref(false);
 const filterText = ref('');
+
+// Holdings the user just added in this session – pinned to the top of the
+// table so they can keep adding transactions without scrolling. In-memory
+// only by design: clearing on reload matches the user's mental model ("fresh
+// page = nothing is 'new' anymore"). No sessionStorage.
+const justAddedIds = ref<Set<string>>(new Set());
+
+const onHoldingAdded = ({ securityId }: { securityId: string }) => {
+  const next = new Set(justAddedIds.value);
+  next.add(securityId);
+  justAddedIds.value = next;
+  invalidate();
+};
 
 function goToImport() {
   router.push({ name: ROUTES_NAMES.portfolioTransactionsImport, params: { portfolioId: portfolioId.value } });

@@ -22,7 +22,9 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 
 const props = defineProps<{ portfolioId: string }>();
-const emit = defineEmits(['updated']);
+const emit = defineEmits<{
+  (e: 'updated', payload: { securityId: string }): void;
+}>();
 
 const isOpen = defineModel<boolean>('open', { default: false });
 const isFeedbackOpen = ref(false);
@@ -102,7 +104,7 @@ const { addNotification } = useNotificationCenter();
 
 async function addSymbol(sec: SecuritySearchResult) {
   try {
-    await createHolding.mutateAsync({
+    const newHolding = await createHolding.mutateAsync({
       portfolioId: props.portfolioId,
       searchResult: sec,
       quantity: 0,
@@ -111,7 +113,7 @@ async function addSymbol(sec: SecuritySearchResult) {
     addNotification({ text: t('dialogs.addSymbols.notifications.success'), type: NotificationType.success });
     isOpen.value = false;
     searchTerm.value = '';
-    emit('updated');
+    emit('updated', { securityId: newHolding.securityId });
   } catch {
     addNotification({ text: t('dialogs.addSymbols.notifications.error'), type: NotificationType.error });
   }

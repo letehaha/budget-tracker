@@ -55,6 +55,10 @@ const props = defineProps<{
   // When the user is filtering via search, closed positions are shown inline
   // alongside active ones (no collapsible section).
   isFiltering?: boolean;
+  // Set of securityIds the user added during the current session. These rows
+  // sort to the very top so the user can keep adding transactions on a fresh
+  // holding without scrolling through the rest of the portfolio.
+  justAddedIds?: ReadonlySet<string>;
 }>();
 const emit = defineEmits<{ (e: 'addSymbol'): void; (e: 'importTransactions'): void }>();
 
@@ -98,14 +102,19 @@ const toggleSort = (key: HoldingSortKey) => {
 const closedExpanded = ref(false);
 
 const groupedHoldings = computed(() =>
-  groupHoldings({ holdings: props.holdings ?? [], sortKey: sortKey.value, sortDir: sortDir.value }),
+  groupHoldings({
+    holdings: props.holdings ?? [],
+    sortKey: sortKey.value,
+    sortDir: sortDir.value,
+    justAddedIds: props.justAddedIds,
+  }),
 );
 
 type DisplayRow = { kind: 'holding'; holding: HoldingModel } | { kind: 'closedToggle'; count: number };
 
 /**
  * Flat list of rows to render. While filtering we show every match in one
- * combined sorted list; otherwise active positions come first, followed by a
+ * combined sorted list; otherwise just-added rows lead, then active, then a
  * collapsible "Closed positions" toggle and (when expanded) the closed ones.
  */
 const displayRows = computed<DisplayRow[]>(() => {
@@ -115,8 +124,11 @@ const displayRows = computed<DisplayRow[]>(() => {
     );
   }
 
-  const { active, closed } = groupedHoldings.value;
-  const rows: DisplayRow[] = active.map((holding) => ({ kind: 'holding', holding }));
+  const { justAdded, active, closed } = groupedHoldings.value;
+  const rows: DisplayRow[] = [
+    ...justAdded.map((holding) => ({ kind: 'holding', holding }) as const),
+    ...active.map((holding) => ({ kind: 'holding', holding }) as const),
+  ];
 
   if (closed.length > 0) {
     rows.push({ kind: 'closedToggle', count: closed.length });
