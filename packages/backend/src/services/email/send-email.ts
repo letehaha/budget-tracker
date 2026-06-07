@@ -1,8 +1,11 @@
 import { isTestEmail } from '@bt/shared/types';
+import { EnvVar, isEnvConfigured } from '@common/utils/env';
 import { logger } from '@js/utils/logger';
 import { Resend } from 'resend';
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const resend = isEnvConfigured(EnvVar.RESEND_API_KEY, process.env.RESEND_API_KEY)
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 type SendEmailPayload = {
   from: string;

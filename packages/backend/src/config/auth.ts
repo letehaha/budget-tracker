@@ -1,6 +1,7 @@
 import { oauthProvider } from '@better-auth/oauth-provider';
 import { passkey } from '@better-auth/passkey';
 import { OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
+import { EnvVar, isEnvConfigured } from '@common/utils/env';
 import { createSessionHooks } from '@config/auth-hooks/session-hooks';
 import { logger } from '@js/utils/logger';
 import { identifyUser, trackSignup } from '@js/utils/posthog';
@@ -90,7 +91,7 @@ export const auth = betterAuth({
   // Email and password authentication
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: Boolean(process.env.RESEND_API_KEY),
+    requireEmailVerification: isEnvConfigured(EnvVar.RESEND_API_KEY, process.env.RESEND_API_KEY),
     // Cost 12 follows OWASP 2026 guidance.
     password: {
       hash: async (password: string) => {
@@ -150,12 +151,16 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      enabled: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      enabled:
+        isEnvConfigured(EnvVar.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_ID) &&
+        isEnvConfigured(EnvVar.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_CLIENT_SECRET),
     },
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || '',
       clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
-      enabled: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
+      enabled:
+        isEnvConfigured(EnvVar.GITHUB_CLIENT_ID, process.env.GITHUB_CLIENT_ID) &&
+        isEnvConfigured(EnvVar.GITHUB_CLIENT_SECRET, process.env.GITHUB_CLIENT_SECRET),
     },
   },
 

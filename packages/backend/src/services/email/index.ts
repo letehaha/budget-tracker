@@ -1,3 +1,4 @@
+import { EnvVar, isEnvConfigured } from '@common/utils/env';
 import { Resend } from 'resend';
 
 export const escapeHtml = (value: string): string =>
@@ -8,7 +9,9 @@ export const escapeHtml = (value: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-export const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+export const resend = isEnvConfigured(EnvVar.RESEND_API_KEY, process.env.RESEND_API_KEY)
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 export const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 export const appName = process.env.AUTH_RP_NAME || 'MoneyMatter';
 export const appUrl = process.env.APP_URL || 'https://moneymatter.app';
