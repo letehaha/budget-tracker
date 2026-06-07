@@ -152,6 +152,11 @@
         "year": "Ej.: 2025, 2024",
         "default": "Ej.: 2025, Q4, Jan 2025"
       }
+    },
+    "appUpdate": {
+      "title": "Actualización disponible",
+      "description": "Hay una nueva versión lista. Recargue para obtener las últimas mejoras.",
+      "reload": "Recargar"
     }
   },
   "validation": {

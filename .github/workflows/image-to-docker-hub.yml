@@ -51,6 +51,7 @@ jobs:
           sentry-org: ${{ secrets.SENTRY_ORG }}
           sentry-project: ${{ secrets.SENTRY_PROJECT }}
           sentry-release: ${{ github.sha }}
+          app-commit-hash: ${{ github.sha }}
           csp-extra-connect: ${{ secrets.CSP_EXTRA_CONNECT }}
           csp-extra-form-action: ${{ secrets.CSP_EXTRA_FORM_ACTION }}
           csp-extra-analytics: ${{ secrets.CSP_EXTRA_ANALYTICS }}

@@ -46,6 +46,10 @@ inputs:
     description: 'VITE_SENTRY_RELEASE - Release version (git SHA) for Sentry'
     required: false
     default: ''
+  app-commit-hash:
+    description: 'VITE_APP_COMMIT_HASH - Git SHA baked into the bundle for stale-version detection (polled against /version.json)'
+    required: false
+    default: ''
   csp-extra-connect:
     description: 'CSP_EXTRA_CONNECT - Extra hosts for CSP connect-src (defaults to api-base-url at build time)'
     required: false
@@ -108,6 +112,7 @@ runs:
           VITE_LOGO_DEV_TOKEN=${{ inputs.logo-dev-token }}
           VITE_SENTRY_DSN=${{ inputs.sentry-dsn }}
           VITE_SENTRY_RELEASE=${{ inputs.sentry-release }}
+          VITE_APP_COMMIT_HASH=${{ inputs.app-commit-hash }}
           SENTRY_AUTH_TOKEN=${{ inputs.sentry-auth-token }}
           SENTRY_ORG=${{ inputs.sentry-org }}
           SENTRY_PROJECT=${{ inputs.sentry-project }}

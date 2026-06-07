@@ -3,10 +3,12 @@
     <router-view />
 
     <notifications-center />
+    <update-available-banner />
   </main>
 </template>
 
 <script setup lang="ts">
+import UpdateAvailableBanner from '@/components/common/update-available-banner.vue';
 import NotificationsCenter from '@/components/notification-center/notifications-center.vue';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useAiCategorizationEvents } from '@/composable/use-ai-categorization-events';
