@@ -33,6 +33,7 @@
     },
     "form": {
       "namePlaceholder": "Enter payee name",
+      "categoryPlaceholder": "Select a category",
       "categorizationMode": {
         "label": "AI categorization",
         "enforce": {

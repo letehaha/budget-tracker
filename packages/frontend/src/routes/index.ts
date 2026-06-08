@@ -16,8 +16,11 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: [redirectRouteGuard, baseCurrencyExists],
     redirect: () => ({ name: ROUTES_NAMES.home }),
     meta: {
-      // Layout chunks loaded for all dashboard pages
-      i18nChunks: ['layout', 'dialogs', 'forms', 'errors'] as I18nChunkName[],
+      // Layout chunks loaded for all dashboard pages. `pages/payees` is in here
+      // because PayeeSelectField / the New Payee dialog can be reached from any
+      // route via the transaction-create dialog; loading it lazily races the
+      // first render and leaves option labels stuck on raw keys.
+      i18nChunks: ['layout', 'dialogs', 'forms', 'errors', 'pages/payees'] as I18nChunkName[],
     },
     children: [
       {

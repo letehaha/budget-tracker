@@ -15,6 +15,7 @@
         <CategorySelectField
           v-model="form.category"
           :label="$t('payees.columns.defaultCategory')"
+          :placeholder="$t('payees.form.categoryPlaceholder')"
           :values="formattedCategories"
           label-key="name"
         />
@@ -53,7 +54,6 @@ import CategorySelectField from '@/components/fields/category-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import { Button } from '@/components/lib/ui/button';
-import { ensureChunkLoaded } from '@/i18n';
 import { CATEGORIZATION_MODE, PayeeModel } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, watch } from 'vue';
@@ -73,14 +73,10 @@ const emit = defineEmits<{
   (e: 'saved', payee: PayeeModel): void;
 }>();
 
-const { t } = useI18n();
+// Global scope so `t()` inside computeds re-runs when `mergeLocaleMessage`
+// merges a chunk; the default local composer does not track global merges.
+const { t } = useI18n({ useScope: 'global' });
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
-
-// The dialog can mount from any route (e.g. via PayeeSelectField inside the
-// transaction-create dialog from /dashboard), so eagerly pull the payees chunk
-// that owns every key this form renders. Falls through to fallbackLocale
-// messages until the promise resolves.
-void ensureChunkLoaded('pages/payees');
 
 const isOpen = computed({
   get: () => props.open,
@@ -126,7 +122,15 @@ const form = reactive<{
   categorizationMode: categorizationModeOptions.value[0]!,
 });
 
-const activeModeHint = computed(() => form.categorizationMode.hint);
+// Resolved against the live options array instead of reading
+// `form.categorizationMode.hint` directly, because that field is a snapshot
+// taken when the option was selected — once `pages/payees` finishes loading
+// and the labels re-translate, the snapshot's hint is stale.
+const activeModeHint = computed(
+  () =>
+    categorizationModeOptions.value.find((opt) => opt.value === form.categorizationMode.value)?.hint ??
+    form.categorizationMode.hint,
+);
 
 watch(
   () => props.open,

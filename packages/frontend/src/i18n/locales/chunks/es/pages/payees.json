@@ -33,6 +33,7 @@
     },
     "form": {
       "namePlaceholder": "Introduzca el nombre del beneficiario",
+      "categoryPlaceholder": "Seleccionar una categoría",
       "categorizationMode": {
         "label": "Categorización con IA",
         "enforce": {

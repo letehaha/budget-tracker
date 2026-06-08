@@ -116,6 +116,12 @@ Always use the project's field components from `@/components/fields/`. Never use
 | Tags          | `tag-select-field.vue`      |
 | Color         | `color-select-field.vue`    |
 
+#### Placeholders are required
+
+Every form field must have a `:placeholder` set. An empty input or an empty select with only a label leaves the user guessing what to enter or pick (especially in dialogs that open with no prefilled value). The placeholder should be a concrete prompt — `"Enter payee name"`, `"Select a category"`, `"DD/MM/YYYY"` — not a restatement of the label.
+
+Always wire placeholders through i18n (`:placeholder="$t('...')"`); never inline raw English strings.
+
 ### Icons
 
 Always use `@lucide/vue` icons. Never use raw SVGs or other icon libraries. Do **not** use `lucide-vue-next` — that's the old package and has been replaced.

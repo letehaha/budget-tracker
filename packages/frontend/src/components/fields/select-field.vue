@@ -76,6 +76,16 @@ const selectedKey = computed({
   },
 });
 
+// Look up the option from `values` by key instead of trusting `modelValue`,
+// so labels stay fresh when the options array re-derives (i18n chunks load,
+// async data resolves, locale switches). Falls back to `modelValue` if no
+// match — preserves behavior for callers whose selection isn't in `values`.
+const displayItem = computed<T | null>(() => {
+  if (!selectedValue.value) return null;
+  const key = getKeyFromItem(selectedValue.value);
+  return props.values.find((item) => getKeyFromItem(item) === key) ?? selectedValue.value;
+});
+
 watch(
   searchQuery,
   debounce((query: string) => {
@@ -112,7 +122,7 @@ watch(
       <Select.Select v-model="selectedKey" :disabled="disabled" @update:open="isDropdownOpen = $event">
         <Select.SelectTrigger class="w-full">
           <Select.SelectValue :placeholder="placeholder ?? t('fields.select.selectOption')">
-            {{ selectedValue ? getLabelFromValue(selectedValue) : (placeholder ?? t('fields.select.selectOption')) }}
+            {{ displayItem ? getLabelFromValue(displayItem) : (placeholder ?? t('fields.select.selectOption')) }}
           </Select.SelectValue>
         </Select.SelectTrigger>
         <Select.SelectContent>
