@@ -38,6 +38,7 @@ import {
   wipeUserData,
 } from '@controllers/user.controller';
 import { authenticateSession } from '@middlewares/better-auth';
+import { dataExportRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -50,6 +51,7 @@ router.post('/wipe-data', authenticateSession, validateEndpoint(wipeUserData.sch
 router.post(
   '/data-export',
   authenticateSession,
+  dataExportRateLimit,
   validateEndpoint(exportDataController.schema),
   exportDataController.handler,
 );

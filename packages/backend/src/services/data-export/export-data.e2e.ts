@@ -5,7 +5,8 @@ import {
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
 } from '@bt/shared/types';
-import { describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from '@jest/globals';
+import { RateLimitService } from '@services/common/rate-limit.service';
 import { EXPORT_SCHEMA_VERSION } from '@services/data-export/types';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
@@ -13,6 +14,14 @@ import ExcelJS from 'exceljs';
 import { createHash } from 'node:crypto';
 
 describe('Data export (POST /user/data-export)', () => {
+  // The route is rate-limited (5 exports per 15 min per user) and the limiter
+  // runs in the test env. Reset Redis state before each test so the per-suite
+  // accumulation of calls doesn't poison unrelated cases.
+  beforeEach(async () => {
+    const userRes = await helpers.makeRequest({ method: 'get', url: '/user', raw: true });
+    const userId = (userRes as { id: number }).id;
+    await RateLimitService.resetRateLimit(`data-export:user:${userId}`);
+  });
   describe('JSON format – happy path', () => {
     it('returns a zip with data-export.json + manifest.json that includes the seeded transaction', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -740,6 +749,44 @@ describe('Data export (POST /user/data-export)', () => {
       expect(stringified).not.toContain(foreignNeedle.category);
       expect(stringified).not.toContain(foreignNeedle.tag);
       expect(stringified).not.toContain(foreignNeedle.note);
+    });
+  });
+
+  describe('Rate limit', () => {
+    it('allows 5 exports in a 15-minute window per user and rejects the 6th with 429', async () => {
+      // Don't rely on the suite-wide beforeEach reset — make this case self-contained
+      // so it stays meaningful if the surrounding setup ever changes.
+      const userRes = await helpers.makeRequest({ method: 'get', url: '/user', raw: true });
+      const userId = (userRes as { id: number }).id;
+      await RateLimitService.resetRateLimit(`data-export:user:${userId}`);
+
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        const response = await helpers.exportData({ format: 'json' });
+        expect(response.statusCode).toBe(200);
+      }
+
+      const blocked = await helpers.exportData({ format: 'json' });
+      expect(blocked.statusCode).toBe(429);
+      const body = blocked.errorBody as { response?: { code?: string } } | null;
+      expect(body?.response?.code).toBe(API_ERROR_CODES.tooManyRequests);
+    });
+
+    it('after the limiter trips, a fresh window allows exports again (reset between users / windows)', async () => {
+      const userRes = await helpers.makeRequest({ method: 'get', url: '/user', raw: true });
+      const userId = (userRes as { id: number }).id;
+      const key = `data-export:user:${userId}`;
+
+      await RateLimitService.resetRateLimit(key);
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        await helpers.exportData({ format: 'json' });
+      }
+      const blocked = await helpers.exportData({ format: 'json' });
+      expect(blocked.statusCode).toBe(429);
+
+      await RateLimitService.resetRateLimit(key);
+
+      const afterReset = await helpers.exportData({ format: 'json' });
+      expect(afterReset.statusCode).toBe(200);
     });
   });
 
