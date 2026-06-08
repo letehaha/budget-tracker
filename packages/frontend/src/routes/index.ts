@@ -293,7 +293,20 @@ const routes: RouteRecordRaw[] = [
             path: 'data-management',
             name: ROUTES_NAMES.settingsDataManagement,
             component: () => import('@/pages/settings/subpages/data-management/index.vue'),
+            redirect: { name: ROUTES_NAMES.settingsDataManagementImport },
             meta: { i18nChunks: ['settings/data-management'] as I18nChunkName[] },
+            children: [
+              {
+                path: 'import',
+                name: ROUTES_NAMES.settingsDataManagementImport,
+                component: () => import('@/pages/settings/subpages/data-management/pages/import.vue'),
+              },
+              {
+                path: 'export',
+                name: ROUTES_NAMES.settingsDataManagementExport,
+                component: () => import('@/pages/settings/subpages/data-management/pages/export.vue'),
+              },
+            ],
           },
           {
             path: 'appearance',

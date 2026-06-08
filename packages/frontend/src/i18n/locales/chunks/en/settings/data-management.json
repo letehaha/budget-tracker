@@ -3,7 +3,7 @@
     "dataManagement": {
       "title": "Import Data",
       "description": "Import your financial data from various sources",
-      "sections": {
+      "tabs": {
         "import": "Import",
         "export": "Export"
       },
