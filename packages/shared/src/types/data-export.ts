@@ -43,6 +43,25 @@ export type ExportFileName = (typeof EXPORT_FILE_NAMES)[number];
 export const MAX_EXPORT_ROWS = 250_000;
 
 /**
+ * Optional date range applied to time-anchored exports. ISO-date strings
+ * (`YYYY-MM-DD`), interpreted as a closed interval.
+ *
+ * Only event tables filter on this range – transactions, balance history,
+ * investment transactions, portfolio transfers. Reference tables (accounts,
+ * categories, tags, vehicles, portfolios, holdings, budgets, subscriptions)
+ * always emit all rows so the filtered CSV columns resolve to readable names
+ * regardless of which window the user picked.
+ *
+ * Both bounds are optional: `{ from: '2024-01-01' }` means "from this day
+ * onward", `{ to: '2024-12-31' }` means "everything up to this day", and an
+ * empty object behaves like no filter at all.
+ */
+export interface ExportDateRange {
+  from?: string;
+  to?: string;
+}
+
+/**
  * Extract the `filename` token from a `Content-Disposition` header value.
  * Shared between the frontend API client and the backend e2e test helper –
  * the parsing rule is part of the export contract.

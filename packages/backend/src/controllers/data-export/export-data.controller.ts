@@ -1,4 +1,5 @@
 import { API_ERROR_CODES, ALL_EXPORT_GROUPS, EXPORT_FORMATS } from '@bt/shared/types';
+import { dateRange } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ConflictError } from '@js/errors';
 import { logger } from '@js/utils';
@@ -11,12 +12,17 @@ import { z } from 'zod';
  * Bypasses the standard JSON envelope and writes a binary zip directly to the
  * response. The controller-factory wrapper detects `res.headersSent` after the
  * handler runs and skips its normal envelope serialization for this case.
+ *
+ * `dateRange` uses calendar-day boundaries (YYYY-MM-DD), not instants — full
+ * ISO datetimes are rejected to avoid ambiguity over how the time-of-day
+ * portion would be honored against the export's day-granular filter.
  */
 export const exportDataController = createController(
   z.object({
     body: z.object({
       format: z.enum(EXPORT_FORMATS).default('json'),
       groups: z.array(z.enum(ALL_EXPORT_GROUPS)).default([...ALL_EXPORT_GROUPS]),
+      dateRange: dateRange().optional(),
     }),
   }),
   async ({ user, body, res, req }) => {
@@ -35,6 +41,7 @@ export const exportDataController = createController(
         userId: user.id,
         format: body.format,
         groups: body.groups,
+        dateRange: body.dateRange,
       });
 
       res.setHeader('Content-Type', result.contentType);

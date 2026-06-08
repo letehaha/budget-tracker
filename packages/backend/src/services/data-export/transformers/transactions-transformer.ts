@@ -11,8 +11,8 @@ import TransactionTags from '@models/transaction-tags.model';
 import Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
 
-import type { TransactionRow } from '../types';
-import { resolveRelationName } from './utils';
+import type { ExportDateRange, TransactionRow } from '../types';
+import { buildDateRangeClause, resolveRelationName } from './utils';
 
 interface CategoryView {
   id: string;
@@ -46,9 +46,15 @@ function describeTransaction({ tx, accountName }: { tx: Transactions; accountNam
   return `${date} ${accountName} ${signed} ${tx.currencyCode}`;
 }
 
-export async function transformTransactions({ userId }: { userId: number }): Promise<TransactionRow[]> {
+export async function transformTransactions({
+  userId,
+  dateRange,
+}: {
+  userId: number;
+  dateRange?: ExportDateRange;
+}): Promise<TransactionRow[]> {
   const transactions = await Transactions.findAll({
-    where: { userId },
+    where: { userId, ...buildDateRangeClause({ field: 'time', dateRange }) },
     order: [['time', 'ASC']],
   });
   if (transactions.length === 0) return [];

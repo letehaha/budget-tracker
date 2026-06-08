@@ -790,6 +790,140 @@ describe('Data export (POST /user/data-export)', () => {
     });
   });
 
+  describe('Date range', () => {
+    it('filters transactions to the requested range and leaves reference tables untouched', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const category = await helpers.addCustomCategory({ name: 'Range cat', color: '#AABBCC', raw: true });
+
+      // Three transactions: one before, one inside, one after the window we'll
+      // request. The export must drop the bookends and keep only the middle row.
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          categoryId: category.id,
+          amount: 11,
+          transactionType: TRANSACTION_TYPES.expense,
+          note: 'Before window',
+          time: '2023-12-31T12:00:00.000Z',
+        }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          categoryId: category.id,
+          amount: 22,
+          transactionType: TRANSACTION_TYPES.expense,
+          note: 'Inside window',
+          time: '2024-06-15T12:00:00.000Z',
+        }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          categoryId: category.id,
+          amount: 33,
+          transactionType: TRANSACTION_TYPES.expense,
+          note: 'After window',
+          time: '2025-02-01T12:00:00.000Z',
+        }),
+        raw: true,
+      });
+
+      const response = await helpers.exportData({
+        format: 'json',
+        dateRange: { from: '2024-01-01', to: '2024-12-31' },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const data = archive.json as {
+        transactions: Array<Record<string, unknown>>;
+        accounts: Array<Record<string, unknown>>;
+        categories: Array<Record<string, unknown>>;
+      };
+
+      const notes = data.transactions.map((t) => t.note);
+      expect(notes).toContain('Inside window');
+      expect(notes).not.toContain('Before window');
+      expect(notes).not.toContain('After window');
+
+      // Reference tables still emit everything – the inside-window row must
+      // still resolve to the account/category by name.
+      const accountNames = data.accounts.map((a) => a.name);
+      const categoryNames = data.categories.map((c) => c.name);
+      expect(accountNames).toContain(account.name);
+      expect(categoryNames).toContain('Range cat');
+    });
+
+    it('inclusive on both endpoints (rows exactly on `from` or `to` are kept)', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1,
+          transactionType: TRANSACTION_TYPES.expense,
+          note: 'Lower boundary',
+          time: '2024-01-01T00:00:00.000Z',
+        }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 2,
+          transactionType: TRANSACTION_TYPES.expense,
+          note: 'Upper boundary',
+          time: '2024-12-31T23:59:00.000Z',
+        }),
+        raw: true,
+      });
+
+      const response = await helpers.exportData({
+        format: 'json',
+        dateRange: { from: '2024-01-01', to: '2024-12-31' },
+      });
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const data = archive.json as { transactions: Array<Record<string, unknown>> };
+      const notes = data.transactions.map((t) => t.note);
+      expect(notes).toEqual(expect.arrayContaining(['Lower boundary', 'Upper boundary']));
+    });
+
+    it('records the range on the manifest for traceability', async () => {
+      const response = await helpers.exportData({
+        format: 'json',
+        dateRange: { from: '2024-01-01', to: '2024-12-31' },
+      });
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      expect(archive.manifest.dateRange).toEqual({ from: '2024-01-01', to: '2024-12-31' });
+    });
+
+    it('omits the dateRange manifest field when the request had no range', async () => {
+      const response = await helpers.exportData({ format: 'json' });
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      expect(archive.manifest.dateRange).toBeUndefined();
+    });
+
+    it('rejects an inverted range with 422', async () => {
+      const response = await helpers.exportData({
+        format: 'json',
+        dateRange: { from: '2024-12-31', to: '2024-01-01' },
+      });
+      expect(response.statusCode).toBe(422);
+    });
+
+    it('rejects a malformed date string with 422', async () => {
+      const response = await helpers.exportData({
+        format: 'json',
+        // Datetime instead of date – we accept calendar-day boundaries only.
+        dateRange: { from: '2024-01-01T00:00:00Z' },
+      });
+      expect(response.statusCode).toBe(422);
+    });
+  });
+
   describe('Size limit (ExportTooLargeError → 409)', () => {
     it('responds with 409 + payloadTooLarge when the row count would exceed MAX_EXPORT_ROWS', async () => {
       // The local data-export types module re-exports MAX_EXPORT_ROWS from

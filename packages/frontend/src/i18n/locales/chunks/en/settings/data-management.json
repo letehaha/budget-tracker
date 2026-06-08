@@ -55,6 +55,12 @@
           "failed": "Could not export your data. Please try again.",
           "downloadBlocked": "Export ready, but your browser blocked the download. Check the address bar for a download prompt.",
           "tooLarge": "Your data is too large for a single export. Please contact support."
+        },
+        "dateRange": {
+          "label": "Date range (optional)",
+          "helper": "Only event tables (transactions, balance history, investment activity) get filtered. Accounts, categories, and other reference tables stay complete.",
+          "placeholder": "All time",
+          "clear": "Clear date range"
         }
       }
     }

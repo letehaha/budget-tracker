@@ -12,7 +12,7 @@ import { transformSubscriptions } from './transformers/subscriptions-transformer
 import { transformTags } from './transformers/tags-transformer';
 import { transformTransactions } from './transformers/transactions-transformer';
 import { transformVehicles } from './transformers/vehicles-transformer';
-import type { ExportFileName, ExportGroup, ExportTable } from './types';
+import type { ExportDateRange, ExportFileName, ExportGroup, ExportTable } from './types';
 
 /**
  * Kind of cell content. The writer uses this to decide formatting:
@@ -60,7 +60,13 @@ interface ExportDomainBase {
   readonly name: ExportFileName;
   readonly group: ExportGroup;
   readonly columns: readonly ColumnSpec[];
-  readonly build: (input: { userId: number }) => Promise<ExportTable['rows']>;
+  /**
+   * `dateRange` is passed to every domain, but only time-anchored
+   * transformers (transactions, balance history, investment transactions,
+   * portfolio transfers) consult it. Reference tables ignore it so the
+   * resolved-name columns in the filtered CSVs stay readable.
+   */
+  readonly build: (input: { userId: number; dateRange?: ExportDateRange }) => Promise<ExportTable['rows']>;
 }
 
 /**
@@ -79,7 +85,7 @@ interface ExportDomain<N extends ExportFileName> {
   readonly name: N;
   readonly group: ExportGroup;
   readonly columns: readonly ColumnSpec<RowOf<N>>[];
-  readonly build: (input: { userId: number }) => Promise<RowOf<N>[]>;
+  readonly build: (input: { userId: number; dateRange?: ExportDateRange }) => Promise<RowOf<N>[]>;
 }
 
 /**
@@ -99,7 +105,7 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
   defineDomain({
     name: 'transactions',
     group: 'transactions',
-    build: ({ userId }) => transformTransactions({ userId }),
+    build: ({ userId, dateRange }) => transformTransactions({ userId, dateRange }),
     columns: [
       { header: 'Date', field: 'date', kind: 'date' },
       { header: 'Time', field: 'time', kind: 'text' },
@@ -138,7 +144,7 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
   defineDomain({
     name: 'balances_history',
     group: 'transactions',
-    build: ({ userId }) => transformBalancesHistory({ userId }),
+    build: ({ userId, dateRange }) => transformBalancesHistory({ userId, dateRange }),
     columns: [
       { header: 'Account', field: 'account', kind: 'text' },
       { header: 'Date', field: 'date', kind: 'date' },
@@ -239,7 +245,7 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
   defineDomain({
     name: 'investment_transactions',
     group: 'investments',
-    build: ({ userId }) => transformInvestmentTransactions({ userId }),
+    build: ({ userId, dateRange }) => transformInvestmentTransactions({ userId, dateRange }),
     columns: [
       { header: 'Date', field: 'date', kind: 'date' },
       { header: 'Portfolio', field: 'portfolio', kind: 'text' },
@@ -255,7 +261,7 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
   defineDomain({
     name: 'portfolio_transfers',
     group: 'investments',
-    build: ({ userId }) => transformPortfolioTransfers({ userId }),
+    build: ({ userId, dateRange }) => transformPortfolioTransfers({ userId, dateRange }),
     columns: [
       { header: 'Date', field: 'date', kind: 'date' },
       { header: 'FromAccount', field: 'fromAccount', kind: 'text' },

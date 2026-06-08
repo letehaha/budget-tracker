@@ -2,19 +2,24 @@
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Checkbox } from '@/components/lib/ui/checkbox';
+import { DateSelectorDialog } from '@/components/lib/ui/date-selector';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { useNotificationCenter } from '@/components/notification-center';
 import { DataExportDownloadFailedError, useDataExport } from '@/composable/data-queries/data-export';
+import { type Period } from '@/composable/use-period-navigation';
 import { ApiErrorResponseError } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
 import {
   ALL_EXPORT_GROUPS,
   API_ERROR_CODES,
   EXPORT_FORMATS,
+  type ExportDateRange,
   type ExportFormat,
   type ExportGroup,
 } from '@bt/shared/types';
+import { endOfMonth, format as formatDate, startOfMonth } from 'date-fns';
+import { CalendarIcon, XIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -27,8 +32,32 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const format = ref<ExportFormat>('json');
 const selectedGroups = ref<Set<ExportGroup>>(new Set(ALL_EXPORT_GROUPS));
 
+// `null` = no filter; the DateSelector needs a non-null Period for its trigger
+// label, so we feed it the current month as a neutral placeholder.
+const selectedPeriod = ref<Period | null>(null);
+
 const allSelected = computed(() => ALL_EXPORT_GROUPS.every((g) => selectedGroups.value.has(g)));
 const noneSelected = computed(() => selectedGroups.value.size === 0);
+
+const dateSelectorPeriod = computed<Period>(
+  () => selectedPeriod.value ?? { from: startOfMonth(new Date()), to: endOfMonth(new Date()) },
+);
+
+const dateRangePayload = computed<ExportDateRange | undefined>(() => {
+  if (!selectedPeriod.value) return undefined;
+  return {
+    from: formatDate(selectedPeriod.value.from, 'yyyy-MM-dd'),
+    to: formatDate(selectedPeriod.value.to, 'yyyy-MM-dd'),
+  };
+});
+
+function handlePeriodUpdate(period: Period) {
+  selectedPeriod.value = period;
+}
+
+function clearPeriod() {
+  selectedPeriod.value = null;
+}
 
 const toggleGroup = ({ group, checked }: { group: ExportGroup; checked: boolean }) => {
   const next = new Set(selectedGroups.value);
@@ -63,7 +92,11 @@ const resolveErrorMessage = (e: unknown): string => {
 const handleConfirm = () => {
   if (noneSelected.value || isPending.value) return;
   mutate(
-    { format: format.value, groups: [...selectedGroups.value] },
+    {
+      format: format.value,
+      groups: [...selectedGroups.value],
+      dateRange: dateRangePayload.value,
+    },
     {
       onSuccess: ({ totalRows }) => {
         addSuccessNotification(
@@ -98,6 +131,7 @@ watch(
     if (isOpen) {
       format.value = 'json';
       selectedGroups.value = new Set(ALL_EXPORT_GROUPS);
+      selectedPeriod.value = null;
     }
   },
 );
@@ -128,6 +162,48 @@ watch(
             </Label>
           </div>
         </RadioGroup>
+      </div>
+
+      <div>
+        <Label class="mb-2 block text-sm font-medium">
+          {{ $t('settings.dataManagement.export.dateRange.label') }}
+        </Label>
+        <p class="text-muted-foreground mb-2 text-xs">
+          {{ $t('settings.dataManagement.export.dateRange.helper') }}
+        </p>
+        <div class="flex items-center gap-2">
+          <DateSelectorDialog
+            :model-value="dateSelectorPeriod"
+            :allowed-filter-modes="['is', 'before', 'after', 'between']"
+            @update:model-value="handlePeriodUpdate"
+          >
+            <template #trigger="{ triggerText }">
+              <Button
+                variant="outline"
+                :disabled="isPending"
+                :class="[
+                  'min-w-0 flex-1 justify-start text-left font-normal',
+                  !selectedPeriod && 'text-muted-foreground',
+                ]"
+              >
+                <CalendarIcon class="mr-2 size-4 shrink-0" />
+                <span class="truncate">
+                  {{ selectedPeriod ? triggerText : $t('settings.dataManagement.export.dateRange.placeholder') }}
+                </span>
+              </Button>
+            </template>
+          </DateSelectorDialog>
+          <Button
+            v-if="selectedPeriod"
+            variant="soft-destructive"
+            size="icon"
+            :disabled="isPending"
+            :aria-label="$t('settings.dataManagement.export.dateRange.clear')"
+            @click="clearPeriod"
+          >
+            <XIcon class="size-4" />
+          </Button>
+        </div>
       </div>
 
       <div>

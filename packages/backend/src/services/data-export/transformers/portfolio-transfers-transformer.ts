@@ -3,11 +3,20 @@ import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
 import { Op } from 'sequelize';
 
-import type { PortfolioTransferRow } from '../types';
-import { resolveRelationName } from './utils';
+import type { ExportDateRange, PortfolioTransferRow } from '../types';
+import { buildDateRangeClause, resolveRelationName } from './utils';
 
-export async function transformPortfolioTransfers({ userId }: { userId: number }): Promise<PortfolioTransferRow[]> {
-  const transfers = await PortfolioTransfers.findAll({ where: { userId }, order: [['date', 'ASC']] });
+export async function transformPortfolioTransfers({
+  userId,
+  dateRange,
+}: {
+  userId: number;
+  dateRange?: ExportDateRange;
+}): Promise<PortfolioTransferRow[]> {
+  const transfers = await PortfolioTransfers.findAll({
+    where: { userId, ...buildDateRangeClause({ field: 'date', dateRange }) },
+    order: [['date', 'ASC']],
+  });
   if (transfers.length === 0) return [];
 
   const accountIds = new Set<string>();

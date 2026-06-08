@@ -55,6 +55,12 @@
           "failed": "No se pudo exportar tus datos. Por favor, intenta de nuevo.",
           "downloadBlocked": "Exportación lista, pero tu navegador bloqueó la descarga. Revisa la barra de direcciones para un aviso de descarga.",
           "tooLarge": "Tus datos son demasiado grandes para una única exportación. Por favor, contacta con soporte."
+        },
+        "dateRange": {
+          "label": "Rango de fechas (opcional)",
+          "helper": "Solo se filtran las tablas con eventos (transacciones, historial de saldos, actividad de inversión). Las cuentas, categorías y otras tablas de referencia se exportan completas.",
+          "placeholder": "Todo el tiempo",
+          "clear": "Quitar rango de fechas"
         }
       }
     }

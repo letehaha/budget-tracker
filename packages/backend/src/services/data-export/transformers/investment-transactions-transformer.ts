@@ -3,13 +3,15 @@ import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import { Op } from 'sequelize';
 
-import type { InvestmentTransactionRow } from '../types';
-import { resolveRelationName } from './utils';
+import type { ExportDateRange, InvestmentTransactionRow } from '../types';
+import { buildDateRangeClause, resolveRelationName } from './utils';
 
 export async function transformInvestmentTransactions({
   userId,
+  dateRange,
 }: {
   userId: number;
+  dateRange?: ExportDateRange;
 }): Promise<InvestmentTransactionRow[]> {
   const portfolios = await Portfolios.findAll({ where: { userId }, attributes: ['id', 'name'] });
   if (portfolios.length === 0) return [];
@@ -18,7 +20,10 @@ export async function transformInvestmentTransactions({
   const portfolioNameById = new Map(portfolios.map((p) => [String(p.id), p.name]));
 
   const investmentTxs = await InvestmentTransaction.findAll({
-    where: { portfolioId: { [Op.in]: portfolioIds } },
+    where: {
+      portfolioId: { [Op.in]: portfolioIds },
+      ...buildDateRangeClause({ field: 'date', dateRange }),
+    },
     order: [['date', 'ASC']],
   });
   if (investmentTxs.length === 0) return [];

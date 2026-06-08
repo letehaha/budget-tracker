@@ -1,13 +1,14 @@
 import { parseFilenameFromContentDisposition } from '@bt/shared/types';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
-import type { ExportFormat, ExportGroup, ExportManifest } from '@services/data-export/types';
+import type { ExportDateRange, ExportFormat, ExportGroup, ExportManifest } from '@services/data-export/types';
 import AdmZip from 'adm-zip';
 import request from 'supertest';
 
 interface ExportDataParams {
   format?: ExportFormat;
   groups?: ExportGroup[];
+  dateRange?: ExportDateRange;
   withoutAuth?: boolean;
 }
 
@@ -31,6 +32,7 @@ export async function exportData(params: ExportDataParams = {}): Promise<ExportD
   const payload = {
     format: params.format ?? 'json',
     ...(params.groups !== undefined ? { groups: params.groups } : {}),
+    ...(params.dateRange !== undefined ? { dateRange: params.dateRange } : {}),
   };
 
   const base = request(app).post(`${API_PREFIX}/user/data-export`).set('Accept', 'application/zip');

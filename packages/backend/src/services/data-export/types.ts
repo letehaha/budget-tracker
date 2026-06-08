@@ -11,12 +11,19 @@
 export {
   EXPORT_SCHEMA_VERSION,
   MAX_EXPORT_ROWS,
+  type ExportDateRange,
   type ExportFileName,
   type ExportFormat,
   type ExportGroup,
 } from '@bt/shared/types';
 
-import { EXPORT_SCHEMA_VERSION, type ExportFileName, type ExportFormat, type ExportGroup } from '@bt/shared/types';
+import {
+  EXPORT_SCHEMA_VERSION,
+  type ExportDateRange,
+  type ExportFileName,
+  type ExportFormat,
+  type ExportGroup,
+} from '@bt/shared/types';
 
 /**
  * Final on-disk row shape per file. All keys map 1:1 to CSV column headers
@@ -219,5 +226,12 @@ export interface ExportManifest {
   exportedAt: string;
   format: ExportFormat;
   groups: ExportGroup[];
+  /**
+   * The closed date interval applied to event-table rows in this export.
+   * Omitted when the request did not specify a range (i.e. the export covers
+   * the full history). When present, at least one of `from` / `to` is set;
+   * reference tables are always emitted in full regardless of this field.
+   */
+  dateRange?: ExportDateRange;
   files: ManifestFileEntry[];
 }

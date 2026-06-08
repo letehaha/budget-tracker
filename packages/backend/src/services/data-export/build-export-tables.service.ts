@@ -1,7 +1,7 @@
 import { logger } from '@js/utils';
 
 import { EXPORT_DOMAINS } from './registry';
-import type { ExportFileName, ExportTable } from './types';
+import type { ExportDateRange, ExportFileName, ExportTable } from './types';
 
 interface TransformerFailure {
   file: ExportFileName;
@@ -30,14 +30,16 @@ function formatFailureMessage({ failures }: { failures: TransformerFailure[] }):
 export async function buildExportTables({
   userId,
   enabledFiles,
+  dateRange,
 }: {
   userId: number;
   enabledFiles: Set<ExportFileName>;
+  dateRange?: ExportDateRange;
 }): Promise<ExportTable[]> {
   const planned = EXPORT_DOMAINS.filter((domain) => enabledFiles.has(domain.name));
   const settled = await Promise.allSettled(
     planned.map(async (domain) => {
-      const rows = await domain.build({ userId });
+      const rows = await domain.build({ userId, dateRange });
       return { name: domain.name, rows } as ExportTable;
     }),
   );

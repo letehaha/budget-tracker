@@ -126,6 +126,28 @@ export const booleanQuery = () =>
 export const dateString = () =>
   z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format' });
 
+/**
+ * Optional date range with calendar-day boundaries (YYYY-MM-DD).
+ * Both ends are optional; the cross-field check rejects ranges where `from`
+ * is after `to` only when both are present. String comparison is sound because
+ * ISO YYYY-MM-DD sorts lexicographically the same way it sorts chronologically.
+ *
+ * Each endpoint additionally rejects regex-matching but non-real calendar dates
+ * (e.g. `2020-13-45`) via `Date.parse` — `dateString()` alone does not.
+ */
+export const dateRange = () => {
+  const calendarDate = dateString().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid calendar date');
+  return z
+    .object({
+      from: calendarDate.optional(),
+      to: calendarDate.optional(),
+    })
+    .refine(({ from, to }) => !from || !to || from <= to, {
+      message: '`from` must be on or before `to`',
+      path: ['from'],
+    });
+};
+
 /** Validates a positive decimal amount string (rejects zero and negative by default). */
 export const positiveAmountString = () =>
   z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {

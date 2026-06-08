@@ -9,7 +9,7 @@ import { buildManifest, serializeManifest } from './build-manifest';
 import { resolveEnabledFiles } from './registry';
 import { totalRowCount } from './transformers/utils';
 import * as exportTypes from './types';
-import { type ExportFormat, type ExportGroup } from './types';
+import { type ExportDateRange, type ExportFormat, type ExportGroup } from './types';
 import { WRITERS } from './writers';
 
 interface ExportDataResult {
@@ -95,20 +95,26 @@ export async function exportUserData({
   userId,
   format,
   groups,
+  dateRange,
 }: {
   userId: number;
   format: ExportFormat;
   groups: ExportGroup[];
+  dateRange?: ExportDateRange;
 }): Promise<ExportDataResult> {
   const exportedAt = new Date();
   const enabledFiles = resolveEnabledFiles({ groups });
+
+  // Treat an empty `{}` range as "no filter" so callers don't have to special-case
+  // their UI state (an empty pair of date inputs maps cleanly to no filter).
+  const effectiveRange = dateRange?.from || dateRange?.to ? dateRange : undefined;
 
   // Only the JSON writer renders the user-header block; CSV/XLSX consumers
   // never see it, so don't pay for the two extra queries (Users + base
   // currency + optional auth-pool email round-trip).
   const wantsUserHeader = format === 'json';
   const [tables, userHeader] = await Promise.all([
-    buildExportTables({ userId, enabledFiles }),
+    buildExportTables({ userId, enabledFiles, dateRange: effectiveRange }),
     wantsUserHeader ? fetchUserHeader({ userId }) : Promise.resolve(null),
   ]);
 
@@ -122,7 +128,7 @@ export async function exportUserData({
 
   const dataFiles = await WRITERS[format].write({ tables, exportedAt, user: userHeader ?? undefined });
 
-  const manifest = buildManifest({ files: dataFiles, format, groups, exportedAt });
+  const manifest = buildManifest({ files: dataFiles, format, groups, exportedAt, dateRange: effectiveRange });
   const manifestBuffer = serializeManifest({ manifest });
 
   // STORE compression: the inputs are textual CSV/JSON that compress at the

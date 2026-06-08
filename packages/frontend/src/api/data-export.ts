@@ -5,6 +5,7 @@ import { captureException } from '@/lib/sentry';
 import {
   API_ERROR_CODES,
   parseFilenameFromContentDisposition,
+  type ExportDateRange,
   type ExportFormat,
   type ExportGroup,
 } from '@bt/shared/types';
@@ -15,6 +16,7 @@ const SESSION_ID_KEY = 'session-id';
 export interface ExportDataPayload {
   format: ExportFormat;
   groups: ExportGroup[];
+  dateRange?: ExportDateRange;
 }
 
 interface ExportDataResult {
@@ -42,7 +44,7 @@ type ErrorEnvelope = { response?: ApiBaseError } & Partial<ApiBaseError>;
  * `ApiErrorResponseError` so callers see the same shape they'd get from any
  * regular API call.
  */
-export async function exportData({ format, groups }: ExportDataPayload): Promise<ExportDataResult> {
+export async function exportData({ format, groups, dateRange }: ExportDataPayload): Promise<ExportDataResult> {
   const url = `${API_HTTP}${API_VER}/user/data-export`;
   const response = await fetch(url, {
     method: 'POST',
@@ -52,7 +54,11 @@ export async function exportData({ format, groups }: ExportDataPayload): Promise
       Accept: 'application/zip, application/json',
     },
     credentials: 'include',
-    body: JSON.stringify({ format, groups }),
+    body: JSON.stringify({
+      format,
+      groups,
+      ...(dateRange ? { dateRange } : {}),
+    }),
   });
 
   if (!response.ok) {

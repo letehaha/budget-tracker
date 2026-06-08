@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import {
   EXPORT_SCHEMA_VERSION,
   type BuiltFile,
+  type ExportDateRange,
   type ExportFormat,
   type ExportGroup,
   type ExportManifest,
@@ -27,11 +28,13 @@ export function buildManifest({
   format,
   groups,
   exportedAt,
+  dateRange,
 }: {
   files: BuiltFile[];
   format: ExportFormat;
   groups: ExportGroup[];
   exportedAt: Date;
+  dateRange?: ExportDateRange;
 }): ExportManifest {
   const fileEntries: ManifestFileEntry[] = files.map((file) => ({
     filename: file.filename,
@@ -46,6 +49,7 @@ export function buildManifest({
     format,
     groups,
     files: fileEntries,
+    ...(dateRange ? { dateRange } : {}),
   };
 }
 

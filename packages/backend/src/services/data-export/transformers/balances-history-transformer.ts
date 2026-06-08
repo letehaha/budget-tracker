@@ -2,10 +2,16 @@ import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import { Op } from 'sequelize';
 
-import type { BalanceHistoryRow } from '../types';
-import { resolveRelationName, toDateOnly } from './utils';
+import type { BalanceHistoryRow, ExportDateRange } from '../types';
+import { buildDateRangeClause, resolveRelationName, toDateOnly } from './utils';
 
-export async function transformBalancesHistory({ userId }: { userId: number }): Promise<BalanceHistoryRow[]> {
+export async function transformBalancesHistory({
+  userId,
+  dateRange,
+}: {
+  userId: number;
+  dateRange?: ExportDateRange;
+}): Promise<BalanceHistoryRow[]> {
   const accounts = await Accounts.findAll({ where: { userId }, attributes: ['id', 'name'] });
   if (accounts.length === 0) return [];
 
@@ -13,7 +19,10 @@ export async function transformBalancesHistory({ userId }: { userId: number }): 
   const accountIds = [...accountNameById.keys()];
 
   const balances = await Balances.findAll({
-    where: { accountId: { [Op.in]: accountIds } },
+    where: {
+      accountId: { [Op.in]: accountIds },
+      ...buildDateRangeClause({ field: 'date', dateRange }),
+    },
     order: [
       ['accountId', 'ASC'],
       ['date', 'ASC'],
