@@ -24,11 +24,12 @@
         "cardTitle": "Export your data",
         "cardDescription": "Download a zip with your transactions, accounts, budgets, and other data. Useful for spreadsheet analysis, tax prep, or migrating to another budgeting app.",
         "cta": "Configure export",
-        "dialog": {
+        "form": {
           "title": "Export your data",
           "description": "Pick a format and the parts of your data you want. The download starts as soon as you confirm.",
           "confirmLabel": "Download",
-          "confirmLoading": "Preparing…"
+          "confirmLoading": "Preparing…",
+          "back": "Back to Export"
         },
         "format": {
           "label": "Format",

@@ -24,11 +24,12 @@
         "cardTitle": "Exporta tus datos",
         "cardDescription": "Descarga un archivo ZIP con tus transacciones, cuentas, presupuestos y otros datos. Útil para análisis en hojas de cálculo, preparación de impuestos o migración a otra aplicación de presupuestos.",
         "cta": "Configurar exportación",
-        "dialog": {
+        "form": {
           "title": "Exporta tus datos",
           "description": "Elige un formato y las partes de tus datos que deseas. La descarga comenzará tan pronto como confirmes.",
           "confirmLabel": "Descargar",
-          "confirmLoading": "Preparando…"
+          "confirmLoading": "Preparando…",
+          "back": "Volver a Exportar"
         },
         "format": {
           "label": "Formato",

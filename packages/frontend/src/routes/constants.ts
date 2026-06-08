@@ -48,6 +48,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsDataManagement: `${ROUTER_LAYOUTS.dashboard}.settings.data-management`,
   settingsDataManagementImport: `${ROUTER_LAYOUTS.dashboard}.settings.data-management.import`,
   settingsDataManagementExport: `${ROUTER_LAYOUTS.dashboard}.settings.data-management.export`,
+  settingsDataManagementExportConfigure: `${ROUTER_LAYOUTS.dashboard}.settings.data-management.export.configure`,
   settingsAppearance: `${ROUTER_LAYOUTS.dashboard}.settings.appearance`,
   settingsLanguage: `${ROUTER_LAYOUTS.dashboard}.settings.language`,
   settingsStatistics: `${ROUTER_LAYOUTS.dashboard}.settings.statistics`,
