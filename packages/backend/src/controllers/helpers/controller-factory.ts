@@ -42,6 +42,13 @@ export function createController<T extends z.ZodType>(schema: T, handler: Handle
 
         const statusCode = result?.statusCode || 200;
 
+        // Handler may have written a non-JSON response directly (e.g. binary
+        // file download). In that case the response is already committed and we
+        // must not attempt to send the standard JSON envelope on top of it.
+        if (res.headersSent) {
+          return res;
+        }
+
         if (!result || result.data === undefined) {
           return res.status(statusCode).json({
             status: API_RESPONSE_STATUS.success,

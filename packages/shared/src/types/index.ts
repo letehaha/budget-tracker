@@ -11,6 +11,7 @@ export * from './venture';
 export * from './vehicles';
 export * from './api';
 export * from './import-export';
+export * from './data-export';
 export * from './statement-parser';
 export * from './sse';
 export * from './ai';
