@@ -16,6 +16,9 @@
         "button": "Importar archivo CSV",
         "cta": "Importar archivo CSV"
       },
+      "import": {
+        "back": "Volver a Importar"
+      },
       "tabs": {
         "import": "Importar",
         "export": "Exportar"

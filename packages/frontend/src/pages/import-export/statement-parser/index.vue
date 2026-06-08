@@ -1,18 +1,22 @@
 <template>
-  <PageWrapper class="pt-4">
-    <BackLink :to="{ name: ROUTES_NAMES.settingsDataManagement }">{{
-      $t('pages.statementParser.backToSettings')
-    }}</BackLink>
-
-    <div class="mb-6">
-      <h1 class="text-2xl tracking-wider">{{ $t('pages.statementParser.pageTitle') }}</h1>
-      <p class="text-muted-foreground mt-2">
+  <Card class="max-w-4xl">
+    <CardHeader class="border-b">
+      <RouterLink
+        :to="{ name: ROUTES_NAMES.settingsDataManagementImport }"
+        class="text-muted-foreground hover:text-foreground mb-3 inline-flex w-fit items-center gap-1 text-sm transition-colors"
+      >
+        <ChevronLeftIcon class="size-4" />
+        {{ $t('settings.dataManagement.import.back') }}
+      </RouterLink>
+      <h2 class="mb-2 text-2xl font-semibold text-balance">
+        {{ $t('pages.statementParser.pageTitle') }}
+      </h2>
+      <p class="text-sm opacity-80">
         {{ $t('pages.statementParser.pageDescription') }}
       </p>
-    </div>
+    </CardHeader>
 
-    <div class="max-w-4xl">
-      <!-- Vertical Step Sections -->
+    <CardContent class="mt-6">
       <div class="space-y-4">
         <!-- Step 1: Upload & Extract -->
         <div ref="step1Ref" class="bg-card scroll-mt-20 rounded-lg border">
@@ -153,18 +157,18 @@
           </div>
         </div>
       </div>
-    </div>
-  </PageWrapper>
+    </CardContent>
+  </Card>
 </template>
 
 <script setup lang="ts">
-import BackLink from '@/components/common/back-link.vue';
-import PageWrapper from '@/components/common/page-wrapper.vue';
+import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import { CheckIcon, ChevronDownIcon, LockIcon } from '@lucide/vue';
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, LockIcon } from '@lucide/vue';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { RouterLink } from 'vue-router';
 
 import AccountSelectionStep from './components/account-selection-step.vue';
 import ImportResultsStep from './components/import-results-step.vue';

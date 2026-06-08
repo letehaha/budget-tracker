@@ -20,6 +20,9 @@
         "button": "Import CSV File",
         "cta": "Import CSV file"
       },
+      "import": {
+        "back": "Back to Import"
+      },
       "export": {
         "cardTitle": "Export your data",
         "cardDescription": "Download a zip with your transactions, accounts, budgets, and other data. Useful for spreadsheet analysis, tax prep, or migrating to another budgeting app.",

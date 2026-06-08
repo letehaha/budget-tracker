@@ -207,18 +207,6 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
       },
       {
-        path: '/import/csv',
-        name: ROUTES_NAMES.importCsv,
-        component: () => import('@/pages/import-export/csv-import.vue'),
-        meta: { i18nChunks: ['pages/import-csv'] as I18nChunkName[] },
-      },
-      {
-        path: '/import/text-source',
-        name: ROUTES_NAMES.importStatement,
-        component: () => import('@/pages/import-export/statement-parser/index.vue'),
-        meta: { i18nChunks: ['pages/import-statement'] as I18nChunkName[] },
-      },
-      {
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),
@@ -313,6 +301,18 @@ const routes: RouteRecordRaw[] = [
             name: ROUTES_NAMES.settingsDataManagementExportConfigure,
             component: () => import('@/pages/settings/subpages/data-management/pages/export-configure.vue'),
             meta: { i18nChunks: ['settings/data-management'] as I18nChunkName[] },
+          },
+          {
+            path: 'data-management/import/csv',
+            name: ROUTES_NAMES.importCsv,
+            component: () => import('@/pages/import-export/csv-import.vue'),
+            meta: { i18nChunks: ['pages/import-csv', 'settings/data-management'] as I18nChunkName[] },
+          },
+          {
+            path: 'data-management/import/text-source',
+            name: ROUTES_NAMES.importStatement,
+            component: () => import('@/pages/import-export/statement-parser/index.vue'),
+            meta: { i18nChunks: ['pages/import-statement', 'settings/data-management'] as I18nChunkName[] },
           },
           {
             path: 'appearance',
