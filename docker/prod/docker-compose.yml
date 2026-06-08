@@ -3,7 +3,7 @@
 # Usage:
 #   1. Place .env.production NEXT TO this compose file's project root (the
 #      repo root is the standard spot). It contains DB password + auth
-#      secrets + frontend build values — DO NOT bake it into images.
+#      secrets + frontend build values – DO NOT bake it into images.
 #   2. Point DNS A records for both SELFHOST_FRONTEND_DOMAIN and
 #      SELFHOST_API_DOMAIN at this host's public IP.
 #   3. From the repo root:
@@ -14,7 +14,7 @@
 # port 443 must be reachable). For localhost / no-TLS dev, see
 # docker-compose.localhost.yml.
 #
-# Daisy's prod (Dokploy-managed) does NOT use this file — Dokploy provides
+# Daisy's prod (Dokploy-managed) does NOT use this file – Dokploy provides
 # Traefik externally on `dokploy-network`.
 
 # Pin the compose project name so resources are namespaced consistently
@@ -36,7 +36,7 @@ services:
     networks: [selfhost]
     ports:
       # Defaults are 80/443. Override only if you front Traefik with another
-      # proxy or already use those ports — Let's Encrypt TLS-ALPN-01 still
+      # proxy or already use those ports – Let's Encrypt TLS-ALPN-01 still
       # needs port 443 reachable on the public IP.
       - '${TRAEFIK_HTTP_PORT:-80}:80'
       - '${TRAEFIK_HTTPS_PORT:-443}:443'
@@ -69,7 +69,6 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
-      frankfurter: { condition: service_healthy }
       currency-rates-api: { condition: service_healthy }
     env_file: ../../.env.production
     labels:
@@ -82,7 +81,7 @@ services:
     logging: *default-logging
 
   frontend:
-    # Frontend image is static nginx — no runtime env_file. All values
+    # Frontend image is static nginx – no runtime env_file. All values
     # needed by the Vue bundle are baked in at build via build args. Keeping
     # `.env.production` out of the image avoids leaking DB / auth secrets
     # into pushed image layers.
@@ -121,7 +120,7 @@ services:
     restart: unless-stopped
     networks: [selfhost]
     volumes: ['db_data:/var/lib/postgresql/data']
-    # Bound to localhost only — admin access via SSH tunnel, never public.
+    # Bound to localhost only – admin access via SSH tunnel, never public.
     # Override DB_HOST_PORT if 5432 is already used on the host.
     ports: ['127.0.0.1:${DB_HOST_PORT:-5432}:5432']
     environment:
@@ -139,7 +138,7 @@ services:
     restart: unless-stopped
     networks: [selfhost]
     volumes: ['redis_data:/data']
-    # Bound to localhost only — admin access via SSH tunnel, never public.
+    # Bound to localhost only – admin access via SSH tunnel, never public.
     # Override REDIS_HOST_PORT if 6379 is already used on the host.
     ports: ['127.0.0.1:${REDIS_HOST_PORT:-6379}:6379']
     healthcheck:
@@ -166,19 +165,6 @@ services:
       # `--spider` makes a HEAD request; modern wget (incl. BusyBox) returns
       # non-zero on HTTP errors. Verified against the upstream image.
       test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:8080/health']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    logging: *default-logging
-
-  frankfurter:
-    image: lineofflight/frankfurter
-    restart: unless-stopped
-    networks: [selfhost]
-    # The image ships ruby, not wget/curl/nc — use ruby for the TCP probe.
-    healthcheck:
-      test: ['CMD', 'ruby', '-rsocket', '-e', 'TCPSocket.new("localhost", 8080).close']
       interval: 30s
       timeout: 10s
       retries: 3

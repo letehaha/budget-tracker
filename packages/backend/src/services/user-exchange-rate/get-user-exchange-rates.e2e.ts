@@ -3,11 +3,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@j
 import { logger } from '@js/utils';
 import { connection } from '@models/index';
 import * as helpers from '@tests/helpers';
-import {
-  API_LAYER_ENDPOINT_REGEX,
-  CURRENCY_RATES_API_ENDPOINT_REGEX,
-  FRANKFURTER_ENDPOINT_REGEX,
-} from '@tests/mocks/exchange-rates/endpoints';
+import { API_LAYER_ENDPOINT_REGEX, CURRENCY_RATES_API_ENDPOINT_REGEX } from '@tests/mocks/exchange-rates/endpoints';
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
 import { startOfDay, subYears } from 'date-fns';
 
@@ -18,7 +14,7 @@ import { startOfDay, subYears } from 'date-fns';
  * exchange-rate resolution relies on.
  *
  * EXOTIC is a currency only ApiLayer covers, so the historical seed never supplies
- * a rate for it — each test fully controls its `ExchangeRates` rows. The base
+ * a rate for it – each test fully controls its `ExchangeRates` rows. The base
  * currency stays the suite default (AED): for an X→AED cross-rate the AED leg is
  * identical across two reads in the same test, so it cancels in a rate ratio and
  * we never need to know its seeded value.
@@ -63,20 +59,16 @@ const deleteRatesFor = async (quoteCode: string) => {
 
 describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
   let currencyRatesApiOverride: ReturnType<typeof createOverride>;
-  let frankfurterOverride: ReturnType<typeof createOverride>;
   let apiLayerOverride: ReturnType<typeof createOverride>;
 
   let currencyRatesApiCounter: ReturnType<typeof createCallsCounter>;
-  let frankfurterCounter: ReturnType<typeof createCallsCounter>;
   let apiLayerCounter: ReturnType<typeof createCallsCounter>;
 
   beforeAll(() => {
     currencyRatesApiOverride = createOverride(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
-    frankfurterOverride = createOverride(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
     apiLayerOverride = createOverride(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
 
     currencyRatesApiCounter = createCallsCounter(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
-    frankfurterCounter = createCallsCounter(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
     apiLayerCounter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
   });
 
@@ -90,7 +82,6 @@ describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
   afterEach(async () => {
     global.mswMockServer.resetHandlers();
     currencyRatesApiCounter.reset();
-    frankfurterCounter.reset();
     apiLayerCounter.reset();
     jest.restoreAllMocks();
     await deleteRatesFor(EXOTIC);
@@ -103,7 +94,6 @@ describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
 
   const failAllProviders = () => {
     currencyRatesApiOverride.setOverride({ status: 500 });
-    frankfurterOverride.setOverride({ status: 500 });
     apiLayerOverride.setOverride({ status: 500 });
   };
 
@@ -129,7 +119,7 @@ describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
 
     // The real USD->XAF rate for TODAY now lands in the DB (a later cron/sync would
     // do this). source=api-layer also marks today comprehensive, so the second read
-    // won't re-fetch — it must read this fresh row straight from the DB.
+    // won't re-fetch – it must read this fresh row straight from the DB.
     await insertRate({
       quoteCode: EXOTIC,
       date: today,
@@ -187,14 +177,12 @@ describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
     });
 
     currencyRatesApiCounter.reset();
-    frankfurterCounter.reset();
     apiLayerCounter.reset();
 
     const rate = await readExoticRate();
 
     expect(rate).toBeGreaterThan(0);
     expect(currencyRatesApiCounter.count).toBe(0);
-    expect(frankfurterCounter.count).toBe(0);
     expect(apiLayerCounter.count).toBe(0);
   });
 });

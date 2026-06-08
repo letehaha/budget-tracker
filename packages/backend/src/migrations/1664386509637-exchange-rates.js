@@ -80,8 +80,8 @@ module.exports = {
 
       // Seed deterministic exchange rates only in the test env. In dev/prod the
       // table is populated at runtime by the exchange-rate providers
-      // (currency-rates-api, frankfurter, api-layer) — the test fixture file
-      // ships only with the test source tree, not the production image.
+      // (currency-rates-api, api-layer) – the test fixture file ships only with
+      // the test source tree, not the production image.
       if (isTest) {
         const QueryTypes = require('sequelize').QueryTypes;
         const fs = require('fs');
@@ -155,7 +155,7 @@ module.exports = {
         }
       } else {
         console.log(
-          '[exchange-rates migration] ExchangeRates table created empty; runtime providers (currency-rates-api / frankfurter / api-layer) will populate rates on demand and via the daily cron.',
+          '[exchange-rates migration] ExchangeRates table created empty; runtime providers (currency-rates-api / api-layer) will populate rates on demand and via the daily cron.',
         );
       }
 

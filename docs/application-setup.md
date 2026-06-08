@@ -83,7 +83,7 @@ npm run docker:dev
 
 This will:
 
-- Build and start all Docker containers (backend, frontend, PostgreSQL, Redis, Frankfurter, pgAdmin)
+- Build and start all Docker containers (backend, frontend, PostgreSQL, Redis, currency-rates-api, pgAdmin)
 - Backend will be available at `https://localhost:8081`
 - Frontend will be available at `https://localhost:8100`
 - pgAdmin will be available at `http://localhost:8001`
@@ -141,7 +141,7 @@ Key environment variables in `.env.development`:
 - `ALPHA_VANTAGE_API_KEY`: Financial data. Can be obtained at https://www.alphavantage.co/
 - `FMP_API_KEY`: Financial Data API. Can be obtained at https://site.financialmodelingprep.com/
 - `API_LAYER_API_KEYS`: Currency exchange rates (comma-separated for multiple keys). Can be obtained at https://marketplace.apilayer.com/fixer-api. Better define several keys
-- `FRANKFURTER_BASE_URL`: Local service for exchange rates. Only `FRANKFURTER_SUPPORTED_CURRENCIES` are supported, that's why `API_LAYER_API_KEYS` is essencial to support other currencies.
+- `CURRENCY_RATES_API_URL`: Base URL for the self-hosted currency rates service (default `http://currency-rates-api:8080`). It supplies ECB + NBU rates for ~38 currencies, with `API_LAYER_API_KEYS` covering the exotic long tail.
 - `ENABLE_BANKING_REDIRECT_URL`: OAuth redirect URL required by Enable Banking – bank integration provider.
 
 **Frontend Configuration:**

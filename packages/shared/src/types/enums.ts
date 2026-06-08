@@ -46,7 +46,7 @@ export enum BANK_PROVIDER_TYPE {
 /**
  * Why a bank-data-provider connection was deactivated. Stored on
  * `BankDataProviderConnections.metadata.deactivationReason`. Drives the
- * "needs reauth" UI surfacing — only `AUTH_FAILURE` deactivations are
+ * "needs reauth" UI surfacing – only `AUTH_FAILURE` deactivations are
  * shown to the user, manual disconnects stay hidden.
  */
 export const DEACTIVATION_REASON = {
@@ -59,16 +59,16 @@ export type DeactivationReason = (typeof DEACTIVATION_REASON)[keyof typeof DEACT
  * Identifies the exchange rate provider that supplied a given rate.
  * Persisted as the `source` column on the `ExchangeRates` table.
  *
- * NOTE: keep in sync with the CHECK constraint in
- * `packages/backend/src/migrations/20260520000000-add-source-to-exchange-rates.ts`.
+ * NOTE: keep in sync with the CHECK constraint maintained by migrations under
+ * `packages/backend/src/migrations/` (currently the
+ * `20260608000000-drop-frankfurter-provider.ts` migration owns the latest set).
  */
 export enum EXCHANGE_RATE_PROVIDER_TYPE {
   CURRENCY_RATES_API = 'currency-rates-api',
-  FRANKFURTER = 'frankfurter',
   API_LAYER = 'api-layer',
   /**
    * Catch-all for rows whose origin cannot be determined.
-   * Used as the DB default — never set explicitly by a provider.
+   * Used as the DB default – never set explicitly by a provider.
    */
   UNKNOWN = 'unknown',
 }
@@ -221,7 +221,7 @@ export enum CATEGORIZATION_SOURCE {
  * How aggressively a Payee's `defaultCategoryId` overrides other categorization
  * sources.
  *
- * - `enforce`: `payee_rule` always wins — sets `categoryId` AND stamps
+ * - `enforce`: `payee_rule` always wins – sets `categoryId` AND stamps
  *   `categorizationMeta.source = payee_rule`, so AI then skips the row via its
  *   "categorizationMeta IS NULL" filter. Good for narrow merchants where every
  *   transaction is clearly the same category (Spotify → Subscriptions).
@@ -282,7 +282,7 @@ export const NOTIFICATION_TYPES = {
   shareExpired: 'share_expired',
   shareOwnerAccountDeleted: 'share_owner_account_deleted',
   /** Recipient-side: owner deleted a budget that was shared with the recipient. Distinct
-   *  from `shareRevoked` because the resource itself is gone — there's nothing to
+   *  from `shareRevoked` because the resource itself is gone – there's nothing to
    *  re-share, and any deep-link will 404. */
   shareOwnerBudgetDeleted: 'share_owner_budget_deleted',
   // Household membership lifecycle. Mirrors the per-resource set except for
@@ -428,7 +428,7 @@ export type PreferredTimeSlot = (typeof PREFERRED_TIME_SLOTS)[number];
  *   that shape so service-layer bugs cannot poison the table.
  * - `budget`: a single budget is shared. Recipients see the budget's metadata,
  *   stats, and linked transactions in full. `write` recipients can attach /
- *   detach **their own** transactions on manual budgets only — they cannot
+ *   detach **their own** transactions on manual budgets only – they cannot
  *   edit budget metadata, archive, or manage other recipients (all `manage`-
  *   only). Household membership does NOT auto-grant budget access; budgets
  *   are explicit-share only.
@@ -450,7 +450,7 @@ export type ResourceType = (typeof RESOURCE_TYPES)[keyof typeof RESOURCE_TYPES];
  * - `share`: a per-resource `ResourceShares` row grants access directly.
  * - `household`: access derives from a household-membership row (the grantor
  *   shared every account they own with the caller).
- * - `budget`: indirect read-only visibility — caller has an accepted budget share
+ * - `budget`: indirect read-only visibility – caller has an accepted budget share
  *   and the resource is a transaction attached to that budget. Confers `read` only;
  *   write paths still require an account-level share.
  */
@@ -477,7 +477,7 @@ export type SharedWithMeAccessSource = Exclude<AccessSource, typeof ACCESS_SOURC
  * - manage: write + manage other recipients of the same resource (cannot delete the resource itself)
  *
  * Household rows (`resourceType = 'household'`) reject `manage` at the DB
- * level — owner-only operations remain owner-only regardless of household
+ * level – owner-only operations remain owner-only regardless of household
  * membership.
  */
 export const SHARE_PERMISSIONS = {

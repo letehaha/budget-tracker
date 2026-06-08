@@ -17,8 +17,8 @@ type SelfPairRow = {
  * Regression test for issue #305.
  *
  * In production / fresh dev deployments the `ExchangeRates` table is populated
- * entirely by the runtime providers (api-layer, currency-rates-api, frankfurter).
- * Those providers never emit a self-pair row (`USD → USD = 1`) – see
+ * entirely by the runtime providers (currency-rates-api, api-layer). Those
+ * providers never emit a self-pair row (`USD → USD = 1`) – see
  * `merge-provider-rates.ts`, which explicitly skips `quoteCode === baseCurrency`.
  *
  * The test environment hides the bug because the legacy

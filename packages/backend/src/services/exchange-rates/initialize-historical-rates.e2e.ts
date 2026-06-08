@@ -1,7 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from '@jest/globals';
-import { logger } from '@js/utils';
 import ExchangeRates from '@models/exchange-rates.model';
-import { CURRENCY_RATES_API_ENDPOINT_REGEX, FRANKFURTER_ENDPOINT_REGEX } from '@tests/mocks/exchange-rates/endpoints';
+import { CURRENCY_RATES_API_ENDPOINT_REGEX } from '@tests/mocks/exchange-rates/endpoints';
 import { createOverride } from '@tests/mocks/helpers';
 import { format } from 'date-fns';
 
@@ -9,16 +8,8 @@ import { initializeHistoricalRates, providerAvailabilityConfig } from './initial
 import { exchangeRateProviderRegistry } from './providers';
 import { EXCHANGE_RATE_PROVIDER_TYPE } from './providers/types';
 
-// logger.error is an overloaded fn, so jest infers its call args as `never`.
-// Read the recorded calls through a widened tuple type for assertions.
-const loggerErrorCalledWith = (errorSpy: ReturnType<typeof jest.spyOn>, substring: string): boolean =>
-  (errorSpy.mock.calls as unknown as Array<[unknown, Record<string, unknown>?]>).some(
-    ([arg]) => typeof arg === 'string' && arg.includes(substring),
-  );
-
 describe('Initialize Historical Rates Service', () => {
   let currencyRatesApiOverride: ReturnType<typeof createOverride>;
-  let frankfurterOverride: ReturnType<typeof createOverride>;
 
   // Store original config values
   const originalMaxRetries = providerAvailabilityConfig.maxRetries;
@@ -30,7 +21,6 @@ describe('Initialize Historical Rates Service', () => {
 
   beforeAll(async () => {
     currencyRatesApiOverride = createOverride(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
-    frankfurterOverride = createOverride(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
 
     // Use shorter retry intervals for tests
     providerAvailabilityConfig.maxRetries = 2;
@@ -106,18 +96,16 @@ describe('Initialize Historical Rates Service', () => {
   });
 
   it('should handle provider errors gracefully without crashing', async () => {
-    // Make all providers return 500 error
+    // Make the historical provider return 500 error
     currencyRatesApiOverride.setOneTimeOverride({ status: 500 });
-    frankfurterOverride.setOneTimeOverride({ status: 500 });
 
     // Should not throw - just log error
     await expect(initializeHistoricalRates()).resolves.toBeUndefined();
   });
 
   it('should handle provider 404 error gracefully', async () => {
-    // Make all providers return 404 error
+    // Make the historical provider return 404 error
     currencyRatesApiOverride.setOneTimeOverride({ status: 404 });
-    frankfurterOverride.setOneTimeOverride({ status: 404 });
 
     // Should not throw - just log error
     await expect(initializeHistoricalRates()).resolves.toBeUndefined();
@@ -127,12 +115,8 @@ describe('Initialize Historical Rates Service', () => {
     const startDate = exchangeRateProviderRegistry.getEarliestHistoricalDate();
     const startDateStr = startDate ? format(startDate, 'yyyy-MM-dd') : '1999-01-04';
 
-    // Return invalid response (missing rates) from primary provider
+    // Return invalid response (missing rates) from the historical provider.
     currencyRatesApiOverride.setOneTimeOverride({
-      body: { base: 'USD', start_date: startDateStr, end_date: '2025-01-01' },
-    });
-    // Make Frankfurter also return invalid response
-    frankfurterOverride.setOneTimeOverride({
       body: { base: 'USD', start_date: startDateStr, end_date: '2025-01-01' },
     });
 
@@ -178,17 +162,16 @@ describe('Initialize Historical Rates Service', () => {
     expect(sampleRate!.rate).toBeGreaterThan(0);
     expect(sampleRate!.date).toBeInstanceOf(Date);
     // `source` must reflect the provider that supplied the rate, not the
-    // UNKNOWN fallback — protects against providerType being dropped from
+    // UNKNOWN fallback – protects against providerType being dropped from
     // the insert path in a future refactor.
     expect(sampleRate!.source).not.toBe(EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN);
     expect(Object.values(EXCHANGE_RATE_PROVIDER_TYPE)).toContain(sampleRate!.source);
   });
 
   it('attributes backfilled rates to the highest-priority provider that supplied them', async () => {
-    // Both historical providers (Currency Rates API p1, Frankfurter p2) are healthy.
-    // The primary's mock is a superset of Frankfurter's, so the per-date merge must
-    // attribute EVERY row to the primary — proving priority precedence holds in the
-    // historical path (a lower-priority value never overwrites a higher-priority one).
+    // Currency Rates API (priority 1) is the only registered historical provider,
+    // so every row must be attributed to it – proving the source flows through
+    // the merge → bulk-insert pipeline rather than being dropped to UNKNOWN.
     await ExchangeRates.destroy({ where: {} });
 
     await initializeHistoricalRates();
@@ -198,19 +181,6 @@ describe('Initialize Historical Rates Service', () => {
     rates.forEach((rate) => {
       expect(rate.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API);
     });
-  });
-
-  it('reports a Sentry event (logger.error) when a historical provider is unavailable', async () => {
-    const errorSpy = jest.spyOn(logger, 'error');
-    // Primary stays healthy and backfills the data; the secondary provider fails its
-    // health check (500), so it is skipped by isAvailable(). That degradation used to
-    // go unreported on the historical path (only `failed`, never `unavailable`, was
-    // signalled) — the exact asymmetry this guards against.
-    frankfurterOverride.setOverride({ status: 500 });
-
-    await initializeHistoricalRates();
-
-    expect(loggerErrorCalledWith(errorSpy, 'Historical backfill degraded')).toBe(true);
   });
 
   it('should work as a fire-and-forget operation (non-blocking startup pattern)', async () => {
@@ -233,9 +203,8 @@ describe('Initialize Historical Rates Service', () => {
   });
 
   it('should not crash the app even if initialization fails (fire-and-forget safety)', async () => {
-    // Make all providers return error
+    // Make the historical provider return error
     currencyRatesApiOverride.setOneTimeOverride({ status: 500 });
-    frankfurterOverride.setOneTimeOverride({ status: 500 });
 
     // Call without await - simulating startup
     const promise = initializeHistoricalRates();

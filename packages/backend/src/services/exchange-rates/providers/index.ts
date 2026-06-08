@@ -12,5 +12,4 @@ export * from './initialize-providers';
 
 // Individual providers
 export * from './currency-rates-api';
-export * from './frankfurter';
 export * from './api-layer';

@@ -63,10 +63,14 @@ const REQUEST_TIMEOUT = 10000; // 10 seconds
 const RANGE_REQUEST_TIMEOUT = 30000; // 30 seconds for range requests
 
 /**
- * Supported currencies by the currency-rates-api service
- * Based on ECB + NBU data sources
+ * Supported currencies by the currency-rates-api service. Based on ECB + NBU
+ * data sources. Includes `USD` even though the provider never emits a USD→USD
+ * row — USD is the implicit base, so any user-facing "is X supported as a base
+ * currency?" check needs USD to be present (e.g. the `change-base-currency`
+ * validation guard).
  */
 const CURRENCY_RATES_API_SUPPORTED_CURRENCIES = [
+  'USD',
   // From ECB (since 1999-01-04)
   'AUD',
   'CAD',

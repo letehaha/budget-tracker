@@ -3,7 +3,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import { findMissingCurrencies, mergeProviderRates, ProviderRatesInput } from './merge-provider-rates';
 
-const { CURRENCY_RATES_API, FRANKFURTER, API_LAYER } = EXCHANGE_RATE_PROVIDER_TYPE;
+const { CURRENCY_RATES_API, API_LAYER } = EXCHANGE_RATE_PROVIDER_TYPE;
 
 describe('mergeProviderRates', () => {
   it('attributes every rate from a single provider to that provider', () => {
@@ -21,7 +21,7 @@ describe('mergeProviderRates', () => {
   });
 
   it('keeps the higher-priority value AND source when providers overlap', () => {
-    // Same currency from two providers with DIFFERENT values — proves precedence
+    // Same currency from two providers with DIFFERENT values – proves precedence
     // applies to the value, not just the source label.
     const providerRates: ProviderRatesInput[] = [
       { type: CURRENCY_RATES_API, name: 'Currency Rates API', rates: { EUR: 0.9 } },
@@ -64,7 +64,7 @@ describe('mergeProviderRates', () => {
     const providerRates: ProviderRatesInput[] = [
       { type: CURRENCY_RATES_API, name: 'Currency Rates API', rates: { EUR: 0.9, UAH: 41 } },
       // Fully redundant: every currency already covered by the primary.
-      { type: FRANKFURTER, name: 'Frankfurter', rates: { EUR: 0.95, UAH: 42 } },
+      { type: API_LAYER, name: 'ApiLayer', rates: { EUR: 0.95, UAH: 42 } },
     ];
 
     const { providersUsed } = mergeProviderRates({ providerRates, baseCurrency: 'USD' });
@@ -79,7 +79,7 @@ describe('mergeProviderRates', () => {
   it('skips an invalid rate so a lower-priority provider can fill it', () => {
     // A higher-priority provider supplying a garbage value (NaN, 0, negative,
     // Infinity) must NOT block a healthy fallback. Otherwise the bad value would
-    // win the slot and persist — the same silent-staleness failure this merge
+    // win the slot and persist – the same silent-staleness failure this merge
     // exists to prevent, just relocated from "missing" to "bad value wins".
     const providerRates: ProviderRatesInput[] = [
       { type: CURRENCY_RATES_API, name: 'Currency Rates API', rates: { EUR: NaN, GBP: 0, JPY: -5, CHF: Infinity } },
@@ -100,7 +100,7 @@ describe('mergeProviderRates', () => {
 
   it('drops an invalid rate entirely when no provider supplies a valid one', () => {
     // If every provider's value for a currency is invalid, that currency is left
-    // uncovered rather than persisted with garbage — surfaced later as a coverage gap.
+    // uncovered rather than persisted with garbage – surfaced later as a coverage gap.
     const providerRates: ProviderRatesInput[] = [
       { type: CURRENCY_RATES_API, name: 'Currency Rates API', rates: { EUR: 0.9, BAD: NaN } },
     ];

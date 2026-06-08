@@ -2,16 +2,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@j
 import { logger } from '@js/utils';
 import { connection } from '@models/index';
 import * as helpers from '@tests/helpers';
-import {
-  getApiLayerResposeMock,
-  getCurrencyRatesApiResponseMock,
-  getFrankfurterResponseMock,
-} from '@tests/mocks/exchange-rates/data';
-import {
-  API_LAYER_ENDPOINT_REGEX,
-  CURRENCY_RATES_API_ENDPOINT_REGEX,
-  FRANKFURTER_ENDPOINT_REGEX,
-} from '@tests/mocks/exchange-rates/endpoints';
+import { getApiLayerResposeMock, getCurrencyRatesApiResponseMock } from '@tests/mocks/exchange-rates/data';
+import { API_LAYER_ENDPOINT_REGEX, CURRENCY_RATES_API_ENDPOINT_REGEX } from '@tests/mocks/exchange-rates/endpoints';
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
 import { format, startOfDay } from 'date-fns';
 
@@ -28,20 +20,16 @@ const loggerErrorCalledWith = (errorSpy: ReturnType<typeof jest.spyOn>, substrin
 
 describe('Exchange Rates Functionality', () => {
   let currencyRatesApiOverride: ReturnType<typeof createOverride>;
-  let frankfurterOverride: ReturnType<typeof createOverride>;
   let apiLayerOverride: ReturnType<typeof createOverride>;
 
   let currencyRatesApiCounter: ReturnType<typeof createCallsCounter>;
-  let frankfurterCounter: ReturnType<typeof createCallsCounter>;
   let apiLayerCounter: ReturnType<typeof createCallsCounter>;
 
   beforeAll(() => {
     currencyRatesApiOverride = createOverride(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
-    frankfurterOverride = createOverride(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
     apiLayerOverride = createOverride(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
 
     currencyRatesApiCounter = createCallsCounter(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
-    frankfurterCounter = createCallsCounter(global.mswMockServer, FRANKFURTER_ENDPOINT_REGEX);
     apiLayerCounter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
   });
 
@@ -57,7 +45,6 @@ describe('Exchange Rates Functionality', () => {
     global.mswMockServer.resetHandlers();
     // Reset call counters
     currencyRatesApiCounter.reset();
-    frankfurterCounter.reset();
     apiLayerCounter.reset();
     // Drop any logger spies installed by degradation-signal tests
     jest.restoreAllMocks();
@@ -77,7 +64,7 @@ describe('Exchange Rates Functionality', () => {
       expect(item).toMatchObject({
         date: expect.stringContaining(date),
       });
-      // `source` must be populated with a real provider — guards against
+      // `source` must be populated with a real provider – guards against
       // the providerType being silently dropped from the insert path.
       expect(item.source).not.toBe(EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN);
       expect(Object.values(EXCHANGE_RATE_PROVIDER_TYPE)).toContain(item.source);
@@ -89,7 +76,7 @@ describe('Exchange Rates Functionality', () => {
     // and succeeds every day, so the chain used to stop there and never reach
     // ApiLayer. Exotic currencies (ETB, HNL, PEN, RSD, TZS, XAF) that ONLY
     // ApiLayer provides were therefore never refreshed. The fallback must MERGE
-    // providers — filling gaps left by higher-priority ones — instead of
+    // providers – filling gaps left by higher-priority ones – instead of
     // returning on first success.
     const date = format(new Date(), 'yyyy-MM-dd');
 
@@ -115,8 +102,8 @@ describe('Exchange Rates Functionality', () => {
     const date = format(new Date(), 'yyyy-MM-dd');
     const primaryEur = getCurrencyRatesApiResponseMock(date).rates.EUR;
 
-    // ApiLayer (priority 3) returns a DIFFERENT EUR value. The primary must win on
-    // the VALUE, not just the source label — guards the dedup precedence path.
+    // ApiLayer (priority 2) returns a DIFFERENT EUR value. The primary must win on
+    // the VALUE, not just the source label – guards the dedup precedence path.
     apiLayerOverride.setOverride({
       body: { ...getApiLayerResposeMock(date), rates: { ...getApiLayerResposeMock(date).rates, EUR: 0.123456 } },
     });
@@ -151,8 +138,11 @@ describe('Exchange Rates Functionality', () => {
 
   it('reports a Sentry event (logger.error) when a fallback provider is degraded', async () => {
     const errorSpy = jest.spyOn(logger, 'error');
-    // Primary stays healthy; a lower-priority provider is down.
-    frankfurterOverride.setOverride({ status: 500 });
+    // Primary stays healthy; the comprehensive fallback fails its health check
+    // (500), so it is skipped by isAvailable(). The exotic long tail is then
+    // uncovered – surfaced as a degraded-sync alert independent of the
+    // primary-degraded path.
+    apiLayerOverride.setOverride({ status: 500 });
 
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
@@ -172,7 +162,7 @@ describe('Exchange Rates Functionality', () => {
     );
     expect(coverageCall).toBeTruthy();
     // Starving the comprehensive provider leaves the whole exotic long tail
-    // uncovered — far more than a healthy run would ever miss.
+    // uncovered – far more than a healthy run would ever miss.
     const { missingCurrencies } = (coverageCall![1] ?? {}) as { missingCurrencies?: string[] };
     expect(Array.isArray(missingCurrencies)).toBe(true);
     expect(missingCurrencies!.length).toBeGreaterThan(50);
@@ -186,20 +176,18 @@ describe('Exchange Rates Functionality', () => {
     // First sync populates the date, including ApiLayer-sourced rows.
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
-    // Confirm ApiLayer actually contributed — otherwise the gate below is vacuous.
+    // Confirm ApiLayer actually contributed – otherwise the gate below is vacuous.
     const seeded = (await helpers.getExchangeRates({ date, raw: true }))!;
     expect(seeded.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER)).toBe(true);
 
     // The comprehensiveness gate keys off an ApiLayer-sourced row existing for the
     // date, so a second sync must short-circuit BEFORE hitting any provider.
     currencyRatesApiCounter.reset();
-    frankfurterCounter.reset();
     apiLayerCounter.reset();
 
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
     expect(currencyRatesApiCounter.count).toBe(0);
-    expect(frankfurterCounter.count).toBe(0);
     expect(apiLayerCounter.count).toBe(0);
   });
 
@@ -208,7 +196,7 @@ describe('Exchange Rates Functionality', () => {
     const today = startOfDay(new Date());
 
     // Seed a NON-comprehensive date: one Currency Rates API-sourced row, no
-    // ApiLayer. Mirrors a historical-init date (only ECB-based providers ran),
+    // ApiLayer. Mirrors a historical-init date (only the ECB-based provider ran),
     // where an on-demand lookup should still reach ApiLayer for the exotic tail.
     await connection.sequelize.query(
       `INSERT INTO "ExchangeRates" ("baseCode", "quoteCode", "date", "rate", "source")
@@ -217,7 +205,6 @@ describe('Exchange Rates Functionality', () => {
     );
 
     currencyRatesApiCounter.reset();
-    frankfurterCounter.reset();
     apiLayerCounter.reset();
 
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
@@ -233,10 +220,10 @@ describe('Exchange Rates Functionality', () => {
   it('re-fetches a date where ApiLayer returned nothing (no api-layer row was written)', async () => {
     const date = format(new Date(), 'yyyy-MM-dd');
 
-    // ApiLayer down but the ECB-based providers succeed: the date gets rows, yet
-    // NONE are api-layer-sourced. The comprehensiveness gate keys off an
-    // api-layer row existing, so a date ApiLayer skipped (down / rate-limited /
-    // no key) must NOT be treated as covered — the next sync has to run again.
+    // ApiLayer down but the primary succeeds: the date gets rows, yet NONE are
+    // api-layer-sourced. The comprehensiveness gate keys off an api-layer row
+    // existing, so a date ApiLayer skipped (down / rate-limited / no key) must
+    // NOT be treated as covered – the next sync has to run again.
     apiLayerOverride.setOverride({ status: 500 });
 
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
@@ -246,7 +233,6 @@ describe('Exchange Rates Functionality', () => {
     expect(seeded.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER)).toBe(false);
 
     currencyRatesApiCounter.reset();
-    frankfurterCounter.reset();
     apiLayerCounter.reset();
 
     // No api-layer row → gate is not comprehensive → providers must run again
@@ -256,7 +242,7 @@ describe('Exchange Rates Functionality', () => {
     expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(1);
   });
 
-  it('should fallback to Frankfurter when Currency Rates API fails', async () => {
+  it('should fallback to ApiLayer when Currency Rates API fails', async () => {
     // Simulate Currency Rates API failure
     currencyRatesApiOverride.setOverride({ status: 500 });
 
@@ -267,9 +253,12 @@ describe('Exchange Rates Functionality', () => {
     expect(response).toBeInstanceOf(Array);
     expect(response.length).toBeGreaterThan(0);
 
-    // Verify fallback occurred: Currency Rates API was unavailable, Frankfurter was used
+    // Verify fallback occurred: Currency Rates API was unavailable, ApiLayer was used.
     expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(1);
-    expect(frankfurterCounter.count).toBeGreaterThanOrEqual(1);
+    expect(apiLayerCounter.count).toBeGreaterThanOrEqual(1);
+    response.forEach((item) => {
+      expect(item.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER);
+    });
   });
 
   it('should use Currency Rates API successfully when available', async () => {
@@ -281,71 +270,32 @@ describe('Exchange Rates Functionality', () => {
     expect(response).toBeInstanceOf(Array);
     expect(response.length).toBeGreaterThan(0);
 
-    // Verify Currency Rates API was called (isAvailable + fetchRatesForDate)
-    // Note: Frankfurter's isAvailable() also makes an HTTP call, so its counter may be > 0
+    // Verify Currency Rates API was called (isAvailable + fetchRatesForDate).
     expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(2);
   });
 
-  it('should fallback when Currency Rates API returns invalid base currency', async () => {
+  it('should fallback to ApiLayer when Currency Rates API returns an invalid base currency', async () => {
     currencyRatesApiOverride.setOneTimeOverride({
       body: {
         ...getCurrencyRatesApiResponseMock('2024-11-17'),
         base: 'EUR',
       },
     });
-    // With the new system, if one provider returns invalid data, it falls back to the next
+    // With the merging registry, an invalid response from a provider drops it
+    // from contribution and the chain continues to the next one.
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
-  });
-
-  it('should fallback to ApiLayer when Currency Rates API and Frankfurter return invalid data', async () => {
-    // Make Currency Rates API fail
-    currencyRatesApiOverride.setOverride({ status: 500 });
-    // Make Frankfurter return invalid base currency
-    frankfurterOverride.setOneTimeOverride({
-      body: {
-        ...getFrankfurterResponseMock('2024-11-17'),
-        base: 'EUR',
-      },
-    });
-    // With fallback system, it will try ApiLayer next
-    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
-  });
-
-  it('should fallback through all providers when earlier ones fail', async () => {
-    // Make Currency Rates API and Frankfurter fail
-    currencyRatesApiOverride.setOverride({ status: 500 });
-    frankfurterOverride.setOverride({ status: 500 });
-
-    // ApiLayer should succeed as final fallback
-    await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
-
-    // Verify full fallback chain: all providers were tried in order
-    expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(1);
-    expect(frankfurterCounter.count).toBeGreaterThanOrEqual(1);
-    expect(apiLayerCounter.count).toBeGreaterThanOrEqual(1);
-
-    // The persisted rows must be attributed to the provider that actually won
-    // the fallback chain (api-layer), not the ones that failed.
-    const date = format(new Date(), 'yyyy-MM-dd');
-    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
-    expect(response.length).toBeGreaterThan(0);
-    response.forEach((item) => {
-      expect(item.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER);
-    });
   });
 
   it('should return 502 when all providers fail', async () => {
     currencyRatesApiOverride.setOverride({ status: 500 });
-    frankfurterOverride.setOverride({ status: 500 });
     apiLayerOverride.setOverride({ status: 500 });
 
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
   });
 
   it('should handle ApiLayer 429 by trying next available key', async () => {
-    // Make primary providers fail
+    // Make primary provider fail so the chain reaches ApiLayer.
     currencyRatesApiOverride.setOverride({ status: 500 });
-    frankfurterOverride.setOverride({ status: 500 });
 
     // ApiLayer returns 429 for first key, should try next key
     apiLayerOverride.setOneTimeOverride({ status: 429 });
