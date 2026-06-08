@@ -188,10 +188,12 @@ Not needed for plain `Button @click` with `v-model:open` — only slot-triggered
 
 ### Dialogs & modals
 
-- Use **`ResponsiveDialog`** (`@/components/common/responsive-dialog.vue`) for general-purpose modals (forms, detail views)
+**Default to `ResponsiveDialog` for every new dialog.** Unless the user explicitly asks for a different primitive (raw `Dialog`, `Drawer`, `Popover`, etc.), any new modal/sheet/picker UI must use one of the responsive wrappers. They auto-adapt to **Drawer on mobile** and **Dialog / AlertDialog on desktop**, so they work in both contexts without extra wiring.
+
+- Use **`ResponsiveDialog`** (`@/components/common/responsive-dialog.vue`) for general-purpose modals (forms, detail views, pickers)
 - Use **`ResponsiveAlertDialog`** (`@/components/common/responsive-alert-dialog.vue`) for confirmations and destructive actions
-- Both auto-adapt: **Drawer** on mobile, **Dialog/AlertDialog** on desktop
-- **Never** use raw `Dialog` or `AlertDialog` components directly for user-facing modals
+- **Never** use raw `Dialog`, `AlertDialog`, or `Drawer` primitives directly for user-facing modals unless the user explicitly approves it for that case
+- Always provide a `#title` slot (visible or via `VisuallyHidden`) so Radix has an accessible name — a missing `DialogTitle` triggers an a11y warning
 
 ---
 
