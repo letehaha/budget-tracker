@@ -127,6 +127,7 @@
     },
     "outOfWallet": "Поза гаманцем",
     "dateSelector": {
+      "dialogTitle": "Діапазон дат",
       "dueDate": "Дата",
       "quickSelect": "Швидкий вибір",
       "apply": "Застосувати",

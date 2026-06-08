@@ -127,6 +127,7 @@
     },
     "outOfWallet": "Fuera de cartera",
     "dateSelector": {
+      "dialogTitle": "Rango de fechas",
       "dueDate": "Fecha de vencimiento",
       "quickSelect": "Selección rápida",
       "apply": "Aplicar",

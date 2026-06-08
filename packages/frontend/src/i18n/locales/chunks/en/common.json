@@ -127,6 +127,7 @@
     },
     "outOfWallet": "Out of Wallet",
     "dateSelector": {
+      "dialogTitle": "Date range",
       "dueDate": "Due date",
       "quickSelect": "Quick select",
       "apply": "Apply",

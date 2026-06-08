@@ -1,21 +1,22 @@
 <script lang="ts" setup>
+import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { type Period } from '@/composable/use-period-navigation';
+import { cn } from '@/lib/utils';
 import { isSameMonth } from 'date-fns';
-import { VisuallyHidden } from 'reka-ui';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '../dialog';
 import DateSelectorContent from './date-selector-content.vue';
 import { type DateSelectorFilterMode, type DateSelectorPreset } from './types';
 
 /**
- * Same API as `DateSelector` but opens the calendar in a Dialog instead of a
- * Popover. Use this when the trigger lives inside another floating layer
- * (modal, drawer) where popovers would overflow or stack awkwardly.
+ * Same API as `DateSelector` but opens the calendar in a ResponsiveDialog
+ * (Dialog on desktop, Drawer on mobile) instead of a Popover. Use this when
+ * the trigger lives inside another floating layer where popovers would
+ * overflow or stack awkwardly.
  *
- * Slot, props, and emits mirror `DateSelector` so a caller can swap one for
+ * Slots, props, and emits mirror `DateSelector` so a caller can swap one for
  * the other without touching its template wiring.
  */
 const props = withDefaults(
@@ -77,37 +78,25 @@ function handleCancel() {
 </script>
 
 <template>
-  <Dialog v-model:open="isOpen">
-    <DialogTrigger as-child>
+  <ResponsiveDialog
+    v-model:open="isOpen"
+    custom-close
+    :dialog-content-class="cn('p-4 md:max-w-2xl md:min-w-150', contentClassName)"
+    :drawer-content-class="contentClassName"
+  >
+    <template #trigger>
       <slot name="trigger" :trigger-text="triggerText" />
-    </DialogTrigger>
-    <DialogContent
-      custom-close
-      :class="[
-        // `overflow-hidden` makes DialogContent the scroll boundary; the inner
-        // wrapper below establishes the actual scroll viewport so the
-        // footer's `sticky bottom-0` resolves against a real scroll context
-        // (without that, sticky walks up to the body and the footer drifts
-        // into the calendar grid as the content grows).
-        'flex max-h-[90vh] w-full max-w-[calc(100vw-1rem)] flex-col overflow-hidden p-4 md:max-w-2xl md:min-w-150',
-        contentClassName,
-      ]"
-    >
-      <VisuallyHidden>
-        <DialogTitle>{{ t('common.dateSelector.currentMonth') }}</DialogTitle>
-        <DialogDescription>{{ t('common.dateSelector.currentMonth') }}</DialogDescription>
-      </VisuallyHidden>
-      <div class="min-h-0 flex-1 overflow-y-auto">
-        <DateSelectorContent
-          :period="modelValue"
-          :presets="presets"
-          :earliest-date="earliestDate"
-          :allowed-filter-modes="allowedFilterModes"
-          @apply="applyAndClose"
-          @cancel="handleCancel"
-          @preset-apply="applyAndClose"
-        />
-      </div>
-    </DialogContent>
-  </Dialog>
+    </template>
+    <template #title>{{ t('common.dateSelector.dialogTitle') }}</template>
+
+    <DateSelectorContent
+      :period="modelValue"
+      :presets="presets"
+      :earliest-date="earliestDate"
+      :allowed-filter-modes="allowedFilterModes"
+      @apply="applyAndClose"
+      @cancel="handleCancel"
+      @preset-apply="applyAndClose"
+    />
+  </ResponsiveDialog>
 </template>

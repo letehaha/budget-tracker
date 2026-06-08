@@ -16,7 +16,7 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <div class="max-md:bg-background sticky bottom-0 flex items-center gap-2 border-t pt-3 pb-1">
+  <div class="sticky bottom-0 flex items-center gap-2 border-t bg-inherit pt-3 pb-1">
     <div class="min-w-0 flex-1">
       <slot />
     </div>
