@@ -5,10 +5,9 @@
       "description": "Керуйте способами входу, активними сесіями та паролем",
       "tabs": {
         "loginMethods": "Способи входу",
-        "loginMethodsShort": "Вхід",
         "activeSessions": "Активні сесії",
-        "activeSessionsShort": "Сесії",
-        "password": "Пароль"
+        "password": "Пароль",
+        "dangerZone": "Небезпечна зона"
       },
       "loginMethods": {
         "title": "Способи входу",
