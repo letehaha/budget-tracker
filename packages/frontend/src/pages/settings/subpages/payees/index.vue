@@ -5,38 +5,35 @@
       <p class="text-sm opacity-80">{{ $t('payees.subtitle') }}</p>
     </CardHeader>
 
-    <CardContent class="mt-6">
-      <Tabs default-value="manage" class="w-full">
-        <TabsList class="grid w-full grid-cols-2">
-          <TabsTrigger value="manage" class="flex items-center gap-2">
-            <StoreIcon class="size-4" />
-            {{ $t('payees.tabs.manage') }}
-          </TabsTrigger>
-          <TabsTrigger value="settings" class="flex items-center gap-2">
-            <SlidersHorizontalIcon class="size-4" />
-            {{ $t('payees.tabs.settings') }}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="manage" class="mt-6">
-          <ManageTab />
-        </TabsContent>
-
-        <TabsContent value="settings" class="mt-6">
-          <SettingsTab />
-        </TabsContent>
-      </Tabs>
+    <CardContent class="mt-6 flex flex-col gap-6">
+      <RouterTabs :items="tabs" />
+      <router-view />
     </CardContent>
   </Card>
 </template>
 
 <script setup lang="ts">
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
+import { RouterTabs, type RouterTabItem } from '@/components/lib/ui/router-tabs';
+import { ROUTES_NAMES } from '@/routes';
 import { SlidersHorizontalIcon, StoreIcon } from '@lucide/vue';
-
-import ManageTab from './components/manage-tab.vue';
-import SettingsTab from './components/settings-tab.vue';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 defineOptions({ name: 'settings-payees' });
+
+const { t } = useI18n();
+
+const tabs = computed<RouterTabItem[]>(() => [
+  {
+    value: ROUTES_NAMES.settingsPayeesManage,
+    label: t('payees.tabs.manage'),
+    icon: StoreIcon,
+  },
+  {
+    value: ROUTES_NAMES.settingsPayeesSettings,
+    label: t('payees.tabs.settings'),
+    icon: SlidersHorizontalIcon,
+  },
+]);
 </script>

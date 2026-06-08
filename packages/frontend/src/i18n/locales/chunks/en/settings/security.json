@@ -5,10 +5,9 @@
       "description": "Manage your login methods, active sessions, and password",
       "tabs": {
         "loginMethods": "Login Methods",
-        "loginMethodsShort": "Login",
         "activeSessions": "Active Sessions",
-        "activeSessionsShort": "Sessions",
-        "password": "Password"
+        "password": "Password",
+        "dangerZone": "Danger Zone"
       },
       "loginMethods": {
         "title": "Login Methods",

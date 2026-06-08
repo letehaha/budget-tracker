@@ -256,7 +256,20 @@ const routes: RouteRecordRaw[] = [
             path: 'payees',
             name: ROUTES_NAMES.settingsPayees,
             component: () => import('@/pages/settings/subpages/payees/index.vue'),
+            redirect: { name: ROUTES_NAMES.settingsPayeesManage },
             meta: { i18nChunks: ['pages/payees'] as I18nChunkName[] },
+            children: [
+              {
+                path: 'manage',
+                name: ROUTES_NAMES.settingsPayeesManage,
+                component: () => import('@/pages/settings/subpages/payees/pages/manage.vue'),
+              },
+              {
+                path: 'settings',
+                name: ROUTES_NAMES.settingsPayeesSettings,
+                component: () => import('@/pages/settings/subpages/payees/pages/settings.vue'),
+              },
+            ],
           },
           {
             path: 'payees/:id',
@@ -329,7 +342,30 @@ const routes: RouteRecordRaw[] = [
             path: 'security',
             name: ROUTES_NAMES.settingsSecurity,
             component: () => import('@/pages/settings/subpages/security/index.vue'),
+            redirect: { name: ROUTES_NAMES.settingsSecurityLoginMethods },
             meta: { i18nChunks: ['settings/security'] as I18nChunkName[] },
+            children: [
+              {
+                path: 'login-methods',
+                name: ROUTES_NAMES.settingsSecurityLoginMethods,
+                component: () => import('@/pages/settings/subpages/security/pages/login-methods.vue'),
+              },
+              {
+                path: 'sessions',
+                name: ROUTES_NAMES.settingsSecuritySessions,
+                component: () => import('@/pages/settings/subpages/security/pages/sessions.vue'),
+              },
+              {
+                path: 'password',
+                name: ROUTES_NAMES.settingsSecurityPassword,
+                component: () => import('@/pages/settings/subpages/security/pages/password.vue'),
+              },
+              {
+                path: 'danger',
+                name: ROUTES_NAMES.settingsSecurityDanger,
+                component: () => import('@/pages/settings/subpages/security/pages/danger-zone.vue'),
+              },
+            ],
           },
           {
             path: 'ai-integrations',

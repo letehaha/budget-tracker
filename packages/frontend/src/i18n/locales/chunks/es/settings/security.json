@@ -5,10 +5,9 @@
       "description": "Gestione sus métodos de inicio de sesión, sesiones activas y contraseña",
       "tabs": {
         "loginMethods": "Métodos de inicio de sesión",
-        "loginMethodsShort": "Inicio de sesión",
         "activeSessions": "Sesiones activas",
-        "activeSessionsShort": "Sesiones",
-        "password": "Contraseña"
+        "password": "Contraseña",
+        "dangerZone": "Zona de peligro"
       },
       "loginMethods": {
         "title": "Métodos de inicio de sesión",

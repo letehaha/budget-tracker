@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
 import { TabsTrigger, type TabsTriggerProps } from 'reka-ui';
+import { computed, inject } from 'vue';
 
-const props = defineProps<TabsTriggerProps & { class?: string }>();
+import { TabsVariantKey, type TabsVariant } from './shared';
+
+const props = defineProps<TabsTriggerProps & { class?: string; variant?: TabsVariant }>();
+
+const injectedVariant = inject(TabsVariantKey, undefined);
+const variant = computed<TabsVariant>(() => props.variant ?? injectedVariant?.value ?? 'default');
 </script>
 
 <template>
@@ -10,7 +16,9 @@ const props = defineProps<TabsTriggerProps & { class?: string }>();
     v-bind="props"
     :class="
       cn(
-        'ring-offset-background focus-visible:ring-ring data-[state=active]:bg-background data-[state=active]:text-foreground inline-flex items-center justify-center rounded-sm px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-xs',
+        variant === 'underline'
+          ? 'text-muted-foreground hover:text-foreground focus-visible:text-foreground data-[state=active]:text-primary relative inline-flex items-center gap-2 border-b-2 border-transparent px-1 py-3 text-sm font-medium whitespace-nowrap transition-colors outline-none disabled:pointer-events-none disabled:opacity-50'
+          : 'ring-offset-background focus-visible:ring-ring data-[state=active]:bg-background data-[state=active]:text-foreground inline-flex items-center justify-center rounded-sm px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-xs',
         props.class,
       )
     "
