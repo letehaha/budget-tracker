@@ -8,6 +8,13 @@ else
     exit 1
 fi
 
+# Namespace the docker compose project by the worktree basename so multiple
+# worktrees get their own containers/volumes and do not destroy each other's
+# template DB / worker DBs / images.
+WORKTREE_ID=$(basename "$(cd ../.. && pwd)")
+export COMPOSE_PROJECT_NAME="bt-test-${WORKTREE_ID}"
+echo "Using COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}"
+
 
 # Start the containers and run tests
 docker compose -f ../../docker/test/backend/docker-compose.yml up --build -d
@@ -88,12 +95,10 @@ docker compose -f ../../docker/test/backend/docker-compose.yml exec -T test-runn
 # Capture the exit code
 TEST_EXIT_CODE=$?
 
-# Clean up containers
-docker compose -f ../../docker/test/backend/docker-compose.yml down -v --remove-orphans --volumes
-
-# Clean up images
-echo "Cleaning up Docker images..."
-docker image prune -af --filter "label=com.docker.compose.project=test"
+# Clean up containers + the test-runner image built for this worktree's project.
+# Using --rmi local keeps the cleanup scoped to this COMPOSE_PROJECT_NAME so
+# parallel runs from other worktrees are unaffected.
+docker compose -f ../../docker/test/backend/docker-compose.yml down -v --remove-orphans --volumes --rmi local
 
 # Check the exit code and display an error message if it's 1
 if [ $TEST_EXIT_CODE -eq 1 ]; then
