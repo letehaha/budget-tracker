@@ -12,7 +12,7 @@ services:
       # Mount SSL certificates for HTTPS
       - ../../docker/dev/certs:/app/docker/dev/certs:ro
     ports: ['${APPLICATION_PORT}:${APPLICATION_PORT}']
-    depends_on: ['db', 'redis', 'frankfurter', 'currency-rates-api']
+    depends_on: ['db', 'redis', 'currency-rates-api']
     env_file: ../../.env.development
     environment:
       - OFFLINE_MODE=${DOCKER_OFFLINE_MODE:-false}
@@ -74,23 +74,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # Frankfurter: Self-hosted exchange rates service (fallback provider)
-  # Provides historical exchange rates data from 1999-01-04 to present
-  # Used for: Fallback when Currency Rates API is unavailable
-  # Supports: 31 major currencies (AUD, EUR, GBP, USD, etc.)
-  # API: http://frankfurter:8080/v1/latest or http://frankfurter:8080/v1/YYYY-MM-DD
-  frankfurter:
-    image: lineofflight/frankfurter
-    platform: linux/amd64
-    container_name: dev-budget-tracker-frankfurter
-    restart: unless-stopped
-    attach: false
-    logging:
-      driver: 'json-file'
-      options:
-        max-size: '10m'
-        max-file: '3'
 
   pgadmin:
     image: dpage/pgadmin4:8.11

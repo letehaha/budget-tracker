@@ -36,7 +36,7 @@ Now it should be accessible under the port that you defined in the `.env.develop
 
 For detailed documentation about the backend services and architecture, see the [`docs/`](./docs/) folder:
 
-- [Exchange Rates System](./docs/exchange-rates.md) - Hybrid exchange rates system (ApiLayer + Frankfurter)
+- [Exchange Rates System](./docs/exchange-rates.md) - Hybrid exchange rates system (currency-rates-api + ApiLayer)
 
 ### Troubleshoting:
 

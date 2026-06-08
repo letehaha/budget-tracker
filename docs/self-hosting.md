@@ -3,14 +3,13 @@
 Run Budget Tracker on your own VPS. This guide assumes:
 
 - A fresh Ubuntu 22.04 / 24.04 (or Debian 12) VPS
-- Two DNS A records you control — one for the app, one for the API
+- Two DNS A records you control – one for the app, one for the API
 - Ports 80 and 443 reachable from the public internet (Let's Encrypt requirement)
 - 2 GB RAM minimum, 4 GB recommended (the build is the heaviest step)
 
 The bundled stack uses **Traefik** for HTTPS termination and routing, **Postgres**
-for storage, **Redis** for queues, and two sidecar services
-(`currency-rates-api` + `frankfurter`) for exchange-rate data. No external API
-keys are required for core functionality.
+for storage, **Redis** for queues, and the `currency-rates-api` sidecar for
+exchange-rate data. No external API keys are required for core functionality.
 
 ### What lives where
 
@@ -21,10 +20,9 @@ flowchart LR
     subgraph VPS["VPS host"]
         Traefik["Traefik<br/>:80 :443 public<br/>TLS via Let's Encrypt"]
 
-        subgraph net["Docker network: selfhost — internal only"]
+        subgraph net["Docker network: selfhost – internal only"]
             FE["Frontend<br/>nginx + static SPA"]
             BE["Backend<br/>Node + Express"]
-            FF["frankfurter<br/>EUR-base FX rates"]
             CR["currency-rates-api<br/>USD-base rates"]
             DB[("Postgres<br/>db_data volume")]
             RD[("Redis<br/>redis_data volume")]
@@ -37,19 +35,18 @@ flowchart LR
     Traefik -->|Host api.*| BE
     BE --> DB
     BE --> RD
-    BE --> FF
     BE --> CR
 ```
 
 Only Traefik binds public ports. Postgres and Redis bind to `127.0.0.1`
 on the host (admin via SSH tunnel only) and are otherwise reachable just
-from the `selfhost` Docker network. The two rate-data sidecars never
-leave that network.
+from the `selfhost` Docker network. The rate-data sidecar never leaves
+that network.
 
 > **Architecture**: works on both `amd64` and `arm64` VPSes (Hetzner ARM,
-> Oracle Ampere, AWS Graviton). The two rate-data sidecars are currently
-> only published as `amd64`, so on `arm64` hosts Docker runs them under
-> QEMU emulation — functional but slower at sync time. All other services
+> Oracle Ampere, AWS Graviton). The rate-data sidecar is currently only
+> published as `amd64`, so on `arm64` hosts Docker runs it under QEMU
+> emulation – functional but slower at sync time. All other services
 > (frontend, backend, postgres, redis, traefik) are multi-arch native.
 
 ## Table of Contents
@@ -94,7 +91,7 @@ dig +short api.example.com
 
 Both should print your VPS IP.
 
-### B. No domain — use nip.io
+### B. No domain – use nip.io
 
 [**nip.io**](https://nip.io) turns any IP into a real DNS name with no
 signup, no DNS records, no cost. If your VPS public IP is `203.0.113.42`,
@@ -107,7 +104,7 @@ api.203-0-113-42.nip.io   → 203.0.113.42
 
 Use them as your `SELFHOST_FRONTEND_DOMAIN` / `SELFHOST_API_DOMAIN` in
 step 4. Let's Encrypt issues real certificates for nip.io subdomains, so
-Traefik works the same way and you get genuine HTTPS — no browser
+Traefik works the same way and you get genuine HTTPS – no browser
 warnings. (nip.io is on the Public Suffix List, so its rate limits
 don't pool across other users.)
 
@@ -204,7 +201,7 @@ done
 
 > **Frontend env vars (`VITE_*`) are inlined into the JS bundle at Docker
 > BUILD time.** Editing them later requires `docker compose build` again.
-> Backend env vars are read at container start — restart, not rebuild.
+> Backend env vars are read at container start – restart, not rebuild.
 
 > **Keep `.env.production` on the VPS, not in the image.** The compose file
 > reads it via `--env-file` (compose-level interpolation) and `env_file:`
@@ -212,7 +209,7 @@ done
 > image, so DB password and auth secrets do not end up in pushed image
 > layers. Do **not** check `.env.production` into git.
 
-> The backend boots with a placeholder check — if any of
+> The backend boots with a placeholder check – if any of
 > `APPLICATION_JWT_SECRET`, `APP_SESSION_ID_SECRET`, `BETTER_AUTH_SECRET`,
 > or `APPLICATION_DB_PASSWORD` is still set to `__REPLACE_ME__`, the
 > container exits before serving any request.
@@ -235,7 +232,7 @@ flowchart TB
     BRuntime -->|read on container start| BEContainer
 ```
 
-The frontend image is fully public-safe — it only contains values that
+The frontend image is fully public-safe – it only contains values that
 the browser sees anyway. Backend secrets are mounted at container start
 and never written to any image layer.
 
@@ -267,7 +264,7 @@ The backend entrypoint runs `npm run migrate` before starting the server,
 so migrations apply on every boot. After `git pull` + `up -d --build`,
 they run automatically when the new container starts.
 
-To force a re-run manually (idempotent — Sequelize skips applied
+To force a re-run manually (idempotent – Sequelize skips applied
 migrations):
 
 ```bash
@@ -281,7 +278,7 @@ docker compose -f docker/prod/docker-compose.yml exec backend npm run migrate
 curl -fsSI https://app.example.com | head -1
 # HTTP/2 200
 
-# Backend liveness — get-session returns 200 with a literal `null` body
+# Backend liveness – get-session returns 200 with a literal `null` body
 # for a fresh request (no cookie, no session). There is no /api/v1/health
 # endpoint.
 curl -fsS https://api.example.com/api/v1/auth/get-session
@@ -315,7 +312,7 @@ docker compose -f docker/prod/docker-compose.yml logs -f backend
 ## 9. Backups
 
 The two stateful volumes are `db_data` (Postgres) and `redis_data` (Redis).
-Redis is queue-only — data is regenerated on the fly, so back up Postgres
+Redis is queue-only – data is regenerated on the fly, so back up Postgres
 only.
 
 ```bash
@@ -339,7 +336,7 @@ gunzip -c backup-2026-05-01.sql.gz | \
 > labels through Docker Desktop's daemon proxy, so HTTP routing returns
 > 404 for both `app.localhost` and `api.localhost` even though the stack
 > is healthy. Verify by hitting the backend directly inside the container
-> instead — `docker compose exec backend wget -qO - http://localhost:8081/api/v1/auth/get-session`
+> instead – `docker compose exec backend wget -qO - http://localhost:8081/api/v1/auth/get-session`
 > should print `null`. On a real Linux VPS this works as written.
 
 > **Host port collisions**: this override still binds Traefik to host
@@ -373,7 +370,7 @@ automatically. For curl, add to `/etc/hosts`:
 127.0.0.1 app.localhost api.localhost
 ```
 
-This mode skips TLS — do not run it on a public VPS.
+This mode skips TLS – do not run it on a public VPS.
 
 ---
 
@@ -395,7 +392,7 @@ This mode skips TLS — do not run it on a public VPS.
 | `APPLICATION_DB_*`         | Postgres connection (host/port/user/pass/db) |
 | `APPLICATION_REDIS_HOST`   | Redis hostname (defaults to `redis`)         |
 | `APPLICATION_PORT`         | Backend listen port (defaults to `8081`)     |
-| `VITE_APP_API_HTTP`        | API URL — inlined into the frontend bundle   |
+| `VITE_APP_API_HTTP`        | API URL – inlined into the frontend bundle   |
 
 ### Optional (features off until set)
 
@@ -456,11 +453,11 @@ frontend domain>` in `.env.production` and restart `backend`.
 
 ### Migrations fail with "ENOENT: test-exchange-rates.json"
 
-Older bug — your local checkout is below the fix. `git pull` and rebuild.
+Older bug – your local checkout is below the fix. `git pull` and rebuild.
 
 ### Frontend builds, backend won't start: "ECONNREFUSED" to db
 
-Wait — Postgres can take 10–30s on first boot to initialise data files. The
+Wait – Postgres can take 10–30s on first boot to initialise data files. The
 backend has a healthcheck-gated `depends_on` that should handle this, but
 if you've customised compose, ensure the `db: { condition: service_healthy
 }` clause is intact.
@@ -482,7 +479,7 @@ self-host config locally) you may see Traefik fail to read the daemon
 state. Stock Docker on a Linux VPS does not hit this. Two workarounds:
 
 1. **Skip TLS for the local test** with the `docker-compose.localhost.yml`
-   override — Traefik routing still fails on Docker Desktop, but
+   override – Traefik routing still fails on Docker Desktop, but
    `docker compose exec backend wget -qO - http://localhost:8081/api/v1/auth/get-session`
    confirms the rest of the stack.
 2. **Front Traefik with `tecnativa/docker-socket-proxy`** as a sidecar; the
@@ -507,4 +504,4 @@ docker compose -f docker/prod/docker-compose.yml --env-file .env.production up -
 ## Where to get help
 
 - Issues: https://github.com/letehaha/budget-tracker/issues
-- License: AGPL-3.0 — see `LICENSE`
+- License: AGPL-3.0 – see `LICENSE`

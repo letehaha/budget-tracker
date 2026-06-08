@@ -52,7 +52,7 @@ jobs:
           message: |
             ## Preview Environment
 
-            :x: **Deploy failed** — VPS has less than 2GB free disk space. Please clean up before retrying.
+            :x: **Deploy failed** – VPS has less than 2GB free disk space. Please clean up before retrying.
 
       # ── Build and push Docker images ──────────────────────────────────
       - name: Build and push frontend image
@@ -149,18 +149,15 @@ jobs:
 
               # Discover shared service container names dynamically
               CURRENCY_RATES_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'currency-rates-api' | head -1)
-              FRANKFURTER_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'frankfurter' | head -1)
 
-              if [ -z "$CURRENCY_RATES_CONTAINER" ] || [ -z "$FRANKFURTER_CONTAINER" ]; then
+              if [ -z "$CURRENCY_RATES_CONTAINER" ]; then
                 echo "ERROR: Could not find shared service containers"
                 echo "  currency-rates-api: ${CURRENCY_RATES_CONTAINER:-NOT FOUND}"
-                echo "  frankfurter: ${FRANKFURTER_CONTAINER:-NOT FOUND}"
                 exit 1
               fi
 
               echo "Found shared services:"
               echo "  currency-rates-api: $CURRENCY_RATES_CONTAINER"
-              echo "  frankfurter: $FRANKFURTER_CONTAINER"
 
               # Generate .env file
               printf '%s\n' \
@@ -184,7 +181,6 @@ jobs:
                 "AUTH_ORIGIN=https://pr-${PR_NUMBER}.preview.moneymatter.app" \
                 "AUTH_RP_NAME=MoneyMatter-Preview" \
                 "CURRENCY_RATES_API_URL=http://${CURRENCY_RATES_CONTAINER}:8080" \
-                "FRANKFURTER_BASE_URL=http://${FRANKFURTER_CONTAINER}:8080" \
                 "PREVIEW_DB_PASSWORD=$PREVIEW_DB_PASSWORD" \
                 "DISABLE_AUTH_RATE_LIMIT=true" \
                 "COINGECKO_API_KEY=$COINGECKO_API_KEY" \
@@ -356,7 +352,7 @@ jobs:
             ## Playwright E2E Tests
 
             ${{ steps.playwright.outcome == 'success' && ':white_check_mark: **All tests passed!**' || '' }}
-            ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected == 'true' && ':warning: **Tests interrupted** — preview environment was torn down during the test run.' || '' }}
+            ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected == 'true' && ':warning: **Tests interrupted** – preview environment was torn down during the test run.' || '' }}
             ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected != 'true' && format(':x: **Some tests failed.** Check the [workflow logs]({0}/{1}/actions/runs/{2}) and the uploaded `playwright-report` artifact for details.', github.server_url, github.repository, github.run_id) || '' }}
 
             _Tested against: `pr-${{ env.PR_NUMBER }}.preview.moneymatter.app` · Commit: ${{ github.sha }}_

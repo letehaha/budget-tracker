@@ -8,7 +8,7 @@ This directory contains the Docker configuration for local development with hot 
 - **frontend**: Vue.js frontend (port defined in .env)
 - **db**: PostgreSQL 16 database
 - **redis**: Redis 7 cache
-- **frankfurter**: Self-hosted exchange rates service
+- **currency-rates-api**: Self-hosted exchange rates service (ECB + NBU)
 - **pgadmin**: PostgreSQL admin interface (port 8001)
 
 ## Quick Start (Online Mode)
