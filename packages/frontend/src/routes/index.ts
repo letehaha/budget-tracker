@@ -16,8 +16,11 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: [redirectRouteGuard, baseCurrencyExists],
     redirect: () => ({ name: ROUTES_NAMES.home }),
     meta: {
-      // Layout chunks loaded for all dashboard pages
-      i18nChunks: ['layout', 'dialogs', 'forms', 'errors'] as I18nChunkName[],
+      // Layout chunks loaded for all dashboard pages. `pages/payees` is in here
+      // because PayeeSelectField / the New Payee dialog can be reached from any
+      // route via the transaction-create dialog; loading it lazily races the
+      // first render and leaves option labels stuck on raw keys.
+      i18nChunks: ['layout', 'dialogs', 'forms', 'errors', 'pages/payees'] as I18nChunkName[],
     },
     children: [
       {
@@ -207,18 +210,6 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
       },
       {
-        path: '/import/csv',
-        name: ROUTES_NAMES.importCsv,
-        component: () => import('@/pages/import-export/csv-import.vue'),
-        meta: { i18nChunks: ['pages/import-csv'] as I18nChunkName[] },
-      },
-      {
-        path: '/import/text-source',
-        name: ROUTES_NAMES.importStatement,
-        component: () => import('@/pages/import-export/statement-parser/index.vue'),
-        meta: { i18nChunks: ['pages/import-statement'] as I18nChunkName[] },
-      },
-      {
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),
@@ -293,7 +284,38 @@ const routes: RouteRecordRaw[] = [
             path: 'data-management',
             name: ROUTES_NAMES.settingsDataManagement,
             component: () => import('@/pages/settings/subpages/data-management/index.vue'),
+            redirect: { name: ROUTES_NAMES.settingsDataManagementImport },
             meta: { i18nChunks: ['settings/data-management'] as I18nChunkName[] },
+            children: [
+              {
+                path: 'import',
+                name: ROUTES_NAMES.settingsDataManagementImport,
+                component: () => import('@/pages/settings/subpages/data-management/pages/import.vue'),
+              },
+              {
+                path: 'export',
+                name: ROUTES_NAMES.settingsDataManagementExport,
+                component: () => import('@/pages/settings/subpages/data-management/pages/export.vue'),
+              },
+            ],
+          },
+          {
+            path: 'data-management/export/configure',
+            name: ROUTES_NAMES.settingsDataManagementExportConfigure,
+            component: () => import('@/pages/settings/subpages/data-management/pages/export-configure.vue'),
+            meta: { i18nChunks: ['settings/data-management'] as I18nChunkName[] },
+          },
+          {
+            path: 'data-management/import/csv',
+            name: ROUTES_NAMES.importCsv,
+            component: () => import('@/pages/import-export/csv-import.vue'),
+            meta: { i18nChunks: ['pages/import-csv', 'settings/data-management'] as I18nChunkName[] },
+          },
+          {
+            path: 'data-management/import/text-source',
+            name: ROUTES_NAMES.importStatement,
+            component: () => import('@/pages/import-export/statement-parser/index.vue'),
+            meta: { i18nChunks: ['pages/import-statement', 'settings/data-management'] as I18nChunkName[] },
           },
           {
             path: 'appearance',

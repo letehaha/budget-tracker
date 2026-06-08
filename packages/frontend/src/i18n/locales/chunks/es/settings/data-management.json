@@ -15,6 +15,57 @@
         "description": "Importe transacciones desde un archivo CSV. Puede asignar columnas, gestionar duplicados y crear nuevas cuentas o categorías según sea necesario.",
         "button": "Importar archivo CSV",
         "cta": "Importar archivo CSV"
+      },
+      "import": {
+        "back": "Volver a Importar"
+      },
+      "tabs": {
+        "import": "Importar",
+        "export": "Exportar"
+      },
+      "export": {
+        "cardTitle": "Exporta tus datos",
+        "cardDescription": "Descarga un archivo ZIP con tus transacciones, cuentas, presupuestos y otros datos. Útil para análisis en hojas de cálculo, preparación de impuestos o migración a otra aplicación de presupuestos.",
+        "cta": "Configurar exportación",
+        "form": {
+          "title": "Exporta tus datos",
+          "description": "Elige un formato y las partes de tus datos que deseas. La descarga comenzará tan pronto como confirmes.",
+          "confirmLabel": "Descargar",
+          "confirmLoading": "Preparando…",
+          "back": "Volver a Exportar"
+        },
+        "format": {
+          "label": "Formato",
+          "json": "JSON",
+          "csv": "CSV",
+          "xlsx": "Excel"
+        },
+        "groups": {
+          "label": "Qué incluir",
+          "selectAll": "Seleccionar todo",
+          "deselectAll": "Deseleccionar todo",
+          "transactions": "Transacciones y cuentas",
+          "transactionsDescription": "Transacciones, cuentas, historial de saldos, categorías, etiquetas, vehículos",
+          "budgets": "Presupuestos",
+          "budgetsDescription": "Presupuestos personalizados con categorías vinculadas y totales de gastos",
+          "subscriptions": "Suscripciones y recordatorios",
+          "subscriptionsDescription": "Suscripciones recurrentes y recordatorios de facturas",
+          "investments": "Inversiones",
+          "investmentsDescription": "Carteras, participaciones, transacciones de inversión, transferencias"
+        },
+        "notifications": {
+          "success": "Exportación lista – tu descarga debería comenzar en un momento.",
+          "successWithCount": "Exportación lista – se exportaron {count} filas.",
+          "failed": "No se pudo exportar tus datos. Por favor, intenta de nuevo.",
+          "downloadBlocked": "Exportación lista, pero tu navegador bloqueó la descarga. Revisa la barra de direcciones para un aviso de descarga.",
+          "tooLarge": "Tus datos son demasiado grandes para una única exportación. Por favor, contacta con soporte."
+        },
+        "dateRange": {
+          "label": "Rango de fechas (opcional)",
+          "helper": "Solo se filtran las tablas con eventos (transacciones, historial de saldos, actividad de inversión). Las cuentas, categorías y otras tablas de referencia se exportan completas.",
+          "placeholder": "Todo el tiempo",
+          "clear": "Quitar rango de fechas"
+        }
       }
     }
   }

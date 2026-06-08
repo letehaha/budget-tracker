@@ -116,6 +116,12 @@ Always use the project's field components from `@/components/fields/`. Never use
 | Tags          | `tag-select-field.vue`      |
 | Color         | `color-select-field.vue`    |
 
+#### Placeholders are required
+
+Every form field must have a `:placeholder` set. An empty input or an empty select with only a label leaves the user guessing what to enter or pick (especially in dialogs that open with no prefilled value). The placeholder should be a concrete prompt — `"Enter payee name"`, `"Select a category"`, `"DD/MM/YYYY"` — not a restatement of the label.
+
+Always wire placeholders through i18n (`:placeholder="$t('...')"`); never inline raw English strings.
+
 ### Icons
 
 Always use `@lucide/vue` icons. Never use raw SVGs or other icon libraries. Do **not** use `lucide-vue-next` — that's the old package and has been replaced.
@@ -188,10 +194,12 @@ Not needed for plain `Button @click` with `v-model:open` — only slot-triggered
 
 ### Dialogs & modals
 
-- Use **`ResponsiveDialog`** (`@/components/common/responsive-dialog.vue`) for general-purpose modals (forms, detail views)
+**Default to `ResponsiveDialog` for every new dialog.** Unless the user explicitly asks for a different primitive (raw `Dialog`, `Drawer`, `Popover`, etc.), any new modal/sheet/picker UI must use one of the responsive wrappers. They auto-adapt to **Drawer on mobile** and **Dialog / AlertDialog on desktop**, so they work in both contexts without extra wiring.
+
+- Use **`ResponsiveDialog`** (`@/components/common/responsive-dialog.vue`) for general-purpose modals (forms, detail views, pickers)
 - Use **`ResponsiveAlertDialog`** (`@/components/common/responsive-alert-dialog.vue`) for confirmations and destructive actions
-- Both auto-adapt: **Drawer** on mobile, **Dialog/AlertDialog** on desktop
-- **Never** use raw `Dialog` or `AlertDialog` components directly for user-facing modals
+- **Never** use raw `Dialog`, `AlertDialog`, or `Drawer` primitives directly for user-facing modals unless the user explicitly approves it for that case
+- Always provide a `#title` slot (visible or via `VisuallyHidden`) so Radix has an accessible name — a missing `DialogTitle` triggers an a11y warning
 
 ---
 

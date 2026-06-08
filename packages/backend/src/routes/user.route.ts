@@ -1,6 +1,7 @@
 import addUserCurrencies from '@controllers/currencies/add-user-currencies';
 import changeBaseCurrency from '@controllers/currencies/change-base-currency.controller';
 import editCurrencyExchangeRate from '@controllers/currencies/edit-currency-exchange-rate';
+import { exportDataController } from '@controllers/data-export/export-data.controller';
 import { getConnectedAppsController, revokeConnectedAppController } from '@controllers/mcp/connected-apps.controller';
 import {
   deleteAiApiKey,
@@ -37,6 +38,7 @@ import {
   wipeUserData,
 } from '@controllers/user.controller';
 import { authenticateSession } from '@middlewares/better-auth';
+import { dataExportRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -46,6 +48,13 @@ router.get('/', authenticateSession, validateEndpoint(getUser.schema), getUser.h
 router.put('/update', authenticateSession, validateEndpoint(updateUser.schema), updateUser.handler);
 router.delete('/delete', authenticateSession, validateEndpoint(deleteUser.schema), deleteUser.handler);
 router.post('/wipe-data', authenticateSession, validateEndpoint(wipeUserData.schema), wipeUserData.handler);
+router.post(
+  '/data-export',
+  authenticateSession,
+  dataExportRateLimit,
+  validateEndpoint(exportDataController.schema),
+  exportDataController.handler,
+);
 
 router.get('/currencies', authenticateSession, validateEndpoint(getUserCurrencies.schema), getUserCurrencies.handler);
 router.get(

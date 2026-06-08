@@ -1,14 +1,22 @@
 <template>
-  <PageWrapper>
-    <div class="mb-6">
-      <h1 class="text-2xl tracking-wider">{{ t('pages.importExport.csvImport.pageTitle') }}</h1>
-      <p class="text-muted-foreground mt-2">
+  <Card class="max-w-4xl">
+    <CardHeader class="border-b">
+      <RouterLink
+        :to="{ name: ROUTES_NAMES.settingsDataManagementImport }"
+        class="text-muted-foreground hover:text-foreground mb-3 inline-flex w-fit items-center gap-1 text-sm transition-colors"
+      >
+        <ChevronLeftIcon class="size-4" />
+        {{ t('settings.dataManagement.import.back') }}
+      </RouterLink>
+      <h2 class="mb-2 text-2xl font-semibold text-balance">
+        {{ t('pages.importExport.csvImport.pageTitle') }}
+      </h2>
+      <p class="text-sm opacity-80">
         {{ t('pages.importExport.csvImport.pageDescription') }}
       </p>
-    </div>
+    </CardHeader>
 
-    <div class="max-w-4xl">
-      <!-- Vertical Step Sections -->
+    <CardContent class="mt-6">
       <div class="space-y-4">
         <!-- Step 1: Upload File -->
         <div class="bg-card rounded-lg border">
@@ -171,17 +179,19 @@
           </div>
         </div>
       </div>
-    </div>
-  </PageWrapper>
+    </CardContent>
+  </Card>
 </template>
 
 <script setup lang="ts">
-import PageWrapper from '@/components/common/page-wrapper.vue';
+import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { trackAnalyticsEvent } from '@/lib/posthog';
+import { ROUTES_NAMES } from '@/routes';
 import { useImportExportStore } from '@/stores/import-export';
-import { CheckIcon, ChevronDownIcon, LockIcon } from '@lucide/vue';
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, LockIcon } from '@lucide/vue';
 import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { RouterLink } from 'vue-router';
 
 import ColumnMappingStep from './components/column-mapping-step/index.vue';
 import FileUploadStep from './components/file-upload-step/index.vue';

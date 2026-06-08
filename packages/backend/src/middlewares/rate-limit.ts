@@ -13,6 +13,19 @@ interface RateLimitOptions {
 }
 
 /**
+ * Wraps a middleware so it is bypassed only when `NODE_ENV === 'development'`.
+ * Production runs the guard for real abuse protection; the test suite runs it
+ * so the behavior can be asserted end-to-end. Local dev is opted out so a
+ * developer mashing the export button doesn't lock themselves out.
+ */
+const nonDev =
+  (middleware: (req: Request, res: Response, next: NextFunction) => unknown | Promise<unknown>) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    if (process.env.NODE_ENV === 'development') return next();
+    return middleware(req, res, next);
+  };
+
+/**
  * Creates a rate limiting middleware
  * @param options - Rate limiting configuration
  */
@@ -103,6 +116,31 @@ export const csvImportRateLimit = createRateLimit({
     return `csv-import:user:${user.id}`;
   },
 });
+
+/**
+ * Data-export rate limit (per user, 5 exports per 15 minutes).
+ *
+ * The export endpoint runs every transformer in parallel, materializes the
+ * full result set in memory, and ties up the event loop for several seconds
+ * during CSV/XLSX serialization. A click-storm or scripted spammer can
+ * therefore degrade the API for every other request on the box.
+ *
+ * The window allows a real user to try JSON/CSV/XLSX back-to-back (or retry
+ * a couple of times if a format reads wrong in their target tool) without
+ * being blocked. The limiter is wrapped with `nonDev` so production enforces
+ * it for abuse protection and the e2e suite enforces it for verification,
+ * while local dev opts out.
+ */
+export const dataExportRateLimit = nonDev(
+  createRateLimit({
+    windowSeconds: 15 * 60,
+    maxAttempts: 5,
+    keyGenerator: (req: Request) => {
+      const user = req.user as Users;
+      return `data-export:user:${user.id}`;
+    },
+  }),
+);
 
 /**
  * Share-invitation send rate limit (per owner, 30 sends per 24h in prod, 5 in test).

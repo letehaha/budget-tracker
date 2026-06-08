@@ -33,6 +33,7 @@
     },
     "form": {
       "namePlaceholder": "Введіть назву платника",
+      "categoryPlaceholder": "Виберіть категорію",
       "categorizationMode": {
         "label": "Категоризація ШІ",
         "enforce": {
