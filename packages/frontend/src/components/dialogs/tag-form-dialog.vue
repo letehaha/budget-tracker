@@ -39,7 +39,7 @@
         </TabsContent>
 
         <TabsContent value="reminders" class="relative h-100 overflow-auto pb-2">
-          <div class="bg-background sticky top-0 mb-2 flex items-center justify-end py-2">
+          <div class="bg-card md:bg-background sticky top-0 mb-2 flex items-center justify-end py-2">
             <Button variant="outline" size="sm" class="gap-1.5" @click="openReminderDialog()">
               <PlusIcon class="size-4" />
               {{ $t('settings.tags.reminders.addButton') }}
