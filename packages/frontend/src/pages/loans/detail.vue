@@ -35,6 +35,9 @@
         <ProjectionCard :loan="loan" />
         <EventsTimeline :events="loan.loanDetails.events" :currency-code="loan.currencyCode" />
         <RecentPayments :account-id="loan.id" :currency-code="loan.currencyCode" />
+        <div class="@lg/loans-detail:col-span-2">
+          <SettingsSection :loan="loan" />
+        </div>
       </div>
     </template>
   </PageWrapper>
@@ -53,6 +56,7 @@ import { useRoute, useRouter } from 'vue-router';
 import EventsTimeline from './components/events-timeline.vue';
 import ProjectionCard from './components/projection-card.vue';
 import RecentPayments from './components/recent-payments.vue';
+import SettingsSection from './components/settings-section.vue';
 import SummaryCard from './components/summary-card.vue';
 
 const route = useRoute();

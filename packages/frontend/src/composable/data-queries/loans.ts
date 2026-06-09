@@ -1,4 +1,4 @@
-import { createLoan, getLoanById, getLoans } from '@/api/loans';
+import { createLoan, deleteLoan, getLoanById, getLoans, updateLoan } from '@/api/loans';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, computed, unref } from 'vue';
@@ -26,6 +26,30 @@ export const useCreateLoan = () => {
     mutationFn: createLoan,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.loansList });
+    },
+  });
+};
+
+export const useUpdateLoan = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateLoan,
+    onSuccess: (loan) => {
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.loansList });
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.loanDetail, loan.id] });
+    },
+  });
+};
+
+export const useDeleteLoan = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteLoan,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.loansList });
+      queryClient.removeQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.loanDetail, variables.id] });
     },
   });
 };

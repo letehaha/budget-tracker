@@ -264,12 +264,16 @@
       "lenderNamePlaceholder": "Ej.: Banco Santander, BBVA",
       "accountNumberLabel": "Número de cuenta / préstamo",
       "accountNumberPlaceholder": "Opcional",
+      "currentBalanceLabel": "Saldo pendiente actual",
+      "saveButton": "Guardar cambios",
       "submitButton": "Crear préstamo",
       "submitButtonLoading": "Creando…",
       "cancelButton": "Cancelar",
       "notifications": {
         "success": "Préstamo creado.",
-        "error": "Error al crear el préstamo. Inténtelo de nuevo."
+        "error": "Error al crear el préstamo. Inténtelo de nuevo.",
+        "updateSuccess": "Préstamo actualizado",
+        "updateError": "Error al actualizar el préstamo"
       },
       "errors": {
         "required": "Este campo es obligatorio.",

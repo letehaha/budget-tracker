@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type CreateLoanPayload } from '@/api/loans';
+import { type CreateLoanPayload, type LoanApi, type UpdateLoanPayload } from '@/api/loans';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -10,8 +10,8 @@ import { useCurrencyName } from '@/composable';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrenciesStore } from '@/stores';
 import { LOAN_TYPE } from '@bt/shared/types';
-import { between, helpers, integer, maxLength, minValue, required } from '@vuelidate/validators';
-import { format } from 'date-fns';
+import { between, helpers, integer, maxLength, required } from '@vuelidate/validators';
+import { format, parseISO } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -25,13 +25,20 @@ const MAX_TERM_MONTHS = 1200;
 
 const props = withDefaults(
   defineProps<{
+    mode?: 'create' | 'edit';
+    initialLoan?: LoanApi | null;
     submitting?: boolean;
     submitLabel?: string;
   }>(),
-  { submitting: false, submitLabel: undefined },
+  { mode: 'create', initialLoan: null, submitting: false, submitLabel: undefined },
 );
 
-const emit = defineEmits<{ submit: [payload: CreateLoanPayload]; cancel: [] }>();
+const emit = defineEmits<{
+  submit: [payload: CreateLoanPayload | UpdateLoanPayload];
+  cancel: [];
+}>();
+
+const isEdit = computed(() => props.mode === 'edit');
 
 const { t } = useI18n();
 const currenciesStore = useCurrenciesStore();
@@ -48,7 +55,8 @@ const defaultCurrency = computed(
 interface FormState {
   name: string;
   currencyCode: string;
-  initialBalance: number | null;
+  /** Create: initialBalance (outstanding at creation). Edit: currentBalance. Always a positive decimal — service flips the sign. */
+  balance: number | null;
   loanType: LOAN_TYPE;
   originalPrincipal: number | null;
   interestRate: number | null;
@@ -61,21 +69,43 @@ interface FormState {
   accountNumber: string;
 }
 
-const form = reactive<FormState>({
-  name: '',
-  currencyCode: String(defaultCurrency.value),
-  initialBalance: null,
-  loanType: LOAN_TYPE.mortgage,
-  originalPrincipal: null,
-  interestRate: null,
-  termMonths: null,
-  startDate: new Date(),
-  minPayment: null,
-  plannedPayment: null,
-  paymentDayOfMonth: null,
-  lenderName: '',
-  accountNumber: '',
-});
+const buildInitialState = (): FormState => {
+  if (props.initialLoan) {
+    const loan = props.initialLoan;
+    return {
+      name: loan.name,
+      currencyCode: loan.currencyCode,
+      balance: Math.abs(loan.currentBalance),
+      loanType: loan.loanDetails.loanType,
+      originalPrincipal: loan.loanDetails.originalPrincipal,
+      interestRate: loan.loanDetails.interestRate,
+      termMonths: loan.loanDetails.termMonths,
+      startDate: parseISO(loan.loanDetails.startDate),
+      minPayment: loan.loanDetails.minPayment,
+      plannedPayment: loan.loanDetails.plannedPayment,
+      paymentDayOfMonth: loan.loanDetails.paymentDayOfMonth,
+      lenderName: loan.loanDetails.lenderName ?? '',
+      accountNumber: loan.loanDetails.accountNumber ?? '',
+    };
+  }
+  return {
+    name: '',
+    currencyCode: String(defaultCurrency.value),
+    balance: null,
+    loanType: LOAN_TYPE.mortgage,
+    originalPrincipal: null,
+    interestRate: null,
+    termMonths: null,
+    startDate: new Date(),
+    minPayment: null,
+    plannedPayment: null,
+    paymentDayOfMonth: null,
+    lenderName: '',
+    accountNumber: '',
+  };
+};
+
+const form = reactive<FormState>(buildInitialState());
 
 const loanTypeOptions = computed(() =>
   Object.values(LOAN_TYPE).map((value) => ({
@@ -99,7 +129,7 @@ const nonNegativeMoney = helpers.withMessage(
 const validationRules = {
   name: { required: helpers.withMessage(() => t('forms.loan.errors.required'), required), maxLength: maxLength(200) },
   currencyCode: { required: helpers.withMessage(() => t('forms.loan.errors.required'), required) },
-  initialBalance: {
+  balance: {
     required: helpers.withMessage(() => t('forms.loan.errors.required'), required),
     nonNegative: nonNegativeMoney,
   },
@@ -140,10 +170,27 @@ const submit = () => {
   if (props.submitting) return;
   if (!isFormValid()) return;
 
+  if (isEdit.value) {
+    const payload: UpdateLoanPayload = {
+      name: form.name.trim(),
+      currentBalance: Number(form.balance),
+      interestRate: Number(form.interestRate),
+      termMonths: form.termMonths === null ? null : Number(form.termMonths),
+      startDate: format(form.startDate, 'yyyy-MM-dd'),
+      minPayment: form.minPayment === null ? null : Number(form.minPayment),
+      plannedPayment: form.plannedPayment === null ? null : Number(form.plannedPayment),
+      paymentDayOfMonth: form.paymentDayOfMonth === null ? null : Number(form.paymentDayOfMonth),
+      lenderName: form.lenderName.trim() || null,
+      accountNumber: form.accountNumber.trim() || null,
+    };
+    emit('submit', payload);
+    return;
+  }
+
   const payload: CreateLoanPayload = {
     name: form.name.trim(),
     currencyCode: form.currencyCode,
-    initialBalance: Number(form.initialBalance),
+    initialBalance: Number(form.balance),
     loanType: form.loanType,
     originalPrincipal: Number(form.originalPrincipal),
     interestRate: Number(form.interestRate),
@@ -171,6 +218,7 @@ const submit = () => {
     />
 
     <SelectField
+      v-if="!isEdit"
       :model-value="selectedLoanType"
       :values="loanTypeOptions"
       label-key="label"
@@ -179,7 +227,7 @@ const submit = () => {
       @update:model-value="(v) => v && (form.loanType = v.value)"
     />
 
-    <div>
+    <div v-if="!isEdit">
       <FieldLabel :label="$t('forms.loan.currencyLabel')">
         <Select.Select v-model="form.currencyCode">
           <Select.SelectTrigger>
@@ -198,6 +246,7 @@ const submit = () => {
 
     <div class="grid grid-cols-1 items-end gap-4 @sm/loan-form:grid-cols-2">
       <InputField
+        v-if="!isEdit"
         v-model="form.originalPrincipal"
         type="number"
         :label="$t('forms.loan.originalPrincipalLabel')"
@@ -206,12 +255,12 @@ const submit = () => {
         @blur="touchField('form.originalPrincipal')"
       />
       <InputField
-        v-model="form.initialBalance"
+        v-model="form.balance"
         type="number"
-        :label="$t('forms.loan.initialBalanceLabel')"
+        :label="isEdit ? $t('forms.loan.currentBalanceLabel') : $t('forms.loan.initialBalanceLabel')"
         :placeholder="$t('forms.loan.initialBalancePlaceholder')"
-        :error-message="getFieldErrorMessage('form.initialBalance')"
-        @blur="touchField('form.initialBalance')"
+        :error-message="getFieldErrorMessage('form.balance')"
+        @blur="touchField('form.balance')"
       />
     </div>
 
