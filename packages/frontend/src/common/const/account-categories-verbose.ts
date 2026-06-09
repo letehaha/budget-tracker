@@ -4,7 +4,7 @@ import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
  * Maps account category enum values to their translation keys.
  * Use with t() from vue-i18n: t(ACCOUNT_CATEGORIES_TRANSLATION_KEYS[category])
  */
-export const ACCOUNT_CATEGORIES_TRANSLATION_KEYS = Object.freeze({
+export const ACCOUNT_CATEGORIES_TRANSLATION_KEYS = Object.freeze<Record<ACCOUNT_CATEGORIES, string>>({
   [ACCOUNT_CATEGORIES.general]: 'common.accountCategories.general',
   [ACCOUNT_CATEGORIES.cash]: 'common.accountCategories.cash',
   [ACCOUNT_CATEGORIES.currentAccount]: 'common.accountCategories.currentAccount',

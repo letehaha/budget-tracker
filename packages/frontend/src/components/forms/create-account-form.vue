@@ -35,8 +35,15 @@ const defaultCurrency = computed(
   () => systemCurrenciesVerbose.value.linked.find((i) => i.code === baseCurrency.value!.currencyCode)!.code || '',
 );
 
-// Get account category from query params or default to general
-const defaultAccountCategory = (route.query.category as ACCOUNT_CATEGORIES) || ACCOUNT_CATEGORIES.general;
+const HIDDEN_ACCOUNT_CATEGORIES = new Set<ACCOUNT_CATEGORIES>([
+  ACCOUNT_CATEGORIES.vehicle,
+  ACCOUNT_CATEGORIES.loan,
+  ACCOUNT_CATEGORIES.mortgage,
+]);
+
+const queryCategory = route.query.category as ACCOUNT_CATEGORIES | undefined;
+const defaultAccountCategory =
+  queryCategory && !HIDDEN_ACCOUNT_CATEGORIES.has(queryCategory) ? queryCategory : ACCOUNT_CATEGORIES.general;
 
 const form = reactive<{
   name: string;
@@ -53,7 +60,9 @@ const form = reactive<{
 });
 
 const selectableAccountCategories = computed(() =>
-  Object.entries(ACCOUNT_CATEGORIES_TRANSLATION_KEYS).filter(([category]) => category !== ACCOUNT_CATEGORIES.vehicle),
+  Object.entries(ACCOUNT_CATEGORIES_TRANSLATION_KEYS).filter(
+    ([category]) => !HIDDEN_ACCOUNT_CATEGORIES.has(category as ACCOUNT_CATEGORIES),
+  ),
 );
 
 const createAccountMutation = useMutation({ mutationFn: createAccount });
