@@ -35,7 +35,7 @@ export default class LoanDetails extends Model {
   userId!: number;
 
   @Column({
-    type: DataType.STRING(20),
+    type: DataType.STRING(100),
     allowNull: false,
     validate: { isIn: [Object.values(LOAN_TYPE)] },
   })
