@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type CreateLoanPayload } from '@/api/loans';
+import { type CreateLoanPayload, type UpdateLoanPayload } from '@/api/loans';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCreateLoan } from '@/composable/data-queries/loans';
@@ -18,9 +18,9 @@ const createLoanMutation = useCreateLoan();
 
 const isOpen = ref(false);
 
-const handleSubmit = async (payload: CreateLoanPayload) => {
+const handleSubmit = async (payload: CreateLoanPayload | UpdateLoanPayload) => {
   try {
-    const loan = await createLoanMutation.mutateAsync(payload);
+    const loan = await createLoanMutation.mutateAsync(payload as CreateLoanPayload);
     addNotification({ text: t('forms.loan.notifications.success'), type: NotificationType.success });
     isOpen.value = false;
     await router.push({ name: ROUTES_NAMES.loanDetail, params: { id: loan.id } });

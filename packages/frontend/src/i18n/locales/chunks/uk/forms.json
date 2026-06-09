@@ -264,12 +264,16 @@
       "lenderNamePlaceholder": "напр. ПриватБанк, Ощадбанк",
       "accountNumberLabel": "Номер рахунку / кредиту",
       "accountNumberPlaceholder": "Необов'язково",
+      "currentBalanceLabel": "Поточний залишок боргу",
+      "saveButton": "Зберегти зміни",
       "submitButton": "Створити кредит",
       "submitButtonLoading": "Створення…",
       "cancelButton": "Скасувати",
       "notifications": {
         "success": "Кредит створено.",
-        "error": "Не вдалося створити кредит. Спробуйте ще раз."
+        "error": "Не вдалося створити кредит. Спробуйте ще раз.",
+        "updateSuccess": "Кредит оновлено",
+        "updateError": "Не вдалося оновити кредит"
       },
       "errors": {
         "required": "Це поле обов'язкове.",

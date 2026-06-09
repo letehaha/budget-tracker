@@ -94,3 +94,33 @@ export interface CreateLoanPayload {
 export const createLoan = async (payload: CreateLoanPayload): Promise<LoanApi> => {
   return api.post('/loans', payload);
 };
+
+/**
+ * Patch payload. Every field is optional; backend rejects an empty body.
+ * `currencyCode` and `loanType` are intentionally absent — switching currency
+ * on an existing account isn't supported, and loanType isn't a timeline-
+ * worthy change for Phase 1.
+ *
+ * `currentBalance` is the outstanding amount as a positive decimal; the
+ * service flips the sign before writing to Accounts.currentBalance.
+ */
+export interface UpdateLoanPayload {
+  name?: string;
+  currentBalance?: number;
+  interestRate?: number;
+  termMonths?: number | null;
+  startDate?: string;
+  minPayment?: number | null;
+  plannedPayment?: number | null;
+  paymentDayOfMonth?: number | null;
+  lenderName?: string | null;
+  accountNumber?: string | null;
+}
+
+export const updateLoan = async ({ id, ...payload }: UpdateLoanPayload & { id: string }): Promise<LoanApi> => {
+  return api.patch(`/loans/${id}`, payload);
+};
+
+export const deleteLoan = async ({ id }: { id: string }): Promise<void> => {
+  return api.delete(`/loans/${id}`);
+};

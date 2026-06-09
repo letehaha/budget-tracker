@@ -264,12 +264,16 @@
       "lenderNamePlaceholder": "e.g. Chase, Wells Fargo",
       "accountNumberLabel": "Account / loan number",
       "accountNumberPlaceholder": "Optional",
+      "currentBalanceLabel": "Current outstanding balance",
+      "saveButton": "Save changes",
       "submitButton": "Create loan",
       "submitButtonLoading": "Creating…",
       "cancelButton": "Cancel",
       "notifications": {
         "success": "Loan created.",
-        "error": "Failed to create the loan. Please try again."
+        "error": "Failed to create the loan. Please try again.",
+        "updateSuccess": "Loan updated",
+        "updateError": "Failed to update the loan"
       },
       "errors": {
         "required": "This field is required.",
