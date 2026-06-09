@@ -40,4 +40,6 @@ export const API_HTTP = resolveApiHttpBase({
   pageHostname: window.location.hostname,
 });
 
-export const API_VER = import.meta.env.VITE_APP_API_VER;
+// Vitest runs without .env.development, so the env var is undefined there; better-auth
+// validates `${API_HTTP}${API_VER}/auth` at module load and rejects the malformed URL.
+export const API_VER = import.meta.env.VITE_APP_API_VER ?? '/api/v1';
