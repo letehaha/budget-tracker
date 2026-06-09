@@ -144,6 +144,9 @@
     "portfolioTransferNotFound": "Переказ портфеля не знайдено",
     "exchangeCurrenciesMustDiffer": "Валюти обміну мають бути різними"
   },
+  "loans": {
+    "loanNotFound": "Кредит не знайдено."
+  },
   "errors": {
     "connectionNotFound": "З'єднання не знайдено",
     "connectionNotFoundOrNotYours": "З'єднання не знайдено або не належить вам",

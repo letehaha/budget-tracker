@@ -66,28 +66,34 @@ export default createController(schema, async ({ user, params, query, body }) =>
 ## Service Layer
 
 - Always use **object-based parameters** with interfaces
-- Use `withTransaction` for data modifications
+- Use `withTransaction` for **writes only** — services that modify data (create / update / delete / link / unlink, or any multi-statement mutation). Plain reads (`get*`, `list*`, `find*`) are single-statement queries and do **not** need a transaction; wrapping them adds overhead and confuses the read-vs-write contract at a glance.
 - Use functions, never classes
 - Error types from `@js/errors`: `NotFoundError`, `ValidationError`, `ConflictError`, `NotAllowedError`, `Unauthorized`
+- For `findOne(...) → throw NotFoundError` use the `findOrThrowNotFound` helper from `@common/utils/find-or-throw-not-found` instead of hand-rolling the null check. It keeps the call site short and the throw consistent.
+- Throw with an i18n key, not a literal English string: `t({ key: 'feature.thingNotFound' })`. Errors surface in user-facing UI eventually and the i18n loader handles missing-key fallback.
 
 ```typescript
-import { NotFoundError } from '@js/errors';
-import * as FeatureModel from '@models/Feature.model';
+// Read — no transaction wrapper
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { t } from '@i18n/index';
+import * as FeatureModel from '@models/feature.model';
+
+export const getFeatureById = ({ userId, id }: { userId: number; id: string }) =>
+  findOrThrowNotFound({
+    query: FeatureModel.findOne({ where: { id, userId } }),
+    message: t({ key: 'feature.featureNotFound' }),
+  });
+```
+
+```typescript
+// Write — withTransaction wraps the mutation
 import { withTransaction } from '@services/common/with-transaction';
 
-interface GetFeatureParams {
-  userId: number;
-  id: number;
-  includeDeleted?: boolean;
-}
-
-const getFeatureImpl = async ({ userId, id, includeDeleted = false }: GetFeatureParams) => {
-  const result = await FeatureModel.findOne({ where: { id, userId }, paranoid: !includeDeleted });
-  if (!result) throw new NotFoundError({ message: 'Resource not found' });
-  return result;
+const createFeatureImpl = async ({ userId, name }: { userId: number; name: string }) => {
+  // …multi-step mutation that must be atomic…
 };
 
-export const getFeature = withTransaction(getFeatureImpl);
+export const createFeature = withTransaction(createFeatureImpl);
 ```
 
 ## API Response Format

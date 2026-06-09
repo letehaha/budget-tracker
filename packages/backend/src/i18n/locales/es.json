@@ -141,6 +141,9 @@
     "portfolioTransferNotFound": "Transferencia de portafolio no encontrada",
     "exchangeCurrenciesMustDiffer": "Las monedas de cambio deben ser diferentes"
   },
+  "loans": {
+    "loanNotFound": "Préstamo no encontrado."
+  },
   "errors": {
     "connectionNotFound": "Conexión no encontrada",
     "connectionNotFoundOrNotYours": "Conexión no encontrada o no le pertenece",
