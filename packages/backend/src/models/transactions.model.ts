@@ -310,7 +310,13 @@ export default class Transactions extends Model {
     const { transferNature, transferId, refAmount, refCurrencyCode } = instance;
 
     switch (transferNature) {
-      case TRANSACTION_TRANSFER_NATURE.common_transfer: {
+      case TRANSACTION_TRANSFER_NATURE.common_transfer:
+      case TRANSACTION_TRANSFER_NATURE.transfer_to_loan: {
+        // Loan payments are two-leg transfers between two user-owned Accounts
+        // (the loan account is itself an `Accounts` row with accountCategory='loan'),
+        // so they require the same paired-row fields as a regular common_transfer.
+        // The distinct nature label exists only so reporting can isolate loan
+        // payments without joining through the destination account's category.
         const requiredFields = [transferId, refCurrencyCode, refAmount];
         if (requiredFields.some((item) => item === undefined)) {
           throw new ValidationError({

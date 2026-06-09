@@ -88,7 +88,6 @@ export enum ACCOUNT_CATEGORIES {
   insurance = 'insurance',
   investment = 'investment',
   loan = 'loan',
-  mortgage = 'mortgage',
   overdraft = 'overdraft',
   crypto = 'crypto',
   vehicle = 'vehicle',
@@ -174,6 +173,23 @@ export enum TRANSACTION_TRANSFER_NATURE {
   transfer_out_wallet = 'transfer_out_wallet',
   transfer_to_portfolio = 'transfer_to_portfolio',
   transfer_to_venture = 'transfer_to_venture',
+  transfer_to_loan = 'transfer_to_loan',
+}
+
+/**
+ * Loan sub-type stored on `LoanDetails.loanType`. Drives UI grouping/badges
+ * only – has no impact on amortization math or balance handling. VARCHAR in
+ * the DB, TS-side enum per the project's no-DB-enums rule.
+ */
+export enum LOAN_TYPE {
+  mortgage = 'mortgage',
+  auto = 'auto',
+  student = 'student',
+  personal = 'personal',
+  heloc = 'heloc',
+  business = 'business',
+  medical = 'medical',
+  other = 'other',
 }
 
 export enum BUDGET_STATUSES {

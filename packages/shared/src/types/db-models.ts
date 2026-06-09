@@ -9,6 +9,7 @@ import {
   PayeeLogoSource,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
+  LOAN_TYPE,
   NotificationPriority,
   NotificationStatus,
   NotificationType,
@@ -30,6 +31,7 @@ import {
   TransactionsWriteScope,
   UserRole,
 } from './enums';
+import { LoanEvent } from './loans';
 import { RecordId } from './record-id';
 
 export interface UserModel {
@@ -92,7 +94,7 @@ export interface AccountExternalData {
  * `accessSource` tells the frontend which kind of grant is in effect so it can pick
  * the right label and management entry point: per-resource shares keep the "Shared
  * by X" affordances, while household membership routes users into Settings → Household
- * for management. (Budgets never carry `'household'` — they're explicit-share only —
+ * for management. (Budgets never carry `'household'` – they're explicit-share only –
  * but the union stays open so a future selective-share extension doesn't force a type
  * widening.)
  */
@@ -182,7 +184,7 @@ export interface TransactionSplitModel {
 
 /**
  * Frozen identity of a transaction's original creator. Populated only when the creator's
- * Users row is being deleted — at that point we copy the last-known username/avatar before
+ * Users row is being deleted – at that point we copy the last-known username/avatar before
  * the FK SET NULL nulls `Transactions.userId`. Lets the frontend render
  * "alice (deleted)" on shared-account transactions whose creator is gone instead of
  * an anonymous "Unknown user" placeholder.
@@ -246,7 +248,7 @@ export interface TransactionModel {
    * same row with merchant "NETFLIX.COM"; without the lock the matcher
    * would revert it to plain "Netflix".
    *
-   * `(payeeLocked: true, payeeId: null)` is valid — means "user deliberately
+   * `(payeeLocked: true, payeeId: null)` is valid – means "user deliberately
    * chose no payee here; don't auto-link one." Lock does not affect user
    * edits, categorization rules, or any other column.
    */
@@ -262,8 +264,8 @@ export interface TransactionModel {
    *  the UI. Non-null ⇒ the budget recipient who clicked Attach for this row. */
   addedBy?: { id: number; username: string; avatar: string | null } | null;
   /** Whether the caller has write access to this row. Set by list endpoints so the UI
-   *  can render an inert details dialog (vs an edit form) when the row is visible —
-   *  typically via a budget share — but not editable. Absent on write-result payloads
+   *  can render an inert details dialog (vs an edit form) when the row is visible –
+   *  typically via a budget share – but not editable. Absent on write-result payloads
    *  and internal fetches; absent ⇒ "unknown / fall back to opportunistic UI". */
   canEdit?: boolean;
   /** Timestamp when the record was created (defaults to transaction time for existing records) */
@@ -449,7 +451,7 @@ export interface ShareLifecycleNotificationPayload {
   permission?: SharePermission;
   /** Present on permission-change notifications so the recipient's UI can render the active write scope. */
   policy?: SharePolicy | null;
-  /** The other party in the share — recipient (for owner-side notifications) or owner (for recipient-side). */
+  /** The other party in the share – recipient (for owner-side notifications) or owner (for recipient-side). */
   counterpartUser: {
     id: number;
     username: string;
@@ -459,7 +461,7 @@ export interface ShareLifecycleNotificationPayload {
 
 /**
  * Owner-side notification fired when the inline Resend email for an invitation rejected
- * or errored after the DB row was already committed. The invitation stays in `pending` —
+ * or errored after the DB row was already committed. The invitation stays in `pending` –
  * this surfaces the delivery failure as a durable record so the owner can resend from the
  * UI without having to remember the API response.
  */
@@ -711,7 +713,7 @@ export interface PayeeModel {
   name: string;
   normalizedName: string;
   defaultCategoryId: RecordId | null;
-  /** Controls how strongly `defaultCategoryId` applies during create-tx —
+  /** Controls how strongly `defaultCategoryId` applies during create-tx –
    *  see CATEGORIZATION_MODE in enums.ts for semantics. */
   categorizationMode: CATEGORIZATION_MODE;
   /**
@@ -734,7 +736,7 @@ export interface PayeeModel {
 }
 
 /**
- * Stats aggregated at query time from `Transactions` for a Payee. Not stored —
+ * Stats aggregated at query time from `Transactions` for a Payee. Not stored –
  * computed from the `(userId, payeeId, time DESC)` index. Signed `netFlowRef`
  * works naturally for both income and expense Payees (income positive, expense
  * negative) and is reported in the user's ref currency as a decimal.
@@ -746,4 +748,49 @@ export interface PayeeStats {
   firstSeenAt: Date | null;
   lastSeenAt: Date | null;
   topCategoryId: RecordId | null;
+}
+
+/**
+ * 1:1 sidecar on `Accounts` for loan-category accounts. Holds the loan-only
+ * fields that don't belong on the Account record – APR, payment plan, lender
+ * metadata, event log. The underlying Account still owns the balance (stored
+ * negative) and the currency. Required: a loan-category Account must have a
+ * LoanDetails row, enforced at the service layer (existing Vehicles precedent).
+ *
+ * Monetary values are stored as cents (BIGINT) and surfaced as Money via the
+ * model getters.
+ */
+export interface LoanDetailsModel {
+  id: RecordId;
+  accountId: RecordId;
+  userId: number;
+  /** Sub-type (mortgage, auto, student…) – drives UI grouping only. */
+  loanType: LOAN_TYPE;
+  /**
+   * Lender-issued principal at origination, in cents. Immutable after create –
+   * Account.initialBalance may drift when the user backdates transactions, so a
+   * separate frozen field preserves the amortization reference.
+   */
+  originalPrincipal: number;
+  /** Same value converted to the user's base currency at LoanDetails creation. */
+  refOriginalPrincipal: number;
+  /** APR as percent, e.g. 3.75 for 3.75%. Range [0, 100). */
+  interestRate: string;
+  termMonths: number | null;
+  startDate: string;
+  minPayment: number | null;
+  refMinPayment: number | null;
+  plannedPayment: number | null;
+  refPlannedPayment: number | null;
+  /** Day-of-month [1, 31]. Values 29/30/31 clamp to the last day of short months at display/schedule time. */
+  paymentDayOfMonth: number | null;
+  lenderName: string | null;
+  /** Lender's account/loan identifier as the user records it — last four, full number, or any reference they prefer. No format enforced. */
+  accountNumber: string | null;
+  /** When this loan was replaced by a refinance – points to the new loan's Account id. */
+  replacedByLoanId: RecordId | null;
+  /** Append-only audit/timeline; see LoanEvent. */
+  events: LoanEvent[];
+  createdAt: Date;
+  updatedAt: Date;
 }
