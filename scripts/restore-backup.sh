@@ -133,7 +133,12 @@ if [[ "$BACKUP_FILE" != *.gz ]]; then
     echo -e "${YELLOW}Note:${NC} File doesn't have .gz extension. Will restore as raw SQL."
 fi
 
-COMPOSE_FILE="docker/dev/docker-compose.yml"
+# Route through docker-dev.sh so the restore targets THIS worktree's stack
+# (its compose project name and ports), not whichever stack claimed the
+# default `dev` project name.
+compose() {
+    bash "$SCRIPT_DIR/docker-dev.sh" "$@"
+}
 
 echo ""
 echo "=============================================="
@@ -159,9 +164,9 @@ fi
 echo ""
 echo -e "${YELLOW}[1/4]${NC} Checking database container..."
 
-if ! docker compose -f "$COMPOSE_FILE" ps db 2>/dev/null | grep -q "Up"; then
+if ! compose ps db 2>/dev/null | grep -q "Up"; then
     echo "Starting database container..."
-    docker compose -f "$COMPOSE_FILE" up -d db
+    compose up -d db
     sleep 3
 fi
 
@@ -171,7 +176,7 @@ echo -e "${GREEN}✓${NC} Database container is running"
 echo ""
 echo -e "${YELLOW}[2/4]${NC} Dropping existing database..."
 
-docker compose -f "$COMPOSE_FILE" exec -T db \
+compose exec -T db \
     psql -U "$APPLICATION_DB_USERNAME" -d postgres \
     -c "DROP DATABASE IF EXISTS \"$APPLICATION_DB_DATABASE\" WITH (FORCE);"
 
@@ -181,7 +186,7 @@ echo -e "${GREEN}✓${NC} Database dropped"
 echo ""
 echo -e "${YELLOW}[3/4]${NC} Creating new database..."
 
-docker compose -f "$COMPOSE_FILE" exec -T db \
+compose exec -T db \
     psql -U "$APPLICATION_DB_USERNAME" -d postgres \
     -c "CREATE DATABASE \"$APPLICATION_DB_DATABASE\";"
 
@@ -192,10 +197,10 @@ echo ""
 echo -e "${YELLOW}[4/4]${NC} Restoring from backup (this may take a moment)..."
 
 if [[ "$IS_GZIPPED" == true ]]; then
-    gunzip -c "$BACKUP_FILE" | docker compose -f "$COMPOSE_FILE" exec -T db \
+    gunzip -c "$BACKUP_FILE" | compose exec -T db \
         psql -U "$APPLICATION_DB_USERNAME" -d "$APPLICATION_DB_DATABASE" --quiet
 else
-    cat "$BACKUP_FILE" | docker compose -f "$COMPOSE_FILE" exec -T db \
+    cat "$BACKUP_FILE" | compose exec -T db \
         psql -U "$APPLICATION_DB_USERNAME" -d "$APPLICATION_DB_DATABASE" --quiet
 fi
 

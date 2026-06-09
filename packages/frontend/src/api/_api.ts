@@ -1,3 +1,4 @@
+import { API_HTTP, API_VER } from '@/api/api-base-url';
 import { ApiBaseError } from '@/common/types';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getCurrentLocale, i18n } from '@/i18n';
@@ -39,10 +40,7 @@ interface ApiCall {
   };
 }
 
-export const API_HTTP = import.meta.env.DEV
-  ? `${window.location.protocol}//${window.location.hostname}:8081`
-  : import.meta.env.VITE_APP_API_HTTP;
-const API_VER = import.meta.env.VITE_APP_API_VER;
+export { API_HTTP } from './api-base-url';
 const SESSION_ID_KEY = 'session-id';
 
 // Distinguishes the managed cloud deployment from local/self-host setups.

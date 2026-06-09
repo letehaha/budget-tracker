@@ -106,6 +106,17 @@ npm run docker:dev:migrate
 
 **Note**: Your browser will show a security warning due to self-signed certificates. This is expected in development - accept the certificate to proceed.
 
+### Running From Multiple Git Worktrees
+
+`npm run docker:dev` goes through `scripts/docker-dev.sh`, which isolates each git worktree into its own Docker Compose project (separate containers, volumes/database, and host ports), so several worktrees can run dev stacks simultaneously.
+
+- The **main checkout** keeps the default ports above and its existing volumes.
+- A **linked worktree** gets free ports auto-assigned on first run (in the 18000+ range) and written to `.env.development.local` (gitignored), together with the derived URLs (`VITE_APP_API_HTTP`, `ALLOWED_ORIGINS`, etc.). The exact URLs are printed on every run.
+- To pick ports yourself: `FRONTEND_PORT=9100 BACKEND_PORT=9081 npm run docker:dev` (also supported: `DB_PORT`, `REDIS_PORT`, `CURRENCY_RATES_PORT`, `PGADMIN_PORT`). Explicit values regenerate `.env.development.local`.
+- To re-roll auto-assigned ports, delete `.env.development.local` and run again.
+
+Each worktree needs its own `.env.development` copy (the file is gitignored).
+
 ## Configuration
 
 ### Environment Variables
