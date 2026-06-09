@@ -141,6 +141,9 @@
     "portfolioTransferNotFound": "Portfolio transfer not found",
     "exchangeCurrenciesMustDiffer": "Exchange currencies must be different"
   },
+  "loans": {
+    "loanNotFound": "Loan not found."
+  },
   "errors": {
     "connectionNotFound": "Connection not found",
     "connectionNotFoundOrNotYours": "Connection not found or does not belong to you",

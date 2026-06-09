@@ -30,22 +30,28 @@ const TRANSFER_NATURE_VALUES_BEFORE_LOAN = [
 module.exports = {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
-      // Step 1: convert transferNature ENUM -> VARCHAR(50).
-      // Drop the default before changing the type – Postgres cannot cast an
-      // enum default to text automatically.
-      await queryInterface.sequelize.query(`ALTER TABLE "Transactions" ALTER COLUMN "transferNature" DROP DEFAULT;`, {
-        transaction,
-      });
+      // Step 1: convert transferNature ENUM -> VARCHAR(50) on every table that
+      // references the `enum_transfer_nature` Postgres type. Currently
+      // `Transactions` and `InvestmentTransactions` both bind to it; missing
+      // either would make the final DROP TYPE fail with a dependent-object
+      // error and roll back the whole migration.
+      // Defaults must drop before the cast – Postgres can't auto-cast an enum
+      // default to text.
+      for (const tableName of ['Transactions', 'InvestmentTransactions']) {
+        await queryInterface.sequelize.query(`ALTER TABLE "${tableName}" ALTER COLUMN "transferNature" DROP DEFAULT;`, {
+          transaction,
+        });
 
-      await queryInterface.sequelize.query(
-        `ALTER TABLE "Transactions" ALTER COLUMN "transferNature" TYPE VARCHAR(50) USING "transferNature"::text;`,
-        { transaction },
-      );
+        await queryInterface.sequelize.query(
+          `ALTER TABLE "${tableName}" ALTER COLUMN "transferNature" TYPE VARCHAR(50) USING "transferNature"::text;`,
+          { transaction },
+        );
 
-      await queryInterface.sequelize.query(
-        `ALTER TABLE "Transactions" ALTER COLUMN "transferNature" SET DEFAULT 'not_transfer';`,
-        { transaction },
-      );
+        await queryInterface.sequelize.query(
+          `ALTER TABLE "${tableName}" ALTER COLUMN "transferNature" SET DEFAULT 'not_transfer';`,
+          { transaction },
+        );
+      }
 
       await queryInterface.sequelize.query(`DROP TYPE IF EXISTS "enum_transfer_nature";`, {
         transaction,
@@ -190,6 +196,9 @@ module.exports = {
     await queryInterface.sequelize.query(
       `UPDATE "Transactions" SET "transferNature" = 'not_transfer' WHERE "transferNature" = 'transfer_to_loan';`,
     );
+    await queryInterface.sequelize.query(
+      `UPDATE "InvestmentTransactions" SET "transferNature" = 'not_transfer' WHERE "transferNature" = 'transfer_to_loan';`,
+    );
 
     await queryInterface.sequelize.transaction(async (transaction) => {
       await queryInterface.dropTable('LoanDetails', { transaction });
@@ -199,19 +208,23 @@ module.exports = {
         transaction,
       });
 
-      await queryInterface.sequelize.query(`ALTER TABLE "Transactions" ALTER COLUMN "transferNature" DROP DEFAULT;`, {
-        transaction,
-      });
+      // Restore both tables that originally bound to the enum. Order matches
+      // the `up` direction to keep the migration symmetrical.
+      for (const tableName of ['Transactions', 'InvestmentTransactions']) {
+        await queryInterface.sequelize.query(`ALTER TABLE "${tableName}" ALTER COLUMN "transferNature" DROP DEFAULT;`, {
+          transaction,
+        });
 
-      await queryInterface.sequelize.query(
-        `ALTER TABLE "Transactions" ALTER COLUMN "transferNature" TYPE "enum_transfer_nature" USING "transferNature"::text::"enum_transfer_nature";`,
-        { transaction },
-      );
+        await queryInterface.sequelize.query(
+          `ALTER TABLE "${tableName}" ALTER COLUMN "transferNature" TYPE "enum_transfer_nature" USING "transferNature"::text::"enum_transfer_nature";`,
+          { transaction },
+        );
 
-      await queryInterface.sequelize.query(
-        `ALTER TABLE "Transactions" ALTER COLUMN "transferNature" SET DEFAULT 'not_transfer'::"enum_transfer_nature";`,
-        { transaction },
-      );
+        await queryInterface.sequelize.query(
+          `ALTER TABLE "${tableName}" ALTER COLUMN "transferNature" SET DEFAULT 'not_transfer'::"enum_transfer_nature";`,
+          { transaction },
+        );
+      }
     });
   },
 };
