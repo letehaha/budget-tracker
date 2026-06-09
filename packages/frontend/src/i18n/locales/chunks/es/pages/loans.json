@@ -4,8 +4,11 @@
     "loadError": "Error al cargar los préstamos.",
     "tryAgain": "Intentar de nuevo",
     "addButton": {
-      "label": "Añadir préstamo",
-      "notYet": "La creación de préstamos estará disponible en la próxima entrega."
+      "label": "Añadir préstamo"
+    },
+    "dialog": {
+      "createTitle": "Añadir un préstamo",
+      "createDescription": "Haga seguimiento de una hipoteca, préstamo de auto, préstamo estudiantil o cualquier otra deuda. Puede editar los datos en cualquier momento."
     },
     "empty": {
       "title": "Aún no hay préstamos",
@@ -37,6 +40,48 @@
     "warnings": {
       "no_planned_payment": "No se ha establecido un pago planificado — la fecha de liquidación proyectada no está disponible.",
       "payment_below_interest": "El pago planificado no cubre los intereses mensuales — la deuda seguiría creciendo."
+    },
+    "detail": {
+      "backToList": "Volver a préstamos",
+      "loadError": "Error al cargar este préstamo.",
+      "paidOffBadge": "Liquidado",
+      "summary": {
+        "outstanding": "Saldo actual",
+        "apr": "TAE",
+        "originalPrincipal": "Capital original",
+        "term": "Plazo",
+        "termMonths": "{count} mes | {count} meses",
+        "startDate": "Fecha de inicio",
+        "paymentDay": "Día de pago",
+        "dayOfMonth": "El {day} de cada mes",
+        "accountNumber": "Número de cuenta"
+      },
+      "projection": {
+        "title": "Proyección",
+        "paidLabel": "Pagado",
+        "paidOfOriginal": "{paid} de {original} pagado",
+        "payoffDate": "Fecha de liquidación",
+        "monthsRemaining": "Meses restantes",
+        "totalInterestRemaining": "Intereses restantes totales",
+        "nextMonthInterest": "Intereses del próximo mes",
+        "nextMonthPrincipal": "Capital del próximo mes",
+        "plannedPayment": "Pago planificado"
+      },
+      "events": {
+        "title": "Historial",
+        "empty": "Aún no hay eventos registrados.",
+        "rateChange": "Tasa cambiada de {from}% a {to}%",
+        "termChange": "Plazo cambiado de {from} a {to} meses",
+        "plannedPaymentChange": "Pago planificado cambiado de {from} a {to}",
+        "paidOff": "Préstamo liquidado",
+        "refinanced": "Préstamo refinanciado"
+      },
+      "payments": {
+        "title": "Pagos recientes",
+        "empty": "Aún no hay pagos registrados para este préstamo.",
+        "loadError": "Error al cargar los pagos recientes.",
+        "unlabeled": "Pago"
+      }
     }
   }
 }

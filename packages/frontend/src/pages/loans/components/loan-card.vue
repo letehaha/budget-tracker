@@ -1,77 +1,83 @@
 <template>
-  <Card class="@container/loan-card transition-shadow hover:shadow-md">
-    <CardHeader class="pb-3">
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0 flex-1">
-          <div class="truncate text-base font-semibold">{{ loan.name }}</div>
-          <div v-if="loan.loanDetails.lenderName" class="text-muted-foreground mt-0.5 truncate text-xs">
-            {{ loan.loanDetails.lenderName }}
+  <RouterLink :to="{ name: ROUTES_NAMES.loanDetail, params: { id: loan.id } }" class="block focus:outline-none">
+    <Card
+      class="focus-visible:ring-ring/40 @container/loan-card cursor-pointer transition-shadow hover:shadow-md focus-visible:ring-2"
+    >
+      <CardHeader class="pb-3">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-base font-semibold">{{ loan.name }}</div>
+            <div v-if="loan.loanDetails.lenderName" class="text-muted-foreground mt-0.5 truncate text-xs">
+              {{ loan.loanDetails.lenderName }}
+            </div>
+          </div>
+          <span
+            :class="
+              cn('inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium', loanTypeBadgeClass)
+            "
+          >
+            {{ $t(`loans.types.${loan.loanDetails.loanType}`) }}
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent class="space-y-3">
+        <div>
+          <div class="text-app-expense-color text-2xl font-semibold tracking-tight">
+            {{ formatAmountByCurrencyCode(Math.abs(loan.currentBalance), loan.currencyCode) }}
+          </div>
+          <div class="text-muted-foreground mt-0.5 text-xs">{{ $t('loans.card.currentBalance') }}</div>
+        </div>
+
+        <div>
+          <div class="mb-1 flex items-center justify-between text-xs">
+            <span class="text-muted-foreground">{{ $t('loans.card.paidLabel') }}</span>
+            <span class="font-medium">{{ paidPercentDisplay }}</span>
+          </div>
+          <div class="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+            <div
+              class="bg-app-income-color h-full rounded-full transition-[width] duration-300"
+              :style="{ width: `${progressBarWidth}%` }"
+            />
           </div>
         </div>
-        <span
-          :class="
-            cn('inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium', loanTypeBadgeClass)
-          "
+
+        <div class="grid grid-cols-2 gap-3 text-xs @sm/loan-card:grid-cols-3">
+          <div>
+            <div class="text-muted-foreground">{{ $t('loans.card.apr') }}</div>
+            <div class="mt-0.5 font-medium">{{ aprDisplay }}</div>
+          </div>
+          <div>
+            <div class="text-muted-foreground">{{ $t('loans.card.payoffDate') }}</div>
+            <div class="mt-0.5 font-medium">{{ payoffDateDisplay }}</div>
+          </div>
+          <div>
+            <div class="text-muted-foreground">{{ $t('loans.card.monthsRemaining') }}</div>
+            <div class="mt-0.5 font-medium">{{ monthsRemainingDisplay }}</div>
+          </div>
+        </div>
+
+        <div
+          v-if="loan.projection.warning"
+          class="text-app-expense-color bg-app-expense-color/10 rounded px-2 py-1.5 text-xs"
         >
-          {{ $t(`loans.types.${loan.loanDetails.loanType}`) }}
-        </span>
-      </div>
-    </CardHeader>
-    <CardContent class="space-y-3">
-      <div>
-        <div class="text-app-expense-color text-2xl font-semibold tracking-tight">
-          {{ formatAmountByCurrencyCode(Math.abs(loan.currentBalance), loan.currencyCode) }}
+          {{ $t(`loans.warnings.${loan.projection.warning}`) }}
         </div>
-        <div class="text-muted-foreground mt-0.5 text-xs">{{ $t('loans.card.currentBalance') }}</div>
-      </div>
-
-      <div>
-        <div class="mb-1 flex items-center justify-between text-xs">
-          <span class="text-muted-foreground">{{ $t('loans.card.paidLabel') }}</span>
-          <span class="font-medium">{{ paidPercentDisplay }}</span>
-        </div>
-        <div class="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-          <div
-            class="bg-app-income-color h-full rounded-full transition-[width] duration-300"
-            :style="{ width: `${progressBarWidth}%` }"
-          />
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3 text-xs @sm/loan-card:grid-cols-3">
-        <div>
-          <div class="text-muted-foreground">{{ $t('loans.card.apr') }}</div>
-          <div class="mt-0.5 font-medium">{{ aprDisplay }}</div>
-        </div>
-        <div>
-          <div class="text-muted-foreground">{{ $t('loans.card.payoffDate') }}</div>
-          <div class="mt-0.5 font-medium">{{ payoffDateDisplay }}</div>
-        </div>
-        <div>
-          <div class="text-muted-foreground">{{ $t('loans.card.monthsRemaining') }}</div>
-          <div class="mt-0.5 font-medium">{{ monthsRemainingDisplay }}</div>
-        </div>
-      </div>
-
-      <div
-        v-if="loan.projection.warning"
-        class="text-app-expense-color bg-app-expense-color/10 rounded px-2 py-1.5 text-xs"
-      >
-        {{ $t(`loans.warnings.${loan.projection.warning}`) }}
-      </div>
-    </CardContent>
-  </Card>
+      </CardContent>
+    </Card>
+  </RouterLink>
 </template>
 
 <script setup lang="ts">
 import type { LoanApi } from '@/api/loans';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { useFormatCurrency } from '@/composable/formatters';
-import { cn } from '@/lib/utils';
-import { LOAN_TYPE } from '@bt/shared/types';
 import { useDateLocale } from '@/composable/use-date-locale';
+import { cn } from '@/lib/utils';
+import { ROUTES_NAMES } from '@/routes';
+import { LOAN_TYPE } from '@bt/shared/types';
 import { parseISO } from 'date-fns';
 import { computed } from 'vue';
+import { RouterLink } from 'vue-router';
 
 const props = defineProps<{ loan: LoanApi }>();
 

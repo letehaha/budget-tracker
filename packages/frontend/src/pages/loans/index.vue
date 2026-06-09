@@ -3,14 +3,12 @@
     <div class="@container/loans-page mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">{{ $t('loans.title') }}</h1>
 
-      <DesktopOnlyTooltip :content="$t('loans.addButton.notYet')">
-        <span class="inline-flex">
-          <UiButton disabled>
-            <PlusIcon class="mr-2 size-4" />
-            {{ $t('loans.addButton.label') }}
-          </UiButton>
-        </span>
-      </DesktopOnlyTooltip>
+      <CreateLoanDialog>
+        <UiButton>
+          <PlusIcon class="mr-2 size-4" />
+          {{ $t('loans.addButton.label') }}
+        </UiButton>
+      </CreateLoanDialog>
     </div>
 
     <template v-if="loansQuery.isLoading.value">
@@ -62,14 +60,12 @@
             {{ $t('loans.empty.description') }}
           </p>
         </div>
-        <DesktopOnlyTooltip :content="$t('loans.addButton.notYet')">
-          <span class="inline-flex">
-            <UiButton size="lg" disabled>
-              <PlusIcon class="mr-2 size-4" />
-              {{ $t('loans.empty.createFirstButton') }}
-            </UiButton>
-          </span>
-        </DesktopOnlyTooltip>
+        <CreateLoanDialog>
+          <UiButton size="lg">
+            <PlusIcon class="mr-2 size-4" />
+            {{ $t('loans.empty.createFirstButton') }}
+          </UiButton>
+        </CreateLoanDialog>
       </div>
     </template>
   </PageWrapper>
@@ -79,12 +75,12 @@
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useLoans } from '@/composable/data-queries/loans';
 import { HandCoinsIcon, PlusIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 import AggregateCard from './components/aggregate-card.vue';
+import CreateLoanDialog from './components/create-loan-dialog.vue';
 import LoanCard from './components/loan-card.vue';
 
 const loansQuery = useLoans();
