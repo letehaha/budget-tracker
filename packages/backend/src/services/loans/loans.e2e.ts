@@ -127,4 +127,255 @@ describe('Loans read API', () => {
       expect((result.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.notFound);
     });
   });
+
+  describe('POST /loans', () => {
+    it('creates an Account + LoanDetails atomically and returns the projected payoff', async () => {
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: false,
+      });
+
+      expect(result.statusCode).toBe(201);
+      const loan = result.body.response as unknown as Awaited<ReturnType<typeof helpers.createLoan<true>>>;
+      expect(loan.id).toEqual(expect.any(String));
+      expect(loan.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
+      // Loan balances persist negative for net-worth aggregation; the API exposes the raw signed value.
+      expect(loan.currentBalance).toBe(-200_000);
+      expect(loan.loanDetails.loanType).toBe(LOAN_TYPE.mortgage);
+      expect(loan.loanDetails.originalPrincipal).toBe(200_000);
+      expect(loan.loanDetails.interestRate).toBe(6);
+      expect(loan.loanDetails.plannedPayment).toBe(1_200);
+      expect(loan.loanDetails.events).toEqual([]);
+      expect(loan.projection.isPaidOff).toBe(false);
+      expect(loan.projection.monthsRemaining).toBeGreaterThan(0);
+
+      // Verify it actually persisted: a follow-up GET returns the same row.
+      const fromGet = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(fromGet.loanDetails.lenderName).toBe('Chase');
+    });
+
+    it('rejects payload missing required fields', async () => {
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ originalPrincipal: undefined }),
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('rejects negative interestRate', async () => {
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ interestRate: -1 }),
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('rejects interestRate >= 100', async () => {
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ interestRate: 100 }),
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('rejects non-positive originalPrincipal', async () => {
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ originalPrincipal: 0 }),
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('rejects paymentDayOfMonth outside 1-31', async () => {
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ paymentDayOfMonth: 32 }),
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+  });
+
+  describe('PATCH /loans/:id', () => {
+    it('appends a rate_change event when interestRate changes', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { interestRate: 7.25 },
+        raw: true,
+      });
+
+      expect(updated.loanDetails.interestRate).toBe(7.25);
+      expect(updated.loanDetails.events).toHaveLength(1);
+      const event = updated.loanDetails.events[0];
+      expect(event?.type).toBe('rate_change');
+      if (event?.type === 'rate_change') {
+        expect(event.from).toBe(6);
+        expect(event.to).toBe(7.25);
+      }
+    });
+
+    it('appends a term_change event when termMonths changes', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { termMonths: 180 },
+        raw: true,
+      });
+
+      expect(updated.loanDetails.termMonths).toBe(180);
+      const event = updated.loanDetails.events.at(-1);
+      expect(event?.type).toBe('term_change');
+      if (event?.type === 'term_change') {
+        expect(event.from).toBe(360);
+        expect(event.to).toBe(180);
+      }
+    });
+
+    it('appends a planned_payment_change event when plannedPayment changes', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { plannedPayment: 1500 },
+        raw: true,
+      });
+
+      expect(updated.loanDetails.plannedPayment).toBe(1500);
+      const event = updated.loanDetails.events.at(-1);
+      expect(event?.type).toBe('planned_payment_change');
+      if (event?.type === 'planned_payment_change') {
+        expect(event.fromCents).toBe(120_000);
+        expect(event.toCents).toBe(150_000);
+      }
+    });
+
+    it('does not append events for non-timeline-worthy field changes', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { lenderName: 'Wells Fargo', paymentDayOfMonth: 20 },
+        raw: true,
+      });
+
+      expect(updated.loanDetails.lenderName).toBe('Wells Fargo');
+      expect(updated.loanDetails.paymentDayOfMonth).toBe(20);
+      expect(updated.loanDetails.events).toEqual([]);
+    });
+
+    it('updates Account.name when name is patched', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { name: 'Renamed mortgage' },
+        raw: true,
+      });
+
+      expect(updated.name).toBe('Renamed mortgage');
+    });
+
+    it('responds 404 when the loan does not exist', async () => {
+      const result = await helpers.updateLoan({
+        id: generateRandomRecordId(),
+        payload: { interestRate: 5 },
+        raw: false,
+      });
+      expect(result.statusCode).toBe(404);
+    });
+
+    it('rejects an empty patch body', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+      const result = await helpers.updateLoan({
+        id: created.id,
+        payload: {},
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+  });
+
+  describe('DELETE /loans/:id', () => {
+    it('removes the loan and its underlying Account row', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const deleteResult = await helpers.deleteLoan({ id: created.id, raw: false });
+      expect(deleteResult.statusCode).toBe(204);
+
+      const followUp = await helpers.getLoanById({ id: created.id, raw: false });
+      expect(followUp.statusCode).toBe(404);
+
+      const list = await helpers.getLoans({ raw: true });
+      expect(list.find((l) => l.id === created.id)).toBeUndefined();
+    });
+
+    it('responds 404 when deleting a non-existent loan', async () => {
+      const result = await helpers.deleteLoan({ id: generateRandomRecordId(), raw: false });
+      expect(result.statusCode).toBe(404);
+    });
+  });
+
+  describe('POST /loans/:id/events', () => {
+    it('appends a note event to the loan timeline', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.appendLoanNote({
+        id: created.id,
+        text: 'Refinance window opens 2026',
+        raw: true,
+      });
+
+      expect(updated.loanDetails.events).toHaveLength(1);
+      const event = updated.loanDetails.events[0];
+      expect(event?.type).toBe('note');
+      if (event?.type === 'note') {
+        expect(event.text).toBe('Refinance window opens 2026');
+      }
+    });
+
+    it('rejects an empty note', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const result = await helpers.appendLoanNote({ id: created.id, text: '   ', raw: false });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('responds 404 when the loan does not exist', async () => {
+      const result = await helpers.appendLoanNote({
+        id: generateRandomRecordId(),
+        text: 'note',
+        raw: false,
+      });
+      expect(result.statusCode).toBe(404);
+    });
+  });
 });
