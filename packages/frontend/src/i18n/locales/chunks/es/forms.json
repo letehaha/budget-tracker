@@ -239,6 +239,46 @@
         "success": "Vehículo actualizado",
         "error": "Error al actualizar el vehículo"
       }
+    },
+    "loan": {
+      "nameLabel": "Nombre del préstamo",
+      "namePlaceholder": "Ej.: Hipoteca principal",
+      "loanTypeLabel": "Tipo de préstamo",
+      "currencyLabel": "Moneda",
+      "originalPrincipalLabel": "Capital original",
+      "originalPrincipalPlaceholder": "Ej.: 320.000",
+      "initialBalanceLabel": "Saldo pendiente actual",
+      "initialBalancePlaceholder": "Lo que debe hoy",
+      "interestRateLabel": "Tipo de interés (TAE %)",
+      "interestRatePlaceholder": "Ej.: 6.25",
+      "termMonthsLabel": "Plazo (meses)",
+      "termMonthsPlaceholder": "Ej.: 360 para un préstamo a 30 años",
+      "startDateLabel": "Fecha de inicio",
+      "plannedPaymentLabel": "Cuota mensual planificada",
+      "plannedPaymentPlaceholder": "Lo que realmente paga",
+      "minPaymentLabel": "Cuota mensual mínima",
+      "minPaymentPlaceholder": "Opcional, según su prestamista",
+      "paymentDayLabel": "Día de pago del mes",
+      "paymentDayPlaceholder": "1–31",
+      "lenderNameLabel": "Prestamista",
+      "lenderNamePlaceholder": "Ej.: Banco Santander, BBVA",
+      "accountNumberLabel": "Número de cuenta / préstamo",
+      "accountNumberPlaceholder": "Opcional",
+      "submitButton": "Crear préstamo",
+      "submitButtonLoading": "Creando…",
+      "cancelButton": "Cancelar",
+      "notifications": {
+        "success": "Préstamo creado.",
+        "error": "Error al crear el préstamo. Inténtelo de nuevo."
+      },
+      "errors": {
+        "required": "Este campo es obligatorio.",
+        "mustBePositive": "Debe ser mayor que 0.",
+        "mustBeNonNegative": "Debe ser 0 o mayor.",
+        "interestRateRange": "El tipo de interés debe estar entre 0 y 99,9999.",
+        "termRange": "El plazo debe estar entre 1 y 1200 meses.",
+        "paymentDayRange": "El día del mes debe estar entre 1 y 31."
+      }
     }
   },
   "fields": {

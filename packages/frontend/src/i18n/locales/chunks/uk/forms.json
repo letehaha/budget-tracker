@@ -239,6 +239,46 @@
         "success": "Транспорт оновлено",
         "error": "Не вдалося оновити транспорт"
       }
+    },
+    "loan": {
+      "nameLabel": "Назва кредиту",
+      "namePlaceholder": "напр. Основна іпотека",
+      "loanTypeLabel": "Тип кредиту",
+      "currencyLabel": "Валюта",
+      "originalPrincipalLabel": "Початкова сума боргу",
+      "originalPrincipalPlaceholder": "напр. 320 000",
+      "initialBalanceLabel": "Поточний залишок боргу",
+      "initialBalancePlaceholder": "Скільки ви винні сьогодні",
+      "interestRateLabel": "Процентна ставка (річна %)",
+      "interestRatePlaceholder": "напр. 6.25",
+      "termMonthsLabel": "Термін (місяців)",
+      "termMonthsPlaceholder": "напр. 360 для 30-річного кредиту",
+      "startDateLabel": "Дата початку",
+      "plannedPaymentLabel": "Плановий щомісячний платіж",
+      "plannedPaymentPlaceholder": "Скільки ви реально платите",
+      "minPaymentLabel": "Мінімальний щомісячний платіж",
+      "minPaymentPlaceholder": "Необов'язково, вказано кредитором",
+      "paymentDayLabel": "День платежу в місяці",
+      "paymentDayPlaceholder": "1–31",
+      "lenderNameLabel": "Кредитор",
+      "lenderNamePlaceholder": "напр. ПриватБанк, Ощадбанк",
+      "accountNumberLabel": "Номер рахунку / кредиту",
+      "accountNumberPlaceholder": "Необов'язково",
+      "submitButton": "Створити кредит",
+      "submitButtonLoading": "Створення…",
+      "cancelButton": "Скасувати",
+      "notifications": {
+        "success": "Кредит створено.",
+        "error": "Не вдалося створити кредит. Спробуйте ще раз."
+      },
+      "errors": {
+        "required": "Це поле обов'язкове.",
+        "mustBePositive": "Повинно бути більше 0.",
+        "mustBeNonNegative": "Повинно бути 0 або більше.",
+        "interestRateRange": "Процентна ставка має бути від 0 до 99.9999.",
+        "termRange": "Термін має бути від 1 до 1200 місяців.",
+        "paymentDayRange": "День місяця має бути від 1 до 31."
+      }
     }
   },
   "fields": {

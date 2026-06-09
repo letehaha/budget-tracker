@@ -2,12 +2,12 @@ import { api } from '@/api/_api';
 import type {
   ACCOUNT_STATUSES,
   BANK_PROVIDER_TYPE,
-  LOAN_TYPE,
   LoanEvent,
   LoanProjection,
   RecordId,
   ResourceShareInfo,
 } from '@bt/shared/types';
+import { LOAN_TYPE } from '@bt/shared/types';
 
 export interface LoanDetailsApi {
   id: RecordId;
@@ -68,4 +68,29 @@ export const getLoans = async (): Promise<LoanApi[]> => {
 
 export const getLoanById = async ({ id }: { id: string }): Promise<LoanApi> => {
   return api.get(`/loans/${id}`);
+};
+
+/**
+ * Decimals in, decimals out. The backend converts incoming decimals to cents
+ * via the MoneyColumn pipeline; never send cents from the frontend.
+ */
+export interface CreateLoanPayload {
+  name: string;
+  currencyCode: string;
+  initialBalance: number;
+
+  loanType: LOAN_TYPE;
+  originalPrincipal: number;
+  interestRate: number;
+  termMonths?: number | null;
+  startDate: string;
+  minPayment?: number | null;
+  plannedPayment?: number | null;
+  paymentDayOfMonth?: number | null;
+  lenderName?: string | null;
+  accountNumber?: string | null;
+}
+
+export const createLoan = async (payload: CreateLoanPayload): Promise<LoanApi> => {
+  return api.post('/loans', payload);
 };

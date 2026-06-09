@@ -4,8 +4,11 @@
     "loadError": "Failed to load loans.",
     "tryAgain": "Try again",
     "addButton": {
-      "label": "Add loan",
-      "notYet": "Creating loans lands in the next slice."
+      "label": "Add loan"
+    },
+    "dialog": {
+      "createTitle": "Add a loan",
+      "createDescription": "Track a mortgage, auto loan, student loan, or any other liability. You can edit anything later."
     },
     "empty": {
       "title": "No loans yet",
@@ -37,6 +40,48 @@
     "warnings": {
       "no_planned_payment": "No planned payment set — projected payoff unavailable.",
       "payment_below_interest": "Planned payment doesn't cover monthly interest — loan would grow."
+    },
+    "detail": {
+      "backToList": "Back to loans",
+      "loadError": "Failed to load this loan.",
+      "paidOffBadge": "Paid off",
+      "summary": {
+        "outstanding": "Current balance",
+        "apr": "APR",
+        "originalPrincipal": "Original principal",
+        "term": "Term",
+        "termMonths": "{count} month | {count} months",
+        "startDate": "Start date",
+        "paymentDay": "Payment day",
+        "dayOfMonth": "{day} of each month",
+        "accountNumber": "Account number"
+      },
+      "projection": {
+        "title": "Projection",
+        "paidLabel": "Paid",
+        "paidOfOriginal": "{paid} of {original} paid",
+        "payoffDate": "Payoff date",
+        "monthsRemaining": "Months remaining",
+        "totalInterestRemaining": "Total interest remaining",
+        "nextMonthInterest": "Next month's interest",
+        "nextMonthPrincipal": "Next month's principal",
+        "plannedPayment": "Planned payment"
+      },
+      "events": {
+        "title": "Timeline",
+        "empty": "No events recorded yet.",
+        "rateChange": "Rate changed from {from}% to {to}%",
+        "termChange": "Term changed from {from} to {to} months",
+        "plannedPaymentChange": "Planned payment changed from {from} to {to}",
+        "paidOff": "Loan paid off",
+        "refinanced": "Loan refinanced"
+      },
+      "payments": {
+        "title": "Recent payments",
+        "empty": "No payments recorded against this loan yet.",
+        "loadError": "Failed to load recent payments.",
+        "unlabeled": "Payment"
+      }
     }
   }
 }
