@@ -1,0 +1,42 @@
+{
+  "loans": {
+    "title": "Préstamos",
+    "loadError": "Error al cargar los préstamos.",
+    "tryAgain": "Intentar de nuevo",
+    "addButton": {
+      "label": "Añadir préstamo",
+      "notYet": "La creación de préstamos estará disponible en la próxima entrega."
+    },
+    "empty": {
+      "title": "Aún no hay préstamos",
+      "description": "Haga seguimiento aquí de hipotecas, préstamos de auto, préstamos estudiantiles y otras deudas.",
+      "createFirstButton": "Añadir su primer préstamo"
+    },
+    "aggregate": {
+      "title": "Resumen de deudas",
+      "totalOwed": "Total pendiente",
+      "count": "préstamo | préstamos"
+    },
+    "card": {
+      "currentBalance": "Saldo actual",
+      "paidLabel": "Pagado",
+      "apr": "TAE",
+      "payoffDate": "Fecha de liquidación",
+      "monthsRemaining": "Meses restantes"
+    },
+    "types": {
+      "mortgage": "Hipoteca",
+      "auto": "Auto",
+      "student": "Estudiantil",
+      "personal": "Personal",
+      "heloc": "HELOC",
+      "business": "Empresarial",
+      "medical": "Médico",
+      "other": "Otro"
+    },
+    "warnings": {
+      "no_planned_payment": "No se ha establecido un pago planificado — la fecha de liquidación proyectada no está disponible.",
+      "payment_below_interest": "El pago planificado no cubre los intereses mensuales — la deuda seguiría creciendo."
+    }
+  }
+}

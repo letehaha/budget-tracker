@@ -1,0 +1,42 @@
+{
+  "loans": {
+    "title": "Loans",
+    "loadError": "Failed to load loans.",
+    "tryAgain": "Try again",
+    "addButton": {
+      "label": "Add loan",
+      "notYet": "Creating loans lands in the next slice."
+    },
+    "empty": {
+      "title": "No loans yet",
+      "description": "Track mortgages, auto loans, student loans, and other liabilities here.",
+      "createFirstButton": "Add your first loan"
+    },
+    "aggregate": {
+      "title": "Liabilities overview",
+      "totalOwed": "Total outstanding",
+      "count": "loan | loans"
+    },
+    "card": {
+      "currentBalance": "Current balance",
+      "paidLabel": "Paid",
+      "apr": "APR",
+      "payoffDate": "Payoff date",
+      "monthsRemaining": "Months remaining"
+    },
+    "types": {
+      "mortgage": "Mortgage",
+      "auto": "Auto",
+      "student": "Student",
+      "personal": "Personal",
+      "heloc": "HELOC",
+      "business": "Business",
+      "medical": "Medical",
+      "other": "Other"
+    },
+    "warnings": {
+      "no_planned_payment": "No planned payment set — projected payoff unavailable.",
+      "payment_below_interest": "Planned payment doesn't cover monthly interest — loan would grow."
+    }
+  }
+}
