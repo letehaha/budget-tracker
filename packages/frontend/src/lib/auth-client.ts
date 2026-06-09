@@ -1,3 +1,4 @@
+import { API_HTTP, API_VER } from '@/api/api-base-url';
 import { getCurrentLocale } from '@/i18n';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { createAuthClient } from 'better-auth/vue';
@@ -15,12 +16,7 @@ import { createAuthClient } from 'better-auth/vue';
  */
 
 // Determine the base URL for auth API
-const getBaseURL = () => {
-  if (import.meta.env.DEV) {
-    return `${window.location.protocol}//${window.location.hostname}:8081/api/v1/auth`;
-  }
-  return `${import.meta.env.VITE_APP_API_HTTP}${import.meta.env.VITE_APP_API_VER}/auth`;
-};
+const getBaseURL = () => `${API_HTTP}${API_VER}/auth`;
 
 // Create auth client with passkey plugin
 // The passkey plugin adds: signIn.passkey, passkey.addPasskey, passkey.listUserPasskeys, etc.

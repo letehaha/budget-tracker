@@ -1,3 +1,4 @@
+import { API_HTTP, API_VER } from '@/api/api-base-url';
 import { useAuthStore } from '@/stores/auth';
 import {
   type AiCategorizationProgressPayload,
@@ -13,11 +14,6 @@ import { ref } from 'vue';
 export { SSE_EVENT_TYPES, type AiCategorizationProgressPayload, type SyncStatusChangedPayload };
 
 type SSEEventHandler<T extends SSEEventPayload = SSEEventPayload> = (data: T) => void;
-
-const API_HTTP = import.meta.env.DEV
-  ? `${window.location.protocol}//${window.location.hostname}:8081`
-  : import.meta.env.VITE_APP_API_HTTP;
-const API_VER = import.meta.env.VITE_APP_API_VER;
 
 // Global state for SSE connection
 let abortController: AbortController | null = null;
