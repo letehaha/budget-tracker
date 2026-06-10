@@ -10,7 +10,7 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useCurrencyName } from '@/composable';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrenciesStore } from '@/stores';
-import { LOAN_TYPE } from '@bt/shared/types';
+import { LOAN_TYPE, SUPPORTED_LOAN_TYPES } from '@bt/shared/types';
 import { between, helpers, integer, maxLength, required } from '@vuelidate/validators';
 import { format, parseISO } from 'date-fns';
 import { InfoIcon } from '@lucide/vue';
@@ -113,7 +113,7 @@ const buildInitialState = (): FormState => {
 const form = reactive<FormState>(buildInitialState());
 
 const loanTypeOptions = computed(() =>
-  Object.values(LOAN_TYPE).map((value) => ({
+  SUPPORTED_LOAN_TYPES.map((value) => ({
     label: t(`loans.types.${value}`),
     value,
   })),
