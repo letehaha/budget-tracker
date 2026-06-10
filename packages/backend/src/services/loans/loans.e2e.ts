@@ -319,6 +319,39 @@ describe('Loans read API', () => {
       });
       expect(result.statusCode).toBe(422);
     });
+
+    it('ignores attempts to change currencyCode on a loan with payments', async () => {
+      // Currency change on an Account with denominated transactions would
+      // re-interpret every prior amount under the new currency and corrupt
+      // history. The Phase 1 invariant: loan currency is fixed at creation.
+      // updateLoanBodySchema and the PATCH /accounts/:id schema both omit
+      // currencyCode, so unknown-key stripping silently drops it. This
+      // regression pins that behaviour — if the field is ever added, this
+      // test forces a conscious carve-out for loans with payments.
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ currencyCode: 'USD' }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 250 }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 250,
+          destinationAccountId: created.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const result = await helpers.updateLoan({
+        id: created.id,
+        payload: { name: 'Renamed loan', currencyCode: 'EUR' } as unknown as Record<string, unknown>,
+        raw: true,
+      });
+
+      expect(result.currencyCode).toBe('USD');
+      expect(result.name).toBe('Renamed loan');
+    });
   });
 
   describe('DELETE /loans/:id', () => {
