@@ -152,6 +152,7 @@
         "targetAmountTooltip": "Source account is in {source}, loan is in {loan}. We pre-fill the converted amount using the current exchange rate — adjust if your bank applied a different rate.",
         "saveButton": "Save",
         "recordButton": "Record",
+        "overpayError": "Payment exceeds the remaining loan balance ({max}).",
         "deleteConfirmTitle": "Delete this payment?",
         "deleteConfirmDescription": "Both sides of the transfer will be removed and the loan balance will be restored. This cannot be undone."
       }

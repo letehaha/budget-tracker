@@ -12,9 +12,10 @@ import { Button } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormValidation } from '@/composable/form-validator';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
+import { useFormatCurrency } from '@/composable/formatters';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_CATEGORIES, AccountModel, PAYMENT_TYPES, type TransactionModel } from '@bt/shared/types';
-import { minValue, required } from '@vuelidate/validators';
+import { helpers, minValue, required } from '@vuelidate/validators';
 import { HandCoinsIcon, InfoIcon } from '@lucide/vue';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { storeToRefs } from 'pinia';
@@ -74,19 +75,53 @@ const isCurrenciesDifferent = computed(
 );
 
 const { convert: convertCurrency, data: exchangeRates } = useExchangeRates();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
+
+// Outstanding balance lives on Account as a negative cents value. The form
+// works in positive decimals, so flip the sign here.
+const loanCurrentOwed = computed(() => Math.abs(props.loanAccount.currentBalance));
+
+// In edit mode the existing payment is already "applied" against the loan,
+// so editing it down to the same value mustn't fail an overpay check. Credit
+// the existing leg back before comparing against the cap.
+const previousLoanLegAmount = computed(() => props.oppositeTransaction?.amount ?? 0);
+const maxLoanPaymentAllowed = computed(() => loanCurrentOwed.value + previousLoanLegAmount.value);
 
 const submitMutation = useSubmitTransaction({ onSuccess: () => emit('close-modal') });
 const deleteMutation = useDeleteTransaction({ onSuccess: () => emit('close-modal') });
 
 const isLoading = computed(() => submitMutation.isPending.value || deleteMutation.isPending.value);
 
-const validationRules = computed(() => ({
-  form: {
-    account: { required },
-    amount: { required, minValue: minValue(0.01) },
-    targetAmount: isCurrenciesDifferent.value ? { required, minValue: minValue(0.01) } : {},
-  },
-}));
+const validationRules = computed(() => {
+  // Match the backend's row-locked overpay guard. The active field depends on
+  // currency parity: cross-currency uses the user-entered loan-side amount;
+  // same-currency uses Amount directly (no targetAmount field shown).
+  const overpayRule = helpers.withMessage(
+    () =>
+      t('loans.detail.payment.overpayError', {
+        max: formatAmountByCurrencyCode(maxLoanPaymentAllowed.value, props.loanAccount.currencyCode),
+      }),
+    (value: unknown) => {
+      if (value == null || value === '') return true;
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return true;
+      // Float fuzz at the cent boundary — the backend compares cents, the FE
+      // compares decimals. 0.005 ≈ half a cent, enough slack to keep exact
+      // payments green without letting real overpays through.
+      return numeric <= maxLoanPaymentAllowed.value + 0.005;
+    },
+  );
+
+  return {
+    form: {
+      account: { required },
+      amount: isCurrenciesDifferent.value
+        ? { required, minValue: minValue(0.01) }
+        : { required, minValue: minValue(0.01), notOverpay: overpayRule },
+      targetAmount: isCurrenciesDifferent.value ? { required, minValue: minValue(0.01), notOverpay: overpayRule } : {},
+    },
+  };
+});
 
 const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
   { form },

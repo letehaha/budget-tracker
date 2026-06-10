@@ -152,6 +152,7 @@
         "targetAmountTooltip": "La cuenta de origen está en {source}, el préstamo en {loan}. Rellenamos automáticamente la cantidad convertida usando el tipo de cambio actual — ajuste si su banco aplicó un tipo diferente.",
         "saveButton": "Guardar",
         "recordButton": "Registrar",
+        "overpayError": "El pago excede el saldo restante del préstamo ({max}).",
         "deleteConfirmTitle": "¿Eliminar este pago?",
         "deleteConfirmDescription": "Se eliminarán ambos lados de la transferencia y el saldo del préstamo será restaurado. Esta acción no se puede deshacer."
       }
