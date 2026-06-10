@@ -2,14 +2,12 @@
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { useScrollAreaContainer } from '@/composable/scroll-area-container';
-import { type BulkUnselectableReason, useTransactionSelection } from '@/composable/transaction-selection';
+import { useBulkSelectability, useTransactionSelection } from '@/composable/transaction-selection';
 import { useBulkUpdateCategory } from '@/composable/use-bulk-update-category';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { useAccountsStore } from '@/stores';
 import { TransactionModel } from '@bt/shared/types';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { createReusableTemplate } from '@vueuse/core';
-import { storeToRefs } from 'pinia';
 import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -90,24 +88,7 @@ watch(listContainerRef, (el) => {
 });
 
 // Bulk edit selection
-const { accountsRecord } = storeToRefs(useAccountsStore());
-
-// Lock out bulk-selection of transactions on accounts shared *with* the caller —
-// the bulk-update endpoint isn't share-aware yet (filters by `userId`), so any
-// inclusion silently no-ops and surfaces a confusing "0 transactions updated"
-// toast. Owner-side shares (`share.isOwner === true`) stay bulk-editable.
-const isBulkSelectable = (tx: TransactionModel) => {
-  const share = accountsRecord.value[tx.accountId]?.share;
-  return !share || share.isOwner;
-};
-
-// Mirrors isTransactionSelectable (split rule) + isBulkSelectable, but says why —
-// rows surface it as a tooltip in place of the checkbox.
-const getUnselectableReason = (tx: TransactionModel): BulkUnselectableReason | null => {
-  if (tx.splits && tx.splits.length > 0) return 'split';
-  if (!isBulkSelectable(tx)) return 'sharedAccount';
-  return null;
-};
+const { isBulkSelectable, getUnselectableReason } = useBulkSelectability();
 
 const {
   selectedCount,

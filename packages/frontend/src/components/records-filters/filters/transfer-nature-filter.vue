@@ -1,35 +1,43 @@
 <template>
   <Popover.Popover v-model:open="isOpen">
-    <Popover.PopoverTrigger
-      :disabled="isDisabled"
-      :title="isDisabled ? $t('transactions.filters.transferNature.disabledTooltip') : undefined"
-      class="border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center justify-between gap-2 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <span class="min-w-0 flex-1 truncate text-left">{{ triggerLabel }}</span>
-      <ChevronDownIcon class="text-muted-foreground size-4 shrink-0" />
-    </Popover.PopoverTrigger>
+    <!-- Tooltip only explains the disabled state; the span keeps hover events
+         alive when the disabled trigger itself stops emitting them -->
+    <DesktopOnlyTooltip :content="$t('transactions.filters.transferNature.disabledTooltip')" :disabled="!isDisabled">
+      <span class="flex w-full">
+        <Popover.PopoverTrigger
+          :disabled="isDisabled"
+          class="border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center justify-between gap-2 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span class="min-w-0 flex-1 truncate text-left">{{ triggerLabel }}</span>
+          <ChevronDownIcon class="text-muted-foreground size-4 shrink-0" />
+        </Popover.PopoverTrigger>
+      </span>
+    </DesktopOnlyTooltip>
 
     <Popover.PopoverContent
       class="w-(--reka-popover-trigger-width) min-w-48 rounded-md p-1.25"
       align="start"
       :side-offset="4"
     >
-      <button
+      <Button
         v-for="nature in SELECTABLE_TRANSFER_NATURES"
         :key="nature"
         type="button"
-        class="hover:bg-accent hover:text-accent-foreground flex w-full cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm"
+        variant="ghost"
+        class="h-auto w-full justify-between px-2 py-1 font-normal"
         @click="toggleNature(nature)"
       >
         <span class="truncate">{{ $t(NATURE_LABEL_KEYS[nature]) }}</span>
         <CheckIcon v-if="transferNatures.includes(nature)" class="size-4 shrink-0" />
-      </button>
+      </Button>
     </Popover.PopoverContent>
   </Popover.Popover>
 </template>
 
 <script lang="ts" setup>
+import { Button } from '@/components/lib/ui/button';
 import * as Popover from '@/components/lib/ui/popover';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { SELECTABLE_TRANSFER_NATURES } from '@/components/records-filters/const';
 import { FILTER_OPERATION, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { CheckIcon, ChevronDownIcon } from '@lucide/vue';

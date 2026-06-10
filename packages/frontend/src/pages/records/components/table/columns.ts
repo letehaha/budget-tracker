@@ -125,6 +125,9 @@ export const COLUMN_DEFINITIONS: ColumnDefinition[] = [
   },
 ];
 
+/** All column ids in registry order — the order used before any user reordering. */
+export const DEFAULT_COLUMN_ORDER: TABLE_COLUMN[] = COLUMN_DEFINITIONS.map((definition) => definition.id);
+
 export const DEFAULT_VISIBLE_COLUMNS: TABLE_COLUMN[] = [
   TABLE_COLUMN.date,
   TABLE_COLUMN.account,

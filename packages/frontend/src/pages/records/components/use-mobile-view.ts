@@ -1,5 +1,5 @@
 import type { TransactionsMobileView } from '@/api/user-settings';
-import { useUserSettings } from '@/composable/data-queries/user-settings';
+import { patchTransactionsTableSettings, useUserSettings } from '@/composable/data-queries/user-settings';
 import { computed, ref } from 'vue';
 
 const DEFAULT_MOBILE_VIEW: TransactionsMobileView = 'list';
@@ -24,20 +24,7 @@ export function useMobileView() {
 
     const settings = userSettings.value;
     if (!settings) return;
-    saveUserSettings({
-      ...settings,
-      ui: {
-        ...settings.ui,
-        // Defaults first, stored values second: keeps the user's column config
-        // when it exists, satisfies the schema when it doesn't.
-        transactionsTable: {
-          visibleColumns: [],
-          columnOrder: [],
-          ...settings.ui?.transactionsTable,
-          mobileView: view,
-        },
-      },
-    });
+    saveUserSettings(patchTransactionsTableSettings({ settings, patch: { mobileView: view } }));
   };
 
   return { mobileView, setMobileView };

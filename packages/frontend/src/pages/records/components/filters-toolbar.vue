@@ -28,16 +28,17 @@
           </Popover.PopoverTrigger>
 
           <Popover.PopoverContent class="w-44 rounded-md p-1.5" align="start" :side-offset="4">
-            <button
+            <Button
               v-for="option in filterMenuOptions"
               :key="option.key"
               type="button"
-              class="hover:bg-accent flex w-full cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm"
+              variant="ghost"
+              class="h-auto w-full justify-between px-2 py-1.5 font-normal"
               @click="toggleFilter(option.key)"
             >
               {{ option.label }}
               <CheckIcon v-if="option.active" class="size-4 shrink-0" />
-            </button>
+            </Button>
           </Popover.PopoverContent>
         </Popover.Popover>
       </div>
@@ -149,14 +150,15 @@
              divider line inside one continuous field. `relative` is load-bearing:
              InputField wraps its <input> in positioned divs, which would otherwise
              paint over the overlapping button and swallow the divider. -->
-        <button
+        <Button
           type="button"
+          variant="ghost"
           :aria-label="$t('transactions.filters.removeFilter')"
-          class="border-input bg-input-background text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-ring relative -ml-2.5 flex w-7 shrink-0 items-center justify-center rounded-r-md border focus-visible:ring-2 focus-visible:outline-none"
+          class="border-input bg-input-background text-muted-foreground hover:bg-accent hover:text-foreground relative -ml-2.5 h-auto w-7 shrink-0 rounded-none rounded-r-md border px-0 py-0"
           @click="removeFilter(filterKey)"
         >
           <XIcon class="size-4" />
-        </button>
+        </Button>
       </div>
     </div>
   </div>

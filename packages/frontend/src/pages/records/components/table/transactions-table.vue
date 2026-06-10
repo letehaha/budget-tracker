@@ -3,40 +3,40 @@
     <!-- Bulk actions bar: no vertical padding so both states stay exactly min-h tall (no jump on selection) -->
     <div class="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 border-b px-3">
       <span v-if="selectedCount > 0" class="text-sm whitespace-nowrap">
-        {{ t('transactions.bulkEdit.selectedCount', { count: selectedCount }) }}
+        {{ $t('transactions.bulkEdit.selectedCount', { count: selectedCount }) }}
       </span>
       <span v-else class="text-muted-foreground text-sm">
-        {{ t('transactions.table.hint') }}
+        {{ $t('transactions.table.hint') }}
       </span>
 
       <div v-if="selectedCount > 0" class="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" :disabled="isBulkLoading" @click="isBulkEditDialogOpen = true">
           <PencilIcon class="size-4" />
-          {{ t('transactions.bulkEdit.editButton') }}
+          {{ $t('transactions.bulkEdit.editButton') }}
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="outline" size="sm" :disabled="isBulkLoading">
               <GroupIcon class="size-4" />
-              {{ t('transactions.transactionGroups.bulkActions.groupButton') }}
+              {{ $t('transactions.transactionGroups.bulkActions.groupButton') }}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="min-w-48">
             <DropdownMenuItem :disabled="selectedCount < 2" @select="isCreateGroupDialogOpen = true">
               <PlusIcon class="mr-2 size-4" />
-              {{ t('transactions.transactionGroups.bulkActions.createNewGroup') }}
+              {{ $t('transactions.transactionGroups.bulkActions.createNewGroup') }}
             </DropdownMenuItem>
             <DropdownMenuItem @select="isAddToGroupDialogOpen = true">
               <ListPlusIcon class="mr-2 size-4" />
-              {{ t('transactions.transactionGroups.bulkActions.addToExistingGroup') }}
+              {{ $t('transactions.transactionGroups.bulkActions.addToExistingGroup') }}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
         <DesktopOnlyTooltip
           :content="
-            hasExternalSelected ? t('transactions.bulkDelete.externalTooltip') : t('transactions.bulkDelete.button')
+            hasExternalSelected ? $t('transactions.bulkDelete.externalTooltip') : $t('transactions.bulkDelete.button')
           "
         >
           <span class="inline-flex">
@@ -47,13 +47,13 @@
               @click="isBulkDeleteDialogOpen = true"
             >
               <Trash2Icon class="size-4" />
-              {{ t('transactions.bulkDelete.button') }}
+              {{ $t('transactions.bulkDelete.button') }}
             </Button>
           </span>
         </DesktopOnlyTooltip>
 
         <Button variant="ghost" size="sm" :disabled="isBulkLoading" @click="clearSelection">
-          {{ t('common.actions.cancel') }}
+          {{ $t('common.actions.cancel') }}
         </Button>
       </div>
     </div>
@@ -66,10 +66,10 @@
       <div class="bg-muted flex size-12 items-center justify-center rounded-full">
         <SearchXIcon class="text-muted-foreground size-6" />
       </div>
-      <p class="text-foreground font-medium">{{ t('transactions.table.emptyTitle') }}</p>
-      <p class="text-muted-foreground text-sm">{{ t('transactions.table.emptyDescription') }}</p>
+      <p class="text-foreground font-medium">{{ $t('transactions.table.emptyTitle') }}</p>
+      <p class="text-muted-foreground text-sm">{{ $t('transactions.table.emptyDescription') }}</p>
       <Button variant="outline" size="sm" @click="emit('reset-filters')">
-        {{ t('transactions.filters.reset') }}
+        {{ $t('transactions.filters.reset') }}
       </Button>
     </div>
 
@@ -111,7 +111,7 @@
                 ]"
                 v-on="column.sortField ? { click: () => onHeaderClick(column) } : {}"
               >
-                <span class="truncate">{{ t(column.labelKey) }}</span>
+                <span class="truncate">{{ $t(column.labelKey) }}</span>
                 <template v-if="column.sortField && sorting.sortBy === column.sortField">
                   <ArrowUpIcon v-if="sorting.order === SORT_DIRECTIONS.asc" class="size-3 shrink-0" />
                   <ArrowDownIcon v-else class="size-3 shrink-0" />
@@ -156,7 +156,7 @@
         v-if="!hasNextPage && displayTransactions.length > 0"
         class="text-muted-foreground flex h-10 items-center justify-center text-sm"
       >
-        {{ t('transactions.list.noMoreData') }}
+        {{ $t('transactions.list.noMoreData') }}
       </div>
     </ScrollArea>
 
@@ -181,25 +181,25 @@
 
     <ResponsiveAlertDialog
       v-model:open="isBulkDeleteDialogOpen"
-      :confirm-label="t('transactions.bulkDelete.confirmButton')"
+      :confirm-label="$t('transactions.bulkDelete.confirmButton')"
       confirm-variant="destructive"
       :loading="bulkDeleteMutation.isPending.value"
       @confirm="handleBulkDelete"
     >
-      <template #title>{{ t('transactions.bulkDelete.confirmTitle', { count: selectedCount }) }}</template>
-      <template #description>{{ t('transactions.bulkDelete.confirmDescription') }}</template>
+      <template #title>{{ $t('transactions.bulkDelete.confirmTitle', { count: selectedCount }) }}</template>
+      <template #description>{{ $t('transactions.bulkDelete.confirmDescription') }}</template>
     </ResponsiveAlertDialog>
 
     <UseDialogTemplate>
       <ManageTransactionDialogContent v-bind="dialogProps" @close-modal="closeDialog" />
     </UseDialogTemplate>
 
-    <template v-if="isMobile">
+    <template v-if="isMobileMode">
       <Drawer.Drawer v-model:open="isDialogVisible">
         <Drawer.DrawerContent custom-indicator>
-          <Drawer.DrawerTitle class="sr-only">{{ t('transactions.list.detailsTitle') }}</Drawer.DrawerTitle>
+          <Drawer.DrawerTitle class="sr-only">{{ $t('transactions.list.detailsTitle') }}</Drawer.DrawerTitle>
           <Drawer.DrawerDescription class="sr-only">{{
-            t('transactions.list.detailsDescription')
+            $t('transactions.list.detailsDescription')
           }}</Drawer.DrawerDescription>
           <SlotContent />
         </Drawer.DrawerContent>
@@ -211,9 +211,9 @@
           custom-close
           :class="['bg-card max-h-[90dvh] w-full p-0', isCompactDialog ? 'max-w-lg' : 'max-w-225']"
         >
-          <Dialog.DialogTitle class="sr-only">{{ t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
+          <Dialog.DialogTitle class="sr-only">{{ $t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
           <Dialog.DialogDescription class="sr-only">{{
-            t('transactions.list.detailsDescription')
+            $t('transactions.list.detailsDescription')
           }}</Dialog.DialogDescription>
           <SlotContent />
         </Dialog.DialogContent>
@@ -242,10 +242,9 @@ import CreateGroupDialog from '@/components/transactions-list/create-group-dialo
 import { useManageTransactionDialog } from '@/components/transactions-list/use-manage-transaction-dialog';
 import { useTransactionsDisplay } from '@/components/transactions-list/use-transactions-display';
 import { usePayees } from '@/composable/data-queries/payees';
-import { type BulkUnselectableReason, useTransactionSelection } from '@/composable/transaction-selection';
+import { useBulkSelectability, useTransactionSelection } from '@/composable/transaction-selection';
 import { useBulkDeleteTransactions } from '@/composable/use-bulk-delete-transactions';
 import { useBulkUpdateCategory } from '@/composable/use-bulk-update-category';
-import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useAccountsStore } from '@/stores';
 import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_SORT_FIELD, TransactionModel } from '@bt/shared/types';
 import { useVirtualizer } from '@tanstack/vue-virtual';
@@ -261,8 +260,7 @@ import {
   Trash2Icon,
 } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { computed, defineAsyncComponent, ref, watchEffect } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { type ComputedRef, computed, defineAsyncComponent, ref, watchEffect } from 'vue';
 
 import { type ColumnDefinition, type TableSorting } from './columns';
 import TransactionTableRow from './transaction-table-row.vue';
@@ -281,6 +279,11 @@ const props = defineProps<{
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   isFetched: boolean;
+  /**
+   * Container-based narrow-layout flag from the page (the sidebar makes viewport
+   * breakpoints unreliable here) — drives Drawer-vs-Dialog for the detail panel.
+   */
+  isMobileMode: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -289,21 +292,18 @@ const emit = defineEmits<{
   'reset-filters': [];
 }>();
 
-const { t } = useI18n();
-const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
-
 const tableMinWidthPx = computed(
   () => CHECKBOX_COLUMN_WIDTH_PX + props.visibleColumns.reduce((sum, column) => sum + column.widthPx, 0),
 );
 const [UseDialogTemplate, SlotContent] = createReusableTemplate();
 
 // Table view always flattens groups (one row per record); passing
-// contentFiltersActive=true gives transfer dedup without group rows.
-const { displayTransactions: displayItems } = useTransactionsDisplay({
+// contentFiltersActive=true gives transfer dedup without group rows, so the
+// display list never contains GroupRowData entries.
+const { displayTransactions } = useTransactionsDisplay({
   transactions: () => props.transactions,
   contentFiltersActive: () => true,
-});
-const displayTransactions = computed(() => displayItems.value as TransactionModel[]);
+}) as { displayTransactions: ComputedRef<TransactionModel[]> };
 
 // Payee names: transactions carry only payeeId; resolve names from the payees list.
 const { list: payeesList } = usePayees();
@@ -316,21 +316,7 @@ const { isDialogVisible, dialogProps, isCompactDialog, handleRecordClick, closeD
 
 // Selection
 const { accountsRecord } = storeToRefs(useAccountsStore());
-
-// Shared-account rows (recipient side) are excluded from bulk selection — the
-// bulk endpoints filter by `userId` and would silently no-op on them.
-const isBulkSelectable = (tx: TransactionModel) => {
-  const share = accountsRecord.value[tx.accountId]?.share;
-  return !share || share.isOwner;
-};
-
-// Mirrors isTransactionSelectable (split rule) + isBulkSelectable, but says why —
-// rows surface it as a tooltip in place of the checkbox.
-const getUnselectableReason = (tx: TransactionModel): BulkUnselectableReason | null => {
-  if (tx.splits && tx.splits.length > 0) return 'split';
-  if (!isBulkSelectable(tx)) return 'sharedAccount';
-  return null;
-};
+const { isBulkSelectable, getUnselectableReason } = useBulkSelectability();
 
 const {
   selectedCount,

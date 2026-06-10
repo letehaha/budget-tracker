@@ -1,4 +1,4 @@
-import { useUserSettings } from '@/composable/data-queries/user-settings';
+import { patchTransactionsTableSettings, useUserSettings } from '@/composable/data-queries/user-settings';
 import { computed, ref } from 'vue';
 
 /** Filters the user can add to the filter bar via the "+" menu. The always-visible
@@ -38,20 +38,7 @@ export function useExtraFilters() {
 
     const settings = userSettings.value;
     if (!settings) return;
-    saveUserSettings({
-      ...settings,
-      ui: {
-        ...settings.ui,
-        // Defaults first, stored values second: keeps the user's column config
-        // when it exists, satisfies the schema when it doesn't.
-        transactionsTable: {
-          visibleColumns: [],
-          columnOrder: [],
-          ...settings.ui?.transactionsTable,
-          extraFilters: next,
-        },
-      },
-    });
+    saveUserSettings(patchTransactionsTableSettings({ settings, patch: { extraFilters: next } }));
   };
 
   const addExtraFilter = (key: ExtraFilterKey) => {

@@ -52,21 +52,15 @@ const bulkDeleteImpl = async ({ userId, transactionIds }: BulkDeleteParams): Pro
   }
 
   const deletedIds: string[] = [];
-  const removedAsTransferTwin = new Set<string>();
+  const deletedTransferIds = new Set<string>();
 
   for (const row of rows) {
-    if (removedAsTransferTwin.has(row.id)) continue;
+    if (row.transferId && deletedTransferIds.has(row.transferId)) continue;
 
     await deleteTransaction({ id: row.id, userId });
     deletedIds.push(row.id);
 
-    if (row.transferId) {
-      for (const twin of rows) {
-        if (twin.id !== row.id && twin.transferId === row.transferId) {
-          removedAsTransferTwin.add(twin.id);
-        }
-      }
-    }
+    if (row.transferId) deletedTransferIds.add(row.transferId);
   }
 
   return { deletedCount: deletedIds.length, deletedIds };

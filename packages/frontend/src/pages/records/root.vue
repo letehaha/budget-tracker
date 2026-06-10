@@ -6,22 +6,26 @@
       <template v-if="isMobileMode">
         <div class="flex shrink-0 items-center justify-between gap-2">
           <div class="bg-card flex items-center gap-0.5 rounded-md border p-0.5">
-            <Button
-              :variant="mobileView === 'list' ? 'secondary' : 'ghost'"
-              size="icon-sm"
-              :aria-label="$t('transactions.table.viewToggle.list')"
-              @click="setMobileView('list')"
-            >
-              <ListIcon class="size-4" />
-            </Button>
-            <Button
-              :variant="mobileView === 'table' ? 'secondary' : 'ghost'"
-              size="icon-sm"
-              :aria-label="$t('transactions.table.viewToggle.table')"
-              @click="setMobileView('table')"
-            >
-              <Table2Icon class="size-4" />
-            </Button>
+            <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.list')">
+              <Button
+                :variant="mobileView === 'list' ? 'secondary' : 'ghost'"
+                size="icon-sm"
+                :aria-label="$t('transactions.table.viewToggle.list')"
+                @click="setMobileView('list')"
+              >
+                <ListIcon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+            <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.table')">
+              <Button
+                :variant="mobileView === 'table' ? 'secondary' : 'ghost'"
+                size="icon-sm"
+                :aria-label="$t('transactions.table.viewToggle.table')"
+                @click="setMobileView('table')"
+              >
+                <Table2Icon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
           </div>
 
           <!-- Scrolling is handled by ResponsiveDialog's internal scroll wrapper —
@@ -84,6 +88,7 @@
           :has-next-page="hasNextPage"
           :is-fetching-next-page="isFetchingNextPage"
           :is-fetched="isFetched"
+          :is-mobile-mode="isMobileMode"
           @update:sorting="onSortingChange"
           @fetch-next-page="fetchNextPage"
           @reset-filters="resetFilters"
@@ -99,6 +104,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { DEFAULT_FILTERS, SELECTABLE_TRANSFER_NATURES } from '@/components/records-filters/const';
 import FiltersDialog from '@/components/records-filters/filters-dialog.vue';
 import FiltersPanel from '@/components/records-filters/index.vue';

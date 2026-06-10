@@ -1,11 +1,11 @@
-import { useUserSettings } from '@/composable/data-queries/user-settings';
+import { patchTransactionsTableSettings, useUserSettings } from '@/composable/data-queries/user-settings';
 import { useDebounceFn } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 
 import {
-  COLUMN_DEFINITIONS,
   COLUMN_DEFINITIONS_BY_ID,
   type ColumnDefinition,
+  DEFAULT_COLUMN_ORDER,
   DEFAULT_VISIBLE_COLUMNS,
   TABLE_COLUMN,
   isKnownColumnId,
@@ -23,7 +23,7 @@ const PERSIST_DEBOUNCE_MS = 1_000;
 export function useTableColumns() {
   const { data: userSettings, mutate: saveUserSettings } = useUserSettings();
 
-  const localOrder = ref<TABLE_COLUMN[]>([...COLUMN_DEFINITIONS.map((definition) => definition.id)]);
+  const localOrder = ref<TABLE_COLUMN[]>([...DEFAULT_COLUMN_ORDER]);
   const localVisible = ref<TABLE_COLUMN[]>([...DEFAULT_VISIBLE_COLUMNS]);
   // Settings load async — hydrate local state once they arrive, but never
   // clobber edits the user already made in this session.
@@ -31,7 +31,7 @@ export function useTableColumns() {
 
   const sanitizeOrder = (storedOrder: string[]): TABLE_COLUMN[] => {
     const known = storedOrder.filter(isKnownColumnId);
-    const missing = COLUMN_DEFINITIONS.map((definition) => definition.id).filter((id) => !known.includes(id));
+    const missing = DEFAULT_COLUMN_ORDER.filter((id) => !known.includes(id));
     return [...known, ...missing];
   };
 
@@ -49,19 +49,12 @@ export function useTableColumns() {
   const persistDebounced = useDebounceFn(() => {
     const settings = userSettings.value;
     if (!settings) return;
-    saveUserSettings({
-      ...settings,
-      ui: {
-        ...settings.ui,
-        // Spread first: transactionsTable also stores non-column prefs (mobileView)
-        // that a column edit must not wipe.
-        transactionsTable: {
-          ...settings.ui?.transactionsTable,
-          visibleColumns: localVisible.value,
-          columnOrder: localOrder.value,
-        },
-      },
-    });
+    saveUserSettings(
+      patchTransactionsTableSettings({
+        settings,
+        patch: { visibleColumns: localVisible.value, columnOrder: localOrder.value },
+      }),
+    );
   }, PERSIST_DEBOUNCE_MS);
 
   const markEditedAndPersist = () => {
@@ -99,7 +92,7 @@ export function useTableColumns() {
   };
 
   const resetToDefaults = () => {
-    localOrder.value = [...COLUMN_DEFINITIONS.map((definition) => definition.id)];
+    localOrder.value = [...DEFAULT_COLUMN_ORDER];
     localVisible.value = [...DEFAULT_VISIBLE_COLUMNS];
     markEditedAndPersist();
   };
