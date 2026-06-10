@@ -380,6 +380,42 @@ describe('Loan payment integration', () => {
       expect(reloadedLoan.currentBalance).toBe(0);
     });
 
+    it('rejects POST overpay when source account currency differs from the loan currency', async () => {
+      // Loan in USD owes $1,000. Source account in UAH. Even though the
+      // source-side amount is in UAH, the overpay check must compare
+      // destinationAmount (loan currency, USD) against the loan's owed
+      // balance. $2,000 destination overshoots regardless of UAH amount.
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          initialBalance: 1_000,
+          originalPrincipal: 1_000,
+          currencyCode: 'USD',
+        }),
+        raw: true,
+      });
+      const { account: uahAccount } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+
+      const response = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: uahAccount.id,
+            amount: 82_800, // approximately $2,000 worth of UAH
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 2_000,
+          destinationAccountId: loan.id as RecordId,
+        },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(errorBody.message).toMatch(/overpay|exceed|owed/i);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-1_000);
+    });
+
     it('blocks two concurrent POSTs from together overpaying the loan', async () => {
       // Loan owes $1,000. Two concurrent $700 payments each pass the
       // individual overpay check (1000 - 700 = 300 still owed) — but applied
