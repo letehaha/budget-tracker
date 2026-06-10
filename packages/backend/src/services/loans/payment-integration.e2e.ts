@@ -361,6 +361,24 @@ describe('Loan payment integration', () => {
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(-700);
     });
+
+    it('accepts PUT that bumps the loan-leg amount up to (but not over) the remaining owed', async () => {
+      // Loan owes $1,000. Pay $300 → -$700 owed. Edit to $1,000 — the full
+      // payoff boundary (projected balance = 0, exactly at the limit).
+      const { loan, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 300 });
+
+      const [base, opposite] = await helpers.updateTransaction({
+        id: expenseLeg.id,
+        payload: { destinationAmount: 1_000 },
+        raw: true,
+      });
+
+      expect(base.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+      expect(opposite!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(0);
+    });
   });
 
   describe('DELETE /transactions/:id on a transfer_to_loan pair', () => {
