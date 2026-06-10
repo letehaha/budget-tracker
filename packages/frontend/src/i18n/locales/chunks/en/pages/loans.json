@@ -98,6 +98,7 @@
       "paidOffBadge": "Paid off",
       "summary": {
         "outstanding": "Current balance",
+        "principalOnlyTooltip": "Balance reflects principal payments only. Interest is not accrued automatically — your lender's statement is the source of truth.",
         "apr": "APR",
         "originalPrincipal": "Original principal",
         "term": "Term",

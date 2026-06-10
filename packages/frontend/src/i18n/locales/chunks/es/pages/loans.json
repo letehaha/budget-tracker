@@ -98,6 +98,7 @@
       "paidOffBadge": "Liquidado",
       "summary": {
         "outstanding": "Saldo actual",
+        "principalOnlyTooltip": "El saldo refleja solo los pagos de capital. Los intereses no se acumulan automáticamente — el extracto de su prestamista es la fuente de la verdad.",
         "apr": "TAE",
         "originalPrincipal": "Capital original",
         "term": "Plazo",
