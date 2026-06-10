@@ -146,7 +146,9 @@
     "exchangeCurrenciesMustDiffer": "Exchange currencies must be different"
   },
   "loans": {
-    "loanNotFound": "Loan not found."
+    "loanNotFound": "Loan not found.",
+    "deleteBlockedByPayments": "This loan has recorded payments. Delete the payments before deleting the loan.",
+    "deleteBlockedByEvents": "This loan has timeline events. Clear them before deleting the loan."
   },
   "errors": {
     "connectionNotFound": "Connection not found",

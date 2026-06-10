@@ -146,7 +146,9 @@
     "exchangeCurrenciesMustDiffer": "Las monedas de cambio deben ser diferentes"
   },
   "loans": {
-    "loanNotFound": "Préstamo no encontrado."
+    "loanNotFound": "Préstamo no encontrado.",
+    "deleteBlockedByPayments": "Este préstamo tiene pagos registrados. Elimine los pagos antes de eliminar el préstamo.",
+    "deleteBlockedByEvents": "Este préstamo tiene eventos en la línea de tiempo. Limpíelos antes de eliminar el préstamo."
   },
   "errors": {
     "connectionNotFound": "Conexión no encontrada",
