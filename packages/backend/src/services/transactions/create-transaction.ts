@@ -15,6 +15,7 @@ import { NotFoundError, UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
+import { namespace } from '@models/connection';
 import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import * as Transactions from '@models/transactions.model';
@@ -157,10 +158,20 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   // row. Fail loudly so the bug surfaces instead of producing a transfer with
   // a meaningless reporting label.
   if (creationParams.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
-    const destAccount = await findOrThrowNotFound({
-      query: Accounts.getAccountById({ id: destinationAccountId, userId: destOwnerUserId }),
-      message: t({ key: 'accounts.accountNotFoundForTransaction' }),
+    // SELECT ... FOR UPDATE on the loan account row. Two concurrent loan-payment
+    // submits would otherwise each read the same pre-payment balance, each pass
+    // the projected-balance check, and together push the loan into a positive
+    // (overpaid) state. The row lock serialises them on the same Postgres
+    // transaction so the second submit sees the first one's update.
+    const sequelizeTx = namespace.get('transaction');
+    const destAccount = await Accounts.default.findOne({
+      where: { id: destinationAccountId, userId: destOwnerUserId },
+      transaction: sequelizeTx,
+      lock: sequelizeTx?.LOCK.UPDATE,
     });
+    if (!destAccount) {
+      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+    }
     if (destAccount.accountCategory !== ACCOUNT_CATEGORIES.loan) {
       throw new ValidationError({
         message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
