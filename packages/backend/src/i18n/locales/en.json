@@ -55,6 +55,7 @@
     "vehicleAccountReadonly": "This account tracks a vehicle. Its value can only be changed from the vehicle page.",
     "transferNatureChangeNotAllowed": "Cannot change the transfer kind of an existing transfer. Unlink the transfer first, then mark the transaction again.",
     "transferToLoanRequiresLoanDestination": "A loan payment requires the destination to be a loan account.",
+    "loanPaymentOverpay": "Payment exceeds the remaining loan balance.",
     "splits": {
       "splitsOnTransfer": "Cannot add splits to transfer transactions",
       "splitLimitExceeded": "Maximum {{max}} splits allowed per transaction",

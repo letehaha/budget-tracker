@@ -273,6 +273,41 @@ describe('Loan payment integration', () => {
     });
   });
 
+  describe('Overpayment validation', () => {
+    it('rejects POST when destinationAmount exceeds the loan currentOwed', async () => {
+      // Loan owes $1,000 (initialBalance gets sign-flipped to -1,000 currentBalance).
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          initialBalance: 1_000,
+          originalPrincipal: 1_000,
+        }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      const response = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 2_000,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 2_000,
+          destinationAccountId: loan.id as RecordId,
+        },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(errorBody.message).toMatch(/overpay|exceed|owed/i);
+
+      // Loan balance must be untouched.
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-1_000);
+    });
+  });
+
   describe('DELETE /transactions/:id on a transfer_to_loan pair', () => {
     it('removes both legs and restores the loan balance', async () => {
       const { loan, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 2_500, amount: 500 });
