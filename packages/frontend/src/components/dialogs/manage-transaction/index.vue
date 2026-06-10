@@ -3,14 +3,24 @@ import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { ref, watch } from 'vue';
+import { useVModel } from '@vueuse/core';
+import { watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import ManageTransactionDialogContent from './dialog-content.vue';
 
+const props = withDefaults(
+  defineProps<{
+    open?: boolean;
+  }>(),
+  { open: undefined },
+);
+
+const emit = defineEmits<{ 'update:open': [value: boolean] }>();
+
 const { t } = useI18n();
-const isOpen = ref(false);
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
+const isOpen = useVModel(props, 'open', emit, { passive: true, defaultValue: false });
 
 watch(isOpen, (open) => {
   if (open) {

@@ -1,6 +1,7 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
 import type { FormattedCategory } from '@/common/types';
 import {
+  isTwoLegTransfer,
   ACCOUNT_TYPES,
   AccountModel,
   CategoryModel,
@@ -50,11 +51,7 @@ export const getDestinationAmount = ({
 };
 
 export const getFormTypeFromTransaction = (tx: TransactionModel): FORM_TYPES => {
-  if (
-    [TRANSACTION_TRANSFER_NATURE.common_transfer, TRANSACTION_TRANSFER_NATURE.transfer_out_wallet].includes(
-      tx.transferNature,
-    )
-  ) {
+  if (isTwoLegTransfer(tx.transferNature) || tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
     return FORM_TYPES.transfer;
   }
 

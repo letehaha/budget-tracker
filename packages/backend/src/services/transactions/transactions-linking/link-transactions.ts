@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 // NOTE: if new TRANSACTION_TRANSFER_NATURE values are added, review whether they belong here.
 const ALREADY_LINKED_NATURES = [
   TRANSACTION_TRANSFER_NATURE.common_transfer,
+  TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
   TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
   TRANSACTION_TRANSFER_NATURE.transfer_to_venture,
 ];

@@ -35,11 +35,7 @@ const defaultCurrency = computed(
   () => systemCurrenciesVerbose.value.linked.find((i) => i.code === baseCurrency.value!.currencyCode)!.code || '',
 );
 
-const HIDDEN_ACCOUNT_CATEGORIES = new Set<ACCOUNT_CATEGORIES>([
-  ACCOUNT_CATEGORIES.vehicle,
-  ACCOUNT_CATEGORIES.loan,
-  ACCOUNT_CATEGORIES.mortgage,
-]);
+const HIDDEN_ACCOUNT_CATEGORIES = new Set<ACCOUNT_CATEGORIES>([ACCOUNT_CATEGORIES.vehicle, ACCOUNT_CATEGORIES.loan]);
 
 const queryCategory = route.query.category as ACCOUNT_CATEGORIES | undefined;
 const defaultAccountCategory =

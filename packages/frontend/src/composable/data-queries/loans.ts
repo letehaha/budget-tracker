@@ -19,6 +19,13 @@ export const useLoans = (queryOptions = {}) => {
   };
 };
 
+// A loan IS an Accounts row, so any loan mutation must also bust the global
+// accounts cache — otherwise pickers (transaction-create destination, sidebar,
+// etc.) won't see a newly created loan or a renamed/deleted one.
+const invalidateAccountsCache = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
+};
+
 export const useCreateLoan = () => {
   const queryClient = useQueryClient();
 
@@ -26,6 +33,7 @@ export const useCreateLoan = () => {
     mutationFn: createLoan,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.loansList });
+      invalidateAccountsCache(queryClient);
     },
   });
 };
@@ -38,6 +46,7 @@ export const useUpdateLoan = () => {
     onSuccess: (loan) => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.loansList });
       queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.loanDetail, loan.id] });
+      invalidateAccountsCache(queryClient);
     },
   });
 };
@@ -50,6 +59,7 @@ export const useDeleteLoan = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.loansList });
       queryClient.removeQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.loanDetail, variables.id] });
+      invalidateAccountsCache(queryClient);
     },
   });
 };

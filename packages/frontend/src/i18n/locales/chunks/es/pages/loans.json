@@ -6,6 +6,11 @@
     "addButton": {
       "label": "Añadir préstamo"
     },
+    "actions": {
+      "more": "Más",
+      "moreAriaLabel": "Más acciones",
+      "excludeFromStats": "Excluir de estadísticas"
+    },
     "dialog": {
       "createTitle": "Añadir un préstamo",
       "createDescription": "Haga seguimiento de una hipoteca, préstamo de auto, préstamo estudiantil o cualquier otra deuda. Puede editar los datos en cualquier momento.",
@@ -46,12 +51,27 @@
       "description": "Haga seguimiento aquí de hipotecas, préstamos de auto, préstamos estudiantiles y otras deudas.",
       "createFirstButton": "Añadir su primer préstamo"
     },
+    "page": {
+      "overline": "Pasivos"
+    },
     "aggregate": {
+      "overline": "Cartera de Pasivos",
+      "activePill": "Activo",
+      "totalOwedContext": "Total pendiente en {count}",
+      "avgApr": "TAE media",
+      "monthlyObligation": "Obligación mensual",
+      "earliestPayoff": "Liquidación más próxima",
+      "interestProjected": "Intereses proyectados",
       "title": "Resumen de deudas",
       "totalOwed": "Total pendiente",
       "count": "préstamo | préstamos"
     },
     "card": {
+      "principalContext": "de {amount} de capital",
+      "paidPercent": "{value}% pagado",
+      "monthly": "Mensual",
+      "monthsLeft": "Meses restantes",
+      "interestRemaining": "Intereses restantes",
       "currentBalance": "Saldo actual",
       "paidLabel": "Pagado",
       "apr": "TAE",
@@ -111,7 +131,28 @@
         "title": "Pagos recientes",
         "empty": "Aún no hay pagos registrados para este préstamo.",
         "loadError": "Error al cargar los pagos recientes.",
-        "unlabeled": "Pago"
+        "seeAll": "Ver todos",
+        "allTitle": "Todos los pagos",
+        "loadMore": "Cargar más"
+      },
+      "recordPayment": "Registrar pago",
+      "payment": {
+        "title": "Pago del préstamo",
+        "description": "Registre o edite un pago contra este préstamo.",
+        "createTitle": "Registrar Pago",
+        "editTitle": "Editar Pago del Préstamo",
+        "payingTo": "Pagando a",
+        "fromAccountLabel": "De la cuenta",
+        "fromAccountPlaceholder": "Seleccione una cuenta",
+        "amountLabel": "Cantidad",
+        "amountPlaceholder": "0.00",
+        "targetAmountLabel": "Cantidad aplicada al préstamo",
+        "targetAmountPlaceholder": "0.00",
+        "targetAmountTooltip": "La cuenta de origen está en {source}, el préstamo en {loan}. Rellenamos automáticamente la cantidad convertida usando el tipo de cambio actual — ajuste si su banco aplicó un tipo diferente.",
+        "saveButton": "Guardar",
+        "recordButton": "Registrar",
+        "deleteConfirmTitle": "¿Eliminar este pago?",
+        "deleteConfirmDescription": "Se eliminarán ambos lados de la transferencia y el saldo del préstamo será restaurado. Esta acción no se puede deshacer."
       }
     }
   }

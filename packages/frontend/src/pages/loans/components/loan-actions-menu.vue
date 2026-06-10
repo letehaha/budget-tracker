@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { type LoanApi } from '@/api/loans';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
-import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/common/dropdown-menu';
 import { Button } from '@/components/lib/ui/button';
 import { Checkbox } from '@/components/lib/ui/checkbox';
-import * as Collapsible from '@/components/lib/ui/collapsible';
 import { Switch } from '@/components/lib/ui/switch';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useDeleteLoan, useLoanById } from '@/composable/data-queries/loans';
@@ -12,7 +17,7 @@ import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 import { ACCOUNT_STATUSES } from '@bt/shared/types';
-import { ArchiveIcon, ArchiveRestoreIcon, ChevronDownIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
+import { ArchiveIcon, ArchiveRestoreIcon, EyeOffIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -28,7 +33,6 @@ const accountsStore = useAccountsStore();
 const deleteLoanMutation = useDeleteLoan();
 const loanQuery = useLoanById({ id: computed(() => props.loan.id) });
 
-const isOpen = ref(false);
 const isEditDialogOpen = ref(false);
 const isArchiveDialogOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
@@ -113,101 +117,54 @@ const handleDelete = async () => {
 </script>
 
 <template>
-  <Card>
-    <Collapsible.Collapsible v-model:open="isOpen">
-      <Collapsible.CollapsibleTrigger as-child>
-        <button
-          type="button"
-          class="hover:bg-muted/40 flex w-full items-center justify-between rounded-t-xl px-6 py-4 text-left transition-colors"
+  <div class="flex items-center gap-2">
+    <Button variant="outline" size="sm" @click="isEditDialogOpen = true">
+      <PencilIcon class="size-4" />
+      {{ $t('loans.settings.editButton') }}
+    </Button>
+
+    <DropdownMenu>
+      <DropdownMenuTrigger as-child>
+        <Button variant="outline" size="sm" :aria-label="$t('loans.actions.moreAriaLabel')">
+          <MoreHorizontalIcon class="size-4" />
+          <span>{{ $t('loans.actions.more') }}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" class="w-64">
+        <DropdownMenuItem class="justify-between gap-3" @select.prevent>
+          <span class="flex items-center gap-2">
+            <EyeOffIcon class="size-4" />
+            {{ $t('loans.actions.excludeFromStats') }}
+          </span>
+          <Switch
+            v-model:model-value="excludeFromStats"
+            :disabled="isToggleSaving"
+            @update:model-value="handleExcludeToggle"
+            @click.stop
+          />
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem v-if="!isArchived" @select="isArchiveDialogOpen = true">
+          <ArchiveIcon class="size-4" />
+          {{ $t('loans.settings.archiveButton') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem v-else :disabled="isArchiveSaving" @select="handleUnarchive">
+          <ArchiveRestoreIcon class="size-4" />
+          {{ $t('loans.settings.unarchiveButton') }}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          class="text-destructive-text focus:bg-destructive-text/10 focus:text-destructive-text"
+          @select="isDeleteDialogOpen = true"
         >
-          <span class="text-base font-semibold">{{ $t('loans.settings.title') }}</span>
-          <ChevronDownIcon class="size-4 transition-transform" :class="{ 'rotate-180': isOpen }" />
-        </button>
-      </Collapsible.CollapsibleTrigger>
-
-      <Collapsible.CollapsibleContent>
-        <CardHeader class="sr-only">
-          <div>{{ $t('loans.settings.title') }}</div>
-        </CardHeader>
-        <CardContent class="space-y-6 pt-2">
-          <div class="flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <div class="text-sm font-medium">{{ $t('loans.settings.editTitle') }}</div>
-              <div class="text-muted-foreground text-xs">{{ $t('loans.settings.editDescription') }}</div>
-            </div>
-            <Button variant="outline" size="sm" class="shrink-0" @click="isEditDialogOpen = true">
-              <PencilIcon class="size-4" />
-              {{ $t('loans.settings.editButton') }}
-            </Button>
-          </div>
-
-          <div class="flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <div class="text-sm font-medium">{{ $t('loans.settings.excludeFromStatsTitle') }}</div>
-              <div class="text-muted-foreground text-xs">{{ $t('loans.settings.excludeFromStatsDescription') }}</div>
-            </div>
-            <Switch
-              v-model:model-value="excludeFromStats"
-              :disabled="isToggleSaving"
-              @update:model-value="handleExcludeToggle"
-            />
-          </div>
-
-          <div class="border-warning grid gap-3 rounded-xl border p-4">
-            <template v-if="!isArchived">
-              <div>
-                <div class="text-sm font-medium">{{ $t('loans.settings.archiveTitle') }}</div>
-                <div class="text-muted-foreground text-xs">{{ $t('loans.settings.archiveDescription') }}</div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                class="justify-self-start"
-                :disabled="isArchiveSaving"
-                @click="isArchiveDialogOpen = true"
-              >
-                <ArchiveIcon class="size-4" />
-                {{ $t('loans.settings.archiveButton') }}
-              </Button>
-            </template>
-            <template v-else>
-              <div>
-                <div class="text-sm font-medium">{{ $t('loans.settings.archivedTitle') }}</div>
-                <div class="text-muted-foreground text-xs">{{ $t('loans.settings.archivedDescription') }}</div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                class="justify-self-start"
-                :disabled="isArchiveSaving"
-                @click="handleUnarchive"
-              >
-                <ArchiveRestoreIcon class="size-4" />
-                {{ $t('loans.settings.unarchiveButton') }}
-              </Button>
-            </template>
-          </div>
-
-          <div class="border-destructive grid gap-3 rounded-xl border p-4">
-            <div>
-              <div class="text-destructive-text text-sm font-medium">{{ $t('loans.settings.deleteTitle') }}</div>
-              <div class="text-muted-foreground text-xs">{{ $t('loans.settings.deleteDescription') }}</div>
-            </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              class="justify-self-start"
-              :disabled="deleteLoanMutation.isPending.value"
-              @click="isDeleteDialogOpen = true"
-            >
-              <Trash2Icon class="size-4" />
-              {{ $t('loans.settings.deleteButton') }}
-            </Button>
-          </div>
-        </CardContent>
-      </Collapsible.CollapsibleContent>
-    </Collapsible.Collapsible>
-  </Card>
+          <Trash2Icon class="size-4" />
+          {{ $t('loans.settings.deleteButton') }}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
 
   <EditLoanDialog v-model:open="isEditDialogOpen" :loan="loan" />
 
