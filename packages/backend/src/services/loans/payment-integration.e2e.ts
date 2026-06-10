@@ -306,6 +306,36 @@ describe('Loan payment integration', () => {
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(-1_000);
     });
+
+    it('accepts POST when destinationAmount equals the loan currentOwed (boundary)', async () => {
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          initialBalance: 1_000,
+          originalPrincipal: 1_000,
+        }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      const [base, opposite] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 1_000,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 1_000,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      expect(base.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+      expect(opposite!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(0);
+    });
   });
 
   describe('DELETE /transactions/:id on a transfer_to_loan pair', () => {
