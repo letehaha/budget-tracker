@@ -192,6 +192,18 @@ export enum LOAN_TYPE {
   other = 'other',
 }
 
+/**
+ * Subset of `LOAN_TYPE` that the create/edit form picker exposes today.
+ *
+ * Currently excluded: HELOC + line-of-credit needs multi-disbursement support
+ */
+export const SUPPORTED_LOAN_TYPES = [
+  LOAN_TYPE.mortgage,
+  LOAN_TYPE.auto,
+  LOAN_TYPE.student,
+  LOAN_TYPE.personal,
+] as const;
+
 export enum BUDGET_STATUSES {
   active = 'active',
   closed = 'closed',
