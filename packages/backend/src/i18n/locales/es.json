@@ -9,7 +9,8 @@
     "accountNoExternalId": "La cuenta no tiene ID externo",
     "accountNoExternalIdMonobank": "La cuenta no tiene ID externo de Monobank",
     "accountNoExternalIdEnableBanking": "La cuenta no tiene ID externo de Enable Banking",
-    "accountNotFoundForTransaction": "Cuenta no encontrada para esta transacción"
+    "accountNotFoundForTransaction": "Cuenta no encontrada para esta transacción",
+    "deleteBlockedByLoanPayments": "Esta cuenta tiene pagos de préstamos. Elimínelos o reasígnalos antes de eliminar la cuenta."
   },
   "balanceAdjustment": {
     "defaultNote": "Ajuste de saldo",

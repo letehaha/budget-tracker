@@ -9,7 +9,8 @@
     "accountNoExternalId": "Рахунок не має зовнішнього ID",
     "accountNoExternalIdMonobank": "Рахунок не має зовнішнього ID від Monobank",
     "accountNoExternalIdEnableBanking": "Рахунок не має зовнішнього ID від Enable Banking",
-    "accountNotFoundForTransaction": "Рахунок для цієї транзакції не знайдено"
+    "accountNotFoundForTransaction": "Рахунок для цієї транзакції не знайдено",
+    "deleteBlockedByLoanPayments": "Цей рахунок має платежі по кредитам. Видаліть або переведіть їх перед видаленням рахунку."
   },
   "balanceAdjustment": {
     "defaultNote": "Коригування балансу",

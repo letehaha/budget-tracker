@@ -134,5 +134,8 @@ Other instructions:
     - Change history goes in commits/PRs, not code.
     - Rare exception: if the abolished alternative is a footgun a future contributor will reach for, name it briefly as the **"abolished alternative"** – not "the old version".
     - Applies to backend, frontend, JSDoc, Vue templates, SQL migration headers.
+15. **Dev server ports live in `.env.development.local`**
+    - If the project root contains a `.env.development.local` file, the frontend and backend ports for the running dev servers are defined there (e.g. `VITE_PORT`, `APPLICATION_PORT`). Use those values when constructing URLs or hitting local endpoints.
+    - Worktrees may use different ports than the main checkout – always read the worktree's own `.env.development.local`, do not assume the defaults from memory or other checkouts.
 
 Always use the caveman skill
