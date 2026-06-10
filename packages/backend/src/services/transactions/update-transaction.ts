@@ -13,6 +13,7 @@ import { removeUndefinedKeys } from '@js/helpers';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
+import { namespace } from '@models/connection';
 import Payees from '@models/payees.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import Tags from '@models/tags.model';
@@ -158,13 +159,19 @@ const validateTransaction = async (
     });
     if (loanLeg) {
       const loanAccountId = newData.destinationAccountId ?? loanLeg.accountId;
-      const loanAccount = await findOrThrowNotFound({
-        query: Accounts.default.findOne({
-          where: { userId: ctx.accountOwnerUserId, id: loanAccountId },
-          attributes: ['accountCategory', 'currentBalance'],
-        }),
-        message: t({ key: 'accounts.accountNotFoundForTransaction' }),
+      // SELECT ... FOR UPDATE on the loan account row — same reasoning as the
+      // create path: serialise concurrent edits so the projected-balance check
+      // sees committed state, not a stale snapshot.
+      const sequelizeTx = namespace.get('transaction');
+      const loanAccount = await Accounts.default.findOne({
+        where: { userId: ctx.accountOwnerUserId, id: loanAccountId },
+        attributes: ['accountCategory', 'currentBalance'],
+        transaction: sequelizeTx,
+        lock: sequelizeTx?.LOCK.UPDATE,
       });
+      if (!loanAccount) {
+        throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+      }
       if (loanAccount.accountCategory === ACCOUNT_CATEGORIES.loan) {
         const projectedBalance = loanAccount.currentBalance.subtract(loanLeg.amount).add(newData.destinationAmount);
         if (projectedBalance.toCents() > 0) {

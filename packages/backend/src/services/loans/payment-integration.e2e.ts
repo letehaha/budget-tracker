@@ -379,6 +379,43 @@ describe('Loan payment integration', () => {
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(0);
     });
+
+    it('blocks two concurrent POSTs from together overpaying the loan', async () => {
+      // Loan owes $1,000. Two concurrent $700 payments each pass the
+      // individual overpay check (1000 - 700 = 300 still owed) — but applied
+      // together they would push the loan to +$400. Row-level locking on the
+      // loan account must force them to serialize so exactly one succeeds.
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          initialBalance: 1_000,
+          originalPrincipal: 1_000,
+        }),
+        raw: true,
+      });
+      const [sourceA, sourceB] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createAccount({ raw: true }),
+      ]);
+
+      const buildPayload = (sourceAccountId: RecordId) => ({
+        ...helpers.buildTransactionPayload({ accountId: sourceAccountId, amount: 700 }),
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+        destinationAmount: 700,
+        destinationAccountId: loan.id as RecordId,
+      });
+
+      const [resA, resB] = await Promise.all([
+        helpers.createTransaction({ payload: buildPayload(sourceA.id as RecordId) }),
+        helpers.createTransaction({ payload: buildPayload(sourceB.id as RecordId) }),
+      ]);
+
+      const statuses = [resA.statusCode, resB.statusCode].toSorted();
+      expect(statuses).toEqual([200, 422]);
+
+      // Exactly one payment landed, so the loan should be at -$300 owed, never positive.
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-300);
+    });
   });
 
   describe('DELETE /transactions/:id on a transfer_to_loan pair', () => {
