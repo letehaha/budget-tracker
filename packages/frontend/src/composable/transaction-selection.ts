@@ -3,6 +3,13 @@ import { computed, ref, triggerRef } from 'vue';
 
 import { useShiftMultiSelect } from './shift-multi-select';
 
+/**
+ * Why a row is locked out of bulk selection. Consumers compute it per row
+ * (mirroring `isTransactionSelectable` + their `isExtraSelectable` predicate)
+ * and rows render it as an explainer tooltip in place of the checkbox.
+ */
+export type BulkUnselectableReason = 'split' | 'sharedAccount';
+
 interface UseTransactionSelectionOptions {
   getTransactions: () => TransactionModel[];
   /**

@@ -1,23 +1,29 @@
 <template>
-  <div class="flex items-center gap-3">
-    <div class="min-w-0 flex-1">
-      <DateSelector :model-value="currentPeriod" :presets="presets" @update:model-value="handlePeriodUpdate">
-        <template #trigger="{ triggerText }">
-          <Button
-            variant="outline"
-            :class="['w-full justify-start text-left font-normal', !hasDates && 'text-muted-foreground']"
-          >
-            <CalendarIcon class="mr-2 size-4" />
-            {{ hasDates ? triggerText : $t('transactions.filters.dateRange.selectDateOrRange') }}
-          </Button>
-        </template>
-      </DateSelector>
-    </div>
-
-    <Button v-if="hasDates" variant="soft-destructive" size="icon" @click="clearDates">
-      <XIcon class="size-4" />
-    </Button>
-  </div>
+  <DateSelector :model-value="currentPeriod" :presets="presets" @update:model-value="handlePeriodUpdate">
+    <template #trigger="{ triggerText }">
+      <Button
+        variant="outline"
+        :class="['w-full justify-start text-left font-normal', !hasDates && 'text-muted-foreground']"
+      >
+        <CalendarIcon class="mr-2 size-4 shrink-0" />
+        <span class="min-w-0 flex-1 truncate">
+          {{ hasDates ? triggerText : $t('transactions.filters.dateRange.placeholder') }}
+        </span>
+        <!-- Span, not Button: the trigger itself is a button and buttons can't nest. -->
+        <span
+          v-if="hasDates"
+          role="button"
+          tabindex="0"
+          :aria-label="$t('common.actions.clear')"
+          class="text-muted-foreground hover:text-foreground -mr-1 ml-1 shrink-0 rounded-sm p-0.5"
+          @click.stop="clearDates"
+          @keydown.enter.stop.prevent="clearDates"
+        >
+          <XIcon class="size-4" />
+        </span>
+      </Button>
+    </template>
+  </DateSelector>
 </template>
 
 <script lang="ts" setup>
@@ -87,6 +93,8 @@ function handlePeriodUpdate(period: Period) {
 }
 
 function clearDates() {
-  emit('update:range', { start: null, end: null });
+  // undefined, not null: DEFAULT_FILTERS uses undefined, and the reset button's
+  // disabled check compares with isEqual, which treats them as different.
+  emit('update:range', { start: undefined, end: undefined });
 }
 </script>

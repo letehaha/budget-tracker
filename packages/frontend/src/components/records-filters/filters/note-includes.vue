@@ -1,8 +1,12 @@
 <template>
   <InputField
     :model-value="noteIncludes"
-    :label="$t('transactions.filters.noteIncludes.label')"
-    :placeholder="$t('transactions.filters.noteIncludes.placeholder')"
+    :label="compact ? undefined : $t('transactions.filters.noteIncludes.label')"
+    :placeholder="
+      compact
+        ? $t('transactions.filters.noteIncludes.compactPlaceholder')
+        : $t('transactions.filters.noteIncludes.placeholder')
+    "
     @update:model-value="$emit('update:note-includes', $event)"
   />
 </template>
@@ -14,6 +18,11 @@ defineProps({
   noteIncludes: {
     type: String,
     default: null,
+  },
+  /** Label-less variant for the inline filters toolbar; the placeholder carries the meaning instead. */
+  compact: {
+    type: Boolean,
+    default: false,
   },
 });
 

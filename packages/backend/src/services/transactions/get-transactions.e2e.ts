@@ -1,4 +1,10 @@
-import { FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  FILTER_OPERATION,
+  SORT_DIRECTIONS,
+  TRANSACTION_SORT_FIELD,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -10,6 +16,36 @@ const dates = {
   expense: '2024-08-03T00:00:00Z',
   transfer: '2024-09-03T00:00:00Z',
   refunds: '2024-07-03T00:00:00Z',
+};
+
+// One plain expense + one out-of-wallet transfer + one common transfer pair,
+// used by the transferNatures filter cases.
+const setupMixedNatures = async () => {
+  const accountA = await helpers.createAccount({ raw: true });
+  const accountB = await helpers.createAccount({ raw: true });
+
+  const [plain] = await helpers.createTransaction({
+    payload: helpers.buildTransactionPayload({ accountId: accountA.id, amount: 100 }),
+    raw: true,
+  });
+  const [outOfWallet] = await helpers.createTransaction({
+    payload: {
+      ...helpers.buildTransactionPayload({ accountId: accountA.id, amount: 200 }),
+      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+    },
+    raw: true,
+  });
+  const [transferBase, transferOpposite] = await helpers.createTransaction({
+    payload: {
+      ...helpers.buildTransactionPayload({ accountId: accountA.id, amount: 300 }),
+      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      destinationAmount: 300,
+      destinationAccountId: accountB.id,
+    },
+    raw: true,
+  });
+
+  return { plain, outOfWallet, transferBase, transferOpposite };
 };
 
 describe('Retrieve transactions with filters', () => {
@@ -536,6 +572,129 @@ describe('Retrieve transactions with filters', () => {
 
       expect(res.statusCode).toBe(200);
       expect(helpers.extractResponse(res!).length).toBe(1);
+    });
+  });
+
+  describe('sorting via sortBy + order', () => {
+    it('sorts by refAmount in both directions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      for (const amount of [300, 100, 200]) {
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({ accountId: account.id, amount }),
+          raw: true,
+        });
+      }
+
+      const ascending = await helpers.getTransactions({
+        sortBy: TRANSACTION_SORT_FIELD.refAmount,
+        order: SORT_DIRECTIONS.asc,
+        raw: true,
+      });
+      expect(ascending.map((tx) => Number(tx.refAmount))).toEqual([100, 200, 300]);
+
+      const descending = await helpers.getTransactions({
+        sortBy: TRANSACTION_SORT_FIELD.refAmount,
+        order: SORT_DIRECTIONS.desc,
+        raw: true,
+      });
+      expect(descending.map((tx) => Number(tx.refAmount))).toEqual([300, 200, 100]);
+    });
+
+    it('sorts by account name', async () => {
+      const accountZ = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'zzz-account' }),
+        raw: true,
+      });
+      const accountA = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'aaa-account' }),
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: accountZ.id, amount: 100 }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: accountA.id, amount: 100 }),
+        raw: true,
+      });
+
+      const result = await helpers.getTransactions({
+        sortBy: TRANSACTION_SORT_FIELD.accountName,
+        order: SORT_DIRECTIONS.asc,
+        raw: true,
+      });
+
+      expect(result.map((tx) => tx.accountId)).toEqual([accountA.id, accountZ.id]);
+    });
+
+    it('rejects unknown sortBy values', async () => {
+      const response = await helpers.makeRequest({
+        method: 'get',
+        url: '/transactions',
+        payload: { sortBy: 'definitely-not-a-field' },
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('transferNatures filter', () => {
+    it('includes only the requested natures', async () => {
+      const { plain, outOfWallet, transferBase, transferOpposite } = await setupMixedNatures();
+
+      const result = await helpers.getTransactions({
+        transferNatures: [TRANSACTION_TRANSFER_NATURE.not_transfer, TRANSACTION_TRANSFER_NATURE.transfer_out_wallet],
+        raw: true,
+      });
+
+      const ids = result.map((tx) => tx.id);
+      expect(ids).toContain(plain.id);
+      expect(ids).toContain(outOfWallet.id);
+      expect(ids).not.toContain(transferBase.id);
+      expect(ids).not.toContain(transferOpposite!.id);
+    });
+
+    it('can isolate a single transfer kind without plain transactions', async () => {
+      const { plain, outOfWallet, transferBase, transferOpposite } = await setupMixedNatures();
+
+      const result = await helpers.getTransactions({
+        transferNatures: [TRANSACTION_TRANSFER_NATURE.common_transfer],
+        raw: true,
+      });
+
+      const ids = result.map((tx) => tx.id);
+      expect(ids).toContain(transferBase.id);
+      expect(ids).toContain(transferOpposite!.id);
+      expect(ids).not.toContain(plain.id);
+      expect(ids).not.toContain(outOfWallet.id);
+    });
+
+    it('supersedes transferFilter when both are provided', async () => {
+      const { plain, transferBase } = await setupMixedNatures();
+
+      // transferFilter=exclude alone would drop transfers; the explicit natures
+      // list wins and keeps them.
+      const result = await helpers.getTransactions({
+        transferFilter: FILTER_OPERATION.exclude,
+        transferNatures: [TRANSACTION_TRANSFER_NATURE.common_transfer],
+        raw: true,
+      });
+
+      const ids = result.map((tx) => tx.id);
+      expect(ids).toContain(transferBase.id);
+      expect(ids).not.toContain(plain.id);
+    });
+
+    it('rejects unknown nature values', async () => {
+      const response = await helpers.makeRequest({
+        method: 'get',
+        url: '/transactions',
+        payload: { transferNatures: 'not-a-real-nature' },
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 });

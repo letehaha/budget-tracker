@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
-import { CheckIcon } from '@lucide/vue';
+import { CheckIcon, MinusIcon } from '@lucide/vue';
 import type { CheckboxRootProps } from 'reka-ui';
 import { CheckboxIndicator, CheckboxRoot } from 'reka-ui';
 import { type HTMLAttributes, computed } from 'vue';
@@ -31,7 +31,8 @@ const model = computed({
   >
     <CheckboxIndicator class="flex h-full w-full items-center justify-center text-current">
       <slot>
-        <CheckIcon class="size-4" />
+        <MinusIcon v-if="model === 'indeterminate'" class="size-4" />
+        <CheckIcon v-else class="size-4" />
       </slot>
     </CheckboxIndicator>
   </CheckboxRoot>

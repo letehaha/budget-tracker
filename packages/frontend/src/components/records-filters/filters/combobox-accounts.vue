@@ -8,15 +8,15 @@
   >
     <Combobox.ComboboxAnchor>
       <Combobox.ComboboxTrigger
-        class="border-input bg-input-background ring-offset-background focus-visible:ring-ring flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        class="border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center justify-between rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
-        <div class="flex items-center gap-2">
+        <div class="flex min-w-0 flex-1 items-center gap-2">
           <span
-            class="inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-2 text-sm font-medium"
+            class="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border px-2 text-sm font-medium"
           >
             {{ isAllSelected ? storeAccounts!.length : selectedAccountIds.length }}
           </span>
-          <span class="font-medium">
+          <span class="min-w-0 flex-1 truncate text-left font-medium">
             {{
               isAllSelected
                 ? $t('fields.comboboxAccounts.allAccounts')
@@ -26,12 +26,12 @@
         </div>
 
         <template v-if="!isAllSelected && selectedAccountIds.length > 0">
-          <Button variant="ghost" size="icon" class="size-6" @click.stop="clearSelection">
+          <Button variant="ghost" size="icon" class="size-6 shrink-0" @click.stop="clearSelection">
             <XIcon class="text-muted-foreground size-4" />
           </Button>
         </template>
         <template v-else>
-          <div class="size-6 p-1">
+          <div class="size-6 shrink-0 p-1">
             <ChevronDown class="text-muted-foreground size-4" />
           </div>
         </template>
@@ -39,7 +39,7 @@
     </Combobox.ComboboxAnchor>
 
     <Combobox.ComboboxList
-      class="max-h-120 w-(--reka-combobox-trigger-width) lg:max-h-100"
+      class="max-h-120 w-(--reka-combobox-trigger-width) min-w-80 lg:max-h-100"
       :side="dropdownSide"
       :avoid-collisions="false"
     >

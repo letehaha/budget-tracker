@@ -1,7 +1,7 @@
 {
   "transactions": {
     "filters": {
-      "filtersLabel": "Filtros:",
+      "filtersLabel": "Filtros",
       "selectFilters": "Seleccionar filtros",
       "reset": "Restablecer",
       "apply": "Aplicar",
@@ -10,7 +10,7 @@
           "range": "Rango",
           "single": "Individual"
         },
-        "selectDateOrRange": "Seleccionar fecha o rango",
+        "placeholder": "Fecha o rango",
         "fromDate": "Desde",
         "toDate": "Hasta",
         "clear": "Limpiar",
@@ -25,13 +25,16 @@
         "label": "Tipo de transacción:",
         "both": "Ambos",
         "income": "Ingreso",
-        "expense": "Gasto"
+        "expense": "Gasto",
+        "allTypes": "Todos los tipos"
       },
       "amountRange": {
         "from": "Importe desde (≥)",
         "to": "Hasta (≤)",
         "placeholderFrom": ">= que",
-        "placeholderTo": "<= que"
+        "placeholderTo": "<= que",
+        "compactFrom": "Importe mínimo",
+        "compactTo": "Importe máximo"
       },
       "refundsFilter": {
         "label": "Reembolsos"
@@ -46,7 +49,8 @@
       },
       "noteIncludes": {
         "label": "La nota incluye (separado por comas):",
-        "placeholder": "Amazon,nike"
+        "placeholder": "Amazon,nike",
+        "compactPlaceholder": "Buscar en notas"
       },
       "tags": {
         "allTags": "Todas las etiquetas",
@@ -61,6 +65,22 @@
         "searchPlaceholder": "Buscar beneficiarios",
         "selectedOne": "1 beneficiario seleccionado",
         "selectedMany": "{n} beneficiarios seleccionados"
+      },
+      "removeFilter": "Eliminar filtro",
+      "menu": {
+        "type": "Tipo",
+        "tags": "Etiquetas",
+        "amount": "Rango de importe",
+        "note": "Notas"
+      },
+      "transferNature": {
+        "label": "Tipos de transferencias",
+        "disabledTooltip": "Las transferencias están excluidas por el filtro anterior, por lo que los tipos de transferencias no tienen efecto.",
+        "commonTransfer": "Entre cuentas",
+        "outOfWallet": "Desde cartera",
+        "toPortfolio": "Al portafolio",
+        "toVenture": "A proyecto de inversión",
+        "selectedCount": "{n} seleccionados"
       }
     },
     "list": {
@@ -98,7 +118,11 @@
       "tagModeLabel": "Acción de etiqueta",
       "tagModeAdd": "Añadir a etiquetas existentes",
       "tagModeReplace": "Reemplazar todas las etiquetas",
-      "tagModeRemove": "Eliminar estas etiquetas"
+      "tagModeRemove": "Eliminar estas etiquetas",
+      "unselectableReasons": {
+        "split": "No se puede seleccionar: las transacciones divididas no admiten edición masiva. Edítela individualmente.",
+        "sharedAccount": "No se puede seleccionar: esta transacción pertenece a una cuenta compartida contigo, y solo su propietario puede editarla."
+      }
     },
     "transactionGroups": {
       "bulkActions": {
@@ -171,6 +195,53 @@
     "transfer": {
       "hiddenAccount": "Cuenta oculta"
     },
-    "addedByTooltip": "Esta transacción fue añadida al presupuesto por {handle}"
+    "addedByTooltip": "Esta transacción fue añadida al presupuesto por {handle}",
+    "table": {
+      "columns": {
+        "date": "Fecha",
+        "account": "Cuenta",
+        "category": "Categoría",
+        "payee": "Beneficiario",
+        "amount": "Importe",
+        "refAmount": "Importe base",
+        "note": "Nota",
+        "tags": "Etiquetas",
+        "categorizationSource": "Categorizado por",
+        "group": "Grupo",
+        "refund": "Reembolso",
+        "split": "Dividir"
+      },
+      "outOfWallet": "Desde cartera",
+      "hint": "Haga clic en una fila para ver los detalles. Seleccione filas para edición masiva.",
+      "emptyTitle": "Ninguna transacción coincide con estos filtros",
+      "emptyDescription": "Intente ajustar o restablecer los filtros.",
+      "columnConfig": {
+        "title": "Configuración de tabla",
+        "columns": "Columnas",
+        "visibleCount": "{count} visible",
+        "resetDefaults": "Restablecer valores por defecto"
+      },
+      "categorizationSourceValues": {
+        "manual": "Manual",
+        "ai": "IA",
+        "mcc_rule": "Regla MCC",
+        "user_rule": "Regla de usuario",
+        "subscription_rule": "Regla de suscripción",
+        "payee_rule": "Regla de beneficiario"
+      },
+      "viewToggle": {
+        "list": "Vista de lista",
+        "table": "Vista de tabla"
+      }
+    },
+    "bulkDelete": {
+      "button": "Eliminar",
+      "externalTooltip": "La selección contiene transacciones sincronizadas con el banco, que no se pueden eliminar.",
+      "confirmButton": "Eliminar",
+      "confirmTitle": "¿Eliminar {count} transacciones?",
+      "confirmDescription": "Esta acción no se puede deshacer. Se eliminarán ambos lados de las transferencias.",
+      "successMessage": "{count} transacciones eliminadas",
+      "unexpectedError": "No se pudieron eliminar las transacciones. Por favor, intente de nuevo."
+    }
   }
 }

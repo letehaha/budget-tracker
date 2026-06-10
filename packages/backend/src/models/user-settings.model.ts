@@ -117,6 +117,29 @@ const ZodSidebarSectionsSchema = z.object({
   vehicles: z.boolean().default(true),
 });
 
+// Column ids are plain strings (not an enum) on purpose: the column set is a
+// frontend concern and may grow without a backend deploy. Unknown ids are
+// dropped client-side on read, so stale entries are harmless.
+const ZodTransactionsTableSettingsSchema = z.object({
+  /** Ordered list of column ids the user wants visible. */
+  visibleColumns: z.array(z.string()).default([]),
+  /** Full column order (visible + hidden) used by the column-config UI. */
+  columnOrder: z.array(z.string()).default([]),
+  /** Preferred transactions view on narrow screens: compact list or the full table. */
+  mobileView: z.enum(['list', 'table']).optional(),
+  /**
+   * Optional filters the user added to the transactions filter bar (besides the
+   * always-visible ones). Plain strings for the same reason as column ids.
+   */
+  extraFilters: z.array(z.string()).optional(),
+});
+
+// UI-state preferences (table layouts, view modes). Functional settings keep
+// their own top-level keys; this namespace is only for presentation state.
+const ZodUiSettingsSchema = z.object({
+  transactionsTable: ZodTransactionsTableSettingsSchema.optional(),
+});
+
 export const ZodSettingsSchema = z.object({
   locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN]).default(SUPPORTED_LOCALES.ENGLISH),
   ai: ZodAiSettingsSchema.optional(),
@@ -125,6 +148,7 @@ export const ZodSettingsSchema = z.object({
   dashboard: ZodDashboardSettingsSchema.optional(),
   includeCreditLimitInStats: z.boolean().optional(),
   sidebarSections: ZodSidebarSectionsSchema.optional(),
+  ui: ZodUiSettingsSchema.optional(),
   // When true, both the inline sync-time Payee extraction and the post-sync
   // note fuzzy backfill fall back to the transaction description/note if the
   // provider's dedicated merchant field is empty. Off by default — Monobank's

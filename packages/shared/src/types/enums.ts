@@ -137,6 +137,19 @@ export enum SORT_DIRECTIONS {
   desc = 'DESC',
 }
 
+/**
+ * Sortable fields for the transactions list. Name-based fields sort by the
+ * related record's name (resolved backend-side via subquery), not by id.
+ */
+export enum TRANSACTION_SORT_FIELD {
+  time = 'time',
+  refAmount = 'refAmount',
+  accountName = 'accountName',
+  categoryName = 'categoryName',
+  payeeName = 'payeeName',
+  categorizationSource = 'categorizationSource',
+}
+
 export enum TRANSACTION_TYPES {
   income = 'income',
   expense = 'expense',

@@ -14,6 +14,14 @@
     <!-- Selection checkbox -->
     <label v-if="showCheckbox" class="-my-1 -ml-2 flex items-center justify-center self-stretch px-3" @click.stop>
       <Checkbox v-if="isSelectable" v-model="checkedModel" />
+      <ResponsiveTooltip
+        v-else-if="unselectableReason"
+        :delay-duration="100"
+        :content="$t(`transactions.bulkEdit.unselectableReasons.${unselectableReason}`)"
+        content-class-name="max-w-56"
+      >
+        <InfoIcon class="text-muted-foreground size-3.5 cursor-help" />
+      </ResponsiveTooltip>
       <div v-else class="size-4" />
     </label>
 
@@ -136,12 +144,13 @@ import DeletedBadge from '@/components/common/deleted-badge.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { useOppositeTxRecord } from '@/composable/data-queries/opposite-tx-record';
+import type { BulkUnselectableReason } from '@/composable/transaction-selection';
 import { useTransactionPortfolioLink } from '@/composable/data-queries/portfolio-transfers';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useUserStore } from '@/stores';
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRight, BriefcaseIcon, UsersIcon } from '@lucide/vue';
+import { ArrowRight, BriefcaseIcon, InfoIcon, UsersIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -159,6 +168,8 @@ const props = withDefaults(
     showCheckbox?: boolean;
     isSelected?: boolean;
     isSelectable?: boolean;
+    /** Shown as an explainer tooltip in place of the checkbox when not selectable. */
+    unselectableReason?: BulkUnselectableReason | null;
     index?: number;
   }>(),
   {
@@ -166,6 +177,7 @@ const props = withDefaults(
     showCheckbox: false,
     isSelected: false,
     isSelectable: true,
+    unselectableReason: null,
     index: 0,
   },
 );

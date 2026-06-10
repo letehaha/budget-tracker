@@ -49,7 +49,7 @@ const handleEdit = () => {
 
 <template>
   <div
-    class="bg-card/95 sticky top-(--header-height) z-10 flex items-center justify-between gap-2 border-b px-3 py-3 backdrop-blur sm:gap-4"
+    class="bg-card/95 sticky top-0 z-10 flex items-center justify-between gap-2 border-b px-3 py-3 backdrop-blur sm:gap-4"
   >
     <div class="flex items-center gap-1 sm:gap-4">
       <!-- Select all / deselect all checkbox -->

@@ -2,7 +2,7 @@
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { useScrollAreaContainer } from '@/composable/scroll-area-container';
-import { useTransactionSelection } from '@/composable/transaction-selection';
+import { type BulkUnselectableReason, useTransactionSelection } from '@/composable/transaction-selection';
 import { useBulkUpdateCategory } from '@/composable/use-bulk-update-category';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useAccountsStore } from '@/stores';
@@ -99,6 +99,14 @@ const { accountsRecord } = storeToRefs(useAccountsStore());
 const isBulkSelectable = (tx: TransactionModel) => {
   const share = accountsRecord.value[tx.accountId]?.share;
   return !share || share.isOwner;
+};
+
+// Mirrors isTransactionSelectable (split rule) + isBulkSelectable, but says why —
+// rows surface it as a tooltip in place of the checkbox.
+const getUnselectableReason = (tx: TransactionModel): BulkUnselectableReason | null => {
+  if (tx.splits && tx.splits.length > 0) return 'split';
+  if (!isBulkSelectable(tx)) return 'sharedAccount';
+  return null;
 };
 
 const {
@@ -259,6 +267,7 @@ watchEffect(() => {
             :show-checkbox="enableBulkEdit"
             :is-selected="isTransactionSelected((item as TransactionModel).id)"
             :is-selectable="isTransactionSelectable(item as TransactionModel)"
+            :unselectable-reason="getUnselectableReason(item as TransactionModel)"
             :index="index"
             @record-click="handleRecordClick"
             @selection-change="toggleTransaction"
