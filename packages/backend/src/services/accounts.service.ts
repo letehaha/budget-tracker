@@ -5,6 +5,7 @@ import {
   ACCOUNT_TYPES,
   AccountExternalData,
   BANK_PROVIDER_TYPE,
+  TRANSACTION_TRANSFER_NATURE,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
@@ -14,6 +15,7 @@ import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
@@ -336,6 +338,19 @@ const deleteAccountByIdInTx = withTransaction(
     const account = await Accounts.default.findOne({ where: { id, userId } });
     if (!account) {
       throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+    }
+
+    // Cascading the destroy would wipe the source-leg expense rows for any
+    // loan payments made from this account, which the model hooks would treat
+    // as a reversal and silently restore the loan's owed balance back to its
+    // disbursement value. Block until the user clears those payments first.
+    const loanPaymentCount = await Transactions.count({
+      where: { accountId: id, userId, transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan },
+    });
+    if (loanPaymentCount > 0) {
+      throw new ValidationError({
+        message: t({ key: 'accounts.deleteBlockedByLoanPayments' }),
+      });
     }
 
     // Sharing cleanup runs in the same transaction so a destroy failure rolls back the
