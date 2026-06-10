@@ -142,6 +142,40 @@ const validateTransaction = async (
     }
   }
 
+  // Overpay guard for edits: project what the loan balance would be after the
+  // update lands. currentBalance already reflects the old loan-leg amount, so
+  // back it out before applying the new one. A positive result means the new
+  // amount overshoots remaining owed — same rule as the create path.
+  if (
+    effectiveNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan &&
+    isTwoLegTransfer(prevData.transferNature) &&
+    newData.destinationAmount !== undefined &&
+    prevData.transferId
+  ) {
+    const loanLeg = await Transactions.default.findOne({
+      where: { transferId: prevData.transferId, id: { [Op.ne]: prevData.id } },
+      attributes: ['id', 'accountId', 'amount'],
+    });
+    if (loanLeg) {
+      const loanAccountId = newData.destinationAccountId ?? loanLeg.accountId;
+      const loanAccount = await findOrThrowNotFound({
+        query: Accounts.default.findOne({
+          where: { userId: ctx.accountOwnerUserId, id: loanAccountId },
+          attributes: ['accountCategory', 'currentBalance'],
+        }),
+        message: t({ key: 'accounts.accountNotFoundForTransaction' }),
+      });
+      if (loanAccount.accountCategory === ACCOUNT_CATEGORIES.loan) {
+        const projectedBalance = loanAccount.currentBalance.subtract(loanLeg.amount).add(newData.destinationAmount);
+        if (projectedBalance.toCents() > 0) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.loanPaymentOverpay' }),
+          });
+        }
+      }
+    }
+  }
+
   // We doesn't allow users to change non-source trasnaction for several reasons:
   // 1. Most importantly – to make things simpler. For now there's no case that
   //    exactly non-source tx should be changed, so it's just easier to not

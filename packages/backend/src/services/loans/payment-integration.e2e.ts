@@ -336,6 +336,31 @@ describe('Loan payment integration', () => {
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(0);
     });
+
+    it('rejects PUT that bumps the loan-leg amount past the remaining owed', async () => {
+      // Loan owes $1,000. Pay $300 → -$700 owed. Try to edit that payment to
+      // $1,500 → would push balance to +$800. Reject.
+      const { loan, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 300 });
+
+      const paidLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(paidLoan.currentBalance).toBe(-700);
+
+      const response = await helpers.updateTransaction({
+        id: expenseLeg.id,
+        payload: {
+          destinationAmount: 1_500,
+        },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(errorBody.message).toMatch(/overpay|exceed|owed/i);
+
+      // Balance must stay at the pre-edit value.
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-700);
+    });
   });
 
   describe('DELETE /transactions/:id on a transfer_to_loan pair', () => {
