@@ -63,6 +63,10 @@ const isOpen = useVModel(props, 'open', emit, { passive: true, defaultValue: fal
       <slot />
     </Drawer.DrawerTrigger>
     <Drawer.DrawerContent custom-indicator>
+      <Drawer.DrawerTitle class="sr-only">{{ t('loans.detail.payment.title') }}</Drawer.DrawerTitle>
+      <Drawer.DrawerDescription class="sr-only">
+        {{ t('loans.detail.payment.description') }}
+      </Drawer.DrawerDescription>
       <LoanPaymentForm
         v-if="i18nReady"
         :loan-account="loanAccount"

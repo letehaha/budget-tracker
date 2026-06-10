@@ -14,24 +14,37 @@
           <template #title>{{ $t('loans.detail.payments.allTitle') }}</template>
 
           <ScrollArea class="max-h-[60dvh]">
-            <div class="space-y-1">
-              <TransactionRecord
-                v-for="payment in allPayments"
-                :key="payment.id"
-                :tx="payment"
-                @record-click="handleRecordClick"
-              />
+            <div v-if="allPaymentsQuery.isLoading.value" class="space-y-2 py-2">
+              <div v-for="i in 5" :key="i" class="flex items-center justify-between gap-3">
+                <div class="bg-muted h-4 w-32 animate-pulse rounded" />
+                <div class="bg-muted h-4 w-20 animate-pulse rounded" />
+              </div>
             </div>
 
-            <Button
-              v-if="allPaymentsQuery.hasNextPage.value"
-              variant="secondary"
-              class="mt-3 w-full"
-              :disabled="allPaymentsQuery.isFetchingNextPage.value"
-              @click="() => allPaymentsQuery.fetchNextPage()"
-            >
-              {{ $t('loans.detail.payments.loadMore') }}
-            </Button>
+            <div v-else-if="allPaymentsQuery.error.value" class="text-destructive-text py-3 text-sm">
+              {{ $t('loans.detail.payments.loadError') }}
+            </div>
+
+            <template v-else>
+              <div class="space-y-1">
+                <TransactionRecord
+                  v-for="payment in allPayments"
+                  :key="payment.id"
+                  :tx="payment"
+                  @record-click="handleRecordClick"
+                />
+              </div>
+
+              <Button
+                v-if="allPaymentsQuery.hasNextPage.value"
+                variant="secondary"
+                class="mt-3 w-full"
+                :disabled="allPaymentsQuery.isFetchingNextPage.value"
+                @click="() => allPaymentsQuery.fetchNextPage()"
+              >
+                {{ $t('loans.detail.payments.loadMore') }}
+              </Button>
+            </template>
           </ScrollArea>
         </ResponsiveDialog>
       </div>
