@@ -25,6 +25,7 @@ const ManageTransactionDialogContent = defineAsyncComponent(
 const TransactionGroupDialog = defineAsyncComponent(
   () => import('@/pages/transaction-groups/transaction-group-dialog.vue'),
 );
+const LoanPaymentDialog = defineAsyncComponent(() => import('@/pages/loans/components/loan-payment-dialog/index.vue'));
 
 const props = withDefaults(
   defineProps<{
@@ -64,8 +65,19 @@ const { displayTransactions } = useTransactionsDisplay({
   maxDisplay: () => props.maxDisplay,
 });
 
-// Transaction detail dialog (Dialog on desktop, Drawer on mobile)
-const { isDialogVisible, dialogProps, isCompactDialog, handleRecordClick, closeDialog } = useManageTransactionDialog();
+// Transaction detail dialog (Dialog on desktop, Drawer on mobile). A clicked
+// `transfer_to_loan` pair gets routed to a separate, simpler loan dialog with
+// its own visibility flag and props ref.
+const {
+  isDialogVisible,
+  dialogProps,
+  isCompactDialog,
+  handleRecordClick,
+  closeDialog,
+  isLoanDialogVisible,
+  loanDialogProps,
+  closeLoanDialog,
+} = useManageTransactionDialog();
 
 // Scroll / virtualizer setup
 const scrollContainer = useScrollAreaContainer(props.scrollAreaId);
@@ -237,5 +249,15 @@ watchEffect(() => {
 
     <!-- Group detail dialog -->
     <TransactionGroupDialog v-model:open="isGroupDialogOpen" :key="groupDialogKey" :group-id="groupDialogId" />
+
+    <!-- Dedicated loan-payment dialog: opens for transfer_to_loan rows -->
+    <LoanPaymentDialog
+      v-if="loanDialogProps.loanAccount"
+      :open="isLoanDialogVisible"
+      :loan-account="loanDialogProps.loanAccount"
+      :transaction="loanDialogProps.transaction"
+      :opposite-transaction="loanDialogProps.oppositeTransaction"
+      @update:open="(value) => !value && closeLoanDialog()"
+    />
   </div>
 </template>

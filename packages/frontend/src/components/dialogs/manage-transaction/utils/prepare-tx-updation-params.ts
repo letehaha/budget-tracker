@@ -1,5 +1,12 @@
 import { editTransaction } from '@/api';
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel, type RecordId } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  TransactionModel,
+  isTwoLegTransfer,
+  type RecordId,
+} from '@bt/shared/types';
 import type { SplitInput } from '@bt/shared/types/endpoints';
 
 import { getDestinationAccount, getDestinationAmount, getTxTypeFromFormType, isOutOfWalletAccount } from '../helpers';
@@ -168,7 +175,20 @@ export const prepareTxUpdationParams = ({
           toAmount: Number(form.targetAmount),
           isCurrenciesDifferent,
         });
-        editionParams.transferNature = TRANSACTION_TRANSFER_NATURE.common_transfer;
+        // The transfer kind is frozen on a live pair (the backend rejects
+        // relabeling — unlink first, then re-mark), so keep the existing nature
+        // when the tx is already a two-leg transfer. Only a standalone tx being
+        // promoted into a transfer derives its kind from the destination:
+        // loan-category account → `transfer_to_loan` (mirrors
+        // `prepare-tx-creation-params.ts`), anything else → `common_transfer`.
+        if (isTwoLegTransfer(transaction.transferNature)) {
+          editionParams.transferNature = transaction.transferNature;
+        } else {
+          editionParams.transferNature =
+            destinationAccount.accountCategory === ACCOUNT_CATEGORIES.loan
+              ? TRANSACTION_TRANSFER_NATURE.transfer_to_loan
+              : TRANSACTION_TRANSFER_NATURE.common_transfer;
+        }
       }
     } else {
       editionParams.destinationTransactionId = linkedTransaction.id;

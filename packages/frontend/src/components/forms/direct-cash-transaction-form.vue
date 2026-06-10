@@ -49,8 +49,11 @@ const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 // Vehicle accounts reject direct transactions on the backend — exclude them from
-// the picker so users can't target one.
-const { txTargetableAccountsActiveFirst, accountsRecord } = storeToRefs(accountsStore);
+// the picker so users can't target one. Loan accounts can't participate in
+// portfolio↔cash flows at all (money only moves IN to a loan, via
+// `transfer_to_loan`), so the source-only variant covers both restrictions.
+const { txTargetableSourceAccountsActiveFirst: txTargetableAccountsActiveFirst, accountsRecord } =
+  storeToRefs(accountsStore);
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { sortedCurrencies, currencyLabel } = usePortfolioCurrencySorting(computed(() => props.portfolioId));

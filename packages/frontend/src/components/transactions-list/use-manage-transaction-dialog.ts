@@ -1,9 +1,23 @@
 import { useAccountsStore } from '@/stores';
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import {
+  isTwoLegTransfer,
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_TYPES,
+  AccountModel,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  TransactionModel,
+} from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
 interface DialogProps {
+  transaction: TransactionModel | undefined;
+  oppositeTransaction: TransactionModel | undefined;
+}
+
+interface LoanDialogProps {
+  loanAccount: AccountModel | undefined;
   transaction: TransactionModel | undefined;
   oppositeTransaction: TransactionModel | undefined;
 }
@@ -20,6 +34,17 @@ export function useManageTransactionDialog() {
 
   const isDialogVisible = ref(false);
   const dialogProps = ref<DialogProps>({
+    transaction: undefined,
+    oppositeTransaction: undefined,
+  });
+
+  // Loan payments get their own simplified dialog (no note/tags/payment-type/
+  // link section). The same click handler routes here when the clicked tx is
+  // a `transfer_to_loan` two-leg pair — both legs are required to populate the
+  // edit form (source-side amount + loan-side amount for currency mismatch).
+  const isLoanDialogVisible = ref(false);
+  const loanDialogProps = ref<LoanDialogProps>({
+    loanAccount: undefined,
     transaction: undefined,
     oppositeTransaction: undefined,
   });
@@ -43,10 +68,35 @@ export function useManageTransactionDialog() {
     return tx.accountType !== ACCOUNT_TYPES.system;
   };
 
+  // Route a clicked transfer_to_loan pair to the dedicated loan dialog. We
+  // need both legs — the loan-side (income) leg names the loan account, the
+  // source-side (expense) leg carries the user's bank account and the amount
+  // they entered. If the opposite leg hasn't loaded yet, fall back to the
+  // regular dialog rather than opening a half-populated form.
+  const tryRouteToLoanDialog = (baseTx: TransactionModel, oppositeTx: TransactionModel | undefined): boolean => {
+    if (baseTx.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_to_loan) return false;
+    if (!oppositeTx) return false;
+
+    const sourceTx = baseTx.transactionType === TRANSACTION_TYPES.expense ? baseTx : oppositeTx;
+    const loanTx = baseTx.transactionType === TRANSACTION_TYPES.income ? baseTx : oppositeTx;
+    const loanAccount = accountsRecord.value[loanTx.accountId];
+    if (!loanAccount || loanAccount.accountCategory !== ACCOUNT_CATEGORIES.loan) return false;
+
+    loanDialogProps.value = {
+      loanAccount,
+      transaction: sourceTx,
+      oppositeTransaction: loanTx,
+    };
+    isLoanDialogVisible.value = true;
+    return true;
+  };
+
   const handleRecordClick = ([baseTx, oppositeTx]: [
     baseTx: TransactionModel,
     oppositeTx: TransactionModel | undefined,
   ]) => {
+    if (tryRouteToLoanDialog(baseTx, oppositeTx)) return;
+
     const isBaseExternal = isAccountExternal(baseTx);
     const isOppositeExternal = isAccountExternal(oppositeTx);
     const isExternalTransfer = isBaseExternal || isOppositeExternal;
@@ -59,7 +109,7 @@ export function useManageTransactionDialog() {
     if (isExternalTransfer) {
       modalOptions.transaction = isBaseExternal ? baseTx : oppositeTx;
       modalOptions.oppositeTransaction = isBaseExternal ? oppositeTx : baseTx;
-    } else if (baseTx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
+    } else if (isTwoLegTransfer(baseTx.transferNature)) {
       const isValid = baseTx.transactionType === TRANSACTION_TYPES.expense;
 
       // Swap only when the opposite half is available. Otherwise the dialog
@@ -80,11 +130,18 @@ export function useManageTransactionDialog() {
     isDialogVisible.value = false;
   };
 
+  const closeLoanDialog = () => {
+    isLoanDialogVisible.value = false;
+  };
+
   return {
     isDialogVisible,
     dialogProps,
     isCompactDialog,
     handleRecordClick,
     closeDialog,
+    isLoanDialogVisible,
+    loanDialogProps,
+    closeLoanDialog,
   };
 }

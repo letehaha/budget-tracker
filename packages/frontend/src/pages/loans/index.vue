@@ -1,7 +1,7 @@
 <template>
   <PageWrapper>
     <div class="@container/loans-page mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
-      <h1 class="text-2xl tracking-wider">{{ $t('loans.title') }}</h1>
+      <h1 class="text-3xl font-semibold tracking-tight">{{ $t('loans.title') }}</h1>
 
       <CreateLoanDialog>
         <UiButton>
@@ -12,25 +12,28 @@
     </div>
 
     <template v-if="loansQuery.isLoading.value">
-      <div class="space-y-3">
+      <div class="space-y-4">
         <Card>
-          <CardContent class="p-4">
-            <div class="bg-muted mb-2 h-6 w-32 animate-pulse rounded" />
-            <div class="bg-muted h-8 w-40 animate-pulse rounded" />
+          <CardContent class="p-6">
+            <div class="bg-muted mb-3 h-3 w-24 animate-pulse rounded" />
+            <div class="bg-muted mb-2 h-10 w-48 animate-pulse rounded" />
+            <div class="bg-muted h-3 w-32 animate-pulse rounded" />
           </CardContent>
         </Card>
-        <div class="@container/loans-list grid grid-cols-1 gap-4 @md/loans-list:grid-cols-2 @xl/loans-list:grid-cols-3">
-          <Card v-for="i in 3" :key="i">
-            <CardHeader class="pb-2">
-              <div class="bg-muted h-5 w-32 animate-pulse rounded" />
-              <div class="bg-muted mt-1.5 h-3 w-20 animate-pulse rounded" />
-            </CardHeader>
-            <CardContent class="space-y-3">
-              <div class="bg-muted h-7 w-28 animate-pulse rounded" />
-              <div class="bg-muted h-1.5 w-full animate-pulse rounded" />
-              <div class="bg-muted h-3 w-24 animate-pulse rounded" />
-            </CardContent>
-          </Card>
+        <div class="@container/loans-list">
+          <div class="grid grid-cols-1 gap-4 @[34rem]/loans-list:grid-cols-2 @[52rem]/loans-list:grid-cols-3">
+            <Card v-for="i in 3" :key="i">
+              <CardHeader class="pb-2">
+                <div class="bg-muted h-3 w-16 animate-pulse rounded" />
+                <div class="bg-muted mt-1.5 h-5 w-32 animate-pulse rounded" />
+              </CardHeader>
+              <CardContent class="space-y-4">
+                <div class="bg-muted h-8 w-28 animate-pulse rounded" />
+                <div class="bg-muted h-1.5 w-full animate-pulse rounded" />
+                <div class="bg-muted h-3 w-24 animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </template>
@@ -43,9 +46,11 @@
     </template>
 
     <template v-else-if="loans.length">
-      <AggregateCard class="mb-6" :total-liabilities="totalLiabilities" :count="loans.length" />
-      <div class="@container/loans-list grid grid-cols-1 gap-4 @md/loans-list:grid-cols-2 @xl/loans-list:grid-cols-3">
-        <LoanCard v-for="loan in loans" :key="loan.id" :loan="loan" />
+      <AggregateCard class="mb-6" :loans="loans" />
+      <div class="@container/loans-list">
+        <div class="grid grid-cols-1 gap-4 @[34rem]/loans-list:grid-cols-2 @[52rem]/loans-list:grid-cols-3">
+          <LoanCard v-for="loan in loans" :key="loan.id" :loan="loan" />
+        </div>
       </div>
     </template>
 
@@ -86,6 +91,4 @@ import LoanCard from './components/loan-card.vue';
 const loansQuery = useLoans();
 
 const loans = computed(() => loansQuery.data.value ?? []);
-
-const totalLiabilities = computed(() => loans.value.reduce((acc, loan) => acc + Math.abs(loan.refCurrentBalance), 0));
 </script>

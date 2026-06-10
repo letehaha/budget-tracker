@@ -6,6 +6,11 @@
     "addButton": {
       "label": "Add loan"
     },
+    "actions": {
+      "more": "More",
+      "moreAriaLabel": "More actions",
+      "excludeFromStats": "Exclude from stats"
+    },
     "dialog": {
       "createTitle": "Add a loan",
       "createDescription": "Track a mortgage, auto loan, student loan, or any other liability. You can edit anything later.",
@@ -46,12 +51,27 @@
       "description": "Track mortgages, auto loans, student loans, and other liabilities here.",
       "createFirstButton": "Add your first loan"
     },
+    "page": {
+      "overline": "Liabilities"
+    },
     "aggregate": {
+      "overline": "Liability Portfolio",
+      "activePill": "Active",
+      "totalOwedContext": "Total outstanding across {count}",
+      "avgApr": "Avg APR",
+      "monthlyObligation": "Monthly obligation",
+      "earliestPayoff": "Earliest payoff",
+      "interestProjected": "Interest projected",
       "title": "Liabilities overview",
       "totalOwed": "Total outstanding",
       "count": "loan | loans"
     },
     "card": {
+      "principalContext": "of {amount} principal",
+      "paidPercent": "{value}% paid",
+      "monthly": "Monthly",
+      "monthsLeft": "Months left",
+      "interestRemaining": "Interest left",
       "currentBalance": "Current balance",
       "paidLabel": "Paid",
       "apr": "APR",
@@ -111,7 +131,28 @@
         "title": "Recent payments",
         "empty": "No payments recorded against this loan yet.",
         "loadError": "Failed to load recent payments.",
-        "unlabeled": "Payment"
+        "seeAll": "See all",
+        "allTitle": "All payments",
+        "loadMore": "Load more"
+      },
+      "recordPayment": "Record payment",
+      "payment": {
+        "title": "Loan payment",
+        "description": "Record or edit a payment against this loan.",
+        "createTitle": "Record Payment",
+        "editTitle": "Edit Loan Payment",
+        "payingTo": "Paying to",
+        "fromAccountLabel": "From account",
+        "fromAccountPlaceholder": "Select account",
+        "amountLabel": "Amount",
+        "amountPlaceholder": "0.00",
+        "targetAmountLabel": "Amount applied to loan",
+        "targetAmountPlaceholder": "0.00",
+        "targetAmountTooltip": "Source account is in {source}, loan is in {loan}. We pre-fill the converted amount using the current exchange rate — adjust if your bank applied a different rate.",
+        "saveButton": "Save",
+        "recordButton": "Record",
+        "deleteConfirmTitle": "Delete this payment?",
+        "deleteConfirmDescription": "Both sides of the transfer will be removed and the loan balance will be restored. This cannot be undone."
       }
     }
   }

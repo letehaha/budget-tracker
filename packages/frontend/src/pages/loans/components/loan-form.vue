@@ -6,15 +6,20 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Select from '@/components/lib/ui/select';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useCurrencyName } from '@/composable';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrenciesStore } from '@/stores';
 import { LOAN_TYPE } from '@bt/shared/types';
 import { between, helpers, integer, maxLength, required } from '@vuelidate/validators';
 import { format, parseISO } from 'date-fns';
+import { InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import FormattedAmountField from '@/components/fields/formatted-amount-field.vue';
+import TermMonthsField from './term-months-field.vue';
 
 const MIN_INTEREST_RATE = 0;
 // Backend caps at 99.9999; mirror that on the client so the server validation
@@ -115,6 +120,49 @@ const loanTypeOptions = computed(() =>
 );
 
 const selectedLoanType = computed(() => loanTypeOptions.value.find((o) => o.value === form.loanType) ?? null);
+
+const currencyFormatter = computed(
+  () =>
+    new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: form.currencyCode || 'USD',
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    }),
+);
+
+// Standard amortization formula: M = P * r * (1+r)^n / ((1+r)^n - 1), where
+// P = principal, r = monthly rate (annual / 12 / 100), n = term in months.
+// Zero-interest case degenerates to a straight P/n split. Returns null when
+// any input is missing or non-positive so the caller can hide the hint.
+const estimatedMinPayment = computed<number | null>(() => {
+  const principal = form.originalPrincipal;
+  const annualRate = form.interestRate;
+  const months = form.termMonths;
+  if (!principal || principal <= 0) return null;
+  if (annualRate == null || annualRate < 0) return null;
+  if (!months || months <= 0) return null;
+
+  if (annualRate === 0) return principal / months;
+
+  const r = annualRate / 12 / 100;
+  const compound = Math.pow(1 + r, months);
+  const payment = (principal * r * compound) / (compound - 1);
+  if (!Number.isFinite(payment) || payment <= 0) return null;
+  return payment;
+});
+
+const estimatedMinPaymentLabel = computed(() => {
+  if (estimatedMinPayment.value === null) return null;
+  return currencyFormatter.value.format(estimatedMinPayment.value);
+});
+
+const applyEstimatedMinPayment = () => {
+  if (estimatedMinPayment.value === null) return;
+  // Round to 2 decimals so the number stays clean — the picker is for
+  // user-quoted amounts, not the raw long-division result.
+  form.minPayment = Math.round(estimatedMinPayment.value * 100) / 100;
+};
 
 const positiveMoney = helpers.withMessage(
   () => t('forms.loan.errors.mustBePositive'),
@@ -245,18 +293,16 @@ const submit = () => {
     </div>
 
     <div class="grid grid-cols-1 items-end gap-4 @sm/loan-form:grid-cols-2">
-      <InputField
+      <FormattedAmountField
         v-if="!isEdit"
         v-model="form.originalPrincipal"
-        type="number"
         :label="$t('forms.loan.originalPrincipalLabel')"
         :placeholder="$t('forms.loan.originalPrincipalPlaceholder')"
         :error-message="getFieldErrorMessage('form.originalPrincipal')"
         @blur="touchField('form.originalPrincipal')"
       />
-      <InputField
+      <FormattedAmountField
         v-model="form.balance"
-        type="number"
         :label="isEdit ? $t('forms.loan.currentBalanceLabel') : $t('forms.loan.initialBalanceLabel')"
         :placeholder="$t('forms.loan.initialBalancePlaceholder')"
         :error-message="getFieldErrorMessage('form.balance')"
@@ -273,9 +319,8 @@ const submit = () => {
         :error-message="getFieldErrorMessage('form.interestRate')"
         @blur="touchField('form.interestRate')"
       />
-      <InputField
+      <TermMonthsField
         v-model="form.termMonths"
-        type="number"
         :label="$t('forms.loan.termMonthsLabel')"
         :placeholder="$t('forms.loan.termMonthsPlaceholder')"
         :error-message="getFieldErrorMessage('form.termMonths')"
@@ -301,7 +346,23 @@ const submit = () => {
         :placeholder="$t('forms.loan.minPaymentPlaceholder')"
         :error-message="getFieldErrorMessage('form.minPayment')"
         @blur="touchField('form.minPayment')"
-      />
+      >
+        <template v-if="estimatedMinPaymentLabel" #label-right>
+          <DesktopOnlyTooltip :content="$t('forms.loan.minPaymentEstimateTooltip')" side="top">
+            <UiButton
+              type="button"
+              variant="link"
+              size="sm"
+              class="text-muted-foreground inline-flex h-auto max-w-full items-center gap-1 p-0 text-xs font-normal whitespace-nowrap no-underline"
+              :aria-label="$t('forms.loan.minPaymentApplyEstimateAriaLabel')"
+              @click="applyEstimatedMinPayment"
+            >
+              <InfoIcon class="size-3 shrink-0" />
+              <span class="truncate hover:underline">{{ estimatedMinPaymentLabel }}</span>
+            </UiButton>
+          </DesktopOnlyTooltip>
+        </template>
+      </InputField>
     </div>
 
     <InputField

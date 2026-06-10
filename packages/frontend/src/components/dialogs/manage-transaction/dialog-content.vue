@@ -17,6 +17,7 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore, useUserStore } from '@/stores';
 import {
+  isTwoLegTransfer,
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
@@ -98,7 +99,8 @@ const { t } = useI18n();
 watch(() => route.path, closeModal);
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
-const { accountsRecord, txTargetableAccountsActiveFirst } = storeToRefs(useAccountsStore());
+const { accountsRecord, txTargetableAccountsActiveFirst, txTargetableSourceAccountsActiveFirst } =
+  storeToRefs(useAccountsStore());
 
 // Vehicle balance-adjustments are reused `transfer_out_wallet` rows on a
 // vehicle-category account. Editing them in this generic dialog would let the
@@ -237,7 +239,7 @@ watch(
   (value) => {
     if (!value) return;
     if (transaction.value?.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return;
-    if (transaction.value?.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) return;
+    if (isTwoLegTransfer(transaction.value?.transferNature)) return;
 
     nextTick(() => {
       if (transaction.value && accountsRecord.value[transaction.value.accountId]) {
@@ -348,6 +350,23 @@ const isFormFieldsDisabled = computed(() => isLoading.value || !isInitialRefunds
 const currentTxType = computed(() => form.value.type);
 const isTransferTx = computed(() => currentTxType.value === FORM_TYPES.transfer);
 
+// "Loan" is the third pill on the transfer destination picker. It changes
+// nothing on the wire — submission goes through the same paired-transfer path
+// and the backend stamps `transfer_to_loan` because the destination is a
+// loan-category account. The pill only narrows the destination dropdown to
+// the user's loans and hides every field that doesn't apply to a loan payment.
+const isLoanDestination = computed(() => isTransferTx.value && transferDestinationType.value === 'loan');
+
+const loanDestinationAccounts = computed(() =>
+  txTargetableAccountsActiveFirst.value.filter((item) => item.accountCategory === ACCOUNT_CATEGORIES.loan),
+);
+
+// The transfer kind is frozen on a live pair (the backend rejects relabeling),
+// so switching the destination pill while editing an existing transfer could
+// only produce a guaranteed 422. Lock the pill — the supported flow is
+// unlink the transfer first, then mark the transaction again.
+const isDestinationTypeLocked = computed(() => isTwoLegTransfer(transaction.value?.transferNature));
+
 const {
   isTargetFieldVisible,
   isTargetAmountFieldDisabled,
@@ -401,11 +420,25 @@ const currencyCode = computed(() => {
   return undefined;
 });
 
-watch(transferDestinationType, (type) => {
+watch(transferDestinationType, (type, prev) => {
   if (type === 'portfolio') {
     form.value.toAccount = null;
-  } else {
-    form.value.toPortfolio = null;
+    return;
+  }
+  // Always clear toPortfolio when leaving 'portfolio'; auto-pick a loan when
+  // entering 'loan' so the dropdown doesn't render empty — unless a loan is
+  // already selected (edit-mode prepopulation flips this ref AFTER stamping the
+  // tx's actual destination loan; clobbering it would silently re-point the
+  // transfer to the first loan in the list). Clear toAccount on the way out of
+  // 'loan' so a loan-only selection doesn't leak into 'account' (where the
+  // destination set is wider and the user expects a fresh pick).
+  form.value.toPortfolio = null;
+  if (type === 'loan' && prev !== 'loan') {
+    if (form.value.toAccount?.accountCategory !== ACCOUNT_CATEGORIES.loan) {
+      form.value.toAccount = loanDestinationAccounts.value[0] ?? null;
+    }
+  } else if (prev === 'loan' && type !== 'loan') {
+    form.value.toAccount = null;
   }
 });
 
@@ -571,7 +604,7 @@ const hasPrepopulated = ref(false);
 const prepopulateIfReady = () => {
   if (hasPrepopulated.value) return;
   if (!transaction.value) {
-    form.value.account = txTargetableAccountsActiveFirst.value[0] ?? null;
+    form.value.account = txTargetableSourceAccountsActiveFirst.value[0] ?? null;
     hasPrepopulated.value = true;
     return;
   }
@@ -584,6 +617,13 @@ const prepopulateIfReady = () => {
     formattedCategories: effectiveFormattedCategories.value,
   });
   if (data) form.value = data;
+  // Editing a tx whose paired destination is a loan account: surface it under
+  // the Loan pill so the simplified picker matches the row's character. The
+  // LoanPaymentDialog handles the canonical case (two legs resolved upfront);
+  // this is the fallback when the dispatcher couldn't resolve the opposite.
+  if (data?.toAccount?.accountCategory === ACCOUNT_CATEGORIES.loan) {
+    transferDestinationType.value = 'loan';
+  }
   hasPrepopulated.value = true;
 };
 
@@ -611,7 +651,7 @@ onUnmounted(() => {
 <template>
   <!-- Define reusable template for "More Options" section (payment type, note, refund) -->
   <DefineMoreOptions>
-    <FormRow>
+    <FormRow v-if="!isLoanDestination">
       <SelectField
         v-model="form.paymentType"
         :label="$t('dialogs.manageTransaction.form.paymentTypeLabel')"
@@ -629,7 +669,7 @@ onUnmounted(() => {
         :label="$t('dialogs.manageTransaction.form.noteLabel')"
       />
     </FormRow>
-    <FormRow>
+    <FormRow v-if="!isLoanDestination">
       <TagSelectField
         v-model="form.tagIds"
         :label="$t('dialogs.manageTransaction.form.tagsLabel')"
@@ -727,14 +767,16 @@ onUnmounted(() => {
             :is-transfer-transaction="isTransferTx"
             :is-transaction-linking="!!linkedTransaction"
             :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
-            :accounts="isTransferTx ? transferSourceAccounts : txTargetableAccountsActiveFirst"
+            :accounts="isTransferTx ? transferSourceAccounts : txTargetableSourceAccountsActiveFirst"
             :from-account-disabled="fromAccountFieldDisabled"
             :to-account-disabled="toAccountFieldDisabled"
+            :destination-type-disabled="isDestinationTypeLocked"
             :filtered-accounts="transferDestinationAccounts"
             :portfolios="portfolios ?? []"
+            :loan-accounts="loanDestinationAccounts"
           />
 
-          <template v-if="currentTxType !== FORM_TYPES.transfer">
+          <template v-if="!isTransferTx">
             <form-row>
               <category-select-field
                 v-model="form.category"
@@ -822,7 +864,9 @@ onUnmounted(() => {
 
           <!-- Transfer linking on accounts shared *with* the caller isn't supported by
                the backend yet — hide the linker for recipients rather than letting
-               them trigger a confusing server error. -->
+               them trigger a confusing server error. Loan payments are a single-
+               purpose path (one source → one loan) and never link two pre-existing
+               legs, so the section is irrelevant there. -->
           <LinkTransactionSection
             v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
             v-model:linked-transaction="linkedTransaction"

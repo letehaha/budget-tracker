@@ -18,5 +18,6 @@ export * from './statement-parser';
 export * from './sse';
 export * from './ai';
 export * from './money';
+export * from './transfer-nature';
 export * from './testing';
 export { endpointsTypes };

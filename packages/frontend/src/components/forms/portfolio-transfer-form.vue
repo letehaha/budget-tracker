@@ -51,8 +51,12 @@ const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 // Vehicle accounts can't take part in account↔portfolio transfers — the backend
-// rejects any transfer touching them. Keep them out of both pickers.
-const { txTargetableAccountsActiveFirst, accountsRecord } = storeToRefs(useAccountsStore());
+// rejects any transfer touching them. Keep them out of both pickers. Loan
+// accounts can't be a transfer source either (money only flows IN, via
+// `transfer_to_loan`), and account↔portfolio transfers never target loans, so
+// the source-only variant is the right pick for both sides here.
+const { txTargetableSourceAccountsActiveFirst: txTargetableAccountsActiveFirst, accountsRecord } =
+  storeToRefs(useAccountsStore());
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { data: portfolios } = usePortfolios();
 const { formatAmountByCurrencyCode } = useFormatCurrency();

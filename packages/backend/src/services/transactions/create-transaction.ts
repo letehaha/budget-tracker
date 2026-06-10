@@ -1,4 +1,6 @@
 import {
+  isTwoLegTransfer,
+  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   RESOURCE_TYPES,
   SHARE_PERMISSIONS,
@@ -121,6 +123,12 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   const [creationParams, baseTransaction] = params;
 
   const { destinationAmount, destinationAccountId, userId, transactionType } = creationParams;
+  // `transfer_to_loan` and `common_transfer` share all two-leg machinery; the
+  // distinct nature gets stamped onto both legs so loan-payment reporting can
+  // filter on the label instead of joining via the destination account.
+  const oppositeTransferNature = isTwoLegTransfer(creationParams.transferNature)
+    ? creationParams.transferNature!
+    : TRANSACTION_TRANSFER_NATURE.common_transfer;
 
   if (!destinationAmount || !destinationAccountId) {
     throw new ValidationError({
@@ -144,13 +152,29 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   const destOwnerUserId = destAccess.ownerUserId;
   const isCrossUser = destOwnerUserId !== baseTransaction.userId;
 
+  // `transfer_to_loan` is only meaningful when the destination is actually a
+  // loan-category account; otherwise the FE detection logic mis-stamped the
+  // row. Fail loudly so the bug surfaces instead of producing a transfer with
+  // a meaningless reporting label.
+  if (creationParams.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
+    const destAccount = await findOrThrowNotFound({
+      query: Accounts.getAccountById({ id: destinationAccountId, userId: destOwnerUserId }),
+      message: t({ key: 'accounts.accountNotFoundForTransaction' }),
+    });
+    if (destAccount.accountCategory !== ACCOUNT_CATEGORIES.loan) {
+      throw new ValidationError({
+        message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
+      });
+    }
+  }
+
   const transferId = uuidv4();
 
   let baseTx = await Transactions.updateTransactionById({
     id: baseTransaction.id,
     userId: baseTransaction.userId,
     transferId,
-    transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+    transferNature: oppositeTransferNature,
   });
 
   const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
@@ -214,7 +238,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     accountType: ACCOUNT_TYPES.system,
     currencyCode: oppositeTxCurrency.code,
     refCurrencyCode: destOwnerBaseCurrency.currency.code,
-    transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+    transferNature: oppositeTransferNature,
     transferId,
   });
 
@@ -272,7 +296,7 @@ export const createTransaction = withTransaction(
       });
       assertSharedWritePhase1Guards({
         isOwner,
-        involvesTransfer: transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
+        involvesTransfer: isTwoLegTransfer(transferNature),
         involvesRefund: refundsTxId !== undefined && refundsTxId !== null,
       });
 
@@ -328,7 +352,7 @@ export const createTransaction = withTransaction(
         }
         resolvedPayeeId = callerPayeeId;
       }
-      if (!callerPayeeLocked && !resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (!callerPayeeLocked && !resolvedPayeeId && !isTwoLegTransfer(transferNature)) {
         let effectiveRawMerchant: string | null | undefined = rawMerchantName;
         if (!effectiveRawMerchant && payload.note) {
           const settings = await getUserSettings({ userId: accountOwnerUserId });
@@ -392,14 +416,14 @@ export const createTransaction = withTransaction(
 
       let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [baseTransaction!];
 
-      if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (refundsTxId && !isTwoLegTransfer(transferNature)) {
         await createSingleRefund({
           userId,
           originalTxId: refundsTxId,
           refundTxId: baseTransaction!.id,
           splitId: refundsSplitId,
         });
-      } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      } else if (isTwoLegTransfer(transferNature)) {
         logger.info('Transfer transaction creation');
         /**
          * If transaction is transfer between two accounts, add transferId to both
@@ -446,7 +470,7 @@ export const createTransaction = withTransaction(
       }
 
       // Handle splits for non-transfer transactions
-      if (splits && splits.length > 0 && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (splits && splits.length > 0 && !isTwoLegTransfer(transferNature)) {
         await manageSplits({
           transactionId: baseTransaction!.id,
           userId,
@@ -480,7 +504,7 @@ export const createTransaction = withTransaction(
       }
 
       // Try to match the transaction to a subscription (non-critical)
-      if (transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (!isTwoLegTransfer(transferNature)) {
         try {
           const { matchTransactionToSubscriptions } = await import('@services/subscriptions');
           await matchTransactionToSubscriptions({ transaction: baseTransaction!, userId });
@@ -506,7 +530,7 @@ export const createTransaction = withTransaction(
       // the Payee and the Transaction row, which doesn't fit a recipient
       // caller — short-circuiting here also keeps that helper's contract
       // narrow.
-      if (isOwner && resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (isOwner && resolvedPayeeId && !isTwoLegTransfer(transferNature)) {
         try {
           const updated = await applyPayeeCategorization({
             accountOwnerUserId,
