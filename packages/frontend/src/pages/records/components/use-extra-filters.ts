@@ -1,20 +1,6 @@
+import { EXTRA_FILTER_KEYS, type ExtraFilterKey } from '@/components/records-filters/filter-registry';
 import { patchTransactionsTableSettings, useUserSettings } from '@/composable/data-queries/user-settings';
 import { computed, ref } from 'vue';
-
-/** Filters the user can add to the filter bar via the "+" menu. The always-visible
- * trio (date range, accounts, categories) is not part of this list. */
-export const EXTRA_FILTER_KEYS = [
-  'type',
-  'tags',
-  'payees',
-  'amount',
-  'transferKinds',
-  'refunds',
-  'transfers',
-  'note',
-] as const;
-
-export type ExtraFilterKey = (typeof EXTRA_FILTER_KEYS)[number];
 
 /**
  * User-added filters of the transactions filter bar, persisted in UserSettings
@@ -29,7 +15,7 @@ export function useExtraFilters() {
 
   const extraFilters = computed<ExtraFilterKey[]>(() => {
     const stored = localList.value ?? userSettings.value?.ui?.transactionsTable?.extraFilters ?? [];
-    // Settings may hold ids of filters that no longer exist — drop them on read.
+    // Settings may hold ids of filters that no longer exist – drop them on read.
     return stored.filter((key): key is ExtraFilterKey => (EXTRA_FILTER_KEYS as readonly string[]).includes(key));
   });
 

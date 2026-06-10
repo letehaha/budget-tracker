@@ -28,7 +28,7 @@
             </DesktopOnlyTooltip>
           </div>
 
-          <!-- Scrolling is handled by ResponsiveDialog's internal scroll wrapper —
+          <!-- Scrolling is handled by ResponsiveDialog's internal scroll wrapper –
                an extra scroll container here would clip the panel instead -->
           <FiltersDialog v-model:open="isFiltersDialogOpen" :is-any-filters-applied="isAnyFiltersApplied">
             <!-- Filters auto-apply (debounced), so the panel's Apply button is
@@ -105,7 +105,7 @@ import { Card } from '@/components/lib/ui/card';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
-import { DEFAULT_FILTERS, SELECTABLE_TRANSFER_NATURES } from '@/components/records-filters/const';
+import { isAnyGroupDissolvingFilterActive } from '@/components/records-filters/filter-registry';
 import FiltersDialog from '@/components/records-filters/filters-dialog.vue';
 import FiltersPanel from '@/components/records-filters/index.vue';
 import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
@@ -143,12 +143,12 @@ const {
 
 const { visibleColumns, configurableColumns, toggleColumn, reorderColumns, resetToDefaults } = useTableColumns();
 
-// Mobile mode keys off the content container, not the viewport — the sidebar
+// Mobile mode keys off the content container, not the viewport – the sidebar
 // eats ~300px, so viewport breakpoints would flip at the wrong widths.
 const MOBILE_MODE_MAX_WIDTH_PX = 672;
 const pageContentRef = ref<HTMLElement | null>(null);
 const { width: pageContentWidth } = useElementSize(pageContentRef);
-// Width is 0 until the first measurement — stay in desktop mode for that frame
+// Width is 0 until the first measurement – stay in desktop mode for that frame
 // so the page doesn't flash the mobile layout on wide screens.
 const isMobileMode = computed(() => pageContentWidth.value > 0 && pageContentWidth.value < MOBILE_MODE_MAX_WIDTH_PX);
 
@@ -156,7 +156,7 @@ const { mobileView, setMobileView } = useMobileView();
 
 const isFiltersDialogOpen = ref(false);
 
-// Filters apply automatically — no Apply button. One debounce window covers
+// Filters apply automatically – no Apply button. One debounce window covers
 // both typed inputs (coalesces keystrokes) and discrete controls (near-instant).
 const FILTER_AUTO_APPLY_DEBOUNCE_MS = 400;
 const applyFiltersDebounced = useDebounceFn(applyFilters, FILTER_AUTO_APPLY_DEBOUNCE_MS);
@@ -165,25 +165,9 @@ watch(filters, (next, previous) => {
   applyFiltersDebounced();
 });
 
-// Content filters dissolve groups in the list view — only date filters keep
+// Content filters dissolve groups in the list view – only date filters keep
 // groups visible.
-const contentFiltersActive = computed(() => {
-  const f = appliedFilters.value;
-  return (
-    f.transactionType !== DEFAULT_FILTERS.transactionType ||
-    f.amountGte !== DEFAULT_FILTERS.amountGte ||
-    f.amountLte !== DEFAULT_FILTERS.amountLte ||
-    f.accounts.length > 0 ||
-    f.categoryIds.length > 0 ||
-    f.tagIds.length > 0 ||
-    f.payeeIds.length > 0 ||
-    f.noteIncludes !== DEFAULT_FILTERS.noteIncludes ||
-    f.transferFilter !== DEFAULT_FILTERS.transferFilter ||
-    f.refundFilter !== DEFAULT_FILTERS.refundFilter ||
-    f.transferNatures.length !== SELECTABLE_TRANSFER_NATURES.length ||
-    f.categorizationSource !== DEFAULT_FILTERS.categorizationSource
-  );
-});
+const contentFiltersActive = computed(() => isAnyGroupDissolvingFilterActive(appliedFilters.value));
 
 const tableRef = ref<InstanceType<typeof TransactionsTable> | null>(null);
 

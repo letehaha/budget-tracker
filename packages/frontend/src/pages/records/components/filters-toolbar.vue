@@ -168,7 +168,8 @@
 import ComboboxCategories from '@/components/common/combobox-categories.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Popover from '@/components/lib/ui/popover';
-import { DEFAULT_FILTERS, FiltersStruct, SELECTABLE_TRANSFER_NATURES } from '@/components/records-filters/const';
+import { FiltersStruct } from '@/components/records-filters/const';
+import { EXTRA_FILTERS, EXTRA_FILTER_KEYS, type ExtraFilterKey } from '@/components/records-filters/filter-registry';
 import AmountRangeFilter from '@/components/records-filters/filters/amount-range-filter.vue';
 import AccountsFilter from '@/components/records-filters/filters/combobox-accounts.vue';
 import DateRangeFilter from '@/components/records-filters/filters/date-range-filter.vue';
@@ -183,7 +184,7 @@ import { CheckIcon, ChevronDownIcon, XIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { EXTRA_FILTER_KEYS, useExtraFilters, type ExtraFilterKey } from './use-extra-filters';
+import { useExtraFilters } from './use-extra-filters';
 
 const props = defineProps<{
   filters: FiltersStruct;
@@ -199,36 +200,13 @@ const { t } = useI18n();
 
 const { extraFilters, addExtraFilter, removeExtraFilter } = useExtraFilters();
 
-const FILTER_MENU_LABEL_KEYS: Record<ExtraFilterKey, string> = {
-  type: 'transactions.filters.menu.type',
-  tags: 'transactions.filters.menu.tags',
-  payees: 'transactions.filters.payees.label',
-  amount: 'transactions.filters.menu.amount',
-  transferKinds: 'transactions.filters.transferNature.label',
-  refunds: 'transactions.filters.refundsFilter.label',
-  transfers: 'transactions.filters.transferFilter.label',
-  note: 'transactions.filters.menu.note',
-};
-
 const filterMenuOptions = computed(() =>
   EXTRA_FILTER_KEYS.map((key) => ({
     key,
-    label: t(FILTER_MENU_LABEL_KEYS[key]),
+    label: t(EXTRA_FILTERS[key].menuLabelKey),
     active: extraFilters.value.includes(key),
   })),
 );
-
-/** What removing a filter resets in the filters struct. */
-const FILTER_DEFAULT_SLICES: Record<ExtraFilterKey, () => Partial<FiltersStruct>> = {
-  type: () => ({ transactionType: DEFAULT_FILTERS.transactionType }),
-  tags: () => ({ tagIds: [] }),
-  payees: () => ({ payeeIds: [] }),
-  amount: () => ({ amountGte: DEFAULT_FILTERS.amountGte, amountLte: DEFAULT_FILTERS.amountLte }),
-  transferKinds: () => ({ transferNatures: [...SELECTABLE_TRANSFER_NATURES] }),
-  refunds: () => ({ refundFilter: DEFAULT_FILTERS.refundFilter }),
-  transfers: () => ({ transferFilter: DEFAULT_FILTERS.transferFilter }),
-  note: () => ({ noteIncludes: DEFAULT_FILTERS.noteIncludes }),
-};
 
 const emitFilters = (value: FiltersStruct) => emit('update:filters', value);
 
@@ -239,7 +217,7 @@ const addFilter = (key: ExtraFilterKey) => {
 
 const removeFilter = (key: ExtraFilterKey) => {
   removeExtraFilter(key);
-  emitFilters({ ...props.filters, ...FILTER_DEFAULT_SLICES[key]() });
+  emitFilters({ ...props.filters, ...EXTRA_FILTERS[key].defaultSlice() });
   trackAnalyticsEvent({ event: 'transactions_filter_removed', properties: { filter: key } });
 };
 
