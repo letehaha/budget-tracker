@@ -27,7 +27,12 @@
       <div class="text-app-expense-color text-3xl font-semibold tracking-tight">
         {{ formatAmountByCurrencyCode(Math.abs(loan.currentBalance), loan.currencyCode) }}
       </div>
-      <div class="text-muted-foreground mt-1 text-xs">{{ $t('loans.detail.summary.outstanding') }}</div>
+      <div class="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+        <span>{{ $t('loans.detail.summary.outstanding') }}</span>
+        <DesktopOnlyTooltip :content="$t('loans.detail.summary.principalOnlyTooltip')" side="top">
+          <InfoIcon class="size-3 cursor-help" />
+        </DesktopOnlyTooltip>
+      </div>
 
       <div class="mt-5 grid grid-cols-2 gap-4 text-sm @sm/loan-summary:grid-cols-3">
         <div>
@@ -62,10 +67,12 @@
 <script setup lang="ts">
 import type { LoanApi } from '@/api/loans';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { cn } from '@/lib/utils';
 import { LOAN_TYPE } from '@bt/shared/types';
+import { InfoIcon } from '@lucide/vue';
 import { parseISO } from 'date-fns';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
