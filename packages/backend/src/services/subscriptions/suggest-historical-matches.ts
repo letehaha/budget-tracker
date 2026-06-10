@@ -3,7 +3,7 @@ import SubscriptionTransactions from '@models/subscription-transactions.model';
 import * as Transactions from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { subMonths } from 'date-fns';
+import { startOfDay, subMonths } from 'date-fns';
 import { Op, WhereOptions } from 'sequelize';
 
 import { findSubscriptionOrThrow } from './helpers';
@@ -26,7 +26,11 @@ export const suggestHistoricalMatches = async ({
     return [];
   }
 
-  const cutoffDate = subMonths(new Date(), HISTORICAL_MONTHS);
+  // Snap to start-of-day so the lower bound doesn't slide through the day as
+  // wall-clock time advances — otherwise a transaction recorded at 10:00 UTC
+  // exactly N months ago drops out of suggestions sometime after 10:00 UTC
+  // today, producing flaky day-boundary behavior.
+  const cutoffDate = startOfDay(subMonths(new Date(), HISTORICAL_MONTHS));
 
   // Separate rules into SQL-applicable and post-processing rules
   // NOTE: This builds Sequelize WHERE clauses for the same rule types that
