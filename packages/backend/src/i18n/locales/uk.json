@@ -149,7 +149,9 @@
     "exchangeCurrenciesMustDiffer": "Валюти обміну мають бути різними"
   },
   "loans": {
-    "loanNotFound": "Кредит не знайдено."
+    "loanNotFound": "Кредит не знайдено.",
+    "deleteBlockedByPayments": "Цей кредит має записані платежі. Видаліть платежі перед видаленням кредиту.",
+    "deleteBlockedByEvents": "Цей кредит має події на часовій шкалі. Очистіть їх перед видаленням кредиту."
   },
   "errors": {
     "connectionNotFound": "З'єднання не знайдено",

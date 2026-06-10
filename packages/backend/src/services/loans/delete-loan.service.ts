@@ -1,6 +1,9 @@
+import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
+import { ValidationError } from '@js/errors';
 import LoanDetails from '@models/loan-details.model';
+import Transactions from '@models/transactions.model';
 import { deleteAccountById } from '@services/accounts.service';
 import { withTransaction } from '@services/common/with-transaction';
 
@@ -10,13 +13,25 @@ interface DeleteLoanParams {
 }
 
 const deleteLoanImpl = async ({ userId, accountId }: DeleteLoanParams) => {
-  // Verify ownership of the LoanDetails row before delegating to the Account
-  // delete path. deleteAccountById is owner-scoped on its own, but starting
-  // from the sidecar makes the 404 message specific to loans.
-  await findOrThrowNotFound({
-    query: LoanDetails.findOne({ where: { accountId, userId }, attributes: ['id'] }),
+  const loanDetails = await findOrThrowNotFound({
+    query: LoanDetails.findOne({ where: { accountId, userId }, attributes: ['id', 'events'] }),
     message: t({ key: 'loans.loanNotFound' }),
   });
+
+  const paymentCount = await Transactions.count({
+    where: {
+      accountId,
+      userId,
+      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+    },
+  });
+  if (paymentCount > 0) {
+    throw new ValidationError({ message: t({ key: 'loans.deleteBlockedByPayments' }) });
+  }
+
+  if (loanDetails.events.length > 0) {
+    throw new ValidationError({ message: t({ key: 'loans.deleteBlockedByEvents' }) });
+  }
 
   // Delegating to deleteAccountById covers share cleanup, cross-user transfer
   // conversion, and post-commit notification fan-out. The LoanDetails row

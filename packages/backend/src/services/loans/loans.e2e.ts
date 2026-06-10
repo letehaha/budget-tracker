@@ -1,4 +1,10 @@
-import { ACCOUNT_CATEGORIES, API_ERROR_CODES, LOAN_TYPE } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  API_ERROR_CODES,
+  LOAN_TYPE,
+  type RecordId,
+  TRANSACTION_TRANSFER_NATURE,
+} from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import LoanDetails from '@models/loan-details.model';
@@ -335,6 +341,67 @@ describe('Loans read API', () => {
     it('responds 404 when deleting a non-existent loan', async () => {
       const result = await helpers.deleteLoan({ id: generateRandomRecordId(), raw: false });
       expect(result.statusCode).toBe(404);
+    });
+
+    it('rejects deleting a loan that has recorded payments', async () => {
+      // Deleting a loan that received payments would silently throw away the
+      // expense legs and the principal-paid history. Force the user to clear
+      // payments first.
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 500 }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 500,
+          destinationAccountId: created.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const response = await helpers.deleteLoan({ id: created.id, raw: false });
+      expect(response.statusCode).toBe(422);
+      const errorBody = (response as helpers.CustomResponse<unknown>).body.response as {
+        code: string;
+        message: string;
+      };
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(errorBody.message).toMatch(/payment/i);
+
+      const stillThere = await helpers.getLoanById({ id: created.id, raw: false });
+      expect(stillThere.statusCode).toBe(200);
+    });
+
+    it('rejects deleting a loan that has timeline events', async () => {
+      // Notes / rate-change / term-change entries are user-curated history.
+      // Silently wiping them on delete loses information the user explicitly
+      // captured.
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      await helpers.appendLoanNote({
+        id: created.id,
+        text: 'Refinance window opens Q4',
+        raw: true,
+      });
+
+      const response = await helpers.deleteLoan({ id: created.id, raw: false });
+      expect(response.statusCode).toBe(422);
+      const errorBody = (response as helpers.CustomResponse<unknown>).body.response as {
+        code: string;
+        message: string;
+      };
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(errorBody.message).toMatch(/event|history|timeline/i);
+
+      const stillThere = await helpers.getLoanById({ id: created.id, raw: false });
+      expect(stillThere.statusCode).toBe(200);
     });
   });
 

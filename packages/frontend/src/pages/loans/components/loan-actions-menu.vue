@@ -13,10 +13,11 @@ import { Checkbox } from '@/components/lib/ui/checkbox';
 import { Switch } from '@/components/lib/ui/switch';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useDeleteLoan, useLoanById } from '@/composable/data-queries/loans';
+import { isApiErrorWithCode } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
-import { ACCOUNT_STATUSES } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, API_ERROR_CODES } from '@bt/shared/types';
 import { ArchiveIcon, ArchiveRestoreIcon, EyeOffIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -110,8 +111,14 @@ const handleDelete = async () => {
     addNotification({ text: t('loans.settings.deleteSuccess'), type: NotificationType.success });
     await router.push({ name: ROUTES_NAMES.loans });
   } catch (error) {
-    addNotification({ text: t('loans.settings.deleteError'), type: NotificationType.error });
-    captureException({ error, context: { source: 'loanSettings.delete' } });
+    // Surface backend-side block reasons verbatim — they already explain why
+    // the delete was rejected and are localised by the API.
+    if (isApiErrorWithCode(error, API_ERROR_CODES.validationError) && error.data?.message) {
+      addNotification({ text: error.data.message, type: NotificationType.error });
+    } else {
+      addNotification({ text: t('loans.settings.deleteError'), type: NotificationType.error });
+      captureException({ error, context: { source: 'loanSettings.delete' } });
+    }
   }
 };
 </script>
