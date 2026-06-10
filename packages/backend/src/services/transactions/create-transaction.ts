@@ -166,6 +166,15 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
         message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
       });
     }
+    // Liability balance lives in negative cents; the income leg adds toward
+    // zero. A positive projected balance means the payment overshoots the
+    // remaining owed — institutional loans can't go into credit, so block.
+    const projectedLoanBalance = destAccount.currentBalance.add(destinationAmount);
+    if (projectedLoanBalance.toCents() > 0) {
+      throw new ValidationError({
+        message: t({ key: 'transactions.loanPaymentOverpay' }),
+      });
+    }
   }
 
   const transferId = uuidv4();
