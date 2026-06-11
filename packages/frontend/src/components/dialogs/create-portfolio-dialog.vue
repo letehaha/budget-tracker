@@ -7,7 +7,6 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import FeedbackDialog from '@/components/sidebar/feedback-dialog.vue';
 import { useCreatePortfolio } from '@/composable/data-queries/portfolios';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { CheckIcon } from '@lucide/vue';
@@ -20,7 +19,6 @@ const { addNotification } = useNotificationCenter();
 const emit = defineEmits<{ created: [] }>();
 
 const isOpen = ref(false);
-const isFeedbackOpen = ref(false);
 
 const form = reactive({
   name: '',
@@ -100,18 +98,17 @@ const createPortfolio = async () => {
             </a>
           </template>
           <template #feedbackLink>
-            <button
-              type="button"
+            <a
+              href="https://moneymatter.featurebase.app/dashboard/posts"
+              target="_blank"
+              rel="noopener noreferrer"
               class="font-medium underline underline-offset-2 hover:no-underline"
-              @click="isFeedbackOpen = true"
             >
               {{ $t('dialogs.createPortfolio.assetSupportFeedbackLink') }}
-            </button>
+            </a>
           </template>
         </i18n-t>
       </Callout>
-
-      <FeedbackDialog v-model:open="isFeedbackOpen" default-type="feature_request" />
 
       <InputField
         v-model="form.name"

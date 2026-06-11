@@ -8,7 +8,6 @@ import { Button } from '@/components/lib/ui/button';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
-import FeedbackDialog from '@/components/sidebar/feedback-dialog.vue';
 import { useCreateHolding } from '@/composable/data-queries/holdings';
 import { isApiErrorWithCode } from '@/js/errors';
 import { cn } from '@/lib/utils';
@@ -27,8 +26,6 @@ const emit = defineEmits<{
 }>();
 
 const isOpen = defineModel<boolean>('open', { default: false });
-const isFeedbackOpen = ref(false);
-const tooltipKey = ref(0);
 const searchTerm = ref('');
 
 // Pill-tab filter: 'all' fans out to all supported providers; specific classes
@@ -41,13 +38,6 @@ const assetClassItems = computed(() => [
   { value: ASSET_CLASS.stocks, label: t('dialogs.addSymbols.filters.stocks') },
   { value: ASSET_CLASS.crypto, label: t('dialogs.addSymbols.filters.crypto') },
 ]);
-
-const openFeedback = () => {
-  // Force-remount the tooltip so it dismisses immediately instead of lingering
-  // over the feedback dialog until the cursor moves.
-  tooltipKey.value += 1;
-  isFeedbackOpen.value = true;
-};
 
 const debounced = ref('');
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -130,7 +120,7 @@ async function addSymbol(sec: SecuritySearchResult) {
       <span class="inline-flex items-center gap-2">
         {{ $t('dialogs.addSymbols.title') }}
 
-        <ResponsiveTooltip :key="tooltipKey" content-class-name="max-w-72" :delay-duration="100">
+        <ResponsiveTooltip content-class-name="max-w-72" :delay-duration="100">
           <AlertTriangleIcon class="text-warning size-4 cursor-help" />
           <template #content>
             <i18n-t keypath="dialogs.createPortfolio.assetSupportNotice" tag="p">
@@ -145,19 +135,18 @@ async function addSymbol(sec: SecuritySearchResult) {
                 </a>
               </template>
               <template #feedbackLink>
-                <Button
-                  variant="link"
-                  class="h-auto p-0 font-medium underline underline-offset-2 hover:no-underline"
-                  @click="openFeedback"
+                <a
+                  href="https://moneymatter.featurebase.app/dashboard/posts"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="font-medium underline underline-offset-2 hover:no-underline"
                 >
                   {{ $t('dialogs.createPortfolio.assetSupportFeedbackLink') }}
-                </Button>
+                </a>
               </template>
             </i18n-t>
           </template>
         </ResponsiveTooltip>
-
-        <FeedbackDialog v-model:open="isFeedbackOpen" default-type="feature_request" />
       </span>
     </template>
 

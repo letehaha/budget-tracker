@@ -2,6 +2,7 @@
   <div ref="headerRef">
     <DemoBanner />
     <div
+      ref="headerBarRef"
       class="shadow-header border-border @container/header-bar flex items-center justify-between border-b px-4 py-2 sm:px-6"
     >
       <div class="flex items-center gap-4">
@@ -44,7 +45,7 @@
       </div>
 
       <div class="ml-auto flex items-center gap-2">
-        <DesktopOnlyTooltip :content="$t('header.feedback')">
+        <DesktopOnlyTooltip :content="$t('header.feedback')" :disabled="!isHeaderBarCompact">
           <Button
             variant="ghost-primary"
             size="sm"
@@ -53,11 +54,11 @@
             @mouseenter="onFeedbackEnter"
             @click="openFeedback"
           >
-            <FeedbackIcon class="size-5" />
+            <FeedbackIcon class="size-5 @[890px]/header-bar:hidden" />
             <span class="hidden @[890px]/header-bar:inline">{{ $t('header.feedback') }}</span>
+            <ExternalLinkIcon class="hidden size-3.5 opacity-70 @[890px]/header-bar:inline" />
           </Button>
         </DesktopOnlyTooltip>
-        <FeedbackDialog v-model:open="isFeedbackOpen" />
 
         <template v-if="accountsNeedingRelink.length > 0">
           <AccountsRelinkWarning />
@@ -149,7 +150,6 @@ import * as Popover from '@/components/lib/ui/popover';
 import * as Sheet from '@/components/lib/ui/sheet';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import NotificationsPopover from '@/components/notifications-popover/index.vue';
-import FeedbackDialog from '@/components/sidebar/feedback-dialog.vue';
 import Sidebar from '@/components/sidebar/index.vue';
 import SyncConfirmationDialog from '@/components/sync-confirmation-dialog.vue';
 import SyncStatusTooltip from '@/components/sync-status-tooltip.vue';
@@ -165,6 +165,7 @@ import { useAccountsStore } from '@/stores';
 import {
   AlertTriangleIcon,
   CloudCheckIcon,
+  ExternalLinkIcon,
   ImportIcon,
   MenuIcon,
   PlusIcon,
@@ -172,6 +173,7 @@ import {
   SettingsIcon,
   SparklesIcon,
 } from '@lucide/vue';
+import { useResizeObserver } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
@@ -189,13 +191,23 @@ const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 const isCompactView = useWindowBreakpoints(1024);
 const showConfirmDialog = ref(false);
 const isPopoverOpen = ref(false);
-const isFeedbackOpen = ref(false);
 
 const { isPulsing: isFeedbackPulsing, onEnter: onFeedbackEnter, onClick: onFeedbackClick } = useFeedbackAttention();
 
+// Mirror the `@[890px]/header-bar` container query that toggles the feedback
+// button's label — tooltip is only useful in the icon-only state.
+const headerBarRef = ref<HTMLElement | null>(null);
+const isHeaderBarCompact = ref(true);
+useResizeObserver(headerBarRef, ([entry]) => {
+  if (!entry) return;
+  isHeaderBarCompact.value = entry.contentRect.width < 890;
+});
+
+const FEATUREBASE_URL = 'https://moneymatter.featurebase.app/dashboard/posts';
+
 const openFeedback = () => {
   onFeedbackClick();
-  isFeedbackOpen.value = true;
+  window.open(FEATUREBASE_URL, '_blank', 'noopener,noreferrer');
 };
 
 // Use new sync status system
