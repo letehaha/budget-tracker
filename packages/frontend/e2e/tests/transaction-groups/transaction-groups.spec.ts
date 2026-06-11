@@ -32,6 +32,12 @@ test.describe('Transaction Groups', () => {
     ignoreHTTPSErrors: true,
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
+    // Narrow viewport keeps /transactions in the compact list view (mobile mode
+    // triggers below 672px content width). The list renders group rows inline as
+    // `.border-dashed` items, which these specs rely on; the wider table view
+    // flattens groups by design. Stays above Tailwind's `sm` breakpoint (640px)
+    // so the bulk-edit toolbar still shows labelled buttons ("Group", "Edit").
+    viewport: { width: 700, height: 900 },
   });
 
   test.beforeEach(async ({ page }) => {
@@ -433,6 +439,11 @@ test.describe('Transaction Groups', () => {
   // ─── 13. Navigation: sidebar has "Groups" link ──────────────────────
 
   test('sidebar navigation has Groups link', async ({ page }) => {
+    // The desktop sidebar collapses into a hamburger menu at the suite's narrow
+    // default viewport, so widen the viewport here to expose the persistent
+    // sidebar that hosts the Groups link.
+    await page.setViewportSize({ width: 1280, height: 900 });
+
     await page.goto('/transactions');
     await page.waitForURL(/\/transactions/, { timeout: 15_000 });
 
