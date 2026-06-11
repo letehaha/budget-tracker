@@ -346,6 +346,7 @@ export async function createTransaction({
   transactionType = 'expense',
   categoryId,
   transferNature = 'not_transfer',
+  note,
 }: {
   request: APIRequestContext;
   accountId: string;
@@ -353,6 +354,7 @@ export async function createTransaction({
   transactionType?: 'expense' | 'income';
   categoryId?: string;
   transferNature?: 'not_transfer' | 'transfer_between_user_accounts' | 'transfer_out_wallet';
+  note?: string;
 }) {
   const resolvedCategoryId = categoryId ?? (await resolveDefaultCategoryId({ request }));
   return apiPost({
@@ -366,6 +368,7 @@ export async function createTransaction({
       transferNature,
       paymentType: 'creditCard',
       time: new Date().toISOString(),
+      ...(note !== undefined && { note }),
     },
   });
 }
