@@ -3,7 +3,7 @@ import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/i
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { ValidationError } from '@js/errors';
+import { NotFoundError, UnexpectedError, ValidationError } from '@js/errors';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
@@ -12,9 +12,12 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { recalculateHolding } from '@services/investments/holdings/recalculation.service';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
+import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { Big } from 'big.js';
 
 import { calculateCashDelta } from './cash-balance-utils';
+import { resolveSettlement } from './settlement-utils';
 
 interface CreateTxParams {
   userId: number;
@@ -26,6 +29,22 @@ interface CreateTxParams {
   price: string;
   fees: string;
   name?: string;
+  /**
+   * Settlement leg — the cash side of the trade when it differs from the
+   * security's own currency (single-cash-currency brokers, e.g. a PLN account
+   * trading USD securities), or when the user only knows the total cash moved
+   * and wants the fee derived. See `resolveSettlement` for the math.
+   */
+  settlementCurrencyCode?: string;
+  settlementAmount?: string;
+  settlementFees?: string;
+  /**
+   * Security→settlement rate the user read off the broker statement. The fee
+   * is derived as the residual. When neither this nor settlementFees is given
+   * for a cross-currency settlement, the market rate for the trade date is
+   * used instead. Mutually exclusive with settlementFees.
+   */
+  settlementRate?: string;
   /**
    * Optional pre-loaded holding (with `security` and `portfolio` includes) +
    * a flag indicating the caller has already verified portfolio ownership.
@@ -87,32 +106,91 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
     }
   }
 
-  const amountStr = new Big(quantity).times(new Big(price)).plus(new Big(fees)).toFixed(10);
+  const requestedSettlementCurrencyCode = params.settlementCurrencyCode ?? holding.currencyCode;
+  const isCrossCurrency = requestedSettlementCurrencyCode !== holding.currencyCode;
+
+  // ensureUserCurrencyConnected idempotently links the settlement currency
+  // (e.g. PLN for the user's first PLN-settled trade) so the market-rate
+  // and ref-amount lookups below don't fail with `currencyNotConnected`.
+  if (isCrossCurrency) {
+    await ensureUserCurrencyConnected({ userId, currencyCode: requestedSettlementCurrencyCode });
+  }
+
+  // "Auto" mode: caller didn't supply fee or rate, so we look up the market
+  // rate for the trade date and let resolveSettlement derive the fee as the
+  // residual between the cash moved and the market-priced notional.
+  let marketRate: string | undefined;
+  if (isCrossCurrency && params.settlementFees === undefined && params.settlementRate === undefined) {
+    await ensureUserCurrencyConnected({ userId, currencyCode: holding.currencyCode });
+    try {
+      const { rate } = await getExchangeRate({
+        userId,
+        date: new Date(date),
+        baseCode: holding.currencyCode,
+        quoteCode: requestedSettlementCurrencyCode,
+      });
+      marketRate = String(rate);
+    } catch (error) {
+      // Only the rate-genuinely-missing path is a user input issue. Bugs and
+      // outages must surface as 500s instead of being painted as missing rates.
+      if (error instanceof NotFoundError || error instanceof UnexpectedError) {
+        throw new ValidationError({
+          message: `No market exchange rate available for ${holding.currencyCode}→${requestedSettlementCurrencyCode} on ${date}. Enter the fee or the exchange rate manually.`,
+        });
+      }
+      throw error;
+    }
+  }
+
+  const settlement = resolveSettlement({
+    category,
+    quantity,
+    price,
+    fees,
+    holdingCurrencyCode: holding.currencyCode,
+    settlementCurrencyCode: params.settlementCurrencyCode,
+    settlementAmount: params.settlementAmount,
+    settlementFees: params.settlementFees,
+    settlementRate: params.settlementRate ?? marketRate,
+  });
+
+  // Convert the settlement-currency cash into the security currency at the
+  // broker's effective rate before feeding it to calculateRefAmount, so the
+  // base-currency total reflects what actually moved (not the market rate).
+  const rate = new Big(settlement.settlementRate);
+  const amountInSettlement = new Big(settlement.amount).times(rate).toFixed(10);
+  const priceInSettlement = new Big(price || '0').times(rate).toFixed(10);
 
   const [refAmount, refPrice, refFees] = await Promise.all([
     calculateRefAmount({
-      amount: Money.fromDecimal(amountStr),
+      amount: Money.fromDecimal(amountInSettlement),
       userId,
       date,
-      baseCode: holding.currencyCode,
+      baseCode: settlement.settlementCurrencyCode,
     }),
     calculateRefAmount({
-      amount: Money.fromDecimal(price),
+      amount: Money.fromDecimal(priceInSettlement),
       userId,
       date,
-      baseCode: holding.currencyCode,
+      baseCode: settlement.settlementCurrencyCode,
     }),
     calculateRefAmount({
-      amount: Money.fromDecimal(fees),
+      amount: Money.fromDecimal(settlement.settlementFees),
       userId,
       date,
-      baseCode: holding.currencyCode,
+      baseCode: settlement.settlementCurrencyCode,
     }),
   ]);
 
   const newTx = await InvestmentTransaction.create({
     ...params,
-    amount: amountStr,
+    fees: settlement.fees,
+    amount: settlement.amount,
+    currencyCode: holding.currencyCode,
+    settlementCurrencyCode: settlement.settlementCurrencyCode,
+    settlementAmount: settlement.settlementAmount,
+    settlementFees: settlement.settlementFees,
+    settlementRate: settlement.settlementRate,
     refAmount,
     refPrice,
     refFees,
@@ -120,23 +198,18 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
       category === INVESTMENT_TRANSACTION_CATEGORY.buy ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
   });
 
-  // After creating the transaction, trigger a full recalculation of the holding
   await recalculateHolding({ portfolioId, securityId });
 
-  // Update portfolio cash balance
   const cashDelta = calculateCashDelta({
     category,
-    quantity,
-    price,
-    fees,
-    amount: amountStr,
+    settlementAmount: settlement.settlementAmount,
   });
 
   if (cashDelta !== null) {
     await updatePortfolioBalance({
       userId,
       portfolioId,
-      currencyCode: holding.currencyCode,
+      currencyCode: settlement.settlementCurrencyCode,
       availableCashDelta: cashDelta,
       totalCashDelta: cashDelta,
     });

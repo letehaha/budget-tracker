@@ -1,5 +1,5 @@
 import { api } from '@/api/_api';
-import { CurrencyModel, UserCurrencyModel, UserExchangeRatesModel } from '@bt/shared/types';
+import { CurrencyModel, ExchangeRatesModel, UserCurrencyModel, UserExchangeRatesModel } from '@bt/shared/types';
 
 export const getAllCurrencies = async (): Promise<CurrencyModel[]> => api.get('/models/currencies');
 
@@ -14,6 +14,14 @@ export const deleteCustomRate = (
 
 export const loadUserCurrenciesExchangeRates = async (): Promise<UserExchangeRatesModel[]> =>
   api.get('/user/currencies/rates');
+
+/**
+ * System (market) exchange rates for a calendar date, in the canonical
+ * USD-pivot direction (`baseCode: 'USD', quoteCode: X` = 1 USD in X). Returns
+ * `null` when no rates are stored for that date.
+ */
+export const loadExchangeRatesForDate = async (date: string): Promise<ExchangeRatesModel[] | null> =>
+  api.get(`/currencies/rates/${date}`);
 
 export const editUserCurrenciesExchangeRates = async (
   pairs: {

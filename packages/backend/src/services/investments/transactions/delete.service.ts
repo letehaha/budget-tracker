@@ -15,7 +15,6 @@ interface DeleteTransactionParams {
 }
 
 const deleteInvestmentTransactionImpl = async ({ userId, transactionId }: DeleteTransactionParams) => {
-  // Find the transaction and verify ownership through portfolio
   const transaction = await InvestmentTransaction.findOne({
     where: { id: transactionId },
     include: [{ model: Portfolios, as: 'portfolio', where: { userId }, required: true }],
@@ -25,33 +24,24 @@ const deleteInvestmentTransactionImpl = async ({ userId, transactionId }: Delete
     return { success: true };
   }
 
-  // Store fields needed for recalculation and cash reversal before deletion
-  const { portfolioId, securityId, category, currencyCode } = transaction;
-  const quantity = transaction.quantity.toDecimalString(18);
-  const price = transaction.price.toDecimalString(INVESTMENT_DECIMAL_SCALE);
-  const fees = transaction.fees.toDecimalString(INVESTMENT_DECIMAL_SCALE);
-  const amount = transaction.amount.toDecimalString(INVESTMENT_DECIMAL_SCALE);
+  const { portfolioId, securityId, category, settlementCurrencyCode } = transaction;
+  const settlementAmount = transaction.settlementAmount.toDecimalString(INVESTMENT_DECIMAL_SCALE);
 
-  // Delete the transaction
   await transaction.destroy();
-
-  // After deleting the transaction, trigger a full recalculation of the holding
   await recalculateHolding({ portfolioId, securityId });
 
-  // Reverse the cash balance impact
-  const cashDelta = calculateCashDelta({ category, quantity, price, fees, amount });
+  const cashDelta = calculateCashDelta({ category, settlementAmount });
 
   if (cashDelta !== null) {
-    // Reverse: negate the original delta
     const reversedDelta = new Big(cashDelta).times(-1).toFixed(10);
-    // The transaction's currency may have been disconnected from the user after
-    // the transaction was created; re-link idempotently so the downstream
-    // ref-amount lookup doesn't fail with `currencyNotConnected`.
-    await ensureUserCurrencyConnected({ userId, currencyCode });
+    // The settlement currency may have been disconnected from the user since
+    // creation; idempotently re-link it so updatePortfolioBalance's ref-amount
+    // lookup doesn't fail with `currencyNotConnected`.
+    await ensureUserCurrencyConnected({ userId, currencyCode: settlementCurrencyCode });
     await updatePortfolioBalance({
       userId,
       portfolioId,
-      currencyCode,
+      currencyCode: settlementCurrencyCode,
       availableCashDelta: reversedDelta,
       totalCashDelta: reversedDelta,
     });

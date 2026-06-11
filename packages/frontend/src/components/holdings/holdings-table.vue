@@ -460,7 +460,7 @@ const theadBgStyles = 'bg-muted';
       </table>
     </div>
 
-    <ResponsiveDialog v-model:open="isTransactionModalOpen" dialog-content-class="sm:max-w-106.25">
+    <ResponsiveDialog v-model:open="isTransactionModalOpen" dialog-content-class="sm:max-w-2xl">
       <template #title>{{ $t('portfolioDetail.holdingsTable.addTransactionDialog.title') }}</template>
       <template #description>
         {{ $t('portfolioDetail.holdingsTable.addTransactionDialog.description') }}
@@ -473,6 +473,7 @@ const theadBgStyles = 'bg-muted';
             label: hh.security?.name
               ? `${hh.security.name} (${hh.security.symbol})`
               : (hh.security?.symbol ?? 'Unknown'),
+            currencyCode: hh.currencyCode,
           }))
         "
         :security-id="selectedHolding?.securityId ? String(selectedHolding.securityId) : undefined"

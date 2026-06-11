@@ -82,6 +82,33 @@ export interface InvestmentTransactionModel {
    */
   currencyCode: string;
 
+  /**
+   * The currency in which cash actually left/entered the brokerage account.
+   * Equals `currencyCode` when the trade settled in the security's currency;
+   * differs for brokers that hold cash in a single currency (e.g. PLN account
+   * trading USD securities).
+   */
+  settlementCurrencyCode: string;
+
+  /**
+   * Absolute cash moved in `settlementCurrencyCode`:
+   * buy — total paid including fee; sell/dividend — received net of fee;
+   * fee/tax — amount charged.
+   */
+  settlementAmount: string;
+
+  /**
+   * Broker fee in `settlementCurrencyCode`. `fees` is this value converted
+   * to the security currency at `settlementRate`.
+   */
+  settlementFees: string;
+
+  /**
+   * Settlement currency units per 1 security currency unit — the broker's
+   * effective conversion rate for this trade. 1 when both legs share a currency.
+   */
+  settlementRate: string;
+
   security?: SecurityModel;
   portfolio?: PortfolioModel;
 }

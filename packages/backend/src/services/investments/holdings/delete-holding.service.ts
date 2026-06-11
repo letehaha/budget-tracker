@@ -33,29 +33,25 @@ const reverseCashImpactForDeletedHolding = async ({
   portfolioId: string;
   transactions: InvestmentTransaction[];
 }) => {
-  // Group net reversal delta per currency so we issue a single balance
-  // update per currency instead of one per transaction (O(currencies)
-  // writes instead of O(transactions)).
+  // Aggregate by currency so we issue one balance write per currency, not one
+  // per transaction.
   const reversedDeltasByCurrency = new Map<string, Big>();
   for (const tx of transactions) {
     const cashDelta = calculateCashDelta({
       category: tx.category,
-      quantity: tx.quantity.toDecimalString(18),
-      price: tx.price.toDecimalString(INVESTMENT_DECIMAL_SCALE),
-      fees: tx.fees.toDecimalString(INVESTMENT_DECIMAL_SCALE),
-      amount: tx.amount.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+      settlementAmount: tx.settlementAmount.toDecimalString(INVESTMENT_DECIMAL_SCALE),
     });
     if (cashDelta === null) continue;
     const reversed = new Big(cashDelta).times(-1);
-    const existing = reversedDeltasByCurrency.get(tx.currencyCode) ?? new Big(0);
-    reversedDeltasByCurrency.set(tx.currencyCode, existing.plus(reversed));
+    const existing = reversedDeltasByCurrency.get(tx.settlementCurrencyCode) ?? new Big(0);
+    reversedDeltasByCurrency.set(tx.settlementCurrencyCode, existing.plus(reversed));
   }
 
   for (const [currencyCode, delta] of reversedDeltasByCurrency) {
     if (delta.eq(0)) continue;
-    // The transaction's currency may have been disconnected from the user
-    // after it was created; re-link idempotently so the ref-amount lookup
-    // inside updatePortfolioBalance doesn't fail with currencyNotConnected.
+    // The settlement currency may have been disconnected from the user since
+    // the transaction was created; idempotently re-link it so the ref-amount
+    // lookup inside updatePortfolioBalance doesn't fail.
     await ensureUserCurrencyConnected({ userId, currencyCode });
     const deltaStr = delta.toFixed(10);
     await updatePortfolioBalance({
@@ -75,8 +71,8 @@ const deleteHoldingImpl = async ({ userId, portfolioId, securityId, force = fals
   });
 
   if (force) {
-    // Run before the holding lookup so orphan transactions are cleaned up
-    // even if the holding row is already gone.
+    // Skip the holding lookup so orphan transactions still get cleaned up
+    // when the holding row is already gone.
     const transactions = await InvestmentTransaction.findAll({
       where: { portfolioId, securityId },
     });

@@ -15,6 +15,23 @@ export function buildInvestmentTransactionPayload({
   price = '100',
   fees = '0',
   name = '',
+  settlementCurrencyCode,
+  settlementAmount,
+  settlementFees,
+  settlementRate,
+}: {
+  portfolioId: string;
+  securityId: string;
+  category?: INVESTMENT_TRANSACTION_CATEGORY;
+  date?: string;
+  quantity?: string;
+  price?: string;
+  fees?: string;
+  name?: string;
+  settlementCurrencyCode?: string;
+  settlementAmount?: string;
+  settlementFees?: string;
+  settlementRate?: string;
 }): Omit<Parameters<typeof _createInvestmentTransaction>[0], 'userId'> {
   return {
     portfolioId,
@@ -25,6 +42,10 @@ export function buildInvestmentTransactionPayload({
     price,
     fees,
     name,
+    ...(settlementCurrencyCode !== undefined ? { settlementCurrencyCode } : {}),
+    ...(settlementAmount !== undefined ? { settlementAmount } : {}),
+    ...(settlementFees !== undefined ? { settlementFees } : {}),
+    ...(settlementRate !== undefined ? { settlementRate } : {}),
   };
 }
 
