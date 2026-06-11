@@ -160,6 +160,94 @@ export const ZodSettingsSchema = z.object({
 // Infer the TypeScript type from the Zod schema
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
+/**
+ * Schema for the partial settings update (PATCH). Mirrors `ZodSettingsSchema`
+ * but with every field optional and **no defaults** – a `.default([])` would be
+ * injected for absent keys on parse and the deep-merge would then clobber
+ * stored arrays with empty ones (zod's `.partial()` does not stop default
+ * injection, so the full schema cannot be reused here). Same approach as
+ * `ZodOnboardingStateUpdateSchema`. `onboarding` is intentionally absent – it
+ * has its own endpoint.
+ *
+ * Arrays stay non-partial: the merge replaces them wholesale, so a patched
+ * array is always the full desired list.
+ */
+export const ZodSettingsPatchSchema = z.object({
+  locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN]).optional(),
+  ai: z
+    .object({
+      apiKeys: z.array(ZodAiApiKeySchema).optional(),
+      defaultProvider: z.enum(AI_PROVIDER).optional(),
+      featureConfigs: z.array(ZodAiFeatureConfigSchema).optional(),
+      customInstructions: z.string().max(AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH).optional(),
+    })
+    .optional(),
+  notifications: z
+    .object({
+      enabled: z.boolean().optional(),
+      types: z
+        .object({
+          [NOTIFICATION_TYPES.budgetAlert]: z.boolean().optional(),
+          [NOTIFICATION_TYPES.system]: z.boolean().optional(),
+          [NOTIFICATION_TYPES.changelog]: z.boolean().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  dashboard: z
+    .object({
+      widgets: z.array(ZodDashboardWidgetSchema).optional(),
+    })
+    .optional(),
+  includeCreditLimitInStats: z.boolean().optional(),
+  sidebarSections: z
+    .object({
+      portfolios: z.boolean().optional(),
+      ventures: z.boolean().optional(),
+      vehicles: z.boolean().optional(),
+    })
+    .optional(),
+  ui: z
+    .object({
+      transactionsTable: z
+        .object({
+          visibleColumns: z.array(z.string()).optional(),
+          columnOrder: z.array(z.string()).optional(),
+          mobileView: z.enum(['list', 'table']).optional(),
+          extraFilters: z.array(z.string()).optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  payeeExtractionUsesDescription: z.boolean().optional(),
+});
+
+export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;
+
+/** Arrays stay non-partial – the PATCH merge replaces them wholesale. The
+ * `NonNullable` keeps recursion working for optional properties. */
+type DeepPartial<T> = {
+  [K in keyof T]?: NonNullable<T[K]> extends (infer U)[]
+    ? U[]
+    : NonNullable<T[K]> extends object
+      ? DeepPartial<NonNullable<T[K]>>
+      : T[K];
+};
+
+type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type Expect<T extends true> = T;
+
+/**
+ * Compile-time drift guard: `ZodSettingsPatchSchema` must infer exactly the
+ * deep-partial of the full settings schema (minus `onboarding`). When a field
+ * is added to `ZodSettingsSchema` but not mirrored in the patch schema, this
+ * line becomes a type error – without it the PATCH endpoint would silently
+ * strip the new key from incoming patches.
+ */
+export type SettingsPatchSchemaIsInSync = Expect<
+  Equals<SettingsPatchSchema, DeepPartial<Omit<SettingsSchema, 'onboarding'>>>
+>;
+
 export const DEFAULT_SETTINGS: SettingsSchema = {
   locale: SUPPORTED_LOCALES.ENGLISH,
   includeCreditLimitInStats: false,

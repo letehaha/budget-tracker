@@ -284,8 +284,9 @@ describe('Delete transaction splits', () => {
         includeSplits: true,
       });
 
-      expect(updatedTransactions![0]!.splits).toHaveLength(1);
-      expect(updatedTransactions![0]!.splits![0]!.id).toBe(split1.id);
+      const updatedExpenseTx = updatedTransactions!.find((t) => t.id === expenseTx.id);
+      expect(updatedExpenseTx!.splits).toHaveLength(1);
+      expect(updatedExpenseTx!.splits![0]!.id).toBe(split1.id);
     });
   });
 });

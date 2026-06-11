@@ -173,7 +173,8 @@ describe('Create transaction controller', () => {
       txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
-    expect(baseTx).toStrictEqual(transactions![0]);
+    expect(transactions).toContainEqual(baseTx);
+    expect(transactions).toContainEqual(oppositeTx);
   });
   it('should successfully create a transfer transaction between account with base and non-base currency', async () => {
     const accountA = await helpers.createAccount({ raw: true });
@@ -231,8 +232,8 @@ describe('Create transaction controller', () => {
       txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
-    [baseTx, oppositeTx].forEach((tx, i) => {
-      expect(tx).toStrictEqual(transactions![i]);
+    [baseTx, oppositeTx].forEach((tx) => {
+      expect(transactions).toContainEqual(tx);
     });
   });
   it('should successfully create a transfer transaction between accounts with both non-base currencies', async () => {
@@ -301,8 +302,8 @@ describe('Create transaction controller', () => {
       txPayload.transactionType === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
     );
 
-    [baseTx, oppositeTx].forEach((tx, i) => {
-      expect(tx).toStrictEqual(transactions![i]);
+    [baseTx, oppositeTx].forEach((tx) => {
+      expect(transactions).toContainEqual(tx);
     });
   });
   describe('create transfer via linking', () => {

@@ -2,6 +2,7 @@
   <!-- Borders live on cells, not the row: the table uses border-separate, where <tr> borders don't render -->
   <tr
     class="hover:bg-muted/50 h-10 cursor-pointer divide-x transition-colors"
+    aria-haspopup="true"
     :data-index="index"
     @click="emitRecordClick"
   >
