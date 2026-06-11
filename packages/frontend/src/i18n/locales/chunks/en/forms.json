@@ -27,6 +27,31 @@
       "notifications": {
         "success": "Transaction created successfully.",
         "error": "Failed to create transaction."
+      },
+      "settlement": {
+        "toggleLabel": "Specify actual cash amount",
+        "toggleHint": "Use when the trade settled in a different currency, or you only know the total and want the fee derived automatically",
+        "currencyLabel": "Payment currency",
+        "currencyPlaceholder": "Select currency",
+        "totalPaidLabel": "Total paid",
+        "totalReceivedLabel": "Total received",
+        "totalPlaceholder": "e.g. 1700",
+        "feeLabel": "Fee (in payment currency)",
+        "feePlaceholder": "0",
+        "sameCurrencyFeeHint": "The fee is recorded as the difference between the total and quantity × price.",
+        "crossCurrencyFeeHint": "The broker's explicit fee. Any exchange-rate spread is captured in the trade's conversion rate.",
+        "modeFee": "I know the fee",
+        "modeAuto": "Auto",
+        "modeRate": "I know the rate",
+        "rateLabel": "Exchange rate",
+        "ratePlaceholder": "e.g. 3.66",
+        "rateHint": "Settlement currency units per 1 unit of the security currency. The fee is recorded as the difference between the total and quantity × price × rate.",
+        "autoHint": "The fee is derived automatically using the market exchange rate for the transaction date.",
+        "previewRate": "≈ exchange rate {rate} will be recorded",
+        "previewFee": "≈ fee of {fee} {currency} will be recorded (rate {rate})",
+        "previewUnavailable": "No market rate found for this date — enter the fee or the exchange rate manually.",
+        "previewFetchFailed": "Couldn't load market rates. Check your connection or enter the rate manually.",
+        "previewPlaceholder": "Preview appears here as you fill the form."
       }
     },
     "portfolioSettings": {

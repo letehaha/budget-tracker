@@ -48,6 +48,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         )
       "
     >
+      <slot name="header" />
       <SelectScrollUpButton />
       <SelectViewport
         :class="

@@ -27,6 +27,31 @@
       "notifications": {
         "success": "Transacción creada correctamente.",
         "error": "Error al crear la transacción."
+      },
+      "settlement": {
+        "toggleLabel": "Especificar importe real en efectivo",
+        "toggleHint": "Úselo cuando la operación se liquidó en una moneda diferente, o solo conoce el total y quiere que la comisión se derive automáticamente",
+        "currencyLabel": "Moneda de pago",
+        "currencyPlaceholder": "Seleccionar moneda",
+        "totalPaidLabel": "Total pagado",
+        "totalReceivedLabel": "Total recibido",
+        "totalPlaceholder": "Ej.: 1700",
+        "feeLabel": "Comisión (en moneda de pago)",
+        "feePlaceholder": "0",
+        "sameCurrencyFeeHint": "La comisión se registra como la diferencia entre el total y la cantidad × precio.",
+        "crossCurrencyFeeHint": "La comisión explícita del bróker. Cualquier diferencial de tipo de cambio queda recogido en el tipo de conversión de la operación.",
+        "modeFee": "Conozco la comisión",
+        "modeAuto": "Auto",
+        "modeRate": "Conozco el tipo",
+        "rateLabel": "Tipo de cambio",
+        "ratePlaceholder": "Ej.: 3.66",
+        "rateHint": "Unidades de la moneda de liquidación por 1 unidad de la moneda del valor. La comisión se registra como la diferencia entre el total y la cantidad × precio × tipo.",
+        "autoHint": "La comisión se deriva automáticamente usando el tipo de cambio de mercado para la fecha de la transacción.",
+        "previewRate": "≈ se registrará el tipo de cambio {rate}",
+        "previewFee": "≈ se registrará una comisión de {fee} {currency} (tipo {rate})",
+        "previewUnavailable": "No se encontró tipo de mercado para esta fecha — introduzca la comisión o el tipo de cambio manualmente.",
+        "previewFetchFailed": "No se pudieron cargar los tipos de mercado. Compruebe su conexión o introduzca el tipo manualmente.",
+        "previewPlaceholder": "La vista previa aparecerá aquí a medida que rellene el formulario."
       }
     },
     "portfolioSettings": {

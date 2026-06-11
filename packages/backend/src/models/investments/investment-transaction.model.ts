@@ -154,6 +154,47 @@ export default class InvestmentTransaction extends Model {
   currencyCode!: string;
 
   /**
+   * The currency in which cash actually left/entered the brokerage account.
+   * Some brokers hold cash in a single currency (e.g. PLN) while securities
+   * trade in another (e.g. USD) — price/fees/amount stay in the security's
+   * currency (`currencyCode`), the settlement* fields record the real cash leg.
+   * Equals `currencyCode` when the trade settled in the security's currency.
+   */
+  @Column({ type: DataType.STRING, allowNull: false })
+  settlementCurrencyCode!: string;
+
+  /**
+   * Absolute cash moved in `settlementCurrencyCode`:
+   * buy — total paid including fee; sell/dividend — received net of fee;
+   * fee/tax — amount charged. Cash balance deltas are derived from this value.
+   */
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get settlementAmount(): Money {
+    return moneyGetDecimal(this, 'settlementAmount');
+  }
+  set settlementAmount(val: Money | string | number) {
+    moneySetDecimal(this, 'settlementAmount', val, 10);
+  }
+
+  /** Broker fee in `settlementCurrencyCode`. `fees` is this value converted to the security currency at `settlementRate`. */
+  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
+  get settlementFees(): Money {
+    return moneyGetDecimal(this, 'settlementFees');
+  }
+  set settlementFees(val: Money | string | number) {
+    moneySetDecimal(this, 'settlementFees', val, 10);
+  }
+
+  /**
+   * Settlement currency units per 1 security currency unit — the broker's
+   * effective conversion rate for this trade, derived from what the user
+   * actually paid/received. 1 when both legs share a currency.
+   * Stored as a decimal string; not a monetary amount, so no Money wrapper.
+   */
+  @Column({ type: DataType.DECIMAL(20, 10), allowNull: false, defaultValue: '1' })
+  settlementRate!: string;
+
+  /**
    * A category that classifies the nature of the investment transaction.
    * This could include types like 'buy', 'sell', 'dividend', 'interest', etc.,
    * providing a clear context for the transaction's purpose and impact on the investment portfolio.

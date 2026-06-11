@@ -1,5 +1,5 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, numericString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { updateInvestmentTransaction } from '@services/investments/transactions/update.service';
 import { z } from 'zod';
@@ -33,6 +33,13 @@ export default createController(
           message: 'Fees must be a non-negative number',
         }),
       name: z.string().optional(),
+      // Settlement leg updates. Cross-field rules (when settlementFees is
+      // required, currency mismatch handling) depend on the stored transaction
+      // and the holding's currency, so they live in the service.
+      settlementCurrencyCode: currencyCode().optional(),
+      settlementAmount: numericString({ allowZero: true }).optional(),
+      settlementFees: numericString({ allowZero: true }).optional(),
+      settlementRate: numericString().optional(),
     }),
   }),
   async ({ user, params, body }) => {

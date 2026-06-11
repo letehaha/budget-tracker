@@ -126,8 +126,8 @@ watch(
           </Select.SelectValue>
         </Select.SelectTrigger>
         <Select.SelectContent>
-          <template v-if="withSearch || !!searchKeys">
-            <div class="p-2">
+          <template v-if="withSearch || !!searchKeys" #header>
+            <div class="border-border border-b p-2">
               <input-field
                 v-model="searchQuery"
                 type="text"
