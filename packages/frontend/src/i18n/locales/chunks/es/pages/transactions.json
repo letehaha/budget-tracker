@@ -232,6 +232,10 @@
       "viewToggle": {
         "list": "Vista de lista",
         "table": "Vista de tabla"
+      },
+      "fullscreen": {
+        "enter": "Modo enfoque",
+        "exit": "Salir del modo enfoque"
       }
     },
     "bulkDelete": {

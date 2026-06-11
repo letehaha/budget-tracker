@@ -232,6 +232,10 @@
       "viewToggle": {
         "list": "List view",
         "table": "Table view"
+      },
+      "fullscreen": {
+        "enter": "Focus mode",
+        "exit": "Exit focus mode"
       }
     },
     "bulkDelete": {
