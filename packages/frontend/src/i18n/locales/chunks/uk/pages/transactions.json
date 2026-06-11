@@ -91,6 +91,7 @@
     },
     "bulkEdit": {
       "selectAll": "Вибрати всі",
+      "cancelSelection": "Скасувати вибір",
       "editButton": "Редагувати",
       "selectedCount": "Вибрано: {count}",
       "dialogTitle": "Редагувати {count} транзакцій",

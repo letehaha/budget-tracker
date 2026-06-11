@@ -91,6 +91,7 @@
     },
     "bulkEdit": {
       "selectAll": "Seleccionar todo",
+      "cancelSelection": "Cancelar selección",
       "editButton": "Editar",
       "selectedCount": "{count} seleccionadas",
       "dialogTitle": "Editar {count} transacciones",

@@ -9,19 +9,49 @@
         {{ $t('transactions.table.hint') }}
       </span>
 
+      <!-- Narrow layout: collapse the action buttons to icon-only so they fit
+           one row alongside "N selected" + Cancel. The Cancel control is always
+           an icon button (X) – the ghost text version reads as a stray label
+           rather than a button. -->
       <div v-if="selectedCount > 0" class="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" :disabled="isBulkLoading" @click="isBulkEditDialogOpen = true">
-          <PencilIcon class="size-4" />
-          {{ $t('transactions.bulkEdit.editButton') }}
-        </Button>
+        <DesktopOnlyTooltip :content="$t('transactions.bulkEdit.editButton')" :disabled="!isMobileMode">
+          <Button
+            variant="outline"
+            :size="isMobileMode ? 'icon-sm' : 'sm'"
+            :disabled="isBulkLoading"
+            :aria-label="isMobileMode ? $t('transactions.bulkEdit.editButton') : undefined"
+            @click="isBulkEditDialogOpen = true"
+          >
+            <PencilIcon class="size-4" />
+            <template v-if="!isMobileMode">
+              {{ $t('transactions.bulkEdit.editButton') }}
+            </template>
+          </Button>
+        </DesktopOnlyTooltip>
 
         <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button variant="outline" size="sm" :disabled="isBulkLoading">
-              <GroupIcon class="size-4" />
-              {{ $t('transactions.transactionGroups.bulkActions.groupButton') }}
-            </Button>
-          </DropdownMenuTrigger>
+          <!-- Tooltip wraps the trigger (not nested inside) – reka-ui's as-child
+               can't merge a click handler through the tooltip's fragment root. -->
+          <DesktopOnlyTooltip
+            :content="$t('transactions.transactionGroups.bulkActions.groupButton')"
+            :disabled="!isMobileMode"
+          >
+            <span class="inline-flex">
+              <DropdownMenuTrigger as-child>
+                <Button
+                  variant="outline"
+                  :size="isMobileMode ? 'icon-sm' : 'sm'"
+                  :disabled="isBulkLoading"
+                  :aria-label="isMobileMode ? $t('transactions.transactionGroups.bulkActions.groupButton') : undefined"
+                >
+                  <GroupIcon class="size-4" />
+                  <template v-if="!isMobileMode">
+                    {{ $t('transactions.transactionGroups.bulkActions.groupButton') }}
+                  </template>
+                </Button>
+              </DropdownMenuTrigger>
+            </span>
+          </DesktopOnlyTooltip>
           <DropdownMenuContent align="end" class="min-w-48">
             <DropdownMenuItem :disabled="selectedCount < 2" @select="isCreateGroupDialogOpen = true">
               <PlusIcon class="mr-2 size-4" />
@@ -34,27 +64,54 @@
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DesktopOnlyTooltip
-          :content="
-            hasExternalSelected ? $t('transactions.bulkDelete.externalTooltip') : $t('transactions.bulkDelete.button')
-          "
+        <!-- Disabled-by-external-selection: ResponsiveTooltip so touch users can
+             tap the disabled button and read the reason as a popover (a regular
+             hover-only tooltip would never surface on mobile). -->
+        <ResponsiveTooltip
+          v-if="hasExternalSelected"
+          content-class-name="max-w-75"
+          :content="$t('transactions.bulkDelete.externalTooltip')"
         >
           <span class="inline-flex">
             <Button
               variant="soft-destructive"
-              size="sm"
-              :disabled="isBulkLoading || hasExternalSelected"
-              @click="isBulkDeleteDialogOpen = true"
+              :size="isMobileMode ? 'icon-sm' : 'sm'"
+              disabled
+              :aria-label="isMobileMode ? $t('transactions.bulkDelete.button') : undefined"
             >
               <Trash2Icon class="size-4" />
-              {{ $t('transactions.bulkDelete.button') }}
+              <template v-if="!isMobileMode">
+                {{ $t('transactions.bulkDelete.button') }}
+              </template>
             </Button>
           </span>
+        </ResponsiveTooltip>
+        <DesktopOnlyTooltip v-else :content="$t('transactions.bulkDelete.button')" :disabled="!isMobileMode">
+          <Button
+            variant="soft-destructive"
+            :size="isMobileMode ? 'icon-sm' : 'sm'"
+            :disabled="isBulkLoading"
+            :aria-label="isMobileMode ? $t('transactions.bulkDelete.button') : undefined"
+            @click="isBulkDeleteDialogOpen = true"
+          >
+            <Trash2Icon class="size-4" />
+            <template v-if="!isMobileMode">
+              {{ $t('transactions.bulkDelete.button') }}
+            </template>
+          </Button>
         </DesktopOnlyTooltip>
 
-        <Button variant="ghost" size="sm" :disabled="isBulkLoading" @click="clearSelection">
-          {{ $t('common.actions.cancel') }}
-        </Button>
+        <DesktopOnlyTooltip :content="$t('transactions.bulkEdit.cancelSelection')">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            :disabled="isBulkLoading"
+            :aria-label="$t('transactions.bulkEdit.cancelSelection')"
+            @click="clearSelection"
+          >
+            <XIcon class="size-4" />
+          </Button>
+        </DesktopOnlyTooltip>
       </div>
     </div>
 
@@ -175,6 +232,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
@@ -196,6 +254,7 @@ import {
   PlusIcon,
   SearchXIcon,
   Trash2Icon,
+  XIcon,
 } from '@lucide/vue';
 import { type ComputedRef, computed, defineAsyncComponent, ref, watchEffect } from 'vue';
 
