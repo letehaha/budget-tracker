@@ -325,7 +325,7 @@ import type { TransactionsView } from '@/api/user-settings';
 
 import { trackNewlyActiveFilters } from './components/filter-analytics';
 import FiltersToolbar from './components/filters-toolbar.vue';
-import ColumnConfigPopover from './components/table/column-config-popover.vue';
+import ColumnConfigPopover from '@/components/common/column-config-popover.vue';
 import { DEFAULT_SORTING, type TableSorting } from './components/table/columns';
 import TransactionsTable from './components/table/transactions-table.vue';
 import { useTableColumns } from './components/table/use-table-columns';

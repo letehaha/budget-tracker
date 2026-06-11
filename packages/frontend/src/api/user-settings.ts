@@ -32,8 +32,16 @@ interface TransactionsTableSettings {
   extraFilters?: string[];
 }
 
+interface InvestmentTransactionsTableSettings {
+  /** Ordered list of column ids the user wants visible. */
+  visibleColumns: string[];
+  /** Full column order (visible + hidden) used by the column-config UI. */
+  columnOrder: string[];
+}
+
 export interface UiSettings {
   transactionsTable?: TransactionsTableSettings;
+  investmentTransactionsTable?: InvestmentTransactionsTableSettings;
 }
 
 export interface UserSettingsSchema {

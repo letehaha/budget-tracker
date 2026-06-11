@@ -4,6 +4,7 @@ import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.v
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InvestmentTransactionForm from '@/components/forms/investment-transaction-form.vue';
 import { Button } from '@/components/lib/ui/button';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useDeleteHolding } from '@/composable/data-queries/holdings';
@@ -22,6 +23,7 @@ import {
   ChevronRightIcon,
   PackageOpenIcon,
   PlusIcon,
+  SearchXIcon,
   Trash2Icon,
 } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
@@ -60,7 +62,7 @@ const props = defineProps<{
   // holding without scrolling through the rest of the portfolio.
   justAddedIds?: ReadonlySet<string>;
 }>();
-const emit = defineEmits<{ (e: 'addSymbol'): void; (e: 'importTransactions'): void }>();
+const emit = defineEmits<{ (e: 'addSymbol'): void; (e: 'importTransactions'): void; (e: 'clearFilter'): void }>();
 
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
@@ -198,6 +200,14 @@ const confirmDeleteHolding = async () => {
 const cellStyles = 'py-0.5';
 const theadCellStyles = 'py-2';
 const theadBgStyles = 'bg-muted';
+// Chevron + Symbol cells pin to the left during horizontal scroll. They need
+// an opaque bg (scrolled columns would show through), so the row's transparent
+// bg-muted/30 hover is pre-blended with the card bg via color-mix.
+const stickyBodyCellStyles =
+  'sticky z-1 bg-card transition-colors group-hover:bg-[color-mix(in_oklab,var(--muted)_30%,var(--card))]';
+// Single-line header labels: the cap keeps long (localized) labels from
+// wrapping or blowing up column widths; overflow turns into an ellipsis.
+const theadLabelStyles = 'block max-w-32 truncate';
 </script>
 
 <template>
@@ -246,6 +256,20 @@ const theadBgStyles = 'bg-muted';
       <p class="text-muted-foreground text-sm">{{ $t('portfolioDetail.holdingsTable.tryAgainLater') }}</p>
     </div>
 
+    <!-- No Search Matches State: holdings exist, the filter just excluded all of them -->
+    <div v-else-if="isFiltering && (!holdings || holdings.length === 0)" class="py-12 text-center">
+      <div class="bg-muted mx-auto mb-4 flex size-12 items-center justify-center rounded-full">
+        <SearchXIcon class="text-muted-foreground size-6" />
+      </div>
+      <p class="text-foreground mb-2 font-medium">{{ $t('portfolioDetail.holdingsTable.noFilterResults') }}</p>
+      <p class="text-muted-foreground mb-4 text-sm">
+        {{ $t('portfolioDetail.holdingsTable.noFilterResultsDescription') }}
+      </p>
+      <Button variant="outline" @click="emit('clearFilter')">
+        {{ $t('portfolioDetail.holdingsTable.clearFilterButton') }}
+      </Button>
+    </div>
+
     <!-- Empty State -->
     <div v-else-if="!holdings || holdings.length === 0" class="py-12 text-center">
       <div class="bg-muted mx-auto mb-4 flex size-12 items-center justify-center rounded-full">
@@ -265,200 +289,207 @@ const theadBgStyles = 'bg-muted';
     </div>
 
     <!-- Holdings Table -->
-    <div v-else class="relative overflow-x-auto">
-      <table class="w-full min-w-235">
-        <thead class="text-muted-foreground">
-          <tr class="text-xs font-medium tracking-wider uppercase">
-            <th :class="[theadCellStyles, theadBgStyles, 'w-10 text-left']"></th>
-            <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-left']">
-              <button
-                class="hover:text-foreground flex items-center gap-1 transition-colors"
-                @click="toggleSort('symbol')"
-              >
-                {{ $t('portfolioDetail.holdingsTable.headers.symbol') }}
-                <ArrowUpIcon v-if="sortKey === 'symbol' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'symbol' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-left']">
-              {{ $t('portfolioDetail.holdingsTable.headers.name') }}
-            </th>
-            <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
-              <button
-                class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
-                @click="toggleSort('quantity')"
-              >
-                {{ $t('portfolioDetail.holdingsTable.headers.shares') }}
-                <ArrowUpIcon v-if="sortKey === 'quantity' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'quantity' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
-              {{ $t('portfolioDetail.holdingsTable.headers.price') }}
-            </th>
-            <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
-              <button
-                class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
-                @click="toggleSort('avgCost')"
-              >
-                {{ $t('portfolioDetail.holdingsTable.headers.avgCostPerShare') }}
-                <ArrowUpIcon v-if="sortKey === 'avgCost' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'avgCost' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
-              <button
-                class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
-                @click="toggleSort('totalCost')"
-              >
-                {{ $t('portfolioDetail.holdingsTable.headers.totalCost') }}
-                <ArrowUpIcon v-if="sortKey === 'totalCost' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'totalCost' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
-              <button
-                class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
-                @click="toggleSort('value')"
-              >
-                {{ $t('portfolioDetail.holdingsTable.headers.marketValue') }}
-                <ArrowUpIcon v-if="sortKey === 'value' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'value' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
-              <button
-                class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
-                @click="toggleSort('unrealizedGain')"
-              >
-                {{ $t('portfolioDetail.holdingsTable.headers.unrealizedGain') }}
-                <ArrowUpIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
-              <button
-                class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
-                @click="toggleSort('realizedGain')"
-              >
-                {{ $t('portfolioDetail.holdingsTable.headers.realizedGain') }}
-                <ArrowUpIcon v-if="sortKey === 'realizedGain' && sortDir === 'asc'" class="size-3" />
-                <ArrowDownIcon v-if="sortKey === 'realizedGain' && sortDir === 'desc'" class="size-3" />
-              </button>
-            </th>
-            <th :class="[theadCellStyles, theadBgStyles, 'w-10 text-right']"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-border divide-y">
-          <template
-            v-for="row in displayRows"
-            :key="row.kind === 'closedToggle' ? 'closed-positions-toggle' : row.holding.securityId"
-          >
-            <!-- Inline collapsible "Closed positions" section header -->
-            <tr
-              v-if="row.kind === 'closedToggle'"
-              class="bg-muted/40 hover:bg-muted/70 cursor-pointer text-sm transition-colors"
-              @click="closedExpanded = !closedExpanded"
-            >
-              <td :class="[cellStyles, 'py-1']">
-                <Button variant="ghost" size="icon" class="size-8" @click.stop="closedExpanded = !closedExpanded">
-                  <ChevronDownIcon v-if="closedExpanded" class="size-4" />
-                  <ChevronRightIcon v-else class="size-4" />
-                </Button>
-              </td>
-              <td colspan="10" :class="[cellStyles, 'px-3']">
-                <div class="text-muted-foreground flex items-center gap-2 font-medium">
-                  <ArchiveIcon class="size-4" />
-                  {{ $t('portfolioDetail.holdingsTable.closedPositions', { count: row.count }) }}
-                </div>
-              </td>
+    <!-- @container: the expanded transactions section sizes itself to 100cqw. -->
+    <ScrollArea v-else class="@container" viewport-class="overscroll-x-none" with-horizontal-scrollbar>
+      <!-- pb-2.5 keeps the overlay horizontal scrollbar off the last row. -->
+      <div class="pb-2.5">
+        <table class="w-full min-w-235">
+          <thead class="text-muted-foreground">
+            <tr class="text-xs font-medium tracking-wider uppercase">
+              <!-- Chevron + symbol share one sticky cell: separate cells leave a
+                   seam where scrolled columns peek through between them. -->
+              <th :class="[theadCellStyles, theadBgStyles, 'sticky left-0 z-1 pr-3 pl-13 text-left']">
+                <button
+                  class="hover:text-foreground flex items-center gap-1 transition-colors"
+                  @click="toggleSort('symbol')"
+                >
+                  <span :class="theadLabelStyles">{{ $t('portfolioDetail.holdingsTable.headers.symbol') }}</span>
+                  <ArrowUpIcon v-if="sortKey === 'symbol' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'symbol' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-left']">
+                <span :class="theadLabelStyles">{{ $t('portfolioDetail.holdingsTable.headers.name') }}</span>
+              </th>
+              <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('quantity')"
+                >
+                  <span :class="theadLabelStyles">{{ $t('portfolioDetail.holdingsTable.headers.shares') }}</span>
+                  <ArrowUpIcon v-if="sortKey === 'quantity' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'quantity' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
+                <span :class="theadLabelStyles">{{ $t('portfolioDetail.holdingsTable.headers.price') }}</span>
+              </th>
+              <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('avgCost')"
+                >
+                  <span :class="theadLabelStyles">{{
+                    $t('portfolioDetail.holdingsTable.headers.avgCostPerShare')
+                  }}</span>
+                  <ArrowUpIcon v-if="sortKey === 'avgCost' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'avgCost' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('totalCost')"
+                >
+                  <span :class="theadLabelStyles">{{ $t('portfolioDetail.holdingsTable.headers.totalCost') }}</span>
+                  <ArrowUpIcon v-if="sortKey === 'totalCost' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'totalCost' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('value')"
+                >
+                  <span :class="theadLabelStyles">{{ $t('portfolioDetail.holdingsTable.headers.marketValue') }}</span>
+                  <ArrowUpIcon v-if="sortKey === 'value' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'value' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('unrealizedGain')"
+                >
+                  <span :class="theadLabelStyles">{{
+                    $t('portfolioDetail.holdingsTable.headers.unrealizedGain')
+                  }}</span>
+                  <ArrowUpIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'unrealizedGain' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, theadBgStyles, 'px-3 text-right']">
+                <button
+                  class="hover:text-foreground flex w-full items-center justify-end gap-1 transition-colors"
+                  @click="toggleSort('realizedGain')"
+                >
+                  <span :class="theadLabelStyles">{{ $t('portfolioDetail.holdingsTable.headers.realizedGain') }}</span>
+                  <ArrowUpIcon v-if="sortKey === 'realizedGain' && sortDir === 'asc'" class="size-3" />
+                  <ArrowDownIcon v-if="sortKey === 'realizedGain' && sortDir === 'desc'" class="size-3" />
+                </button>
+              </th>
+              <th :class="[theadCellStyles, theadBgStyles, 'w-10 text-right']"></th>
             </tr>
-            <template v-else>
-              <tr class="hover:bg-muted/30 text-sm transition-colors">
+          </thead>
+          <tbody class="divide-border divide-y">
+            <template
+              v-for="row in displayRows"
+              :key="row.kind === 'closedToggle' ? 'closed-positions-toggle' : row.holding.securityId"
+            >
+              <!-- Inline collapsible "Closed positions" section header -->
+              <tr
+                v-if="row.kind === 'closedToggle'"
+                class="bg-muted/40 hover:bg-muted/70 cursor-pointer text-sm transition-colors"
+                @click="closedExpanded = !closedExpanded"
+              >
                 <td :class="[cellStyles, 'py-1']">
-                  <Button variant="ghost" size="icon" class="size-8" @click="toggleExpand(row.holding.securityId)">
-                    <ChevronDownIcon v-if="isExpanded(row.holding.securityId)" class="size-4" />
+                  <Button variant="ghost" size="icon" class="size-8" @click.stop="closedExpanded = !closedExpanded">
+                    <ChevronDownIcon v-if="closedExpanded" class="size-4" />
                     <ChevronRightIcon v-else class="size-4" />
                   </Button>
                 </td>
-                <td :class="[cellStyles, 'px-3 font-semibold']">
-                  <div class="flex items-center gap-2">
-                    <SecurityLogo v-if="row.holding.security" :security="row.holding.security" />
-                    <span>{{ row.holding.security?.symbol }}</span>
+                <td colspan="9" :class="[cellStyles, 'px-3']">
+                  <div class="text-muted-foreground flex items-center gap-2 font-medium">
+                    <ArchiveIcon class="size-4" />
+                    {{ $t('portfolioDetail.holdingsTable.closedPositions', { count: row.count }) }}
                   </div>
                 </td>
-                <td :class="[cellStyles, 'text-muted-foreground max-w-50 truncate px-3']">
-                  {{ row.holding.security?.name }}
-                </td>
-                <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
-                  <PrecisionNumber
-                    :value="row.holding.quantity"
-                    :max-decimals="decimalsForAssetClass(row.holding.security?.assetClass)"
-                  />
-                </td>
-                <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
-                  {{ formatCurrency(getPrice(row.holding), row.holding.currencyCode) }}
-                </td>
-                <td :class="[cellStyles, 'text-muted-foreground px-3 text-right tabular-nums']">
-                  {{ formatCurrency(getAverageCost(row.holding), row.holding.currencyCode) }}
-                </td>
-                <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
-                  {{ formatCurrency(getTotalCost(row.holding), row.holding.currencyCode) }}
-                </td>
-                <td :class="[cellStyles, 'px-3 text-right font-medium tabular-nums']">
-                  {{ formatCurrency(Number(row.holding.marketValue || 0), row.holding.currencyCode) }}
-                </td>
-                <td :class="[cellStyles, 'px-3 text-right']">
-                  <div
-                    :class="getGainColorClass({ gainValue: getUnrealizedGain(row.holding).value })"
-                    class="tabular-nums"
-                  >
-                    <div class="font-semibold">
-                      {{ formatCurrency(getUnrealizedGain(row.holding).value, row.holding.currencyCode) }}
+              </tr>
+              <template v-else>
+                <tr class="hover:bg-muted/30 group text-sm transition-colors">
+                  <td :class="[cellStyles, stickyBodyCellStyles, 'left-0 py-1 pr-3 font-semibold']">
+                    <div class="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" class="size-8" @click="toggleExpand(row.holding.securityId)">
+                        <ChevronDownIcon v-if="isExpanded(row.holding.securityId)" class="size-4" />
+                        <ChevronRightIcon v-else class="size-4" />
+                      </Button>
+                      <SecurityLogo v-if="row.holding.security" :security="row.holding.security" />
+                      <span>{{ row.holding.security?.symbol }}</span>
                     </div>
-                    <div class="text-xs">{{ getUnrealizedGain(row.holding).percent.toFixed(2) }}%</div>
-                  </div>
-                </td>
-                <td :class="[cellStyles, 'px-3 text-right']">
-                  <div
-                    :class="getGainColorClass({ gainValue: getRealizedGain(row.holding).value })"
-                    class="tabular-nums"
-                  >
-                    <div class="font-semibold">
-                      {{ formatCurrency(getRealizedGain(row.holding).value, row.holding.currencyCode) }}
-                    </div>
-                    <div class="text-xs">{{ getRealizedGain(row.holding).percent.toFixed(2) }}%</div>
-                  </div>
-                </td>
-                <td :class="[cellStyles, 'py-1 pr-2 text-right']">
-                  <DesktopOnlyTooltip :content="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')">
-                    <Button
-                      variant="ghost-destructive"
-                      size="icon"
-                      class="size-8"
-                      :aria-label="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')"
-                      @click="openDeleteConfirm(row.holding)"
+                  </td>
+                  <td :class="[cellStyles, 'text-muted-foreground max-w-50 truncate px-3']">
+                    {{ row.holding.security?.name }}
+                  </td>
+                  <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
+                    <PrecisionNumber
+                      :value="row.holding.quantity"
+                      :max-decimals="decimalsForAssetClass(row.holding.security?.assetClass)"
+                    />
+                  </td>
+                  <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
+                    {{ formatCurrency(getPrice(row.holding), row.holding.currencyCode) }}
+                  </td>
+                  <td :class="[cellStyles, 'text-muted-foreground px-3 text-right tabular-nums']">
+                    {{ formatCurrency(getAverageCost(row.holding), row.holding.currencyCode) }}
+                  </td>
+                  <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
+                    {{ formatCurrency(getTotalCost(row.holding), row.holding.currencyCode) }}
+                  </td>
+                  <td :class="[cellStyles, 'px-3 text-right font-medium tabular-nums']">
+                    {{ formatCurrency(Number(row.holding.marketValue || 0), row.holding.currencyCode) }}
+                  </td>
+                  <td :class="[cellStyles, 'px-3 text-right']">
+                    <div
+                      :class="getGainColorClass({ gainValue: getUnrealizedGain(row.holding).value })"
+                      class="tabular-nums"
                     >
-                      <Trash2Icon class="size-4" />
-                    </Button>
-                  </DesktopOnlyTooltip>
-                </td>
-              </tr>
-              <!-- Expanded transactions section -->
-              <tr v-if="isExpanded(row.holding.securityId)" class="bg-muted/20">
-                <td colspan="11" class="p-0">
-                  <HoldingTransactionsSection
-                    :portfolio-id="portfolioId"
-                    :security-id="row.holding.securityId"
-                    @add-transaction="openTransactionModal(row.holding)"
-                  />
-                </td>
-              </tr>
+                      <div class="font-semibold">
+                        {{ formatCurrency(getUnrealizedGain(row.holding).value, row.holding.currencyCode) }}
+                      </div>
+                      <div class="text-xs">{{ getUnrealizedGain(row.holding).percent.toFixed(2) }}%</div>
+                    </div>
+                  </td>
+                  <td :class="[cellStyles, 'px-3 text-right']">
+                    <div
+                      :class="getGainColorClass({ gainValue: getRealizedGain(row.holding).value })"
+                      class="tabular-nums"
+                    >
+                      <div class="font-semibold">
+                        {{ formatCurrency(getRealizedGain(row.holding).value, row.holding.currencyCode) }}
+                      </div>
+                      <div class="text-xs">{{ getRealizedGain(row.holding).percent.toFixed(2) }}%</div>
+                    </div>
+                  </td>
+                  <td :class="[cellStyles, 'py-1 pr-2 text-right']">
+                    <DesktopOnlyTooltip :content="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')">
+                      <Button
+                        variant="ghost-destructive"
+                        size="icon"
+                        class="size-8"
+                        :aria-label="$t('portfolioDetail.holdingsTable.deleteHolding.ariaLabel')"
+                        @click="openDeleteConfirm(row.holding)"
+                      >
+                        <Trash2Icon class="size-4" />
+                      </Button>
+                    </DesktopOnlyTooltip>
+                  </td>
+                </tr>
+                <!-- Expanded transactions section -->
+                <tr v-if="isExpanded(row.holding.securityId)" class="bg-muted/20">
+                  <td colspan="10" class="p-0">
+                    <HoldingTransactionsSection
+                      :portfolio-id="portfolioId"
+                      :security-id="row.holding.securityId"
+                      @add-transaction="openTransactionModal(row.holding)"
+                    />
+                  </td>
+                </tr>
+              </template>
             </template>
-          </template>
-        </tbody>
-      </table>
-    </div>
+          </tbody>
+        </table>
+      </div>
+    </ScrollArea>
 
     <ResponsiveDialog v-model:open="isTransactionModalOpen" dialog-content-class="sm:max-w-2xl">
       <template #title>{{ $t('portfolioDetail.holdingsTable.addTransactionDialog.title') }}</template>

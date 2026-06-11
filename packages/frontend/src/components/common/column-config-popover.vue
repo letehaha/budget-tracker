@@ -6,8 +6,8 @@
          root to merge onto (the tooltip's root is a fragment). -->
     <PopoverTrigger as-child>
       <span class="inline-flex">
-        <DesktopOnlyTooltip :content="$t('transactions.table.columnConfig.title')">
-          <Button size="icon-sm" variant="ghost" :aria-label="$t('transactions.table.columnConfig.title')">
+        <DesktopOnlyTooltip :content="$t(titleKey)">
+          <Button size="icon-sm" variant="ghost" :aria-label="$t(titleKey)">
             <SettingsIcon class="text-muted-foreground size-4" />
           </Button>
         </DesktopOnlyTooltip>
@@ -18,7 +18,7 @@
         <template #main>
           <div class="flex flex-col">
             <header class="border-b px-3 py-2 text-sm font-medium">
-              {{ $t('transactions.table.columnConfig.title') }}
+              {{ $t(titleKey) }}
             </header>
 
             <div class="flex flex-col p-2">
@@ -102,15 +102,27 @@ import { ArrowLeftIcon, ChevronRightIcon, GripVerticalIcon, SettingsIcon } from 
 import { computed, ref, watch } from 'vue';
 import { VueDraggable } from 'vue-draggable-plus';
 
-import { type ColumnDefinition, TABLE_COLUMN } from './columns';
+/**
+ * Column id type: opaque string. Different tables use their own enums, but the
+ * popover only forwards ids back through events — it never inspects them.
+ */
+export interface ConfigurableColumnDefinition {
+  id: string;
+  labelKey: string;
+}
 
-const props = defineProps<{
-  configurableColumns: { definition: ColumnDefinition; visible: boolean }[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    configurableColumns: { definition: ConfigurableColumnDefinition; visible: boolean }[];
+    /** i18n key shown in the trigger tooltip, aria-label, and main-panel header. */
+    titleKey?: string;
+  }>(),
+  { titleKey: 'transactions.table.columnConfig.title' },
+);
 
 const emit = defineEmits<{
-  toggle: [id: TABLE_COLUMN];
-  reorder: [orderedIds: TABLE_COLUMN[]];
+  toggle: [id: string];
+  reorder: [orderedIds: string[]];
   reset: [];
 }>();
 

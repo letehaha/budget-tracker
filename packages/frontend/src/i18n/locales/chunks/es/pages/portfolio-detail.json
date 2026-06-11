@@ -63,6 +63,9 @@
     "holdingsTable": {
       "loadError": "No se pudieron cargar las posiciones",
       "empty": "Aún no hay posiciones",
+      "noFilterResults": "Sin posiciones coincidentes",
+      "noFilterResultsDescription": "Ninguna posición coincide con su búsqueda. Pruebe con otro símbolo o nombre.",
+      "clearFilterButton": "Borrar búsqueda",
       "headers": {
         "symbol": "Símbolo",
         "name": "Nombre",
@@ -108,7 +111,14 @@
         "quantity": "Cantidad",
         "price": "Precio",
         "fees": "Comisiones",
-        "amount": "Importe"
+        "amount": "Importe",
+        "refAmount": "Importe base",
+        "refFees": "Comisiones base",
+        "settlementAmount": "Efectivo",
+        "settlementCurrency": "Mon. efectivo",
+        "settlementFees": "Comis. efectivo",
+        "settlementRate": "Tipo FX",
+        "createdAt": "Añadido"
       },
       "categories": {
         "buy": "Compra",
@@ -119,6 +129,11 @@
         "fee": "Comisión",
         "cancel": "Cancelar",
         "other": "Otro"
+      },
+      "headerTooltips": {
+        "amount": "Total de la operación en la moneda de negociación del valor.",
+        "refAmount": "Total de la operación convertido a su moneda base.",
+        "settlementAmount": "Efectivo realmente pagado o recibido en su cuenta, en su moneda de liquidación."
       },
       "deleteTransaction": {
         "tooltip": "Eliminar transacción"

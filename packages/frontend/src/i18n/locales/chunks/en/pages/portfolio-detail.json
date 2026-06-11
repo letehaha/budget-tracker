@@ -63,6 +63,9 @@
     "holdingsTable": {
       "loadError": "Could not load holdings",
       "empty": "No holdings yet",
+      "noFilterResults": "No matching holdings",
+      "noFilterResultsDescription": "No holdings match your search. Try a different symbol or name.",
+      "clearFilterButton": "Clear search",
       "headers": {
         "symbol": "Symbol",
         "name": "Name",
@@ -108,7 +111,14 @@
         "quantity": "Quantity",
         "price": "Price",
         "fees": "Fees",
-        "amount": "Amount"
+        "amount": "Amount",
+        "refAmount": "Base amount",
+        "refFees": "Base fees",
+        "settlementAmount": "Cash",
+        "settlementCurrency": "Cash ccy",
+        "settlementFees": "Cash fees",
+        "settlementRate": "FX rate",
+        "createdAt": "Added on"
       },
       "categories": {
         "buy": "Buy",
@@ -119,6 +129,11 @@
         "fee": "Fee",
         "cancel": "Cancel",
         "other": "Other"
+      },
+      "headerTooltips": {
+        "amount": "Transaction total in the security's trading currency.",
+        "refAmount": "Transaction total converted to your base currency.",
+        "settlementAmount": "Cash actually paid or received in your account, in its settlement currency."
       },
       "deleteTransaction": {
         "tooltip": "Delete transaction"
