@@ -89,6 +89,10 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
       // User aborted
       'AbortError',
       'The operation was aborted',
+      // Expired/invalid session — app handles it (logout + redirect + toast),
+      // the thrown AuthError is just a caller signal, not an actionable bug.
+      // Fixes MONEY-MATTER-CLIENT-R
+      'AuthError',
     ],
     // Before sending error, add extra context
     beforeSend(event, hint) {
