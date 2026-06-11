@@ -367,25 +367,6 @@
     "pickTransaction": {
       "title": "Seleccionar transacción"
     },
-    "feedback": {
-      "sidebarButton": "Comentarios",
-      "title": "Enviar comentarios",
-      "description": "Ayúdenos a mejorar compartiendo sus opiniones",
-      "typeLabel": "Tipo",
-      "types": {
-        "bug": "Informe de error",
-        "featureRequest": "Solicitud de función",
-        "other": "Otro"
-      },
-      "messageLabel": "Mensaje",
-      "messagePlaceholder": "Describa qué ocurrió o qué le gustaría ver...",
-      "cancelButton": "Cancelar",
-      "submitButton": "Enviar comentarios",
-      "notifications": {
-        "success": "¡Gracias por sus comentarios!",
-        "error": "Error al enviar los comentarios. Inténtelo de nuevo."
-      }
-    },
     "exchangeCurrency": {
       "title": "Cambiar moneda",
       "description": "Cambie efectivo entre distintas monedas dentro de su cartera"
