@@ -32,12 +32,16 @@ test.describe('Transaction Groups', () => {
     ignoreHTTPSErrors: true,
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
-    // Narrow viewport keeps /transactions in the compact list view (mobile mode
-    // triggers below 672px content width). The list renders group rows inline as
-    // `.border-dashed` items, which these specs rely on; the wider table view
-    // flattens groups by design. Stays above Tailwind's `sm` breakpoint (640px)
-    // so the bulk-edit toolbar still shows labelled buttons ("Group", "Edit").
-    viewport: { width: 700, height: 900 },
+    // The viewport must satisfy two constraints at once:
+    // 1. Window width above the `uiMobile` breakpoint (767px) so the app stays in
+    //    desktop UI mode — ResponsiveAlertDialog renders a real `role="alertdialog"`
+    //    (mobile mode swaps it for a Drawer with `role="dialog"`, breaking the
+    //    `getByRole('alertdialog')` assertions in the delete/remove tests).
+    // 2. /transactions content width below 672px so the page stays in the compact
+    //    list view, which renders group rows inline as `.border-dashed` items;
+    //    the wider table view flattens groups by design. The desktop sidebar
+    //    (300px) eats enough width: 900 − 300 ≈ 600px of content.
+    viewport: { width: 900, height: 900 },
   });
 
   test.beforeEach(async ({ page }) => {
@@ -439,11 +443,6 @@ test.describe('Transaction Groups', () => {
   // ─── 13. Navigation: sidebar has "Groups" link ──────────────────────
 
   test('sidebar navigation has Groups link', async ({ page }) => {
-    // The desktop sidebar collapses into a hamburger menu at the suite's narrow
-    // default viewport, so widen the viewport here to expose the persistent
-    // sidebar that hosts the Groups link.
-    await page.setViewportSize({ width: 1280, height: 900 });
-
     await page.goto('/transactions');
     await page.waitForURL(/\/transactions/, { timeout: 15_000 });
 
