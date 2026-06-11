@@ -90,7 +90,7 @@
           <tr class="text-muted-foreground divide-x text-xs font-medium tracking-wider uppercase">
             <th class="bg-muted sticky left-0 z-1 w-8 border-b">
               <label class="flex size-full items-center justify-center">
-                <Checkbox :model-value="selectAllState" @update:model-value="onSelectAllToggle" />
+                <Checkbox :model-value="selectAllState" @update:model-value="handleSelectAllToggle" />
               </label>
             </th>
             <th
@@ -160,70 +160,15 @@
       </div>
     </ScrollArea>
 
-    <BulkEditDialog
-      v-model:open="isBulkEditDialogOpen"
-      :selected-count="selectedCount"
-      :is-loading="bulkUpdateMutation.isPending.value"
-      @apply="handleBulkApply"
-    />
+    <BulkActionDialogs :actions="bulkActions" />
 
-    <CreateGroupDialog
-      v-model:open="isCreateGroupDialogOpen"
-      :transaction-ids="getSelectedTransactionIds()"
-      @created="clearSelection"
-    />
-
-    <AddToGroupDialog
-      v-model:open="isAddToGroupDialogOpen"
-      :transaction-ids="getSelectedTransactionIds()"
-      @added="clearSelection"
-    />
-
-    <ResponsiveAlertDialog
-      v-model:open="isBulkDeleteDialogOpen"
-      :confirm-label="$t('transactions.bulkDelete.confirmButton')"
-      confirm-variant="destructive"
-      :loading="bulkDeleteMutation.isPending.value"
-      @confirm="handleBulkDelete"
-    >
-      <template #title>{{ $t('transactions.bulkDelete.confirmTitle', { count: selectedCount }) }}</template>
-      <template #description>{{ $t('transactions.bulkDelete.confirmDescription') }}</template>
-    </ResponsiveAlertDialog>
-
-    <UseDialogTemplate>
+    <TransactionDetailsModal v-model:open="isDialogVisible" :mobile="isMobileMode" :is-compact="isCompactDialog">
       <ManageTransactionDialogContent v-bind="dialogProps" @close-modal="closeDialog" />
-    </UseDialogTemplate>
-
-    <template v-if="isMobileMode">
-      <Drawer.Drawer v-model:open="isDialogVisible">
-        <Drawer.DrawerContent custom-indicator>
-          <Drawer.DrawerTitle class="sr-only">{{ $t('transactions.list.detailsTitle') }}</Drawer.DrawerTitle>
-          <Drawer.DrawerDescription class="sr-only">{{
-            $t('transactions.list.detailsDescription')
-          }}</Drawer.DrawerDescription>
-          <SlotContent />
-        </Drawer.DrawerContent>
-      </Drawer.Drawer>
-    </template>
-    <template v-else>
-      <Dialog.Dialog v-model:open="isDialogVisible">
-        <Dialog.DialogContent
-          custom-close
-          :class="['bg-card max-h-[90dvh] w-full p-0', isCompactDialog ? 'max-w-lg' : 'max-w-225']"
-        >
-          <Dialog.DialogTitle class="sr-only">{{ $t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
-          <Dialog.DialogDescription class="sr-only">{{
-            $t('transactions.list.detailsDescription')
-          }}</Dialog.DialogDescription>
-          <SlotContent />
-        </Dialog.DialogContent>
-      </Dialog.Dialog>
-    </template>
+    </TransactionDetailsModal>
   </div>
 </template>
 
 <script lang="ts" setup>
-import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -232,23 +177,16 @@ import {
 } from '@/components/common/dropdown-menu';
 import { Button } from '@/components/lib/ui/button';
 import { Checkbox } from '@/components/lib/ui/checkbox';
-import * as Dialog from '@/components/lib/ui/dialog';
-import * as Drawer from '@/components/lib/ui/drawer';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
-import AddToGroupDialog from '@/components/transactions-list/add-to-group-dialog.vue';
-import BulkEditDialog, { type BulkEditFormValues } from '@/components/transactions-list/bulk-edit-dialog.vue';
-import CreateGroupDialog from '@/components/transactions-list/create-group-dialog.vue';
+import BulkActionDialogs from '@/components/transactions-list/bulk-action-dialogs.vue';
+import TransactionDetailsModal from '@/components/transactions-list/transaction-details-modal.vue';
 import { useManageTransactionDialog } from '@/components/transactions-list/use-manage-transaction-dialog';
 import { useTransactionsDisplay } from '@/components/transactions-list/use-transactions-display';
 import { usePayees } from '@/composable/data-queries/payees';
-import { useBulkSelectability, useTransactionSelection } from '@/composable/transaction-selection';
-import { useBulkDeleteTransactions } from '@/composable/use-bulk-delete-transactions';
-import { useBulkUpdateCategory } from '@/composable/use-bulk-update-category';
-import { useAccountsStore } from '@/stores';
-import { ACCOUNT_TYPES, SORT_DIRECTIONS, TRANSACTION_SORT_FIELD, TransactionModel } from '@bt/shared/types';
+import { useBulkTransactionActions } from '@/composable/use-bulk-transaction-actions';
+import { SORT_DIRECTIONS, TRANSACTION_SORT_FIELD, TransactionModel } from '@bt/shared/types';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { createReusableTemplate } from '@vueuse/core';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -259,7 +197,6 @@ import {
   SearchXIcon,
   Trash2Icon,
 } from '@lucide/vue';
-import { storeToRefs } from 'pinia';
 import { type ComputedRef, computed, defineAsyncComponent, ref, watchEffect } from 'vue';
 
 import { type ColumnDefinition, type TableSorting } from './columns';
@@ -295,7 +232,6 @@ const emit = defineEmits<{
 const tableMinWidthPx = computed(
   () => CHECKBOX_COLUMN_WIDTH_PX + props.visibleColumns.reduce((sum, column) => sum + column.widthPx, 0),
 );
-const [UseDialogTemplate, SlotContent] = createReusableTemplate();
 
 // Table view always flattens groups (one row per record); passing
 // contentFiltersActive=true gives transfer dedup without group rows, so the
@@ -314,87 +250,24 @@ const payeeNameById = computed<Record<string, string>>(() =>
 // Transaction detail dialog
 const { isDialogVisible, dialogProps, isCompactDialog, handleRecordClick, closeDialog } = useManageTransactionDialog();
 
-// Selection
-const { accountsRecord } = storeToRefs(useAccountsStore());
-const { isBulkSelectable, getUnselectableReason } = useBulkSelectability();
-
+// Selection, eligibility, bulk mutations and dialog state — shared with the list view.
+const bulkActions = useBulkTransactionActions({ getTransactions: () => displayTransactions.value });
 const {
   selectedCount,
-  isAllSelected,
   isTransactionSelectable,
   isTransactionSelected,
   toggleTransaction,
-  selectAll,
   clearSelection,
-  getSelectedTransactionIds,
-} = useTransactionSelection({
-  getTransactions: () => displayTransactions.value,
-  isExtraSelectable: isBulkSelectable,
-});
-
-const selectAllState = computed<boolean | 'indeterminate'>(() => {
-  if (selectedCount.value === 0) return false;
-  if (isAllSelected.value) return true;
-  return 'indeterminate';
-});
-
-const onSelectAllToggle = (checked: boolean | 'indeterminate') => {
-  if (checked === true) {
-    selectAll();
-  } else {
-    clearSelection();
-  }
-};
-
-// Bank-connected (external) rows can't be deleted — the account's own type is
-// authoritative; tx.accountType is a fallback for not-yet-loaded accounts.
-const isExternalTx = (tx: TransactionModel) => {
-  const account = accountsRecord.value[tx.accountId];
-  if (account) return account.type !== ACCOUNT_TYPES.system;
-  return tx.accountType !== ACCOUNT_TYPES.system;
-};
-
-const hasExternalSelected = computed(() => {
-  const selectedIds = new Set(getSelectedTransactionIds());
-  if (selectedIds.size === 0) return false;
-  return displayTransactions.value.some((tx) => selectedIds.has(tx.id) && isExternalTx(tx));
-});
-
-// Bulk mutations
-const bulkUpdateMutation = useBulkUpdateCategory({
-  onSuccess: () => {
-    clearSelection();
-    isBulkEditDialogOpen.value = false;
-  },
-});
-
-const bulkDeleteMutation = useBulkDeleteTransactions({
-  onSuccess: () => {
-    clearSelection();
-    isBulkDeleteDialogOpen.value = false;
-  },
-});
-
-const isBulkLoading = computed(() => bulkUpdateMutation.isPending.value || bulkDeleteMutation.isPending.value);
-
-const isBulkEditDialogOpen = ref(false);
-const isCreateGroupDialogOpen = ref(false);
-const isAddToGroupDialogOpen = ref(false);
-const isBulkDeleteDialogOpen = ref(false);
-
-const handleBulkApply = (values: BulkEditFormValues) => {
-  bulkUpdateMutation.mutate({
-    transactionIds: getSelectedTransactionIds(),
-    ...(values.categoryId !== undefined && { categoryId: values.categoryId }),
-    ...(values.tagIds !== undefined && { tagIds: values.tagIds, tagMode: values.tagMode }),
-    ...(values.note !== undefined && { note: values.note }),
-    ...(values.payeeId !== undefined && { payeeId: values.payeeId }),
-  });
-};
-
-const handleBulkDelete = () => {
-  bulkDeleteMutation.mutate({ transactionIds: getSelectedTransactionIds() });
-};
+  getUnselectableReason,
+  hasExternalSelected,
+  selectAllState,
+  handleSelectAllToggle,
+  isBulkEditDialogOpen,
+  isCreateGroupDialogOpen,
+  isAddToGroupDialogOpen,
+  isBulkDeleteDialogOpen,
+  isBulkLoading,
+} = bulkActions;
 
 // Sorting: click cycles asc → desc; switching column starts at asc; Date is the
 // default sort so its cycle is desc → asc (matches the list default).

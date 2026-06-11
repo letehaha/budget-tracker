@@ -7,7 +7,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
-import { GroupIcon, ListOrderedIcon, PencilIcon, PlusIcon, ListPlusIcon, ChevronDownIcon } from '@lucide/vue';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import {
+  GroupIcon,
+  ListOrderedIcon,
+  PencilIcon,
+  PlusIcon,
+  ListPlusIcon,
+  ChevronDownIcon,
+  Trash2Icon,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -17,6 +26,8 @@ const props = defineProps<{
   selectedCount: number;
   isLoading: boolean;
   isAllSelected: boolean;
+  /** Selection contains bank-connected transactions, which the backend refuses to delete. */
+  hasExternalSelected?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -86,6 +97,10 @@ const handleEdit = () => {
             <ListPlusIcon class="mr-2 size-4" />
             {{ t('transactions.transactionGroups.bulkActions.addToExistingGroup') }}
           </DropdownMenuItem>
+          <DropdownMenuItem :disabled="hasExternalSelected" class="text-destructive-text" @select="emit('delete')">
+            <Trash2Icon class="mr-2 size-4" />
+            {{ t('transactions.bulkDelete.button') }}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -115,6 +130,24 @@ const handleEdit = () => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <DesktopOnlyTooltip
+        :content="
+          hasExternalSelected ? t('transactions.bulkDelete.externalTooltip') : t('transactions.bulkDelete.button')
+        "
+      >
+        <span class="inline-flex">
+          <Button
+            variant="soft-destructive"
+            size="sm"
+            :disabled="!hasSelection || isLoading || hasExternalSelected"
+            @click="emit('delete')"
+          >
+            <Trash2Icon class="size-4" />
+            {{ t('transactions.bulkDelete.button') }}
+          </Button>
+        </span>
+      </DesktopOnlyTooltip>
     </div>
   </div>
 </template>
