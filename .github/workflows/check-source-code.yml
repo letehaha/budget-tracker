@@ -7,6 +7,11 @@ on:
   # enable manual triggers
   workflow_dispatch:
 
+env:
+  # Total number of backend e2e shards. Must stay in sync with the
+  # backend-e2e job's matrix.shardIndex list (a matrix cannot read env vars).
+  BACKEND_E2E_SHARD_TOTAL: 4
+
 jobs:
   prepare-dependencies:
     name: Prepare local deps
@@ -79,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        task: [lint, test, knip]
+        task: [lint, 'test:unit', knip]
     steps:
       - name: Skip – no backend changes
         if: needs.detect-changes.outputs.frontend-only == 'true'
@@ -117,19 +122,69 @@ jobs:
           file_name: .env.test
           fail_on_empty: true # fail if any env variable is empty
       - name: Run ${{ matrix.task }}
-        if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task != 'test'
+        if: needs.detect-changes.outputs.frontend-only != 'true'
         run: npm run ${{ matrix.task }} -w packages/backend
 
-      - name: Run ${{ matrix.task }} (with retry)
-        if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task == 'test'
+  backend-e2e:
+    name: Backend e2e tests (shard ${{ matrix.shardIndex }})
+    needs: [prepare-dependencies, detect-changes]
+    runs-on: ubuntu-latest
+    strategy:
+      # A failing shard must not cancel the others – each covers different tests
+      fail-fast: false
+      matrix:
+        # Keep in sync with BACKEND_E2E_SHARD_TOTAL above
+        shardIndex: [1, 2, 3, 4]
+    steps:
+      - name: Skip – no backend changes
+        if: needs.detect-changes.outputs.frontend-only == 'true'
+        run: echo "No backend changes detected. Skipping."
+      - uses: actions/checkout@v4
+        if: needs.detect-changes.outputs.frontend-only != 'true'
+      - uses: ./.github/actions/prepare-local-env
+        if: needs.detect-changes.outputs.frontend-only != 'true'
+      - name: Make backend env file
+        if: needs.detect-changes.outputs.frontend-only != 'true'
+        uses: SpicyPizza/create-envfile@v2
+        with:
+          envkey_APPLICATION_HOST: 127.0.0.1
+          envkey_APPLICATION_PORT: 8081
+          envkey_APPLICATION_JWT_SECRET: test-jwt
+          # docker/test/backend/docker-compose.yml DB's service name
+          envkey_APPLICATION_DB_HOST: test-db
+          envkey_APPLICATION_DB_USERNAME: test
+          envkey_APPLICATION_DB_PASSWORD: test
+          envkey_APPLICATION_DB_DATABASE: budget-tracker_test
+          envkey_APPLICATION_DB_PORT: 5432
+          envkey_APPLICATION_DB_DIALECT: postgres
+          # docker/test/backend/docker-compose.yml redis' service name
+          envkey_APPLICATION_REDIS_HOST: test-redis
+          # GitHub runner has 4 CPU
+          # https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+          envkey_JEST_WORKERS_AMOUNT: 4
+          envkey_SHOW_LOGS_IN_TESTS: false
+          envkey_POLYGON_API_KEY: test
+          envkey_ALPHA_VANTAGE_API_KEY: test
+          envkey_API_LAYER_API_KEYS: test,test
+          envkey_FMP_API_KEY: test
+          envkey_COINGECKO_API_KEY: test
+          envkey_ADMIN_USERS: test1
+          file_name: .env.test
+          fail_on_empty: true # fail if any env variable is empty
+      # The shard arg is forwarded by setup-e2e-tests.sh ("$@") into the jest
+      # call, so each shard boots its own Docker env but runs only its slice
+      # of the e2e suite. Retry stays inside the shard: a flaky shard re-runs
+      # only its slice, not the whole suite.
+      - name: Run e2e tests (with retry)
+        if: needs.detect-changes.outputs.frontend-only != 'true'
         run: |
           for attempt in 1 2 3; do
             echo "=== Attempt $attempt of 3 ==="
-            if npm run test -w packages/backend; then
+            if npm run test:e2e -w packages/backend -- --shard=${{ matrix.shardIndex }}/${{ env.BACKEND_E2E_SHARD_TOTAL }}; then
               exit 0
             fi
             if [ $attempt -lt 3 ]; then
-              echo "Test failed. Retrying..."
+              echo "Tests failed. Retrying..."
             fi
           done
           echo "Tests failed after 3 attempts"
