@@ -127,6 +127,8 @@ const ZodTransactionsTableSettingsSchema = z.object({
   columnOrder: z.array(z.string()).default([]),
   /** Preferred transactions view on narrow screens: compact list or the full table. */
   mobileView: z.enum(['list', 'table']).optional(),
+  /** Preferred transactions view on wide screens: compact list or the full table. */
+  desktopView: z.enum(['list', 'table']).optional(),
   /**
    * Optional filters the user added to the transactions filter bar (besides the
    * always-visible ones). Plain strings for the same reason as column ids.
@@ -214,6 +216,7 @@ export const ZodSettingsPatchSchema = z.object({
           visibleColumns: z.array(z.string()).optional(),
           columnOrder: z.array(z.string()).optional(),
           mobileView: z.enum(['list', 'table']).optional(),
+          desktopView: z.enum(['list', 'table']).optional(),
           extraFilters: z.array(z.string()).optional(),
         })
         .optional(),
