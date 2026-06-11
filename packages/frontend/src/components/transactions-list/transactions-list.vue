@@ -1,23 +1,17 @@
 <script lang="ts" setup>
-import * as Dialog from '@/components/lib/ui/dialog';
-import * as Drawer from '@/components/lib/ui/drawer';
 import { useScrollAreaContainer } from '@/composable/scroll-area-container';
-import { useTransactionSelection } from '@/composable/transaction-selection';
-import { useBulkUpdateCategory } from '@/composable/use-bulk-update-category';
+import { useBulkTransactionActions } from '@/composable/use-bulk-transaction-actions';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
-import { useAccountsStore } from '@/stores';
 import { TransactionModel } from '@bt/shared/types';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { createReusableTemplate } from '@vueuse/core';
-import { storeToRefs } from 'pinia';
 import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { SCROLL_AREA_IDS } from '../lib/ui/scroll-area/types';
-import AddToGroupDialog from './add-to-group-dialog.vue';
-import BulkEditDialog, { type BulkEditFormValues } from './bulk-edit-dialog.vue';
+import BulkActionDialogs from './bulk-action-dialogs.vue';
 import BulkEditToolbar from './bulk-edit-toolbar.vue';
-import CreateGroupDialog from './create-group-dialog.vue';
+import TransactionDetailsModal from './transaction-details-modal.vue';
 import TransactionGroupRecord, { type GroupRowData } from './transaction-group-record.vue';
 import TransactionRecord from './transaction-record.vue';
 import { useManageTransactionDialog } from './use-manage-transaction-dialog';
@@ -57,7 +51,6 @@ const props = withDefaults(
   },
 );
 const emits = defineEmits(['fetch-next-page']);
-const [UseDialogTemplate, SlotContent] = createReusableTemplate();
 const [DefineRowTemplate, UseRowTemplate] = createReusableTemplate<{
   item: TransactionModel | GroupRowData;
   index: number;
@@ -89,72 +82,26 @@ watch(listContainerRef, (el) => {
   }
 });
 
-// Bulk edit selection
-const { accountsRecord } = storeToRefs(useAccountsStore());
-
-// Lock out bulk-selection of transactions on accounts shared *with* the caller —
-// the bulk-update endpoint isn't share-aware yet (filters by `userId`), so any
-// inclusion silently no-ops and surfaces a confusing "0 transactions updated"
-// toast. Owner-side shares (`share.isOwner === true`) stay bulk-editable.
-const isBulkSelectable = (tx: TransactionModel) => {
-  const share = accountsRecord.value[tx.accountId]?.share;
-  return !share || share.isOwner;
-};
-
+// Selection, eligibility, bulk mutations and dialog state — shared with the table view.
+const bulkActions = useBulkTransactionActions({
+  getTransactions: () => displayTransactions.value.filter((item): item is TransactionModel => !isGroupRow(item)),
+});
 const {
   selectedCount,
   isAllSelected,
   isTransactionSelectable,
   isTransactionSelected,
   toggleTransaction,
-  selectAll,
   clearSelection,
-  getSelectedTransactionIds,
-} = useTransactionSelection({
-  getTransactions: () => displayTransactions.value.filter((item): item is TransactionModel => !isGroupRow(item)),
-  isExtraSelectable: isBulkSelectable,
-});
-
-const handleSelectAllToggle = (checked: boolean) => {
-  if (checked) {
-    selectAll();
-  } else {
-    clearSelection();
-  }
-};
-
-const bulkUpdateMutation = useBulkUpdateCategory({
-  onSuccess: () => {
-    clearSelection();
-    isBulkEditDialogOpen.value = false;
-  },
-});
-
-const isBulkEditDialogOpen = ref(false);
-const isCreateGroupDialogOpen = ref(false);
-
-const handleOpenBulkEditDialog = () => {
-  isBulkEditDialogOpen.value = true;
-};
-
-const handleOpenCreateGroupDialog = () => {
-  isCreateGroupDialogOpen.value = true;
-};
-
-const handleGroupCreated = () => {
-  clearSelection();
-};
-
-// Add to existing group
-const isAddToGroupDialogOpen = ref(false);
-
-const handleOpenAddToGroupDialog = () => {
-  isAddToGroupDialogOpen.value = true;
-};
-
-const handleAddedToGroup = () => {
-  clearSelection();
-};
+  getUnselectableReason,
+  hasExternalSelected,
+  handleSelectAllToggle,
+  isBulkEditDialogOpen,
+  isCreateGroupDialogOpen,
+  isAddToGroupDialogOpen,
+  isBulkDeleteDialogOpen,
+  isBulkLoading,
+} = bulkActions;
 
 // Group detail dialog
 const isGroupDialogOpen = ref(false);
@@ -165,18 +112,6 @@ const handleGroupRowClick = (groupId: string) => {
   groupDialogId.value = groupId;
   groupDialogKey.value++;
   isGroupDialogOpen.value = true;
-};
-
-const handleBulkApply = (values: BulkEditFormValues) => {
-  const transactionIds = getSelectedTransactionIds();
-
-  bulkUpdateMutation.mutate({
-    transactionIds,
-    ...(values.categoryId !== undefined && { categoryId: values.categoryId }),
-    ...(values.tagIds !== undefined && { tagIds: values.tagIds, tagMode: values.tagMode }),
-    ...(values.note !== undefined && { note: values.note }),
-    ...(values.payeeId !== undefined && { payeeId: values.payeeId }),
-  });
 };
 
 const virtualizer = useVirtualizer(
@@ -217,35 +152,18 @@ watchEffect(() => {
       v-if="enableBulkEdit && displayTransactions.length > 0"
       :selected-count="selectedCount"
       :is-all-selected="isAllSelected"
-      :is-loading="bulkUpdateMutation.isPending.value"
+      :is-loading="isBulkLoading"
+      :has-external-selected="hasExternalSelected"
       @cancel="clearSelection"
-      @edit="handleOpenBulkEditDialog"
-      @create-group="handleOpenCreateGroupDialog"
-      @add-to-group="handleOpenAddToGroupDialog"
+      @edit="isBulkEditDialogOpen = true"
+      @delete="isBulkDeleteDialogOpen = true"
+      @create-group="isCreateGroupDialogOpen = true"
+      @add-to-group="isAddToGroupDialogOpen = true"
       @select-all="handleSelectAllToggle"
     />
 
-    <!-- Bulk edit dialog -->
-    <BulkEditDialog
-      v-model:open="isBulkEditDialogOpen"
-      :selected-count="selectedCount"
-      :is-loading="bulkUpdateMutation.isPending.value"
-      @apply="handleBulkApply"
-    />
-
-    <!-- Create group dialog -->
-    <CreateGroupDialog
-      v-model:open="isCreateGroupDialogOpen"
-      :transaction-ids="getSelectedTransactionIds()"
-      @created="handleGroupCreated"
-    />
-
-    <!-- Add to existing group dialog -->
-    <AddToGroupDialog
-      v-model:open="isAddToGroupDialogOpen"
-      :transaction-ids="getSelectedTransactionIds()"
-      @added="handleAddedToGroup"
-    />
+    <!-- Bulk edit / group / delete dialogs -->
+    <BulkActionDialogs :actions="bulkActions" />
 
     <!-- Reusable row template: renders a group row or a transaction row with leading/trailing slots -->
     <DefineRowTemplate v-slot="{ item, index }">
@@ -259,6 +177,7 @@ watchEffect(() => {
             :show-checkbox="enableBulkEdit"
             :is-selected="isTransactionSelected((item as TransactionModel).id)"
             :is-selectable="isTransactionSelectable(item as TransactionModel)"
+            :unselectable-reason="getUnselectableReason(item as TransactionModel)"
             :index="index"
             @record-click="handleRecordClick"
             @selection-change="toggleTransaction"
@@ -312,35 +231,9 @@ watchEffect(() => {
       </div>
     </template>
 
-    <UseDialogTemplate>
+    <TransactionDetailsModal v-model:open="isDialogVisible" :mobile="isMobile" :is-compact="isCompactDialog">
       <ManageTransactionDialogContent v-bind="dialogProps" @close-modal="closeDialog" />
-    </UseDialogTemplate>
-
-    <template v-if="isMobile">
-      <Drawer.Drawer v-model:open="isDialogVisible">
-        <Drawer.DrawerContent custom-indicator>
-          <Drawer.DrawerTitle class="sr-only">{{ t('transactions.list.detailsTitle') }}</Drawer.DrawerTitle>
-          <Drawer.DrawerDescription class="sr-only">{{
-            t('transactions.list.detailsDescription')
-          }}</Drawer.DrawerDescription>
-          <SlotContent />
-        </Drawer.DrawerContent>
-      </Drawer.Drawer>
-    </template>
-    <template v-else>
-      <Dialog.Dialog v-model:open="isDialogVisible">
-        <Dialog.DialogContent
-          custom-close
-          :class="['bg-card max-h-[90dvh] w-full p-0', isCompactDialog ? 'max-w-lg' : 'max-w-225']"
-        >
-          <Dialog.DialogTitle class="sr-only">{{ t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
-          <Dialog.DialogDescription class="sr-only">{{
-            t('transactions.list.detailsDescription')
-          }}</Dialog.DialogDescription>
-          <SlotContent />
-        </Dialog.DialogContent>
-      </Dialog.Dialog>
-    </template>
+    </TransactionDetailsModal>
 
     <!-- Group detail dialog -->
     <TransactionGroupDialog v-model:open="isGroupDialogOpen" :key="groupDialogKey" :group-id="groupDialogId" />

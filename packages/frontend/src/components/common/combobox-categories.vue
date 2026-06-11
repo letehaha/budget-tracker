@@ -1,7 +1,7 @@
 <template>
   <Popover.Popover v-model:open="isOpen">
     <Popover.PopoverTrigger
-      class="border-input bg-background ring-offset-background focus-visible:ring-ring flex w-full items-center gap-2 overflow-hidden rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center gap-2 overflow-hidden rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <span

@@ -117,6 +117,29 @@ const ZodSidebarSectionsSchema = z.object({
   vehicles: z.boolean().default(true),
 });
 
+// Column ids are plain strings (not an enum) on purpose: the column set is a
+// frontend concern and may grow without a backend deploy. Unknown ids are
+// dropped client-side on read, so stale entries are harmless.
+const ZodTransactionsTableSettingsSchema = z.object({
+  /** Ordered list of column ids the user wants visible. */
+  visibleColumns: z.array(z.string()).default([]),
+  /** Full column order (visible + hidden) used by the column-config UI. */
+  columnOrder: z.array(z.string()).default([]),
+  /** Preferred transactions view on narrow screens: compact list or the full table. */
+  mobileView: z.enum(['list', 'table']).optional(),
+  /**
+   * Optional filters the user added to the transactions filter bar (besides the
+   * always-visible ones). Plain strings for the same reason as column ids.
+   */
+  extraFilters: z.array(z.string()).optional(),
+});
+
+// UI-state preferences (table layouts, view modes). Functional settings keep
+// their own top-level keys; this namespace is only for presentation state.
+const ZodUiSettingsSchema = z.object({
+  transactionsTable: ZodTransactionsTableSettingsSchema.optional(),
+});
+
 export const ZodSettingsSchema = z.object({
   locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN]).default(SUPPORTED_LOCALES.ENGLISH),
   ai: ZodAiSettingsSchema.optional(),
@@ -125,6 +148,7 @@ export const ZodSettingsSchema = z.object({
   dashboard: ZodDashboardSettingsSchema.optional(),
   includeCreditLimitInStats: z.boolean().optional(),
   sidebarSections: ZodSidebarSectionsSchema.optional(),
+  ui: ZodUiSettingsSchema.optional(),
   // When true, both the inline sync-time Payee extraction and the post-sync
   // note fuzzy backfill fall back to the transaction description/note if the
   // provider's dedicated merchant field is empty. Off by default — Monobank's
@@ -135,6 +159,97 @@ export const ZodSettingsSchema = z.object({
 
 // Infer the TypeScript type from the Zod schema
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
+
+/**
+ * Schema for the partial settings update (PATCH). Mirrors `ZodSettingsSchema`
+ * but with every field optional and **no defaults** – a `.default([])` would be
+ * injected for absent keys on parse and the deep-merge would then clobber
+ * stored arrays with empty ones (zod's `.partial()` does not stop default
+ * injection, so the full schema cannot be reused here). Same approach as
+ * `ZodOnboardingStateUpdateSchema`. `onboarding` is intentionally absent – it
+ * has its own endpoint.
+ *
+ * Arrays stay non-partial: the merge replaces them wholesale, so a patched
+ * array is always the full desired list.
+ */
+export const ZodSettingsPatchSchema = z.object({
+  locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN]).optional(),
+  ai: z
+    .object({
+      apiKeys: z.array(ZodAiApiKeySchema).optional(),
+      defaultProvider: z.enum(AI_PROVIDER).optional(),
+      featureConfigs: z.array(ZodAiFeatureConfigSchema).optional(),
+      customInstructions: z.string().max(AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH).optional(),
+    })
+    .optional(),
+  notifications: z
+    .object({
+      enabled: z.boolean().optional(),
+      types: z
+        .object({
+          [NOTIFICATION_TYPES.budgetAlert]: z.boolean().optional(),
+          [NOTIFICATION_TYPES.system]: z.boolean().optional(),
+          [NOTIFICATION_TYPES.changelog]: z.boolean().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  dashboard: z
+    .object({
+      widgets: z.array(ZodDashboardWidgetSchema).optional(),
+    })
+    .optional(),
+  includeCreditLimitInStats: z.boolean().optional(),
+  sidebarSections: z
+    .object({
+      portfolios: z.boolean().optional(),
+      ventures: z.boolean().optional(),
+      vehicles: z.boolean().optional(),
+    })
+    .optional(),
+  ui: z
+    .object({
+      transactionsTable: z
+        .object({
+          visibleColumns: z.array(z.string()).optional(),
+          columnOrder: z.array(z.string()).optional(),
+          mobileView: z.enum(['list', 'table']).optional(),
+          extraFilters: z.array(z.string()).optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  payeeExtractionUsesDescription: z.boolean().optional(),
+});
+
+export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;
+
+/** Arrays stay non-partial – the PATCH merge replaces them wholesale. The
+ * `NonNullable` keeps recursion working for optional properties. */
+type DeepPartial<T> = {
+  [K in keyof T]?: NonNullable<T[K]> extends (infer U)[]
+    ? U[]
+    : NonNullable<T[K]> extends object
+      ? DeepPartial<NonNullable<T[K]>>
+      : T[K];
+};
+
+type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type Expect<T extends true> = T;
+
+/**
+ * Compile-time drift guard: `ZodSettingsPatchSchema` must infer exactly the
+ * deep-partial of the full settings schema (minus `onboarding`). When a field
+ * is added to `ZodSettingsSchema` but not mirrored in the patch schema, this
+ * line becomes a type error – without it the PATCH endpoint would silently
+ * strip the new key from incoming patches.
+ *
+ * @public exported only so the assertion isn't flagged as unused – nothing
+ * should import it.
+ */
+export type SettingsPatchSchemaIsInSync = Expect<
+  Equals<SettingsPatchSchema, DeepPartial<Omit<SettingsSchema, 'onboarding'>>>
+>;
 
 export const DEFAULT_SETTINGS: SettingsSchema = {
   locale: SUPPORTED_LOCALES.ENGLISH,

@@ -25,6 +25,12 @@
       @update:transfer-filter="$emit('update:filters', { ...filters, transferFilter: $event })"
     />
 
+    <TransferNatureFilter
+      :transfer-natures="filters.transferNatures"
+      :transfer-filter="filters.transferFilter"
+      @update:transfer-natures="$emit('update:filters', { ...filters, transferNatures: $event })"
+    />
+
     <NoteIncludesFilter
       :note-includes="filters.noteIncludes"
       @update:note-includes="$emit('update:filters', { ...filters, noteIncludes: $event })"
@@ -80,6 +86,7 @@ import NoteIncludesFilter from './filters/note-includes.vue';
 import PayeeFilter from './filters/payee-filter.vue';
 import TagFilter from './filters/tag-filter.vue';
 import TransactionTypeFilter from './filters/transaction-type-filter.vue';
+import TransferNatureFilter from './filters/transfer-nature-filter.vue';
 
 defineProps<{
   filters: FiltersStruct;

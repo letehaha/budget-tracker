@@ -1,7 +1,7 @@
 {
   "transactions": {
     "filters": {
-      "filtersLabel": "Filters:",
+      "filtersLabel": "Filters",
       "selectFilters": "Select filters",
       "reset": "Reset",
       "apply": "Apply",
@@ -10,7 +10,7 @@
           "range": "Range",
           "single": "Single"
         },
-        "selectDateOrRange": "Select date or range",
+        "placeholder": "Date or range",
         "fromDate": "From date",
         "toDate": "To date",
         "clear": "Clear",
@@ -25,13 +25,16 @@
         "label": "Transaction type:",
         "both": "Both",
         "income": "Income",
-        "expense": "Expense"
+        "expense": "Expense",
+        "allTypes": "All types"
       },
       "amountRange": {
         "from": "Amount from (gte)",
         "to": "To (lte)",
         "placeholderFrom": ">= than",
-        "placeholderTo": "<= than"
+        "placeholderTo": "<= than",
+        "compactFrom": "Min amount",
+        "compactTo": "Max amount"
       },
       "refundsFilter": {
         "label": "Refunds"
@@ -46,7 +49,8 @@
       },
       "noteIncludes": {
         "label": "Note includes (comma-separated):",
-        "placeholder": "Amazon,nike"
+        "placeholder": "Amazon,nike",
+        "compactPlaceholder": "Search in notes"
       },
       "tags": {
         "allTags": "All tags",
@@ -61,6 +65,22 @@
         "searchPlaceholder": "Search payees",
         "selectedOne": "1 Payee selected",
         "selectedMany": "{n} Payees selected"
+      },
+      "removeFilter": "Remove filter",
+      "menu": {
+        "type": "Type",
+        "tags": "Tags",
+        "amount": "Amount range",
+        "note": "Notes"
+      },
+      "transferNature": {
+        "label": "Transfer kinds",
+        "disabledTooltip": "Transfers are excluded by the filter above, so transfer kinds have no effect.",
+        "commonTransfer": "Between accounts",
+        "outOfWallet": "Out of wallet",
+        "toPortfolio": "To portfolio",
+        "toVenture": "To venture",
+        "selectedCount": "{n} selected"
       }
     },
     "list": {
@@ -71,6 +91,7 @@
     },
     "bulkEdit": {
       "selectAll": "Select all",
+      "cancelSelection": "Cancel selection",
       "editButton": "Edit",
       "selectedCount": "{count} selected",
       "dialogTitle": "Edit {count} transactions",
@@ -98,7 +119,11 @@
       "tagModeLabel": "Tag action",
       "tagModeAdd": "Add to existing tags",
       "tagModeReplace": "Replace all tags",
-      "tagModeRemove": "Remove these tags"
+      "tagModeRemove": "Remove these tags",
+      "unselectableReasons": {
+        "split": "Can't be selected: split transactions don't support bulk editing. Edit it individually instead.",
+        "sharedAccount": "Can't be selected: this transaction is on an account shared with you, and only its owner can edit it."
+      }
     },
     "transactionGroups": {
       "bulkActions": {
@@ -171,6 +196,57 @@
     "transfer": {
       "hiddenAccount": "Hidden account"
     },
-    "addedByTooltip": "This transaction was attached to the budget by {handle}"
+    "addedByTooltip": "This transaction was attached to the budget by {handle}",
+    "table": {
+      "columns": {
+        "date": "Date",
+        "account": "Account",
+        "category": "Category",
+        "payee": "Payee",
+        "amount": "Amount",
+        "refAmount": "Base amount",
+        "note": "Note",
+        "tags": "Tags",
+        "categorizationSource": "Categorized by",
+        "group": "Group",
+        "refund": "Refund",
+        "split": "Split"
+      },
+      "outOfWallet": "Out of wallet",
+      "hint": "Click a row to view details. Select rows to bulk edit.",
+      "emptyTitle": "No transactions match these filters",
+      "emptyDescription": "Try adjusting or resetting the filters.",
+      "columnConfig": {
+        "title": "Table settings",
+        "columns": "Columns",
+        "visibleCount": "{count} visible",
+        "resetDefaults": "Reset to defaults"
+      },
+      "categorizationSourceValues": {
+        "manual": "Manual",
+        "ai": "AI",
+        "mcc_rule": "MCC rule",
+        "user_rule": "User rule",
+        "subscription_rule": "Subscription rule",
+        "payee_rule": "Payee rule"
+      },
+      "viewToggle": {
+        "list": "List view",
+        "table": "Table view"
+      },
+      "fullscreen": {
+        "enter": "Focus mode",
+        "exit": "Exit focus mode"
+      }
+    },
+    "bulkDelete": {
+      "button": "Delete",
+      "externalTooltip": "Selection contains bank-synced transactions, which cannot be deleted.",
+      "confirmButton": "Delete",
+      "confirmTitle": "Delete {count} transactions?",
+      "confirmDescription": "This action cannot be undone. Transfers will have both sides removed.",
+      "successMessage": "{count} transactions deleted",
+      "unexpectedError": "Failed to delete transactions. Please try again."
+    }
   }
 }

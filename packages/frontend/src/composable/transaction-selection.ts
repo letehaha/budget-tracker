@@ -1,7 +1,43 @@
+import { useAccountsStore } from '@/stores';
 import { TransactionModel } from '@bt/shared/types';
+import { storeToRefs } from 'pinia';
 import { computed, ref, triggerRef } from 'vue';
 
 import { useShiftMultiSelect } from './shift-multi-select';
+
+/**
+ * Why a row is locked out of bulk selection. Consumers compute it per row
+ * (mirroring `isTransactionSelectable` + their `isExtraSelectable` predicate)
+ * and rows render it as an explainer tooltip in place of the checkbox.
+ */
+export type BulkUnselectableReason = 'split' | 'sharedAccount';
+
+/**
+ * Per-row bulk-selection eligibility shared by the transactions list and table.
+ *
+ * Transactions on accounts shared *with* the caller are locked out — the bulk
+ * endpoints filter by `userId`, so including them silently no-ops and surfaces
+ * a confusing "0 transactions updated" toast. Owner-side shares
+ * (`share.isOwner === true`) stay bulk-editable.
+ */
+export function useBulkSelectability() {
+  const { accountsRecord } = storeToRefs(useAccountsStore());
+
+  const isBulkSelectable = (tx: TransactionModel) => {
+    const share = accountsRecord.value[tx.accountId]?.share;
+    return !share || share.isOwner;
+  };
+
+  // Mirrors isTransactionSelectable (split rule) + isBulkSelectable, but says why —
+  // rows surface it as a tooltip in place of the checkbox.
+  const getUnselectableReason = (tx: TransactionModel): BulkUnselectableReason | null => {
+    if (tx.splits && tx.splits.length > 0) return 'split';
+    if (!isBulkSelectable(tx)) return 'sharedAccount';
+    return null;
+  };
+
+  return { isBulkSelectable, getUnselectableReason };
+}
 
 interface UseTransactionSelectionOptions {
   getTransactions: () => TransactionModel[];

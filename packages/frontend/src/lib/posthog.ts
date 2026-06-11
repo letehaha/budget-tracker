@@ -40,6 +40,11 @@ type AnalyticsEvent =
   | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }
   | { event: 'ai_settings_visited' }
   | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } }
+  // Transactions filter bar (which filters people actually use — informs which
+  // ones to pin or rank higher in the "+ add filter" menu)
+  | { event: 'transactions_filter_added'; properties: { filter: string } }
+  | { event: 'transactions_filter_removed'; properties: { filter: string } }
+  | { event: 'transactions_filter_used'; properties: { filter: string } }
   // Dashboard customization
   | { event: 'dashboard_edit_opened' }
   | { event: 'dashboard_layout_saved'; properties: { widget_count: number } }

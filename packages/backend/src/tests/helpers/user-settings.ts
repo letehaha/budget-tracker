@@ -1,5 +1,6 @@
 import { AI_PROVIDER, WipeDataSharedResources } from '@bt/shared/types';
 import { getUserSettings as apiGetUserSettings } from '@root/services/user-settings/get-user-settings';
+import { patchUserSettings as apiPatchUserSettings } from '@root/services/user-settings/patch-settings';
 import { updateUserSettings as apiUpdateUserSettings } from '@root/services/user-settings/update-settings';
 
 import { CustomResponse, makeRequest } from './common';
@@ -22,6 +23,21 @@ export async function updateUserSettings<R extends boolean | undefined = undefin
     method: 'put',
     url: '/user/settings',
     payload: payload.settings,
+    raw,
+  });
+}
+
+export async function patchUserSettings<R extends boolean | undefined = undefined>({
+  raw,
+  patch,
+}: {
+  patch: Record<string, unknown>;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiPatchUserSettings>>, R>({
+    method: 'patch',
+    url: '/user/settings',
+    payload: patch,
     raw,
   });
 }

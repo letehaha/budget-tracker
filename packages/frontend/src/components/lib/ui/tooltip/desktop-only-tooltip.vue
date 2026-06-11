@@ -4,7 +4,8 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '.';
 
 const props = defineProps<{
-  content: string;
+  /** Plain-text tooltip body; ignored when the `content` slot is provided. */
+  content?: string;
   contentClassName?: string;
   disabled?: boolean;
   side?: 'top' | 'right' | 'bottom' | 'left';
@@ -37,7 +38,7 @@ onUnmounted(() => {
         <slot />
       </TooltipTrigger>
       <TooltipContent :class="contentClassName" :side="props.side">
-        {{ content }}
+        <slot name="content">{{ content }}</slot>
       </TooltipContent>
     </Tooltip>
   </TooltipProvider>

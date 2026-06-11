@@ -1,7 +1,7 @@
 {
   "transactions": {
     "filters": {
-      "filtersLabel": "Фільтри:",
+      "filtersLabel": "Фільтри",
       "selectFilters": "Вибрати фільтри",
       "reset": "Скинути",
       "apply": "Застосувати",
@@ -10,7 +10,7 @@
           "range": "Діапазон",
           "single": "Дати окремо"
         },
-        "selectDateOrRange": "Виберіть дату або діапазон",
+        "placeholder": "Дата або діапазон",
         "fromDate": "Від дати",
         "toDate": "До дати",
         "clear": "Очистити",
@@ -25,13 +25,16 @@
         "label": "Тип транзакції:",
         "both": "Всі",
         "income": "Доходи",
-        "expense": "Витрати"
+        "expense": "Витрати",
+        "allTypes": "Всі типи"
       },
       "amountRange": {
         "from": "Сума від (включно)",
         "to": "Сума до (включно)",
         "placeholderFrom": ">= ніж",
-        "placeholderTo": "<= ніж"
+        "placeholderTo": "<= ніж",
+        "compactFrom": "Мін. сума",
+        "compactTo": "Макс. сума"
       },
       "refundsFilter": {
         "label": "Повернення"
@@ -46,7 +49,8 @@
       },
       "noteIncludes": {
         "label": "Примітка містить (через кому):",
-        "placeholder": "Amazon,nike"
+        "placeholder": "Amazon,nike",
+        "compactPlaceholder": "Пошук у примітках"
       },
       "tags": {
         "allTags": "Усі теги",
@@ -61,6 +65,22 @@
         "searchPlaceholder": "Пошук отримувачів",
         "selectedOne": "1 Платник вибраний",
         "selectedMany": "{n} Платників вибрано"
+      },
+      "removeFilter": "Видалити фільтр",
+      "menu": {
+        "type": "Тип",
+        "tags": "Теги",
+        "amount": "Діапазон суми",
+        "note": "Нотатки"
+      },
+      "transferNature": {
+        "label": "Види переказів",
+        "disabledTooltip": "Перекази виключені фільтром вище, тому види переказів не мають ефекту.",
+        "commonTransfer": "Між рахунками",
+        "outOfWallet": "Зі гаманця",
+        "toPortfolio": "До портфоліо",
+        "toVenture": "До венчурного проекту",
+        "selectedCount": "Вибрано: {n}"
       }
     },
     "list": {
@@ -71,6 +91,7 @@
     },
     "bulkEdit": {
       "selectAll": "Вибрати всі",
+      "cancelSelection": "Скасувати вибір",
       "editButton": "Редагувати",
       "selectedCount": "Вибрано: {count}",
       "dialogTitle": "Редагувати {count} транзакцій",
@@ -98,7 +119,11 @@
       "tagModeLabel": "Дія з тегами",
       "tagModeAdd": "Додати до існуючих тегів",
       "tagModeReplace": "Замінити всі теги",
-      "tagModeRemove": "Видалити ці теги"
+      "tagModeRemove": "Видалити ці теги",
+      "unselectableReasons": {
+        "split": "Неможливо вибрати: розділені транзакції не підтримують масове редагування. Відредагуйте її окремо.",
+        "sharedAccount": "Неможливо вибрати: ця транзакція належить до рахунку, яким поділились з вами, і лише його власник може її редагувати."
+      }
     },
     "transactionGroups": {
       "bulkActions": {
@@ -171,6 +196,57 @@
     "transfer": {
       "hiddenAccount": "Прихований рахунок"
     },
-    "addedByTooltip": "Цю транзакцію додав до бюджету {handle}"
+    "addedByTooltip": "Цю транзакцію додав до бюджету {handle}",
+    "table": {
+      "columns": {
+        "date": "Дата",
+        "account": "Рахунок",
+        "category": "Категорія",
+        "payee": "Контрагент",
+        "amount": "Сума",
+        "refAmount": "Базова сума",
+        "note": "Примітка",
+        "tags": "Теги",
+        "categorizationSource": "Категоризовано",
+        "group": "Група",
+        "refund": "Повернення",
+        "split": "Розділ"
+      },
+      "outOfWallet": "Зі гаманця",
+      "hint": "Клацніть на рядок для перегляду деталей. Виберіть рядки для масового редагування.",
+      "emptyTitle": "Немає транзакцій, які відповідають цим фільтрам",
+      "emptyDescription": "Спробуйте налаштувати або скинути фільтри.",
+      "columnConfig": {
+        "title": "Параметри таблиці",
+        "columns": "Стовпці",
+        "visibleCount": "{count} видимо",
+        "resetDefaults": "Скинути за замовчуванням"
+      },
+      "categorizationSourceValues": {
+        "manual": "Вручну",
+        "ai": "ШІ",
+        "mcc_rule": "MCC правило",
+        "user_rule": "Користувацьке правило",
+        "subscription_rule": "Правило передплати",
+        "payee_rule": "Правило контрагента"
+      },
+      "viewToggle": {
+        "list": "Вигляд списком",
+        "table": "Вигляд таблицею"
+      },
+      "fullscreen": {
+        "enter": "Режим фокусу",
+        "exit": "Вийти з режиму фокусу"
+      }
+    },
+    "bulkDelete": {
+      "button": "Видалити",
+      "externalTooltip": "Вибір містить синхронізовані банком транзакції, які неможливо видалити.",
+      "confirmButton": "Видалити",
+      "confirmTitle": "Видалити {count} транзакцій?",
+      "confirmDescription": "Цю дію неможливо скасувати. Обидві сторони переказів буде видалено.",
+      "successMessage": "{count} транзакцій видалено",
+      "unexpectedError": "Не вдалося видалити транзакції. Спробуйте ще раз."
+    }
   }
 }

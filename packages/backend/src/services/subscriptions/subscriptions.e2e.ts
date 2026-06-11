@@ -1,6 +1,7 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { subMonths } from 'date-fns';
 
 describe('Subscriptions', () => {
   describe('CRUD', () => {
@@ -372,13 +373,17 @@ describe('Subscriptions', () => {
     it('suggests transactions matching rules', async () => {
       const account = await helpers.createAccount({ raw: true });
 
+      // Use a relative date so the test stays within the suggester's 12-month
+      // history window regardless of when CI runs
+      const recentTime = subMonths(new Date(), 6).toISOString();
+
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 1500,
           note: 'NETFLIX subscription',
           transactionType: TRANSACTION_TYPES.expense,
-          time: '2025-06-10T10:00:00Z',
+          time: recentTime,
         }),
         raw: true,
       });
@@ -389,7 +394,7 @@ describe('Subscriptions', () => {
           amount: 2000,
           note: 'Grocery store',
           transactionType: TRANSACTION_TYPES.expense,
-          time: '2025-06-11T10:00:00Z',
+          time: recentTime,
         }),
         raw: true,
       });
@@ -420,13 +425,16 @@ describe('Subscriptions', () => {
 
       // Transaction: $9.99 equivalent in UAH = ~413.89 UAH
       const uahAmount = Math.round(999 * UAH_PER_USD) / 100; // Convert USD cents to UAH decimal
+      // Use a relative date so the test stays within the suggester's 12-month
+      // history window regardless of when CI runs
+      const recentTime = subMonths(new Date(), 6).toISOString();
       const [tx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: uahAmount,
           note: 'APPLE.COM/BILL',
           transactionType: TRANSACTION_TYPES.expense,
-          time: '2025-06-10T10:00:00Z',
+          time: recentTime,
         }),
         raw: true,
       });

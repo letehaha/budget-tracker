@@ -1,15 +1,15 @@
 <template>
-  <div class="flex items-center justify-between">
-    <p class="max-xs:hidden mr-3">{{ t('transactions.filters.filtersLabel') }}</p>
-
+  <div class="flex items-center justify-end">
     <ResponsiveDialog :open="open" @update:open="$emit('update:open', $event)">
       <template #trigger>
-        <UiButton variant="ghost" size="icon" class="ml-auto">
+        <UiButton variant="secondary">
+          {{ t('transactions.filters.filtersLabel') }}
+
           <div class="relative">
-            <ListFilterIcon />
+            <ListFilterIcon class="size-4" />
 
             <template v-if="isAnyFiltersApplied">
-              <div class="bg-primary absolute -top-1 -right-1 size-3 rounded-full" />
+              <div class="bg-primary absolute -top-1 -right-1 size-2.5 rounded-full" />
             </template>
           </div>
         </UiButton>
@@ -17,9 +17,7 @@
 
       <template #title>{{ t('transactions.filters.selectFilters') }}</template>
 
-      <div class="max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)_auto] sm:max-w-md">
-        <slot />
-      </div>
+      <slot />
     </ResponsiveDialog>
   </div>
 </template>

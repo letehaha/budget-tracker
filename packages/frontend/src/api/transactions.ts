@@ -5,6 +5,7 @@ import {
   ACCOUNT_TYPES,
   FILTER_OPERATION,
   SORT_DIRECTIONS,
+  TRANSACTION_SORT_FIELD,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types/enums';
@@ -37,12 +38,15 @@ export const loadTransactions = async (params: {
   excludedTagIds?: string[];
   payeeIds?: string[];
   categorizationSource?: string;
-  sort?: SORT_DIRECTIONS;
+  order?: SORT_DIRECTIONS;
+  sortBy?: TRANSACTION_SORT_FIELD;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
   excludeAccountIds?: string[];
   transferFilter?: FILTER_OPERATION;
   refundFilter?: FILTER_OPERATION;
+  /** Exact set of transferNature values to include. Supersedes transferFilter backend-side. */
+  transferNatures?: TRANSACTION_TRANSFER_NATURE[];
   startDate?: string;
   endDate?: string;
   amountLte?: number;
@@ -105,6 +109,12 @@ export const bulkUpdateTransactions = async (
   payload: endpointsTypes.BulkUpdateTransactionsBody,
 ): Promise<endpointsTypes.BulkUpdateTransactionsResponse> => {
   return api.put('/transactions/bulk', payload);
+};
+
+export const bulkDeleteTransactions = async (
+  payload: endpointsTypes.BulkDeleteTransactionsBody,
+): Promise<endpointsTypes.BulkDeleteTransactionsResponse> => {
+  return api.post('/transactions/bulk-delete', payload);
 };
 
 export const loadRefundRecommendations = async (

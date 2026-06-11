@@ -32,6 +32,16 @@ test.describe('Transaction Groups', () => {
     ignoreHTTPSErrors: true,
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
+    // The viewport must satisfy two constraints at once:
+    // 1. Window width above the `uiMobile` breakpoint (767px) so the app stays in
+    //    desktop UI mode — ResponsiveAlertDialog renders a real `role="alertdialog"`
+    //    (mobile mode swaps it for a Drawer with `role="dialog"`, breaking the
+    //    `getByRole('alertdialog')` assertions in the delete/remove tests).
+    // 2. /transactions content width below 672px so the page stays in the compact
+    //    list view, which renders group rows inline as `.border-dashed` items;
+    //    the wider table view flattens groups by design. The desktop sidebar
+    //    (300px) eats enough width: 900 − 300 ≈ 600px of content.
+    viewport: { width: 900, height: 900 },
   });
 
   test.beforeEach(async ({ page }) => {

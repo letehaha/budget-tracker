@@ -252,3 +252,24 @@ export function bulkUpdateTransactions<R extends boolean | undefined = undefined
     raw,
   });
 }
+
+// Bulk delete helpers
+interface BulkDeleteResult {
+  deletedCount: number;
+  deletedIds: string[];
+}
+
+export function bulkDeleteTransactions<R extends boolean | undefined = undefined>({
+  payload,
+  raw,
+}: {
+  payload: { transactionIds: string[] };
+  raw?: R;
+}) {
+  return makeRequest<BulkDeleteResult, R>({
+    method: 'post',
+    url: '/transactions/bulk-delete',
+    payload,
+    raw,
+  });
+}

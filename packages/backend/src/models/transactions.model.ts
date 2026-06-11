@@ -7,6 +7,7 @@ import {
   PAYMENT_TYPES,
   RecordId,
   SORT_DIRECTIONS,
+  TRANSACTION_SORT_FIELD,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionCreatorSnapshot,
@@ -31,7 +32,7 @@ import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
 import Users from '@models/users.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
-import { Op, Includeable, WhereOptions, literal } from 'sequelize';
+import { Op, Includeable, Order, WhereOptions, literal } from 'sequelize';
 import {
   Table,
   BeforeCreate,
@@ -569,6 +570,45 @@ function buildTransferCondition(filter: FILTER_OPERATION | undefined): Record<st
   return null;
 }
 
+/**
+ * Builds the ORDER BY clause for `findWithFilters`. Name-based sorts resolve the
+ * related record's name via a correlated subquery instead of a JOIN so the result
+ * shape stays identical regardless of sort field. `NULLS LAST` keeps rows without
+ * the related record (e.g. no payee assigned) at the bottom in both directions.
+ * `time` + `id` act as stable tie-breakers so pagination never duplicates rows.
+ */
+function buildOrderClause({
+  sortBy,
+  order,
+}: {
+  sortBy: TRANSACTION_SORT_FIELD | undefined;
+  order: SORT_DIRECTIONS;
+}): Order {
+  if (!sortBy || sortBy === TRANSACTION_SORT_FIELD.time) {
+    return [
+      ['time', order],
+      ['id', order],
+    ];
+  }
+
+  const sortExpressions: Record<Exclude<TRANSACTION_SORT_FIELD, TRANSACTION_SORT_FIELD.time>, string> = {
+    [TRANSACTION_SORT_FIELD.refAmount]: '"Transactions"."refAmount"',
+    [TRANSACTION_SORT_FIELD.accountName]:
+      '(SELECT "name" FROM "Accounts" WHERE "Accounts"."id" = "Transactions"."accountId")',
+    [TRANSACTION_SORT_FIELD.categoryName]:
+      '(SELECT "name" FROM "Categories" WHERE "Categories"."id" = "Transactions"."categoryId")',
+    [TRANSACTION_SORT_FIELD.payeeName]: '(SELECT "name" FROM "Payees" WHERE "Payees"."id" = "Transactions"."payeeId")',
+    [TRANSACTION_SORT_FIELD.categorizationSource]: `("Transactions"."categorizationMeta"->>'source')`,
+  };
+
+  // `order` is a validated SORT_DIRECTIONS enum value ('ASC'/'DESC') — safe to interpolate.
+  return [
+    literal(`${sortExpressions[sortBy]} ${order} NULLS LAST`),
+    ['time', SORT_DIRECTIONS.desc],
+    ['id', SORT_DIRECTIONS.desc],
+  ];
+}
+
 function buildRefundCondition(filter: FILTER_OPERATION | undefined): Record<string, unknown> | null {
   if (filter === FILTER_OPERATION.exclude) return { refundLinked: false };
   if (filter === FILTER_OPERATION.only) return { refundLinked: true };
@@ -587,6 +627,8 @@ export const findWithFilters = async ({
   excludedTagIds,
   userId,
   order = SORT_DIRECTIONS.desc,
+  sortBy,
+  transferNatures,
   transactionType,
   includeSplits,
   includeTags,
@@ -627,6 +669,14 @@ export const findWithFilters = async ({
    */
   userId?: number;
   order?: SORT_DIRECTIONS;
+  /** Sort field; defaults to `time`. Name-based fields sort via correlated subqueries. */
+  sortBy?: TRANSACTION_SORT_FIELD;
+  /**
+   * Exact set of transfer natures to include (e.g. `not_transfer` + selected transfer
+   * kinds). When present, supersedes `transferFilter`/`excludeTransfer` — the caller
+   * fully describes which natures it wants.
+   */
+  transferNatures?: TRANSACTION_TRANSFER_NATURE[];
   includeSplits?: boolean;
   includeTags?: boolean;
   includeGroups?: boolean;
@@ -657,7 +707,11 @@ export const findWithFilters = async ({
   const resolvedTransferFilter = transferFilter ?? (excludeTransfer ? FILTER_OPERATION.exclude : undefined);
   const resolvedRefundFilter = refundFilter ?? (excludeRefunds ? FILTER_OPERATION.exclude : undefined);
 
-  const transferCondition = buildTransferCondition(resolvedTransferFilter);
+  // An explicit nature list fully describes which transferNature values to include,
+  // so it replaces the coarse all/exclude/only condition.
+  const transferCondition = transferNatures?.length
+    ? { transferNature: { [Op.in]: transferNatures } }
+    : buildTransferCondition(resolvedTransferFilter);
   const refundCondition = buildRefundCondition(resolvedRefundFilter);
 
   const whereClause: WhereOptions<Transactions> = {
@@ -891,7 +945,7 @@ export const findWithFilters = async ({
     where: whereClause,
     offset: from,
     limit: Number.isFinite(limit) ? limit : undefined,
-    order: [['time', order]],
+    order: buildOrderClause({ sortBy, order }),
     raw: isRaw,
     // When raw is true and includeSplits/includeTags is requested, use nest to preserve nested structure
     nest: isRaw && (includeSplits || includeTags) ? true : undefined,

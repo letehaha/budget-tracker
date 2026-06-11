@@ -3,6 +3,8 @@ import {
   CATEGORIZATION_SOURCE,
   FILTER_OPERATION,
   SORT_DIRECTIONS,
+  TRANSACTION_SORT_FIELD,
+  TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
@@ -22,6 +24,14 @@ const schema = z.object({
   query: z
     .object({
       order: z.nativeEnum(SORT_DIRECTIONS).optional().default(SORT_DIRECTIONS.desc),
+      sortBy: z.nativeEnum(TRANSACTION_SORT_FIELD).optional(),
+      // Exact set of transferNature values to include. Supersedes transferFilter when present.
+      transferNatures: z
+        .preprocess(
+          (val) => (typeof val === 'string' ? parseCommaSeparatedStrings(val) : val),
+          z.array(z.nativeEnum(TRANSACTION_TRANSFER_NATURE)),
+        )
+        .optional(),
       limit: z.preprocess((val) => Number(val), z.number().int().positive()).optional(),
       from: z
         .preprocess((val) => Number(val), z.number().int().nonnegative())

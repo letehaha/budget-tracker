@@ -23,6 +23,7 @@ import {
 } from '@controllers/user-settings/ai-feature-settings';
 import getUserSettings from '@controllers/user-settings/get-settings';
 import { getOnboarding, updateOnboarding } from '@controllers/user-settings/onboarding';
+import patchUserSettings from '@controllers/user-settings/patch-settings';
 import updateUserSettings from '@controllers/user-settings/update-settings';
 import {
   deleteUser,
@@ -107,6 +108,7 @@ router.delete(
 
 router.get('/settings', authenticateSession, validateEndpoint(getUserSettings.schema), getUserSettings.handler);
 router.put('/settings', authenticateSession, validateEndpoint(updateUserSettings.schema), updateUserSettings.handler);
+router.patch('/settings', authenticateSession, validateEndpoint(patchUserSettings.schema), patchUserSettings.handler);
 
 // Onboarding (Quick Start)
 router.get('/settings/onboarding', authenticateSession, validateEndpoint(getOnboarding.schema), getOnboarding.handler);

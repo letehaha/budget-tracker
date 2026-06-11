@@ -1,24 +1,54 @@
 import { loadTransactions } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { DEFAULT_FILTERS, FiltersStruct } from '@/components/records-filters/const';
-import { FILTER_OPERATION } from '@bt/shared/types';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/vue-query';
+import { DEFAULT_FILTERS, FiltersStruct, SELECTABLE_TRANSFER_NATURES } from '@/components/records-filters/const';
+import {
+  FILTER_OPERATION,
+  SORT_DIRECTIONS,
+  TRANSACTION_SORT_FIELD,
+  TRANSACTION_TRANSFER_NATURE,
+} from '@bt/shared/types';
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/vue-query';
 import isDate from 'date-fns/isDate';
 import { isEqual, isNil, omitBy } from 'lodash-es';
-import { MaybeRef, computed, ref } from 'vue';
+import { MaybeRef, Ref, computed, ref } from 'vue';
 
 const filterOrUndefined = (value: FILTER_OPERATION) => (value === FILTER_OPERATION.all ? undefined : value);
+
+interface TransactionsSorting {
+  sortBy: TRANSACTION_SORT_FIELD;
+  order: SORT_DIRECTIONS;
+}
+
+/**
+ * Computes the `transferNatures` query param. Returns undefined when the user's
+ * selection doesn't narrow anything (all kinds selected, or transfers excluded
+ * entirely — the coarse transferFilter already handles that). Otherwise returns
+ * the exact include-list: selected transfer kinds plus `not_transfer`, unless
+ * the transfers toggle is "only" (then plain transactions are excluded too).
+ */
+export const buildTransferNaturesParam = (filter: FiltersStruct): TRANSACTION_TRANSFER_NATURE[] | undefined => {
+  const selected = filter.transferNatures;
+  const allSelected = SELECTABLE_TRANSFER_NATURES.every((nature) => selected.includes(nature));
+  if (allSelected || filter.transferFilter === FILTER_OPERATION.exclude) return undefined;
+
+  return filter.transferFilter === FILTER_OPERATION.only
+    ? selected
+    : [TRANSACTION_TRANSFER_NATURE.not_transfer, ...selected];
+};
 
 export const useTransactionsWithFilters = ({
   limit = 30,
   appendQueryKey = [],
   queryEnabled = true,
   staticFilters = {},
+  sorting,
 }: {
   limit?: number;
   appendQueryKey?: unknown[];
   queryEnabled?: MaybeRef<boolean>;
   staticFilters?: Partial<FiltersStruct>;
+  /** Backend-side sorting. When omitted, defaults to time DESC. */
+  sorting?: Ref<TransactionsSorting>;
 } = {}) => {
   const queryClient = useQueryClient();
   const defaultWithStatic = { ...DEFAULT_FILTERS, ...staticFilters };
@@ -60,6 +90,9 @@ export const useTransactionsWithFilters = ({
           noteSearch: filter.noteIncludes,
           transferFilter: filterOrUndefined(filter.transferFilter),
           refundFilter: filterOrUndefined(filter.refundFilter),
+          transferNatures: buildTransferNaturesParam(filter),
+          sortBy: sorting?.value.sortBy,
+          order: sorting?.value.order,
           accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
           categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
           tagIds: filter.tagIds.length ? filter.tagIds : undefined,
@@ -76,7 +109,12 @@ export const useTransactionsWithFilters = ({
     );
   };
 
-  const queryKey = [...VUE_QUERY_CACHE_KEYS.recordsPageRecordsList, appliedFilters, ...appendQueryKey];
+  const queryKey = [
+    ...VUE_QUERY_CACHE_KEYS.recordsPageRecordsList,
+    appliedFilters,
+    ...(sorting ? [sorting] : []),
+    ...appendQueryKey,
+  ];
 
   const {
     data: transactionsPages,
@@ -94,6 +132,9 @@ export const useTransactionsWithFilters = ({
       return pages.length;
     },
     staleTime: 1_000 * 60,
+    // Filters apply as the user edits them — keep the previous result on screen
+    // while the re-filtered list loads instead of flashing an empty table.
+    placeholderData: keepPreviousData,
     enabled: queryEnabled,
   });
 

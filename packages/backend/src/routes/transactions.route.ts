@@ -3,6 +3,7 @@ import {
   getTransactionsByTransferId,
   linkTransactions,
 } from '@controllers/transactions.controller';
+import bulkDelete from '@controllers/transactions.controller/bulk-delete';
 import bulkUpdate from '@controllers/transactions.controller/bulk-update';
 import createTransaction from '@controllers/transactions.controller/create-transaction';
 import deleteTransaction from '@controllers/transactions.controller/delete-transaction';
@@ -139,6 +140,13 @@ router.put(
   checkBaseCurrencyLock,
   validateEndpoint(bulkUpdate.schema),
   bulkUpdate.handler,
+);
+router.post(
+  '/bulk-delete',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(bulkDelete.schema),
+  bulkDelete.handler,
 );
 router.put(
   '/:id',

@@ -139,9 +139,11 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
   test('linked transaction shows Unlink button when re-opened', async ({ page }) => {
     await page.goto(`/account/${accountA.id}`);
 
-    // The transaction should still be visible (now as common_transfer)
-    // Click on it to re-open the dialog
-    const txRecord = page.locator('[aria-haspopup="true"]').first();
+    // Filter on the destination account name so the locator waits for the row to
+    // render in its post-link state (common_transfer renders "Source → Destination").
+    // Clicking `.first()` alone can race the transactions refetch and open the dialog
+    // on the stale pre-link snapshot (still out_of_wallet → no Unlink button).
+    const txRecord = page.locator('[aria-haspopup="true"]').filter({ hasText: accountB.name }).first();
     await expect(txRecord).toBeVisible({ timeout: 10_000 });
     await txRecord.click();
 
@@ -158,8 +160,10 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
   test('unlinking common_transfer reverts both transactions', async ({ page }) => {
     await page.goto(`/account/${accountA.id}`);
 
-    // Click the linked transaction
-    const txRecord = page.locator('[aria-haspopup="true"]').first();
+    // Filter on the destination account name so the locator waits for the row to
+    // render in its post-link state — otherwise the click can race the transactions
+    // refetch and open the dialog on the stale pre-link snapshot.
+    const txRecord = page.locator('[aria-haspopup="true"]').filter({ hasText: accountB.name }).first();
     await expect(txRecord).toBeVisible({ timeout: 10_000 });
     await txRecord.click();
 

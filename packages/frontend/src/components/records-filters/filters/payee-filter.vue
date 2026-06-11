@@ -8,15 +8,15 @@
   >
     <Combobox.ComboboxAnchor>
       <Combobox.ComboboxTrigger
-        class="border-input bg-input-background ring-offset-background focus-visible:ring-ring flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        class="border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center justify-between rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
-        <div class="flex items-center gap-2">
+        <div class="flex min-w-0 flex-1 items-center gap-2">
           <span
-            class="inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-2 text-sm font-medium"
+            class="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border px-2 text-sm font-medium"
           >
             {{ selectedPayeeIds.length }}
           </span>
-          <span class="font-medium">
+          <span class="min-w-0 flex-1 truncate text-left font-medium">
             {{
               selectedPayeeIds.length === 0
                 ? $t('transactions.filters.payees.label')
@@ -27,12 +27,12 @@
           </span>
         </div>
 
-        <template v-if="selectedPayeeIds.length > 0">
+        <template v-if="selectedPayeeIds.length > 0 && !hideClearButton">
           <DesktopOnlyTooltip :content="$t('common.actions.clear')">
             <Button
               variant="ghost"
               size="icon"
-              class="size-6"
+              class="size-6 shrink-0"
               :aria-label="$t('common.actions.clear')"
               @click.stop="clearSelection"
             >
@@ -41,7 +41,7 @@
           </DesktopOnlyTooltip>
         </template>
         <template v-else>
-          <div class="size-6 p-1">
+          <div class="size-6 shrink-0 p-1">
             <ChevronDownIcon class="text-muted-foreground size-4" />
           </div>
         </template>
@@ -108,6 +108,9 @@ interface SelectedPayee {
 
 const props = defineProps<{
   payeeIds: string[];
+  /** Hide the in-trigger clear button — for hosts (like the filter bar chips)
+   * that render their own remove control next to the trigger. */
+  hideClearButton?: boolean;
 }>();
 
 const emit = defineEmits<{

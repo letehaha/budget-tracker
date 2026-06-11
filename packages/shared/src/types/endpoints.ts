@@ -164,6 +164,15 @@ export interface BulkUpdateTransactionsResponse {
 export type BulkUpdateTransactionsCategoryBody = BulkUpdateTransactionsBody;
 export type BulkUpdateTransactionsCategoryResponse = BulkUpdateTransactionsResponse;
 
+export interface BulkDeleteTransactionsBody {
+  transactionIds: string[];
+}
+
+export interface BulkDeleteTransactionsResponse {
+  deletedCount: number;
+  deletedIds: string[];
+}
+
 export type CreateCategoryBody = {
   name: CategoryModel['name'];
   color?: CategoryModel['color'];
