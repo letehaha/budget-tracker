@@ -15,6 +15,8 @@
         <slot name="actions" />
       </div>
 
+      <slot name="prefix" />
+
       <!-- Filter picker: a multi-select menu of the optional filters. Rows keep
            their place and get a check mark when active, and the popover stays
            open so several filters can be toggled in one visit. -->
@@ -27,16 +29,19 @@
             <ChevronDownIcon class="text-muted-foreground size-4" />
           </Popover.PopoverTrigger>
 
-          <Popover.PopoverContent class="w-44 rounded-md p-1.5" align="start" :side-offset="4">
+          <Popover.PopoverContent class="w-48 rounded-md p-1.5" align="start" :side-offset="4">
             <Button
               v-for="option in filterMenuOptions"
               :key="option.key"
               type="button"
               variant="ghost"
-              class="h-auto w-full justify-between px-2 py-1.5 font-normal"
+              class="h-auto w-full justify-between gap-2 px-2 py-1.5 font-normal"
               @click="toggleFilter(option.key)"
             >
-              {{ option.label }}
+              <span class="flex min-w-0 items-center gap-2">
+                <component :is="option.icon" class="text-muted-foreground size-4 shrink-0" />
+                <span class="truncate">{{ option.label }}</span>
+              </span>
               <CheckIcon v-if="option.active" class="size-4 shrink-0" />
             </Button>
           </Popover.PopoverContent>
@@ -169,6 +174,7 @@ import ComboboxCategories from '@/components/common/combobox-categories.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Popover from '@/components/lib/ui/popover';
 import { FiltersStruct } from '@/components/records-filters/const';
+import { FILTER_ICONS } from '@/components/records-filters/filter-icons';
 import { EXTRA_FILTERS, EXTRA_FILTER_KEYS, type ExtraFilterKey } from '@/components/records-filters/filter-registry';
 import AmountRangeFilter from '@/components/records-filters/filters/amount-range-filter.vue';
 import AccountsFilter from '@/components/records-filters/filters/combobox-accounts.vue';
@@ -204,6 +210,7 @@ const filterMenuOptions = computed(() =>
   EXTRA_FILTER_KEYS.map((key) => ({
     key,
     label: t(EXTRA_FILTERS[key].menuLabelKey),
+    icon: FILTER_ICONS[key],
     active: extraFilters.value.includes(key),
   })),
 );

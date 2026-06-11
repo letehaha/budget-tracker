@@ -12,44 +12,33 @@
           : 'h-[calc(100dvh-var(--header-height)-32px)] min-h-0',
       ]"
     >
-      <!-- Narrow layout: filters move behind a dialog button and the user can
-           switch between the compact list and the full table -->
-      <template v-if="isMobileMode && !isFullscreenMode">
+      <!-- Mobile compact layout: filters behind a dialog button, user toggles
+           between the compact list and the full table. -->
+      <template v-if="showMobileLayout">
         <div class="flex shrink-0 items-center justify-between gap-2">
-          <div class="bg-card flex items-center gap-0.5 rounded-md border p-0.5">
-            <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.list')">
-              <Button
-                :variant="mobileView === 'list' ? 'secondary' : 'ghost'"
-                size="icon-sm"
-                :aria-label="$t('transactions.table.viewToggle.list')"
-                @click="setMobileView('list')"
-              >
-                <ListIcon class="size-4" />
-              </Button>
-            </DesktopOnlyTooltip>
-            <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.table')">
-              <Button
-                :variant="mobileView === 'table' ? 'secondary' : 'ghost'"
-                size="icon-sm"
-                :aria-label="$t('transactions.table.viewToggle.table')"
-                @click="setMobileView('table')"
-              >
-                <Table2Icon class="size-4" />
-              </Button>
-            </DesktopOnlyTooltip>
-          </div>
-
           <div class="flex items-center gap-2">
-            <DesktopOnlyTooltip :content="$t('transactions.table.fullscreen.enter')">
-              <Button
-                variant="secondary"
-                size="icon"
-                :aria-label="$t('transactions.table.fullscreen.enter')"
-                @click="enterFullscreen"
-              >
-                <Maximize2Icon class="size-4" />
-              </Button>
-            </DesktopOnlyTooltip>
+            <div class="bg-card flex items-center gap-0.5 rounded-md border p-0.5">
+              <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.list')">
+                <Button
+                  :variant="activeView === 'list' ? 'secondary' : 'ghost'"
+                  size="icon-sm"
+                  :aria-label="$t('transactions.table.viewToggle.list')"
+                  @click="setActiveView('list')"
+                >
+                  <ListIcon class="size-4" />
+                </Button>
+              </DesktopOnlyTooltip>
+              <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.table')">
+                <Button
+                  :variant="activeView === 'table' ? 'secondary' : 'ghost'"
+                  size="icon-sm"
+                  :aria-label="$t('transactions.table.viewToggle.table')"
+                  @click="setActiveView('table')"
+                >
+                  <Table2Icon class="size-4" />
+                </Button>
+              </DesktopOnlyTooltip>
+            </div>
 
             <!-- Scrolling is handled by ResponsiveDialog's internal scroll wrapper –
                  an extra scroll container here would clip the panel instead -->
@@ -64,9 +53,22 @@
               />
             </FiltersDialog>
           </div>
+
+          <div class="flex items-center gap-2">
+            <DesktopOnlyTooltip :content="$t('transactions.table.fullscreen.enter')">
+              <Button
+                variant="secondary"
+                size="icon"
+                :aria-label="$t('transactions.table.fullscreen.enter')"
+                @click="enterFullscreen"
+              >
+                <Maximize2Icon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+          </div>
         </div>
 
-        <Card v-if="mobileView === 'list'" class="min-h-75 flex-1 overflow-hidden">
+        <Card v-if="activeView === 'list'" class="min-h-75 flex-1 overflow-hidden">
           <ScrollArea class="h-full" :scroll-area-id="SCROLL_AREA_IDS.transactionsPage">
             <!-- No top padding: the list's bulk toolbar is sticky top-0 and must sit flush
                  with the scroll viewport edge, otherwise rows peek through the gap -->
@@ -86,12 +88,101 @@
         </Card>
       </template>
 
-      <Card v-if="!isMobileMode && !isFullscreenMode" class="shrink-0">
+      <!-- Desktop list view: sticky filters sidebar on the left + the casual
+           list of transactions on the right. The view toggle sits at the top
+           of the sidebar so it stays in the page's top-left corner. -->
+      <div v-if="showDesktopListLayout" class="flex min-h-0 flex-1 gap-4">
+        <Card class="flex w-87.5 shrink-0 flex-col gap-3 overflow-hidden p-4">
+          <div class="flex items-center justify-between gap-2">
+            <div class="bg-card flex items-center gap-0.5 rounded-md border p-0.5">
+              <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.list')">
+                <Button
+                  :variant="desktopView === 'list' ? 'secondary' : 'ghost'"
+                  size="icon-sm"
+                  :aria-label="$t('transactions.table.viewToggle.list')"
+                  @click="setDesktopView('list')"
+                >
+                  <ListIcon class="size-4" />
+                </Button>
+              </DesktopOnlyTooltip>
+              <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.table')">
+                <Button
+                  :variant="desktopView === 'table' ? 'secondary' : 'ghost'"
+                  size="icon-sm"
+                  :aria-label="$t('transactions.table.viewToggle.table')"
+                  @click="setDesktopView('table')"
+                >
+                  <Table2Icon class="size-4" />
+                </Button>
+              </DesktopOnlyTooltip>
+            </div>
+          </div>
+
+          <ScrollArea class="-mx-4 min-h-0 flex-1">
+            <div class="px-4">
+              <!-- Filters auto-apply (debounced); panel's Apply button is
+                   permanently suppressed via is-filters-out-of-sync=false. -->
+              <FiltersPanel
+                v-model:filters="filters"
+                :is-reset-button-disabled="isResetButtonDisabled"
+                :is-filters-out-of-sync="false"
+                @reset-filters="resetFilters"
+              />
+            </div>
+          </ScrollArea>
+        </Card>
+
+        <Card class="min-w-0 flex-1 overflow-hidden">
+          <ScrollArea class="h-full" :scroll-area-id="SCROLL_AREA_IDS.transactionsPage">
+            <div v-if="isFetched" class="px-3 pb-3">
+              <TransactionsList
+                ref="transactionsListRef"
+                enable-bulk-edit
+                :content-filters-active="contentFiltersActive"
+                :transactions="transactionsPages?.pages.flat() ?? []"
+                :has-next-page="hasNextPage"
+                :is-fetching-next-page="isFetchingNextPage"
+                :scroll-area-id="SCROLL_AREA_IDS.transactionsPage"
+                @fetch-next-page="fetchNextPage"
+              />
+            </div>
+          </ScrollArea>
+        </Card>
+      </div>
+
+      <Card v-if="showDesktopToolbar" class="shrink-0">
         <FiltersToolbar
           v-model:filters="filters"
           :is-reset-button-disabled="isResetButtonDisabled"
           @reset-filters="resetFilters"
         >
+          <template #prefix>
+            <div class="mr-2 mb-2 inline-block align-top">
+              <div class="bg-card flex h-10 items-center gap-0.5 rounded-md border p-0.5">
+                <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.list')">
+                  <Button
+                    :variant="desktopView === 'list' ? 'secondary' : 'ghost'"
+                    size="icon-sm"
+                    :aria-label="$t('transactions.table.viewToggle.list')"
+                    @click="setDesktopView('list')"
+                  >
+                    <ListIcon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+                <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.table')">
+                  <Button
+                    :variant="desktopView === 'table' ? 'secondary' : 'ghost'"
+                    size="icon-sm"
+                    :aria-label="$t('transactions.table.viewToggle.table')"
+                    @click="setDesktopView('table')"
+                  >
+                    <Table2Icon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+              </div>
+            </div>
+          </template>
+
           <template #actions>
             <ColumnConfigPopover
               :configurable-columns="configurableColumns"
@@ -230,13 +321,15 @@ import { useDebounceFn, useElementSize, useEventListener, useMediaQuery } from '
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import type { TransactionsView } from '@/api/user-settings';
+
 import { trackNewlyActiveFilters } from './components/filter-analytics';
 import FiltersToolbar from './components/filters-toolbar.vue';
 import ColumnConfigPopover from './components/table/column-config-popover.vue';
 import { DEFAULT_SORTING, type TableSorting } from './components/table/columns';
 import TransactionsTable from './components/table/transactions-table.vue';
 import { useTableColumns } from './components/table/use-table-columns';
-import { useMobileView } from './components/use-mobile-view';
+import { useTransactionsView } from './components/use-transactions-view';
 
 const sorting = ref<TableSorting>({ ...DEFAULT_SORTING });
 
@@ -266,7 +359,31 @@ const { width: pageContentWidth } = useElementSize(pageContentRef);
 // so the page doesn't flash the mobile layout on wide screens.
 const isMobileMode = computed(() => pageContentWidth.value > 0 && pageContentWidth.value < MOBILE_MODE_MAX_WIDTH_PX);
 
-const { mobileView, setMobileView } = useMobileView();
+const { mobileView, setMobileView, desktopView, setDesktopView } = useTransactionsView();
+
+// User's preferred view for the current screen-size class. Drives both the
+// active layout and which setting the toggle writes back to.
+const activeView = computed<TransactionsView>(() => (isMobileMode.value ? mobileView.value : desktopView.value));
+const setActiveView = (view: TransactionsView) => {
+  if (isMobileMode.value) setMobileView(view);
+  else setDesktopView(view);
+};
+
+// Mobile compact layout = view toggle + filters dialog + list/table card.
+const showMobileLayout = computed(() => !isFullscreenMode.value && isMobileMode.value);
+
+// Desktop list view restores the classic two-pane layout: a sticky sidebar of
+// the full FiltersPanel on the left, the transactions list on the right.
+const showDesktopListLayout = computed(
+  () => !isFullscreenMode.value && !isMobileMode.value && desktopView.value === 'list',
+);
+
+// Desktop's inline filter row with the full table. The computed shields the
+// v-if'd block from vue-tsc narrowing `desktopView` to `'table'`, which would
+// make the toggle's `desktopView === 'list'` check unreachable.
+const showDesktopToolbar = computed(
+  () => !isMobileMode.value && !isFullscreenMode.value && desktopView.value === 'table',
+);
 
 const isFiltersDialogOpen = ref(false);
 
@@ -289,10 +406,10 @@ useEventListener('keydown', (event: KeyboardEvent) => {
   }
 });
 
-// Mobile list view is unavailable in focus mode (which always shows the table);
-// the wrapping div otherwise stays as `contents` so the table card sits in the
+// List view is unavailable in focus mode (which always shows the table); the
+// wrapping div otherwise stays as `contents` so the table card sits in the
 // page's flex flow.
-const showTableCard = computed(() => isFullscreenMode.value || !isMobileMode.value || mobileView.value === 'table');
+const showTableCard = computed(() => isFullscreenMode.value || activeView.value === 'table');
 
 // Mobile non-fullscreen: pin the card to ~viewport height to force page-level
 // overflow (lets the user swipe away the toolbar). All other cases let flex-1

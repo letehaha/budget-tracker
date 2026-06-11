@@ -14,7 +14,7 @@ export interface SidebarSectionsConfig {
   vehicles: boolean;
 }
 
-export type TransactionsMobileView = 'list' | 'table';
+export type TransactionsView = 'list' | 'table';
 
 interface TransactionsTableSettings {
   /** Ordered list of column ids the user wants visible. */
@@ -22,7 +22,9 @@ interface TransactionsTableSettings {
   /** Full column order (visible + hidden) used by the column-config UI. */
   columnOrder: string[];
   /** Preferred transactions view on narrow screens: compact list or the full table. */
-  mobileView?: TransactionsMobileView;
+  mobileView?: TransactionsView;
+  /** Preferred transactions view on wide screens: compact list or the full table. */
+  desktopView?: TransactionsView;
   /**
    * Optional filters the user added to the transactions filter bar (besides the
    * always-visible ones). Unknown ids are dropped client-side on read.
