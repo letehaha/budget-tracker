@@ -43,7 +43,7 @@ export interface ColumnDefinition {
  * The Amount column sorts by refAmount on purpose: raw multi-currency amounts
  * have no meaningful order (1,000,000 IDR would outrank 1,000 USD).
  */
-export const COLUMN_DEFINITIONS: ColumnDefinition[] = [
+const COLUMN_DEFINITIONS: ColumnDefinition[] = [
   {
     id: TABLE_COLUMN.date,
     labelKey: 'transactions.table.columns.date',
@@ -52,24 +52,10 @@ export const COLUMN_DEFINITIONS: ColumnDefinition[] = [
     align: 'left',
   },
   {
-    id: TABLE_COLUMN.account,
-    labelKey: 'transactions.table.columns.account',
-    sortField: TRANSACTION_SORT_FIELD.accountName,
-    widthPx: 176,
-    align: 'left',
-  },
-  {
     id: TABLE_COLUMN.category,
     labelKey: 'transactions.table.columns.category',
     sortField: TRANSACTION_SORT_FIELD.categoryName,
     widthPx: 144,
-    align: 'left',
-  },
-  {
-    id: TABLE_COLUMN.payee,
-    labelKey: 'transactions.table.columns.payee',
-    sortField: TRANSACTION_SORT_FIELD.payeeName,
-    widthPx: 128,
     align: 'left',
   },
   {
@@ -85,6 +71,20 @@ export const COLUMN_DEFINITIONS: ColumnDefinition[] = [
     sortField: TRANSACTION_SORT_FIELD.refAmount,
     widthPx: 128,
     align: 'right',
+  },
+  {
+    id: TABLE_COLUMN.account,
+    labelKey: 'transactions.table.columns.account',
+    sortField: TRANSACTION_SORT_FIELD.accountName,
+    widthPx: 176,
+    align: 'left',
+  },
+  {
+    id: TABLE_COLUMN.payee,
+    labelKey: 'transactions.table.columns.payee',
+    sortField: TRANSACTION_SORT_FIELD.payeeName,
+    widthPx: 128,
+    align: 'left',
   },
   {
     id: TABLE_COLUMN.note,

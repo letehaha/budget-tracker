@@ -1,4 +1,4 @@
-import { patchTransactionsTableSettings, useUserSettings } from '@/composable/data-queries/user-settings';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useDebounceFn } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 
@@ -21,7 +21,7 @@ const PERSIST_DEBOUNCE_MS = 1_000;
  * columns appear for existing users.
  */
 export function useTableColumns() {
-  const { data: userSettings, mutate: saveUserSettings } = useUserSettings();
+  const { data: userSettings, patch: patchSettings } = useUserSettings();
 
   const localOrder = ref<TABLE_COLUMN[]>([...DEFAULT_COLUMN_ORDER]);
   const localVisible = ref<TABLE_COLUMN[]>([...DEFAULT_VISIBLE_COLUMNS]);
@@ -47,14 +47,9 @@ export function useTableColumns() {
   );
 
   const persistDebounced = useDebounceFn(() => {
-    const settings = userSettings.value;
-    if (!settings) return;
-    saveUserSettings(
-      patchTransactionsTableSettings({
-        settings,
-        patch: { visibleColumns: localVisible.value, columnOrder: localOrder.value },
-      }),
-    );
+    patchSettings({
+      ui: { transactionsTable: { visibleColumns: localVisible.value, columnOrder: localOrder.value } },
+    });
   }, PERSIST_DEBOUNCE_MS);
 
   const markEditedAndPersist = () => {

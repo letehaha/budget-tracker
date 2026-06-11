@@ -1,5 +1,5 @@
 import { EXTRA_FILTER_KEYS, type ExtraFilterKey } from '@/components/records-filters/filter-registry';
-import { patchTransactionsTableSettings, useUserSettings } from '@/composable/data-queries/user-settings';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { computed, ref } from 'vue';
 
 /**
@@ -9,7 +9,7 @@ import { computed, ref } from 'vue';
  * settings mutation is in flight.
  */
 export function useExtraFilters() {
-  const { data: userSettings, mutate: saveUserSettings } = useUserSettings();
+  const { data: userSettings, patch: patchSettings } = useUserSettings();
 
   const localList = ref<ExtraFilterKey[] | null>(null);
 
@@ -21,10 +21,7 @@ export function useExtraFilters() {
 
   const persist = (next: ExtraFilterKey[]) => {
     localList.value = next;
-
-    const settings = userSettings.value;
-    if (!settings) return;
-    saveUserSettings(patchTransactionsTableSettings({ settings, patch: { extraFilters: next } }));
+    patchSettings({ ui: { transactionsTable: { extraFilters: next } } });
   };
 
   const addExtraFilter = (key: ExtraFilterKey) => {

@@ -14,7 +14,7 @@ import { MaybeRef, Ref, computed, ref } from 'vue';
 
 const filterOrUndefined = (value: FILTER_OPERATION) => (value === FILTER_OPERATION.all ? undefined : value);
 
-export interface TransactionsSorting {
+interface TransactionsSorting {
   sortBy: TRANSACTION_SORT_FIELD;
   order: SORT_DIRECTIONS;
 }

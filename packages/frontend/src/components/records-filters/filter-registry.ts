@@ -12,7 +12,7 @@ import { DEFAULT_FILTERS, FiltersStruct, SELECTABLE_TRANSFER_NATURES } from './c
  * compile error.
  */
 
-export interface FilterDefinition {
+interface FilterDefinition {
   /** True when the filter narrows the result compared to `DEFAULT_FILTERS`. */
   isActive: (filters: FiltersStruct) => boolean;
   /**
@@ -24,7 +24,7 @@ export interface FilterDefinition {
   dissolvesGroups: boolean;
 }
 
-export interface ExtraFilterDefinition extends FilterDefinition {
+interface ExtraFilterDefinition extends FilterDefinition {
   /** i18n key of the filter's row in the "Filters" picker menu. */
   menuLabelKey: string;
   /** Slice of `FiltersStruct` that removing the filter's chip resets. */

@@ -243,6 +243,9 @@ type Expect<T extends true> = T;
  * is added to `ZodSettingsSchema` but not mirrored in the patch schema, this
  * line becomes a type error – without it the PATCH endpoint would silently
  * strip the new key from incoming patches.
+ *
+ * @public exported only so the assertion isn't flagged as unused – nothing
+ * should import it.
  */
 export type SettingsPatchSchemaIsInSync = Expect<
   Equals<SettingsPatchSchema, DeepPartial<Omit<SettingsSchema, 'onboarding'>>>

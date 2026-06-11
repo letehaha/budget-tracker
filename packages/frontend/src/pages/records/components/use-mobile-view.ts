@@ -1,5 +1,5 @@
 import type { TransactionsMobileView } from '@/api/user-settings';
-import { patchTransactionsTableSettings, useUserSettings } from '@/composable/data-queries/user-settings';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { computed, ref } from 'vue';
 
 const DEFAULT_MOBILE_VIEW: TransactionsMobileView = 'list';
@@ -11,7 +11,7 @@ const DEFAULT_MOBILE_VIEW: TransactionsMobileView = 'list';
  * settings mutation is in flight.
  */
 export function useMobileView() {
-  const { data: userSettings, mutate: saveUserSettings } = useUserSettings();
+  const { data: userSettings, patch: patchSettings } = useUserSettings();
 
   const localView = ref<TransactionsMobileView | null>(null);
 
@@ -21,10 +21,7 @@ export function useMobileView() {
 
   const setMobileView = (view: TransactionsMobileView) => {
     localView.value = view;
-
-    const settings = userSettings.value;
-    if (!settings) return;
-    saveUserSettings(patchTransactionsTableSettings({ settings, patch: { mobileView: view } }));
+    patchSettings({ ui: { transactionsTable: { mobileView: view } } });
   };
 
   return { mobileView, setMobileView };
