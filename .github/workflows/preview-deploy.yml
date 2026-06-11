@@ -13,6 +13,9 @@ concurrency:
 
 env:
   PR_NUMBER: ${{ github.event.pull_request.number }}
+  # Total number of Playwright shards. Keep in sync with the
+  # `shardIndex` matrix list in the test-preview job below.
+  SHARD_TOTAL: 3
 
 jobs:
   deploy:
@@ -275,9 +278,15 @@ jobs:
 
   # ── E2E Tests against preview ────────────────────────────────────
   test-preview:
+    name: Test preview (shard ${{ matrix.shardIndex }})
     runs-on: ubuntu-latest
     needs: deploy
     if: success()
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with the SHARD_TOTAL workflow env
+        shardIndex: [1, 2, 3]
 
     steps:
       - name: Checkout repository
@@ -317,7 +326,7 @@ jobs:
       - name: Run Playwright tests
         id: playwright
         continue-on-error: true
-        run: npm run test:e2e -w packages/frontend
+        run: npm run test:e2e -w packages/frontend -- --shard=${{ matrix.shardIndex }}/${{ env.SHARD_TOTAL }}
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: https://pr-${{ env.PR_NUMBER }}.preview.moneymatter.app
@@ -335,28 +344,119 @@ jobs:
             echo "teardown_detected=false" >> $GITHUB_OUTPUT
           fi
 
+      # Consumed by the report-e2e-results job to build a single PR comment
+      - name: Write shard status
+        if: always()
+        run: |
+          mkdir -p shard-status
+          STATS=$(jq -c '.stats // {}' packages/frontend/playwright-results.json 2>/dev/null || echo '{}')
+          cat > "shard-status/shard-${{ matrix.shardIndex }}.json" <<EOF
+          {
+            "shard": ${{ matrix.shardIndex }},
+            "outcome": "${{ steps.playwright.outcome }}",
+            "teardown": "${{ steps.teardown-check.outputs.teardown_detected || 'false' }}",
+            "stats": $STATS
+          }
+          EOF
+
+      - name: Upload shard status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-status-${{ matrix.shardIndex }}
+          path: shard-status/
+          retention-days: 7
+
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-pr-${{ env.PR_NUMBER }}
+          name: playwright-report-pr-${{ env.PR_NUMBER }}-shard-${{ matrix.shardIndex }}
           path: packages/frontend/playwright-report/
           retention-days: 7
 
+      - name: Fail if real test failures
+        if: steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected != 'true'
+        run: exit 1
+
+  # ── Aggregate shard results into one PR comment ───────────────────
+  report-e2e-results:
+    name: Report E2E results
+    runs-on: ubuntu-latest
+    needs: test-preview
+    if: always() && needs.test-preview.result != 'skipped' && needs.test-preview.result != 'cancelled'
+
+    steps:
+      - name: Download shard statuses
+        uses: actions/download-artifact@v4
+        # Tolerate missing artifacts (e.g. a shard died before uploading);
+        # the summary below renders such shards as "no status"
+        continue-on-error: true
+        with:
+          pattern: shard-status-*
+          merge-multiple: true
+          path: shard-status
+
+      - name: Build summary
+        id: summary
+        run: |
+          REAL_FAILURES=0
+          TEARDOWNS=0
+          MISSING=0
+          ROWS=""
+
+          for i in $(seq 1 "$SHARD_TOTAL"); do
+            FILE="shard-status/shard-$i.json"
+            if [ ! -f "$FILE" ]; then
+              ROWS="$ROWS| $i/$SHARD_TOTAL | :grey_question: no status (job error) | – | – | – | – |"$'\n'
+              MISSING=$((MISSING + 1))
+              continue
+            fi
+            OUTCOME=$(jq -r '.outcome' "$FILE")
+            TEARDOWN=$(jq -r '.teardown' "$FILE")
+            PASSED=$(jq -r '.stats.expected // "–"' "$FILE")
+            FAILED=$(jq -r '.stats.unexpected // "–"' "$FILE")
+            FLAKY=$(jq -r '.stats.flaky // "–"' "$FILE")
+            SKIPPED=$(jq -r '.stats.skipped // "–"' "$FILE")
+            if [ "$OUTCOME" = "success" ]; then
+              RESULT=":white_check_mark: pass"
+            elif [ "$TEARDOWN" = "true" ]; then
+              RESULT=":warning: torn down"
+              TEARDOWNS=$((TEARDOWNS + 1))
+            else
+              RESULT=":x: fail"
+              REAL_FAILURES=$((REAL_FAILURES + 1))
+            fi
+            ROWS="$ROWS| $i/$SHARD_TOTAL | $RESULT | $PASSED | $FAILED | $FLAKY | $SKIPPED |"$'\n'
+          done
+
+          {
+            echo "## Playwright E2E Tests"
+            echo ""
+            if [ "$REAL_FAILURES" -gt 0 ] || [ "$MISSING" -gt 0 ]; then
+              echo ":x: **Some tests failed.** Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) and the per-shard \`playwright-report\` artifacts for details."
+            elif [ "$TEARDOWNS" -gt 0 ]; then
+              echo ":warning: **Tests interrupted** – preview environment was torn down during the test run."
+            else
+              echo ":white_check_mark: **All tests passed!**"
+            fi
+            echo ""
+            echo "| Shard | Result | Passed | Failed | Flaky | Skipped |"
+            echo "|-------|--------|--------|--------|-------|---------|"
+            printf '%s' "$ROWS"
+            echo ""
+            echo "_Tested against: \`pr-${PR_NUMBER}.preview.moneymatter.app\` · Commit: ${{ github.sha }}_"
+          } > comment.md
+
+          echo "real_failures=$REAL_FAILURES" >> "$GITHUB_OUTPUT"
+          echo "missing=$MISSING" >> "$GITHUB_OUTPUT"
+
       - name: Comment test results on PR
-        if: always()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: playwright-tests
-          message: |
-            ## Playwright E2E Tests
-
-            ${{ steps.playwright.outcome == 'success' && ':white_check_mark: **All tests passed!**' || '' }}
-            ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected == 'true' && ':warning: **Tests interrupted** – preview environment was torn down during the test run.' || '' }}
-            ${{ steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected != 'true' && format(':x: **Some tests failed.** Check the [workflow logs]({0}/{1}/actions/runs/{2}) and the uploaded `playwright-report` artifact for details.', github.server_url, github.repository, github.run_id) || '' }}
-
-            _Tested against: `pr-${{ env.PR_NUMBER }}.preview.moneymatter.app` · Commit: ${{ github.sha }}_
+          path: comment.md
 
       - name: Fail if real test failures
-        if: steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected != 'true'
+        if: steps.summary.outputs.real_failures != '0' || steps.summary.outputs.missing != '0'
         run: exit 1

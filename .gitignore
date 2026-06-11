@@ -155,6 +155,7 @@ docs/prds/*
 packages/frontend/playwright-report/
 packages/frontend/test-results/
 packages/frontend/blob-report/
+packages/frontend/playwright-results.json
 
 # Astro generated files
 packages/landing/.astro/

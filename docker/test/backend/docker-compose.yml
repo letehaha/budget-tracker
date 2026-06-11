@@ -67,6 +67,9 @@ services:
       # Enable experimental ESM support for Jest (required for better-auth)
       # Increase heap size to 4GB to prevent OOM during large test suites
       - NODE_OPTIONS=--experimental-vm-modules --max-old-space-size=4096
+      # Pass host CI flag through so setupIntegrationTests.ts enables
+      # in-process test retries only on CI (unset locally)
+      - CI
     env_file: ../../../.env.test
     labels:
       - 'com.docker.compose.project=test'

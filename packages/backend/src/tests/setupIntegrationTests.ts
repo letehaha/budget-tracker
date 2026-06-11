@@ -118,6 +118,20 @@ if (missingEnvVars.length > 0) {
   );
 }
 
+/**
+ * On CI, retry a failed test in-process before failing the run. A single flaky
+ * test otherwise fails the whole jest run, and the workflow-level retry loop in
+ * check-source-code.yml re-runs the entire shard, Docker boot included (~+7 min).
+ * Retries are safe here: jest-circus re-runs beforeEach/afterEach around each
+ * retry, so `truncateAllTables()` gives the retried test a clean DB.
+ * `logErrorsBeforeRetry` prints the original failure, keeping flakes visible in
+ * CI logs. `CI` reaches the test-runner container via the env passthrough in
+ * docker/test/backend/docker-compose.yml.
+ */
+if (process.env.CI) {
+  jest.retryTimes(2, { logErrorsBeforeRetry: true });
+}
+
 beforeAll(async () => {
   mswMockServer.listen({ onUnhandledRequest: 'bypass' });
   // Wait for i18next to fully load all locale files before tests run

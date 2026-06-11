@@ -7,9 +7,15 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 5 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.CI ? 3 : undefined,
   reporter: process.env.CI
-    ? [['html', { open: 'never', outputFolder: 'playwright-report' }], ['github'], ['list']]
+    ? [
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        // Machine-readable stats consumed by the CI shard-summary PR comment
+        ['json', { outputFile: 'playwright-results.json' }],
+        ['github'],
+        ['list'],
+      ]
     : [['html', { open: 'on-failure' }], ['list']],
   globalSetup: './e2e/global-setup.ts',
   use: {
