@@ -91,7 +91,14 @@ const serviceImpl = async ({
         'price',
         'fees',
         'amount',
+        'refAmount',
+        'refFees',
         'currencyCode',
+        'settlementCurrencyCode',
+        'settlementAmount',
+        'settlementFees',
+        'settlementRate',
+        'createdAt',
       ],
       include: [
         {

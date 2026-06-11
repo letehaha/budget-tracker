@@ -28,7 +28,11 @@ const isEmpty = computed(() => !isLoading.value && transactions.value.length ===
 </script>
 
 <template>
-  <div class="border-primary/20 ml-4 border-l-2">
+  <!-- The parent full-width <td colspan> spans the holdings table's full scrolled
+       width. 100cqw (visible width of the @container holdings scroll wrapper,
+       minus the ml-4 indent) + sticky keep the section on screen so its own
+       scrollbar handles all of its overflow. -->
+  <div class="border-primary/20 sticky left-0 ml-4 border-l-2" style="width: calc(100cqw - 1rem)">
     <div v-if="isLoading && transactions.length === 0" class="p-6 text-center">
       <div class="border-primary/20 mx-auto mb-3 size-8 animate-spin rounded-full border-2 border-t-transparent"></div>
       <p class="text-muted-foreground text-sm">

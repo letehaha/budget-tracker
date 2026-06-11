@@ -4,39 +4,42 @@ import { computed, ref, watch } from 'vue';
 
 import {
   COLUMN_DEFINITIONS_BY_ID,
-  type ColumnDefinition,
   DEFAULT_COLUMN_ORDER,
   DEFAULT_VISIBLE_COLUMNS,
-  TABLE_COLUMN,
+  INVESTMENT_TX_COLUMN,
+  type InvestmentTxColumnDefinition,
   isKnownColumnId,
 } from './columns';
 
 const PERSIST_DEBOUNCE_MS = 1_000;
 
 /**
- * Column visibility + order for the transactions table, persisted in
- * UserSettings under `ui.transactionsTable`. Unknown ids from settings are
- * dropped on read (a removed column must not break the table); known columns
+ * Column visibility + order for the investment transactions table, persisted in
+ * UserSettings under `ui.investmentTransactionsTable`. Unknown ids from settings
+ * are dropped on read (a removed column must not break the table); known columns
  * missing from a stored order are appended in registry order so newly shipped
  * columns appear for existing users.
+ *
+ * Mirrors `pages/records/components/table/use-table-columns.ts` — kept separate
+ * because the registry and persistence key differ.
  */
-export function useTableColumns() {
+export function useInvestmentTxTableColumns() {
   const { data: userSettings, patch: patchSettings } = useUserSettings();
 
-  const localOrder = ref<TABLE_COLUMN[]>([...DEFAULT_COLUMN_ORDER]);
-  const localVisible = ref<TABLE_COLUMN[]>([...DEFAULT_VISIBLE_COLUMNS]);
+  const localOrder = ref<INVESTMENT_TX_COLUMN[]>([...DEFAULT_COLUMN_ORDER]);
+  const localVisible = ref<INVESTMENT_TX_COLUMN[]>([...DEFAULT_VISIBLE_COLUMNS]);
   // Settings load async — hydrate local state once they arrive, but never
   // clobber edits the user already made in this session.
   const hasUserEdits = ref(false);
 
-  const sanitizeOrder = (storedOrder: string[]): TABLE_COLUMN[] => {
+  const sanitizeOrder = (storedOrder: string[]): INVESTMENT_TX_COLUMN[] => {
     const known = storedOrder.filter(isKnownColumnId);
     const missing = DEFAULT_COLUMN_ORDER.filter((id) => !known.includes(id));
     return [...known, ...missing];
   };
 
   watch(
-    () => userSettings.value?.ui?.transactionsTable,
+    () => userSettings.value?.ui?.investmentTransactionsTable,
     (stored) => {
       if (!stored || hasUserEdits.value) return;
       localOrder.value = sanitizeOrder(stored.columnOrder);
@@ -48,7 +51,7 @@ export function useTableColumns() {
 
   const persistDebounced = useDebounceFn(() => {
     patchSettings({
-      ui: { transactionsTable: { visibleColumns: localVisible.value, columnOrder: localOrder.value } },
+      ui: { investmentTransactionsTable: { visibleColumns: localVisible.value, columnOrder: localOrder.value } },
     });
   }, PERSIST_DEBOUNCE_MS);
 
@@ -58,7 +61,7 @@ export function useTableColumns() {
   };
 
   /** Columns to render, in user order. */
-  const visibleColumns = computed<ColumnDefinition[]>(() =>
+  const visibleColumns = computed<InvestmentTxColumnDefinition[]>(() =>
     localOrder.value.filter((id) => localVisible.value.includes(id)).map((id) => COLUMN_DEFINITIONS_BY_ID[id]),
   );
 

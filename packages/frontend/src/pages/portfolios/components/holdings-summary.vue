@@ -60,6 +60,7 @@
         :just-added-ids="justAddedIds"
         @add-symbol="isAddSymbolsOpen = true"
         @import-transactions="goToImport"
+        @clear-filter="filterText = ''"
       />
     </CardContent>
   </Card>

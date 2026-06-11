@@ -63,6 +63,9 @@
     "holdingsTable": {
       "loadError": "Не вдалося завантажити утримання",
       "empty": "Утримань ще немає",
+      "noFilterResults": "Нічого не знайдено",
+      "noFilterResultsDescription": "Жоден актив не відповідає пошуку. Спробуйте інший символ або назву.",
+      "clearFilterButton": "Скинути пошук",
       "headers": {
         "symbol": "Символ",
         "name": "Назва",
@@ -108,7 +111,14 @@
         "quantity": "Кількість",
         "price": "Ціна",
         "fees": "Комісії",
-        "amount": "Сума"
+        "amount": "Сума",
+        "refAmount": "Базова сума",
+        "refFees": "Базові комісії",
+        "settlementAmount": "Готівка",
+        "settlementCurrency": "Валюта готівки",
+        "settlementFees": "Комісії готівки",
+        "settlementRate": "Курс FX",
+        "createdAt": "Додано"
       },
       "categories": {
         "buy": "Купівля",
@@ -119,6 +129,11 @@
         "fee": "Комісія",
         "cancel": "Скасування",
         "other": "Інше"
+      },
+      "headerTooltips": {
+        "amount": "Загальна сума операції у валюті торгівлі цінним папером.",
+        "refAmount": "Загальна сума операції, конвертована у базову валюту.",
+        "settlementAmount": "Фактично сплачена або отримана готівка на рахунку у валюті розрахунку."
       },
       "deleteTransaction": {
         "tooltip": "Видалити транзакцію"

@@ -136,10 +136,18 @@ const ZodTransactionsTableSettingsSchema = z.object({
   extraFilters: z.array(z.string()).optional(),
 });
 
+const ZodInvestmentTransactionsTableSettingsSchema = z.object({
+  /** Ordered list of column ids the user wants visible. */
+  visibleColumns: z.array(z.string()).default([]),
+  /** Full column order (visible + hidden) used by the column-config UI. */
+  columnOrder: z.array(z.string()).default([]),
+});
+
 // UI-state preferences (table layouts, view modes). Functional settings keep
 // their own top-level keys; this namespace is only for presentation state.
 const ZodUiSettingsSchema = z.object({
   transactionsTable: ZodTransactionsTableSettingsSchema.optional(),
+  investmentTransactionsTable: ZodInvestmentTransactionsTableSettingsSchema.optional(),
 });
 
 export const ZodSettingsSchema = z.object({
@@ -218,6 +226,12 @@ export const ZodSettingsPatchSchema = z.object({
           mobileView: z.enum(['list', 'table']).optional(),
           desktopView: z.enum(['list', 'table']).optional(),
           extraFilters: z.array(z.string()).optional(),
+        })
+        .optional(),
+      investmentTransactionsTable: z
+        .object({
+          visibleColumns: z.array(z.string()).optional(),
+          columnOrder: z.array(z.string()).optional(),
         })
         .optional(),
     })
