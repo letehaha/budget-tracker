@@ -54,6 +54,21 @@ const selectedValue = computed(() => props.modelValue);
 const isDropdownOpen = ref<boolean>(false);
 const debouncedFilteredValues = ref<T[]>(props.values);
 
+// reka-ui's SelectContent renders its slot into a detached DocumentFragment
+// even while the dropdown is closed (so the trigger can resolve item labels
+// natively). With large `values` arrays every closed select pays the full
+// mount cost of all SelectItems. The trigger label here is resolved manually
+// via `displayItem`, so the hidden items are dead weight — defer rendering
+// options (and the search header) until the dropdown opens for the first time.
+const hasOpened = ref(false);
+
+function onOpenChange(open: boolean) {
+  isDropdownOpen.value = open;
+  if (open) hasOpened.value = true;
+}
+
+const renderedValues = computed(() => (hasOpened.value ? debouncedFilteredValues.value : []));
+
 const getLabelFromValue = (value: T): string => {
   const { labelKey } = props;
   if (typeof labelKey === 'function') return labelKey(value);
@@ -119,14 +134,14 @@ watch(
     </template>
 
     <div>
-      <Select.Select v-model="selectedKey" :disabled="disabled" @update:open="isDropdownOpen = $event">
+      <Select.Select v-model="selectedKey" :disabled="disabled" @update:open="onOpenChange">
         <Select.SelectTrigger class="w-full">
           <Select.SelectValue :placeholder="placeholder ?? t('fields.select.selectOption')">
             {{ displayItem ? getLabelFromValue(displayItem) : (placeholder ?? t('fields.select.selectOption')) }}
           </Select.SelectValue>
         </Select.SelectTrigger>
         <Select.SelectContent>
-          <template v-if="withSearch || !!searchKeys" #header>
+          <template v-if="hasOpened && (withSearch || !!searchKeys)" #header>
             <div class="border-border border-b p-2">
               <input-field
                 v-model="searchQuery"
@@ -147,7 +162,7 @@ watch(
           </template>
 
           <Select.SelectItem
-            v-for="item in debouncedFilteredValues"
+            v-for="item in renderedValues"
             :key="getKeyFromItem(item as T)"
             :value="getKeyFromItem(item as T)"
             :disabled="optionDisabled ? optionDisabled(item as T) : undefined"

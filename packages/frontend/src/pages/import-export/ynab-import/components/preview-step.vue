@@ -11,34 +11,16 @@
 
     <PillTabs v-model="activeTab" :items="tabItems" size="default" />
 
-    <!-- Accounts -->
-    <div v-if="activeTab === 'accounts'" class="space-y-3">
-      <p class="text-muted-foreground text-sm">
-        {{ $t('pages.importExport.ynabImport.preview.accountsHelper') }}
-      </p>
-      <EmptyList v-if="parsed.accounts.length === 0" />
-      <VirtualList
-        v-else
-        :items="parsed.accounts"
-        container-class="max-h-[480px]"
-        :estimate-size="124"
-        :overscan="4"
-        :get-item-key="(acc) => acc.originalName"
-      >
-        <template #default="{ item: acc }">
-          <div class="pb-3">
-            <AccountPickRow
-              :account="acc"
-              :mapping="store.accountPicks[acc.originalName]"
-              @update="(mapping) => (store.accountPicks[acc.originalName] = mapping)"
-            />
-          </div>
-        </template>
-      </VirtualList>
-    </div>
+    <!-- Accounts. Cached across tab switches so the currency-picker rows
+         (SelectField with searchable currency list) don't re-mount every
+         time the user revisits this tab. Other tabs stay v-if'd since
+         they're cheap to mount and would just hold DOM for nothing. -->
+    <KeepAlive>
+      <AccountsTab v-if="activeTab === 'accounts'" :accounts="parsed.accounts" :currency-options="currencyOptions" />
+    </KeepAlive>
 
     <!-- Categories -->
-    <div v-else-if="activeTab === 'categories'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
+    <div v-if="activeTab === 'categories'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
       <EmptyList v-if="parsed.categories.length === 0" />
       <VirtualList
         v-else
@@ -70,7 +52,7 @@
     </div>
 
     <!-- Payees -->
-    <div v-else-if="activeTab === 'payees'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
+    <div v-if="activeTab === 'payees'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
       <EmptyList v-if="parsed.payees.length === 0" />
       <VirtualList
         v-else
@@ -98,7 +80,7 @@
     </div>
 
     <!-- Tags -->
-    <div v-else-if="activeTab === 'tags'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
+    <div v-if="activeTab === 'tags'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
       <EmptyList v-if="parsed.tagsUsed.length === 0" />
       <VirtualList
         v-else
@@ -132,7 +114,7 @@
     </div>
 
     <!-- Transactions -->
-    <div v-else-if="activeTab === 'transactions'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
+    <div v-if="activeTab === 'transactions'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
       <EmptyList v-if="parsed.transactions.length === 0" />
       <VirtualList
         v-else
@@ -163,7 +145,7 @@
     </div>
 
     <!-- Transfers -->
-    <div v-else-if="activeTab === 'transfers'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
+    <div v-if="activeTab === 'transfers'" :class="cn('border-border rounded-md border', LIST_HEIGHT_CLASS)">
       <EmptyList v-if="parsed.transfers.length === 0" />
       <VirtualList
         v-else
@@ -226,17 +208,19 @@
 import { Button as UiButton } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { type PillTabItem, PillTabs } from '@/components/lib/ui/pill-tabs';
+import { useCurrencyName } from '@/composable';
 import { formatUIAmount } from '@/js/helpers';
 import { cn } from '@/lib/utils';
+import { useCurrenciesStore } from '@/stores';
 import { useImportYnabStore } from '@/stores/import-ynab';
-import { YNAB_FLAG_HEX, type YnabParseTransaction, type YnabParseTransfer } from '@bt/shared/types';
+import { type CurrencyModel, YNAB_FLAG_HEX, type YnabParseTransaction, type YnabParseTransfer } from '@bt/shared/types';
 import { ArrowRightIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
 import { format, parseISO } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import AccountPickRow from './account-pick-row.vue';
+import AccountsTab from './accounts-tab.vue';
 import EmptyList from './empty-list.vue';
 import VirtualList from './virtual-list.vue';
 
@@ -244,11 +228,26 @@ const LIST_HEIGHT_CLASS = 'h-[420px]';
 
 type TabKey = 'accounts' | 'categories' | 'payees' | 'tags' | 'transactions' | 'transfers';
 
+export interface CurrencyOption extends CurrencyModel {
+  displayLabel: string;
+}
+
 const store = useImportYnabStore();
 const { parsedResult: parsed } = storeToRefs(store);
 const { t } = useI18n();
+const { formatCurrencyLabel } = useCurrencyName();
+const { systemCurrencies } = storeToRefs(useCurrenciesStore());
 
 const activeTab = ref<TabKey>('accounts');
+
+// Shared across every AccountPickRow so the (i18n-heavy) label formatting runs
+// once for the whole accounts list instead of N times.
+const currencyOptions = computed<CurrencyOption[]>(() =>
+  systemCurrencies.value.map((c) => ({
+    ...c,
+    displayLabel: formatCurrencyLabel({ code: c.code, fallbackName: c.currency }),
+  })),
+);
 
 const tabItems = computed<PillTabItem[]>(() => {
   if (!parsed.value) return [];

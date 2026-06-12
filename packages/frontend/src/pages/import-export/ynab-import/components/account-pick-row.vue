@@ -38,23 +38,19 @@
 
 <script setup lang="ts">
 import SelectField from '@/components/fields/select-field.vue';
-import { useCurrencyName } from '@/composable';
 import { formatUIAmount } from '@/js/helpers';
-import { useCurrenciesStore } from '@/stores';
-import type { CurrencyModel, YnabAccountMappingValue, YnabParseAccount } from '@bt/shared/types';
-import { storeToRefs } from 'pinia';
+import type { YnabAccountMappingValue, YnabParseAccount } from '@bt/shared/types';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const CURRENCY_CODE_LENGTH = 3;
+import type { CurrencyOption } from './preview-step.vue';
 
-interface CurrencyOption extends CurrencyModel {
-  displayLabel: string;
-}
+const CURRENCY_CODE_LENGTH = 3;
 
 const props = defineProps<{
   account: YnabParseAccount;
   mapping: YnabAccountMappingValue | undefined;
+  currencyOptions: CurrencyOption[];
 }>();
 
 const emit = defineEmits<{
@@ -62,15 +58,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { formatCurrencyLabel } = useCurrencyName();
-const { systemCurrencies } = storeToRefs(useCurrenciesStore());
-
-const currencyOptions = computed<CurrencyOption[]>(() =>
-  systemCurrencies.value.map((c) => ({
-    ...c,
-    displayLabel: formatCurrencyLabel({ code: c.code, fallbackName: c.currency }),
-  })),
-);
 
 const formattedStartingBalance = computed(() =>
   formatUIAmount(props.account.startingBalance, {
@@ -80,7 +67,7 @@ const formattedStartingBalance = computed(() =>
 
 const selectedCurrency = computed<CurrencyOption | null>(() => {
   if (!props.mapping?.currencyCode) return null;
-  return currencyOptions.value.find((c) => c.code === props.mapping!.currencyCode) ?? null;
+  return props.currencyOptions.find((c) => c.code === props.mapping!.currencyCode) ?? null;
 });
 
 const currencyErrorMessage = computed(() => {
