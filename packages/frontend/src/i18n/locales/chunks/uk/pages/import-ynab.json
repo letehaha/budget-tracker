@@ -1,0 +1,76 @@
+{
+  "pages": {
+    "importExport": {
+      "ynabImport": {
+        "pageTitle": "Імпортувати з YNAB",
+        "pageDescription": "Завантажте експорт YNAB Register.csv, щоб перенести облікові записи, операції, категорії, контрагентів та теги в MoneyMatter.",
+        "steps": {
+          "uploadTitle": "Завантажити файл",
+          "uploadDescription": "Виберіть Register.csv із вашого експорту YNAB.",
+          "previewTitle": "Перегляньте, що буде імпортовано",
+          "previewDescription": "Перевірте облікові записи, валюти та попередження перед тим, як ми щось змінимо.",
+          "executeTitle": "Імпортування",
+          "executeDescription": "Ми запишемо ваші дані в MoneyMatter.",
+          "doneTitle": "Готово",
+          "doneDescription": "Подивіться на те, що прибуло."
+        },
+        "fileUpload": {
+          "stepTitle": "Перетягніть Register.csv сюди",
+          "description": "YNAB → Budget → Export budget → розпакуйте → використовуйте файл Register.csv.",
+          "maxSize": "До 50 МБ.",
+          "parsing": "Аналіз…",
+          "continueToPreview": "Продовжити",
+          "errors": {
+            "invalidFormat": "Будь ласка, завантажте файл .csv."
+          }
+        },
+        "preview": {
+          "emptyList": "Тут немає чого імпортувати.",
+          "accounts": "Облікові записи",
+          "categories": "Категорії",
+          "payees": "Контрагенти",
+          "transactions": "Операції",
+          "transfers": "Переводи",
+          "tags": "Теги",
+          "dateRange": "Діапазон: {from} → {to}",
+          "accountsHelper": "Для кожного облікового запису YNAB підтвердіть валюту.",
+          "warningsTitle": "Попередження",
+          "rowPrefix": "Рядок {rowIndex}:",
+          "startOver": "Почати спочатку",
+          "continueToImport": "Почати імпортування"
+        },
+        "accountRow": {
+          "transactionsCount": "{count} операцій",
+          "startingBalance": "Початковий баланс",
+          "currencyPlaceholder": "USD",
+          "currencyLabel": "Валюта",
+          "currencyInvalid": "Введіть 3-літерний код валюти (наприклад, USD)",
+          "autoDetected": "автоматично виявлено: {code}"
+        },
+        "execute": {
+          "starting": "Початок імпортування…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "В черзі",
+          "statusRunning": "Імпортування…",
+          "statusCompleted": "Готово",
+          "statusFailed": "Помилка",
+          "failed": "Імпортування не вдалося завершити."
+        },
+        "done": {
+          "successTitle": "Імпортування завершено",
+          "successDescription": "Ваші дані YNAB тепер у MoneyMatter.",
+          "accountsCreated": "Облікові записи створено",
+          "categoriesCreated": "Категорії створено",
+          "payeesCreated": "Контрагентів створено",
+          "tagsCreated": "Теги створено",
+          "transactionsImported": "Операцій імпортовано",
+          "transfersImported": "Переводів імпортовано",
+          "splitsDetected": "Виявлено групи розділених операцій",
+          "errorsTitle": "{count} рядків не вдалося імпортувати",
+          "viewTransactions": "Переглянути операції",
+          "importAnother": "Імпортувати ще один файл"
+        }
+      }
+    }
+  }
+}

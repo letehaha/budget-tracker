@@ -35,7 +35,7 @@ type AnalyticsEvent =
   | { event: 'budget_creation_opened' }
   | { event: 'budget_created' }
   // Import funnel (import_completed tracked on backend)
-  | { event: 'import_opened'; properties: { import_type: 'csv' | 'statement_parser' } }
+  | { event: 'import_opened'; properties: { import_type: 'csv' | 'statement_parser' | 'ynab' } }
   // AI features (ai_categorization_completed tracked on backend)
   | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }
   | { event: 'ai_settings_visited' }

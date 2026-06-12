@@ -16,6 +16,11 @@
         "button": "Importar archivo CSV",
         "cta": "Importar archivo CSV"
       },
+      "ynab": {
+        "title": "Importar desde YNAB",
+        "description": "Carga tu Register.csv YNAB para migrar cuentas, transacciones, categorías, beneficiarios y etiquetas.",
+        "cta": "Importar desde YNAB"
+      },
       "import": {
         "back": "Volver a Importar"
       },

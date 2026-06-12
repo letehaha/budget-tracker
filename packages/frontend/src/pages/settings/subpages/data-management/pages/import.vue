@@ -56,12 +56,39 @@
         <ArrowRightIcon class="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
       </div>
     </RouterLink>
+
+    <RouterLink
+      :to="{ name: ROUTES_NAMES.importYnab }"
+      class="border-border group hover:border-muted-foreground/30 hover:bg-muted/50 focus-visible:ring-ring relative flex flex-col gap-4 rounded-lg border p-5 transition-[background-color,border-color] duration-200 focus-visible:ring-2 focus-visible:outline-none"
+    >
+      <div>
+        <div class="bg-muted text-muted-foreground flex size-10 items-center justify-center rounded-lg">
+          <PiggyBankIcon class="size-5" />
+        </div>
+      </div>
+
+      <div class="flex flex-1 flex-col">
+        <h3 class="mb-1.5 font-semibold text-balance">
+          {{ $t('settings.dataManagement.ynab.title') }}
+        </h3>
+        <p class="text-muted-foreground mb-4 text-sm leading-relaxed">
+          {{ $t('settings.dataManagement.ynab.description') }}
+        </p>
+      </div>
+
+      <div
+        class="text-muted-foreground group-hover:text-foreground flex items-center gap-1.5 text-sm font-medium transition-colors duration-200"
+      >
+        {{ $t('settings.dataManagement.ynab.cta') }}
+        <ArrowRightIcon class="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+      </div>
+    </RouterLink>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ROUTES_NAMES } from '@/routes';
-import { ArrowRightIcon, FileSpreadsheetIcon, SparklesIcon } from '@lucide/vue';
+import { ArrowRightIcon, FileSpreadsheetIcon, PiggyBankIcon, SparklesIcon } from '@lucide/vue';
 import { RouterLink } from 'vue-router';
 
 defineOptions({
