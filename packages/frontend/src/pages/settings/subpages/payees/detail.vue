@@ -4,9 +4,9 @@
       <div class="flex items-center justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
         <RouterLink
           :to="{ name: ROUTES_NAMES.settingsPayees }"
-          class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
+          class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium transition-colors"
         >
-          <ChevronLeftIcon class="size-3.5" />
+          <ChevronLeftIcon class="size-4" />
           {{ $t('payees.title') }}
         </RouterLink>
         <PayeeActionsDropdown
@@ -20,7 +20,7 @@
 
       <div class="mt-3 flex items-center gap-3 px-5 sm:px-6">
         <div
-          class="bg-muted/60 ring-border/60 text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg text-base font-semibold uppercase ring-1"
+          class="bg-primary/15 ring-primary/25 text-primary flex size-11 shrink-0 items-center justify-center rounded-lg text-lg font-bold uppercase ring-1"
         >
           {{ monogram }}
         </div>
@@ -31,7 +31,7 @@
 
       <dl
         v-if="payeeData?.stats"
-        class="divide-border/50 border-border/50 bg-muted/15 mx-5 mt-5 flex flex-col divide-y overflow-hidden rounded-lg border sm:mx-6 @[650px]/detail:grid @[650px]/detail:grid-cols-3 @[650px]/detail:divide-x @[650px]/detail:divide-y-0"
+        class="divide-border border-border bg-muted/30 mx-5 mt-5 flex flex-col divide-y overflow-hidden rounded-lg border sm:mx-6 @[650px]/detail:grid @[650px]/detail:grid-cols-3 @[650px]/detail:divide-x @[650px]/detail:divide-y-0"
       >
         <button
           type="button"
@@ -39,10 +39,10 @@
           class="enabled:hover:bg-muted/40 focus-visible:ring-ring flex flex-row items-center justify-between gap-3 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none enabled:cursor-pointer disabled:cursor-default @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
           @click="openTransactionsDialog"
         >
-          <dt class="text-muted-foreground text-[10px] font-medium tracking-[0.08em] uppercase">
+          <dt class="text-muted-foreground text-[11px] font-semibold tracking-[0.07em] uppercase">
             {{ $t('payees.columns.transactionCount') }}
           </dt>
-          <dd class="text-base font-semibold tabular-nums @[650px]/detail:text-2xl">
+          <dd class="text-lg font-semibold tabular-nums @[650px]/detail:text-2xl">
             {{ payeeData.stats.transactionCount }}
           </dd>
         </button>
@@ -50,11 +50,11 @@
         <div
           class="flex flex-row items-center justify-between gap-3 px-4 py-3 @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
         >
-          <dt class="text-muted-foreground text-[10px] font-medium tracking-[0.08em] uppercase">
+          <dt class="text-muted-foreground text-[11px] font-semibold tracking-[0.07em] uppercase">
             {{ $t('payees.columns.netFlow') }}
           </dt>
           <dd
-            class="text-base font-semibold tabular-nums @[650px]/detail:text-2xl"
+            class="text-lg font-semibold tabular-nums @[650px]/detail:text-2xl"
             :class="netFlowToneClass(payeeData.stats.netFlowRef)"
           >
             {{ formatNetFlow(payeeData.stats.netFlowRef) }}
@@ -65,14 +65,14 @@
           class="flex flex-row items-center justify-between gap-3 px-4 py-3 @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
         >
           <dt
-            class="text-muted-foreground flex shrink-0 items-center gap-1.5 text-[10px] font-medium tracking-[0.08em] uppercase"
+            class="text-muted-foreground flex shrink-0 items-center gap-1.5 text-[11px] font-semibold tracking-[0.07em] uppercase"
           >
             {{ $t('payees.columns.topCategory') }}
             <ResponsiveTooltip :delay-duration="100" :content="$t('payees.detail.topCategoryHint')">
-              <InfoIcon class="size-3 cursor-help" @click.prevent.stop />
+              <InfoIcon class="size-3.5 cursor-help" @click.prevent.stop />
             </ResponsiveTooltip>
           </dt>
-          <dd class="flex min-w-0 items-center gap-2 text-sm font-semibold @[650px]/detail:text-lg">
+          <dd class="flex min-w-0 items-center gap-2 text-base font-semibold @[650px]/detail:text-lg">
             <CategoryCircle
               v-if="payeeData.stats.topCategoryId"
               :category-id="payeeData.stats.topCategoryId"
@@ -83,13 +83,13 @@
         </div>
       </dl>
 
-      <div v-if="payeeData" class="border-border/40 mt-6 border-t px-5 pt-5 pb-5 sm:px-6 sm:pt-6 sm:pb-6">
-        <h3 class="text-muted-foreground mb-4 text-[10px] font-medium tracking-widest uppercase">
+      <div v-if="payeeData" class="border-border mt-6 border-t px-5 pt-5 pb-5 sm:px-6 sm:pt-6 sm:pb-6">
+        <h3 class="mb-4 text-sm font-semibold">
           {{ $t('payees.detail.categorizationSection') }}
         </h3>
         <div class="grid gap-5 @[650px]/detail:grid-cols-2 @[650px]/detail:gap-6">
           <div class="flex flex-col gap-1.5">
-            <label class="text-foreground text-xs font-medium">
+            <label class="text-foreground text-sm font-medium">
               {{ $t('payees.columns.defaultCategory') }}
             </label>
             <CategorySelectField
@@ -100,7 +100,7 @@
             />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-foreground text-xs font-medium">
+            <label class="text-foreground text-sm font-medium">
               {{ $t('payees.form.categorizationMode.label') }}
             </label>
             <SelectField
@@ -109,7 +109,7 @@
               label-key="label"
               value-key="value"
             />
-            <p class="text-muted-foreground text-xs leading-snug">
+            <p class="text-muted-foreground text-[13px] leading-snug">
               {{ categorizationModeProxy.hint }}
             </p>
           </div>
@@ -119,9 +119,11 @@
 
     <Card class="px-5 py-5 sm:px-6 sm:py-6">
       <div class="flex items-baseline justify-between gap-3">
-        <h3 class="text-sm font-semibold">
+        <h3 class="flex items-center gap-2 text-sm font-semibold">
           {{ $t('payees.detail.aliasesHeading') }}
-          <span class="text-muted-foreground ml-1.5 text-xs font-normal tabular-nums">
+          <span
+            class="bg-muted text-muted-foreground inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums"
+          >
             {{ payeeData?.aliases?.length ?? 0 }}
           </span>
         </h3>
@@ -133,14 +135,14 @@
 
       <ul
         v-if="payeeData?.aliases && payeeData.aliases.length > 0"
-        class="divide-border/40 border-border/40 mt-3 divide-y overflow-hidden rounded-md border"
+        class="divide-border border-border mt-3 divide-y overflow-hidden rounded-md border"
       >
         <li
           v-for="alias in payeeData.aliases"
           :key="alias.id"
-          class="hover:bg-muted/20 flex items-center justify-between gap-2 px-3 py-2 text-sm transition-colors"
+          class="hover:bg-muted/30 flex items-center justify-between gap-2 px-3 py-2 text-sm transition-colors"
         >
-          <span class="truncate">{{ alias.rawName }}</span>
+          <span class="truncate font-medium">{{ alias.rawName }}</span>
           <DesktopOnlyTooltip
             :content="
               alias.isCanonical
@@ -163,10 +165,10 @@
 
       <div
         v-else
-        class="border-border/50 bg-muted/10 text-muted-foreground mt-3 flex flex-col items-center gap-1.5 rounded-md border border-dashed px-4 py-6 text-center"
+        class="border-border bg-muted/20 text-muted-foreground mt-3 flex flex-col items-center gap-1.5 rounded-md border border-dashed px-4 py-6 text-center"
       >
         <TagsIcon class="size-5" />
-        <p class="text-xs leading-snug">{{ $t('payees.detail.aliasesEmpty') }}</p>
+        <p class="text-sm leading-snug">{{ $t('payees.detail.aliasesEmpty') }}</p>
       </div>
     </Card>
 
