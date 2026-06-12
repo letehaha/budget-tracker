@@ -2,6 +2,7 @@ import {
   addIgnoredName,
   bulkUpdateCategorizationMode,
   createPayee,
+  createPayeeAlias,
   deletePayee,
   deletePayeeAlias,
   getPayee,
@@ -21,7 +22,7 @@ router.get('/', authenticateSession, validateEndpoint(listPayees.schema), listPa
 router.post('/', authenticateSession, validateEndpoint(createPayee.schema), createPayee.handler);
 
 // Bulk-update sub-resource. Precedes `/:id` patterns for the same reason as
-// `/ignored-names` below — Express's path matcher would otherwise treat the
+// `/ignored-names` below – Express's path matcher would otherwise treat the
 // literal segment as a Payee id.
 router.patch(
   '/bulk-categorization-mode',
@@ -45,6 +46,7 @@ router.get('/:id', authenticateSession, validateEndpoint(getPayee.schema), getPa
 router.patch('/:id', authenticateSession, validateEndpoint(updatePayee.schema), updatePayee.handler);
 router.delete('/:id', authenticateSession, validateEndpoint(deletePayee.schema), deletePayee.handler);
 router.post('/:id/merge', authenticateSession, validateEndpoint(mergePayees.schema), mergePayees.handler);
+router.post('/:id/aliases', authenticateSession, validateEndpoint(createPayeeAlias.schema), createPayeeAlias.handler);
 router.delete(
   '/:id/aliases/:aliasId',
   authenticateSession,

@@ -56,6 +56,13 @@
       "aliasesEmpty": "No aliases yet. New variants will appear here when this Payee matches another merchant name.",
       "cannotDeleteCanonicalAlias": "Cannot delete the alias matching the Payee's name. Rename the Payee instead.",
       "deleteAliasConfirm": "Remove this alias?",
+      "addAlias": "Add",
+      "addAliasTitle": "Add alias",
+      "addAliasDescription": "Future transactions whose merchant text normalizes to this alias will automatically link to this Payee. Past transactions are unchanged.",
+      "addAliasInputLabel": "Merchant name",
+      "addAliasPlaceholder": "e.g. ACME STORE #1234",
+      "aliasDuplicate": "This alias is already attached to this Payee.",
+      "aliasUsedByOtherPayee": "This alias is already used by \"{name}\".",
       "deletePayeeTitle": "Delete payee?",
       "deletePayeeDescription": "Linked transactions keep their category but lose the payee link. This cannot be undone.",
       "deleteAndIgnoreTitle": "Delete this Payee and ignore future matches?",
@@ -78,6 +85,7 @@
       "deleted": "Payee deleted",
       "merged": "Payees merged",
       "aliasDeleted": "Alias removed",
+      "aliasAdded": "Alias added",
       "deletedAndIgnored": "Payee deleted and added to ignored-names list"
     },
     "errors": {

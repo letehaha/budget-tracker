@@ -408,15 +408,19 @@
     "transactionsNotFoundOrNotBelongToUser": "Una o más transacciones no encontradas o no pertenecen al usuario."
   },
   "payees": {
+    "aliasNameRequired": "El nombre del alias es obligatorio",
     "aliasNotFound": "Alias no encontrado",
+    "aliasUsedByOtherPayee": "Este alias ya está siendo usado por \"{{name}}\"",
+    "nameUsedByAliasOfOtherPayee": "Este nombre ya está siendo usado como alias de \"{{name}}\"",
     "cannotDeleteCanonicalAlias": "No se puede eliminar el alias que coincide con el nombre canónico del beneficiario. Cambie el nombre del beneficiario si desea modificar su nombre principal.",
     "defaultCategoryNotOwned": "La categoría predeterminada seleccionada no pertenece a su cuenta",
+    "duplicateAlias": "Este alias ya está asociado a este beneficiario",
     "duplicateName": "Ya existe un beneficiario con este nombre",
     "ignoredNameCollidesWithPayee": "Un beneficiario existente coincide con este nombre. Elimine primero el beneficiario, o pase `force: true` para eliminarlo como parte de esta operación.",
     "ignoredNameNotFound": "Nombre ignorado no encontrado.",
     "mergeSelf": "No se puede fusionar un beneficiario consigo mismo",
     "nameRequired": "El nombre del beneficiario es obligatorio",
     "notFound": "Beneficiario no encontrado",
-    "renameCollision": "Otro beneficiario ya usa este nombre — fusiónelos en su lugar"
+    "renameCollision": "Otro beneficiario ya usa este nombre – fusiónelos en su lugar"
   }
 }

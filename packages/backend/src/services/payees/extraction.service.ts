@@ -8,6 +8,7 @@ import { Op } from 'sequelize';
 import { withTransaction } from '../common/with-transaction';
 import { FUZZY_MATCH_THRESHOLD, buildHaystack, fuzzyFindBestMatch } from './fuzzy-matcher';
 import { normalizePayeeName } from './normalize-name';
+import { ensureAliasExists, resolveNormalizedName } from './payee-namespace';
 
 interface ExtractionInput {
   userId: number;
@@ -54,28 +55,8 @@ async function findExactMatch({
   userId: number;
   normalizedQuery: string;
 }): Promise<string | null> {
-  const directHit = await Payees.findOne({
-    where: { userId, normalizedName: normalizedQuery },
-    attributes: ['id'],
-  });
-  if (directHit) return directHit.id;
-
-  const aliasHit = await PayeeAliases.findOne({
-    where: { normalizedName: normalizedQuery },
-    include: [
-      {
-        model: Payees,
-        as: 'payee',
-        required: true,
-        where: { userId },
-        attributes: ['id'],
-      },
-    ],
-    attributes: ['id', 'payeeId'],
-  });
-  if (aliasHit) return aliasHit.payeeId;
-
-  return null;
+  const hit = await resolveNormalizedName({ userId, normalized: normalizedQuery });
+  return hit?.payeeId ?? null;
 }
 
 /**
@@ -241,24 +222,3 @@ export const resolvePayeeForRawMerchant = withTransaction(
     return noMatch;
   },
 );
-
-/**
- * Idempotent alias insert. `findOrCreate` collapses the check-then-create into
- * a single race-safe operation — UNIQUE (payeeId, normalizedName) plus
- * `findOrCreate` means a concurrent sync hitting the same merchant returns
- * the existing row instead of throwing.
- */
-export async function ensureAliasExists({
-  payeeId,
-  rawName,
-  normalizedName,
-}: {
-  payeeId: string;
-  rawName: string;
-  normalizedName: string;
-}): Promise<void> {
-  await PayeeAliases.findOrCreate({
-    where: { payeeId, normalizedName },
-    defaults: { payeeId, rawName, normalizedName },
-  });
-}

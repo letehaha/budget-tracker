@@ -7,9 +7,9 @@ import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { applyPayeeCategorization } from './apply-categorization';
-import { ensureAliasExists } from './extraction.service';
 import { buildFuzzyIndex, buildHaystack } from './fuzzy-matcher';
 import { normalizePayeeName } from './normalize-name';
+import { ensureAliasExists } from './payee-namespace';
 
 interface NoteFuzzyBackfillInput {
   /**

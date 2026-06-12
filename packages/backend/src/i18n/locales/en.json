@@ -408,15 +408,19 @@
     "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user."
   },
   "payees": {
+    "aliasNameRequired": "Alias name is required",
     "aliasNotFound": "Alias not found",
+    "aliasUsedByOtherPayee": "This alias is already used by \"{{name}}\"",
+    "nameUsedByAliasOfOtherPayee": "This name is already used as an alias of \"{{name}}\"",
     "cannotDeleteCanonicalAlias": "Can't delete the alias matching the Payee's canonical name. Rename the Payee instead if you want to change its primary name.",
     "defaultCategoryNotOwned": "The selected default category doesn't belong to your account",
+    "duplicateAlias": "This alias is already attached to this payee",
     "duplicateName": "A payee with this name already exists",
     "ignoredNameCollidesWithPayee": "An existing Payee matches this name. Delete the Payee first, or pass `force: true` to delete it as part of this operation.",
     "ignoredNameNotFound": "Ignored name not found.",
     "mergeSelf": "Cannot merge a payee with itself",
     "nameRequired": "Payee name is required",
     "notFound": "Payee not found",
-    "renameCollision": "Another payee already uses this name — merge them instead"
+    "renameCollision": "Another payee already uses this name – merge them instead"
   }
 }

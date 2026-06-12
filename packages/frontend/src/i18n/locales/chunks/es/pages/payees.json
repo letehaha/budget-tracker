@@ -56,6 +56,13 @@
       "aliasesEmpty": "Aún no hay alias. Los nuevos variantes aparecerán aquí cuando este beneficiario coincida con otro nombre de comercio.",
       "cannotDeleteCanonicalAlias": "No se puede eliminar el alias que coincide con el nombre del beneficiario. Renombre el beneficiario en su lugar.",
       "deleteAliasConfirm": "¿Eliminar este alias?",
+      "addAlias": "Añadir",
+      "addAliasTitle": "Añadir alias",
+      "addAliasDescription": "Las transacciones futuras cuyo texto de comercio se normalice a este alias se vincularán automáticamente a este beneficiario. Las transacciones anteriores no cambian.",
+      "addAliasInputLabel": "Nombre de comercio",
+      "addAliasPlaceholder": "p. ej., TIENDA ACME #1234",
+      "aliasDuplicate": "Este alias ya está vinculado a este beneficiario.",
+      "aliasUsedByOtherPayee": "Este alias ya está en uso por \"{name}\".",
       "deletePayeeTitle": "¿Eliminar beneficiario?",
       "deletePayeeDescription": "Las transacciones vinculadas conservan su categoría pero pierden el vínculo con el beneficiario. Esta acción no se puede deshacer.",
       "deleteAndIgnoreTitle": "¿Eliminar este beneficiario e ignorar coincidencias futuras?",
@@ -78,6 +85,7 @@
       "deleted": "Beneficiario eliminado",
       "merged": "Beneficiarios combinados",
       "aliasDeleted": "Alias eliminado",
+      "aliasAdded": "Alias añadido",
       "deletedAndIgnored": "Beneficiario eliminado y añadido a la lista de nombres ignorados"
     },
     "errors": {

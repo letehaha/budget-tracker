@@ -97,6 +97,23 @@ export async function mergePayees<R extends boolean | undefined = undefined>({
   });
 }
 
+export async function createPayeeAlias<R extends boolean | undefined = undefined>({
+  payeeId,
+  rawName,
+  raw,
+}: {
+  payeeId: string;
+  rawName: string;
+  raw?: R;
+}) {
+  return makeRequest<PayeeModel, R>({
+    method: 'post',
+    url: `/payees/${payeeId}/aliases`,
+    payload: { rawName },
+    raw,
+  });
+}
+
 export async function deletePayeeAlias<R extends boolean | undefined = undefined>({
   payeeId,
   aliasId,

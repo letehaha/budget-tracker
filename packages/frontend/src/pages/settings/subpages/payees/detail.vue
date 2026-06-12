@@ -4,9 +4,9 @@
       <div class="flex items-center justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
         <RouterLink
           :to="{ name: ROUTES_NAMES.settingsPayees }"
-          class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
+          class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium transition-colors"
         >
-          <ChevronLeftIcon class="size-3.5" />
+          <ChevronLeftIcon class="size-4" />
           {{ $t('payees.title') }}
         </RouterLink>
         <PayeeActionsDropdown
@@ -20,7 +20,7 @@
 
       <div class="mt-3 flex items-center gap-3 px-5 sm:px-6">
         <div
-          class="bg-muted/60 ring-border/60 text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg text-base font-semibold uppercase ring-1"
+          class="bg-primary/15 ring-primary/25 text-primary flex size-11 shrink-0 items-center justify-center rounded-lg text-lg font-bold uppercase ring-1"
         >
           {{ monogram }}
         </div>
@@ -31,7 +31,7 @@
 
       <dl
         v-if="payeeData?.stats"
-        class="divide-border/50 border-border/50 bg-muted/15 mx-5 mt-5 flex flex-col divide-y overflow-hidden rounded-lg border sm:mx-6 @[650px]/detail:grid @[650px]/detail:grid-cols-3 @[650px]/detail:divide-x @[650px]/detail:divide-y-0"
+        class="divide-border border-border bg-muted/30 mx-5 mt-5 flex flex-col divide-y overflow-hidden rounded-lg border sm:mx-6 @[650px]/detail:grid @[650px]/detail:grid-cols-3 @[650px]/detail:divide-x @[650px]/detail:divide-y-0"
       >
         <button
           type="button"
@@ -39,10 +39,10 @@
           class="enabled:hover:bg-muted/40 focus-visible:ring-ring flex flex-row items-center justify-between gap-3 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none enabled:cursor-pointer disabled:cursor-default @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
           @click="openTransactionsDialog"
         >
-          <dt class="text-muted-foreground text-[10px] font-medium tracking-[0.08em] uppercase">
+          <dt class="text-muted-foreground text-[11px] font-semibold tracking-[0.07em] uppercase">
             {{ $t('payees.columns.transactionCount') }}
           </dt>
-          <dd class="text-base font-semibold tabular-nums @[650px]/detail:text-2xl">
+          <dd class="text-lg font-semibold tabular-nums @[650px]/detail:text-2xl">
             {{ payeeData.stats.transactionCount }}
           </dd>
         </button>
@@ -50,11 +50,11 @@
         <div
           class="flex flex-row items-center justify-between gap-3 px-4 py-3 @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
         >
-          <dt class="text-muted-foreground text-[10px] font-medium tracking-[0.08em] uppercase">
+          <dt class="text-muted-foreground text-[11px] font-semibold tracking-[0.07em] uppercase">
             {{ $t('payees.columns.netFlow') }}
           </dt>
           <dd
-            class="text-base font-semibold tabular-nums @[650px]/detail:text-2xl"
+            class="text-lg font-semibold tabular-nums @[650px]/detail:text-2xl"
             :class="netFlowToneClass(payeeData.stats.netFlowRef)"
           >
             {{ formatNetFlow(payeeData.stats.netFlowRef) }}
@@ -65,14 +65,14 @@
           class="flex flex-row items-center justify-between gap-3 px-4 py-3 @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
         >
           <dt
-            class="text-muted-foreground flex shrink-0 items-center gap-1.5 text-[10px] font-medium tracking-[0.08em] uppercase"
+            class="text-muted-foreground flex shrink-0 items-center gap-1.5 text-[11px] font-semibold tracking-[0.07em] uppercase"
           >
             {{ $t('payees.columns.topCategory') }}
             <ResponsiveTooltip :delay-duration="100" :content="$t('payees.detail.topCategoryHint')">
-              <InfoIcon class="size-3 cursor-help" @click.prevent.stop />
+              <InfoIcon class="size-3.5 cursor-help" @click.prevent.stop />
             </ResponsiveTooltip>
           </dt>
-          <dd class="flex min-w-0 items-center gap-2 text-sm font-semibold @[650px]/detail:text-lg">
+          <dd class="flex min-w-0 items-center gap-2 text-base font-semibold @[650px]/detail:text-lg">
             <CategoryCircle
               v-if="payeeData.stats.topCategoryId"
               :category-id="payeeData.stats.topCategoryId"
@@ -83,13 +83,13 @@
         </div>
       </dl>
 
-      <div v-if="payeeData" class="border-border/40 mt-6 border-t px-5 pt-5 pb-5 sm:px-6 sm:pt-6 sm:pb-6">
-        <h3 class="text-muted-foreground mb-4 text-[10px] font-medium tracking-widest uppercase">
+      <div v-if="payeeData" class="border-border mt-6 border-t px-5 pt-5 pb-5 sm:px-6 sm:pt-6 sm:pb-6">
+        <h3 class="mb-4 text-sm font-semibold">
           {{ $t('payees.detail.categorizationSection') }}
         </h3>
         <div class="grid gap-5 @[650px]/detail:grid-cols-2 @[650px]/detail:gap-6">
           <div class="flex flex-col gap-1.5">
-            <label class="text-foreground text-xs font-medium">
+            <label class="text-foreground text-sm font-medium">
               {{ $t('payees.columns.defaultCategory') }}
             </label>
             <CategorySelectField
@@ -100,7 +100,7 @@
             />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-foreground text-xs font-medium">
+            <label class="text-foreground text-sm font-medium">
               {{ $t('payees.form.categorizationMode.label') }}
             </label>
             <SelectField
@@ -109,7 +109,7 @@
               label-key="label"
               value-key="value"
             />
-            <p class="text-muted-foreground text-xs leading-snug">
+            <p class="text-muted-foreground text-[13px] leading-snug">
               {{ categorizationModeProxy.hint }}
             </p>
           </div>
@@ -118,28 +118,34 @@
     </Card>
 
     <Card class="px-5 py-5 sm:px-6 sm:py-6">
-      <div class="flex items-baseline justify-between">
-        <h3 class="text-sm font-semibold">
+      <div class="flex items-baseline justify-between gap-3">
+        <h3 class="flex items-center gap-2 text-sm font-semibold">
           {{ $t('payees.detail.aliasesHeading') }}
-          <span class="text-muted-foreground ml-1.5 text-xs font-normal tabular-nums">
+          <span
+            class="bg-muted text-muted-foreground inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums"
+          >
             {{ payeeData?.aliases?.length ?? 0 }}
           </span>
         </h3>
+        <Button variant="outline" size="sm" :disabled="!payeeData" @click="openAddAlias">
+          <PlusIcon class="size-4" />
+          {{ $t('payees.detail.addAlias') }}
+        </Button>
       </div>
 
       <ul
         v-if="payeeData?.aliases && payeeData.aliases.length > 0"
-        class="divide-border/40 border-border/40 mt-3 divide-y overflow-hidden rounded-md border"
+        class="divide-border border-border mt-3 divide-y overflow-hidden rounded-md border"
       >
         <li
           v-for="alias in payeeData.aliases"
           :key="alias.id"
-          class="hover:bg-muted/20 flex items-center justify-between gap-2 px-3 py-2 text-sm transition-colors"
+          class="hover:bg-muted/30 flex items-center justify-between gap-2 px-3 py-2 text-sm transition-colors"
         >
-          <span class="truncate">{{ alias.rawName }}</span>
+          <span class="truncate font-medium">{{ alias.rawName }}</span>
           <DesktopOnlyTooltip
             :content="
-              isCanonicalAlias(alias.normalizedName)
+              alias.isCanonical
                 ? $t('payees.detail.cannotDeleteCanonicalAlias')
                 : $t('payees.detail.deleteAliasConfirm')
             "
@@ -147,7 +153,7 @@
             <Button
               variant="ghost-destructive"
               size="icon-sm"
-              :disabled="isCanonicalAlias(alias.normalizedName)"
+              :disabled="alias.isCanonical"
               :aria-label="$t('payees.detail.deleteAliasConfirm')"
               @click="confirmDeleteAlias(alias.id)"
             >
@@ -159,10 +165,10 @@
 
       <div
         v-else
-        class="border-border/50 bg-muted/10 text-muted-foreground mt-3 flex flex-col items-center gap-1.5 rounded-md border border-dashed px-4 py-6 text-center"
+        class="border-border bg-muted/20 text-muted-foreground mt-3 flex flex-col items-center gap-1.5 rounded-md border border-dashed px-4 py-6 text-center"
       >
         <TagsIcon class="size-5" />
-        <p class="text-xs leading-snug">{{ $t('payees.detail.aliasesEmpty') }}</p>
+        <p class="text-sm leading-snug">{{ $t('payees.detail.aliasesEmpty') }}</p>
       </div>
     </Card>
 
@@ -194,6 +200,58 @@
       :payee-name="payeeData?.name ?? null"
     />
 
+    <ResponsiveDialog v-model:open="addAliasOpen">
+      <template #title>
+        <span class="text-lg font-semibold">{{ $t('payees.detail.addAliasTitle') }}</span>
+      </template>
+      <template #description>{{ $t('payees.detail.addAliasDescription') }}</template>
+      <template #default>
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1.5">
+            <InputField
+              v-model="aliasInput"
+              :label="$t('payees.detail.addAliasInputLabel')"
+              :placeholder="$t('payees.detail.addAliasPlaceholder')"
+              @update:model-value="aliasError = null"
+              @keydown.enter="handleAddAlias"
+            />
+            <p v-if="aliasError" class="text-destructive-text text-xs leading-snug">
+              <template v-if="aliasError.conflictingPayee">
+                <i18n-t keypath="payees.detail.aliasUsedByOtherPayee" tag="span">
+                  <template #name>
+                    <RouterLink
+                      :to="{
+                        name: ROUTES_NAMES.settingsPayeeDetail,
+                        params: { id: aliasError.conflictingPayee.id },
+                      }"
+                      class="font-medium underline underline-offset-2"
+                    >
+                      {{ aliasError.conflictingPayee.name }}
+                    </RouterLink>
+                  </template>
+                </i18n-t>
+              </template>
+              <template v-else>
+                {{ aliasError.message }}
+              </template>
+            </p>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" :disabled="createAliasMut.isPending.value" @click="addAliasOpen = false">
+              {{ $t('common.actions.cancel') }}
+            </Button>
+            <Button
+              variant="default"
+              :disabled="!aliasInput.trim() || createAliasMut.isPending.value"
+              @click="handleAddAlias"
+            >
+              {{ $t('common.actions.save') }}
+            </Button>
+          </div>
+        </div>
+      </template>
+    </ResponsiveDialog>
+
     <ResponsiveDialog v-model:open="mergeOpen">
       <template #default>
         <div class="flex flex-col gap-4 p-4">
@@ -214,6 +272,7 @@
 
 <script setup lang="ts">
 import {
+  useCreatePayeeAlias,
   useDeletePayee,
   useDeletePayeeAlias,
   useDeletePayeeAndIgnore,
@@ -230,14 +289,17 @@ import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.v
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
+import InputField from '@/components/fields/input-field.vue';
 import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { CATEGORIZATION_MODE } from '@bt/shared/types';
-import { ChevronLeftIcon, InfoIcon, TagsIcon, Trash2Icon } from '@lucide/vue';
+import { API_ERROR_CODES, CATEGORIZATION_MODE, type PayeeNameConflictDetails } from '@bt/shared/types';
+import { ApiErrorResponseError, getPayeeNameConflict, isApiErrorWithCode } from '@/js/errors';
+import { ChevronLeftIcon, InfoIcon, PlusIcon, TagsIcon, Trash2Icon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -385,7 +447,13 @@ const deleteAndIgnoreOpen = ref(false);
 const openDeleteAndIgnore = () => (deleteAndIgnoreOpen.value = true);
 
 const transactionsDialogOpen = ref(false);
-const openTransactionsDialog = () => {
+const openTransactionsDialog = (event?: MouseEvent) => {
+  // The mobile drawer sets `aria-hidden` on `#app` once it opens. If this
+  // trigger still owns focus, that hides a focused descendant from AT and the
+  // browser warns. Blur first so the drawer's focus trap takes over cleanly.
+  if (event?.currentTarget instanceof HTMLElement) {
+    event.currentTarget.blur();
+  }
   if (payeeData.value?.stats && payeeData.value.stats.transactionCount > 0) {
     transactionsDialogOpen.value = true;
   }
@@ -402,8 +470,53 @@ async function handleDeleteAndIgnore() {
   }
 }
 
-const isCanonicalAlias = (aliasNormalized: string) =>
-  Boolean(payeeData.value && aliasNormalized === payeeData.value.normalizedName);
+interface AliasError {
+  message?: string;
+  conflictingPayee?: PayeeNameConflictDetails['conflictingPayee'];
+}
+
+const addAliasOpen = ref(false);
+const aliasInput = ref('');
+const aliasError = ref<AliasError | null>(null);
+const openAddAlias = () => {
+  aliasInput.value = '';
+  aliasError.value = null;
+  addAliasOpen.value = true;
+};
+
+const createAliasMut = useCreatePayeeAlias();
+async function handleAddAlias() {
+  if (!payeeData.value) return;
+  const rawName = aliasInput.value.trim();
+  if (!rawName || createAliasMut.isPending.value) return;
+  aliasError.value = null;
+  try {
+    await createAliasMut.mutateAsync({ payeeId: payeeData.value.id, rawName });
+    addSuccessNotification(t('payees.toasts.aliasAdded'));
+    addAliasOpen.value = false;
+  } catch (error) {
+    // Cross-payee collisions carry the other Payee in `details` so the UI
+    // can render a link instead of a name string. Same-payee duplicates
+    // don't include `details` — fall back to the message the server sent.
+    const conflicting = getPayeeNameConflict(error);
+    if (conflicting) {
+      aliasError.value = { conflictingPayee: conflicting };
+      return;
+    }
+    if (isApiErrorWithCode(error, API_ERROR_CODES.conflict)) {
+      aliasError.value = { message: error.data.message ?? t('payees.detail.aliasDuplicate') };
+      return;
+    }
+    if (error instanceof ApiErrorResponseError) {
+      aliasError.value = { message: error.data.message ?? t('payees.errors.generic') };
+      return;
+    }
+    // Non-API failure (network layer, client-side bug) — report it so the
+    // generic toast isn't the only trace.
+    captureException({ error, context: { flow: 'createPayeeAlias' } });
+    addErrorNotification(t('payees.errors.generic'));
+  }
+}
 
 const deleteAliasMut = useDeletePayeeAlias();
 async function confirmDeleteAlias(aliasId: string) {
@@ -412,11 +525,10 @@ async function confirmDeleteAlias(aliasId: string) {
     await deleteAliasMut.mutateAsync({ payeeId: payeeData.value.id, aliasId });
     addSuccessNotification(t('payees.toasts.aliasDeleted'));
   } catch (error) {
-    // The button is hidden for the canonical-name alias under normal
-    // conditions, but the validation still fires on race or stale UI state.
-    // Surface the specific reason instead of a generic message.
-    const status = (error as { response?: { status?: number } })?.response?.status;
-    if (status === 422) {
+    // The button is disabled for the canonical-name alias under normal
+    // conditions, but the backend validation still fires on race or stale UI
+    // state. Surface the specific reason instead of a generic message.
+    if (isApiErrorWithCode(error, API_ERROR_CODES.validationError)) {
       addErrorNotification(t('payees.detail.cannotDeleteCanonicalAlias'));
     } else {
       addErrorNotification(t('payees.errors.generic'));

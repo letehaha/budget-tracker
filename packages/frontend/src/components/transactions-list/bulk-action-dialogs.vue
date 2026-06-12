@@ -50,7 +50,7 @@ const {
     v-model:open="isBulkDeleteDialogOpen"
     :confirm-label="$t('transactions.bulkDelete.confirmButton')"
     confirm-variant="destructive"
-    :loading="bulkDeleteMutation.isPending.value"
+    :confirm-disabled="bulkDeleteMutation.isPending.value"
     @confirm="handleBulkDelete"
   >
     <template #title>{{ $t('transactions.bulkDelete.confirmTitle', { count: selectedCount }) }}</template>
