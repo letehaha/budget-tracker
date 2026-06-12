@@ -222,5 +222,31 @@ describe('computeLoanProjection', () => {
       expect(early.payoffDate).toBe('2026-11-15');
       expect(late.payoffDate).toBe('2027-10-15');
     });
+
+    it('clamps payoffDate to the last day of short months instead of overflowing', () => {
+      // Jan 31 + N months must land on the target month's last day (Feb 28,
+      // Apr 30), not overflow into the following month via Date normalization.
+      const todayJan31 = new Date(2026, 0, 31);
+
+      const oneMonth = computeLoanProjection({
+        currentBalanceCents: 100_00,
+        originalPrincipalCents: 100_00,
+        interestRate: 0,
+        plannedPaymentCents: 100_00,
+        today: todayJan31,
+      });
+      expect(oneMonth.monthsRemaining).toBe(1);
+      expect(oneMonth.payoffDate).toBe('2026-02-28');
+
+      const threeMonths = computeLoanProjection({
+        currentBalanceCents: 300_00,
+        originalPrincipalCents: 300_00,
+        interestRate: 0,
+        plannedPaymentCents: 100_00,
+        today: todayJan31,
+      });
+      expect(threeMonths.monthsRemaining).toBe(3);
+      expect(threeMonths.payoffDate).toBe('2026-04-30');
+    });
   });
 });

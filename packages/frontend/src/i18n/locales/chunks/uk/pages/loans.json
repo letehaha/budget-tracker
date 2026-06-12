@@ -126,7 +126,8 @@
         "termChange": "Термін змінено з {from} на {to} місяців",
         "plannedPaymentChange": "Планований платіж змінено з {from} на {to}",
         "paidOff": "Кредит закрито",
-        "refinanced": "Кредит рефінансовано"
+        "refinanced": "Кредит рефінансовано",
+        "balanceCorrection": "Залишок за кредитом скориговано з {from} на {to}"
       },
       "payments": {
         "title": "Останні платежі",

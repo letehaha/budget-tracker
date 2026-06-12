@@ -2,7 +2,7 @@ import { api } from '@/api/_api';
 import type {
   ACCOUNT_STATUSES,
   BANK_PROVIDER_TYPE,
-  LoanEvent,
+  LoanEventApi,
   LoanProjection,
   RecordId,
   ResourceShareInfo,
@@ -27,7 +27,7 @@ export interface LoanDetailsApi {
   lenderName: string | null;
   accountNumber: string | null;
   replacedByLoanId: RecordId | null;
-  events: LoanEvent[];
+  events: LoanEventApi[];
   createdAt: string;
   updatedAt: string;
 }

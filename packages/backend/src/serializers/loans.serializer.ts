@@ -6,7 +6,13 @@
  * the frontend treat a loan as an Account with extra fields instead of a
  * brand-new shape it has to learn.
  */
-import { type LOAN_TYPE, type LoanEvent, type LoanProjection, type RecordId } from '@bt/shared/types';
+import {
+  type LOAN_TYPE,
+  type LoanEvent,
+  type LoanEventApi,
+  type LoanProjection,
+  type RecordId,
+} from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type LoanDetails from '@models/loan-details.model';
 import { type AccountApiResponse, serializeAccount } from '@root/serializers/accounts.serializer';
@@ -27,7 +33,7 @@ export interface LoanDetailsApiResponse {
   lenderName: string | null;
   accountNumber: string | null;
   replacedByLoanId: RecordId | null;
-  events: LoanEvent[];
+  events: LoanEventApi[];
   createdAt: string;
   updatedAt: string;
 }
@@ -37,13 +43,39 @@ export type LoanApiResponse = AccountApiResponse & {
   projection: LoanProjection;
 };
 
+/**
+ * Events are stored with monetary values in cents (`fromCents`/`toCents`);
+ * the wire shape carries decimals named `from`/`to` like every other money
+ * field, so the frontend never converts cents itself.
+ */
+function serializeLoanEvent(event: LoanEvent): LoanEventApi {
+  switch (event.type) {
+    case 'planned_payment_change':
+      return {
+        type: event.type,
+        at: event.at,
+        from: event.fromCents === null ? null : centsToApiDecimal(event.fromCents),
+        to: event.toCents === null ? null : centsToApiDecimal(event.toCents),
+      };
+    case 'balance_correction':
+      return {
+        type: event.type,
+        at: event.at,
+        from: centsToApiDecimal(event.fromCents),
+        to: centsToApiDecimal(event.toCents),
+      };
+    default:
+      return event;
+  }
+}
+
 function serializeLoanDetails(loanDetails: LoanDetails): LoanDetailsApiResponse {
   return {
     id: loanDetails.id,
     loanType: loanDetails.loanType,
     originalPrincipal: centsToApiDecimal(loanDetails.originalPrincipal),
     refOriginalPrincipal: centsToApiDecimal(loanDetails.refOriginalPrincipal),
-    interestRate: Number(loanDetails.interestRate),
+    interestRate: loanDetails.interestRate,
     termMonths: loanDetails.termMonths,
     startDate: loanDetails.startDate,
     minPayment: loanDetails.minPayment === null ? null : centsToApiDecimal(loanDetails.minPayment),
@@ -54,7 +86,7 @@ function serializeLoanDetails(loanDetails: LoanDetails): LoanDetailsApiResponse 
     lenderName: loanDetails.lenderName,
     accountNumber: loanDetails.accountNumber,
     replacedByLoanId: loanDetails.replacedByLoanId,
-    events: loanDetails.events ?? [],
+    events: (loanDetails.events ?? []).map(serializeLoanEvent),
     createdAt: loanDetails.createdAt.toISOString(),
     updatedAt: loanDetails.updatedAt.toISOString(),
   };

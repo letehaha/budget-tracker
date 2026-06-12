@@ -5,19 +5,41 @@
  *
  * `at` is an ISO 8601 timestamp.
  * `rate_change.from/to` are APR percent (e.g. 3.75 for 3.75%).
- * `term_change.from/to` are months.
+ * `term_change.from/to` are months; `null` means "no term set".
+ * `planned_payment_change.fromCents/toCents` — `null` means "no planned
+ * payment set".
+ * `balance_correction` records a manual outstanding-balance edit (the escape
+ * hatch that bypasses the payment flow); `fromCents/toCents` are the positive
+ * outstanding amounts.
  * Money values in events are stored as cents to match the project's Money
- * convention; API consumers receive them via the same serializer pipeline.
+ * convention; the API serializer converts them to decimals (see
+ * `LoanEventApi`).
  */
 export type LoanEvent =
   | { type: 'rate_change'; at: string; from: number; to: number }
-  | { type: 'term_change'; at: string; from: number; to: number; reason?: string }
-  | { type: 'planned_payment_change'; at: string; fromCents: number; toCents: number }
+  | { type: 'term_change'; at: string; from: number | null; to: number | null; reason?: string }
+  | { type: 'planned_payment_change'; at: string; fromCents: number | null; toCents: number | null }
+  | { type: 'balance_correction'; at: string; fromCents: number; toCents: number }
   | { type: 'note'; at: string; text: string }
   | { type: 'paid_off'; at: string }
   | { type: 'refinanced'; at: string; replacedByLoanId: string };
 
 export type LoanEventType = LoanEvent['type'];
+
+/**
+ * Wire shape of `LoanEvent`: identical union, but monetary fields arrive as
+ * decimals named `from`/`to` — the API serializer converts from the cents
+ * stored at rest, matching the project-wide decimals-in-API convention so the
+ * frontend never divides by 100 itself.
+ */
+export type LoanEventApi =
+  | { type: 'rate_change'; at: string; from: number; to: number }
+  | { type: 'term_change'; at: string; from: number | null; to: number | null; reason?: string }
+  | { type: 'planned_payment_change'; at: string; from: number | null; to: number | null }
+  | { type: 'balance_correction'; at: string; from: number; to: number }
+  | { type: 'note'; at: string; text: string }
+  | { type: 'paid_off'; at: string }
+  | { type: 'refinanced'; at: string; replacedByLoanId: string };
 
 /**
  * Why the projection's forward-looking metrics are unavailable. Surfaces in

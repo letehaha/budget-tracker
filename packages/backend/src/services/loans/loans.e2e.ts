@@ -7,60 +7,41 @@ import {
 } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
-import LoanDetails from '@models/loan-details.model';
 import * as helpers from '@tests/helpers';
 
 /**
- * Slice 2 ships read-only endpoints. Phase 1 has no create endpoint yet, so
- * these tests stand up loans by creating the underlying loan-category Account
- * via the existing helper, then inserting the `LoanDetails` sidecar directly
- * via the model. Once the write endpoints land in Slice 3, the fixture helper
- * here should be replaced with `helpers.createLoan(...)`.
+ * Stands up a loan through the real POST /loans endpoint so the read tests
+ * exercise the same creation path (ref-amount calc, transaction wrapping) as
+ * production. Cents-based overrides are kept so call sites read in the same
+ * unit the projection math uses.
  */
 async function createLoanFixture(
   overrides: {
     accountName?: string;
-    initialBalanceDecimal?: number;
     loanType?: LOAN_TYPE;
-    originalPrincipalCents?: number;
-    interestRate?: string;
     plannedPaymentCents?: number | null;
-    startDate?: string;
-    termMonths?: number | null;
     lenderName?: string | null;
   } = {},
 ) {
-  const initialBalanceDecimal = overrides.initialBalanceDecimal ?? -200_000;
+  const plannedPayment =
+    overrides.plannedPaymentCents === undefined
+      ? 1_200
+      : overrides.plannedPaymentCents === null
+        ? null
+        : overrides.plannedPaymentCents / 100;
 
-  const account = await helpers.createAccount({
-    payload: helpers.buildAccountPayload({
-      accountCategory: ACCOUNT_CATEGORIES.loan,
+  const account = await helpers.createLoan({
+    payload: helpers.buildCreateLoanPayload({
       name: overrides.accountName ?? 'Test mortgage',
-      initialBalance: initialBalanceDecimal,
+      loanType: overrides.loanType ?? LOAN_TYPE.mortgage,
+      plannedPayment,
+      minPayment: plannedPayment,
+      lenderName: overrides.lenderName ?? 'Chase',
     }),
     raw: true,
   });
 
-  const loanDetails = await LoanDetails.create({
-    accountId: account.id,
-    userId: account.userId,
-    loanType: overrides.loanType ?? LOAN_TYPE.mortgage,
-    originalPrincipal: overrides.originalPrincipalCents ?? 20_000_000,
-    refOriginalPrincipal: overrides.originalPrincipalCents ?? 20_000_000,
-    interestRate: overrides.interestRate ?? '6.0000',
-    termMonths: overrides.termMonths ?? 360,
-    startDate: overrides.startDate ?? '2020-06-15',
-    minPayment: overrides.plannedPaymentCents ?? 120_000,
-    refMinPayment: overrides.plannedPaymentCents ?? 120_000,
-    plannedPayment: overrides.plannedPaymentCents ?? 120_000,
-    refPlannedPayment: overrides.plannedPaymentCents ?? 120_000,
-    paymentDayOfMonth: 15,
-    lenderName: overrides.lenderName ?? 'Chase',
-    accountNumber: '4521',
-    events: [],
-  });
-
-  return { account, loanDetails };
+  return { account };
 }
 
 describe('Loans read API', () => {
@@ -158,6 +139,20 @@ describe('Loans read API', () => {
       // Verify it actually persisted: a follow-up GET returns the same row.
       const fromGet = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(fromGet.loanDetails.lenderName).toBe('Chase');
+    });
+
+    it('surfaces the no_planned_payment warning through the API when created without plannedPayment', async () => {
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ plannedPayment: null, minPayment: null }),
+        raw: true,
+      });
+
+      expect(loan.loanDetails.plannedPayment).toBeNull();
+      expect(loan.projection.warning).toBe('no_planned_payment');
+      expect(loan.projection.payoffDate).toBeNull();
+      expect(loan.projection.monthsRemaining).toBeNull();
+      // Interest still accrues and must be reported even without a payment plan.
+      expect(loan.projection.monthlyInterest).toBeGreaterThan(0);
     });
 
     it('rejects payload missing required fields', async () => {
@@ -260,10 +255,102 @@ describe('Loans read API', () => {
       expect(updated.loanDetails.plannedPayment).toBe(1500);
       const event = updated.loanDetails.events.at(-1);
       expect(event?.type).toBe('planned_payment_change');
+      // The API serializes event money as decimals (cents live only at rest).
       if (event?.type === 'planned_payment_change') {
-        expect(event.fromCents).toBe(120_000);
-        expect(event.toCents).toBe(150_000);
+        expect(event.from).toBe(1_200);
+        expect(event.to).toBe(1_500);
       }
+    });
+
+    it('does not append a rate_change event when interestRate is patched to the same value', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { interestRate: 6 },
+        raw: true,
+      });
+
+      expect(updated.loanDetails.interestRate).toBe(6);
+      expect(updated.loanDetails.events).toEqual([]);
+    });
+
+    it('records a term_change event with `to: null` when the term is cleared', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { termMonths: null },
+        raw: true,
+      });
+
+      expect(updated.loanDetails.termMonths).toBeNull();
+      const event = updated.loanDetails.events.at(-1);
+      expect(event?.type).toBe('term_change');
+      if (event?.type === 'term_change') {
+        expect(event.from).toBe(360);
+        expect(event.to).toBeNull();
+      }
+    });
+
+    it('applies a manual currentBalance correction and records a balance_correction event', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { currentBalance: 150_000 },
+        raw: true,
+      });
+
+      // API takes positive outstanding; ledger stores the negative liability.
+      expect(updated.currentBalance).toBe(-150_000);
+      const event = updated.loanDetails.events.at(-1);
+      expect(event?.type).toBe('balance_correction');
+      if (event?.type === 'balance_correction') {
+        expect(event.from).toBe(200_000);
+        expect(event.to).toBe(150_000);
+      }
+      // Projection picks the corrected balance up immediately.
+      expect(updated.projection.paidToDate).toBe(50_000);
+    });
+
+    it('treats an echoed unchanged currentBalance as a no-op (no event, no balance churn)', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { currentBalance: 200_000 },
+        raw: true,
+      });
+
+      expect(updated.currentBalance).toBe(-200_000);
+      expect(updated.loanDetails.events).toEqual([]);
+    });
+
+    it('rejects a negative currentBalance', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const result = await helpers.updateLoan({
+        id: created.id,
+        payload: { currentBalance: -50 },
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
     });
 
     it('does not append events for non-timeline-worthy field changes', async () => {

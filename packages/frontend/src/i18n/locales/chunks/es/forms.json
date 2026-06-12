@@ -244,6 +244,7 @@
       "nameLabel": "Nombre del préstamo",
       "namePlaceholder": "Ej.: Hipoteca principal",
       "loanTypeLabel": "Tipo de préstamo",
+      "loanTypePlaceholder": "Seleccionar tipo de préstamo",
       "currencyLabel": "Moneda",
       "originalPrincipalLabel": "Capital original",
       "originalPrincipalPlaceholder": "Ej.: 320.000",

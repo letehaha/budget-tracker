@@ -218,29 +218,8 @@ const submit = () => {
   if (props.submitting) return;
   if (!isFormValid()) return;
 
-  if (isEdit.value) {
-    const payload: UpdateLoanPayload = {
-      name: form.name.trim(),
-      currentBalance: Number(form.balance),
-      interestRate: Number(form.interestRate),
-      termMonths: form.termMonths === null ? null : Number(form.termMonths),
-      startDate: format(form.startDate, 'yyyy-MM-dd'),
-      minPayment: form.minPayment === null ? null : Number(form.minPayment),
-      plannedPayment: form.plannedPayment === null ? null : Number(form.plannedPayment),
-      paymentDayOfMonth: form.paymentDayOfMonth === null ? null : Number(form.paymentDayOfMonth),
-      lenderName: form.lenderName.trim() || null,
-      accountNumber: form.accountNumber.trim() || null,
-    };
-    emit('submit', payload);
-    return;
-  }
-
-  const payload: CreateLoanPayload = {
+  const commonFields = {
     name: form.name.trim(),
-    currencyCode: form.currencyCode,
-    initialBalance: Number(form.balance),
-    loanType: form.loanType,
-    originalPrincipal: Number(form.originalPrincipal),
     interestRate: Number(form.interestRate),
     termMonths: form.termMonths === null ? null : Number(form.termMonths),
     startDate: format(form.startDate, 'yyyy-MM-dd'),
@@ -249,6 +228,27 @@ const submit = () => {
     paymentDayOfMonth: form.paymentDayOfMonth === null ? null : Number(form.paymentDayOfMonth),
     lenderName: form.lenderName.trim() || null,
     accountNumber: form.accountNumber.trim() || null,
+  };
+
+  if (isEdit.value) {
+    const payload: UpdateLoanPayload = { ...commonFields };
+    // `currentBalance` is a manual balance correction (appends a timeline
+    // event server-side), not a regular field — only send it when the user
+    // actually changed it.
+    const balance = Number(form.balance);
+    if (!props.initialLoan || Math.abs(props.initialLoan.currentBalance) !== balance) {
+      payload.currentBalance = balance;
+    }
+    emit('submit', payload);
+    return;
+  }
+
+  const payload: CreateLoanPayload = {
+    ...commonFields,
+    currencyCode: form.currencyCode,
+    initialBalance: Number(form.balance),
+    loanType: form.loanType,
+    originalPrincipal: Number(form.originalPrincipal),
   };
 
   emit('submit', payload);
@@ -272,6 +272,7 @@ const submit = () => {
       label-key="label"
       value-key="value"
       :label="$t('forms.loan.loanTypeLabel')"
+      :placeholder="$t('forms.loan.loanTypePlaceholder')"
       @update:model-value="(v) => v && (form.loanType = v.value)"
     />
 

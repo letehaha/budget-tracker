@@ -244,6 +244,7 @@
       "nameLabel": "Loan name",
       "namePlaceholder": "e.g. Primary mortgage",
       "loanTypeLabel": "Loan type",
+      "loanTypePlaceholder": "Select loan type",
       "currencyLabel": "Currency",
       "originalPrincipalLabel": "Original principal",
       "originalPrincipalPlaceholder": "e.g. 320000",

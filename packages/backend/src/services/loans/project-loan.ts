@@ -28,7 +28,7 @@ export function projectLoan({
   return computeLoanProjection({
     currentBalanceCents,
     originalPrincipalCents: loanDetails.originalPrincipal.toCents(),
-    interestRate: Number(loanDetails.interestRate),
+    interestRate: loanDetails.interestRate,
     plannedPaymentCents: plannedPaymentMoney === null ? null : plannedPaymentMoney.toCents(),
     today,
   });

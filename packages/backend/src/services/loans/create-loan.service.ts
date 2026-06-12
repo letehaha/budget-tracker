@@ -87,7 +87,7 @@ const createLoanImpl = async (params: CreateLoanParams) => {
     loanType,
     originalPrincipal,
     refOriginalPrincipal,
-    interestRate: interestRate.toFixed(4),
+    interestRate,
     termMonths,
     startDate,
     minPayment,

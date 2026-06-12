@@ -126,7 +126,8 @@
         "termChange": "Term changed from {from} to {to} months",
         "plannedPaymentChange": "Planned payment changed from {from} to {to}",
         "paidOff": "Loan paid off",
-        "refinanced": "Loan refinanced"
+        "refinanced": "Loan refinanced",
+        "balanceCorrection": "Outstanding balance corrected from {from} to {to}"
       },
       "payments": {
         "title": "Recent payments",

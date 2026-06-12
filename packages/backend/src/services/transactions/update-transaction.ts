@@ -13,7 +13,6 @@ import { removeUndefinedKeys } from '@js/helpers';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
-import { namespace } from '@models/connection';
 import Payees from '@models/payees.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import Tags from '@models/tags.model';
@@ -22,6 +21,7 @@ import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
+import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
 import {
   assertSharedWritePhase1Guards,
   assertTxWriteAccess,
@@ -123,62 +123,70 @@ const validateTransaction = async (
     });
   }
 
-  // Re-pointing an existing loan payment's destination must keep it on a
-  // loan-category account — mirrors the create-path guard in
-  // `createOppositeTransaction`.
+  // Loan invariants for edits that touch the destination leg. The treatment
+  // keys off the destination account's *category*, not the nature label —
+  // mirrors the create path in `createOppositeTransaction`. Covers:
+  // - amount edits on a payment (overpay re-check against the loan's balance);
+  // - re-pointing a payment to a different loan (overpay check against the
+  //   NEW loan's balance — the old leg never touched it, so nothing is backed
+  //   out);
+  // - re-pointing a payment to a non-loan account (rejected);
+  // - re-pointing a `common_transfer` pair onto a loan account (rejected: the
+  //   pair's nature is frozen, so the supported flow is unlink first, then
+  //   mark the expense as a loan payment — the re-mark goes through the create
+  //   path which stamps both legs `transfer_to_loan`);
+  // - amount edits on a legacy `common_transfer` pair whose destination
+  //   already is a loan account (overpay check still applies — the balance
+  //   mutation doesn't care about the label).
   const effectiveNature = newData.transferNature ?? prevData.transferNature;
   if (
-    effectiveNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan &&
     isTwoLegTransfer(prevData.transferNature) &&
-    newData.destinationAccountId !== undefined
+    prevData.transferId &&
+    (newData.destinationAmount !== undefined || newData.destinationAccountId !== undefined)
   ) {
-    const destAccount = await findOrThrowNotFound({
-      query: Accounts.getAccountById({ userId: ctx.accountOwnerUserId, id: newData.destinationAccountId }),
-      message: t({ key: 'accounts.accountNotFoundForTransaction' }),
-    });
-    if (destAccount.accountCategory !== ACCOUNT_CATEGORIES.loan) {
-      throw new ValidationError({
-        message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
-      });
-    }
-  }
-
-  // Overpay guard for edits: project what the loan balance would be after the
-  // update lands. currentBalance already reflects the old loan-leg amount, so
-  // back it out before applying the new one. A positive result means the new
-  // amount overshoots remaining owed — same rule as the create path.
-  if (
-    effectiveNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan &&
-    isTwoLegTransfer(prevData.transferNature) &&
-    newData.destinationAmount !== undefined &&
-    prevData.transferId
-  ) {
-    const loanLeg = await Transactions.default.findOne({
+    const oppositeLeg = await Transactions.default.findOne({
       where: { transferId: prevData.transferId, id: { [Op.ne]: prevData.id } },
       attributes: ['id', 'accountId', 'amount'],
     });
-    if (loanLeg) {
-      const loanAccountId = newData.destinationAccountId ?? loanLeg.accountId;
-      // SELECT ... FOR UPDATE on the loan account row — same reasoning as the
-      // create path: serialise concurrent edits so the projected-balance check
-      // sees committed state, not a stale snapshot.
-      const sequelizeTx = namespace.get('transaction');
-      const loanAccount = await Accounts.default.findOne({
-        where: { userId: ctx.accountOwnerUserId, id: loanAccountId },
-        attributes: ['accountCategory', 'currentBalance'],
-        transaction: sequelizeTx,
-        lock: sequelizeTx?.LOCK.UPDATE,
+    if (oppositeLeg) {
+      const destinationAccountId = newData.destinationAccountId ?? oppositeLeg.accountId;
+      const isSameDestination = destinationAccountId === oppositeLeg.accountId;
+
+      // Category-only read, deliberately not scoped by userId: on a shared
+      // cross-user pair the opposite leg can live on another user's account,
+      // and an owner-scoped lookup would 404 a plain amount edit. Ownership
+      // is still enforced where it matters — `assertLoanPaymentAllowed`
+      // locks the loan row by (id, ownerUserId), and a re-pointed
+      // destination is ownership-checked downstream in
+      // `updateTransferTransaction`'s currency lookup.
+      const destAccount = await Accounts.default.findOne({
+        where: { id: destinationAccountId },
+        attributes: ['accountCategory'],
       });
-      if (!loanAccount) {
+      if (!destAccount) {
         throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
       }
-      if (loanAccount.accountCategory === ACCOUNT_CATEGORIES.loan) {
-        const projectedBalance = loanAccount.currentBalance.subtract(loanLeg.amount).add(newData.destinationAmount);
-        if (projectedBalance.toCents() > 0) {
-          throw new ValidationError({
-            message: t({ key: 'transactions.loanPaymentOverpay' }),
-          });
-        }
+      const isLoanDestination = destAccount.accountCategory === ACCOUNT_CATEGORIES.loan;
+
+      if (effectiveNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan && !isLoanDestination) {
+        throw new ValidationError({
+          message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
+        });
+      }
+      if (effectiveNature !== TRANSACTION_TRANSFER_NATURE.transfer_to_loan && isLoanDestination && !isSameDestination) {
+        throw new ValidationError({
+          message: t({ key: 'transactions.transferToLoanRelinkRequired' }),
+        });
+      }
+      if (isLoanDestination) {
+        await assertLoanPaymentAllowed({
+          ownerUserId: ctx.accountOwnerUserId,
+          loanAccountId: destinationAccountId,
+          newLegAmount: newData.destinationAmount ?? oppositeLeg.amount,
+          // The old leg is part of this loan's balance only when the
+          // destination stays put; on a re-point the new loan never saw it.
+          currentLegAmount: isSameDestination ? oppositeLeg.amount : null,
+        });
       }
     }
   }
@@ -557,7 +565,13 @@ const isCreatingTransfer = (payload: UpdateTransactionParams, prevData: Transact
 };
 
 const isDiscardingTransfer = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
-  return !isTwoLegTransfer(payload.transferNature) && isTwoLegTransfer(prevData.transferNature);
+  // PATCH semantics: an omitted `transferNature` means "keep current state",
+  // not "discard the link" — only an explicit non-transfer nature counts.
+  return (
+    payload.transferNature !== undefined &&
+    !isTwoLegTransfer(payload.transferNature) &&
+    isTwoLegTransfer(prevData.transferNature)
+  );
 };
 
 /**
@@ -583,20 +597,12 @@ export const updateTransaction = withTransaction(
         isOwner: authCtx.isOwner,
       };
 
-      // PATCH semantics: when `transferNature` is omitted from the payload, the predicates
-      // below interpret that as "keep current state" for the purpose of the recipient gate
-      // (an unspecified field doesn't mean the caller wants to discard the link). Only an
-      // explicit nature change — promoting a non-transfer to a transfer, or explicitly
-      // setting nature to something other than `common_transfer` on a transfer — has its
-      // own broken cross-user opposite-tx handling and stays blocked for recipients.
-      const explicitlyDiscardingTransfer =
-        payload.transferNature !== undefined &&
-        !isTwoLegTransfer(payload.transferNature) &&
-        isTwoLegTransfer(prevData.transferNature);
-
+      // Only an explicit nature change — promoting a non-transfer to a transfer, or
+      // explicitly discarding a transfer link — has its own broken cross-user
+      // opposite-tx handling and stays blocked for recipients.
       assertSharedWritePhase1Guards({
         isOwner: authCtx.isOwner,
-        involvesTransfer: isCreatingTransfer(payload, prevData) || explicitlyDiscardingTransfer,
+        involvesTransfer: isCreatingTransfer(payload, prevData) || isDiscardingTransfer(payload, prevData),
         involvesRefund: payload.refundedByTxIds !== undefined || payload.refundsTxId !== undefined,
         changesAccountId: payload.accountId !== undefined && payload.accountId !== prevData.accountId,
       });

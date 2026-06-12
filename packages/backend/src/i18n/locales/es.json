@@ -56,6 +56,7 @@
     "vehicleAccountReadonly": "Esta cuenta registra un vehículo. Su valor solo puede modificarse desde la página del vehículo.",
     "transferNatureChangeNotAllowed": "No se puede cambiar el tipo de transferencia de una transferencia existente. Desvincule la transferencia primero y luego marque la transacción de nuevo.",
     "transferToLoanRequiresLoanDestination": "Un pago de préstamo requiere que el destino sea una cuenta de préstamo.",
+    "transferToLoanRelinkRequired": "El destino de esta transferencia es una cuenta de préstamo. Desvincule la transferencia primero y luego marque el gasto como pago de préstamo.",
     "loanPaymentOverpay": "El pago supera el saldo restante del préstamo.",
     "splits": {
       "splitsOnTransfer": "No se pueden agregar divisiones a transacciones de transferencia",
