@@ -73,7 +73,11 @@
       "confirmMerge": "Merge",
       "noTransactions": "No transactions yet",
       "topCategoryHint": "The category most frequently used in transactions linked to this payee. Used as a fallback when no default category is set.",
-      "defaultCategoryPlaceholder": "Select a category"
+      "defaultCategoryPlaceholder": "Select a category",
+      "defaultTagsLabel": "Auto-apply tags",
+      "defaultTagsPlaceholder": "Select tags to auto-apply",
+      "defaultTagsHint": "These tags are automatically added to new transactions linked to this payee (bank syncs and imports).",
+      "applyTagsToExisting": "Apply to existing transactions"
     },
     "transactionsDialog": {
       "title": "{name} — transactions",
@@ -86,7 +90,8 @@
       "merged": "Payees merged",
       "aliasDeleted": "Alias removed",
       "aliasAdded": "Alias added",
-      "deletedAndIgnored": "Payee deleted and added to ignored-names list"
+      "deletedAndIgnored": "Payee deleted and added to ignored-names list",
+      "tagsAppliedToExisting": "Tags applied to {count} transactions"
     },
     "errors": {
       "collision": "A payee with this name already exists. Merge instead.",

@@ -4,7 +4,9 @@ import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import Categories from '@models/categories.model';
 import { connection } from '@models/connection';
 import PayeeAliases from '@models/payee-aliases.model';
+import PayeeTags from '@models/payee-tags.model';
 import Payees from '@models/payees.model';
+import Tags from '@models/tags.model';
 import Transactions from '@models/transactions.model';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { Op, QueryTypes } from 'sequelize';
@@ -37,10 +39,21 @@ async function assertCategoryOwnedByUser({
   }
 }
 
+async function assertTagsOwnedByUser({ userId, tagIds }: { userId: number; tagIds: string[] }): Promise<void> {
+  if (tagIds.length === 0) return;
+  const ownedCount = await Tags.count({ where: { id: tagIds, userId } });
+  if (ownedCount !== tagIds.length) {
+    throw new ValidationError({ message: t({ key: 'payees.defaultTagsNotOwned' }) });
+  }
+}
+
 export async function loadPayeeOrThrow({ userId, id }: { userId: number; id: string }): Promise<Payees> {
   const payee = await Payees.findOne({
     where: { id, userId },
-    include: [{ model: PayeeAliases, as: 'aliases' }],
+    include: [
+      { model: PayeeAliases, as: 'aliases' },
+      { model: Tags, as: 'defaultTags', attributes: ['id'], through: { attributes: [] } },
+    ],
   });
   if (!payee) {
     throw new NotFoundError({ message: t({ key: 'payees.notFound' }) });
@@ -174,7 +187,10 @@ export const listPayees = withTransaction(
     const [payees, statsMap] = await Promise.all([
       Payees.findAll({
         where: { id: { [Op.in]: ids } },
-        include: [{ model: PayeeAliases, as: 'aliases' }],
+        include: [
+          { model: PayeeAliases, as: 'aliases' },
+          { model: Tags, as: 'defaultTags', attributes: ['id'], through: { attributes: [] } },
+        ],
       }),
       getPayeeStatsMap({ userId: scopedUserId, payeeIds: ids }),
     ]);
@@ -193,19 +209,43 @@ export const listPayees = withTransaction(
   },
 );
 
+/**
+ * Add-only attach of default tags to a Payee's rule — never removes existing
+ * rows; duplicates are skipped via the `PayeeTags` composite PK. Full
+ * replacement of the rule goes through `payee.$set('defaultTags', ...)` in
+ * `updatePayee` instead.
+ */
+const addPayeeTags = async ({ payeeId, tagIds }: { payeeId: string; tagIds: string[] }): Promise<void> => {
+  if (tagIds.length === 0) return;
+  await PayeeTags.bulkCreate(
+    tagIds.map((tagId) => ({ payeeId, tagId })),
+    { ignoreDuplicates: true },
+  );
+};
+
 interface CreatePayeeParams {
   userId: number;
   name: string;
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
+  defaultTagIds?: string[];
 }
 
 export const createPayee = withTransaction(
-  async ({ userId, name, defaultCategoryId, categorizationMode }: CreatePayeeParams): Promise<Payees> => {
+  async ({
+    userId,
+    name,
+    defaultCategoryId,
+    categorizationMode,
+    defaultTagIds,
+  }: CreatePayeeParams): Promise<Payees> => {
     const { display, normalized } = parsePayeeName({ raw: name, emptyMessageKey: 'payees.nameRequired' });
 
     if (defaultCategoryId) {
       await assertCategoryOwnedByUser({ userId, categoryId: defaultCategoryId });
+    }
+    if (defaultTagIds && defaultTagIds.length > 0) {
+      await assertTagsOwnedByUser({ userId, tagIds: defaultTagIds });
     }
 
     // A canonical name that collides with an existing alias would shadow that
@@ -230,6 +270,7 @@ export const createPayee = withTransaction(
       defaultCategoryId: defaultCategoryId ?? null,
       categorizationMode: categorizationMode ?? CATEGORIZATION_MODE.enforce,
     });
+    await addPayeeTags({ payeeId: created.id, tagIds: defaultTagIds ?? [] });
     return loadPayeeOrThrow({ userId, id: created.id });
   },
 );
@@ -253,6 +294,8 @@ interface UpdatePayeeParams {
   name?: string;
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
+  /** Full replacement of the Payee's default-tag set; `[]` clears the rule. */
+  defaultTagIds?: string[];
 }
 
 /**
@@ -263,7 +306,14 @@ interface UpdatePayeeParams {
  * Collisions on `normalizedName` produce a 409 with a hint to merge instead.
  */
 export const updatePayee = withTransaction(
-  async ({ userId, id, name, defaultCategoryId, categorizationMode }: UpdatePayeeParams): Promise<Payees> => {
+  async ({
+    userId,
+    id,
+    name,
+    defaultCategoryId,
+    categorizationMode,
+    defaultTagIds,
+  }: UpdatePayeeParams): Promise<Payees> => {
     const payee = await loadPayeeOrThrow({ userId, id });
 
     if (defaultCategoryId === null) {
@@ -275,6 +325,11 @@ export const updatePayee = withTransaction(
 
     if (categorizationMode !== undefined) {
       payee.categorizationMode = categorizationMode;
+    }
+
+    if (defaultTagIds !== undefined) {
+      await assertTagsOwnedByUser({ userId, tagIds: defaultTagIds });
+      await payee.$set('defaultTags', defaultTagIds);
     }
 
     if (name !== undefined) {
@@ -379,6 +434,10 @@ export const mergePayees = withTransaction(
       await PayeeAliases.update({ payeeId: target.id }, { where: { id: alias.id } });
       targetAliasNormalized.add(alias.normalizedName);
     }
+
+    // Union the source's default tags into the target so the auto-tagging
+    // rule survives the merge.
+    await addPayeeTags({ payeeId: target.id, tagIds: (source.defaultTags ?? []).map((tag) => tag.id) });
 
     await Payees.destroy({ where: { id: source.id, userId } });
     return loadPayeeOrThrow({ userId, id: target.id });

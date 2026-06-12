@@ -8,13 +8,14 @@ import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { usePayees } from '@/composable/data-queries/payees';
+import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
 import { Button } from '@/components/lib/ui/button';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { useCategoriesStore, useTagsStore } from '@/stores';
 import { TagModel, endpointsTypes, type RecordId } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 type TagMode = endpointsTypes.BulkUpdateTagMode;
@@ -59,12 +60,21 @@ const form = reactive({
 
 const isConfirmDialogOpen = ref(false);
 
+// Picking a payee pre-fills its default tags into the tag field (the user
+// can still adjust them and the mode before applying). Same dual-set model
+// as the transaction form — see `usePayeeTagAutoApply`.
+const { onPayeeSelected: handlePayeeSelected, reset: resetPayeeTagTracking } = usePayeeTagAutoApply({
+  tagIds: toRef(form, 'tagIds'),
+  payeeId: () => form.payeeId,
+});
+
 const resetForm = () => {
   form.category = null;
   form.tagIds = [];
   form.tagMode = 'add';
   form.note = '';
   form.payeeId = null;
+  resetPayeeTagTracking();
 };
 
 watch(isOpen, (open) => {
@@ -162,6 +172,7 @@ const handleConfirmedApply = () => {
         v-model="form.payeeId"
         :label="t('transactions.bulkEdit.payeeLabel')"
         :placeholder="t('transactions.bulkEdit.payeePlaceholder')"
+        @payee-selected="handlePayeeSelected"
       />
 
       <TagSelectField

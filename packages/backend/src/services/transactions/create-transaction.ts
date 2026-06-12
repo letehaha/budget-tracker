@@ -20,6 +20,7 @@ import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { applyPayeeCategorization } from '@services/payees/apply-categorization';
+import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { resolvePayeeForRawMerchant } from '@services/payees/extraction.service';
 import {
   assertSharedWritePhase1Guards,
@@ -519,6 +520,26 @@ export const createTransaction = withTransaction(
           logger.error({
             message: 'Failed to apply payee_rule categorization; leaving transaction uncategorized',
             error: error as Error,
+          });
+        }
+
+        // Payee default tags. Only when the caller sent no tag list at all —
+        // an explicit `tagIds` (even `[]`) means the client already computed
+        // the final tag set (the transaction form applies payee tags
+        // client-side, where the user may have deselected some). Add-only,
+        // so it composes with rows that gained tags through other means.
+        //
+        // No catch-and-continue here: `applyPayeeDefaultTags` joins this
+        // create's transaction via `withTransaction`, and a failed SQL
+        // statement aborts the whole Postgres transaction — swallowing the
+        // error would just poison every subsequent query before commit.
+        // Letting it propagate keeps the create atomic and surfaces a real
+        // error to the caller instead of silently dropping tags.
+        if (tagIds === undefined) {
+          await applyPayeeDefaultTags({
+            accountOwnerUserId,
+            transactionId: baseTransaction!.id,
+            payeeId: resolvedPayeeId,
           });
         }
       }

@@ -6,6 +6,7 @@ import {
   PayeeWithStats,
   UpdatePayeePayload,
   addIgnoredName,
+  applyPayeeTagsToExisting,
   bulkUpdateCategorizationMode,
   createPayee,
   createPayeeAlias,
@@ -20,7 +21,7 @@ import {
   removeIgnoredName,
   updatePayee,
 } from '@/api/payees';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { QUERY_CACHE_STALE_TIME } from '@/common/const/vue-query';
 import { useNotificationCenter } from '@/components/notification-center';
 import type { CATEGORIZATION_MODE } from '@bt/shared/types';
@@ -220,6 +221,19 @@ export const useDeletePayee = () => {
   return useMutation({
     mutationFn: ({ id }: { id: string }) => deletePayee({ id }),
     onSuccess: () => invalidatePayeesScope(queryClient),
+  });
+};
+
+export const useApplyPayeeTagsToExisting = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => applyPayeeTagsToExisting({ id }),
+    onSuccess: () => {
+      // Tagged transactions surface in transaction lists/details — refresh
+      // everything transaction-shaped alongside the payee scope.
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+      invalidatePayeesScope(queryClient);
+    },
   });
 };
 

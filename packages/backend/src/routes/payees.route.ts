@@ -1,5 +1,6 @@
 import {
   addIgnoredName,
+  applyTagsToExisting,
   bulkUpdateCategorizationMode,
   createPayee,
   createPayeeAlias,
@@ -46,6 +47,12 @@ router.get('/:id', authenticateSession, validateEndpoint(getPayee.schema), getPa
 router.patch('/:id', authenticateSession, validateEndpoint(updatePayee.schema), updatePayee.handler);
 router.delete('/:id', authenticateSession, validateEndpoint(deletePayee.schema), deletePayee.handler);
 router.post('/:id/merge', authenticateSession, validateEndpoint(mergePayees.schema), mergePayees.handler);
+router.post(
+  '/:id/apply-tags',
+  authenticateSession,
+  validateEndpoint(applyTagsToExisting.schema),
+  applyTagsToExisting.handler,
+);
 router.post('/:id/aliases', authenticateSession, validateEndpoint(createPayeeAlias.schema), createPayeeAlias.handler);
 router.delete(
   '/:id/aliases/:aliasId',

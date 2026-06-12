@@ -6,12 +6,14 @@ export interface CreatePayeePayload {
   name: string;
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
+  defaultTagIds?: string[];
 }
 
 export interface UpdatePayeePayload {
   name?: string;
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
+  defaultTagIds?: string[];
 }
 
 export type PayeeWithStats = PayeeModel & { stats: PayeeStats | null };
@@ -126,6 +128,20 @@ export async function deletePayeeAlias<R extends boolean | undefined = undefined
   return makeRequest<void, R>({
     method: 'delete',
     url: `/payees/${payeeId}/aliases/${aliasId}`,
+    raw,
+  });
+}
+
+export async function applyPayeeTagsToExisting<R extends boolean | undefined = undefined>({
+  id,
+  raw,
+}: {
+  id: string;
+  raw?: R;
+}) {
+  return makeRequest<{ updatedTransactionsCount: number }, R>({
+    method: 'post',
+    url: `/payees/${id}/apply-tags`,
     raw,
   });
 }

@@ -50,13 +50,19 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string | null): void;
   /**
    * Fires only on user-driven selection; payload carries the Payee's
-   * `defaultCategoryId` (explicit user setting) and `topCategoryId` (the
-   * most-used category derived from past transactions). Callers use the
-   * default first and fall back to the top when no default is set.
+   * `defaultCategoryId` (explicit user setting), `topCategoryId` (the
+   * most-used category derived from past transactions) and `defaultTagIds`
+   * (the Payee's auto-apply tag rule). Callers use the default category first
+   * and fall back to the top when no default is set.
    */
   (
     e: 'payee-selected',
-    payload: { payeeId: string; defaultCategoryId: string | null; topCategoryId: string | null },
+    payload: {
+      payeeId: string;
+      defaultCategoryId: string | null;
+      topCategoryId: string | null;
+      defaultTagIds: string[];
+    },
   ): void;
 }>();
 
@@ -116,6 +122,7 @@ const placeholderResolved = computed(() => props.placeholder ?? t('fields.payeeS
 function selectPayee(payee: {
   id: string;
   defaultCategoryId: string | null;
+  defaultTagIds?: string[];
   stats?: { topCategoryId: string | null } | null;
 }) {
   emit('update:modelValue', payee.id);
@@ -123,6 +130,7 @@ function selectPayee(payee: {
     payeeId: payee.id,
     defaultCategoryId: payee.defaultCategoryId,
     topCategoryId: payee.stats?.topCategoryId ?? null,
+    defaultTagIds: payee.defaultTagIds ?? [],
   });
   isOpen.value = false;
   inputValue.value = '';
@@ -143,7 +151,7 @@ function openCreateDialog() {
 }
 
 function handlePayeeCreated(payee: PayeeModel) {
-  selectPayee({ id: payee.id, defaultCategoryId: payee.defaultCategoryId });
+  selectPayee({ id: payee.id, defaultCategoryId: payee.defaultCategoryId, defaultTagIds: payee.defaultTagIds });
 }
 </script>
 
