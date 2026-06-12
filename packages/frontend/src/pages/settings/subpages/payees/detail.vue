@@ -447,7 +447,13 @@ const deleteAndIgnoreOpen = ref(false);
 const openDeleteAndIgnore = () => (deleteAndIgnoreOpen.value = true);
 
 const transactionsDialogOpen = ref(false);
-const openTransactionsDialog = () => {
+const openTransactionsDialog = (event?: MouseEvent) => {
+  // The mobile drawer sets `aria-hidden` on `#app` once it opens. If this
+  // trigger still owns focus, that hides a focused descendant from AT and the
+  // browser warns. Blur first so the drawer's focus trap takes over cleanly.
+  if (event?.currentTarget instanceof HTMLElement) {
+    event.currentTarget.blur();
+  }
   if (payeeData.value?.stats && payeeData.value.stats.transactionCount > 0) {
     transactionsDialogOpen.value = true;
   }
