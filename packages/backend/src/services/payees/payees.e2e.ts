@@ -48,6 +48,26 @@ describe('Payees API', () => {
       });
       expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
     });
+
+    it('rejects a name that is already an alias of another Payee, with conflictingPayee details', async () => {
+      // A canonical name shadows an equal alias in `resolveNormalizedName`
+      // (canonical wins), which would silently re-route extractions that used
+      // to hit the alias — so the create is refused with a pointer to the
+      // alias's owner.
+      const owner = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Stripe' }),
+        raw: true,
+      });
+      await helpers.createPayeeAlias({ payeeId: owner.id, rawName: 'Stripe Payments', raw: true });
+
+      const response = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'STRIPE PAYMENTS' }),
+        raw: false,
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
+      const errorBody = response.body.response as unknown as { details?: { conflictingPayee?: unknown } };
+      expect(errorBody.details?.conflictingPayee).toEqual({ id: owner.id, name: 'Stripe' });
+    });
   });
 
   describe('GET /payees (listPayees)', () => {
@@ -171,6 +191,40 @@ describe('Payees API', () => {
       });
       expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
     });
+
+    it("returns 409 when renaming onto another Payee's alias", async () => {
+      const owner = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Alias Owner' }),
+        raw: true,
+      });
+      await helpers.createPayeeAlias({ payeeId: owner.id, rawName: 'Shadowed Alias', raw: true });
+      const other = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Renamer' }),
+        raw: true,
+      });
+
+      const response = await helpers.updatePayee({
+        id: other.id,
+        payload: { name: 'Shadowed Alias' },
+        raw: false,
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
+      const errorBody = response.body.response as unknown as { details?: { conflictingPayee?: unknown } };
+      expect(errorBody.details?.conflictingPayee).toEqual({ id: owner.id, name: 'Alias Owner' });
+    });
+
+    it('allows renaming a Payee back onto one of its own aliases', async () => {
+      // 'Round Trip' becomes an alias after the first rename; renaming back
+      // must not be treated as a collision — the hit resolves to the payee
+      // being renamed.
+      const created = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Round Trip' }),
+        raw: true,
+      });
+      await helpers.updatePayee({ id: created.id, payload: { name: 'Detour' }, raw: true });
+      const updated = await helpers.updatePayee({ id: created.id, payload: { name: 'Round Trip' }, raw: true });
+      expect(updated.name).toBe('Round Trip');
+    });
   });
 
   describe('DELETE /payees/:id (deletePayee)', () => {
@@ -257,7 +311,7 @@ describe('Payees API', () => {
     it('handles a source whose self-canonical alias matches a freshly-created target alias', async () => {
       // Repro of the (target_id, normalized_name) UNIQUE collision: the merge
       // inserts source.canonicalName as a target alias, then iterates source's
-      // aliases — without the stale-snapshot fix, the just-inserted alias is
+      // aliases – without the stale-snapshot fix, the just-inserted alias is
       // missing from the "already-on-target" set and the alias UPDATE blows up.
       //
       // Building the scenario via the public API:
@@ -274,7 +328,7 @@ describe('Payees API', () => {
       });
       // Rename SourceMerchant → AltName, then back to SourceMerchant. After
       // the second rename, the row carries an alias matching its OWN canonical
-      // normalizedName — the precise shape that triggered the bug.
+      // normalizedName – the precise shape that triggered the bug.
       await helpers.updatePayee({
         id: sourcePending.id,
         payload: { name: 'AltName' },
@@ -303,13 +357,221 @@ describe('Payees API', () => {
     });
   });
 
+  describe('POST /payees/:id/aliases', () => {
+    it('adds an alias to the Payee', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'wFirma' }),
+        raw: true,
+      });
+
+      const updated = await helpers.createPayeeAlias({
+        payeeId: payee.id,
+        rawName: 'WEB INNOVATIVE SOFTWARE',
+        raw: true,
+      });
+
+      expect(updated.id).toBe(payee.id);
+      expect(updated.aliases?.some((a) => a.normalizedName === 'web innovative software')).toBe(true);
+      expect(updated.aliases?.some((a) => a.rawName === 'WEB INNOVATIVE SOFTWARE')).toBe(true);
+    });
+
+    it('makes future transactions with the alias text link to the Payee', async () => {
+      // The point of a user-curated alias: the extraction pipeline's Step 1
+      // exact-match path picks the alias up on the next sync and links the
+      // incoming tx to this Payee. Verified through the note-fallback so the
+      // HTTP create endpoint can drive the same code path the bank sync uses.
+      await helpers.updateUserSettings({
+        settings: { locale: 'en', payeeExtractionUsesDescription: true },
+      });
+
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'wFirma' }),
+        raw: true,
+      });
+      await helpers.createPayeeAlias({
+        payeeId: payee.id,
+        rawName: 'WEB INNOVATIVE SOFTWARE',
+        raw: true,
+      });
+
+      const account = await helpers.createAccount({ raw: true });
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          note: 'WEB INNOVATIVE SOFTWARE',
+        }),
+        raw: true,
+      });
+
+      expect(tx!.payeeId).toBe(payee.id);
+    });
+
+    it('rejects an empty alias name', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'EmptyAliasGuard' }),
+        raw: true,
+      });
+
+      const response = await helpers.createPayeeAlias({
+        payeeId: payee.id,
+        rawName: '   ',
+        raw: false,
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 409 on duplicate alias for the same Payee', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'DupAliasGuard' }),
+        raw: true,
+      });
+      await helpers.createPayeeAlias({
+        payeeId: payee.id,
+        rawName: 'Variant A',
+        raw: true,
+      });
+
+      // Same normalized form ("variant a") – the second insert must fail
+      // before hitting the UNIQUE index so the caller gets a friendly 409.
+      const response = await helpers.createPayeeAlias({
+        payeeId: payee.id,
+        rawName: 'VARIANT A',
+        raw: false,
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
+    });
+
+    it('returns 404 for an unknown payee id', async () => {
+      const response = await helpers.createPayeeAlias({
+        payeeId: NONEXISTENT_ID,
+        rawName: 'Whatever',
+        raw: false,
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it('returns 409 with conflictingPayee details when alias matches another Payee canonical name', async () => {
+      // "Globex" canonical → adding it as an alias on a different Payee would
+      // make the extraction's exact-match step ambiguous. Server must refuse
+      // and tell the caller which Payee already owns that string so the UI
+      // can offer a "go to Globex" or "merge" affordance.
+      const owner = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Globex' }),
+        raw: true,
+      });
+      const other = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Initech' }),
+        raw: true,
+      });
+
+      const response = await helpers.createPayeeAlias({
+        payeeId: other.id,
+        rawName: 'Globex',
+        raw: false,
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
+      const errorBody = response.body.response as unknown as { details?: { conflictingPayee?: unknown } };
+      expect(errorBody.details?.conflictingPayee).toEqual({ id: owner.id, name: 'Globex' });
+    });
+
+    it('returns 409 with conflictingPayee details when alias matches another Payee alias', async () => {
+      const owner = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Acme' }),
+        raw: true,
+      });
+      await helpers.createPayeeAlias({
+        payeeId: owner.id,
+        rawName: 'Acme Holdings',
+        raw: true,
+      });
+      const other = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Hooli' }),
+        raw: true,
+      });
+
+      const response = await helpers.createPayeeAlias({
+        payeeId: other.id,
+        rawName: 'ACME HOLDINGS',
+        raw: false,
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
+      const aliasErrorBody = response.body.response as unknown as { details?: { conflictingPayee?: unknown } };
+      expect(aliasErrorBody.details?.conflictingPayee).toEqual({ id: owner.id, name: 'Acme' });
+    });
+
+    it("returns 404 when adding an alias to another user's payee", async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'AliasCreateCrossUserGuard' }),
+        raw: true,
+      });
+
+      const handle = await helpers.signUpSecondUser();
+      const response = await helpers.asUser({
+        cookies: handle.cookies,
+        fn: () =>
+          helpers.createPayeeAlias({
+            payeeId: payee.id,
+            rawName: 'Hijack Attempt',
+            raw: false,
+          }),
+      });
+      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      const after = await helpers.getPayeeById({ id: payee.id, raw: true });
+      expect(after.aliases?.some((a) => a.normalizedName === 'hijack attempt')).toBe(false);
+    });
+
+    it('still detects the own-namespace conflict when another user has the same alias text', async () => {
+      // Conflict detection must resolve the alias within THIS user's payee
+      // set. If the lookup matches an arbitrary user's alias row, the other
+      // user's row shadows the current user's own duplicate and the insert
+      // slips through — leaving the same normalizedName on two of the
+      // current user's Payees, which makes `findExactMatch` ambiguous.
+      const aliasText = 'Coyote Logistics';
+
+      // Another user owns the same alias text first, so a naive
+      // `findOne({ normalizedName })` returns their row, not ours.
+      const handle = await helpers.signUpSecondUser();
+      await helpers.asUser({
+        cookies: handle.cookies,
+        fn: async () => {
+          const foreignPayee = await helpers.createPayee({
+            payload: helpers.buildPayeePayload({ name: 'Foreign Coyote Owner' }),
+            raw: true,
+          });
+          await helpers.createPayeeAlias({ payeeId: foreignPayee.id, rawName: aliasText, raw: true });
+        },
+      });
+
+      const first = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Coyote Holder' }),
+        raw: true,
+      });
+      await helpers.createPayeeAlias({ payeeId: first.id, rawName: aliasText, raw: true });
+
+      const second = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Coyote Pretender' }),
+        raw: true,
+      });
+      const response = await helpers.createPayeeAlias({
+        payeeId: second.id,
+        rawName: aliasText,
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
+      const errorBody = response.body.response as unknown as { details?: { conflictingPayee?: unknown } };
+      expect(errorBody.details?.conflictingPayee).toEqual({ id: first.id, name: 'Coyote Holder' });
+    });
+  });
+
   describe('DELETE /payees/:id/aliases/:aliasId', () => {
     it('removes an alias from the Payee', async () => {
       const payee = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'WithAliasOriginal' }),
         raw: true,
       });
-      // Force an alias by renaming — the old canonical name lands as an alias.
+      // Force an alias by renaming – the old canonical name lands as an alias.
       await helpers.updatePayee({
         id: payee.id,
         payload: { name: 'NewCanonical' },
@@ -331,7 +593,7 @@ describe('Payees API', () => {
     it('refuses to delete the alias matching the Payee canonical name', async () => {
       // Set up: rename Payee twice so it ends up with an alias matching its
       // current canonical normalizedName. Deleting that one would leave the
-      // canonical without an alias representation — and a follow-up sync
+      // canonical without an alias representation – and a follow-up sync
       // would just re-create it, so the operation is rejected.
       const payee = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'CanonGuard' }),
@@ -448,7 +710,7 @@ describe('Payees API', () => {
       });
 
       // User B flips their fleet to `off`. User A's payee must stay on the
-      // default `enforce` — the WHERE clause must be scoped to userId.
+      // default `enforce` – the WHERE clause must be scoped to userId.
       await helpers.asUser({
         cookies: handle.cookies,
         fn: () =>
@@ -478,7 +740,7 @@ describe('Payees API', () => {
 
   describe('cross-user isolation', () => {
     // Payees are user-scoped. A second user must not be able to read, mutate,
-    // merge, or peel aliases off the first user's records — the service must
+    // merge, or peel aliases off the first user's records – the service must
     // produce 404, not silently leak or destroy data.
     it("returns 404 when fetching another user's payee", async () => {
       const payee = await helpers.createPayee({
@@ -529,7 +791,7 @@ describe('Payees API', () => {
       });
 
       const handle = await helpers.signUpSecondUser();
-      // user B has their own payee for the target slot — neither slot may
+      // user B has their own payee for the target slot – neither slot may
       // reach across users.
       const userBPayee = await helpers.asUser({
         cookies: handle.cookies,
@@ -540,7 +802,7 @@ describe('Payees API', () => {
           }),
       });
 
-      // user B trying to merge their (legitimate) payee into user A's payee —
+      // user B trying to merge their (legitimate) payee into user A's payee –
       // the target id doesn't exist from B's perspective.
       const responseAsB = await helpers.asUser({
         cookies: handle.cookies,
@@ -550,7 +812,7 @@ describe('Payees API', () => {
     });
 
     it('returns 404 when deleting an alias on a foreign payee', async () => {
-      // Build a payee with an alias by renaming — the previous canonical name
+      // Build a payee with an alias by renaming – the previous canonical name
       // sticks around as an alias.
       const payee = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'AliasGuardOriginal' }),

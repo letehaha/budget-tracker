@@ -1,5 +1,5 @@
 import { ApiBaseError } from '@/common/types';
-import { API_ERROR_CODES } from '@bt/shared/types';
+import { API_ERROR_CODES, type PayeeNameConflictDetails } from '@bt/shared/types';
 
 export * from './network.error';
 export * from './auth.error';
@@ -68,6 +68,19 @@ const getFirstValidationMessage = ({ error }: { error: ApiErrorResponseError }):
     return validationErrors[0].message as string;
   }
   return undefined;
+};
+
+/**
+ * Extracts the `details.conflictingPayee` payload from a 409 returned by payee
+ * name/alias writes (see `PayeeNameConflictDetails` in shared types). The
+ * runtime field checks guard against the backend shape drifting — on mismatch
+ * the caller falls back to the plain server message instead of rendering a
+ * broken link.
+ */
+export const getPayeeNameConflict = (error: unknown): PayeeNameConflictDetails['conflictingPayee'] | null => {
+  if (!isApiErrorWithCode(error, API_ERROR_CODES.conflict)) return null;
+  const candidate = (error.data.details as Partial<PayeeNameConflictDetails> | undefined)?.conflictingPayee;
+  return candidate && typeof candidate.id === 'string' && typeof candidate.name === 'string' ? candidate : null;
 };
 
 /**

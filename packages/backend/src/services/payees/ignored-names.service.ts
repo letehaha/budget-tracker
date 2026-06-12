@@ -1,11 +1,11 @@
 import { t } from '@i18n/index';
-import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
-import PayeeAliases from '@models/payee-aliases.model';
+import { ConflictError, NotFoundError } from '@js/errors';
 import PayeeIgnoredNames from '@models/payee-ignored-names.model';
 import Payees from '@models/payees.model';
 
 import { withTransaction } from '../common/with-transaction';
-import { normalizePayeeName } from './normalize-name';
+import { parsePayeeName, resolveNormalizedName } from './payee-namespace';
+import { loadPayeeOrThrow } from './payees.service';
 
 interface ListInput {
   userId: number;
@@ -22,45 +22,44 @@ interface AddInput {
   userId: number;
   rawName: string;
   /**
-   * When true, an existing Payee whose normalizedName matches is deleted as
-   * part of the same operation. Without this flag, the API rejects with 409
-   * so the user has to acknowledge it (the Payee delete is destructive and
-   * we don't want it as an implicit side effect of "I want to ignore this").
+   * When true, the Payee this name resolves to (by canonical name or alias)
+   * is deleted as part of the same operation. Without this flag, the API
+   * rejects with 409 so the user has to acknowledge it (the Payee delete is
+   * destructive and we don't want it as an implicit side effect of "I want
+   * to ignore this").
    */
   force?: boolean;
 }
 
 export const addPayeeIgnoredName = withTransaction(
   async ({ userId, rawName, force = false }: AddInput): Promise<PayeeIgnoredNames> => {
-    const trimmed = rawName.trim();
-    if (!trimmed) {
-      throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
-    }
-    const normalized = normalizePayeeName({ raw: trimmed });
-    if (!normalized) {
-      throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
-    }
+    const { display, normalized } = parsePayeeName({ raw: rawName, emptyMessageKey: 'payees.nameRequired' });
 
     const existing = await PayeeIgnoredNames.findOne({ where: { userId, normalizedName: normalized } });
     if (existing) return existing;
 
-    const collidingPayee = await Payees.findOne({
-      where: { userId, normalizedName: normalized },
-      attributes: ['id'],
-    });
-    if (collidingPayee) {
+    // Ignoring a name that still resolves to a Payee (canonical or alias)
+    // would be a silent no-op: the blocklist only gates Step-3 promotion in
+    // `resolvePayeeForRawMerchant`, and a resolvable name links at Step 1
+    // before the blocklist is consulted. Force-acknowledge deletes the
+    // resolved Payee so the ignore actually takes effect.
+    const hit = await resolveNormalizedName({ userId, normalized });
+    if (hit) {
       if (!force) {
-        throw new ConflictError({ message: t({ key: 'payees.ignoredNameCollidesWithPayee' }) });
+        throw new ConflictError({
+          message: t({ key: 'payees.ignoredNameCollidesWithPayee' }),
+          details: { conflictingPayee: { id: hit.payeeId, name: hit.name } },
+        });
       }
       // Cascades clear PayeeAliases + null out Transactions.payeeId via the
       // existing FK rules established in the original Payees migration.
-      await Payees.destroy({ where: { id: collidingPayee.id, userId } });
+      await Payees.destroy({ where: { id: hit.payeeId, userId } });
     }
 
     return PayeeIgnoredNames.create({
       userId,
       normalizedName: normalized,
-      rawSample: trimmed,
+      rawSample: display,
     });
   },
 );
@@ -97,18 +96,8 @@ interface DeleteAndIgnoreResult {
  */
 export const deletePayeeAndIgnoreFuture = withTransaction(
   async ({ userId, payeeId }: DeleteAndIgnoreInput): Promise<DeleteAndIgnoreResult> => {
-    const payee = await Payees.findOne({
-      where: { id: payeeId, userId },
-      attributes: ['id', 'name', 'normalizedName'],
-    });
-    if (!payee) {
-      throw new NotFoundError({ message: t({ key: 'payees.notFound' }) });
-    }
-
-    const aliases = await PayeeAliases.findAll({
-      where: { payeeId: payee.id },
-      attributes: ['rawName', 'normalizedName'],
-    });
+    const payee = await loadPayeeOrThrow({ userId, id: payeeId });
+    const aliases = payee.aliases ?? [];
 
     const candidates = new Map<string, string>();
     candidates.set(payee.normalizedName, payee.name);

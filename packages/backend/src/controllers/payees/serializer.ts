@@ -19,6 +19,7 @@ export function serializePayee(payee: Payees): PayeeModel {
         payeeId: alias.payeeId,
         rawName: alias.rawName,
         normalizedName: alias.normalizedName,
+        isCanonical: alias.normalizedName === payee.normalizedName,
         createdAt: alias.createdAt,
       }),
     ),

@@ -56,6 +56,26 @@ describe('Payee Ignored Names', () => {
       const lookup = await helpers.getPayeeById({ id: payee.id, raw: false });
       expect(lookup.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
+
+    it("returns 409 when the name matches a Payee's alias, and force=true deletes that Payee", async () => {
+      // An alias-resolvable name would make the ignore a silent no-op:
+      // extraction links at the exact-match step before the blocklist is
+      // consulted. Same force handshake as the canonical-name collision.
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Cloudflare' }),
+        raw: true,
+      });
+      await helpers.createPayeeAlias({ payeeId: payee.id, rawName: 'CF Net', raw: true });
+
+      const rejected = await helpers.addIgnoredName({ rawName: 'cf net', raw: false });
+      expect(rejected.statusCode).toBe(ERROR_CODES.ConflictError);
+
+      const added = await helpers.addIgnoredName({ rawName: 'cf net', force: true, raw: true });
+      expect(added.normalizedName).toBe('cf net');
+
+      const lookup = await helpers.getPayeeById({ id: payee.id, raw: false });
+      expect(lookup.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
   });
 
   describe('extraction Step 3 suppression', () => {

@@ -10,8 +10,8 @@ import { canUserAccessResource } from '@services/sharing/auth/can-user-access-re
 import { Op, QueryTypes } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
-import { ensureAliasExists } from './extraction.service';
 import { normalizePayeeName } from './normalize-name';
+import { ensureAliasExists, parsePayeeName, resolveNormalizedName } from './payee-namespace';
 import { getPayeeStatsMap, PayeeStatsRow } from './payee-stats';
 
 const MAX_LIST_LIMIT = 200;
@@ -37,7 +37,7 @@ async function assertCategoryOwnedByUser({
   }
 }
 
-async function loadPayeeOrThrow({ userId, id }: { userId: number; id: string }): Promise<Payees> {
+export async function loadPayeeOrThrow({ userId, id }: { userId: number; id: string }): Promise<Payees> {
   const payee = await Payees.findOne({
     where: { id, userId },
     include: [{ model: PayeeAliases, as: 'aliases' }],
@@ -181,7 +181,7 @@ export const listPayees = withTransaction(
 
     const payeesById = new Map<string, Payees>(payees.map((p) => [p.id, p]));
 
-    // Preserve the SQL-driven order — `findAll` returns rows in PK order, not
+    // Preserve the SQL-driven order – `findAll` returns rows in PK order, not
     // in our sort order, so re-project through the id list.
     return ids
       .map((id) => {
@@ -202,29 +202,30 @@ interface CreatePayeeParams {
 
 export const createPayee = withTransaction(
   async ({ userId, name, defaultCategoryId, categorizationMode }: CreatePayeeParams): Promise<Payees> => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
-    }
-    const normalized = normalizePayeeName({ raw: trimmed });
-    if (!normalized) {
-      throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
-    }
+    const { display, normalized } = parsePayeeName({ raw: name, emptyMessageKey: 'payees.nameRequired' });
 
     if (defaultCategoryId) {
       await assertCategoryOwnedByUser({ userId, categoryId: defaultCategoryId });
     }
 
-    const existing = await Payees.findOne({ where: { userId, normalizedName: normalized } });
-    if (existing) {
+    // A canonical name that collides with an existing alias would shadow that
+    // alias in `resolveNormalizedName` (canonical wins), silently re-routing
+    // future extractions — so alias hits are rejected too, with a pointer to
+    // the owning Payee.
+    const hit = await resolveNormalizedName({ userId, normalized });
+    if (hit) {
+      if (hit.via === 'canonical') {
+        throw new ConflictError({ message: t({ key: 'payees.duplicateName' }) });
+      }
       throw new ConflictError({
-        message: t({ key: 'payees.duplicateName' }),
+        message: t({ key: 'payees.nameUsedByAliasOfOtherPayee', variables: { name: hit.name } }),
+        details: { conflictingPayee: { id: hit.payeeId, name: hit.name } },
       });
     }
 
     const created = await Payees.create({
       userId,
-      name: trimmed,
+      name: display,
       normalizedName: normalized,
       defaultCategoryId: defaultCategoryId ?? null,
       categorizationMode: categorizationMode ?? CATEGORIZATION_MODE.enforce,
@@ -256,7 +257,7 @@ interface UpdatePayeeParams {
 
 /**
  * Rename + default-category change. Renaming preserves the OLD canonical name
- * as an alias so future syncs that match the old string keep linking — this is
+ * as an alias so future syncs that match the old string keep linking – this is
  * the contract the extraction pipeline expects.
  *
  * Collisions on `normalizedName` produce a 409 with a hint to merge instead.
@@ -277,31 +278,24 @@ export const updatePayee = withTransaction(
     }
 
     if (name !== undefined) {
-      const trimmed = name.trim();
-      if (!trimmed) {
-        throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
-      }
-      const normalized = normalizePayeeName({ raw: trimmed });
-      if (!normalized) {
-        throw new ValidationError({ message: t({ key: 'payees.nameRequired' }) });
-      }
+      const { display, normalized } = parsePayeeName({ raw: name, emptyMessageKey: 'payees.nameRequired' });
 
       if (normalized !== payee.normalizedName) {
-        const collision = await Payees.findOne({
-          where: {
-            userId,
-            normalizedName: normalized,
-            id: { [Op.ne]: id },
-          },
-          attributes: ['id'],
-        });
-        if (collision) {
-          throw new ConflictError({ message: t({ key: 'payees.renameCollision' }) });
+        // Renaming onto a name already in the namespace — another Payee's
+        // canonical name OR alias — would make `resolveNormalizedName`
+        // ambiguous. A hit on the payee being renamed (one of its own
+        // aliases) is fine: canonical + same-payee alias stay consistent.
+        const hit = await resolveNormalizedName({ userId, normalized });
+        if (hit && hit.payeeId !== id) {
+          throw new ConflictError({
+            message: t({ key: 'payees.renameCollision' }),
+            details: { conflictingPayee: { id: hit.payeeId, name: hit.name } },
+          });
         }
 
         const oldName = payee.name;
         const oldNormalized = payee.normalizedName;
-        payee.name = trimmed;
+        payee.name = display;
         payee.normalizedName = normalized;
 
         // Preserve the old canonical name as an alias so historical extractions
@@ -312,9 +306,9 @@ export const updatePayee = withTransaction(
           normalizedName: oldNormalized,
         });
       } else {
-        // Same normalized form (e.g. casing-only change) — just stamp the new
+        // Same normalized form (e.g. casing-only change) – just stamp the new
         // display name without alias bookkeeping.
-        payee.name = trimmed;
+        payee.name = display;
       }
     }
 
@@ -329,10 +323,7 @@ interface DeletePayeeParams {
 }
 
 export const deletePayee = withTransaction(async ({ userId, id }: DeletePayeeParams): Promise<void> => {
-  const payee = await Payees.findOne({ where: { id, userId }, attributes: ['id'] });
-  if (!payee) {
-    throw new NotFoundError({ message: t({ key: 'payees.notFound' }) });
-  }
+  await loadPayeeOrThrow({ userId, id });
   // FK `SET NULL` on `Transactions.payeeId` unlinks transactions automatically.
   // Aliases cascade-delete via FK.
   await Payees.destroy({ where: { id, userId } });
@@ -362,27 +353,19 @@ export const mergePayees = withTransaction(
     await Transactions.update({ payeeId: target.id }, { where: { userId, payeeId: source.id } });
 
     // `categorizationMeta.payeeId` on previously-categorized rows still points
-    // at the source id after merge — accepted as an audit-only dangling
+    // at the source id after merge – accepted as an audit-only dangling
     // reference (mirrors the documented behavior for deletes).
 
     // Carry the source's canonical name into target as an alias so historic
     // raw-merchant strings still resolve. Track every normalizedName that
     // ends up on the target so the alias-move loop below skips duplicates
-    // — including the canonical-name alias we may have just inserted.
+    // – including the canonical-name alias we may have just inserted.
     const targetAliasNormalized = new Set((target.aliases ?? []).map((a) => a.normalizedName));
-    const sourceCanonAliasExists =
-      targetAliasNormalized.has(source.normalizedName) ||
-      (await PayeeAliases.findOne({
-        where: { payeeId: target.id, normalizedName: source.normalizedName },
-        attributes: ['id'],
-      })) !== null;
-    if (!sourceCanonAliasExists) {
-      await PayeeAliases.create({
-        payeeId: target.id,
-        rawName: source.name,
-        normalizedName: source.normalizedName,
-      });
-    }
+    await ensureAliasExists({
+      payeeId: target.id,
+      rawName: source.name,
+      normalizedName: source.normalizedName,
+    });
     targetAliasNormalized.add(source.normalizedName);
 
     // Move aliases. Source aliases that collide with target aliases on
@@ -402,6 +385,55 @@ export const mergePayees = withTransaction(
   },
 );
 
+interface CreatePayeeAliasParams {
+  userId: number;
+  payeeId: string;
+  rawName: string;
+}
+
+/**
+ * User-curated alias for a Payee. Adding an alias makes the extraction
+ * pipeline link future transactions whose raw merchant string normalizes to
+ * the same form (exact match in `findExactMatch`) and boosts the fuzzy
+ * haystack (`buildHaystack`) so near-variants score above the threshold.
+ *
+ * Refuses an alias whose normalized form is already in this user's namespace —
+ * either on the same Payee (already attached) or on a different Payee (would
+ * make the extraction step's exact-match path ambiguous). Cross-Payee conflicts
+ * carry the conflicting Payee's id+name in `details.conflictingPayee` so the UI
+ * can surface a "Already used by X" hint with a link.
+ */
+export const createPayeeAlias = withTransaction(
+  async ({ userId, payeeId, rawName }: CreatePayeeAliasParams): Promise<Payees> => {
+    await loadPayeeOrThrow({ userId, id: payeeId });
+
+    const { display, normalized } = parsePayeeName({ raw: rawName, emptyMessageKey: 'payees.aliasNameRequired' });
+
+    // The alias only adds value when its normalized form isn't already a
+    // path to one of this user's Payees — otherwise the insert would break
+    // the one-Payee-per-normalizedName invariant `resolveNormalizedName`
+    // documents.
+    const hit = await resolveNormalizedName({ userId, normalized });
+    if (hit) {
+      if (hit.payeeId === payeeId) {
+        throw new ConflictError({ message: t({ key: 'payees.duplicateAlias' }) });
+      }
+      throw new ConflictError({
+        message: t({ key: 'payees.aliasUsedByOtherPayee', variables: { name: hit.name } }),
+        details: { conflictingPayee: { id: hit.payeeId, name: hit.name } },
+      });
+    }
+
+    await PayeeAliases.create({
+      payeeId,
+      rawName: display,
+      normalizedName: normalized,
+    });
+
+    return loadPayeeOrThrow({ userId, id: payeeId });
+  },
+);
+
 interface DeletePayeeAliasParams {
   userId: number;
   payeeId: string;
@@ -410,7 +442,7 @@ interface DeletePayeeAliasParams {
 
 /**
  * Removes a single alias. Transactions previously linked via that alias keep
- * their `payeeId` — deletion only affects future extraction.
+ * their `payeeId` – deletion only affects future extraction.
  *
  * Refuses to delete the alias whose normalized form matches the Payee's
  * canonical normalizedName: deletion would leave the Payee with no link to
@@ -421,13 +453,7 @@ interface DeletePayeeAliasParams {
 export const deletePayeeAlias = withTransaction(
   async ({ userId, payeeId, aliasId }: DeletePayeeAliasParams): Promise<void> => {
     // Authorize through Payees scope.
-    const payee = await Payees.findOne({
-      where: { id: payeeId, userId },
-      attributes: ['id', 'normalizedName'],
-    });
-    if (!payee) {
-      throw new NotFoundError({ message: t({ key: 'payees.notFound' }) });
-    }
+    const payee = await loadPayeeOrThrow({ userId, id: payeeId });
     const alias = await PayeeAliases.findOne({
       where: { id: aliasId, payeeId },
       attributes: ['id', 'normalizedName'],
@@ -448,7 +474,7 @@ interface BulkUpdateCategorizationModeParams {
 }
 
 /**
- * "Apply to all" quick action — flips every Payee owned by the user to the
+ * "Apply to all" quick action – flips every Payee owned by the user to the
  * same `categorizationMode`. Returns the count actually updated so the UI can
  * surface a precise success toast.
  */

@@ -1,7 +1,13 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
-import { ApiErrorResponseError, isApiErrorWithCode, isNotFoundError, isResourceMissingError } from './index';
+import {
+  ApiErrorResponseError,
+  getPayeeNameConflict,
+  isApiErrorWithCode,
+  isNotFoundError,
+  isResourceMissingError,
+} from './index';
 
 describe('isApiErrorWithCode', () => {
   it('returns true when error is ApiErrorResponseError with matching code', () => {
@@ -125,5 +131,40 @@ describe('isResourceMissingError', () => {
   it('returns false when ApiErrorResponseError is constructed without data', () => {
     const error = new ApiErrorResponseError('broken', undefined as never);
     expect(isResourceMissingError(error)).toBe(false);
+  });
+});
+
+describe('getPayeeNameConflict', () => {
+  const conflictingPayee = { id: 'payee-1', name: 'Globex' };
+  const buildConflict = (details: unknown) =>
+    new ApiErrorResponseError('conflict', { code: API_ERROR_CODES.conflict, details } as never);
+
+  it('returns the conflictingPayee from a 409 with a well-formed details payload', () => {
+    expect(getPayeeNameConflict(buildConflict({ conflictingPayee }))).toEqual(conflictingPayee);
+  });
+
+  it('returns null for a 409 without details', () => {
+    expect(getPayeeNameConflict(buildConflict(undefined))).toBeNull();
+  });
+
+  it.each([
+    { conflictingPayee: { id: 42, name: 'Globex' } },
+    { conflictingPayee: { id: 'payee-1' } },
+    { conflictingPayee: 'payee-1' },
+    { somethingElse: true },
+  ])('returns null when the details shape does not match (%j)', (details) => {
+    expect(getPayeeNameConflict(buildConflict(details))).toBeNull();
+  });
+
+  it('returns null for a non-conflict API error even with a matching details shape', () => {
+    const error = new ApiErrorResponseError('boom', {
+      code: API_ERROR_CODES.validationError,
+      details: { conflictingPayee },
+    } as never);
+    expect(getPayeeNameConflict(error)).toBeNull();
+  });
+
+  it.each([null, undefined, 'string', 42, {}, new Error('plain')])('returns null for non-API error %s', (value) => {
+    expect(getPayeeNameConflict(value)).toBeNull();
   });
 });

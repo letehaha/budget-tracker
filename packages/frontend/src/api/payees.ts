@@ -117,6 +117,16 @@ export const mergePayees = async ({
   return api.post(`/payees/${sourceId}/merge`, { targetPayeeId });
 };
 
+export const createPayeeAlias = async ({
+  payeeId,
+  rawName,
+}: {
+  payeeId: string;
+  rawName: string;
+}): Promise<PayeeModel> => {
+  return api.post(`/payees/${payeeId}/aliases`, { rawName });
+};
+
 export const deletePayeeAlias = async ({ payeeId, aliasId }: { payeeId: string; aliasId: string }): Promise<void> => {
   return api.delete(`/payees/${payeeId}/aliases/${aliasId}`, {});
 };

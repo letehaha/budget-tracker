@@ -8,6 +8,7 @@ import {
   addIgnoredName,
   bulkUpdateCategorizationMode,
   createPayee,
+  createPayeeAlias,
   deletePayee,
   deletePayeeAlias,
   deletePayeeAndIgnore,
@@ -227,6 +228,14 @@ export const useMergePayees = () => {
   return useMutation({
     mutationFn: ({ sourceId, targetPayeeId }: { sourceId: string; targetPayeeId: string }) =>
       mergePayees({ sourceId, targetPayeeId }),
+    onSuccess: () => invalidatePayeesScope(queryClient),
+  });
+};
+
+export const useCreatePayeeAlias = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ payeeId, rawName }: { payeeId: string; rawName: string }) => createPayeeAlias({ payeeId, rawName }),
     onSuccess: () => invalidatePayeesScope(queryClient),
   });
 };

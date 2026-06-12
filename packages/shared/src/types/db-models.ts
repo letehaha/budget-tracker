@@ -682,7 +682,26 @@ export interface PayeeAliasModel {
   payeeId: RecordId;
   rawName: string;
   normalizedName: string;
+  /**
+   * True when this alias's normalizedName equals the owning Payee's canonical
+   * normalizedName. The canonical alias cannot be deleted (the API rejects
+   * with 422) — clients should hide the delete affordance instead of
+   * re-deriving normalization rules.
+   */
+  isCanonical: boolean;
   createdAt: Date;
+}
+
+/**
+ * `details` payload on 409 responses from payee name/alias writes (create
+ * payee, rename, create alias, add ignored name) when the submitted name
+ * already resolves to a different Payee in the user's namespace.
+ */
+export interface PayeeNameConflictDetails {
+  conflictingPayee: {
+    id: RecordId;
+    name: string;
+  };
 }
 
 export interface PayeeModel {
