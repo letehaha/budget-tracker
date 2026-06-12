@@ -57,11 +57,18 @@ export default class LoanDetails extends Model {
     moneySetCents(this, 'refOriginalPrincipal', val);
   }
 
+  // Postgres returns DECIMAL columns as strings; parse at the model boundary
+  // so every consumer sees a number and no call site needs its own `Number()`.
   @Column({
     type: DataType.DECIMAL(7, 4),
     allowNull: false,
   })
-  interestRate!: string;
+  get interestRate(): number {
+    return Number(this.getDataValue('interestRate'));
+  }
+  set interestRate(val: number | string) {
+    this.setDataValue('interestRate', typeof val === 'number' ? val.toFixed(4) : val);
+  }
 
   @Column({
     type: DataType.INTEGER,
@@ -125,7 +132,9 @@ export default class LoanDetails extends Model {
   })
   accountNumber!: string | null;
 
-  @ForeignKey(() => Accounts)
+  // References the replacement loan's Accounts row. The FK constraint lives in
+  // the migration only — a second `@ForeignKey(() => Accounts)` here would
+  // confuse Sequelize's association inference for the `account` BelongsTo.
   @Column({
     type: DataType.UUID,
     allowNull: true,

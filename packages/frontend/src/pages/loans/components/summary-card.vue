@@ -71,11 +71,12 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { cn } from '@/lib/utils';
-import { LOAN_TYPE } from '@bt/shared/types';
 import { InfoIcon } from '@lucide/vue';
 import { parseISO } from 'date-fns';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import { getLoanTypeBadgeClass } from '../loan-type-presentation';
 
 const props = defineProps<{ loan: LoanApi }>();
 
@@ -103,18 +104,5 @@ const paymentDayDisplay = computed(() => {
   return t('loans.detail.summary.dayOfMonth', { day });
 });
 
-const LOAN_TYPE_BADGE_CLASSES: Record<LOAN_TYPE, string> = {
-  [LOAN_TYPE.mortgage]: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  [LOAN_TYPE.auto]: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  [LOAN_TYPE.student]: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
-  [LOAN_TYPE.personal]: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  [LOAN_TYPE.heloc]: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
-  [LOAN_TYPE.business]: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
-  [LOAN_TYPE.medical]: 'bg-pink-500/10 text-pink-600 dark:text-pink-400',
-  [LOAN_TYPE.other]: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
-};
-
-const loanTypeBadgeClass = computed(
-  () => LOAN_TYPE_BADGE_CLASSES[props.loan.loanDetails.loanType] ?? LOAN_TYPE_BADGE_CLASSES[LOAN_TYPE.other],
-);
+const loanTypeBadgeClass = computed(() => getLoanTypeBadgeClass({ loanType: props.loan.loanDetails.loanType }));
 </script>

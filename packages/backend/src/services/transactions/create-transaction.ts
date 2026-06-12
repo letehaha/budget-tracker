@@ -15,13 +15,13 @@ import { NotFoundError, UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
-import { namespace } from '@models/connection';
 import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
+import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
 import { applyPayeeCategorization } from '@services/payees/apply-categorization';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { resolvePayeeForRawMerchant } from '@services/payees/extraction.service';
@@ -124,12 +124,6 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   const [creationParams, baseTransaction] = params;
 
   const { destinationAmount, destinationAccountId, userId, transactionType } = creationParams;
-  // `transfer_to_loan` and `common_transfer` share all two-leg machinery; the
-  // distinct nature gets stamped onto both legs so loan-payment reporting can
-  // filter on the label instead of joining via the destination account.
-  const oppositeTransferNature = isTwoLegTransfer(creationParams.transferNature)
-    ? creationParams.transferNature!
-    : TRANSACTION_TRANSFER_NATURE.common_transfer;
 
   if (!destinationAmount || !destinationAccountId) {
     throw new ValidationError({
@@ -153,39 +147,42 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   const destOwnerUserId = destAccess.ownerUserId;
   const isCrossUser = destOwnerUserId !== baseTransaction.userId;
 
-  // `transfer_to_loan` is only meaningful when the destination is actually a
-  // loan-category account; otherwise the FE detection logic mis-stamped the
-  // row. Fail loudly so the bug surfaces instead of producing a transfer with
-  // a meaningless reporting label.
-  if (creationParams.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
-    // SELECT ... FOR UPDATE on the loan account row. Two concurrent loan-payment
-    // submits would otherwise each read the same pre-payment balance, each pass
-    // the projected-balance check, and together push the loan into a positive
-    // (overpaid) state. The row lock serialises them on the same Postgres
-    // transaction so the second submit sees the first one's update.
-    const sequelizeTx = namespace.get('transaction');
-    const destAccount = await Accounts.default.findOne({
-      where: { id: destinationAccountId, userId: destOwnerUserId },
-      transaction: sequelizeTx,
-      lock: sequelizeTx?.LOCK.UPDATE,
+  // The loan-payment treatment keys off the destination account's *category*,
+  // not the caller-supplied nature label: any two-leg transfer into a
+  // loan-category account mutates the loan's balance via the model hooks, so
+  // it must be stamped `transfer_to_loan` (keeps it visible to the loan's
+  // payment list and the loan/account delete guards) and pass the overpay
+  // check. A `transfer_to_loan` label on a non-loan destination is a caller
+  // bug — fail loudly so the FE mis-stamp surfaces instead of producing a
+  // transfer with a meaningless reporting label.
+  const destAccount = await Accounts.default.findOne({
+    where: { id: destinationAccountId, userId: destOwnerUserId },
+    attributes: ['accountCategory'],
+  });
+  if (!destAccount) {
+    throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+  }
+  const isLoanDestination = destAccount.accountCategory === ACCOUNT_CATEGORIES.loan;
+  if (!isLoanDestination && creationParams.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
+    throw new ValidationError({
+      message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
     });
-    if (!destAccount) {
-      throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
-    }
-    if (destAccount.accountCategory !== ACCOUNT_CATEGORIES.loan) {
-      throw new ValidationError({
-        message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
-      });
-    }
-    // Liability balance lives in negative cents; the income leg adds toward
-    // zero. A positive projected balance means the payment overshoots the
-    // remaining owed — institutional loans can't go into credit, so block.
-    const projectedLoanBalance = destAccount.currentBalance.add(destinationAmount);
-    if (projectedLoanBalance.toCents() > 0) {
-      throw new ValidationError({
-        message: t({ key: 'transactions.loanPaymentOverpay' }),
-      });
-    }
+  }
+  // `transfer_to_loan` and `common_transfer` share all two-leg machinery; the
+  // distinct nature gets stamped onto both legs so loan-payment reporting can
+  // filter on the label instead of joining via the destination account.
+  const oppositeTransferNature = isLoanDestination
+    ? TRANSACTION_TRANSFER_NATURE.transfer_to_loan
+    : isTwoLegTransfer(creationParams.transferNature)
+      ? creationParams.transferNature!
+      : TRANSACTION_TRANSFER_NATURE.common_transfer;
+
+  if (isLoanDestination) {
+    await assertLoanPaymentAllowed({
+      ownerUserId: destOwnerUserId,
+      loanAccountId: destinationAccountId,
+      newLegAmount: destinationAmount,
+    });
   }
 
   const transferId = uuidv4();

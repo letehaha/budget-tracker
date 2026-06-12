@@ -92,6 +92,11 @@ const deleteMutation = useDeleteTransaction({ onSuccess: () => emit('close-modal
 
 const isLoading = computed(() => submitMutation.isPending.value || deleteMutation.isPending.value);
 
+// `submit` needs a fallback category from the categories store (see the guard
+// inside `submit`). Keep the button disabled until the store hydrates so a
+// fast click after page load doesn't turn into a silent no-op.
+const categoriesReady = computed(() => formattedCategories.value.length > 0);
+
 const validationRules = computed(() => {
   // Match the backend's row-locked overpay guard. The active field depends on
   // currency parity: cross-currency uses the user-entered loan-side amount;
@@ -336,7 +341,7 @@ const deletePayment = () => {
         >
           {{ $t('dialogs.manageTransaction.form.deleteButton') }}
         </Button>
-        <Button class="ml-auto min-w-30" :disabled="isLoading" @click="submit">
+        <Button class="ml-auto min-w-30" :disabled="isLoading || !categoriesReady" @click="submit">
           {{
             isLoading
               ? $t('dialogs.manageTransaction.form.loadingButton')

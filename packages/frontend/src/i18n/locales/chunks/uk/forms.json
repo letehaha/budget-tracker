@@ -244,6 +244,7 @@
       "nameLabel": "Назва кредиту",
       "namePlaceholder": "напр. Основна іпотека",
       "loanTypeLabel": "Тип кредиту",
+      "loanTypePlaceholder": "Оберіть тип кредиту",
       "currencyLabel": "Валюта",
       "originalPrincipalLabel": "Початкова сума боргу",
       "originalPrincipalPlaceholder": "напр. 320 000",

@@ -1,12 +1,6 @@
 import { createTransaction } from '@/api';
 import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
-import {
-  ACCOUNT_CATEGORIES,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-  type RecordId,
-  // TransactionModel,
-} from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type RecordId } from '@bt/shared/types';
 import type { SplitInput } from '@bt/shared/types/endpoints';
 
 import { getTxTypeFromFormType } from '../helpers';
@@ -31,10 +25,8 @@ export const prepareTxCreationParams = ({
   form,
   isTransferTx,
   isCurrenciesDifferent,
-  // linkedTransaction,
 }: {
   form: UI_FORM_STRUCT;
-  // linkedTransaction: TransactionModel;
   isTransferTx: boolean;
   isCurrenciesDifferent: boolean;
 }) => {

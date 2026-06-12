@@ -20,6 +20,9 @@ const optionalNullableInt = ({ min, max }: { min: number; max?: number }) => {
   return schema.nullable().optional();
 };
 
+const nonNegativeDecimalMoney = ({ field }: { field: string }) =>
+  decimalMoney().refine((m) => !m.isNegative(), { message: `${field} must be >= 0` });
+
 /**
  * Create payload. Spans both the underlying Account (name, currencyCode,
  * initialBalance) and the LoanDetails sidecar. Service composes both rows.
@@ -31,9 +34,7 @@ const optionalNullableInt = ({ min, max }: { min: number; max?: number }) => {
 export const createLoanBodySchema = z.object({
   name: z.string().min(1).max(200).trim(),
   currencyCode: currencyCode(),
-  initialBalance: decimalMoney().refine((m) => !m.isNegative(), {
-    message: 'initialBalance must be >= 0',
-  }),
+  initialBalance: nonNegativeDecimalMoney({ field: 'initialBalance' }),
 
   loanType: z.nativeEnum(LOAN_TYPE),
   originalPrincipal: decimalMoney().refine((m) => m.isPositive(), {
@@ -42,14 +43,8 @@ export const createLoanBodySchema = z.object({
   interestRate: z.number().min(0).max(99.9999),
   termMonths: optionalNullableInt({ min: 1, max: 1200 }),
   startDate: dateString(),
-  minPayment: decimalMoney()
-    .refine((m) => !m.isNegative(), { message: 'minPayment must be >= 0' })
-    .nullable()
-    .optional(),
-  plannedPayment: decimalMoney()
-    .refine((m) => !m.isNegative(), { message: 'plannedPayment must be >= 0' })
-    .nullable()
-    .optional(),
+  minPayment: nonNegativeDecimalMoney({ field: 'minPayment' }).nullable().optional(),
+  plannedPayment: nonNegativeDecimalMoney({ field: 'plannedPayment' }).nullable().optional(),
   paymentDayOfMonth: optionalNullableInt({ min: 1, max: 31 }),
   lenderName: z.string().min(1).max(200).trim().nullable().optional(),
   accountNumber: z.string().min(1).max(100).trim().nullable().optional(),
@@ -69,19 +64,15 @@ export type CreateLoanBody = z.infer<typeof createLoanBodySchema>;
 export const updateLoanBodySchema = z
   .object({
     name: z.string().min(1).max(200).trim().optional(),
-    currentBalance: decimalMoney().optional(),
+    // Positive outstanding amount; a negative value would flip into a loan in
+    // credit once the service negates it into the ledger convention.
+    currentBalance: nonNegativeDecimalMoney({ field: 'currentBalance' }).optional(),
 
     interestRate: z.number().min(0).max(99.9999).optional(),
     termMonths: optionalNullableInt({ min: 1, max: 1200 }),
     startDate: dateString().optional(),
-    minPayment: decimalMoney()
-      .refine((m) => !m.isNegative(), { message: 'minPayment must be >= 0' })
-      .nullable()
-      .optional(),
-    plannedPayment: decimalMoney()
-      .refine((m) => !m.isNegative(), { message: 'plannedPayment must be >= 0' })
-      .nullable()
-      .optional(),
+    minPayment: nonNegativeDecimalMoney({ field: 'minPayment' }).nullable().optional(),
+    plannedPayment: nonNegativeDecimalMoney({ field: 'plannedPayment' }).nullable().optional(),
     paymentDayOfMonth: optionalNullableInt({ min: 1, max: 31 }),
     lenderName: z.string().min(1).max(200).trim().nullable().optional(),
     accountNumber: z.string().min(1).max(100).trim().nullable().optional(),

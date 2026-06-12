@@ -1,4 +1,5 @@
 import type { LoanProjection } from '@bt/shared/types';
+import { centsToApiDecimal } from '@common/types/money';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 
 /**
@@ -23,7 +24,11 @@ import { roundHalfToEven } from '@common/utils/round-half-to-even';
  * accrual so cumulative bias stays minimal across long-running mortgages.
  */
 interface LoanProjectionInput {
-  /** Outstanding balance the user owes, expressed as a positive integer in cents. */
+  /**
+   * Outstanding balance the user owes, expressed as a non-negative integer in
+   * cents. Zero (a loan created with nothing outstanding, or fully paid down)
+   * projects as `isPaidOff: true`.
+   */
   currentBalanceCents: number;
   /** Lender-issued principal at origination, in cents. */
   originalPrincipalCents: number;
@@ -46,7 +51,7 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
   const today = input.today instanceof Date ? input.today : new Date(input.today);
 
   const paidToDateCents = originalPrincipalCents - currentBalanceCents;
-  const paidToDate = centsToDecimal(paidToDateCents);
+  const paidToDate = centsToApiDecimal(paidToDateCents);
   const paidToDatePercent = computePaidToDatePercent({ paidToDateCents, originalPrincipalCents });
 
   const isPaidOff = currentBalanceCents <= 0;
@@ -74,7 +79,7 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
       totalInterestRemaining: null,
       paidToDate,
       paidToDatePercent,
-      monthlyInterest: centsToDecimal(monthlyInterestCents),
+      monthlyInterest: centsToApiDecimal(monthlyInterestCents),
       monthlyPrincipal: null,
       isPaidOff: false,
       warning: 'no_planned_payment',
@@ -88,8 +93,8 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
       totalInterestRemaining: null,
       paidToDate,
       paidToDatePercent,
-      monthlyInterest: centsToDecimal(monthlyInterestCents),
-      monthlyPrincipal: centsToDecimal(plannedPaymentCents - monthlyInterestCents),
+      monthlyInterest: centsToApiDecimal(monthlyInterestCents),
+      monthlyPrincipal: centsToApiDecimal(plannedPaymentCents - monthlyInterestCents),
       isPaidOff: false,
       warning: 'payment_below_interest',
     };
@@ -106,11 +111,11 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
   return {
     payoffDate: addMonthsIso({ from: today, months: monthsRemaining }),
     monthsRemaining,
-    totalInterestRemaining: centsToDecimal(totalInterestRemainingCents),
+    totalInterestRemaining: centsToApiDecimal(totalInterestRemainingCents),
     paidToDate,
     paidToDatePercent,
-    monthlyInterest: centsToDecimal(monthlyInterestCents),
-    monthlyPrincipal: centsToDecimal(plannedPaymentCents - monthlyInterestCents),
+    monthlyInterest: centsToApiDecimal(monthlyInterestCents),
+    monthlyPrincipal: centsToApiDecimal(plannedPaymentCents - monthlyInterestCents),
     isPaidOff: false,
     warning: null,
   };
@@ -147,12 +152,14 @@ function computePaidToDatePercent({
   return Math.round(clamped * 10) / 10;
 }
 
-function centsToDecimal(cents: number): number {
-  return cents / 100;
-}
-
 function addMonthsIso({ from, months }: { from: Date; months: number }): string {
-  const result = new Date(from.getFullYear(), from.getMonth() + months, from.getDate());
+  // Clamp to the last day of the target month instead of letting the Date
+  // constructor normalize the overflow — Jan 31 + 1 month must land on
+  // Feb 28/29, not Mar 2/3, to match "same day next month" payment-schedule
+  // semantics for days 29–31.
+  const targetMonth = from.getMonth() + months;
+  const lastDayOfTargetMonth = new Date(from.getFullYear(), targetMonth + 1, 0).getDate();
+  const result = new Date(from.getFullYear(), targetMonth, Math.min(from.getDate(), lastDayOfTargetMonth));
   const yyyy = result.getFullYear();
   const mm = String(result.getMonth() + 1).padStart(2, '0');
   const dd = String(result.getDate()).padStart(2, '0');

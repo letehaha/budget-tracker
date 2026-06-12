@@ -127,22 +127,14 @@ import { useFormatCurrency } from '@/composable/formatters';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
-import { LOAN_TYPE } from '@bt/shared/types';
-import {
-  BriefcaseIcon,
-  CarIcon,
-  CoinsIcon,
-  GraduationCapIcon,
-  HouseIcon,
-  KeyRoundIcon,
-  StethoscopeIcon,
-  TriangleAlertIcon,
-  WalletIcon,
-} from '@lucide/vue';
+import { TriangleAlertIcon } from '@lucide/vue';
 import { parseISO } from 'date-fns';
-import { computed, type Component } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RouterLink } from 'vue-router';
+
+import { useLoanProjectionDisplay } from '../composables/use-loan-projection-display';
+import { getLoanTypeIcon, getLoanTypeStripeClass } from '../loan-type-presentation';
 
 const props = defineProps<{ loan: LoanApi }>();
 
@@ -165,23 +157,14 @@ const paidPercentDisplay = computed(() => {
   return t('loans.card.paidPercent', { value: pct.toFixed(1) });
 });
 
-const progressBarWidth = computed(() => Math.min(100, Math.max(0, props.loan.projection.paidToDatePercent)));
+const { progressBarWidth, monthsRemainingDisplay, payoffDateDisplay } = useLoanProjectionDisplay({
+  loan: () => props.loan,
+  payoffDateFormat: 'MMM yyyy',
+});
 
 const showProgressMarker = computed(() => progressBarWidth.value > 0.5 && progressBarWidth.value < 99.5);
 
 const startDateDisplay = computed(() => formatDate(parseISO(props.loan.loanDetails.startDate), 'MMM yyyy'));
-
-const payoffDateDisplay = computed(() => {
-  const date = props.loan.projection.payoffDate;
-  if (!date) return '—';
-  return formatDate(parseISO(date), 'MMM yyyy');
-});
-
-const monthsRemainingDisplay = computed(() => {
-  const months = props.loan.projection.monthsRemaining;
-  if (months === null) return '—';
-  return String(months);
-});
 
 const monthlyDisplay = computed(() => {
   const planned = props.loan.loanDetails.plannedPayment;
@@ -195,33 +178,7 @@ const interestRemainingDisplay = computed(() => {
   return formatAmountByCurrencyCode(interest, props.loan.currencyCode);
 });
 
-const LOAN_TYPE_STRIPE_CLASSES: Record<LOAN_TYPE, string> = {
-  [LOAN_TYPE.mortgage]: 'from-blue-500 via-blue-500/60 to-transparent',
-  [LOAN_TYPE.auto]: 'from-amber-500 via-amber-500/60 to-transparent',
-  [LOAN_TYPE.student]: 'from-violet-500 via-violet-500/60 to-transparent',
-  [LOAN_TYPE.personal]: 'from-emerald-500 via-emerald-500/60 to-transparent',
-  [LOAN_TYPE.heloc]: 'from-cyan-500 via-cyan-500/60 to-transparent',
-  [LOAN_TYPE.business]: 'from-rose-500 via-rose-500/60 to-transparent',
-  [LOAN_TYPE.medical]: 'from-pink-500 via-pink-500/60 to-transparent',
-  [LOAN_TYPE.other]: 'from-slate-500 via-slate-500/60 to-transparent',
-};
+const loanTypeStripeClass = computed(() => getLoanTypeStripeClass({ loanType: props.loan.loanDetails.loanType }));
 
-const LOAN_TYPE_ICONS: Record<LOAN_TYPE, Component> = {
-  [LOAN_TYPE.mortgage]: HouseIcon,
-  [LOAN_TYPE.auto]: CarIcon,
-  [LOAN_TYPE.student]: GraduationCapIcon,
-  [LOAN_TYPE.personal]: WalletIcon,
-  [LOAN_TYPE.heloc]: KeyRoundIcon,
-  [LOAN_TYPE.business]: BriefcaseIcon,
-  [LOAN_TYPE.medical]: StethoscopeIcon,
-  [LOAN_TYPE.other]: CoinsIcon,
-};
-
-const loanTypeStripeClass = computed(
-  () => LOAN_TYPE_STRIPE_CLASSES[props.loan.loanDetails.loanType] ?? LOAN_TYPE_STRIPE_CLASSES[LOAN_TYPE.other],
-);
-
-const loanTypeIconComponent = computed(
-  () => LOAN_TYPE_ICONS[props.loan.loanDetails.loanType] ?? LOAN_TYPE_ICONS[LOAN_TYPE.other],
-);
+const loanTypeIconComponent = computed(() => getLoanTypeIcon({ loanType: props.loan.loanDetails.loanType }));
 </script>

@@ -57,6 +57,16 @@ module.exports = {
         transaction,
       });
 
+      // The TS-side ACCOUNT_CATEGORIES enum drops `mortgage` in favor of the
+      // loan feature's `loan` category. Fold any existing rows in so they keep
+      // passing the model's isIn validation and stay visible to category-based
+      // UI mappings. Not reversed in `down` — `loan` predates this migration,
+      // so the original mortgage/loan split can't be reconstructed.
+      await queryInterface.sequelize.query(
+        `UPDATE "Accounts" SET "accountCategory" = 'loan' WHERE "accountCategory" = 'mortgage';`,
+        { transaction },
+      );
+
       // Step 2: create the LoanDetails table. Sidecar to Accounts; unique
       // accountId enforces the 1:1 with the underlying loan-category Account.
       await queryInterface.createTable(

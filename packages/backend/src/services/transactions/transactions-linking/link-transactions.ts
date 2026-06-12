@@ -1,7 +1,8 @@
-import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
-import { ValidationError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
+import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { assertTxWriteAccess } from '@services/sharing/auth/authorize-account-write.service';
@@ -108,10 +109,30 @@ export const linkTransactions = withTransaction(
           ignoreBaseTxTypeValidation,
         });
 
+        // The pair's nature derives from the income leg's account category:
+        // linking an income that sits on a loan-category account recreates a
+        // de-facto loan payment (the leg already reduced the loan's balance
+        // when it was created), so it must carry `transfer_to_loan` — a
+        // `common_transfer` label here would hide the payment from the loan's
+        // payment list and from the loan/account delete guards that key off
+        // the nature.
+        const incomeLeg = base.transactionType === TRANSACTION_TYPES.income ? base : opposite;
+        const incomeLegAccount = await Accounts.findOne({
+          where: { id: incomeLeg.accountId },
+          attributes: ['accountCategory'],
+        });
+        if (!incomeLegAccount) {
+          throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+        }
+        const transferNature =
+          incomeLegAccount.accountCategory === ACCOUNT_CATEGORIES.loan
+            ? TRANSACTION_TRANSFER_NATURE.transfer_to_loan
+            : TRANSACTION_TRANSFER_NATURE.common_transfer;
+
         const [, results] = await Transactions.default.update(
           {
             transferId: uuidv4(),
-            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            transferNature,
           },
           {
             where: {

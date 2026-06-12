@@ -774,8 +774,11 @@ export interface LoanDetailsModel {
   originalPrincipal: number;
   /** Same value converted to the user's base currency at LoanDetails creation. */
   refOriginalPrincipal: number;
-  /** APR as percent, e.g. 3.75 for 3.75%. Range [0, 100). */
-  interestRate: string;
+  /**
+   * APR as percent, e.g. 3.75 for 3.75%. Range [0, 100). DECIMAL at rest;
+   * the model getter parses Postgres' string representation to a number.
+   */
+  interestRate: number;
   termMonths: number | null;
   startDate: string;
   minPayment: number | null;

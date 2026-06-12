@@ -71,9 +71,12 @@
 <script setup lang="ts">
 import type { LoanApi } from '@/api/loans';
 import { Card } from '@/components/lib/ui/card';
-import { useFormatCurrency } from '@/composable/formatters';
 import { useDateLocale } from '@/composable/use-date-locale';
+import { useExchangeRates } from '@/composable/data-queries/currencies';
+import { useFormatCurrency } from '@/composable/formatters';
+import { useCurrenciesStore } from '@/stores';
 import { parseISO } from 'date-fns';
+import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -84,6 +87,8 @@ const props = defineProps<{ loans: LoanApi[] }>();
 const { formatBaseCurrency } = useFormatCurrency();
 const { format: formatDate } = useDateLocale();
 const { t } = useI18n();
+const { convert } = useExchangeRates();
+const { baseCurrency } = storeToRefs(useCurrenciesStore());
 
 const PERCENT_DECIMAL_PRECISION = 2;
 
@@ -135,13 +140,25 @@ const earliestPayoffDisplay = computed(() => {
 });
 
 const interestProjected = computed(() => {
-  const values = props.loans
-    .map((loan) => loan.projection.totalInterestRemaining)
-    .filter((v): v is number => v !== null);
-  if (!values.length) return null;
-  // Projection values are in the loan's own currency; the aggregate is a rough
-  // sum without FX conversion. Same convention as the existing total balance.
-  return values.reduce((acc, v) => acc + v, 0);
+  // Projection values are in each loan's own currency — convert per loan to
+  // the base currency before summing, like `totalLiabilities` does via the
+  // API-provided ref values. When any rate is unavailable the total would be
+  // silently understated, so render "—" instead.
+  const baseCode = baseCurrency.value?.currencyCode;
+  if (!baseCode) return null;
+  const withProjection = props.loans.filter((loan) => loan.projection.totalInterestRemaining !== null);
+  if (!withProjection.length) return null;
+  let sum = 0;
+  for (const loan of withProjection) {
+    const converted = convert({
+      amount: loan.projection.totalInterestRemaining!,
+      from: loan.currencyCode,
+      to: baseCode,
+    });
+    if (converted === null) return null;
+    sum += converted;
+  }
+  return sum;
 });
 
 const interestProjectedDisplay = computed(() => {

@@ -28,10 +28,11 @@
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useDateLocale } from '@/composable/use-date-locale';
-import type { LoanEvent } from '@bt/shared/types';
+import type { LoanEventApi } from '@bt/shared/types';
 import {
   CheckCircleIcon,
   MessageSquareIcon,
+  PencilIcon,
   PercentIcon,
   RefreshCcwIcon,
   RotateCcwIcon,
@@ -41,7 +42,7 @@ import { parseISO } from 'date-fns';
 import { type FunctionalComponent, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps<{ events: LoanEvent[]; currencyCode: string }>();
+const props = defineProps<{ events: LoanEventApi[]; currencyCode: string }>();
 
 const { t } = useI18n();
 const { format: formatDate } = useDateLocale();
@@ -53,16 +54,20 @@ interface TimelineEntry {
   icon: FunctionalComponent;
 }
 
-const ICONS: Record<LoanEvent['type'], FunctionalComponent> = {
+const ICONS: Record<LoanEventApi['type'], FunctionalComponent> = {
   rate_change: PercentIcon,
   term_change: RotateCcwIcon,
   planned_payment_change: WalletIcon,
+  balance_correction: PencilIcon,
   note: MessageSquareIcon,
   paid_off: CheckCircleIcon,
   refinanced: RefreshCcwIcon,
 };
 
-function describe(event: LoanEvent): string {
+// `null` on term/planned-payment events means the field was cleared, not zero.
+const NO_VALUE = '—';
+
+function describe(event: LoanEventApi): string {
   switch (event.type) {
     case 'rate_change':
       return t('loans.detail.events.rateChange', {
@@ -70,11 +75,16 @@ function describe(event: LoanEvent): string {
         to: event.to.toFixed(2),
       });
     case 'term_change':
-      return t('loans.detail.events.termChange', { from: event.from, to: event.to });
+      return t('loans.detail.events.termChange', { from: event.from ?? NO_VALUE, to: event.to ?? NO_VALUE });
     case 'planned_payment_change':
       return t('loans.detail.events.plannedPaymentChange', {
-        from: formatAmountByCurrencyCode(event.fromCents / 100, props.currencyCode),
-        to: formatAmountByCurrencyCode(event.toCents / 100, props.currencyCode),
+        from: event.from === null ? NO_VALUE : formatAmountByCurrencyCode(event.from, props.currencyCode),
+        to: event.to === null ? NO_VALUE : formatAmountByCurrencyCode(event.to, props.currencyCode),
+      });
+    case 'balance_correction':
+      return t('loans.detail.events.balanceCorrection', {
+        from: formatAmountByCurrencyCode(event.from, props.currencyCode),
+        to: formatAmountByCurrencyCode(event.to, props.currencyCode),
       });
     case 'note':
       return event.text;
