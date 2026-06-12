@@ -73,7 +73,11 @@
       "confirmMerge": "Combinar",
       "noTransactions": "Aún no hay transacciones",
       "topCategoryHint": "La categoría utilizada con más frecuencia en transacciones vinculadas a este beneficiario. Se usa como alternativa cuando no hay categoría predeterminada configurada.",
-      "defaultCategoryPlaceholder": "Seleccionar una categoría"
+      "defaultCategoryPlaceholder": "Seleccionar una categoría",
+      "defaultTagsLabel": "Aplicar etiquetas automáticamente",
+      "defaultTagsPlaceholder": "Seleccionar etiquetas para aplicar automáticamente",
+      "defaultTagsHint": "Estas etiquetas se añaden automáticamente a las nuevas transacciones vinculadas a este beneficiario (sincronizaciones bancarias e importaciones).",
+      "applyTagsToExisting": "Aplicar a transacciones existentes"
     },
     "transactionsDialog": {
       "title": "{name} — transacciones",
@@ -86,7 +90,8 @@
       "merged": "Beneficiarios combinados",
       "aliasDeleted": "Alias eliminado",
       "aliasAdded": "Alias añadido",
-      "deletedAndIgnored": "Beneficiario eliminado y añadido a la lista de nombres ignorados"
+      "deletedAndIgnored": "Beneficiario eliminado y añadido a la lista de nombres ignorados",
+      "tagsAppliedToExisting": "Etiquetas aplicadas a {count} transacciones"
     },
     "errors": {
       "collision": "Ya existe un beneficiario con este nombre. Combínelos en su lugar.",

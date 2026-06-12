@@ -48,8 +48,12 @@ export const prepareTxCreationParams = ({
     transactionType: getTxTypeFromFormType(formTxType),
     paymentType: paymentType!.value,
     accountId,
-    // Include tag IDs if any tags are selected
-    ...(form.tagIds && form.tagIds.length > 0 ? { tagIds: form.tagIds } : {}),
+    // Always send the array, even empty: an explicit `tagIds` tells the
+    // backend the client already computed the final tag set (payee tags are
+    // applied client-side in this form), so it must not auto-apply the
+    // payee's default tags on top. Omitting it would re-add tags the user
+    // deliberately deselected.
+    tagIds: form.tagIds ?? [],
   };
 
   if (form.refundsTx) {

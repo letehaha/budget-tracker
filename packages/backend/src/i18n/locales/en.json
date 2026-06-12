@@ -414,6 +414,7 @@
     "nameUsedByAliasOfOtherPayee": "This name is already used as an alias of \"{{name}}\"",
     "cannotDeleteCanonicalAlias": "Can't delete the alias matching the Payee's canonical name. Rename the Payee instead if you want to change its primary name.",
     "defaultCategoryNotOwned": "The selected default category doesn't belong to your account",
+    "defaultTagsNotOwned": "One or more tags do not belong to user",
     "duplicateAlias": "This alias is already attached to this payee",
     "duplicateName": "A payee with this name already exists",
     "ignoredNameCollidesWithPayee": "An existing Payee matches this name. Delete the Payee first, or pass `force: true` to delete it as part of this operation.",

@@ -113,6 +113,26 @@
               {{ categorizationModeProxy.hint }}
             </p>
           </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-foreground text-sm font-medium">
+              {{ $t('payees.detail.defaultTagsLabel') }}
+            </label>
+            <TagSelectField v-model="defaultTagsProxy" :placeholder="$t('payees.detail.defaultTagsPlaceholder')" />
+            <p class="text-muted-foreground text-[13px] leading-snug">
+              {{ $t('payees.detail.defaultTagsHint') }}
+            </p>
+            <div v-if="canApplyTagsToExisting" class="mt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="applyTagsMut.isPending.value"
+                @click="handleApplyTagsToExisting"
+              >
+                {{ $t('payees.detail.applyTagsToExisting') }}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </Card>
@@ -272,6 +292,7 @@
 
 <script setup lang="ts">
 import {
+  useApplyPayeeTagsToExisting,
   useCreatePayeeAlias,
   useDeletePayee,
   useDeletePayeeAlias,
@@ -282,7 +303,7 @@ import {
 } from '@/composable/data-queries/payees';
 import { useBaseCurrency } from '@/composable/data-queries/currencies';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useCategoriesStore } from '@/stores';
+import { useCategoriesStore, useTagsStore } from '@/stores';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
@@ -292,6 +313,7 @@ import CategorySelectField from '@/components/fields/category-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
+import TagSelectField from '@/components/fields/tag-select-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -321,6 +343,10 @@ const payeeId = computed(() => String(route.params.id));
 const { data: payeeData, refetch } = usePayee({ id: payeeId });
 
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
+
+// TagSelectField renders pills from the tags store — make sure it's populated
+// when the user lands on this page directly.
+useTagsStore().loadTags();
 
 const categoryName = (id: string | null) => (id ? (categoriesMap.value?.[id]?.name ?? '') : '');
 
@@ -388,6 +414,50 @@ const categorizationModeProxy = computed<CategorizationModeOption>({
     }
   },
 });
+
+const defaultTagsProxy = computed<string[]>({
+  get: () => payeeData.value?.defaultTagIds ?? [],
+  set: async (value) => {
+    if (!payeeData.value) return;
+    try {
+      await updateMut.mutateAsync({
+        id: payeeData.value.id,
+        payload: { defaultTagIds: value },
+      });
+      addSuccessNotification(t('payees.toasts.updated'));
+    } catch (error) {
+      // The backend rejects with a specific message (e.g. tag not owned by
+      // the user) — surface it instead of the generic fallback. The query
+      // invalidation snaps the field back to the saved set.
+      if (error instanceof ApiErrorResponseError) {
+        addErrorNotification(error.data.message ?? t('payees.errors.generic'));
+        return;
+      }
+      captureException({ error, context: { flow: 'updatePayeeDefaultTags' } });
+      addErrorNotification(t('payees.errors.generic'));
+    }
+  },
+});
+
+const canApplyTagsToExisting = computed(
+  () => (payeeData.value?.defaultTagIds?.length ?? 0) > 0 && (payeeData.value?.stats?.transactionCount ?? 0) > 0,
+);
+
+const applyTagsMut = useApplyPayeeTagsToExisting();
+async function handleApplyTagsToExisting() {
+  if (!payeeData.value) return;
+  try {
+    const { updatedTransactionsCount } = await applyTagsMut.mutateAsync({ id: payeeData.value.id });
+    addSuccessNotification(t('payees.toasts.tagsAppliedToExisting', { count: updatedTransactionsCount }));
+  } catch (error) {
+    if (error instanceof ApiErrorResponseError) {
+      addErrorNotification(error.data.message ?? t('payees.errors.generic'));
+      return;
+    }
+    captureException({ error, context: { flow: 'applyPayeeTagsToExisting' } });
+    addErrorNotification(t('payees.errors.generic'));
+  }
+}
 
 const NET_FLOW_FALLBACK_CURRENCY = 'USD';
 const { data: baseCurrency } = useBaseCurrency();

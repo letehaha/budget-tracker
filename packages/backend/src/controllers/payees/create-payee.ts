@@ -11,6 +11,7 @@ const schema = z.object({
     name: z.string().trim().min(1, 'Name is required').max(200, 'Name must not exceed 200 characters'),
     defaultCategoryId: recordId().nullable().optional(),
     categorizationMode: z.nativeEnum(CATEGORIZATION_MODE).optional(),
+    defaultTagIds: z.array(recordId()).optional(),
   }),
 });
 
@@ -20,6 +21,7 @@ export default createController(schema, async ({ user, body }) => {
     name: body.name,
     defaultCategoryId: body.defaultCategoryId ?? null,
     categorizationMode: body.categorizationMode,
+    defaultTagIds: body.defaultTagIds,
   });
   return { data: serializePayee(payee), statusCode: 201 };
 });

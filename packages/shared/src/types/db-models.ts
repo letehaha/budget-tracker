@@ -713,6 +713,12 @@ export interface PayeeModel {
   /** Controls how strongly `defaultCategoryId` applies during create-tx —
    *  see CATEGORIZATION_MODE in enums.ts for semantics. */
   categorizationMode: CATEGORIZATION_MODE;
+  /**
+   * Tags auto-applied to transactions linked to this Payee at creation/sync
+   * time (skipped when the caller supplies an explicit tag list). Empty array
+   * means no tag rule.
+   */
+  defaultTagIds: RecordId[];
   createdAt: Date;
   updatedAt: Date;
   aliases?: PayeeAliasModel[];

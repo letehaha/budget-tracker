@@ -7,6 +7,7 @@ import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { applyPayeeCategorization } from './apply-categorization';
+import { applyPayeeDefaultTags } from './apply-default-tags';
 import { buildFuzzyIndex, buildHaystack } from './fuzzy-matcher';
 import { normalizePayeeName } from './normalize-name';
 import { ensureAliasExists } from './payee-namespace';
@@ -128,6 +129,26 @@ export const runNoteFuzzyBackfill = withTransaction(
           transactionId: tx.id,
           payeeId: match.payeeId,
         });
+
+        // Same rule as the inline path: a payee link earns the payee's
+        // default tags. Add-only merge, so tags the user attached to the row
+        // between sync and this backfill survive.
+        //
+        // Own catch so a tag failure doesn't reach the per-row catch below —
+        // the row IS linked and categorized at this point, and `linked` must
+        // count it; only the tags are best-effort.
+        try {
+          await applyPayeeDefaultTags({
+            accountOwnerUserId: userId,
+            transactionId: tx.id,
+            payeeId: match.payeeId,
+          });
+        } catch (error) {
+          logger.error({
+            message: `${LOG_PREFIX} default-tag application failed for linked row; continuing`,
+            error: error as Error,
+          });
+        }
 
         linked += 1;
         logger.info(`${LOG_PREFIX} fuzzy link via note`, {

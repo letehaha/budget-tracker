@@ -14,6 +14,7 @@ const schema = z.object({
     name: z.string().trim().min(1).max(200).optional(),
     defaultCategoryId: recordId().nullable().optional(),
     categorizationMode: z.nativeEnum(CATEGORIZATION_MODE).optional(),
+    defaultTagIds: z.array(recordId()).optional(),
   }),
 });
 
@@ -24,6 +25,7 @@ export default createController(schema, async ({ user, params, body }) => {
     name: body.name,
     defaultCategoryId: body.defaultCategoryId,
     categorizationMode: body.categorizationMode,
+    defaultTagIds: body.defaultTagIds,
   });
   return { data: serializePayee(payee) };
 });

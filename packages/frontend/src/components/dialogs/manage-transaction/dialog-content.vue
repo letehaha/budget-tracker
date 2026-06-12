@@ -54,6 +54,8 @@ import {
   useUnlinkTransactions,
 } from './composables';
 import type { TransferDestinationType } from './composables/transfer-form';
+import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
+
 import { canDeleteTransaction, prepopulateForm } from './helpers';
 import { FORM_TYPES, UI_FORM_STRUCT } from './types';
 
@@ -136,20 +138,39 @@ const form = ref<UI_FORM_STRUCT>({
   categoryUserTouched: false,
 });
 
-// PayeeField → category auto-fill (one-shot).
+// PayeeField → category auto-fill (one-shot) + tag auto-apply.
 // The form is unaware whether the category was set by the user or by Payee
 // auto-fill; mark `categoryUserTouched` whenever the user opens the picker so
 // later Payee selections respect their intent. The Payee's explicit default
 // wins; the top (most-used) category is a fallback so users who never set
 // defaults still get a useful suggestion.
+//
+// Tags use a different model — see `usePayeeTagAutoApply`. In edit mode its
+// tracker starts empty, so the row's saved tags count as manual: a payee
+// change only adds, never removes. Prepopulation sets `payeeId` without going
+// through the clear path, which is consistent with that empty tracker.
+const formTagIds = computed({
+  get: () => form.value.tagIds ?? [],
+  set: (value: string[]) => {
+    form.value.tagIds = value;
+  },
+});
+const { onPayeeSelected: applyPayeeTags } = usePayeeTagAutoApply({
+  tagIds: formTagIds,
+  payeeId: () => form.value.payeeId,
+});
 const handlePayeeSelected = ({
   defaultCategoryId,
   topCategoryId,
+  defaultTagIds,
 }: {
   payeeId: string;
   defaultCategoryId: string | null;
   topCategoryId: string | null;
+  defaultTagIds: string[];
 }) => {
+  applyPayeeTags({ defaultTagIds });
+
   if (form.value.categoryUserTouched) return;
   const targetId = defaultCategoryId ?? topCategoryId;
   if (!targetId) return;

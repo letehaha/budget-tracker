@@ -4,6 +4,7 @@ export { default as getPayee } from './get-payee';
 export { default as updatePayee } from './update-payee';
 export { default as deletePayee } from './delete-payee';
 export { default as mergePayees } from './merge-payees';
+export { default as applyTagsToExisting } from './apply-tags-to-existing';
 export { default as createPayeeAlias } from './create-payee-alias';
 export { default as deletePayeeAlias } from './delete-payee-alias';
 export { default as bulkUpdateCategorizationMode } from './bulk-update-categorization-mode';

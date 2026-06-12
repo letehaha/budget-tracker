@@ -25,6 +25,7 @@ import MerchantCategoryCodesModel from './merchant-category-codes.model';
 import NotificationsModel from './notifications.model';
 import PayeeAliasesModel from './payee-aliases.model';
 import PayeeIgnoredNamesModel from './payee-ignored-names.model';
+import PayeeTagsModel from './payee-tags.model';
 import PayeesModel from './payees.model';
 import PaymentReminderNotificationsModel from './payment-reminder-notifications.model';
 import PaymentReminderPeriodsModel from './payment-reminder-periods.model';
@@ -113,6 +114,7 @@ const models = [
   PayeesModel,
   PayeeAliasesModel,
   PayeeIgnoredNamesModel,
+  PayeeTagsModel,
   PaymentRemindersModel,
   PaymentReminderPeriodsModel,
   PaymentReminderNotificationsModel,

@@ -1,9 +1,11 @@
 import { CATEGORIZATION_MODE, RecordId } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, DataType } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, HasMany, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import Categories from './categories.model';
 import PayeeAliases from './payee-aliases.model';
+import PayeeTags from './payee-tags.model';
+import Tags from './tags.model';
 import Users from './users.model';
 
 @Table({
@@ -63,4 +65,12 @@ export default class Payees extends Model {
 
   @HasMany(() => PayeeAliases, { foreignKey: 'payeeId', as: 'aliases' })
   aliases?: PayeeAliases[];
+
+  @BelongsToMany(() => Tags, {
+    through: () => PayeeTags,
+    foreignKey: 'payeeId',
+    otherKey: 'tagId',
+    as: 'defaultTags',
+  })
+  defaultTags?: Tags[];
 }

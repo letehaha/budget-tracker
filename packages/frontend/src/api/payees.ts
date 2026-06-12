@@ -7,12 +7,14 @@ export interface CreatePayeePayload {
   name: string;
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
+  defaultTagIds?: string[];
 }
 
 export interface UpdatePayeePayload {
   name?: string;
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
+  defaultTagIds?: string[];
 }
 
 export type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount';
@@ -105,6 +107,14 @@ export const addIgnoredName = async ({
 
 export const removeIgnoredName = async ({ id }: { id: string }): Promise<void> => {
   return api.delete(`/payees/ignored-names/${id}`, {});
+};
+
+export const applyPayeeTagsToExisting = async ({
+  id,
+}: {
+  id: string;
+}): Promise<{ updatedTransactionsCount: number }> => {
+  return api.post(`/payees/${id}/apply-tags`, {});
 };
 
 export const mergePayees = async ({

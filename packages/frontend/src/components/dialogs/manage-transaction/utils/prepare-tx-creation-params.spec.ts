@@ -79,6 +79,10 @@ describe('prepareTxCreationParams', () => {
         paymentType: PAYMENT_TYPES.creditCard,
         accountId: '00000000-0000-0000-0000-000000000001' as RecordId,
         categoryId: '00000000-0000-0000-0000-000000000001' as RecordId,
+        // Always present: an explicit `tagIds` (even empty) tells the backend
+        // the client already computed the final tag set, so it skips
+        // auto-applying the payee's default tags.
+        tagIds: [],
       });
     });
 
