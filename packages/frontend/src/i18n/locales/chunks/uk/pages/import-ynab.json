@@ -17,7 +17,7 @@
         "fileUpload": {
           "stepTitle": "Перетягніть Register.csv сюди",
           "description": "YNAB → Budget → Export budget → розпакуйте → використовуйте файл Register.csv.",
-          "maxSize": "До 50 МБ.",
+          "maxSize": "До 10 МБ.",
           "parsing": "Аналіз…",
           "continueToPreview": "Продовжити",
           "errors": {

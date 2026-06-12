@@ -17,7 +17,7 @@
         "fileUpload": {
           "stepTitle": "Drop your Register.csv here",
           "description": "YNAB → Budget → Export budget → unzip → use the Register.csv file.",
-          "maxSize": "Up to 50 MB.",
+          "maxSize": "Up to 10 MB.",
           "parsing": "Parsing…",
           "continueToPreview": "Continue",
           "errors": {

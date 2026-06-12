@@ -50,7 +50,7 @@ const { t } = useI18n();
 const store = useImportYnabStore();
 const { uploadedFile } = storeToRefs(store);
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const uploadError = ref('');
 
