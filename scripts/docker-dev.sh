@@ -12,6 +12,10 @@
 #     port-derived env vars (VITE_APP_API_HTTP, ALLOWED_ORIGINS, BETTER_AUTH_URL,
 #     AUTH_ORIGIN, ENABLE_BANKING_REDIRECT_URL) are written once to
 #     .env.development.local (gitignored) so they stay stable across runs.
+#   - A linked worktree also gets a unique BETTER_AUTH_COOKIE_PREFIX. Auth cookies
+#     are keyed by host, not port, and every worktree shares `localhost`, so
+#     without distinct prefixes a login in one worktree overwrites another's
+#     session cookie. The main checkout keeps the default prefix (bt_auth).
 #
 # Custom ports: pass FRONTEND_PORT / BACKEND_PORT (and optionally DB_PORT,
 # REDIS_PORT, CURRENCY_RATES_PORT, PGADMIN_PORT) on the first run, or any run —
@@ -127,6 +131,7 @@ MAP_PGADMIN_PORT_TO_OS_PORT=${PGA}
 VITE_APP_API_HTTP=${VITE_APP_API_HTTP}
 BETTER_AUTH_URL=${BETTER_AUTH_URL}
 AUTH_ORIGIN=${AUTH_ORIGIN}
+BETTER_AUTH_COOKIE_PREFIX=bt_auth_${BE}
 ENABLE_BANKING_REDIRECT_URL=${ENABLE_BANKING_REDIRECT_URL}
 ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
 EOF

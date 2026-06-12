@@ -223,8 +223,12 @@ export const auth = betterAuth({
 
   // Advanced options
   advanced: {
-    // Cookie settings for session
-    cookiePrefix: 'bt_auth',
+    // Cookie settings for session. The prefix is overridable because cookies are
+    // keyed by host, not port: parallel git worktrees all share `localhost`, so a
+    // shared prefix means signing into one worktree overwrites another's session
+    // cookie. Each worktree sets a distinct prefix (see scripts/docker-dev.sh) so
+    // their session cookies coexist.
+    cookiePrefix: process.env.BETTER_AUTH_COOKIE_PREFIX || 'bt_auth',
     useSecureCookies: process.env.NODE_ENV === 'production',
   },
 
