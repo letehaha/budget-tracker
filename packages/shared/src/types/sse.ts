@@ -3,6 +3,7 @@
  *
  * These types are used by both backend and frontend for real-time event communication.
  */
+import type { YnabImportProgress } from './ynab-import';
 
 /**
  * SSE Event Types - event names sent via Server-Sent Events
@@ -10,6 +11,7 @@
 export const SSE_EVENT_TYPES = {
   AI_CATEGORIZATION_PROGRESS: 'ai_categorization_progress',
   SYNC_STATUS_CHANGED: 'bank_connections_sync_status_changed',
+  YNAB_IMPORT_PROGRESS: 'ynab_import_progress',
 } as const;
 
 export type SSEEventType = (typeof SSE_EVENT_TYPES)[keyof typeof SSE_EVENT_TYPES];
@@ -72,4 +74,4 @@ export interface SyncStatusChangedPayload {
 /**
  * Union type for all SSE event payloads
  */
-export type SSEEventPayload = AiCategorizationProgressPayload | SyncStatusChangedPayload;
+export type SSEEventPayload = AiCategorizationProgressPayload | SyncStatusChangedPayload | YnabImportProgress;

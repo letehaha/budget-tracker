@@ -12,6 +12,7 @@ import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
 import { categorizationQueue, categorizationWorker } from '@services/ai-categorization/categorization-queue';
 import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
 import { closeAllMonobankQueueBundles } from '@services/bank-data-providers/monobank/transaction-sync-queue';
+import { ynabImportQueue, ynabImportWorker } from '@services/import-export/ynab-import';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 
@@ -428,6 +429,8 @@ afterAll(async () => {
     await closeAllMonobankQueueBundles();
     await categorizationWorker.close();
     await categorizationQueue.close();
+    await ynabImportWorker.close();
+    await ynabImportQueue.close();
 
     // Now safe to close Redis client
     await redisClient.quit();

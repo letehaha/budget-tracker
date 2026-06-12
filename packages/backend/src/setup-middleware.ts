@@ -130,6 +130,9 @@ export function setupMiddleware(app: Express) {
         `${API_PREFIX}/import/text-source/extract`,
         // Investment import execute carries full per-holding tx arrays – easily multi-MB for large CSVs.
         `${API_PREFIX}/investments/transactions-import/execute`,
+        // YNAB register CSVs are sent inline as JSON-encoded text on both parse and execute.
+        `${API_PREFIX}/import/ynab/parse`,
+        `${API_PREFIX}/import/ynab/execute`,
       ],
     };
 

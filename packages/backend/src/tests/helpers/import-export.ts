@@ -4,12 +4,16 @@ import type {
   ColumnMappingConfig,
   DetectDuplicatesResponse,
   ExecuteImportResponse,
+  ExecuteYnabResponse,
   ExtractUniqueValuesResponse,
   ExtractedMetadata,
   ExtractedTransaction,
   ParsedTransactionRow,
+  ParseYnabResponse,
   StatementDetectDuplicatesResponse,
   StatementExecuteImportResponse,
+  YnabAccountMapping,
+  YnabImportProgress,
 } from '@bt/shared/types';
 import fs from 'fs';
 import path from 'path';
@@ -19,6 +23,13 @@ import { type UtilizeReturnType, makeRequest } from './common';
 // Path to CSV fixtures
 const FIXTURES_PATH = path.join(__dirname, '../fixtures/csv-import');
 const STATEMENT_FIXTURES_PATH = path.join(__dirname, '../fixtures');
+const YNAB_FIXTURES_PATH = path.join(__dirname, '../fixtures/ynab-import');
+
+/** Load a YNAB Register.csv fixture by filename. */
+export function loadYnabFixture(filename: string): string {
+  const filePath = path.join(YNAB_FIXTURES_PATH, filename);
+  return fs.readFileSync(filePath, 'utf-8');
+}
 
 /**
  * Load a statement fixture file by name (JSON format)
@@ -196,6 +207,71 @@ export function statementExecuteImport<R extends boolean | undefined = false>({
     method: 'post',
     url: '/import/text-source/execute',
     payload,
+    raw,
+  });
+}
+
+// ============================================
+// YNAB Import - Parse Endpoint
+// ============================================
+
+interface ParseYnabParams {
+  fileContent: string;
+}
+
+export function parseYnab<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: ParseYnabParams;
+  raw?: R;
+}): UtilizeReturnType<() => ParseYnabResponse, R> {
+  return makeRequest<ParseYnabResponse, R>({
+    method: 'post',
+    url: '/import/ynab/parse',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// YNAB Import - Execute Endpoint
+// ============================================
+
+interface ExecuteYnabParams {
+  fileContent: string;
+  accountMapping: YnabAccountMapping;
+}
+
+export function executeYnab<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: ExecuteYnabParams;
+  raw?: R;
+}): UtilizeReturnType<() => ExecuteYnabResponse, R> {
+  return makeRequest<ExecuteYnabResponse, R>({
+    method: 'post',
+    url: '/import/ynab/execute',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// YNAB Import - Status Endpoint
+// ============================================
+
+export function getYnabImportStatus<R extends boolean | undefined = false>({
+  jobId,
+  raw,
+}: {
+  jobId: string;
+  raw?: R;
+}): UtilizeReturnType<() => YnabImportProgress, R> {
+  return makeRequest<YnabImportProgress, R>({
+    method: 'get',
+    url: `/import/ynab/status/${jobId}`,
     raw,
   });
 }

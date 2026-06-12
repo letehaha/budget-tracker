@@ -318,6 +318,12 @@ const routes: RouteRecordRaw[] = [
             meta: { i18nChunks: ['pages/import-statement', 'settings/data-management'] as I18nChunkName[] },
           },
           {
+            path: 'data-management/import/ynab',
+            name: ROUTES_NAMES.importYnab,
+            component: () => import('@/pages/import-export/ynab-import/index.vue'),
+            meta: { i18nChunks: ['pages/import-ynab', 'settings/data-management'] as I18nChunkName[] },
+          },
+          {
             path: 'appearance',
             name: ROUTES_NAMES.settingsAppearance,
             component: () => import('@/pages/settings/subpages/appearance/index.vue'),
