@@ -77,7 +77,10 @@ const itemsRef = computed(() => props.transactions);
 const hasNextPageRef = toRef(() => props.hasNextPage);
 const isFetchingNextPageRef = toRef(() => props.isFetchingNextPage);
 
-const parentRef = ref<HTMLElement | null>(null);
+// The ScrollArea viewport owns both scroll axes, so it is also the
+// virtualizer's scroll element (same pattern as transactions-table.vue).
+const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
+const parentRef = computed<HTMLElement | null>(() => scrollAreaRef.value?.viewportRef?.viewportElement ?? null);
 
 const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransactionModel>({
   items: itemsRef,
@@ -111,11 +114,22 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransa
     </div>
 
     <!-- minmax(<min>, 1fr) tracks: columns collapse to their mins first;
-         horizontal scroll kicks in once even the mins don't fit. -->
-    <ScrollArea class="rounded-md border" viewport-class="overscroll-x-none" with-horizontal-scrollbar>
+         horizontal scroll kicks in once even the mins don't fit.
+         overscroll-none disables rubber-band bounce / scroll chaining past the list's edges. -->
+    <ScrollArea
+      ref="scrollAreaRef"
+      data-testid="investment-transactions-scroll-area"
+      class="rounded-md border"
+      viewport-class="max-h-[min(60vh,540px)] overscroll-none"
+      with-horizontal-scrollbar
+    >
       <!-- pb-2.5 keeps the overlay horizontal scrollbar off the last row. -->
       <div class="pb-2.5" :style="{ minWidth: gridMinWidth }">
-        <div class="bg-muted border-border text-muted-foreground border-b text-xs font-medium tracking-wider uppercase">
+        <!-- Header lives inside the scrolling viewport so it scrolls horizontally
+             with the columns; sticky keeps it pinned during vertical scroll. -->
+        <div
+          class="bg-muted border-border text-muted-foreground sticky top-0 z-10 border-b text-xs font-medium tracking-wider uppercase"
+        >
           <div class="grid items-center gap-2 px-3 py-2" :style="{ gridTemplateColumns: gridTemplate }">
             <div
               v-for="column in visibleColumns"
@@ -137,9 +151,7 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransa
           </div>
         </div>
 
-        <!-- overscroll-y only: overscroll-x-none would swallow horizontal
-             wheel events instead of chaining them to the ScrollArea viewport. -->
-        <div ref="parentRef" class="divide-border overflow-x-none relative max-h-[min(60vh,540px)] divide-y text-sm">
+        <div class="divide-border relative divide-y text-sm">
           <div :style="{ height: `${totalSize}px`, position: 'relative', width: '100%' }">
             <div
               v-for="virtualRow in virtualRows"
