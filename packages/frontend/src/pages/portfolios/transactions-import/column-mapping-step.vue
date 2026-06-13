@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { extractInvestmentTransactions } from '@/api/investment-transactions-import';
 import SelectField from '@/components/fields/select-field.vue';
+import ResponsiveSelectField from '@/components/fields/responsive-select-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { Card, CardContent } from '@/components/lib/ui/card';
@@ -506,10 +507,9 @@ const extract = useMutation({
                   <InfoIcon class="text-muted-foreground size-3.5 cursor-help" />
                 </DesktopOnlyTooltip>
               </div>
-              <SelectField
+              <ResponsiveSelectField
                 :model-value="optionFor(defaultCurrency, currencyOptions)"
                 :values="currencyOptions"
-                with-search
                 :placeholder="$t('investmentsImport.columnMapping.fields.defaultCurrency')"
                 @update:model-value="(o: CurrencyOption | null) => (defaultCurrency = o?.value ?? '')"
               />

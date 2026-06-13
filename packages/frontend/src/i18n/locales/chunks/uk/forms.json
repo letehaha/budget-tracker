@@ -255,7 +255,8 @@
     },
     "select": {
       "selectOption": "Вибрати опцію",
-      "searchPlaceholder": "Пошук..."
+      "searchPlaceholder": "Пошук...",
+      "noResults": "Результатів не знайдено"
     },
     "comboboxAccounts": {
       "allAccounts": "Всі рахунки",
@@ -272,7 +273,8 @@
     },
     "tagSelect": {
       "placeholder": "Виберіть теги...",
-      "noTagsAvailable": "Немає доступних тегів"
+      "noTagsAvailable": "Немає доступних тегів",
+      "title": "Вибір тегів"
     },
     "categoryMultiSelect": {
       "placeholder": "Виберіть категорії...",
@@ -281,6 +283,7 @@
     },
     "payeeSelect": {
       "placeholder": "Виберіть отримувача платежу",
+      "title": "Вибір отримувача",
       "searchPlaceholder": "Шукати отримувачів…",
       "empty": "Отримувачів платежу поки немає",
       "createAffordance": "Створити отримувача \"{name}\"",

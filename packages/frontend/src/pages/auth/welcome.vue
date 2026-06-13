@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import FormWrapper from '@/components/fields/form-wrapper.vue';
-import SelectField from '@/components/fields/select-field.vue';
+import SelectField from '@/components/fields/responsive-select-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { useCurrencyName } from '@/composable';
 import { useLogout } from '@/composable/actions/logout';
@@ -100,7 +100,6 @@ const submitBaseCurrency = () => {
               value-key="code"
               :placeholder="$t('auth.welcome.placeholders.loading')"
               :label="$t('auth.welcome.labels.baseCurrency')"
-              with-search
               :disabled="isFormDisabled"
               :label-key="
                 (item: CurrencyModel) => formatCurrencyLabel({ code: item.code, fallbackName: item.currency })

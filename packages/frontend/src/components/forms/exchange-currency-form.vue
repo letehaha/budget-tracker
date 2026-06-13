@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
-import SelectField from '@/components/fields/select-field.vue';
+import SelectField from '@/components/fields/responsive-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
@@ -10,7 +10,7 @@ import { usePortfolioBalances } from '@/composable/data-queries/portfolio-balanc
 import { useExchangeCurrency } from '@/composable/data-queries/portfolio-transfers';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrenciesStore } from '@/stores';
-import type { CurrencyModel, PortfolioModel, UserCurrencyModel } from '@bt/shared/types';
+import type { PortfolioModel, UserCurrencyModel } from '@bt/shared/types';
 import { format as formatDate } from 'date-fns';
 import { minValue, required } from '@vuelidate/validators';
 import { storeToRefs } from 'pinia';
@@ -201,7 +201,6 @@ const onSubmit = async () => {
       :values="fromCurrencies"
       value-key="currencyCode"
       :label-key="currencyLabel"
-      with-search
       :search-keys="['currencyCode']"
       :placeholder="$t('forms.exchangeCurrency.currencyPlaceholder')"
       :disabled="exchangeMutation.isPending.value || disabled"
@@ -240,7 +239,6 @@ const onSubmit = async () => {
       :values="toCurrencies"
       value-key="currencyCode"
       :label-key="currencyLabel"
-      with-search
       :search-keys="['currencyCode']"
       :placeholder="$t('forms.exchangeCurrency.currencyPlaceholder')"
       :disabled="exchangeMutation.isPending.value || disabled"

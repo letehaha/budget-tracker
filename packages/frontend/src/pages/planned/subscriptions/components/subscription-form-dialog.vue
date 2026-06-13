@@ -4,6 +4,7 @@ import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
+import ResponsiveSelectField from '@/components/fields/responsive-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
@@ -319,13 +320,12 @@ const handleSubmit = () => {
         only-positive
         @blur="touchField('form.expectedAmount')"
       />
-      <SelectField
+      <ResponsiveSelectField
         :model-value="selectedCurrency"
         :values="currencies"
         value-key="code"
         :label="$t('planned.subscriptions.form.currencyLabel')"
         :error-message="getFieldErrorMessage('form.expectedCurrencyCode')"
-        with-search
         :label-key="(item: CurrencyModel) => formatCurrencyLabel({ code: item.code, fallbackName: item.currency })"
         @update:model-value="(v: any) => (form.expectedCurrencyCode = v?.code ?? '')"
         @blur="touchField('form.expectedCurrencyCode')"
@@ -389,13 +389,12 @@ const handleSubmit = () => {
           </div>
 
           <!-- Account -->
-          <SelectField
+          <ResponsiveSelectField
             :model-value="selectedAccount"
             :values="accountOptions"
             label-key="label"
             value-key="value"
             :label="$t('planned.subscriptions.form.accountLabel')"
-            with-search
             @update:model-value="(v: any) => (form.accountId = v?.value === 0 ? null : (v?.value ?? null))"
           />
 

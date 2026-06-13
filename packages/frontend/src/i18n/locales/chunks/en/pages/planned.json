@@ -213,8 +213,10 @@
         "minAmount": "Min amount",
         "maxAmount": "Max amount",
         "currencyCode": "Currency code",
+        "currencyPlaceholder": "Select a currency",
         "transactionType": "Transaction type",
         "account": "Account",
+        "accountPlaceholder": "Select an account",
         "addRule": "Add Rule",
         "fieldOptions": {
           "note": "Note",

@@ -39,14 +39,13 @@
 
     <!-- Category Selection (if existing-category) -->
     <div v-if="selectedOption === CategoryOptionValue.existingCategory">
-      <SelectField
+      <ResponsiveSelectField
         :model-value="selectedCategory"
         :values="categories"
         :label="t('pages.importExport.categoryAssignment.categoryLabel')"
         label-key="name"
         value-key="id"
         :placeholder="$t('pages.importExport.categoryMapping.selectCategory')"
-        with-search
         :search-keys="['name']"
         @update:model-value="handleCategorySelect"
       />
@@ -74,6 +73,7 @@
 
 <script setup lang="ts">
 import SelectField from '@/components/fields/select-field.vue';
+import ResponsiveSelectField from '@/components/fields/responsive-select-field.vue';
 import { useCategoriesStore } from '@/stores';
 import { useImportExportStore } from '@/stores/import-export';
 import { CategoryModel, CategoryOptionValue } from '@bt/shared/types';

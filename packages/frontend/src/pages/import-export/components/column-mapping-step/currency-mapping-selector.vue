@@ -34,14 +34,13 @@
 
     <!-- Currency Selection (if existing-currency) -->
     <div v-if="selectedOption === CurrencyOptionValue.existingCurrency">
-      <SelectField
+      <ResponsiveSelectField
         :model-value="selectedCurrency"
         :values="currencies"
         :label="$t('pages.importExport.currencyMapping.currencyLabel')"
         label-key="displayName"
         value-key="code"
         :placeholder="$t('pages.importExport.currencyMapping.selectCurrency')"
-        with-search
         :search-keys="['code', 'currency']"
         @update:model-value="handleCurrencySelect"
       />
@@ -62,6 +61,7 @@
 <script setup lang="ts">
 import { getAllCurrencies } from '@/api/currencies';
 import SelectField from '@/components/fields/select-field.vue';
+import ResponsiveSelectField from '@/components/fields/responsive-select-field.vue';
 import { useImportExportStore } from '@/stores/import-export';
 import { CurrencyModel, CurrencyOptionValue } from '@bt/shared/types';
 import { computed, onMounted, ref } from 'vue';

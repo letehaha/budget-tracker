@@ -255,7 +255,8 @@
     },
     "select": {
       "selectOption": "Seleccione una opción",
-      "searchPlaceholder": "Buscar..."
+      "searchPlaceholder": "Buscar...",
+      "noResults": "No se encontraron resultados"
     },
     "comboboxAccounts": {
       "allAccounts": "Todas las cuentas",
@@ -272,7 +273,8 @@
     },
     "tagSelect": {
       "placeholder": "Seleccionar etiquetas...",
-      "noTagsAvailable": "No hay etiquetas disponibles"
+      "noTagsAvailable": "No hay etiquetas disponibles",
+      "title": "Seleccionar etiquetas"
     },
     "categoryMultiSelect": {
       "placeholder": "Seleccionar categorías...",
@@ -281,6 +283,7 @@
     },
     "payeeSelect": {
       "placeholder": "Seleccionar un beneficiario",
+      "title": "Seleccionar beneficiario",
       "searchPlaceholder": "Buscar beneficiarios…",
       "empty": "Todavía no hay beneficiarios",
       "createAffordance": "Crear beneficiario \"{name}\"",

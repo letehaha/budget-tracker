@@ -213,8 +213,10 @@
         "minAmount": "Мін. сума",
         "maxAmount": "Макс. сума",
         "currencyCode": "Код валюти",
+        "currencyPlaceholder": "Оберіть валюту",
         "transactionType": "Тип транзакції",
         "account": "Рахунок",
+        "accountPlaceholder": "Оберіть рахунок",
         "addRule": "Додати правило",
         "fieldOptions": {
           "note": "Нотатка",

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { useAccountPayees, usePayees } from '@/composable/data-queries/payees';
+import * as Drawer from '@/components/lib/ui/drawer';
 import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { Button } from '@/components/lib/ui/button';
+import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
 import { PlusIcon, SearchIcon, XIcon } from '@lucide/vue';
-import { useDebounce } from '@vueuse/core';
+import { createReusableTemplate, useDebounce } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { PayeeModel } from '@bt/shared/types';
@@ -68,6 +70,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
+const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 const isOpen = ref(false);
 const inputValue = ref('');
 const debouncedRaw = useDebounce(inputValue, DEBOUNCE_MS);
@@ -119,6 +122,11 @@ const selectedLabel = computed(() => {
 
 const placeholderResolved = computed(() => props.placeholder ?? t('fields.payeeSelect.placeholder'));
 
+const scrollAreaClass = computed(() => {
+  if (isMobile.value) return 'max-h-[60vh]';
+  return showCreateAffordance.value ? 'max-h-72' : 'max-h-64';
+});
+
 function selectPayee(payee: {
   id: string;
   defaultCategoryId: string | null;
@@ -146,105 +154,160 @@ const createDialogInitialName = ref('');
 function openCreateDialog() {
   createDialogInitialName.value = debouncedQuery.value;
   createDialogOpen.value = true;
-  // Close the popover so it doesn't stack under the dialog.
+  // Close the picker so it doesn't stack under the create dialog.
   isOpen.value = false;
 }
 
 function handlePayeeCreated(payee: PayeeModel) {
   selectPayee({ id: payee.id, defaultCategoryId: payee.defaultCategoryId, defaultTagIds: payee.defaultTagIds });
 }
+
+function handleOpenChange(open: boolean) {
+  isOpen.value = open;
+  if (!open) inputValue.value = '';
+}
+
+const [PickerContent, RenderPickerContent] = createReusableTemplate();
 </script>
 
 <template>
   <FieldLabel :label="label" only-template>
-    <Popover.Popover :open="isOpen" @update:open="(open: boolean) => (isOpen = open)">
-      <Popover.PopoverTrigger as-child>
-        <button
-          type="button"
-          :disabled="disabled"
-          :class="
-            cn(
-              'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
-              'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
-              disabled && 'cursor-not-allowed opacity-50',
-            )
-          "
-          data-test="payee-select-field"
-        >
-          <span
-            class="text-muted-foreground min-w-0 flex-1 truncate text-left"
-            :class="{ 'text-foreground': selectedLabel }"
-          >
-            {{ selectedLabel || placeholderResolved }}
-          </span>
-          <span
-            v-if="modelValue && !disabled"
-            role="button"
-            tabindex="0"
-            class="text-muted-foreground hover:text-foreground inline-flex shrink-0 cursor-pointer"
-            :aria-label="t('common.actions.clear')"
-            @click.stop="clearSelection"
-            @keydown.enter.stop="clearSelection"
-            @keydown.space.stop.prevent="clearSelection"
-          >
-            <XIcon class="size-4" />
-          </span>
-        </button>
-      </Popover.PopoverTrigger>
+    <PickerContent>
+      <div class="border-input border-b p-2">
+        <div class="relative">
+          <SearchIcon class="text-muted-foreground absolute top-1/2 left-2 size-4 -translate-y-1/2" />
+          <input
+            v-model="inputValue"
+            type="text"
+            class="border-input bg-input-background h-9 w-full rounded-md border pr-2 pl-8 text-sm focus:outline-none"
+            :placeholder="t('fields.payeeSelect.searchPlaceholder')"
+            data-test="payee-select-search"
+          />
+        </div>
+      </div>
 
-      <Popover.PopoverContent class="w-(--reka-popover-trigger-width) p-0" align="start" :side-offset="4">
-        <div class="border-input border-b p-2">
-          <div class="relative">
-            <SearchIcon class="text-muted-foreground absolute top-1/2 left-2 size-4 -translate-y-1/2" />
-            <input
-              v-model="inputValue"
-              type="text"
-              class="border-input bg-input-background h-9 w-full rounded-md border pr-2 pl-8 text-sm focus:outline-none"
-              :placeholder="t('fields.payeeSelect.searchPlaceholder')"
-              data-test="payee-select-search"
-            />
+      <ScrollArea :class="scrollAreaClass">
+        <div role="listbox">
+          <button
+            v-for="item in displayPayees"
+            :key="item.id"
+            type="button"
+            role="option"
+            :aria-selected="modelValue === item.id"
+            class="hover:bg-popover-foreground/10 flex w-full items-center gap-2 border-none p-3 text-left text-sm md:p-2"
+            :class="{ 'bg-primary/15 hover:bg-primary/20': modelValue === item.id }"
+            @click="selectPayee(item)"
+          >
+            <span class="min-w-0 grow truncate">{{ item.name }}</span>
+          </button>
+
+          <div
+            v-if="displayPayees.length === 0 && !isFetching && !showCreateAffordance"
+            class="text-muted-foreground p-4 text-center text-sm"
+          >
+            {{ $t('fields.payeeSelect.empty') }}
           </div>
         </div>
+      </ScrollArea>
 
-        <ScrollArea :class="showCreateAffordance ? 'max-h-72' : 'max-h-64'">
-          <div role="listbox">
-            <button
-              v-for="item in displayPayees"
-              :key="item.id"
-              type="button"
-              role="option"
-              :aria-selected="modelValue === item.id"
-              class="hover:bg-popover-foreground/10 flex w-full items-center gap-2 border-none p-2 text-left text-sm"
-              :class="{ 'bg-primary/15 hover:bg-primary/20': modelValue === item.id }"
-              @click="selectPayee(item)"
+      <Button
+        v-if="showCreateAffordance"
+        variant="ghost"
+        class="w-full justify-start gap-2 rounded-none border-t"
+        data-test="payee-select-create"
+        @click="openCreateDialog"
+      >
+        <PlusIcon class="size-4" />
+        {{ createLabel }}
+      </Button>
+    </PickerContent>
+
+    <template v-if="!isMobile">
+      <Popover.Popover :open="isOpen" @update:open="handleOpenChange">
+        <Popover.PopoverTrigger as-child>
+          <button
+            type="button"
+            :disabled="disabled"
+            :class="
+              cn(
+                'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
+                'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
+                disabled && 'cursor-not-allowed opacity-50',
+              )
+            "
+            data-test="payee-select-field"
+          >
+            <span
+              class="text-muted-foreground min-w-0 flex-1 truncate text-left"
+              :class="{ 'text-foreground': selectedLabel }"
             >
-              <span class="min-w-0 grow truncate">{{ item.name }}</span>
-            </button>
-
-            <div
-              v-if="displayPayees.length === 0 && !isFetching && !showCreateAffordance"
-              class="text-muted-foreground p-4 text-center text-sm"
+              {{ selectedLabel || placeholderResolved }}
+            </span>
+            <span
+              v-if="modelValue && !disabled"
+              role="button"
+              tabindex="0"
+              class="text-muted-foreground hover:text-foreground inline-flex shrink-0 cursor-pointer"
+              :aria-label="t('common.actions.clear')"
+              @click.stop="clearSelection"
+              @keydown.enter.stop="clearSelection"
+              @keydown.space.stop.prevent="clearSelection"
             >
-              {{ $t('fields.payeeSelect.empty') }}
-            </div>
-          </div>
-        </ScrollArea>
+              <XIcon class="size-4" />
+            </span>
+          </button>
+        </Popover.PopoverTrigger>
 
-        <!-- Pinned outside the ScrollArea so it stays visible while the user
-             scrolls the list. -->
+        <Popover.PopoverContent class="w-(--reka-popover-trigger-width) p-0" align="start" :side-offset="4">
+          <RenderPickerContent />
+        </Popover.PopoverContent>
+      </Popover.Popover>
+    </template>
 
-        <Button
-          v-if="showCreateAffordance"
-          variant="ghost"
-          class="w-full justify-start gap-2 rounded-none border-t"
-          data-test="payee-select-create"
-          @click="openCreateDialog"
+    <template v-else>
+      <button
+        type="button"
+        :disabled="disabled"
+        :class="
+          cn(
+            'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
+            'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
+            disabled && 'cursor-not-allowed opacity-50',
+          )
+        "
+        data-test="payee-select-field"
+        @click="handleOpenChange(true)"
+      >
+        <span
+          class="text-muted-foreground min-w-0 flex-1 truncate text-left"
+          :class="{ 'text-foreground': selectedLabel }"
         >
-          <PlusIcon class="size-4" />
-          {{ createLabel }}
-        </Button>
-      </Popover.PopoverContent>
-    </Popover.Popover>
+          {{ selectedLabel || placeholderResolved }}
+        </span>
+        <span
+          v-if="modelValue && !disabled"
+          role="button"
+          tabindex="0"
+          class="text-muted-foreground hover:text-foreground inline-flex shrink-0 cursor-pointer"
+          :aria-label="t('common.actions.clear')"
+          @click.stop="clearSelection"
+          @keydown.enter.stop="clearSelection"
+          @keydown.space.stop.prevent="clearSelection"
+        >
+          <XIcon class="size-4" />
+        </span>
+      </button>
+
+      <Drawer.Drawer :open="isOpen" @update:open="handleOpenChange">
+        <Drawer.DrawerContent class="px-0 pb-4">
+          <Drawer.DrawerHeader class="px-4 pt-2 pb-2 text-center">
+            <Drawer.DrawerTitle>{{ $t('fields.payeeSelect.title') }}</Drawer.DrawerTitle>
+          </Drawer.DrawerHeader>
+
+          <RenderPickerContent />
+        </Drawer.DrawerContent>
+      </Drawer.Drawer>
+    </template>
 
     <PayeeFormDialog
       v-model:open="createDialogOpen"

@@ -255,7 +255,8 @@
     },
     "select": {
       "selectOption": "Select an option",
-      "searchPlaceholder": "Search..."
+      "searchPlaceholder": "Search...",
+      "noResults": "No results found"
     },
     "comboboxAccounts": {
       "allAccounts": "All accounts",
@@ -272,7 +273,8 @@
     },
     "tagSelect": {
       "placeholder": "Select tags...",
-      "noTagsAvailable": "No tags available"
+      "noTagsAvailable": "No tags available",
+      "title": "Select tags"
     },
     "categoryMultiSelect": {
       "placeholder": "Select categories...",
@@ -281,6 +283,7 @@
     },
     "payeeSelect": {
       "placeholder": "Select a payee",
+      "title": "Select payee",
       "searchPlaceholder": "Search payees…",
       "empty": "No payees yet",
       "createAffordance": "Create payee \"{name}\"",

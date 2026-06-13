@@ -32,14 +32,13 @@
 
     <!-- Account Selection (if existing-account) -->
     <div v-if="selectedOption === AccountOptionValue.existingAccount">
-      <SelectField
+      <ResponsiveSelectField
         :model-value="selectedAccount"
         :values="activeAccounts"
         :label="t('pages.importExport.accountAssignment.accountLabel')"
         label-key="name"
         value-key="id"
         :placeholder="$t('pages.importExport.accountMapping.selectAccount')"
-        with-search
         :search-keys="['name']"
         @update:model-value="handleAccountSelect"
       />
@@ -59,6 +58,7 @@
 
 <script setup lang="ts">
 import SelectField from '@/components/fields/select-field.vue';
+import ResponsiveSelectField from '@/components/fields/responsive-select-field.vue';
 import { useAccountsStore } from '@/stores/accounts';
 import { useImportExportStore } from '@/stores/import-export';
 import { AccountModel, AccountOptionValue } from '@bt/shared/types';

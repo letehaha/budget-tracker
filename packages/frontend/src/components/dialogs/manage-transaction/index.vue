@@ -41,6 +41,10 @@ watch(isOpen, (open) => {
       <slot />
     </Drawer.DrawerTrigger>
     <Drawer.DrawerContent custom-indicator>
+      <Drawer.DrawerTitle class="sr-only">{{ t('dialogs.manageTransaction.title') }}</Drawer.DrawerTitle>
+      <Drawer.DrawerDescription class="sr-only">
+        {{ t('dialogs.manageTransaction.description') }}
+      </Drawer.DrawerDescription>
       <ManageTransactionDialogContent @close-modal="isOpen = false" />
     </Drawer.DrawerContent>
   </Drawer.Drawer>

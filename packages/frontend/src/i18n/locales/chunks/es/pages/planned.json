@@ -213,8 +213,10 @@
         "minAmount": "Importe mínimo",
         "maxAmount": "Importe máximo",
         "currencyCode": "Código de moneda",
+        "currencyPlaceholder": "Seleccionar moneda",
         "transactionType": "Tipo de transacción",
         "account": "Cuenta",
+        "accountPlaceholder": "Seleccionar cuenta",
         "addRule": "Añadir regla",
         "fieldOptions": {
           "note": "Nota",

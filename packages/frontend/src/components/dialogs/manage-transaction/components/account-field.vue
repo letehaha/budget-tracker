@@ -8,9 +8,7 @@
           :values="accounts"
           :label-key="getAccountLabel"
           value-key="id"
-          with-search
           :disabled="disabled || fromAccountDisabled"
-          is-value-preselected
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
@@ -45,7 +43,6 @@
           :values="filteredAccounts"
           :label-key="getAccountLabel"
           value-key="id"
-          with-search
           :disabled="disabled || toAccountDisabled"
           :model-value="toAccount"
           @update:model-value="updateToAccount"
@@ -74,7 +71,6 @@
           :values="portfolios"
           label-key="name"
           value-key="id"
-          with-search
           :disabled="disabled || toAccountDisabled || !portfolios.length"
           :model-value="toPortfolio"
           @update:model-value="updateToPortfolio"
@@ -89,9 +85,7 @@
           :values="accounts"
           :label-key="getAccountLabel"
           value-key="id"
-          with-search
           :disabled="disabled || fromAccountDisabled"
-          is-value-preselected
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
@@ -132,7 +126,7 @@
 <script setup lang="ts">
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
-import SelectField from '@/components/fields/select-field.vue';
+import SelectField from '@/components/fields/responsive-select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';

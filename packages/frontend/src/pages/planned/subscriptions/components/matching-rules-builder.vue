@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
+import ResponsiveSelectField from '@/components/fields/responsive-select-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { useCurrencyName } from '@/composable/formatters';
@@ -235,12 +236,12 @@ const updateAmountMax = ({ index, rule, v }: { index: number; rule: Subscription
             @update:model-value="(v: any) => updateAmountMax({ index, rule, v })"
           />
         </div>
-        <SelectField
+        <ResponsiveSelectField
           :model-value="getSelectedCurrency({ rule })"
           :values="currencies"
           value-key="code"
           :label="$t('planned.subscriptions.rules.currencyCode')"
-          with-search
+          :placeholder="$t('planned.subscriptions.rules.currencyPlaceholder')"
           :label-key="(item: CurrencyModel) => formatCurrencyLabel({ code: item.code, fallbackName: item.currency })"
           class="mt-3"
           @update:model-value="(v: any) => updateRuleCurrencyCode({ index, currencyCode: v?.code ?? '' })"
@@ -264,13 +265,13 @@ const updateAmountMax = ({ index, rule, v }: { index: number; rule: Subscription
       <!-- Account: select -->
       <template v-if="rule.field === 'accountId'">
         <div class="mt-3">
-          <SelectField
+          <ResponsiveSelectField
             :model-value="accountOptions.find((o) => o.value === rule.value) ?? null"
             :values="accountOptions"
             label-key="label"
             value-key="value"
             :label="$t('planned.subscriptions.rules.account')"
-            with-search
+            :placeholder="$t('planned.subscriptions.rules.accountPlaceholder')"
             @update:model-value="(v: any) => v && updateRuleValue({ index, value: v.value })"
           />
         </div>

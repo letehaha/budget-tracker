@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SelectField } from '@/components/fields';
+import SelectField from '@/components/fields/responsive-select-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -88,7 +88,6 @@ const emit = defineEmits<{
         <SelectField
           :model-value="(holding.currencyCode && currencyOptions.find((o) => o.value === holding.currencyCode)) || null"
           :values="currencyOptions"
-          with-search
           :placeholder="$t('investmentsImport.review.pickCurrency')"
           :class="[holding.currencyCode ? '' : '[&_button]:border-destructive-text']"
           @update:model-value="(opt) => (holding.currencyCode = opt?.value ?? null)"
@@ -98,7 +97,6 @@ const emit = defineEmits<{
         <SelectField
           :model-value="(holding.currencyCode && currencyOptions.find((o) => o.value === holding.currencyCode)) || null"
           :values="currencyOptions"
-          with-search
           :placeholder="$t('investmentsImport.review.pickCurrency')"
           :class="[holding.currencyCode ? '' : '[&_button]:border-destructive-text']"
           @update:model-value="(opt) => (holding.currencyCode = opt?.value ?? null)"
