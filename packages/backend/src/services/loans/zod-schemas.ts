@@ -1,6 +1,6 @@
 import { LOAN_TYPE } from '@bt/shared/types';
 import { currencyCode, dateString, decimalMoney, recordId } from '@common/lib/zod/custom-types';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { z } from 'zod';
 
 /**
@@ -69,13 +69,21 @@ export const updateLoanBodySchema = z
     // credit once the service negates it into the ledger convention.
     currentBalance: nonNegativeDecimalMoney({ field: 'currentBalance' }).optional(),
     // Date the corrected `currentBalance` is asserted as-of — becomes the loan's
-    // new balance anchor. A future date is rejected: the outstanding can only be
+    // new balance anchor. Future dates are rejected: the outstanding can only be
     // re-stated for a point in time that has already happened, otherwise
     // post-anchor payment legs would be summed against an anchor that hasn't
-    // occurred yet. Compared lexicographically against today, which is sound for
-    // YYYY-MM-DD strings.
+    // occurred yet.
+    //
+    // The ceiling is "tomorrow" in the server's clock, not "today", to absorb
+    // timezone skew. The client sends the user's local calendar date; a user
+    // ahead of a UTC backend legitimately sits on a date the server still reads
+    // as tomorrow. Any timezone is at most one calendar day ahead of UTC, so the
+    // +1 day lets every real "today" through while still rejecting genuinely
+    // future dates. The browser form enforces the exact local-today boundary for
+    // instant feedback — this is the lenient backstop. Lexicographic compare is
+    // sound for YYYY-MM-DD strings.
     currentBalanceAsOf: dateString()
-      .refine((value) => value <= format(new Date(), 'yyyy-MM-dd'), {
+      .refine((value) => value <= format(addDays(new Date(), 1), 'yyyy-MM-dd'), {
         message: 'currentBalanceAsOf must not be in the future',
       })
       .optional(),
