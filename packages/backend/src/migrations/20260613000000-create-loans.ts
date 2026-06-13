@@ -1,7 +1,7 @@
 import { DataTypes, QueryInterface } from 'sequelize';
 
 /**
- * Loans Phase 1 schema foundation.
+ * Loans schema foundation.
  *
  * 1. Migrate `Transactions.transferNature` from the Postgres ENUM
  *    `enum_transfer_nature` to VARCHAR(50). Project convention is VARCHAR +

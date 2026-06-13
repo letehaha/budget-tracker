@@ -237,7 +237,6 @@ const shouldShowGroupedTransfer = computed(() => {
   );
 });
 
-// Show loading state for two-leg transfers while fetching opposite
 const isLoadingGroupedTransfer = computed(() => {
   return isTransferTransaction.value && isTwoLegTransfer(transaction.value.transferNature) && isLoadingOpposite.value;
 });
@@ -276,9 +275,6 @@ const transferToAccount = computed(() =>
   transferDestinationLeg.value ? accountsRecord.value[transferDestinationLeg.value.accountId] : undefined,
 );
 
-// Flag the destination side of a two-leg transfer as a loan so the row renders
-// a HandCoinsIcon next to the loan-side account name — same visual cue the
-// portfolio-linked branch uses for portfolios.
 const isLoanDestination = computed(() => transferToAccount.value?.accountCategory === ACCOUNT_CATEGORIES.loan);
 
 const accountMovement = computed(() => {

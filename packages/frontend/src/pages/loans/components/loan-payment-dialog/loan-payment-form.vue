@@ -44,8 +44,6 @@ const { formattedCategories } = storeToRefs(useCategoriesStore());
 
 const isEdit = computed(() => Boolean(props.transaction));
 
-// In edit mode the source leg is the expense tx — its accountId is the user's
-// bank account. In create mode, default to the first non-loan account.
 const initialSourceAccount = computed<AccountModel | null>(() => {
   if (props.transaction) return accountsRecord.value[props.transaction.accountId] ?? null;
   return txTargetableSourceAccountsActiveFirst.value[0] ?? null;
@@ -59,7 +57,6 @@ const form = ref<{
 }>({
   account: initialSourceAccount.value,
   amount: props.transaction?.amount ?? null,
-  // Loan-side amount only matters when source and loan currencies differ.
   targetAmount: props.oppositeTransaction?.amount ?? null,
   time: props.transaction ? new Date(props.transaction.time) : new Date(),
 });
@@ -144,11 +141,7 @@ const accountErrorMessage = computed(() => getFieldErrorMessage('form.account'))
 const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
 const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
 
-// Stamp the converted value into the loan-side input. Re-firing on each
-// Amount blur is intentional: the user might tweak Amount three times before
-// submitting and would expect the loan-side hint to follow. They can still
-// hand-edit the loan-side field — that change survives until they touch
-// Amount again.
+// Re-fires on every Amount blur so the loan-side hint tracks edits; a user's edit to the loan-side field survives until Amount changes again.
 const prefillTargetAmount = () => {
   if (!isCurrenciesDifferent.value) return;
   if (form.value.amount == null) return;

@@ -59,7 +59,7 @@ export type CreateLoanBody = z.infer<typeof createLoanBodySchema>;
  *
  * `currencyCode` and `loanType` are intentionally absent: switching currency on
  * an existing account is not supported anywhere in the codebase, and loanType
- * is reference data that doesn't justify a timeline event in Phase 1.
+ * is UI-only metadata, so changing it doesn't warrant a timeline event.
  */
 export const updateLoanBodySchema = z
   .object({

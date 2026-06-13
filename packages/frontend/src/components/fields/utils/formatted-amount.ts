@@ -37,8 +37,6 @@ export const parseAmountInput = ({
   raw: string;
   decimalSeparator: string;
 }): { fragment: string; numeric: number | null } => {
-  // Canonicalize the locale decimal separator, then drop everything that isn't
-  // a digit or a decimal point (group separators, currency symbols, letters).
   const canonical = decimalSeparator === '.' ? raw : raw.split(decimalSeparator).join('.');
   const stripped = canonical.replace(/[^\d.]/g, '');
   const firstDot = stripped.indexOf('.');

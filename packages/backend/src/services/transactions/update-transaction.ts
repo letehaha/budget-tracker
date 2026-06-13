@@ -123,21 +123,10 @@ const validateTransaction = async (
     });
   }
 
-  // Loan invariants for edits that touch the destination leg. The treatment
-  // keys off the destination account's *category*, not the nature label —
-  // mirrors the create path in `createOppositeTransaction`. Covers:
-  // - amount edits on a payment (overpay re-check against the loan's balance);
-  // - re-pointing a payment to a different loan (overpay check against the
-  //   NEW loan's balance — the old leg never touched it, so nothing is backed
-  //   out);
-  // - re-pointing a payment to a non-loan account (rejected);
-  // - re-pointing a `common_transfer` pair onto a loan account (rejected: the
-  //   pair's nature is frozen, so the supported flow is unlink first, then
-  //   mark the expense as a loan payment — the re-mark goes through the create
-  //   path which stamps both legs `transfer_to_loan`);
-  // - amount edits on a legacy `common_transfer` pair whose destination
-  //   already is a loan account (overpay check still applies — the balance
-  //   mutation doesn't care about the label).
+  // Loan invariants for edits touching the destination leg — keyed off the
+  // destination account's *category*, not the nature label (mirrors
+  // createOppositeTransaction). A frozen-nature pair can't be re-pointed to a
+  // different loan; the supported flow is unlink first, then re-mark.
   const effectiveNature = newData.transferNature ?? prevData.transferNature;
   if (
     isTwoLegTransfer(prevData.transferNature) &&
@@ -546,10 +535,7 @@ const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
 };
 
 const isUpdatingTransferTx = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
-  // Two-leg transfers (`common_transfer` and `transfer_to_loan`) share the same
-  // pair-update path; the nature label only changes reporting, not bookkeeping.
-
-  // Nature omitted from the PATCH payload — keep treating the pair as a transfer
+  // nature label only affects reporting; the bookkeeping path is identical for both transfer kinds.
   const stillTransfer = payload.transferNature === undefined && isTwoLegTransfer(prevData.transferNature);
 
   // Previously was transfer, now also transfer
@@ -565,8 +551,6 @@ const isCreatingTransfer = (payload: UpdateTransactionParams, prevData: Transact
 };
 
 const isDiscardingTransfer = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
-  // PATCH semantics: an omitted `transferNature` means "keep current state",
-  // not "discard the link" — only an explicit non-transfer nature counts.
   return (
     payload.transferNature !== undefined &&
     !isTwoLegTransfer(payload.transferNature) &&

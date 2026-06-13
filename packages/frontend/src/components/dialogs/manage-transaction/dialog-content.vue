@@ -350,11 +350,7 @@ const isFormFieldsDisabled = computed(() => isLoading.value || !isInitialRefunds
 const currentTxType = computed(() => form.value.type);
 const isTransferTx = computed(() => currentTxType.value === FORM_TYPES.transfer);
 
-// "Loan" is the third pill on the transfer destination picker. It changes
-// nothing on the wire — submission goes through the same paired-transfer path
-// and the backend stamps `transfer_to_loan` because the destination is a
-// loan-category account. The pill only narrows the destination dropdown to
-// the user's loans and hides every field that doesn't apply to a loan payment.
+// The Loan pill only narrows the picker to loan accounts; the backend stamps transfer_to_loan from the destination's accountCategory.
 const isLoanDestination = computed(() => isTransferTx.value && transferDestinationType.value === 'loan');
 
 const loanDestinationAccounts = computed(() =>
@@ -425,13 +421,7 @@ watch(transferDestinationType, (type, prev) => {
     form.value.toAccount = null;
     return;
   }
-  // Always clear toPortfolio when leaving 'portfolio'; auto-pick a loan when
-  // entering 'loan' so the dropdown doesn't render empty — unless a loan is
-  // already selected (edit-mode prepopulation flips this ref AFTER stamping the
-  // tx's actual destination loan; clobbering it would silently re-point the
-  // transfer to the first loan in the list). Clear toAccount on the way out of
-  // 'loan' so a loan-only selection doesn't leak into 'account' (where the
-  // destination set is wider and the user expects a fresh pick).
+  // Auto-pick the first loan when switching to the 'loan' destination unless one is already selected (edit-mode prepopulation runs before this watch); clear toAccount on exit so a loan selection doesn't leak into the account picker.
   form.value.toPortfolio = null;
   if (type === 'loan' && prev !== 'loan') {
     if (form.value.toAccount?.accountCategory !== ACCOUNT_CATEGORIES.loan) {
@@ -617,10 +607,7 @@ const prepopulateIfReady = () => {
     formattedCategories: effectiveFormattedCategories.value,
   });
   if (data) form.value = data;
-  // Editing a tx whose paired destination is a loan account: surface it under
-  // the Loan pill so the simplified picker matches the row's character. The
-  // LoanPaymentDialog handles the canonical case (two legs resolved upfront);
-  // this is the fallback when the dispatcher couldn't resolve the opposite.
+  // Edit fallback: if the opposite leg couldn't be resolved, surface a loan-destination tx under the Loan pill so the picker matches the row.
   if (data?.toAccount?.accountCategory === ACCOUNT_CATEGORIES.loan) {
     transferDestinationType.value = 'loan';
   }

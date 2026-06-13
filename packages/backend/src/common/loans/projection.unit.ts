@@ -187,6 +187,118 @@ describe('computeLoanProjection', () => {
     });
   });
 
+  describe('non-amortizing horizon (zero APR, tiny payment)', () => {
+    it('does not amortize within a projectable horizon when a 0% loan has a near-zero payment', () => {
+      // $100,000 at 0% APR paid one cent per month would take a billion months —
+      // far beyond any horizon a Date can represent. The projection must refuse to
+      // amortize rather than overflow into a "NaN-NaN-NaN" payoff date.
+      const result = computeLoanProjection({
+        currentBalanceCents: 10_000_000, // $100,000
+        originalPrincipalCents: 10_000_000,
+        interestRate: 0,
+        plannedPaymentCents: 1, // one cent / month
+        today: TODAY,
+      });
+
+      expect(result.warning).toBe('payment_below_interest');
+      expect(result.payoffDate).toBeNull();
+      expect(result.monthsRemaining).toBeNull();
+      expect(result.totalInterestRemaining).toBeNull();
+      expect(result.isPaidOff).toBe(false);
+    });
+
+    it('never emits a NaN payoff date for a 0% loan with a near-zero payment', () => {
+      const result = computeLoanProjection({
+        currentBalanceCents: 10_000_000,
+        originalPrincipalCents: 10_000_000,
+        interestRate: 0,
+        plannedPaymentCents: 1,
+        today: TODAY,
+      });
+
+      // A non-amortizing horizon yields no payoff date at all — never the
+      // "NaN-NaN-NaN" string an unguarded Date overflow would serialize.
+      expect(result.payoffDate).not.toBe('NaN-NaN-NaN');
+      expect(result.payoffDate).toBeNull();
+    });
+
+    it('still projects a valid payoff for a normal 0% loan inside the horizon', () => {
+      // $12,000 at 0% APR, $1,000/month → exactly 12 months, well within the horizon.
+      const result = computeLoanProjection({
+        currentBalanceCents: 1_200_000, // $12,000
+        originalPrincipalCents: 1_200_000,
+        interestRate: 0,
+        plannedPaymentCents: 100_000, // $1,000 / month
+        today: TODAY,
+      });
+
+      expect(result.monthsRemaining).toBe(12);
+      expect(result.warning).toBeNull();
+      expect(result.payoffDate).not.toBeNull();
+      expect(result.payoffDate).not.toContain('NaN');
+    });
+  });
+
+  describe('zero planned payment means no plan, not an underfunded plan', () => {
+    it('treats a zero planned payment on an interest-bearing loan as no_planned_payment', () => {
+      const result = computeLoanProjection({
+        currentBalanceCents: 24_510_050,
+        originalPrincipalCents: 32_000_000,
+        interestRate: 5,
+        plannedPaymentCents: 0,
+        today: TODAY,
+      });
+
+      expect(result.warning).toBe('no_planned_payment');
+      expect(result.monthsRemaining).toBeNull();
+      expect(result.monthlyPrincipal).toBeNull();
+    });
+
+    it('treats a zero planned payment on a zero-APR loan as no_planned_payment', () => {
+      const result = computeLoanProjection({
+        currentBalanceCents: 1_200_000,
+        originalPrincipalCents: 1_200_000,
+        interestRate: 0,
+        plannedPaymentCents: 0,
+        today: TODAY,
+      });
+
+      expect(result.warning).toBe('no_planned_payment');
+      expect(result.monthsRemaining).toBeNull();
+      expect(result.monthlyPrincipal).toBeNull();
+    });
+
+    it('still flags a positive-but-underfunded payment as payment_below_interest', () => {
+      // $300,000 at 12% APR accrues $3,000/month interest; a $1,000 payment is
+      // positive yet below that accrual, so it never reaches the horizon cap.
+      const result = computeLoanProjection({
+        currentBalanceCents: 30_000_000, // $300,000
+        originalPrincipalCents: 30_000_000,
+        interestRate: 12,
+        plannedPaymentCents: 100_000, // $1,000 / month
+        today: TODAY,
+      });
+
+      expect(result.warning).toBe('payment_below_interest');
+      expect(result.monthsRemaining).toBeNull();
+      expect(result.monthlyPrincipal).toBeLessThan(0);
+    });
+
+    it('still treats a null planned payment as no_planned_payment', () => {
+      const result = computeLoanProjection({
+        currentBalanceCents: 24_510_050,
+        originalPrincipalCents: 32_000_000,
+        interestRate: 5,
+        plannedPaymentCents: null,
+        today: TODAY,
+      });
+
+      expect(result.warning).toBe('no_planned_payment');
+      expect(result.monthsRemaining).toBeNull();
+      expect(result.monthlyPrincipal).toBeNull();
+    });
+  });
+
   describe('determinism', () => {
     it('returns the same result when called repeatedly with the same input', () => {
       const input = {

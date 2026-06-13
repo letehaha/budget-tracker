@@ -389,6 +389,46 @@ export default class Transactions extends Model {
     });
   }
 
+  /**
+   * Loan-account write invariant — enforced at the same lowest funnel as the
+   * vehicle guard above.
+   *
+   * A loan is a regular `Accounts` row (accountCategory: 'loan', type: 'system')
+   * whose balance is owned by the payment flow. The ONLY write it accepts is the
+   * income leg of a `transfer_to_loan` payment, which `assertLoanPaymentAllowed`
+   * has already overpay-checked before the row reaches this hook. Any other
+   * transaction (plain income/expense, or a transfer that uses the loan account
+   * as its source) would move `Account.currentBalance` outside that guard,
+   * pushing the loan past its principal or otherwise corrupting the payoff
+   * projection.
+   *
+   * Rejecting every nature except `transfer_to_loan` here covers every path that
+   * creates or moves a transaction row: the manage-transaction UI, MCP tools,
+   * bank sync, CSV import, direct API calls and any future endpoint all funnel
+   * through this model. The legit payment passes for free — its income leg IS a
+   * `transfer_to_loan`.
+   */
+  @BeforeCreate
+  @BeforeUpdate
+  static async enforceLoanAccountInvariant(instance: Transactions) {
+    // `transfer_to_loan` is the only nature ever valid on a loan account (and it
+    // is already overpay-checked by `assertLoanPaymentAllowed`), so short-circuit
+    // before the account lookup. The lookup still runs for every other write —
+    // it's a narrow single-column PK read, and only loan-payment legs skip it.
+    if (instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) return;
+
+    const account = await Accounts.findByPk(instance.accountId, {
+      attributes: ['accountCategory'],
+    });
+    // A missing account isn't a loan (FK / other validation rejects orphan rows);
+    // only loan accounts are locked down here.
+    if (account?.accountCategory !== ACCOUNT_CATEGORIES.loan) return;
+
+    throw new ValidationError({
+      message: t({ key: 'transactions.loanAccountReadonly' }),
+    });
+  }
+
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
     const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
