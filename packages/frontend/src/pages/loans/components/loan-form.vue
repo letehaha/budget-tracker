@@ -211,6 +211,15 @@ const nonNegativeMoney = helpers.withMessage(
   (v: unknown) => v === null || v === undefined || Number(v) >= 0,
 );
 
+// The balance-correction "as of" date can't be in the future. Validated against
+// the browser's local date (format(new Date()) is local) so the feedback is
+// timezone-correct and instant; the backend re-checks with a one-day grace as a
+// skew backstop.
+const notInFuture = helpers.withMessage(
+  () => t('forms.loan.errors.asOfInFuture'),
+  (v: unknown) => typeof v !== 'string' || v <= format(new Date(), 'yyyy-MM-dd'),
+);
+
 const validationRules = {
   name: { required: helpers.withMessage(() => t('forms.loan.errors.required'), required), maxLength: maxLength(200) },
   currencyCode: { required: helpers.withMessage(() => t('forms.loan.errors.required'), required) },
@@ -218,6 +227,7 @@ const validationRules = {
     required: helpers.withMessage(() => t('forms.loan.errors.required'), required),
     nonNegative: nonNegativeMoney,
   },
+  balanceAsOf: { notInFuture },
   originalPrincipal: {
     required: helpers.withMessage(() => t('forms.loan.errors.required'), required),
     positive: positiveMoney,
@@ -357,6 +367,8 @@ const submit = () => {
       v-model="balanceAsOfDate"
       :label="$t('forms.loan.balanceAsOfLabel')"
       :placeholder="$t('forms.loan.balanceAsOfPlaceholder')"
+      :calendar-options="{ maxDate: new Date() }"
+      :error-message="getFieldErrorMessage('form.balanceAsOf')"
     />
 
     <div class="grid grid-cols-1 items-end gap-4 @sm/loan-form:grid-cols-2">

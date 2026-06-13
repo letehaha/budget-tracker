@@ -291,7 +291,8 @@
         "mustBeNonNegative": "Повинно бути 0 або більше.",
         "interestRateRange": "Процентна ставка має бути від 0 до 99.9999.",
         "termRange": "Термін має бути від 1 до 1200 місяців.",
-        "paymentDayRange": "День місяця має бути від 1 до 31."
+        "paymentDayRange": "День місяця має бути від 1 до 31.",
+        "asOfInFuture": "Дата не може бути в майбутньому"
       },
       "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
     }

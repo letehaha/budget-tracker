@@ -291,7 +291,8 @@
         "mustBeNonNegative": "Debe ser 0 o mayor.",
         "interestRateRange": "El tipo de interés debe estar entre 0 y 99,9999.",
         "termRange": "El plazo debe estar entre 1 y 1200 meses.",
-        "paymentDayRange": "El día del mes debe estar entre 1 y 31."
+        "paymentDayRange": "El día del mes debe estar entre 1 y 31.",
+        "asOfInFuture": "La fecha no puede ser futura"
       },
       "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
     }

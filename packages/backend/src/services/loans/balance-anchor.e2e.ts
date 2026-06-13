@@ -1,13 +1,16 @@
 import { TRANSACTION_TRANSFER_NATURE, type RecordId } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
-import { format, subDays } from 'date-fns';
+import { addDays, format, subDays } from 'date-fns';
 
 /** Yesterday as a yyyy-MM-dd string. */
 const YESTERDAY = format(subDays(new Date(), 1), 'yyyy-MM-dd');
 
 /** Today as a yyyy-MM-dd string, matching the anchor date set at loan creation. */
 const TODAY = format(new Date(), 'yyyy-MM-dd');
+
+/** Tomorrow as a yyyy-MM-dd string — within the server's +1 day timezone grace. */
+const TOMORROW = format(addDays(new Date(), 1), 'yyyy-MM-dd');
 
 /** ISO timestamp 30 days in the past — safely before the creation-date anchor. */
 const PAST_ISO = subDays(new Date(), 30).toISOString();
@@ -467,6 +470,39 @@ describe('Loan balance anchor', () => {
       const response = await helpers.updateLoan({
         id: loan.id,
         payload: { currentBalance: 5_000, currentBalanceAsOf: '2099-01-01' },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(422);
+    });
+
+    it('accepts an as-of date one day ahead of the server clock (timezone grace)', async () => {
+      // A user ahead of the server's timezone legitimately sits on a calendar
+      // date the server still reads as tomorrow. The +1 day grace lets that real
+      // "today" through; the browser form enforces the exact local-today bound.
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload(),
+        raw: true,
+      });
+
+      const response = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 5_000, currentBalanceAsOf: TOMORROW },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('still rejects an as-of date two days ahead, past the grace, with 422', async () => {
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload(),
+        raw: true,
+      });
+
+      const response = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 5_000, currentBalanceAsOf: format(addDays(new Date(), 2), 'yyyy-MM-dd') },
         raw: false,
       });
 
