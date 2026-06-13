@@ -182,6 +182,8 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
       ownerUserId: destOwnerUserId,
       loanAccountId: destinationAccountId,
       newLegAmount: destinationAmount,
+      // Both legs of a transfer share the date; the base tx carries it.
+      paymentDate: baseTransaction.time,
     });
   }
 

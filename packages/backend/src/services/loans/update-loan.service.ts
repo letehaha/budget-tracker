@@ -7,6 +7,8 @@ import LoanDetails from '@models/loan-details.model';
 import { updateAccount } from '@services/accounts.service';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { recomputeLoanBalance } from '@services/loans/recompute-loan-balance.service';
+import { format } from 'date-fns';
 
 import type { UpdateLoanBody } from './zod-schemas';
 
@@ -22,7 +24,7 @@ interface UpdateLoanParams extends UpdateLoanBody {
 }
 
 const updateLoanImpl = async (params: UpdateLoanParams) => {
-  const { userId, accountId, name, currentBalance, appendNote, ...detailFields } = params;
+  const { userId, accountId, name, currentBalance, currentBalanceAsOf, appendNote, ...detailFields } = params;
 
   const loan = await findOrThrowNotFound({
     query: LoanDetails.findOne({
@@ -108,11 +110,32 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
   // API takes a positive outstanding amount; loan accounts persist it as a
   // negative ledger balance so net worth aggregation includes liabilities.
   // Same-value writes are dropped so a PATCH that merely echoes the current
-  // balance doesn't append a bogus event or re-snapshot refCurrentBalance at
-  // today's FX rate.
-  let newLedgerBalance: Money | null = null;
+  // balance doesn't append a bogus event or move the anchor.
+  let anchorInitialBalance: Money | null = null;
+  let anchorRefInitialBalance: Money | null = null;
   if (currentBalance !== undefined && !currentBalance.negate().equals(loan.account.currentBalance)) {
-    newLedgerBalance = currentBalance.negate();
+    // A correction re-states the outstanding *as-of* a date, so it moves the
+    // balance anchor rather than shifting it by a diff: the new amount becomes
+    // the anchor balance (Account.initialBalance) on the asserted date, and
+    // `recomputeLoanBalance` then folds in any post-anchor payment legs.
+    //
+    // The anchor boundary is inclusive (recompute sums legs dated >= the anchor
+    // date), so a payment dated on the same day as the correction is counted on
+    // top of the corrected amount — the corrected balance is taken as the
+    // outstanding *before* that day's payments, not after. This is what keeps
+    // the "open a loan today, log today's payment, watch the balance drop" flow
+    // working. The accepted trade-off: a user who corrects to a post-payment
+    // statement balance on a day they also logged that payment sees it applied
+    // twice. Same-day correction + payment is a narrow overlap left as-is.
+    const asOfDate = currentBalanceAsOf ?? format(now, 'yyyy-MM-dd');
+    anchorInitialBalance = currentBalance.negate();
+    anchorRefInitialBalance = await calculateRefAmount({
+      userId,
+      amount: anchorInitialBalance,
+      baseCode: loan.account.currencyCode,
+      date: now,
+    });
+    detailUpdates.balanceAnchorDate = asOfDate;
     // Manual balance edits bypass the payment flow, so they leave no
     // transaction trail — the timeline event is the only record reconciling
     // the projection's paidToDate with the recorded payment history.
@@ -128,26 +151,35 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
     detailUpdates.events = [...(loan.events ?? []), ...newEvents];
   }
 
+  // Persist the sidecar (including the moved anchor date) first: the recompute
+  // below reads `balanceAnchorDate` to decide which payment legs are post-anchor.
   if (Object.keys(detailUpdates).length > 0) {
     await loan.update(detailUpdates);
   }
 
-  if (name !== undefined || newLedgerBalance !== null) {
-    // Canonical account-update path: shifts initialBalance by the balance
-    // diff (preserving `currentBalance = initialBalance + Σtransactions` for
-    // system accounts), recalculates refCurrentBalance, and propagates the
-    // change into the Balances history table — a direct `Accounts.update`
-    // would silently skip all three.
-    await updateAccount({
-      id: accountId,
-      userId,
-      ...(name !== undefined ? { name } : {}),
-      // `loanBalanceCorrection` authorises the loan-balance write that
-      // `updateAccount` otherwise rejects: this is the one path allowed to set a
-      // loan's currentBalance, having already negated it and recorded the
-      // balance_correction event above. Travels with the balance only.
-      ...(newLedgerBalance !== null ? { currentBalance: newLedgerBalance, loanBalanceCorrection: true } : {}),
-    });
+  // A name-only change still routes through the canonical account-update path;
+  // the balance write is handled separately below because a correction sets the
+  // anchor directly rather than shifting initialBalance by a diff.
+  if (name !== undefined) {
+    await updateAccount({ id: accountId, userId, name });
+  }
+
+  if (anchorInitialBalance !== null && anchorRefInitialBalance !== null) {
+    // Set the anchor balance directly — the canonical updateAccount path shifts
+    // initialBalance by the balance diff, which would defeat re-anchoring. The
+    // authoritative currentBalance/refCurrentBalance + today's Balances row are
+    // derived from this anchor by recomputeLoanBalance immediately after.
+    await Accounts.update(
+      { initialBalance: anchorInitialBalance, refInitialBalance: anchorRefInitialBalance },
+      { where: { id: accountId } },
+    );
+
+    // Recompute last: it depends on both the new anchor date (on LoanDetails)
+    // and the new initialBalance (on Accounts) already being persisted, then
+    // sums the post-anchor legs into the authoritative currentBalance and the
+    // Balances history row. Only a correction touches the anchor, so non-balance
+    // PATCHes leave the recomputed balance untouched.
+    await recomputeLoanBalance({ loanAccountId: accountId });
   }
 
   return loan.reload({ include: [{ model: Accounts, as: 'account' }] });

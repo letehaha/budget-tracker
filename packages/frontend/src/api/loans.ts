@@ -19,6 +19,8 @@ export interface LoanDetailsApi {
   interestRate: number;
   termMonths: number | null;
   startDate: string;
+  /** Date the outstanding balance is asserted as-of; payments after it adjust the balance. */
+  balanceAnchorDate: string;
   minPayment: number | null;
   refMinPayment: number | null;
   plannedPayment: number | null;
@@ -34,7 +36,7 @@ export interface LoanDetailsApi {
 
 /**
  * Flat Account fields + nested loanDetails + projection. The top-level `id` is
- * the underlying Account id — a loan IS an Account from the frontend's
+ * the underlying Account id – a loan IS an Account from the frontend's
  * perspective. Liability balances arrive negative.
  */
 export interface LoanApi {
@@ -99,7 +101,7 @@ export const createLoan = async (payload: CreateLoanPayload): Promise<LoanApi> =
 
 /**
  * Patch payload. Every field is optional; backend rejects an empty body.
- * `currencyCode` and `loanType` are intentionally absent — switching currency
+ * `currencyCode` and `loanType` are intentionally absent – switching currency
  * on an existing account isn't supported, and loanType is UI-only metadata
  * that doesn't warrant a timeline event.
  *
@@ -109,6 +111,8 @@ export const createLoan = async (payload: CreateLoanPayload): Promise<LoanApi> =
 export interface UpdateLoanPayload {
   name?: string;
   currentBalance?: number;
+  /** 'yyyy-MM-dd' date the balance correction is asserted as-of. Only sent when currentBalance is included. */
+  currentBalanceAsOf?: string;
   interestRate?: number;
   termMonths?: number | null;
   startDate?: string;

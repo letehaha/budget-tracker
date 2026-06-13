@@ -25,6 +25,7 @@ export interface LoanDetailsApiResponse {
   interestRate: number;
   termMonths: number | null;
   startDate: string;
+  balanceAnchorDate: string;
   minPayment: number | null;
   refMinPayment: number | null;
   plannedPayment: number | null;
@@ -84,6 +85,7 @@ function serializeLoanDetails(loanDetails: LoanDetails): LoanDetailsApiResponse 
     interestRate: loanDetails.interestRate,
     termMonths: loanDetails.termMonths,
     startDate: loanDetails.startDate,
+    balanceAnchorDate: loanDetails.balanceAnchorDate,
     minPayment: loanDetails.minPayment === null ? null : centsToApiDecimal(loanDetails.minPayment),
     refMinPayment: loanDetails.refMinPayment === null ? null : centsToApiDecimal(loanDetails.refMinPayment),
     plannedPayment: loanDetails.plannedPayment === null ? null : centsToApiDecimal(loanDetails.plannedPayment),

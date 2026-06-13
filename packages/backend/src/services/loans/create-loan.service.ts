@@ -1,11 +1,13 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import Accounts, { createAccount as createAccountInDb } from '@models/accounts.model';
 import LoanDetails from '@models/loan-details.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { format } from 'date-fns';
 
 import type { CreateLoanBody } from './zod-schemas';
 
@@ -78,7 +80,7 @@ const createLoanImpl = async (params: CreateLoanParams) => {
   });
 
   if (!account) {
-    throw new ValidationError({ message: 'Failed to create loan account' });
+    throw new ValidationError({ message: t({ key: 'loans.createAccountFailed' }) });
   }
 
   const created = await LoanDetails.create({
@@ -90,6 +92,9 @@ const createLoanImpl = async (params: CreateLoanParams) => {
     interestRate,
     termMonths,
     startDate,
+    // Anchor defaults to the creation date — the outstanding balance snapshot is
+    // true as-of when the loan was entered into the system.
+    balanceAnchorDate: format(now, 'yyyy-MM-dd'),
     minPayment,
     refMinPayment,
     plannedPayment,

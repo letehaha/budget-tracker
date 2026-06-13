@@ -49,7 +49,7 @@
         "autoHint": "The fee is derived automatically using the market exchange rate for the transaction date.",
         "previewRate": "≈ exchange rate {rate} will be recorded",
         "previewFee": "≈ fee of {fee} {currency} will be recorded (rate {rate})",
-        "previewUnavailable": "No market rate found for this date — enter the fee or the exchange rate manually.",
+        "previewUnavailable": "No market rate found for this date – enter the fee or the exchange rate manually.",
         "previewFetchFailed": "Couldn't load market rates. Check your connection or enter the rate manually.",
         "previewPlaceholder": "Preview appears here as you fill the form."
       }
@@ -261,6 +261,7 @@
       "termPresetYears": "{count} year | {count} years",
       "termMonthsPlaceholder": "e.g. 360 for a 30-year loan",
       "startDateLabel": "Start date",
+      "startDatePlaceholder": "DD/MM/YYYY",
       "plannedPaymentLabel": "Planned monthly payment",
       "plannedPaymentPlaceholder": "What you actually pay",
       "minPaymentLabel": "Minimum monthly payment",
@@ -272,6 +273,8 @@
       "accountNumberLabel": "Account / loan number",
       "accountNumberPlaceholder": "Optional",
       "currentBalanceLabel": "Current outstanding balance",
+      "balanceAsOfLabel": "Balance as of",
+      "balanceAsOfPlaceholder": "DD/MM/YYYY",
       "saveButton": "Save changes",
       "submitButton": "Create loan",
       "submitButtonLoading": "Creating…",
@@ -290,7 +293,7 @@
         "termRange": "Term must be between 1 and 1200 months.",
         "paymentDayRange": "Day of month must be between 1 and 31."
       },
-      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal — double-check these amounts."
+      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
     }
   },
   "fields": {

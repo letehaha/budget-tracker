@@ -28,6 +28,7 @@ import {
   TRANSACTION_TYPES,
   type TransactionModel,
 } from '@bt/shared/types';
+import { format } from 'date-fns';
 import { helpers, minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { SplitIcon } from '@lucide/vue';
@@ -48,6 +49,7 @@ import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
 import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountCategories } from '@/composable/data-queries/categories';
+import { useLoans } from '@/composable/data-queries/loans';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 
 import {
@@ -78,7 +80,7 @@ const props = withDefaults(defineProps<CreateRecordModalProps>(), {
 });
 
 // Keep `transaction` as the user-facing primary tx (set by useManageTransactionDialog
-// — for external transfers, this is always the external side). Form-data mapping
+// – for external transfers, this is always the external side). Form-data mapping
 // (which side is "from"/"to") is handled in prepopulateForm based on transactionType,
 // so we no longer swap the props.
 const transaction = computed(() => props.transaction);
@@ -150,7 +152,7 @@ const form = ref<UI_FORM_STRUCT>({
 // wins; the top (most-used) category is a fallback so users who never set
 // defaults still get a useful suggestion.
 //
-// Tags use a different model — see `usePayeeTagAutoApply`. In edit mode its
+// Tags use a different model – see `usePayeeTagAutoApply`. In edit mode its
 // tracker starts empty, so the row's saved tags count as manual: a payee
 // change only adds, never removes. Prepopulation sets `payeeId` without going
 // through the clear path, which is consistent with that empty tracker.
@@ -236,7 +238,7 @@ const isOppositeTxExternal = computed(() => {
 });
 // If record is external (and not a transfer), the account field will be disabled,
 // so we need to preselect the account. For transfer cases, prepopulateForm fills
-// form.account based on which side is the source — bypassing this preselection.
+// form.account based on which side is the source – bypassing this preselection.
 watch(
   () => isRecordExternal.value,
   (value) => {
@@ -303,7 +305,7 @@ const isCategoriesReady = computed(
 const canMutateCurrentTx = computed(() => canMutateTx(transaction.value, currentUser.value?.id));
 
 // Lazy server-side write-access check, used only when the parent account isn't in the
-// caller's local `accountsRecord` — typically when the row is visible via a budget
+// caller's local `accountsRecord` – typically when the row is visible via a budget
 // share but the account itself isn't shared with the caller. `useAccountAccess` can't
 // decide that case (it has nothing to read), and the bulk list path intentionally
 // skips `canEdit` to keep common reads cheap. Returns `null` until resolved.
@@ -322,10 +324,10 @@ watch(
       const detail = await loadTransactionById({ id: tx.id });
       // Pessimistic default: only unlock the form when the server explicitly says
       // `canEdit: true`. A null detail (caller had no read claim) or a missing field
-      // both fall through to read-only — submitting under uncertainty would 403.
+      // both fall through to read-only – submitting under uncertainty would 403.
       lazyCanEdit.value = detail?.canEdit === true;
     } catch (error) {
-      // Form degrades to read-only on failure — the visible state change tells the
+      // Form degrades to read-only on failure – the visible state change tells the
       // user the form is locked. Sentry capture surfaces transient failures (auth
       // expiry, server crash, network drop) so ops can distinguish them from a real
       // permission denial. A toast would be noisy on flaky networks.
@@ -362,7 +364,7 @@ const loanDestinationAccounts = computed(() =>
 
 // The transfer kind is frozen on a live pair (the backend rejects relabeling),
 // so switching the destination pill while editing an existing transfer could
-// only produce a guaranteed 422. Lock the pill — the supported flow is
+// only produce a guaranteed 422. Lock the pill – the supported flow is
 // unlink the transfer first, then mark the transaction again.
 const isDestinationTypeLocked = computed(() => isTwoLegTransfer(transaction.value?.transferNature));
 
@@ -438,7 +440,7 @@ const isLoanOverpayCheckActive = computed(
 );
 
 // Soft heads-up when a loan payment would overdraw the source account. Only a
-// positive-balance account driven negative is flagged — accounts already in the
+// positive-balance account driven negative is flagged – accounts already in the
 // red (credit lines) overdraw by design. Non-blocking; the app allows negatives.
 const wouldOverdrawLoanSource = computed(() => {
   if (!isLoanDestination.value) return false;
@@ -447,6 +449,25 @@ const wouldOverdrawLoanSource = computed(() => {
   const amount = Number(form.value.amount);
   if (!Number.isFinite(amount) || amount <= 0) return false;
   return account.currentBalance >= 0 && amount > account.currentBalance;
+});
+
+// Loans list is already fetched by the Loans page and cached; this call reuses
+// the TanStack Query cache so no extra network request fires when the dialog opens.
+const { data: loansData } = useLoans();
+
+// Informational hint: the transaction date is before the destination loan's
+// balance anchor date, so this payment is already baked into the loan's opening
+// snapshot and won't adjust the outstanding balance.
+const isPreAnchorLoanPayment = computed(() => {
+  if (!isLoanDestination.value) return false;
+  const toAccountId = form.value.toAccount?.id;
+  if (!toAccountId) return false;
+  const loan = loansData.value?.find((l) => l.id === toAccountId);
+  const anchorDate = loan?.loanDetails.balanceAnchorDate;
+  if (!anchorDate) return false;
+  // yyyy-MM-dd lexicographic compare is correct for ISO date strings.
+  const txDate = format(form.value.time, 'yyyy-MM-dd');
+  return txDate < anchorDate;
 });
 
 // Pre-fill the loan-currency target from the live exchange rate so a cross-
@@ -672,7 +693,7 @@ const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
 // Tx prepopulation has to wait for the right category map. For owner-side / unshared txs
 // the global Pinia map is loaded synchronously on app boot; for shared-with-caller txs
-// we route through `useAccountCategories`, which fires after mount — populate then.
+// we route through `useAccountCategories`, which fires after mount – populate then.
 const hasPrepopulated = ref(false);
 const prepopulateIfReady = () => {
   if (hasPrepopulated.value) return;
@@ -700,9 +721,9 @@ const prepopulateIfReady = () => {
 onMounted(prepopulateIfReady);
 watch(isCategoriesReady, prepopulateIfReady);
 
-// In create mode, switching between own and shared accounts swaps the category set —
+// In create mode, switching between own and shared accounts swaps the category set –
 // drop a stale selection so the user doesn't submit a categoryId that no longer exists
-// in the active list. Skip while the new list is still loading (empty) — we'd otherwise
+// in the active list. Skip while the new list is still loading (empty) – we'd otherwise
 // blank the field momentarily.
 watch(effectiveFormattedCategories, (categories) => {
   if (!isFormCreation.value) return;
@@ -747,7 +768,7 @@ onUnmounted(() => {
       />
     </FormRow>
     <!-- Refund linking on accounts shared *with* the caller isn't supported by the
-         backend yet — hide the field rather than offering a button that errors on
+         backend yet – hide the field rather than offering a button that errors on
          submit. Owner-side shares (`share.isOwner === true`) keep full access. -->
     <template v-if="!isTransferTx && !isAccountSharedWithCaller">
       <FormRow>
@@ -937,7 +958,7 @@ onUnmounted(() => {
           </template>
 
           <!-- Transfer linking on accounts shared *with* the caller isn't supported by
-               the backend yet — hide the linker for recipients rather than letting
+               the backend yet – hide the linker for recipients rather than letting
                them trigger a confusing server error. Loan payments are a single-
                purpose path (one source → one loan) and never link two pre-existing
                legs, so the section is irrelevant there. -->
@@ -965,6 +986,10 @@ onUnmounted(() => {
               }"
             />
           </form-row>
+
+          <p v-if="isPreAnchorLoanPayment" class="text-muted-foreground -mt-1 px-1 text-xs">
+            {{ $t('loans.detail.payment.preAnchorHint') }}
+          </p>
 
           <template v-if="currentTxType !== FORM_TYPES.transfer">
             <form-row>

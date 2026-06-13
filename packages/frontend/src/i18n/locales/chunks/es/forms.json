@@ -49,7 +49,7 @@
         "autoHint": "La comisión se deriva automáticamente usando el tipo de cambio de mercado para la fecha de la transacción.",
         "previewRate": "≈ se registrará el tipo de cambio {rate}",
         "previewFee": "≈ se registrará una comisión de {fee} {currency} (tipo {rate})",
-        "previewUnavailable": "No se encontró tipo de mercado para esta fecha — introduzca la comisión o el tipo de cambio manualmente.",
+        "previewUnavailable": "No se encontró tipo de mercado para esta fecha – introduzca la comisión o el tipo de cambio manualmente.",
         "previewFetchFailed": "No se pudieron cargar los tipos de mercado. Compruebe su conexión o introduzca el tipo manualmente.",
         "previewPlaceholder": "La vista previa aparecerá aquí a medida que rellene el formulario."
       }
@@ -261,6 +261,7 @@
       "termPresetYears": "{count} año | {count} años",
       "termMonthsPlaceholder": "Ej.: 360 para un préstamo a 30 años",
       "startDateLabel": "Fecha de inicio",
+      "startDatePlaceholder": "DD/MM/AAAA",
       "plannedPaymentLabel": "Cuota mensual planificada",
       "plannedPaymentPlaceholder": "Lo que realmente paga",
       "minPaymentLabel": "Cuota mensual mínima",
@@ -272,6 +273,8 @@
       "accountNumberLabel": "Número de cuenta / préstamo",
       "accountNumberPlaceholder": "Opcional",
       "currentBalanceLabel": "Saldo pendiente actual",
+      "balanceAsOfLabel": "Saldo a fecha de",
+      "balanceAsOfPlaceholder": "DD/MM/AAAA",
       "saveButton": "Guardar cambios",
       "submitButton": "Crear préstamo",
       "submitButtonLoading": "Creando…",
@@ -290,7 +293,7 @@
         "termRange": "El plazo debe estar entre 1 y 1200 meses.",
         "paymentDayRange": "El día del mes debe estar entre 1 y 31."
       },
-      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal — double-check these amounts."
+      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
     }
   },
   "fields": {

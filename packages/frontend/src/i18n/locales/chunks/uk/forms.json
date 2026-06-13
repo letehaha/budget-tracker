@@ -49,7 +49,7 @@
         "autoHint": "Комісія розраховується автоматично за ринковим курсом на дату транзакції.",
         "previewRate": "≈ буде записано обмінний курс {rate}",
         "previewFee": "≈ буде записано комісію {fee} {currency} (курс {rate})",
-        "previewUnavailable": "Ринковий курс на цю дату не знайдено — введіть комісію або обмінний курс вручну.",
+        "previewUnavailable": "Ринковий курс на цю дату не знайдено – введіть комісію або обмінний курс вручну.",
         "previewFetchFailed": "Не вдалося завантажити ринкові курси. Перевірте з'єднання або введіть курс вручну.",
         "previewPlaceholder": "Попередній перегляд з'явиться тут у міру заповнення форми."
       }
@@ -261,6 +261,7 @@
       "termPresetYears": "{count} рік | {count} роки | {count} років",
       "termMonthsPlaceholder": "напр. 360 для 30-річного кредиту",
       "startDateLabel": "Дата початку",
+      "startDatePlaceholder": "ДД.ММ.РРРР",
       "plannedPaymentLabel": "Плановий щомісячний платіж",
       "plannedPaymentPlaceholder": "Скільки ви реально платите",
       "minPaymentLabel": "Мінімальний щомісячний платіж",
@@ -272,6 +273,8 @@
       "accountNumberLabel": "Номер рахунку / кредиту",
       "accountNumberPlaceholder": "Необов'язково",
       "currentBalanceLabel": "Поточний залишок боргу",
+      "balanceAsOfLabel": "Залишок станом на",
+      "balanceAsOfPlaceholder": "ДД.ММ.РРРР",
       "saveButton": "Зберегти зміни",
       "submitButton": "Створити кредит",
       "submitButtonLoading": "Створення…",
@@ -290,7 +293,7 @@
         "termRange": "Термін має бути від 1 до 1200 місяців.",
         "paymentDayRange": "День місяця має бути від 1 до 31."
       },
-      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal — double-check these amounts."
+      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
     }
   },
   "fields": {

@@ -91,8 +91,8 @@
       "other": "Other"
     },
     "warnings": {
-      "no_planned_payment": "No planned payment set — projected payoff unavailable.",
-      "payment_below_interest": "Planned payment doesn't cover monthly interest — loan would grow."
+      "no_planned_payment": "No planned payment set – projected payoff unavailable.",
+      "payment_below_interest": "Planned payment doesn't cover monthly interest – loan would grow."
     },
     "detail": {
       "backToList": "Back to loans",
@@ -100,7 +100,7 @@
       "paidOffBadge": "Paid off",
       "summary": {
         "outstanding": "Current balance",
-        "principalOnlyTooltip": "Balance reflects principal payments only. Interest is not accrued automatically — your lender's statement is the source of truth.",
+        "principalOnlyTooltip": "Balance reflects principal payments only. Interest is not accrued automatically – your lender's statement is the source of truth.",
         "apr": "APR",
         "originalPrincipal": "Original principal",
         "term": "Term",
@@ -123,7 +123,7 @@
       },
       "events": {
         "title": "Timeline",
-        "empty": "No history yet — rate changes, balance corrections, and notes will appear here.",
+        "empty": "No history yet – rate changes, balance corrections, and notes will appear here.",
         "rateChange": "Rate changed from {from}% to {to}%",
         "termChange": "Term changed from {from} to {to} months",
         "plannedPaymentChange": "Planned payment changed from {from} to {to}",
@@ -152,13 +152,14 @@
         "amountPlaceholder": "0.00",
         "targetAmountLabel": "Amount applied to loan",
         "targetAmountPlaceholder": "0.00",
-        "targetAmountTooltip": "Source account is in {source}, loan is in {loan}. We pre-fill the converted amount using the current exchange rate — adjust if your bank applied a different rate.",
+        "targetAmountTooltip": "Source account is in {source}, loan is in {loan}. We pre-fill the converted amount using the current exchange rate – adjust if your bank applied a different rate.",
         "saveButton": "Save",
         "recordButton": "Record",
         "overdrawWarning": "This is more than {account}'s balance and will overdraw the account.",
         "overpayError": "Payment exceeds the remaining loan balance ({max}).",
         "deleteConfirmTitle": "Delete this payment?",
-        "deleteConfirmDescription": "Both sides of the transfer will be removed and the loan balance will be restored. This cannot be undone."
+        "deleteConfirmDescription": "Both sides of the transfer will be removed and the loan balance will be restored. This cannot be undone.",
+        "preAnchorHint": "This date is before the loan's balance snapshot, so this payment won't change the outstanding balance – it's already included in the opening balance."
       }
     }
   }
