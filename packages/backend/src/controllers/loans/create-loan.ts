@@ -17,5 +17,6 @@ export default createController(schema, async ({ user, body }) => {
     today: new Date(),
   });
 
-  return { data: serializeLoan({ loanDetails, projection }), statusCode: 201 };
+  // A just-created loan can't have payments yet.
+  return { data: serializeLoan({ loanDetails, projection, paymentsCount: 0 }), statusCode: 201 };
 });

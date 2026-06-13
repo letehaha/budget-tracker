@@ -70,7 +70,11 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
   const plannedPaymentCents = input.plannedPaymentCents === 0 ? null : input.plannedPaymentCents;
   const today = input.today instanceof Date ? input.today : new Date(input.today);
 
-  const paidToDateCents = originalPrincipalCents - currentBalanceCents;
+  // Outstanding above the original principal (negative amortization, or a
+  // correction that raised the balance) would make principal-paid negative.
+  // Floor it at zero so the UI reads "0 paid" instead of a nonsensical negative
+  // "paid" amount; the percent is derived from the same floored value.
+  const paidToDateCents = Math.max(0, originalPrincipalCents - currentBalanceCents);
   const paidToDate = centsToApiDecimal(paidToDateCents);
   const paidToDatePercent = computePaidToDatePercent({ paidToDateCents, originalPrincipalCents });
 

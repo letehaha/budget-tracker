@@ -110,6 +110,53 @@ describe('Loans read API', () => {
       expect(result.statusCode).toBe(404);
       expect((result.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.notFound);
     });
+
+    it('clamps paidToDate to zero when the outstanding balance exceeds the original principal', async () => {
+      // Owing more than was borrowed (negative amortization, or a correction
+      // that raised the balance) must not render as a negative "paid" amount.
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ originalPrincipal: 1_000, initialBalance: 5_000 }),
+        raw: true,
+      });
+
+      const loan = await helpers.getLoanById({ id: created.id, raw: true });
+      expect(loan.projection.paidToDate).toBe(0);
+      expect(loan.projection.paidToDatePercent).toBe(0);
+    });
+  });
+
+  describe('paymentsCount exposure', () => {
+    it('is zero for a freshly created loan, on both create and read responses', async () => {
+      const created = await helpers.createLoan({ payload: helpers.buildCreateLoanPayload(), raw: true });
+      expect(created.paymentsCount).toBe(0);
+
+      const fromGet = await helpers.getLoanById({ id: created.id, raw: true });
+      expect(fromGet.paymentsCount).toBe(0);
+    });
+
+    it('counts recorded payments on the detail and list responses', async () => {
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ initialBalance: 5_000, originalPrincipal: 5_000 }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 500 }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 500,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const fromGet = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(fromGet.paymentsCount).toBe(1);
+
+      const list = await helpers.getLoans({ raw: true });
+      expect(list.find((row) => row.id === loan.id)?.paymentsCount).toBe(1);
+    });
   });
 
   describe('POST /loans', () => {

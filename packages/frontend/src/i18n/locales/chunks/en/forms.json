@@ -289,7 +289,8 @@
         "interestRateRange": "Interest rate must be between 0 and 99.9999.",
         "termRange": "Term must be between 1 and 1200 months.",
         "paymentDayRange": "Day of month must be between 1 and 31."
-      }
+      },
+      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal — double-check these amounts."
     }
   },
   "fields": {

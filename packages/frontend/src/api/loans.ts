@@ -60,6 +60,8 @@ export interface LoanApi {
 
   loanDetails: LoanDetailsApi;
   projection: LoanProjection;
+  /** Payment legs recorded against this loan; drives the delete-blocked warning. */
+  paymentsCount: number;
 }
 
 export const getLoans = async (): Promise<LoanApi[]> => {

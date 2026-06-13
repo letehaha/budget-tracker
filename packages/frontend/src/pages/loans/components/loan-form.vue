@@ -164,6 +164,21 @@ const applyEstimatedMinPayment = () => {
   form.minPayment = Math.round(estimatedMinPayment.value * 100) / 100;
 };
 
+// Outstanding above the original principal is legitimate (negative
+// amortization, capitalized interest), so this is a soft heads-up rather than a
+// validation error. On edit the principal isn't editable, so compare against
+// the loan's stored value. Owing more than was borrowed is unusual enough to
+// flag a likely typo.
+const referencePrincipal = computed<number | null>(() =>
+  isEdit.value ? (props.initialLoan?.loanDetails.originalPrincipal ?? null) : form.originalPrincipal,
+);
+const balanceExceedsPrincipal = computed(
+  () =>
+    referencePrincipal.value !== null &&
+    form.balance !== null &&
+    Number(form.balance) > Number(referencePrincipal.value),
+);
+
 const positiveMoney = helpers.withMessage(
   () => t('forms.loan.errors.mustBePositive'),
   (v: unknown) => v !== null && v !== undefined && Number(v) > 0,
@@ -309,6 +324,9 @@ const submit = () => {
         :error-message="getFieldErrorMessage('form.balance')"
         @blur="touchField('form.balance')"
       />
+      <p v-if="balanceExceedsPrincipal" class="text-warning-text -mt-2 text-xs @sm/loan-form:col-span-2">
+        {{ $t('forms.loan.balanceExceedsPrincipalWarning') }}
+      </p>
     </div>
 
     <div class="grid grid-cols-1 items-end gap-4 @sm/loan-form:grid-cols-2">

@@ -41,6 +41,16 @@ const archiveAlsoExclude = ref(true);
 
 const isArchived = computed(() => props.loan.status === ACCOUNT_STATUSES.archived);
 
+// The backend refuses to delete a loan that still has payments or recorded
+// timeline events, in that priority order. Surface the reason in the confirm
+// dialog and disable the destructive button, instead of letting the user
+// confirm and only then meet a rejection toast.
+const deleteBlockReason = computed<'payments' | 'events' | null>(() => {
+  if (props.loan.paymentsCount > 0) return 'payments';
+  if (props.loan.loanDetails.events.length > 0) return 'events';
+  return null;
+});
+
 // Local mirror so the Switch updates immediately; a debounce/save would be
 // overkill on a single boolean toggle. Stays in sync with the persisted value
 // (e.g. when archive also flips it on via "Also exclude from statistics").
@@ -196,12 +206,20 @@ const handleDelete = async () => {
     v-model:open="isDeleteDialogOpen"
     :confirm-label="$t('loans.settings.deleteButton')"
     confirm-variant="destructive"
-    :confirm-disabled="deleteLoanMutation.isPending.value"
+    :confirm-disabled="deleteLoanMutation.isPending.value || deleteBlockReason !== null"
     @confirm="handleDelete"
   >
     <template #title>{{ $t('loans.settings.deleteConfirmTitle') }}</template>
     <template #description>
-      {{ $t('loans.settings.deleteConfirmDescription', { name: loan.name }) }}
+      <template v-if="deleteBlockReason === 'payments'">
+        {{ $t('loans.settings.deleteBlockedByPayments') }}
+      </template>
+      <template v-else-if="deleteBlockReason === 'events'">
+        {{ $t('loans.settings.deleteBlockedByEvents') }}
+      </template>
+      <template v-else>
+        {{ $t('loans.settings.deleteConfirmDescription', { name: loan.name }) }}
+      </template>
     </template>
   </ResponsiveAlertDialog>
 </template>

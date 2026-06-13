@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { VERBOSE_PAYMENT_TYPES } from '@/common/const';
+import { getMaxLoanPayment, isLoanOverpayment } from '@/common/utils/loan-payment';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -74,15 +75,26 @@ const isCurrenciesDifferent = computed(
 const { convert: convertCurrency, data: exchangeRates } = useExchangeRates();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 
-// Outstanding balance lives on Account as a negative cents value. The form
-// works in positive decimals, so flip the sign here.
-const loanCurrentOwed = computed(() => Math.abs(props.loanAccount.currentBalance));
+// Largest payment that keeps the loan at or above zero. In edit mode the
+// existing leg is credited back so re-saving the same value isn't an overpay.
+const maxLoanPaymentAllowed = computed(() =>
+  getMaxLoanPayment({
+    loanCurrentBalance: props.loanAccount.currentBalance,
+    existingLegAmount: props.oppositeTransaction?.amount ?? 0,
+  }),
+);
 
-// In edit mode the existing payment is already "applied" against the loan,
-// so editing it down to the same value mustn't fail an overpay check. Credit
-// the existing leg back before comparing against the cap.
-const previousLoanLegAmount = computed(() => props.oppositeTransaction?.amount ?? 0);
-const maxLoanPaymentAllowed = computed(() => loanCurrentOwed.value + previousLoanLegAmount.value);
+// Soft heads-up: a payment larger than the source account's balance overdraws
+// it. Only flag a positive-balance account being driven negative — accounts
+// already in the red (credit lines) overdraw by design. Non-blocking; the app
+// allows negative balances.
+const wouldOverdrawSource = computed(() => {
+  const account = form.value.account;
+  if (!account) return false;
+  const amount = Number(form.value.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return false;
+  return account.currentBalance >= 0 && amount > account.currentBalance;
+});
 
 const submitMutation = useSubmitTransaction({ onSuccess: () => emit('close-modal') });
 const deleteMutation = useDeleteTransaction({ onSuccess: () => emit('close-modal') });
@@ -105,12 +117,7 @@ const validationRules = computed(() => {
       }),
     (value: unknown) => {
       if (value == null || value === '') return true;
-      const numeric = Number(value);
-      if (!Number.isFinite(numeric)) return true;
-      // Float fuzz at the cent boundary — the backend compares cents, the FE
-      // compares decimals. 0.005 ≈ half a cent, enough slack to keep exact
-      // payments green without letting real overpays through.
-      return numeric <= maxLoanPaymentAllowed.value + 0.005;
+      return !isLoanOverpayment({ amount: Number(value), maxPayment: maxLoanPaymentAllowed.value });
     },
   );
 
@@ -284,6 +291,10 @@ const deletePayment = () => {
           </template>
         </InputField>
       </FormRow>
+
+      <p v-if="wouldOverdrawSource" class="text-warning-text -mt-1 px-1 text-xs">
+        {{ $t('loans.detail.payment.overdrawWarning', { account: form.account?.name ?? '' }) }}
+      </p>
 
       <FormRow v-if="isCurrenciesDifferent">
         <InputField

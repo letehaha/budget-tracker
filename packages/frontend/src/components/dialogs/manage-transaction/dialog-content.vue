@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
+import { getMaxLoanPayment, isLoanOverpayment } from '@/common/utils/loan-payment';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import { captureException } from '@/lib/sentry';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
@@ -12,7 +13,9 @@ import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
+import { useFormatCurrency } from '@/composable/formatters';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore, useUserStore } from '@/stores';
@@ -25,7 +28,7 @@ import {
   TRANSACTION_TYPES,
   type TransactionModel,
 } from '@bt/shared/types';
-import { minValue, required } from '@vuelidate/validators';
+import { helpers, minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
@@ -416,6 +419,51 @@ const currencyCode = computed(() => {
   return undefined;
 });
 
+const { formatAmountByCurrencyCode } = useFormatCurrency();
+const { convert: convertCurrency, data: exchangeRates } = useExchangeRates();
+
+// --- Transfer → Loan payment guards ---
+
+// Largest payment that keeps the destination loan at or above zero.
+const loanOverpayMax = computed(() =>
+  getMaxLoanPayment({ loanCurrentBalance: form.value.toAccount?.currentBalance ?? 0 }),
+);
+
+// Inline overpay guard for the create path, mirroring the dedicated payment
+// dialog so the user sees the exact remaining balance inline instead of a
+// figureless toast after submit. Edits run through the dedicated dialog and
+// defer to the backend's row-locked guard.
+const isLoanOverpayCheckActive = computed(
+  () => isLoanDestination.value && isFormCreation.value && !!form.value.toAccount,
+);
+
+// Soft heads-up when a loan payment would overdraw the source account. Only a
+// positive-balance account driven negative is flagged — accounts already in the
+// red (credit lines) overdraw by design. Non-blocking; the app allows negatives.
+const wouldOverdrawLoanSource = computed(() => {
+  if (!isLoanDestination.value) return false;
+  const account = form.value.account;
+  if (!account) return false;
+  const amount = Number(form.value.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return false;
+  return account.currentBalance >= 0 && amount > account.currentBalance;
+});
+
+// Pre-fill the loan-currency target from the live exchange rate so a cross-
+// currency loan payment defaults to the converted amount instead of an
+// accidentally mismatched one. Re-runs on each Amount blur; a hand-typed target
+// survives until Amount changes again.
+const prefillLoanTargetAmount = () => {
+  if (!isLoanDestination.value || !isCurrenciesDifferent.value) return;
+  if (form.value.amount == null) return;
+  const sourceCode = form.value.account?.currencyCode;
+  const loanCode = form.value.toAccount?.currencyCode;
+  if (!sourceCode || !loanCode) return;
+  const converted = convertCurrency({ amount: Number(form.value.amount), from: sourceCode, to: loanCode });
+  if (converted == null) return;
+  form.value.targetAmount = converted;
+};
+
 watch(transferDestinationType, (type, prev) => {
   if (type === 'portfolio') {
     form.value.toAccount = null;
@@ -511,12 +559,35 @@ const isTargetAmountRequired = computed(
 // `getFieldErrorMessage` (which uses lodash get on the original rules object)
 // resolves through `rules.value.form.amount` instead of failing on a nested
 // ComputedRef and silently dropping the error message.
-const validationRules = computed(() => ({
-  form: {
-    amount: isAmountRequired.value ? { required, minValue: minValue(0.01) } : {},
-    targetAmount: isTargetAmountRequired.value ? { required, minValue: minValue(0.01) } : {},
-  },
-}));
+const validationRules = computed(() => {
+  // Cross-currency loan payments apply the user-entered loan-side amount
+  // (targetAmount); same-currency ones apply Amount directly (no target field).
+  const loanOverpayRule = helpers.withMessage(
+    () =>
+      t('loans.detail.payment.overpayError', {
+        max: formatAmountByCurrencyCode(loanOverpayMax.value, form.value.toAccount?.currencyCode ?? ''),
+      }),
+    (value: unknown) => {
+      if (value == null || value === '') return true;
+      return !isLoanOverpayment({ amount: Number(value), maxPayment: loanOverpayMax.value });
+    },
+  );
+  const overpayOnAmount = isLoanOverpayCheckActive.value && !isCurrenciesDifferent.value;
+  const overpayOnTarget = isLoanOverpayCheckActive.value && isCurrenciesDifferent.value;
+
+  return {
+    form: {
+      amount: {
+        ...(isAmountRequired.value ? { required, minValue: minValue(0.01) } : {}),
+        ...(overpayOnAmount ? { notOverpay: loanOverpayRule } : {}),
+      },
+      targetAmount: {
+        ...(isTargetAmountRequired.value ? { required, minValue: minValue(0.01) } : {}),
+        ...(overpayOnTarget ? { notOverpay: loanOverpayRule } : {}),
+      },
+    },
+  };
+});
 
 const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
   { form },
@@ -532,6 +603,18 @@ const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
 
 const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
 const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
+
+const onAmountBlur = () => {
+  touchField('form.amount');
+  prefillLoanTargetAmount();
+};
+
+// Rates load async (placeholder data first); fill the loan target once they
+// arrive, but only while it's still empty so a manual entry isn't clobbered.
+watch(exchangeRates, () => {
+  if (form.value.targetAmount != null) return;
+  prefillLoanTargetAmount();
+});
 
 const submit = () => {
   touchField('form.amount');
@@ -737,13 +820,17 @@ onUnmounted(() => {
               :placeholder="$t('dialogs.manageTransaction.form.amountPlaceholder')"
               :error-message="amountErrorMessage"
               autofocus
-              @blur="touchField('form.amount')"
+              @blur="onAmountBlur"
             >
               <template #iconTrailing>
                 <span>{{ currencyCode }}</span>
               </template>
             </input-field>
           </form-row>
+
+          <p v-if="wouldOverdrawLoanSource" class="text-warning-text -mt-1 px-1 text-xs">
+            {{ $t('loans.detail.payment.overdrawWarning', { account: form.account?.name ?? '' }) }}
+          </p>
 
           <account-field
             v-model:account="form.account"
