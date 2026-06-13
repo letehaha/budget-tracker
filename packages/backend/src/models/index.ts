@@ -21,6 +21,7 @@ import PortfoliosModel from './investments/portfolios.model';
 import SecuritiesModel from './investments/securities.model';
 import SecurityCurrencyCacheModel from './investments/security-currency-cache.model';
 import SecurityPricingModel from './investments/security-pricing.model';
+import LoanDetailsModel from './loan-details.model';
 import MerchantCategoryCodesModel from './merchant-category-codes.model';
 import NotificationsModel from './notifications.model';
 import PayeeAliasesModel from './payee-aliases.model';
@@ -124,6 +125,7 @@ const models = [
   VentureEventsModel,
   VentureEventLinksModel,
   VehiclesModel,
+  LoanDetailsModel,
 ];
 
 const sequelize = new Sequelize({

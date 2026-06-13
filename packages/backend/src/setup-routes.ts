@@ -22,6 +22,7 @@ import csvImportExportRoutes from './routes/import-export/csv.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import ynabImportRoutes from './routes/import-export/ynab.route';
 import investmentsRoutes from './routes/investments.route';
+import loansRoutes from './routes/loans.route';
 import mcpRoutes from './routes/mcp.route';
 import notificationsRoutes from './routes/notifications.route';
 import { setupOAuthMetadataRoutes } from './routes/oauth-metadata.route';
@@ -176,6 +177,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/payees`, payeesRoutes);
   app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);
   app.use(`${API_PREFIX}/vehicles`, vehiclesRoutes);
+  app.use(`${API_PREFIX}/loans`, loansRoutes);
   app.use(`${API_PREFIX}/share`, shareRoutes);
   app.use(`${API_PREFIX}/investments`, investmentsRoutes);
   app.use(`${API_PREFIX}/venture`, ventureRoutes);

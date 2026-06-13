@@ -9,7 +9,10 @@
     "accountNoExternalId": "Account does not have external ID",
     "accountNoExternalIdMonobank": "Account does not have external ID from Monobank",
     "accountNoExternalIdEnableBanking": "Account does not have external ID from Enable Banking",
-    "accountNotFoundForTransaction": "Account not found for this transaction"
+    "accountNotFoundForTransaction": "Account not found for this transaction",
+    "deleteBlockedByLoanPayments": "This account has loan payments. Delete or reassign them before deleting the account.",
+    "loanBalanceUseUpdateLoan": "Change a loan's outstanding balance from its loan page, not from account settings.",
+    "loanCategoryImmutable": "A loan account's category can't be changed."
   },
   "balanceAdjustment": {
     "defaultNote": "Balance adjustment",
@@ -53,6 +56,11 @@
     "cannotEditPortfolioLinkedTransaction": "Cannot edit a transaction linked to a portfolio. Unlink it first.",
     "refFieldsRequiredForTransferToPortfolio": "Reference currency and reference amount must be set for portfolio-transfer transactions.",
     "vehicleAccountReadonly": "This account tracks a vehicle. Its value can only be changed from the vehicle page.",
+    "transferNatureChangeNotAllowed": "Cannot change the transfer kind of an existing transfer. Unlink the transfer first, then mark the transaction again.",
+    "transferToLoanRequiresLoanDestination": "A loan payment requires the destination to be a loan account.",
+    "transferToLoanRelinkRequired": "This transfer's destination is a loan account. Unlink the transfer first, then mark the expense as a loan payment.",
+    "loanPaymentOverpay": "Payment exceeds the remaining loan balance.",
+    "loanAccountReadonly": "Loan accounts can only be changed by recording a payment. Use the loan's page to record one.",
     "splits": {
       "splitsOnTransfer": "Cannot add splits to transfer transactions",
       "splitLimitExceeded": "Maximum {{max}} splits allowed per transaction",
@@ -140,6 +148,11 @@
     "transactionAlreadyLinkedToVenture": "Transaction is already linked to a venture deal",
     "portfolioTransferNotFound": "Portfolio transfer not found",
     "exchangeCurrenciesMustDiffer": "Exchange currencies must be different"
+  },
+  "loans": {
+    "loanNotFound": "Loan not found.",
+    "createAccountFailed": "Failed to create loan account",
+    "deleteBlockedByPayments": "This loan has recorded payments. Delete the payments before deleting the loan."
   },
   "errors": {
     "connectionNotFound": "Connection not found",

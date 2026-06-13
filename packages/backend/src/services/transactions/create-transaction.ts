@@ -1,4 +1,6 @@
 import {
+  isTwoLegTransfer,
+  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   RESOURCE_TYPES,
   SHARE_PERMISSIONS,
@@ -19,6 +21,7 @@ import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
+import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
 import { applyPayeeCategorization } from '@services/payees/apply-categorization';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { resolvePayeeForRawMerchant } from '@services/payees/extraction.service';
@@ -144,13 +147,53 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   const destOwnerUserId = destAccess.ownerUserId;
   const isCrossUser = destOwnerUserId !== baseTransaction.userId;
 
+  // The loan-payment treatment keys off the destination account's *category*,
+  // not the caller-supplied nature label: any two-leg transfer into a
+  // loan-category account mutates the loan's balance via the model hooks, so
+  // it must be stamped `transfer_to_loan` (keeps it visible to the loan's
+  // payment list and the loan/account delete guards) and pass the overpay
+  // check. A `transfer_to_loan` label on a non-loan destination is a caller
+  // bug — fail loudly so the FE mis-stamp surfaces instead of producing a
+  // transfer with a meaningless reporting label.
+  const destAccount = await Accounts.default.findOne({
+    where: { id: destinationAccountId, userId: destOwnerUserId },
+    attributes: ['accountCategory'],
+  });
+  if (!destAccount) {
+    throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+  }
+  const isLoanDestination = destAccount.accountCategory === ACCOUNT_CATEGORIES.loan;
+  if (!isLoanDestination && creationParams.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
+    throw new ValidationError({
+      message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
+    });
+  }
+  // `transfer_to_loan` and `common_transfer` share all two-leg machinery; the
+  // distinct nature gets stamped onto both legs so loan-payment reporting can
+  // filter on the label instead of joining via the destination account.
+  const oppositeTransferNature = isLoanDestination
+    ? TRANSACTION_TRANSFER_NATURE.transfer_to_loan
+    : isTwoLegTransfer(creationParams.transferNature)
+      ? creationParams.transferNature!
+      : TRANSACTION_TRANSFER_NATURE.common_transfer;
+
+  if (isLoanDestination) {
+    await assertLoanPaymentAllowed({
+      ownerUserId: destOwnerUserId,
+      loanAccountId: destinationAccountId,
+      newLegAmount: destinationAmount,
+      // Both legs of a transfer share the date; the base tx carries it.
+      paymentDate: baseTransaction.time,
+    });
+  }
+
   const transferId = uuidv4();
 
   let baseTx = await Transactions.updateTransactionById({
     id: baseTransaction.id,
     userId: baseTransaction.userId,
     transferId,
-    transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+    transferNature: oppositeTransferNature,
   });
 
   const { currency: oppositeTxCurrency } = await Accounts.getAccountCurrency({
@@ -214,7 +257,7 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     accountType: ACCOUNT_TYPES.system,
     currencyCode: oppositeTxCurrency.code,
     refCurrencyCode: destOwnerBaseCurrency.currency.code,
-    transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+    transferNature: oppositeTransferNature,
     transferId,
   });
 
@@ -272,7 +315,7 @@ export const createTransaction = withTransaction(
       });
       assertSharedWritePhase1Guards({
         isOwner,
-        involvesTransfer: transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
+        involvesTransfer: isTwoLegTransfer(transferNature),
         involvesRefund: refundsTxId !== undefined && refundsTxId !== null,
       });
 
@@ -328,7 +371,7 @@ export const createTransaction = withTransaction(
         }
         resolvedPayeeId = callerPayeeId;
       }
-      if (!callerPayeeLocked && !resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (!callerPayeeLocked && !resolvedPayeeId && !isTwoLegTransfer(transferNature)) {
         let effectiveRawMerchant: string | null | undefined = rawMerchantName;
         if (!effectiveRawMerchant && payload.note) {
           const settings = await getUserSettings({ userId: accountOwnerUserId });
@@ -392,14 +435,14 @@ export const createTransaction = withTransaction(
 
       let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [baseTransaction!];
 
-      if (refundsTxId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (refundsTxId && !isTwoLegTransfer(transferNature)) {
         await createSingleRefund({
           userId,
           originalTxId: refundsTxId,
           refundTxId: baseTransaction!.id,
           splitId: refundsSplitId,
         });
-      } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      } else if (isTwoLegTransfer(transferNature)) {
         logger.info('Transfer transaction creation');
         /**
          * If transaction is transfer between two accounts, add transferId to both
@@ -446,7 +489,7 @@ export const createTransaction = withTransaction(
       }
 
       // Handle splits for non-transfer transactions
-      if (splits && splits.length > 0 && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (splits && splits.length > 0 && !isTwoLegTransfer(transferNature)) {
         await manageSplits({
           transactionId: baseTransaction!.id,
           userId,
@@ -480,7 +523,7 @@ export const createTransaction = withTransaction(
       }
 
       // Try to match the transaction to a subscription (non-critical)
-      if (transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (!isTwoLegTransfer(transferNature)) {
         try {
           const { matchTransactionToSubscriptions } = await import('@services/subscriptions');
           await matchTransactionToSubscriptions({ transaction: baseTransaction!, userId });
@@ -506,7 +549,7 @@ export const createTransaction = withTransaction(
       // the Payee and the Transaction row, which doesn't fit a recipient
       // caller — short-circuiting here also keeps that helper's contract
       // narrow.
-      if (isOwner && resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
+      if (isOwner && resolvedPayeeId && !isTwoLegTransfer(transferNature)) {
         try {
           const updated = await applyPayeeCategorization({
             accountOwnerUserId,

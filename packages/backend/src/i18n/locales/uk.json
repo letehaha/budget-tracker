@@ -9,7 +9,10 @@
     "accountNoExternalId": "Рахунок не має зовнішнього ID",
     "accountNoExternalIdMonobank": "Рахунок не має зовнішнього ID від Monobank",
     "accountNoExternalIdEnableBanking": "Рахунок не має зовнішнього ID від Enable Banking",
-    "accountNotFoundForTransaction": "Рахунок для цієї транзакції не знайдено"
+    "accountNotFoundForTransaction": "Рахунок для цієї транзакції не знайдено",
+    "deleteBlockedByLoanPayments": "Цей рахунок має платежі по кредитам. Видаліть або переведіть їх перед видаленням рахунку.",
+    "loanBalanceUseUpdateLoan": "Змінюйте залишок за кредитом на його сторінці, а не в налаштуваннях рахунку.",
+    "loanCategoryImmutable": "Категорію кредитного рахунку не можна змінити."
   },
   "balanceAdjustment": {
     "defaultNote": "Коригування балансу",
@@ -53,6 +56,11 @@
     "cannotEditPortfolioLinkedTransaction": "Неможливо редагувати транзакцію, прив'язану до портфеля. Спочатку від'єднайте її.",
     "refFieldsRequiredForTransferToPortfolio": "Для транзакцій переказу в портфель необхідно задати валюту обліку та суму в ній.",
     "vehicleAccountReadonly": "Цей рахунок відстежує транспортний засіб. Його вартість можна змінити лише на сторінці транспортного засобу.",
+    "transferNatureChangeNotAllowed": "Не можна змінити тип переказу для існуючого переказу. Спочатку від'єднайте переказ, а потім позначте транзакцію знову.",
+    "transferToLoanRequiresLoanDestination": "Платіж за позикою вимагає, щоб рахунок призначення був рахунком позики.",
+    "transferToLoanRelinkRequired": "Призначення цього переказу – рахунок позики. Спочатку від'єднайте переказ, а потім позначте витрату як платіж за позикою.",
+    "loanPaymentOverpay": "Платіж перевищує залишок за позикою.",
+    "loanAccountReadonly": "Кредитні рахунки можна змінювати лише через запис платежу. Перейдіть на сторінку кредиту, щоб записати його.",
     "splits": {
       "splitsOnTransfer": "Не можна додавати розбиття до транзакцій-переказів",
       "splitLimitExceeded": "Максимально дозволено {{max}} розбиттів на транзакцію",
@@ -143,6 +151,11 @@
     "transactionAlreadyLinkedToVenture": "Транзакція вже прив'язана до венчурної угоди",
     "portfolioTransferNotFound": "Переказ портфеля не знайдено",
     "exchangeCurrenciesMustDiffer": "Валюти обміну мають бути різними"
+  },
+  "loans": {
+    "loanNotFound": "Кредит не знайдено.",
+    "createAccountFailed": "Не вдалося створити рахунок кредиту",
+    "deleteBlockedByPayments": "Цей кредит має записані платежі. Видаліть платежі перед видаленням кредиту."
   },
   "errors": {
     "connectionNotFound": "З'єднання не знайдено",
