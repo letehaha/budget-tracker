@@ -45,8 +45,7 @@
       "unarchiveSuccess": "Loan restored",
       "deleteSuccess": "Loan deleted",
       "deleteError": "Could not delete the loan",
-      "deleteBlockedByPayments": "This loan has recorded payments. Delete them first, then you can delete the loan.",
-      "deleteBlockedByEvents": "This loan has recorded history. Archive it instead to keep its timeline."
+      "deleteBlockedByPayments": "This loan has recorded payments. Delete them first, then you can delete the loan."
     },
     "empty": {
       "title": "No loans yet",

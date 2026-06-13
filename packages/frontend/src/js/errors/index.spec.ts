@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ApiErrorResponseError,
+  getApiErrorMessage,
   getPayeeNameConflict,
   isApiErrorWithCode,
   isNotFoundError,
@@ -167,4 +168,45 @@ describe('getPayeeNameConflict', () => {
   it.each([null, undefined, 'string', 42, {}, new Error('plain')])('returns null for non-API error %s', (value) => {
     expect(getPayeeNameConflict(value)).toBeNull();
   });
+});
+
+describe('getApiErrorMessage', () => {
+  const t = (key: string) => `t:${key}`;
+  const keys = { conflictKey: 'conflict', fallbackKey: 'fallback' };
+
+  it('returns the translated conflict key for a conflict error', () => {
+    const error = new ApiErrorResponseError('boom', { code: API_ERROR_CODES.conflict });
+    expect(getApiErrorMessage({ e: error, t, ...keys })).toBe('t:conflict');
+  });
+
+  it('returns the first Zod validation message for a validation error', () => {
+    const error = new ApiErrorResponseError('body.currentBalanceAsOf: must not be in the future', {
+      code: API_ERROR_CODES.validationError,
+      validationErrors: [
+        { path: ['body', 'currentBalanceAsOf'], message: 'currentBalanceAsOf must not be in the future' },
+        { path: ['body', 'name'], message: 'Required' },
+      ],
+    } as never);
+    expect(getApiErrorMessage({ e: error, t, ...keys })).toBe('currentBalanceAsOf must not be in the future');
+  });
+
+  it('falls back to the fallback key when a validation error carries no messages', () => {
+    const error = new ApiErrorResponseError('boom', {
+      code: API_ERROR_CODES.validationError,
+      validationErrors: [],
+    } as never);
+    expect(getApiErrorMessage({ e: error, t, ...keys })).toBe('t:fallback');
+  });
+
+  it('falls back to the fallback key for an unexpected API error', () => {
+    const error = new ApiErrorResponseError('boom', { code: API_ERROR_CODES.unexpected });
+    expect(getApiErrorMessage({ e: error, t, ...keys })).toBe('t:fallback');
+  });
+
+  it.each([null, undefined, 'string', 42, {}, new Error('plain')])(
+    'falls back to the fallback key for non-API error %s',
+    (value) => {
+      expect(getApiErrorMessage({ e: value, t, ...keys })).toBe('t:fallback');
+    },
+  );
 });

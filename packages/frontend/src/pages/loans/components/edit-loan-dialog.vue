@@ -3,6 +3,7 @@ import { type CreateLoanPayload, type LoanApi, type UpdateLoanPayload } from '@/
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useUpdateLoan } from '@/composable/data-queries/loans';
+import { ApiErrorResponseError, getApiErrorMessage } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
 import { useI18n } from 'vue-i18n';
 
@@ -21,8 +22,24 @@ const handleSubmit = async (payload: CreateLoanPayload | UpdateLoanPayload) => {
     addNotification({ text: t('forms.loan.notifications.updateSuccess'), type: NotificationType.success });
     emit('update:open', false);
   } catch (error) {
-    addNotification({ text: t('forms.loan.notifications.updateError'), type: NotificationType.error });
-    captureException({ error, context: { source: 'editLoanDialog' } });
+    // Surface the backend's validation message (e.g. an out-of-range balance
+    // correction date) instead of a blanket failure toast. Conflict/validation
+    // codes carry a user-facing message; anything else falls back to the generic
+    // copy.
+    addNotification({
+      text: getApiErrorMessage({
+        e: error,
+        t,
+        conflictKey: 'forms.loan.notifications.updateError',
+        fallbackKey: 'forms.loan.notifications.updateError',
+      }),
+      type: NotificationType.error,
+    });
+    // A rejected validation is an expected user outcome already shown above –
+    // only report genuinely unexpected failures to Sentry.
+    if (!(error instanceof ApiErrorResponseError)) {
+      captureException({ error, context: { source: 'editLoanDialog' } });
+    }
   }
 };
 </script>

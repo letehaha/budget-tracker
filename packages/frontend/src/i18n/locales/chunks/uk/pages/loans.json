@@ -45,8 +45,7 @@
       "unarchiveSuccess": "Кредит відновлено",
       "deleteSuccess": "Кредит видалено",
       "deleteError": "Не вдалося видалити кредит",
-      "deleteBlockedByPayments": "This loan has recorded payments. Delete them first, then you can delete the loan.",
-      "deleteBlockedByEvents": "This loan has recorded history. Archive it instead to keep its timeline."
+      "deleteBlockedByPayments": "This loan has recorded payments. Delete them first, then you can delete the loan."
     },
     "empty": {
       "title": "Поки немає кредитів",
