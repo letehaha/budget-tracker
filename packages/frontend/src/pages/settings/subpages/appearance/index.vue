@@ -50,39 +50,19 @@
             </ResponsiveTooltip>
           </div>
 
-          <div class="flex items-center justify-between gap-4">
+          <div
+            v-for="section in TOGGLEABLE_SIDEBAR_SECTIONS"
+            :key="section.key"
+            class="flex items-center justify-between gap-4"
+          >
             <span class="flex items-center gap-2 text-sm">
-              <TrendingUpIcon class="text-muted-foreground size-4 shrink-0" />
-              {{ $t('sidebar.accountsView.portfolios') }}
+              <component :is="section.icon" class="text-muted-foreground size-4 shrink-0" />
+              {{ $t(section.labelKey) }}
             </span>
             <Switch
-              :model-value="sidebarSections.portfolios"
+              :model-value="sidebarSections[section.key]"
               :disabled="isUpdating"
-              @update:model-value="(v) => handleSidebarToggle('portfolios', !!v)"
-            />
-          </div>
-
-          <div class="flex items-center justify-between gap-4">
-            <span class="flex items-center gap-2 text-sm">
-              <RocketIcon class="text-muted-foreground size-4 shrink-0" />
-              {{ $t('sidebar.accountsView.ventures') }}
-            </span>
-            <Switch
-              :model-value="sidebarSections.ventures"
-              :disabled="isUpdating"
-              @update:model-value="(v) => handleSidebarToggle('ventures', !!v)"
-            />
-          </div>
-
-          <div class="flex items-center justify-between gap-4">
-            <span class="flex items-center gap-2 text-sm">
-              <CarIcon class="text-muted-foreground size-4 shrink-0" />
-              {{ $t('sidebar.accountsView.cars') }}
-            </span>
-            <Switch
-              :model-value="sidebarSections.vehicles"
-              :disabled="isUpdating"
-              @update:model-value="(v) => handleSidebarToggle('vehicles', !!v)"
+              @update:model-value="(v) => toggleSection(section.key, !!v)"
             />
           </div>
         </div>
@@ -98,20 +78,11 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import { Switch } from '@/components/lib/ui/switch';
-import { useUserSettings } from '@/composable/data-queries/user-settings';
-import {
-  CarIcon,
-  InfoIcon,
-  LayersIcon,
-  MonitorIcon,
-  MoonStarIcon,
-  RocketIcon,
-  SunIcon,
-  TrendingUpIcon,
-} from '@lucide/vue';
-import { type Component, computed } from 'vue';
+import { TOGGLEABLE_SIDEBAR_SECTIONS, useSidebarSections } from '@/composable/use-sidebar-sections';
+import { InfoIcon, LayersIcon, MonitorIcon, MoonStarIcon, SunIcon } from '@lucide/vue';
+import { type Component } from 'vue';
 
-const { data: userSettings, mutateAsync, isUpdating } = useUserSettings();
+const { sidebarSections, toggleSection, isUpdating } = useSidebarSections();
 
 interface ThemeOption {
   value: ThemePreference;
@@ -124,16 +95,4 @@ const themeOptions: ThemeOption[] = [
   { value: ThemePreference.dark, labelKey: 'themeSelector.dark', icon: MoonStarIcon },
   { value: ThemePreference.system, labelKey: 'themeSelector.system', icon: MonitorIcon },
 ];
-
-const sidebarSections = computed(() => ({
-  portfolios: userSettings.value?.sidebarSections?.portfolios ?? true,
-  ventures: userSettings.value?.sidebarSections?.ventures ?? true,
-  vehicles: userSettings.value?.sidebarSections?.vehicles ?? true,
-}));
-
-const handleSidebarToggle = (key: 'portfolios' | 'ventures' | 'vehicles', value: boolean) =>
-  mutateAsync({
-    ...userSettings.value,
-    sidebarSections: { ...sidebarSections.value, [key]: value },
-  });
 </script>

@@ -23,6 +23,14 @@
     "venture": "Venture"
   },
   "sidebar": {
+    "settings": {
+      "title": "Settings",
+      "sections": {
+        "label": "Sidebar sections",
+        "description": "Pick which sections appear in the sidebar.",
+        "alwaysVisibleTooltip": "This section is always visible."
+      }
+    },
     "accountsView": {
       "title": "Accounts",
       "bankAccounts": "Bank Accounts",
