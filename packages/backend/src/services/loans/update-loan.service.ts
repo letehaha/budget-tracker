@@ -142,7 +142,11 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
       id: accountId,
       userId,
       ...(name !== undefined ? { name } : {}),
-      ...(newLedgerBalance !== null ? { currentBalance: newLedgerBalance } : {}),
+      // `loanBalanceCorrection` authorises the loan-balance write that
+      // `updateAccount` otherwise rejects: this is the one path allowed to set a
+      // loan's currentBalance, having already negated it and recorded the
+      // balance_correction event above. Travels with the balance only.
+      ...(newLedgerBalance !== null ? { currentBalance: newLedgerBalance, loanBalanceCorrection: true } : {}),
     });
   }
 

@@ -67,7 +67,6 @@ describe('Loans read API', () => {
       const row = list[0];
       if (!row) throw new Error('Expected one loan in the list');
 
-      // Top-level id is the underlying Account id — a loan IS an Account.
       expect(row.id).toBe(account.id);
       expect(row.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
       expect(row.currentBalance).toBe(-200_000);
@@ -109,8 +108,6 @@ describe('Loans read API', () => {
     it('responds 404 when no loan exists for the given Account id', async () => {
       const result = await helpers.getLoanById({ id: generateRandomRecordId(), raw: false });
       expect(result.statusCode).toBe(404);
-      // On error responses the success-typed body is replaced by an error envelope;
-      // cast through unknown to read the `code` discriminator.
       expect((result.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.notFound);
     });
   });
@@ -136,7 +133,6 @@ describe('Loans read API', () => {
       expect(loan.projection.isPaidOff).toBe(false);
       expect(loan.projection.monthsRemaining).toBeGreaterThan(0);
 
-      // Verify it actually persisted: a follow-up GET returns the same row.
       const fromGet = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(fromGet.loanDetails.lenderName).toBe('Chase');
     });
@@ -151,7 +147,6 @@ describe('Loans read API', () => {
       expect(loan.projection.warning).toBe('no_planned_payment');
       expect(loan.projection.payoffDate).toBeNull();
       expect(loan.projection.monthsRemaining).toBeNull();
-      // Interest still accrues and must be reported even without a payment plan.
       expect(loan.projection.monthlyInterest).toBeGreaterThan(0);
     });
 
@@ -255,7 +250,6 @@ describe('Loans read API', () => {
       expect(updated.loanDetails.plannedPayment).toBe(1500);
       const event = updated.loanDetails.events.at(-1);
       expect(event?.type).toBe('planned_payment_change');
-      // The API serializes event money as decimals (cents live only at rest).
       if (event?.type === 'planned_payment_change') {
         expect(event.from).toBe(1_200);
         expect(event.to).toBe(1_500);
@@ -311,7 +305,6 @@ describe('Loans read API', () => {
         raw: true,
       });
 
-      // API takes positive outstanding; ledger stores the negative liability.
       expect(updated.currentBalance).toBe(-150_000);
       const event = updated.loanDetails.events.at(-1);
       expect(event?.type).toBe('balance_correction');
@@ -319,7 +312,6 @@ describe('Loans read API', () => {
         expect(event.from).toBe(200_000);
         expect(event.to).toBe(150_000);
       }
-      // Projection picks the corrected balance up immediately.
       expect(updated.projection.paidToDate).toBe(50_000);
     });
 
@@ -410,7 +402,7 @@ describe('Loans read API', () => {
     it('ignores attempts to change currencyCode on a loan with payments', async () => {
       // Currency change on an Account with denominated transactions would
       // re-interpret every prior amount under the new currency and corrupt
-      // history. The Phase 1 invariant: loan currency is fixed at creation.
+      // history, so loan currency is fixed at creation.
       // updateLoanBodySchema and the PATCH /accounts/:id schema both omit
       // currencyCode, so unknown-key stripping silently drops it. This
       // regression pins that behaviour — if the field is ever added, this
@@ -438,6 +430,83 @@ describe('Loans read API', () => {
 
       expect(result.currencyCode).toBe('USD');
       expect(result.name).toBe('Renamed loan');
+    });
+  });
+
+  describe('generic PATCH /accounts/:id is restricted on loan accounts', () => {
+    // A loan IS an Account (accountCategory='loan', type='system') carrying a
+    // negative-cents liability balance plus a LoanDetails sidecar. The generic
+    // account-update endpoint must not be a back door around the dedicated loan
+    // path: it may not push the balance (which has its own balance_correction
+    // flow on PATCH /loans/:id) nor change accountCategory (which would orphan
+    // the LoanDetails sidecar). This mirrors the existing vehicle carve-out.
+
+    it('F2a: rejects a currentBalance change on a loan account through the generic endpoint and leaves the balance untouched', async () => {
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      // Positive value also stands in for the "loan pushed into credit" case the
+      // dedicated path forbids (it clamps to a non-negative outstanding balance).
+      const result = await helpers.updateAccount({
+        id: loan.id,
+        payload: { currentBalance: 5_000 },
+        raw: false,
+      });
+
+      expect(result.statusCode).toBe(422);
+      expect((result.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.validationError);
+
+      // Reload through the loan endpoint: the write must have been blocked, so the
+      // ledger still holds the original negative liability balance.
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.currentBalance).toBe(-200_000);
+    });
+
+    it('F2b: rejects an accountCategory change on a loan account through the generic endpoint and keeps it a loan', async () => {
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const result = await helpers.updateAccount({
+        id: loan.id,
+        payload: { accountCategory: ACCOUNT_CATEGORIES.general },
+        raw: false,
+      });
+
+      expect(result.statusCode).toBe(422);
+      expect((result.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.validationError);
+
+      // Reload: the account is still categorised as a loan, so its LoanDetails
+      // sidecar is not orphaned.
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
+    });
+
+    it('regression: the dedicated PATCH /loans/:id still edits the outstanding balance and records a balance_correction event', async () => {
+      // Co-located with the guard tests above: the upcoming generic-endpoint
+      // carve-out must NOT break the legitimate loan-balance edit path, which
+      // negates to the liability convention and appends a balance_correction.
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { currentBalance: 150_000 },
+        raw: true,
+      });
+
+      expect(updated.currentBalance).toBe(-150_000);
+      const event = updated.loanDetails.events.at(-1);
+      expect(event?.type).toBe('balance_correction');
+      if (event?.type === 'balance_correction') {
+        expect(event.from).toBe(200_000);
+        expect(event.to).toBe(150_000);
+      }
     });
   });
 

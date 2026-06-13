@@ -169,9 +169,6 @@ describe('Delete Account', () => {
 
   describe('Account deletion with loan payments', () => {
     it('rejects deleting a source account that has paid into a loan', async () => {
-      // Source-account delete would cascade away the loan-payment expense
-      // legs and silently restore the loan's balance back to its disbursement
-      // value. Block it; users must clear the payments first.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           initialBalance: 1_000,
@@ -200,7 +197,6 @@ describe('Delete Account', () => {
       expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
       expect(errorBody.message).toMatch(/loan/i);
 
-      // Account stays put.
       const accountsAfter = await helpers.getAccounts();
       expect(accountsAfter.some((acc) => acc.id === sourceAccount.id)).toBe(true);
     });

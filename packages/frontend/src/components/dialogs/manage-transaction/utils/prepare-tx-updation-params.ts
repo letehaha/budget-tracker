@@ -175,12 +175,7 @@ export const prepareTxUpdationParams = ({
           toAmount: Number(form.targetAmount),
           isCurrenciesDifferent,
         });
-        // The transfer kind is frozen on a live pair (the backend rejects
-        // relabeling — unlink first, then re-mark), so keep the existing nature
-        // when the tx is already a two-leg transfer. Only a standalone tx being
-        // promoted into a transfer derives its kind from the destination:
-        // loan-category account → `transfer_to_loan` (mirrors
-        // `prepare-tx-creation-params.ts`), anything else → `common_transfer`.
+        // Nature is frozen on a live pair (the backend rejects relabeling); derive from the destination only when promoting a standalone tx to a transfer.
         if (isTwoLegTransfer(transaction.transferNature)) {
           editionParams.transferNature = transaction.transferNature;
         } else {

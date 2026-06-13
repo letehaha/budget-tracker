@@ -98,8 +98,8 @@ export const createLoan = async (payload: CreateLoanPayload): Promise<LoanApi> =
 /**
  * Patch payload. Every field is optional; backend rejects an empty body.
  * `currencyCode` and `loanType` are intentionally absent — switching currency
- * on an existing account isn't supported, and loanType isn't a timeline-
- * worthy change for Phase 1.
+ * on an existing account isn't supported, and loanType is UI-only metadata
+ * that doesn't warrant a timeline event.
  *
  * `currentBalance` is the outstanding amount as a positive decimal; the
  * service flips the sign before writing to Accounts.currentBalance.

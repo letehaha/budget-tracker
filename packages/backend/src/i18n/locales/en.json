@@ -10,7 +10,9 @@
     "accountNoExternalIdMonobank": "Account does not have external ID from Monobank",
     "accountNoExternalIdEnableBanking": "Account does not have external ID from Enable Banking",
     "accountNotFoundForTransaction": "Account not found for this transaction",
-    "deleteBlockedByLoanPayments": "This account has loan payments. Delete or reassign them before deleting the account."
+    "deleteBlockedByLoanPayments": "This account has loan payments. Delete or reassign them before deleting the account.",
+    "loanBalanceUseUpdateLoan": "Change a loan's outstanding balance from its loan page, not from account settings.",
+    "loanCategoryImmutable": "A loan account's category can't be changed."
   },
   "balanceAdjustment": {
     "defaultNote": "Balance adjustment",
@@ -58,6 +60,7 @@
     "transferToLoanRequiresLoanDestination": "A loan payment requires the destination to be a loan account.",
     "transferToLoanRelinkRequired": "This transfer's destination is a loan account. Unlink the transfer first, then mark the expense as a loan payment.",
     "loanPaymentOverpay": "Payment exceeds the remaining loan balance.",
+    "loanAccountReadonly": "Loan accounts can only be changed by recording a payment. Use the loan's page to record one.",
     "splits": {
       "splitsOnTransfer": "Cannot add splits to transfer transactions",
       "splitLimitExceeded": "Maximum {{max}} splits allowed per transaction",
@@ -149,7 +152,7 @@
   "loans": {
     "loanNotFound": "Loan not found.",
     "deleteBlockedByPayments": "This loan has recorded payments. Delete the payments before deleting the loan.",
-    "deleteBlockedByEvents": "This loan has timeline events. Clear them before deleting the loan."
+    "deleteBlockedByEvents": "This loan has recorded history. Archive it instead of deleting to keep its timeline."
   },
   "errors": {
     "connectionNotFound": "Connection not found",

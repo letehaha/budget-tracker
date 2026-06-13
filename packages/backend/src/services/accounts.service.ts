@@ -226,9 +226,18 @@ export const updateAccount = withTransaction(
   async ({
     id,
     externalId,
+    loanBalanceCorrection,
     ...payload
   }: Accounts.UpdateAccountByIdPayload &
-    (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>)) => {
+    (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>) & {
+      /**
+       * Internal opt-in that authorises a loan's `currentBalance` write. Set only
+       * by `updateLoan`'s balance_correction path; destructured out here so it is
+       * never forwarded to `Accounts.updateAccountById` (it is not a column). The
+       * HTTP controller forwards a fixed field allowlist, so a client cannot set it.
+       */
+      loanBalanceCorrection?: boolean;
+    }) => {
     const accountData = await findOrThrowNotFound({
       query: Accounts.getAccountById({ id, userId: payload.userId }),
       message: t({ key: 'accounts.accountNotFound' }),
@@ -244,6 +253,31 @@ export const updateAccount = withTransaction(
       throw new ValidationError({
         message: t({ key: 'balanceAdjustment.vehicleUseOverride' }),
       });
+    }
+
+    // A loan's outstanding balance is reconciled by the dedicated loan flow,
+    // which negates to the negative-cents liability convention and appends a
+    // `balance_correction` timeline event (the only record of a manual edit,
+    // since it leaves no transaction trail). A raw `currentBalance` write here
+    // would skip both, desyncing the projection's paidToDate from the recorded
+    // history. Only `updateLoan` may opt in via `loanBalanceCorrection`; every
+    // other caller — including the generic PATCH /accounts/:id endpoint — must
+    // go through `PATCH /loans/:id`. Enforced in the service so non-HTTP callers
+    // (MCP tools, internal services) can't bypass it either.
+    if (accountData.accountCategory === ACCOUNT_CATEGORIES.loan) {
+      if (payload.currentBalance !== undefined && !loanBalanceCorrection) {
+        throw new ValidationError({
+          message: t({ key: 'accounts.loanBalanceUseUpdateLoan' }),
+        });
+      }
+      // Flipping a loan out of the 'loan' category would orphan its LoanDetails
+      // sidecar (and the events/projection it carries), so the category is
+      // immutable here — loans are created/destroyed via the /loans endpoints.
+      if (payload.accountCategory !== undefined && payload.accountCategory !== ACCOUNT_CATEGORIES.loan) {
+        throw new ValidationError({
+          message: t({ key: 'accounts.loanCategoryImmutable' }),
+        });
+      }
     }
 
     // Handle archive side effects when transitioning to archived status

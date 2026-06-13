@@ -2,9 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { format } from 'date-fns';
 
-// `buildCreateLoanPayload` hardcodes USD; aligning to the test user's base
-// currency keeps refAmount conversions out of the assertions so the math
-// stays in one currency.
+// Default loan currency is USD; the test user's base currency must match so refAmount assertions stay in one unit.
 const loanPayload = (overrides: Record<string, unknown> = {}) =>
   helpers.buildCreateLoanPayload({ currencyCode: global.BASE_CURRENCY.code, ...overrides });
 
