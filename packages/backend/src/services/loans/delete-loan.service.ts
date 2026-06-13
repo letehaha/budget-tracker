@@ -13,11 +13,19 @@ interface DeleteLoanParams {
 }
 
 const deleteLoanImpl = async ({ userId, accountId }: DeleteLoanParams) => {
-  const loanDetails = await findOrThrowNotFound({
-    query: LoanDetails.findOne({ where: { accountId, userId }, attributes: ['id', 'events'] }),
+  // Existence + ownership guard; 404 if the loan isn't this user's.
+  await findOrThrowNotFound({
+    query: LoanDetails.findOne({ where: { accountId, userId }, attributes: ['id'] }),
     message: t({ key: 'loans.loanNotFound' }),
   });
 
+  // Payment legs are real ledger entries on the loan account – deleting the loan
+  // would orphan them and discard the principal-paid history, so they hard-block
+  // deletion. Timeline events (balance corrections, notes, rate/term changes) are
+  // self-contained metadata that disappears with the loan, so they deliberately
+  // do NOT block: a user who wants the loan gone shouldn't be forced to archive
+  // over a correction or note. Archiving stays available for those who want to
+  // keep the timeline.
   const paymentCount = await Transactions.count({
     where: {
       accountId,
@@ -27,10 +35,6 @@ const deleteLoanImpl = async ({ userId, accountId }: DeleteLoanParams) => {
   });
   if (paymentCount > 0) {
     throw new ValidationError({ message: t({ key: 'loans.deleteBlockedByPayments' }) });
-  }
-
-  if (loanDetails.events.length > 0) {
-    throw new ValidationError({ message: t({ key: 'loans.deleteBlockedByEvents' }) });
   }
 
   // Delegating to deleteAccountById covers share cleanup, cross-user transfer

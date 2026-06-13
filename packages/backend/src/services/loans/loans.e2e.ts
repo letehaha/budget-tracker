@@ -452,7 +452,7 @@ describe('Loans read API', () => {
       // history, so loan currency is fixed at creation.
       // updateLoanBodySchema and the PATCH /accounts/:id schema both omit
       // currencyCode, so unknown-key stripping silently drops it. This
-      // regression pins that behaviour — if the field is ever added, this
+      // regression pins that behaviour – if the field is ever added, this
       // test forces a conscious carve-out for loans with payments.
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({ currencyCode: 'USD' }),
@@ -612,10 +612,11 @@ describe('Loans read API', () => {
       expect(stillThere.statusCode).toBe(200);
     });
 
-    it('rejects deleting a loan that has timeline events', async () => {
-      // Notes / rate-change / term-change entries are user-curated history.
-      // Silently wiping them on delete loses information the user explicitly
-      // captured.
+    it('deletes a loan that has timeline events but no payments', async () => {
+      // Timeline events (notes, corrections, rate changes) are self-contained
+      // metadata that disappears with the loan, so they don't block deletion –
+      // only real payment legs do. A user shouldn't be forced to archive over a
+      // note they jotted.
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
@@ -628,16 +629,33 @@ describe('Loans read API', () => {
       });
 
       const response = await helpers.deleteLoan({ id: created.id, raw: false });
-      expect(response.statusCode).toBe(422);
-      const errorBody = (response as helpers.CustomResponse<unknown>).body.response as {
-        code: string;
-        message: string;
-      };
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-      expect(errorBody.message).toMatch(/event|history|timeline/i);
+      expect(response.statusCode).toBe(204);
 
-      const stillThere = await helpers.getLoanById({ id: created.id, raw: false });
-      expect(stillThere.statusCode).toBe(200);
+      const followUp = await helpers.getLoanById({ id: created.id, raw: false });
+      expect(followUp.statusCode).toBe(404);
+    });
+
+    it('deletes a loan whose only history is a balance correction', async () => {
+      // Reproduces the reported flow: a user corrects the outstanding balance
+      // (which stamps a balance_correction event) and then wants the loan gone.
+      // The correction event must not stand in the way of deletion.
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const corrected = await helpers.updateLoan({
+        id: created.id,
+        payload: { currentBalance: 150_000 },
+        raw: true,
+      });
+      expect(corrected.loanDetails.events.at(-1)?.type).toBe('balance_correction');
+
+      const response = await helpers.deleteLoan({ id: created.id, raw: false });
+      expect(response.statusCode).toBe(204);
+
+      const followUp = await helpers.getLoanById({ id: created.id, raw: false });
+      expect(followUp.statusCode).toBe(404);
     });
   });
 

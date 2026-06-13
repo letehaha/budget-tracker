@@ -41,13 +41,13 @@ const archiveAlsoExclude = ref(true);
 
 const isArchived = computed(() => props.loan.status === ACCOUNT_STATUSES.archived);
 
-// The backend refuses to delete a loan that still has payments or recorded
-// timeline events, in that priority order. Surface the reason in the confirm
+// The backend refuses to delete a loan that still has recorded payments –
+// they're ledger entries the delete would orphan. Surface that in the confirm
 // dialog and disable the destructive button, instead of letting the user
-// confirm and only then meet a rejection toast.
-const deleteBlockReason = computed<'payments' | 'events' | null>(() => {
+// confirm and only then meet a rejection toast. Timeline events (corrections,
+// notes, rate changes) are dropped with the loan and don't block deletion.
+const deleteBlockReason = computed<'payments' | null>(() => {
   if (props.loan.paymentsCount > 0) return 'payments';
-  if (props.loan.loanDetails.events.length > 0) return 'events';
   return null;
 });
 
@@ -121,7 +121,7 @@ const handleDelete = async () => {
     addNotification({ text: t('loans.settings.deleteSuccess'), type: NotificationType.success });
     await router.push({ name: ROUTES_NAMES.loans });
   } catch (error) {
-    // Surface backend-side block reasons verbatim — they already explain why
+    // Surface backend-side block reasons verbatim – they already explain why
     // the delete was rejected and are localised by the API.
     if (isApiErrorWithCode(error, API_ERROR_CODES.validationError) && error.data?.message) {
       addNotification({ text: error.data.message, type: NotificationType.error });
@@ -213,9 +213,6 @@ const handleDelete = async () => {
     <template #description>
       <template v-if="deleteBlockReason === 'payments'">
         {{ $t('loans.settings.deleteBlockedByPayments') }}
-      </template>
-      <template v-else-if="deleteBlockReason === 'events'">
-        {{ $t('loans.settings.deleteBlockedByEvents') }}
       </template>
       <template v-else>
         {{ $t('loans.settings.deleteConfirmDescription', { name: loan.name }) }}
