@@ -1,5 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeLoan } from '@root/serializers/loans.serializer';
+import { countLoanPayments } from '@services/loans/count-loan-payments.service';
 import { projectLoan } from '@services/loans/project-loan';
 import { updateLoan } from '@services/loans/update-loan.service';
 import { loanIdParamsSchema, updateLoanBodySchema } from '@services/loans/zod-schemas';
@@ -17,6 +18,7 @@ export default createController(schema, async ({ user, params, body }) => {
     account: loanDetails.account,
     today: new Date(),
   });
+  const paymentsCount = await countLoanPayments({ userId: user.id, accountId: params.id });
 
-  return { data: serializeLoan({ loanDetails, projection }) };
+  return { data: serializeLoan({ loanDetails, projection, paymentsCount }) };
 });

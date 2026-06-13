@@ -41,6 +41,12 @@ export interface LoanDetailsApiResponse {
 export type LoanApiResponse = AccountApiResponse & {
   loanDetails: LoanDetailsApiResponse;
   projection: LoanProjection;
+  /**
+   * Count of payment legs recorded against this loan. The frontend uses it to
+   * warn that deletion is blocked (payments must be removed first) before the
+   * user confirms.
+   */
+  paymentsCount: number;
 };
 
 /**
@@ -95,9 +101,11 @@ function serializeLoanDetails(loanDetails: LoanDetails): LoanDetailsApiResponse 
 export function serializeLoan({
   loanDetails,
   projection,
+  paymentsCount,
 }: {
   loanDetails: LoanDetails;
   projection: LoanProjection;
+  paymentsCount: number;
 }): LoanApiResponse {
   const account = loanDetails.account;
   if (!account) {
@@ -107,9 +115,12 @@ export function serializeLoan({
     ...serializeAccount(account),
     loanDetails: serializeLoanDetails(loanDetails),
     projection,
+    paymentsCount,
   };
 }
 
-export function serializeLoans(loans: { loanDetails: LoanDetails; projection: LoanProjection }[]): LoanApiResponse[] {
+export function serializeLoans(
+  loans: { loanDetails: LoanDetails; projection: LoanProjection; paymentsCount: number }[],
+): LoanApiResponse[] {
   return loans.map(serializeLoan);
 }
