@@ -91,8 +91,8 @@
       "other": "Інше"
     },
     "warnings": {
-      "no_planned_payment": "Планований платіж не встановлено — розрахунок дати закриття недоступний.",
-      "payment_below_interest": "Планований платіж не покриває щомісячні відсотки — борг буде зростати."
+      "no_planned_payment": "Планований платіж не встановлено – розрахунок дати закриття недоступний.",
+      "payment_below_interest": "Планований платіж не покриває щомісячні відсотки – борг буде зростати."
     },
     "detail": {
       "backToList": "Назад до кредитів",
@@ -100,7 +100,7 @@
       "paidOffBadge": "Закрито",
       "summary": {
         "outstanding": "Поточний залишок",
-        "principalOnlyTooltip": "Залишок відображає лише платежі за основним боргом. Відсотки не нараховуються автоматично — виписка вашого кредитора є джерелом істини.",
+        "principalOnlyTooltip": "Залишок відображає лише платежі за основним боргом. Відсотки не нараховуються автоматично – виписка вашого кредитора є джерелом істини.",
         "apr": "Річна ставка",
         "originalPrincipal": "Початкова сума",
         "term": "Термін",
@@ -123,7 +123,7 @@
       },
       "events": {
         "title": "Хронологія",
-        "empty": "No history yet — rate changes, balance corrections, and notes will appear here.",
+        "empty": "No history yet – rate changes, balance corrections, and notes will appear here.",
         "rateChange": "Ставку змінено з {from}% на {to}%",
         "termChange": "Термін змінено з {from} на {to} місяців",
         "plannedPaymentChange": "Планований платіж змінено з {from} на {to}",
@@ -152,13 +152,14 @@
         "amountPlaceholder": "0.00",
         "targetAmountLabel": "Сума застосована до кредиту",
         "targetAmountPlaceholder": "0.00",
-        "targetAmountTooltip": "Рахунок джерела в {source}, кредит у {loan}. Ми автоматично заповнюємо конвертовану суму за поточним валютним курсом — змініть, якщо ваш банк застосував інший курс.",
+        "targetAmountTooltip": "Рахунок джерела в {source}, кредит у {loan}. Ми автоматично заповнюємо конвертовану суму за поточним валютним курсом – змініть, якщо ваш банк застосував інший курс.",
         "saveButton": "Зберегти",
         "recordButton": "Записати",
         "overdrawWarning": "This is more than {account}'s balance and will overdraw the account.",
         "overpayError": "Платіж перевищує залишок за кредитом ({max}).",
         "deleteConfirmTitle": "Видалити цей платіж?",
-        "deleteConfirmDescription": "Обидві сторони переказу буде видалено, а залишок за кредитом відновлено. Цю дію неможливо скасувати."
+        "deleteConfirmDescription": "Обидві сторони переказу буде видалено, а залишок за кредитом відновлено. Цю дію неможливо скасувати.",
+        "preAnchorHint": "Ця дата передує знімку залишку за кредитом, тому цей платіж не змінить поточну заборгованість – він вже врахований у відкривному залишку."
       }
     }
   }

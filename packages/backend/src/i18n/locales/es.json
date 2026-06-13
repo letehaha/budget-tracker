@@ -151,6 +151,7 @@
   },
   "loans": {
     "loanNotFound": "Préstamo no encontrado.",
+    "createAccountFailed": "Error al crear la cuenta del préstamo",
     "deleteBlockedByPayments": "Este préstamo tiene pagos registrados. Elimine los pagos antes de eliminar el préstamo.",
     "deleteBlockedByEvents": "Este préstamo tiene historial registrado. Archívelo en lugar de eliminarlo para conservar su línea de tiempo."
   },

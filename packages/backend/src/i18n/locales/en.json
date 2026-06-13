@@ -151,6 +151,7 @@
   },
   "loans": {
     "loanNotFound": "Loan not found.",
+    "createAccountFailed": "Failed to create loan account",
     "deleteBlockedByPayments": "This loan has recorded payments. Delete the payments before deleting the loan.",
     "deleteBlockedByEvents": "This loan has recorded history. Archive it instead of deleting to keep its timeline."
   },

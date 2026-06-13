@@ -429,6 +429,16 @@ export default class Transactions extends Model {
     });
   }
 
+  // A loan account's balance is recomputed (not deltad) whenever one of its
+  // payment legs is created, edited, or destroyed. Lazy-imported to keep the
+  // model layer free of a service-layer import cycle (same approach as the
+  // vehicle anchor reconcile hook). recomputeLoanBalance no-ops for non-loan
+  // accounts, so the caller only needs the cheap transfer-nature gate.
+  private static async triggerLoanBalanceRecompute(accountId: string): Promise<void> {
+    const { recomputeLoanBalance } = await import('@services/loans/recompute-loan-balance.service');
+    await recomputeLoanBalance({ loanAccountId: accountId });
+  }
+
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
     const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
@@ -444,6 +454,12 @@ export default class Transactions extends Model {
     }
 
     await Balances.handleTransactionChange({ data: instance });
+    // Only loan-transfer legs can change a loan's outstanding; gating on the
+    // nature keeps the recompute (and its account lookup) off the hot path for
+    // the overwhelming majority of transactions, which are not loan payments.
+    if (instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
+      await Transactions.triggerLoanBalanceRecompute(instance.accountId);
+    }
   }
 
   @AfterUpdate
@@ -512,6 +528,19 @@ export default class Transactions extends Model {
       data: newData,
       prevData: originalData,
     });
+
+    // Recompute when either side of the edit is a loan-transfer leg — covers an
+    // amount/date edit on a loan payment and the rare case of a leg moving onto
+    // or off a loan account. Non-loan edits skip the lookup entirely.
+    if (
+      newData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan ||
+      prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan
+    ) {
+      await Transactions.triggerLoanBalanceRecompute(newData.accountId);
+      if (newData.accountId !== prevData.accountId) {
+        await Transactions.triggerLoanBalanceRecompute(prevData.accountId);
+      }
+    }
   }
 
   @BeforeDestroy
@@ -580,6 +609,14 @@ export default class Transactions extends Model {
     // reflects today's curve-derived value, not the BeforeDestroy intermediate.
     const { refreshVehicleValueIfStale } = await import('@services/vehicles/refresh-vehicle-value.service');
     await refreshVehicleValueIfStale({ vehicleId: vehicle.id, force: true });
+  }
+
+  @AfterDestroy
+  static async recomputeLoanBalanceAfterDestroy(instance: Transactions) {
+    // Runs after the row is gone so the deleted leg is excluded from the
+    // post-anchor sum. Gated on the nature so non-loan deletes skip the lookup.
+    if (instance.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_to_loan) return;
+    await Transactions.triggerLoanBalanceRecompute(instance.accountId);
   }
 
   @AfterDestroy

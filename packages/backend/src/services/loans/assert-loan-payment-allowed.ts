@@ -4,6 +4,8 @@ import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import { namespace } from '@models/connection';
+import LoanDetails from '@models/loan-details.model';
+import { format } from 'date-fns';
 
 /**
  * Row-locked validation that a loan payment (the income leg landing on a
@@ -27,6 +29,7 @@ export const assertLoanPaymentAllowed = async ({
   loanAccountId,
   newLegAmount,
   currentLegAmount = null,
+  paymentDate = null,
 }: {
   ownerUserId: number;
   loanAccountId: string;
@@ -40,6 +43,11 @@ export const assertLoanPaymentAllowed = async ({
    * projection and let an overpay through.
    */
   currentLegAmount?: Money | null;
+  /**
+   * Date the payment lands. A payment dated before the loan's anchor is
+   * informational and skips the overpay guard. `null` keeps the guard active.
+   */
+  paymentDate?: string | Date | null;
 }): Promise<void> => {
   const sequelizeTx = namespace.get('transaction');
   const loanAccount = await Accounts.findOne({
@@ -54,6 +62,18 @@ export const assertLoanPaymentAllowed = async ({
     throw new ValidationError({
       message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
     });
+  }
+
+  // A payment dated before the anchor is informational — it's already in the
+  // snapshot and doesn't reduce the outstanding, so it cannot overpay.
+  if (paymentDate != null) {
+    const loanDetails = await LoanDetails.findOne({
+      where: { accountId: loanAccountId },
+      attributes: ['balanceAnchorDate'],
+    });
+    if (loanDetails && format(new Date(paymentDate), 'yyyy-MM-dd') < loanDetails.balanceAnchorDate) {
+      return;
+    }
   }
 
   let projectedBalance = loanAccount.currentBalance.add(newLegAmount);

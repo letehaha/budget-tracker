@@ -1,5 +1,6 @@
 import { LOAN_TYPE } from '@bt/shared/types';
 import { currencyCode, dateString, decimalMoney, recordId } from '@common/lib/zod/custom-types';
+import { format } from 'date-fns';
 import { z } from 'zod';
 
 /**
@@ -67,6 +68,17 @@ export const updateLoanBodySchema = z
     // Positive outstanding amount; a negative value would flip into a loan in
     // credit once the service negates it into the ledger convention.
     currentBalance: nonNegativeDecimalMoney({ field: 'currentBalance' }).optional(),
+    // Date the corrected `currentBalance` is asserted as-of — becomes the loan's
+    // new balance anchor. A future date is rejected: the outstanding can only be
+    // re-stated for a point in time that has already happened, otherwise
+    // post-anchor payment legs would be summed against an anchor that hasn't
+    // occurred yet. Compared lexicographically against today, which is sound for
+    // YYYY-MM-DD strings.
+    currentBalanceAsOf: dateString()
+      .refine((value) => value <= format(new Date(), 'yyyy-MM-dd'), {
+        message: 'currentBalanceAsOf must not be in the future',
+      })
+      .optional(),
 
     interestRate: z.number().min(0).max(99.9999).optional(),
     termMonths: optionalNullableInt({ min: 1, max: 1200 }),

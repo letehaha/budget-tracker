@@ -60,8 +60,10 @@ const defaultCurrency = computed(
 interface FormState {
   name: string;
   currencyCode: string;
-  /** Create: initialBalance (outstanding at creation). Edit: currentBalance. Always a positive decimal — service flips the sign. */
+  /** Create: initialBalance (outstanding at creation). Edit: currentBalance. Always a positive decimal – service flips the sign. */
   balance: number | null;
+  /** 'yyyy-MM-dd' date the balance correction is "as of". Edit mode only; defaults to today. */
+  balanceAsOf: string;
   loanType: LOAN_TYPE;
   originalPrincipal: number | null;
   interestRate: number | null;
@@ -81,6 +83,7 @@ const buildInitialState = (): FormState => {
       name: loan.name,
       currencyCode: loan.currencyCode,
       balance: Math.abs(loan.currentBalance),
+      balanceAsOf: format(new Date(), 'yyyy-MM-dd'),
       loanType: loan.loanDetails.loanType,
       originalPrincipal: loan.loanDetails.originalPrincipal,
       interestRate: loan.loanDetails.interestRate,
@@ -97,6 +100,7 @@ const buildInitialState = (): FormState => {
     name: '',
     currencyCode: String(defaultCurrency.value),
     balance: null,
+    balanceAsOf: format(new Date(), 'yyyy-MM-dd'),
     loanType: LOAN_TYPE.mortgage,
     originalPrincipal: null,
     interestRate: null,
@@ -159,7 +163,7 @@ const estimatedMinPaymentLabel = computed(() => {
 
 const applyEstimatedMinPayment = () => {
   if (estimatedMinPayment.value === null) return;
-  // Round to 2 decimals so the number stays clean — the picker is for
+  // Round to 2 decimals so the number stays clean – the picker is for
   // user-quoted amounts, not the raw long-division result.
   form.minPayment = Math.round(estimatedMinPayment.value * 100) / 100;
 };
@@ -178,6 +182,24 @@ const balanceExceedsPrincipal = computed(
     form.balance !== null &&
     Number(form.balance) > Number(referencePrincipal.value),
 );
+
+// Show the "as of" date picker only in edit mode and only when the user has
+// actually changed the balance – the field is irrelevant for unchanged values
+// (the server skips the correction event entirely in that case).
+const isBalanceChanged = computed(
+  () =>
+    isEdit.value && props.initialLoan !== null && Math.abs(props.initialLoan.currentBalance) !== Number(form.balance),
+);
+
+// DateField expects a Date object; form.balanceAsOf stores a yyyy-MM-dd string
+// for the payload. This computed bridges the two without adding a separate Date
+// field to the form state.
+const balanceAsOfDate = computed({
+  get: () => parseISO(form.balanceAsOf),
+  set: (date: Date) => {
+    form.balanceAsOf = format(date, 'yyyy-MM-dd');
+  },
+});
 
 const positiveMoney = helpers.withMessage(
   () => t('forms.loan.errors.mustBePositive'),
@@ -248,11 +270,12 @@ const submit = () => {
   if (isEdit.value) {
     const payload: UpdateLoanPayload = { ...commonFields };
     // `currentBalance` is a manual balance correction (appends a timeline
-    // event server-side), not a regular field — only send it when the user
-    // actually changed it.
+    // event server-side), not a regular field – only send it when the user
+    // actually changed it. `currentBalanceAsOf` travels with it.
     const balance = Number(form.balance);
     if (!props.initialLoan || Math.abs(props.initialLoan.currentBalance) !== balance) {
       payload.currentBalance = balance;
+      payload.currentBalanceAsOf = form.balanceAsOf;
     }
     emit('submit', payload);
     return;
@@ -329,6 +352,13 @@ const submit = () => {
       </p>
     </div>
 
+    <DateField
+      v-if="isBalanceChanged"
+      v-model="balanceAsOfDate"
+      :label="$t('forms.loan.balanceAsOfLabel')"
+      :placeholder="$t('forms.loan.balanceAsOfPlaceholder')"
+    />
+
     <div class="grid grid-cols-1 items-end gap-4 @sm/loan-form:grid-cols-2">
       <InputField
         v-model="form.interestRate"
@@ -347,7 +377,11 @@ const submit = () => {
       />
     </div>
 
-    <DateField v-model="form.startDate" :label="$t('forms.loan.startDateLabel')" />
+    <DateField
+      v-model="form.startDate"
+      :label="$t('forms.loan.startDateLabel')"
+      :placeholder="$t('forms.loan.startDatePlaceholder')"
+    />
 
     <div class="grid grid-cols-1 items-end gap-4 @sm/loan-form:grid-cols-2">
       <InputField

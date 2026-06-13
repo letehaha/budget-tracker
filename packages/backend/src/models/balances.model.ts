@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES, ACCOUNT_TYPES, RecordId } from '@bt/shared/types';
+import { TRANSACTION_TYPES, ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
@@ -104,14 +104,14 @@ export default class Balances extends Model {
   //
   // Bank-provider accounts use a two-layer balance-population scheme. Per-tx
   // hooks below (Monobank, Enable Banking) backfill historical days as
-  // transactions land — that is how the analytics chart gets in-between days
+  // transactions land – that is how the analytics chart gets in-between days
   // populated, not just "today". The authoritative end-of-sync write goes
   // through `writeBankBalanceWithHistory`
   // (services/bank-data-providers/utils/), which writes
   // `Accounts.currentBalance` + `refCurrentBalance` and overwrites today's
   // `Balances` row with the bank's reported balance. For providers whose
   // upstream has no per-transaction balance (LunchFlow, Walutomat, SimpleFIN)
-  // only the authoritative layer runs — the chart fills in over time as new
+  // only the authoritative layer runs – the chart fills in over time as new
   // syncs land each day. Either layer races safely against the other via the
   // unique `(accountId, date)` index plus `INSERT ... ON CONFLICT DO UPDATE`
   // in `updateAccountBalance`.
@@ -130,6 +130,20 @@ export default class Balances extends Model {
 
     switch (data.accountType) {
       case ACCOUNT_TYPES.system: {
+        // Loan balances + history are owned by the anchor recompute flow
+        // (recomputeLoanBalance writes the loan's Balances row directly). Skip a
+        // loan's own payment leg – the income leg landing on the loan account –
+        // so a pre-anchor payment doesn't shift history the anchor snapshot
+        // already accounts for. A `transfer_to_loan` income leg only ever lives on
+        // a loan account, so it's identified from the leg itself with no account
+        // lookup on this per-transaction hot path.
+        if (
+          data.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan &&
+          data.transactionType === TRANSACTION_TYPES.income
+        ) {
+          break;
+        }
+
         if (isDelete) {
           amount = amount.negate(); // Reverse the amount if it's a deletion
         } else if (prevData) {
@@ -169,7 +183,7 @@ export default class Balances extends Model {
         // Per-tx backfill layer. Each Monobank transaction carries the bank's
         // post-tx balance in `externalData.balance` (in account currency, e.g.
         // UAH). Convert to base currency via the exchange-rate service and
-        // upsert the day's `Balances` row — last tx processed for a date wins
+        // upsert the day's `Balances` row – last tx processed for a date wins
         // the end-of-day value. The end-of-sync `writeBankBalanceWithHistory`
         // call (worker) then overwrites today's row with the bank's
         // authoritative balance.
@@ -193,7 +207,7 @@ export default class Balances extends Model {
 
       case ACCOUNT_TYPES.enableBanking: {
         // Per-tx backfill layer. `balance_after_transaction` is optional in the
-        // EnableBanking API — when the ASPSP populates it, convert to base
+        // EnableBanking API – when the ASPSP populates it, convert to base
         // currency and upsert the day's `Balances` row (transactions sorted by
         // booking_date so the last for a date wins). The end-of-sync
         // `writeBankBalanceWithHistory` call then overwrites today's row with
@@ -221,7 +235,7 @@ export default class Balances extends Model {
       case ACCOUNT_TYPES.lunchflow:
       case ACCOUNT_TYPES.walutomat:
       case ACCOUNT_TYPES.simplefin: {
-        // No per-tx balance from upstream — only the authoritative end-of-sync
+        // No per-tx balance from upstream – only the authoritative end-of-sync
         // `writeBankBalanceWithHistory` writes for these providers. Chart
         // gaps for past days fill in over time as new syncs land each day.
         break;
@@ -297,7 +311,7 @@ export default class Balances extends Model {
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           // Seed row computed from the same `latestBalancePrior` by every
-          // racing writer — the existing row already carries the right seed.
+          // racing writer – the existing row already carries the right seed.
         }
       }
     }
@@ -351,7 +365,7 @@ export default class Balances extends Model {
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           // Seed row computed from the same `refInitialBalance` by every
-          // racing writer — the existing row already carries the right seed.
+          // racing writer – the existing row already carries the right seed.
         }
 
         // (2) Then we create a record for that transaction
@@ -474,7 +488,7 @@ export default class Balances extends Model {
    * for each day sets the correct end-of-day balance.
    *
    * Race-safe via the `balances_account_id_date_unique` index on (accountId, date)
-   * paired with `INSERT ... ON CONFLICT DO UPDATE` — concurrent writers (auto-sync
+   * paired with `INSERT ... ON CONFLICT DO UPDATE` – concurrent writers (auto-sync
    * vs. user-clicked refresh, multi-batch BullMQ workers, Bottleneck-parallel
    * sync-manager fan-out, the per-tx `@AfterCreate` hook firing alongside the
    * end-of-sync write) serialize on the unique index and the last writer's

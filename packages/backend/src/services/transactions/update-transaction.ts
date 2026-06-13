@@ -175,6 +175,9 @@ const validateTransaction = async (
           // The old leg is part of this loan's balance only when the
           // destination stays put; on a re-point the new loan never saw it.
           currentLegAmount: isSameDestination ? oppositeLeg.amount : null,
+          // Effective post-update date; both legs share it. Falls back to the
+          // existing tx time when the edit doesn't move the date.
+          paymentDate: newData.time ?? prevData.time,
         });
       }
     }

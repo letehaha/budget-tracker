@@ -10,7 +10,7 @@ import { Op } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
 // Natures that indicate a transaction is already linked as a transfer.
-// transfer_out_wallet is intentionally excluded — it can be re-linked (upgraded to common_transfer).
+// transfer_out_wallet is intentionally excluded – it can be re-linked (upgraded to common_transfer).
 // NOTE: if new TRANSACTION_TRANSFER_NATURE values are added, review whether they belong here.
 const ALREADY_LINKED_NATURES = [
   TRANSACTION_TRANSFER_NATURE.common_transfer,
@@ -69,7 +69,7 @@ export const linkTransactions = withTransaction(
       const result: ResultStruct[] = [];
 
       for (const [baseTxId, oppositeTxId] of ids) {
-        // Fetch both rows without a userId filter — sharing means the pair can live on
+        // Fetch both rows without a userId filter – sharing means the pair can live on
         // accounts owned by different users. The auth gate below verifies the caller has
         // `write` on each side's parent account before we mutate anything.
         const transactions = await Transactions.default.findAll({
@@ -109,13 +109,13 @@ export const linkTransactions = withTransaction(
           ignoreBaseTxTypeValidation,
         });
 
-        // The pair's nature derives from the income leg's account category:
-        // linking an income that sits on a loan-category account recreates a
-        // de-facto loan payment (the leg already reduced the loan's balance
-        // when it was created), so it must carry `transfer_to_loan` — a
-        // `common_transfer` label here would hide the payment from the loan's
-        // payment list and from the loan/account delete guards that key off
-        // the nature.
+        // A loan account holds only `transfer_to_loan` payment legs, and
+        // `validateTransactionLinking` already rejects those as already-linked,
+        // so a link can never legitimately resolve onto a loan account. Guard
+        // the impossible case loudly: silently stamping `common_transfer` on a
+        // loan leg would hide it from the loan's payment list and delete guards,
+        // while stamping `transfer_to_loan` would skip the balance recompute
+        // that only the payment-creation path performs.
         const incomeLeg = base.transactionType === TRANSACTION_TYPES.income ? base : opposite;
         const incomeLegAccount = await Accounts.findOne({
           where: { id: incomeLeg.accountId },
@@ -124,15 +124,14 @@ export const linkTransactions = withTransaction(
         if (!incomeLegAccount) {
           throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
         }
-        const transferNature =
-          incomeLegAccount.accountCategory === ACCOUNT_CATEGORIES.loan
-            ? TRANSACTION_TRANSFER_NATURE.transfer_to_loan
-            : TRANSACTION_TRANSFER_NATURE.common_transfer;
+        if (incomeLegAccount.accountCategory === ACCOUNT_CATEGORIES.loan) {
+          throw new ValidationError({ message: t({ key: 'transactions.loanAccountReadonly' }) });
+        }
 
         const [, results] = await Transactions.default.update(
           {
             transferId: uuidv4(),
-            transferNature,
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
           },
           {
             where: {

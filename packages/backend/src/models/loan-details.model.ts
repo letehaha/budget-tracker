@@ -82,6 +82,16 @@ export default class LoanDetails extends Model {
   })
   startDate!: string;
 
+  // The date the outstanding balance (Account.initialBalance) is asserted as-of.
+  // Payments dated after this anchor adjust the balance forward; payments on or
+  // before it are already baked into this snapshot. Distinct from startDate,
+  // which is the contractual origination date and never moves.
+  @Column({
+    type: DataType.DATEONLY,
+    allowNull: false,
+  })
+  balanceAnchorDate!: string;
+
   @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
   get minPayment(): Money | null {
     return moneyGetCents(this, 'minPayment');
@@ -133,7 +143,7 @@ export default class LoanDetails extends Model {
   accountNumber!: string | null;
 
   // References the replacement loan's Accounts row. The FK constraint lives in
-  // the migration only — a second `@ForeignKey(() => Accounts)` here would
+  // the migration only – a second `@ForeignKey(() => Accounts)` here would
   // confuse Sequelize's association inference for the `account` BelongsTo.
   @Column({
     type: DataType.UUID,

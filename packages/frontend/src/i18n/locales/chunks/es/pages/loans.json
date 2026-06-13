@@ -91,8 +91,8 @@
       "other": "Otro"
     },
     "warnings": {
-      "no_planned_payment": "No se ha establecido un pago planificado — la fecha de liquidación proyectada no está disponible.",
-      "payment_below_interest": "El pago planificado no cubre los intereses mensuales — la deuda seguiría creciendo."
+      "no_planned_payment": "No se ha establecido un pago planificado – la fecha de liquidación proyectada no está disponible.",
+      "payment_below_interest": "El pago planificado no cubre los intereses mensuales – la deuda seguiría creciendo."
     },
     "detail": {
       "backToList": "Volver a préstamos",
@@ -100,7 +100,7 @@
       "paidOffBadge": "Liquidado",
       "summary": {
         "outstanding": "Saldo actual",
-        "principalOnlyTooltip": "El saldo refleja solo los pagos de capital. Los intereses no se acumulan automáticamente — el extracto de su prestamista es la fuente de la verdad.",
+        "principalOnlyTooltip": "El saldo refleja solo los pagos de capital. Los intereses no se acumulan automáticamente – el extracto de su prestamista es la fuente de la verdad.",
         "apr": "TAE",
         "originalPrincipal": "Capital original",
         "term": "Plazo",
@@ -123,7 +123,7 @@
       },
       "events": {
         "title": "Historial",
-        "empty": "No history yet — rate changes, balance corrections, and notes will appear here.",
+        "empty": "No history yet – rate changes, balance corrections, and notes will appear here.",
         "rateChange": "Tasa cambiada de {from}% a {to}%",
         "termChange": "Plazo cambiado de {from} a {to} meses",
         "plannedPaymentChange": "Pago planificado cambiado de {from} a {to}",
@@ -152,13 +152,14 @@
         "amountPlaceholder": "0.00",
         "targetAmountLabel": "Cantidad aplicada al préstamo",
         "targetAmountPlaceholder": "0.00",
-        "targetAmountTooltip": "La cuenta de origen está en {source}, el préstamo en {loan}. Rellenamos automáticamente la cantidad convertida usando el tipo de cambio actual — ajuste si su banco aplicó un tipo diferente.",
+        "targetAmountTooltip": "La cuenta de origen está en {source}, el préstamo en {loan}. Rellenamos automáticamente la cantidad convertida usando el tipo de cambio actual – ajuste si su banco aplicó un tipo diferente.",
         "saveButton": "Guardar",
         "recordButton": "Registrar",
         "overdrawWarning": "This is more than {account}'s balance and will overdraw the account.",
         "overpayError": "El pago excede el saldo restante del préstamo ({max}).",
         "deleteConfirmTitle": "¿Eliminar este pago?",
-        "deleteConfirmDescription": "Se eliminarán ambos lados de la transferencia y el saldo del préstamo será restaurado. Esta acción no se puede deshacer."
+        "deleteConfirmDescription": "Se eliminarán ambos lados de la transferencia y el saldo del préstamo será restaurado. Esta acción no se puede deshacer.",
+        "preAnchorHint": "Esta fecha es anterior a la instantánea del saldo del préstamo, por lo que este pago no modificará el saldo pendiente – ya está incluido en el saldo inicial."
       }
     }
   }

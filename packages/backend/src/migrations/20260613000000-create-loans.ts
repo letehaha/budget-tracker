@@ -121,6 +121,12 @@ module.exports = {
             type: DataTypes.DATEONLY,
             allowNull: false,
           },
+          balanceAnchorDate: {
+            type: DataTypes.DATEONLY,
+            allowNull: false,
+            comment:
+              'Date the outstanding balance is asserted as-of; payments after it adjust the balance, earlier ones are baked into this snapshot',
+          },
           minPayment: {
             type: DataTypes.BIGINT,
             allowNull: true,
@@ -200,17 +206,19 @@ module.exports = {
   },
 
   down: async (queryInterface: QueryInterface): Promise<void> => {
-    // Reset any rows still on the value the recreated ENUM won't accept.
-    // Run outside the transaction so the recreated ENUM block can rely on
-    // a clean column state regardless of session quirks.
-    await queryInterface.sequelize.query(
-      `UPDATE "Transactions" SET "transferNature" = 'not_transfer' WHERE "transferNature" = 'transfer_to_loan';`,
-    );
-    await queryInterface.sequelize.query(
-      `UPDATE "InvestmentTransactions" SET "transferNature" = 'not_transfer' WHERE "transferNature" = 'transfer_to_loan';`,
-    );
-
     await queryInterface.sequelize.transaction(async (transaction) => {
+      // Rewrite the rows still carrying `transfer_to_loan` before recreating the
+      // enum without that member — both steps must commit together so a failed
+      // rollback can't strand rows referencing a value the type no longer has.
+      await queryInterface.sequelize.query(
+        `UPDATE "Transactions" SET "transferNature" = 'not_transfer' WHERE "transferNature" = 'transfer_to_loan';`,
+        { transaction },
+      );
+      await queryInterface.sequelize.query(
+        `UPDATE "InvestmentTransactions" SET "transferNature" = 'not_transfer' WHERE "transferNature" = 'transfer_to_loan';`,
+        { transaction },
+      );
+
       await queryInterface.dropTable('LoanDetails', { transaction });
 
       const enumValues = TRANSFER_NATURE_VALUES_BEFORE_LOAN.map((v) => `'${v}'`).join(', ');
