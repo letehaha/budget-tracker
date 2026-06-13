@@ -11,8 +11,8 @@ import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
-import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useVentureDeals } from '@/composable/data-queries/venture/deals';
+import { useSidebarSections } from '@/composable/use-sidebar-sections';
 import { waitForAnimationEnd } from '@/composable/wait-for-animation-end';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
@@ -32,6 +32,7 @@ import { storeToRefs } from 'pinia';
 import { Ref, computed, nextTick, provide, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
+import SidebarSettingsPopover from '../sidebar-settings-popover.vue';
 import { useSidebarNavCollapse } from '../use-nav-collapse';
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
@@ -96,10 +97,10 @@ const venturesCount = computed(() => (ventureDeals.value?.data ?? []).length);
 
 const carsCount = computed(() => vehicleAccounts.value.length);
 
-const { data: userSettings } = useUserSettings();
-const showPortfolios = computed(() => userSettings.value?.sidebarSections?.portfolios ?? true);
-const showVentures = computed(() => userSettings.value?.sidebarSections?.ventures ?? true);
-const showVehicles = computed(() => userSettings.value?.sidebarSections?.vehicles ?? true);
+const { sidebarSections } = useSidebarSections();
+const showPortfolios = computed(() => sidebarSections.value.portfolios);
+const showVentures = computed(() => sidebarSections.value.ventures);
+const showVehicles = computed(() => sidebarSections.value.vehicles);
 
 const venturesVisible = computed(() => showVentures.value && venturesCount.value > 0);
 const carsVisible = computed(() => showVehicles.value && carsCount.value > 0);
@@ -208,32 +209,38 @@ const onSectionHeaderClick = async (section: SidebarSection) => {
         <ChevronsUpDownIcon v-if="hasAnyOpen" class="size-3" />
       </button>
 
-      <Popover.Popover :open="isPopoverOpen" @update:open="isPopoverOpen = $event">
-        <Popover.PopoverTrigger as-child>
-          <Button size="icon-sm" variant="secondary">
-            <PlusIcon :class="['size-3.5 transition-transform', isPopoverOpen && '-rotate-45']" />
-          </Button>
-        </Popover.PopoverTrigger>
-        <Popover.PopoverContent side="bottom" align="end">
-          <div class="grid gap-2">
-            <CreateAccountDialog @created="isPopoverOpen = false">
-              <Button type="button" size="sm" variant="secondary"> {{ $t('sidebar.accountsView.newAccount') }} </Button>
-            </CreateAccountDialog>
+      <div class="flex items-center gap-1">
+        <SidebarSettingsPopover />
 
-            <CreateAccountGroupDialog @created="isPopoverOpen = false">
-              <Button type="button" size="sm" variant="secondary">
-                {{ $t('sidebar.accountsView.newAccountsGroup') }}
-              </Button>
-            </CreateAccountGroupDialog>
+        <Popover.Popover :open="isPopoverOpen" @update:open="isPopoverOpen = $event">
+          <Popover.PopoverTrigger as-child>
+            <Button size="icon-sm" variant="secondary">
+              <PlusIcon :class="['size-3.5 transition-transform', isPopoverOpen && '-rotate-45']" />
+            </Button>
+          </Popover.PopoverTrigger>
+          <Popover.PopoverContent side="bottom" align="end">
+            <div class="grid gap-2">
+              <CreateAccountDialog @created="isPopoverOpen = false">
+                <Button type="button" size="sm" variant="secondary">
+                  {{ $t('sidebar.accountsView.newAccount') }}
+                </Button>
+              </CreateAccountDialog>
 
-            <CreatePortfolioDialog @created="isPopoverOpen = false">
-              <Button type="button" size="sm" variant="secondary">
-                {{ $t('sidebar.accountsView.newPortfolio') }}
-              </Button>
-            </CreatePortfolioDialog>
-          </div>
-        </Popover.PopoverContent>
-      </Popover.Popover>
+              <CreateAccountGroupDialog @created="isPopoverOpen = false">
+                <Button type="button" size="sm" variant="secondary">
+                  {{ $t('sidebar.accountsView.newAccountsGroup') }}
+                </Button>
+              </CreateAccountGroupDialog>
+
+              <CreatePortfolioDialog @created="isPopoverOpen = false">
+                <Button type="button" size="sm" variant="secondary">
+                  {{ $t('sidebar.accountsView.newPortfolio') }}
+                </Button>
+              </CreatePortfolioDialog>
+            </div>
+          </Popover.PopoverContent>
+        </Popover.Popover>
+      </div>
     </div>
 
     <ScrollArea ref="scrollAreaRef" :scroll-area-id="SCROLL_AREA_IDS.sidebarAccounts" class="flex-1">

@@ -22,6 +22,14 @@
     "venture": "Venture"
   },
   "sidebar": {
+    "settings": {
+      "title": "Ajustes",
+      "sections": {
+        "label": "Secciones de la barra lateral",
+        "description": "Elija qué secciones aparecen en la barra lateral.",
+        "alwaysVisibleTooltip": "Esta sección siempre es visible."
+      }
+    },
     "accountsView": {
       "title": "Cuentas",
       "bankAccounts": "Cuentas bancarias",

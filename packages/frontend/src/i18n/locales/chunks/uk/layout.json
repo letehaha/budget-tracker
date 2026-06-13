@@ -22,6 +22,14 @@
     "venture": "Венчур"
   },
   "sidebar": {
+    "settings": {
+      "title": "Налаштування",
+      "sections": {
+        "label": "Розділи бічної панелі",
+        "description": "Виберіть, які секції відображати в бічній панелі.",
+        "alwaysVisibleTooltip": "Ця секція завжди видима."
+      }
+    },
     "accountsView": {
       "title": "Рахунки",
       "bankAccounts": "Банківські рахунки",
