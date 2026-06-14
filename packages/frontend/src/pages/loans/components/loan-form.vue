@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type CreateLoanPayload, type LoanApi, type UpdateLoanPayload } from '@/api/loans';
 import FieldLabel from '@/components/fields/components/field-label.vue';
+import HintIcon from '@/components/common/hint-icon.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
@@ -393,7 +394,11 @@ const submit = () => {
       v-model="form.startDate"
       :label="$t('forms.loan.startDateLabel')"
       :placeholder="$t('forms.loan.startDatePlaceholder')"
-    />
+    >
+      <template #label-after>
+        <HintIcon :content="$t('forms.loan.startDateTooltip')" />
+      </template>
+    </DateField>
 
     <div class="grid grid-cols-1 items-end gap-4 @sm/loan-form:grid-cols-2">
       <InputField

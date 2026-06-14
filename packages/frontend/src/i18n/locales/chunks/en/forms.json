@@ -262,6 +262,7 @@
       "termMonthsPlaceholder": "e.g. 360 for a 30-year loan",
       "startDateLabel": "Start date",
       "startDatePlaceholder": "DD/MM/YYYY",
+      "startDateTooltip": "The date the loan originated — when you first took it out. It's informational only and doesn't change the current outstanding balance or the payoff projection.",
       "plannedPaymentLabel": "Planned monthly payment",
       "plannedPaymentPlaceholder": "What you actually pay",
       "minPaymentLabel": "Minimum monthly payment",

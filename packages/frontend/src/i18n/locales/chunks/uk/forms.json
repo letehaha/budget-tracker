@@ -262,6 +262,7 @@
       "termMonthsPlaceholder": "напр. 360 для 30-річного кредиту",
       "startDateLabel": "Дата початку",
       "startDatePlaceholder": "ДД.ММ.РРРР",
+      "startDateTooltip": "Дата оформлення кредиту — коли ви його отримали. Це інформаційне поле: воно не впливає на поточний залишок боргу і не змінює прогноз виплат.",
       "plannedPaymentLabel": "Плановий щомісячний платіж",
       "plannedPaymentPlaceholder": "Скільки ви реально платите",
       "minPaymentLabel": "Мінімальний щомісячний платіж",

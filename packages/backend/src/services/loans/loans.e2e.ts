@@ -184,6 +184,30 @@ describe('Loans read API', () => {
       expect(fromGet.loanDetails.lenderName).toBe('Chase');
     });
 
+    it('does not mark a loan paid off when outstanding is below principal and the start date is years in the past', async () => {
+      // The start date is informational only at creation: the balance anchor is
+      // today and the paid-off projection keys solely off the outstanding
+      // balance. A loan whose outstanding ($20k) sits below its original
+      // principal ($106k), with a start date years in the past, therefore reads
+      // as still owing $20k rather than paid off.
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          startDate: '2022-01-10',
+          originalPrincipal: 106_000,
+          initialBalance: 20_000,
+        }),
+        raw: true,
+      });
+
+      expect(loan.currentBalance).toBe(-20_000);
+      expect(loan.projection.isPaidOff).toBe(false);
+      expect(loan.projection.paidToDate).toBe(86_000);
+
+      const fromGet = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(fromGet.currentBalance).toBe(-20_000);
+      expect(fromGet.projection.isPaidOff).toBe(false);
+    });
+
     it('surfaces the no_planned_payment warning through the API when created without plannedPayment', async () => {
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({ plannedPayment: null, minPayment: null }),

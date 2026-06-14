@@ -262,6 +262,7 @@
       "termMonthsPlaceholder": "Ej.: 360 para un préstamo a 30 años",
       "startDateLabel": "Fecha de inicio",
       "startDatePlaceholder": "DD/MM/AAAA",
+      "startDateTooltip": "La fecha en que se originó el préstamo, es decir, cuando lo contrató. Es solo informativa y no afecta al saldo pendiente actual ni a la proyección de amortización.",
       "plannedPaymentLabel": "Cuota mensual planificada",
       "plannedPaymentPlaceholder": "Lo que realmente paga",
       "minPaymentLabel": "Cuota mensual mínima",
