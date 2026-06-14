@@ -81,7 +81,7 @@
     },
     "types": {
       "mortgage": "Mortgage",
-      "auto": "Auto",
+      "auto": "Vehicle",
       "student": "Student",
       "personal": "Personal",
       "heloc": "HELOC",
