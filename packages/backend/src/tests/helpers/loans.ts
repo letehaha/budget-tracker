@@ -75,6 +75,25 @@ export async function appendLoanNote<R extends boolean | undefined = undefined>(
   });
 }
 
+export async function linkLoanPayments<R extends boolean | undefined = undefined>({
+  id,
+  transactionIds,
+  confirmOverpay,
+  raw,
+}: {
+  id: string;
+  transactionIds: string[];
+  confirmOverpay?: boolean;
+  raw?: R;
+}) {
+  return makeRequest<{ loan: LoanApiResponse; linkedCount: number }, R>({
+    method: 'post',
+    url: `/loans/${id}/link-payments`,
+    payload: { transactionIds, confirmOverpay },
+    raw,
+  });
+}
+
 export function buildCreateLoanPayload(overrides: Record<string, unknown> = {}) {
   return {
     name: 'Test loan',

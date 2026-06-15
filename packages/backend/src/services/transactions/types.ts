@@ -51,6 +51,15 @@ interface UpdateTransferParams {
   destinationAccountId?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
   transferId?: string;
+  /**
+   * Internal flag: skip the per-leg loan overpay guard in
+   * `createOppositeTransaction`. Set only by the bulk loan-payment linker,
+   * which row-locks the loan and runs a single aggregate overpay check across
+   * the whole batch (and may proceed past it on explicit user confirmation).
+   * Never surfaced on the public transaction-update route — no Zod schema
+   * accepts it, so an HTTP client cannot set it.
+   */
+  skipLoanOverpayAssert?: boolean;
 }
 
 export type UpdateTransactionParams = UpdateParams & UpdateTransferParams;

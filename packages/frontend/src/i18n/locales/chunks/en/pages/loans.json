@@ -9,7 +9,22 @@
     "actions": {
       "more": "More",
       "moreAriaLabel": "More actions",
-      "excludeFromStats": "Exclude from stats"
+      "excludeFromStats": "Exclude from stats",
+      "linkPayments": "Link previous payments"
+    },
+    "linkPayments": {
+      "title": "Link previous payments",
+      "description": "Select transactions you've already paid toward this loan to record them as payments.",
+      "emptyTitle": "No matching transactions",
+      "emptyDescription": "No transactions match these filters. Try widening the date range or clearing filters.",
+      "selectedCount": "{count} selected",
+      "clearSelection": "Clear",
+      "linkSelected": "Link {count}",
+      "success": "Linked {count} payment to the loan. | Linked {count} payments to the loan.",
+      "error": "Couldn't link the selected payments. Please try again.",
+      "overpayTitle": "Payments exceed the balance",
+      "overpayDescription": "The selected payments add up to {amount} more than the remaining loan balance. Link them anyway?",
+      "overpayConfirmButton": "Link anyway"
     },
     "dialog": {
       "createTitle": "Add a loan",
@@ -107,7 +122,9 @@
         "startDate": "Start date",
         "paymentDay": "Payment day",
         "dayOfMonth": "{day} of each month",
-        "accountNumber": "Account number"
+        "accountNumber": "Account number",
+        "balanceAnchor": "Balance as of",
+        "balanceAnchorTooltip": "The outstanding balance is fixed as of this date. Payments dated before it are kept for history but don't change the Paid progress."
       },
       "projection": {
         "title": "Projection",

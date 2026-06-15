@@ -43,6 +43,7 @@ import type { CreateTransactionParams, UpdateTransactionParams } from './types';
 type CreateOppositeTransactionParams = [
   creationParams: (CreateTransactionParams | UpdateTransactionParams) & {
     time: Date;
+    skipLoanOverpayAssert?: boolean;
   },
   baseTransaction: Transactions.default,
 ];
@@ -177,7 +178,12 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
       ? creationParams.transferNature!
       : TRANSACTION_TRANSFER_NATURE.common_transfer;
 
-  if (isLoanDestination) {
+  // The bulk loan-payment linker pre-validates the whole batch against the
+  // row-locked loan balance in one aggregate check (and may proceed past it on
+  // explicit confirmation, since FX rounding can nudge the sum a few cents past
+  // the owed amount). It sets `skipLoanOverpayAssert` so the per-leg guard here
+  // doesn't re-reject mid-batch as each linked leg moves the balance.
+  if (isLoanDestination && !creationParams.skipLoanOverpayAssert) {
     await assertLoanPaymentAllowed({
       ownerUserId: destOwnerUserId,
       loanAccountId: destinationAccountId,

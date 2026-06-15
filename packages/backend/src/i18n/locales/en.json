@@ -152,7 +152,9 @@
   "loans": {
     "loanNotFound": "Loan not found.",
     "createAccountFailed": "Failed to create loan account",
-    "deleteBlockedByPayments": "This loan has recorded payments. Delete the payments before deleting the loan."
+    "deleteBlockedByPayments": "This loan has recorded payments. Delete the payments before deleting the loan.",
+    "linkPaymentsInvalidSelection": "Some selected transactions can't be linked to this loan.",
+    "linkPaymentsOverpayConfirmation": "These payments add up to more than the remaining loan balance. Confirm to link them anyway."
   },
   "errors": {
     "connectionNotFound": "Connection not found",

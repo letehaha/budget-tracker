@@ -1,5 +1,5 @@
-import { createLoan, deleteLoan, getLoanById, getLoans, updateLoan } from '@/api/loans';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { createLoan, deleteLoan, getLoanById, getLoans, linkLoanPayments, updateLoan } from '@/api/loans';
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, computed, unref } from 'vue';
 
@@ -60,6 +60,20 @@ export const useDeleteLoan = () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.loansList });
       queryClient.removeQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.loanDetail, variables.id] });
       invalidateAccountsCache(queryClient);
+    },
+  });
+};
+
+export const useLinkLoanPayments = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: linkLoanPayments,
+    // Linking rewrites transactions and recomputes the loan balance/projection.
+    // The transactionChange prefix fans out to the loan detail, its payment
+    // lists, the records list, and the global accounts cache in one shot.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
     },
   });
 };

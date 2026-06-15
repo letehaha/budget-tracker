@@ -52,6 +52,15 @@
           <div class="mt-0.5 font-medium">{{ startDateDisplay }}</div>
         </div>
         <div>
+          <div class="text-muted-foreground flex items-center gap-1 text-xs">
+            <span>{{ $t('loans.detail.summary.balanceAnchor') }}</span>
+            <DesktopOnlyTooltip :content="$t('loans.detail.summary.balanceAnchorTooltip')" side="top">
+              <InfoIcon class="size-3 cursor-help" />
+            </DesktopOnlyTooltip>
+          </div>
+          <div class="mt-0.5 font-medium">{{ balanceAnchorDisplay }}</div>
+        </div>
+        <div>
           <div class="text-muted-foreground text-xs">{{ $t('loans.detail.summary.paymentDay') }}</div>
           <div class="mt-0.5 font-medium">{{ paymentDayDisplay }}</div>
         </div>
@@ -97,6 +106,10 @@ const termDisplay = computed(() => {
 });
 
 const startDateDisplay = computed(() => formatDate(parseISO(props.loan.loanDetails.startDate), 'MMM d, yyyy'));
+
+const balanceAnchorDisplay = computed(() =>
+  formatDate(parseISO(props.loan.loanDetails.balanceAnchorDate), 'MMM d, yyyy'),
+);
 
 const paymentDayDisplay = computed(() => {
   const day = props.loan.loanDetails.paymentDayOfMonth;

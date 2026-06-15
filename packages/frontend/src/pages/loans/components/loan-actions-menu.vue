@@ -18,12 +18,21 @@ import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 import { ACCOUNT_STATUSES, API_ERROR_CODES } from '@bt/shared/types';
-import { ArchiveIcon, ArchiveRestoreIcon, EyeOffIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
+import {
+  ArchiveIcon,
+  ArchiveRestoreIcon,
+  EyeOffIcon,
+  Link2Icon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  Trash2Icon,
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import EditLoanDialog from './edit-loan-dialog.vue';
+import LinkPaymentsDialog from './link-payments-dialog.vue';
 
 const props = defineProps<{ loan: LoanApi }>();
 
@@ -35,6 +44,7 @@ const deleteLoanMutation = useDeleteLoan();
 const loanQuery = useLoanById({ id: computed(() => props.loan.id) });
 
 const isEditDialogOpen = ref(false);
+const isLinkPaymentsOpen = ref(false);
 const isArchiveDialogOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
 const archiveAlsoExclude = ref(true);
@@ -148,6 +158,13 @@ const handleDelete = async () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" class="w-64">
+        <DropdownMenuItem @select="isLinkPaymentsOpen = true">
+          <Link2Icon class="size-4" />
+          {{ $t('loans.actions.linkPayments') }}
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
         <DropdownMenuItem class="justify-between gap-3" @select.prevent>
           <span class="flex items-center gap-2">
             <EyeOffIcon class="size-4" />
@@ -184,6 +201,8 @@ const handleDelete = async () => {
   </div>
 
   <EditLoanDialog v-model:open="isEditDialogOpen" :loan="loan" />
+
+  <LinkPaymentsDialog v-model:open="isLinkPaymentsOpen" :loan="loan" />
 
   <ResponsiveAlertDialog
     v-model:open="isArchiveDialogOpen"

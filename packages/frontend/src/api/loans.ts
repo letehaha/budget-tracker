@@ -130,3 +130,27 @@ export const updateLoan = async ({ id, ...payload }: UpdateLoanPayload & { id: s
 export const deleteLoan = async ({ id }: { id: string }): Promise<void> => {
   return api.delete(`/loans/${id}`);
 };
+
+interface LinkLoanPaymentsResponse {
+  loan: LoanApi;
+  /** Number of transactions converted into payments. */
+  linkedCount: number;
+}
+
+/**
+ * Bulk-convert existing expense transactions into payments on this loan (each
+ * becomes a transfer-to-loan). When the batch would push the loan past its owed
+ * balance the backend first refuses with a `loanPaymentOverpayConfirmationRequired`
+ * error; re-send with `confirmOverpay: true` to proceed anyway.
+ */
+export const linkLoanPayments = async ({
+  id,
+  transactionIds,
+  confirmOverpay,
+}: {
+  id: string;
+  transactionIds: string[];
+  confirmOverpay?: boolean;
+}): Promise<LinkLoanPaymentsResponse> => {
+  return api.post(`/loans/${id}/link-payments`, { transactionIds, confirmOverpay });
+};

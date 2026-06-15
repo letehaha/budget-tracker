@@ -9,7 +9,22 @@
     "actions": {
       "more": "Más",
       "moreAriaLabel": "Más acciones",
-      "excludeFromStats": "Excluir de estadísticas"
+      "excludeFromStats": "Excluir de estadísticas",
+      "linkPayments": "Vincular pagos anteriores"
+    },
+    "linkPayments": {
+      "title": "Vincular pagos anteriores",
+      "description": "Seleccione las transacciones que ya ha pagado para este préstamo y regístrelas como pagos.",
+      "emptyTitle": "No hay transacciones coincidentes",
+      "emptyDescription": "Ninguna transacción coincide con estos filtros. Intente ampliar el rango de fechas o eliminar los filtros.",
+      "selectedCount": "{count} seleccionado",
+      "clearSelection": "Limpiar",
+      "linkSelected": "Vincular {count}",
+      "success": "Se vinculó {count} pago al préstamo. | Se vincularon {count} pagos al préstamo.",
+      "error": "No se pudieron vincular los pagos seleccionados. Por favor, inténtelo de nuevo.",
+      "overpayTitle": "Los pagos superan el saldo",
+      "overpayDescription": "Los pagos seleccionados suman {amount} más que el saldo restante del préstamo. ¿Vincularlos de todas formas?",
+      "overpayConfirmButton": "Vincular de todas formas"
     },
     "dialog": {
       "createTitle": "Añadir un préstamo",
@@ -107,7 +122,9 @@
         "startDate": "Fecha de inicio",
         "paymentDay": "Día de pago",
         "dayOfMonth": "El {day} de cada mes",
-        "accountNumber": "Número de cuenta"
+        "accountNumber": "Número de cuenta",
+        "balanceAnchor": "Saldo a fecha de",
+        "balanceAnchorTooltip": "El saldo pendiente está fijado a esta fecha. Los pagos anteriores a ella se conservan en el historial pero no modifican el progreso de pago."
       },
       "projection": {
         "title": "Proyección",

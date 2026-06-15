@@ -103,4 +103,22 @@ export const updateLoanBodySchema = z
 
 export type UpdateLoanBody = z.infer<typeof updateLoanBodySchema>;
 
+/**
+ * Bulk-link existing expense transactions to a loan as payments. Each id is
+ * converted into a transfer-to-loan (its matching income leg created on the
+ * loan account). `confirmOverpay` lets the caller proceed when the batch would
+ * push the loan slightly past its owed balance — surfaced first as a
+ * confirmation-required error, then re-sent with the flag set.
+ */
+export const linkLoanPaymentsBodySchema = z.object({
+  transactionIds: z
+    .array(recordId())
+    .min(1)
+    .max(500)
+    .refine((ids) => ids.length === new Set(ids).size, {
+      message: 'transactionIds must not contain duplicates',
+    }),
+  confirmOverpay: z.boolean().optional(),
+});
+
 export const loanIdParamsSchema = z.object({ id: recordId() });
