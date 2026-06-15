@@ -19,30 +19,35 @@ const logoUrl = computed(() => (props.domain ? getServiceLogoUrl({ domain: props
 
 const monogramLetter = computed(() => props.name.trim().charAt(0).toUpperCase() || '·');
 
-// Container is always rendered; sizing comes from the pass-through class.
-// The monogram fills it absolutely so it shows through when the logo is absent
-// or still loading. AsyncLogo stacks on top: when it has content it renders a
-// white rounded frame that covers the monogram; when url is null or the image
-// errored, AsyncLogo renders nothing visible and the monogram shows through.
-const containerClass = computed(() => cn('relative shrink-0', attrs.class as string | undefined));
+// One radius governs the whole stack: the container sets it, the monogram and
+// the logo frame inherit it via `rounded-[inherit]`, and the ring traces the
+// same corners. The logo image, its background fill, and any control a consumer
+// overlays (e.g. the detail page's edit button) must share a single radius —
+// otherwise the smaller-radius layer leaves a visible sliver of the larger one
+// at each corner. The default is overridable via the pass-through class (e.g.
+// `rounded-md` at small sizes).
+const containerClass = computed(() =>
+  cn('relative shrink-0 rounded-lg ring-1 ring-primary/15', attrs.class as string | undefined),
+);
 </script>
 
 <template>
   <div :class="containerClass">
-    <!-- Monogram: always present as the base layer -->
+    <!-- Monogram: always present as the base layer, visible when no logo is
+         resolved or while the image is still loading. -->
     <div
-      class="bg-primary/15 ring-primary/25 text-primary absolute inset-0 flex items-center justify-center rounded-lg text-sm font-bold uppercase ring-1"
+      class="bg-primary/15 text-primary absolute inset-0 flex items-center justify-center rounded-[inherit] text-sm font-bold uppercase"
       aria-hidden="true"
     >
       {{ monogramLetter }}
     </div>
 
     <!--
-      AsyncLogo stacks above the monogram. When the image loads successfully,
-      its white rounded container covers the monogram. When url is null, or the
-      image 404s / errors, AsyncLogo renders an invisible empty div — the
-      monogram beneath remains visible as the fallback.
+      AsyncLogo stacks above the monogram. When the image loads its white frame
+      covers the monogram; when url is null or the image errors it renders
+      nothing and the monogram shows through. `rounded-[inherit]` makes the
+      frame trace the container's corners exactly.
     -->
-    <AsyncLogo v-if="logoUrl" :url="logoUrl" :alt="name" class="absolute inset-0 size-full" />
+    <AsyncLogo v-if="logoUrl" :url="logoUrl" :alt="name" class="absolute inset-0 size-full rounded-[inherit]" />
   </div>
 </template>

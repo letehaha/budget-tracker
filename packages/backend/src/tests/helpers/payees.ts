@@ -8,6 +8,7 @@ export interface CreatePayeePayload {
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
+  logoDomain?: string | null;
 }
 
 export interface UpdatePayeePayload {

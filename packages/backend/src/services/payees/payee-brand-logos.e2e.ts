@@ -59,6 +59,100 @@ describe('Payee brand-logo search', () => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/payees  — logoDomain field (manual logo at creation time)
+// ---------------------------------------------------------------------------
+
+describe('Payee POST logoDomain', () => {
+  describe('POST /payees', () => {
+    it('creates with logoDomain and stamps logoSource as manual', async () => {
+      const created = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Netflix', logoDomain: 'netflix.com' }),
+        raw: true,
+      });
+
+      const fetched = await helpers.getPayeeById({ id: created.id, raw: true });
+      expect(fetched.logoDomain).toBe('netflix.com');
+      expect(fetched.logoSource).toBe('manual');
+    });
+
+    it('auto-resolves from the BrandLogos cache when logoDomain is omitted', async () => {
+      // Seed the shared cache so the post-commit worker hits it (no logo.dev call).
+      await BrandLogos.create({
+        normalizedName: 'gitlab',
+        domain: 'gitlab.com',
+        brandName: 'GitLab',
+        source: 'seed',
+      });
+
+      const created = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'GitLab' }),
+        raw: true,
+      });
+
+      await until(
+        async () => {
+          const fetched = await helpers.getPayeeById({ id: created.id, raw: true });
+          return fetched.logoSource !== null;
+        },
+        { timeout: 10_000, interval: 200 },
+      );
+
+      const resolved = await helpers.getPayeeById({ id: created.id, raw: true });
+      expect(resolved.logoSource).toBe('auto');
+      expect(resolved.logoDomain).toBe('gitlab.com');
+    });
+
+    it('keeps a manual logoDomain even when a matching BrandLogos cache entry exists', async () => {
+      // A cache entry that WOULD be picked up by auto-resolution — the manual
+      // override must win because the resolver bails on logoSource = 'manual'.
+      await BrandLogos.create({
+        normalizedName: 'dropbox',
+        domain: 'dropbox.com',
+        brandName: 'Dropbox',
+        source: 'seed',
+      });
+
+      const created = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Dropbox', logoDomain: 'custom.example' }),
+        raw: true,
+      });
+
+      // Give the post-commit worker a window to (wrongly) clobber the manual
+      // choice; the guard must keep it intact.
+      await until(
+        async () => {
+          const fetched = await helpers.getPayeeById({ id: created.id, raw: true });
+          return fetched.logoSource === 'manual' && fetched.logoDomain === 'custom.example';
+        },
+        { timeout: 3_000, interval: 200 },
+      );
+
+      const after = await helpers.getPayeeById({ id: created.id, raw: true });
+      expect(after.logoSource).toBe('manual');
+      expect(after.logoDomain).toBe('custom.example');
+    });
+
+    it('returns 422 when logoDomain contains a space', async () => {
+      const res = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Create Bad Domain Space', logoDomain: 'has space' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 when logoDomain contains a slash', async () => {
+      const res = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Create Bad Domain Slash', logoDomain: 'x/y' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // PATCH /api/payees/:id  — logoDomain field
 // ---------------------------------------------------------------------------
 

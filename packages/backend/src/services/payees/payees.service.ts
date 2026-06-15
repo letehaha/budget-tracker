@@ -248,6 +248,13 @@ interface CreatePayeeParams {
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
+  /**
+   * When present (including null), the new Payee is stamped with this logo
+   * domain and `logoSource: 'manual'` so the background resolver treats it as
+   * authoritative and never overwrites it. When absent (undefined), the logo
+   * fields stay unset and the post-commit resolver auto-resolves them.
+   */
+  logoDomain?: string | null;
 }
 
 export const createPayee = withTransaction(
@@ -257,6 +264,7 @@ export const createPayee = withTransaction(
     defaultCategoryId,
     categorizationMode,
     defaultTagIds,
+    logoDomain,
   }: CreatePayeeParams): Promise<Payees> => {
     const { display, normalized } = parsePayeeName({ raw: name, emptyMessageKey: 'payees.nameRequired' });
 
@@ -288,12 +296,18 @@ export const createPayee = withTransaction(
       normalizedName: normalized,
       defaultCategoryId: defaultCategoryId ?? null,
       categorizationMode: categorizationMode ?? CATEGORIZATION_MODE.enforce,
+      // A supplied domain (even null) is a manual override; `logoSource: 'manual'`
+      // makes the resolver treat it as authoritative.
+      ...(logoDomain !== undefined ? { logoDomain, logoSource: 'manual' as const } : {}),
     });
     await addPayeeTags({ payeeId: created.id, tagIds: defaultTagIds ?? [] });
     // Covers both the manual POST /payees route and the YNAB import loop.
     // `createPayee` is `withTransaction`-wrapped, so an ambient transaction is
     // in scope here and the helper defers the enqueue to `afterCommit`; if a
     // future caller invokes it without a transaction, it enqueues directly.
+    // Always enqueued: when this Payee was created with a manual logo the
+    // resolver reads the committed `logoSource: 'manual'` row and no-ops, so the
+    // manual choice is never clobbered.
     enqueueLogoResolutionAfterCommit({ payeeId: created.id });
     return loadPayeeOrThrow({ userId, id: created.id });
   },

@@ -10,6 +10,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { PayeeModel } from '@bt/shared/types';
 import PayeeFormDialog from '@/pages/settings/subpages/payees/components/payee-form-dialog.vue';
+import PayeeLogo from '@/pages/settings/subpages/payees/components/payee-logo.vue';
 import FieldLabel from './components/field-label.vue';
 
 const DEBOUNCE_MS = 200;
@@ -111,11 +112,12 @@ const createLabel = computed(() => {
   return t('fields.payeeSelect.createAffordance', { name: debouncedQuery.value });
 });
 
-const selectedLabel = computed(() => {
-  if (!props.modelValue) return '';
-  const fromCache = allPayees.value.find((p) => p.id === props.modelValue);
-  return fromCache?.name ?? '';
+const selectedPayee = computed(() => {
+  if (!props.modelValue) return null;
+  return allPayees.value.find((p) => p.id === props.modelValue) ?? null;
 });
+
+const selectedLabel = computed(() => selectedPayee.value?.name ?? '');
 
 const placeholderResolved = computed(() => props.placeholder ?? t('fields.payeeSelect.placeholder'));
 
@@ -171,6 +173,12 @@ function handlePayeeCreated(payee: PayeeModel) {
           "
           data-test="payee-select-field"
         >
+          <PayeeLogo
+            v-if="selectedPayee"
+            :domain="selectedPayee.logoDomain ?? null"
+            :name="selectedPayee.name"
+            class="size-5 shrink-0"
+          />
           <span
             class="text-muted-foreground min-w-0 flex-1 truncate text-left"
             :class="{ 'text-foreground': selectedLabel }"
@@ -218,6 +226,7 @@ function handlePayeeCreated(payee: PayeeModel) {
               :class="{ 'bg-primary/15 hover:bg-primary/20': modelValue === item.id }"
               @click="selectPayee(item)"
             >
+              <PayeeLogo :domain="item.logoDomain ?? null" :name="item.name" class="size-6 shrink-0" />
               <span class="min-w-0 grow truncate">{{ item.name }}</span>
             </button>
 

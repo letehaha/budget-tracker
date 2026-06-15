@@ -1,7 +1,7 @@
 <template>
   <ResponsiveDialog v-model:open="isOpen">
     <template #default>
-      <div class="flex flex-col gap-4 p-4">
+      <div class="flex flex-col gap-4">
         <h3 class="text-lg font-semibold">
           {{ isEdit ? $t('payees.actions.rename') : $t('payees.newPayeeButton') }}
         </h3>
@@ -11,6 +11,18 @@
           :label="$t('payees.columns.name')"
           :placeholder="$t('payees.form.namePlaceholder')"
         />
+
+        <!-- Logo picker: create-only. Renaming an existing payee uses the
+             dedicated payee-logo-picker dialog instead. -->
+        <div v-if="!isEdit" class="flex flex-col gap-2">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm font-medium">{{ $t('payees.logo.fieldLabel') }}</span>
+            <ResponsiveTooltip :delay-duration="100" :content="$t('payees.logo.domainHint')">
+              <InfoIcon class="text-muted-foreground size-3.5 cursor-help" @click.prevent.stop />
+            </ResponsiveTooltip>
+          </div>
+          <PayeeLogoField v-model="form.logoDomain" :name-for-search="form.name" />
+        </div>
 
         <CategorySelectField
           v-model="form.category"
@@ -50,14 +62,18 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useCategoriesStore } from '@/stores';
 import type { FormattedCategory } from '@/common/types';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { CATEGORIZATION_MODE, PayeeModel } from '@bt/shared/types';
+import { InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import PayeeLogoField from './payee-logo-field.vue';
 
 interface Props {
   open: boolean;
@@ -115,11 +131,14 @@ const form = reactive<{
   name: string;
   category: FormattedCategory | null;
   categorizationMode: ModeOption;
+  /** Manually chosen logo domain (create mode only). null = auto-resolve. */
+  logoDomain: string | null;
 }>({
   name: '',
   category: null,
   // Default is `enforce` – matches the backend default for new Payees.
   categorizationMode: categorizationModeOptions.value[0]!,
+  logoDomain: null,
 });
 
 // Resolved against the live options array instead of reading
@@ -142,6 +161,8 @@ watch(
     const existingMode = props.payee?.categorizationMode ?? CATEGORIZATION_MODE.enforce;
     form.categorizationMode =
       categorizationModeOptions.value.find((opt) => opt.value === existingMode) ?? categorizationModeOptions.value[0]!;
+    // Logo picker is create-only; reset so a reopened dialog starts auto-resolving.
+    form.logoDomain = null;
   },
   { immediate: true },
 );
@@ -168,6 +189,9 @@ async function handleSave() {
         name: form.name,
         defaultCategoryId: form.category?.id ?? null,
         categorizationMode: form.categorizationMode.value,
+        // Omit the key when no logo was picked so the new payee keeps
+        // auto-resolving; a non-null value stamps a manual override.
+        ...(form.logoDomain !== null ? { logoDomain: form.logoDomain } : {}),
       });
       addSuccessNotification(t('payees.toasts.created'));
     }

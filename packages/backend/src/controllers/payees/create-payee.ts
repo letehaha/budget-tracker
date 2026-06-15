@@ -4,6 +4,7 @@ import { createController } from '@controllers/helpers/controller-factory';
 import * as payeesService from '@services/payees';
 import { z } from 'zod';
 
+import { logoDomainSchema } from './logo-domain.schema';
 import { serializePayee } from './serializer';
 
 const schema = z.object({
@@ -12,6 +13,9 @@ const schema = z.object({
     defaultCategoryId: recordId().nullable().optional(),
     categorizationMode: z.nativeEnum(CATEGORIZATION_MODE).optional(),
     defaultTagIds: z.array(recordId()).optional(),
+    // Present key (even null) → manual override on the new Payee; absent key →
+    // leave the logo unset so the background resolver auto-resolves it.
+    logoDomain: logoDomainSchema.optional(),
   }),
 });
 
@@ -22,6 +26,7 @@ export default createController(schema, async ({ user, body }) => {
     defaultCategoryId: body.defaultCategoryId ?? null,
     categorizationMode: body.categorizationMode,
     defaultTagIds: body.defaultTagIds,
+    logoDomain: body.logoDomain,
   });
   return { data: serializePayee(payee), statusCode: 201 };
 });

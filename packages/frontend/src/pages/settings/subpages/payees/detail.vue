@@ -207,6 +207,7 @@
       v-model:open="logoPickerOpen"
       :payee-id="payeeData.id"
       :payee-name="payeeData.name"
+      :current-domain="payeeData.logoDomain ?? null"
     />
 
     <PayeeFormDialog v-model:open="renameOpen" :payee="payeeData ?? null" @saved="refetch()" />
