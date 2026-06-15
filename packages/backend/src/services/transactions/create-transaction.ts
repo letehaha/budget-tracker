@@ -164,6 +164,17 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
   }
   const isLoanDestination = destAccount.accountCategory === ACCOUNT_CATEGORIES.loan;
+  // A loan payment is an outflow: the base leg is the expense that leaves the
+  // user's cash account, and the auto-created loan-side leg is the income that
+  // pays the balance down. An income base inverts both legs — stamping the loan
+  // with an expense leg that grows the debt — so reject it. Gate on the
+  // destination *category*, not the nature label, since a common_transfer into
+  // a loan account is auto-stamped `transfer_to_loan` just below.
+  if (isLoanDestination && transactionType === TRANSACTION_TYPES.income) {
+    throw new ValidationError({
+      message: t({ key: 'transactions.loanPaymentMustBeExpense' }),
+    });
+  }
   if (!isLoanDestination && creationParams.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
     throw new ValidationError({
       message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),

@@ -61,6 +61,7 @@
     "transferToLoanRelinkRequired": "El destino de esta transferencia es una cuenta de préstamo. Desvincule la transferencia primero y luego marque el gasto como pago de préstamo.",
     "loanPaymentOverpay": "El pago supera el saldo restante del préstamo.",
     "loanAccountReadonly": "Las cuentas de préstamo solo se pueden modificar registrando un pago. Use la página del préstamo para registrar uno.",
+    "loanPaymentMustBeExpense": "Un pago de préstamo debe ser un gasto — las transacciones de ingreso no se pueden transferir a un préstamo.",
     "splits": {
       "splitsOnTransfer": "No se pueden agregar divisiones a transacciones de transferencia",
       "splitLimitExceeded": "Se permiten como máximo {{max}} divisiones por transacción",

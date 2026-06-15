@@ -721,4 +721,101 @@ describe('Loan payment integration', () => {
       expect(reloadedLoan.currentBalance).toBe(-600);
     });
   });
+
+  describe('rejects an income base for a loan payment', () => {
+    it('rejects a transfer_to_loan whose base transaction is income', async () => {
+      // A loan payment is an outflow: the base leg must be the expense that
+      // leaves the user's cash account. An income base would invert both legs,
+      // stamping the loan with an expense leg that grows the debt.
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ initialBalance: 1_000, originalPrincipal: 1_000 }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      const response = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 300,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 300,
+          destinationAccountId: loan.id as RecordId,
+        },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-1_000);
+    });
+
+    it('rejects an income base even when labeled common_transfer (the loan auto-stamp path)', async () => {
+      // A common_transfer into a loan account is auto-stamped transfer_to_loan,
+      // so the income guard keys off the loan destination — not the label — to
+      // catch this otherwise-bypassing case.
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ initialBalance: 1_000, originalPrincipal: 1_000 }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      const response = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 300,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: 300,
+          destinationAccountId: loan.id as RecordId,
+        },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-1_000);
+    });
+
+    it('rejects promoting an existing income transaction into a transfer_to_loan via update', async () => {
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ initialBalance: 1_000, originalPrincipal: 1_000 }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      const [incomeTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: sourceAccount.id,
+          amount: 300,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+
+      const response = await helpers.updateTransaction({
+        id: incomeTx.id,
+        payload: {
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 300,
+          destinationAccountId: loan.id as RecordId,
+        },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-1_000);
+    });
+  });
 });

@@ -61,6 +61,7 @@
     "transferToLoanRelinkRequired": "This transfer's destination is a loan account. Unlink the transfer first, then mark the expense as a loan payment.",
     "loanPaymentOverpay": "Payment exceeds the remaining loan balance.",
     "loanAccountReadonly": "Loan accounts can only be changed by recording a payment. Use the loan's page to record one.",
+    "loanPaymentMustBeExpense": "A loan payment must be an expense — income transactions can't be transferred to a loan.",
     "splits": {
       "splitsOnTransfer": "Cannot add splits to transfer transactions",
       "splitLimitExceeded": "Maximum {{max}} splits allowed per transaction",

@@ -160,9 +160,10 @@ import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES } from '@bt/shared/types';
 import { BriefcaseIcon, HandCoinsIcon, WalletIcon } from '@lucide/vue';
-import { computed } from 'vue';
+import { type Component, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { getAvailableTransferDestinationTypes } from '../helpers';
 import type { TransferDestinationType } from '../composables/transfer-form';
 import FormRow from './form-row.vue';
 
@@ -176,25 +177,13 @@ const getAccountLabel = (account: AccountModel & { _isOutOfWallet?: boolean }) =
   return getAccountDisplayLabel(account);
 };
 
-const destinationTypeItems = computed(() => [
-  {
-    value: 'account' as TransferDestinationType,
-    label: t('dialogs.manageTransaction.form.destinationTypeAccount'),
-    icon: WalletIcon,
-  },
-  {
-    value: 'portfolio' as TransferDestinationType,
-    label: t('dialogs.manageTransaction.form.destinationTypePortfolio'),
-    icon: BriefcaseIcon,
-  },
-  {
-    value: 'loan' as TransferDestinationType,
-    label: t('dialogs.manageTransaction.form.destinationTypeLoan'),
-    icon: HandCoinsIcon,
-  },
-]);
+const DESTINATION_TYPE_META: Record<TransferDestinationType, { labelKey: string; icon: Component }> = {
+  account: { labelKey: 'dialogs.manageTransaction.form.destinationTypeAccount', icon: WalletIcon },
+  portfolio: { labelKey: 'dialogs.manageTransaction.form.destinationTypePortfolio', icon: BriefcaseIcon },
+  loan: { labelKey: 'dialogs.manageTransaction.form.destinationTypeLoan', icon: HandCoinsIcon },
+};
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     account?: AccountModel | null;
     toAccount?: AccountModel | null;
@@ -225,6 +214,14 @@ withDefaults(
     toAccountDisabled: false,
     destinationTypeDisabled: false,
   },
+);
+
+const destinationTypeItems = computed(() =>
+  getAvailableTransferDestinationTypes(props.transactionType).map((value) => ({
+    value,
+    label: t(DESTINATION_TYPE_META[value].labelKey),
+    icon: DESTINATION_TYPE_META[value].icon,
+  })),
 );
 
 const emit = defineEmits<{
