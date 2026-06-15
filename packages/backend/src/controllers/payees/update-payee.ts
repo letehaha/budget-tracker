@@ -4,6 +4,7 @@ import { createController } from '@controllers/helpers/controller-factory';
 import * as payeesService from '@services/payees';
 import { z } from 'zod';
 
+import { logoDomainSchema } from './logo-domain.schema';
 import { serializePayee } from './serializer';
 
 const schema = z.object({
@@ -15,6 +16,8 @@ const schema = z.object({
     defaultCategoryId: recordId().nullable().optional(),
     categorizationMode: z.nativeEnum(CATEGORIZATION_MODE).optional(),
     defaultTagIds: z.array(recordId()).optional(),
+    // Present key (even null) → manual override; absent key → no change.
+    logoDomain: logoDomainSchema.optional(),
   }),
 });
 
@@ -26,6 +29,9 @@ export default createController(schema, async ({ user, params, body }) => {
     defaultCategoryId: body.defaultCategoryId,
     categorizationMode: body.categorizationMode,
     defaultTagIds: body.defaultTagIds,
+    // Pass undefined when the key was absent (Zod treats missing optional as
+    // undefined), so the service can distinguish "set manual" from "leave alone".
+    logoDomain: body.logoDomain,
   });
   return { data: serializePayee(payee) };
 });

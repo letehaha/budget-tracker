@@ -6,6 +6,7 @@ import AccountGroupsModel from './accounts-groups/account-groups.model';
 import AccountsModel from './accounts.model';
 import BalancesModel from './balances.model';
 import BankDataProviderConnectionsModel from './bank-data-provider-connections.model';
+import BrandLogosModel from './brand-logos.model';
 import BudgetCategoriesModel from './budget-categories.model';
 import BudgetTransactionsModel from './budget-transactions.model';
 import BudgetModel from './budget.model';
@@ -113,6 +114,7 @@ const models = [
   SubscriptionCandidatesModel,
   PayeesModel,
   PayeeAliasesModel,
+  BrandLogosModel,
   PayeeIgnoredNamesModel,
   PayeeTagsModel,
   PaymentRemindersModel,

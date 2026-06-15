@@ -6,6 +6,7 @@ import {
   BANK_PROVIDER_TYPE,
   BUDGET_TYPES,
   CATEGORIZATION_MODE,
+  PayeeLogoSource,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
   NotificationPriority,
@@ -719,6 +720,13 @@ export interface PayeeModel {
    * means no tag rule.
    */
   defaultTagIds: RecordId[];
+  /** Resolved brand domain used to fetch the logo (e.g. "amazon.com"). Null
+   *  when the brand resolver has not yet matched this Payee. */
+  logoDomain: string | null;
+  /** How logoDomain was resolved — see PayeeLogoSource. 'manual' can pair with
+   *  a null logoDomain (user explicitly cleared the logo); null only before the
+   *  Payee has been through a resolution pass. */
+  logoSource: PayeeLogoSource | null;
   createdAt: Date;
   updatedAt: Date;
   aliases?: PayeeAliasModel[];

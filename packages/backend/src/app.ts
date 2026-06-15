@@ -14,6 +14,7 @@ import { registerAiCategorizationListeners } from './services/ai-categorization'
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
 import { registerPayeeNoteBackfillListeners } from './services/payees';
+import { seedBrandLogos } from './services/payees/seed-brand-logos';
 import { registerSubscriptionMatchingListeners } from './services/subscriptions';
 import { registerTagReminderListeners } from './services/tag-reminders';
 import { setupMiddleware } from './setup-middleware';
@@ -35,6 +36,15 @@ registerAiCategorizationListeners();
 registerTagReminderListeners();
 registerSubscriptionMatchingListeners();
 registerPayeeNoteBackfillListeners();
+
+// Populate the shared brand-logo cache from the bundled seed. Skipped under
+// test (suites seed explicitly). Fire-and-forget: a seed failure must not block
+// boot or crash the app, so errors are logged and swallowed.
+if (process.env.NODE_ENV !== 'test') {
+  seedBrandLogos().catch((error) => {
+    logger.error({ message: '[Brand Logos Seed] Failed to seed brand logos on startup', error });
+  });
+}
 
 setupRoutes(app);
 

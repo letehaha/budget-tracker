@@ -9,11 +9,14 @@ import {
   getPayee,
   listIgnoredNames,
   listPayees,
+  logoSearch,
   mergePayees,
   removeIgnoredName,
+  resetLogo,
   updatePayee,
 } from '@controllers/payees';
 import { authenticateSession } from '@middlewares/better-auth';
+import { logoSearchRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -43,6 +46,16 @@ router.delete(
   removeIgnoredName.handler,
 );
 
+// Logo-search sub-resource. Registered before `/:id` so Express doesn't treat
+// the literal "logo-search" segment as a Payee id param.
+router.get(
+  '/logo-search',
+  authenticateSession,
+  logoSearchRateLimit,
+  validateEndpoint(logoSearch.schema),
+  logoSearch.handler,
+);
+
 router.get('/:id', authenticateSession, validateEndpoint(getPayee.schema), getPayee.handler);
 router.patch('/:id', authenticateSession, validateEndpoint(updatePayee.schema), updatePayee.handler);
 router.delete('/:id', authenticateSession, validateEndpoint(deletePayee.schema), deletePayee.handler);
@@ -60,5 +73,6 @@ router.delete(
   validateEndpoint(deletePayeeAlias.schema),
   deletePayeeAlias.handler,
 );
+router.post('/:id/reset-logo', authenticateSession, validateEndpoint(resetLogo.schema), resetLogo.handler);
 
 export default router;

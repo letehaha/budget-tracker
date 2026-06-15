@@ -79,6 +79,21 @@
       "defaultTagsHint": "These tags are automatically added to new transactions linked to this payee (bank syncs and imports).",
       "applyTagsToExisting": "Apply to existing transactions"
     },
+    "logo": {
+      "change": "Change logo",
+      "dialogTitle": "Change Logo",
+      "dialogDescription": "Search for a brand logo to represent this payee.",
+      "searchPlaceholder": "Brand name or domain",
+      "noResults": "No matching brands found.",
+      "resetToAuto": "Reset to automatic",
+      "updatedToast": "Logo updated.",
+      "resetToast": "Logo reset to automatic.",
+      "fieldLabel": "Logo",
+      "domainHint": "To find the exact brand, type the company's website domain (e.g. amazon.com) — that always matches the right logo.",
+      "useDomainDirectly": "Use {domain}",
+      "searchHint": "Type a brand name, or a domain like amazon.com",
+      "autoLabel": "Automatic (from name)"
+    },
     "transactionsDialog": {
       "title": "{name} — transactions",
       "empty": "No transactions linked to this payee."

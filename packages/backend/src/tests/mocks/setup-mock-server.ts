@@ -3,6 +3,7 @@ import { setupServer } from 'msw/node';
 import { anthropicHandlers } from './anthropic/mock-api';
 import { enableBankingHandlers } from './enablebanking/mock-api';
 import { exchangeRatesHandlers } from './exchange-rates/use-mock-api';
+import { logoDevHandlers } from './logo-dev/mock-api';
 import { lunchflowHandlers } from './lunchflow/mock-api';
 import { monobankHandlers } from './monobank/mock-api';
 import { simplefinHandlers } from './simplefin/mock-api';
@@ -17,4 +18,5 @@ export const setupMswServer = () =>
     ...walutomatHandlers,
     ...simplefinHandlers,
     ...anthropicHandlers,
+    ...logoDevHandlers,
   );

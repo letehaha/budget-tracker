@@ -13,6 +13,7 @@ import { categorizationQueue, categorizationWorker } from '@services/ai-categori
 import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
 import { closeAllMonobankQueueBundles } from '@services/bank-data-providers/monobank/transaction-sync-queue';
 import { ynabImportQueue, ynabImportWorker } from '@services/import-export/ynab-import';
+import { logoResolutionQueue, logoResolutionWorker } from '@services/payees/logo-resolution-queue';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 
@@ -118,6 +119,16 @@ if (missingEnvVars.length > 0) {
       `CI sets these automatically via .github/workflows/check-source-code.yml.`,
   );
 }
+
+/**
+ * logo.dev brand search is always MSW-mocked in tests, so a real key is never
+ * needed — but `searchBrands` short-circuits to [] when LOGO_DEV_SECRET_KEY is
+ * unset, before reaching the fetch() that MSW intercepts. Default a dummy value
+ * so the request reaches the mock. Unlike the real-provider keys above, there's
+ * no stale-.env.test failure mode to guard against, so we default rather than
+ * fail loud.
+ */
+process.env.LOGO_DEV_SECRET_KEY = process.env.LOGO_DEV_SECRET_KEY || 'test';
 
 /**
  * On CI, retry a failed test in-process before failing the run. A single flaky
@@ -431,6 +442,8 @@ afterAll(async () => {
     await categorizationQueue.close();
     await ynabImportWorker.close();
     await ynabImportQueue.close();
+    await logoResolutionWorker.close();
+    await logoResolutionQueue.close();
 
     // Now safe to close Redis client
     await redisClient.quit();

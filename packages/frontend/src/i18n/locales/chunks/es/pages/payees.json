@@ -79,6 +79,21 @@
       "defaultTagsHint": "Estas etiquetas se añaden automáticamente a las nuevas transacciones vinculadas a este beneficiario (sincronizaciones bancarias e importaciones).",
       "applyTagsToExisting": "Aplicar a transacciones existentes"
     },
+    "logo": {
+      "change": "Cambiar logotipo",
+      "dialogTitle": "Cambiar logotipo",
+      "dialogDescription": "Busque un logotipo de marca para representar este beneficiario.",
+      "searchPlaceholder": "Nombre de marca o dominio",
+      "noResults": "No se encontraron marcas coincidentes.",
+      "resetToAuto": "Restablecer a automático",
+      "updatedToast": "Logotipo actualizado.",
+      "resetToast": "Logotipo restablecido a automático.",
+      "fieldLabel": "Logotipo",
+      "domainHint": "Para encontrar la marca exacta, escriba el dominio del sitio web de la empresa (p. ej. amazon.com) — eso siempre coincide con el logotipo correcto.",
+      "useDomainDirectly": "Usar {domain}",
+      "searchHint": "Escriba un nombre de marca o un dominio como amazon.com",
+      "autoLabel": "Automático (desde el nombre)"
+    },
     "transactionsDialog": {
       "title": "{name} — transacciones",
       "empty": "No hay transacciones vinculadas a este beneficiario."

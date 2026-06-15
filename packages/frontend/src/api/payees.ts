@@ -8,6 +8,7 @@ export interface CreatePayeePayload {
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
+  logoDomain?: string | null;
 }
 
 export interface UpdatePayeePayload {
@@ -15,6 +16,13 @@ export interface UpdatePayeePayload {
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
+  logoDomain?: string | null;
+}
+
+export interface PayeeLogoSearchResult {
+  name: string;
+  domain: string;
+  logoUrl: string | null;
 }
 
 export type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount';
@@ -147,4 +155,12 @@ export const bulkUpdateCategorizationMode = async ({
   mode: CATEGORIZATION_MODE;
 }): Promise<{ updatedCount: number }> => {
   return api.patch('/payees/bulk-categorization-mode', { mode });
+};
+
+export const searchPayeeLogo = async ({ q }: { q: string }): Promise<{ results: PayeeLogoSearchResult[] }> => {
+  return api.get(`/payees/logo-search?q=${encodeURIComponent(q)}`);
+};
+
+export const resetPayeeLogo = async ({ id }: { id: string }): Promise<PayeeModel> => {
+  return api.post(`/payees/${id}/reset-logo`, {});
 };

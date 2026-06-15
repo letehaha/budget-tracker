@@ -2,15 +2,12 @@ import { SUBSCRIPTION_SERVICES, type SubscriptionServiceEntry } from '@/data/sub
 
 import { createFuzzyFinder } from './fuzzy-finder';
 
+// Generic logo.dev URL builder lives in a feature-neutral util. Re-exported
+// here for the subscription/bank callers that import it alongside
+// `findServiceByName`.
+export { getServiceLogoUrl } from './logo-url';
+
 export const findServiceByName = createFuzzyFinder<SubscriptionServiceEntry>({
   items: SUBSCRIPTION_SERVICES,
   keys: ['name', 'aliases'],
 });
-
-export function getServiceLogoUrl({ domain }: { domain: string }): string | null {
-  const token = import.meta.env.VITE_LOGO_DEV_TOKEN;
-  // Without a token logo.dev returns 401 — better to skip the request entirely
-  // than render an <img> that 401s for every visible subscription/bank logo.
-  if (!token) return null;
-  return `https://img.logo.dev/${domain}?token=${token}&format=png&size=64`;
-}

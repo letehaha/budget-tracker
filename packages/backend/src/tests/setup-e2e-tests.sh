@@ -89,7 +89,10 @@ done
 
 echo "Running tests..."
 # Run tests
-docker compose -f ../../docker/test/backend/docker-compose.yml exec -T test-runner \
+# Forward SHOW_LOGS_IN_TESTS from the host so application logs (otherwise gated
+# off inside the container) surface during e2e debugging. Unset by default.
+docker compose -f ../../docker/test/backend/docker-compose.yml exec -T \
+  -e SHOW_LOGS_IN_TESTS="${SHOW_LOGS_IN_TESTS:-}" test-runner \
   npx jest -c packages/backend/jest.config.e2e.ts --passWithNoTests --forceExit --colors "$@"
 
 # Capture the exit code
