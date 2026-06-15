@@ -181,6 +181,35 @@
         "unlinkConfirmDescription": "La transacción se mantendrá como un gasto regular pero se eliminará de este préstamo. El saldo del préstamo será recalculado.",
         "unlinkSuccess": "Pago desvinculado",
         "unlinkError": "No se pudo desvincular el pago. Por favor, inténtelo de nuevo."
+      },
+      "payoffChart": {
+        "title": "Proyección de liquidación",
+        "titleHint": "Proyecta cuándo quedará completamente liquidado su préstamo con el pago mínimo, el planificado y uno personalizado mensual, mostrando la fecha de liquidación y el total de intereses de cada escenario. Escriba cualquier cantidad en el campo de pago personalizado para experimentar con los números y ver al instante cómo cambia su fecha de liquidación y el total de intereses.",
+        "customPaymentLabel": "Pago personalizado",
+        "applyAsPlanned": "Aplicar como pago planificado",
+        "applyAsPlannedShort": "Aplicar como planificado",
+        "applyConfirmTitle": "¿Aplicar como pago planificado?",
+        "applyConfirmDescription": "Esto establece el pago mensual planificado del préstamo en {amount}.",
+        "applySuccess": "Pago planificado actualizado.",
+        "applyError": "No se pudo actualizar el pago planificado. Por favor, inténtelo de nuevo.",
+        "belowInterest": "Este pago no cubre los intereses mensuales, por lo que el saldo nunca disminuirá.",
+        "paidOff": "Este préstamo está liquidado — no hay nada que proyectar.",
+        "enterPaymentPrompt": "Ingrese una cantidad de pago arriba para proyectar la liquidación.",
+        "paidOffShort": "Liquidado",
+        "neverPaysOff": "Nunca",
+        "interestVsPlanned": "Intereses vs planificado",
+        "payoffVsPlanned": "Liquidación vs planificado",
+        "sameAsPlanned": "Igual que planificado",
+        "earlierBy": "{time} antes",
+        "laterBy": "{time} después",
+        "monthsLabel": "{n} meses",
+        "yearsLabel": "{n} años",
+        "yearsMonthsLabel": "{y} años {m} meses",
+        "legend": {
+          "minimum": "Pago mínimo",
+          "planned": "Pago planificado",
+          "custom": "Pago personalizado"
+        }
       }
     }
   }

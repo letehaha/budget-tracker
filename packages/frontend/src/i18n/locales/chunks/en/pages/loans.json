@@ -181,6 +181,35 @@
         "unlinkConfirmDescription": "The transaction will be kept as a regular expense but removed from this loan. The loan balance will be recalculated.",
         "unlinkSuccess": "Payment unlinked",
         "unlinkError": "Couldn't unlink the payment. Please try again."
+      },
+      "payoffChart": {
+        "title": "Payoff projection",
+        "titleHint": "Projects when your loan will be fully paid under the minimum, planned, and a custom monthly payment, with each scenario's payoff date and total interest. Type any amount into the custom payment field to play with the numbers and instantly see how it changes your payoff date and total interest.",
+        "customPaymentLabel": "Custom payment",
+        "applyAsPlanned": "Apply as planned payment",
+        "applyAsPlannedShort": "Apply as planned",
+        "applyConfirmTitle": "Apply as planned payment?",
+        "applyConfirmDescription": "This sets the loan's planned monthly payment to {amount}.",
+        "applySuccess": "Planned payment updated.",
+        "applyError": "Couldn't update the planned payment. Please try again.",
+        "belowInterest": "This payment doesn't cover the monthly interest, so the balance never goes down.",
+        "paidOff": "This loan is paid off — there's nothing left to project.",
+        "enterPaymentPrompt": "Enter a payment amount above to project the payoff.",
+        "paidOffShort": "Paid off",
+        "neverPaysOff": "Never",
+        "interestVsPlanned": "Interest vs planned",
+        "payoffVsPlanned": "Payoff vs planned",
+        "sameAsPlanned": "Same as planned",
+        "earlierBy": "{time} earlier",
+        "laterBy": "{time} later",
+        "monthsLabel": "{n} mo",
+        "yearsLabel": "{n} yr",
+        "yearsMonthsLabel": "{y} yr {m} mo",
+        "legend": {
+          "minimum": "Minimum payment",
+          "planned": "Planned payment",
+          "custom": "Custom payment"
+        }
       }
     }
   }
