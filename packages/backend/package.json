@@ -19,7 +19,8 @@
     "test:e2e": "cross-env NODE_ENV=test chmod +x ./src/tests/setup-e2e-tests.sh && ./src/tests/setup-e2e-tests.sh",
     "lint": "oxlint .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "knip": "npx knip"
+    "knip": "npx knip",
+    "backfill:payee-logos": "cross-env NODE_ENV=production ts-node -r tsconfig-paths/register src/scripts/backfill-payee-logos.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.1",

@@ -1,4 +1,5 @@
 import { CATEGORIZATION_MODE, PayeeModel, PayeeStats } from '@bt/shared/types';
+import type { BrandSearchResult } from '@services/payees/logo-provider';
 
 import { makeRequest } from './common';
 
@@ -14,6 +15,7 @@ export interface UpdatePayeePayload {
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
+  logoDomain?: string | null;
 }
 
 export type PayeeWithStats = PayeeModel & { stats: PayeeStats | null };
@@ -224,6 +226,35 @@ export async function bulkUpdatePayeeCategorizationMode<R extends boolean | unde
     method: 'patch',
     url: '/payees/bulk-categorization-mode',
     payload: { mode },
+    raw,
+  });
+}
+
+export interface LogoSearchResult {
+  results: BrandSearchResult[];
+}
+
+export async function searchPayeeLogos<R extends boolean | undefined = undefined>({
+  q,
+  raw,
+}: {
+  q?: string;
+  raw?: R;
+} = {}) {
+  const search = new URLSearchParams();
+  if (q !== undefined) search.set('q', q);
+  const qs = search.toString();
+  return makeRequest<LogoSearchResult, R>({
+    method: 'get',
+    url: `/payees/logo-search${qs ? `?${qs}` : ''}`,
+    raw,
+  });
+}
+
+export async function resetPayeeLogo<R extends boolean | undefined = undefined>({ id, raw }: { id: string; raw?: R }) {
+  return makeRequest<PayeeModel, R>({
+    method: 'post',
+    url: `/payees/${id}/reset-logo`,
     raw,
   });
 }

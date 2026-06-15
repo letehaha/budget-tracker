@@ -19,10 +19,20 @@
       </div>
 
       <div class="mt-3 flex items-center gap-3 px-5 sm:px-6">
-        <div
-          class="bg-primary/15 ring-primary/25 text-primary flex size-11 shrink-0 items-center justify-center rounded-lg text-lg font-bold uppercase ring-1"
-        >
-          {{ monogram }}
+        <div class="group relative shrink-0">
+          <PayeeLogo :domain="payeeData?.logoDomain ?? null" :name="payeeData?.name ?? ''" class="size-11 text-lg" />
+          <DesktopOnlyTooltip :content="$t('payees.logo.change')">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="bg-background/80 hover:bg-background absolute inset-0 size-full rounded-lg opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100"
+              :aria-label="$t('payees.logo.change')"
+              :disabled="!payeeData"
+              @click="logoPickerOpen = true"
+            >
+              <PencilIcon class="size-4" />
+            </Button>
+          </DesktopOnlyTooltip>
         </div>
         <h2 class="min-w-0 flex-1 truncate text-xl font-semibold tracking-tight sm:text-2xl">
           {{ payeeData?.name ?? '…' }}
@@ -192,6 +202,13 @@
       </div>
     </Card>
 
+    <PayeeLogoPicker
+      v-if="payeeData"
+      v-model:open="logoPickerOpen"
+      :payee-id="payeeData.id"
+      :payee-name="payeeData.name"
+    />
+
     <PayeeFormDialog v-model:open="renameOpen" :payee="payeeData ?? null" @saved="refetch()" />
 
     <ResponsiveAlertDialog
@@ -321,7 +338,7 @@ import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { API_ERROR_CODES, CATEGORIZATION_MODE, type PayeeNameConflictDetails } from '@bt/shared/types';
 import { ApiErrorResponseError, getPayeeNameConflict, isApiErrorWithCode } from '@/js/errors';
-import { ChevronLeftIcon, InfoIcon, PlusIcon, TagsIcon, Trash2Icon } from '@lucide/vue';
+import { ChevronLeftIcon, InfoIcon, PencilIcon, PlusIcon, TagsIcon, Trash2Icon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -329,6 +346,8 @@ import { useI18n } from 'vue-i18n';
 
 import PayeeActionsDropdown from './components/payee-actions-dropdown.vue';
 import PayeeFormDialog from './components/payee-form-dialog.vue';
+import PayeeLogoPicker from './components/payee-logo-picker.vue';
+import PayeeLogo from './components/payee-logo.vue';
 import PayeeTransactionsDialog from './components/payee-transactions-dialog.vue';
 
 defineOptions({ name: 'settings-payee-detail' });
@@ -349,8 +368,6 @@ const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore())
 useTagsStore().loadTags();
 
 const categoryName = (id: string | null) => (id ? (categoriesMap.value?.[id]?.name ?? '') : '');
-
-const monogram = computed(() => payeeData.value?.name?.trim().charAt(0)?.toUpperCase() || '·');
 
 const updateMut = useUpdatePayee();
 const defaultCategoryProxy = computed({
@@ -474,6 +491,8 @@ const netFlowToneClass = (val: number) => {
   if (val < 0) return 'text-app-expense-color';
   return '';
 };
+
+const logoPickerOpen = ref(false);
 
 const renameOpen = ref(false);
 const openRename = () => (renameOpen.value = true);

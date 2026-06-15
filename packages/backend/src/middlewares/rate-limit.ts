@@ -157,3 +157,19 @@ export const shareInvitationSendRateLimit = createRateLimit({
     return `share-invitation-send:user:${user.id}`;
   },
 });
+
+/**
+ * Logo search rate limit (per user, 60 searches per minute).
+ *
+ * Each call fans out to logo.dev's Brand Search API, which counts against a
+ * shared API quota. The limit is generous enough not to block a fast typist
+ * using live search but still closes the scripted-scraping gap.
+ */
+export const logoSearchRateLimit = createRateLimit({
+  windowSeconds: 60,
+  maxAttempts: 60,
+  keyGenerator: (req: Request) => {
+    const user = req.user as Users;
+    return `logo-search:user:${user.id}`;
+  },
+});

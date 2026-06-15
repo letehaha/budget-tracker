@@ -11,6 +11,8 @@ export function serializePayee(payee: Payees): PayeeModel {
     normalizedName: payee.normalizedName,
     defaultCategoryId: payee.defaultCategoryId,
     categorizationMode: payee.categorizationMode,
+    logoDomain: payee.logoDomain,
+    logoSource: payee.logoSource,
     defaultTagIds: (payee.defaultTags ?? []).map((tag) => tag.id),
     createdAt: payee.createdAt,
     updatedAt: payee.updatedAt,

@@ -98,8 +98,15 @@
             >
               <!-- Compact (card) -->
               <div class="flex flex-col gap-1.5 @2xl/payees-table:hidden">
-                <div class="text-foreground truncate text-sm font-medium">
-                  {{ list[virtualRow.index]!.name }}
+                <div class="flex items-center gap-2">
+                  <PayeeLogo
+                    :domain="list[virtualRow.index]!.logoDomain ?? null"
+                    :name="list[virtualRow.index]!.name"
+                    class="size-7 shrink-0"
+                  />
+                  <span class="text-foreground truncate text-sm font-medium">
+                    {{ list[virtualRow.index]!.name }}
+                  </span>
                 </div>
                 <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                   <dt class="text-muted-foreground">{{ $t('payees.columns.transactionCount') }}</dt>
@@ -133,7 +140,14 @@
 
               <!-- Wide (grid row) -->
               <div :class="['hidden items-center gap-3 text-sm @2xl/payees-table:grid', DESKTOP_GRID]">
-                <span class="truncate font-medium">{{ list[virtualRow.index]!.name }}</span>
+                <div class="flex min-w-0 items-center gap-2">
+                  <PayeeLogo
+                    :domain="list[virtualRow.index]!.logoDomain ?? null"
+                    :name="list[virtualRow.index]!.name"
+                    class="size-7 shrink-0"
+                  />
+                  <span class="truncate font-medium">{{ list[virtualRow.index]!.name }}</span>
+                </div>
                 <span class="text-right tabular-nums">
                   {{ list[virtualRow.index]!.stats?.transactionCount ?? 0 }}
                 </span>
@@ -180,6 +194,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import CategoryDisplay from './category-display.vue';
+import PayeeLogo from './payee-logo.vue';
 import PayeeRowSkeleton from './payee-row-skeleton.vue';
 import SortHeaderButton from './sort-header-button.vue';
 

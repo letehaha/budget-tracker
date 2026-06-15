@@ -12,6 +12,7 @@ import { canUserAccessResource } from '@services/sharing/auth/can-user-access-re
 import { Op, QueryTypes } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
+import { enqueueLogoResolution, enqueueLogoResolutionAfterCommit } from './logo-resolution-queue';
 import { normalizePayeeName } from './normalize-name';
 import { ensureAliasExists, parsePayeeName, resolveNormalizedName } from './payee-namespace';
 import { getPayeeStatsMap, PayeeStatsRow } from './payee-stats';
@@ -44,6 +45,20 @@ async function assertTagsOwnedByUser({ userId, tagIds }: { userId: number; tagId
   const ownedCount = await Tags.count({ where: { id: tagIds, userId } });
   if (ownedCount !== tagIds.length) {
     throw new ValidationError({ message: t({ key: 'payees.defaultTagsNotOwned' }) });
+  }
+}
+
+/**
+ * Lazy-on-read backfill for Payees that predate the logo feature
+ * (`logoSource IS NULL`). Fire-and-forget: never awaited, never blocks the
+ * response. The `payee-logo-<id>` dedup jobId keeps repeated reads of the same
+ * Payee from piling up duplicate work. Bounded by the caller's page size.
+ */
+function enqueueLogoBackfillForUnresolved({ payees }: { payees: Payees[] }): void {
+  for (const payee of payees) {
+    if (payee.logoSource == null) {
+      void enqueueLogoResolution({ payeeId: payee.id });
+    }
   }
 }
 
@@ -197,6 +212,10 @@ export const listPayees = withTransaction(
 
     const payeesById = new Map<string, Payees>(payees.map((p) => [p.id, p]));
 
+    // Lazy backfill: kick off async logo resolution for any returned Payee that
+    // predates the feature. Fire-and-forget, bounded by page size.
+    enqueueLogoBackfillForUnresolved({ payees });
+
     // Preserve the SQL-driven order – `findAll` returns rows in PK order, not
     // in our sort order, so re-project through the id list.
     return ids
@@ -271,6 +290,11 @@ export const createPayee = withTransaction(
       categorizationMode: categorizationMode ?? CATEGORIZATION_MODE.enforce,
     });
     await addPayeeTags({ payeeId: created.id, tagIds: defaultTagIds ?? [] });
+    // Covers both the manual POST /payees route and the YNAB import loop.
+    // `createPayee` is `withTransaction`-wrapped, so an ambient transaction is
+    // in scope here and the helper defers the enqueue to `afterCommit`; if a
+    // future caller invokes it without a transaction, it enqueues directly.
+    enqueueLogoResolutionAfterCommit({ payeeId: created.id });
     return loadPayeeOrThrow({ userId, id: created.id });
   },
 );
@@ -284,6 +308,8 @@ export const getPayee = withTransaction(
   async ({ userId, id }: GetPayeeParams): Promise<{ payee: Payees; stats: PayeeStatsRow | null }> => {
     const payee = await loadPayeeOrThrow({ userId, id });
     const statsMap = await getPayeeStatsMap({ userId, payeeIds: [id] });
+    // Lazy backfill for a Payee that predates the feature. Fire-and-forget.
+    enqueueLogoBackfillForUnresolved({ payees: [payee] });
     return { payee, stats: statsMap.get(id) ?? null };
   },
 );
@@ -296,6 +322,13 @@ interface UpdatePayeeParams {
   categorizationMode?: CATEGORIZATION_MODE;
   /** Full replacement of the Payee's default-tag set; `[]` clears the rule. */
   defaultTagIds?: string[];
+  /**
+   * When present (including null), sets logoDomain to this value and stamps
+   * logoSource = 'manual' so the auto-resolver never overwrites the user's
+   * choice. null = user explicitly wants no logo, still treated as manual.
+   * When absent (undefined), both logo fields are left untouched.
+   */
+  logoDomain?: string | null;
 }
 
 /**
@@ -313,6 +346,7 @@ export const updatePayee = withTransaction(
     defaultCategoryId,
     categorizationMode,
     defaultTagIds,
+    logoDomain,
   }: UpdatePayeeParams): Promise<Payees> => {
     const payee = await loadPayeeOrThrow({ userId, id });
 
@@ -367,10 +401,42 @@ export const updatePayee = withTransaction(
       }
     }
 
+    // Key present (even null) → user is making a manual override.
+    // Key absent (undefined) → leave logo fields untouched.
+    if (logoDomain !== undefined) {
+      payee.logoDomain = logoDomain;
+      payee.logoSource = 'manual';
+    }
+
     await payee.save();
     return loadPayeeOrThrow({ userId, id });
   },
 );
+
+interface ResetPayeeLogoParams {
+  userId: number;
+  id: string;
+}
+
+/**
+ * Clears the manual logo override so the background resolver can re-run and
+ * pick a new domain automatically. Sets both logo fields to null (logoSource
+ * null signals the resolver that this Payee still needs a resolution pass),
+ * then schedules resolution to run once the transaction commits rather than
+ * waiting for the next lazy backfill. Enqueuing after commit is required: the
+ * worker reads the Payee on a separate connection, so enqueuing inside the open
+ * transaction races the commit and the worker can still see the stale
+ * `logoSource = 'manual'` value, which its guard skips on — leaving the reset
+ * payee with no logo and no re-resolution.
+ */
+export const resetPayeeLogo = withTransaction(async ({ userId, id }: ResetPayeeLogoParams): Promise<Payees> => {
+  const payee = await loadPayeeOrThrow({ userId, id });
+  payee.logoDomain = null;
+  payee.logoSource = null;
+  await payee.save();
+  enqueueLogoResolutionAfterCommit({ payeeId: id });
+  return loadPayeeOrThrow({ userId, id });
+});
 
 interface DeletePayeeParams {
   userId: number;

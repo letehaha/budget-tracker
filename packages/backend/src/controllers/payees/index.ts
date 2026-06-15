@@ -11,3 +11,5 @@ export { default as bulkUpdateCategorizationMode } from './bulk-update-categoriz
 export { default as listIgnoredNames } from './list-ignored-names';
 export { default as addIgnoredName } from './add-ignored-name';
 export { default as removeIgnoredName } from './remove-ignored-name';
+export { default as logoSearch } from './logo-search';
+export { default as resetLogo } from './reset-logo';

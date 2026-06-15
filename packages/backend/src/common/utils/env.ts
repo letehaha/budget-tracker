@@ -10,6 +10,7 @@ export enum EnvVar {
   GITHUB_CLIENT_SECRET = 'GITHUB_CLIENT_SECRET',
   BETTER_AUTH_SECRET = 'BETTER_AUTH_SECRET',
   COINGECKO_API_KEY = 'COINGECKO_API_KEY',
+  LOGO_DEV_SECRET_KEY = 'LOGO_DEV_SECRET_KEY',
 }
 
 // Catches values still set to the .env.template default (e.g. `your-resend-api-key`,

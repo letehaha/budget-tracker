@@ -79,6 +79,19 @@
       "defaultTagsHint": "These tags are automatically added to new transactions linked to this payee (bank syncs and imports).",
       "applyTagsToExisting": "Apply to existing transactions"
     },
+    "logo": {
+      "change": "Change logo",
+      "dialogTitle": "Change Logo",
+      "dialogDescription": "Search for a brand logo to represent this payee.",
+      "searchLabel": "Brand name",
+      "searchPlaceholder": "e.g. Amazon, Netflix…",
+      "find": "Find",
+      "resultsLabel": "Results",
+      "noResults": "No matching brands found.",
+      "resetToAuto": "Reset to automatic",
+      "updatedToast": "Logo updated.",
+      "resetToast": "Logo reset to automatic."
+    },
     "transactionsDialog": {
       "title": "{name} — transactions",
       "empty": "No transactions linked to this payee."

@@ -254,6 +254,13 @@ export enum CATEGORIZATION_MODE {
 }
 
 /**
+ * How a Payee's logoDomain was resolved. 'auto' = matched by the brand
+ * resolver against BrandLogos; 'manual' = explicitly set by the user.
+ * VARCHAR column — no DB enum (project convention).
+ */
+export type PayeeLogoSource = 'auto' | 'manual';
+
+/**
  * Supported AI providers for features like transaction categorization
  */
 export enum AI_PROVIDER {

@@ -7,6 +7,7 @@ import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { FUZZY_MATCH_THRESHOLD, buildHaystack, fuzzyFindBestMatch } from './fuzzy-matcher';
+import { enqueueLogoResolutionAfterCommit } from './logo-resolution-queue';
 import { normalizePayeeName } from './normalize-name';
 import { ensureAliasExists, resolveNormalizedName } from './payee-namespace';
 
@@ -215,6 +216,11 @@ export const resolvePayeeForRawMerchant = withTransaction(
         normalizedQuery,
         backfilledTxCount: priorIds.length,
       });
+      // This promotion always runs inside the sync/create-transaction
+      // transaction (this resolver is `withTransaction`-wrapped and its callers
+      // are too), so the helper defers the enqueue to `afterCommit` — the
+      // worker only sees the Payee once the row is committed and visible.
+      enqueueLogoResolutionAfterCommit({ payeeId: created.id });
       return { payeeId: created.id };
     }
 

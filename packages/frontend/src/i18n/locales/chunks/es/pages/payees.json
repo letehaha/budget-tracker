@@ -79,6 +79,19 @@
       "defaultTagsHint": "Estas etiquetas se añaden automáticamente a las nuevas transacciones vinculadas a este beneficiario (sincronizaciones bancarias e importaciones).",
       "applyTagsToExisting": "Aplicar a transacciones existentes"
     },
+    "logo": {
+      "change": "Cambiar logotipo",
+      "dialogTitle": "Cambiar logotipo",
+      "dialogDescription": "Busque un logotipo de marca para representar este beneficiario.",
+      "searchLabel": "Nombre de marca",
+      "searchPlaceholder": "p. ej. Amazon, Netflix…",
+      "find": "Buscar",
+      "resultsLabel": "Resultados",
+      "noResults": "No se encontraron marcas coincidentes.",
+      "resetToAuto": "Restablecer a automático",
+      "updatedToast": "Logotipo actualizado.",
+      "resetToast": "Logotipo restablecido a automático."
+    },
     "transactionsDialog": {
       "title": "{name} — transacciones",
       "empty": "No hay transacciones vinculadas a este beneficiario."

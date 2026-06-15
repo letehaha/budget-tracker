@@ -1,6 +1,7 @@
 import {
   CreatePayeePayload,
   IgnoredName,
+  PayeeLogoSearchResult,
   PayeeSortBy,
   PayeeSortDir,
   PayeeWithStats,
@@ -19,6 +20,8 @@ import {
   loadPayeesByAccount,
   mergePayees,
   removeIgnoredName,
+  resetPayeeLogo,
+  searchPayeeLogo,
   updatePayee,
 } from '@/api/payees';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
@@ -310,6 +313,27 @@ export const useBulkUpdateCategorizationMode = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ mode }: { mode: CATEGORIZATION_MODE }) => bulkUpdateCategorizationMode({ mode }),
+    onSuccess: () => invalidatePayeesScope(queryClient),
+  });
+};
+
+/**
+ * One-shot logo brand search — results are not cached in TanStack Query because
+ * the search is explicitly triggered by the user and has no invalidation story.
+ * Call `mutateAsync({ q })` to fire; the returned value holds `{ results }`.
+ */
+export const useSearchPayeeLogo = () => {
+  return useMutation({
+    mutationFn: ({ q }: { q: string }) => searchPayeeLogo({ q }),
+  });
+};
+
+export type { PayeeLogoSearchResult };
+
+export const useResetPayeeLogo = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => resetPayeeLogo({ id }),
     onSuccess: () => invalidatePayeesScope(queryClient),
   });
 };
