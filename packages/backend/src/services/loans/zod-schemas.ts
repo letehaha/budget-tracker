@@ -121,4 +121,13 @@ export const linkLoanPaymentsBodySchema = z.object({
   confirmOverpay: z.boolean().optional(),
 });
 
+/**
+ * Reverse a single loan payment. `transactionId` is either leg of the payment
+ * pair (the source expense or the loan-side income leg) — the service deletes the
+ * income leg and restores the source expense.
+ */
+export const unlinkLoanPaymentBodySchema = z.object({
+  transactionId: recordId(),
+});
+
 export const loanIdParamsSchema = z.object({ id: recordId() });

@@ -157,7 +157,9 @@
     "createAccountFailed": "Не вдалося створити рахунок кредиту",
     "deleteBlockedByPayments": "Цей кредит має записані платежі. Видаліть платежі перед видаленням кредиту.",
     "linkPaymentsInvalidSelection": "Деякі вибрані транзакції не можна прив'язати до цього кредиту.",
-    "linkPaymentsOverpayConfirmation": "Ці платежі в сумі перевищують залишок кредиту. Підтвердіть, щоб прив'язати їх все одно."
+    "linkPaymentsOverpayConfirmation": "Ці платежі в сумі перевищують залишок кредиту. Підтвердіть, щоб прив'язати їх все одно.",
+    "unlinkPaymentNotFound": "Платіж за кредитом не знайдено.",
+    "unlinkPaymentInvalidSelection": "Ця транзакція не є платежем за цим кредитом."
   },
   "errors": {
     "connectionNotFound": "З'єднання не знайдено",

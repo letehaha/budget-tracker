@@ -175,7 +175,12 @@
         "overpayError": "Payment exceeds the remaining loan balance ({max}).",
         "deleteConfirmTitle": "Delete this payment?",
         "deleteConfirmDescription": "Both sides of the transfer will be removed and the loan balance will be restored. This cannot be undone.",
-        "preAnchorHint": "This date is before the loan's balance snapshot, so this payment won't change the outstanding balance – it's already included in the opening balance."
+        "preAnchorHint": "This date is before the loan's balance snapshot, so this payment won't change the outstanding balance – it's already included in the opening balance.",
+        "unlinkButton": "Unlink",
+        "unlinkConfirmTitle": "Unlink this payment?",
+        "unlinkConfirmDescription": "The transaction will be kept as a regular expense but removed from this loan. The loan balance will be recalculated.",
+        "unlinkSuccess": "Payment unlinked",
+        "unlinkError": "Couldn't unlink the payment. Please try again."
       }
     }
   }

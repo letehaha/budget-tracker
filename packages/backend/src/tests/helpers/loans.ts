@@ -94,6 +94,23 @@ export async function linkLoanPayments<R extends boolean | undefined = undefined
   });
 }
 
+export async function unlinkLoanPayment<R extends boolean | undefined = undefined>({
+  id,
+  transactionId,
+  raw,
+}: {
+  id: string;
+  transactionId: string;
+  raw?: R;
+}) {
+  return makeRequest<{ loan: LoanApiResponse; restoredTransactionId: string }, R>({
+    method: 'post',
+    url: `/loans/${id}/unlink-payment`,
+    payload: { transactionId },
+    raw,
+  });
+}
+
 export function buildCreateLoanPayload(overrides: Record<string, unknown> = {}) {
   return {
     name: 'Test loan',

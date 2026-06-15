@@ -4,6 +4,7 @@ import deleteLoan from '@controllers/loans/delete-loan';
 import getLoanById from '@controllers/loans/get-loan-by-id';
 import getLoans from '@controllers/loans/get-loans';
 import linkPayments from '@controllers/loans/link-payments';
+import unlinkPayment from '@controllers/loans/unlink-payment';
 import updateLoan from '@controllers/loans/update-loan';
 import { authenticateSession } from '@middlewares/better-auth';
 import { validateEndpoint } from '@middlewares/validations';
@@ -18,5 +19,6 @@ router.patch('/:id', authenticateSession, validateEndpoint(updateLoan.schema), u
 router.delete('/:id', authenticateSession, validateEndpoint(deleteLoan.schema), deleteLoan.handler);
 router.post('/:id/events', authenticateSession, validateEndpoint(appendNoteEvent.schema), appendNoteEvent.handler);
 router.post('/:id/link-payments', authenticateSession, validateEndpoint(linkPayments.schema), linkPayments.handler);
+router.post('/:id/unlink-payment', authenticateSession, validateEndpoint(unlinkPayment.schema), unlinkPayment.handler);
 
 export default router;

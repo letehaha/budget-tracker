@@ -7,6 +7,9 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import FormRow from '@/components/dialogs/manage-transaction/components/form-row.vue';
 import { useDeleteTransaction, useSubmitTransaction } from '@/components/dialogs/manage-transaction/composables';
+import { useUnlinkLoanPayment } from '@/composable/data-queries/loans';
+import { useNotificationCenter } from '@/components/notification-center';
+import { ApiErrorResponseError } from '@/js/errors';
 import { FORM_TYPES, type UI_FORM_STRUCT } from '@/components/dialogs/manage-transaction/types';
 import type { FormattedCategory } from '@/common/types';
 import { Button } from '@/components/lib/ui/button';
@@ -96,10 +99,15 @@ const wouldOverdrawSource = computed(() => {
   return account.currentBalance >= 0 && amount > account.currentBalance;
 });
 
+const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+
 const submitMutation = useSubmitTransaction({ onSuccess: () => emit('close-modal') });
 const deleteMutation = useDeleteTransaction({ onSuccess: () => emit('close-modal') });
+const unlinkMutation = useUnlinkLoanPayment();
 
-const isLoading = computed(() => submitMutation.isPending.value || deleteMutation.isPending.value);
+const isLoading = computed(
+  () => submitMutation.isPending.value || deleteMutation.isPending.value || unlinkMutation.isPending.value,
+);
 
 // `submit` needs a fallback category from the categories store (see the guard
 // inside `submit`). Keep the button disabled until the store hydrates so a
@@ -231,10 +239,31 @@ const submit = () => {
 };
 
 const isDeleteConfirmOpen = ref(false);
+const isUnlinkConfirmOpen = ref(false);
 
 const deletePayment = () => {
   if (!props.transaction) return;
   deleteMutation.mutate({ transactionId: props.transaction.id });
+};
+
+const unlinkPayment = () => {
+  if (!props.transaction) return;
+  unlinkMutation.mutate(
+    { id: props.loanAccount.id, transactionId: props.transaction.id },
+    {
+      onSuccess: () => {
+        addSuccessNotification(t('loans.detail.payment.unlinkSuccess'));
+        emit('close-modal');
+      },
+      onError: (error) => {
+        if (error instanceof ApiErrorResponseError) {
+          addErrorNotification(error.data.message ?? error.message);
+        } else {
+          addErrorNotification(t('loans.detail.payment.unlinkError'));
+        }
+      },
+    },
+  );
 };
 </script>
 
@@ -336,15 +365,14 @@ const deletePayment = () => {
       </FormRow>
 
       <div class="flex items-center justify-between pt-6">
-        <Button
-          v-if="isEdit"
-          class="min-w-25"
-          variant="destructive"
-          :disabled="isLoading"
-          @click="isDeleteConfirmOpen = true"
-        >
-          {{ $t('dialogs.manageTransaction.form.deleteButton') }}
-        </Button>
+        <div v-if="isEdit" class="flex gap-2">
+          <Button class="min-w-25" variant="destructive" :disabled="isLoading" @click="isDeleteConfirmOpen = true">
+            {{ $t('dialogs.manageTransaction.form.deleteButton') }}
+          </Button>
+          <Button class="min-w-25" variant="destructive" :disabled="isLoading" @click="isUnlinkConfirmOpen = true">
+            {{ $t('loans.detail.payment.unlinkButton') }}
+          </Button>
+        </div>
         <Button class="ml-auto min-w-30" :disabled="isLoading || !categoriesReady" @click="submit">
           {{
             isLoading
@@ -366,6 +394,17 @@ const deletePayment = () => {
     >
       <template #title>{{ $t('loans.detail.payment.deleteConfirmTitle') }}</template>
       <template #description>{{ $t('loans.detail.payment.deleteConfirmDescription') }}</template>
+    </ResponsiveAlertDialog>
+
+    <ResponsiveAlertDialog
+      v-model:open="isUnlinkConfirmOpen"
+      :confirm-label="$t('loans.detail.payment.unlinkButton')"
+      confirm-variant="destructive"
+      :confirm-disabled="isLoading"
+      @confirm="unlinkPayment"
+    >
+      <template #title>{{ $t('loans.detail.payment.unlinkConfirmTitle') }}</template>
+      <template #description>{{ $t('loans.detail.payment.unlinkConfirmDescription') }}</template>
     </ResponsiveAlertDialog>
   </div>
 </template>

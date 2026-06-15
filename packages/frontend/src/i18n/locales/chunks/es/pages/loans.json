@@ -175,7 +175,12 @@
         "overpayError": "El pago excede el saldo restante del préstamo ({max}).",
         "deleteConfirmTitle": "¿Eliminar este pago?",
         "deleteConfirmDescription": "Se eliminarán ambos lados de la transferencia y el saldo del préstamo será restaurado. Esta acción no se puede deshacer.",
-        "preAnchorHint": "Esta fecha es anterior a la instantánea del saldo del préstamo, por lo que este pago no modificará el saldo pendiente – ya está incluido en el saldo inicial."
+        "preAnchorHint": "Esta fecha es anterior a la instantánea del saldo del préstamo, por lo que este pago no modificará el saldo pendiente – ya está incluido en el saldo inicial.",
+        "unlinkButton": "Desvincular",
+        "unlinkConfirmTitle": "¿Desvincular este pago?",
+        "unlinkConfirmDescription": "La transacción se mantendrá como un gasto regular pero se eliminará de este préstamo. El saldo del préstamo será recalculado.",
+        "unlinkSuccess": "Pago desvinculado",
+        "unlinkError": "No se pudo desvincular el pago. Por favor, inténtelo de nuevo."
       }
     }
   }

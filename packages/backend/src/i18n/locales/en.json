@@ -154,7 +154,9 @@
     "createAccountFailed": "Failed to create loan account",
     "deleteBlockedByPayments": "This loan has recorded payments. Delete the payments before deleting the loan.",
     "linkPaymentsInvalidSelection": "Some selected transactions can't be linked to this loan.",
-    "linkPaymentsOverpayConfirmation": "These payments add up to more than the remaining loan balance. Confirm to link them anyway."
+    "linkPaymentsOverpayConfirmation": "These payments add up to more than the remaining loan balance. Confirm to link them anyway.",
+    "unlinkPaymentNotFound": "Loan payment not found.",
+    "unlinkPaymentInvalidSelection": "This transaction is not a payment on this loan."
   },
   "errors": {
     "connectionNotFound": "Connection not found",

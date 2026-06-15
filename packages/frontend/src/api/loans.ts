@@ -154,3 +154,24 @@ export const linkLoanPayments = async ({
 }): Promise<LinkLoanPaymentsResponse> => {
   return api.post(`/loans/${id}/link-payments`, { transactionIds, confirmOverpay });
 };
+
+/** Response from POST /loans/:id/unlink-payment. */
+interface UnlinkLoanPaymentResponse {
+  loan: LoanApi;
+  /** Id of the expense transaction that was restored from the deleted loan-side leg. */
+  restoredTransactionId: string;
+}
+
+/**
+ * Delete the loan-side leg of a linked payment and restore the original
+ * expense transaction. The loan balance is recalculated after unlinking.
+ */
+export const unlinkLoanPayment = async ({
+  id,
+  transactionId,
+}: {
+  id: string;
+  transactionId: string;
+}): Promise<UnlinkLoanPaymentResponse> => {
+  return api.post(`/loans/${id}/unlink-payment`, { transactionId });
+};

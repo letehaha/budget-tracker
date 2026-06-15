@@ -154,7 +154,9 @@
     "createAccountFailed": "Error al crear la cuenta del préstamo",
     "deleteBlockedByPayments": "Este préstamo tiene pagos registrados. Elimine los pagos antes de eliminar el préstamo.",
     "linkPaymentsInvalidSelection": "Algunas transacciones seleccionadas no se pueden vincular a este préstamo.",
-    "linkPaymentsOverpayConfirmation": "Estos pagos suman más que el saldo pendiente del préstamo. Confirme para vincularlos de todos modos."
+    "linkPaymentsOverpayConfirmation": "Estos pagos suman más que el saldo pendiente del préstamo. Confirme para vincularlos de todos modos.",
+    "unlinkPaymentNotFound": "Pago del préstamo no encontrado.",
+    "unlinkPaymentInvalidSelection": "Esta transacción no es un pago de este préstamo."
   },
   "errors": {
     "connectionNotFound": "Conexión no encontrada",
