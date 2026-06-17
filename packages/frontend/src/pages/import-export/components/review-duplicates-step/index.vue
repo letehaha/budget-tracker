@@ -115,14 +115,14 @@
               </td>
               <td class="px-4 py-2">
                 <div class="text-xs">
-                  <p>{{ dup.importedTransaction.date }}</p>
+                  <p>{{ formatDate(dup.importedTransaction.date) }}</p>
                   <p class="font-medium">{{ formatAmount(dup.importedTransaction.amount) }}</p>
                   <p class="text-muted-foreground max-w-xs truncate">{{ dup.importedTransaction.description }}</p>
                 </div>
               </td>
               <td class="px-4 py-2">
                 <div class="text-xs">
-                  <p>{{ dup.existingTransaction.date }}</p>
+                  <p>{{ formatDate(dup.existingTransaction.date) }}</p>
                   <p class="font-medium">{{ formatAmount(dup.existingTransaction.amount) }}</p>
                   <p class="text-muted-foreground max-w-xs truncate">{{ dup.existingTransaction.note }}</p>
                 </div>
@@ -176,6 +176,7 @@
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useImportExportStore } from '@/stores/import-export';
 import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
+import { format, parseISO } from 'date-fns';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -186,6 +187,13 @@ const formatAmount = (amount: number): string => {
   // Amounts are stored in cents, convert to dollars
   return (amount / 100).toFixed(2);
 };
+
+/**
+ * Formats any ISO date string (full instant or YYYY-MM-DD) into a locale-aware
+ * display date. Using parseISO handles both formats; format() renders in the
+ * user's local timezone so the day matches what the rest of the app shows.
+ */
+const formatDate = (iso: string): string => format(parseISO(iso), 'PP');
 
 const goBack = () => {
   importStore.currentStep = 2;

@@ -48,15 +48,34 @@
     <!-- Category Mapping Table (shown after extract is called) -->
     <CategoryMappingTable v-if="importStore.uniqueCategoriesInCSV.length > 0" class="mt-6" />
 
-    <Callout v-if="extractingError" variant="destructive" class="mt-4">
+    <Callout v-if="extractingError" variant="destructive" class="mt-4" role="alert">
       <p>{{ extractingError }}</p>
+    </Callout>
+
+    <!-- Date column has mixed day/month order — user must fix the CSV before continuing. -->
+    <Callout v-if="importStore.dateColumnError" variant="destructive" class="mt-4" role="alert">
+      <p>{{ importStore.dateColumnError.message }}</p>
+    </Callout>
+
+    <!-- Surfaced when detectDuplicates itself fails (network / 5xx), distinct from
+         dateColumnError which is a successful-response data problem. -->
+    <Callout v-if="importStore.detectError" variant="destructive" class="mt-4" role="alert">
+      <p>{{ importStore.detectError }}</p>
     </Callout>
 
     <!-- Continue Button (shown after extraction) -->
     <div v-if="hasExtracted" class="mt-6 flex justify-end">
-      <UiButton @click="handleContinue" :disabled="!canContinue">
-        {{ t('pages.importExport.csvImport.columnMapping.continueToDuplicates') }}
-        <ChevronRightIcon class="ml-2 size-4" />
+      <UiButton
+        @click="handleContinue"
+        :disabled="!canContinue || !!importStore.dateColumnError || importStore.isDetectingDuplicates"
+      >
+        <template v-if="importStore.isDetectingDuplicates">
+          {{ t('pages.importExport.csvImport.columnMapping.detecting') }}
+        </template>
+        <template v-else>
+          {{ t('pages.importExport.csvImport.columnMapping.continueToDuplicates') }}
+          <ChevronRightIcon class="ml-2 size-4" />
+        </template>
       </UiButton>
     </div>
   </div>
@@ -191,7 +210,12 @@ const handleExtractValues = async () => {
 };
 
 const handleContinue = async () => {
-  // Call detectDuplicates which will move to step 3
-  await importStore.detectDuplicates();
+  try {
+    // detectDuplicates advances to step 3 on success; stores detectError on failure.
+    await importStore.detectDuplicates();
+  } catch {
+    // Error is already captured in importStore.detectError and rendered in the Callout above.
+    // Absorb here so the click handler doesn't propagate an unhandled rejection.
+  }
 };
 </script>

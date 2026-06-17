@@ -6,6 +6,7 @@ import {
   type CategoryOption,
   CategoryOptionValue,
   type CurrencyOption,
+  type DateColumnError,
   type DetectDuplicatesResponse,
   type DuplicateMatch,
   type ExecuteImportResponse,
@@ -80,6 +81,14 @@ export const useImportExportStore = defineStore('importExport', () => {
   const invalidRows = ref<InvalidRow[]>([]);
   const duplicates = ref<DuplicateMatch[]>([]);
   const unmarkedDuplicateIndices = ref<Set<number>>(new Set());
+  // Present when the date column has conflicting day/month order — blocks import until user fixes the CSV.
+  const dateColumnError = ref<DateColumnError | null>(null);
+
+  // Step 5b: Duplicate-detection async state.
+  // Separate from dateColumnError (a *successful* response describing a data problem)
+  // — this fires when the API call itself fails (network, 5xx, etc.).
+  const isDetectingDuplicates = ref<boolean>(false);
+  const detectError = ref<string | null>(null);
 
   // Step 6: Import execution
   const importInProgress = ref<boolean>(false);
@@ -136,30 +145,52 @@ export const useImportExportStore = defineStore('importExport', () => {
   const detectDuplicates = async () => {
     const { detectDuplicates: detectDuplicatesApi } = await import('@/api/import-export');
 
-    const response: DetectDuplicatesResponse = await detectDuplicatesApi({
-      fileContent: fileContent.value!,
-      delimiter: detectedDelimiter.value,
-      columnMapping: {
-        date: columnMapping.value.date!,
-        amount: columnMapping.value.amount!,
-        description: columnMapping.value.description || undefined,
-        category: columnMapping.value.category!,
-        account: columnMapping.value.account!,
-        currency: columnMapping.value.currency!,
-        transactionType: columnMapping.value.transactionType!,
-      },
-      accountMapping: accountMapping.value,
-      categoryMapping: categoryMapping.value,
-    });
+    // Clear prior errors before a fresh run — both data-level (dateColumnError)
+    // and transport-level (detectError) are reset so stale messages don't linger.
+    dateColumnError.value = null;
+    detectError.value = null;
+    isDetectingDuplicates.value = true;
 
-    validRows.value = response.validRows;
-    invalidRows.value = response.invalidRows;
-    duplicates.value = response.duplicates;
-    unmarkedDuplicateIndices.value = new Set();
+    try {
+      const response: DetectDuplicatesResponse = await detectDuplicatesApi({
+        fileContent: fileContent.value!,
+        delimiter: detectedDelimiter.value,
+        columnMapping: {
+          date: columnMapping.value.date!,
+          amount: columnMapping.value.amount!,
+          description: columnMapping.value.description || undefined,
+          category: columnMapping.value.category!,
+          account: columnMapping.value.account!,
+          currency: columnMapping.value.currency!,
+          transactionType: columnMapping.value.transactionType!,
+        },
+        accountMapping: accountMapping.value,
+        categoryMapping: categoryMapping.value,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
 
-    currentStep.value = 3;
-    if (!completedSteps.value.includes(2)) {
-      completedSteps.value.push(2);
+      validRows.value = response.validRows;
+      invalidRows.value = response.invalidRows;
+      duplicates.value = response.duplicates;
+      unmarkedDuplicateIndices.value = new Set();
+
+      if (response.dateColumnError) {
+        // Date column has mixed day/month order — import is blocked; stay on mapping step.
+        dateColumnError.value = response.dateColumnError;
+        return;
+      }
+
+      currentStep.value = 3;
+      if (!completedSteps.value.includes(2)) {
+        completedSteps.value.push(2);
+      }
+    } catch (error) {
+      // Surface the error message so the UI can render it; re-throw so callers
+      // (e.g. handleContinue) can decide whether to show a global error boundary.
+      detectError.value = error instanceof Error ? error.message : String(error);
+      throw error;
+    } finally {
+      isDetectingDuplicates.value = false;
     }
   };
 
@@ -250,6 +281,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     invalidRows.value = [];
     duplicates.value = [];
     unmarkedDuplicateIndices.value = new Set();
+    dateColumnError.value = null;
+    isDetectingDuplicates.value = false;
+    detectError.value = null;
     importInProgress.value = false;
     importResult.value = null;
     currentStep.value = 1;
@@ -275,6 +309,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     invalidRows,
     duplicates,
     unmarkedDuplicateIndices,
+    dateColumnError,
+    isDetectingDuplicates,
+    detectError,
     importInProgress,
     importResult,
     currentStep,

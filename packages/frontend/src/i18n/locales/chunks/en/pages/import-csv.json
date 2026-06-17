@@ -36,6 +36,7 @@
           "totalRows": "Total rows",
           "delimiter": "Delimiter",
           "extracting": "Extracting...",
+          "detecting": "Detecting duplicates…",
           "nextExtract": "Next: Extract Values",
           "continueToDuplicates": "Continue to Duplicate Check"
         },

@@ -36,6 +36,7 @@
           "totalRows": "Всього рядків",
           "delimiter": "Розділювач",
           "extracting": "Вилучення...",
+          "detecting": "Виявлення дублікатів…",
           "nextExtract": "Далі: Вилучити значення",
           "continueToDuplicates": "Перейти до перевірки дублікатів"
         },

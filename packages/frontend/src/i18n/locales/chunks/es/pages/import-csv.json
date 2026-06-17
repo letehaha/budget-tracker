@@ -36,6 +36,7 @@
           "totalRows": "Total de filas",
           "delimiter": "Delimitador",
           "extracting": "Extrayendo...",
+          "detecting": "Detectando duplicados…",
           "nextExtract": "Siguiente: Extraer valores",
           "continueToDuplicates": "Continuar a verificación de duplicados"
         },

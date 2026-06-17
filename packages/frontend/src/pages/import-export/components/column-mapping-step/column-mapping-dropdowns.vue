@@ -80,6 +80,9 @@ const descriptionColumnObject = computed(() => {
 
 const handleDateChange = (option: OptionItem | null) => {
   importStore.columnMapping.date = option ? option.value : null;
+  // Clear the stale date-column error so the Callout dismisses immediately
+  // when the user selects a different column to address the reported problem.
+  importStore.dateColumnError = null;
 };
 
 const handleAmountChange = (option: OptionItem | null) => {
