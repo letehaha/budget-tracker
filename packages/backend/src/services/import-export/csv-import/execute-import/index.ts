@@ -32,6 +32,11 @@ interface ExecuteImportParams {
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
+  /**
+   * Row indices for unpriceable rows the user chose to skip. Merged into the
+   * same skip set as skipDuplicateIndices so they share the same rowIndex space.
+   */
+  skipUnpriceableIndices?: number[];
   defaultAccountId?: string;
   defaultCategoryId?: string;
 }
@@ -46,14 +51,17 @@ async function executeImportImpl({
   accountMapping,
   categoryMapping,
   skipDuplicateIndices,
+  skipUnpriceableIndices,
   defaultAccountId,
   defaultCategoryId,
 }: ExecuteImportParams): Promise<ExecuteImportResponse> {
   const batchId = uuidv4();
   const importedAt = new Date();
 
-  // Filter out duplicates that should be skipped
-  const skipSet = new Set(skipDuplicateIndices);
+  // Merge duplicate and unpriceable skip indices into one set so both are
+  // filtered with a single pass. Both sets use the same rowIndex space as
+  // ParsedTransactionRow.rowIndex and DetectDuplicatesResponse.unpriceableRows.
+  const skipSet = new Set([...skipDuplicateIndices, ...(skipUnpriceableIndices ?? [])]);
   const rowsToImport = validRows.filter((row) => !skipSet.has(row.rowIndex));
 
   if (rowsToImport.length === 0) {
@@ -61,6 +69,7 @@ async function executeImportImpl({
       summary: {
         imported: 0,
         skipped: skipDuplicateIndices.length,
+        skippedUnpriceable: skipUnpriceableIndices?.length ?? 0,
         accountsCreated: 0,
         categoriesCreated: 0,
         errors: [],
@@ -172,6 +181,7 @@ async function executeImportImpl({
     summary: {
       imported: newTransactionIds.length,
       skipped: skipDuplicateIndices.length,
+      skippedUnpriceable: skipUnpriceableIndices?.length ?? 0,
       accountsCreated,
       categoriesCreated,
       errors,

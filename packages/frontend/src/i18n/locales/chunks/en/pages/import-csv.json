@@ -63,7 +63,13 @@
           "duplicatesWillBeSkipped": "duplicates will be skipped.",
           "backToMapping": "Back to Mapping",
           "importing": "Importing...",
-          "importButton": "Import {count} Transactions"
+          "importButton": "Import {count} Transactions",
+          "unpriceableTitle": "{count} row(s) cannot be priced — no exchange rate found",
+          "unpriceableDescription": "These rows use a currency that has no stored exchange rate and cannot be converted to your base currency. You must skip them or cancel the import.",
+          "unpriceableWillBeSkipped": "unpriceable will be skipped",
+          "currency": "Currency",
+          "skipAndImport": "Skip & import",
+          "cancelImport": "Cancel import"
         },
         "results": {
           "completeTitle": "Import Complete!",
@@ -80,7 +86,8 @@
           "batchIdLabel": "Batch ID",
           "batchIdDescription": "Use this ID to find all transactions from this import.",
           "viewTransactions": "View Transactions",
-          "startNewImport": "Start New Import"
+          "startNewImport": "Start New Import",
+          "skippedUnpriceable": "Skipped (unpriced)"
         }
       },
       "common": {

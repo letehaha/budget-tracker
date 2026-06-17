@@ -23,6 +23,7 @@ import { MAX_CSV_ROWS } from '../csv-parser.service';
 import { anchorImportDate } from './anchor-import-date';
 import { detectDateColumnFormat, parseImportDate } from './date-engine';
 import { findDuplicates } from './find-duplicates';
+import { findUnpriceableRows } from './find-unpriceable-rows';
 import { parseAmount } from './parse-amount';
 
 interface DetectDuplicatesParams {
@@ -236,10 +237,15 @@ export async function detectDuplicates({
     accountNameToId,
   });
 
+  // Identify rows whose currency has no stored exchange rate. The result is
+  // passed to the preview so the user can decide to skip or abort those rows.
+  const unpriceableRows = await findUnpriceableRows({ userId, validRows });
+
   return {
     validRows,
     invalidRows,
     duplicates,
+    ...(unpriceableRows.length > 0 && { unpriceableRows }),
   };
 }
 

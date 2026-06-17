@@ -145,6 +145,7 @@ interface ExecuteImportParams {
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
+  skipUnpriceableIndices?: number[];
   defaultAccountId?: string;
   defaultCategoryId?: string;
 }

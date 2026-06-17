@@ -1407,6 +1407,117 @@ describe('Execute Import endpoint', () => {
     });
   });
 
+  describe('skipUnpriceableIndices', () => {
+    it('should skip rows listed in skipUnpriceableIndices and not import them', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // rowIndices 2 and 3 are marked unpriceable; only rowIndex 4 should be imported
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+          skipUnpriceableIndices: [2, 3],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.skipped).toBe(0);
+      expect(result.summary.skippedUnpriceable).toBe(2);
+      expect(result.newTransactionIds).toHaveLength(1);
+    });
+
+    it('should skip both duplicate and unpriceable rows and report counts separately', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // rowIndex 2 → duplicate-skip; rowIndex 3 → unpriceable-skip; rowIndex 4 → imported
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [2],
+          skipUnpriceableIndices: [3],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.skipped).toBe(1);
+      expect(result.summary.skippedUnpriceable).toBe(1);
+      expect(result.newTransactionIds).toHaveLength(1);
+    });
+
+    it('should return skippedUnpriceable: 0 when skipUnpriceableIndices is omitted', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+          // skipUnpriceableIndices intentionally omitted for back-compat
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(3);
+      expect(result.summary.skipped).toBe(0);
+      expect(result.summary.skippedUnpriceable).toBe(0);
+    });
+
+    it('should import nothing and report full counts when all rows skipped via both lists', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [2],
+          skipUnpriceableIndices: [3, 4],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(0);
+      expect(result.summary.skipped).toBe(1);
+      expect(result.summary.skippedUnpriceable).toBe(2);
+      expect(result.newTransactionIds).toHaveLength(0);
+    });
+  });
+
   describe('importDetails in externalData', () => {
     it('should store importDetails with correct structure', async () => {
       const account = await helpers.createAccount({ raw: true });

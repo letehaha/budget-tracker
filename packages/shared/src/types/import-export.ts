@@ -231,6 +231,12 @@ export interface DetectDuplicatesResponse {
   duplicates: DuplicateMatch[];
   /** Set only when the date column has no single safe day/month order. */
   dateColumnError?: DateColumnError;
+  /**
+   * Rows whose currency has no stored exchange rate and is neither USD nor the
+   * user's base currency. The preview layer uses this to offer skip/abort.
+   * Only present when at least one such row exists.
+   */
+  unpriceableRows?: { rowIndex: number; currencyCode: string }[];
 }
 
 /**
@@ -242,6 +248,12 @@ export interface ExecuteImportRequest {
   categoryMapping: CategoryMappingConfig;
   /** Row indices to skip (confirmed duplicates) */
   skipDuplicateIndices: number[];
+  /**
+   * Row indices for unpriceable rows the user chose to skip rather than abort.
+   * Uses the same rowIndex space as skipDuplicateIndices and
+   * DetectDuplicatesResponse.unpriceableRows[].rowIndex.
+   */
+  skipUnpriceableIndices?: number[];
   /** Fallback account for rows whose accountName is empty (used when "single existing account" was chosen) */
   defaultAccountId?: string;
   /** Fallback category for rows whose categoryName is empty (used when "single existing category" was chosen) */
@@ -262,7 +274,10 @@ export interface ImportError {
 export interface ExecuteImportResponse {
   summary: {
     imported: number;
+    /** Number of duplicate rows skipped (from skipDuplicateIndices) */
     skipped: number;
+    /** Number of unpriceable rows skipped (from skipUnpriceableIndices) */
+    skippedUnpriceable: number;
     accountsCreated: number;
     categoriesCreated: number;
     errors: ImportError[];

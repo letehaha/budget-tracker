@@ -133,6 +133,66 @@
       </div>
     </div>
 
+    <!-- Unpriceable Rows Section -->
+    <!-- Shown when at least one row's currency has no stored exchange rate.
+         The user must explicitly skip those rows or abort — silent import is not allowed. -->
+    <div
+      v-if="importStore.unpriceableRows.length > 0"
+      class="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4"
+      role="alert"
+    >
+      <div class="mb-2 flex items-start gap-2">
+        <AlertTriangleIcon class="mt-0.5 size-5 shrink-0 text-orange-600" />
+        <div>
+          <h3 class="text-sm font-semibold text-orange-700">
+            {{
+              t('pages.importExport.csvImport.review.unpriceableTitle', {
+                count: importStore.unpriceableRows.length,
+              })
+            }}
+          </h3>
+          <p class="mt-1 text-xs text-orange-600">
+            {{ t('pages.importExport.csvImport.review.unpriceableDescription') }}
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-3 max-h-48 overflow-auto rounded border border-orange-200 bg-white">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-orange-100">
+            <tr>
+              <th class="border-b border-orange-200 px-4 py-2 text-left font-medium text-orange-700">
+                {{ t('pages.importExport.csvImport.review.rowNumber') }}
+              </th>
+              <th class="border-b border-orange-200 px-4 py-2 text-left font-medium text-orange-700">
+                {{ t('pages.importExport.csvImport.review.currency') }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in importStore.unpriceableRows"
+              :key="row.rowIndex"
+              class="border-b border-orange-100 last:border-b-0"
+            >
+              <td class="px-4 py-2 font-mono text-orange-800">{{ row.rowIndex }}</td>
+              <td class="px-4 py-2 font-medium text-orange-800">{{ row.currencyCode }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Skip-or-Abort choice — always visible when unpriceableRows is non-empty -->
+      <div class="mt-4 flex flex-wrap gap-3">
+        <UiButton variant="default" :disabled="importStore.importInProgress" @click="handleSkipAndImport">
+          {{ t('pages.importExport.csvImport.review.skipAndImport') }}
+        </UiButton>
+        <UiButton variant="outline" @click="goBack">
+          {{ t('pages.importExport.csvImport.review.cancelImport') }}
+        </UiButton>
+      </div>
+    </div>
+
     <!-- Import Summary -->
     <div class="bg-primary/10 border-primary mb-6 rounded-lg border p-4">
       <h3 class="mb-2 text-sm font-semibold">{{ t('pages.importExport.csvImport.review.importSummary') }}</h3>
@@ -147,11 +207,16 @@
           <span class="font-bold text-yellow-600">{{ importStore.importSummary.duplicates }}</span>
           {{ t('pages.importExport.csvImport.review.duplicatesWillBeSkipped') }}
         </span>
+        <span v-if="importStore.unpriceableRows.length > 0">
+          <span class="font-bold text-orange-600">{{ importStore.unpriceableRows.length }}</span>
+          {{ t('pages.importExport.csvImport.review.unpriceableWillBeSkipped') }}
+        </span>
       </p>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="flex justify-between">
+    <!-- Action Buttons — hidden when unpriceableRows consent panel is active,
+         because the consent panel carries its own Skip/Cancel controls. -->
+    <div v-if="importStore.unpriceableRows.length === 0" class="flex justify-between">
       <UiButton variant="outline" @click="goBack">
         <ChevronLeftIcon class="mr-2 size-4" />
         {{ t('pages.importExport.csvImport.review.backToMapping') }}
@@ -175,7 +240,7 @@
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useImportExportStore } from '@/stores/import-export';
-import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
+import { AlertTriangleIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
 import { format, parseISO } from 'date-fns';
 import { useI18n } from 'vue-i18n';
 
@@ -201,5 +266,11 @@ const goBack = () => {
 
 const handleExecuteImport = async () => {
   await importStore.executeImport();
+};
+
+/** Skip path: pass all unpriceable row indices so the backend skips them. */
+const handleSkipAndImport = async () => {
+  const skipUnpriceableIndices = importStore.unpriceableRows.map((r) => r.rowIndex);
+  await importStore.executeImport({ skipUnpriceableIndices });
 };
 </script>

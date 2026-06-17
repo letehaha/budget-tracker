@@ -37,6 +37,13 @@
         <p class="text-sm text-yellow-600">{{ t('pages.importExport.csvImport.results.skippedDuplicates') }}</p>
         <p class="text-3xl font-bold text-yellow-600">{{ importStore.importResult.summary.skipped }}</p>
       </div>
+      <div
+        v-if="importStore.importResult.summary.skippedUnpriceable > 0"
+        class="rounded-lg bg-orange-500/10 p-4 text-center"
+      >
+        <p class="text-sm text-orange-600">{{ t('pages.importExport.csvImport.results.skippedUnpriceable') }}</p>
+        <p class="text-3xl font-bold text-orange-600">{{ importStore.importResult.summary.skippedUnpriceable }}</p>
+      </div>
       <div class="rounded-lg bg-blue-500/10 p-4 text-center">
         <p class="text-sm text-blue-600">{{ t('pages.importExport.csvImport.results.accountsCreated') }}</p>
         <p class="text-3xl font-bold text-blue-600">{{ importStore.importResult.summary.accountsCreated }}</p>

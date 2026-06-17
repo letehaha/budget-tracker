@@ -32,13 +32,21 @@ export const executeImportController = createController(
       accountMapping: z.record(z.string(), accountMappingValueSchema),
       categoryMapping: z.record(z.string(), categoryMappingValueSchema),
       skipDuplicateIndices: z.array(z.number()),
+      skipUnpriceableIndices: z.array(z.number()).optional(),
       defaultAccountId: recordId().optional(),
       defaultCategoryId: recordId().optional(),
     }),
   }),
   async ({ user, body }) => {
-    const { validRows, accountMapping, categoryMapping, skipDuplicateIndices, defaultAccountId, defaultCategoryId } =
-      body;
+    const {
+      validRows,
+      accountMapping,
+      categoryMapping,
+      skipDuplicateIndices,
+      skipUnpriceableIndices,
+      defaultAccountId,
+      defaultCategoryId,
+    } = body;
 
     const result = await executeImport({
       userId: user.id,
@@ -46,6 +54,7 @@ export const executeImportController = createController(
       accountMapping,
       categoryMapping,
       skipDuplicateIndices,
+      skipUnpriceableIndices,
       defaultAccountId,
       defaultCategoryId,
     });

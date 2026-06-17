@@ -1,3 +1,4 @@
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
@@ -17,13 +18,16 @@ vi.mock('@/api/import-export', () => ({
   executeImport: vi.fn(),
 }));
 
-// useQueryClient is called at store construction time; provide a real QueryClient
-// instance so Pinia initialisation doesn't throw.
+// useQueryClient is called at store construction time. We keep a reference to the
+// shared QueryClient so tests can spy on it (the store captures it at init time,
+// so everyone must share the same instance).
+let sharedQueryClient: QueryClient;
+
 vi.mock('@tanstack/vue-query', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@tanstack/vue-query')>();
   return {
     ...actual,
-    useQueryClient: vi.fn(() => new QueryClient()),
+    useQueryClient: vi.fn(() => sharedQueryClient),
   };
 });
 
@@ -31,22 +35,30 @@ vi.mock('./onboarding', () => ({
   useOnboardingStore: vi.fn(() => ({ completeTask: vi.fn() })),
 }));
 
+vi.mock('./categories/categories', () => ({
+  useCategoriesStore: vi.fn(() => ({ loadCategories: vi.fn() })),
+}));
+
 // ----- helpers -----
 
 import * as apiModule from '@/api/import-export';
 import type { DetectDuplicatesResponse } from '@bt/shared/types';
 
+import { useCategoriesStore } from './categories/categories';
+
 const mockDetectDuplicatesApi = vi.mocked(apiModule.detectDuplicates);
+const mockExecuteImportApi = vi.mocked(apiModule.executeImport);
 
 /** Mount a minimal component so Pinia + VueQuery plugins are active. */
 const mountWithPlugins = () => {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // Create a fresh shared client before each test so spies start clean.
+  sharedQueryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const pinia = createPinia();
   setActivePinia(pinia);
 
   const Wrapper = defineComponent({ setup() {}, template: '<div />' });
   mount(Wrapper, {
-    global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] },
+    global: { plugins: [pinia, [VueQueryPlugin, { queryClient: sharedQueryClient }]] },
   });
 };
 
@@ -193,5 +205,289 @@ describe('useImportExportStore – detectDuplicates', () => {
     expect(store.detectError).toBeNull();
     expect(store.currentStep).toBe(3);
     expect(store.validRows).toHaveLength(1);
+  });
+});
+
+describe('useImportExportStore – unpriceableRows', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('stores unpriceableRows from the detect response', async () => {
+    const response: DetectDuplicatesResponse = {
+      ...BASE_RESPONSE,
+      unpriceableRows: [
+        { rowIndex: 3, currencyCode: 'CZK' },
+        { rowIndex: 7, currencyCode: 'PLN' },
+      ],
+    };
+    mockDetectDuplicatesApi.mockResolvedValue(response);
+
+    const store = useImportExportStore();
+    seedStore(store);
+
+    await store.detectDuplicates();
+
+    expect(store.unpriceableRows).toEqual([
+      { rowIndex: 3, currencyCode: 'CZK' },
+      { rowIndex: 7, currencyCode: 'PLN' },
+    ]);
+  });
+
+  it('defaults unpriceableRows to [] when the field is absent from the detect response', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedStore(store);
+
+    await store.detectDuplicates();
+
+    expect(store.unpriceableRows).toEqual([]);
+  });
+
+  it('clears unpriceableRows at the start of each detect run so stale state does not linger', async () => {
+    // First run returns unpriceable rows
+    mockDetectDuplicatesApi.mockResolvedValueOnce({
+      ...BASE_RESPONSE,
+      unpriceableRows: [{ rowIndex: 1, currencyCode: 'CZK' }],
+    });
+    // Second run returns a clean response (no unpriceableRows field)
+    mockDetectDuplicatesApi.mockResolvedValueOnce(BASE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedStore(store);
+
+    await store.detectDuplicates();
+    expect(store.unpriceableRows).toHaveLength(1);
+
+    await store.detectDuplicates();
+    expect(store.unpriceableRows).toHaveLength(0);
+  });
+
+  it('reset clears unpriceableRows', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue({
+      ...BASE_RESPONSE,
+      unpriceableRows: [{ rowIndex: 2, currencyCode: 'HUF' }],
+    });
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+    expect(store.unpriceableRows).toHaveLength(1);
+
+    store.reset();
+
+    expect(store.unpriceableRows).toHaveLength(0);
+  });
+});
+
+describe('useImportExportStore – executeImport skipUnpriceableIndices', () => {
+  const EXECUTE_RESPONSE = {
+    summary: {
+      imported: 5,
+      skipped: 1,
+      skippedUnpriceable: 2,
+      accountsCreated: 0,
+      categoriesCreated: 0,
+      errors: [],
+    },
+    newTransactionIds: [],
+    batchId: 'batch-abc',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('passes skipUnpriceableIndices to the API on the skip path', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue({
+      ...BASE_RESPONSE,
+      unpriceableRows: [
+        { rowIndex: 3, currencyCode: 'CZK' },
+        { rowIndex: 7, currencyCode: 'PLN' },
+      ],
+    });
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+
+    await store.executeImport({ skipUnpriceableIndices: [3, 7] });
+
+    expect(mockExecuteImportApi).toHaveBeenCalledWith(expect.objectContaining({ skipUnpriceableIndices: [3, 7] }));
+  });
+
+  it('omits skipUnpriceableIndices from the API payload when not provided (normal import path)', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+
+    await store.executeImport();
+
+    expect(mockExecuteImportApi).toHaveBeenCalledWith(expect.objectContaining({ skipUnpriceableIndices: undefined }));
+  });
+});
+
+describe('useImportExportStore – executeImport cache invalidation', () => {
+  const EXECUTE_RESPONSE = {
+    summary: {
+      imported: 3,
+      skipped: 0,
+      skippedUnpriceable: 0,
+      accountsCreated: 1,
+      categoriesCreated: 1,
+      errors: [],
+    },
+    newTransactionIds: ['tx-1', 'tx-2', 'tx-3'],
+    batchId: 'batch-xyz',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('invalidates transactionChange-prefixed queries after a successful import', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const invalidateSpy = vi.spyOn(sharedQueryClient, 'invalidateQueries');
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+    await store.executeImport();
+
+    // All transaction-change queries (widgets, analytics, records, accounts, balances, etc.)
+    // must be invalidated so views reflect newly imported transactions.
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] }),
+    );
+  });
+
+  it('invalidates currencies-prefixed queries after a successful import', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const invalidateSpy = vi.spyOn(sharedQueryClient, 'invalidateQueries');
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+    await store.executeImport();
+
+    // Import can connect new user currencies; invalidate the whole currencies prefix
+    // so userCurrencies, allCurrencies, baseCurrency and rate queries all refresh.
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.currencies] }),
+    );
+  });
+
+  it('invalidates categoriesByAccount queries after a successful import', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const invalidateSpy = vi.spyOn(sharedQueryClient, 'invalidateQueries');
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+    await store.executeImport();
+
+    // Import can create new categories; categoriesByAccount has no prefix so it
+    // must be explicitly invalidated (not covered by transactionChange).
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: VUE_QUERY_CACHE_KEYS.categoriesByAccount }),
+    );
+  });
+
+  it('does not call invalidateQueries when the import API call fails', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockRejectedValue(new Error('Import failed'));
+
+    const invalidateSpy = vi.spyOn(sharedQueryClient, 'invalidateQueries');
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+
+    await expect(store.executeImport()).rejects.toThrow('Import failed');
+
+    expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('useImportExportStore – executeImport categories store refresh', () => {
+  const makeExecuteResponse = (categoriesCreated: number) => ({
+    summary: {
+      imported: 2,
+      skipped: 0,
+      skippedUnpriceable: 0,
+      accountsCreated: 0,
+      categoriesCreated,
+      errors: [],
+    },
+    newTransactionIds: ['tx-1'],
+    batchId: 'batch-cat',
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('calls loadCategories after a successful import that created new categories', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(makeExecuteResponse(2));
+
+    const mockLoadCategories = vi.fn();
+    vi.mocked(useCategoriesStore).mockReturnValue({ loadCategories: mockLoadCategories } as never);
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+    await store.executeImport();
+
+    // The Pinia categories store is not VueQuery-backed, so invalidateQueries
+    // alone won't refresh it — loadCategories must be called explicitly so
+    // newly-created categories appear in pickers without a full page reload.
+    expect(mockLoadCategories).toHaveBeenCalledOnce();
+  });
+
+  it('does not call loadCategories when no categories were created', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(makeExecuteResponse(0));
+
+    const mockLoadCategories = vi.fn();
+    vi.mocked(useCategoriesStore).mockReturnValue({ loadCategories: mockLoadCategories } as never);
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+    await store.executeImport();
+
+    expect(mockLoadCategories).not.toHaveBeenCalled();
+  });
+
+  it('does not call loadCategories when the import API call fails', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockRejectedValue(new Error('Import failed'));
+
+    const mockLoadCategories = vi.fn();
+    vi.mocked(useCategoriesStore).mockReturnValue({ loadCategories: mockLoadCategories } as never);
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+
+    await expect(store.executeImport()).rejects.toThrow('Import failed');
+
+    expect(mockLoadCategories).not.toHaveBeenCalled();
   });
 });

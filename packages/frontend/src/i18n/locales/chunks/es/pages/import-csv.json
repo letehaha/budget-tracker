@@ -63,7 +63,13 @@
           "duplicatesWillBeSkipped": "duplicados serán omitidos.",
           "backToMapping": "Volver al mapeo",
           "importing": "Importando...",
-          "importButton": "Importar {count} transacciones"
+          "importButton": "Importar {count} transacciones",
+          "unpriceableTitle": "{count} fila(s) no se pueden valorar — no se encontró tipo de cambio",
+          "unpriceableDescription": "Estas filas usan una moneda para la que no hay tipo de cambio almacenado y no pueden convertirse a su moneda base. Debe omitirlas o cancelar la importación.",
+          "unpriceableWillBeSkipped": "sin tipo de cambio serán omitidas",
+          "currency": "Moneda",
+          "skipAndImport": "Omitir e importar",
+          "cancelImport": "Cancelar importación"
         },
         "results": {
           "completeTitle": "¡Importación completada!",
@@ -80,7 +86,8 @@
           "batchIdLabel": "ID de lote",
           "batchIdDescription": "Use este ID para encontrar todas las transacciones de esta importación.",
           "viewTransactions": "Ver transacciones",
-          "startNewImport": "Iniciar nueva importación"
+          "startNewImport": "Iniciar nueva importación",
+          "skippedUnpriceable": "Omitidas (sin precio)"
         }
       },
       "common": {

@@ -63,7 +63,13 @@
           "duplicatesWillBeSkipped": "дублікатів буде пропущено.",
           "backToMapping": "Назад до зіставлення",
           "importing": "Імпорт...",
-          "importButton": "Імпортувати {count} транзакцій"
+          "importButton": "Імпортувати {count} транзакцій",
+          "unpriceableTitle": "{count} рядок(ів) неможливо оцінити — курс обміну не знайдено",
+          "unpriceableDescription": "Ці рядки використовують валюту, для якої немає збереженого курсу обміну, і їх неможливо конвертувати у вашу базову валюту. Ви повинні пропустити їх або скасувати імпорт.",
+          "unpriceableWillBeSkipped": "без курсу обміну буде пропущено",
+          "currency": "Валюта",
+          "skipAndImport": "Пропустити та імпортувати",
+          "cancelImport": "Скасувати імпорт"
         },
         "results": {
           "completeTitle": "Імпорт завершено!",
@@ -80,7 +86,8 @@
           "batchIdLabel": "ID пакета",
           "batchIdDescription": "Використовуйте цей ID для пошуку всіх транзакцій з цього імпорту.",
           "viewTransactions": "Переглянути транзакції",
-          "startNewImport": "Почати новий імпорт"
+          "startNewImport": "Почати новий імпорт",
+          "skippedUnpriceable": "Пропущено (не оцінено)"
         }
       },
       "common": {

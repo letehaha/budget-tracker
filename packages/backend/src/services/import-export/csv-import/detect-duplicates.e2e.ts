@@ -1264,4 +1264,131 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
       expect(duplicate).toBeDefined();
     });
   });
+
+  // ── unpriceableRows ──────────────────────────────────────────────────────────
+  // The e2e environment seeds ExchangeRates with historical rates for the common
+  // currency set (EUR, GBP, JPY, etc.) and never truncates that table between
+  // tests. The user's base currency is AED (see setupIntegrationTests.ts).
+  //
+  // Pricing rules exercised here:
+  //   • USD → always priceable (it is API_LAYER_BASE_CURRENCY_CODE)
+  //   • AED → always priceable (it is the user's base currency)
+  //   • EUR → priceable via stored ExchangeRates row (seeded)
+  //   • ZZZ → not priceable (deliberately fake code, never seeded)
+  describe('unpriceableRows classification', () => {
+    // Shared column mapping for all sub-tests: single fixed currency per test,
+    // so we use the existingCurrency option to avoid a Currency column.
+    function buildFixedCurrencyMapping(currencyCode: string): ColumnMappingConfig {
+      return buildColumnMapping({
+        currency: { option: CurrencyOptionValue.existingCurrency, currencyCode },
+      });
+    }
+
+    const MINIMAL_CSV = `Date,Amount,Description,Category,Type,Account
+2024-01-15,100.00,Test transaction,Food,expense,Main Account`;
+
+    it('omits unpriceableRows when all rows are in USD (always priceable)', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: MINIMAL_CSV,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('USD'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeUndefined();
+    });
+
+    it('omits unpriceableRows when all rows are in the user base currency (AED)', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: MINIMAL_CSV,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('AED'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeUndefined();
+    });
+
+    it('omits unpriceableRows for EUR (seeded exchange rate exists)', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: MINIMAL_CSV,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('EUR'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeUndefined();
+    });
+
+    it('returns unpriceableRows for a currency with no stored rate (ZZZ)', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: MINIMAL_CSV,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('ZZZ'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeDefined();
+      expect(result.unpriceableRows).toHaveLength(1);
+      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 2, currencyCode: 'ZZZ' });
+    });
+
+    it('returns only the ZZZ rows when a CSV mixes priceable (EUR) and unpriceable (ZZZ) currencies', async () => {
+      const mixedCsv = `Date,Amount,Description,Category,Currency,Type,Account
+2024-01-15,100.00,EUR tx,Food,EUR,expense,Main Account
+2024-01-16,50.00,ZZZ tx,Food,ZZZ,expense,Main Account
+2024-01-17,75.00,USD tx,Food,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: mixedCsv,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeDefined();
+      expect(result.unpriceableRows).toHaveLength(1);
+      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 3, currencyCode: 'ZZZ' });
+    });
+
+    it('omits unpriceableRows when the CSV has no valid rows (all invalid)', async () => {
+      const allInvalidCsv = `Date,Amount,Description,Category,Type,Account
+not-a-date,not-an-amount,Test,Food,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: allInvalidCsv,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('ZZZ'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      // No valid rows → findUnpriceableRows gets an empty array → no property.
+      expect(result.unpriceableRows).toBeUndefined();
+      expect(result.invalidRows.length).toBeGreaterThan(0);
+    });
+  });
 });

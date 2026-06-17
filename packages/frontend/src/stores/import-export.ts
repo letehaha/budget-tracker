@@ -16,10 +16,14 @@ import {
   type TransactionTypeOption,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
+
+type UnpriceableRow = NonNullable<DetectDuplicatesResponse['unpriceableRows']>[number];
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
+import { useCategoriesStore } from './categories/categories';
 import { useOnboardingStore } from './onboarding';
 
 interface ColumnMapping {
@@ -83,6 +87,8 @@ export const useImportExportStore = defineStore('importExport', () => {
   const unmarkedDuplicateIndices = ref<Set<number>>(new Set());
   // Present when the date column has conflicting day/month order — blocks import until user fixes the CSV.
   const dateColumnError = ref<DateColumnError | null>(null);
+  // Rows whose currency has no exchange rate; user must skip or abort before import proceeds.
+  const unpriceableRows = ref<UnpriceableRow[]>([]);
 
   // Step 5b: Duplicate-detection async state.
   // Separate from dateColumnError (a *successful* response describing a data problem)
@@ -145,9 +151,11 @@ export const useImportExportStore = defineStore('importExport', () => {
   const detectDuplicates = async () => {
     const { detectDuplicates: detectDuplicatesApi } = await import('@/api/import-export');
 
-    // Clear prior errors before a fresh run — both data-level (dateColumnError)
-    // and transport-level (detectError) are reset so stale messages don't linger.
+    // Clear prior errors and unpriceable state before a fresh run — data-level
+    // (dateColumnError, unpriceableRows) and transport-level (detectError) are
+    // reset so stale messages don't linger.
     dateColumnError.value = null;
+    unpriceableRows.value = [];
     detectError.value = null;
     isDetectingDuplicates.value = true;
 
@@ -173,6 +181,7 @@ export const useImportExportStore = defineStore('importExport', () => {
       invalidRows.value = response.invalidRows;
       duplicates.value = response.duplicates;
       unmarkedDuplicateIndices.value = new Set();
+      unpriceableRows.value = response.unpriceableRows ?? [];
 
       if (response.dateColumnError) {
         // Date column has mixed day/month order — import is blocked; stay on mapping step.
@@ -202,7 +211,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     }
   };
 
-  const executeImport = async () => {
+  const executeImport = async ({ skipUnpriceableIndices }: { skipUnpriceableIndices?: number[] } = {}) => {
     importInProgress.value = true;
 
     try {
@@ -226,6 +235,7 @@ export const useImportExportStore = defineStore('importExport', () => {
         accountMapping: accountMapping.value,
         categoryMapping: categoryMapping.value,
         skipDuplicateIndices,
+        skipUnpriceableIndices,
         defaultAccountId,
         defaultCategoryId,
       });
@@ -238,9 +248,27 @@ export const useImportExportStore = defineStore('importExport', () => {
       const onboardingStore = useOnboardingStore();
       onboardingStore.completeTask('import-csv');
 
-      // Invalidate all queries to refetch data after import
-      // Import can affect transactions, accounts, categories, currencies, and balances
-      queryClient.invalidateQueries();
+      // Invalidate the query groups that an import can mutate.
+      //
+      // transactionChange prefix: covers all widgets, analytics, records lists,
+      // allAccounts, accountGroups, balances, and everything else keyed on tx changes.
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+
+      // currencies prefix: import can connect new user currencies (e.g. a row uses
+      // EUR when only USD was active). Covers userCurrencies, allCurrencies, baseCurrency,
+      // and exchange-rate-for-date queries in one shot.
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.currencies] });
+
+      // categoriesByAccount has no shared prefix, so it must be invalidated explicitly.
+      // Import can create new categories that would otherwise be missing from category pickers.
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.categoriesByAccount });
+
+      // The Pinia categories store is not VueQuery-backed, so invalidateQueries alone won't
+      // refresh it. Call loadCategories explicitly so newly-created categories appear in
+      // category pickers and lists without a full page reload.
+      if (response.summary.categoriesCreated > 0) {
+        await useCategoriesStore().loadCategories();
+      }
 
       currentStep.value = 4;
       if (!completedSteps.value.includes(3)) {
@@ -282,6 +310,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     duplicates.value = [];
     unmarkedDuplicateIndices.value = new Set();
     dateColumnError.value = null;
+    unpriceableRows.value = [];
     isDetectingDuplicates.value = false;
     detectError.value = null;
     importInProgress.value = false;
@@ -310,6 +339,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     duplicates,
     unmarkedDuplicateIndices,
     dateColumnError,
+    unpriceableRows,
     isDetectingDuplicates,
     detectError,
     importInProgress,
