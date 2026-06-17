@@ -117,6 +117,8 @@ interface DetectDuplicatesParams {
   columnMapping: ColumnMappingConfig;
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
+  /** IANA timezone (e.g. `America/Montevideo`) used to anchor date-only cells. */
+  timezone?: string;
 }
 
 export function detectDuplicates<R extends boolean | undefined = false>({

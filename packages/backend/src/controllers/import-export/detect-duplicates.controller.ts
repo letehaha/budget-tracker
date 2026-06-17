@@ -63,10 +63,14 @@ export const detectDuplicatesController = createController(
       columnMapping: columnMappingConfigSchema,
       accountMapping: z.record(z.string(), accountMappingValueSchema),
       categoryMapping: z.record(z.string(), categoryMappingValueSchema),
+      // IANA timezone of the importing user's browser. Validation stays loose (any
+      // non-empty string): the service tolerates an unknown zone by falling back
+      // to UTC anchoring rather than rejecting the whole import.
+      timezone: z.string().min(1).optional(),
     }),
   }),
   async ({ user, body }) => {
-    const { fileContent, delimiter, columnMapping, accountMapping, categoryMapping } = body;
+    const { fileContent, delimiter, columnMapping, accountMapping, categoryMapping, timezone } = body;
 
     const result = await detectDuplicates({
       userId: user.id,
@@ -75,6 +79,7 @@ export const detectDuplicatesController = createController(
       columnMapping,
       accountMapping,
       categoryMapping,
+      timezone,
     });
 
     return {

@@ -33,17 +33,21 @@ export async function findDuplicates({
     return duplicates;
   }
 
-  // Get date range from valid rows
+  // Duplicate matching is day-granular (the keys below compare calendar days),
+  // so the fetch window must cover whole UTC days. `row.date` is an anchored
+  // instant at an arbitrary time-of-day (e.g. local noon); flooring the min to
+  // start-of-day and ceiling the max to end-of-day keeps an existing same-day
+  // transaction in range no matter what hour either side falls on.
   const dates = validRows.map((r) => r.date);
-  const minDate = dates.reduce((a, b) => (a < b ? a : b));
-  const maxDate = dates.reduce((a, b) => (a > b ? a : b));
+  const minDay = dates.reduce((a, b) => (a < b ? a : b)).split('T')[0]!;
+  const maxDay = dates.reduce((a, b) => (a > b ? a : b)).split('T')[0]!;
 
   // Fetch existing transactions in the date range for these accounts
   const existingTransactions = await Transactions.findWithFilters({
     userId,
     accountIds: Array.from(existingAccountIds),
-    startDate: minDate,
-    endDate: maxDate,
+    startDate: `${minDay}T00:00:00.000Z`,
+    endDate: `${maxDay}T23:59:59.999Z`,
     from: 0,
     limit: 10000,
   });
@@ -68,8 +72,11 @@ export async function findDuplicates({
       continue;
     }
 
-    // Build key for exact match
-    const key = `${accountId}:${row.date}:${row.amount}`;
+    // `row.date` is a full ISO instant, but existing transactions are keyed by
+    // calendar day above — normalise the row to the same day granularity so a
+    // same-day match still lands in the same bucket.
+    const rowDateStr = new Date(row.date).toISOString().split('T')[0];
+    const key = `${accountId}:${rowDateStr}:${row.amount}`;
     const candidates = exactMatchMap.get(key) || [];
 
     if (candidates.length === 0) {

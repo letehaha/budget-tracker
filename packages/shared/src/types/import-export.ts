@@ -148,7 +148,12 @@ export type CategoryMappingConfig = Record<string, CategoryMappingValue>;
  */
 export interface ParsedTransactionRow {
   rowIndex: number;
-  date: string; // ISO format
+  /**
+   * ISO 8601 instant (e.g. `2026-06-01T15:00:00.000Z`) — the absolute moment the
+   * transaction is stored at, already anchored to the importing user's timezone.
+   * `execute-import` reconstructs it with `new Date(row.date)`.
+   */
+  date: string;
   amount: Cents;
   description: string;
   /** Raw value from the user-mapped Payee column, if mapping included one. */
@@ -194,6 +199,27 @@ export interface DetectDuplicatesRequest {
   columnMapping: ColumnMappingConfig;
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
+  /**
+   * IANA timezone of the importing user's browser (e.g. `America/Montevideo`),
+   * from `Intl.DateTimeFormat().resolvedOptions().timeZone`. Anchors date-only
+   * and zone-less datetime cells to the right calendar day. Optional — absent or
+   * invalid values fall back to UTC anchoring on the backend.
+   */
+  timezone?: string;
+}
+
+/**
+ * Column-level date error. Present when the mapped date column can't be parsed
+ * with a single day/month order — the two interpretations contradict each other,
+ * so the import is blocked rather than guessed. `validRows`/`duplicates` come
+ * back empty alongside it.
+ */
+export interface DateColumnError {
+  /** The mapped date column's header. */
+  column: string;
+  reason: 'mixed';
+  /** Localized, user-facing explanation. */
+  message: string;
 }
 
 /**
@@ -203,6 +229,8 @@ export interface DetectDuplicatesResponse {
   validRows: ParsedTransactionRow[];
   invalidRows: InvalidRow[];
   duplicates: DuplicateMatch[];
+  /** Set only when the date column has no single safe day/month order. */
+  dateColumnError?: DateColumnError;
 }
 
 /**
