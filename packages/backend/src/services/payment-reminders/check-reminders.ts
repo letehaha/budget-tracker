@@ -14,6 +14,7 @@ import { Op } from 'sequelize';
 
 import { calculateNextDueDate } from './calculate-next-due-date';
 import { queueReminderEmail } from './email-queue';
+import { isReminderInstallmentCapReached } from './installments';
 
 interface CheckResult {
   totalChecked: number;
@@ -92,7 +93,7 @@ async function createMissingNextPeriods(): Promise<{ created: number; errors: nu
 
   const activeReminders = await PaymentReminders.findAll({
     where: { isActive: true, frequency: { [Op.ne]: null } },
-    attributes: ['id', 'frequency', 'anchorDay'],
+    attributes: ['id', 'frequency', 'anchorDay', 'maxOccurrences', 'isActive'],
   });
 
   for (const reminder of activeReminders) {
@@ -106,6 +107,9 @@ async function createMissingNextPeriods(): Promise<{ created: number; errors: nu
       });
 
       if (hasUpcoming) continue;
+
+      // Stop generating once the installment cap is consumed (deactivates the reminder).
+      if (await isReminderInstallmentCapReached({ reminder })) continue;
 
       // Find the latest period to calculate the next due date
       const latestPeriod = await PaymentReminderPeriods.findOne({
@@ -162,7 +166,16 @@ async function sendRemindBeforeNotifications(): Promise<{
 
   const today = new Date().toISOString().split('T')[0]!;
 
-  // Get all active reminders that have remind-before presets configured
+  // Get all active reminders that have remind-before presets configured.
+  //
+  // Targets both `upcoming` and `overdue` periods. `markOverduePeriods` runs
+  // first in `checkPaymentReminders` and flips any period whose dueDate < today
+  // to `overdue`. The `0_days` ("on the due date") preset fires when
+  // today >= dueDate; if the first cron run after the due date lands once the
+  // period has already gone `overdue`, an `upcoming`-only filter would never
+  // see it and the on-due-date notification would be lost. Including `overdue`
+  // closes that gap. The `(periodId, remindBeforePreset)` dedup table makes the
+  // wider net safe — every preset still sends at most once per period.
   const reminders = await PaymentReminders.findAll({
     where: {
       isActive: true,
@@ -172,7 +185,9 @@ async function sendRemindBeforeNotifications(): Promise<{
       {
         model: PaymentReminderPeriods,
         as: 'periods',
-        where: { status: PAYMENT_REMINDER_STATUSES.upcoming },
+        where: {
+          status: { [Op.in]: [PAYMENT_REMINDER_STATUSES.upcoming, PAYMENT_REMINDER_STATUSES.overdue] },
+        },
         required: true,
       },
     ],

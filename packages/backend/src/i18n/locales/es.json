@@ -403,7 +403,10 @@
     "periodAlreadyPaid": "El período ya está marcado como pagado",
     "periodSkippedUndoFirst": "El período está omitido. Deshaga la omisión antes de marcarlo como pagado.",
     "periodAlreadyActive": "El período ya está en estado activo",
-    "transactionAlreadyLinkedToPeriod": "Esta transacción ya está vinculada a otro período de este recordatorio"
+    "transactionAlreadyLinkedToPeriod": "Esta transacción ya está vinculada a otro período de este recordatorio",
+    "createTransactionRequiresAccount": "Configure una cuenta en este pago programado antes de generar una transacción.",
+    "createTransactionRequiresAmount": "Ingrese un importe para generar una transacción para este pago.",
+    "createAndLinkMutuallyExclusive": "Proporcione una transacción existente para vincular o cree una nueva, no ambas."
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Una o más transacciones no encontradas o no pertenecen al usuario."

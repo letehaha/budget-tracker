@@ -4,6 +4,7 @@ import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-c
 import { Table, Column, Model, ForeignKey, BelongsTo, HasMany, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
+import Accounts from './accounts.model';
 import Categories from './categories.model';
 import PaymentReminderPeriods from './payment-reminder-periods.model';
 import Subscriptions from './subscriptions.model';
@@ -109,6 +110,19 @@ export default class PaymentReminders extends Model {
   })
   categoryId!: RecordId | null;
 
+  @ForeignKey(() => Accounts)
+  @Column({
+    type: DataType.UUID,
+    allowNull: true,
+  })
+  accountId!: RecordId | null;
+
+  @Column({
+    type: DataType.SMALLINT,
+    allowNull: true,
+  })
+  maxOccurrences!: number | null;
+
   @Column({
     type: DataType.TEXT,
     allowNull: true,
@@ -133,6 +147,9 @@ export default class PaymentReminders extends Model {
 
   @BelongsTo(() => Categories)
   category!: Categories | null;
+
+  @BelongsTo(() => Accounts)
+  account!: Accounts | null;
 
   @HasMany(() => PaymentReminderPeriods, { foreignKey: 'reminderId' })
   periods!: PaymentReminderPeriods[];

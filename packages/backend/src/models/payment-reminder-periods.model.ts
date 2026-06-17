@@ -62,6 +62,16 @@ export default class PaymentReminderPeriods extends Model implements PaymentRemi
   })
   notes!: string | null;
 
+  // True when `transactionId` points at a transaction the app generated for this
+  // period (CREATE-mode pay), false when the user linked their own (LINK-mode) or
+  // the period is unpaid. Reverting deletes only an app-generated transaction.
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  transactionAutoCreated!: boolean;
+
   declare createdAt: Date;
   declare updatedAt: Date;
 

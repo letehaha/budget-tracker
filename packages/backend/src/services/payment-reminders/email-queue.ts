@@ -65,7 +65,7 @@ const reminderEmailWorker = new Worker<ReminderEmailJobData>(
         // expectedAmount is already decimal (converted by model getter via Money.toJSON())
         const amountDisplay = expectedAmount != null && currencyCode ? `${expectedAmount} ${currencyCode}` : null;
 
-        const deepLink = `${appUrl}/planned/reminders/${reminderId}`;
+        const deepLink = `${appUrl}/planned/scheduled-payments/${reminderId}`;
 
         const html = buildEmailHtml({ reminderName, dueDate, amountDisplay, deepLink });
 

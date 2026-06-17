@@ -403,7 +403,10 @@
     "periodAlreadyPaid": "Period is already marked as paid",
     "periodSkippedUndoFirst": "Period is skipped. Undo skip before marking as paid.",
     "periodAlreadyActive": "Period is already in an active state",
-    "transactionAlreadyLinkedToPeriod": "This transaction is already linked to another period of this reminder"
+    "transactionAlreadyLinkedToPeriod": "This transaction is already linked to another period of this reminder",
+    "createTransactionRequiresAccount": "Set an account on this scheduled payment before generating a transaction.",
+    "createTransactionRequiresAmount": "Enter an amount to generate a transaction for this payment.",
+    "createAndLinkMutuallyExclusive": "Provide either an existing transaction to link or create a new one — not both."
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user."

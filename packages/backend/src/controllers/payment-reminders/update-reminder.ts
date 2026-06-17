@@ -40,6 +40,8 @@ const schema = z.object({
         .optional(),
       timezone: z.string().max(50).optional(),
       categoryId: recordId().nullable().optional(),
+      accountId: recordId().nullish(),
+      maxOccurrences: z.number().int().positive().nullish(),
       notes: z.string().max(5000).nullable().optional(),
       isActive: z.boolean().optional(),
     })

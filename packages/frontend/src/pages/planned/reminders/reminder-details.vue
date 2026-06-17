@@ -3,17 +3,20 @@ import {
   deleteReminder,
   loadReminderById,
   loadReminderPeriods,
-  markPeriodPaid,
   revertPeriod,
   skipPeriod,
   unlinkPeriodTransaction,
   updateReminder,
 } from '@/api/payment-reminders';
+import { loadTransactionById } from '@/api/transactions';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import TransactionDetailsModal from '@/components/transactions-list/transaction-details-modal.vue';
+import { useManageTransactionDialog } from '@/components/transactions-list/use-manage-transaction-dialog';
+import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable/formatters';
@@ -23,12 +26,23 @@ import { PAYMENT_REMINDER_STATUSES, type PaymentReminderPeriodModel } from '@bt/
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format, parseISO } from 'date-fns';
 import { CheckIcon, LinkIcon, PencilIcon, SkipForwardIcon, Trash2Icon, UndoIcon, UnlinkIcon } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+import MarkPaidDialog from './components/mark-paid-dialog.vue';
 import ReminderFormDialog from './components/reminder-form-dialog.vue';
-import { getFrequencyI18nKey, invalidateReminderQueries, isStatusActionable, isStatusRevertable } from './utils';
+import {
+  buildInstallmentNumbers,
+  getFrequencyI18nKey,
+  invalidateReminderQueries,
+  isStatusActionable,
+  isStatusRevertable,
+} from './utils';
+
+const ManageTransactionDialogContent = defineAsyncComponent(
+  () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
+);
 
 const { t } = useI18n();
 const route = useRoute();
@@ -120,18 +134,13 @@ const { mutate: deleteMutation } = useMutation({
 });
 
 // Period actions
-const { mutate: markPaidMutation, isPending: isMarkingPaid } = useMutation({
-  mutationFn: markPeriodPaid,
-  onSuccess: () => {
-    invalidateAll();
-    addSuccessNotification(t('planned.reminders.notifications.markedAsPaid'));
-  },
-  onError(err) {
-    const message =
-      err instanceof ApiErrorResponseError ? err.data.message : t('planned.reminders.notifications.markAsPaidFailed');
-    addErrorNotification(message ?? t('planned.reminders.notifications.markAsPaidFailed'));
-  },
-});
+const markPaidRef = ref<InstanceType<typeof MarkPaidDialog>>();
+const isMarkingPaid = computed(() => markPaidRef.value?.isPending ?? false);
+
+function payPeriod({ periodId }: { periodId: string }) {
+  if (!reminder.value) return;
+  markPaidRef.value?.triggerPay({ reminder: reminder.value, periodId });
+}
 
 const { mutate: skipMutation, isPending: isSkipping } = useMutation({
   mutationFn: skipPeriod,
@@ -174,6 +183,22 @@ const { mutate: revertMutation, isPending: isReverting } = useMutation({
   },
 });
 
+// Reverting a period behaves differently depending on its transaction link, so
+// the confirmation must describe the actual consequence: a transaction the app
+// generated on "mark paid" is deleted (and the balance restored), a transaction
+// the user linked themselves is only detached, and a period with no transaction
+// just returns to unpaid.
+const revertDescriptionKey = computed(() => {
+  const period = revertTarget.value;
+  if (period?.transactionId && period.transactionAutoCreated) {
+    return 'planned.reminders.dialogs.revertDescriptionDeletesTransaction';
+  }
+  if (period?.transactionId) {
+    return 'planned.reminders.dialogs.revertDescriptionUnlinksTransaction';
+  }
+  return 'planned.reminders.dialogs.revertDescription';
+});
+
 const isPeriodActionPending = computed(
   () => isMarkingPaid.value || isSkipping.value || isUnlinking.value || isReverting.value,
 );
@@ -210,6 +235,35 @@ function groupPeriodsByMonth(periodsList: PaymentReminderPeriodModel[]) {
 }
 
 const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
+
+// "Payment X of N" labels, shown only for installment reminders (those with a cap).
+const installmentNumbers = computed(() =>
+  buildInstallmentNumbers({ periodsDesc: periods.value, total: totalPeriods.value }),
+);
+const maxOccurrences = computed(() => reminder.value?.maxOccurrences ?? null);
+
+// Open the transaction a period is linked to, reusing the canonical manage-transaction
+// dialog (same component the records list uses).
+const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
+const { isDialogVisible, dialogProps, isCompactDialog, handleRecordClick, closeDialog } = useManageTransactionDialog();
+const isOpeningTransaction = ref(false);
+
+async function openTransaction({ transactionId }: { transactionId: string }) {
+  if (isOpeningTransaction.value) return;
+  isOpeningTransaction.value = true;
+  try {
+    const tx = await loadTransactionById({ id: transactionId });
+    if (tx) {
+      handleRecordClick([tx, undefined]);
+    } else {
+      addErrorNotification(t('planned.reminders.notifications.transactionLoadFailed'));
+    }
+  } catch {
+    addErrorNotification(t('planned.reminders.notifications.transactionLoadFailed'));
+  } finally {
+    isOpeningTransaction.value = false;
+  }
+}
 </script>
 
 <template>
@@ -307,13 +361,29 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
                 <p class="text-sm font-medium">
                   {{ $t('planned.reminders.details.period.due', { date: period.dueDate }) }}
                 </p>
+                <p v-if="maxOccurrences && installmentNumbers[period.id]" class="text-muted-foreground text-xs">
+                  {{
+                    $t('planned.reminders.details.period.installment', {
+                      current: installmentNumbers[period.id],
+                      total: maxOccurrences,
+                    })
+                  }}
+                </p>
                 <p v-if="period.paidAt" class="text-muted-foreground text-xs">
                   {{ $t('planned.reminders.details.period.paidAt', { date: format(period.paidAt, 'PP') }) }}
                 </p>
-                <p v-if="period.transactionId" class="text-muted-foreground flex items-center gap-1 text-xs">
+                <UiButton
+                  v-if="period.transactionId"
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  class="h-auto p-0 text-xs"
+                  :disabled="isOpeningTransaction"
+                  @click="openTransaction({ transactionId: period.transactionId })"
+                >
                   <LinkIcon class="size-3" />
-                  {{ $t('planned.reminders.details.period.transaction', { id: period.transactionId }) }}
-                </p>
+                  {{ $t('planned.reminders.details.period.viewTransaction') }}
+                </UiButton>
                 <p v-if="period.notes" class="text-muted-foreground text-xs italic">
                   {{ period.notes }}
                 </p>
@@ -330,7 +400,7 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
                   size="sm"
                   :title="$t('planned.reminders.details.period.tooltips.markAsPaid')"
                   :disabled="isPeriodActionPending"
-                  @click="markPaidMutation({ reminderId: reminder.id, periodId: period.id })"
+                  @click="payPeriod({ periodId: period.id })"
                 >
                   <CheckIcon class="size-4" />
                 </UiButton>
@@ -443,8 +513,16 @@ const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
     >
       <template #title>{{ $t('planned.reminders.dialogs.revertTitle') }}</template>
       <template #description>
-        {{ $t('planned.reminders.dialogs.revertDescription', { date: revertTarget?.dueDate }) }}
+        {{ $t(revertDescriptionKey, { date: revertTarget?.dueDate }) }}
       </template>
     </ResponsiveAlertDialog>
+
+    <!-- Mark-paid flow (decides instant vs. amount dialog internally) -->
+    <MarkPaidDialog ref="markPaidRef" />
+
+    <!-- Linked-transaction detail dialog -->
+    <TransactionDetailsModal v-model:open="isDialogVisible" :mobile="isMobileView" :is-compact="isCompactDialog">
+      <ManageTransactionDialogContent v-bind="dialogProps" @close-modal="closeDialog" />
+    </TransactionDetailsModal>
   </div>
 </template>

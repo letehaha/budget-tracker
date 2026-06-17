@@ -406,7 +406,10 @@
     "periodAlreadyPaid": "Період вже позначено як оплачений",
     "periodSkippedUndoFirst": "Період пропущено. Скасуйте пропуск перед позначенням як оплачений.",
     "periodAlreadyActive": "Період вже в активному стані",
-    "transactionAlreadyLinkedToPeriod": "Ця транзакція вже привязана до іншого періоду цього нагадування"
+    "transactionAlreadyLinkedToPeriod": "Ця транзакція вже привязана до іншого періоду цього нагадування",
+    "createTransactionRequiresAccount": "Вкажіть рахунок для цього запланованого платежу перед створенням транзакції.",
+    "createTransactionRequiresAmount": "Введіть суму для створення транзакції за цим платежем.",
+    "createAndLinkMutuallyExclusive": "Вкажіть або існуючу транзакцію для прив'язки, або створіть нову — не обидва варіанти одночасно."
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Одну або кілька транзакцій не знайдено або вони не належать користувачу."

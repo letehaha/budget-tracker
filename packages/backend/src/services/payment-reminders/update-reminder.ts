@@ -2,6 +2,7 @@ import { PAYMENT_REMINDER_STATUSES, RemindBeforePreset, SUBSCRIPTION_FREQUENCIES
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
+import Accounts from '@models/accounts.model';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
 import Subscriptions from '@models/subscriptions.model';
@@ -23,6 +24,8 @@ interface UpdateReminderParams {
   preferredTime?: number;
   timezone?: string;
   categoryId?: string | null;
+  accountId?: string | null;
+  maxOccurrences?: number | null;
   notes?: string | null;
   isActive?: boolean;
 }
@@ -50,6 +53,14 @@ export const updateReminder = withTransaction(async (params: UpdateReminderParam
           'Cannot update name, amount, currency, or frequency on a subscription-linked reminder. Update the subscription instead.',
       });
     }
+  }
+
+  // Validate account ownership when (re)linking an account.
+  if (updates.accountId != null) {
+    await findOrThrowNotFound({
+      query: Accounts.findOne({ where: { id: updates.accountId, userId } }),
+      message: 'Account not found',
+    });
   }
 
   // Validate amount/currency consistency

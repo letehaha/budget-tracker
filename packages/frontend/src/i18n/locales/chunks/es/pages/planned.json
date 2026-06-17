@@ -4,16 +4,16 @@
       "backToList": "Volver a presupuestos"
     },
     "reminders": {
-      "notFound": "Recordatorio no encontrado",
-      "notFoundDescription": "No pudimos encontrar este recordatorio. Es posible que haya sido eliminado o que no tenga acceso a él.",
-      "backToList": "Volver a recordatorios",
-      "title": "Recordatorios de pago",
-      "newReminder": "Nuevo recordatorio",
+      "notFound": "Pago programado no encontrado",
+      "notFoundDescription": "No pudimos encontrar este pago programado. Es posible que haya sido eliminado o que no tenga acceso a él.",
+      "backToList": "Volver a pagos programados",
+      "title": "Pagos programados",
+      "newReminder": "Nuevo pago programado",
       "edit": "Editar",
       "delete": "Eliminar",
       "emptyState": {
-        "title": "Aún no hay recordatorios",
-        "description": "Cree su primer recordatorio para empezar."
+        "title": "Aún no hay pagos programados",
+        "description": "Cree su primer pago programado para empezar."
       },
       "list": {
         "upcoming": "Próximos",
@@ -30,32 +30,35 @@
         }
       },
       "dialogs": {
-        "deleteTitle": "Eliminar recordatorio",
+        "deleteTitle": "Eliminar pago programado",
         "deleteDescription": "¿Está seguro de que desea eliminar \"{name}\"? Se eliminará todo el historial de pagos.",
-        "editTitle": "Editar recordatorio",
+        "editTitle": "Editar pago programado",
         "revertTitle": "Revertir período",
-        "revertDescription": "Esto revertirá el período (vencimiento {date}) a un estado activo. Cualquier transacción vinculada quedará desvinculada.",
+        "revertDescription": "¿Revertir el pago con vencimiento {date} a pendiente?",
+        "revertDescriptionDeletesTransaction": "¿Revertir el pago con vencimiento {date} a pendiente? La transacción que creó será eliminada y el saldo de la cuenta restaurado.",
+        "revertDescriptionUnlinksTransaction": "¿Revertir el pago con vencimiento {date} a pendiente? La transacción vinculada se desconectará pero se conservará.",
         "revertConfirm": "Revertir"
       },
       "notifications": {
-        "reminderCreated": "Recordatorio creado",
-        "reminderUpdated": "Recordatorio actualizado",
-        "reminderDeleted": "Recordatorio eliminado",
+        "reminderCreated": "Pago programado creado",
+        "reminderUpdated": "Pago programado actualizado",
+        "reminderDeleted": "Pago programado eliminado",
         "markedAsPaid": "Marcado como pagado",
         "periodSkipped": "Período omitido",
         "periodReverted": "Período revertido",
         "transactionUnlinked": "Transacción desvinculada",
-        "notFound": "Recordatorio no encontrado",
-        "updated": "Recordatorio actualizado",
+        "notFound": "Pago programado no encontrado",
+        "updated": "Pago programado actualizado",
         "updateFailed": "Error al actualizar",
         "unlinked": "Transacción desvinculada",
         "unlinkFailed": "Error al desvincular",
         "reverted": "Período revertido",
         "revertFailed": "Error al revertir",
-        "createFailed": "Error al crear el recordatorio",
-        "deleteFailed": "Error al eliminar el recordatorio",
+        "createFailed": "Error al crear el pago programado",
+        "deleteFailed": "Error al eliminar el pago programado",
         "markAsPaidFailed": "Error al marcar como pagado",
-        "skipFailed": "Error al omitir el período"
+        "skipFailed": "Error al omitir el período",
+        "transactionLoadFailed": "No se pudo abrir la transacción"
       },
       "frequencies": {
         "oneTime": "Una vez",
@@ -81,7 +84,14 @@
         "emailNotifications": "Enviar también notificaciones por correo electrónico",
         "extraOptions": "Opciones adicionales",
         "dueDatePastError": "La fecha de vencimiento no puede ser en el pasado",
-        "remindBeforeLabel": "Recordar antes (máximo {max})"
+        "remindBeforeLabel": "Recordar antes (máximo {max})",
+        "accountLabel": "Cuenta",
+        "accountPlaceholder": "Seleccionar una cuenta",
+        "categoryLabel": "Categoría",
+        "categoryPlaceholder": "Seleccionar una categoría",
+        "endsAfterLabel": "Termina después de",
+        "endsAfterPlaceholder": "Número de pagos",
+        "endsAfterHint": "Deje vacío para repetir indefinidamente"
       },
       "remindBefore": {
         "oneDay": "1 día antes",
@@ -90,7 +100,8 @@
         "fiveDays": "5 días antes",
         "oneWeek": "1 semana antes",
         "twoWeeks": "2 semanas antes",
-        "oneMonth": "1 mes antes"
+        "oneMonth": "1 mes antes",
+        "onDueDate": "En la fecha de vencimiento"
       },
       "details": {
         "infoCard": {
@@ -121,21 +132,32 @@
             "skip": "Omitir",
             "unlinkTransaction": "Desvincular transacción",
             "revert": "Revertir"
-          }
+          },
+          "installment": "Pago {current} de {total}",
+          "viewTransaction": "Ver transacción"
         },
         "linkedTo": "Vinculado a {name}",
         "loadMore": "Cargar más"
+      },
+      "markPaid": {
+        "title": "Marcar como pagado",
+        "description": "Registre un pago para {name}.",
+        "amountLabel": "Importe",
+        "amountPlaceholder": "Ingrese el importe pagado",
+        "dateLabel": "Fecha de pago",
+        "accountLabel": "Cuenta",
+        "confirm": "Marcar como pagado"
       }
     },
     "subscriptions": {
       "notFound": "Suscripción no encontrada",
       "notFoundDescription": "No pudimos encontrar esta suscripción. Es posible que haya sido eliminada o que no tenga acceso a ella.",
-      "title": "Suscripciones y facturas",
-      "description": "Seguimiento de pagos recurrentes y facturas",
-      "addSubscription": "Añadir suscripción",
-      "backToList": "Volver a suscripciones",
-      "createTitle": "Crear suscripción",
-      "editTitle": "Editar suscripción",
+      "title": "Cargos recurrentes",
+      "description": "Seguimiento de cargos recurrentes y facturas",
+      "addSubscription": "Añadir cargo recurrente",
+      "backToList": "Volver a cargos recurrentes",
+      "createTitle": "Crear cargo recurrente",
+      "editTitle": "Editar cargo recurrente",
       "typeSubscription": "Suscripción",
       "typeBill": "Factura",
       "paused": "En pausa",
@@ -237,15 +259,14 @@
       "deleteConfirmDescription": "¿Está seguro de que desea eliminar esta suscripción? Esta acción no se puede deshacer.",
       "deleteConfirm": "Eliminar",
       "toggleError": "Error al actualizar el estado de la suscripción",
-      "notFound": "Suscripción no encontrada",
       "unlinkSuccess": "Transacción desvinculada correctamente",
       "unlinkError": "Error al desvincular la transacción",
       "suggestError": "Error al cargar coincidencias sugeridas",
       "linkSuccess": "Transacciones vinculadas correctamente",
       "linkError": "Error al vincular transacciones",
       "emptyState": {
-        "title": "Aún no hay suscripciones",
-        "description": "Añada su primera suscripción o factura para empezar a registrar pagos recurrentes"
+        "title": "Aún no hay cargos recurrentes",
+        "description": "Añada su primer cargo recurrente o factura para empezar a registrar pagos recurrentes"
       },
       "summary": {
         "filterAll": "Todas",

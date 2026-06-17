@@ -25,8 +25,10 @@ export const unlinkTransaction = withTransaction(async ({ userId, reminderId, pe
     message: 'Payment reminder period not found',
   });
 
-  // Just remove the transaction link, keep the paid status
-  await period.update({ transactionId: null });
+  // Detaching is the user explicitly severing the link, so the transaction stays.
+  // Clearing transactionAutoCreated keeps the flag honest: with no linked tx there
+  // is nothing for revert to delete.
+  await period.update({ transactionId: null, transactionAutoCreated: false });
 
   return period.reload();
 });

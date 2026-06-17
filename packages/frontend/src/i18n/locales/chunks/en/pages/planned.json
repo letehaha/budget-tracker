@@ -4,16 +4,16 @@
       "backToList": "Back to Budgets"
     },
     "reminders": {
-      "notFound": "Reminder not found",
-      "notFoundDescription": "We couldn't find this reminder. It may have been deleted or you might not have access to it.",
-      "backToList": "Back to reminders",
-      "title": "Payment Reminders",
-      "newReminder": "New Reminder",
+      "notFound": "Scheduled payment not found",
+      "notFoundDescription": "We couldn't find this scheduled payment. It may have been deleted or you might not have access to it.",
+      "backToList": "Back to scheduled payments",
+      "title": "Scheduled Payments",
+      "newReminder": "New Scheduled Payment",
       "edit": "Edit",
       "delete": "Delete",
       "emptyState": {
-        "title": "No reminders yet",
-        "description": "Create your first reminder to get started."
+        "title": "No scheduled payments yet",
+        "description": "Create your first scheduled payment to get started."
       },
       "list": {
         "upcoming": "Upcoming",
@@ -30,32 +30,35 @@
         }
       },
       "dialogs": {
-        "deleteTitle": "Delete Reminder",
+        "deleteTitle": "Delete Scheduled Payment",
         "deleteDescription": "Are you sure you want to delete \"{name}\"? This will remove all payment history.",
-        "editTitle": "Edit Reminder",
+        "editTitle": "Edit Scheduled Payment",
         "revertTitle": "Revert Period",
-        "revertDescription": "This will revert the period (due {date}) back to an active state. Any linked transaction will be unlinked.",
+        "revertDescription": "Revert the payment due {date} back to unpaid?",
+        "revertDescriptionDeletesTransaction": "Revert the payment due {date} back to unpaid? The transaction it created will be deleted and the account balance restored.",
+        "revertDescriptionUnlinksTransaction": "Revert the payment due {date} back to unpaid? Its linked transaction will be detached but kept.",
         "revertConfirm": "Revert"
       },
       "notifications": {
-        "reminderCreated": "Reminder created",
-        "reminderUpdated": "Reminder updated",
-        "reminderDeleted": "Reminder deleted",
+        "reminderCreated": "Scheduled payment created",
+        "reminderUpdated": "Scheduled payment updated",
+        "reminderDeleted": "Scheduled payment deleted",
         "markedAsPaid": "Marked as paid",
         "periodSkipped": "Period skipped",
         "periodReverted": "Period reverted",
         "transactionUnlinked": "Transaction unlinked",
-        "notFound": "Reminder not found",
-        "updated": "Reminder updated",
+        "notFound": "Scheduled payment not found",
+        "updated": "Scheduled payment updated",
         "updateFailed": "Failed to update",
         "unlinked": "Transaction unlinked",
         "unlinkFailed": "Failed to unlink",
         "reverted": "Period reverted",
         "revertFailed": "Failed to revert",
-        "createFailed": "Failed to create reminder",
-        "deleteFailed": "Failed to delete reminder",
+        "createFailed": "Failed to create scheduled payment",
+        "deleteFailed": "Failed to delete scheduled payment",
         "markAsPaidFailed": "Failed to mark as paid",
-        "skipFailed": "Failed to skip period"
+        "skipFailed": "Failed to skip period",
+        "transactionLoadFailed": "Couldn't open the transaction"
       },
       "frequencies": {
         "oneTime": "One-time",
@@ -81,7 +84,14 @@
         "emailNotifications": "Also send email notifications",
         "extraOptions": "Extra options",
         "dueDatePastError": "Due date cannot be in the past",
-        "remindBeforeLabel": "Remind before (max {max})"
+        "remindBeforeLabel": "Remind before (max {max})",
+        "accountLabel": "Account",
+        "accountPlaceholder": "Select an account",
+        "categoryLabel": "Category",
+        "categoryPlaceholder": "Select a category",
+        "endsAfterLabel": "Ends after",
+        "endsAfterPlaceholder": "Number of payments",
+        "endsAfterHint": "Leave empty to repeat indefinitely"
       },
       "remindBefore": {
         "oneDay": "1 day before",
@@ -90,7 +100,8 @@
         "fiveDays": "5 days before",
         "oneWeek": "1 week before",
         "twoWeeks": "2 weeks before",
-        "oneMonth": "1 month before"
+        "oneMonth": "1 month before",
+        "onDueDate": "On due date"
       },
       "details": {
         "infoCard": {
@@ -121,21 +132,32 @@
             "skip": "Skip",
             "unlinkTransaction": "Unlink transaction",
             "revert": "Revert"
-          }
+          },
+          "installment": "Payment {current} of {total}",
+          "viewTransaction": "View transaction"
         },
         "linkedTo": "Linked to {name}",
         "loadMore": "Load more"
+      },
+      "markPaid": {
+        "title": "Mark as paid",
+        "description": "Record a payment for {name}.",
+        "amountLabel": "Amount",
+        "amountPlaceholder": "Enter the paid amount",
+        "dateLabel": "Payment date",
+        "accountLabel": "Account",
+        "confirm": "Mark as paid"
       }
     },
     "subscriptions": {
       "notFound": "Subscription not found",
       "notFoundDescription": "We couldn't find this subscription. It may have been deleted or you might not have access to it.",
-      "title": "Subscriptions & Bills",
-      "description": "Track recurring payments and bills",
-      "addSubscription": "Add Subscription",
-      "backToList": "Back to subscriptions",
-      "createTitle": "Create Subscription",
-      "editTitle": "Edit Subscription",
+      "title": "Recurring Charges",
+      "description": "Track recurring charges and bills",
+      "addSubscription": "Add Recurring Charge",
+      "backToList": "Back to recurring charges",
+      "createTitle": "Create Recurring Charge",
+      "editTitle": "Edit Recurring Charge",
       "typeSubscription": "Subscription",
       "typeBill": "Bill",
       "paused": "Paused",
@@ -237,15 +259,14 @@
       "deleteConfirmDescription": "Are you sure you want to delete this subscription? This action cannot be undone.",
       "deleteConfirm": "Delete",
       "toggleError": "Failed to update subscription status",
-      "notFound": "Subscription not found",
       "unlinkSuccess": "Transaction unlinked successfully",
       "unlinkError": "Failed to unlink transaction",
       "suggestError": "Failed to load suggested matches",
       "linkSuccess": "Transactions linked successfully",
       "linkError": "Failed to link transactions",
       "emptyState": {
-        "title": "No subscriptions yet",
-        "description": "Add your first subscription or bill to start tracking recurring payments"
+        "title": "No recurring charges yet",
+        "description": "Add your first recurring charge or bill to start tracking recurring payments"
       },
       "summary": {
         "filterAll": "All",

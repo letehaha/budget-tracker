@@ -407,8 +407,13 @@ export type PaymentReminderStatus = (typeof PAYMENT_REMINDER_STATUSES)[keyof typ
 /**
  * Fixed "remind before" presets for payment reminders.
  * Up to 3 can be selected per reminder.
+ *
+ * `onDueDate` (0 days) fires ON the due date itself rather than ahead of it –
+ * for bills that arrive and are due the same day (e.g. an internet bill dated
+ * the 4th that the user wants to be reminded about on the 4th).
  */
 export const REMIND_BEFORE_PRESETS = {
+  onDueDate: '0_days',
   oneDay: '1_day',
   twoDays: '2_days',
   threeDays: '3_days',
@@ -422,6 +427,7 @@ export type RemindBeforePreset = (typeof REMIND_BEFORE_PRESETS)[keyof typeof REM
 
 /** Map presets to number of days for calculation */
 export const REMIND_BEFORE_DAYS: Record<RemindBeforePreset, number> = {
+  '0_days': 0,
   '1_day': 1,
   '2_days': 2,
   '3_days': 3,

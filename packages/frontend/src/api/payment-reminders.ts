@@ -31,6 +31,8 @@ export interface CreateReminderPayload {
   preferredTime?: number;
   timezone?: string;
   categoryId?: string | null;
+  accountId?: string | null;
+  maxOccurrences?: number | null;
   notes?: string | null;
 }
 
@@ -45,6 +47,8 @@ interface UpdateReminderPayload {
   preferredTime?: number;
   timezone?: string;
   categoryId?: string | null;
+  accountId?: string | null;
+  maxOccurrences?: number | null;
   notes?: string | null;
   isActive?: boolean;
 }
@@ -101,15 +105,27 @@ export const markPeriodPaid = async ({
   periodId,
   transactionId,
   notes,
+  createTransaction,
+  amount,
+  time,
 }: {
   reminderId: string;
   periodId: string;
   transactionId?: string | null;
   notes?: string | null;
+  /** Generate the expense transaction from the reminder. Mutually exclusive with transactionId. */
+  createTransaction?: boolean;
+  /** Decimal amount override for the generated transaction. Falls back to the reminder's expectedAmount. */
+  amount?: number;
+  /** Actual payment date for the generated transaction. Falls back to now. */
+  time?: Date;
 }): Promise<PaymentReminderPeriodModel> => {
   const payload: Record<string, unknown> = {};
   if (transactionId !== undefined) payload.transactionId = transactionId;
   if (notes !== undefined) payload.notes = notes;
+  if (createTransaction !== undefined) payload.createTransaction = createTransaction;
+  if (amount !== undefined) payload.amount = amount;
+  if (time !== undefined) payload.time = time.toISOString();
 
   return api.post(
     `/payment-reminders/${reminderId}/periods/${periodId}/pay`,

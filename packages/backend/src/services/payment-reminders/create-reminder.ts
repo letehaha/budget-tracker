@@ -2,6 +2,7 @@ import { PAYMENT_REMINDER_STATUSES, RemindBeforePreset, SUBSCRIPTION_FREQUENCIES
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
+import Accounts from '@models/accounts.model';
 import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
 import Subscriptions from '@models/subscriptions.model';
@@ -20,6 +21,8 @@ interface CreateReminderParams {
   preferredTime?: number;
   timezone?: string;
   categoryId?: string | null;
+  accountId?: string | null;
+  maxOccurrences?: number | null;
   notes?: string | null;
 }
 
@@ -37,6 +40,8 @@ export const createReminder = withTransaction(async (params: CreateReminderParam
     preferredTime = 8,
     timezone = 'UTC',
     categoryId = null,
+    accountId = null,
+    maxOccurrences = null,
     notes = null,
   } = params;
 
@@ -44,6 +49,14 @@ export const createReminder = withTransaction(async (params: CreateReminderParam
   let finalAmount = expectedAmount;
   let finalCurrency = currencyCode;
   let finalFrequency = frequency;
+
+  // Validate account ownership when an account is linked.
+  if (accountId != null) {
+    await findOrThrowNotFound({
+      query: Accounts.findOne({ where: { id: accountId, userId } }),
+      message: 'Account not found',
+    });
+  }
 
   // If linked to subscription, sync fields from it
   if (subscriptionId) {
@@ -85,6 +98,8 @@ export const createReminder = withTransaction(async (params: CreateReminderParam
     preferredTime,
     timezone,
     categoryId,
+    accountId,
+    maxOccurrences,
     notes,
     isActive: true,
   });

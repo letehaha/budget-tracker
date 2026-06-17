@@ -24,6 +24,8 @@ interface CreateReminderPayload {
   preferredTime?: number;
   timezone?: string;
   categoryId?: string | null;
+  accountId?: string | null;
+  maxOccurrences?: number | null;
   notes?: string | null;
 }
 
@@ -38,6 +40,8 @@ interface UpdateReminderPayload {
   preferredTime?: number;
   timezone?: string;
   categoryId?: string | null;
+  accountId?: string | null;
+  maxOccurrences?: number | null;
   notes?: string | null;
   isActive?: boolean;
 }
@@ -142,16 +146,25 @@ export async function markPaymentReminderPeriodPaid<R extends boolean | undefine
   raw,
   transactionId,
   notes,
+  createTransaction,
+  amount,
+  time,
 }: {
   reminderId: string;
   periodId: string;
   raw?: R;
   transactionId?: string | null;
   notes?: string | null;
+  createTransaction?: boolean;
+  amount?: number;
+  time?: string;
 }) {
   const payload: Record<string, unknown> = {};
   if (transactionId !== undefined) payload.transactionId = transactionId;
   if (notes !== undefined) payload.notes = notes;
+  if (createTransaction !== undefined) payload.createTransaction = createTransaction;
+  if (amount !== undefined) payload.amount = amount;
+  if (time !== undefined) payload.time = time;
 
   return makeRequest<Awaited<ReturnType<typeof apiMarkPeriodPaid>>, R>({
     method: 'post',

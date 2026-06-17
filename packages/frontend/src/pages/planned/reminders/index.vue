@@ -3,7 +3,6 @@ import {
   createReminder,
   deleteReminder,
   loadReminders,
-  markPeriodPaid,
   skipPeriod,
   type PaymentReminderListItem,
 } from '@/api/payment-reminders';
@@ -25,6 +24,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import MarkPaidDialog from './components/mark-paid-dialog.vue';
 import ReminderFormDialog from './components/reminder-form-dialog.vue';
 import { getDaysUntilDue, getFrequencyI18nKey, invalidateReminderQueries, isStatusActionable } from './utils';
 
@@ -94,21 +94,13 @@ const { mutate: deleteMutation, isPending: isDeleting } = useMutation({
   },
 });
 
-// Quick actions
-const { mutate: markPaidMutation, isPending: isMarkingPaid } = useMutation({
-  mutationFn: markPeriodPaid,
-  onSuccess: () => {
-    invalidateAll();
-    addSuccessNotification(t('planned.reminders.notifications.markedAsPaid'));
-  },
-  onError(error) {
-    const message =
-      error instanceof ApiErrorResponseError
-        ? error.data.message
-        : t('planned.reminders.notifications.markAsPaidFailed');
-    addErrorNotification(message ?? t('planned.reminders.notifications.markAsPaidFailed'));
-  },
-});
+// Mark-paid flow (instant for fixed-amount reminders, dialog for variable ones)
+const markPaidRef = ref<InstanceType<typeof MarkPaidDialog>>();
+const isMarkingPaid = computed(() => markPaidRef.value?.isPending ?? false);
+
+function payReminder({ reminder, periodId }: { reminder: PaymentReminderListItem; periodId: string }) {
+  markPaidRef.value?.triggerPay({ reminder, periodId });
+}
 
 const { mutate: skipMutation, isPending: isSkipping } = useMutation({
   mutationFn: skipPeriod,
@@ -140,8 +132,10 @@ function getDueLabel(dueDate: string, status: PaymentReminderStatus): string {
   return t('planned.reminders.list.dueLabels.inDays', { days });
 }
 
-function isPeriodDueOrOverdue({ dueDate, status }: { dueDate: string; status: string }): boolean {
-  return isStatusActionable({ status }) && getDaysUntilDue({ dueDate }) <= 0;
+// Bills can be paid early, so the quick mark-paid / skip actions show for any
+// actionable (upcoming or overdue) period — not only on/after the due date.
+function canActOnPeriod({ status }: { status: string }): boolean {
+  return isStatusActionable({ status });
 }
 
 function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): string | null {
@@ -221,10 +215,7 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
             <!-- Desktop: inline buttons -->
             <div v-if="!isMobileActions" class="flex items-center gap-1" @click.stop>
               <DesktopOnlyTooltip
-                v-if="
-                  reminder.periods?.[0] &&
-                  isPeriodDueOrOverdue({ dueDate: reminder.periods[0].dueDate, status: reminder.periods[0].status })
-                "
+                v-if="reminder.periods?.[0] && canActOnPeriod({ status: reminder.periods[0].status })"
                 :content="$t('planned.reminders.list.tooltips.markAsPaid')"
               >
                 <UiButton
@@ -232,21 +223,13 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
                   size="icon"
                   :title="$t('planned.reminders.list.tooltips.markAsPaid')"
                   :disabled="isQuickActionPending"
-                  @click="
-                    markPaidMutation({
-                      reminderId: reminder.id,
-                      periodId: reminder.periods[0].id,
-                    })
-                  "
+                  @click="payReminder({ reminder, periodId: reminder.periods[0].id })"
                 >
                   <CheckIcon class="size-4" />
                 </UiButton>
               </DesktopOnlyTooltip>
               <DesktopOnlyTooltip
-                v-if="
-                  reminder.periods?.[0] &&
-                  isPeriodDueOrOverdue({ dueDate: reminder.periods[0].dueDate, status: reminder.periods[0].status })
-                "
+                v-if="reminder.periods?.[0] && canActOnPeriod({ status: reminder.periods[0].status })"
                 :content="$t('planned.reminders.list.tooltips.skipPeriod')"
               >
                 <UiButton
@@ -286,29 +269,18 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
                 </PopoverTrigger>
                 <PopoverContent align="end" class="flex w-auto min-w-48 flex-col gap-1 p-1">
                   <UiButton
-                    v-if="
-                      reminder.periods?.[0] &&
-                      isPeriodDueOrOverdue({ dueDate: reminder.periods[0].dueDate, status: reminder.periods[0].status })
-                    "
+                    v-if="reminder.periods?.[0] && canActOnPeriod({ status: reminder.periods[0].status })"
                     variant="ghost"
                     size="sm"
                     class="w-full justify-start"
                     :disabled="isQuickActionPending"
-                    @click="
-                      markPaidMutation({
-                        reminderId: reminder.id,
-                        periodId: reminder.periods[0].id,
-                      })
-                    "
+                    @click="payReminder({ reminder, periodId: reminder.periods[0].id })"
                   >
                     <CheckIcon class="size-4" />
                     {{ $t('planned.reminders.list.tooltips.markAsPaid') }}
                   </UiButton>
                   <UiButton
-                    v-if="
-                      reminder.periods?.[0] &&
-                      isPeriodDueOrOverdue({ dueDate: reminder.periods[0].dueDate, status: reminder.periods[0].status })
-                    "
+                    v-if="reminder.periods?.[0] && canActOnPeriod({ status: reminder.periods[0].status })"
                     variant="ghost"
                     size="sm"
                     class="w-full justify-start"
@@ -339,6 +311,9 @@ function formatAmount({ reminder }: { reminder: PaymentReminderListItem }): stri
         </div>
       </div>
     </template>
+
+    <!-- Mark-paid flow (decides instant vs. amount dialog internally) -->
+    <MarkPaidDialog ref="markPaidRef" />
 
     <!-- Create dialog -->
     <ResponsiveDialog v-model:open="isCreateDialogOpen" dialog-content-class="max-w-lg">

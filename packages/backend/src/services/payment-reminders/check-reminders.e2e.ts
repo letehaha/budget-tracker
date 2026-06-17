@@ -300,4 +300,86 @@ describe('Payment Reminders - Check Reminders (Cron Logic)', () => {
       expect(notifsAfter).toBe(notifsBefore);
     });
   });
+
+  describe('On-due-date preset (0_days)', () => {
+    /**
+     * Reads this reminder's in-app payment-reminder notifications via the HTTP
+     * endpoint, isolating them by `payload.reminderId` so unrelated reminders
+     * created by other tests don't pollute the count.
+     */
+    async function countOnDueDateNotifications({ reminderId }: { reminderId: string }): Promise<number> {
+      const notifications = await helpers.getNotifications({
+        type: NOTIFICATION_TYPES.paymentReminder,
+        raw: true,
+      });
+      return notifications.filter((n) => (n.payload as { reminderId?: string } | null)?.reminderId === reminderId)
+        .length;
+    }
+
+    it('fires exactly one in-app notification when the period is due today', async () => {
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Internet Bill - Due Today',
+        dueDate: todayStr,
+        remindBefore: [REMIND_BEFORE_PRESETS.onDueDate],
+        raw: true,
+      });
+
+      const result = await checkPaymentReminders();
+      expect(result.notificationsSent).toBeGreaterThanOrEqual(1);
+
+      expect(await countOnDueDateNotifications({ reminderId: reminder.id })).toBe(1);
+
+      // The period due today is not yet overdue (overdue = dueDate < today), so
+      // it stays upcoming after the run.
+      const period = await PaymentReminderPeriods.findOne({ where: { reminderId: reminder.id } });
+      expect(period!.status).toBe(PAYMENT_REMINDER_STATUSES.upcoming);
+    });
+
+    it('does not fire prematurely when the period is due in the future', async () => {
+      const future = new Date();
+      future.setDate(future.getDate() + 10);
+      const futureStr = future.toISOString().split('T')[0]!;
+
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Internet Bill - Future',
+        dueDate: futureStr,
+        remindBefore: [REMIND_BEFORE_PRESETS.onDueDate],
+        raw: true,
+      });
+
+      await checkPaymentReminders();
+
+      expect(await countOnDueDateNotifications({ reminderId: reminder.id })).toBe(0);
+    });
+
+    it('still fires once when the period has already flipped to overdue', async () => {
+      // Simulate the first cron run landing AFTER the due date: the period's
+      // due date is yesterday, so markOverduePeriods flips it to `overdue`
+      // before the notification pass. The on-due-date notification must still
+      // be sent (and only once), proving the pass targets overdue periods too.
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0]!;
+
+      const reminder = await createBackdatedReminder({
+        name: 'Internet Bill - Overdue',
+        dueDate: yesterdayStr,
+        remindBefore: [REMIND_BEFORE_PRESETS.onDueDate],
+      });
+
+      const result = await checkPaymentReminders();
+      expect(result.notificationsSent).toBeGreaterThanOrEqual(1);
+
+      // The backdated period is now overdue...
+      const period = await PaymentReminderPeriods.findOne({ where: { reminderId: reminder.id } });
+      expect(period!.status).toBe(PAYMENT_REMINDER_STATUSES.overdue);
+
+      // ...yet the on-due-date notification fired exactly once.
+      expect(await countOnDueDateNotifications({ reminderId: reminder.id })).toBe(1);
+
+      // A second run must not duplicate it (dedup table guard).
+      await checkPaymentReminders();
+      expect(await countOnDueDateNotifications({ reminderId: reminder.id })).toBe(1);
+    });
+  });
 });

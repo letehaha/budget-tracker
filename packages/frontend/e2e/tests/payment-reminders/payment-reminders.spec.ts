@@ -91,14 +91,14 @@ test.describe('Payment Reminders', () => {
     await expect(remindersLink).toBeVisible({ timeout: 10_000 });
 
     await remindersLink.click();
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
   });
 
   // ─── Empty state ──────────────────────────────────────────────────
 
   test('1. empty state shown when no reminders exist', async ({ page }) => {
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     await expect(page.getByText('No reminders yet')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: 'New Reminder' }).first()).toBeVisible();
@@ -107,8 +107,8 @@ test.describe('Payment Reminders', () => {
   // ─── Create reminders ─────────────────────────────────────────────
 
   test('2. create a one-off reminder with minimal fields', async ({ page }) => {
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     // Click "New Reminder"
     await page.locator('button').filter({ hasText: 'New Reminder' }).first().click();
@@ -145,16 +145,16 @@ test.describe('Payment Reminders', () => {
       remindBefore: ['1_day', '1_week'],
     });
 
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     await expect(page.getByText('Monthly Rent')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Monthly', { exact: true })).toBeVisible();
   });
 
   test('4. create reminder validation - submit disabled without name', async ({ page }) => {
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     await page.locator('button').filter({ hasText: 'New Reminder' }).first().click();
 
@@ -172,8 +172,8 @@ test.describe('Payment Reminders', () => {
   // ─── Navigate to details ──────────────────────────────────────────
 
   test('5. click reminder card navigates to details', async ({ page }) => {
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     // Click on the "Monthly Rent" card (not on an action button)
     const card = page.locator('.rounded-lg.border').filter({ hasText: 'Monthly Rent' });
@@ -182,7 +182,7 @@ test.describe('Payment Reminders', () => {
     // Click the card text area (not the action buttons)
     await card.locator('p').filter({ hasText: 'Monthly Rent' }).click();
 
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
   });
 
   // ─── List quick actions ───────────────────────────────────────────
@@ -195,8 +195,8 @@ test.describe('Payment Reminders', () => {
       dueDate: futureStr,
     });
 
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     // The "Future Bill" card should be visible
     const card = page.locator('.rounded-lg.border').filter({ hasText: 'Future Bill' });
@@ -209,8 +209,8 @@ test.describe('Payment Reminders', () => {
   });
 
   test('6. mark as paid on list page for overdue reminder', async ({ page }) => {
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     // "Property Tax" was created with today's date, should be actionable (due today)
     const card = page.locator('.rounded-lg.border').filter({ hasText: 'Property Tax' });
@@ -227,8 +227,8 @@ test.describe('Payment Reminders', () => {
 
   test('8. skip period on list page', async ({ page }) => {
     // Monthly Rent should be actionable (created with today's date)
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     const card = page.locator('.rounded-lg.border').filter({ hasText: 'Monthly Rent' });
     await expect(card).toBeVisible({ timeout: 10_000 });
@@ -253,8 +253,8 @@ test.describe('Payment Reminders', () => {
       dueDate: todayStr,
     });
 
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     const card = page.locator('.rounded-lg.border').filter({ hasText: 'Delete Me' });
     await expect(card).toBeVisible({ timeout: 10_000 });
@@ -282,13 +282,13 @@ test.describe('Payment Reminders', () => {
   // ─── Details page ─────────────────────────────────────────────────
 
   test('10. view reminder details', async ({ page }) => {
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     // Navigate to Monthly Rent details
     const card = page.locator('.rounded-lg.border').filter({ hasText: 'Monthly Rent' });
     await card.locator('p').filter({ hasText: 'Monthly Rent' }).click();
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     // Verify details are shown
     await expect(page.locator('h1').filter({ hasText: 'Monthly Rent' })).toBeVisible({ timeout: 10_000 });
@@ -297,13 +297,13 @@ test.describe('Payment Reminders', () => {
   });
 
   test('11. edit reminder from details page', async ({ page }) => {
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     // Navigate to Monthly Rent details
     const card = page.locator('.rounded-lg.border').filter({ hasText: 'Monthly Rent' });
     await card.locator('p').filter({ hasText: 'Monthly Rent' }).click();
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     // Click Edit
     await page.locator('button').filter({ hasText: 'Edit' }).click();
@@ -332,8 +332,8 @@ test.describe('Payment Reminders', () => {
     });
     const id = extractId(result);
 
-    await page.goto(`/planned/reminders/${id}`);
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.goto(`/planned/scheduled-payments/${id}`);
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     await expect(page.locator('h1').filter({ hasText: 'Delete From Details' })).toBeVisible({ timeout: 10_000 });
 
@@ -349,19 +349,19 @@ test.describe('Payment Reminders', () => {
       .click();
 
     // Should redirect back to list
-    await page.waitForURL(/\/planned\/reminders$/, { timeout: 15_000 });
+    await page.waitForURL(/\/planned\/scheduled-payments$/, { timeout: 15_000 });
   });
 
   // ─── Period actions on details page ───────────────────────────────
 
   test('14. period history shows grouped by month', async ({ page }) => {
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     // Navigate to Monthly Rent (which has at least 1 skipped period + 1 upcoming)
     const card = page.locator('.rounded-lg.border').filter({ hasText: 'Monthly Rent' });
     await card.locator('p').filter({ hasText: 'Monthly Rent' }).click();
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     // Should see period entries
     await expect(page.getByText('Payment History')).toBeVisible({ timeout: 10_000 });
@@ -379,8 +379,8 @@ test.describe('Payment Reminders', () => {
     });
     const id = extractId(result);
 
-    await page.goto(`/planned/reminders/${id}`);
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.goto(`/planned/scheduled-payments/${id}`);
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     await expect(page.locator('h1').filter({ hasText: 'Pay From Details' })).toBeVisible({ timeout: 10_000 });
 
@@ -402,8 +402,8 @@ test.describe('Payment Reminders', () => {
     });
     const id = extractId(result);
 
-    await page.goto(`/planned/reminders/${id}`);
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.goto(`/planned/scheduled-payments/${id}`);
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     await expect(page.locator('h1').filter({ hasText: 'Skip From Details' })).toBeVisible({ timeout: 10_000 });
 
@@ -443,8 +443,8 @@ test.describe('Payment Reminders', () => {
       transactionId: txId,
     });
 
-    await page.goto(`/planned/reminders/${reminderId}`);
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.goto(`/planned/scheduled-payments/${reminderId}`);
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     // Should show linked transaction
     await expect(page.getByText(`Transaction #${txId}`)).toBeVisible({ timeout: 10_000 });
@@ -487,8 +487,8 @@ test.describe('Payment Reminders', () => {
       currentPeriodId = data.response.periods[0].id;
     }
 
-    await page.goto(`/planned/reminders/${reminderId}`);
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.goto(`/planned/scheduled-payments/${reminderId}`);
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     // Should see "Load more" button (8 periods total, showing 6 by default)
     const loadMoreButton = page.locator('button').filter({ hasText: 'Load more' });
@@ -508,20 +508,20 @@ test.describe('Payment Reminders', () => {
   // ─── Back link ────────────────────────────────────────────────────
 
   test('20. back link on details navigates to list', async ({ page }) => {
-    await page.goto('/planned/reminders');
-    await page.waitForURL(/\/planned\/reminders/, { timeout: 15_000 });
+    await page.goto('/planned/scheduled-payments');
+    await page.waitForURL(/\/planned\/scheduled-payments/, { timeout: 15_000 });
 
     // Navigate to a reminder
     const card = page.locator('.rounded-lg.border').filter({ hasText: 'Monthly Rent' });
     await card.locator('p').filter({ hasText: 'Monthly Rent' }).click();
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     // Click the back link
     const backLink = page.locator('a').filter({ hasText: /back to reminders/i });
     await expect(backLink).toBeVisible({ timeout: 10_000 });
     await backLink.click();
 
-    await page.waitForURL(/\/planned\/reminders$/, { timeout: 15_000 });
+    await page.waitForURL(/\/planned\/scheduled-payments$/, { timeout: 15_000 });
   });
 
   // ─── Recurring period generation ──────────────────────────────────
@@ -535,8 +535,8 @@ test.describe('Payment Reminders', () => {
     });
     const reminderId = extractId(result);
 
-    await page.goto(`/planned/reminders/${reminderId}`);
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.goto(`/planned/scheduled-payments/${reminderId}`);
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     // Should have 1 period initially
     await expect(page.getByText('Payment History')).toBeVisible({ timeout: 10_000 });
@@ -558,8 +558,8 @@ test.describe('Payment Reminders', () => {
     });
     const reminderId = extractId(result);
 
-    await page.goto(`/planned/reminders/${reminderId}`);
-    await page.waitForURL(/\/planned\/reminders\//, { timeout: 15_000 });
+    await page.goto(`/planned/scheduled-payments/${reminderId}`);
+    await page.waitForURL(/\/planned\/scheduled-payments\//, { timeout: 15_000 });
 
     // Pay the period
     const payButton = page.locator('button[title="Mark as paid"]').first();

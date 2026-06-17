@@ -3,6 +3,7 @@ import PaymentReminderPeriods from '@models/payment-reminder-periods.model';
 import PaymentReminders from '@models/payment-reminders.model';
 
 import { calculateNextDueDate } from './calculate-next-due-date';
+import { isReminderInstallmentCapReached } from './installments';
 
 export async function ensureNextPeriodExists({ reminder }: { reminder: PaymentReminders }) {
   if (!reminder.frequency) return;
@@ -15,6 +16,9 @@ export async function ensureNextPeriodExists({ reminder }: { reminder: PaymentRe
   });
 
   if (upcomingPeriod) return;
+
+  // Stop generating once the installment cap is consumed (deactivates the reminder).
+  if (await isReminderInstallmentCapReached({ reminder })) return;
 
   const latestPeriod = await PaymentReminderPeriods.findOne({
     where: { reminderId: reminder.id },
