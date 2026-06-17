@@ -1,6 +1,7 @@
 import { RemindBeforePreset, SUBSCRIPTION_FREQUENCIES } from '@bt/shared/types';
 import type { createReminder as apiCreateReminder } from '@services/payment-reminders/create-reminder';
 import type { deleteReminder as apiDeleteReminder } from '@services/payment-reminders/delete-reminder';
+import type { getReminderPayPreview as apiGetReminderPayPreview } from '@services/payment-reminders/get-pay-preview';
 import type { getPeriods as apiGetPeriods } from '@services/payment-reminders/get-periods';
 import type { getReminderById as apiGetReminderById } from '@services/payment-reminders/get-reminder-by-id';
 import type { getReminders as apiGetReminders } from '@services/payment-reminders/get-reminders';
@@ -86,6 +87,20 @@ export async function getPaymentReminderById<R extends boolean | undefined = und
   return makeRequest<Awaited<ReturnType<typeof apiGetReminderById>>, R>({
     method: 'get',
     url: `/payment-reminders/${id}`,
+    raw,
+  });
+}
+
+export async function getPaymentReminderPayPreview<R extends boolean | undefined = undefined>({
+  id,
+  raw,
+}: {
+  id: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiGetReminderPayPreview>>, R>({
+    method: 'get',
+    url: `/payment-reminders/${id}/pay-preview`,
     raw,
   });
 }

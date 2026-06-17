@@ -1,5 +1,6 @@
 import createReminder from '@controllers/payment-reminders/create-reminder';
 import deleteReminder from '@controllers/payment-reminders/delete-reminder';
+import getPayPreview from '@controllers/payment-reminders/get-pay-preview';
 import getPeriods from '@controllers/payment-reminders/get-periods';
 import getReminderById from '@controllers/payment-reminders/get-reminder-by-id';
 import getReminders from '@controllers/payment-reminders/get-reminders';
@@ -17,6 +18,7 @@ const router = Router({});
 // CRUD
 router.get('/', authenticateSession, validateEndpoint(getReminders.schema), getReminders.handler);
 router.get('/:id', authenticateSession, validateEndpoint(getReminderById.schema), getReminderById.handler);
+router.get('/:id/pay-preview', authenticateSession, validateEndpoint(getPayPreview.schema), getPayPreview.handler);
 router.post('/', authenticateSession, validateEndpoint(createReminder.schema), createReminder.handler);
 router.put('/:id', authenticateSession, validateEndpoint(updateReminder.schema), updateReminder.handler);
 router.delete('/:id', authenticateSession, validateEndpoint(deleteReminder.schema), deleteReminder.handler);

@@ -14,6 +14,19 @@ export interface PaymentReminderListItem extends PaymentReminderModel {
 
 export type PaymentReminderDetail = PaymentReminderListItem;
 
+export interface ReminderPayPreview {
+  /** True when the reminder's billed currency differs from its account's currency. */
+  isCrossCurrency: boolean;
+  /** ISO code the booked expense will be denominated in (the account's currency), or null when no account is linked. */
+  accountCurrencyCode: string | null;
+  /** ISO code the reminder is billed in. */
+  reminderCurrencyCode: string | null;
+  /** Billed amount in the reminder's own currency, or null for a variable-amount reminder. */
+  expectedAmount: number | null;
+  /** Billed amount converted into the account currency at today's rate, used to pre-fill the pay dialog. */
+  convertedAmount: number | null;
+}
+
 interface PaymentReminderPeriodsResponse {
   periods: PaymentReminderPeriodModel[];
   total: number;
@@ -64,6 +77,10 @@ export const loadReminders = async ({ includeInactive }: { includeInactive?: boo
 
 export const loadReminderById = async ({ id }: { id: string }): Promise<PaymentReminderDetail> => {
   return api.get(`/payment-reminders/${id}`);
+};
+
+export const getReminderPayPreview = async ({ reminderId }: { reminderId: string }): Promise<ReminderPayPreview> => {
+  return api.get(`/payment-reminders/${reminderId}/pay-preview`);
 };
 
 export const createReminder = async (payload: CreateReminderPayload): Promise<PaymentReminderDetail> => {

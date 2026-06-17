@@ -91,7 +91,8 @@
         "categoryPlaceholder": "Seleccionar una categoría",
         "endsAfterLabel": "Termina después de",
         "endsAfterPlaceholder": "Número de pagos",
-        "endsAfterHint": "Deje vacío para repetir indefinidamente"
+        "endsAfterHint": "Deje vacío para repetir indefinidamente",
+        "crossCurrencyHint": "Billed in {reminderCurrency}; converted to {accountCurrency} when you mark it paid."
       },
       "remindBefore": {
         "oneDay": "1 día antes",
@@ -146,7 +147,9 @@
         "amountPlaceholder": "Ingrese el importe pagado",
         "dateLabel": "Fecha de pago",
         "accountLabel": "Cuenta",
-        "confirm": "Marcar como pagado"
+        "confirm": "Marcar como pagado",
+        "estimateLoading": "Calculating estimate…",
+        "crossCurrencyEstimate": "Estimated from {sourceAmount} {sourceCurrency} at today's rate. Edit to match the exact {accountCurrency} amount charged."
       }
     },
     "subscriptions": {

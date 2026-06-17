@@ -2,9 +2,12 @@ import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
+import * as Accounts from '@models/accounts.model';
 import PaymentReminders from '@models/payment-reminders.model';
 import * as Users from '@models/users.model';
 import type { CreateTransactionParams } from '@services/transactions/types';
+
+import { convertReminderAmountToAccountCurrency } from './convert-reminder-amount';
 
 /**
  * Translates a payment reminder into the params for `createTransaction`.
@@ -25,6 +28,14 @@ import type { CreateTransactionParams } from '@services/transactions/types';
  * null/undefined category, so when neither the reminder nor the user provides
  * one the transaction is simply created uncategorized rather than rejected.
  *
+ * The booked transaction is always denominated in the account's currency. When
+ * the reminder is billed in a different currency (a USD subscription paid from a
+ * UAH account), the amount is resolved as follows:
+ *   - an explicit `amount` override is taken verbatim — the pay dialog already
+ *     converted the bill to the account currency before sending it;
+ *   - otherwise the reminder's `expectedAmount` is converted into the account
+ *     currency at `time` via `convertReminderAmountToAccountCurrency`.
+ *
  * Validation (account presence, amount availability) lives here so create-mode
  * fails before any row is written.
  */
@@ -34,7 +45,7 @@ export async function buildTransactionFromReminder({
   time,
 }: {
   reminder: PaymentReminders;
-  /** Decimal override for the booked amount. Falls back to the reminder's expectedAmount. */
+  /** Decimal override for the booked amount, expressed in the ACCOUNT's currency. */
   amount?: number;
   /** Actual payment date override. Falls back to now. */
   time?: Date;
@@ -45,14 +56,30 @@ export async function buildTransactionFromReminder({
     });
   }
 
-  // `expectedAmount` returns null (cast to Money by the getter) when the
-  // underlying cents are null, so resolve the decimal explicitly before
-  // building a Money instance.
-  const resolvedDecimal = amount ?? (reminder.expectedAmount != null ? reminder.expectedAmount.toNumber() : null);
-  if (resolvedDecimal == null) {
-    throw new ValidationError({
-      message: t({ key: 'paymentReminders.createTransactionRequiresAmount' }),
+  const effectiveTime = time ?? new Date();
+
+  let amountMoney: Money;
+  if (amount != null) {
+    amountMoney = Money.fromDecimal(amount);
+  } else {
+    const account = await Accounts.getAccountCurrency({ userId: reminder.userId, id: reminder.accountId });
+    if (account == null) {
+      throw new ValidationError({
+        message: t({ key: 'paymentReminders.createTransactionRequiresAccount' }),
+      });
+    }
+
+    const converted = await convertReminderAmountToAccountCurrency({
+      reminder,
+      accountCurrencyCode: account.currency.code,
+      date: effectiveTime,
     });
+    if (converted == null) {
+      throw new ValidationError({
+        message: t({ key: 'paymentReminders.createTransactionRequiresAmount' }),
+      });
+    }
+    amountMoney = converted;
   }
 
   const categoryId = reminder.categoryId ?? (await Users.getUserDefaultCategory({ id: reminder.userId })) ?? undefined;
@@ -60,13 +87,13 @@ export async function buildTransactionFromReminder({
   return {
     userId: reminder.userId,
     accountId: reminder.accountId,
-    amount: Money.fromDecimal(resolvedDecimal),
+    amount: amountMoney,
     transactionType: TRANSACTION_TYPES.expense,
     paymentType: PAYMENT_TYPES.bankTransfer,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     accountType: ACCOUNT_TYPES.system,
     categoryId,
-    time: time ?? new Date(),
+    time: effectiveTime,
     note: reminder.name,
   };
 }

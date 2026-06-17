@@ -653,3 +653,128 @@ describe('Scheduled Payments (revert deletes generated transaction)', () => {
     });
   });
 });
+
+describe('Cross-currency scheduled payments', () => {
+  /**
+   * Links a UAH account to a reminder billed in the base currency (USD), so the
+   * reminder currency differs from the account it is paid from.
+   */
+  async function createForeignReminderOnUahAccount({ expectedAmount }: { expectedAmount: number }) {
+    const uah = global.MODELS_CURRENCIES!.find((c) => c.code === 'UAH')!;
+    await helpers.addUserCurrencies({ currencyCodes: [uah.code] });
+    const account = await helpers.createAccount({
+      payload: { ...helpers.buildAccountPayload(), currencyCode: uah.code },
+      raw: true,
+    });
+    const reminder = await helpers.createPaymentReminder({
+      name: 'USD Subscription',
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      accountId: account.id,
+      categoryId: global.DEFAULT_CATEGORY_ID,
+      expectedAmount,
+      // Billed in the base currency (USD), which differs from the UAH account.
+      currencyCode: global.BASE_CURRENCY.code,
+      raw: true,
+    });
+    return { account, reminder, accountCurrencyCode: uah.code };
+  }
+
+  describe('GET /payment-reminders/:id/pay-preview', () => {
+    it('reports cross-currency and a converted estimate in the account currency', async () => {
+      const { reminder, accountCurrencyCode } = await createForeignReminderOnUahAccount({ expectedAmount: 10 });
+
+      const preview = await helpers.getPaymentReminderPayPreview({ id: reminder.id, raw: true });
+
+      expect(preview.isCrossCurrency).toBe(true);
+      expect(preview.accountCurrencyCode).toBe(accountCurrencyCode);
+      expect(preview.reminderCurrencyCode).toBe(global.BASE_CURRENCY.code);
+      expect(preview.expectedAmount).toBe(10);
+      expect(preview.convertedAmount).not.toBeNull();
+      // Converting USD -> UAH changes the figure away from the USD nominal.
+      expect(preview.convertedAmount).not.toBe(10);
+    });
+
+    it('reports same-currency (no conversion) when the reminder currency matches the account', async () => {
+      const account = await helpers.createAccount({ raw: true }); // base currency
+      const reminder = await helpers.createPaymentReminder({
+        name: 'Same Currency',
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+        accountId: account.id,
+        categoryId: global.DEFAULT_CATEGORY_ID,
+        expectedAmount: 20,
+        currencyCode: global.BASE_CURRENCY.code,
+        raw: true,
+      });
+
+      const preview = await helpers.getPaymentReminderPayPreview({ id: reminder.id, raw: true });
+
+      expect(preview.isCrossCurrency).toBe(false);
+      expect(preview.accountCurrencyCode).toBe(global.BASE_CURRENCY.code);
+      expect(preview.convertedAmount).toBe(20);
+    });
+
+    it('returns 404 for a non-existent reminder', async () => {
+      const res = await helpers.getPaymentReminderPayPreview({ id: generateRandomRecordId(), raw: false });
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("does not expose another user's reminder", async () => {
+      const { reminder } = await createForeignReminderOnUahAccount({ expectedAmount: 10 });
+
+      const secondUser = await helpers.signUpSecondUser();
+      const res = await helpers.asUser({
+        cookies: secondUser.cookies,
+        fn: () => helpers.getPaymentReminderPayPreview({ id: reminder.id, raw: false }),
+      });
+
+      expect(res.statusCode).toBe(404);
+    });
+  });
+
+  describe('POST /payment-reminders/:id/periods/:periodId/pay (cross-currency)', () => {
+    it('books the converted account-currency amount when no override is given', async () => {
+      const { account, reminder, accountCurrencyCode } = await createForeignReminderOnUahAccount({
+        expectedAmount: 10,
+      });
+
+      // The estimate the pay dialog would pre-fill.
+      const preview = await helpers.getPaymentReminderPayPreview({ id: reminder.id, raw: true });
+
+      const period = await helpers.markPaymentReminderPeriodPaid({
+        reminderId: reminder.id,
+        periodId: reminder.periods[0]!.id,
+        createTransaction: true,
+        raw: true,
+      });
+
+      const tx = await helpers.getTransactionById({ id: period.transactionId!, raw: true });
+      expect(tx).not.toBeNull();
+      // Booked in the account's currency, not the reminder's billed currency.
+      expect(tx!.currencyCode).toBe(accountCurrencyCode);
+      expect(tx!.accountId).toBe(account.id);
+      // The booked amount is the converted figure and matches the previewed estimate exactly.
+      expect(tx!.amount).not.toBe(10);
+      expect(tx!.amount).toBe(preview.convertedAmount);
+    });
+
+    it('books an explicit override verbatim in the account currency', async () => {
+      const { account, reminder, accountCurrencyCode } = await createForeignReminderOnUahAccount({
+        expectedAmount: 10,
+      });
+
+      const period = await helpers.markPaymentReminderPeriodPaid({
+        reminderId: reminder.id,
+        periodId: reminder.periods[0]!.id,
+        createTransaction: true,
+        amount: 415, // user-confirmed UAH amount from the dialog
+        raw: true,
+      });
+
+      const tx = await helpers.getTransactionById({ id: period.transactionId!, raw: true });
+      expect(tx!.amount).toBe(415);
+      expect(tx!.currencyCode).toBe(accountCurrencyCode);
+      expect(tx!.accountId).toBe(account.id);
+    });
+  });
+});

@@ -133,7 +133,7 @@ const selectedCurrency = computed(() => currencyOptions.value.find((o) => o.valu
 
 const isRecurring = computed(() => form.value.frequency !== ONE_TIME_VALUE);
 
-// --- Account (required; drives currency) ---
+// --- Account (required; the bill is paid from here) ---
 
 const { txTargetableAccountsActiveFirst } = storeToRefs(useAccountsStore());
 
@@ -143,12 +143,25 @@ const selectedAccount = computed(
 
 function updateAccount(account: AccountModel | null) {
   form.value.accountId = account?.id ?? null;
-  // Currency follows the picked account, so the standalone currency picker is
-  // hidden while an account is selected.
-  if (account?.currencyCode) {
+  // Default the billed currency to the account's currency for the common case
+  // (billed in the same currency you pay from). Only fills when empty so a
+  // deliberately chosen foreign currency — e.g. a USD subscription paid from a
+  // UAH account — is never overwritten when the account changes.
+  if (account?.currencyCode && !form.value.currencyCode) {
     form.value.currencyCode = account.currencyCode;
   }
 }
+
+/** Currency shown next to the amount: the chosen billed currency, else the account's. */
+const amountCurrencyDisplay = computed(() => form.value.currencyCode || selectedAccount.value?.currencyCode || '');
+
+/** True when the reminder is billed in a different currency than its account. */
+const isCrossCurrency = computed(
+  () =>
+    !!form.value.currencyCode &&
+    !!selectedAccount.value?.currencyCode &&
+    form.value.currencyCode !== selectedAccount.value.currencyCode,
+);
 
 // --- Category (optional) ---
 
@@ -219,8 +232,10 @@ function handleSubmit() {
     notes: form.value.notes || undefined,
   };
 
-  // Currency follows the selected account. Send the expected amount only when one
-  // is entered (empty = variable amount), pairing it with the account's currency.
+  // Amount and the currency it's billed in are paired: send them only when an
+  // amount is entered (empty = variable amount). The currency may differ from the
+  // account's — a foreign-currency bill is converted to the account currency when
+  // the payment is booked.
   if (form.value.expectedAmount && form.value.currencyCode) {
     payload.expectedAmount = Number(form.value.expectedAmount);
     payload.currencyCode = form.value.currencyCode;
@@ -332,9 +347,10 @@ defineExpose({ isSubmitDisabled, setError });
         <ChevronDownIcon :class="['size-4 transition-transform', isExtraOptionsOpen && 'rotate-180']" />
       </CollapsibleTrigger>
       <CollapsibleContent class="mt-3 grid gap-4">
-        <!-- Currency follows the selected account, so the standalone currency picker only
-             appears as a fallback when no account is chosen yet. -->
-        <div :class="['grid gap-3', selectedAccount ? 'grid-cols-1' : 'grid-cols-2']">
+        <!-- Amount and the currency it's billed in. The currency defaults to the account's
+             currency but can diverge: a foreign-currency bill (e.g. a USD subscription paid
+             from a UAH account) is converted to the account currency at payment time. -->
+        <div class="grid grid-cols-2 gap-3">
           <InputField
             v-model="form.expectedAmount"
             :label="$t('planned.reminders.form.amountLabel')"
@@ -343,12 +359,11 @@ defineExpose({ isSubmitDisabled, setError });
             :placeholder="$t('planned.reminders.form.amountPlaceholder')"
             :disabled="isSubscriptionLinked"
           >
-            <template v-if="selectedAccount?.currencyCode" #iconTrailing>
-              <span>{{ selectedAccount.currencyCode }}</span>
+            <template v-if="amountCurrencyDisplay" #iconTrailing>
+              <span>{{ amountCurrencyDisplay }}</span>
             </template>
           </InputField>
           <SelectField
-            v-if="!selectedAccount"
             :model-value="selectedCurrency"
             :values="currencyOptions"
             :label="$t('planned.reminders.form.currencyLabel')"
@@ -357,6 +372,14 @@ defineExpose({ isSubmitDisabled, setError });
             @update:model-value="(v: SelectOption | null) => (form.currencyCode = v?.value ?? '')"
           />
         </div>
+        <p v-if="isCrossCurrency" class="text-muted-foreground text-xs">
+          {{
+            $t('planned.reminders.form.crossCurrencyHint', {
+              reminderCurrency: form.currencyCode,
+              accountCurrency: selectedAccount?.currencyCode,
+            })
+          }}
+        </p>
 
         <div class="grid grid-cols-2 gap-3">
           <SelectField

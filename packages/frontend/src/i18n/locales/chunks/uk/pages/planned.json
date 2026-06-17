@@ -91,7 +91,8 @@
         "categoryPlaceholder": "Оберіть категорію",
         "endsAfterLabel": "Завершується після",
         "endsAfterPlaceholder": "Кількість платежів",
-        "endsAfterHint": "Залиште порожнім для безстрокового повторення"
+        "endsAfterHint": "Залиште порожнім для безстрокового повторення",
+        "crossCurrencyHint": "Billed in {reminderCurrency}; converted to {accountCurrency} when you mark it paid."
       },
       "remindBefore": {
         "oneDay": "1 день перед",
@@ -146,7 +147,9 @@
         "amountPlaceholder": "Введіть сплачену суму",
         "dateLabel": "Дата платежу",
         "accountLabel": "Рахунок",
-        "confirm": "Позначити як сплачено"
+        "confirm": "Позначити як сплачено",
+        "estimateLoading": "Calculating estimate…",
+        "crossCurrencyEstimate": "Estimated from {sourceAmount} {sourceCurrency} at today's rate. Edit to match the exact {accountCurrency} amount charged."
       }
     },
     "subscriptions": {

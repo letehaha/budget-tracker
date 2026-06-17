@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { markPeriodPaid } from '@/api/payment-reminders';
+import { getReminderPayPreview, markPeriodPaid, type ReminderPayPreview } from '@/api/payment-reminders';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -62,6 +62,8 @@ const activeReminder = ref<PayableReminder | null>(null);
 const activePeriodId = ref<string | null>(null);
 const amount = ref<string>('');
 const paidDate = ref<Date>(new Date());
+const isEstimateLoading = ref(false);
+const estimate = ref<ReminderPayPreview | null>(null);
 
 const today = computed(() => new Date());
 
@@ -72,6 +74,27 @@ const accountLabel = computed(() => {
   return account ? getAccountDisplayLabel(account) : null;
 });
 
+function accountCurrencyFor(reminder: PayableReminder | null): string | null {
+  if (!reminder?.accountId) return null;
+  return accountsRecord.value[reminder.accountId]?.currencyCode ?? null;
+}
+
+function isCrossCurrency(reminder: PayableReminder): boolean {
+  const accountCurrency = accountCurrencyFor(reminder);
+  return reminder.currencyCode != null && accountCurrency != null && reminder.currencyCode !== accountCurrency;
+}
+
+/**
+ * The dialog captures the amount actually booked, which is always in the
+ * account's currency. Falls back to the reminder's own currency for account-less
+ * or same-currency reminders.
+ */
+const dialogAmountCurrency = computed(() => {
+  const reminder = activeReminder.value;
+  if (!reminder) return null;
+  return accountCurrencyFor(reminder) ?? reminder.currencyCode ?? null;
+});
+
 const isConfirmDisabled = computed(() => !amount.value || Number(amount.value) <= 0 || isPending.value);
 
 /**
@@ -79,26 +102,55 @@ const isConfirmDisabled = computed(() => !amount.value || Number(amount.value) <
  * dialog) so a single click books the expense; variable-amount reminders open a
  * small dialog to capture the actual amount and date first.
  */
-function triggerPay({ reminder, periodId }: { reminder: PayableReminder; periodId: string }) {
+async function triggerPay({ reminder, periodId }: { reminder: PayableReminder; periodId: string }) {
   // Reminders without an account cannot generate a transaction (backend rejects
   // createTransaction:true when accountId is null). Fall back to a plain mark-paid
-  // that records no transaction — same behaviour as before transaction generation
-  // was added.
+  // that records no transaction.
   if (reminder.accountId == null) {
     markPaid({ reminderId: reminder.id, periodId });
     return;
   }
 
-  if (reminder.expectedAmount != null) {
+  const crossCurrency = isCrossCurrency(reminder);
+
+  // A fixed amount already in the account's own currency books in one click.
+  if (reminder.expectedAmount != null && !crossCurrency) {
     markPaid({ reminderId: reminder.id, periodId, createTransaction: true, time: new Date() });
     return;
   }
 
+  // Variable amount, or a foreign-currency bill that must be converted to the
+  // account currency: open the dialog to capture/confirm the booked amount. For a
+  // cross-currency bill, pre-fill the app-converted estimate.
   activeReminder.value = reminder;
   activePeriodId.value = periodId;
   amount.value = '';
   paidDate.value = new Date();
+  estimate.value = null;
   isDialogOpen.value = true;
+
+  if (crossCurrency) {
+    await loadPreviewEstimate({ reminderId: reminder.id });
+  }
+}
+
+async function loadPreviewEstimate({ reminderId }: { reminderId: string }) {
+  isEstimateLoading.value = true;
+  try {
+    const preview = await getReminderPayPreview({ reminderId });
+    estimate.value = preview;
+    // Pre-fill the account-currency estimate; the user can still edit it to the
+    // exact amount their bank charged. Guard against clobbering anything typed
+    // while the request was in flight.
+    if (preview.convertedAmount != null && amount.value === '') {
+      amount.value = String(preview.convertedAmount);
+    }
+  } catch {
+    // The estimate is a convenience: if the rate lookup fails the dialog still
+    // works and the user types the amount manually.
+  } finally {
+    isEstimateLoading.value = false;
+  }
 }
 
 function confirmVariableAmount() {
@@ -132,10 +184,23 @@ defineExpose({ triggerPay, isPending });
         :label="$t('planned.reminders.markPaid.amountLabel')"
         :placeholder="$t('planned.reminders.markPaid.amountPlaceholder')"
       >
-        <template v-if="activeReminder?.currencyCode" #iconTrailing>
-          <span>{{ activeReminder.currencyCode }}</span>
+        <template v-if="dialogAmountCurrency" #iconTrailing>
+          <span>{{ dialogAmountCurrency }}</span>
         </template>
       </InputField>
+
+      <p v-if="isEstimateLoading" class="text-muted-foreground text-xs">
+        {{ $t('planned.reminders.markPaid.estimateLoading') }}
+      </p>
+      <p v-else-if="estimate?.isCrossCurrency && estimate.expectedAmount != null" class="text-muted-foreground text-xs">
+        {{
+          $t('planned.reminders.markPaid.crossCurrencyEstimate', {
+            sourceAmount: estimate.expectedAmount,
+            sourceCurrency: estimate.reminderCurrencyCode,
+            accountCurrency: estimate.accountCurrencyCode,
+          })
+        }}
+      </p>
 
       <DateField
         v-model="paidDate"
