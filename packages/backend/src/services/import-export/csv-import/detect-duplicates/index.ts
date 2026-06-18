@@ -10,6 +10,7 @@ import {
   AccountOptionValue,
   CategoryOptionValue,
   CurrencyOptionValue,
+  TagOptionValue,
   TransactionTypeOptionValue,
   asCents,
 } from '@bt/shared/types';
@@ -20,6 +21,7 @@ import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { parse } from 'csv-parse/sync';
 
 import { MAX_CSV_ROWS } from '../csv-parser.service';
+import { splitTagCell } from '../split-tag-cell';
 import { anchorImportDate } from './anchor-import-date';
 import { detectDateColumnFormat, parseImportDate } from './date-engine';
 import { findDuplicates } from './find-duplicates';
@@ -90,6 +92,7 @@ export async function detectDuplicates({
     });
   }
   const categoryIndex = getCategoryColumnIndex(headers, columnMapping);
+  const tagIndex = getTagColumnIndex(headers, columnMapping);
   const accountIndex = getAccountColumnIndex(headers, columnMapping);
   const currencyIndex = getCurrencyColumnIndex(headers, columnMapping);
   const transactionTypeIndex = getTransactionTypeColumnIndex(headers, columnMapping);
@@ -161,6 +164,11 @@ export async function detectDuplicates({
     // Get category name (if from column)
     const categoryName = categoryIndex !== -1 ? row[categoryIndex]?.trim() || undefined : undefined;
 
+    // Get tag names (if a tag column is mapped). Comma-split, trimmed, blanks
+    // dropped. Absent when no tag column was mapped so the row behaves exactly
+    // as it did before tags existed.
+    const tagNames = tagIndex !== -1 ? splitTagCell(row[tagIndex]) : undefined;
+
     // Get account name (if from column) or use default
     let accountName = '';
     if (accountIndex !== -1) {
@@ -220,6 +228,7 @@ export async function detectDuplicates({
         description,
         payeeName,
         categoryName,
+        tagNames,
         accountName,
         currencyCode,
         transactionType,
@@ -256,6 +265,14 @@ function getCategoryColumnIndex(headers: string[], columnMapping: ColumnMappingC
     categoryOption.option === CategoryOptionValue.createNewCategories
   ) {
     return headers.indexOf(categoryOption.columnName);
+  }
+  return -1;
+}
+
+function getTagColumnIndex(headers: string[], columnMapping: ColumnMappingConfig): number {
+  const tagOption = columnMapping.tags;
+  if (tagOption && tagOption.option === TagOptionValue.mapDataSourceColumn) {
+    return headers.indexOf(tagOption.columnName);
   }
   return -1;
 }

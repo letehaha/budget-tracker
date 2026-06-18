@@ -1,0 +1,27 @@
+import { describe, expect, it } from '@jest/globals';
+
+import { splitTagCell } from './split-tag-cell';
+
+describe('splitTagCell', () => {
+  it('splits a comma-separated cell into individual trimmed names', () => {
+    expect(splitTagCell('food, travel')).toEqual(['food', 'travel']);
+  });
+
+  it('drops empty segments produced by stray or trailing commas', () => {
+    expect(splitTagCell('food,, travel,')).toEqual(['food', 'travel']);
+  });
+
+  it('trims surrounding whitespace on each segment', () => {
+    expect(splitTagCell('  food  ,  travel  ')).toEqual(['food', 'travel']);
+  });
+
+  it('returns an empty array for an empty or whitespace-only cell', () => {
+    expect(splitTagCell('')).toEqual([]);
+    expect(splitTagCell('   ')).toEqual([]);
+    expect(splitTagCell(undefined)).toEqual([]);
+  });
+
+  it('preserves internal spaces and duplicate names (dedupe happens later)', () => {
+    expect(splitTagCell('eating out, eating out, gift card')).toEqual(['eating out', 'eating out', 'gift card']);
+  });
+});

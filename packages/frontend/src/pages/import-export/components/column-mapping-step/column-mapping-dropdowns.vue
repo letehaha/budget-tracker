@@ -30,6 +30,9 @@
   <!-- Category Assignment -->
   <CategorySelector />
 
+  <!-- Tag Assignment -->
+  <TagSelector />
+
   <!-- Account Assignment -->
   <AccountAssignmentSelector />
 
@@ -48,6 +51,7 @@ import { computed } from 'vue';
 import AccountAssignmentSelector from './account-assignment-selector.vue';
 import CategorySelector from './category-selector.vue';
 import CurrencyMappingSelector from './currency-mapping-selector.vue';
+import TagSelector from './tag-selector.vue';
 import TransactionTypeMappingSelector from './transaction-type-mapping-selector.vue';
 
 interface OptionItem {

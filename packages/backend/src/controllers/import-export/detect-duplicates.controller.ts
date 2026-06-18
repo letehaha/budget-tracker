@@ -2,6 +2,7 @@ import {
   AccountOptionValue,
   CategoryOptionValue,
   CurrencyOptionValue,
+  TagOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
@@ -13,6 +14,17 @@ const categoryOptionSchema = z.discriminatedUnion('option', [
   z.object({ option: z.literal(CategoryOptionValue.mapDataSourceColumn), columnName: z.string() }),
   z.object({ option: z.literal(CategoryOptionValue.createNewCategories), columnName: z.string() }),
   z.object({ option: z.literal(CategoryOptionValue.existingCategory), categoryId: recordId() }),
+]);
+
+const tagOptionSchema = z.object({
+  option: z.literal(TagOptionValue.mapDataSourceColumn),
+  columnName: z.string(),
+});
+
+const tagMappingValueSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('create-new') }),
+  z.object({ action: z.literal('link-existing'), tagId: recordId() }),
+  z.object({ action: z.literal('skip') }),
 ]);
 
 const currencyOptionSchema = z.discriminatedUnion('option', [
@@ -40,6 +52,7 @@ const columnMappingConfigSchema = z.object({
   amount: z.string(),
   description: z.string().optional(),
   category: categoryOptionSchema,
+  tags: tagOptionSchema.nullish(),
   currency: currencyOptionSchema,
   transactionType: transactionTypeOptionSchema,
   account: accountOptionSchema,
@@ -63,6 +76,10 @@ export const detectDuplicatesController = createController(
       columnMapping: columnMappingConfigSchema,
       accountMapping: z.record(z.string(), accountMappingValueSchema),
       categoryMapping: z.record(z.string(), categoryMappingValueSchema),
+      // Carried for the frontend round-trip; duplicate detection itself needs
+      // only the mapped tag column to populate each row's tagNames. The mapping
+      // is consumed when the import is executed.
+      tagMapping: z.record(z.string(), tagMappingValueSchema).optional(),
       // IANA timezone of the importing user's browser. Validation stays loose (any
       // non-empty string): the service tolerates an unknown zone by falling back
       // to UTC anchoring rather than rejecting the whole import.

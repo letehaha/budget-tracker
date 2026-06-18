@@ -4,6 +4,7 @@ import {
   type ColumnMappingConfig,
   CurrencyOptionValue,
   TRANSACTION_TYPES,
+  TagOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
@@ -1389,6 +1390,80 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
       // No valid rows → findUnpriceableRows gets an empty array → no property.
       expect(result.unpriceableRows).toBeUndefined();
       expect(result.invalidRows.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('tag column parsing', () => {
+    const csvWithTags = `Date,Amount,Description,Category,Currency,Type,Account,Labels
+2024-01-15,100.50,Grocery shopping,Food,USD,expense,Main Account,"food, travel"
+2024-01-16,50.00,Coffee,Food,USD,expense,Main Account,
+2024-01-17,25.00,Gift,Other,USD,expense,Main Account,"  solo  "`;
+
+    it('splits the mapped tag column into per-row tagNames', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: buildColumnMapping({
+            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
+          }),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows).toHaveLength(3);
+      expect(result.validRows[0]?.tagNames).toEqual(['food', 'travel']);
+    });
+
+    it('yields an empty tagNames array for a blank tag cell', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: buildColumnMapping({
+            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
+          }),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows[1]?.tagNames).toEqual([]);
+    });
+
+    it('trims whitespace around a single tag value', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: buildColumnMapping({
+            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
+          }),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows[2]?.tagNames).toEqual(['solo']);
+    });
+
+    it('leaves tagNames undefined when no tag column is mapped', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows[0]?.tagNames).toBeUndefined();
     });
   });
 });

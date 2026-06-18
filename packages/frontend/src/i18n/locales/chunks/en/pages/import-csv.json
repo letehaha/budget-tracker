@@ -196,6 +196,33 @@
           "createNew": "Create new categories from CSV values",
           "assignToSingle": "Assign all to single existing category"
         }
+      },
+      "tagAssignment": {
+        "title": "Tag Assignment",
+        "howToAssign": "How to assign tags",
+        "description": "Tags allow you to categorize transactions with multiple labels.",
+        "noTagsOption": "Don't import tags",
+        "tagColumn": "Tags Column",
+        "columnDescription": "Select the CSV column whose values will be used as tags for each transaction.",
+        "mapOnNextStep": "Each distinct tag value found in this column will appear below for you to map or create.",
+        "options": {
+          "mapToColumn": "Map from CSV column"
+        }
+      },
+      "tagMappingTable": {
+        "title": "Tag Mapping",
+        "description": "For each tag value found in your CSV, choose whether to create a new tag, link to an existing one, or skip it.",
+        "csvTagName": "CSV Tag Value",
+        "action": "Action",
+        "targetTag": "Target Tag",
+        "selectTag": "Select a tag",
+        "willBeCreated": "Will create new tag \"{name}\"",
+        "willBeSkipped": "Will be skipped",
+        "actions": {
+          "createNew": "Create new",
+          "mapToExisting": "Link to existing",
+          "skip": "Skip"
+        }
       }
     }
   }

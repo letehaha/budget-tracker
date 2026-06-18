@@ -13,6 +13,8 @@ import {
   type InvalidRow,
   type ParsedTransactionRow,
   type SourceAccount,
+  type TagMappingConfig,
+  type TagOption,
   type TransactionTypeOption,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
@@ -25,12 +27,14 @@ import { computed, ref } from 'vue';
 
 import { useCategoriesStore } from './categories/categories';
 import { useOnboardingStore } from './onboarding';
+import { useTagsStore } from './tags';
 
 interface ColumnMapping {
   date: string | null;
   amount: string | null;
   description: string | null;
   category: CategoryOption | null;
+  tags: TagOption | null;
   account: AccountOption | null;
   currency: CurrencyOption | null;
   transactionType: TransactionTypeOption | null;
@@ -61,6 +65,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     amount: null,
     description: null,
     category: null,
+    tags: null,
     account: null,
     currency: null,
     transactionType: null,
@@ -71,11 +76,13 @@ export const useImportExportStore = defineStore('importExport', () => {
     expenseValues: [],
   });
 
-  // Step 4: Account & Category mapping (after extraction)
+  // Step 4: Account, Category, and Tag mapping (after extraction)
   const uniqueAccountsInCSV = ref<SourceAccount[]>([]);
   const accountMapping = ref<AccountMappingConfig>({});
   const uniqueCategoriesInCSV = ref<string[]>([]);
   const categoryMapping = ref<CategoryMappingConfig>({});
+  const uniqueTagsInCSV = ref<string[]>([]);
+  const tagMapping = ref<TagMappingConfig>({});
 
   // Currency mismatch warning from backend
   const currencyMismatchWarning = ref<string | null>(null);
@@ -168,12 +175,14 @@ export const useImportExportStore = defineStore('importExport', () => {
           amount: columnMapping.value.amount!,
           description: columnMapping.value.description || undefined,
           category: columnMapping.value.category!,
+          tags: columnMapping.value.tags ?? undefined,
           account: columnMapping.value.account!,
           currency: columnMapping.value.currency!,
           transactionType: columnMapping.value.transactionType!,
         },
         accountMapping: accountMapping.value,
         categoryMapping: categoryMapping.value,
+        tagMapping: tagMapping.value,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
 
@@ -234,6 +243,7 @@ export const useImportExportStore = defineStore('importExport', () => {
         validRows: validRows.value,
         accountMapping: accountMapping.value,
         categoryMapping: categoryMapping.value,
+        tagMapping: tagMapping.value,
         skipDuplicateIndices,
         skipUnpriceableIndices,
         defaultAccountId,
@@ -270,6 +280,12 @@ export const useImportExportStore = defineStore('importExport', () => {
         await useCategoriesStore().loadCategories();
       }
 
+      // Same reasoning for tags: Pinia store is not VueQuery-backed, so newly-created
+      // tags must be loaded explicitly to appear in tag pickers without a page reload.
+      if (response.summary.tagsCreated > 0) {
+        await useTagsStore().loadTags();
+      }
+
       currentStep.value = 4;
       if (!completedSteps.value.includes(3)) {
         completedSteps.value.push(3);
@@ -291,6 +307,7 @@ export const useImportExportStore = defineStore('importExport', () => {
       amount: null,
       description: null,
       category: null,
+      tags: null,
       account: null,
       currency: null,
       transactionType: null,
@@ -304,6 +321,8 @@ export const useImportExportStore = defineStore('importExport', () => {
     accountMapping.value = {};
     uniqueCategoriesInCSV.value = [];
     categoryMapping.value = {};
+    uniqueTagsInCSV.value = [];
+    tagMapping.value = {};
     currencyMismatchWarning.value = null;
     validRows.value = [];
     invalidRows.value = [];
@@ -333,6 +352,8 @@ export const useImportExportStore = defineStore('importExport', () => {
     accountMapping,
     uniqueCategoriesInCSV,
     categoryMapping,
+    uniqueTagsInCSV,
+    tagMapping,
     currencyMismatchWarning,
     validRows,
     invalidRows,

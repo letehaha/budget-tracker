@@ -30,9 +30,9 @@
       <h3 class="text-destructive-text mb-3 text-sm font-semibold">
         {{ t('pages.importExport.csvImport.review.invalidRowsTitle') }}
       </h3>
-      <div class="max-h-64 overflow-auto rounded-lg border border-red-200">
+      <div class="border-destructive/30 max-h-64 overflow-auto rounded-lg border">
         <table class="w-full text-sm">
-          <thead class="bg-destructive">
+          <thead class="bg-muted">
             <tr>
               <th class="border-b px-4 py-2 text-left font-medium">
                 {{ t('pages.importExport.csvImport.review.rowNumber') }}
@@ -64,15 +64,15 @@
 
     <!-- Duplicates Section -->
     <div v-if="importStore.duplicates.length > 0" class="mb-6">
-      <h3 class="mb-3 text-sm font-semibold text-yellow-600">
+      <h3 class="text-warning-text mb-3 text-sm font-semibold">
         {{ t('pages.importExport.csvImport.review.duplicatesTitle', { count: importStore.importSummary.duplicates }) }}
       </h3>
       <p class="text-muted-foreground mb-3 text-xs">
         {{ t('pages.importExport.csvImport.review.duplicatesHint') }}
       </p>
-      <div class="max-h-96 overflow-auto rounded-lg border border-yellow-200">
+      <div class="border-warning/30 max-h-96 overflow-auto rounded-lg border">
         <table class="w-full text-sm">
-          <thead class="sticky top-0 bg-yellow-50">
+          <thead class="bg-muted sticky top-0">
             <tr>
               <th class="border-b px-4 py-2 text-left font-medium">
                 {{ t('pages.importExport.csvImport.review.skip') }}
@@ -105,8 +105,8 @@
               <td class="px-4 py-2">
                 <span
                   :class="{
-                    'bg-green-100 text-green-700': dup.matchType === 'exact',
-                    'bg-yellow-100 text-yellow-700': dup.matchType === 'fuzzy',
+                    'bg-success/10 text-success-text': dup.matchType === 'exact',
+                    'bg-warning/10 text-warning-text': dup.matchType === 'fuzzy',
                   }"
                   class="rounded px-2 py-0.5 text-xs font-medium"
                 >
@@ -138,45 +138,41 @@
          The user must explicitly skip those rows or abort — silent import is not allowed. -->
     <div
       v-if="importStore.unpriceableRows.length > 0"
-      class="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4"
+      class="border-warning/30 bg-warning/5 mb-6 rounded-lg border p-4"
       role="alert"
     >
       <div class="mb-2 flex items-start gap-2">
-        <AlertTriangleIcon class="mt-0.5 size-5 shrink-0 text-orange-600" />
+        <AlertTriangleIcon class="text-warning mt-0.5 size-5 shrink-0" />
         <div>
-          <h3 class="text-sm font-semibold text-orange-700">
+          <h3 class="text-warning-text text-sm font-semibold">
             {{
               t('pages.importExport.csvImport.review.unpriceableTitle', {
                 count: importStore.unpriceableRows.length,
               })
             }}
           </h3>
-          <p class="mt-1 text-xs text-orange-600">
+          <p class="text-warning-text mt-1 text-xs opacity-80">
             {{ t('pages.importExport.csvImport.review.unpriceableDescription') }}
           </p>
         </div>
       </div>
 
-      <div class="mt-3 max-h-48 overflow-auto rounded border border-orange-200 bg-white">
+      <div class="border-warning/30 mt-3 max-h-48 overflow-auto rounded border">
         <table class="w-full text-sm">
-          <thead class="sticky top-0 bg-orange-100">
+          <thead class="bg-muted sticky top-0">
             <tr>
-              <th class="border-b border-orange-200 px-4 py-2 text-left font-medium text-orange-700">
+              <th class="text-warning-text border-b px-4 py-2 text-left font-medium">
                 {{ t('pages.importExport.csvImport.review.rowNumber') }}
               </th>
-              <th class="border-b border-orange-200 px-4 py-2 text-left font-medium text-orange-700">
+              <th class="text-warning-text border-b px-4 py-2 text-left font-medium">
                 {{ t('pages.importExport.csvImport.review.currency') }}
               </th>
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="row in importStore.unpriceableRows"
-              :key="row.rowIndex"
-              class="border-b border-orange-100 last:border-b-0"
-            >
-              <td class="px-4 py-2 font-mono text-orange-800">{{ row.rowIndex }}</td>
-              <td class="px-4 py-2 font-medium text-orange-800">{{ row.currencyCode }}</td>
+            <tr v-for="row in importStore.unpriceableRows" :key="row.rowIndex" class="border-b last:border-b-0">
+              <td class="text-warning-text px-4 py-2 font-mono">{{ row.rowIndex }}</td>
+              <td class="text-warning-text px-4 py-2 font-medium">{{ row.currencyCode }}</td>
             </tr>
           </tbody>
         </table>

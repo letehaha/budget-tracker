@@ -196,6 +196,33 @@
           "createNew": "Crear nuevas categorías a partir de los valores del CSV",
           "assignToSingle": "Asignar todas a una sola categoría existente"
         }
+      },
+      "tagAssignment": {
+        "title": "Asignación de etiquetas",
+        "howToAssign": "Cómo asignar etiquetas",
+        "description": "Las etiquetas permiten categorizar transacciones con múltiples etiquetas.",
+        "noTagsOption": "No importar etiquetas",
+        "tagColumn": "Columna de etiquetas",
+        "columnDescription": "Seleccione la columna CSV cuyos valores se utilizarán como etiquetas para cada transacción.",
+        "mapOnNextStep": "Cada valor de etiqueta distinto encontrado en esta columna aparecerá a continuación para que pueda mapearlo o crearlo.",
+        "options": {
+          "mapToColumn": "Mapear desde columna CSV"
+        }
+      },
+      "tagMappingTable": {
+        "title": "Mapeo de etiquetas",
+        "description": "Para cada valor de etiqueta encontrado en su CSV, elija si crear una nueva etiqueta, vincularla a una existente u omitirla.",
+        "csvTagName": "Valor de etiqueta CSV",
+        "action": "Acción",
+        "targetTag": "Etiqueta destino",
+        "selectTag": "Seleccionar una etiqueta",
+        "willBeCreated": "Se creará una nueva etiqueta \"{name}\"",
+        "willBeSkipped": "Será omitida",
+        "actions": {
+          "createNew": "Crear nuevo",
+          "mapToExisting": "Vincular a existente",
+          "skip": "Omitir"
+        }
       }
     }
   }

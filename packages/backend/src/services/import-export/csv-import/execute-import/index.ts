@@ -4,6 +4,7 @@ import type {
   ExecuteImportResponse,
   ImportError,
   ParsedTransactionRow,
+  TagMappingConfig,
   TransactionImportDetails,
 } from '@bt/shared/types';
 import {
@@ -23,14 +24,24 @@ import Categories from '@models/categories.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
+import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
+
+import { createTagsIfNeeded } from './create-tags-if-needed';
+import { pickRandomColor } from './pick-random-color';
+import { resolveRowTagIds } from './resolve-row-tag-ids';
 
 interface ExecuteImportParams {
   userId: number;
   validRows: ParsedTransactionRow[];
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
+  /**
+   * Per distinct source tag string, the action chosen by the user. Absent when
+   * no tag column was mapped, in which case no tags are applied.
+   */
+  tagMapping?: TagMappingConfig;
   skipDuplicateIndices: number[];
   /**
    * Row indices for unpriceable rows the user chose to skip. Merged into the
@@ -50,6 +61,7 @@ async function executeImportImpl({
   validRows,
   accountMapping,
   categoryMapping,
+  tagMapping,
   skipDuplicateIndices,
   skipUnpriceableIndices,
   defaultAccountId,
@@ -72,6 +84,7 @@ async function executeImportImpl({
         skippedUnpriceable: skipUnpriceableIndices?.length ?? 0,
         accountsCreated: 0,
         categoriesCreated: 0,
+        tagsCreated: 0,
         errors: [],
       },
       newTransactionIds: [],
@@ -99,6 +112,13 @@ async function executeImportImpl({
     rowsToImport,
     categoryMapping,
   });
+
+  // Resolve tags that need to be created or linked. `tagsCreated` counts only
+  // genuine inserts — create-new entries that matched an existing same-named
+  // tag (case-insensitive) link to it instead.
+  const { tagNameToId, tagsCreated } = tagMapping
+    ? await createTagsIfNeeded({ userId, tagMapping })
+    : { tagNameToId: new Map<string, string>(), tagsCreated: 0 };
 
   // Count created accounts and categories
   let accountsCreated = 0;
@@ -134,11 +154,24 @@ async function executeImportImpl({
         source: ImportSource.csv,
       };
 
+      // Resolve the imported tags for this row: source names mapped to ids,
+      // deduped (distinct names can resolve to the same id; a name can repeat
+      // in the cell). Empty when the row carried no mapped tags.
+      const rowTagIds = resolveRowTagIds({ tagNames: row.tagNames, tagNameToId });
+      const hasImportedTags = rowTagIds.length > 0;
+
       // Service-layer createTransaction handles refAmount + currency from the
       // account, plus Payee extraction + payee_rule via `rawMerchantName` when
       // the user mapped a Payee column. Without this path the imported row
       // would arrive at AI with `categorizationMeta = null` and bypass any
       // Payee defaults the user has already set up.
+      //
+      // Passing `tagIds` makes createTransaction treat the row as having a
+      // caller-decided tag set: it writes exactly those tags and skips its own
+      // payee-default-tags step. To keep imported tags and payee defaults as a
+      // UNION, this path re-applies the payee defaults additively below. When
+      // the row has no imported tags, `tagIds` stays undefined so
+      // createTransaction's built-in payee-default application runs unchanged.
       const [transaction] = await createTransaction({
         userId,
         amount: Money.fromCents(row.amount),
@@ -155,10 +188,25 @@ async function executeImportImpl({
           importDetails,
         },
         rawMerchantName: row.payeeName || null,
+        tagIds: hasImportedTags ? rowTagIds : undefined,
       });
 
       if (transaction) {
         newTransactionIds.push(transaction.id);
+
+        // Union step: when the row supplied its own tags, createTransaction did
+        // not apply the payee's default tags (the explicit tagIds short-circuit
+        // that). Add them here on top of the imported set — `applyPayeeDefaultTags`
+        // is add-only and skips duplicates, so imported tags and payee defaults
+        // coexist. The payeeId was resolved by createTransaction (caller-supplied
+        // or extracted from `rawMerchantName`).
+        if (hasImportedTags && transaction.payeeId) {
+          await applyPayeeDefaultTags({
+            accountOwnerUserId: userId,
+            transactionId: transaction.id,
+            payeeId: transaction.payeeId,
+          });
+        }
       }
     } catch (error) {
       errors.push({
@@ -184,6 +232,7 @@ async function executeImportImpl({
       skippedUnpriceable: skipUnpriceableIndices?.length ?? 0,
       accountsCreated,
       categoriesCreated,
+      tagsCreated,
       errors,
     },
     newTransactionIds,
@@ -321,7 +370,7 @@ async function createCategoriesIfNeeded({
       const newCategory = await Categories.create({
         userId,
         name: categoryName,
-        color: getRandomColor(),
+        color: pickRandomColor(),
         type: CATEGORY_TYPES.custom,
       });
 
@@ -330,20 +379,6 @@ async function createCategoriesIfNeeded({
   }
 
   return categoryNameToId;
-}
-
-function getRandomColor(): string {
-  const colors = [
-    '#3B82F6', // blue
-    '#10B981', // green
-    '#F59E0B', // amber
-    '#EF4444', // red
-    '#8B5CF6', // purple
-    '#EC4899', // pink
-    '#06B6D4', // cyan
-    '#F97316', // orange
-  ];
-  return colors[Math.floor(Math.random() * colors.length)]!;
 }
 
 export const executeImport = withTransaction(executeImportImpl);

@@ -2,6 +2,7 @@ import {
   AccountOptionValue,
   CategoryOptionValue,
   CurrencyOptionValue,
+  TagOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
@@ -14,6 +15,11 @@ const categoryOptionSchema = z.discriminatedUnion('option', [
   z.object({ option: z.literal(CategoryOptionValue.createNewCategories), columnName: z.string() }),
   z.object({ option: z.literal(CategoryOptionValue.existingCategory), categoryId: recordId() }),
 ]);
+
+const tagOptionSchema = z.object({
+  option: z.literal(TagOptionValue.mapDataSourceColumn),
+  columnName: z.string(),
+});
 
 const currencyOptionSchema = z.discriminatedUnion('option', [
   z.object({ option: z.literal(CurrencyOptionValue.dataSourceColumn), columnName: z.string() }),
@@ -40,6 +46,7 @@ const columnMappingConfigSchema = z.object({
   amount: z.string(),
   description: z.string().optional(),
   category: categoryOptionSchema,
+  tags: tagOptionSchema.nullish(),
   currency: currencyOptionSchema,
   transactionType: transactionTypeOptionSchema,
   account: accountOptionSchema,

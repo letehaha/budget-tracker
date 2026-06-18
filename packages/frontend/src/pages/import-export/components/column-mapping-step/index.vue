@@ -48,6 +48,9 @@
     <!-- Category Mapping Table (shown after extract is called) -->
     <CategoryMappingTable v-if="importStore.uniqueCategoriesInCSV.length > 0" class="mt-6" />
 
+    <!-- Tag Mapping Table (shown after extract when a tags column was selected) -->
+    <TagMappingTable v-if="importStore.uniqueTagsInCSV.length > 0" class="mt-6" />
+
     <Callout v-if="extractingError" variant="destructive" class="mt-4" role="alert">
       <p>{{ extractingError }}</p>
     </Callout>
@@ -86,7 +89,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useImportExportStore } from '@/stores/import-export';
-import { API_ERROR_CODES, AccountOptionValue, CategoryOptionValue } from '@bt/shared/types';
+import { API_ERROR_CODES, AccountOptionValue, CategoryOptionValue, TagOptionValue } from '@bt/shared/types';
 import { ChevronRightIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -94,6 +97,7 @@ import { useI18n } from 'vue-i18n';
 import AccountMappingTable from './account-mapping-table.vue';
 import CategoryMappingTable from './category-mapping-table.vue';
 import ColumnMappingDropdowns from './column-mapping-dropdowns.vue';
+import TagMappingTable from './tag-mapping-table.vue';
 
 const { t } = useI18n();
 
@@ -129,6 +133,15 @@ const canExtract = computed(() => {
     return false;
   }
 
+  // If the user chose "map from CSV column" for tags, a column name must be selected
+  // before the backend can locate and parse the tags column.
+  if (
+    importStore.columnMapping.tags?.option === TagOptionValue.mapDataSourceColumn &&
+    !importStore.columnMapping.tags.columnName
+  ) {
+    return false;
+  }
+
   return true;
 });
 
@@ -158,6 +171,22 @@ const canContinue = computed(() => {
     if (!allMapped) return false;
   }
 
+  // If a tags column is selected, every source tag must have a fully-resolved decision:
+  // 'create-new' and 'skip' are complete as-is; 'link-existing' requires a tagId
+  // so the backend knows which existing tag to attach.
+  const tagsOption = importStore.columnMapping.tags;
+  if (tagsOption && tagsOption.option === TagOptionValue.mapDataSourceColumn) {
+    const allDecided = importStore.uniqueTagsInCSV.every((tag) => {
+      const mapping = importStore.tagMapping[tag];
+      return (
+        mapping?.action === 'create-new' ||
+        mapping?.action === 'skip' ||
+        (mapping?.action === 'link-existing' && !!mapping.tagId)
+      );
+    });
+    if (!allDecided) return false;
+  }
+
   return true;
 });
 
@@ -177,6 +206,7 @@ const handleExtractValues = async () => {
         amount: importStore.columnMapping.amount!,
         description: importStore.columnMapping.description || undefined,
         category: importStore.columnMapping.category!,
+        tags: importStore.columnMapping.tags ?? undefined,
         account: importStore.columnMapping.account!,
         currency: importStore.columnMapping.currency!,
         transactionType: importStore.columnMapping.transactionType!,
@@ -194,6 +224,13 @@ const handleExtractValues = async () => {
         importStore.categoryMapping[category] = { action: 'create-new' };
       });
     }
+
+    // Store extracted tags and default every source tag to 'create-new'.
+    // Users can override individual rows in the tag-mapping table.
+    importStore.uniqueTagsInCSV = result.sourceTags;
+    result.sourceTags.forEach((tag) => {
+      importStore.tagMapping[tag] = { action: 'create-new' };
+    });
 
     hasExtracted.value = true;
   } catch (error) {

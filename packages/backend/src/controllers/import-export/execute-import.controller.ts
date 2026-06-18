@@ -10,6 +10,7 @@ const parsedTransactionRowSchema = z.object({
   amount: z.number().transform((n) => n as Cents),
   description: z.string(),
   categoryName: z.string().optional(),
+  tagNames: z.array(z.string()).optional(),
   accountName: z.string(),
   currencyCode: z.string(),
   transactionType: z.enum(['income', 'expense']),
@@ -25,12 +26,19 @@ const categoryMappingValueSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('link-existing'), categoryId: recordId() }),
 ]);
 
+const tagMappingValueSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('create-new') }),
+  z.object({ action: z.literal('link-existing'), tagId: recordId() }),
+  z.object({ action: z.literal('skip') }),
+]);
+
 export const executeImportController = createController(
   z.object({
     body: z.object({
       validRows: z.array(parsedTransactionRowSchema),
       accountMapping: z.record(z.string(), accountMappingValueSchema),
       categoryMapping: z.record(z.string(), categoryMappingValueSchema),
+      tagMapping: z.record(z.string(), tagMappingValueSchema).optional(),
       skipDuplicateIndices: z.array(z.number()),
       skipUnpriceableIndices: z.array(z.number()).optional(),
       defaultAccountId: recordId().optional(),
@@ -42,6 +50,7 @@ export const executeImportController = createController(
       validRows,
       accountMapping,
       categoryMapping,
+      tagMapping,
       skipDuplicateIndices,
       skipUnpriceableIndices,
       defaultAccountId,
@@ -53,6 +62,7 @@ export const executeImportController = createController(
       validRows,
       accountMapping,
       categoryMapping,
+      tagMapping,
       skipDuplicateIndices,
       skipUnpriceableIndices,
       defaultAccountId,
