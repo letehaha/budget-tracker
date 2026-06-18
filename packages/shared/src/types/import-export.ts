@@ -158,6 +158,12 @@ export type CategoryMappingValue = { action: 'create-new' } | { action: 'link-ex
 
 export type CategoryMappingConfig = Record<string, CategoryMappingValue>;
 
+/** A single row that cannot be priced by the exchange-rate layer. */
+export interface UnpriceableRow {
+  rowIndex: number;
+  currencyCode: string;
+}
+
 /**
  * Tag mapping for import - maps a distinct source tag string to an action.
  * `skip` drops this source value rather than creating or linking a tag.
@@ -269,7 +275,7 @@ export interface DetectDuplicatesResponse {
    * user's base currency. The preview layer uses this to offer skip/abort.
    * Only present when at least one such row exists.
    */
-  unpriceableRows?: { rowIndex: number; currencyCode: string }[];
+  unpriceableRows?: UnpriceableRow[];
 }
 
 /**

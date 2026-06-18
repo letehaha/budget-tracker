@@ -494,3 +494,120 @@ describe('useImportExportStore – executeImport categories store refresh', () =
     expect(mockLoadCategories).not.toHaveBeenCalled();
   });
 });
+
+describe('useImportExportStore – executeImport tagMapping inclusion', () => {
+  const EXECUTE_RESPONSE = {
+    summary: {
+      imported: 1,
+      skipped: 0,
+      skippedUnpriceable: 0,
+      accountsCreated: 0,
+      categoriesCreated: 0,
+      tagsCreated: 0,
+      errors: [],
+    },
+    newTransactionIds: ['tx-1'],
+    batchId: 'batch-tags',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('includes tagMapping in the request when a tags column is mapped', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedStore(store);
+    store.columnMapping.tags = { option: 'map-data-source-column' as never, columnName: 'labels' };
+    store.tagMapping = { Food: { action: 'create-new' } };
+    await store.detectDuplicates();
+
+    await store.executeImport();
+
+    expect(mockExecuteImportApi).toHaveBeenCalledWith(
+      expect.objectContaining({ tagMapping: { Food: { action: 'create-new' } } }),
+    );
+  });
+
+  // Regression for B1: deselecting the tags column must not leak stale tagMapping,
+  // otherwise the backend creates tags the user opted out of.
+  it('omits tagMapping from the request when the tags column is deselected, even if stale tagMapping lingers', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedStore(store);
+    // Tags column is NOT set, but a stale mapping is present from a prior selection.
+    store.columnMapping.tags = null;
+    store.tagMapping = { OrphanTag: { action: 'create-new' } };
+    await store.detectDuplicates();
+
+    await store.executeImport();
+
+    expect(mockExecuteImportApi).toHaveBeenCalledWith(expect.objectContaining({ tagMapping: undefined }));
+  });
+});
+
+describe('useImportExportStore – importError', () => {
+  const EXECUTE_RESPONSE = {
+    summary: {
+      imported: 1,
+      skipped: 0,
+      skippedUnpriceable: 0,
+      accountsCreated: 0,
+      categoriesCreated: 0,
+      tagsCreated: 0,
+      errors: [],
+    },
+    newTransactionIds: ['tx-1'],
+    batchId: 'batch-err',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('sets importError when the import API call rejects', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockRejectedValue(new Error('Import failed'));
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+
+    await expect(store.executeImport()).rejects.toThrow('Import failed');
+
+    expect(store.importError).not.toBeNull();
+  });
+
+  it('clears importError on a fresh import that succeeds after a prior failure', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockRejectedValueOnce(new Error('Import failed'));
+    mockExecuteImportApi.mockResolvedValueOnce(EXECUTE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+
+    // First attempt fails and records the error.
+    await expect(store.executeImport()).rejects.toThrow('Import failed');
+    expect(store.importError).not.toBeNull();
+
+    // Second attempt succeeds and must clear the stale error.
+    await store.executeImport();
+    expect(store.importError).toBeNull();
+  });
+
+  it('reset clears importError', () => {
+    const store = useImportExportStore();
+    store.importError = 'Something went wrong';
+
+    store.reset();
+
+    expect(store.importError).toBeNull();
+  });
+});

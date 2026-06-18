@@ -90,6 +90,18 @@ describe('parseImportDate', () => {
     expect(parseImportDate({ value: 'garbage', format: ANY_FORMAT })).toBeNull();
     expect(parseImportDate({ value: '', format: ANY_FORMAT })).toBeNull();
   });
+
+  it('returns null for a compact 8-digit date with an invalid calendar date (Feb 30)', () => {
+    // `20260230` matches the COMPACT_DATE regex but February 30 does not exist.
+    // The `isValidCalendarDate` guard must reject it rather than letting the date
+    // roll forward to March 2.
+    expect(parseImportDate({ value: '20260230', format: ANY_FORMAT })).toBeNull();
+  });
+
+  it('returns null for a compact 8-digit date with an out-of-range month (month 13)', () => {
+    // `20261340` matches COMPACT_DATE but month 13 is invalid.
+    expect(parseImportDate({ value: '20261340', format: ANY_FORMAT })).toBeNull();
+  });
 });
 
 describe('detectDateColumnFormat', () => {

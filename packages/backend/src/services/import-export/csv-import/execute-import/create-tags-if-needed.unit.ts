@@ -54,6 +54,16 @@ describe('createTagsIfNeeded', () => {
     expect(createTag).not.toHaveBeenCalled();
   });
 
+  it('throws a ValidationError when a link-existing tag is not owned by the user', async () => {
+    const tagId = generateRandomRecordId();
+    findOne.mockResolvedValueOnce(null); // ownership check: miss
+
+    const tagMapping: TagMappingConfig = { Food: { action: 'link-existing', tagId } };
+
+    await expect(createTagsIfNeeded({ userId: USER_ID, tagMapping })).rejects.toThrow(`Tag with ID ${tagId} not found`);
+    expect(createTag).not.toHaveBeenCalled();
+  });
+
   it('creates a tag for a create-new mapping when no same-named tag exists', async () => {
     const createdId = generateRandomRecordId();
     findOne.mockResolvedValueOnce(null); // case-insensitive lookup: miss

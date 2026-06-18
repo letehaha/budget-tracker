@@ -154,4 +154,45 @@ describe('resolveUsdRates future-date guard', () => {
     // Non-exact + not comprehensively fetched + not future -> fetch IS attempted.
     expect(fetchAndStoreRatesForDate).toHaveBeenCalledTimes(1);
   });
+
+  // ── Catch-path: fetch rejects ─────────────────────────────────────────────
+
+  it('re-throws when the fetch rejects and at least one code has no rate at all (missing)', async () => {
+    // XYZ has no exact row and no fallback row — kind: 'missing'.
+    // When the fetch then throws, there is nothing to fall back to, so the error
+    // must surface to the caller.
+    const pastDate = subDays(startOfDay(new Date()), 5);
+    stubRates({
+      exactByCode: { XYZ: null },
+      fallbackByCode: { XYZ: null },
+    });
+
+    const fetchError = new Error('provider unavailable');
+    fetchAndStoreRatesForDate.mockRejectedValue(fetchError);
+
+    await expect(resolveUsdRates({ codes: ['XYZ'], date: pastDate })).rejects.toThrow('provider unavailable');
+  });
+
+  it('swallows the fetch error and returns fallback rates when every code has at least a fallback', async () => {
+    // EUR has no exact row but has a fallback — kind: 'fallback'.
+    // When the fetch rejects, the function must NOT throw; it must return the
+    // pre-fetch fallback map because every leg is still priceable.
+    const pastDate = subDays(startOfDay(new Date()), 5);
+    const fallbackDate = subDays(startOfDay(new Date()), 30);
+
+    stubRates({
+      exactByCode: { EUR: null },
+      fallbackByCode: { EUR: { rate: 0.88, date: fallbackDate } },
+    });
+
+    const fetchError = new Error('rate provider timeout');
+    fetchAndStoreRatesForDate.mockRejectedValue(fetchError);
+
+    const result = await resolveUsdRates({ codes: ['EUR'], date: pastDate });
+
+    // Must not throw — the fallback is returned as-is.
+    const eur = result.get('EUR');
+    expect(eur?.kind).toBe('fallback');
+    expect((eur as { kind: 'fallback'; rate: number }).rate).toBe(0.88);
+  });
 });

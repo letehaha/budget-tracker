@@ -21,6 +21,12 @@ describe('splitTagCell', () => {
     expect(splitTagCell(undefined)).toEqual([]);
   });
 
+  it('returns an empty array for a null cell (null is falsy, same path as undefined)', () => {
+    // The signature accepts `string | undefined | null`; null must be handled
+    // identically to undefined — both hit the `if (!cell) return []` guard.
+    expect(splitTagCell(null)).toEqual([]);
+  });
+
   it('preserves internal spaces and duplicate names (dedupe happens later)', () => {
     expect(splitTagCell('eating out, eating out, gift card')).toEqual(['eating out', 'eating out', 'gift card']);
   });

@@ -80,6 +80,7 @@
           "skippedDuplicates": "Skipped (Duplicates)",
           "accountsCreated": "Accounts Created",
           "categoriesCreated": "Categories Created",
+          "tagsCreated": "Tags Created",
           "importErrors": "Import Errors",
           "rowNumber": "Row #",
           "error": "Error",
@@ -87,7 +88,8 @@
           "batchIdDescription": "Use this ID to find all transactions from this import.",
           "viewTransactions": "View Transactions",
           "startNewImport": "Start New Import",
-          "skippedUnpriceable": "Skipped (unpriced)"
+          "skippedUnpriceable": "Skipped (unpriced)",
+          "importFailed": "Failed to import transactions. Please try again."
         }
       },
       "common": {
@@ -222,7 +224,9 @@
           "createNew": "Create new",
           "mapToExisting": "Link to existing",
           "skip": "Skip"
-        }
+        },
+        "tagsLoadFailed": "Couldn't load your tags. Try again later.",
+        "noExistingTags": "You don't have any tags yet."
       }
     }
   }

@@ -1,4 +1,4 @@
-import type { ParsedTransactionRow } from '@bt/shared/types';
+import type { ParsedTransactionRow, UnpriceableRow } from '@bt/shared/types';
 import ExchangeRates from '@models/exchange-rates.model';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
@@ -22,7 +22,7 @@ export async function findUnpriceableRows({
 }: {
   userId: number;
   validRows: ParsedTransactionRow[];
-}): Promise<{ rowIndex: number; currencyCode: string }[]> {
+}): Promise<UnpriceableRow[]> {
   if (validRows.length === 0) return [];
 
   // Collect distinct currency codes referenced by the rows.

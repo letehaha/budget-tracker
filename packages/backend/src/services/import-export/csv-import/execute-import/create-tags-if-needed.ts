@@ -1,10 +1,8 @@
 import type { TagMappingConfig } from '@bt/shared/types';
-import { ValidationError } from '@js/errors';
 import Tags from '@models/tags.model';
 import { createTag } from '@services/tags/create-tag';
-import { Op, col, fn, where as sequelizeWhere } from 'sequelize';
 
-import { pickRandomColor } from './pick-random-color';
+import { resolveOrCreateByName } from './resolve-or-create-by-name';
 
 interface CreateTagsIfNeededParams {
   userId: number;
@@ -31,51 +29,32 @@ interface CreateTagsIfNeededResult {
  *   already owns a tag with the same name (any casing) the source string links
  *   to that tag instead of inserting a duplicate, and it isn't counted as
  *   created. Only a genuine insert increments `tagsCreated`.
- * - `skip`: dropped — the source string is absent from the result map.
+ * - `skip`: dropped before resolution — the source string is absent from the
+ *   result map.
  */
 export async function createTagsIfNeeded({
   userId,
   tagMapping,
 }: CreateTagsIfNeededParams): Promise<CreateTagsIfNeededResult> {
-  const tagNameToId = new Map<string, string>();
-  let tagsCreated = 0;
-
-  for (const [sourceName, mapping] of Object.entries(tagMapping)) {
-    if (mapping.action === 'skip') {
+  // `skip` is dropped here rather than inside the shared resolver: it's a
+  // tag-only action, so the resolver never sees those source strings and they
+  // stay absent from the result map.
+  const mapping: Record<string, { action: 'link-existing'; id: string } | { action: 'create-new' }> = {};
+  for (const [sourceName, entry] of Object.entries(tagMapping)) {
+    if (entry.action === 'skip') {
       continue;
     }
-
-    if (mapping.action === 'link-existing') {
-      const tag = await Tags.findOne({ where: { id: mapping.tagId, userId } });
-      if (!tag) {
-        throw new ValidationError({
-          message: `Tag with ID ${mapping.tagId} not found`,
-        });
-      }
-      tagNameToId.set(sourceName, tag.id);
-      continue;
-    }
-
-    // create-new: reuse a same-named tag (case-insensitive) before inserting.
-    // Compare lower(name) to the lowercased source so an EXACT case-insensitive
-    // match is required. Op.iLike is unusable here: `%`/`_` in the CSV-supplied
-    // sourceName would act as ILIKE wildcards, letting `50%` match `50% off`.
-    const existing = await Tags.findOne({
-      where: { userId, [Op.and]: [sequelizeWhere(fn('lower', col('name')), sourceName.toLowerCase())] },
-    });
-    if (existing) {
-      tagNameToId.set(sourceName, existing.id);
-      continue;
-    }
-
-    const created = await createTag({
-      userId,
-      name: sourceName,
-      color: pickRandomColor(),
-    });
-    tagNameToId.set(sourceName, created.id);
-    tagsCreated += 1;
+    mapping[sourceName] =
+      entry.action === 'link-existing' ? { action: 'link-existing', id: entry.tagId } : { action: 'create-new' };
   }
 
-  return { tagNameToId, tagsCreated };
+  const { nameToId, created } = await resolveOrCreateByName({
+    userId,
+    mapping,
+    findOne: (args) => Tags.findOne(args),
+    create: ({ userId: ownerId, name, color }) => createTag({ userId: ownerId, name, color }),
+    notFoundMessage: (id) => `Tag with ID ${id} not found`,
+  });
+
+  return { tagNameToId: nameToId, tagsCreated: created };
 }

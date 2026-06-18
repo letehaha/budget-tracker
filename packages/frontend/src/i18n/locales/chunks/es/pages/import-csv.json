@@ -80,6 +80,7 @@
           "skippedDuplicates": "Omitidas (duplicados)",
           "accountsCreated": "Cuentas creadas",
           "categoriesCreated": "Categorías creadas",
+          "tagsCreated": "Etiquetas creadas",
           "importErrors": "Errores de importación",
           "rowNumber": "Fila n.º",
           "error": "Error",
@@ -87,7 +88,8 @@
           "batchIdDescription": "Use este ID para encontrar todas las transacciones de esta importación.",
           "viewTransactions": "Ver transacciones",
           "startNewImport": "Iniciar nueva importación",
-          "skippedUnpriceable": "Omitidas (sin precio)"
+          "skippedUnpriceable": "Omitidas (sin precio)",
+          "importFailed": "Error al importar transacciones. Por favor, inténtelo de nuevo."
         }
       },
       "common": {
@@ -222,7 +224,9 @@
           "createNew": "Crear nuevo",
           "mapToExisting": "Vincular a existente",
           "skip": "Omitir"
-        }
+        },
+        "tagsLoadFailed": "No se pudieron cargar sus etiquetas. Inténtelo más tarde.",
+        "noExistingTags": "Aún no tiene etiquetas."
       }
     }
   }

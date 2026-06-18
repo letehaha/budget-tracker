@@ -11,17 +11,17 @@
         <p class="text-muted-foreground text-sm">{{ t('pages.importExport.csvImport.review.totalRows') }}</p>
         <p class="text-2xl font-bold">{{ importStore.importSummary.totalRows }}</p>
       </div>
-      <div class="rounded-lg bg-green-500/10 p-4">
-        <p class="text-sm text-green-600">{{ t('pages.importExport.csvImport.review.validRows') }}</p>
-        <p class="text-2xl font-bold text-green-600">{{ importStore.importSummary.validRows }}</p>
+      <div class="bg-success/10 rounded-lg p-4">
+        <p class="text-success-text text-sm">{{ t('pages.importExport.csvImport.review.validRows') }}</p>
+        <p class="text-success-text text-2xl font-bold">{{ importStore.importSummary.validRows }}</p>
       </div>
-      <div class="rounded-lg bg-red-500/10 p-4">
+      <div class="bg-destructive/10 rounded-lg p-4">
         <p class="text-destructive-text text-sm">{{ t('pages.importExport.csvImport.review.invalidRows') }}</p>
         <p class="text-destructive-text text-2xl font-bold">{{ importStore.importSummary.invalidRows }}</p>
       </div>
-      <div class="rounded-lg bg-yellow-500/10 p-4">
-        <p class="text-sm text-yellow-600">{{ t('pages.importExport.csvImport.review.duplicates') }}</p>
-        <p class="text-2xl font-bold text-yellow-600">{{ importStore.importSummary.duplicates }}</p>
+      <div class="bg-warning/10 rounded-lg p-4">
+        <p class="text-warning-text text-sm">{{ t('pages.importExport.csvImport.review.duplicates') }}</p>
+        <p class="text-warning-text text-2xl font-bold">{{ importStore.importSummary.duplicates }}</p>
       </div>
     </div>
 
@@ -30,7 +30,7 @@
       <h3 class="text-destructive-text mb-3 text-sm font-semibold">
         {{ t('pages.importExport.csvImport.review.invalidRowsTitle') }}
       </h3>
-      <div class="border-destructive/30 max-h-64 overflow-auto rounded-lg border">
+      <ScrollArea class="border-destructive/30 max-h-64 rounded-lg border" with-horizontal-scrollbar>
         <table class="w-full text-sm">
           <thead class="bg-muted">
             <tr>
@@ -59,7 +59,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </ScrollArea>
     </div>
 
     <!-- Duplicates Section -->
@@ -70,7 +70,7 @@
       <p class="text-muted-foreground mb-3 text-xs">
         {{ t('pages.importExport.csvImport.review.duplicatesHint') }}
       </p>
-      <div class="border-warning/30 max-h-96 overflow-auto rounded-lg border">
+      <ScrollArea class="border-warning/30 max-h-96 rounded-lg border" with-horizontal-scrollbar>
         <table class="w-full text-sm">
           <thead class="bg-muted sticky top-0">
             <tr>
@@ -130,7 +130,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </ScrollArea>
     </div>
 
     <!-- Unpriceable Rows Section -->
@@ -157,7 +157,7 @@
         </div>
       </div>
 
-      <div class="border-warning/30 mt-3 max-h-48 overflow-auto rounded border">
+      <ScrollArea class="border-warning/30 mt-3 max-h-48 rounded border" with-horizontal-scrollbar>
         <table class="w-full text-sm">
           <thead class="bg-muted sticky top-0">
             <tr>
@@ -176,7 +176,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </ScrollArea>
 
       <!-- Skip-or-Abort choice — always visible when unpriceableRows is non-empty -->
       <div class="mt-4 flex flex-wrap gap-3">
@@ -193,14 +193,14 @@
     <div class="bg-primary/10 border-primary mb-6 rounded-lg border p-4">
       <h3 class="mb-2 text-sm font-semibold">{{ t('pages.importExport.csvImport.review.importSummary') }}</h3>
       <p class="text-sm">
-        <span class="font-bold text-green-600">{{ importStore.importSummary.willImport }}</span>
+        <span class="text-success-text font-bold">{{ importStore.importSummary.willImport }}</span>
         {{ t('pages.importExport.csvImport.review.willBeImported') }}
         <span v-if="importStore.importSummary.invalidRows > 0">
           <span class="text-destructive-text font-bold">{{ importStore.importSummary.invalidRows }}</span>
           {{ t('pages.importExport.csvImport.review.invalidWillBeSkipped') }}
         </span>
         <span v-if="importStore.importSummary.duplicates > 0">
-          <span class="font-bold text-yellow-600">{{ importStore.importSummary.duplicates }}</span>
+          <span class="text-warning-text font-bold">{{ importStore.importSummary.duplicates }}</span>
           {{ t('pages.importExport.csvImport.review.duplicatesWillBeSkipped') }}
         </span>
         <span v-if="importStore.unpriceableRows.length > 0">
@@ -209,6 +209,12 @@
         </span>
       </p>
     </div>
+
+    <!-- Import failure — the execute-import API call itself failed. Covers both the
+         normal and skip-and-import paths so a failed import is never silent. -->
+    <Callout v-if="importStore.importError" variant="destructive" class="mb-6" role="alert">
+      <p>{{ importStore.importError }}</p>
+    </Callout>
 
     <!-- Action Buttons — hidden when unpriceableRows consent panel is active,
          because the consent panel carries its own Skip/Cancel controls. -->
@@ -235,6 +241,8 @@
 
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Callout } from '@/components/lib/ui/callout';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useImportExportStore } from '@/stores/import-export';
 import { AlertTriangleIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
 import { format, parseISO } from 'date-fns';
@@ -261,12 +269,22 @@ const goBack = () => {
 };
 
 const handleExecuteImport = async () => {
-  await importStore.executeImport();
+  try {
+    await importStore.executeImport();
+  } catch {
+    // The user-facing message is already set in importStore.importError and
+    // rendered in the Callout below. Absorb here so the click handler doesn't
+    // propagate an unhandled rejection.
+  }
 };
 
 /** Skip path: pass all unpriceable row indices so the backend skips them. */
 const handleSkipAndImport = async () => {
   const skipUnpriceableIndices = importStore.unpriceableRows.map((r) => r.rowIndex);
-  await importStore.executeImport({ skipUnpriceableIndices });
+  try {
+    await importStore.executeImport({ skipUnpriceableIndices });
+  } catch {
+    // Error already captured in importStore.importError and rendered in the Callout below.
+  }
 };
 </script>

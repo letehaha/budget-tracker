@@ -4,6 +4,8 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { executeImport } from '@services/import-export/csv-import/execute-import';
 import { z } from 'zod';
 
+import { accountMappingValueSchema, categoryMappingValueSchema, tagMappingValueSchema } from './shared-schemas';
+
 const parsedTransactionRowSchema = z.object({
   rowIndex: z.number(),
   date: z.string(), // ISO format
@@ -15,22 +17,6 @@ const parsedTransactionRowSchema = z.object({
   currencyCode: z.string(),
   transactionType: z.enum(['income', 'expense']),
 });
-
-const accountMappingValueSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('create-new') }),
-  z.object({ action: z.literal('link-existing'), accountId: recordId() }),
-]);
-
-const categoryMappingValueSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('create-new') }),
-  z.object({ action: z.literal('link-existing'), categoryId: recordId() }),
-]);
-
-const tagMappingValueSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('create-new') }),
-  z.object({ action: z.literal('link-existing'), tagId: recordId() }),
-  z.object({ action: z.literal('skip') }),
-]);
 
 export const executeImportController = createController(
   z.object({

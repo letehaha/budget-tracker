@@ -39,7 +39,16 @@
                    tag-select-field.vue is multi-select and popover-based — a plain
                    Select.Select is a better fit here (mirrors category-mapping-table). -->
               <div v-if="getTagAction(tagName) === 'link-existing'">
+                <!-- Load failed: tell the user it's a failure, not an empty tag list. -->
+                <p v-if="tagsLoadFailed" class="text-destructive-text text-sm">
+                  {{ t('pages.importExport.tagMappingTable.tagsLoadFailed') }}
+                </p>
+                <!-- No tags exist yet — nothing to link to. -->
+                <p v-else-if="tags.length === 0" class="text-muted-foreground text-sm">
+                  {{ t('pages.importExport.tagMappingTable.noExistingTags') }}
+                </p>
                 <Select.Select
+                  v-else
                   :model-value="getTagSelectValue(tagName)"
                   @update:model-value="handleTagSelect(tagName, String($event))"
                 >
@@ -79,7 +88,7 @@ import * as Select from '@/components/lib/ui/select';
 import { useImportExportStore } from '@/stores/import-export';
 import { useTagsStore } from '@/stores/tags';
 import { storeToRefs } from 'pinia';
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -93,10 +102,18 @@ const importStore = useImportExportStore();
 const tagsStore = useTagsStore();
 const { tags } = storeToRefs(tagsStore);
 
+// Distinguishes "tags failed to load" from "user has no tags yet" so the
+// link-existing picker can show the right hint instead of looking empty silently.
+const tagsLoadFailed = ref(false);
+
 onMounted(async () => {
   // Ensure tags are loaded so the "link existing" picker is populated.
   if (tags.value.length === 0) {
-    await tagsStore.loadTags();
+    try {
+      await tagsStore.loadTags();
+    } catch {
+      tagsLoadFailed.value = true;
+    }
   }
 });
 

@@ -21,6 +21,7 @@ import {
 
 type UnpriceableRow = NonNullable<DetectDuplicatesResponse['unpriceableRows']>[number];
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
+import { i18n } from '@/i18n';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -106,6 +107,9 @@ export const useImportExportStore = defineStore('importExport', () => {
   // Step 6: Import execution
   const importInProgress = ref<boolean>(false);
   const importResult = ref<ExecuteImportResponse | null>(null);
+  // Set when the execute-import API call itself fails (network, 5xx, validation).
+  // A post-success refresh failure (loadCategories/loadTags) does NOT set this.
+  const importError = ref<string | null>(null);
 
   // UI state
   const currentStep = ref<number>(1);
@@ -222,6 +226,7 @@ export const useImportExportStore = defineStore('importExport', () => {
 
   const executeImport = async ({ skipUnpriceableIndices }: { skipUnpriceableIndices?: number[] } = {}) => {
     importInProgress.value = true;
+    importError.value = null;
 
     try {
       const { executeImport: executeImportApi } = await import('@/api/import-export');
@@ -239,11 +244,17 @@ export const useImportExportStore = defineStore('importExport', () => {
       const defaultCategoryId =
         categoryOption?.option === CategoryOptionValue.existingCategory ? categoryOption.categoryId : undefined;
 
+      // Only send tagMapping when a tags column is actually mapped. When the user
+      // deselects the tags column, tagMapping may still hold stale entries; sending
+      // them would make the backend create tags the user opted out of. The backend
+      // treats an omitted tagMapping as "no tags" (see execute-import service).
+      const tagMappingPayload = columnMapping.value.tags ? tagMapping.value : undefined;
+
       const response = await executeImportApi({
         validRows: validRows.value,
         accountMapping: accountMapping.value,
         categoryMapping: categoryMapping.value,
-        tagMapping: tagMapping.value,
+        tagMapping: tagMappingPayload,
         skipDuplicateIndices,
         skipUnpriceableIndices,
         defaultAccountId,
@@ -276,20 +287,37 @@ export const useImportExportStore = defineStore('importExport', () => {
       // The Pinia categories store is not VueQuery-backed, so invalidateQueries alone won't
       // refresh it. Call loadCategories explicitly so newly-created categories appear in
       // category pickers and lists without a full page reload.
+      //
+      // The import already succeeded by this point, so a refresh failure must NOT surface
+      // as an import error. Swallow and log it instead of letting it reject executeImport.
       if (response.summary.categoriesCreated > 0) {
-        await useCategoriesStore().loadCategories();
+        try {
+          await useCategoriesStore().loadCategories();
+        } catch (refreshError) {
+          console.error('Failed to refresh categories after import', refreshError);
+        }
       }
 
       // Same reasoning for tags: Pinia store is not VueQuery-backed, so newly-created
       // tags must be loaded explicitly to appear in tag pickers without a page reload.
+      // Also guarded so a post-success refresh failure never fake-fails the import.
       if (response.summary.tagsCreated > 0) {
-        await useTagsStore().loadTags();
+        try {
+          await useTagsStore().loadTags();
+        } catch (refreshError) {
+          console.error('Failed to refresh tags after import', refreshError);
+        }
       }
 
       currentStep.value = 4;
       if (!completedSteps.value.includes(3)) {
         completedSteps.value.push(3);
       }
+    } catch (error) {
+      // A genuine import-API failure: surface a user-readable message for the UI to render,
+      // then re-throw so callers can react (their handlers absorb the rejection).
+      importError.value = i18n.global.t('pages.importExport.csvImport.results.importFailed');
+      throw error;
     } finally {
       importInProgress.value = false;
     }
@@ -334,6 +362,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     detectError.value = null;
     importInProgress.value = false;
     importResult.value = null;
+    importError.value = null;
     currentStep.value = 1;
     completedSteps.value = [];
   };
@@ -365,6 +394,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     detectError,
     importInProgress,
     importResult,
+    importError,
     currentStep,
     completedSteps,
 

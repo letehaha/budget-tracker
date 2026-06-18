@@ -2,6 +2,8 @@ import type { DuplicateMatch, ParsedTransactionRow } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import * as Transactions from '@models/transactions.model';
 
+import { importDayKey } from './import-day-key';
+
 interface FindDuplicatesParams {
   userId: number;
   validRows: ParsedTransactionRow[];
@@ -39,8 +41,8 @@ export async function findDuplicates({
   // start-of-day and ceiling the max to end-of-day keeps an existing same-day
   // transaction in range no matter what hour either side falls on.
   const dates = validRows.map((r) => r.date);
-  const minDay = dates.reduce((a, b) => (a < b ? a : b)).split('T')[0]!;
-  const maxDay = dates.reduce((a, b) => (a > b ? a : b)).split('T')[0]!;
+  const minDay = importDayKey({ iso: dates.reduce((a, b) => (a < b ? a : b)) });
+  const maxDay = importDayKey({ iso: dates.reduce((a, b) => (a > b ? a : b)) });
 
   // Fetch existing transactions in the date range for these accounts
   const existingTransactions = await Transactions.findWithFilters({
@@ -55,7 +57,7 @@ export async function findDuplicates({
   // Build lookup maps for efficient matching
   const exactMatchMap = new Map<string, Transactions.default[]>();
   for (const tx of existingTransactions) {
-    const dateStr = new Date(tx.time).toISOString().split('T')[0];
+    const dateStr = importDayKey({ iso: new Date(tx.time).toISOString() });
     const key = `${tx.accountId}:${dateStr}:${Math.abs(tx.amount.toCents())}`;
 
     if (!exactMatchMap.has(key)) {
@@ -75,7 +77,7 @@ export async function findDuplicates({
     // `row.date` is a full ISO instant, but existing transactions are keyed by
     // calendar day above — normalise the row to the same day granularity so a
     // same-day match still lands in the same bucket.
-    const rowDateStr = new Date(row.date).toISOString().split('T')[0];
+    const rowDateStr = importDayKey({ iso: new Date(row.date).toISOString() });
     const key = `${accountId}:${rowDateStr}:${row.amount}`;
     const candidates = exactMatchMap.get(key) || [];
 
@@ -143,7 +145,7 @@ export async function findDuplicates({
         importedTransaction: row,
         existingTransaction: {
           id: bestMatch.id,
-          date: new Date(bestMatch.time).toISOString().split('T')[0]!,
+          date: importDayKey({ iso: new Date(bestMatch.time).toISOString() }),
           amount: bestMatch.amount.toCents(),
           note: bestMatch.note || '',
           accountId: bestMatch.accountId,

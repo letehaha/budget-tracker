@@ -124,5 +124,50 @@ describe('anchorImportDate', () => {
       const instant = anchorImportDate({ parsed, timezone: 'Not/AZone' });
       expect(instant.toISOString()).toBe('2026-06-01T09:30:00.000Z');
     });
+
+    it('resolves a wall-clock time inside the DST spring-forward gap without crashing (America/New_York, 2026-03-08T02:30)', () => {
+      // America/New_York springs forward at 02:00 on 2026-03-08, jumping
+      // directly to 03:00 — 02:30 is a nonexistent wall-clock time.
+      //
+      // The two-pass offset correction in zonedWallClockToInstant re-samples the
+      // offset at the corrected instant, which settles it to the post-gap side
+      // (EDT, UTC-4). The result must be a valid Date — not NaN, not a throw.
+      //
+      // Before DST: 02:29 EST (UTC-5) → 07:29 UTC
+      // After  DST: 03:00 EDT (UTC-4) → 07:00 UTC
+      // The nonexistent 02:30 lands on the post-gap side: EDT (UTC-4)
+      //   utcGuess = Date.UTC(2026, 2, 8, 2, 30) = 2026-03-08T02:30Z
+      //   first offset: sampling at 02:30 UTC, NY is already on EDT → offset = -4h = -14400000ms
+      //   corrected guess: 02:30Z - (-14400000ms) = 06:30Z
+      //   second offset: sampling at 06:30Z, NY is EDT → offset = -4h
+      //   result = 02:30Z - (-14400000ms) = 06:30 UTC
+      const parsed: ParsedImportDate = {
+        kind: 'localDateTime',
+        year: 2026,
+        month: 3,
+        day: 8,
+        hour: 2,
+        minute: 30,
+        second: 0,
+        ms: 0,
+      };
+
+      const instant = anchorImportDate({ parsed, timezone: 'America/New_York' });
+
+      // Must produce a real Date (not NaN/invalid).
+      expect(Number.isNaN(instant.getTime())).toBe(false);
+
+      // The result must be on 2026-03-08 as seen from New York (UTC-4 post-gap).
+      const dayInNY = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(instant);
+      expect(dayInNY).toBe('2026-03-08');
+
+      // The two-pass correction must produce 06:30 UTC (resolved to post-gap EDT).
+      expect(instant.toISOString()).toBe('2026-03-08T06:30:00.000Z');
+    });
   });
 });

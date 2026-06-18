@@ -78,12 +78,20 @@ async function executeImportImpl({
   const skipSet = new Set([...skipDuplicateIndices, ...(skipUnpriceableIndices ?? [])]);
   const rowsToImport = validRows.filter((row) => !skipSet.has(row.rowIndex));
 
+  // Count each skipped row exactly once: `skipped` owns confirmed duplicates;
+  // `skippedUnpriceable` owns rows that are unpriceable but not also duplicates.
+  // A row in both sets is already counted under `skipped`, so excluding the
+  // duplicate-skip set from the unpriceable count prevents double-counting and
+  // keeps imported + skipped + skippedUnpriceable == rows considered.
+  const dupSkipSet = new Set(skipDuplicateIndices);
+  const skippedUnpriceableCount = (skipUnpriceableIndices ?? []).filter((i) => !dupSkipSet.has(i)).length;
+
   if (rowsToImport.length === 0) {
     return {
       summary: {
         imported: 0,
         skipped: skipDuplicateIndices.length,
-        skippedUnpriceable: skipUnpriceableIndices?.length ?? 0,
+        skippedUnpriceable: skippedUnpriceableCount,
         accountsCreated: 0,
         categoriesCreated: 0,
         tagsCreated: 0,
@@ -228,7 +236,7 @@ async function executeImportImpl({
     summary: {
       imported: newTransactionIds.length,
       skipped: skipDuplicateIndices.length,
-      skippedUnpriceable: skipUnpriceableIndices?.length ?? 0,
+      skippedUnpriceable: skippedUnpriceableCount,
       accountsCreated,
       categoriesCreated,
       tagsCreated,

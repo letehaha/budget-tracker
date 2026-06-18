@@ -80,6 +80,7 @@
           "skippedDuplicates": "Пропущено (дублікати)",
           "accountsCreated": "Створено рахунків",
           "categoriesCreated": "Створено категорій",
+          "tagsCreated": "Створено тегів",
           "importErrors": "Помилки імпорту",
           "rowNumber": "Рядок #",
           "error": "Помилка",
@@ -87,7 +88,8 @@
           "batchIdDescription": "Використовуйте цей ID для пошуку всіх транзакцій з цього імпорту.",
           "viewTransactions": "Переглянути транзакції",
           "startNewImport": "Почати новий імпорт",
-          "skippedUnpriceable": "Пропущено (не оцінено)"
+          "skippedUnpriceable": "Пропущено (не оцінено)",
+          "importFailed": "Не вдалося імпортувати транзакції. Спробуйте ще раз."
         }
       },
       "common": {
@@ -222,7 +224,9 @@
           "createNew": "Створити новий",
           "mapToExisting": "Пов'язати з існуючим",
           "skip": "Пропустити"
-        }
+        },
+        "tagsLoadFailed": "Не вдалося завантажити ваші теги. Спробуйте пізніше.",
+        "noExistingTags": "У вас ще немає тегів."
       }
     }
   }

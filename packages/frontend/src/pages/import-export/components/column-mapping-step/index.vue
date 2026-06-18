@@ -228,8 +228,21 @@ const handleExtractValues = async () => {
     // Store extracted tags and default every source tag to 'create-new'.
     // Users can override individual rows in the tag-mapping table.
     importStore.uniqueTagsInCSV = result.sourceTags;
+
+    // Prune mappings for tags that are no longer present (e.g. after switching the
+    // tags column), then default any newly-seen tag to 'create-new'. Pruning matters
+    // because executeImport sends tagMapping verbatim — stale keys would create tags
+    // the user no longer intends to import.
+    const sourceTagSet = new Set(result.sourceTags);
+    Object.keys(importStore.tagMapping).forEach((tag) => {
+      if (!sourceTagSet.has(tag)) {
+        delete importStore.tagMapping[tag];
+      }
+    });
     result.sourceTags.forEach((tag) => {
-      importStore.tagMapping[tag] = { action: 'create-new' };
+      if (!importStore.tagMapping[tag]) {
+        importStore.tagMapping[tag] = { action: 'create-new' };
+      }
     });
 
     hasExtracted.value = true;
