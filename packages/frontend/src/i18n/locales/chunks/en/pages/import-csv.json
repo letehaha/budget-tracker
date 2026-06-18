@@ -36,6 +36,7 @@
           "totalRows": "Total rows",
           "delimiter": "Delimiter",
           "extracting": "Extracting...",
+          "detecting": "Detecting duplicates…",
           "nextExtract": "Next: Extract Values",
           "continueToDuplicates": "Continue to Duplicate Check"
         },
@@ -62,7 +63,13 @@
           "duplicatesWillBeSkipped": "duplicates will be skipped.",
           "backToMapping": "Back to Mapping",
           "importing": "Importing...",
-          "importButton": "Import {count} Transactions"
+          "importButton": "Import {count} Transactions",
+          "unpriceableTitle": "{count} row(s) cannot be priced — no exchange rate found",
+          "unpriceableDescription": "These rows use a currency that has no stored exchange rate and cannot be converted to your base currency. You must skip them or cancel the import.",
+          "unpriceableWillBeSkipped": "unpriceable will be skipped",
+          "currency": "Currency",
+          "skipAndImport": "Skip & import",
+          "cancelImport": "Cancel import"
         },
         "results": {
           "completeTitle": "Import Complete!",
@@ -73,13 +80,16 @@
           "skippedDuplicates": "Skipped (Duplicates)",
           "accountsCreated": "Accounts Created",
           "categoriesCreated": "Categories Created",
+          "tagsCreated": "Tags Created",
           "importErrors": "Import Errors",
           "rowNumber": "Row #",
           "error": "Error",
           "batchIdLabel": "Batch ID",
           "batchIdDescription": "Use this ID to find all transactions from this import.",
           "viewTransactions": "View Transactions",
-          "startNewImport": "Start New Import"
+          "startNewImport": "Start New Import",
+          "skippedUnpriceable": "Skipped (unpriced)",
+          "importFailed": "Failed to import transactions. Please try again."
         }
       },
       "common": {
@@ -169,7 +179,8 @@
           "createNew": "Create New Category",
           "mapToExisting": "Map to Existing Category"
         },
-        "willBeCreated": "New category \"{name}\" will be created",
+        "willBeCreatedOrMerged": "{name} will be {action} with an existing category of the same name",
+        "createdOrMergedAction": "created, or merged",
         "mappedTo": "mapped to \"{name}\"",
         "selectCategory": "Select category..."
       },
@@ -188,6 +199,35 @@
           "createNew": "Create new categories from CSV values",
           "assignToSingle": "Assign all to single existing category"
         }
+      },
+      "tagAssignment": {
+        "title": "Tag Assignment",
+        "howToAssign": "How to assign tags",
+        "description": "Tags allow you to categorize transactions with multiple labels.",
+        "noTagsOption": "Don't import tags",
+        "tagColumn": "Tags Column",
+        "columnDescription": "Select the CSV column whose values will be used as tags for each transaction.",
+        "mapOnNextStep": "Each distinct tag value found in this column will appear below for you to map or create.",
+        "options": {
+          "mapToColumn": "Map from CSV column"
+        }
+      },
+      "tagMappingTable": {
+        "title": "Tag Mapping",
+        "description": "For each tag value found in your CSV, choose whether to create a new tag, link to an existing one, or skip it.",
+        "csvTagName": "CSV Tag Value",
+        "action": "Action",
+        "targetTag": "Target Tag",
+        "selectTag": "Select a tag",
+        "willBeCreated": "Will create new tag \"{name}\"",
+        "willBeSkipped": "Will be skipped",
+        "actions": {
+          "createNew": "Create new",
+          "mapToExisting": "Link to existing",
+          "skip": "Skip"
+        },
+        "tagsLoadFailed": "Couldn't load your tags. Try again later.",
+        "noExistingTags": "You don't have any tags yet."
       }
     }
   }

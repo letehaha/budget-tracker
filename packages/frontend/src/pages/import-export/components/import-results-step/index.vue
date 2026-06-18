@@ -29,13 +29,20 @@
 
     <!-- Results Summary -->
     <div v-if="importStore.importResult" class="mb-6 grid gap-4 md:grid-cols-4">
-      <div class="rounded-lg bg-green-500/10 p-4 text-center">
-        <p class="text-sm text-green-600">{{ t('pages.importExport.csvImport.results.imported') }}</p>
-        <p class="text-3xl font-bold text-green-600">{{ importStore.importResult.summary.imported }}</p>
+      <div class="bg-success/10 rounded-lg p-4 text-center">
+        <p class="text-success-text text-sm">{{ t('pages.importExport.csvImport.results.imported') }}</p>
+        <p class="text-success-text text-3xl font-bold">{{ importStore.importResult.summary.imported }}</p>
       </div>
-      <div class="rounded-lg bg-yellow-500/10 p-4 text-center">
-        <p class="text-sm text-yellow-600">{{ t('pages.importExport.csvImport.results.skippedDuplicates') }}</p>
-        <p class="text-3xl font-bold text-yellow-600">{{ importStore.importResult.summary.skipped }}</p>
+      <div class="bg-warning/10 rounded-lg p-4 text-center">
+        <p class="text-warning-text text-sm">{{ t('pages.importExport.csvImport.results.skippedDuplicates') }}</p>
+        <p class="text-warning-text text-3xl font-bold">{{ importStore.importResult.summary.skipped }}</p>
+      </div>
+      <div
+        v-if="importStore.importResult.summary.skippedUnpriceable > 0"
+        class="rounded-lg bg-orange-500/10 p-4 text-center"
+      >
+        <p class="text-sm text-orange-600">{{ t('pages.importExport.csvImport.results.skippedUnpriceable') }}</p>
+        <p class="text-3xl font-bold text-orange-600">{{ importStore.importResult.summary.skippedUnpriceable }}</p>
       </div>
       <div class="rounded-lg bg-blue-500/10 p-4 text-center">
         <p class="text-sm text-blue-600">{{ t('pages.importExport.csvImport.results.accountsCreated') }}</p>
@@ -45,6 +52,10 @@
         <p class="text-sm text-purple-600">{{ t('pages.importExport.csvImport.results.categoriesCreated') }}</p>
         <p class="text-3xl font-bold text-purple-600">{{ importStore.importResult.summary.categoriesCreated }}</p>
       </div>
+      <div class="rounded-lg bg-teal-500/10 p-4 text-center">
+        <p class="text-sm text-teal-600">{{ t('pages.importExport.csvImport.results.tagsCreated') }}</p>
+        <p class="text-3xl font-bold text-teal-600">{{ importStore.importResult.summary.tagsCreated }}</p>
+      </div>
     </div>
 
     <!-- Errors Section -->
@@ -52,9 +63,9 @@
       <h3 class="text-destructive-text mb-3 text-sm font-semibold">
         {{ t('pages.importExport.csvImport.results.importErrors') }}
       </h3>
-      <div class="max-h-48 overflow-auto rounded-lg border border-red-200">
+      <ScrollArea class="border-destructive/20 max-h-48 rounded-lg border">
         <table class="w-full text-sm">
-          <thead class="bg-red-50">
+          <thead class="bg-destructive/10">
             <tr>
               <th class="border-b px-4 py-2 text-left font-medium">
                 {{ t('pages.importExport.csvImport.results.rowNumber') }}
@@ -75,7 +86,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </ScrollArea>
     </div>
 
     <!-- Batch ID -->
@@ -101,6 +112,7 @@
 
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useImportExportStore } from '@/stores/import-export';
 import { AlertCircleIcon, CheckCircleIcon } from '@lucide/vue';
 import { computed } from 'vue';

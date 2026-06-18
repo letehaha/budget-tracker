@@ -46,6 +46,10 @@ export enum CategoryOptionValue {
   existingCategory = 'existing-category',
 }
 
+export enum TagOptionValue {
+  mapDataSourceColumn = 'map-data-source-column',
+}
+
 export enum CurrencyOptionValue {
   dataSourceColumn = 'data-source-column',
   existingCurrency = 'existing-currency',
@@ -68,6 +72,13 @@ export type CategoryOption =
   | { option: CategoryOptionValue.mapDataSourceColumn; columnName: string }
   | { option: CategoryOptionValue.createNewCategories; columnName: string }
   | { option: CategoryOptionValue.existingCategory; categoryId: string };
+
+/**
+ * Tag assignment options for CSV import. Currently supports mapping a CSV
+ * column whose comma-separated cell values become individual tags on each row.
+ * Absence of tags is expressed by setting the column-mapping field to `null`.
+ */
+export type TagOption = { option: TagOptionValue.mapDataSourceColumn; columnName: string };
 
 /**
  * Currency assignment options for CSV import
@@ -106,6 +117,8 @@ export interface ColumnMappingConfig {
    *  transaction — drives Payee extraction + `payee_rule` auto-categorization. */
   payee?: string;
   category: CategoryOption;
+  /** Optional tag column mapping. `null` means no tags are imported. */
+  tags?: TagOption | null;
   currency: CurrencyOption;
   transactionType: TransactionTypeOption;
   account: AccountOption;
@@ -125,6 +138,8 @@ export interface SourceAccount {
 export interface ExtractUniqueValuesResponse {
   sourceAccounts: SourceAccount[];
   sourceCategories: string[];
+  /** Distinct tag strings found across all parsed rows, for populating the tag-mapping table. */
+  sourceTags: string[];
   /** Currency mismatch warning when user selected existing account with different currency */
   currencyMismatchWarning?: string;
 }
@@ -143,17 +158,45 @@ export type CategoryMappingValue = { action: 'create-new' } | { action: 'link-ex
 
 export type CategoryMappingConfig = Record<string, CategoryMappingValue>;
 
+/** A single row that cannot be priced by the exchange-rate layer. */
+export interface UnpriceableRow {
+  rowIndex: number;
+  currencyCode: string;
+}
+
+/**
+ * Tag mapping for import - maps a distinct source tag string to an action.
+ * `skip` drops this source value rather than creating or linking a tag.
+ */
+export type TagMappingValue =
+  | { action: 'create-new' }
+  | { action: 'link-existing'; tagId: string }
+  | { action: 'skip' };
+
+/**
+ * Maps each distinct source tag string to its import action.
+ * Multiple source values may map to the same `tagId` — many-to-one is intentional.
+ */
+export type TagMappingConfig = Record<string, TagMappingValue>;
+
 /**
  * Parsed transaction row ready for duplicate detection
  */
 export interface ParsedTransactionRow {
   rowIndex: number;
-  date: string; // ISO format
+  /**
+   * ISO 8601 instant (e.g. `2026-06-01T15:00:00.000Z`) — the absolute moment the
+   * transaction is stored at, already anchored to the importing user's timezone.
+   * `execute-import` reconstructs it with `new Date(row.date)`.
+   */
+  date: string;
   amount: Cents;
   description: string;
   /** Raw value from the user-mapped Payee column, if mapping included one. */
   payeeName?: string;
   categoryName?: string;
+  /** Tag strings split from the source tag cell (comma-delimited upstream). Absent when no tag column was mapped. */
+  tagNames?: string[];
   accountName: string;
   currencyCode: string;
   transactionType: 'income' | 'expense';
@@ -194,6 +237,28 @@ export interface DetectDuplicatesRequest {
   columnMapping: ColumnMappingConfig;
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
+  tagMapping?: TagMappingConfig;
+  /**
+   * IANA timezone of the importing user's browser (e.g. `America/Montevideo`),
+   * from `Intl.DateTimeFormat().resolvedOptions().timeZone`. Anchors date-only
+   * and zone-less datetime cells to the right calendar day. Optional — absent or
+   * invalid values fall back to UTC anchoring on the backend.
+   */
+  timezone?: string;
+}
+
+/**
+ * Column-level date error. Present when the mapped date column can't be parsed
+ * with a single day/month order — the two interpretations contradict each other,
+ * so the import is blocked rather than guessed. `validRows`/`duplicates` come
+ * back empty alongside it.
+ */
+export interface DateColumnError {
+  /** The mapped date column's header. */
+  column: string;
+  reason: 'mixed';
+  /** Localized, user-facing explanation. */
+  message: string;
 }
 
 /**
@@ -203,6 +268,14 @@ export interface DetectDuplicatesResponse {
   validRows: ParsedTransactionRow[];
   invalidRows: InvalidRow[];
   duplicates: DuplicateMatch[];
+  /** Set only when the date column has no single safe day/month order. */
+  dateColumnError?: DateColumnError;
+  /**
+   * Rows whose currency has no stored exchange rate and is neither USD nor the
+   * user's base currency. The preview layer uses this to offer skip/abort.
+   * Only present when at least one such row exists.
+   */
+  unpriceableRows?: UnpriceableRow[];
 }
 
 /**
@@ -212,8 +285,15 @@ export interface ExecuteImportRequest {
   validRows: ParsedTransactionRow[];
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
+  tagMapping?: TagMappingConfig;
   /** Row indices to skip (confirmed duplicates) */
   skipDuplicateIndices: number[];
+  /**
+   * Row indices for unpriceable rows the user chose to skip rather than abort.
+   * Uses the same rowIndex space as skipDuplicateIndices and
+   * DetectDuplicatesResponse.unpriceableRows[].rowIndex.
+   */
+  skipUnpriceableIndices?: number[];
   /** Fallback account for rows whose accountName is empty (used when "single existing account" was chosen) */
   defaultAccountId?: string;
   /** Fallback category for rows whose categoryName is empty (used when "single existing category" was chosen) */
@@ -234,9 +314,13 @@ export interface ImportError {
 export interface ExecuteImportResponse {
   summary: {
     imported: number;
+    /** Number of duplicate rows skipped (from skipDuplicateIndices) */
     skipped: number;
+    /** Number of unpriceable rows skipped (from skipUnpriceableIndices) */
+    skippedUnpriceable: number;
     accountsCreated: number;
     categoriesCreated: number;
+    tagsCreated: number;
     errors: ImportError[];
   };
   newTransactionIds: string[];

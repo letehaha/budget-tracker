@@ -12,6 +12,7 @@ import type {
   ParseYnabResponse,
   StatementDetectDuplicatesResponse,
   StatementExecuteImportResponse,
+  TagMappingConfig,
   YnabAccountMapping,
   YnabImportProgress,
 } from '@bt/shared/types';
@@ -117,6 +118,9 @@ interface DetectDuplicatesParams {
   columnMapping: ColumnMappingConfig;
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
+  tagMapping?: TagMappingConfig;
+  /** IANA timezone (e.g. `America/Montevideo`) used to anchor date-only cells. */
+  timezone?: string;
 }
 
 export function detectDuplicates<R extends boolean | undefined = false>({
@@ -142,7 +146,9 @@ interface ExecuteImportParams {
   validRows: ParsedTransactionRow[];
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
+  tagMapping?: TagMappingConfig;
   skipDuplicateIndices: number[];
+  skipUnpriceableIndices?: number[];
   defaultAccountId?: string;
   defaultCategoryId?: string;
 }

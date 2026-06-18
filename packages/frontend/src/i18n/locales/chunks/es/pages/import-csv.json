@@ -36,6 +36,7 @@
           "totalRows": "Total de filas",
           "delimiter": "Delimitador",
           "extracting": "Extrayendo...",
+          "detecting": "Detectando duplicados…",
           "nextExtract": "Siguiente: Extraer valores",
           "continueToDuplicates": "Continuar a verificación de duplicados"
         },
@@ -62,7 +63,13 @@
           "duplicatesWillBeSkipped": "duplicados serán omitidos.",
           "backToMapping": "Volver al mapeo",
           "importing": "Importando...",
-          "importButton": "Importar {count} transacciones"
+          "importButton": "Importar {count} transacciones",
+          "unpriceableTitle": "{count} fila(s) no se pueden valorar — no se encontró tipo de cambio",
+          "unpriceableDescription": "Estas filas usan una moneda para la que no hay tipo de cambio almacenado y no pueden convertirse a su moneda base. Debe omitirlas o cancelar la importación.",
+          "unpriceableWillBeSkipped": "sin tipo de cambio serán omitidas",
+          "currency": "Moneda",
+          "skipAndImport": "Omitir e importar",
+          "cancelImport": "Cancelar importación"
         },
         "results": {
           "completeTitle": "¡Importación completada!",
@@ -73,13 +80,16 @@
           "skippedDuplicates": "Omitidas (duplicados)",
           "accountsCreated": "Cuentas creadas",
           "categoriesCreated": "Categorías creadas",
+          "tagsCreated": "Etiquetas creadas",
           "importErrors": "Errores de importación",
           "rowNumber": "Fila n.º",
           "error": "Error",
           "batchIdLabel": "ID de lote",
           "batchIdDescription": "Use este ID para encontrar todas las transacciones de esta importación.",
           "viewTransactions": "Ver transacciones",
-          "startNewImport": "Iniciar nueva importación"
+          "startNewImport": "Iniciar nueva importación",
+          "skippedUnpriceable": "Omitidas (sin precio)",
+          "importFailed": "Error al importar transacciones. Por favor, inténtelo de nuevo."
         }
       },
       "common": {
@@ -169,7 +179,8 @@
           "createNew": "Crear nueva categoría",
           "mapToExisting": "Mapear a categoría existente"
         },
-        "willBeCreated": "Se creará la nueva categoría \"{name}\"",
+        "willBeCreatedOrMerged": "{name} será {action} con una categoría existente del mismo nombre",
+        "createdOrMergedAction": "creada, o combinada",
         "mappedTo": "mapeada a \"{name}\"",
         "selectCategory": "Seleccione una categoría..."
       },
@@ -188,6 +199,35 @@
           "createNew": "Crear nuevas categorías a partir de los valores del CSV",
           "assignToSingle": "Asignar todas a una sola categoría existente"
         }
+      },
+      "tagAssignment": {
+        "title": "Asignación de etiquetas",
+        "howToAssign": "Cómo asignar etiquetas",
+        "description": "Las etiquetas permiten categorizar transacciones con múltiples etiquetas.",
+        "noTagsOption": "No importar etiquetas",
+        "tagColumn": "Columna de etiquetas",
+        "columnDescription": "Seleccione la columna CSV cuyos valores se utilizarán como etiquetas para cada transacción.",
+        "mapOnNextStep": "Cada valor de etiqueta distinto encontrado en esta columna aparecerá a continuación para que pueda mapearlo o crearlo.",
+        "options": {
+          "mapToColumn": "Mapear desde columna CSV"
+        }
+      },
+      "tagMappingTable": {
+        "title": "Mapeo de etiquetas",
+        "description": "Para cada valor de etiqueta encontrado en su CSV, elija si crear una nueva etiqueta, vincularla a una existente u omitirla.",
+        "csvTagName": "Valor de etiqueta CSV",
+        "action": "Acción",
+        "targetTag": "Etiqueta destino",
+        "selectTag": "Seleccionar una etiqueta",
+        "willBeCreated": "Se creará una nueva etiqueta \"{name}\"",
+        "willBeSkipped": "Será omitida",
+        "actions": {
+          "createNew": "Crear nuevo",
+          "mapToExisting": "Vincular a existente",
+          "skip": "Omitir"
+        },
+        "tagsLoadFailed": "No se pudieron cargar sus etiquetas. Inténtelo más tarde.",
+        "noExistingTags": "Aún no tiene etiquetas."
       }
     }
   }

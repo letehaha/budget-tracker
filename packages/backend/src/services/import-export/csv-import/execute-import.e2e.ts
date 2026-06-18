@@ -1407,6 +1407,117 @@ describe('Execute Import endpoint', () => {
     });
   });
 
+  describe('skipUnpriceableIndices', () => {
+    it('should skip rows listed in skipUnpriceableIndices and not import them', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // rowIndices 2 and 3 are marked unpriceable; only rowIndex 4 should be imported
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+          skipUnpriceableIndices: [2, 3],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.skipped).toBe(0);
+      expect(result.summary.skippedUnpriceable).toBe(2);
+      expect(result.newTransactionIds).toHaveLength(1);
+    });
+
+    it('should skip both duplicate and unpriceable rows and report counts separately', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // rowIndex 2 → duplicate-skip; rowIndex 3 → unpriceable-skip; rowIndex 4 → imported
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [2],
+          skipUnpriceableIndices: [3],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.skipped).toBe(1);
+      expect(result.summary.skippedUnpriceable).toBe(1);
+      expect(result.newTransactionIds).toHaveLength(1);
+    });
+
+    it('should return skippedUnpriceable: 0 when skipUnpriceableIndices is omitted', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+          // skipUnpriceableIndices intentionally omitted for back-compat
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(3);
+      expect(result.summary.skipped).toBe(0);
+      expect(result.summary.skippedUnpriceable).toBe(0);
+    });
+
+    it('should import nothing and report full counts when all rows skipped via both lists', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows = createValidRows({
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [2],
+          skipUnpriceableIndices: [3, 4],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(0);
+      expect(result.summary.skipped).toBe(1);
+      expect(result.summary.skippedUnpriceable).toBe(2);
+      expect(result.newTransactionIds).toHaveLength(0);
+    });
+  });
+
   describe('importDetails in externalData', () => {
     it('should store importDetails with correct structure', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -1517,6 +1628,549 @@ describe('Execute Import endpoint', () => {
       expect(batchId1).toBe(result1.batchId);
       expect(batchId2).toBe(result2.batchId);
       expect(batchId1).not.toBe(batchId2);
+    });
+  });
+
+  describe('tags import', () => {
+    // Single-row builder so each tag scenario controls exactly one transaction.
+    const tagRow = ({
+      accountName = 'CSV Account',
+      currencyCode = 'USD',
+      description = 'Tagged purchase',
+      tagNames,
+    }: {
+      accountName?: string;
+      currencyCode?: string;
+      description?: string;
+      tagNames?: string[];
+    }): ParsedTransactionRow[] => [
+      {
+        rowIndex: 2,
+        date: '2024-01-15',
+        amount: asCents(10050),
+        description,
+        categoryName: undefined,
+        tagNames,
+        accountName,
+        currencyCode,
+        transactionType: 'expense',
+      },
+    ];
+
+    const tagsOf = async (transactionId: string): Promise<string[]> => {
+      const list = await helpers.getTransactions({ includeTags: true, raw: true });
+      const tx = list.find((item) => item.id === transactionId);
+      return (tx?.tags ?? []).map((t) => t.name);
+    };
+
+    it('creates a new tag and links it to the imported transaction', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['NewTag'] }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          tagMapping: { NewTag: { action: 'create-new' } },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.tagsCreated).toBe(1);
+      expect(result.summary.errors).toHaveLength(0);
+
+      const createdTags = await helpers.getTags({ raw: true });
+      expect(createdTags.map((t) => t.name)).toContain('NewTag');
+
+      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['NewTag']);
+    });
+
+    it('links an existing tag without creating a duplicate', async () => {
+      const [account, existing] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'Groceries' }), raw: true }),
+      ]);
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['Groceries'] }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          tagMapping: { Groceries: { action: 'link-existing', tagId: existing.id } },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.tagsCreated).toBe(0);
+
+      const allTags = await helpers.getTags({ raw: true });
+      expect(allTags.filter((t) => t.name === 'Groceries')).toHaveLength(1);
+
+      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['Groceries']);
+    });
+
+    it('collapses many source values mapped to one existing tag into a single junction row', async () => {
+      const [account, existing] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'Food' }), raw: true }),
+      ]);
+
+      // A row whose cell yielded two distinct source strings, both mapped to the
+      // same existing tag. The transaction must end with exactly one Food tag.
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['food', 'groceries'] }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          tagMapping: {
+            food: { action: 'link-existing', tagId: existing.id },
+            groceries: { action: 'link-existing', tagId: existing.id },
+          },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.tagsCreated).toBe(0);
+
+      const names = await tagsOf(result.newTransactionIds[0]!);
+      expect(names).toEqual(['Food']);
+    });
+
+    it('reuses a same-named tag case-insensitively for create-new and does not count it', async () => {
+      const [account] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'Food' }), raw: true }),
+      ]);
+
+      // Source value "food" with action create-new, while the user already owns
+      // "Food" — links to the existing tag, creates nothing.
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['food'] }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          tagMapping: { food: { action: 'create-new' } },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.tagsCreated).toBe(0);
+
+      const allTags = await helpers.getTags({ raw: true });
+      expect(allTags.filter((t) => t.name.toLowerCase() === 'food')).toHaveLength(1);
+
+      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['Food']);
+    });
+
+    it('treats create-new source values with ILIKE wildcards as literals, creating new tags', async () => {
+      // Regression: the case-insensitive reuse lookup must compare the source as
+      // a literal, not an ILIKE pattern. `50%`/`a_c` contain ILIKE wildcards, so
+      // an ILIKE-based lookup would wrongly link them to `50% off`/`abc` instead
+      // of creating distinct tags. Seed those decoys, then import the wildcard
+      // sources mapped create-new and assert brand-new exact-named tags appear.
+      const [account] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createTag({ payload: helpers.buildTagPayload({ name: '50% off' }), raw: true }),
+        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'abc' }), raw: true }),
+      ]);
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['50%', 'a_c'] }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          tagMapping: {
+            '50%': { action: 'create-new' },
+            a_c: { action: 'create-new' },
+          },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      // Both wildcard sources are genuine inserts — the decoys must not satisfy
+      // the reuse lookup.
+      expect(result.summary.tagsCreated).toBe(2);
+      expect(result.summary.errors).toHaveLength(0);
+
+      const allTags = await helpers.getTags({ raw: true });
+      const names = allTags.map((t) => t.name);
+      // The exact wildcard literals exist as new tags; the decoys are untouched.
+      expect(names).toContain('50%');
+      expect(names).toContain('a_c');
+      expect(names.filter((n) => n === '50% off')).toHaveLength(1);
+      expect(names.filter((n) => n === 'abc')).toHaveLength(1);
+
+      // The transaction links to the NEW literal tags, never the wildcard decoys.
+      const linked = await tagsOf(result.newTransactionIds[0]!);
+      expect(linked.toSorted()).toEqual(['50%', 'a_c']);
+    });
+
+    it('drops source values whose mapping is skip', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['Keep', 'Drop'] }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          tagMapping: {
+            Keep: { action: 'create-new' },
+            Drop: { action: 'skip' },
+          },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.tagsCreated).toBe(1);
+
+      const allTags = await helpers.getTags({ raw: true });
+      expect(allTags.map((t) => t.name)).not.toContain('Drop');
+
+      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['Keep']);
+    });
+
+    it('unions imported tags with the payee default tags', async () => {
+      // Bank-sync path: createTransaction extracts the payee from rawMerchantName.
+      // The note-fallback setting routes `note` through the same extraction, which
+      // is the e2e-reachable way to link a payee via the execute endpoint.
+      await helpers.updateUserSettings({
+        settings: { locale: 'en', payeeExtractionUsesDescription: true },
+      });
+
+      const [account, defaultTag] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'PayeeDefault' }), raw: true }),
+      ]);
+      await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Spotify', defaultTagIds: [defaultTag.id] }),
+        raw: true,
+      });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({
+            currencyCode: account.currencyCode,
+            description: 'Spotify',
+            tagNames: ['Imported'],
+          }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          tagMapping: { Imported: { action: 'create-new' } },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+
+      // Both the imported tag and the payee's default tag must be present.
+      const names = await tagsOf(result.newTransactionIds[0]!);
+      expect(names.toSorted()).toEqual(['Imported', 'PayeeDefault']);
+    });
+
+    it('applies payee default tags unchanged when a row has no imported tags', async () => {
+      await helpers.updateUserSettings({
+        settings: { locale: 'en', payeeExtractionUsesDescription: true },
+      });
+
+      const [account, defaultTag] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'PayeeDefault' }), raw: true }),
+      ]);
+      await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Spotify', defaultTagIds: [defaultTag.id] }),
+        raw: true,
+      });
+
+      // No tag column mapped at all (tagMapping absent), row carries no tagNames.
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({ currencyCode: account.currencyCode, description: 'Spotify' }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.tagsCreated).toBe(0);
+      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['PayeeDefault']);
+    });
+
+    it('imports with tagsCreated 0 and no tags when no tag column was mapped', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({ currencyCode: account.currencyCode }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      expect(result.summary.tagsCreated).toBe(0);
+      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual([]);
+    });
+
+    it('rejects a tag mapping whose link-existing id does not belong to the user', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const response = await helpers.executeImport({
+        payload: {
+          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['Ghost'] }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: {},
+          tagMapping: { Ghost: { action: 'link-existing', tagId: generateRandomRecordId() } },
+          skipDuplicateIndices: [],
+        },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('categories import', () => {
+    // Single-row builder so each category scenario controls exactly one transaction.
+    const categoryRow = ({
+      accountName = 'CSV Account',
+      currencyCode = 'USD',
+      description = 'Categorised purchase',
+      categoryName,
+    }: {
+      accountName?: string;
+      currencyCode?: string;
+      description?: string;
+      categoryName?: string;
+    }): ParsedTransactionRow[] => [
+      {
+        rowIndex: 2,
+        date: '2024-01-15',
+        amount: asCents(10050),
+        description,
+        categoryName,
+        accountName,
+        currencyCode,
+        transactionType: 'expense',
+      },
+    ];
+
+    // Returns the categoryId of the given transaction, looked up via the HTTP
+    // transactions endpoint (never via a model query).
+    const categoryIdOf = async (transactionId: string): Promise<string | null | undefined> => {
+      const list = await helpers.getTransactions({ raw: true });
+      const tx = list.find((item) => item.id === transactionId);
+      return tx?.categoryId;
+    };
+
+    it('reuses an existing same-named category case-insensitively for create-new and does not count it', async () => {
+      // Unique custom name so it can't collide with a default category.
+      const existingName = `Repeat Cat ${generateRandomRecordId()}`;
+
+      const [account, seeded] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.addCustomCategory({ name: existingName, color: '#AABBCC', raw: true }),
+      ]);
+      // Guard: the existing category was really created. POST /categories requires a
+      // color when no parentId is given, so the seed must pass one.
+      expect(seeded.name).toBe(existingName);
+      expect(seeded.id).toBeTruthy();
+
+      // Baseline taken AFTER seeding so the comparison isolates the import's effect.
+      const categoriesBefore = await helpers.getCategoriesList();
+
+      // CSV value matches the existing name only by case (lowercased), mapped
+      // create-new. The importer must find the existing category case-insensitively
+      // and reuse it — inserting nothing.
+      const lowercased = existingName.toLowerCase();
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: categoryRow({
+            currencyCode: account.currencyCode,
+            categoryName: lowercased,
+          }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: { [lowercased]: { action: 'create-new' } },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      // A reuse must NOT be counted as a creation.
+      expect(result.summary.categoriesCreated).toBe(0);
+      expect(result.summary.errors).toHaveLength(0);
+
+      // The transaction links to the pre-existing seeded category, not a new one.
+      expect(await categoryIdOf(result.newTransactionIds[0]!)).toBe(seeded.id);
+
+      // No new category was inserted.
+      const categoriesAfter = await helpers.getCategoriesList();
+      expect(categoriesAfter.length).toBe(categoriesBefore.length);
+    });
+
+    it('treats create-new source values with ILIKE wildcards as literals, creating new categories', async () => {
+      // Decoy whose name starts with the wildcard source. As an ILIKE pattern, '50%'
+      // would match this decoy; as a literal string it must not. The trailing random
+      // segment keeps it unique and ensures a prefix-wildcard match would be wrong.
+      const decoyName = `50% off ${generateRandomRecordId()}`;
+
+      const [account, decoy] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.addCustomCategory({ name: decoyName, color: '#AABBCC', raw: true }),
+      ]);
+      expect(decoy.name).toBe(decoyName);
+      expect(decoy.id).toBeTruthy();
+
+      const categoriesBefore = await helpers.getCategoriesList();
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: categoryRow({ currencyCode: account.currencyCode, categoryName: '50%' }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: { '50%': { action: 'create-new' } },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      // '50%' is a genuine insert — the decoy must NOT satisfy a (literal) reuse lookup.
+      expect(result.summary.categoriesCreated).toBe(1);
+      expect(result.summary.errors).toHaveLength(0);
+
+      const linkedCategoryId = await categoryIdOf(result.newTransactionIds[0]!);
+      // Must link to a brand-new category, never the decoy.
+      expect(linkedCategoryId).toBeTruthy();
+      expect(linkedCategoryId).not.toBe(decoy.id);
+
+      // The newly created category is import-created (appears in the flat list); its
+      // name is the exact literal '50%', and exactly one new category was added.
+      const categoriesAfter = await helpers.getCategoriesList();
+      expect(categoriesAfter.length).toBe(categoriesBefore.length + 1);
+      const linked = categoriesAfter.find((c) => c.id === linkedCategoryId);
+      expect(linked?.name).toBe('50%');
+    });
+  });
+
+  describe('partial failure — best-effort import', () => {
+    // The CSV importer passes each row's `date` straight into `new Date(...)`
+    // with no validity check, and the transaction's `time` column is a NOT NULL
+    // DATE. An unparseable date string therefore produces an Invalid Date that
+    // fails at the database layer mid-loop. Each row's createTransaction runs in
+    // its own transaction, so that DB error rolls back only the offending row —
+    // the good rows around it still commit and are reported truthfully.
+    // `imported` must always equal the count actually persisted to the database.
+    const UNPARSEABLE_DATE = 'definitely-not-a-date';
+
+    it('imports the good rows, reports only the bad row, and persists exactly what it claims', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows: ParsedTransactionRow[] = [
+        {
+          rowIndex: 2,
+          date: '2024-02-01',
+          amount: asCents(10000),
+          description: 'Good row before',
+          accountName: 'CSV Account',
+          currencyCode: account.currencyCode,
+          transactionType: 'expense',
+        },
+        {
+          rowIndex: 3,
+          date: UNPARSEABLE_DATE,
+          amount: asCents(20000),
+          description: 'Row with unparseable date',
+          accountName: 'CSV Account',
+          currencyCode: account.currencyCode,
+          transactionType: 'expense',
+        },
+        {
+          rowIndex: 4,
+          date: '2024-02-03',
+          amount: asCents(30000),
+          description: 'Good row after',
+          accountName: 'CSV Account',
+          currencyCode: account.currencyCode,
+          transactionType: 'expense',
+        },
+      ];
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      // Two good rows imported; only the unparseable-date row is reported as an error.
+      expect(result.summary.imported).toBe(2);
+      expect(result.summary.errors).toHaveLength(1);
+      expect(result.summary.errors[0]!.rowIndex).toBe(3);
+      expect(result.newTransactionIds).toHaveLength(2);
+
+      // Honesty assertion: the rows reported as imported must actually be in the
+      // database, and the persisted count must match the claimed `imported` count.
+      const transactions = await helpers.getTransactions({ raw: true });
+      const persisted = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      expect(persisted).toHaveLength(2);
+      expect(persisted.length).toBe(result.summary.imported);
+    });
+
+    it('persists nothing and reports every row when all rows fail, with an honest count', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows: ParsedTransactionRow[] = [2, 3, 4].map((rowIndex) => ({
+        rowIndex,
+        date: UNPARSEABLE_DATE,
+        amount: asCents(15000),
+        description: `Row ${rowIndex} with unparseable date`,
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+        transactionType: 'expense' as const,
+      }));
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(0);
+      expect(result.summary.errors).toHaveLength(3);
+      expect(result.newTransactionIds).toHaveLength(0);
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      const persisted = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      expect(persisted).toHaveLength(0);
+      expect(persisted.length).toBe(result.summary.imported);
     });
   });
 });

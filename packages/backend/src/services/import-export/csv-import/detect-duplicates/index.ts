@@ -10,18 +10,23 @@ import {
   AccountOptionValue,
   CategoryOptionValue,
   CurrencyOptionValue,
+  TagOptionValue,
   TransactionTypeOptionValue,
   asCents,
 } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
+import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { parse } from 'csv-parse/sync';
 
 import { MAX_CSV_ROWS } from '../csv-parser.service';
+import { splitTagCell } from '../split-tag-cell';
+import { anchorImportDate } from './anchor-import-date';
+import { detectDateColumnFormat, parseImportDate } from './date-engine';
 import { findDuplicates } from './find-duplicates';
+import { findUnpriceableRows } from './find-unpriceable-rows';
 import { parseAmount } from './parse-amount';
-import { parseDate } from './parse-date';
 
 interface DetectDuplicatesParams {
   userId: number;
@@ -30,6 +35,12 @@ interface DetectDuplicatesParams {
   columnMapping: ColumnMappingConfig;
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
+  /**
+   * IANA timezone of the importing user's browser (e.g. `America/Montevideo`).
+   * Anchors date-only and zone-less datetime cells to the correct calendar day.
+   * Optional — absent/invalid values fall back to UTC anchoring.
+   */
+  timezone?: string;
 }
 
 /**
@@ -41,6 +52,7 @@ export async function detectDuplicates({
   delimiter,
   columnMapping,
   accountMapping,
+  timezone,
 }: DetectDuplicatesParams): Promise<DetectDuplicatesResponse> {
   // Parse full CSV
   const records = parse(fileContent, {
@@ -80,6 +92,7 @@ export async function detectDuplicates({
     });
   }
   const categoryIndex = getCategoryColumnIndex(headers, columnMapping);
+  const tagIndex = getTagColumnIndex(headers, columnMapping);
   const accountIndex = getAccountColumnIndex(headers, columnMapping);
   const currencyIndex = getCurrencyColumnIndex(headers, columnMapping);
   const transactionTypeIndex = getTransactionTypeColumnIndex(headers, columnMapping);
@@ -88,18 +101,47 @@ export async function detectDuplicates({
   const defaultCurrency = await getDefaultCurrency(userId, columnMapping);
   const defaultAccountId = await getDefaultAccountId(userId, columnMapping);
 
+  // Resolve the date column's format ONCE from the whole column. The day/month
+  // order of the ambiguous d/d/yyyy family is the user's, not US-by-default:
+  // it's inferred from rows that disambiguate themselves, falling back to the
+  // user's locale convention. `getUserSettings.locale` is `'en' | 'uk'`, a
+  // subset of the engine's `SupportedLocale`.
+  const { locale } = await getUserSettings({ userId });
+  const dateColumnValues = dataRows.map((row) => row[dateIndex]?.trim() || '').filter((value) => value.length > 0);
+  const dateFormatResult = detectDateColumnFormat({ values: dateColumnValues, locale });
+
   // Parse and validate each row
   const validRows: ParsedTransactionRow[] = [];
   const invalidRows: InvalidRow[] = [];
+
+  // A column with contradicting day-first and month-first signals has no single
+  // safe order. Surface it as a column-level error instead of silently splitting
+  // rows across two months — the frontend renders this and blocks the import.
+  if (!dateFormatResult.ok) {
+    return {
+      validRows,
+      invalidRows,
+      duplicates: [],
+      dateColumnError: {
+        column: columnMapping.date,
+        reason: dateFormatResult.reason,
+        message: t({ key: 'csvImport.mixedDateFormat', variables: { column: columnMapping.date } }),
+      },
+    };
+  }
+
+  const dateFormat = dateFormatResult.format;
 
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i]!;
     const rowIndex = i + 2; // +2 because row 1 is headers, and we're 1-indexed
     const errors: string[] = [];
 
-    // Parse date
+    // Parse date through the engine (timezone-agnostic), then anchor it to a
+    // stored instant against the importing user's timezone. `null` means the
+    // value matched no known shape — same loud invalid-row behaviour as before.
     const dateStr = row[dateIndex]?.trim() || '';
-    const parsedDate = parseDate(dateStr);
+    const parsedDate = parseImportDate({ value: dateStr, format: dateFormat });
     if (!parsedDate) {
       errors.push(t({ key: 'csvImport.invalidDateFormat', variables: { dateStr } }));
     }
@@ -121,6 +163,11 @@ export async function detectDuplicates({
 
     // Get category name (if from column)
     const categoryName = categoryIndex !== -1 ? row[categoryIndex]?.trim() || undefined : undefined;
+
+    // Get tag names (if a tag column is mapped). Comma-split, trimmed, blanks
+    // dropped. Absent when no tag column was mapped so the row behaves exactly
+    // as it did before tags existed.
+    const tagNames = tagIndex !== -1 ? splitTagCell(row[tagIndex]) : undefined;
 
     // Get account name (if from column) or use default
     let accountName = '';
@@ -171,13 +218,17 @@ export async function detectDuplicates({
         ),
       });
     } else {
+      // `row.date` carries the resolved absolute instant as an ISO string, so
+      // `execute-import`'s `new Date(row.date)` reconstructs the exact moment.
+      const instant = anchorImportDate({ parsed: parsedDate!, timezone });
       validRows.push({
         rowIndex,
-        date: parsedDate!,
+        date: instant.toISOString(),
         amount: asCents(Math.abs(parsedAmount!)), // Store absolute value in cents, sign determined by transactionType
         description,
         payeeName,
         categoryName,
+        tagNames,
         accountName,
         currencyCode,
         transactionType,
@@ -195,10 +246,15 @@ export async function detectDuplicates({
     accountNameToId,
   });
 
+  // Identify rows whose currency has no stored exchange rate. The result is
+  // passed to the preview so the user can decide to skip or abort those rows.
+  const unpriceableRows = await findUnpriceableRows({ userId, validRows });
+
   return {
     validRows,
     invalidRows,
     duplicates,
+    ...(unpriceableRows.length > 0 && { unpriceableRows }),
   };
 }
 
@@ -209,6 +265,14 @@ function getCategoryColumnIndex(headers: string[], columnMapping: ColumnMappingC
     categoryOption.option === CategoryOptionValue.createNewCategories
   ) {
     return headers.indexOf(categoryOption.columnName);
+  }
+  return -1;
+}
+
+function getTagColumnIndex(headers: string[], columnMapping: ColumnMappingConfig): number {
+  const tagOption = columnMapping.tags;
+  if (tagOption && tagOption.option === TagOptionValue.mapDataSourceColumn) {
+    return headers.indexOf(tagOption.columnName);
   }
   return -1;
 }

@@ -98,16 +98,20 @@ export function withDeduplication<T extends unknown[], R>(
     // Enforce cache size limit
     enforceMaxCacheSize();
 
-    // Create new promise and cache it
+    // Cache the in-flight call itself (pre-`.finally`) so concurrent callers for
+    // the same key share this one `fn` invocation.
     const promise = fn(...args);
     cache.set(key, promise);
     insertionOrder.push(key);
 
-    // Schedule cleanup after promise resolves/rejects
-    promise.finally(() => {
+    // Return the `.finally`-chained promise rather than orphaning it: if `fn`
+    // rejects, the derived promise rejects too, and whoever holds an
+    // un-awaited derived promise surfaces as an `unhandledRejection`. Returning
+    // the chained promise means the caller's own handling covers it; the
+    // original `promise` cached above is always awaited by callers, so it is
+    // handled as well. Cleanup runs on settle either way.
+    return promise.finally(() => {
       cleanupExpiredEntry(key);
     });
-
-    return promise;
   };
 }

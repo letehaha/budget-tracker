@@ -14,7 +14,8 @@ const extractedTransactionSchema = z.object({
  * Execute statement import - create transactions in the database
  *
  * Creates transactions in the specified account from extracted statement data.
- * All operations are atomic (all succeed or all fail).
+ * Best-effort: each transaction is persisted independently, so a row that fails
+ * is reported in `summary.errors` while the rest are still imported.
  */
 export const executeImportController = createController(
   z.object({

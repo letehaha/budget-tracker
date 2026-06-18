@@ -48,15 +48,37 @@
     <!-- Category Mapping Table (shown after extract is called) -->
     <CategoryMappingTable v-if="importStore.uniqueCategoriesInCSV.length > 0" class="mt-6" />
 
-    <Callout v-if="extractingError" variant="destructive" class="mt-4">
+    <!-- Tag Mapping Table (shown after extract when a tags column was selected) -->
+    <TagMappingTable v-if="importStore.uniqueTagsInCSV.length > 0" class="mt-6" />
+
+    <Callout v-if="extractingError" variant="destructive" class="mt-4" role="alert">
       <p>{{ extractingError }}</p>
+    </Callout>
+
+    <!-- Date column has mixed day/month order — user must fix the CSV before continuing. -->
+    <Callout v-if="importStore.dateColumnError" variant="destructive" class="mt-4" role="alert">
+      <p>{{ importStore.dateColumnError.message }}</p>
+    </Callout>
+
+    <!-- Surfaced when detectDuplicates itself fails (network / 5xx), distinct from
+         dateColumnError which is a successful-response data problem. -->
+    <Callout v-if="importStore.detectError" variant="destructive" class="mt-4" role="alert">
+      <p>{{ importStore.detectError }}</p>
     </Callout>
 
     <!-- Continue Button (shown after extraction) -->
     <div v-if="hasExtracted" class="mt-6 flex justify-end">
-      <UiButton @click="handleContinue" :disabled="!canContinue">
-        {{ t('pages.importExport.csvImport.columnMapping.continueToDuplicates') }}
-        <ChevronRightIcon class="ml-2 size-4" />
+      <UiButton
+        @click="handleContinue"
+        :disabled="!canContinue || !!importStore.dateColumnError || importStore.isDetectingDuplicates"
+      >
+        <template v-if="importStore.isDetectingDuplicates">
+          {{ t('pages.importExport.csvImport.columnMapping.detecting') }}
+        </template>
+        <template v-else>
+          {{ t('pages.importExport.csvImport.columnMapping.continueToDuplicates') }}
+          <ChevronRightIcon class="ml-2 size-4" />
+        </template>
       </UiButton>
     </div>
   </div>
@@ -67,7 +89,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useImportExportStore } from '@/stores/import-export';
-import { API_ERROR_CODES, AccountOptionValue, CategoryOptionValue } from '@bt/shared/types';
+import { API_ERROR_CODES, AccountOptionValue, CategoryOptionValue, TagOptionValue } from '@bt/shared/types';
 import { ChevronRightIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -75,6 +97,7 @@ import { useI18n } from 'vue-i18n';
 import AccountMappingTable from './account-mapping-table.vue';
 import CategoryMappingTable from './category-mapping-table.vue';
 import ColumnMappingDropdowns from './column-mapping-dropdowns.vue';
+import TagMappingTable from './tag-mapping-table.vue';
 
 const { t } = useI18n();
 
@@ -110,6 +133,15 @@ const canExtract = computed(() => {
     return false;
   }
 
+  // If the user chose "map from CSV column" for tags, a column name must be selected
+  // before the backend can locate and parse the tags column.
+  if (
+    importStore.columnMapping.tags?.option === TagOptionValue.mapDataSourceColumn &&
+    !importStore.columnMapping.tags.columnName
+  ) {
+    return false;
+  }
+
   return true;
 });
 
@@ -129,14 +161,32 @@ const canContinue = computed(() => {
     if (!allMapped) return false;
   }
 
-  // If category column selected with mapping options, all categories must be mapped
+  // If category column selected with mapping options, all categories must be fully resolved:
+  // 'create-new' is complete as-is; 'link-existing' requires a non-empty categoryId so
+  // the backend receives a valid UUID rather than an empty string that fails Zod validation.
   const categoryOption = importStore.columnMapping.category;
   if (categoryOption && categoryOption.option === CategoryOptionValue.mapDataSourceColumn) {
     const allMapped = importStore.uniqueCategoriesInCSV.every((category) => {
       const mapping = importStore.categoryMapping[category];
-      return mapping?.action === 'create-new' || mapping?.action === 'link-existing';
+      return mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.categoryId);
     });
     if (!allMapped) return false;
+  }
+
+  // If a tags column is selected, every source tag must have a fully-resolved decision:
+  // 'create-new' and 'skip' are complete as-is; 'link-existing' requires a tagId
+  // so the backend knows which existing tag to attach.
+  const tagsOption = importStore.columnMapping.tags;
+  if (tagsOption && tagsOption.option === TagOptionValue.mapDataSourceColumn) {
+    const allDecided = importStore.uniqueTagsInCSV.every((tag) => {
+      const mapping = importStore.tagMapping[tag];
+      return (
+        mapping?.action === 'create-new' ||
+        mapping?.action === 'skip' ||
+        (mapping?.action === 'link-existing' && !!mapping.tagId)
+      );
+    });
+    if (!allDecided) return false;
   }
 
   return true;
@@ -158,6 +208,7 @@ const handleExtractValues = async () => {
         amount: importStore.columnMapping.amount!,
         description: importStore.columnMapping.description || undefined,
         category: importStore.columnMapping.category!,
+        tags: importStore.columnMapping.tags ?? undefined,
         account: importStore.columnMapping.account!,
         currency: importStore.columnMapping.currency!,
         transactionType: importStore.columnMapping.transactionType!,
@@ -169,12 +220,50 @@ const handleExtractValues = async () => {
     importStore.uniqueCategoriesInCSV = result.sourceCategories;
     importStore.currencyMismatchWarning = result.currencyMismatchWarning || null;
 
-    // Auto-populate category mapping for "create-new-categories" option
-    if (importStore.columnMapping.category?.option === CategoryOptionValue.createNewCategories) {
+    // Default every source category to 'create-new'. The backend resolves this
+    // action as find-or-create by name (case-insensitive): a same-named existing
+    // category is reused/merged, otherwise it's created. Defaulting here means the
+    // user doesn't have to pick an action for every category — they only override
+    // the rows they want to map to a specific existing category. Prune entries for
+    // categories no longer in the data (e.g. after changing the category column),
+    // then default any newly-seen category.
+    const categoryOption = importStore.columnMapping.category?.option;
+    if (
+      categoryOption === CategoryOptionValue.mapDataSourceColumn ||
+      categoryOption === CategoryOptionValue.createNewCategories
+    ) {
+      const sourceCategorySet = new Set(result.sourceCategories);
+      Object.keys(importStore.categoryMapping).forEach((category) => {
+        if (!sourceCategorySet.has(category)) {
+          delete importStore.categoryMapping[category];
+        }
+      });
       result.sourceCategories.forEach((category) => {
-        importStore.categoryMapping[category] = { action: 'create-new' };
+        if (!importStore.categoryMapping[category]) {
+          importStore.categoryMapping[category] = { action: 'create-new' };
+        }
       });
     }
+
+    // Store extracted tags and default every source tag to 'create-new'.
+    // Users can override individual rows in the tag-mapping table.
+    importStore.uniqueTagsInCSV = result.sourceTags;
+
+    // Prune mappings for tags that are no longer present (e.g. after switching the
+    // tags column), then default any newly-seen tag to 'create-new'. Pruning matters
+    // because executeImport sends tagMapping verbatim — stale keys would create tags
+    // the user no longer intends to import.
+    const sourceTagSet = new Set(result.sourceTags);
+    Object.keys(importStore.tagMapping).forEach((tag) => {
+      if (!sourceTagSet.has(tag)) {
+        delete importStore.tagMapping[tag];
+      }
+    });
+    result.sourceTags.forEach((tag) => {
+      if (!importStore.tagMapping[tag]) {
+        importStore.tagMapping[tag] = { action: 'create-new' };
+      }
+    });
 
     hasExtracted.value = true;
   } catch (error) {
@@ -191,7 +280,12 @@ const handleExtractValues = async () => {
 };
 
 const handleContinue = async () => {
-  // Call detectDuplicates which will move to step 3
-  await importStore.detectDuplicates();
+  try {
+    // detectDuplicates advances to step 3 on success; stores detectError on failure.
+    await importStore.detectDuplicates();
+  } catch {
+    // Error is already captured in importStore.detectError and rendered in the Callout above.
+    // Absorb here so the click handler doesn't propagate an unhandled rejection.
+  }
 };
 </script>
