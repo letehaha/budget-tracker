@@ -1945,4 +1945,127 @@ describe('Execute Import endpoint', () => {
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
+
+  describe('categories import', () => {
+    // Single-row builder so each category scenario controls exactly one transaction.
+    const categoryRow = ({
+      accountName = 'CSV Account',
+      currencyCode = 'USD',
+      description = 'Categorised purchase',
+      categoryName,
+    }: {
+      accountName?: string;
+      currencyCode?: string;
+      description?: string;
+      categoryName?: string;
+    }): ParsedTransactionRow[] => [
+      {
+        rowIndex: 2,
+        date: '2024-01-15',
+        amount: asCents(10050),
+        description,
+        categoryName,
+        accountName,
+        currencyCode,
+        transactionType: 'expense',
+      },
+    ];
+
+    // Returns the categoryId of the given transaction, looked up via the HTTP
+    // transactions endpoint (never via a model query).
+    const categoryIdOf = async (transactionId: string): Promise<string | null | undefined> => {
+      const list = await helpers.getTransactions({ raw: true });
+      const tx = list.find((item) => item.id === transactionId);
+      return tx?.categoryId;
+    };
+
+    it('reuses an existing same-named category case-insensitively for create-new and does not count it', async () => {
+      // Unique custom name so it can't collide with a default category.
+      const existingName = `Repeat Cat ${generateRandomRecordId()}`;
+
+      const [account, seeded] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.addCustomCategory({ name: existingName, color: '#AABBCC', raw: true }),
+      ]);
+      // Guard: the existing category was really created. POST /categories requires a
+      // color when no parentId is given, so the seed must pass one.
+      expect(seeded.name).toBe(existingName);
+      expect(seeded.id).toBeTruthy();
+
+      // Baseline taken AFTER seeding so the comparison isolates the import's effect.
+      const categoriesBefore = await helpers.getCategoriesList();
+
+      // CSV value matches the existing name only by case (lowercased), mapped
+      // create-new. The importer must find the existing category case-insensitively
+      // and reuse it — inserting nothing.
+      const lowercased = existingName.toLowerCase();
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: categoryRow({
+            currencyCode: account.currencyCode,
+            categoryName: lowercased,
+          }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: { [lowercased]: { action: 'create-new' } },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      // A reuse must NOT be counted as a creation.
+      expect(result.summary.categoriesCreated).toBe(0);
+      expect(result.summary.errors).toHaveLength(0);
+
+      // The transaction links to the pre-existing seeded category, not a new one.
+      expect(await categoryIdOf(result.newTransactionIds[0]!)).toBe(seeded.id);
+
+      // No new category was inserted.
+      const categoriesAfter = await helpers.getCategoriesList();
+      expect(categoriesAfter.length).toBe(categoriesBefore.length);
+    });
+
+    it('treats create-new source values with ILIKE wildcards as literals, creating new categories', async () => {
+      // Decoy whose name starts with the wildcard source. As an ILIKE pattern, '50%'
+      // would match this decoy; as a literal string it must not. The trailing random
+      // segment keeps it unique and ensures a prefix-wildcard match would be wrong.
+      const decoyName = `50% off ${generateRandomRecordId()}`;
+
+      const [account, decoy] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.addCustomCategory({ name: decoyName, color: '#AABBCC', raw: true }),
+      ]);
+      expect(decoy.name).toBe(decoyName);
+      expect(decoy.id).toBeTruthy();
+
+      const categoriesBefore = await helpers.getCategoriesList();
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows: categoryRow({ currencyCode: account.currencyCode, categoryName: '50%' }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+          categoryMapping: { '50%': { action: 'create-new' } },
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(1);
+      // '50%' is a genuine insert — the decoy must NOT satisfy a (literal) reuse lookup.
+      expect(result.summary.categoriesCreated).toBe(1);
+      expect(result.summary.errors).toHaveLength(0);
+
+      const linkedCategoryId = await categoryIdOf(result.newTransactionIds[0]!);
+      // Must link to a brand-new category, never the decoy.
+      expect(linkedCategoryId).toBeTruthy();
+      expect(linkedCategoryId).not.toBe(decoy.id);
+
+      // The newly created category is import-created (appears in the flat list); its
+      // name is the exact literal '50%', and exactly one new category was added.
+      const categoriesAfter = await helpers.getCategoriesList();
+      expect(categoriesAfter.length).toBe(categoriesBefore.length + 1);
+      const linked = categoriesAfter.find((c) => c.id === linkedCategoryId);
+      expect(linked?.name).toBe('50%');
+    });
+  });
 });

@@ -10,7 +10,6 @@ import type {
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
-  CATEGORY_TYPES,
   ImportSource,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
@@ -20,7 +19,6 @@ import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/accounts.model';
-import Categories from '@models/categories.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
@@ -28,8 +26,8 @@ import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
 
+import { createCategoriesIfNeeded } from './create-categories-if-needed';
 import { createTagsIfNeeded } from './create-tags-if-needed';
-import { pickRandomColor } from './pick-random-color';
 import { resolveRowTagIds } from './resolve-row-tag-ids';
 
 interface ExecuteImportParams {
@@ -106,10 +104,11 @@ async function executeImportImpl({
     defaultAccountId,
   });
 
-  // Create categories that need to be created
-  const categoryNameToId = await createCategoriesIfNeeded({
+  // Resolve categories that need to be created or linked. `categoriesCreated`
+  // counts only genuine inserts — create-new entries that matched an existing
+  // same-named category (case-insensitive) link to it instead.
+  const { categoryNameToId, categoriesCreated } = await createCategoriesIfNeeded({
     userId,
-    rowsToImport,
     categoryMapping,
   });
 
@@ -120,15 +119,11 @@ async function executeImportImpl({
     ? await createTagsIfNeeded({ userId, tagMapping })
     : { tagNameToId: new Map<string, string>(), tagsCreated: 0 };
 
-  // Count created accounts and categories
+  // Count created accounts
   let accountsCreated = 0;
-  let categoriesCreated = 0;
 
   for (const [, mapping] of Object.entries(accountMapping)) {
     if (mapping.action === 'create-new') accountsCreated++;
-  }
-  for (const [, mapping] of Object.entries(categoryMapping)) {
-    if (mapping.action === 'create-new') categoriesCreated++;
   }
 
   // Create transactions
@@ -328,57 +323,6 @@ async function createAccountsIfNeeded({
   }
 
   return accountNameToId;
-}
-
-interface CreateCategoriesParams {
-  userId: number;
-  rowsToImport: ParsedTransactionRow[];
-  categoryMapping: CategoryMappingConfig;
-}
-
-async function createCategoriesIfNeeded({
-  userId,
-  rowsToImport,
-  categoryMapping,
-}: CreateCategoriesParams): Promise<Map<string, string>> {
-  const categoryNameToId = new Map<string, string>();
-
-  // Get unique category names from rows (excluding empty/null)
-  const uniqueCategoryNames = new Set(rowsToImport.filter((r) => r.categoryName).map((r) => r.categoryName!));
-
-  for (const categoryName of uniqueCategoryNames) {
-    const mapping = categoryMapping[categoryName];
-
-    if (!mapping) {
-      // No mapping means category will be null for these transactions
-      continue;
-    }
-
-    if (mapping.action === 'link-existing') {
-      // Verify category exists
-      const category = await Categories.findOne({
-        where: { id: mapping.categoryId, userId },
-      });
-      if (!category) {
-        throw new ValidationError({
-          message: `Category with ID ${mapping.categoryId} not found`,
-        });
-      }
-      categoryNameToId.set(categoryName, category.id);
-    } else if (mapping.action === 'create-new') {
-      // Create the category
-      const newCategory = await Categories.create({
-        userId,
-        name: categoryName,
-        color: pickRandomColor(),
-        type: CATEGORY_TYPES.custom,
-      });
-
-      categoryNameToId.set(categoryName, newCategory.id);
-    }
-  }
-
-  return categoryNameToId;
 }
 
 export const executeImport = withTransaction(executeImportImpl);
