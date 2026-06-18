@@ -20,7 +20,6 @@ import { ValidationError } from '@js/errors';
 import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/accounts.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { withTransaction } from '@services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
@@ -51,8 +50,13 @@ interface ExecuteImportParams {
 }
 
 /**
- * Execute the import - creates accounts, categories, and transactions
- * All operations are done in a single database transaction (all-or-nothing)
+ * Execute a CSV import. Runs OUTSIDE a wrapping transaction so a single bad row
+ * does not nuke the whole import — best-effort partial success is the contract
+ * the user sees. Each row's `createTransaction` opens its own transaction, so a
+ * row that fails at the database layer rolls back only itself and is reported in
+ * `summary.errors`; the rows around it still commit. The up-front currency,
+ * account, category, and tag creation each wrap themselves in `withTransaction`
+ * further down the call stack, so they commit independently of the row loop too.
  */
 async function executeImportImpl({
   userId,
@@ -325,4 +329,4 @@ async function createAccountsIfNeeded({
   return accountNameToId;
 }
 
-export const executeImport = withTransaction(executeImportImpl);
+export const executeImport = executeImportImpl;

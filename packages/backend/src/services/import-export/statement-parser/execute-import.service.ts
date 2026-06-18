@@ -17,7 +17,6 @@ import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/accounts.model';
 import * as Users from '@models/users.model';
 import { queueCategorizationJob } from '@services/ai-categorization';
-import { withTransaction } from '@services/common/with-transaction';
 import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -29,8 +28,12 @@ interface ExecuteImportParams {
 }
 
 /**
- * Execute the statement import - creates transactions in the specified account.
- * All operations are done in a single database transaction (all-or-nothing).
+ * Execute a statement import into an existing account. Runs OUTSIDE a wrapping
+ * transaction so a single bad transaction does not nuke the whole import —
+ * best-effort partial success is the contract the user sees. Each row's
+ * `createTransaction` opens its own transaction, so a row that fails at the
+ * database layer rolls back only itself and is reported in `summary.errors`;
+ * the rows around it still commit.
  *
  * Unlike CSV import, the account must already exist (no account creation).
  * Categories are not assigned during import - they can be auto-categorized later.
@@ -190,17 +193,16 @@ async function executeImportImpl({
   };
 }
 
-const executeImportWithTransaction = withTransaction(executeImportImpl);
-
 /**
  * Execute statement import and queue AI categorization for imported transactions.
- * The categorization is queued AFTER the DB transaction commits successfully.
+ * The categorization is queued AFTER the per-row transactions have committed.
  */
 export async function executeImport(params: ExecuteImportParams): Promise<StatementExecuteImportResponse> {
-  const result = await executeImportWithTransaction(params);
+  const result = await executeImportImpl(params);
 
-  // Queue AI categorization for the newly imported transactions
-  // This happens AFTER the DB transaction commits successfully
+  // Queue AI categorization for the newly imported transactions. Each row was
+  // committed by its own createTransaction call above, so the queued ids point
+  // at rows that are durably persisted.
   if (result.newTransactionIds.length > 0) {
     await queueCategorizationJob({
       userId: params.userId,

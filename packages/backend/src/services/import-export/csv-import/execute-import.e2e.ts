@@ -2068,4 +2068,109 @@ describe('Execute Import endpoint', () => {
       expect(linked?.name).toBe('50%');
     });
   });
+
+  describe('partial failure — best-effort import', () => {
+    // The CSV importer passes each row's `date` straight into `new Date(...)`
+    // with no validity check, and the transaction's `time` column is a NOT NULL
+    // DATE. An unparseable date string therefore produces an Invalid Date that
+    // fails at the database layer mid-loop. Each row's createTransaction runs in
+    // its own transaction, so that DB error rolls back only the offending row —
+    // the good rows around it still commit and are reported truthfully.
+    // `imported` must always equal the count actually persisted to the database.
+    const UNPARSEABLE_DATE = 'definitely-not-a-date';
+
+    it('imports the good rows, reports only the bad row, and persists exactly what it claims', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows: ParsedTransactionRow[] = [
+        {
+          rowIndex: 2,
+          date: '2024-02-01',
+          amount: asCents(10000),
+          description: 'Good row before',
+          accountName: 'CSV Account',
+          currencyCode: account.currencyCode,
+          transactionType: 'expense',
+        },
+        {
+          rowIndex: 3,
+          date: UNPARSEABLE_DATE,
+          amount: asCents(20000),
+          description: 'Row with unparseable date',
+          accountName: 'CSV Account',
+          currencyCode: account.currencyCode,
+          transactionType: 'expense',
+        },
+        {
+          rowIndex: 4,
+          date: '2024-02-03',
+          amount: asCents(30000),
+          description: 'Good row after',
+          accountName: 'CSV Account',
+          currencyCode: account.currencyCode,
+          transactionType: 'expense',
+        },
+      ];
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      // Two good rows imported; only the unparseable-date row is reported as an error.
+      expect(result.summary.imported).toBe(2);
+      expect(result.summary.errors).toHaveLength(1);
+      expect(result.summary.errors[0]!.rowIndex).toBe(3);
+      expect(result.newTransactionIds).toHaveLength(2);
+
+      // Honesty assertion: the rows reported as imported must actually be in the
+      // database, and the persisted count must match the claimed `imported` count.
+      const transactions = await helpers.getTransactions({ raw: true });
+      const persisted = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      expect(persisted).toHaveLength(2);
+      expect(persisted.length).toBe(result.summary.imported);
+    });
+
+    it('persists nothing and reports every row when all rows fail, with an honest count', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const validRows: ParsedTransactionRow[] = [2, 3, 4].map((rowIndex) => ({
+        rowIndex,
+        date: UNPARSEABLE_DATE,
+        amount: asCents(15000),
+        description: `Row ${rowIndex} with unparseable date`,
+        accountName: 'CSV Account',
+        currencyCode: account.currencyCode,
+        transactionType: 'expense' as const,
+      }));
+
+      const result = await helpers.executeImport({
+        payload: {
+          validRows,
+          accountMapping: {
+            'CSV Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          skipDuplicateIndices: [],
+        },
+        raw: true,
+      });
+
+      expect(result.summary.imported).toBe(0);
+      expect(result.summary.errors).toHaveLength(3);
+      expect(result.newTransactionIds).toHaveLength(0);
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      const persisted = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      expect(persisted).toHaveLength(0);
+      expect(persisted.length).toBe(result.summary.imported);
+    });
+  });
 });
