@@ -37,40 +37,30 @@
             </td>
             <td class="px-4 py-3">
               <div v-if="getCategoryAction(categoryName) === 'link-existing'">
-                <Select.Select
-                  :model-value="getCategorySelectValue(categoryName)"
-                  @update:model-value="handleCategorySelect(categoryName, String($event))"
-                >
-                  <Select.SelectTrigger class="h-9">
-                    <Select.SelectValue :placeholder="$t('pages.importExport.categoryMapping.selectCategory')">
-                      {{ getCategoryDisplayValue(categoryName) }}
-                    </Select.SelectValue>
-                  </Select.SelectTrigger>
-                  <Select.SelectContent>
-                    <Select.SelectItem
-                      v-for="category in categories"
-                      :key="category.id"
-                      :value="String(category.id)"
-                      :disabled="isCategoryMapped(category.id, categoryName)"
-                    >
-                      <span :class="{ 'text-muted-foreground': isCategoryMapped(category.id, categoryName) }">
-                        {{ category.name }}
-                        <span v-if="isCategoryMapped(category.id, categoryName)" class="text-muted-foreground text-xs">
-                          —
-                          {{
-                            t('pages.importExport.categoryMappingTable.mappedTo', {
-                              name: getMappedToCategoryName(category.id),
-                            })
-                          }}
-                        </span>
-                      </span>
-                    </Select.SelectItem>
-                  </Select.SelectContent>
-                </Select.Select>
+                <CategorySelectField
+                  :model-value="getCategoryModelValue(categoryName)"
+                  :values="formattedCategories"
+                  label-key="name"
+                  :placeholder="$t('pages.importExport.categoryMapping.selectCategory')"
+                  popover-class-name="min-w-60"
+                  @update:model-value="handleCategorySelect(categoryName, $event)"
+                />
               </div>
-              <div v-else-if="getCategoryAction(categoryName) === 'create-new'" class="text-muted-foreground text-sm">
-                {{ t('pages.importExport.categoryMappingTable.willBeCreated', { name: categoryName }) }}
-              </div>
+              <i18n-t
+                v-else-if="getCategoryAction(categoryName) === 'create-new'"
+                keypath="pages.importExport.categoryMappingTable.willBeCreatedOrMerged"
+                tag="div"
+                class="text-muted-foreground text-sm"
+              >
+                <template #name>
+                  <span class="text-foreground font-medium">{{ categoryName }}</span>
+                </template>
+                <template #action>
+                  <span class="text-foreground font-semibold">{{
+                    t('pages.importExport.categoryMappingTable.createdOrMergedAction')
+                  }}</span>
+                </template>
+              </i18n-t>
               <div v-else class="text-muted-foreground text-sm">—</div>
             </td>
           </tr>
@@ -81,8 +71,9 @@
 </template>
 
 <script setup lang="ts">
+import { type FormattedCategory } from '@/common/types';
+import CategorySelectField from '@/components/fields/category-select-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
-import * as Select from '@/components/lib/ui/select';
 import { useCategoriesStore } from '@/stores';
 import { useImportExportStore } from '@/stores/import-export';
 import { storeToRefs } from 'pinia';
@@ -98,7 +89,7 @@ interface OptionItem {
 
 const importStore = useImportExportStore();
 const categoriesStore = useCategoriesStore();
-const { categories } = storeToRefs(categoriesStore);
+const { categories, formattedCategories } = storeToRefs(categoriesStore);
 
 const actionOptions = computed<OptionItem[]>(() => [
   { label: t('pages.importExport.categoryMappingTable.actions.createNew'), value: 'create-new' },
@@ -106,21 +97,27 @@ const actionOptions = computed<OptionItem[]>(() => [
 ]);
 
 onMounted(async () => {
-  // Ensure categories are loaded
   if (categories.value.length === 0) {
     await categoriesStore.loadCategories();
   }
 });
 
-// Create a reverse mapping to find which CSV category name maps to which system category ID
-const categoryIdToCSVName = computed(() => {
-  const mapping: Record<string, string> = {};
-  for (const [csvName, value] of Object.entries(importStore.categoryMapping)) {
-    if (value.action === 'link-existing') {
-      mapping[value.categoryId] = csvName;
+// Flat id→FormattedCategory lookup built by recursively traversing the hierarchy,
+// used to resolve a stored categoryId back to the FormattedCategory object the picker expects.
+const flatCategoriesById = computed<Map<string, FormattedCategory>>(() => {
+  const map = new Map<string, FormattedCategory>();
+
+  const traverse = (items: FormattedCategory[]) => {
+    for (const item of items) {
+      map.set(item.id, item);
+      if (item.subCategories?.length > 0) {
+        traverse(item.subCategories);
+      }
     }
-  }
-  return mapping;
+  };
+
+  traverse(formattedCategories.value);
+  return map;
 });
 
 const getCategoryAction = (categoryName: string): string => {
@@ -145,41 +142,27 @@ const handleActionChange = (categoryName: string, option: OptionItem | null) => 
   if (action === 'create-new') {
     importStore.categoryMapping[categoryName] = { action: 'create-new' };
   } else if (action === 'link-existing') {
-    // Set action but no categoryId yet - user needs to select
+    // categoryId is empty until the user selects a target; the Continue gate in
+    // index.vue requires a non-empty categoryId before allowing progression.
     importStore.categoryMapping[categoryName] = { action: 'link-existing', categoryId: '' };
   }
 };
 
-const handleCategorySelect = (categoryName: string, value: string) => {
-  if (value) {
-    importStore.categoryMapping[categoryName] = { action: 'link-existing', categoryId: value };
-  }
-};
-
-const getCategorySelectValue = (categoryName: string): string => {
+// Resolve the stored categoryId string to the FormattedCategory the picker needs.
+// Returns null when no category has been chosen yet (categoryId is empty).
+const getCategoryModelValue = (categoryName: string): FormattedCategory | null => {
   const mapping = importStore.categoryMapping[categoryName];
-  if (mapping?.action === 'link-existing' && mapping.categoryId) {
-    return mapping.categoryId;
+  if (mapping?.action !== 'link-existing' || !mapping.categoryId) return null;
+  return flatCategoriesById.value.get(mapping.categoryId) ?? null;
+};
+
+const handleCategorySelect = (categoryName: string, category: FormattedCategory | null) => {
+  if (category) {
+    importStore.categoryMapping[categoryName] = { action: 'link-existing', categoryId: category.id };
+  } else {
+    // Cleared — keep link-existing mode so the picker stays visible; categoryId is
+    // empty so the Continue gate (index.vue canContinue) holds the row incomplete.
+    importStore.categoryMapping[categoryName] = { action: 'link-existing', categoryId: '' };
   }
-  return '';
-};
-
-const getCategoryDisplayValue = (categoryName: string): string => {
-  const mapping = importStore.categoryMapping[categoryName];
-  if (mapping?.action === 'link-existing' && mapping.categoryId) {
-    const category = categories.value.find((cat) => cat.id === mapping.categoryId);
-    return category ? category.name : t('pages.importExport.categoryMappingTable.selectCategory');
-  }
-  return t('pages.importExport.categoryMappingTable.selectCategory');
-};
-
-const isCategoryMapped = (categoryId: string, currentCategoryName: string): boolean => {
-  // Check if this category ID is already mapped to a different CSV category
-  const mappedTo = categoryIdToCSVName.value[categoryId];
-  return mappedTo !== undefined && mappedTo !== currentCategoryName;
-};
-
-const getMappedToCategoryName = (categoryId: string): string => {
-  return categoryIdToCSVName.value[categoryId] || '';
 };
 </script>

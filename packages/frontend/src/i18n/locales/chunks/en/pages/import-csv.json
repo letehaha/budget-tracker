@@ -179,7 +179,8 @@
           "createNew": "Create New Category",
           "mapToExisting": "Map to Existing Category"
         },
-        "willBeCreated": "New category \"{name}\" will be created",
+        "willBeCreatedOrMerged": "{name} will be {action} with an existing category of the same name",
+        "createdOrMergedAction": "created, or merged",
         "mappedTo": "mapped to \"{name}\"",
         "selectCategory": "Select category..."
       },

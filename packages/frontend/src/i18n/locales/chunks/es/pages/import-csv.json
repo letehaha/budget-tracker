@@ -179,7 +179,8 @@
           "createNew": "Crear nueva categoría",
           "mapToExisting": "Mapear a categoría existente"
         },
-        "willBeCreated": "Se creará la nueva categoría \"{name}\"",
+        "willBeCreatedOrMerged": "{name} será {action} con una categoría existente del mismo nombre",
+        "createdOrMergedAction": "creada, o combinada",
         "mappedTo": "mapeada a \"{name}\"",
         "selectCategory": "Seleccione una categoría..."
       },

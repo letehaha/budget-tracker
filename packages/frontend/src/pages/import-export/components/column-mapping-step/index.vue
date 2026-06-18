@@ -161,12 +161,14 @@ const canContinue = computed(() => {
     if (!allMapped) return false;
   }
 
-  // If category column selected with mapping options, all categories must be mapped
+  // If category column selected with mapping options, all categories must be fully resolved:
+  // 'create-new' is complete as-is; 'link-existing' requires a non-empty categoryId so
+  // the backend receives a valid UUID rather than an empty string that fails Zod validation.
   const categoryOption = importStore.columnMapping.category;
   if (categoryOption && categoryOption.option === CategoryOptionValue.mapDataSourceColumn) {
     const allMapped = importStore.uniqueCategoriesInCSV.every((category) => {
       const mapping = importStore.categoryMapping[category];
-      return mapping?.action === 'create-new' || mapping?.action === 'link-existing';
+      return mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.categoryId);
     });
     if (!allMapped) return false;
   }
@@ -218,10 +220,28 @@ const handleExtractValues = async () => {
     importStore.uniqueCategoriesInCSV = result.sourceCategories;
     importStore.currencyMismatchWarning = result.currencyMismatchWarning || null;
 
-    // Auto-populate category mapping for "create-new-categories" option
-    if (importStore.columnMapping.category?.option === CategoryOptionValue.createNewCategories) {
+    // Default every source category to 'create-new'. The backend resolves this
+    // action as find-or-create by name (case-insensitive): a same-named existing
+    // category is reused/merged, otherwise it's created. Defaulting here means the
+    // user doesn't have to pick an action for every category — they only override
+    // the rows they want to map to a specific existing category. Prune entries for
+    // categories no longer in the data (e.g. after changing the category column),
+    // then default any newly-seen category.
+    const categoryOption = importStore.columnMapping.category?.option;
+    if (
+      categoryOption === CategoryOptionValue.mapDataSourceColumn ||
+      categoryOption === CategoryOptionValue.createNewCategories
+    ) {
+      const sourceCategorySet = new Set(result.sourceCategories);
+      Object.keys(importStore.categoryMapping).forEach((category) => {
+        if (!sourceCategorySet.has(category)) {
+          delete importStore.categoryMapping[category];
+        }
+      });
       result.sourceCategories.forEach((category) => {
-        importStore.categoryMapping[category] = { action: 'create-new' };
+        if (!importStore.categoryMapping[category]) {
+          importStore.categoryMapping[category] = { action: 'create-new' };
+        }
       });
     }
 

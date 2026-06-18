@@ -179,7 +179,8 @@
           "createNew": "Створити нову категорію",
           "mapToExisting": "Зіставити з існуючою категорією"
         },
-        "willBeCreated": "Нова категорія \"{name}\" буде створена",
+        "willBeCreatedOrMerged": "{name} буде {action} з наявною категорією з такою ж назвою",
+        "createdOrMergedAction": "створена, або об'єднана",
         "mappedTo": "зіставлена з \"{name}\"",
         "selectCategory": "Вибрати категорію..."
       },
