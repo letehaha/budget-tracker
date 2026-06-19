@@ -1,142 +1,190 @@
 <template>
-  <div class="bg-card rounded-lg border p-6">
-    <div class="mb-6 text-center">
+  <div class="space-y-6">
+    <!-- Success / partial-success header -->
+    <div class="text-center">
       <div
-        :class="{
-          'bg-green-100': hasNoErrors,
-          'bg-yellow-100': hasErrors,
-        }"
-        class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full"
+        :class="
+          cn(
+            'mx-auto mb-4 flex size-16 items-center justify-center rounded-full',
+            hasRowErrors ? 'bg-warning/10' : 'bg-success/10',
+          )
+        "
       >
-        <CheckCircleIcon v-if="hasNoErrors" class="size-8 text-green-600" />
-        <AlertCircleIcon v-else class="size-8 text-yellow-600" />
+        <CircleCheckIcon v-if="!hasRowErrors" class="text-success-text size-8" />
+        <CircleAlertIcon v-else class="text-warning-text size-8" />
       </div>
+
       <h2 class="text-lg font-semibold">
         {{
-          hasNoErrors
-            ? t('pages.importExport.csvImport.results.completeTitle')
-            : t('pages.importExport.csvImport.results.completeWithIssuesTitle')
+          hasRowErrors
+            ? $t('pages.importExport.csvImport.results.completeWithIssuesTitle')
+            : $t('pages.importExport.csvImport.results.completeTitle')
         }}
       </h2>
-      <p class="text-muted-foreground text-sm">
+      <p class="text-muted-foreground mt-1 text-sm">
         {{
-          hasNoErrors
-            ? t('pages.importExport.csvImport.results.successDescription')
-            : t('pages.importExport.csvImport.results.partialDescription')
+          hasRowErrors
+            ? $t('pages.importExport.csvImport.results.partialDescription')
+            : $t('pages.importExport.csvImport.results.successDescription')
         }}
       </p>
     </div>
 
-    <!-- Results Summary -->
-    <div v-if="importStore.importResult" class="mb-6 grid gap-4 md:grid-cols-4">
-      <div class="bg-success/10 rounded-lg p-4 text-center">
-        <p class="text-success-text text-sm">{{ t('pages.importExport.csvImport.results.imported') }}</p>
-        <p class="text-success-text text-3xl font-bold">{{ importStore.importResult.summary.imported }}</p>
+    <!-- Success callout -->
+    <Callout v-if="!hasRowErrors && store.importResult" variant="success">
+      <p>
+        {{
+          $t('pages.importExport.csvImport.results.successCallout', {
+            count: store.importResult.summary.imported,
+          })
+        }}
+      </p>
+    </Callout>
+
+    <!-- Import error callout (API-level failure) -->
+    <Callout v-if="store.importError" variant="destructive" role="alert">
+      <p>{{ store.importError }}</p>
+    </Callout>
+
+    <!-- Stat cards — 3-up primary summary -->
+    <div v-if="store.importResult" class="@container/result-stats">
+      <div class="grid grid-cols-1 gap-3 @sm/result-stats:grid-cols-3">
+        <StatCard
+          :label="$t('pages.importExport.csvImport.results.imported')"
+          :value="store.importResult.summary.imported"
+          variant="success"
+        />
+        <StatCard
+          :label="$t('pages.importExport.csvImport.results.skippedDuplicates')"
+          :value="store.importResult.summary.skipped"
+          variant="neutral"
+        />
+        <StatCard
+          :label="$t('pages.importExport.csvImport.results.failed')"
+          :value="store.importResult.summary.errors.length"
+          :variant="store.importResult.summary.errors.length > 0 ? 'destructive' : 'neutral'"
+        />
       </div>
-      <div class="bg-warning/10 rounded-lg p-4 text-center">
-        <p class="text-warning-text text-sm">{{ t('pages.importExport.csvImport.results.skippedDuplicates') }}</p>
-        <p class="text-warning-text text-3xl font-bold">{{ importStore.importResult.summary.skipped }}</p>
-      </div>
-      <div
-        v-if="importStore.importResult.summary.skippedUnpriceable > 0"
-        class="rounded-lg bg-orange-500/10 p-4 text-center"
-      >
-        <p class="text-sm text-orange-600">{{ t('pages.importExport.csvImport.results.skippedUnpriceable') }}</p>
-        <p class="text-3xl font-bold text-orange-600">{{ importStore.importResult.summary.skippedUnpriceable }}</p>
-      </div>
-      <div class="rounded-lg bg-blue-500/10 p-4 text-center">
-        <p class="text-sm text-blue-600">{{ t('pages.importExport.csvImport.results.accountsCreated') }}</p>
-        <p class="text-3xl font-bold text-blue-600">{{ importStore.importResult.summary.accountsCreated }}</p>
-      </div>
-      <div class="rounded-lg bg-purple-500/10 p-4 text-center">
-        <p class="text-sm text-purple-600">{{ t('pages.importExport.csvImport.results.categoriesCreated') }}</p>
-        <p class="text-3xl font-bold text-purple-600">{{ importStore.importResult.summary.categoriesCreated }}</p>
-      </div>
-      <div class="rounded-lg bg-teal-500/10 p-4 text-center">
-        <p class="text-sm text-teal-600">{{ t('pages.importExport.csvImport.results.tagsCreated') }}</p>
-        <p class="text-3xl font-bold text-teal-600">{{ importStore.importResult.summary.tagsCreated }}</p>
+
+      <!-- Secondary stats: unpriceable skipped + entities created -->
+      <div v-if="hasSecondaryStats" class="mt-3 grid grid-cols-2 gap-3 @sm/result-stats:grid-cols-4">
+        <StatCard
+          v-if="store.importResult.summary.skippedUnpriceable > 0"
+          :label="$t('pages.importExport.csvImport.results.skippedUnpriceable')"
+          :value="store.importResult.summary.skippedUnpriceable"
+          variant="warning"
+        />
+        <StatCard
+          v-if="store.importResult.summary.accountsCreated > 0"
+          :label="$t('pages.importExport.csvImport.results.accountsCreated')"
+          :value="store.importResult.summary.accountsCreated"
+          variant="neutral"
+        />
+        <StatCard
+          v-if="store.importResult.summary.categoriesCreated > 0"
+          :label="$t('pages.importExport.csvImport.results.categoriesCreated')"
+          :value="store.importResult.summary.categoriesCreated"
+          variant="neutral"
+        />
+        <StatCard
+          v-if="store.importResult.summary.tagsCreated > 0"
+          :label="$t('pages.importExport.csvImport.results.tagsCreated')"
+          :value="store.importResult.summary.tagsCreated"
+          variant="neutral"
+        />
       </div>
     </div>
 
-    <!-- Errors Section -->
-    <div v-if="importStore.importResult?.summary.errors.length" class="mb-6">
-      <h3 class="text-destructive-text mb-3 text-sm font-semibold">
-        {{ t('pages.importExport.csvImport.results.importErrors') }}
+    <!-- Per-row errors table -->
+    <section v-if="store.importResult?.summary.errors.length" aria-labelledby="result-errors-heading">
+      <h3 id="result-errors-heading" class="text-destructive-text mb-3 text-sm font-semibold">
+        {{ $t('pages.importExport.csvImport.results.importErrors') }}
       </h3>
-      <ScrollArea class="border-destructive/20 max-h-48 rounded-lg border">
-        <table class="w-full text-sm">
-          <thead class="bg-destructive/10">
-            <tr>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.results.rowNumber') }}
-              </th>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.results.error') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="error in importStore.importResult.summary.errors"
-              :key="error.rowIndex"
-              class="border-b last:border-b-0"
-            >
-              <td class="px-4 py-2 font-mono">{{ error.rowIndex }}</td>
-              <td class="text-destructive-text px-4 py-2">{{ error.error }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </ScrollArea>
-    </div>
 
-    <!-- Batch ID -->
-    <div v-if="importStore.importResult" class="bg-muted mb-6 rounded-lg p-4">
+      <MappingTable :columns="errorColumns" :items="store.importResult.summary.errors" :row-key="(err) => err.rowIndex">
+        <template #cell:row="{ item }">
+          <span class="text-muted-foreground font-mono text-xs">#{{ item.rowIndex }}</span>
+        </template>
+
+        <template #cell:problem="{ item }">
+          <div class="flex items-start gap-1.5">
+            <StatusIndicator status="invalid" size="xs" class="mt-px shrink-0" />
+            <span class="text-destructive-text text-xs leading-snug">{{ item.error }}</span>
+          </div>
+        </template>
+
+        <template #empty>
+          {{ $t('pages.importExport.csvImport.results.noErrors') }}
+        </template>
+      </MappingTable>
+    </section>
+
+    <!-- Batch ID reference -->
+    <div v-if="store.importResult?.batchId" class="bg-muted/30 border-border rounded-lg border px-4 py-3">
       <p class="text-muted-foreground text-xs">
-        {{ t('pages.importExport.csvImport.results.batchIdLabel') }}:
-        <span class="font-mono">{{ importStore.importResult.batchId }}</span>
+        {{ $t('pages.importExport.csvImport.results.batchIdLabel') }}:
+        <span class="font-mono">{{ store.importResult.batchId }}</span>
       </p>
-      <p class="text-muted-foreground mt-1 text-xs">
-        {{ t('pages.importExport.csvImport.results.batchIdDescription') }}
+      <p class="text-muted-foreground mt-1 text-xs opacity-70">
+        {{ $t('pages.importExport.csvImport.results.batchIdDescription') }}
       </p>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="flex justify-center gap-4">
-      <UiButton variant="outline" @click="handleViewTransactions">{{
-        t('pages.importExport.csvImport.results.viewTransactions')
-      }}</UiButton>
-      <UiButton @click="handleNewImport">{{ t('pages.importExport.csvImport.results.startNewImport') }}</UiButton>
+    <!-- Action buttons -->
+    <div class="flex flex-wrap justify-center gap-3 pt-2">
+      <UiButton variant="outline" @click="handleViewTransactions">
+        {{ $t('pages.importExport.csvImport.results.viewTransactions') }}
+      </UiButton>
+      <UiButton @click="handleNewImport">
+        {{ $t('pages.importExport.csvImport.results.startNewImport') }}
+      </UiButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { Callout } from '@/components/lib/ui/callout';
+import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
+import { StatCard } from '@/components/lib/ui/stat-card';
+import { StatusIndicator } from '@/components/lib/ui/status-indicator';
+import { cn } from '@/lib/utils';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { useImportExportStore } from '@/stores/import-export';
-import { AlertCircleIcon, CheckCircleIcon } from '@lucide/vue';
+import { CircleAlertIcon, CircleCheckIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 const { t } = useI18n();
-
-const importStore = useImportExportStore();
+const store = useImportExportStore();
 const router = useRouter();
 
-const hasNoErrors = computed(() => {
-  return importStore.importResult?.summary.errors.length === 0;
+const hasRowErrors = computed(() => (store.importResult?.summary.errors.length ?? 0) > 0);
+
+/**
+ * Show the secondary stat row only when at least one secondary counter is
+ * non-zero — avoids a row of all-zero cards on a clean import.
+ */
+const hasSecondaryStats = computed(() => {
+  const s = store.importResult?.summary;
+  if (!s) return false;
+  return s.skippedUnpriceable > 0 || s.accountsCreated > 0 || s.categoriesCreated > 0 || s.tagsCreated > 0;
 });
 
-const hasErrors = computed(() => {
-  return (importStore.importResult?.summary.errors.length ?? 0) > 0;
-});
+const errorColumns = computed<MappingTableColumn[]>(() => [
+  { key: 'row', label: t('pages.importExport.importResults.errorColumns.row'), width: '48px' },
+  { key: 'problem', label: t('pages.importExport.importResults.errorColumns.error'), width: 'minmax(0,1fr)' },
+]);
 
 const handleViewTransactions = () => {
-  router.push('/transactions');
+  // Deep-link to the batch when the result carries a batchId. The transactions
+  // route doesn't currently support a batch filter via query param, so we
+  // navigate to the transactions list directly.
+  router.push({ name: ROUTES_NAMES.transactions });
 };
 
 const handleNewImport = () => {
-  importStore.reset();
+  store.reset();
 };
 </script>

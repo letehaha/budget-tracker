@@ -4,6 +4,16 @@
       "csvImport": {
         "pageTitle": "Імпорт транзакцій з CSV",
         "pageDescription": "Завантажте CSV експорт вашого банку або файл історії транзакцій для імпорту транзакцій на ваш рахунок.",
+        "stepper": {
+          "stepOf": "Крок {current} з {total}",
+          "steps": {
+            "upload": "Завантажити",
+            "map": "Зіставити стовпці",
+            "resolve": "Розпізнати значення",
+            "review": "Перегляд",
+            "results": "Готово"
+          }
+        },
         "steps": {
           "uploadTitle": "Завантажити CSV файл",
           "uploadDescription": "Виберіть CSV файл для початку",
@@ -69,7 +79,34 @@
           "unpriceableWillBeSkipped": "без курсу обміну буде пропущено",
           "currency": "Валюта",
           "skipAndImport": "Пропустити та імпортувати",
-          "cancelImport": "Скасувати імпорт"
+          "cancelImport": "Скасувати імпорт",
+          "dateColumnErrorTitle": "Помилка стовпця дати в \"{column}\"",
+          "noInvalidRows": "Немає недійсних рядків",
+          "noDuplicates": "Немає дублікатів",
+          "expand": "Показати повні дані",
+          "collapse": "Сховати повні дані",
+          "importAnywayAriaLabel": "Імпортувати рядок {row} все одно",
+          "columnHeaders": {
+            "row": "Рядок",
+            "problem": "Проблема",
+            "data": "Дані",
+            "match": "Збіг",
+            "csvTransaction": "Транзакція CSV",
+            "existingTransaction": "Існуюча транзакція",
+            "csvShort": "CSV",
+            "existingShort": "Наявна"
+          },
+          "matchTypeLabels": {
+            "exact": "Точний",
+            "idMatch": "За ID",
+            "fuzzy": "Нечіткий"
+          },
+          "fieldLabels": {
+            "amount": "Сума",
+            "date": "Дата",
+            "note": "Примітка",
+            "category": "Категорія"
+          }
         },
         "results": {
           "completeTitle": "Імпорт завершено!",
@@ -89,8 +126,19 @@
           "viewTransactions": "Переглянути транзакції",
           "startNewImport": "Почати новий імпорт",
           "skippedUnpriceable": "Пропущено (не оцінено)",
-          "importFailed": "Не вдалося імпортувати транзакції. Спробуйте ще раз."
+          "importFailed": "Не вдалося імпортувати транзакції. Спробуйте ще раз.",
+          "successCallout": "{count} транзакцій успішно імпортовано",
+          "failed": "Не вдалося",
+          "noErrors": "Немає помилок"
         }
+      },
+      "columnMapping": {
+        "stepTitle": "Зіставити стовпці",
+        "description": "Зіставте стовпці CSV з обов'язковими полями",
+        "file": "Файл",
+        "totalRows": "Всього рядків",
+        "delimiter": "Розділювач",
+        "detecting": "Виявлення дублікатів…"
       },
       "common": {
         "selectOption": "Вибрати опцію...",
@@ -228,6 +276,102 @@
         },
         "tagsLoadFailed": "Не вдалося завантажити ваші теги. Спробуйте пізніше.",
         "noExistingTags": "У вас ще немає тегів."
+      },
+      "resolveValues": {
+        "selectAction": "Вибрати дію",
+        "actions": {
+          "createNew": "Створити новий",
+          "linkExisting": "Прив'язати до існуючого",
+          "skip": "Пропустити"
+        },
+        "quickActions": {
+          "mapExactMatches": "Зіставити точні збіги",
+          "createNewForUnmatched": "Створити нові для незіставлених",
+          "skipAll": "Пропустити всі",
+          "reset": "Скинути",
+          "menuLabel": "Швидкі дії",
+          "tooltips": {
+            "mapExactMatchesAccounts": "Пов'язує кожен рахунок CSV з наявним рахунком з однаковою назвою та валютою. Рахунки без точного збігу залишаються без змін.",
+            "mapExactMatchesCategories": "Пов'язує кожну категорію CSV з наявною категорією з такою ж назвою. Категорії без точного збігу залишаються без змін.",
+            "mapExactMatchesTags": "Пов'язує кожен тег CSV з наявним тегом з такою ж назвою. Теги без точного збігу залишаються без змін.",
+            "createNewForUnmatched": "Встановлює для кожного рядка, не пов'язаного з наявним записом, дію «Створити новий». Вже пов'язані рядки залишаються без змін.",
+            "skipAll": "Пропускає всі теги — жоден не імпортується і не створюється.",
+            "reset": "Очищає всі вибори та повторно запускає автоматичне зіставлення."
+          }
+        },
+        "accounts": {
+          "sectionTitle": "Зіставлення рахунків",
+          "resolvedCount": "{resolved} з {total} вирішено",
+          "csvName": "Рахунок CSV",
+          "currency": "Валюта",
+          "action": "Дія",
+          "target": "Цільовий рахунок",
+          "selectTarget": "Вибрати рахунок",
+          "noMatchingCurrency": "Немає рахунків з валютою {currency}",
+          "willCreate": "Буде створено \"{name}\" ({currency})",
+          "empty": "У CSV не знайдено рахунків"
+        },
+        "categories": {
+          "sectionTitle": "Зіставлення категорій",
+          "resolvedCount": "{resolved} з {total} вирішено",
+          "csvName": "Категорія CSV",
+          "action": "Дія",
+          "target": "Цільова категорія",
+          "selectTarget": "Вибрати категорію",
+          "willCreate": "Буде створено або об'єднано \"{name}\"",
+          "empty": "У CSV не знайдено категорій"
+        },
+        "tags": {
+          "sectionTitle": "Зіставлення тегів",
+          "resolvedCount": "{resolved} з {total} вирішено",
+          "csvName": "Тег CSV",
+          "action": "Дія",
+          "target": "Цільовий тег",
+          "selectTarget": "Вибрати тег",
+          "willCreate": "Буде створено \"{name}\"",
+          "willSkip": "Буде пропущено",
+          "noExistingTags": "Немає існуючих тегів для прив'язки",
+          "loadFailed": "Не вдалося завантажити теги",
+          "empty": "У CSV не знайдено тегів"
+        },
+        "detectError": "Не вдалося продовжити. Спробуйте ще раз.",
+        "extractFailed": "Не вдалося завантажити значення для вирішення. Поверніться назад і спробуйте ще раз.",
+        "retry": "Спробувати ще раз",
+        "footer": {
+          "back": "Назад",
+          "next": "Далі"
+        }
+      },
+      "mapColumns": {
+        "columnsTitle": "Стовпці",
+        "assignmentsTitle": "Призначення",
+        "fieldHeader": "Поле",
+        "csvColumnHeader": "Стовпець CSV",
+        "exampleHeader": "Приклад даних",
+        "howToAssignHeader": "Як призначити",
+        "usingHeader": "Використовуючи",
+        "optionalSuffix": "(необов'язково)",
+        "choosePlaceholder": "Виберіть…",
+        "alreadyMatchedSuffix": "(вже зіставлено)",
+        "amountSignNote": "Визначається за знаком суми",
+        "back": "Назад",
+        "next": "Далі",
+        "missingHint": "Ще потрібні: {fields}",
+        "fields": {
+          "date": "Дата",
+          "amount": "Сума",
+          "description": "Опис",
+          "category": "Категорія",
+          "account": "Рахунок",
+          "currency": "Валюта",
+          "transactionType": "Тип транзакції"
+        }
+      },
+      "importResults": {
+        "errorColumns": {
+          "row": "Рядок",
+          "error": "Помилка"
+        }
       }
     }
   }

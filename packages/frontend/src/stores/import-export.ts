@@ -1,11 +1,10 @@
 import {
-  type AccountMappingConfig,
-  type AccountOption,
+  API_ERROR_CODES,
+  type AccountMappingValue,
   AccountOptionValue,
   type CategoryMappingConfig,
-  type CategoryOption,
+  type CategoryMappingValue,
   CategoryOptionValue,
-  type CurrencyOption,
   type DateColumnError,
   type DetectDuplicatesResponse,
   type DuplicateMatch,
@@ -14,38 +13,73 @@ import {
   type ParsedTransactionRow,
   type SourceAccount,
   type TagMappingConfig,
-  type TagOption,
-  type TransactionTypeOption,
+  type TagMappingValue,
+  TagOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
+import type { AccountMappingConfig } from '@bt/shared/types';
 
 type UnpriceableRow = NonNullable<DetectDuplicatesResponse['unpriceableRows']>[number];
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
 import { i18n } from '@/i18n';
+import { ApiErrorResponseError } from '@/js/errors';
+import { captureException } from '@/lib/sentry';
+import { type ColumnMatchResult, matchColumns } from '@/pages/import-export/utils/auto-match';
+import { type ColumnMapping, buildInitialColumnMapping } from '@/pages/import-export/utils/build-initial-mapping';
+import { toColumnMappingConfig } from '@/pages/import-export/utils/column-mapping-config';
+import {
+  isAccountDecided,
+  isCategoryDecided,
+  isCurrencyDecided,
+  isTransactionTypeDecided,
+} from '@/pages/import-export/utils/field-decision';
+import { flattenCategories } from '@/pages/import-export/utils/flatten-categories';
+import {
+  computeAutoMatchEntries,
+  computeCreateForUnresolved,
+  computeExactLinkEntries,
+} from '@/pages/import-export/utils/resolve-mapping';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
+import { useAccountsStore } from './accounts';
 import { useCategoriesStore } from './categories/categories';
 import { useOnboardingStore } from './onboarding';
 import { useTagsStore } from './tags';
 
-interface ColumnMapping {
-  date: string | null;
-  amount: string | null;
-  description: string | null;
-  category: CategoryOption | null;
-  tags: TagOption | null;
-  account: AccountOption | null;
-  currency: CurrencyOption | null;
-  transactionType: TransactionTypeOption | null;
-}
+/**
+ * Wizard step identifiers, in canonical order. `'resolve'` is conditional —
+ * `visibleSteps` omits it when `needsResolveStep` is false. Keys are the source
+ * of truth for navigation; the legacy numeric `currentStep` is kept in sync for
+ * older shell/step code that still reads it.
+ */
+export type ImportStepKey = 'upload' | 'map' | 'resolve' | 'review' | 'results';
 
-interface TransactionTypeMapping {
-  method: TransactionTypeOptionValue;
-  incomeValues: string[];
-  expenseValues: string[];
-}
+/** Every step in canonical order, before conditional filtering. */
+const ALL_STEP_KEYS: readonly ImportStepKey[] = ['upload', 'map', 'resolve', 'review', 'results'];
+
+/** Maps a step key to the legacy 1-based numeric step used by older components. */
+const STEP_KEY_TO_NUMBER: Record<ImportStepKey, number> = {
+  upload: 1,
+  map: 2,
+  // Resolve historically lived inside the old step 2; it shares its number so
+  // legacy numeric consumers keep treating detect/review as step 3+.
+  resolve: 2,
+  review: 3,
+  results: 4,
+};
+
+const emptyColumnMapping = (): ColumnMapping => ({
+  date: null,
+  amount: null,
+  description: null,
+  category: null,
+  tags: null,
+  account: null,
+  currency: null,
+  transactionType: { option: TransactionTypeOptionValue.amountSign },
+});
 
 export const useImportExportStore = defineStore('importExport', () => {
   const queryClient = useQueryClient();
@@ -61,21 +95,10 @@ export const useImportExportStore = defineStore('importExport', () => {
   const totalRows = ref<number>(0);
 
   // Step 3: Column mapping
-  const columnMapping = ref<ColumnMapping>({
-    date: null,
-    amount: null,
-    description: null,
-    category: null,
-    tags: null,
-    account: null,
-    currency: null,
-    transactionType: null,
-  });
-  const transactionTypeMapping = ref<TransactionTypeMapping>({
-    method: TransactionTypeOptionValue.amountSign,
-    incomeValues: [],
-    expenseValues: [],
-  });
+  const columnMapping = ref<ColumnMapping>(emptyColumnMapping());
+  // Raw auto-match result, kept so Map-step rows can render per-field status
+  // (auto-matched / suggested / needs-attention). Null until a file is parsed.
+  const columnMatch = ref<ColumnMatchResult | null>(null);
 
   // Step 4: Account, Category, and Tag mapping (after extraction)
   const uniqueAccountsInCSV = ref<SourceAccount[]>([]);
@@ -87,6 +110,13 @@ export const useImportExportStore = defineStore('importExport', () => {
 
   // Currency mismatch warning from backend
   const currencyMismatchWarning = ref<string | null>(null);
+
+  // Resolve step: extraction + entity-list loading state.
+  const isExtracting = ref<boolean>(false);
+  const extractError = ref<string | null>(null);
+  // Set when loading the existing tags list fails, so the Resolve step can warn
+  // that link-to-existing targets may be missing while still letting create/skip through.
+  const tagsLoadFailed = ref<boolean>(false);
 
   // Step 5: Duplicate detection results
   const validRows = ref<ParsedTransactionRow[]>([]);
@@ -111,16 +141,114 @@ export const useImportExportStore = defineStore('importExport', () => {
   // A post-success refresh failure (loadCategories/loadTags) does NOT set this.
   const importError = ref<string | null>(null);
 
-  // UI state
+  // UI state — key-based step model (source of truth) plus the legacy numeric
+  // mirror that older shell/step components still read.
+  const currentStepKey = ref<ImportStepKey>('upload');
+  const completedStepKeys = ref<Set<ImportStepKey>>(new Set());
   const currentStep = ref<number>(1);
   const completedSteps = ref<number[]>([]);
 
-  // Getters
-  const canProceedToStep2 = computed(() => !!fileContent.value);
+  // ---- Step model getters ----
 
-  const canProceedToStep3 = computed(() => {
-    return !!(columnMapping.value.date && columnMapping.value.amount && columnMapping.value.currency);
+  /** Account assignment reads per-row values from a CSV column → Resolve must map them. */
+  const needsAccountResolution = computed(
+    () => columnMapping.value.account?.option === AccountOptionValue.dataSourceColumn,
+  );
+
+  /** Category assignment maps from a CSV column or creates new per value → Resolve must reconcile them. */
+  const needsCategoryResolution = computed(() => {
+    const category = columnMapping.value.category;
+    return (
+      category?.option === CategoryOptionValue.mapDataSourceColumn ||
+      category?.option === CategoryOptionValue.createNewCategories
+    );
   });
+
+  /** Tags assignment maps per-row values from a CSV column → Resolve must map them. */
+  const needsTagResolution = computed(() => columnMapping.value.tags?.option === TagOptionValue.mapDataSourceColumn);
+
+  /**
+   * True when at least one assignment uses a per-value method that the Resolve
+   * step must reconcile: category (map-to-column or create-new), account
+   * (from-column), or tags (map-to-column). Currency / transaction-type
+   * "from column" do NOT need Resolve — they read straight from the row.
+   */
+  const needsResolveStep = computed(
+    () => needsCategoryResolution.value || needsAccountResolution.value || needsTagResolution.value,
+  );
+
+  /** Ordered list of steps to render, omitting `'resolve'` when not needed. */
+  const visibleSteps = computed<{ key: ImportStepKey }[]>(() =>
+    ALL_STEP_KEYS.filter((key) => key !== 'resolve' || needsResolveStep.value).map((key) => ({ key })),
+  );
+
+  /**
+   * Map step is valid once date + amount columns are chosen and each of
+   * category / account / currency / transaction-type has BOTH a method and the
+   * decision that method requires — a CSV column for column-based methods, an
+   * entity id for single-existing, both value lists for transaction-type
+   * from-column. A chosen method alone is not enough (e.g. "Create new
+   * categories" with no column selected must still block Next). When a tags
+   * column is mapped, its column name must be set too.
+   */
+  const isMapStepValid = computed(() => {
+    const m = columnMapping.value;
+
+    if (!m.date || !m.amount) return false;
+    if (!isCategoryDecided({ category: m.category })) return false;
+    if (!isAccountDecided({ account: m.account })) return false;
+    if (!isCurrencyDecided({ currency: m.currency })) return false;
+    if (!isTransactionTypeDecided({ transactionType: m.transactionType })) return false;
+
+    if (m.tags?.option === TagOptionValue.mapDataSourceColumn && !m.tags.columnName) {
+      return false;
+    }
+
+    return true;
+  });
+
+  /**
+   * Resolve step is valid when every per-value row that the active methods
+   * require has a fully-resolved action. 'create-new'/'skip' are complete as-is;
+   * 'link-existing' additionally needs a non-empty target id so the backend
+   * receives a valid reference rather than an empty string.
+   */
+  const isResolveStepValid = computed(() => {
+    const accountOption = columnMapping.value.account;
+    if (accountOption?.option === AccountOptionValue.dataSourceColumn) {
+      const allMapped = uniqueAccountsInCSV.value.every((account) => {
+        const mapping = accountMapping.value[account.name];
+        return mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.accountId);
+      });
+      if (!allMapped) return false;
+    }
+
+    const categoryOption = columnMapping.value.category;
+    if (categoryOption?.option === CategoryOptionValue.mapDataSourceColumn) {
+      const allMapped = uniqueCategoriesInCSV.value.every((category) => {
+        const mapping = categoryMapping.value[category];
+        return mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.categoryId);
+      });
+      if (!allMapped) return false;
+    }
+
+    const tagsOption = columnMapping.value.tags;
+    if (tagsOption?.option === TagOptionValue.mapDataSourceColumn) {
+      const allDecided = uniqueTagsInCSV.value.every((tag) => {
+        const mapping = tagMapping.value[tag];
+        return (
+          mapping?.action === 'create-new' ||
+          mapping?.action === 'skip' ||
+          (mapping?.action === 'link-existing' && !!mapping.tagId)
+        );
+      });
+      if (!allDecided) return false;
+    }
+
+    return true;
+  });
+
+  // ---- Other getters ----
 
   const rowsToImport = computed(() => {
     // Get indices of duplicates that user hasn't unmarked (will be skipped)
@@ -139,7 +267,44 @@ export const useImportExportStore = defineStore('importExport', () => {
     willImport: rowsToImport.value.length,
   }));
 
-  // Actions
+  // ---- Step navigation actions ----
+
+  /** Sets the active step by key and mirrors the legacy numeric value. */
+  const goToStep = (key: ImportStepKey) => {
+    currentStepKey.value = key;
+    currentStep.value = STEP_KEY_TO_NUMBER[key];
+  };
+
+  /** Marks a step complete in both the key set and the legacy numeric array. */
+  const markStepCompleted = (key: ImportStepKey) => {
+    completedStepKeys.value.add(key);
+    const num = STEP_KEY_TO_NUMBER[key];
+    if (!completedSteps.value.includes(num)) {
+      completedSteps.value.push(num);
+    }
+  };
+
+  /** Advances to the next visible step (resolve is skipped when not needed). */
+  const goNext = () => {
+    const steps = visibleSteps.value;
+    const index = steps.findIndex((s) => s.key === currentStepKey.value);
+    if (index === -1) return;
+    markStepCompleted(currentStepKey.value);
+    const next = steps[index + 1];
+    if (next) goToStep(next.key);
+  };
+
+  /** Walks back to the previous visible step. */
+  const goBack = () => {
+    const steps = visibleSteps.value;
+    const index = steps.findIndex((s) => s.key === currentStepKey.value);
+    if (index <= 0) return;
+    const prev = steps[index - 1];
+    if (prev) goToStep(prev.key);
+  };
+
+  // ---- Async actions ----
+
   const parseFile = async (file: File) => {
     uploadedFile.value = file;
     fileContent.value = await file.text();
@@ -155,8 +320,16 @@ export const useImportExportStore = defineStore('importExport', () => {
     detectedDelimiter.value = response.detectedDelimiter;
     totalRows.value = response.totalRows;
 
-    currentStep.value = 2;
-    completedSteps.value.push(1);
+    // Run the pure column matcher over the parsed headers and seed the initial
+    // mapping. The raw match result is retained for per-field status rendering.
+    columnMatch.value = matchColumns({ headers: csvHeaders.value });
+    columnMapping.value = buildInitialColumnMapping({
+      matchResult: columnMatch.value,
+      preview: csvPreview.value,
+    });
+
+    goToStep('map');
+    markStepCompleted('upload');
   };
 
   const detectDuplicates = async () => {
@@ -170,20 +343,20 @@ export const useImportExportStore = defineStore('importExport', () => {
     detectError.value = null;
     isDetectingDuplicates.value = true;
 
+    // This path runs only after isMapStepValid is true, so the mapping is
+    // complete; a null projection here is defensive, not an expected state.
+    const config = toColumnMappingConfig({ mapping: columnMapping.value });
+    if (!config) {
+      detectError.value = i18n.global.t('pages.importExport.resolveValues.extractFailed');
+      isDetectingDuplicates.value = false;
+      return;
+    }
+
     try {
       const response: DetectDuplicatesResponse = await detectDuplicatesApi({
         fileContent: fileContent.value!,
         delimiter: detectedDelimiter.value,
-        columnMapping: {
-          date: columnMapping.value.date!,
-          amount: columnMapping.value.amount!,
-          description: columnMapping.value.description || undefined,
-          category: columnMapping.value.category!,
-          tags: columnMapping.value.tags ?? undefined,
-          account: columnMapping.value.account!,
-          currency: columnMapping.value.currency!,
-          transactionType: columnMapping.value.transactionType!,
-        },
+        columnMapping: config,
         accountMapping: accountMapping.value,
         categoryMapping: categoryMapping.value,
         tagMapping: tagMapping.value,
@@ -202,14 +375,18 @@ export const useImportExportStore = defineStore('importExport', () => {
         return;
       }
 
-      currentStep.value = 3;
-      if (!completedSteps.value.includes(2)) {
-        completedSteps.value.push(2);
+      // Mapping (and Resolve, if it was shown) are done once detection succeeds;
+      // advance the wizard to the Review step.
+      markStepCompleted('map');
+      if (needsResolveStep.value) {
+        markStepCompleted('resolve');
       }
+      goToStep('review');
     } catch (error) {
       // Surface the error message so the UI can render it; re-throw so callers
       // (e.g. handleContinue) can decide whether to show a global error boundary.
       detectError.value = error instanceof Error ? error.message : String(error);
+      captureException({ error, context: { scope: 'import-csv:detect-duplicates' } });
       throw error;
     } finally {
       isDetectingDuplicates.value = false;
@@ -294,7 +471,7 @@ export const useImportExportStore = defineStore('importExport', () => {
         try {
           await useCategoriesStore().loadCategories();
         } catch (refreshError) {
-          console.error('Failed to refresh categories after import', refreshError);
+          captureException({ error: refreshError, context: { scope: 'import-csv:post-import-refresh' } });
         }
       }
 
@@ -305,14 +482,12 @@ export const useImportExportStore = defineStore('importExport', () => {
         try {
           await useTagsStore().loadTags();
         } catch (refreshError) {
-          console.error('Failed to refresh tags after import', refreshError);
+          captureException({ error: refreshError, context: { scope: 'import-csv:post-import-refresh' } });
         }
       }
 
-      currentStep.value = 4;
-      if (!completedSteps.value.includes(3)) {
-        completedSteps.value.push(3);
-      }
+      markStepCompleted('review');
+      goToStep('results');
     } catch (error) {
       // A genuine import-API failure: surface a user-readable message for the UI to render,
       // then re-throw so callers can react (their handlers absorb the rejection).
@@ -323,6 +498,271 @@ export const useImportExportStore = defineStore('importExport', () => {
     }
   };
 
+  // ---- Resolve step engine ----
+
+  /**
+   * Pulls the distinct source/account/tag values out of the CSV via the backend
+   * and seeds the unique* lists the Resolve step renders. Prunes any stored
+   * per-value mapping whose source value no longer appears, so a re-extraction
+   * after the user edits column choices never leaves orphaned entries behind.
+   *
+   * Resolves on success or handled error; never rejects.
+   */
+  const extractUniqueValues = async (): Promise<void> => {
+    const config = toColumnMappingConfig({ mapping: columnMapping.value });
+    if (!config) {
+      extractError.value = i18n.global.t('pages.importExport.resolveValues.extractFailed');
+      return;
+    }
+
+    isExtracting.value = true;
+    extractError.value = null;
+
+    try {
+      const { extractUniqueValues: extractUniqueValuesApi } = await import('@/api/import-export');
+
+      const result = await extractUniqueValuesApi({
+        fileContent: fileContent.value!,
+        delimiter: detectedDelimiter.value,
+        columnMapping: config,
+      });
+
+      uniqueAccountsInCSV.value = result.sourceAccounts;
+      uniqueCategoriesInCSV.value = result.sourceCategories;
+      currencyMismatchWarning.value = result.currencyMismatchWarning || null;
+
+      // Prune stale category mappings for source values that no longer exist.
+      if (needsCategoryResolution.value) {
+        const sourceCategorySet = new Set(result.sourceCategories);
+        Object.keys(categoryMapping.value).forEach((category) => {
+          if (!sourceCategorySet.has(category)) delete categoryMapping.value[category];
+        });
+      }
+
+      // Prune stale tag mappings.
+      uniqueTagsInCSV.value = result.sourceTags;
+      const sourceTagSet = new Set(result.sourceTags);
+      Object.keys(tagMapping.value).forEach((tag) => {
+        if (!sourceTagSet.has(tag)) delete tagMapping.value[tag];
+      });
+
+      // Prune stale account mappings.
+      const sourceAccountNames = new Set(result.sourceAccounts.map((account) => account.name));
+      Object.keys(accountMapping.value).forEach((name) => {
+        if (!sourceAccountNames.has(name)) delete accountMapping.value[name];
+      });
+    } catch (error) {
+      if (
+        error instanceof ApiErrorResponseError &&
+        (error.data.code === API_ERROR_CODES.validationError || error.data.code === API_ERROR_CODES.notFound)
+      ) {
+        // A validation/not-found response describes a fixable data problem — show
+        // its message and don't report it to Sentry (not an unexpected bug).
+        extractError.value = error.data.message ?? null;
+      } else {
+        extractError.value = i18n.global.t('pages.importExport.resolveValues.extractFailed');
+        captureException({ error, context: { scope: 'import-csv:extract-unique-values' } });
+      }
+    } finally {
+      isExtracting.value = false;
+    }
+  };
+
+  /** Currency-aware CSV-side account sources for matching. */
+  const accountResolveSources = () =>
+    uniqueAccountsInCSV.value.map((account) => ({ name: account.name, currencyCode: account.currency || undefined }));
+
+  /** Existing accounts as link targets (id stringified for the wire shape). */
+  const accountResolveTargets = () =>
+    (useAccountsStore().accounts ?? []).map((account) => ({
+      id: String(account.id),
+      name: account.name,
+      currencyCode: account.currencyCode,
+    }));
+
+  const categoryResolveSources = () => uniqueCategoriesInCSV.value.map((name) => ({ name }));
+
+  const categoryResolveTargets = () =>
+    flattenCategories({ categories: useCategoriesStore().formattedCategories }).map((category) => ({
+      id: category.id,
+      name: category.name,
+    }));
+
+  const tagResolveSources = () => uniqueTagsInCSV.value.map((name) => ({ name }));
+
+  const tagResolveTargets = () => useTagsStore().tags.map((tag) => ({ id: String(tag.id), name: tag.name }));
+
+  /**
+   * Pre-fills every active entity's mapping by name: link to a matched existing
+   * entity, else fall back to "create new". With `overwrite: false`, rows the
+   * user already decided are left untouched.
+   */
+  const autoMatchResolveValues = ({ overwrite }: { overwrite: boolean }): void => {
+    if (needsAccountResolution.value) {
+      Object.assign(
+        accountMapping.value,
+        computeAutoMatchEntries<AccountMappingValue>({
+          sources: accountResolveSources(),
+          targets: accountResolveTargets(),
+          current: accountMapping.value,
+          overwrite,
+          toLink: (id) => ({ action: 'link-existing', accountId: id }),
+          toCreate: () => ({ action: 'create-new' }),
+        }),
+      );
+    }
+
+    if (needsCategoryResolution.value) {
+      Object.assign(
+        categoryMapping.value,
+        computeAutoMatchEntries<CategoryMappingValue>({
+          sources: categoryResolveSources(),
+          targets: categoryResolveTargets(),
+          current: categoryMapping.value,
+          overwrite,
+          toLink: (id) => ({ action: 'link-existing', categoryId: id }),
+          toCreate: () => ({ action: 'create-new' }),
+        }),
+      );
+    }
+
+    if (needsTagResolution.value) {
+      Object.assign(
+        tagMapping.value,
+        computeAutoMatchEntries<TagMappingValue>({
+          sources: tagResolveSources(),
+          targets: tagResolveTargets(),
+          current: tagMapping.value,
+          overwrite,
+          toLink: (id) => ({ action: 'link-existing', tagId: id }),
+          toCreate: () => ({ action: 'create-new' }),
+        }),
+      );
+    }
+  };
+
+  /** Link only the exact-name matches for one entity, overwriting those rows. */
+  const quickMapExactMatches = ({ entity }: { entity: 'accounts' | 'categories' | 'tags' }): void => {
+    if (entity === 'accounts') {
+      Object.assign(
+        accountMapping.value,
+        computeExactLinkEntries<AccountMappingValue>({
+          sources: accountResolveSources(),
+          targets: accountResolveTargets(),
+          toLink: (id) => ({ action: 'link-existing', accountId: id }),
+        }),
+      );
+    } else if (entity === 'categories') {
+      Object.assign(
+        categoryMapping.value,
+        computeExactLinkEntries<CategoryMappingValue>({
+          sources: categoryResolveSources(),
+          targets: categoryResolveTargets(),
+          toLink: (id) => ({ action: 'link-existing', categoryId: id }),
+        }),
+      );
+    } else {
+      Object.assign(
+        tagMapping.value,
+        computeExactLinkEntries<TagMappingValue>({
+          sources: tagResolveSources(),
+          targets: tagResolveTargets(),
+          toLink: (id) => ({ action: 'link-existing', tagId: id }),
+        }),
+      );
+    }
+  };
+
+  /** Set "create new" for every still-unresolved row of one entity. */
+  const quickCreateNewForUnmatched = ({ entity }: { entity: 'accounts' | 'categories' | 'tags' }): void => {
+    if (entity === 'accounts') {
+      Object.assign(
+        accountMapping.value,
+        computeCreateForUnresolved<AccountMappingValue>({
+          names: uniqueAccountsInCSV.value.map((account) => account.name),
+          current: accountMapping.value,
+          isUnresolved: (entry) => !entry || (entry.action === 'link-existing' && !entry.accountId),
+          toCreate: () => ({ action: 'create-new' }),
+        }),
+      );
+    } else if (entity === 'categories') {
+      Object.assign(
+        categoryMapping.value,
+        computeCreateForUnresolved<CategoryMappingValue>({
+          names: uniqueCategoriesInCSV.value,
+          current: categoryMapping.value,
+          isUnresolved: (entry) => !entry || (entry.action === 'link-existing' && !entry.categoryId),
+          toCreate: () => ({ action: 'create-new' }),
+        }),
+      );
+    } else {
+      Object.assign(
+        tagMapping.value,
+        computeCreateForUnresolved<TagMappingValue>({
+          names: uniqueTagsInCSV.value,
+          current: tagMapping.value,
+          isUnresolved: (entry) => !entry || (entry.action === 'link-existing' && !entry.tagId),
+          toCreate: () => ({ action: 'create-new' }),
+        }),
+      );
+    }
+  };
+
+  /** Mark every source tag value as skipped. */
+  const quickSkipAllTags = (): void => {
+    for (const tagName of uniqueTagsInCSV.value) {
+      tagMapping.value[tagName] = { action: 'skip' };
+    }
+  };
+
+  /** Clear one entity's stored choices, then re-seed via name auto-match. */
+  const resetResolveEntity = ({ entity }: { entity: 'accounts' | 'categories' | 'tags' }): void => {
+    if (entity === 'accounts') {
+      for (const account of uniqueAccountsInCSV.value) delete accountMapping.value[account.name];
+    } else if (entity === 'categories') {
+      for (const categoryName of uniqueCategoriesInCSV.value) delete categoryMapping.value[categoryName];
+    } else {
+      for (const tagName of uniqueTagsInCSV.value) delete tagMapping.value[tagName];
+    }
+    autoMatchResolveValues({ overwrite: false });
+  };
+
+  /**
+   * Readies the Resolve step: extracts the unique source values when missing,
+   * loads the existing category/tag lists that link targets need, then runs a
+   * non-destructive auto-match. Each fetch is independently guarded so a single
+   * failure neither aborts the rest nor rejects the caller.
+   */
+  const prepareResolveStep = async (): Promise<void> => {
+    const needsExtraction =
+      (needsAccountResolution.value && uniqueAccountsInCSV.value.length === 0) ||
+      (needsCategoryResolution.value && uniqueCategoriesInCSV.value.length === 0) ||
+      (needsTagResolution.value && uniqueTagsInCSV.value.length === 0);
+
+    if (needsExtraction) {
+      await extractUniqueValues();
+    }
+
+    if (needsCategoryResolution.value && useCategoriesStore().categories.length === 0) {
+      try {
+        await useCategoriesStore().loadCategories();
+      } catch (error) {
+        captureException({ error, context: { scope: 'import-csv:load-categories' } });
+      }
+    }
+
+    if (needsTagResolution.value && useTagsStore().tags.length === 0) {
+      try {
+        await useTagsStore().loadTags();
+      } catch (error) {
+        tagsLoadFailed.value = true;
+        captureException({ error, context: { scope: 'import-csv:load-tags' } });
+      }
+    }
+
+    autoMatchResolveValues({ overwrite: false });
+  };
+
   const reset = () => {
     uploadedFile.value = null;
     fileContent.value = null;
@@ -330,21 +770,8 @@ export const useImportExportStore = defineStore('importExport', () => {
     csvPreview.value = [];
     detectedDelimiter.value = ',';
     totalRows.value = 0;
-    columnMapping.value = {
-      date: null,
-      amount: null,
-      description: null,
-      category: null,
-      tags: null,
-      account: null,
-      currency: null,
-      transactionType: null,
-    };
-    transactionTypeMapping.value = {
-      method: TransactionTypeOptionValue.amountSign,
-      incomeValues: [],
-      expenseValues: [],
-    };
+    columnMapping.value = emptyColumnMapping();
+    columnMatch.value = null;
     uniqueAccountsInCSV.value = [];
     accountMapping.value = {};
     uniqueCategoriesInCSV.value = [];
@@ -352,6 +779,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     uniqueTagsInCSV.value = [];
     tagMapping.value = {};
     currencyMismatchWarning.value = null;
+    isExtracting.value = false;
+    extractError.value = null;
+    tagsLoadFailed.value = false;
     validRows.value = [];
     invalidRows.value = [];
     duplicates.value = [];
@@ -363,6 +793,8 @@ export const useImportExportStore = defineStore('importExport', () => {
     importInProgress.value = false;
     importResult.value = null;
     importError.value = null;
+    currentStepKey.value = 'upload';
+    completedStepKeys.value = new Set();
     currentStep.value = 1;
     completedSteps.value = [];
   };
@@ -376,7 +808,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     detectedDelimiter,
     totalRows,
     columnMapping,
-    transactionTypeMapping,
+    columnMatch,
     uniqueAccountsInCSV,
     accountMapping,
     uniqueCategoriesInCSV,
@@ -384,6 +816,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     uniqueTagsInCSV,
     tagMapping,
     currencyMismatchWarning,
+    isExtracting,
+    extractError,
+    tagsLoadFailed,
     validRows,
     invalidRows,
     duplicates,
@@ -395,20 +830,36 @@ export const useImportExportStore = defineStore('importExport', () => {
     importInProgress,
     importResult,
     importError,
+    currentStepKey,
+    completedStepKeys,
     currentStep,
     completedSteps,
 
     // Getters
-    canProceedToStep2,
-    canProceedToStep3,
-    rowsToImport,
+    needsResolveStep,
+    needsAccountResolution,
+    needsCategoryResolution,
+    needsTagResolution,
+    visibleSteps,
+    isMapStepValid,
+    isResolveStepValid,
     importSummary,
 
     // Actions
+    goToStep,
+    goNext,
+    goBack,
     parseFile,
     detectDuplicates,
     toggleDuplicateUnmark,
     executeImport,
+    extractUniqueValues,
+    autoMatchResolveValues,
+    quickMapExactMatches,
+    quickCreateNewForUnmatched,
+    quickSkipAllTags,
+    resetResolveEntity,
+    prepareResolveStep,
     reset,
   };
 });

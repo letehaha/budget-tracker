@@ -39,6 +39,20 @@
       "refund": "Reembolso",
       "split": "Dividir"
     },
+    "components": {
+      "statusIndicator": {
+        "autoMatched": "Coincidencia automática",
+        "suggested": "Sugerido",
+        "willCreate": "Se creará",
+        "needsAttention": "Requiere atención",
+        "invalid": "Inválido",
+        "optional": "Opcional",
+        "skipped": "Omitido"
+      },
+      "selectField": {
+        "clearSelection": "Limpiar selección"
+      }
+    },
     "errors": {
       "copyToClipboardFailed": "Error al copiar al portapapeles"
     },

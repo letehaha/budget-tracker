@@ -4,6 +4,16 @@
       "csvImport": {
         "pageTitle": "Import Transactions from CSV",
         "pageDescription": "Upload your bank CSV export or transaction history file to import transactions into your account.",
+        "stepper": {
+          "stepOf": "Step {current} of {total}",
+          "steps": {
+            "upload": "Upload",
+            "map": "Map Columns",
+            "resolve": "Resolve Values",
+            "review": "Review",
+            "results": "Done"
+          }
+        },
         "steps": {
           "uploadTitle": "Upload CSV File",
           "uploadDescription": "Select your CSV file to begin",
@@ -69,7 +79,34 @@
           "unpriceableWillBeSkipped": "unpriceable will be skipped",
           "currency": "Currency",
           "skipAndImport": "Skip & import",
-          "cancelImport": "Cancel import"
+          "cancelImport": "Cancel import",
+          "dateColumnErrorTitle": "Date column error in \"{column}\"",
+          "noInvalidRows": "No invalid rows",
+          "noDuplicates": "No duplicates",
+          "expand": "Show full data",
+          "collapse": "Hide full data",
+          "importAnywayAriaLabel": "Import row {row} anyway",
+          "columnHeaders": {
+            "row": "Row",
+            "problem": "Problem",
+            "data": "Data",
+            "match": "Match",
+            "csvTransaction": "CSV transaction",
+            "existingTransaction": "Existing transaction",
+            "csvShort": "CSV",
+            "existingShort": "Existing"
+          },
+          "matchTypeLabels": {
+            "exact": "Exact",
+            "idMatch": "ID match",
+            "fuzzy": "Fuzzy"
+          },
+          "fieldLabels": {
+            "amount": "Amount",
+            "date": "Date",
+            "note": "Note",
+            "category": "Category"
+          }
         },
         "results": {
           "completeTitle": "Import Complete!",
@@ -89,8 +126,19 @@
           "viewTransactions": "View Transactions",
           "startNewImport": "Start New Import",
           "skippedUnpriceable": "Skipped (unpriced)",
-          "importFailed": "Failed to import transactions. Please try again."
+          "importFailed": "Failed to import transactions. Please try again.",
+          "successCallout": "{count} transactions imported successfully",
+          "failed": "Failed",
+          "noErrors": "No errors"
         }
+      },
+      "columnMapping": {
+        "stepTitle": "Map Columns",
+        "description": "Map your CSV columns to the required fields",
+        "file": "File",
+        "totalRows": "Total rows",
+        "delimiter": "Delimiter",
+        "detecting": "Detecting duplicates…"
       },
       "common": {
         "selectOption": "Select option...",
@@ -228,6 +276,102 @@
         },
         "tagsLoadFailed": "Couldn't load your tags. Try again later.",
         "noExistingTags": "You don't have any tags yet."
+      },
+      "resolveValues": {
+        "selectAction": "Select action",
+        "actions": {
+          "createNew": "Create new",
+          "linkExisting": "Link to existing",
+          "skip": "Skip"
+        },
+        "quickActions": {
+          "mapExactMatches": "Map exact matches",
+          "createNewForUnmatched": "Create new for unmatched",
+          "skipAll": "Skip all",
+          "reset": "Reset",
+          "menuLabel": "Quick actions",
+          "tooltips": {
+            "mapExactMatchesAccounts": "Links each CSV account to an existing account that has the same name and currency. Accounts with no exact match stay unchanged.",
+            "mapExactMatchesCategories": "Links each CSV category to an existing category with the same name. Categories with no exact match stay unchanged.",
+            "mapExactMatchesTags": "Links each CSV tag to an existing tag with the same name. Tags with no exact match stay unchanged.",
+            "createNewForUnmatched": "Sets every row that isn't linked to an existing entry to \"Create new\". Already-linked rows stay unchanged.",
+            "skipAll": "Skips every tag — none are imported or created.",
+            "reset": "Clears all choices and re-runs automatic matching."
+          }
+        },
+        "accounts": {
+          "sectionTitle": "Account Mapping",
+          "resolvedCount": "{resolved} of {total} resolved",
+          "csvName": "CSV Account",
+          "currency": "Currency",
+          "action": "Action",
+          "target": "Target Account",
+          "selectTarget": "Select an account",
+          "noMatchingCurrency": "No accounts match currency {currency}",
+          "willCreate": "Will create \"{name}\" ({currency})",
+          "empty": "No accounts found in CSV"
+        },
+        "categories": {
+          "sectionTitle": "Category Mapping",
+          "resolvedCount": "{resolved} of {total} resolved",
+          "csvName": "CSV Category",
+          "action": "Action",
+          "target": "Target Category",
+          "selectTarget": "Select a category",
+          "willCreate": "Will create or merge \"{name}\"",
+          "empty": "No categories found in CSV"
+        },
+        "tags": {
+          "sectionTitle": "Tag Mapping",
+          "resolvedCount": "{resolved} of {total} resolved",
+          "csvName": "CSV Tag",
+          "action": "Action",
+          "target": "Target Tag",
+          "selectTarget": "Select a tag",
+          "willCreate": "Will create \"{name}\"",
+          "willSkip": "Will be skipped",
+          "noExistingTags": "No existing tags to link to",
+          "loadFailed": "Failed to load tags",
+          "empty": "No tags found in CSV"
+        },
+        "detectError": "Failed to proceed. Please try again.",
+        "extractFailed": "Couldn't load the values to resolve. Please go back and try again.",
+        "retry": "Try again",
+        "footer": {
+          "back": "Back",
+          "next": "Next"
+        }
+      },
+      "mapColumns": {
+        "columnsTitle": "Columns",
+        "assignmentsTitle": "Assignments",
+        "fieldHeader": "Field",
+        "csvColumnHeader": "CSV column",
+        "exampleHeader": "Example data",
+        "howToAssignHeader": "How to assign",
+        "usingHeader": "Using",
+        "optionalSuffix": "(optional)",
+        "choosePlaceholder": "Choose…",
+        "alreadyMatchedSuffix": "(already matched)",
+        "amountSignNote": "Determined from the amount sign",
+        "back": "Back",
+        "next": "Next",
+        "missingHint": "Still needed: {fields}",
+        "fields": {
+          "date": "Date",
+          "amount": "Amount",
+          "description": "Description",
+          "category": "Category",
+          "account": "Account",
+          "currency": "Currency",
+          "transactionType": "Transaction type"
+        }
+      },
+      "importResults": {
+        "errorColumns": {
+          "row": "Row",
+          "error": "Error"
+        }
       }
     }
   }
