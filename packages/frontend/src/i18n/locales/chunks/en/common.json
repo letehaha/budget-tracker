@@ -39,6 +39,20 @@
       "refund": "Refund",
       "split": "Split"
     },
+    "components": {
+      "statusIndicator": {
+        "autoMatched": "Auto-matched",
+        "suggested": "Suggested",
+        "willCreate": "Will create",
+        "needsAttention": "Needs attention",
+        "invalid": "Invalid",
+        "optional": "Optional",
+        "skipped": "Skipped"
+      },
+      "selectField": {
+        "clearSelection": "Clear selection"
+      }
+    },
     "errors": {
       "copyToClipboardFailed": "Failed to copy to clipboard"
     },

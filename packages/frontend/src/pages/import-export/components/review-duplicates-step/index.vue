@@ -1,290 +1,321 @@
 <template>
-  <div class="bg-card rounded-lg border p-6">
-    <div class="mb-4">
-      <h2 class="text-lg font-semibold">{{ t('pages.importExport.csvImport.review.stepTitle') }}</h2>
-      <p class="text-muted-foreground text-sm">{{ t('pages.importExport.csvImport.review.description') }}</p>
-    </div>
-
-    <!-- Summary Cards -->
-    <div class="mb-6 grid gap-4 md:grid-cols-4">
-      <div class="bg-muted rounded-lg p-4">
-        <p class="text-muted-foreground text-sm">{{ t('pages.importExport.csvImport.review.totalRows') }}</p>
-        <p class="text-2xl font-bold">{{ importStore.importSummary.totalRows }}</p>
+  <div class="space-y-6">
+    <!-- Detection loading skeleton -->
+    <template v-if="store.isDetectingDuplicates">
+      <div class="@container/stat-row grid gap-3">
+        <div class="grid grid-cols-2 gap-3 @sm/stat-row:grid-cols-4">
+          <div v-for="i in 4" :key="i" class="bg-muted/40 border-border h-16 animate-pulse rounded-lg border p-3" />
+        </div>
       </div>
-      <div class="bg-success/10 rounded-lg p-4">
-        <p class="text-success-text text-sm">{{ t('pages.importExport.csvImport.review.validRows') }}</p>
-        <p class="text-success-text text-2xl font-bold">{{ importStore.importSummary.validRows }}</p>
-      </div>
-      <div class="bg-destructive/10 rounded-lg p-4">
-        <p class="text-destructive-text text-sm">{{ t('pages.importExport.csvImport.review.invalidRows') }}</p>
-        <p class="text-destructive-text text-2xl font-bold">{{ importStore.importSummary.invalidRows }}</p>
-      </div>
-      <div class="bg-warning/10 rounded-lg p-4">
-        <p class="text-warning-text text-sm">{{ t('pages.importExport.csvImport.review.duplicates') }}</p>
-        <p class="text-warning-text text-2xl font-bold">{{ importStore.importSummary.duplicates }}</p>
-      </div>
-    </div>
+      <div class="bg-muted/40 border-border h-40 animate-pulse rounded-lg border" />
+    </template>
 
-    <!-- Invalid Rows Section -->
-    <div v-if="importStore.invalidRows.length > 0" class="mb-6">
-      <h3 class="text-destructive-text mb-3 text-sm font-semibold">
-        {{ t('pages.importExport.csvImport.review.invalidRowsTitle') }}
-      </h3>
-      <ScrollArea class="border-destructive/30 max-h-64 rounded-lg border" with-horizontal-scrollbar>
-        <table class="w-full text-sm">
-          <thead class="bg-muted">
-            <tr>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.rowNumber') }}
-              </th>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.errors') }}
-              </th>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.rawData') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in importStore.invalidRows" :key="row.rowIndex" class="border-b last:border-b-0">
-              <td class="px-4 py-2 font-mono">{{ row.rowIndex }}</td>
-              <td class="px-4 py-2">
-                <ul class="text-destructive-text list-inside list-disc">
-                  <li v-for="(error, idx) in row.errors" :key="idx">{{ error }}</li>
-                </ul>
-              </td>
-              <td class="max-w-xs truncate px-4 py-2 text-xs">
-                {{ JSON.stringify(row.rawData) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </ScrollArea>
-    </div>
+    <!-- Detection error -->
+    <Callout v-else-if="store.detectError" variant="destructive" role="alert">
+      <p>{{ store.detectError }}</p>
+    </Callout>
 
-    <!-- Duplicates Section -->
-    <div v-if="importStore.duplicates.length > 0" class="mb-6">
-      <h3 class="text-warning-text mb-3 text-sm font-semibold">
-        {{ t('pages.importExport.csvImport.review.duplicatesTitle', { count: importStore.importSummary.duplicates }) }}
-      </h3>
-      <p class="text-muted-foreground mb-3 text-xs">
-        {{ t('pages.importExport.csvImport.review.duplicatesHint') }}
-      </p>
-      <ScrollArea class="border-warning/30 max-h-96 rounded-lg border" with-horizontal-scrollbar>
-        <table class="w-full text-sm">
-          <thead class="bg-muted sticky top-0">
-            <tr>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.skip') }}
-              </th>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.rowNumber') }}
-              </th>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.match') }}
-              </th>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.csvTransaction') }}
-              </th>
-              <th class="border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.existingTransaction') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="dup in importStore.duplicates" :key="dup.rowIndex" class="border-b last:border-b-0">
-              <td class="px-4 py-2">
-                <input
-                  type="checkbox"
-                  :checked="!importStore.unmarkedDuplicateIndices.has(dup.rowIndex)"
-                  @change="importStore.toggleDuplicateUnmark(dup.rowIndex)"
-                  class="size-4 rounded border-gray-300"
-                />
-              </td>
-              <td class="px-4 py-2 font-mono">{{ dup.rowIndex }}</td>
-              <td class="px-4 py-2">
-                <span
-                  :class="{
-                    'bg-success/10 text-success-text': dup.matchType === 'exact',
-                    'bg-warning/10 text-warning-text': dup.matchType === 'fuzzy',
-                  }"
-                  class="rounded px-2 py-0.5 text-xs font-medium"
-                >
-                  {{ dup.matchType }} ({{ dup.confidence }}%)
-                </span>
-              </td>
-              <td class="px-4 py-2">
-                <div class="text-xs">
-                  <p>{{ formatDate(dup.importedTransaction.date) }}</p>
-                  <p class="font-medium">{{ formatAmount(dup.importedTransaction.amount) }}</p>
-                  <p class="text-muted-foreground max-w-xs truncate">{{ dup.importedTransaction.description }}</p>
-                </div>
-              </td>
-              <td class="px-4 py-2">
-                <div class="text-xs">
-                  <p>{{ formatDate(dup.existingTransaction.date) }}</p>
-                  <p class="font-medium">{{ formatAmount(dup.existingTransaction.amount) }}</p>
-                  <p class="text-muted-foreground max-w-xs truncate">{{ dup.existingTransaction.note }}</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </ScrollArea>
-    </div>
-
-    <!-- Unpriceable Rows Section -->
-    <!-- Shown when at least one row's currency has no stored exchange rate.
-         The user must explicitly skip those rows or abort — silent import is not allowed. -->
-    <div
-      v-if="importStore.unpriceableRows.length > 0"
-      class="border-warning/30 bg-warning/5 mb-6 rounded-lg border p-4"
-      role="alert"
-    >
-      <div class="mb-2 flex items-start gap-2">
-        <AlertTriangleIcon class="text-warning mt-0.5 size-5 shrink-0" />
-        <div>
-          <h3 class="text-warning-text text-sm font-semibold">
-            {{
-              t('pages.importExport.csvImport.review.unpriceableTitle', {
-                count: importStore.unpriceableRows.length,
-              })
-            }}
-          </h3>
-          <p class="text-warning-text mt-1 text-xs opacity-80">
-            {{ t('pages.importExport.csvImport.review.unpriceableDescription') }}
-          </p>
+    <template v-else>
+      <!-- Summary stat cards — 4-up, container-query grid -->
+      <div class="@container/stat-row">
+        <div class="grid grid-cols-2 gap-3 @sm/stat-row:grid-cols-4">
+          <StatCard
+            :label="$t('pages.importExport.csvImport.review.totalRows')"
+            :value="store.importSummary.totalRows"
+            variant="neutral"
+          />
+          <StatCard
+            :label="$t('pages.importExport.csvImport.review.validRows')"
+            :value="store.importSummary.validRows"
+            variant="success"
+          />
+          <StatCard
+            :label="$t('pages.importExport.csvImport.review.invalidRows')"
+            :value="store.importSummary.invalidRows"
+            variant="destructive"
+          />
+          <StatCard
+            :label="$t('pages.importExport.csvImport.review.duplicates')"
+            :value="store.importSummary.duplicates"
+            variant="warning"
+          />
         </div>
       </div>
 
-      <ScrollArea class="border-warning/30 mt-3 max-h-48 rounded border" with-horizontal-scrollbar>
-        <table class="w-full text-sm">
-          <thead class="bg-muted sticky top-0">
-            <tr>
-              <th class="text-warning-text border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.rowNumber') }}
-              </th>
-              <th class="text-warning-text border-b px-4 py-2 text-left font-medium">
-                {{ t('pages.importExport.csvImport.review.currency') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in importStore.unpriceableRows" :key="row.rowIndex" class="border-b last:border-b-0">
-              <td class="text-warning-text px-4 py-2 font-mono">{{ row.rowIndex }}</td>
-              <td class="text-warning-text px-4 py-2 font-medium">{{ row.currencyCode }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </ScrollArea>
+      <!-- dateColumnError — blocks import, must fix CSV -->
+      <Callout v-if="store.dateColumnError" variant="destructive" role="alert">
+        <p class="font-medium">
+          {{ $t('pages.importExport.csvImport.review.dateColumnErrorTitle', { column: store.dateColumnError.column }) }}
+        </p>
+        <p class="mt-1 text-xs opacity-80">{{ store.dateColumnError.message }}</p>
+      </Callout>
 
-      <!-- Skip-or-Abort choice — always visible when unpriceableRows is non-empty -->
-      <div class="mt-4 flex flex-wrap gap-3">
-        <UiButton variant="default" :disabled="importStore.importInProgress" @click="handleSkipAndImport">
-          {{ t('pages.importExport.csvImport.review.skipAndImport') }}
+      <!-- Invalid rows table -->
+      <section v-if="store.invalidRows.length > 0" aria-labelledby="invalid-rows-heading">
+        <h3 id="invalid-rows-heading" class="text-destructive-text mb-3 text-sm font-semibold">
+          {{ $t('pages.importExport.csvImport.review.invalidRowsTitle') }}
+        </h3>
+        <MappingTable :columns="invalidRowsColumns" :items="store.invalidRows" :row-key="(row) => row.rowIndex">
+          <template #cell:row="{ item }">
+            <span class="text-muted-foreground font-mono text-xs">#{{ item.rowIndex }}</span>
+          </template>
+
+          <template #cell:problem="{ item }">
+            <div class="flex flex-col gap-1">
+              <div v-for="(err, idx) in item.errors" :key="idx" class="flex items-start gap-1.5">
+                <StatusIndicator status="invalid" size="xs" class="mt-px shrink-0" />
+                <span class="text-destructive-text text-xs leading-snug">{{ err }}</span>
+              </div>
+            </div>
+          </template>
+
+          <template #cell:data="{ item, index }">
+            <div class="min-w-0 text-xs">
+              <!-- Compact summary: description + amount side by side -->
+              <p class="text-muted-foreground truncate">
+                {{ compactRowSummary(item.rawData) }}
+              </p>
+              <!-- Expand toggle -->
+              <button
+                type="button"
+                class="text-primary/80 hover:text-primary mt-1 text-xs underline-offset-2 hover:underline"
+                @click="toggleExpand(index)"
+              >
+                {{
+                  expandedRows.has(index)
+                    ? $t('pages.importExport.csvImport.review.collapse')
+                    : $t('pages.importExport.csvImport.review.expand')
+                }}
+              </button>
+              <!-- Full raw data (expanded) -->
+              <pre
+                v-if="expandedRows.has(index)"
+                class="bg-muted/40 border-border mt-2 overflow-x-auto rounded border p-2 text-xs leading-relaxed break-all whitespace-pre-wrap"
+                >{{ JSON.stringify(item.rawData, null, 2) }}</pre
+              >
+            </div>
+          </template>
+
+          <template #empty>
+            {{ $t('pages.importExport.csvImport.review.noInvalidRows') }}
+          </template>
+        </MappingTable>
+      </section>
+
+      <!-- Duplicates table -->
+      <section v-if="store.duplicates.length > 0" aria-labelledby="duplicates-heading">
+        <h3 id="duplicates-heading" class="text-warning-text mb-1 text-sm font-semibold">
+          {{
+            $t('pages.importExport.csvImport.review.duplicatesTitle', {
+              count: store.duplicates.length,
+            })
+          }}
+        </h3>
+        <p class="text-muted-foreground mb-3 text-xs">
+          {{ $t('pages.importExport.csvImport.review.duplicatesHint') }}
+        </p>
+
+        <DuplicatesTable
+          :duplicates="store.duplicates"
+          :unmarked-indices="store.unmarkedDuplicateIndices"
+          @toggle="store.toggleDuplicateUnmark"
+        />
+      </section>
+
+      <!-- Unpriceable rows callout -->
+      <section v-if="store.unpriceableRows.length > 0" aria-labelledby="unpriceable-heading">
+        <Callout variant="warning" role="alert">
+          <div class="flex-1 space-y-3">
+            <div>
+              <p id="unpriceable-heading" class="font-medium">
+                {{
+                  $t('pages.importExport.csvImport.review.unpriceableTitle', {
+                    count: store.unpriceableRows.length,
+                  })
+                }}
+              </p>
+              <p class="mt-1 text-xs opacity-80">
+                {{ $t('pages.importExport.csvImport.review.unpriceableDescription') }}
+              </p>
+            </div>
+
+            <!-- Compact currency list -->
+            <div class="flex flex-wrap gap-1.5">
+              <span
+                v-for="row in store.unpriceableRows"
+                :key="row.rowIndex"
+                class="bg-warning/10 border-warning/20 text-warning-text rounded border px-2 py-0.5 font-mono text-xs"
+              >
+                #{{ row.rowIndex }} · {{ row.currencyCode }}
+              </span>
+            </div>
+
+            <!-- Skip-or-abort choice inline with the callout -->
+            <div class="flex flex-wrap gap-2">
+              <UiButton variant="default" size="sm" :disabled="store.importInProgress" @click="handleSkipAndImport">
+                {{ $t('pages.importExport.csvImport.review.skipAndImport') }}
+              </UiButton>
+              <UiButton variant="outline" size="sm" @click="store.goBack()">
+                {{ $t('pages.importExport.csvImport.review.cancelImport') }}
+              </UiButton>
+            </div>
+          </div>
+        </Callout>
+      </section>
+
+      <!-- Import summary line -->
+      <div
+        v-if="store.unpriceableRows.length === 0"
+        class="bg-muted/30 border-border rounded-lg border px-4 py-3"
+        aria-live="polite"
+      >
+        <p class="text-sm">
+          <span class="text-success-text font-semibold">{{ store.importSummary.willImport }}</span>
+          {{ $t('pages.importExport.csvImport.review.willBeImported') }}
+
+          <template v-if="store.importSummary.invalidRows > 0">
+            · <span class="text-destructive-text font-semibold">{{ store.importSummary.invalidRows }}</span>
+            {{ $t('pages.importExport.csvImport.review.invalidWillBeSkipped') }}
+          </template>
+
+          <template v-if="store.importSummary.duplicates > 0">
+            · <span class="text-warning-text font-semibold">{{ store.importSummary.duplicates }}</span>
+            {{ $t('pages.importExport.csvImport.review.duplicatesWillBeSkipped') }}
+          </template>
+        </p>
+      </div>
+
+      <!-- Import error callout (execute-import API failure) -->
+      <Callout v-if="store.importError" variant="destructive" role="alert">
+        <p>{{ store.importError }}</p>
+      </Callout>
+
+      <!-- Footer actions — hidden when the unpriceable consent panel is active (it has its own buttons) -->
+      <div v-if="store.unpriceableRows.length === 0" class="flex items-center justify-between gap-3 pt-2">
+        <UiButton variant="ghost" @click="store.goBack()">
+          <ChevronLeftIcon class="mr-1.5 size-4" />
+          {{ $t('pages.importExport.csvImport.review.backToMapping') }}
         </UiButton>
-        <UiButton variant="outline" @click="goBack">
-          {{ t('pages.importExport.csvImport.review.cancelImport') }}
+
+        <UiButton
+          :disabled="store.importSummary.willImport === 0 || store.importInProgress"
+          @click="handleExecuteImport"
+        >
+          <template v-if="store.importInProgress">
+            <LoaderCircleIcon class="mr-1.5 size-4 animate-spin" />
+            {{ $t('pages.importExport.csvImport.review.importing') }}
+          </template>
+          <template v-else>
+            {{
+              $t('pages.importExport.csvImport.review.importButton', {
+                count: store.importSummary.willImport,
+              })
+            }}
+            <ChevronRightIcon class="ml-1.5 size-4" />
+          </template>
         </UiButton>
       </div>
-    </div>
-
-    <!-- Import Summary -->
-    <div class="bg-primary/10 border-primary mb-6 rounded-lg border p-4">
-      <h3 class="mb-2 text-sm font-semibold">{{ t('pages.importExport.csvImport.review.importSummary') }}</h3>
-      <p class="text-sm">
-        <span class="text-success-text font-bold">{{ importStore.importSummary.willImport }}</span>
-        {{ t('pages.importExport.csvImport.review.willBeImported') }}
-        <span v-if="importStore.importSummary.invalidRows > 0">
-          <span class="text-destructive-text font-bold">{{ importStore.importSummary.invalidRows }}</span>
-          {{ t('pages.importExport.csvImport.review.invalidWillBeSkipped') }}
-        </span>
-        <span v-if="importStore.importSummary.duplicates > 0">
-          <span class="text-warning-text font-bold">{{ importStore.importSummary.duplicates }}</span>
-          {{ t('pages.importExport.csvImport.review.duplicatesWillBeSkipped') }}
-        </span>
-        <span v-if="importStore.unpriceableRows.length > 0">
-          <span class="font-bold text-orange-600">{{ importStore.unpriceableRows.length }}</span>
-          {{ t('pages.importExport.csvImport.review.unpriceableWillBeSkipped') }}
-        </span>
-      </p>
-    </div>
-
-    <!-- Import failure — the execute-import API call itself failed. Covers both the
-         normal and skip-and-import paths so a failed import is never silent. -->
-    <Callout v-if="importStore.importError" variant="destructive" class="mb-6" role="alert">
-      <p>{{ importStore.importError }}</p>
-    </Callout>
-
-    <!-- Action Buttons — hidden when unpriceableRows consent panel is active,
-         because the consent panel carries its own Skip/Cancel controls. -->
-    <div v-if="importStore.unpriceableRows.length === 0" class="flex justify-between">
-      <UiButton variant="outline" @click="goBack">
-        <ChevronLeftIcon class="mr-2 size-4" />
-        {{ t('pages.importExport.csvImport.review.backToMapping') }}
-      </UiButton>
-      <UiButton
-        @click="handleExecuteImport"
-        :disabled="importStore.importSummary.willImport === 0 || importStore.importInProgress"
-      >
-        <template v-if="importStore.importInProgress">{{
-          t('pages.importExport.csvImport.review.importing')
-        }}</template>
-        <template v-else>
-          {{ t('pages.importExport.csvImport.review.importButton', { count: importStore.importSummary.willImport }) }}
-          <ChevronRightIcon class="ml-2 size-4" />
-        </template>
-      </UiButton>
-    </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
-import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
+import { StatCard } from '@/components/lib/ui/stat-card';
+import { StatusIndicator } from '@/components/lib/ui/status-indicator';
 import { useImportExportStore } from '@/stores/import-export';
-import { AlertTriangleIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
-import { format, parseISO } from 'date-fns';
+import type { InvalidRow } from '@bt/shared/types';
+import { ChevronLeftIcon, ChevronRightIcon, LoaderCircleIcon } from '@lucide/vue';
+import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import DuplicatesTable from './duplicates-table.vue';
 
 const { t } = useI18n();
 
-const importStore = useImportExportStore();
+const store = useImportExportStore();
 
-const formatAmount = (amount: number): string => {
-  // Amounts are stored in cents, convert to dollars
-  return (amount / 100).toFixed(2);
-};
+// Trigger detection on mount when results haven't been computed yet.
+// detectDuplicates() also advances to 'review' on success — if we're already
+// here (re-render) and data exists, skip the call.
+onMounted(async () => {
+  const hasData = store.validRows.length > 0 || store.invalidRows.length > 0 || store.duplicates.length > 0;
 
-/**
- * Formats any ISO date string (full instant or YYYY-MM-DD) into a locale-aware
- * display date. Using parseISO handles both formats; format() renders in the
- * user's local timezone so the day matches what the rest of the app shows.
- */
-const formatDate = (iso: string): string => format(parseISO(iso), 'PP');
+  if (!hasData && !store.isDetectingDuplicates) {
+    try {
+      await store.detectDuplicates();
+    } catch {
+      // Error is stored in store.detectError and rendered via Callout.
+    }
+  }
+});
 
-const goBack = () => {
-  importStore.currentStep = 2;
-};
+// --- Expanded row state for invalid rows ---
+const expandedRows = ref<Set<number>>(new Set());
 
-const handleExecuteImport = async () => {
-  try {
-    await importStore.executeImport();
-  } catch {
-    // The user-facing message is already set in importStore.importError and
-    // rendered in the Callout below. Absorb here so the click handler doesn't
-    // propagate an unhandled rejection.
+const toggleExpand = (index: number) => {
+  if (expandedRows.value.has(index)) {
+    expandedRows.value.delete(index);
+  } else {
+    expandedRows.value.add(index);
   }
 };
 
-/** Skip path: pass all unpriceable row indices so the backend skips them. */
-const handleSkipAndImport = async () => {
-  const skipUnpriceableIndices = importStore.unpriceableRows.map((r) => r.rowIndex);
+// --- Column definitions ---
+const invalidRowsColumns: MappingTableColumn[] = [
+  { key: 'row', label: t('pages.importExport.csvImport.review.columnHeaders.row'), width: '48px' },
+  { key: 'problem', label: t('pages.importExport.csvImport.review.columnHeaders.problem'), width: 'minmax(0,1.4fr)' },
+  { key: 'data', label: t('pages.importExport.csvImport.review.columnHeaders.data'), width: 'minmax(0,2fr)' },
+];
+
+/**
+ * Builds a compact one-line summary from a raw CSV row for the invalid-rows
+ * table Data cell. Shows description, amount, and date if present; falls back
+ * to the first few key→value pairs.
+ */
+const compactRowSummary = (rawData: InvalidRow['rawData']): string => {
+  const PREFERRED_KEYS = ['description', 'desc', 'note', 'memo', 'amount', 'date', 'transaction_date'];
+  const parts: string[] = [];
+
+  for (const key of PREFERRED_KEYS) {
+    const val = rawData[key];
+    if (val != null && val !== '') {
+      parts.push(val);
+      if (parts.length >= 3) break;
+    }
+  }
+
+  if (parts.length === 0) {
+    // No preferred keys found — use first few available values
+    for (const val of Object.values(rawData)) {
+      if (val != null && val !== '') {
+        parts.push(val);
+        if (parts.length >= 3) break;
+      }
+    }
+  }
+
+  return parts.join(' · ') || '—';
+};
+
+// --- Actions ---
+
+const handleExecuteImport = async () => {
   try {
-    await importStore.executeImport({ skipUnpriceableIndices });
+    await store.executeImport();
   } catch {
-    // Error already captured in importStore.importError and rendered in the Callout below.
+    // Error captured in store.importError and shown via Callout.
+  }
+};
+
+const handleSkipAndImport = async () => {
+  const skipUnpriceableIndices = store.unpriceableRows.map((r) => r.rowIndex);
+  try {
+    await store.executeImport({ skipUnpriceableIndices });
+  } catch {
+    // Error captured in store.importError and shown via Callout.
   }
 };
 </script>

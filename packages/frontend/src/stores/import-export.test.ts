@@ -42,7 +42,15 @@ vi.mock('./categories/categories', () => ({
 // ----- helpers -----
 
 import * as apiModule from '@/api/import-export';
-import type { DetectDuplicatesResponse } from '@bt/shared/types';
+import {
+  AccountOptionValue,
+  CategoryOptionValue,
+  CurrencyOptionValue,
+  type DetectDuplicatesResponse,
+  type SourceAccount,
+  TagOptionValue,
+  TransactionTypeOptionValue,
+} from '@bt/shared/types';
 
 import { useCategoriesStore } from './categories/categories';
 
@@ -609,5 +617,235 @@ describe('useImportExportStore – importError', () => {
     store.reset();
 
     expect(store.importError).toBeNull();
+  });
+});
+
+describe('useImportExportStore – isMapStepValid', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('is true when every required field has both a method and its decision', () => {
+    const store = useImportExportStore();
+    seedStore(store);
+
+    expect(store.isMapStepValid).toBe(true);
+  });
+
+  // Regression: picking a category method without selecting a CSV column must NOT let Next through.
+  it('is false when category uses a CSV-column method but no column is selected', () => {
+    const store = useImportExportStore();
+    seedStore(store);
+
+    store.columnMapping.category = { option: CategoryOptionValue.createNewCategories, columnName: '' };
+    expect(store.isMapStepValid).toBe(false);
+
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: '' };
+    expect(store.isMapStepValid).toBe(false);
+
+    // Choosing the column resolves it.
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
+    expect(store.isMapStepValid).toBe(true);
+  });
+
+  it('is false when account or currency from-column methods have no column selected', () => {
+    const store = useImportExportStore();
+    seedStore(store);
+
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: '' };
+    expect(store.isMapStepValid).toBe(false);
+
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+    store.columnMapping.currency = { option: CurrencyOptionValue.dataSourceColumn, columnName: '' };
+    expect(store.isMapStepValid).toBe(false);
+  });
+
+  it('is false when transaction-type from-column lacks a column or either value list', () => {
+    const store = useImportExportStore();
+    seedStore(store);
+
+    store.columnMapping.transactionType = {
+      option: TransactionTypeOptionValue.dataSourceColumn,
+      columnName: 'type',
+      incomeValues: [],
+      expenseValues: [],
+    };
+    expect(store.isMapStepValid).toBe(false);
+
+    store.columnMapping.transactionType = {
+      option: TransactionTypeOptionValue.dataSourceColumn,
+      columnName: 'type',
+      incomeValues: ['Ingreso'],
+      expenseValues: ['Gasto'],
+    };
+    expect(store.isMapStepValid).toBe(true);
+  });
+});
+
+describe('useImportExportStore – isResolveStepValid', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('accounts (from-column): true when all resolved, false when a link row has an empty id', () => {
+    const store = useImportExportStore();
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+    store.uniqueAccountsInCSV = [
+      { name: 'Checking', currency: 'USD' },
+      { name: 'Savings', currency: 'USD' },
+    ] as SourceAccount[];
+
+    store.accountMapping = {
+      Checking: { action: 'link-existing', accountId: 'acc-1' },
+      Savings: { action: 'create-new' },
+    };
+    expect(store.isResolveStepValid).toBe(true);
+
+    // A link-existing row with an empty target id is not fully resolved.
+    store.accountMapping = {
+      Checking: { action: 'link-existing', accountId: '' },
+      Savings: { action: 'create-new' },
+    };
+    expect(store.isResolveStepValid).toBe(false);
+  });
+
+  it('categories (map-from-column): true when all resolved, false when a link row has an empty id', () => {
+    const store = useImportExportStore();
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
+    store.uniqueCategoriesInCSV = ['Food', 'Travel'];
+
+    store.categoryMapping = {
+      Food: { action: 'link-existing', categoryId: 'cat-1' },
+      Travel: { action: 'create-new' },
+    };
+    expect(store.isResolveStepValid).toBe(true);
+
+    store.categoryMapping = {
+      Food: { action: 'link-existing', categoryId: '' },
+      Travel: { action: 'create-new' },
+    };
+    expect(store.isResolveStepValid).toBe(false);
+  });
+
+  it('tags (map-from-column): skip counts as resolved; a link row with an empty id does not', () => {
+    const store = useImportExportStore();
+    store.columnMapping.tags = { option: TagOptionValue.mapDataSourceColumn, columnName: 'labels' };
+    store.uniqueTagsInCSV = ['urgent', 'work'];
+
+    // skip is a complete decision, on par with create-new / a linked id.
+    store.tagMapping = {
+      urgent: { action: 'skip' },
+      work: { action: 'link-existing', tagId: 'tag-1' },
+    };
+    expect(store.isResolveStepValid).toBe(true);
+
+    store.tagMapping = {
+      urgent: { action: 'skip' },
+      work: { action: 'link-existing', tagId: '' },
+    };
+    expect(store.isResolveStepValid).toBe(false);
+  });
+});
+
+describe('useImportExportStore – needsResolveStep & visibleSteps', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  const stepKeys = (store: ReturnType<typeof useImportExportStore>) => store.visibleSteps.map((s) => s.key);
+
+  it('category map-from-column requires the resolve step', () => {
+    const store = useImportExportStore();
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
+
+    expect(store.needsResolveStep).toBe(true);
+    expect(stepKeys(store)).toContain('resolve');
+  });
+
+  it('category create-new requires the resolve step', () => {
+    const store = useImportExportStore();
+    store.columnMapping.category = { option: CategoryOptionValue.createNewCategories, columnName: 'category' };
+
+    expect(store.needsResolveStep).toBe(true);
+    expect(stepKeys(store)).toContain('resolve');
+  });
+
+  it('account from-column requires the resolve step', () => {
+    const store = useImportExportStore();
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+
+    expect(store.needsResolveStep).toBe(true);
+    expect(stepKeys(store)).toContain('resolve');
+  });
+
+  it('tags map-from-column requires the resolve step', () => {
+    const store = useImportExportStore();
+    store.columnMapping.tags = { option: TagOptionValue.mapDataSourceColumn, columnName: 'labels' };
+
+    expect(store.needsResolveStep).toBe(true);
+    expect(stepKeys(store)).toContain('resolve');
+  });
+
+  it('currency from-column does NOT add the resolve step', () => {
+    const store = useImportExportStore();
+    store.columnMapping.currency = { option: CurrencyOptionValue.dataSourceColumn, columnName: 'currency' };
+
+    expect(store.needsResolveStep).toBe(false);
+    expect(stepKeys(store)).not.toContain('resolve');
+    expect(stepKeys(store)).toEqual(['upload', 'map', 'review', 'results']);
+  });
+
+  it('transaction-type from-column does NOT add the resolve step', () => {
+    const store = useImportExportStore();
+    store.columnMapping.transactionType = {
+      option: TransactionTypeOptionValue.dataSourceColumn,
+      columnName: 'type',
+      incomeValues: ['Ingreso'],
+      expenseValues: ['Gasto'],
+    };
+
+    expect(store.needsResolveStep).toBe(false);
+    expect(stepKeys(store)).not.toContain('resolve');
+  });
+});
+
+describe('useImportExportStore – parseFile', () => {
+  const mockParseCsvApi = vi.mocked(apiModule.parseCsv);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  /** Minimal File stand-in: parseFile only calls `.text()` on it. */
+  const fakeFile = (content: string) => ({ text: () => Promise.resolve(content) }) as unknown as File;
+
+  it('strips empty-string headers and seeds columnMapping/columnMatch from the parse response', async () => {
+    mockParseCsvApi.mockResolvedValue({
+      // A trailing empty header (common with a dangling delimiter) must be dropped.
+      headers: ['date', 'amount', ''],
+      preview: [{ date: '2026-01-01', amount: '100', '': '' }],
+      detectedDelimiter: ',',
+      totalRows: 1,
+    });
+
+    const store = useImportExportStore();
+
+    await store.parseFile(fakeFile('date,amount,\n2026-01-01,100,'));
+
+    expect(store.csvHeaders).toEqual(['date', 'amount']);
+    expect(store.csvHeaders).not.toContain('');
+
+    // Matcher ran over the cleaned headers and seeded both the raw match result
+    // and the working mapping (date/amount are recognised simple columns).
+    expect(store.columnMatch).not.toBeNull();
+    expect(store.columnMapping.date).toBe('date');
+    expect(store.columnMapping.amount).toBe('amount');
+
+    // Upload is marked done and the wizard advances to the Map step.
+    expect(store.currentStepKey).toBe('map');
   });
 });
