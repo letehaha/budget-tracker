@@ -19,6 +19,7 @@
  * sources but the executed price and total cash impact don't. If both match
  * exactly, it's the same trade.
  */
+import { toUtcDateString } from '@common/utils/date';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
 import { Big } from 'big.js';
@@ -64,12 +65,17 @@ export function decimalsEqual({ a, b }: { a: string; b: string }): boolean {
 }
 
 /**
- * Absolute day difference between two YYYY-MM-DD strings. Both values are
- * interpreted as UTC midnight; that avoids the off-by-one DST drift we'd get
- * if we let Date parse local time. Exported for unit testing.
+ * Absolute day difference between two dates. Inputs may be `Date` objects
+ * (e.g. a TIMESTAMPTZ `InvestmentTransaction.date` from the DB) or `YYYY-MM-DD`
+ * strings (parsed CSV rows); both are normalized to their UTC calendar day via
+ * `toUtcDateString` and interpreted as UTC midnight. Anchoring to the UTC day
+ * keeps the comparison calendar-day-granular and avoids the off-by-one DST
+ * drift we'd get if we let Date parse local time. Exported for unit testing.
  */
-export function dayDiff({ a, b }: { a: string; b: string }): number {
-  const ms = Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`);
+export function dayDiff({ a, b }: { a: Date | string; b: Date | string }): number {
+  const dayA = toUtcDateString(a);
+  const dayB = toUtcDateString(b);
+  const ms = Date.parse(`${dayA}T00:00:00Z`) - Date.parse(`${dayB}T00:00:00Z`);
   return Math.abs(Math.round(ms / MS_PER_DAY));
 }
 
@@ -121,7 +127,11 @@ export async function detectInvestmentDuplicates({
       where: {
         portfolioId: sample.portfolioId,
         securityId: sample.securityId,
-        date: { [Op.between]: [windowStart, windowEnd] },
+        // `date` is TIMESTAMPTZ, so anchor the ±3-day window to full UTC days:
+        // lower = windowStart start-of-day UTC, upper = windowEnd end-of-day UTC.
+        // A bare `windowEnd` upper bound would cast to midnight UTC and miss
+        // that day's later intraday rows, shrinking the window.
+        date: { [Op.between]: [`${windowStart}T00:00:00.000Z`, `${windowEnd}T23:59:59.999Z`] },
       },
       include: [
         {

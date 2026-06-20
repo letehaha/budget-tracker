@@ -183,6 +183,98 @@ describe('Same-day SELL+BUY cost-basis ordering', () => {
     expect(holding.costBasis).toBeNumericEqual(900);
   });
 
+  /**
+   * Proves that same-day trades replay in TIMESTAMP order (the `date` field's
+   * time component), not in insertion/createdAt order.
+   *
+   * Setup: two trades on 2026-03-02 are created in REVERSE chronological order —
+   * the BUY at 14:00 is inserted first (earlier createdAt), then the SELL at
+   * 09:00 is inserted second (later createdAt). Insertion order would process
+   * the BUY before the SELL, yielding costBasis 200 (10@10 + 10@30 blended then
+   * halved by sell). Timestamp order processes SELL(09:00) first — liquidating
+   * the original position to zero — then BUY(14:00) at 30, yielding costBasis
+   * 300 (the only surviving lot). The assertion on 300 ≠ 200 is the discriminator.
+   */
+  it('replays same-day trades in timestamp order, not insertion order', async () => {
+    // Seed a security priced in AED (the test user's base currency) so that
+    // costBasis and refCostBasis are identical — no exchange-rate noise.
+    const [baseCurrencySecurity] = await helpers.seedSecurities([
+      {
+        symbol: 'AAED',
+        name: 'AED Test Security',
+        currencyCode: global.BASE_CURRENCY_CODE,
+      },
+    ]);
+    if (!baseCurrencySecurity) throw new Error('AED security not found after seeding');
+
+    await helpers.createHolding({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: baseCurrencySecurity.id,
+      },
+    });
+
+    const getBaseCurrencyHolding = async () => {
+      const [h] = await helpers.getHoldings({
+        portfolioId: investmentPortfolio.id,
+        payload: { securityId: baseCurrencySecurity.id },
+        raw: true,
+      });
+      expect(h).toBeTruthy();
+      return h!;
+    };
+
+    // Day 1: establish a position — 10 shares @ 10, cost basis 100.
+    await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: baseCurrencySecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        date: '2026-03-01',
+        quantity: '10',
+        price: '10',
+      },
+    });
+
+    // Day 2, step A — BUY 10 @ 30 at 14:00.
+    // Inserted FIRST so it gets the earlier createdAt (insertion order would
+    // process this before the 09:00 sell, blending it into a 200 basis).
+    await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: baseCurrencySecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        date: '2026-03-02T14:00:00.000Z',
+        quantity: '10',
+        price: '30',
+      },
+    });
+
+    // Day 2, step B — SELL 10 @ 25 at 09:00.
+    // Inserted SECOND (later createdAt) but timestamps EARLIER than the buy
+    // above. Timestamp order must process this sell before the 14:00 buy,
+    // draining the position to zero and resetting the basis before the rebuy.
+    await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: baseCurrencySecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+        date: '2026-03-02T09:00:00.000Z',
+        quantity: '10',
+        price: '25',
+      },
+    });
+
+    const holding = await getBaseCurrencyHolding();
+
+    expect(holding.quantity).toBeNumericEqual(10);
+    // Timestamp order: Day1 BUY(10@10) → 09:00 SELL(10) liquidates → 14:00 BUY(10@30) = 300.
+    // Insertion order would have given: Day1 BUY(10@10) → 14:00 BUY(10@30) blended → SELL(10)
+    // removes half the blended position, leaving a 200 basis. 300 proves timestamp order.
+    expect(holding.costBasis).toBeNumericEqual(300);
+    expect(holding.refCostBasis).toBeNumericEqual(300);
+  });
+
   it('replays by calendar date, not insertion order, when a sell is back-dated between two buys', async () => {
     // Inserted first, earliest date.
     await helpers.createInvestmentTransaction({

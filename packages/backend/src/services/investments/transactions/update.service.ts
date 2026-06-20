@@ -125,7 +125,7 @@ const updateInvestmentTransactionImpl = async (params: UpdateTransactionParams) 
   }
 
   if (updateFields.date !== undefined) {
-    updateData.date = updateFields.date;
+    updateData.date = new Date(updateFields.date);
   }
 
   if (updateFields.name !== undefined) {

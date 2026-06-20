@@ -254,7 +254,7 @@ const onSubmit = async () => {
       securityId: form.security.value,
       quantity: form.quantity,
       price: form.price,
-      date: form.date.toISOString().slice(0, 10),
+      date: form.date.toISOString(),
       fees: settlementEnabled ? '0' : form.fees || '0',
       ...(trimmedNote ? { name: trimmedNote } : {}),
       ...(settlementEnabled

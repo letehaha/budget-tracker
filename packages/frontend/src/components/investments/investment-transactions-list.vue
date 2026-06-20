@@ -28,6 +28,7 @@ defineEmits<{ (e: 'add-transaction'): void }>();
 
 const { formatAmountByCurrencyCode, formatBaseCurrency } = useFormatCurrency();
 const formatDate = (date: string | Date) => format(new Date(date), 'dd/MM/yyyy');
+const formatTransactionDate = (date: string | Date) => format(new Date(date), 'dd/MM/yyyy HH:mm');
 const formatRate = (rate: string) => toLocalNumber(rate, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 
 const formatQuantity = (quantity: string | null, assetClass: ASSET_CLASS | undefined) => {
@@ -166,7 +167,11 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll<InvestmentTransa
                 >
                   <template v-for="column in visibleColumns" :key="column.id">
                     <div v-if="column.id === INVESTMENT_TX_COLUMN.date" class="tabular-nums">
-                      {{ formatDate(transactions[virtualRow.index]!.date) }}
+                      <ResponsiveTooltip :content="formatTransactionDate(transactions[virtualRow.index]!.date)">
+                        <span class="cursor-help underline decoration-dotted underline-offset-2">
+                          {{ formatDate(transactions[virtualRow.index]!.date) }}
+                        </span>
+                      </ResponsiveTooltip>
                     </div>
                     <div v-else-if="column.id === INVESTMENT_TX_COLUMN.type">
                       <span

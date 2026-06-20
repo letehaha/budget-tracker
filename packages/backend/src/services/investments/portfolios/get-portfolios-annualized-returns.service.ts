@@ -1,5 +1,6 @@
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
 import type { PortfolioAnnualizedReturnModel } from '@bt/shared/types/investments/portfolio-annualized-return.model';
+import { toUtcDateString } from '@common/utils/date';
 import { logger } from '@js/utils';
 import ExchangeRates from '@models/exchange-rates.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
@@ -26,27 +27,6 @@ const MIN_HISTORY_DAYS = 180;
  */
 const FALLBACK_LOOKBACK_DAYS = 7;
 
-const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
-
-/**
- * Fast UTC variant for hot loops that format tens of thousands of pricing/rate
- * rows. `date-fns` `format()` is regex/template-driven and dominated the
- * pre-compute "map building" phase. Skipping it cuts that phase by ~10×.
- *
- * Output matches `formatDate(d)` whenever the process runs in UTC (the prod
- * default for containerized backends). In a non-UTC dev shell the two diverge
- * for rows whose UTC timestamp crosses local midnight — acceptable because the
- * comparison target (`tx.date`) is a TZ-naive `DATEONLY` string and the data
- * model treats dates as calendar days, not wall-clock moments.
- */
-export const fastFormatDate = (date: Date | string): string => {
-  if (typeof date === 'string') return date.length >= 10 ? date.slice(0, 10) : date;
-  const y = date.getUTCFullYear();
-  const m = date.getUTCMonth() + 1;
-  const d = date.getUTCDate();
-  return `${y}-${m < 10 ? '0' : ''}${m}-${d < 10 ? '0' : ''}${d}`;
-};
-
 interface GetPortfoliosAnnualizedReturnsParams {
   userId: number;
 }
@@ -54,6 +34,10 @@ interface GetPortfoliosAnnualizedReturnsParams {
 // Raw query — decimal Money columns come back as Postgres-formatted strings
 // (`'12.3400000000'`), not hydrated Money instances. Convert with `Number(...)`
 // at the use site; precision loss matches the prior `Money.toNumber()` path.
+//
+// `date` is a timestamptz column, so node-postgres returns a JS `Date` here even
+// on this raw query. Day-level logic normalizes it to a UTC calendar day with
+// `toUtcDateString` before bucketing or comparing.
 type TransactionRow = Pick<InvestmentTransaction, 'portfolioId' | 'securityId' | 'category' | 'date'> & {
   quantity: string;
   refAmount: string;
@@ -115,7 +99,12 @@ export const getPortfoliosAnnualizedReturns = async ({
   }
 
   const baseCurrencyCode = userBaseCurrency.currencyCode;
-  const today = formatDate(new Date());
+  const today = toUtcDateString(new Date());
+  // Inclusive end of today in UTC for the `date` filter. `date` is a timestamptz,
+  // so a bare `Op.lte: today` ('YYYY-MM-DD') would cast to today's midnight and
+  // silently drop every trade timestamped later in the day. Bounding by the last
+  // UTC instant of today instead keeps all of today's trades, host-TZ-agnostic.
+  const todayEndOfDayUtc = `${today}T23:59:59.999Z`;
   const portfolioIds = portfolios.map((p) => p.id);
 
   // Only buys/sells (holdings changes) and dividends (income return) matter for
@@ -131,7 +120,7 @@ export const getPortfoliosAnnualizedReturns = async ({
           INVESTMENT_TRANSACTION_CATEGORY.dividend,
         ],
       },
-      date: { [Op.lte]: today },
+      date: { [Op.lte]: todayEndOfDayUtc },
     },
     order: [
       ['portfolioId', 'ASC'],
@@ -155,10 +144,13 @@ export const getPortfoliosAnnualizedReturns = async ({
   const securitiesById = new Map(securities.map((s) => [String(s.id), s]));
   const currencyCodes = [...new Set(securities.map((s) => s.currencyCode))];
 
-  // Earliest trade date bounds how far back rates need to be loaded.
+  // Earliest trade date bounds how far back rates need to be loaded. Normalize
+  // each timestamptz to its UTC calendar day so the comparison and the stored
+  // value stay `YYYY-MM-DD` strings (consumed by `parseISO` below).
   let earliestDate: string | null = null;
   for (const tx of transactions) {
-    if (earliestDate === null || tx.date < earliestDate) earliestDate = tx.date;
+    const txDate = toUtcDateString(tx.date);
+    if (earliestDate === null || txDate < earliestDate) earliestDate = txDate;
   }
   const dataFetchMinDate = earliestDate
     ? format(subDays(parseISO(earliestDate), FALLBACK_LOOKBACK_DAYS), 'yyyy-MM-dd')
@@ -231,7 +223,7 @@ export const getPortfoliosAnnualizedReturns = async ({
   // ("latest price on or before a date" covers weekends/holidays).
   const pricesBySecurity = new Map<string, Array<{ date: string; price: number }>>();
   for (const row of securityPrices) {
-    const dateStr = fastFormatDate(row.date);
+    const dateStr = toUtcDateString(row.date);
     const list = pricesBySecurity.get(row.securityId);
     const entry = { date: dateStr, price: Number(row.priceClose) };
     if (list) {
@@ -258,7 +250,7 @@ export const getPortfoliosAnnualizedReturns = async ({
   // User overrides (`currencyCode → userBase`) win over the computed cross-rate.
   const userRatesMap = new Map<string, number>();
   for (const r of userCustomExchangeRates) {
-    userRatesMap.set(`${r.baseCode}_${fastFormatDate(r.date)}`, r.rate);
+    userRatesMap.set(`${r.baseCode}_${toUtcDateString(r.date)}`, r.rate);
   }
 
   // System rates indexed by `${quoteCode}_${dateStr}` — value is `1 USD = N quoteCode`.
@@ -266,7 +258,7 @@ export const getPortfoliosAnnualizedReturns = async ({
   // Per-currency sorted (ascending) date list for the weekend/holiday fallback.
   const usdRateDatesByQuote = new Map<string, string[]>();
   for (const rate of systemExchangeRates) {
-    const dateStr = fastFormatDate(rate.date);
+    const dateStr = toUtcDateString(rate.date);
     usdRatesMap.set(`${rate.quoteCode}_${dateStr}`, rate.rate);
     const dates = usdRateDatesByQuote.get(rate.quoteCode);
     if (dates) dates.push(dateStr);
@@ -366,7 +358,9 @@ export const getPortfoliosAnnualizedReturns = async ({
       continue;
     }
 
-    const startDate = tradeTxs[0]!.date;
+    // UTC calendar day of the first trade. Kept as `YYYY-MM-DD` so `parseISO`
+    // below and the `startDate` API field (typed `string`) both receive a day.
+    const startDate = toUtcDateString(tradeTxs[0]!.date);
     const periodDays = differenceInDays(parseISO(today), parseISO(startDate));
 
     if (periodDays < MIN_HISTORY_DAYS) {
@@ -383,16 +377,20 @@ export const getPortfoliosAnnualizedReturns = async ({
     }
 
     // Group trades by date and collect dividends as a sorted list of returns.
+    // Buckets are keyed by the UTC calendar day, never the raw timestamptz —
+    // a `Date` key would make every transaction its own bucket instead of
+    // collapsing same-day trades into one boundary.
     const tradesByDate = new Map<string, TransactionRow[]>();
     const dividends: Array<{ date: string; amount: number }> = [];
     for (const tx of portfolioTxs) {
+      const txDate = toUtcDateString(tx.date);
       if (tx.category === INVESTMENT_TRANSACTION_CATEGORY.dividend) {
-        dividends.push({ date: tx.date, amount: Number(tx.refAmount) });
+        dividends.push({ date: txDate, amount: Number(tx.refAmount) });
         continue;
       }
-      const list = tradesByDate.get(tx.date);
+      const list = tradesByDate.get(txDate);
       if (list) list.push(tx);
-      else tradesByDate.set(tx.date, [tx]);
+      else tradesByDate.set(txDate, [tx]);
     }
 
     const boundaryDates = [...tradesByDate.keys()].toSorted();

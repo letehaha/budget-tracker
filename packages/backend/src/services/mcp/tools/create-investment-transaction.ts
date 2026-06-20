@@ -28,7 +28,11 @@ export function registerCreateInvestmentTransaction(server: McpServer) {
             INVESTMENT_TRANSACTION_CATEGORY.other,
           ])
           .describe('Transaction type: buy, sell, dividend, transfer, tax, fee, cancel, or other'),
-        date: z.string().describe('Transaction date (ISO 8601, e.g. "2024-03-15")'),
+        date: z
+          .union([z.string().date(), z.string().datetime({ offset: true })])
+          .describe(
+            'When the trade occurred. Accepts a date-only value (ISO 8601, e.g. "2024-03-15") or a full datetime (e.g. "2024-03-15T09:30:00.000Z"); date-only is stored at UTC midnight.',
+          ),
         quantity: z.string().describe('Number of shares/units as a decimal string (e.g. "10.5")'),
         price: z.string().describe('Price per share/unit as a decimal string (e.g. "150.00")'),
         fees: z.string().describe('Transaction fees/commissions as a decimal string (e.g. "0.00")'),

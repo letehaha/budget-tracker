@@ -18,13 +18,14 @@ const recalculateHoldingImpl = async (holdingId: { portfolioId: string; security
     message: t({ key: 'investments.holdingNotFoundForRecalculation' }),
   });
 
-  // Same-day transactions replay in insertion order (createdAt) so a full wash
-  // sale — sell the whole position, then rebuy it on the same calendar date —
-  // resets the cost basis before the rebuy instead of blending the liquidated
-  // lots into it. `date` is DATEONLY, so without the createdAt tiebreaker
-  // Postgres is free to return the rebuy ahead of the sell and inflate
-  // AC/Share. Matches the ordering used by the balance-history and
-  // annualized-returns replays.
+  // `date` is a TIMESTAMPTZ, so trades replay in their actual chronological
+  // time order — a full wash sale (sell the whole position, then rebuy it later
+  // the same calendar day) resets the cost basis before the rebuy instead of
+  // blending the liquidated lots into it. `createdAt` is the final tiebreaker
+  // for trades that share an exact instant (e.g. two date-only imports both
+  // stored at UTC midnight); without it Postgres could return the rebuy ahead
+  // of the sell and inflate AC/Share. Matches the ordering used by the
+  // balance-history and annualized-returns replays.
   const transactions = await InvestmentTransaction.findAll({
     where: {
       portfolioId: holding.portfolioId,
