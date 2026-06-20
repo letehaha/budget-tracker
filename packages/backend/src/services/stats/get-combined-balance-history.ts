@@ -1,5 +1,6 @@
 import { ACCOUNT_CATEGORIES, ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { toUtcDateString } from '@common/utils/date';
 import { logger } from '@js/utils';
 import ExchangeRates from '@models/exchange-rates.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
@@ -84,8 +85,11 @@ const calculatePortfolioBalanceHistory = async ({
   const transactions: TransactionRow[] = await InvestmentTransaction.findAll({
     where: {
       portfolioId: { [Op.in]: portfolioIds },
+      // `date` is TIMESTAMPTZ and `maxDate` is a `yyyy-MM-dd` string. A bare
+      // upper bound would cast to midnight UTC and silently drop the final
+      // day's intraday trades; explicit end-of-day UTC keeps them inclusive.
       date: {
-        [Op.lte]: maxDate,
+        [Op.lte]: `${maxDate}T23:59:59.999Z`,
       },
     },
     order: [
@@ -336,7 +340,9 @@ const calculatePortfolioBalanceHistory = async ({
 
       for (const tx of portfolioTxs) {
         // Transactions are sorted by date ASC; stop once we pass the snapshot.
-        if (tx.date > dateStr) break;
+        // `tx.date` is a TIMESTAMPTZ Date; bucket to its UTC calendar day so the
+        // comparison against the `yyyy-MM-dd` snapshot key is lexicographic.
+        if (toUtcDateString(tx.date) > dateStr) break;
 
         const securityId = tx.securityId;
         const quantity = tx.quantity.toNumber();
@@ -470,7 +476,7 @@ export const getCombinedBalanceHistory = async ({
       ]);
 
       const candidates: string[] = [];
-      if (oldestTransaction?.date) candidates.push(format(new Date(oldestTransaction.date), 'yyyy-MM-dd'));
+      if (oldestTransaction?.date) candidates.push(toUtcDateString(oldestTransaction.date));
       if (oldestDeal?.investmentDate) candidates.push(oldestDeal.investmentDate);
       candidates.sort();
       minDate = candidates[0] ?? maxDate;

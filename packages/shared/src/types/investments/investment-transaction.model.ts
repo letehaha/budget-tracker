@@ -8,6 +8,11 @@ export interface InvestmentTransactionModel {
   securityId: string;
   portfolioId: string;
   transactionType: TRANSACTION_TYPES;
+  /**
+   * ISO 8601 datetime string for the moment the trade occurred (column is
+   * TIMESTAMPTZ). Date-only inputs are accepted on write and normalized to
+   * UTC midnight.
+   */
   date: string;
   /**
    * A descriptive name or title for the investment transaction, providing a

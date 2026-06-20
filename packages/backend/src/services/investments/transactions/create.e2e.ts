@@ -286,6 +286,27 @@ describe('POST /transaction (create investment transaction)', () => {
     expect(tx.price).toBeNumericEqual(25);
   });
 
+  it('stores a date-only input as UTC midnight', async () => {
+    // A date-only string (no time component) must be stored as UTC midnight so
+    // the persisted instant is deterministic and independent of the DB session
+    // timezone. `new Date('2026-03-01')` in JS parses as 2026-03-01T00:00:00Z,
+    // which is exactly what the column should contain.
+    const response = await helpers.createInvestmentTransaction({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: vooSecurity.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        quantity: '1',
+        price: '100',
+        date: '2026-03-01',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const tx = helpers.extractResponse(response);
+    expect(tx.date).toBe('2026-03-01T00:00:00.000Z');
+  });
+
   describe('crypto sell oversell', () => {
     let btcSecurity: Securities;
 

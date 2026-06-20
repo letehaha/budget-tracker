@@ -61,4 +61,28 @@ describe('dayDiff', () => {
     // 2024-03-09 → 2024-03-10 crosses US DST in some zones — should still be 1.
     expect(dayDiff({ a: '2024-03-09', b: '2024-03-10' })).toBe(1);
   });
+
+  it('returns 0 when a Date with intraday time falls on the same calendar day as a string', () => {
+    // The real call site passes `existing.date` as a Date (TIMESTAMPTZ from DB).
+    // An intraday time (23:00 UTC) must still resolve to the same UTC calendar
+    // day as the bare YYYY-MM-DD string from the parsed CSV row.
+    expect(dayDiff({ a: new Date('2024-01-15T23:00:00.000Z'), b: '2024-01-15' })).toBe(0);
+  });
+
+  it('returns the correct whole-day distance when one input is a Date with intraday time', () => {
+    // 2024-01-18 at 23:00 UTC is still calendar day 2024-01-18; distance from
+    // 2024-01-15 is 3 days regardless of the intraday component.
+    expect(dayDiff({ a: new Date('2024-01-18T23:00:00.000Z'), b: '2024-01-15' })).toBe(3);
+  });
+
+  it('handles Date-vs-Date inputs', () => {
+    // Both inputs from the DB would be Date objects; ensure normalization works
+    // for that call shape too.
+    expect(
+      dayDiff({
+        a: new Date('2024-01-15T23:00:00.000Z'),
+        b: new Date('2024-01-18T08:30:00.000Z'),
+      }),
+    ).toBe(3);
+  });
 });

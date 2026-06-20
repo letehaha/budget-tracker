@@ -11,7 +11,9 @@ export default createController(
     }),
     body: z.object({
       category: z.nativeEnum(INVESTMENT_TRANSACTION_CATEGORY).optional(),
-      date: z.string().date().optional(),
+      // Accept a date-only value ("2026-06-20") or a full ISO 8601 datetime
+      // ("2026-06-20T09:00:00.000Z"). Date-only is normalized to UTC midnight.
+      date: z.union([z.string().date(), z.string().datetime({ offset: true })]).optional(),
       quantity: z
         .string()
         .optional()
