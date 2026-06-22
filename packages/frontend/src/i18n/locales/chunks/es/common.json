@@ -257,9 +257,14 @@
   },
   "fileDropzone": {
     "clickOrDrag": "Haga clic o arrastre un archivo aquí",
+    "clickOrDragMultiple": "Haga clic o arrastre archivos CSV aquí",
     "dropHere": "Suelte el archivo para cargarlo",
+    "dropHereMultiple": "Suelte los archivos aquí",
     "removeFile": "Eliminar archivo",
     "fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es {max}.",
+    "fileTooLargeNamed": "{name} supera {max}",
+    "filesSelected": "{count} archivo seleccionado | {count} archivos seleccionados",
+    "clearAll": "Borrar todo",
     "onlyFirstFileTaken": "Se soltaron varios archivos — solo se usó el primero."
   },
   "demo": {

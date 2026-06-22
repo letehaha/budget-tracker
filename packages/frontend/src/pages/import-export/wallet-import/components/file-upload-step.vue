@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import FileDropzone from '@/components/common/file-dropzone.vue';
+import { FileDropzone } from '@/components/common/dropzone';
 import { Callout } from '@/components/lib/ui/callout';
 import { useImportWalletStore } from '@/stores/import-wallet';
 import { LoaderIcon } from '@lucide/vue';

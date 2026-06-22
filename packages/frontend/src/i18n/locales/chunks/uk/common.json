@@ -257,9 +257,14 @@
   },
   "fileDropzone": {
     "clickOrDrag": "Натисніть або перетягніть файл сюди",
+    "clickOrDragMultiple": "Натисніть або перетягніть CSV-файли сюди",
     "dropHere": "Відпустіть файл для завантаження",
+    "dropHereMultiple": "Перетягніть файли сюди",
     "removeFile": "Прибрати файл",
     "fileTooLarge": "Файл занадто великий. Максимальний розмір — {max}.",
+    "fileTooLargeNamed": "{name} перевищує {max}",
+    "filesSelected": "{count} файл вибрано | {count} файли вибрано | {count} файлів вибрано",
+    "clearAll": "Очистити все",
     "onlyFirstFileTaken": "Кинуто кілька файлів — використано лише перший."
   },
   "demo": {

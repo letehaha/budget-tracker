@@ -26,7 +26,11 @@ import { useWizardSteps } from '@/composable/use-wizard-steps';
 import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
-import { type ColumnMatchResult, matchColumns } from '@/pages/import-export/utils/auto-match';
+import {
+  type ColumnMatchResult,
+  classifyTransactionTypeValues,
+  matchColumns,
+} from '@/pages/import-export/utils/auto-match';
 import { type ColumnMapping, buildInitialColumnMapping } from '@/pages/import-export/utils/build-initial-mapping';
 import { toColumnMappingConfig } from '@/pages/import-export/utils/column-mapping-config';
 import {
@@ -36,6 +40,7 @@ import {
   isTransactionTypeDecided,
 } from '@/pages/import-export/utils/field-decision';
 import { flattenCategories } from '@/pages/import-export/utils/flatten-categories';
+import { distinctColumnValues, findUncoveredValues } from '@/pages/import-export/utils/transaction-type-coverage';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -81,13 +86,18 @@ const emptyColumnMapping = (): ColumnMapping => ({
 export const useImportExportStore = defineStore('importExport', () => {
   const queryClient = useQueryClient();
 
-  // Step 1: File upload
-  const uploadedFile = ref<File | null>(null);
+  // Step 1: File upload. Several CSVs are merged into one logical file before
+  // parsing, so the rest of the pipeline still works on a single `fileContent`.
+  const uploadedFiles = ref<File[]>([]);
   const fileContent = ref<string | null>(null);
 
   // Step 2: Parsing
   const csvHeaders = ref<string[]>([]);
   const csvPreview = ref<Record<string, string>[]>([]);
+  // All data rows of the combined CSV (no header), aligned to `csvHeaders`. The
+  // backend preview is capped at 50 rows, so the Map step scans these for the full
+  // set of transaction-type values (which can appear past the preview window).
+  const csvDataRows = ref<string[][]>([]);
   const detectedDelimiter = ref<string>(',');
   const totalRows = ref<number>(0);
 
@@ -209,13 +219,46 @@ export const useImportExportStore = defineStore('importExport', () => {
   });
 
   /**
+   * Distinct values of the transaction-type column across the full data set, or
+   * empty when the type isn't read from a column. Reads every row (not just the
+   * 50-row preview) so values that first appear in later rows still count.
+   */
+  const transactionTypeColumnValues = computed<string[]>(() => {
+    const transactionType = columnMapping.value.transactionType;
+    if (transactionType.option !== TransactionTypeOptionValue.dataSourceColumn || !transactionType.columnName) {
+      return [];
+    }
+    return distinctColumnValues({
+      headers: csvHeaders.value,
+      dataRows: csvDataRows.value,
+      columnName: transactionType.columnName,
+    });
+  });
+
+  /**
+   * Type-column values not yet assigned to the income or expense list. Non-empty
+   * here blocks the Map step (and is shown to the user) so the import never reaches
+   * the backend with type values it can't classify.
+   */
+  const uncoveredTransactionTypeValues = computed<string[]>(() => {
+    const transactionType = columnMapping.value.transactionType;
+    if (transactionType.option !== TransactionTypeOptionValue.dataSourceColumn) return [];
+    return findUncoveredValues({
+      values: transactionTypeColumnValues.value,
+      incomeValues: transactionType.incomeValues,
+      expenseValues: transactionType.expenseValues,
+    });
+  });
+
+  /**
    * Map step is valid once date + amount columns are chosen and each of
    * category / account / currency / transaction-type has BOTH a method and the
    * decision that method requires — a CSV column for column-based methods, an
    * entity id for single-existing, both value lists for transaction-type
    * from-column. A chosen method alone is not enough (e.g. "Create new
    * categories" with no column selected must still block Next). When a tags
-   * column is mapped, its column name must be set too.
+   * column is mapped, its column name must be set too. Every value in a
+   * type-from-column must also be assigned to income or expense.
    */
   const isMapStepValid = computed(() => {
     const m = columnMapping.value;
@@ -225,6 +268,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     if (!isAccountDecided({ account: m.account })) return false;
     if (!isCurrencyDecided({ currency: m.currency })) return false;
     if (!isTransactionTypeDecided({ transactionType: m.transactionType })) return false;
+    if (uncoveredTransactionTypeValues.value.length > 0) return false;
 
     if (m.tags?.option === TagOptionValue.mapDataSourceColumn && !m.tags.columnName) {
       return false;
@@ -330,11 +374,16 @@ export const useImportExportStore = defineStore('importExport', () => {
 
   // ---- Async actions ----
 
-  const parseFile = async (file: File) => {
-    uploadedFile.value = file;
-    fileContent.value = await file.text();
+  const parseFiles = async ({ files }: { files: File[] }) => {
+    // Combine the selected CSVs into one canonical CSV string client-side. Throws
+    // a MergeCsvError (header mismatch, unreadable/empty file, row-limit) that the
+    // upload step maps to a localized message; the rest of the flow is unchanged.
+    const { mergeCsvFiles } = await import('@/pages/import-export/utils/merge-csv-files');
+    const merged = await mergeCsvFiles({ files });
+    fileContent.value = merged.combinedContent;
+    csvDataRows.value = merged.dataRows;
 
-    // Call backend API to parse CSV
+    // Call backend API to parse the combined CSV
     const { parseCsv } = await import('@/api/import-export');
     const response = await parseCsv({
       fileContent: fileContent.value,
@@ -352,6 +401,21 @@ export const useImportExportStore = defineStore('importExport', () => {
       matchResult: columnMatch.value,
       preview: csvPreview.value,
     });
+
+    // buildInitialColumnMapping classifies transaction-type values from the 50-row
+    // preview; re-classify over the full data so values that first appear in later
+    // rows (common when several files are merged) are pre-assigned too. Anything
+    // the classifier can't place is surfaced on the Map step via uncoveredTransactionTypeValues.
+    const transactionType = columnMapping.value.transactionType;
+    if (transactionType.option === TransactionTypeOptionValue.dataSourceColumn && transactionType.columnName) {
+      const { income, expense } = classifyTransactionTypeValues({ distinctValues: transactionTypeColumnValues.value });
+      columnMapping.value.transactionType = { ...transactionType, incomeValues: income, expenseValues: expense };
+    }
+
+    // Record the selection only once merge + parse have succeeded, so a failure
+    // leaves the store untouched (no half-set uploadedFiles over stale fileContent)
+    // and the upload step retries from a clean slate.
+    uploadedFiles.value = files;
 
     goToStep('map');
     markStepCompleted('upload');
@@ -626,10 +690,11 @@ export const useImportExportStore = defineStore('importExport', () => {
   };
 
   const reset = () => {
-    uploadedFile.value = null;
+    uploadedFiles.value = [];
     fileContent.value = null;
     csvHeaders.value = [];
     csvPreview.value = [];
+    csvDataRows.value = [];
     detectedDelimiter.value = ',';
     totalRows.value = 0;
     columnMapping.value = emptyColumnMapping();
@@ -660,7 +725,7 @@ export const useImportExportStore = defineStore('importExport', () => {
 
   return {
     // State
-    uploadedFile,
+    uploadedFiles,
     fileContent,
     csvHeaders,
     csvPreview,
@@ -701,6 +766,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     needsTagResolution,
     visibleSteps,
     isMapStepValid,
+    uncoveredTransactionTypeValues,
     isResolveStepValid,
     importSummary,
 
@@ -708,7 +774,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     goToStep,
     goNext,
     goBack,
-    parseFile,
+    parseFiles,
     detectDuplicates,
     toggleDuplicateUnmark,
     executeImport,

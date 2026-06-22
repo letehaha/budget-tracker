@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import FileDropzone from '@/components/common/file-dropzone.vue';
+import { FileDropzone } from '@/components/common/dropzone';
 import { Button as UiButton } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { useImportYnabStore } from '@/stores/import-ynab';
