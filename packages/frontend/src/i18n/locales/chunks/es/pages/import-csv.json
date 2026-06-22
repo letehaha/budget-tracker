@@ -84,29 +84,7 @@
           "noInvalidRows": "No hay filas inválidas",
           "noDuplicates": "No hay duplicados",
           "expand": "Mostrar datos completos",
-          "collapse": "Ocultar datos completos",
-          "importAnywayAriaLabel": "Importar fila {row} de todas formas",
-          "columnHeaders": {
-            "row": "Fila",
-            "problem": "Problema",
-            "data": "Datos",
-            "match": "Coincidencia",
-            "csvTransaction": "Transacción CSV",
-            "existingTransaction": "Transacción existente",
-            "csvShort": "CSV",
-            "existingShort": "Existente"
-          },
-          "matchTypeLabels": {
-            "exact": "Exacta",
-            "idMatch": "Por ID",
-            "fuzzy": "Aproximada"
-          },
-          "fieldLabels": {
-            "amount": "Importe",
-            "date": "Fecha",
-            "note": "Nota",
-            "category": "Categoría"
-          }
+          "collapse": "Ocultar datos completos"
         },
         "results": {
           "completeTitle": "¡Importación completada!",

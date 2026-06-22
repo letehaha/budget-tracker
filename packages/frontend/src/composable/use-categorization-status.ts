@@ -51,7 +51,7 @@ export function useCategorizationStatus() {
     // Connect to SSE first
     await connect();
 
-    sseUnsubscribe = on<AiCategorizationProgressPayload>(SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS, (data) => {
+    sseUnsubscribe = on(SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS, (data) => {
       const wasCategorizingBefore = isCategorizing.value;
 
       // Update status from SSE event

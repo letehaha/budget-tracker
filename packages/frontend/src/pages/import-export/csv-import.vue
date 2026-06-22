@@ -17,72 +17,15 @@
       </p>
     </div>
 
-    <!-- Stepper header — numbered circles for every step. On a narrow container only the current
-         step is labelled (row stays on one line, no overflow); at @3xl every step shows its label.
-         Container-query driven so it reacts to the content width, not the viewport (sidebar). -->
-    <div class="bg-card mb-6 rounded-xl border px-4 py-3">
-      <div class="flex items-center">
-        <template v-for="(step, index) in store.visibleSteps" :key="step.key">
-          <!-- Connector before each step except the first; fills primary once the step is reached -->
-          <div
-            v-if="index > 0"
-            class="mx-2 h-0.5 flex-1 rounded-full transition-colors duration-300"
-            :class="
-              store.completedStepKeys.has(step.key) || store.currentStepKey === step.key ? 'bg-primary' : 'bg-border'
-            "
-          />
-
-          <!-- Step indicator: completed steps click to jump back; every step reveals its label via
-               ResponsiveTooltip (hover on desktop, tap-popover on touch) since narrow rows hide labels. -->
-          <ResponsiveTooltip :content="$t(STEP_LABEL_KEYS[step.key])">
-            <!-- Span wraps the trigger so the tooltip/popover still fires for disabled (non-completed)
-                 steps: a disabled <button> swallows pointer events, so the span must catch them. -->
-            <span
-              class="inline-flex shrink-0"
-              :class="
-                !store.completedStepKeys.has(step.key) && store.currentStepKey !== step.key
-                  ? 'cursor-not-allowed'
-                  : 'cursor-default'
-              "
-            >
-              <button
-                type="button"
-                class="flex shrink-0 items-center gap-2 rounded-md transition-colors disabled:pointer-events-none"
-                :disabled="!store.completedStepKeys.has(step.key)"
-                :aria-current="store.currentStepKey === step.key ? 'step' : undefined"
-                :aria-label="$t(STEP_LABEL_KEYS[step.key])"
-                @click="store.completedStepKeys.has(step.key) ? store.goToStep(step.key) : undefined"
-              >
-                <span
-                  class="flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-colors duration-300"
-                  :class="
-                    store.completedStepKeys.has(step.key) || store.currentStepKey === step.key
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-muted-foreground bg-transparent'
-                  "
-                >
-                  <CheckIcon v-if="store.completedStepKeys.has(step.key)" class="size-3.5" />
-                  <span v-else>{{ index + 1 }}</span>
-                </span>
-                <!-- Current step always labelled; others only at @3xl, so a narrow row stays one line -->
-                <span
-                  class="text-sm whitespace-nowrap"
-                  :class="
-                    store.currentStepKey === step.key
-                      ? 'text-foreground inline font-semibold'
-                      : store.completedStepKeys.has(step.key)
-                        ? 'text-foreground hidden font-medium @3xl/csv-wizard:inline'
-                        : 'text-muted-foreground hidden font-medium @3xl/csv-wizard:inline'
-                  "
-                >
-                  {{ $t(STEP_LABEL_KEYS[step.key]) }}
-                </span>
-              </button>
-            </span>
-          </ResponsiveTooltip>
-        </template>
-      </div>
-    </div>
+    <!-- Numbered stepper. Container-query driven so it reacts to the content width, not the
+         viewport (sidebar). Shared with the Wallet wizard via the common container identifier. -->
+    <ImportWizardStepper
+      class="mb-6"
+      :steps="stepperSteps"
+      :current-step-key="store.currentStepKey"
+      :completed-step-keys="store.completedStepKeys"
+      @navigate="onNavigate"
+    />
 
     <!-- Active step panel -->
     <div class="min-w-0">
@@ -96,13 +39,13 @@
 </template>
 
 <script setup lang="ts">
-import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { ROUTES_NAMES } from '@/routes';
 import { type ImportStepKey, useImportExportStore } from '@/stores/import-export';
-import { CheckIcon, ChevronLeftIcon } from '@lucide/vue';
-import { onMounted } from 'vue';
+import { ChevronLeftIcon } from '@lucide/vue';
+import { computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 
+import ImportWizardStepper from './components/import-wizard-stepper.vue';
 import ColumnMappingStep from './components/column-mapping-step/index.vue';
 import FileUploadStep from './components/file-upload-step/index.vue';
 import ImportResultsStep from './components/import-results-step/index.vue';
@@ -119,6 +62,16 @@ const STEP_LABEL_KEYS: Record<ImportStepKey, string> = {
 };
 
 const store = useImportExportStore();
+
+/** Visible steps paired with their localized label keys for the shared stepper. */
+const stepperSteps = computed(() =>
+  store.visibleSteps.map((step) => ({ key: step.key, labelKey: STEP_LABEL_KEYS[step.key] })),
+);
+
+/** The stepper only emits keys for reachable (visible) steps, all valid ImportStepKeys. */
+function onNavigate(key: string) {
+  store.goToStep(key as ImportStepKey);
+}
 
 onMounted(() => {
   store.reset();

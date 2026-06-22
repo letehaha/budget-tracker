@@ -1,0 +1,10 @@
+account;category;currency;amount;ref_currency_amount;type;payment_type;note;date;transfer;payee;labels
+Monobank Black UAH;TV, Streaming;UAH;400;400;Expense;Credit card;;2025-12-25T11:00:00.000Z;false;;
+Monobank Black UAH;Groceries;UAH;1200;1200;Expense;Credit card;Weekly shop;2025-12-26T09:00:00.000Z;false;;Want
+PKO Polska bank | USD;Dmytro wage;USD;8500;354046.04;Income;Cash;;2025-07-31T13:30:00.000Z;false;;Need
+Monobank Black UAH;Restaurant;UAH;350;350;Expense;Credit card;Dinner;2025-12-26T19:00:00.000Z;false;;Want
+Crypto;Transfer, withdraw;USD;2100;87470.2;Expense;Cash;;2025-07-31T13:45:00.000Z;true;;
+Wise USD;Transfer, withdraw;USD;2100;87470.2;Income;Cash;;2025-07-31T13:45:00.000Z;true;;
+PKO Polska bank | USD;Transfer, withdraw;USD;410.9;17115;Expense;Cash;;2025-07-02T09:45:00.000Z;true;;
+PKO Polska Bank | PLN;Transfer, withdraw;PLN;1484.2;17115;Income;Cash;;2025-07-02T09:45:00.000Z;true;;
+Monobank Black UAH;Transfer, withdraw;UAH;5000;5000;Expense;Cash;;2025-11-10T08:00:00.000Z;true;;

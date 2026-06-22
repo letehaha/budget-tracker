@@ -1,5 +1,5 @@
 <!--
-  Duplicate-review table for the CSV-import wizard. Lists every detected duplicate
+  Duplicate-review table shared by the CSV and Wallet import wizards. Lists every detected duplicate
   pair (an imported CSV row matched to an existing transaction) and lets the user
   re-include any pair by checking its box ("import anyway").
 
@@ -36,16 +36,16 @@
           <tr class="text-muted-foreground text-xs font-medium">
             <th class="bg-muted border-border border-b px-3 py-2.5" />
             <th class="bg-muted border-border border-b px-3 py-2.5 text-left">
-              {{ $t('pages.importExport.csvImport.review.columnHeaders.row') }}
+              {{ $t('importShared.duplicatesTable.columnHeaders.row') }}
             </th>
             <th class="bg-muted border-border border-b px-3 py-2.5 text-left">
-              {{ $t('pages.importExport.csvImport.review.columnHeaders.match') }}
+              {{ $t('importShared.duplicatesTable.columnHeaders.match') }}
             </th>
             <th class="bg-muted border-border border-b px-3 py-2.5 text-left">
-              {{ $t('pages.importExport.csvImport.review.columnHeaders.csvTransaction') }}
+              {{ $t('importShared.duplicatesTable.columnHeaders.csvTransaction') }}
             </th>
             <th class="bg-muted border-border border-b px-3 py-2.5 text-left">
-              {{ $t('pages.importExport.csvImport.review.columnHeaders.existingTransaction') }}
+              {{ $t('importShared.duplicatesTable.columnHeaders.existingTransaction') }}
             </th>
           </tr>
         </thead>
@@ -72,7 +72,7 @@
               <span class="inline-flex" @click.stop>
                 <Checkbox
                   :model-value="unmarkedIndices.has(item.rowIndex)"
-                  :aria-label="$t('pages.importExport.csvImport.review.importAnywayAriaLabel', { row: item.rowIndex })"
+                  :aria-label="$t('importShared.duplicatesTable.importAnywayAriaLabel', { row: item.rowIndex })"
                   @update:model-value="emit('toggle', item.rowIndex)"
                 />
               </span>
@@ -140,7 +140,7 @@
               <span class="inline-flex" @click.stop>
                 <Checkbox
                   :model-value="unmarkedIndices.has(item.rowIndex)"
-                  :aria-label="$t('pages.importExport.csvImport.review.importAnywayAriaLabel', { row: item.rowIndex })"
+                  :aria-label="$t('importShared.duplicatesTable.importAnywayAriaLabel', { row: item.rowIndex })"
                   @update:model-value="emit('toggle', item.rowIndex)"
                 />
               </span>
@@ -162,10 +162,10 @@
                 <tr class="text-muted-foreground/70 text-left">
                   <th class="pb-1 font-normal" />
                   <th class="pb-1 font-normal">
-                    {{ $t('pages.importExport.csvImport.review.columnHeaders.csvShort') }}
+                    {{ $t('importShared.duplicatesTable.columnHeaders.csvShort') }}
                   </th>
                   <th class="pb-1 font-normal">
-                    {{ $t('pages.importExport.csvImport.review.columnHeaders.existingShort') }}
+                    {{ $t('importShared.duplicatesTable.columnHeaders.existingShort') }}
                   </th>
                 </tr>
               </thead>
@@ -246,11 +246,11 @@ const isNarrow = computed(() => wrapperWidth.value > 0 && wrapperWidth.value < N
 const matchTypeLabel = (type: DuplicateMatch['matchType']): string => {
   switch (type) {
     case 'exact':
-      return t('pages.importExport.csvImport.review.matchTypeLabels.exact');
+      return t('importShared.duplicatesTable.matchTypeLabels.exact');
     case 'originalId':
-      return t('pages.importExport.csvImport.review.matchTypeLabels.idMatch');
+      return t('importShared.duplicatesTable.matchTypeLabels.idMatch');
     case 'fuzzy':
-      return t('pages.importExport.csvImport.review.matchTypeLabels.fuzzy');
+      return t('importShared.duplicatesTable.matchTypeLabels.fuzzy');
     default:
       return type;
   }
@@ -269,10 +269,10 @@ const matchPillClass = (type: DuplicateMatch['matchType']): string =>
 
 /** Maps a comparison field key to its i18n label key. */
 const FIELD_LABEL_KEYS: Record<ComparisonFieldKey, string> = {
-  amount: 'pages.importExport.csvImport.review.fieldLabels.amount',
-  date: 'pages.importExport.csvImport.review.fieldLabels.date',
-  note: 'pages.importExport.csvImport.review.fieldLabels.note',
-  category: 'pages.importExport.csvImport.review.fieldLabels.category',
+  amount: 'importShared.duplicatesTable.fieldLabels.amount',
+  date: 'importShared.duplicatesTable.fieldLabels.date',
+  note: 'importShared.duplicatesTable.fieldLabels.note',
+  category: 'importShared.duplicatesTable.fieldLabels.category',
 };
 
 const fieldLabel = (key: ComparisonFieldKey): string => t(FIELD_LABEL_KEYS[key]);

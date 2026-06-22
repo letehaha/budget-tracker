@@ -70,6 +70,10 @@
           "viewTransactions": "View transactions",
           "importAnother": "Import another file"
         }
+      },
+      "progress": {
+        "jobExpired": "The import job expired or could not be found.",
+        "lostContact": "Lost contact with the import job."
       }
     }
   }

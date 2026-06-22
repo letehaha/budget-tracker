@@ -25,6 +25,11 @@
         "description": "Upload your YNAB Register.csv to migrate accounts, transactions, categories, payees and flags.",
         "cta": "Import from YNAB"
       },
+      "wallet": {
+        "title": "Wallet (BudgetBakers)",
+        "description": "Import transactions exported from the Wallet app by BudgetBakers. Supports multi-currency accounts and automatic transfer pairing.",
+        "cta": "Import from Wallet"
+      },
       "import": {
         "back": "Back to Import"
       },

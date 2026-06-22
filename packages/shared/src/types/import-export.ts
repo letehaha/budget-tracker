@@ -20,11 +20,21 @@ export const MAX_CSV_ROWS = 50_000;
 export const CSV_FORBIDDEN_HEADERS = ['__proto__', 'prototype', 'constructor'] as const;
 
 /**
+ * Lifecycle states a background import job moves through, from enqueue to
+ * terminal outcome. Shared across the per-provider import pipelines (YNAB,
+ * Wallet, …) so their job-status types stay identical instead of each
+ * redeclaring the same four strings.
+ */
+export const IMPORT_JOB_STATUSES = ['queued', 'running', 'completed', 'failed'] as const;
+export type ImportJobStatus = (typeof IMPORT_JOB_STATUSES)[number];
+
+/**
  * Import source types for imported transactions
  */
 export enum ImportSource {
   csv = 'csv',
   statementParser = 'statement-parser',
+  wallet = 'wallet',
 }
 
 /**
