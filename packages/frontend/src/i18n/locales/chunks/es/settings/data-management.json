@@ -8,26 +8,37 @@
         "description": "Analice e importe transacciones desde extractos bancarios, correos electrónicos o cualquier fuente de texto. Utiliza IA para extraer datos de transacciones automáticamente.",
         "button": "Importar desde texto (PDF, CSV, TXT, etc.)",
         "aiBadge": "Impulsado por IA",
-        "cta": "Importar desde texto"
+        "cta": "Importar desde texto",
+        "listDescription": "Extractos bancarios, correos o cualquier fuente de texto"
       },
       "csv": {
         "title": "Importar CSV",
         "description": "Importe transacciones desde un archivo CSV. Puede asignar columnas, gestionar duplicados y crear nuevas cuentas o categorías según sea necesario.",
         "button": "Importar archivo CSV",
-        "cta": "Importar archivo CSV"
+        "cta": "Importar archivo CSV",
+        "listDescription": "Asigna columnas y gestiona duplicados"
       },
       "ynab": {
         "title": "Importar desde YNAB",
         "description": "Carga tu Register.csv YNAB para migrar cuentas, transacciones, categorías, beneficiarios y etiquetas.",
-        "cta": "Importar desde YNAB"
+        "cta": "Importar desde YNAB",
+        "listDescription": "Cuentas, transacciones, categorías y beneficiarios"
       },
       "wallet": {
         "title": "Wallet (BudgetBakers)",
         "description": "Importe transacciones exportadas desde la app Wallet de BudgetBakers. Compatible con cuentas multidivisa y emparejamiento automático de transferencias.",
-        "cta": "Importar desde Wallet"
+        "cta": "Importar desde Wallet",
+        "listDescription": "Multidivisa con emparejamiento automático de transferencias"
       },
       "import": {
-        "back": "Volver a Importar"
+        "back": "Volver a Importar",
+        "groups": {
+          "filesAndText": "Archivos y texto",
+          "fromOtherApps": "Desde otras apps"
+        },
+        "requestMore": {
+          "title": "¿Quieres más opciones? Solicítalo aquí"
+        }
       },
       "tabs": {
         "import": "Importar",
@@ -75,7 +86,8 @@
           "helper": "Solo se filtran las tablas con eventos (transacciones, historial de saldos, actividad de inversión). Las cuentas, categorías y otras tablas de referencia se exportan completas.",
           "placeholder": "Todo el tiempo",
           "clear": "Quitar rango de fechas"
-        }
+        },
+        "listDescription": "Descarga un zip para hojas de cálculo, impuestos o migración"
       }
     }
   }
