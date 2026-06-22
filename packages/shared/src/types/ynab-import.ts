@@ -8,6 +8,9 @@
  * on each side independently.
  */
 
+import { IMPORT_JOB_STATUSES } from './import-export';
+import type { ImportJobStatus } from './import-export';
+
 /** YNAB Register.csv flag colors. Empty/unflagged rows are omitted. */
 export const YNAB_FLAG_COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'] as const;
 export type YnabFlagColor = (typeof YNAB_FLAG_COLORS)[number];
@@ -162,8 +165,10 @@ export interface ExecuteYnabResponse {
   jobId: string;
 }
 
-export const YNAB_IMPORT_JOB_STATUSES = ['queued', 'running', 'completed', 'failed'] as const;
-export type YnabImportJobStatus = (typeof YNAB_IMPORT_JOB_STATUSES)[number];
+/** YNAB import jobs use the shared import-job lifecycle. Re-exported under the
+ *  YNAB-specific names so existing consumers keep working. */
+export const YNAB_IMPORT_JOB_STATUSES = IMPORT_JOB_STATUSES;
+export type YnabImportJobStatus = ImportJobStatus;
 
 /** Cumulative numbers reported once the worker finishes. */
 export interface YnabImportSummary {

@@ -12,21 +12,37 @@
         "description": "Parse and import transactions from bank statements, emails, or any text source. Uses AI to automatically extract transaction data.",
         "button": "Import from Text (PDF, CSV, TXT, etc)",
         "aiBadge": "AI-powered",
-        "cta": "Import from text"
+        "cta": "Import from text",
+        "listDescription": "Bank statements, emails, or any text source"
       },
       "csv": {
         "title": "Import CSV",
         "description": "Import transactions from a CSV file. You can map columns, handle duplicates, and create new accounts or categories as needed.",
         "button": "Import CSV File",
-        "cta": "Import CSV file"
+        "cta": "Import CSV file",
+        "listDescription": "Map columns and handle duplicates"
       },
       "ynab": {
         "title": "Import from YNAB",
         "description": "Upload your YNAB Register.csv to migrate accounts, transactions, categories, payees and flags.",
-        "cta": "Import from YNAB"
+        "cta": "Import from YNAB",
+        "listDescription": "Accounts, transactions, categories, and payees"
+      },
+      "wallet": {
+        "title": "Wallet (BudgetBakers)",
+        "description": "Import transactions exported from the Wallet app by BudgetBakers. Supports multi-currency accounts and automatic transfer pairing.",
+        "cta": "Import from Wallet",
+        "listDescription": "Multi-currency with automatic transfer pairing"
       },
       "import": {
-        "back": "Back to Import"
+        "back": "Back to Import",
+        "groups": {
+          "filesAndText": "Files & text",
+          "fromOtherApps": "From other apps"
+        },
+        "requestMore": {
+          "title": "Want more options? Request here"
+        }
       },
       "export": {
         "cardTitle": "Export your data",
@@ -70,7 +86,8 @@
           "helper": "Only event tables (transactions, balance history, investment activity) get filtered. Accounts, categories, and other reference tables stay complete.",
           "placeholder": "All time",
           "clear": "Clear date range"
-        }
+        },
+        "listDescription": "Download a zip for spreadsheets, taxes, or migrating"
       }
     }
   }

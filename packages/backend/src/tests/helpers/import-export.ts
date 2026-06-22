@@ -3,16 +3,21 @@ import type {
   CategoryMappingConfig,
   ColumnMappingConfig,
   DetectDuplicatesResponse,
+  DetectWalletDuplicatesResponse,
   ExecuteImportResponse,
   ExecuteYnabResponse,
+  ExecuteWalletResponse,
   ExtractUniqueValuesResponse,
   ExtractedMetadata,
   ExtractedTransaction,
   ParsedTransactionRow,
   ParseYnabResponse,
+  ParseWalletResponse,
   StatementDetectDuplicatesResponse,
   StatementExecuteImportResponse,
   TagMappingConfig,
+  WalletAccountMapping,
+  WalletImportProgress,
   YnabAccountMapping,
   YnabImportProgress,
 } from '@bt/shared/types';
@@ -25,6 +30,7 @@ import { type UtilizeReturnType, makeRequest } from './common';
 const FIXTURES_PATH = path.join(__dirname, '../fixtures/csv-import');
 const STATEMENT_FIXTURES_PATH = path.join(__dirname, '../fixtures');
 const YNAB_FIXTURES_PATH = path.join(__dirname, '../fixtures/ynab-import');
+const WALLET_FIXTURES_PATH = path.join(__dirname, '../fixtures/wallet-import');
 
 /** Load a YNAB Register.csv fixture by filename. */
 export function loadYnabFixture(filename: string): string {
@@ -280,4 +286,162 @@ export function getYnabImportStatus<R extends boolean | undefined = false>({
     url: `/import/ynab/status/${jobId}`,
     raw,
   });
+}
+
+// ============================================
+// Wallet Import - Fixture Loader
+// ============================================
+
+/** Load a Wallet (BudgetBakers) CSV fixture by filename. */
+export function loadWalletFixture(filename: string): string {
+  const filePath = path.join(WALLET_FIXTURES_PATH, filename);
+  return fs.readFileSync(filePath, 'utf-8');
+}
+
+// ============================================
+// Wallet Import - Parse Endpoint
+// ============================================
+
+interface ParseWalletParams {
+  fileContent: string;
+}
+
+export function parseWallet<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: ParseWalletParams;
+  raw?: R;
+}): UtilizeReturnType<() => ParseWalletResponse, R> {
+  return makeRequest<ParseWalletResponse, R>({
+    method: 'post',
+    url: '/import/wallet/parse',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// Wallet Import - Detect Duplicates Endpoint
+// ============================================
+
+interface DetectWalletDuplicatesParams {
+  fileContent: string;
+  accountMapping: WalletAccountMapping;
+}
+
+export function detectWalletDuplicates<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: DetectWalletDuplicatesParams;
+  raw?: R;
+}): UtilizeReturnType<() => DetectWalletDuplicatesResponse, R> {
+  return makeRequest<DetectWalletDuplicatesResponse, R>({
+    method: 'post',
+    url: '/import/wallet/detect-duplicates',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// Wallet Import - Execute Endpoint
+// ============================================
+
+interface ExecuteWalletParams {
+  fileContent: string;
+  accountMapping: WalletAccountMapping;
+  /** Per-category decision keyed by the verbatim Wallet `category` value.
+   *  Defaults to `{}` so existing callers that omit it still satisfy the
+   *  backend's required field — an empty record is valid (all parsed categories
+   *  import without a category rather than being silently created). */
+  categoryMapping?: CategoryMappingConfig;
+  skipDuplicateIndices?: number[];
+}
+
+export function executeWallet<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: ExecuteWalletParams;
+  raw?: R;
+}): UtilizeReturnType<() => ExecuteWalletResponse, R> {
+  // `?? []` / `?? {}` guard against a caller passing the field as `undefined`,
+  // which would otherwise overwrite the safe default and fail Zod validation.
+  const { skipDuplicateIndices, categoryMapping, ...rest } = payload;
+  return makeRequest<ExecuteWalletResponse, R>({
+    method: 'post',
+    url: '/import/wallet/execute',
+    payload: {
+      ...rest,
+      skipDuplicateIndices: skipDuplicateIndices ?? [],
+      categoryMapping: categoryMapping ?? {},
+    },
+    raw,
+  });
+}
+
+// ============================================
+// Wallet Import - Status Endpoint
+// ============================================
+
+export function getWalletImportStatus<R extends boolean | undefined = false>({
+  jobId,
+  raw,
+}: {
+  jobId: string;
+  raw?: R;
+}): UtilizeReturnType<() => WalletImportProgress, R> {
+  return makeRequest<WalletImportProgress, R>({
+    method: 'get',
+    url: `/import/wallet/status/${jobId}`,
+    raw,
+  });
+}
+
+// ============================================
+// Wallet Import - Shared polling helper
+// ============================================
+
+/**
+ * Poll GET /import/wallet/status/:jobId every 100 ms until the job leaves the
+ * running/queued states or the timeout elapses. The BullMQ worker is async, so
+ * the execute response only carries `jobId` — callers must poll for the result.
+ *
+ * A single shared implementation avoids divergent timeouts across test files
+ * (detect-duplicates and execute-import both need it).
+ */
+export async function waitForWalletCompletion({
+  jobId,
+  timeoutMs = 30_000,
+}: {
+  jobId: string;
+  timeoutMs?: number;
+}): Promise<WalletImportProgress> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const progress = await getWalletImportStatus({ jobId, raw: true });
+    if (progress.status === 'completed' || progress.status === 'failed') {
+      return progress;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Wallet import job ${jobId} did not finish within ${timeoutMs}ms`);
+}
+
+/**
+ * Narrow terminal progress to the `completed` branch so tests can read `summary`
+ * directly without an extra type guard. Throws (failing the calling test) when
+ * the worker finished with `status:'failed'`, surfacing the error string for
+ * quick debugging. Shared so detect-duplicates and execute-import tests assert
+ * completion identically.
+ */
+export function expectCompleted(
+  progress: WalletImportProgress,
+): asserts progress is Extract<WalletImportProgress, { status: 'completed' }> {
+  if (progress.status !== 'completed') {
+    const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
+    throw new Error(`Expected completed import, got status="${progress.status}".${detail}`);
+  }
 }

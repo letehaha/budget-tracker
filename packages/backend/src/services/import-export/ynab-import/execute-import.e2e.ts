@@ -4,7 +4,19 @@ import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { asUser, signUpSecondUser } from '@tests/helpers/share';
 
-async function waitForCompletion({ jobId, timeoutMs = 20_000 }: { jobId: string; timeoutMs?: number }) {
+// ---------------------------------------------------------------------------
+// Polling helper — the BullMQ worker is async: the execute response only carries
+// `jobId`, so callers poll the status endpoint until the job reaches a terminal
+// state. Mirrors the wallet importer's waitForWalletCompletion.
+// ---------------------------------------------------------------------------
+
+async function waitForCompletion({
+  jobId,
+  timeoutMs = 30_000,
+}: {
+  jobId: string;
+  timeoutMs?: number;
+}): Promise<YnabImportProgress> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const progress = await helpers.getYnabImportStatus({ jobId, raw: true });

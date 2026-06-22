@@ -17,6 +17,7 @@ import {
 import { ValidationError } from '@js/errors';
 import { parse } from 'csv-parse/sync';
 
+import { roundCurrency } from '../round-currency';
 import { parseYnabAmount } from './parse-amount';
 import { parseYnabDate } from './parse-date';
 
@@ -146,7 +147,7 @@ export function parseYnabRegister({ fileContent }: { fileContent: string }): Yna
     // would import a wrong-amount transaction the user has no way to spot.
     if (outflowUnparseable || inflowUnparseable) return;
 
-    const signedAmount = roundCurrency((inflowParsed ?? 0) - (outflowParsed ?? 0));
+    const signedAmount = roundCurrency({ n: (inflowParsed ?? 0) - (outflowParsed ?? 0) });
 
     const payeeName = (record['Payee'] ?? '').trim();
     const categoryGroupRaw = (record['Category Group'] ?? '').trim();
@@ -236,11 +237,6 @@ export function parseYnabRegister({ fileContent }: { fileContent: string }): Yna
   };
 }
 
-/** Avoid floating-point drift from `inflow - outflow`. Round to 2 decimals. */
-function roundCurrency(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
 /** Walk transfer-leg rows and pair them. The first unmatched opposite leg of
  *  matching amount + date wins; remaining unpaired legs become warnings and
  *  fall through to ordinary transactions. */
@@ -263,7 +259,7 @@ function pairTransfers({ rows, warnings }: { rows: ClassifiedRow[]; warnings: Yn
         other.date === leg.date &&
         other.accountName === leg.transferCounterpart &&
         leg.accountName === other.transferCounterpart &&
-        roundCurrency(other.signedAmount + leg.signedAmount) === 0,
+        roundCurrency({ n: other.signedAmount + leg.signedAmount }) === 0,
     );
 
     if (!match) {
@@ -356,7 +352,7 @@ function collectAccounts({
   for (const row of rows) {
     const existing = byName.get(row.accountName) ?? { startingBalance: 0, transactionCount: 0 };
     if (row.isStartingBalance) {
-      existing.startingBalance = roundCurrency(existing.startingBalance + row.signedAmount);
+      existing.startingBalance = roundCurrency({ n: existing.startingBalance + row.signedAmount });
     } else {
       existing.transactionCount += 1;
     }

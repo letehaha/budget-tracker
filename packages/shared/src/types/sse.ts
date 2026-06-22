@@ -1,3 +1,4 @@
+import type { WalletImportProgress } from './wallet-import';
 /**
  * Server-Sent Events (SSE) shared types
  *
@@ -12,6 +13,7 @@ export const SSE_EVENT_TYPES = {
   AI_CATEGORIZATION_PROGRESS: 'ai_categorization_progress',
   SYNC_STATUS_CHANGED: 'bank_connections_sync_status_changed',
   YNAB_IMPORT_PROGRESS: 'ynab_import_progress',
+  WALLET_IMPORT_PROGRESS: 'wallet_import_progress',
 } as const;
 
 export type SSEEventType = (typeof SSE_EVENT_TYPES)[keyof typeof SSE_EVENT_TYPES];
@@ -74,4 +76,22 @@ export interface SyncStatusChangedPayload {
 /**
  * Union type for all SSE event payloads
  */
-export type SSEEventPayload = AiCategorizationProgressPayload | SyncStatusChangedPayload | YnabImportProgress;
+export type SSEEventPayload =
+  | AiCategorizationProgressPayload
+  | SyncStatusChangedPayload
+  | YnabImportProgress
+  | WalletImportProgress;
+
+/**
+ * Maps each SSE event name to the payload its listeners receive. Lets a typed
+ * `on(eventType, callback)` infer the callback's payload from the event name
+ * alone, so subscribers don't have to narrow the broad `SSEEventPayload` union
+ * by hand. Keys are the `SSE_EVENT_TYPES` string values; every event has an
+ * entry.
+ */
+export interface SSEEventPayloadMap {
+  [SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS]: AiCategorizationProgressPayload;
+  [SSE_EVENT_TYPES.SYNC_STATUS_CHANGED]: SyncStatusChangedPayload;
+  [SSE_EVENT_TYPES.YNAB_IMPORT_PROGRESS]: YnabImportProgress;
+  [SSE_EVENT_TYPES.WALLET_IMPORT_PROGRESS]: WalletImportProgress;
+}

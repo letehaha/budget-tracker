@@ -4,12 +4,15 @@ import { computeAutoMatchEntries, computeCreateForUnresolved, computeExactLinkEn
 
 // ---------------------------------------------------------------------------
 // Minimal entry type used across all tests
+//
+// `label` carries the source name passed to the factory so tests can assert
+// that the correct name flows through to the produced entry.
 // ---------------------------------------------------------------------------
 
-type Entry = { action: 'link-existing'; id: string } | { action: 'create-new' };
+type Entry = { action: 'link-existing'; id: string; label: string } | { action: 'create-new'; label: string };
 
-const toLink = (id: string): Entry => ({ action: 'link-existing', id });
-const toCreate = (): Entry => ({ action: 'create-new' });
+const toLink = (id: string, name: string): Entry => ({ action: 'link-existing', id, label: name });
+const toCreate = (name: string): Entry => ({ action: 'create-new', label: name });
 
 // ---------------------------------------------------------------------------
 // Shared fixtures
@@ -27,7 +30,7 @@ const targets = [
 // ---------------------------------------------------------------------------
 
 describe('computeAutoMatchEntries', () => {
-  it('links matched source to its target id', () => {
+  it('links matched source to its target id and carries the source name', () => {
     const result = computeAutoMatchEntries({
       sources: [{ name: 'Groceries' }],
       targets,
@@ -36,10 +39,10 @@ describe('computeAutoMatchEntries', () => {
       toLink,
       toCreate,
     });
-    expect(result).toEqual({ Groceries: { action: 'link-existing', id: 'id-groceries' } });
+    expect(result).toEqual({ Groceries: { action: 'link-existing', id: 'id-groceries', label: 'Groceries' } });
   });
 
-  it('falls back to create-new when source has no match', () => {
+  it('falls back to create-new when source has no match, carrying the source name', () => {
     const result = computeAutoMatchEntries({
       sources: [{ name: 'Unknown Merchant' }],
       targets,
@@ -48,10 +51,10 @@ describe('computeAutoMatchEntries', () => {
       toLink,
       toCreate,
     });
-    expect(result).toEqual({ 'Unknown Merchant': { action: 'create-new' } });
+    expect(result).toEqual({ 'Unknown Merchant': { action: 'create-new', label: 'Unknown Merchant' } });
   });
 
-  it('handles mix of matched and unmatched sources', () => {
+  it('handles mix of matched and unmatched sources, each entry carries its own source name', () => {
     const result = computeAutoMatchEntries({
       sources: [{ name: 'Groceries' }, { name: 'Mystery' }],
       targets,
@@ -61,14 +64,14 @@ describe('computeAutoMatchEntries', () => {
       toCreate,
     });
     expect(result).toEqual({
-      Groceries: { action: 'link-existing', id: 'id-groceries' },
-      Mystery: { action: 'create-new' },
+      Groceries: { action: 'link-existing', id: 'id-groceries', label: 'Groceries' },
+      Mystery: { action: 'create-new', label: 'Mystery' },
     });
   });
 
   it('overwrite: false — skips sources already present in current', () => {
     const current: Record<string, Entry> = {
-      Groceries: { action: 'link-existing', id: 'id-groceries' },
+      Groceries: { action: 'link-existing', id: 'id-groceries', label: 'Groceries' },
     };
     const result = computeAutoMatchEntries({
       sources: [{ name: 'Groceries' }, { name: 'Transport' }],
@@ -79,13 +82,13 @@ describe('computeAutoMatchEntries', () => {
       toCreate,
     });
     // Groceries already has an entry → skipped; Transport is new → linked
-    expect(result).toEqual({ Transport: { action: 'link-existing', id: 'id-transport' } });
+    expect(result).toEqual({ Transport: { action: 'link-existing', id: 'id-transport', label: 'Transport' } });
     expect(result['Groceries']).toBeUndefined();
   });
 
   it('overwrite: true — re-matches sources already present in current', () => {
     const current: Record<string, Entry> = {
-      Groceries: { action: 'create-new' },
+      Groceries: { action: 'create-new', label: 'Groceries' },
     };
     const result = computeAutoMatchEntries({
       sources: [{ name: 'Groceries' }],
@@ -96,11 +99,11 @@ describe('computeAutoMatchEntries', () => {
       toCreate,
     });
     // Existing create-new overwritten with the correct link
-    expect(result).toEqual({ Groceries: { action: 'link-existing', id: 'id-groceries' } });
+    expect(result).toEqual({ Groceries: { action: 'link-existing', id: 'id-groceries', label: 'Groceries' } });
   });
 
   it('overwrite: false — does not include already-present source at all (preserves caller entry)', () => {
-    const existingEntry: Entry = { action: 'link-existing', id: 'old-id' };
+    const existingEntry: Entry = { action: 'link-existing', id: 'old-id', label: 'Groceries' };
     const current: Record<string, Entry> = { Groceries: existingEntry };
     const result = computeAutoMatchEntries({
       sources: [{ name: 'Groceries' }],
@@ -125,7 +128,7 @@ describe('computeAutoMatchEntries', () => {
     expect(result).toEqual({});
   });
 
-  it('currency-aware: source with matching currencyCode links to the currency-matched target', () => {
+  it('currency-aware: source with matching currencyCode links to the currency-matched target, carrying source name', () => {
     const result = computeAutoMatchEntries({
       sources: [{ name: 'BBVA Uruguay', currencyCode: 'UYU' }],
       targets,
@@ -134,10 +137,12 @@ describe('computeAutoMatchEntries', () => {
       toLink,
       toCreate,
     });
-    expect(result).toEqual({ 'BBVA Uruguay': { action: 'link-existing', id: 'id-bbva-uyu' } });
+    expect(result).toEqual({
+      'BBVA Uruguay': { action: 'link-existing', id: 'id-bbva-uyu', label: 'BBVA Uruguay' },
+    });
   });
 
-  it('currency-aware: source with non-matching currencyCode falls back to create-new', () => {
+  it('currency-aware: source with non-matching currencyCode falls back to create-new with source name', () => {
     const result = computeAutoMatchEntries({
       sources: [{ name: 'BBVA Uruguay', currencyCode: 'ARS' }],
       targets,
@@ -147,7 +152,7 @@ describe('computeAutoMatchEntries', () => {
       toCreate,
     });
     // Name matches id-bbva-uyu but currency doesn't → no link
-    expect(result).toEqual({ 'BBVA Uruguay': { action: 'create-new' } });
+    expect(result).toEqual({ 'BBVA Uruguay': { action: 'create-new', label: 'BBVA Uruguay' } });
   });
 
   it('currency-aware: source without currencyCode matches name regardless of target currency', () => {
@@ -159,7 +164,9 @@ describe('computeAutoMatchEntries', () => {
       toLink,
       toCreate,
     });
-    expect(result).toEqual({ 'BBVA Uruguay': { action: 'link-existing', id: 'id-bbva-uyu' } });
+    expect(result).toEqual({
+      'BBVA Uruguay': { action: 'link-existing', id: 'id-bbva-uyu', label: 'BBVA Uruguay' },
+    });
   });
 });
 
@@ -168,15 +175,15 @@ describe('computeAutoMatchEntries', () => {
 // ---------------------------------------------------------------------------
 
 describe('computeExactLinkEntries', () => {
-  it('returns link entries only for matched sources', () => {
+  it('returns link entries only for matched sources, each carrying its source name', () => {
     const result = computeExactLinkEntries({
       sources: [{ name: 'Groceries' }, { name: 'Transport' }],
       targets,
       toLink,
     });
     expect(result).toEqual({
-      Groceries: { action: 'link-existing', id: 'id-groceries' },
-      Transport: { action: 'link-existing', id: 'id-transport' },
+      Groceries: { action: 'link-existing', id: 'id-groceries', label: 'Groceries' },
+      Transport: { action: 'link-existing', id: 'id-transport', label: 'Transport' },
     });
   });
 
@@ -187,7 +194,7 @@ describe('computeExactLinkEntries', () => {
       toLink,
     });
     expect(result).toEqual({
-      Groceries: { action: 'link-existing', id: 'id-groceries' },
+      Groceries: { action: 'link-existing', id: 'id-groceries', label: 'Groceries' },
     });
     expect(result['Ghost']).toBeUndefined();
   });
@@ -206,22 +213,23 @@ describe('computeExactLinkEntries', () => {
     expect(result).toEqual({});
   });
 
-  it('is case-insensitive (mirrors matchValuesByName behaviour)', () => {
+  it('is case-insensitive (mirrors matchValuesByName behaviour) and carries the original source name', () => {
     const result = computeExactLinkEntries({
       sources: [{ name: 'groceries' }],
       targets,
       toLink,
     });
-    expect(result).toEqual({ groceries: { action: 'link-existing', id: 'id-groceries' } });
+    // Key is the original source name; label reflects it too
+    expect(result).toEqual({ groceries: { action: 'link-existing', id: 'id-groceries', label: 'groceries' } });
   });
 
-  it('currency-aware: links to the same-named target whose currency matches', () => {
+  it('currency-aware: links to the same-named target whose currency matches, carrying source name', () => {
     const result = computeExactLinkEntries({
       sources: [{ name: 'BBVA Uruguay', currencyCode: 'UYU' }],
       targets,
       toLink,
     });
-    expect(result['BBVA Uruguay']).toEqual({ action: 'link-existing', id: 'id-bbva-uyu' });
+    expect(result['BBVA Uruguay']).toEqual({ action: 'link-existing', id: 'id-bbva-uyu', label: 'BBVA Uruguay' });
   });
 
   it('currency-aware: omits a source whose currency matches no same-named target', () => {
@@ -248,7 +256,7 @@ describe('computeCreateForUnresolved', () => {
     return true;
   };
 
-  it('returns create-new for names where isUnresolved is true (no current entry)', () => {
+  it('returns create-new for names where isUnresolved is true (no current entry), embedding source name in each entry', () => {
     const result = computeCreateForUnresolved({
       names: ['Alpha', 'Beta'],
       current: {},
@@ -256,14 +264,14 @@ describe('computeCreateForUnresolved', () => {
       toCreate,
     });
     expect(result).toEqual({
-      Alpha: { action: 'create-new' },
-      Beta: { action: 'create-new' },
+      Alpha: { action: 'create-new', label: 'Alpha' },
+      Beta: { action: 'create-new', label: 'Beta' },
     });
   });
 
   it('omits names where isUnresolved is false (existing link-existing entry)', () => {
     const current: Record<string, Entry> = {
-      Groceries: { action: 'link-existing', id: 'id-groceries' },
+      Groceries: { action: 'link-existing', id: 'id-groceries', label: 'Groceries' },
     };
     const result = computeCreateForUnresolved({
       names: ['Groceries', 'Transport'],
@@ -272,13 +280,13 @@ describe('computeCreateForUnresolved', () => {
       toCreate,
     });
     // Groceries is resolved → omitted; Transport has no entry → create
-    expect(result).toEqual({ Transport: { action: 'create-new' } });
+    expect(result).toEqual({ Transport: { action: 'create-new', label: 'Transport' } });
     expect(result['Groceries']).toBeUndefined();
   });
 
   it('includes names that have a create-new entry (still unresolved per predicate)', () => {
     const current: Record<string, Entry> = {
-      Alpha: { action: 'create-new' },
+      Alpha: { action: 'create-new', label: 'Alpha' },
     };
     const result = computeCreateForUnresolved({
       names: ['Alpha'],
@@ -286,13 +294,13 @@ describe('computeCreateForUnresolved', () => {
       isUnresolved,
       toCreate,
     });
-    expect(result).toEqual({ Alpha: { action: 'create-new' } });
+    expect(result).toEqual({ Alpha: { action: 'create-new', label: 'Alpha' } });
   });
 
   it('returns empty object when every name is resolved', () => {
     const current: Record<string, Entry> = {
-      Groceries: { action: 'link-existing', id: 'id-groceries' },
-      Transport: { action: 'link-existing', id: 'id-transport' },
+      Groceries: { action: 'link-existing', id: 'id-groceries', label: 'Groceries' },
+      Transport: { action: 'link-existing', id: 'id-transport', label: 'Transport' },
     };
     const result = computeCreateForUnresolved({
       names: ['Groceries', 'Transport'],
@@ -316,7 +324,7 @@ describe('computeCreateForUnresolved', () => {
   it('respects a custom isUnresolved predicate that considers undefined-only as unresolved', () => {
     const strictPredicate = (entry: Entry | undefined): boolean => entry === undefined;
     const current: Record<string, Entry> = {
-      Alpha: { action: 'create-new' },
+      Alpha: { action: 'create-new', label: 'Alpha' },
     };
     const result = computeCreateForUnresolved({
       names: ['Alpha', 'Beta'],
@@ -325,8 +333,8 @@ describe('computeCreateForUnresolved', () => {
       toCreate,
     });
     // Alpha has an entry (even create-new) → NOT unresolved under strict predicate
-    // Beta has no entry → unresolved
-    expect(result).toEqual({ Beta: { action: 'create-new' } });
+    // Beta has no entry → unresolved → create-new with its own name
+    expect(result).toEqual({ Beta: { action: 'create-new', label: 'Beta' } });
     expect(result['Alpha']).toBeUndefined();
   });
 });

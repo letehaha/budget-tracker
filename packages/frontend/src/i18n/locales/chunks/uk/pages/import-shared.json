@@ -1,0 +1,50 @@
+{
+  "importShared": {
+    "action": {
+      "createNew": "Створити новий",
+      "linkExisting": "Пов'язати з існуючим"
+    },
+    "selectAction": "Виберіть дію",
+    "columns": {
+      "sourceName": "Назва джерела",
+      "currency": "Валюта",
+      "action": "Дія",
+      "target": "Ціль"
+    },
+    "account": {
+      "selectTarget": "Виберіть рахунок",
+      "noMatchingCurrency": "Немає рахунка з валютою {currency}",
+      "willCreate": "Буде створено {name} ({currency})",
+      "empty": "Немає рахунків для відображення"
+    },
+    "category": {
+      "selectTarget": "Виберіть категорію",
+      "willCreate": "Буде створено {name}",
+      "empty": "Немає категорій для відображення"
+    },
+    "duplicatesTable": {
+      "columnHeaders": {
+        "row": "Рядок",
+        "problem": "Проблема",
+        "data": "Дані",
+        "match": "Збіг",
+        "csvTransaction": "Транзакція CSV",
+        "existingTransaction": "Існуюча транзакція",
+        "csvShort": "CSV",
+        "existingShort": "Наявна"
+      },
+      "matchTypeLabels": {
+        "exact": "Точний",
+        "idMatch": "За ID",
+        "fuzzy": "Нечіткий"
+      },
+      "fieldLabels": {
+        "amount": "Сума",
+        "date": "Дата",
+        "note": "Примітка",
+        "category": "Категорія"
+      },
+      "importAnywayAriaLabel": "Імпортувати рядок {row} все одно"
+    }
+  }
+}

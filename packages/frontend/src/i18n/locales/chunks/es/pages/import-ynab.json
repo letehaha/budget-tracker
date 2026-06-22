@@ -70,6 +70,10 @@
           "viewTransactions": "Ver transacciones",
           "importAnother": "Importar otro archivo"
         }
+      },
+      "progress": {
+        "jobExpired": "El trabajo de importación expiró o no se pudo encontrar.",
+        "lostContact": "Se perdió el contacto con el trabajo de importación."
       }
     }
   }

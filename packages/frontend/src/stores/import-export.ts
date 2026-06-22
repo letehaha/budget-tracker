@@ -21,6 +21,8 @@ import type { AccountMappingConfig } from '@bt/shared/types';
 
 type UnpriceableRow = NonNullable<DetectDuplicatesResponse['unpriceableRows']>[number];
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
+import { useResolveMapping } from '@/composable/use-resolve-mapping';
+import { useWizardSteps } from '@/composable/use-wizard-steps';
 import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
@@ -34,11 +36,6 @@ import {
   isTransactionTypeDecided,
 } from '@/pages/import-export/utils/field-decision';
 import { flattenCategories } from '@/pages/import-export/utils/flatten-categories';
-import {
-  computeAutoMatchEntries,
-  computeCreateForUnresolved,
-  computeExactLinkEntries,
-} from '@/pages/import-export/utils/resolve-mapping';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -50,21 +47,21 @@ import { useTagsStore } from './tags';
 
 /**
  * Wizard step identifiers, in canonical order. `'resolve'` is conditional —
- * `visibleSteps` omits it when `needsResolveStep` is false. Keys are the source
- * of truth for navigation; the legacy numeric `currentStep` is kept in sync for
- * older shell/step code that still reads it.
+ * `visibleSteps` omits it when `needsResolveStep` is false. Keys are the single
+ * source of truth for navigation; the numeric `currentStep` / `completedSteps`
+ * the store still exposes are projected from the key via STEP_KEY_TO_NUMBER.
  */
 export type ImportStepKey = 'upload' | 'map' | 'resolve' | 'review' | 'results';
 
 /** Every step in canonical order, before conditional filtering. */
 const ALL_STEP_KEYS: readonly ImportStepKey[] = ['upload', 'map', 'resolve', 'review', 'results'];
 
-/** Maps a step key to the legacy 1-based numeric step used by older components. */
+/** Maps a step key to its 1-based number for the numeric step view. */
 const STEP_KEY_TO_NUMBER: Record<ImportStepKey, number> = {
   upload: 1,
   map: 2,
-  // Resolve historically lived inside the old step 2; it shares its number so
-  // legacy numeric consumers keep treating detect/review as step 3+.
+  // Resolve shares the Map step's number so the numeric view keeps detect/review
+  // at 3+ whether or not the conditional Resolve step is shown.
   resolve: 2,
   review: 3,
   results: 4,
@@ -141,13 +138,6 @@ export const useImportExportStore = defineStore('importExport', () => {
   // A post-success refresh failure (loadCategories/loadTags) does NOT set this.
   const importError = ref<string | null>(null);
 
-  // UI state — key-based step model (source of truth) plus the legacy numeric
-  // mirror that older shell/step components still read.
-  const currentStepKey = ref<ImportStepKey>('upload');
-  const completedStepKeys = ref<Set<ImportStepKey>>(new Set());
-  const currentStep = ref<number>(1);
-  const completedSteps = ref<number[]>([]);
-
   // ---- Step model getters ----
 
   /** Account assignment reads per-row values from a CSV column → Resolve must map them. */
@@ -177,10 +167,46 @@ export const useImportExportStore = defineStore('importExport', () => {
     () => needsCategoryResolution.value || needsAccountResolution.value || needsTagResolution.value,
   );
 
-  /** Ordered list of steps to render, omitting `'resolve'` when not needed. */
-  const visibleSteps = computed<{ key: ImportStepKey }[]>(() =>
-    ALL_STEP_KEYS.filter((key) => key !== 'resolve' || needsResolveStep.value).map((key) => ({ key })),
-  );
+  // UI state — key-based step model (the single source of truth). `'resolve'` is
+  // omitted from `visibleSteps` when `needsResolveStep` is false.
+  const {
+    currentStepKey,
+    completedStepKeys,
+    visibleSteps,
+    goToStep,
+    goNext,
+    goBack,
+    markStepCompleted,
+    reset: resetSteps,
+  } = useWizardSteps<ImportStepKey>({
+    stepKeys: ALL_STEP_KEYS,
+    isStepVisible: (key) => key !== 'resolve' || needsResolveStep.value,
+  });
+
+  // Numeric step view derived from the key model. A numeric step API is part of
+  // this store's public surface (template consumers reference step numbers), so
+  // it is projected through STEP_KEY_TO_NUMBER rather than tracked separately.
+  // `currentStep` is writable: setting a number jumps to the first key that maps
+  // to it (Resolve and Map share number 2; Map is canonical).
+  const NUMBER_TO_STEP_KEY = ALL_STEP_KEYS.reduce<Record<number, ImportStepKey>>((acc, key) => {
+    const num = STEP_KEY_TO_NUMBER[key];
+    if (!(num in acc)) acc[num] = key;
+    return acc;
+  }, {});
+
+  const currentStep = computed<number>({
+    get: () => STEP_KEY_TO_NUMBER[currentStepKey.value],
+    set: (value) => {
+      const key = NUMBER_TO_STEP_KEY[value];
+      if (key) goToStep(key);
+    },
+  });
+
+  const completedSteps = computed<number[]>(() => {
+    const numbers = new Set<number>();
+    for (const key of completedStepKeys.value) numbers.add(STEP_KEY_TO_NUMBER[key]);
+    return [...numbers];
+  });
 
   /**
    * Map step is valid once date + amount columns are chosen and each of
@@ -208,45 +234,80 @@ export const useImportExportStore = defineStore('importExport', () => {
   });
 
   /**
-   * Resolve step is valid when every per-value row that the active methods
-   * require has a fully-resolved action. 'create-new'/'skip' are complete as-is;
-   * 'link-existing' additionally needs a non-empty target id so the backend
-   * receives a valid reference rather than an empty string.
+   * Per-entity "is this row fully decided" predicates, shared by the resolve
+   * engine's validity check and resolved-count derivations. 'create-new'/'skip'
+   * are complete as-is; 'link-existing' additionally needs a non-empty target id
+   * so the backend receives a valid reference rather than an empty string.
    */
-  const isResolveStepValid = computed(() => {
-    const accountOption = columnMapping.value.account;
-    if (accountOption?.option === AccountOptionValue.dataSourceColumn) {
-      const allMapped = uniqueAccountsInCSV.value.every((account) => {
-        const mapping = accountMapping.value[account.name];
-        return mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.accountId);
-      });
-      if (!allMapped) return false;
-    }
+  const isAccountResolved = (mapping: AccountMappingValue | undefined): boolean =>
+    mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.accountId);
+  const isCategoryResolved = (mapping: CategoryMappingValue | undefined): boolean =>
+    mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.categoryId);
+  const isTagResolved = (mapping: TagMappingValue | undefined): boolean =>
+    mapping?.action === 'create-new' ||
+    mapping?.action === 'skip' ||
+    (mapping?.action === 'link-existing' && !!mapping.tagId);
 
-    const categoryOption = columnMapping.value.category;
-    if (categoryOption?.option === CategoryOptionValue.mapDataSourceColumn) {
-      const allMapped = uniqueCategoriesInCSV.value.every((category) => {
-        const mapping = categoryMapping.value[category];
-        return mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.categoryId);
-      });
-      if (!allMapped) return false;
-    }
-
-    const tagsOption = columnMapping.value.tags;
-    if (tagsOption?.option === TagOptionValue.mapDataSourceColumn) {
-      const allDecided = uniqueTagsInCSV.value.every((tag) => {
-        const mapping = tagMapping.value[tag];
-        return (
-          mapping?.action === 'create-new' ||
-          mapping?.action === 'skip' ||
-          (mapping?.action === 'link-existing' && !!mapping.tagId)
-        );
-      });
-      if (!allDecided) return false;
-    }
-
-    return true;
+  /**
+   * Shared resolve engine (bulk actions, step validity, duplicate-unmark toggle).
+   * Each entity is active only when its column mapping needs reconciliation; an
+   * inactive entity is ignored by every action and imposes no validity constraint.
+   * Tag link targets, source names, and the `skip` action are CSV-specific and
+   * supplied via the optional `tags` config.
+   */
+  const resolveEngine = useResolveMapping<AccountMappingValue, CategoryMappingValue, TagMappingValue>({
+    accounts: {
+      isActive: () => needsAccountResolution.value,
+      getSources: () =>
+        uniqueAccountsInCSV.value.map((account) => ({
+          name: account.name,
+          currencyCode: account.currency || undefined,
+        })),
+      getTargets: () =>
+        (useAccountsStore().accounts ?? []).map((account) => ({
+          id: String(account.id),
+          name: account.name,
+          currencyCode: account.currencyCode,
+        })),
+      mapping: accountMapping,
+      toLink: (id) => ({ action: 'link-existing', accountId: id }),
+      toCreate: () => ({ action: 'create-new' }),
+      isResolved: isAccountResolved,
+    },
+    categories: {
+      isActive: () => needsCategoryResolution.value,
+      getSources: () => uniqueCategoriesInCSV.value.map((name) => ({ name })),
+      getTargets: () =>
+        flattenCategories({ categories: useCategoriesStore().formattedCategories }).map((category) => ({
+          id: category.id,
+          name: category.name,
+        })),
+      mapping: categoryMapping,
+      toLink: (id) => ({ action: 'link-existing', categoryId: id }),
+      toCreate: () => ({ action: 'create-new' }),
+      isResolved: isCategoryResolved,
+    },
+    tags: {
+      isActive: () => needsTagResolution.value,
+      getSources: () => uniqueTagsInCSV.value.map((name) => ({ name })),
+      getTargets: () => useTagsStore().tags.map((tag) => ({ id: String(tag.id), name: tag.name })),
+      mapping: tagMapping,
+      toLink: (id) => ({ action: 'link-existing', tagId: id }),
+      toCreate: () => ({ action: 'create-new' }),
+      toSkip: () => ({ action: 'skip' }),
+      isResolved: isTagResolved,
+    },
+    unmarkedDuplicateIndices,
   });
+
+  const {
+    autoMatchResolveValues,
+    quickMapExactMatches,
+    quickCreateNewForUnmatched,
+    quickSkipAllTags,
+    resetResolveEntity,
+    isResolveStepValid,
+  } = resolveEngine;
 
   // ---- Other getters ----
 
@@ -266,42 +327,6 @@ export const useImportExportStore = defineStore('importExport', () => {
     duplicates: duplicates.value.length - unmarkedDuplicateIndices.value.size,
     willImport: rowsToImport.value.length,
   }));
-
-  // ---- Step navigation actions ----
-
-  /** Sets the active step by key and mirrors the legacy numeric value. */
-  const goToStep = (key: ImportStepKey) => {
-    currentStepKey.value = key;
-    currentStep.value = STEP_KEY_TO_NUMBER[key];
-  };
-
-  /** Marks a step complete in both the key set and the legacy numeric array. */
-  const markStepCompleted = (key: ImportStepKey) => {
-    completedStepKeys.value.add(key);
-    const num = STEP_KEY_TO_NUMBER[key];
-    if (!completedSteps.value.includes(num)) {
-      completedSteps.value.push(num);
-    }
-  };
-
-  /** Advances to the next visible step (resolve is skipped when not needed). */
-  const goNext = () => {
-    const steps = visibleSteps.value;
-    const index = steps.findIndex((s) => s.key === currentStepKey.value);
-    if (index === -1) return;
-    markStepCompleted(currentStepKey.value);
-    const next = steps[index + 1];
-    if (next) goToStep(next.key);
-  };
-
-  /** Walks back to the previous visible step. */
-  const goBack = () => {
-    const steps = visibleSteps.value;
-    const index = steps.findIndex((s) => s.key === currentStepKey.value);
-    if (index <= 0) return;
-    const prev = steps[index - 1];
-    if (prev) goToStep(prev.key);
-  };
 
   // ---- Async actions ----
 
@@ -393,13 +418,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     }
   };
 
-  const toggleDuplicateUnmark = (rowIndex: number) => {
-    if (unmarkedDuplicateIndices.value.has(rowIndex)) {
-      unmarkedDuplicateIndices.value.delete(rowIndex);
-    } else {
-      unmarkedDuplicateIndices.value.add(rowIndex);
-    }
-  };
+  // Positional signature preserved for the existing `@toggle="store.toggleDuplicateUnmark"`
+  // binding in the review-duplicates step; delegates to the shared engine.
+  const toggleDuplicateUnmark = (rowIndex: number) => resolveEngine.toggleDuplicateUnmark({ rowIndex });
 
   const executeImport = async ({ skipUnpriceableIndices }: { skipUnpriceableIndices?: number[] } = {}) => {
     importInProgress.value = true;
@@ -568,165 +589,6 @@ export const useImportExportStore = defineStore('importExport', () => {
     }
   };
 
-  /** Currency-aware CSV-side account sources for matching. */
-  const accountResolveSources = () =>
-    uniqueAccountsInCSV.value.map((account) => ({ name: account.name, currencyCode: account.currency || undefined }));
-
-  /** Existing accounts as link targets (id stringified for the wire shape). */
-  const accountResolveTargets = () =>
-    (useAccountsStore().accounts ?? []).map((account) => ({
-      id: String(account.id),
-      name: account.name,
-      currencyCode: account.currencyCode,
-    }));
-
-  const categoryResolveSources = () => uniqueCategoriesInCSV.value.map((name) => ({ name }));
-
-  const categoryResolveTargets = () =>
-    flattenCategories({ categories: useCategoriesStore().formattedCategories }).map((category) => ({
-      id: category.id,
-      name: category.name,
-    }));
-
-  const tagResolveSources = () => uniqueTagsInCSV.value.map((name) => ({ name }));
-
-  const tagResolveTargets = () => useTagsStore().tags.map((tag) => ({ id: String(tag.id), name: tag.name }));
-
-  /**
-   * Pre-fills every active entity's mapping by name: link to a matched existing
-   * entity, else fall back to "create new". With `overwrite: false`, rows the
-   * user already decided are left untouched.
-   */
-  const autoMatchResolveValues = ({ overwrite }: { overwrite: boolean }): void => {
-    if (needsAccountResolution.value) {
-      Object.assign(
-        accountMapping.value,
-        computeAutoMatchEntries<AccountMappingValue>({
-          sources: accountResolveSources(),
-          targets: accountResolveTargets(),
-          current: accountMapping.value,
-          overwrite,
-          toLink: (id) => ({ action: 'link-existing', accountId: id }),
-          toCreate: () => ({ action: 'create-new' }),
-        }),
-      );
-    }
-
-    if (needsCategoryResolution.value) {
-      Object.assign(
-        categoryMapping.value,
-        computeAutoMatchEntries<CategoryMappingValue>({
-          sources: categoryResolveSources(),
-          targets: categoryResolveTargets(),
-          current: categoryMapping.value,
-          overwrite,
-          toLink: (id) => ({ action: 'link-existing', categoryId: id }),
-          toCreate: () => ({ action: 'create-new' }),
-        }),
-      );
-    }
-
-    if (needsTagResolution.value) {
-      Object.assign(
-        tagMapping.value,
-        computeAutoMatchEntries<TagMappingValue>({
-          sources: tagResolveSources(),
-          targets: tagResolveTargets(),
-          current: tagMapping.value,
-          overwrite,
-          toLink: (id) => ({ action: 'link-existing', tagId: id }),
-          toCreate: () => ({ action: 'create-new' }),
-        }),
-      );
-    }
-  };
-
-  /** Link only the exact-name matches for one entity, overwriting those rows. */
-  const quickMapExactMatches = ({ entity }: { entity: 'accounts' | 'categories' | 'tags' }): void => {
-    if (entity === 'accounts') {
-      Object.assign(
-        accountMapping.value,
-        computeExactLinkEntries<AccountMappingValue>({
-          sources: accountResolveSources(),
-          targets: accountResolveTargets(),
-          toLink: (id) => ({ action: 'link-existing', accountId: id }),
-        }),
-      );
-    } else if (entity === 'categories') {
-      Object.assign(
-        categoryMapping.value,
-        computeExactLinkEntries<CategoryMappingValue>({
-          sources: categoryResolveSources(),
-          targets: categoryResolveTargets(),
-          toLink: (id) => ({ action: 'link-existing', categoryId: id }),
-        }),
-      );
-    } else {
-      Object.assign(
-        tagMapping.value,
-        computeExactLinkEntries<TagMappingValue>({
-          sources: tagResolveSources(),
-          targets: tagResolveTargets(),
-          toLink: (id) => ({ action: 'link-existing', tagId: id }),
-        }),
-      );
-    }
-  };
-
-  /** Set "create new" for every still-unresolved row of one entity. */
-  const quickCreateNewForUnmatched = ({ entity }: { entity: 'accounts' | 'categories' | 'tags' }): void => {
-    if (entity === 'accounts') {
-      Object.assign(
-        accountMapping.value,
-        computeCreateForUnresolved<AccountMappingValue>({
-          names: uniqueAccountsInCSV.value.map((account) => account.name),
-          current: accountMapping.value,
-          isUnresolved: (entry) => !entry || (entry.action === 'link-existing' && !entry.accountId),
-          toCreate: () => ({ action: 'create-new' }),
-        }),
-      );
-    } else if (entity === 'categories') {
-      Object.assign(
-        categoryMapping.value,
-        computeCreateForUnresolved<CategoryMappingValue>({
-          names: uniqueCategoriesInCSV.value,
-          current: categoryMapping.value,
-          isUnresolved: (entry) => !entry || (entry.action === 'link-existing' && !entry.categoryId),
-          toCreate: () => ({ action: 'create-new' }),
-        }),
-      );
-    } else {
-      Object.assign(
-        tagMapping.value,
-        computeCreateForUnresolved<TagMappingValue>({
-          names: uniqueTagsInCSV.value,
-          current: tagMapping.value,
-          isUnresolved: (entry) => !entry || (entry.action === 'link-existing' && !entry.tagId),
-          toCreate: () => ({ action: 'create-new' }),
-        }),
-      );
-    }
-  };
-
-  /** Mark every source tag value as skipped. */
-  const quickSkipAllTags = (): void => {
-    for (const tagName of uniqueTagsInCSV.value) {
-      tagMapping.value[tagName] = { action: 'skip' };
-    }
-  };
-
-  /** Clear one entity's stored choices, then re-seed via name auto-match. */
-  const resetResolveEntity = ({ entity }: { entity: 'accounts' | 'categories' | 'tags' }): void => {
-    if (entity === 'accounts') {
-      for (const account of uniqueAccountsInCSV.value) delete accountMapping.value[account.name];
-    } else if (entity === 'categories') {
-      for (const categoryName of uniqueCategoriesInCSV.value) delete categoryMapping.value[categoryName];
-    } else {
-      for (const tagName of uniqueTagsInCSV.value) delete tagMapping.value[tagName];
-    }
-    autoMatchResolveValues({ overwrite: false });
-  };
-
   /**
    * Readies the Resolve step: extracts the unique source values when missing,
    * loads the existing category/tag lists that link targets need, then runs a
@@ -793,10 +655,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     importInProgress.value = false;
     importResult.value = null;
     importError.value = null;
-    currentStepKey.value = 'upload';
-    completedStepKeys.value = new Set();
-    currentStep.value = 1;
-    completedSteps.value = [];
+    resetSteps();
   };
 
   return {

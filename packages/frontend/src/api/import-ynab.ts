@@ -15,6 +15,6 @@ export const executeYnabImport = async (payload: ExecuteYnabRequest): Promise<Ex
   return api.post('/import/ynab/execute', payload);
 };
 
-export const getYnabImportStatus = async (jobId: string): Promise<YnabImportProgress> => {
+export const getYnabImportStatus = async ({ jobId }: { jobId: string }): Promise<YnabImportProgress> => {
   return api.get(`/import/ynab/status/${jobId}`);
 };

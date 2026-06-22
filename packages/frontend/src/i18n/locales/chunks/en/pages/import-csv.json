@@ -84,29 +84,7 @@
           "noInvalidRows": "No invalid rows",
           "noDuplicates": "No duplicates",
           "expand": "Show full data",
-          "collapse": "Hide full data",
-          "importAnywayAriaLabel": "Import row {row} anyway",
-          "columnHeaders": {
-            "row": "Row",
-            "problem": "Problem",
-            "data": "Data",
-            "match": "Match",
-            "csvTransaction": "CSV transaction",
-            "existingTransaction": "Existing transaction",
-            "csvShort": "CSV",
-            "existingShort": "Existing"
-          },
-          "matchTypeLabels": {
-            "exact": "Exact",
-            "idMatch": "ID match",
-            "fuzzy": "Fuzzy"
-          },
-          "fieldLabels": {
-            "amount": "Amount",
-            "date": "Date",
-            "note": "Note",
-            "category": "Category"
-          }
+          "collapse": "Hide full data"
         },
         "results": {
           "completeTitle": "Import Complete!",

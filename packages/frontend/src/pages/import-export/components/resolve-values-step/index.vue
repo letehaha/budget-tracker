@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { type FormattedCategory } from '@/common/types';
-import CategorySelectField from '@/components/fields/category-select-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
@@ -11,8 +9,9 @@ import { useCategoriesStore } from '@/stores/categories/categories';
 import { useImportExportStore } from '@/stores/import-export';
 import { useTagsStore } from '@/stores/tags';
 import { useAccountsStore } from '@/stores/accounts';
-import type { SourceAccount, AccountMappingValue, CategoryMappingValue, TagMappingValue } from '@bt/shared/types';
-import { buildCategoryMapById } from '@/pages/import-export/utils/flatten-categories';
+import type { TagMappingValue } from '@bt/shared/types';
+import AccountMappingTable from './account-mapping-table.vue';
+import CategoryMappingTable from './category-mapping-table.vue';
 import QuickActionsToolbar, { type QuickAction } from './quick-action-toolbar.vue';
 import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon, LinkIcon, PlusIcon, SkipForwardIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
@@ -39,78 +38,45 @@ interface OptionItem<V extends string = string> {
   value: V;
 }
 
-/** Shared action choices for accounts and categories: link an existing record or create a new one. */
-const linkOrCreateOptions = computed<OptionItem<AccountMappingValue['action']>[]>(() => [
-  { label: t('pages.importExport.resolveValues.actions.createNew'), value: 'create-new' },
-  { label: t('pages.importExport.resolveValues.actions.linkExisting'), value: 'link-existing' },
-]);
-
 const tagActionOptions = computed<OptionItem<TagMappingValue['action']>[]>(() => [
   { label: t('pages.importExport.resolveValues.actions.createNew'), value: 'create-new' },
   { label: t('pages.importExport.resolveValues.actions.linkExisting'), value: 'link-existing' },
   { label: t('pages.importExport.resolveValues.actions.skip'), value: 'skip' },
 ]);
 
-// ---- Table column definitions ----
+// ---- Account mapping (shared table) emit handlers ----
 
-const accountColumns: MappingTableColumn[] = [
-  { key: 'status', label: '', width: '36px', hideLabelInCard: true, cardHeader: true },
-  {
-    key: 'name',
-    label: t('pages.importExport.resolveValues.accounts.csvName'),
-    width: 'minmax(0,1fr)',
-    cardHeader: true,
-  },
-  {
-    key: 'currency',
-    label: t('pages.importExport.resolveValues.accounts.currency'),
-    width: '80px',
-    cardValue: 'inline',
-  },
-  { key: 'action', label: t('pages.importExport.resolveValues.accounts.action'), width: '160px', cardValue: 'control' },
-  {
-    key: 'target',
-    label: t('pages.importExport.resolveValues.accounts.target'),
-    width: 'minmax(0,1fr)',
-    cardValue: 'control',
-  },
-];
+function onAccountSetAction({ name, action }: { name: string; action: 'create-new' | 'link-existing' }) {
+  if (action === 'create-new') {
+    importStore.accountMapping[name] = { action: 'create-new' };
+  } else {
+    importStore.accountMapping[name] = { action: 'link-existing', accountId: '' };
+  }
+}
 
-const categoryColumns: MappingTableColumn[] = [
-  { key: 'status', label: '', width: '36px', hideLabelInCard: true, cardHeader: true },
-  {
-    key: 'name',
-    label: t('pages.importExport.resolveValues.categories.csvName'),
-    width: 'minmax(0,1fr)',
-    cardHeader: true,
-  },
-  {
-    key: 'action',
-    label: t('pages.importExport.resolveValues.categories.action'),
-    width: '160px',
-    cardValue: 'control',
-  },
-  {
-    key: 'target',
-    label: t('pages.importExport.resolveValues.categories.target'),
-    width: 'minmax(0,1fr)',
-    cardValue: 'control',
-  },
-];
+function onAccountSetTarget({ name, accountId }: { name: string; accountId: string }) {
+  importStore.accountMapping[name] = { action: 'link-existing', accountId };
+}
 
-const tagColumns: MappingTableColumn[] = [
-  { key: 'status', label: '', width: '36px', hideLabelInCard: true, cardHeader: true },
-  { key: 'name', label: t('pages.importExport.resolveValues.tags.csvName'), width: 'minmax(0,1fr)', cardHeader: true },
-  { key: 'action', label: t('pages.importExport.resolveValues.tags.action'), width: '160px', cardValue: 'control' },
-  {
-    key: 'target',
-    label: t('pages.importExport.resolveValues.tags.target'),
-    width: 'minmax(0,1fr)',
-    cardValue: 'control',
-  },
-];
+// ---- Category mapping (shared table) emit handlers ----
 
-// ---- Status derivation ----
+function onCategorySetAction({ name, action }: { name: string; action: 'create-new' | 'link-existing' }) {
+  if (action === 'create-new') {
+    importStore.categoryMapping[name] = { action: 'create-new' };
+  } else {
+    importStore.categoryMapping[name] = { action: 'link-existing', categoryId: '' };
+  }
+}
+
+function onCategorySetTarget({ name, categoryId }: { name: string; categoryId: string }) {
+  importStore.categoryMapping[name] = { action: 'link-existing', categoryId };
+}
+
+// ---- Category items for the shared table (names → { name }) ----
+
+const categoryItems = computed(() => importStore.uniqueCategoriesInCSV.map((name) => ({ name })));
+
+// ---- Tags table (kept inlined — out of scope for the shared extraction) ----
 
 type ResolveRowStatus = 'auto-matched' | 'will-create' | 'needs-attention' | 'skipped';
 
@@ -127,150 +93,26 @@ function resolveRowStatus({ action, hasTarget }: { action: string | undefined; h
   return 'needs-attention';
 }
 
-function getAccountStatus({ name }: SourceAccount): ResolveRowStatus {
-  const m = importStore.accountMapping[name];
-  return resolveRowStatus({ action: m?.action, hasTarget: m?.action === 'link-existing' && !!m.accountId });
-}
-
-function getCategoryStatus(name: string): ResolveRowStatus {
-  const m = importStore.categoryMapping[name];
-  return resolveRowStatus({ action: m?.action, hasTarget: m?.action === 'link-existing' && !!m.categoryId });
-}
-
 function getTagStatus(name: string): ResolveRowStatus {
   const m = importStore.tagMapping[name];
   return resolveRowStatus({ action: m?.action, hasTarget: m?.action === 'link-existing' && !!m.tagId });
 }
 
-// ---- Resolution counts for section headers ----
-
-const accountResolvedCount = computed(
-  () => importStore.uniqueAccountsInCSV.filter((a) => getAccountStatus(a) !== 'needs-attention').length,
-);
-
-const categoryResolvedCount = computed(
-  () => importStore.uniqueCategoriesInCSV.filter((c) => getCategoryStatus(c) !== 'needs-attention').length,
-);
-
 const tagResolvedCount = computed(
   () => importStore.uniqueTagsInCSV.filter((tg) => getTagStatus(tg) !== 'needs-attention').length,
 );
 
-// ---- Account mapping helpers ----
-
-/** Currency-filtered existing accounts for a given source account's currency. */
-function getFilteredAccounts(currency: string) {
-  if (!currency) return accounts.value ?? [];
-  return (accounts.value ?? []).filter((acc) => acc.currencyCode === currency);
-}
-
-/** Accounts already linked to another CSV name (to disable them in other rows). */
-const accountIdToCSVName = computed(() => {
-  const mapping: Record<string, string> = {};
-  for (const [csvName, value] of Object.entries(importStore.accountMapping)) {
-    if (value.action === 'link-existing') {
-      mapping[value.accountId] = csvName;
-    }
-  }
-  return mapping;
-});
-
-function isAccountAlreadyMapped({ accountId, currentCSVName }: { accountId: string; currentCSVName: string }): boolean {
-  const mappedTo = accountIdToCSVName.value[accountId];
-  return mappedTo !== undefined && mappedTo !== currentCSVName;
-}
-
-function getAccountActionOption(name: string): OptionItem<AccountMappingValue['action']> | null {
-  const mapping = importStore.accountMapping[name];
-  if (!mapping) return null;
-  return linkOrCreateOptions.value.find((o) => o.value === mapping.action) ?? null;
-}
-
-function handleAccountAction({
-  name,
-  option,
-}: {
-  name: string;
-  option: OptionItem<AccountMappingValue['action']> | null;
-}) {
-  if (!option) {
-    delete importStore.accountMapping[name];
-    return;
-  }
-  if (option.value === 'create-new') {
-    importStore.accountMapping[name] = { action: 'create-new' };
-  } else if (option.value === 'link-existing') {
-    importStore.accountMapping[name] = { action: 'link-existing', accountId: '' };
-  }
-}
-
-function getAccountSelectOptions(currency: string): OptionItem[] {
-  return getFilteredAccounts(currency).map((acc) => ({
-    label: `${acc.name} (${acc.currencyCode})`,
-    value: String(acc.id),
-  }));
-}
-
-function getAccountSelectValue(name: string): OptionItem | null {
-  const mapping = importStore.accountMapping[name];
-  if (mapping?.action !== 'link-existing' || !mapping.accountId) return null;
-  const acc = (accounts.value ?? []).find((a) => String(a.id) === mapping.accountId);
-  if (!acc) return null;
-  return { label: `${acc.name} (${acc.currencyCode})`, value: String(acc.id) };
-}
-
-function handleAccountSelect({ name, option }: { name: string; option: OptionItem | null }) {
-  if (option) {
-    importStore.accountMapping[name] = { action: 'link-existing', accountId: option.value };
-  } else {
-    importStore.accountMapping[name] = { action: 'link-existing', accountId: '' };
-  }
-}
-
-// ---- Category mapping helpers ----
-
-/** id → category lookup, used to resolve a stored categoryId back to its full category for the picker. */
-const categoryMapById = computed(() => buildCategoryMapById({ categories: formattedCategories.value }));
-
-function getCategoryActionOption(name: string): OptionItem<CategoryMappingValue['action']> | null {
-  const mapping = importStore.categoryMapping[name];
-  if (!mapping) return null;
-  return linkOrCreateOptions.value.find((o) => o.value === mapping.action) ?? null;
-}
-
-function handleCategoryAction({
-  name,
-  option,
-}: {
-  name: string;
-  option: OptionItem<CategoryMappingValue['action']> | null;
-}) {
-  if (!option) {
-    delete importStore.categoryMapping[name];
-    return;
-  }
-  if (option.value === 'create-new') {
-    importStore.categoryMapping[name] = { action: 'create-new' };
-  } else if (option.value === 'link-existing') {
-    importStore.categoryMapping[name] = { action: 'link-existing', categoryId: '' };
-  }
-}
-
-function getCategorySelectValue(name: string): FormattedCategory | null {
-  const mapping = importStore.categoryMapping[name];
-  if (mapping?.action !== 'link-existing' || !mapping.categoryId) return null;
-  return categoryMapById.value.get(mapping.categoryId) ?? null;
-}
-
-function handleCategorySelect({ name, category }: { name: string; category: FormattedCategory | null }) {
-  if (category) {
-    importStore.categoryMapping[name] = { action: 'link-existing', categoryId: category.id };
-  } else {
-    importStore.categoryMapping[name] = { action: 'link-existing', categoryId: '' };
-  }
-}
-
-// ---- Tag mapping helpers ----
+const tagColumns: MappingTableColumn[] = [
+  { key: 'status', label: '', width: '36px', hideLabelInCard: true, cardHeader: true },
+  { key: 'name', label: t('pages.importExport.resolveValues.tags.csvName'), width: 'minmax(0,1fr)', cardHeader: true },
+  { key: 'action', label: t('pages.importExport.resolveValues.tags.action'), width: '160px', cardValue: 'control' },
+  {
+    key: 'target',
+    label: t('pages.importExport.resolveValues.tags.target'),
+    width: 'minmax(0,1fr)',
+    cardValue: 'control',
+  },
+];
 
 function getTagActionOption(name: string): OptionItem<TagMappingValue['action']> | null {
   const mapping = importStore.tagMapping[name];
@@ -430,172 +272,30 @@ async function handleNext() {
       </Callout>
 
       <!-- ==================== ACCOUNTS SECTION ==================== -->
-      <section v-if="importStore.needsAccountResolution && importStore.uniqueAccountsInCSV.length > 0">
-        <!-- Section header -->
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 class="text-sm font-semibold">{{ t('pages.importExport.resolveValues.accounts.sectionTitle') }}</h3>
-            <p class="text-muted-foreground text-xs">
-              {{
-                t('pages.importExport.resolveValues.accounts.resolvedCount', {
-                  resolved: accountResolvedCount,
-                  total: importStore.uniqueAccountsInCSV.length,
-                })
-              }}
-            </p>
-          </div>
-
-          <!-- Quick actions: inline buttons on a wide container, overflow menu on a narrow one -->
-          <QuickActionsToolbar :actions="accountQuickActions" />
-        </div>
-
-        <MappingTable
-          :columns="accountColumns"
-          :items="importStore.uniqueAccountsInCSV"
-          :row-key="(row) => row.name"
-          :get-row-class="(row) => (getAccountStatus(row) === 'needs-attention' ? 'bg-warning/5' : '')"
-        >
-          <template #cell:status="{ item }">
-            <StatusIndicator :status="getAccountStatus(item)" size="sm" />
-          </template>
-
-          <template #cell:name="{ item }">
-            <span class="truncate font-medium">{{ item.name }}</span>
-          </template>
-
-          <template #cell:currency="{ item }">
-            <span class="text-muted-foreground text-xs">{{ item.currency || '—' }}</span>
-          </template>
-
-          <template #cell:action="{ item }">
-            <SelectField
-              :model-value="getAccountActionOption(item.name)"
-              :values="linkOrCreateOptions"
-              class="w-full"
-              :placeholder="$t('pages.importExport.resolveValues.selectAction')"
-              @update:model-value="handleAccountAction({ name: item.name, option: $event })"
-            />
-          </template>
-
-          <template #cell:target="{ item }">
-            <!-- link-existing: currency-filtered account picker -->
-            <div v-if="importStore.accountMapping[item.name]?.action === 'link-existing'" class="w-full">
-              <p v-if="getFilteredAccounts(item.currency).length === 0" class="text-destructive-text text-sm">
-                {{ t('pages.importExport.resolveValues.accounts.noMatchingCurrency', { currency: item.currency }) }}
-              </p>
-              <SelectField
-                v-else
-                :model-value="getAccountSelectValue(item.name)"
-                :values="getAccountSelectOptions(item.currency)"
-                class="w-full"
-                clearable
-                :placeholder="$t('pages.importExport.resolveValues.accounts.selectTarget')"
-                :option-disabled="
-                  (opt: OptionItem) => isAccountAlreadyMapped({ accountId: opt.value, currentCSVName: item.name })
-                "
-                @update:model-value="handleAccountSelect({ name: item.name, option: $event })"
-              />
-            </div>
-
-            <!-- create-new hint -->
-            <span
-              v-else-if="importStore.accountMapping[item.name]?.action === 'create-new'"
-              class="text-muted-foreground text-sm"
-            >
-              {{
-                t('pages.importExport.resolveValues.accounts.willCreate', {
-                  name: item.name,
-                  currency: item.currency || '—',
-                })
-              }}
-            </span>
-
-            <span v-else class="text-muted-foreground text-sm">—</span>
-          </template>
-
-          <template #empty>
-            {{ t('pages.importExport.resolveValues.accounts.empty') }}
-          </template>
-        </MappingTable>
-      </section>
+      <AccountMappingTable
+        v-if="importStore.needsAccountResolution && importStore.uniqueAccountsInCSV.length > 0"
+        :items="importStore.uniqueAccountsInCSV"
+        :mapping="importStore.accountMapping"
+        :available-accounts="accounts ?? []"
+        :title="t('pages.importExport.resolveValues.accounts.sectionTitle')"
+        :resolved-label="t('importShared.resolvedCounterWord')"
+        :quick-actions="accountQuickActions"
+        @set-action="onAccountSetAction"
+        @set-target="onAccountSetTarget"
+      />
 
       <!-- ==================== CATEGORIES SECTION ==================== -->
-      <section v-if="importStore.needsCategoryResolution && importStore.uniqueCategoriesInCSV.length > 0">
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 class="text-sm font-semibold">
-              {{ t('pages.importExport.resolveValues.categories.sectionTitle') }}
-            </h3>
-            <p class="text-muted-foreground text-xs">
-              {{
-                t('pages.importExport.resolveValues.categories.resolvedCount', {
-                  resolved: categoryResolvedCount,
-                  total: importStore.uniqueCategoriesInCSV.length,
-                })
-              }}
-            </p>
-          </div>
-
-          <QuickActionsToolbar :actions="categoryQuickActions" />
-        </div>
-
-        <MappingTable
-          :columns="categoryColumns"
-          :items="importStore.uniqueCategoriesInCSV"
-          :row-key="(row) => row"
-          :get-row-class="(row) => (getCategoryStatus(row) === 'needs-attention' ? 'bg-warning/5' : '')"
-        >
-          <template #cell:status="{ item }">
-            <StatusIndicator :status="getCategoryStatus(item)" size="sm" />
-          </template>
-
-          <template #cell:name="{ item }">
-            <span class="truncate font-medium">{{ item }}</span>
-          </template>
-
-          <template #cell:action="{ item }">
-            <SelectField
-              :model-value="getCategoryActionOption(item)"
-              :values="linkOrCreateOptions"
-              class="w-full"
-              :placeholder="$t('pages.importExport.resolveValues.selectAction')"
-              @update:model-value="handleCategoryAction({ name: item, option: $event })"
-            />
-          </template>
-
-          <template #cell:target="{ item }">
-            <!-- link-existing: category tree picker -->
-            <div v-if="importStore.categoryMapping[item]?.action === 'link-existing'" class="w-full">
-              <CategorySelectField
-                :model-value="getCategorySelectValue(item)"
-                :values="formattedCategories"
-                label-key="name"
-                :placeholder="$t('pages.importExport.resolveValues.categories.selectTarget')"
-                popover-class-name="min-w-60"
-                @update:model-value="handleCategorySelect({ name: item, category: $event })"
-              />
-            </div>
-
-            <!-- create-new hint -->
-            <i18n-t
-              v-else-if="importStore.categoryMapping[item]?.action === 'create-new'"
-              keypath="pages.importExport.resolveValues.categories.willCreate"
-              tag="span"
-              class="text-muted-foreground text-sm"
-            >
-              <template #name>
-                <span class="text-foreground font-medium">{{ item }}</span>
-              </template>
-            </i18n-t>
-
-            <span v-else class="text-muted-foreground text-sm">—</span>
-          </template>
-
-          <template #empty>
-            {{ t('pages.importExport.resolveValues.categories.empty') }}
-          </template>
-        </MappingTable>
-      </section>
+      <CategoryMappingTable
+        v-if="importStore.needsCategoryResolution && importStore.uniqueCategoriesInCSV.length > 0"
+        :items="categoryItems"
+        :mapping="importStore.categoryMapping"
+        :available-categories="formattedCategories"
+        :title="t('pages.importExport.resolveValues.categories.sectionTitle')"
+        :resolved-label="t('importShared.resolvedCounterWord')"
+        :quick-actions="categoryQuickActions"
+        @set-action="onCategorySetAction"
+        @set-target="onCategorySetTarget"
+      />
 
       <!-- ==================== TAGS SECTION ==================== -->
       <section v-if="importStore.needsTagResolution && importStore.uniqueTagsInCSV.length > 0">
