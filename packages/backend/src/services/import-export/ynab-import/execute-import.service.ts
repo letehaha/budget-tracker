@@ -12,6 +12,7 @@ import {
   type YnabFlagColor,
   type YnabImportSummary,
 } from '@bt/shared/types';
+import { pickRandomColor } from '@common/lib/random-color';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -157,7 +158,7 @@ export async function executeYnabImport({
     const newParent = await createCategory({
       userId,
       name: groupName,
-      color: randomCategoryColor(),
+      color: pickRandomColor(),
       type: CATEGORY_TYPES.custom,
     });
     parentByGroupName.set(groupName, newParent.id);
@@ -376,10 +377,4 @@ export async function executeYnabImport({
 function parseIsoToDate(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(Date.UTC(y!, m! - 1, d!));
-}
-
-const CATEGORY_COLOR_PALETTE = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
-
-function randomCategoryColor(): string {
-  return CATEGORY_COLOR_PALETTE[Math.floor(Math.random() * CATEGORY_COLOR_PALETTE.length)]!;
 }

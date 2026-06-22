@@ -1199,4 +1199,44 @@ describe('Statement Parser - Execute Import endpoint', () => {
       expect(accountAfter.currentBalance).toBe(1000);
     });
   });
+
+  describe('partial failure — best-effort import', () => {
+    // The importer is best-effort: each transaction is written in its own
+    // database transaction, so a row that fails validation is reported in
+    // `summary.errors` without losing the rows around it. A row whose `date`
+    // can't be parsed is rejected per-row, leaving the good rows on either side
+    // to persist. `imported` must always equal the number of rows actually
+    // written to the database.
+    it('imports the good rows, reports only the bad row, and persists exactly what it claims', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const transactions: ExtractedTransaction[] = [
+        { date: '2024-03-01', description: 'Good row before', amount: 100, type: 'expense' },
+        { date: 'definitely-not-a-date', description: 'Row with unparseable date', amount: 200, type: 'expense' },
+        { date: '2024-03-03', description: 'Good row after', amount: 300, type: 'income' },
+      ];
+
+      const result = await helpers.statementExecuteImport({
+        payload: {
+          accountId: account.id,
+          transactions,
+          skipIndices: [],
+        },
+        raw: true,
+      });
+
+      // Two good rows imported; only the middle (index 1) row is reported as an error.
+      expect(result.summary.imported).toBe(2);
+      expect(result.summary.errors).toHaveLength(1);
+      expect(result.summary.errors[0]!.transactionIndex).toBe(1);
+      expect(result.newTransactionIds).toHaveLength(2);
+
+      // Honesty assertion: the rows reported as imported are actually in the
+      // database, and the persisted count matches the claimed `imported` count.
+      const allTransactions = await helpers.getTransactions({ raw: true });
+      const persisted = allTransactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      expect(persisted).toHaveLength(2);
+      expect(persisted.length).toBe(result.summary.imported);
+    });
+  });
 });

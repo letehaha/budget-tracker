@@ -39,6 +39,20 @@
       "refund": "Повернення",
       "split": "Розділення"
     },
+    "components": {
+      "statusIndicator": {
+        "autoMatched": "Автоматично відібрано",
+        "suggested": "Пропоноване",
+        "willCreate": "Буде створено",
+        "needsAttention": "Потребує уваги",
+        "invalid": "Невірне",
+        "optional": "Факультативне",
+        "skipped": "Пропущене"
+      },
+      "selectField": {
+        "clearSelection": "Очистити вибір"
+      }
+    },
     "errors": {
       "copyToClipboardFailed": "Не вдалося скопіювати до буфера обміну"
     },

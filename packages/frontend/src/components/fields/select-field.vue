@@ -31,6 +31,10 @@ const props = withDefaults(
     optionDisabled?: (value: T) => boolean;
     errorMessage?: string;
     label?: string;
+    /** When true and a value is selected, renders a clear button that emits update:modelValue with null. */
+    clearable?: boolean;
+    /** When true, appends a destructive asterisk to the label and sets aria-required on the trigger. */
+    required?: boolean;
   }>(),
   {
     placeholder: undefined,
@@ -42,6 +46,8 @@ const props = withDefaults(
     labelKey: 'label',
     valueKey: 'value',
     label: undefined,
+    clearable: false,
+    required: false,
   },
 );
 
@@ -51,7 +57,6 @@ const emit = defineEmits<{
 
 const searchQuery = ref('');
 const selectedValue = computed(() => props.modelValue);
-const isDropdownOpen = ref<boolean>(false);
 const debouncedFilteredValues = ref<T[]>(props.values);
 
 // reka-ui's SelectContent renders its slot into a detached DocumentFragment
@@ -63,7 +68,6 @@ const debouncedFilteredValues = ref<T[]>(props.values);
 const hasOpened = ref(false);
 
 function onOpenChange(open: boolean) {
-  isDropdownOpen.value = open;
   if (open) hasOpened.value = true;
 }
 
@@ -101,6 +105,11 @@ const displayItem = computed<T | null>(() => {
   return props.values.find((item) => getKeyFromItem(item) === key) ?? selectedValue.value;
 });
 
+function handleClear(event: Event) {
+  event.stopPropagation();
+  emit('update:modelValue', null);
+}
+
 watch(
   searchQuery,
   debounce((query: string) => {
@@ -130,16 +139,34 @@ watch(
 <template>
   <div>
     <template v-if="label">
-      <FieldLabel :label="label" />
+      <FieldLabel :label="label">
+        <template v-if="required" #label-after>
+          <span class="text-destructive-text" aria-hidden="true">*</span>
+        </template>
+      </FieldLabel>
     </template>
 
     <div>
       <Select.Select v-model="selectedKey" :disabled="disabled" @update:open="onOpenChange">
-        <Select.SelectTrigger class="w-full">
+        <Select.SelectTrigger class="w-full" :aria-required="required || undefined">
           <Select.SelectValue :placeholder="placeholder ?? t('fields.select.selectOption')">
             {{ displayItem ? getLabelFromValue(displayItem) : (placeholder ?? t('fields.select.selectOption')) }}
           </Select.SelectValue>
+          <!-- Clear button precedes SelectTrigger's built-in chevron; ml-auto pins it
+               to the right edge so a long label still truncates instead of colliding. -->
+          <button
+            v-if="clearable && displayItem"
+            type="button"
+            :aria-label="t('components.selectField.clearSelection')"
+            class="text-muted-foreground hover:text-foreground focus-visible:ring-ring mr-1 ml-auto shrink-0 rounded focus:outline-none focus-visible:ring-1"
+            @click="handleClear"
+            @keydown.enter.stop="handleClear"
+            @keydown.space.stop="handleClear"
+          >
+            <XIcon class="size-3.5" />
+          </button>
         </Select.SelectTrigger>
+
         <Select.SelectContent>
           <template v-if="hasOpened && (withSearch || !!searchKeys)" #header>
             <div class="border-border border-b p-2">

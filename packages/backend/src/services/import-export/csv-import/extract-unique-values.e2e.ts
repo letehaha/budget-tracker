@@ -2,6 +2,7 @@ import {
   AccountOptionValue,
   CategoryOptionValue,
   CurrencyOptionValue,
+  TagOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
@@ -803,6 +804,73 @@ describe('Extract Unique Values endpoint', () => {
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
             transactionType: { option: TransactionTypeOptionValue.amountSign },
             account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
+          },
+        },
+        raw: false,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('sourceTags', () => {
+    const csvWithTags = `Date,Amount,Description,Category,Currency,Type,Account,Labels
+2024-01-15,100.50,Grocery shopping,Food,USD,expense,Main Account,"travel, food"
+2024-01-16,50.00,Coffee,Food,USD,expense,Main Account,"food, gift"
+2024-01-17,25.00,Lunch,Food,USD,expense,Main Account,`;
+
+    const baseMapping = {
+      date: 'Date',
+      amount: 'Amount',
+      description: 'Description',
+      category: { option: CategoryOptionValue.mapDataSourceColumn as const, columnName: 'Category' },
+      currency: { option: CurrencyOptionValue.dataSourceColumn as const, columnName: 'Currency' },
+      transactionType: {
+        option: TransactionTypeOptionValue.dataSourceColumn as const,
+        columnName: 'Type',
+        incomeValues: ['income'],
+        expenseValues: ['expense'],
+      },
+      account: { option: AccountOptionValue.dataSourceColumn as const, columnName: 'Account' },
+    };
+
+    it('returns distinct, sorted tag strings split from the mapped column', async () => {
+      const result = await helpers.extractUniqueValues({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: {
+            ...baseMapping,
+            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
+          },
+        },
+        raw: true,
+      });
+
+      expect(result.sourceTags).toEqual(['food', 'gift', 'travel']);
+    });
+
+    it('returns an empty array when no tag column is mapped', async () => {
+      const result = await helpers.extractUniqueValues({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: baseMapping,
+        },
+        raw: true,
+      });
+
+      expect(result.sourceTags).toEqual([]);
+    });
+
+    it('fails when the mapped tag column is absent from the headers', async () => {
+      const result = await helpers.extractUniqueValues({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: {
+            ...baseMapping,
+            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Nonexistent' },
           },
         },
         raw: false,

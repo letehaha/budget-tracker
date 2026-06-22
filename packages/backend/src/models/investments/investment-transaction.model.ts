@@ -67,9 +67,15 @@ export default class InvestmentTransaction extends Model {
   })
   transactionType!: TRANSACTION_TYPES;
 
+  /**
+   * The moment the trade occurred, stored as a full timestamp (TIMESTAMPTZ).
+   * Carries the time of day, so same-day trades order deterministically by when
+   * they actually happened rather than by insertion order. Date-only inputs are
+   * accepted on write and normalized to UTC midnight.
+   */
   @Index
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  date!: string;
+  @Column({ type: DataType.DATE, allowNull: false })
+  date!: Date;
 
   /**
    * A descriptive name or title for the investment transaction, providing a

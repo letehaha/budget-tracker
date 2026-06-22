@@ -65,7 +65,14 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       portfolioId,
       securityId: { [Op.in]: securityIds },
     },
-    order: [['date', 'ASC']], // Chronological order for FIFO calculations
+    // Chronological order for FIFO calculations. `date` is a TIMESTAMPTZ so
+    // same-day trades order by their actual time; `createdAt` is the tiebreaker
+    // for trades sharing an exact instant (e.g. two date-only imports stored at
+    // UTC midnight), matching the cost-basis and balance-history replays.
+    order: [
+      ['date', 'ASC'],
+      ['createdAt', 'ASC'],
+    ],
   });
 
   // Group transactions by securityId

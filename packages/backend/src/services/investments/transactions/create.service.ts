@@ -184,6 +184,11 @@ const createInvestmentTransactionImpl = async (params: CreateTxParams) => {
 
   const newTx = await InvestmentTransaction.create({
     ...params,
+    // Normalize the API string to a Date so the TIMESTAMPTZ column receives a
+    // proper instant regardless of DB session timezone. A date-only input
+    // (e.g. '2026-03-01') becomes UTC midnight; a full ISO datetime is kept at
+    // its exact instant. This overrides the raw string spread from `...params`.
+    date: new Date(date),
     fees: settlement.fees,
     amount: settlement.amount,
     currencyCode: holding.currencyCode,

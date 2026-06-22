@@ -6,6 +6,7 @@ import { parse } from 'csv-parse/sync';
 import { MAX_CSV_ROWS } from '../csv-parser.service';
 import { extractAccounts } from './extract-accounts';
 import { extractCategories } from './extract-categories';
+import { extractTags } from './extract-tags';
 import { validateBasicFields } from './validate-basic-fields';
 import { validateCurrency } from './validate-currency';
 import { validateExistingAccount } from './validate-existing-account';
@@ -86,9 +87,13 @@ export async function extractUniqueValues({
   // Extract categories from CSV (only if using map-data-source-column or create-new-categories)
   const sourceCategories = extractCategories({ headers, dataRows, columnMapping });
 
+  // Extract distinct tag strings from the mapped tag column (empty if unmapped)
+  const sourceTags = extractTags({ headers, dataRows, columnMapping });
+
   return {
     sourceAccounts,
     sourceCategories,
+    sourceTags,
     currencyMismatchWarning,
   };
 }

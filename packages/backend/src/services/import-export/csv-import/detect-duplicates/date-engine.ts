@@ -1,0 +1,174 @@
+import { type SupportedLocale } from '@bt/shared/i18n/locales';
+
+/**
+ * Timezone-agnostic normalized result of parsing a single raw date cell.
+ *
+ * The engine never applies a timezone. A later piece anchors `dateOnly` /
+ * `localDateTime` values to the user's browser timezone to decide the stored
+ * instant; `instant` already carries an absolute moment and is preserved as-is.
+ */
+export type ParsedImportDate =
+  | { kind: 'instant'; instant: Date }
+  | {
+      kind: 'localDateTime';
+      year: number;
+      month: number;
+      day: number;
+      hour: number;
+      minute: number;
+      second: number;
+      ms: number;
+    }
+  | { kind: 'dateOnly'; year: number; month: number; day: number };
+
+interface ParseImportDateParams {
+  value: string;
+  format: DateColumnFormat;
+}
+
+/**
+ * A single resolved format applied to a whole mapped date column.
+ *
+ * `fieldOrder` only governs the ambiguous slash/dot/dash family (`d/d/yyyy`);
+ * ISO, ISO-datetime and compact values carry their order intrinsically and
+ * ignore it.
+ */
+export interface DateColumnFormat {
+  fieldOrder: 'day-first' | 'month-first';
+}
+
+interface DetectDateColumnFormatParams {
+  values: string[];
+  locale: SupportedLocale;
+}
+
+/**
+ * Outcome of resolving a whole date column to one format.
+ *
+ * `mixed` means the column contains contradicting signals (one row is only
+ * valid day-first, another only valid month-first) — there is no single safe
+ * order, so the engine refuses to guess and the caller surfaces it as an
+ * import error instead of silently splitting rows across two months.
+ */
+type DetectDateColumnFormatResult = { ok: true; format: DateColumnFormat } | { ok: false; reason: 'mixed' };
+
+// ISO datetime carrying an explicit zone (`Z` or `±hh:mm`) — an absolute moment.
+const ISO_ZONED_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+// ISO datetime WITHOUT a zone (T- or space-separated, optional seconds/ms). The
+// wall-clock components are captured verbatim; no timezone is applied here.
+const ISO_LOCAL_DATETIME = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/;
+
+// Year-first date with `-`, `/` or `.` separators (YYYY-MM-DD and variants).
+const ISO_DATE = /^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$/;
+
+// Compact 8-digit YYYYMMDD with no separators.
+const COMPACT_DATE = /^(\d{4})(\d{2})(\d{2})$/;
+
+// Year-LAST date with two 1-2 digit lead fields (d/d/yyyy, `/ . -` separators).
+// Which lead field is the day vs the month is intrinsically ambiguous, so it is
+// resolved at the column level via `DateColumnFormat.fieldOrder`.
+const AMBIGUOUS_DMY = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/;
+
+function isValidCalendarDate({ year, month, day }: { year: number; month: number; day: number }): boolean {
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  // `new Date(year, month, 0)` is the last day of `month`, so this rejects
+  // overlong days (e.g. Feb 30) instead of letting them roll into next month.
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return day <= daysInMonth;
+}
+
+export function parseImportDate({ value, format }: ParseImportDateParams): ParsedImportDate | null {
+  if (ISO_ZONED_DATETIME.test(value)) {
+    return { kind: 'instant', instant: new Date(value) };
+  }
+
+  const localMatch = value.match(ISO_LOCAL_DATETIME);
+  if (localMatch) {
+    const [, year, month, day, hour, minute, second, fraction] = localMatch;
+    return {
+      kind: 'localDateTime',
+      year: Number(year),
+      month: Number(month),
+      day: Number(day),
+      hour: Number(hour),
+      minute: Number(minute),
+      second: second ? Number(second) : 0,
+      ms: fraction ? Number((Number(`0.${fraction}`) * 1000).toFixed(0)) : 0,
+    };
+  }
+
+  const isoDateMatch = value.match(ISO_DATE);
+  if (isoDateMatch) {
+    const [, yearStr, monthStr, dayStr] = isoDateMatch;
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    if (isValidCalendarDate({ year, month, day })) {
+      return { kind: 'dateOnly', year, month, day };
+    }
+  }
+
+  const compactMatch = value.match(COMPACT_DATE);
+  if (compactMatch) {
+    const [, yearStr, monthStr, dayStr] = compactMatch;
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    if (isValidCalendarDate({ year, month, day })) {
+      return { kind: 'dateOnly', year, month, day };
+    }
+  }
+
+  const ambiguousMatch = value.match(AMBIGUOUS_DMY);
+  if (ambiguousMatch) {
+    const [, firstStr, secondStr, yearStr] = ambiguousMatch;
+    const first = Number(firstStr);
+    const second = Number(secondStr);
+    const year = Number(yearStr);
+    // The whole column shares one order, so a leading field is the day or the
+    // month consistently — never re-guessed per value.
+    const day = format.fieldOrder === 'day-first' ? first : second;
+    const month = format.fieldOrder === 'day-first' ? second : first;
+    if (isValidCalendarDate({ year, month, day })) {
+      return { kind: 'dateOnly', year, month, day };
+    }
+  }
+
+  return null;
+}
+
+export function detectDateColumnFormat({ values, locale }: DetectDateColumnFormatParams): DetectDateColumnFormatResult {
+  let sawDayFirstSignal = false;
+  let sawMonthFirstSignal = false;
+
+  // Only the ambiguous d/d/yyyy family carries order ambiguity. A lead field
+  // above 12 can only be a day (→ day-first); a second field above 12 can only
+  // be a month-position day (→ month-first). All other shapes are intrinsically
+  // ordered and contribute no signal.
+  for (const value of values) {
+    const match = value.match(AMBIGUOUS_DMY);
+    if (!match) continue;
+    const first = Number(match[1]);
+    const second = Number(match[2]);
+    if (first > 12) sawDayFirstSignal = true;
+    if (second > 12) sawMonthFirstSignal = true;
+  }
+
+  if (sawDayFirstSignal && sawMonthFirstSignal) {
+    return { ok: false, reason: 'mixed' };
+  }
+  if (sawDayFirstSignal) {
+    return { ok: true, format: { fieldOrder: 'day-first' } };
+  }
+  if (sawMonthFirstSignal) {
+    return { ok: true, format: { fieldOrder: 'month-first' } };
+  }
+
+  // No row disambiguates (every field ≤ 12). Fall back to the locale's
+  // conventional order: English writes month-first (MM/DD); every other shipped
+  // locale writes day-first (DD/MM).
+  const fieldOrder = locale === 'en' ? 'month-first' : 'day-first';
+  return { ok: true, format: { fieldOrder } };
+}

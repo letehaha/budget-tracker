@@ -1,0 +1,50 @@
+{
+  "importShared": {
+    "action": {
+      "createNew": "Crear nuevo",
+      "linkExisting": "Vincular a existente"
+    },
+    "selectAction": "Seleccionar acción",
+    "columns": {
+      "sourceName": "Nombre de fuente",
+      "currency": "Moneda",
+      "action": "Acción",
+      "target": "Objetivo"
+    },
+    "account": {
+      "selectTarget": "Seleccionar cuenta",
+      "noMatchingCurrency": "Sin cuenta con moneda {currency}",
+      "willCreate": "Se creará {name} ({currency})",
+      "empty": "Sin cuentas para asignar"
+    },
+    "category": {
+      "selectTarget": "Seleccionar categoría",
+      "willCreate": "Se creará {name}",
+      "empty": "Sin categorías para asignar"
+    },
+    "duplicatesTable": {
+      "columnHeaders": {
+        "row": "Fila",
+        "problem": "Problema",
+        "data": "Datos",
+        "match": "Coincidencia",
+        "csvTransaction": "Transacción CSV",
+        "existingTransaction": "Transacción existente",
+        "csvShort": "CSV",
+        "existingShort": "Existente"
+      },
+      "matchTypeLabels": {
+        "exact": "Exacta",
+        "idMatch": "Por ID",
+        "fuzzy": "Aproximada"
+      },
+      "fieldLabels": {
+        "amount": "Importe",
+        "date": "Fecha",
+        "note": "Nota",
+        "category": "Categoría"
+      },
+      "importAnywayAriaLabel": "Importar fila {row} de todas formas"
+    }
+  }
+}

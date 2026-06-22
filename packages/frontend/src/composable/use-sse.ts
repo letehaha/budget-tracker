@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 import {
   type AiCategorizationProgressPayload,
   type SSEEventPayload,
+  type SSEEventPayloadMap,
   type SSEEventType,
   SSE_EVENT_TYPES,
   type SyncStatusChangedPayload,
@@ -161,18 +162,23 @@ function disconnect(): void {
 }
 
 /**
- * Register an event handler
+ * Register an event handler. The payload type is inferred from the event name
+ * via `SSEEventPayloadMap`, so each handler receives exactly the payload its
+ * event carries.
  */
-function on<T extends SSEEventPayload>(eventType: SSEEventType, handler: SSEEventHandler<T>): () => void {
+function on<K extends keyof SSEEventPayloadMap>(
+  eventType: K,
+  cb: (payload: SSEEventPayloadMap[K]) => void,
+): () => void {
   if (!eventHandlers.has(eventType)) {
     eventHandlers.set(eventType, new Set());
   }
 
-  eventHandlers.get(eventType)!.add(handler as SSEEventHandler);
+  eventHandlers.get(eventType)!.add(cb as SSEEventHandler);
 
   // Return unsubscribe function
   return () => {
-    eventHandlers.get(eventType)?.delete(handler as SSEEventHandler);
+    eventHandlers.get(eventType)?.delete(cb as SSEEventHandler);
   };
 }
 

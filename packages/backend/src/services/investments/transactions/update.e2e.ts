@@ -165,7 +165,21 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
       raw: true,
     });
 
-    expect(response.date).toBe(newDate);
+    // A date-only input is normalized to UTC midnight before storage and
+    // returned as a full ISO 8601 datetime string.
+    expect(response.date).toBe('2023-01-15T00:00:00.000Z');
+  });
+
+  it('preserves the time component when updating with a full datetime', async () => {
+    const response = await helpers.updateInvestmentTransaction({
+      transactionId: transaction.id,
+      payload: {
+        date: '2023-01-15T13:45:00.000Z',
+      },
+      raw: true,
+    });
+
+    expect(response.date).toBe('2023-01-15T13:45:00.000Z');
   });
 
   it('should fail to update non-existent transaction', async () => {

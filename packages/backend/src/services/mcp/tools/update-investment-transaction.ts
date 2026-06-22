@@ -28,7 +28,12 @@ export function registerUpdateInvestmentTransaction(server: McpServer) {
           ])
           .optional()
           .describe('New transaction category'),
-        date: z.string().optional().describe('New transaction date (ISO 8601)'),
+        date: z
+          .union([z.string().date(), z.string().datetime({ offset: true })])
+          .optional()
+          .describe(
+            'When the trade occurred. Accepts a date-only value (ISO 8601, e.g. "2024-03-15") or a full datetime (e.g. "2024-03-15T09:30:00.000Z"); date-only is stored at UTC midnight.',
+          ),
         quantity: z.string().optional().describe('New share quantity as a decimal string'),
         price: z.string().optional().describe('New price per share as a decimal string'),
         fees: z.string().optional().describe('New fees/commissions as a decimal string'),

@@ -1,11 +1,11 @@
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { toUtcDateString } from '@common/utils/date';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import { withTransaction } from '@services/common/with-transaction';
-import { format, parseISO } from 'date-fns';
 import { Op, WhereOptions } from 'sequelize';
 
 interface GetTransactionsParams {
@@ -58,18 +58,19 @@ const serviceImpl = async ({
     where.category = category;
   }
 
-  // Add date range filter
+  // Add date range filter. `date` is TIMESTAMPTZ, so anchor both bounds to the
+  // full UTC calendar day: lower = start-of-day UTC, upper = end-of-day UTC.
+  // A bare `yyyy-MM-dd` upper bound would cast to midnight UTC and exclude that
+  // day's intraday (afternoon) trades.
   if (startDate || endDate) {
     where.date = {};
     if (startDate) {
-      // Parse ISO datetime string and format as YYYY-MM-DD
-      const dateOnly = format(parseISO(startDate), 'yyyy-MM-dd');
-      where.date[Op.gte] = dateOnly;
+      const dayUtc = toUtcDateString(startDate);
+      where.date[Op.gte] = `${dayUtc}T00:00:00.000Z`;
     }
     if (endDate) {
-      // Parse ISO datetime string and format as YYYY-MM-DD
-      const dateOnly = format(parseISO(endDate), 'yyyy-MM-dd');
-      where.date[Op.lte] = dateOnly;
+      const dayUtc = toUtcDateString(endDate);
+      where.date[Op.lte] = `${dayUtc}T23:59:59.999Z`;
     }
   }
 
@@ -77,7 +78,12 @@ const serviceImpl = async ({
   const [transactions, total] = await Promise.all([
     InvestmentTransaction.findAll({
       where,
-      order: [['date', 'DESC']],
+      // `createdAt` breaks ties so same-instant rows (e.g. same-day trades that
+      // share a TIMESTAMPTZ value) keep a stable, deterministic display order.
+      order: [
+        ['date', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
       limit,
       offset,
       attributes: [

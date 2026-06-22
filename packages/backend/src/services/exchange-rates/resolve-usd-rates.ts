@@ -1,6 +1,6 @@
 import { logger } from '@js/utils';
 import ExchangeRates from '@models/exchange-rates.model';
-import { endOfDay, startOfDay } from 'date-fns';
+import { endOfDay, isAfter, startOfDay } from 'date-fns';
 import { Op } from 'sequelize';
 
 import { API_LAYER_BASE_CURRENCY_CODE } from './constants';
@@ -10,7 +10,7 @@ import { fetchAndStoreRatesForDate, isDateComprehensivelyFetched } from './ensur
  * Result of resolving a single USD-base rate for a date.
  *  - `exact`:    an exact-date row exists.
  *  - `fallback`: no exact-date row, but the most-recent row from another date is
- *                returned as an approximation — the caller decides if that's OK.
+ *                returned as an approximation – the caller decides if that's OK.
  *  - `missing`:  no rate at all, on any date.
  *
  * The fallback case is a distinct `kind` (rather than a row silently returned as
@@ -34,7 +34,7 @@ export type RateLookup =
  *      already run for the date, fetches the whole basket once and re-reads,
  *   3. returns the resolved lookup per code.
  *
- * Callers never re-query the DB to learn what happened — the returned map IS the
+ * Callers never re-query the DB to learn what happened – the returned map IS the
  * answer. `USD` always resolves to an exact rate of 1 and is never fetched.
  */
 export async function resolveUsdRates({
@@ -51,7 +51,7 @@ export async function resolveUsdRates({
     lookups.set(code, await loadRate(code, date));
   }
 
-  // All exact → nothing to fetch. (This is the coverage check — it lives here
+  // All exact → nothing to fetch. (This is the coverage check – it lives here
   // only, instead of being re-derived by both the caller and the fetcher.)
   if ([...lookups.values()].every((lookup) => lookup.kind === 'exact')) {
     return lookups;
@@ -64,11 +64,21 @@ export async function resolveUsdRates({
     return lookups;
   }
 
+  // No provider has rates for a day that hasn't happened yet – fetching a future
+  // date 404s/400s upstream and throws. Skip the fetch and return what's already
+  // loaded: a currency with any stored history resolves to its `fallback`
+  // (priceable), a never-priced one stays `missing` (the caller handles that).
+  // The day boundary is start-of-day vs. start-of-day, so any time later today
+  // is NOT future.
+  if (isAfter(startOfDay(date), startOfDay(new Date()))) {
+    return lookups;
+  }
+
   try {
     await fetchAndStoreRatesForDate(date);
   } catch (error) {
     // Fetch failed. If every requested code still has at least a fallback, the
-    // failure is non-fatal — return the approximations. If any code has no rate
+    // failure is non-fatal – return the approximations. If any code has no rate
     // at all, there is nothing to fall back to, so surface the error.
     const anyMissing = [...lookups.values()].some((lookup) => lookup.kind === 'missing');
     if (anyMissing) {
@@ -95,7 +105,7 @@ export async function resolveUsdRates({
  */
 async function loadRate(code: string, rateDate: Date): Promise<RateLookup> {
   if (code === API_LAYER_BASE_CURRENCY_CODE) {
-    // The base currency converts to itself at 1 — always exact, never fetched.
+    // The base currency converts to itself at 1 – always exact, never fetched.
     return { kind: 'exact', rate: 1, date: rateDate };
   }
 

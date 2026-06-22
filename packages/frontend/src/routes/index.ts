@@ -321,7 +321,9 @@ const routes: RouteRecordRaw[] = [
             path: 'data-management/import/csv',
             name: ROUTES_NAMES.importCsv,
             component: () => import('@/pages/import-export/csv-import.vue'),
-            meta: { i18nChunks: ['pages/import-csv', 'settings/data-management'] as I18nChunkName[] },
+            meta: {
+              i18nChunks: ['pages/import-csv', 'pages/import-shared', 'settings/data-management'] as I18nChunkName[],
+            },
           },
           {
             path: 'data-management/import/text-source',
@@ -334,6 +336,14 @@ const routes: RouteRecordRaw[] = [
             name: ROUTES_NAMES.importYnab,
             component: () => import('@/pages/import-export/ynab-import/index.vue'),
             meta: { i18nChunks: ['pages/import-ynab', 'settings/data-management'] as I18nChunkName[] },
+          },
+          {
+            path: 'data-management/import/wallet',
+            name: ROUTES_NAMES.importWallet,
+            component: () => import('@/pages/import-export/wallet-import/index.vue'),
+            meta: {
+              i18nChunks: ['pages/import-wallet', 'pages/import-shared', 'settings/data-management'] as I18nChunkName[],
+            },
           },
           {
             path: 'appearance',

@@ -4,6 +4,16 @@
       "csvImport": {
         "pageTitle": "Importar transacciones desde CSV",
         "pageDescription": "Suba el exportado CSV de su banco o el archivo de historial de transacciones para importar transacciones a su cuenta.",
+        "stepper": {
+          "stepOf": "Paso {current} de {total}",
+          "steps": {
+            "upload": "Subir",
+            "map": "Mapear columnas",
+            "resolve": "Resolver valores",
+            "review": "Revisar",
+            "results": "Listo"
+          }
+        },
         "steps": {
           "uploadTitle": "Subir archivo CSV",
           "uploadDescription": "Seleccione su archivo CSV para comenzar",
@@ -36,6 +46,7 @@
           "totalRows": "Total de filas",
           "delimiter": "Delimitador",
           "extracting": "Extrayendo...",
+          "detecting": "Detectando duplicados…",
           "nextExtract": "Siguiente: Extraer valores",
           "continueToDuplicates": "Continuar a verificación de duplicados"
         },
@@ -62,7 +73,18 @@
           "duplicatesWillBeSkipped": "duplicados serán omitidos.",
           "backToMapping": "Volver al mapeo",
           "importing": "Importando...",
-          "importButton": "Importar {count} transacciones"
+          "importButton": "Importar {count} transacciones",
+          "unpriceableTitle": "{count} fila(s) no se pueden valorar — no se encontró tipo de cambio",
+          "unpriceableDescription": "Estas filas usan una moneda para la que no hay tipo de cambio almacenado y no pueden convertirse a su moneda base. Debe omitirlas o cancelar la importación.",
+          "unpriceableWillBeSkipped": "sin tipo de cambio serán omitidas",
+          "currency": "Moneda",
+          "skipAndImport": "Omitir e importar",
+          "cancelImport": "Cancelar importación",
+          "dateColumnErrorTitle": "Error en la columna de fecha en \"{column}\"",
+          "noInvalidRows": "No hay filas inválidas",
+          "noDuplicates": "No hay duplicados",
+          "expand": "Mostrar datos completos",
+          "collapse": "Ocultar datos completos"
         },
         "results": {
           "completeTitle": "¡Importación completada!",
@@ -73,14 +95,28 @@
           "skippedDuplicates": "Omitidas (duplicados)",
           "accountsCreated": "Cuentas creadas",
           "categoriesCreated": "Categorías creadas",
+          "tagsCreated": "Etiquetas creadas",
           "importErrors": "Errores de importación",
           "rowNumber": "Fila n.º",
           "error": "Error",
           "batchIdLabel": "ID de lote",
           "batchIdDescription": "Use este ID para encontrar todas las transacciones de esta importación.",
           "viewTransactions": "Ver transacciones",
-          "startNewImport": "Iniciar nueva importación"
+          "startNewImport": "Iniciar nueva importación",
+          "skippedUnpriceable": "Omitidas (sin precio)",
+          "importFailed": "Error al importar transacciones. Por favor, inténtelo de nuevo.",
+          "successCallout": "{count} transacciones importadas correctamente",
+          "failed": "Fallido",
+          "noErrors": "Sin errores"
         }
+      },
+      "columnMapping": {
+        "stepTitle": "Mapear columnas",
+        "description": "Relacione las columnas de su CSV con los campos requeridos",
+        "file": "Archivo",
+        "totalRows": "Total de filas",
+        "delimiter": "Delimitador",
+        "detecting": "Detectando duplicados…"
       },
       "common": {
         "selectOption": "Seleccione una opción...",
@@ -169,7 +205,8 @@
           "createNew": "Crear nueva categoría",
           "mapToExisting": "Mapear a categoría existente"
         },
-        "willBeCreated": "Se creará la nueva categoría \"{name}\"",
+        "willBeCreatedOrMerged": "{name} será {action} con una categoría existente del mismo nombre",
+        "createdOrMergedAction": "creada, o combinada",
         "mappedTo": "mapeada a \"{name}\"",
         "selectCategory": "Seleccione una categoría..."
       },
@@ -187,6 +224,131 @@
           "mapToExisting": "Mapear cada categoría CSV a categorías existentes (en el siguiente paso)",
           "createNew": "Crear nuevas categorías a partir de los valores del CSV",
           "assignToSingle": "Asignar todas a una sola categoría existente"
+        }
+      },
+      "tagAssignment": {
+        "title": "Asignación de etiquetas",
+        "howToAssign": "Cómo asignar etiquetas",
+        "description": "Las etiquetas permiten categorizar transacciones con múltiples etiquetas.",
+        "noTagsOption": "No importar etiquetas",
+        "tagColumn": "Columna de etiquetas",
+        "columnDescription": "Seleccione la columna CSV cuyos valores se utilizarán como etiquetas para cada transacción.",
+        "mapOnNextStep": "Cada valor de etiqueta distinto encontrado en esta columna aparecerá a continuación para que pueda mapearlo o crearlo.",
+        "options": {
+          "mapToColumn": "Mapear desde columna CSV"
+        }
+      },
+      "tagMappingTable": {
+        "title": "Mapeo de etiquetas",
+        "description": "Para cada valor de etiqueta encontrado en su CSV, elija si crear una nueva etiqueta, vincularla a una existente u omitirla.",
+        "csvTagName": "Valor de etiqueta CSV",
+        "action": "Acción",
+        "targetTag": "Etiqueta destino",
+        "selectTag": "Seleccionar una etiqueta",
+        "willBeCreated": "Se creará una nueva etiqueta \"{name}\"",
+        "willBeSkipped": "Será omitida",
+        "actions": {
+          "createNew": "Crear nuevo",
+          "mapToExisting": "Vincular a existente",
+          "skip": "Omitir"
+        },
+        "tagsLoadFailed": "No se pudieron cargar sus etiquetas. Inténtelo más tarde.",
+        "noExistingTags": "Aún no tiene etiquetas."
+      },
+      "resolveValues": {
+        "selectAction": "Seleccionar acción",
+        "actions": {
+          "createNew": "Crear nuevo",
+          "linkExisting": "Vincular a existente",
+          "skip": "Omitir"
+        },
+        "quickActions": {
+          "mapExactMatches": "Mapear coincidencias exactas",
+          "createNewForUnmatched": "Crear nuevo para los no mapeados",
+          "skipAll": "Omitir todos",
+          "reset": "Restablecer",
+          "menuLabel": "Acciones rápidas",
+          "tooltips": {
+            "mapExactMatchesAccounts": "Vincula cada cuenta del CSV a una cuenta existente con el mismo nombre y moneda. Las cuentas sin coincidencia exacta no se modifican.",
+            "mapExactMatchesCategories": "Vincula cada categoría del CSV a una categoría existente con el mismo nombre. Las categorías sin coincidencia exacta no se modifican.",
+            "mapExactMatchesTags": "Vincula cada etiqueta del CSV a una etiqueta existente con el mismo nombre. Las etiquetas sin coincidencia exacta no se modifican.",
+            "createNewForUnmatched": "Establece «Crear nuevo» en cada fila que no esté vinculada a una entrada existente. Las filas ya vinculadas no se modifican.",
+            "skipAll": "Omite todas las etiquetas — ninguna se importa ni se crea.",
+            "reset": "Borra todas las selecciones y vuelve a ejecutar la coincidencia automática."
+          }
+        },
+        "accounts": {
+          "sectionTitle": "Mapeo de cuentas",
+          "resolvedCount": "{resolved} de {total} resueltos",
+          "csvName": "Cuenta CSV",
+          "currency": "Moneda",
+          "action": "Acción",
+          "target": "Cuenta destino",
+          "selectTarget": "Seleccionar una cuenta",
+          "noMatchingCurrency": "No hay cuentas con la moneda {currency}",
+          "willCreate": "Se creará \"{name}\" ({currency})",
+          "empty": "No se encontraron cuentas en el CSV"
+        },
+        "categories": {
+          "sectionTitle": "Mapeo de categorías",
+          "resolvedCount": "{resolved} de {total} resueltos",
+          "csvName": "Categoría CSV",
+          "action": "Acción",
+          "target": "Categoría destino",
+          "selectTarget": "Seleccionar una categoría",
+          "willCreate": "Se creará o combinará \"{name}\"",
+          "empty": "No se encontraron categorías en el CSV"
+        },
+        "tags": {
+          "sectionTitle": "Mapeo de etiquetas",
+          "resolvedCount": "{resolved} de {total} resueltos",
+          "csvName": "Etiqueta CSV",
+          "action": "Acción",
+          "target": "Etiqueta destino",
+          "selectTarget": "Seleccionar una etiqueta",
+          "willCreate": "Se creará \"{name}\"",
+          "willSkip": "Será omitida",
+          "noExistingTags": "No hay etiquetas existentes para vincular",
+          "loadFailed": "Error al cargar las etiquetas",
+          "empty": "No se encontraron etiquetas en el CSV"
+        },
+        "detectError": "No se pudo continuar. Por favor, inténtelo de nuevo.",
+        "extractFailed": "No se pudieron cargar los valores a resolver. Vuelva atrás e inténtelo de nuevo.",
+        "retry": "Intentar de nuevo",
+        "footer": {
+          "back": "Atrás",
+          "next": "Siguiente"
+        }
+      },
+      "mapColumns": {
+        "columnsTitle": "Columnas",
+        "assignmentsTitle": "Asignaciones",
+        "fieldHeader": "Campo",
+        "csvColumnHeader": "Columna CSV",
+        "exampleHeader": "Datos de ejemplo",
+        "howToAssignHeader": "Cómo asignar",
+        "usingHeader": "Usando",
+        "optionalSuffix": "(opcional)",
+        "choosePlaceholder": "Elija…",
+        "alreadyMatchedSuffix": "(ya mapeado)",
+        "amountSignNote": "Determinado por el signo del importe",
+        "back": "Atrás",
+        "next": "Siguiente",
+        "missingHint": "Aún necesarios: {fields}",
+        "fields": {
+          "date": "Fecha",
+          "amount": "Importe",
+          "description": "Descripción",
+          "category": "Categoría",
+          "account": "Cuenta",
+          "currency": "Moneda",
+          "transactionType": "Tipo de transacción"
+        }
+      },
+      "importResults": {
+        "errorColumns": {
+          "row": "Fila",
+          "error": "Error"
         }
       }
     }

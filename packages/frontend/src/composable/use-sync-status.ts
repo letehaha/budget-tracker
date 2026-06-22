@@ -6,7 +6,7 @@ import type { AccountModel } from '@bt/shared/types';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { SSE_EVENT_TYPES, type SyncStatusChangedPayload, useSSE } from './use-sse';
+import { SSE_EVENT_TYPES, useSSE } from './use-sse';
 
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 // If a sync stays active longer than this, surface a "stuck" state to the user
@@ -156,7 +156,7 @@ export function useSyncStatus() {
   const subscribeToSSE = () => {
     if (isSSESubscribed) return;
 
-    sseUnsubscribe = on<SyncStatusChangedPayload>(SSE_EVENT_TYPES.SYNC_STATUS_CHANGED, (data) => {
+    sseUnsubscribe = on(SSE_EVENT_TYPES.SYNC_STATUS_CHANGED, (data) => {
       // Track raw state (not the watchdog-masked version) so completion is
       // detected even after the watchdog has already silenced the spinner.
       const wasSyncingBefore = rawIsSyncing.value;

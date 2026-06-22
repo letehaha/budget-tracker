@@ -227,4 +227,30 @@ describe('GET /transactions (get investment transactions)', () => {
     });
     expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
   });
+
+  it('includes a same-day afternoon transaction when filtering by that calendar day', async () => {
+    // Guard against a midnight-cast upper bound silently dropping intraday rows.
+    // If `endDate` is cast to YYYY-MM-DD midnight UTC, a 15:00 UTC row on that
+    // day falls outside the window and vanishes — this test catches that regression.
+    await createInvestmentTransaction({
+      payload: {
+        portfolioId: investmentPortfolio.id,
+        securityId: security.id,
+        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        date: '2024-04-10T15:00:00.000Z',
+        quantity: '1',
+        price: '100',
+      },
+    });
+
+    const response = await getInvestmentTransactions({
+      startDate: '2024-04-10',
+      endDate: '2024-04-10',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const { transactions } = extractResponse(response);
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]!.portfolioId).toBe(investmentPortfolio.id);
+  });
 });

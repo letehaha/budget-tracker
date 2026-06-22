@@ -1,3 +1,4 @@
+import { toUtcDateString } from '@common/utils/date';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
@@ -37,7 +38,9 @@ export async function transformInvestmentTransactions({
 
   return investmentTxs.map(
     (tx): InvestmentTransactionRow => ({
-      date: tx.date,
+      // `tx.date` is a TIMESTAMPTZ Date; emit its UTC calendar day so the export
+      // stays human-readable and date-only (the row type is a `YYYY-MM-DD` string).
+      date: toUtcDateString(tx.date),
       portfolio: resolveRelationName({
         id: String(tx.portfolioId),
         nameById: portfolioNameById,

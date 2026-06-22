@@ -4,6 +4,7 @@ import {
   type ColumnMappingConfig,
   CurrencyOptionValue,
   TRANSACTION_TYPES,
+  TagOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
@@ -48,9 +49,12 @@ describe('Detect Duplicates endpoint', () => {
       expect(result.validRows).toHaveLength(5);
       expect(result.invalidRows).toHaveLength(0);
 
-      // Verify first row is parsed correctly
+      // Verify first row is parsed correctly. `date` is a full ISO instant
+      // (date-only cell anchored to UTC noon with no timezone supplied), so the
+      // assertion checks the resolved calendar day.
       const firstRow = result.validRows[0];
-      expect(firstRow?.date).toBe('2024-01-15');
+      expect(firstRow?.date).toBe('2024-01-15T12:00:00.000Z');
+      expect(firstRow?.date.split('T')[0]).toBe('2024-01-15');
       expect(firstRow?.amount).toBe(10050); // 100.50 * 100 = 10050 cents
       expect(firstRow?.description).toBe('Grocery shopping');
       expect(firstRow?.categoryName).toBe('Food');
@@ -635,10 +639,11 @@ describe('Detect Duplicates endpoint', () => {
       const duplicatesForFirstRow = result.duplicates.filter((d) => d.rowIndex === 2);
       expect(duplicatesForFirstRow).toHaveLength(1);
 
-      // Verify it's the correct match
+      // Verify it's the correct match. `importedTransaction.date` is a full ISO
+      // instant; the meaningful match is on its calendar day.
       const duplicate = duplicatesForFirstRow[0];
       expect(duplicate?.existingTransaction.amount).toBe(10050);
-      expect(duplicate?.importedTransaction.date).toBe('2024-01-15');
+      expect(duplicate?.importedTransaction.date.split('T')[0]).toBe('2024-01-15');
     });
   });
 
@@ -1034,6 +1039,431 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
       // Check 2500.00 is parsed as 250000 cents
       const row3 = result.validRows.find((r) => r.description === 'Salary');
       expect(row3?.amount).toBe(250000);
+    });
+  });
+
+  describe('date engine and timezone anchoring', () => {
+    // Bug A: datetimes with a time component were rejected by the old date-only
+    // parser. Full ISO instants must now import, preserving the absolute moment.
+    it('imports full ISO datetimes (with time + explicit zone)', async () => {
+      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+2026-06-16T18:17:19.587Z,100.50,Morning coffee,Food,USD,expense,Main Account
+2026-06-17T09:00:00Z,50.00,Lunch,Food,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvContent,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'create-new' },
+          },
+          categoryMapping: {},
+          timezone: 'America/Montevideo',
+        },
+        raw: true,
+      });
+
+      expect(result.invalidRows).toHaveLength(0);
+      expect(result.validRows).toHaveLength(2);
+
+      // An explicit-zone instant is stored verbatim, ignoring the request tz.
+      const firstRow = result.validRows.find((r) => r.description === 'Morning coffee');
+      expect(firstRow?.date).toBe('2026-06-16T18:17:19.587Z');
+    });
+
+    // Bug B: the day/month order is resolved from the whole column, not a US
+    // tiebreak. A disambiguating day-first row (15/06) locks the column to
+    // day-first, so 08/06 is June 8 — never Aug 6.
+    it('reads a day-first date-only column as day-first (08/06 = June 8, not Aug 6)', async () => {
+      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+08/06/2026,100.50,Ambiguous day,Food,USD,expense,Main Account
+15/06/2026,50.00,Disambiguating day,Food,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvContent,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'create-new' },
+          },
+          categoryMapping: {},
+          timezone: 'America/Montevideo',
+        },
+        raw: true,
+      });
+
+      expect(result.invalidRows).toHaveLength(0);
+      expect(result.validRows).toHaveLength(2);
+
+      const ambiguousRow = result.validRows.find((r) => r.description === 'Ambiguous day');
+      // June 8 in Montevideo (UTC-3) anchored at local noon -> 15:00 UTC, still June 8.
+      expect(ambiguousRow?.date.split('T')[0]).toBe('2026-06-08');
+    });
+
+    // Bug D: a date-only value stored as plain `new Date("2026-06-01")` is UTC
+    // midnight, which renders as May 31 for a UTC-3 user. Anchoring to local noon
+    // keeps it on June 1 for that user.
+    it('anchors a date-only row to the correct calendar day for a UTC-3 user (no off-by-one)', async () => {
+      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+2026-06-01,100.50,First of June,Food,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvContent,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'create-new' },
+          },
+          categoryMapping: {},
+          timezone: 'America/Montevideo',
+        },
+        raw: true,
+      });
+
+      expect(result.validRows).toHaveLength(1);
+      const row = result.validRows[0]!;
+
+      // Stored instant is June 1 local noon = 15:00 UTC.
+      expect(row.date).toBe('2026-06-01T15:00:00.000Z');
+
+      // And as seen by the UTC-3 user it must still be June 1, never May 31.
+      const dayForUser = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Montevideo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date(row.date));
+      expect(dayForUser).toBe('2026-06-01');
+    });
+
+    // A column with contradicting signals (08/25 can only be month-first, 25/08
+    // can only be day-first) has no safe order — surface a column-level error and
+    // refuse to guess, rather than silently splitting rows across two months.
+    it('reports a mixed date column as a column-level error instead of guessing', async () => {
+      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+25/08/2026,100.50,Day first row,Food,USD,expense,Main Account
+08/25/2026,50.00,Month first row,Food,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvContent,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'create-new' },
+          },
+          categoryMapping: {},
+          timezone: 'America/Montevideo',
+        },
+        raw: true,
+      });
+
+      expect(result.dateColumnError).toBeDefined();
+      expect(result.dateColumnError?.reason).toBe('mixed');
+      expect(result.dateColumnError?.column).toBe('Date');
+      expect(result.dateColumnError?.message.length).toBeGreaterThan(0);
+
+      // No rows are returned alongside a blocking column error.
+      expect(result.validRows).toHaveLength(0);
+      expect(result.duplicates).toHaveLength(0);
+    });
+
+    // Loud failure preserved: a value matching no known date shape still lands in
+    // invalidRows with a date error, while well-formed rows around it import.
+    it('still surfaces empty and unparseable date rows as invalid rows', async () => {
+      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+2026-06-01,100.50,Good row,Food,USD,expense,Main Account
+not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
+,75.00,Empty date,Food,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvContent,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'create-new' },
+          },
+          categoryMapping: {},
+          timezone: 'America/Montevideo',
+        },
+        raw: true,
+      });
+
+      expect(result.dateColumnError).toBeUndefined();
+      expect(result.validRows).toHaveLength(1);
+      expect(result.validRows[0]?.description).toBe('Good row');
+
+      expect(result.invalidRows).toHaveLength(2);
+      result.invalidRows.forEach((invalidRow) => {
+        expect(invalidRow.errors.some((e) => e.toLowerCase().includes('date'))).toBe(true);
+      });
+    });
+
+    // No timezone in the request must not crash: date-only falls back to UTC noon,
+    // which still lands on the right calendar day for every zone within ±11h.
+    it('falls back to UTC noon for a date-only row when no timezone is supplied', async () => {
+      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+2026-06-01,100.50,No tz row,Food,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvContent,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'create-new' },
+          },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows).toHaveLength(1);
+      expect(result.validRows[0]?.date).toBe('2026-06-01T12:00:00.000Z');
+    });
+
+    // After anchoring, a same-day CSV row must still match an existing same-day
+    // transaction even though `row.date` is now a full instant at local noon and
+    // the stored tx sits at a different time of day.
+    it('still detects a same-day duplicate after date anchoring', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // Existing tx stored at UTC midnight for the day.
+      const txPayload = helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 100.5,
+        transactionType: TRANSACTION_TYPES.expense,
+        time: new Date('2026-06-01T00:00:00.000Z').toISOString(),
+      });
+      await helpers.createTransaction({ payload: txPayload, raw: true });
+
+      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+2026-06-01,100.50,Same day import,Food,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvContent,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+          timezone: 'America/Montevideo',
+        },
+        raw: true,
+      });
+
+      // The CSV row (anchored to 2026-06-01T15:00Z) must match the existing
+      // 2026-06-01T00:00Z tx on calendar day.
+      expect(result.duplicates.length).toBeGreaterThanOrEqual(1);
+      const duplicate = result.duplicates.find((d) => d.existingTransaction.accountId === account.id);
+      expect(duplicate).toBeDefined();
+    });
+  });
+
+  // ── unpriceableRows ──────────────────────────────────────────────────────────
+  // The e2e environment seeds ExchangeRates with historical rates for the common
+  // currency set (EUR, GBP, JPY, etc.) and never truncates that table between
+  // tests. The user's base currency is AED (see setupIntegrationTests.ts).
+  //
+  // Pricing rules exercised here:
+  //   • USD → always priceable (it is API_LAYER_BASE_CURRENCY_CODE)
+  //   • AED → always priceable (it is the user's base currency)
+  //   • EUR → priceable via stored ExchangeRates row (seeded)
+  //   • ZZZ → not priceable (deliberately fake code, never seeded)
+  describe('unpriceableRows classification', () => {
+    // Shared column mapping for all sub-tests: single fixed currency per test,
+    // so we use the existingCurrency option to avoid a Currency column.
+    function buildFixedCurrencyMapping(currencyCode: string): ColumnMappingConfig {
+      return buildColumnMapping({
+        currency: { option: CurrencyOptionValue.existingCurrency, currencyCode },
+      });
+    }
+
+    const MINIMAL_CSV = `Date,Amount,Description,Category,Type,Account
+2024-01-15,100.00,Test transaction,Food,expense,Main Account`;
+
+    it('omits unpriceableRows when all rows are in USD (always priceable)', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: MINIMAL_CSV,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('USD'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeUndefined();
+    });
+
+    it('omits unpriceableRows when all rows are in the user base currency (AED)', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: MINIMAL_CSV,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('AED'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeUndefined();
+    });
+
+    it('omits unpriceableRows for EUR (seeded exchange rate exists)', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: MINIMAL_CSV,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('EUR'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeUndefined();
+    });
+
+    it('returns unpriceableRows for a currency with no stored rate (ZZZ)', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: MINIMAL_CSV,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('ZZZ'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeDefined();
+      expect(result.unpriceableRows).toHaveLength(1);
+      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 2, currencyCode: 'ZZZ' });
+    });
+
+    it('returns only the ZZZ rows when a CSV mixes priceable (EUR) and unpriceable (ZZZ) currencies', async () => {
+      const mixedCsv = `Date,Amount,Description,Category,Currency,Type,Account
+2024-01-15,100.00,EUR tx,Food,EUR,expense,Main Account
+2024-01-16,50.00,ZZZ tx,Food,ZZZ,expense,Main Account
+2024-01-17,75.00,USD tx,Food,USD,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: mixedCsv,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.unpriceableRows).toBeDefined();
+      expect(result.unpriceableRows).toHaveLength(1);
+      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 3, currencyCode: 'ZZZ' });
+    });
+
+    it('omits unpriceableRows when the CSV has no valid rows (all invalid)', async () => {
+      const allInvalidCsv = `Date,Amount,Description,Category,Type,Account
+not-a-date,not-an-amount,Test,Food,expense,Main Account`;
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: allInvalidCsv,
+          delimiter: ',',
+          columnMapping: buildFixedCurrencyMapping('ZZZ'),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      // No valid rows → findUnpriceableRows gets an empty array → no property.
+      expect(result.unpriceableRows).toBeUndefined();
+      expect(result.invalidRows.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('tag column parsing', () => {
+    const csvWithTags = `Date,Amount,Description,Category,Currency,Type,Account,Labels
+2024-01-15,100.50,Grocery shopping,Food,USD,expense,Main Account,"food, travel"
+2024-01-16,50.00,Coffee,Food,USD,expense,Main Account,
+2024-01-17,25.00,Gift,Other,USD,expense,Main Account,"  solo  "`;
+
+    it('splits the mapped tag column into per-row tagNames', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: buildColumnMapping({
+            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
+          }),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows).toHaveLength(3);
+      expect(result.validRows[0]?.tagNames).toEqual(['food', 'travel']);
+    });
+
+    it('yields an empty tagNames array for a blank tag cell', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: buildColumnMapping({
+            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
+          }),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows[1]?.tagNames).toEqual([]);
+    });
+
+    it('trims whitespace around a single tag value', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: buildColumnMapping({
+            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
+          }),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows[2]?.tagNames).toEqual(['solo']);
+    });
+
+    it('leaves tagNames undefined when no tag column is mapped', async () => {
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: csvWithTags,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: { 'Main Account': { action: 'create-new' } },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.validRows[0]?.tagNames).toBeUndefined();
     });
   });
 });

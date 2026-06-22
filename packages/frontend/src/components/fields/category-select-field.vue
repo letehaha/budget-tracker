@@ -93,7 +93,12 @@
           </Popover.PopoverTrigger>
           <Popover.PopoverContent
             align="start"
-            class="w-(--reka-popover-trigger-width) max-w-(--reka-popover-trigger-width) min-w-(--reka-popover-trigger-width) p-0"
+            :class="
+              cn(
+                'w-(--reka-popover-trigger-width) max-w-(--reka-popover-trigger-width) min-w-(--reka-popover-trigger-width) p-0',
+                popoverClassName,
+              )
+            "
             @open-auto-focus.prevent="$nextTick(() => inputRef?.focus())"
           >
             <div
@@ -272,6 +277,7 @@ const props = withDefaults(
      * category set than the global Pinia store would render.
      */
     sharedOwnerUsername?: string;
+    popoverClassName?: string;
   }>(),
   {
     label: undefined,
@@ -281,6 +287,7 @@ const props = withDefaults(
     labelKey: 'label',
     categoriesMap: undefined,
     sharedOwnerUsername: undefined,
+    popoverClassName: undefined,
   },
 );
 
