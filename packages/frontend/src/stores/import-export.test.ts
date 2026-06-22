@@ -812,7 +812,7 @@ describe('useImportExportStore – needsResolveStep & visibleSteps', () => {
   });
 });
 
-describe('useImportExportStore – parseFile', () => {
+describe('useImportExportStore – parseFiles', () => {
   const mockParseCsvApi = vi.mocked(apiModule.parseCsv);
 
   beforeEach(() => {
@@ -820,8 +820,9 @@ describe('useImportExportStore – parseFile', () => {
     mountWithPlugins();
   });
 
-  /** Minimal File stand-in: parseFile only calls `.text()` on it. */
-  const fakeFile = (content: string) => ({ text: () => Promise.resolve(content) }) as unknown as File;
+  /** Minimal File stand-in: parseFiles reads `.name` and calls `.text()` (via the merge util). */
+  const fakeFile = (content: string, name = 'test.csv') =>
+    ({ name, text: () => Promise.resolve(content) }) as unknown as File;
 
   it('strips empty-string headers and seeds columnMapping/columnMatch from the parse response', async () => {
     mockParseCsvApi.mockResolvedValue({
@@ -834,7 +835,7 @@ describe('useImportExportStore – parseFile', () => {
 
     const store = useImportExportStore();
 
-    await store.parseFile(fakeFile('date,amount,\n2026-01-01,100,'));
+    await store.parseFiles({ files: [fakeFile('date,amount,\n2026-01-01,100,')] });
 
     expect(store.csvHeaders).toEqual(['date', 'amount']);
     expect(store.csvHeaders).not.toContain('');
@@ -847,5 +848,94 @@ describe('useImportExportStore – parseFile', () => {
 
     // Upload is marked done and the wizard advances to the Map step.
     expect(store.currentStepKey).toBe('map');
+  });
+
+  it('merges several files into one combined payload before parsing', async () => {
+    mockParseCsvApi.mockResolvedValue({
+      headers: ['date', 'amount'],
+      preview: [{ date: '2026-01-01', amount: '100' }],
+      detectedDelimiter: ',',
+      totalRows: 2,
+    });
+
+    const store = useImportExportStore();
+
+    await store.parseFiles({
+      files: [fakeFile('date,amount\n2026-01-01,100', 'jan.csv'), fakeFile('date,amount\n2026-02-01,200', 'feb.csv')],
+    });
+
+    // Both files are retained, and the backend received a single combined CSV
+    // carrying every file's rows.
+    expect(store.uploadedFiles).toHaveLength(2);
+    expect(mockParseCsvApi).toHaveBeenCalledTimes(1);
+    const sentContent = mockParseCsvApi.mock.calls[0]![0].fileContent;
+    expect(sentContent).toContain('2026-01-01');
+    expect(sentContent).toContain('2026-02-01');
+    expect(store.currentStepKey).toBe('map');
+  });
+
+  it('propagates a MergeCsvError when headers differ across files', async () => {
+    const store = useImportExportStore();
+
+    await expect(
+      store.parseFiles({
+        files: [fakeFile('date,amount\n2026-01-01,100', 'a.csv'), fakeFile('date,total\n2026-02-01,200', 'b.csv')],
+      }),
+    ).rejects.toMatchObject({ code: 'HEADER_MISMATCH', fileName: 'b.csv' });
+
+    // The backend parse is never reached, and the wizard stays on upload.
+    expect(mockParseCsvApi).not.toHaveBeenCalled();
+    expect(store.currentStepKey).toBe('upload');
+  });
+
+  it('classifies transaction-type values over the full data, covering values past the preview', async () => {
+    // Preview shows only the first (Spanish) row, mirroring the real bug: the
+    // English values appear later. Re-classification over the full data must cover them.
+    mockParseCsvApi.mockResolvedValue({
+      headers: ['date', 'amount', 'type'],
+      preview: [{ date: '2026-01-01', amount: '100', type: 'Gasto' }],
+      detectedDelimiter: ',',
+      totalRows: 4,
+    });
+
+    const store = useImportExportStore();
+
+    await store.parseFiles({
+      files: [
+        fakeFile(
+          'date,amount,type\n2026-01-01,100,Gasto\n2026-01-02,200,Ingreso\n2026-01-03,300,Expense\n2026-01-04,400,Income',
+          'mixed.csv',
+        ),
+      ],
+    });
+
+    expect(store.uncoveredTransactionTypeValues).toEqual([]);
+
+    const transactionType = store.columnMapping.transactionType;
+    expect(transactionType.option).toBe(TransactionTypeOptionValue.dataSourceColumn);
+    if (transactionType.option === TransactionTypeOptionValue.dataSourceColumn) {
+      // Assert each list separately so an income/expense swap is caught — a merged-and-sorted
+      // union would still pass even if the classifier mislabelled every value.
+      expect([...transactionType.incomeValues].sort()).toEqual(['Income', 'Ingreso']);
+      expect([...transactionType.expenseValues].sort()).toEqual(['Expense', 'Gasto']);
+    }
+  });
+
+  it('flags transaction-type values it cannot classify and blocks the Map step', async () => {
+    mockParseCsvApi.mockResolvedValue({
+      headers: ['date', 'amount', 'type'],
+      preview: [{ date: '2026-01-01', amount: '100', type: 'ZZZ' }],
+      detectedDelimiter: ',',
+      totalRows: 2,
+    });
+
+    const store = useImportExportStore();
+
+    await store.parseFiles({
+      files: [fakeFile('date,amount,type\n2026-01-01,100,ZZZ\n2026-01-02,200,QQQ', 'unknown.csv')],
+    });
+
+    expect(store.uncoveredTransactionTypeValues).toEqual(['ZZZ', 'QQQ']);
+    expect(store.isMapStepValid).toBe(false);
   });
 });

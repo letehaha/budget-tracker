@@ -257,9 +257,14 @@
   },
   "fileDropzone": {
     "clickOrDrag": "Click or drag a file here",
+    "clickOrDragMultiple": "Click or drag CSV files here",
     "dropHere": "Drop file to upload",
+    "dropHereMultiple": "Drop files here",
     "removeFile": "Remove file",
     "fileTooLarge": "File is too large. Max size is {max}.",
+    "fileTooLargeNamed": "{name} is larger than {max}",
+    "filesSelected": "{count} file selected | {count} files selected",
+    "clearAll": "Clear all",
     "onlyFirstFileTaken": "Multiple files dropped — only the first was used."
   },
   "demo": {

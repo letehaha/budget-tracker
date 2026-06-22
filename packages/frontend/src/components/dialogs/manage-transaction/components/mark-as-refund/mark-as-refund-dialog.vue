@@ -341,7 +341,7 @@ const hasSmallOptions = computed(() => {
       </template>
 
       <template v-if="pendingTransaction">
-        <p v-if="hasSmallOptions && currentAmount" class="text-warning mb-4 text-xs italic">
+        <p v-if="hasSmallOptions && currentAmount" class="text-warning-text mb-4 text-xs italic">
           <template v-if="isSameCurrency">
             {{ $t('dialogs.manageTransaction.markAsRefund.amountTooSmallWarning') }}
             {{ formatUIAmount(currentAmount, { currency: currentCurrencyCode }) }}
@@ -381,7 +381,7 @@ const hasSmallOptions = computed(() => {
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <span :class="['text-sm tabular-nums', isMainCategoryTooSmall && 'text-warning']">
+              <span :class="['text-sm tabular-nums', isMainCategoryTooSmall && 'text-warning-text']">
                 {{
                   formatUIAmount(getMainCategoryInfo(pendingTransaction).amount, {
                     currency: pendingTransaction.currencyCode,
@@ -417,7 +417,7 @@ const hasSmallOptions = computed(() => {
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <span :class="['text-sm tabular-nums', isSplitTooSmall(split) && 'text-warning']">
+              <span :class="['text-sm tabular-nums', isSplitTooSmall(split) && 'text-warning-text']">
                 {{ formatUIAmount(split.amount, { currency: pendingTransaction.currencyCode }) }}
               </span>
               <CheckIcon v-if="tempSplitSelection?.splitId === split.id" class="text-primary size-4" />

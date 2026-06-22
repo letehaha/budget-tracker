@@ -27,7 +27,9 @@
         }}</AlertDialog.AlertDialogTitle>
         <AlertDialog.AlertDialogDescription class="grid gap-4">
           <p>
-            <strong class="text-warning font-bold">{{ $t('settings.currencies.setBase.dialog.warningTitle') }}</strong>
+            <strong class="text-warning-text font-bold">{{
+              $t('settings.currencies.setBase.dialog.warningTitle')
+            }}</strong>
             {{ $t('settings.currencies.setBase.dialog.warningText') }}
           </p>
 
@@ -61,7 +63,7 @@
             </Collapsible.CollapsibleContent>
           </Collapsible.Collapsible>
 
-          <strong class="text-warning font-bold">
+          <strong class="text-warning-text font-bold">
             <TriangleAlertIcon class="inline size-4 align-text-bottom" />
             {{ $t('settings.currencies.setBase.dialog.untouchedWarning') }}
           </strong>
@@ -71,7 +73,7 @@
             {{ $t('settings.currencies.setBase.dialog.processingTimeInfo') }}
           </strong>
 
-          <strong class="text-warning font-bold">
+          <strong class="text-warning-text font-bold">
             <TriangleAlertIcon class="inline size-4" />
             {{ $t('settings.currencies.setBase.dialog.restrictionWarning') }}
           </strong>

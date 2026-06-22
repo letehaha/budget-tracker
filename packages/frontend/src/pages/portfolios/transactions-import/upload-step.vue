@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { estimateInvestmentImportCost, extractInvestmentTransactions } from '@/api/investment-transactions-import';
 import type { StatementCostEstimateFailure } from '@/api/import-export';
-import FileDropzone from '@/components/common/file-dropzone.vue';
+import { FileDropzone } from '@/components/common/dropzone';
 import { TextareaField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent } from '@/components/lib/ui/card';

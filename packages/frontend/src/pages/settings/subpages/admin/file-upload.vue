@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import FileDropzone from '@/components/common/file-dropzone.vue';
+import { FileDropzone } from '@/components/common/dropzone';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
