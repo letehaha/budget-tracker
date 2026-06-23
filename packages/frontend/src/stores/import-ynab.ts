@@ -1,5 +1,6 @@
 import { executeYnabImport, getYnabImportStatus, parseYnab } from '@/api/import-ynab';
 import { useImportJobProgress } from '@/composable/use-import-job-progress';
+import { useWizardSteps } from '@/composable/use-wizard-steps';
 import { useAccountsStore } from '@/stores/accounts';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { useCurrenciesStore } from '@/stores/currencies';
@@ -14,13 +15,16 @@ import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-/** Linear wizard step:
- * 1 — file upload
- * 2 — preview + per-account currency picker
- * 3 — execute + progress
- * 4 — done (summary screen)
+/**
+ * Wizard steps, mirroring the CSV/Wallet importers' key-based step machine:
+ *  - `upload`  — file upload + parse
+ *  - `preview` — preview + per-account currency picker
+ *  - `results` — execute progress + done summary (swaps Execute↔Done by status)
  */
-export type YnabImportStep = 1 | 2 | 3 | 4;
+export type YnabImportStepKey = 'upload' | 'preview' | 'results';
+
+/** Every step in canonical order. All are always visible. */
+const ALL_STEP_KEYS: readonly YnabImportStepKey[] = ['upload', 'preview', 'results'];
 
 export const useImportYnabStore = defineStore('importYnab', () => {
   const queryClient = useQueryClient();
@@ -31,7 +35,20 @@ export const useImportYnabStore = defineStore('importYnab', () => {
   /** Keyed by `YnabParseAccount.originalName`. */
   const accountPicks = ref<YnabAccountMapping>({});
 
-  const currentStep = ref<YnabImportStep>(1);
+  // ---- Wizard step state ----
+
+  /**
+   * Key-based step machine. All three steps are always visible (YNAB has no
+   * conditional step), so no visibility predicate is passed.
+   */
+  const {
+    currentStepKey,
+    completedStepKeys,
+    visibleSteps,
+    goToStep,
+    markStepCompleted,
+    reset: resetSteps,
+  } = useWizardSteps<YnabImportStepKey>({ stepKeys: ALL_STEP_KEYS });
 
   /**
    * SSE + status-poll watchdog for the running import. Owns the live `progress`
@@ -42,7 +59,8 @@ export const useImportYnabStore = defineStore('importYnab', () => {
     sseEventType: SSE_EVENT_TYPES.YNAB_IMPORT_PROGRESS,
     fetchStatus: getYnabImportStatus,
     onComplete: async () => {
-      currentStep.value = 4;
+      // Already on the `results` step; DoneStep renders once the progress status
+      // flips to completed. Completion only needs to refresh caches.
       // Invalidate every cached TanStack query so transactions/payees/budgets etc.
       // pick up the just-imported rows.
       queryClient.invalidateQueries();
@@ -60,7 +78,7 @@ export const useImportYnabStore = defineStore('importYnab', () => {
     // callout (with the server's error message) is rendered.
     onFailure: () => {},
     onLostContact: () => {
-      currentStep.value = 2;
+      goToStep('preview');
     },
   });
   const progress = jobProgress.progress;
@@ -99,7 +117,8 @@ export const useImportYnabStore = defineStore('importYnab', () => {
         seeded[acc.originalName] = { currencyCode: acc.detectedCurrency ?? '' };
       }
       accountPicks.value = seeded;
-      currentStep.value = 2;
+      markStepCompleted('upload');
+      goToStep('preview');
     } catch (err) {
       parseError.value = err instanceof Error ? err.message : 'Unknown error';
       throw err;
@@ -126,7 +145,8 @@ export const useImportYnabStore = defineStore('importYnab', () => {
     }
 
     // Job accepted: only now advance to the progress step and arm the watchdog.
-    currentStep.value = 3;
+    markStepCompleted('preview');
+    goToStep('results');
     jobProgress.start({
       initialProgress: {
         jobId: response.jobId,
@@ -142,7 +162,7 @@ export const useImportYnabStore = defineStore('importYnab', () => {
     parsedResult.value = null;
     accountPicks.value = {};
     progress.value = null;
-    currentStep.value = 1;
+    resetSteps();
     isParsing.value = false;
     parseError.value = null;
     executeError.value = null;
@@ -155,7 +175,10 @@ export const useImportYnabStore = defineStore('importYnab', () => {
     parsedResult,
     accountPicks,
     progress,
-    currentStep,
+    currentStepKey,
+    completedStepKeys,
+    visibleSteps,
+    goToStep,
     isParsing,
     parseError,
     executeError,

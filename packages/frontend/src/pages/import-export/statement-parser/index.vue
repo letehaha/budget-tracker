@@ -1,6 +1,10 @@
 <template>
-  <Card class="max-w-4xl">
-    <CardHeader class="border-b">
+  <!-- Shared `csv-wizard` CSS container identifier (a plain CSS token, not CSV-specific
+       semantics): the stepper resolves its responsive variants against it, so every
+       import wizard marks its root with the same name. -->
+  <div class="@container/csv-wizard flex flex-col gap-0">
+    <!-- Page header -->
+    <div class="mb-6">
       <RouterLink
         :to="{ name: ROUTES_NAMES.settingsDataManagementImport }"
         class="text-muted-foreground hover:text-foreground mb-3 inline-flex w-fit items-center gap-1 text-sm transition-colors"
@@ -11,221 +15,69 @@
       <h2 class="mb-2 text-2xl font-semibold text-balance">
         {{ $t('pages.statementParser.pageTitle') }}
       </h2>
-      <p class="text-sm opacity-80">
+      <p class="text-muted-foreground text-sm">
         {{ $t('pages.statementParser.pageDescription') }}
       </p>
-    </CardHeader>
+    </div>
 
-    <CardContent class="mt-6">
-      <div class="space-y-4">
-        <!-- Step 1: Upload & Extract -->
-        <div ref="step1Ref" class="bg-card scroll-mt-20 rounded-lg border">
-          <div class="flex w-full items-center justify-between p-4 text-left">
-            <div class="flex items-center gap-3">
-              <div
-                class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold"
-                :class="{
-                  'border-primary bg-primary text-primary-foreground': store.currentStep === 1,
-                  'border-primary bg-primary/10 text-primary': isStepCompleted(1) && store.currentStep !== 1,
-                  'border-muted-foreground/30 text-muted-foreground': isStepLocked(1),
-                }"
-              >
-                <CheckIcon v-if="isStepCompleted(1) && store.currentStep !== 1" class="size-4" />
-                <span v-else>1</span>
-              </div>
-              <div>
-                <h3 class="font-semibold">{{ $t('pages.statementParser.steps.uploadTitle') }}</h3>
-                <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.steps.uploadDescription') }}</p>
-              </div>
-            </div>
-            <ChevronDownIcon
-              class="size-5 transition-transform duration-200"
-              :class="{ 'rotate-180': store.currentStep === 1 }"
-            />
-          </div>
-          <div v-if="store.currentStep === 1" class="border-t p-4">
-            <UploadExtractStep />
-          </div>
-        </div>
+    <!-- Numbered stepper. Container-query driven so it reacts to the content width, not the
+         viewport (sidebar). Shared with the CSV/Wallet wizards via the common container identifier. -->
+    <ImportWizardStepper
+      class="mb-6"
+      :steps="stepperSteps"
+      :current-step-key="store.currentStepKey"
+      :completed-step-keys="store.completedStepKeys"
+      @navigate="onNavigate"
+    />
 
-        <!-- Step 2: Account Selection -->
-        <div ref="step2Ref" class="bg-card scroll-mt-20 rounded-lg border">
-          <div
-            class="flex w-full items-center justify-between p-4 text-left"
-            :class="{ 'opacity-50': isStepLocked(2) }"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold"
-                :class="{
-                  'border-primary bg-primary text-primary-foreground': store.currentStep === 2,
-                  'border-primary bg-primary/10 text-primary': isStepCompleted(2) && store.currentStep !== 2,
-                  'border-muted-foreground/30 text-muted-foreground': isStepLocked(2),
-                }"
-              >
-                <CheckIcon v-if="isStepCompleted(2) && store.currentStep !== 2" class="size-4" />
-                <span v-else>2</span>
-              </div>
-              <div>
-                <h3 class="font-semibold">{{ $t('pages.statementParser.steps.accountTitle') }}</h3>
-                <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.steps.accountDescription') }}</p>
-              </div>
-            </div>
-            <ChevronDownIcon
-              v-if="!isStepLocked(2)"
-              class="size-5 transition-transform duration-200"
-              :class="{ 'rotate-180': store.currentStep === 2 }"
-            />
-            <LockIcon v-else class="text-muted-foreground size-5" />
-          </div>
-          <div v-if="store.currentStep === 2" class="border-t p-4">
-            <AccountSelectionStep />
-          </div>
-        </div>
-
-        <!-- Step 3: Review Duplicates (only for existing accounts) -->
-        <div
-          v-if="!store.isNewAccount || isStepCompleted(3)"
-          ref="step3Ref"
-          class="bg-card scroll-mt-20 rounded-lg border"
-        >
-          <div
-            class="flex w-full items-center justify-between p-4 text-left"
-            :class="{ 'opacity-50': isStepLocked(3) }"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold"
-                :class="{
-                  'border-primary bg-primary text-primary-foreground': store.currentStep === 3,
-                  'border-primary bg-primary/10 text-primary': isStepCompleted(3) && store.currentStep !== 3,
-                  'border-muted-foreground/30 text-muted-foreground': isStepLocked(3),
-                }"
-              >
-                <CheckIcon v-if="isStepCompleted(3) && store.currentStep !== 3" class="size-4" />
-                <span v-else>3</span>
-              </div>
-              <div>
-                <h3 class="font-semibold">{{ $t('pages.statementParser.steps.reviewTitle') }}</h3>
-                <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.steps.reviewDescription') }}</p>
-              </div>
-            </div>
-            <ChevronDownIcon
-              v-if="!isStepLocked(3)"
-              class="size-5 transition-transform duration-200"
-              :class="{ 'rotate-180': store.currentStep === 3 }"
-            />
-            <LockIcon v-else class="text-muted-foreground size-5" />
-          </div>
-          <div v-if="store.currentStep === 3" class="border-t p-4">
-            <TransactionReviewStep />
-          </div>
-        </div>
-
-        <!-- Step 4: Import -->
-        <div ref="step4Ref" class="bg-card scroll-mt-20 rounded-lg border">
-          <div
-            class="flex w-full items-center justify-between p-4 text-left"
-            :class="{ 'opacity-50': isStepLocked(4) }"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold"
-                :class="{
-                  'border-primary bg-primary text-primary-foreground': store.currentStep === 4,
-                  'border-primary bg-primary/10 text-primary': isStepCompleted(4) && store.currentStep !== 4,
-                  'border-muted-foreground/30 text-muted-foreground': isStepLocked(4),
-                }"
-              >
-                <CheckIcon v-if="isStepCompleted(4) && store.currentStep !== 4" class="size-4" />
-                <span v-else>{{ store.isNewAccount ? '3' : '4' }}</span>
-              </div>
-              <div>
-                <h3 class="font-semibold">{{ $t('pages.statementParser.steps.importTitle') }}</h3>
-                <p class="text-muted-foreground text-sm">{{ $t('pages.statementParser.steps.importDescription') }}</p>
-              </div>
-            </div>
-            <ChevronDownIcon
-              v-if="!isStepLocked(4)"
-              class="size-5 transition-transform duration-200"
-              :class="{ 'rotate-180': store.currentStep === 4 }"
-            />
-            <LockIcon v-else class="text-muted-foreground size-5" />
-          </div>
-          <div v-if="store.currentStep === 4" class="border-t p-4">
-            <ImportResultsStep />
-          </div>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
+    <!-- Active step panel -->
+    <Card>
+      <CardContent class="pt-2 sm:pt-6">
+        <UploadExtractStep v-if="store.currentStepKey === 'upload'" />
+        <AccountSelectionStep v-else-if="store.currentStepKey === 'account'" />
+        <TransactionReviewStep v-else-if="store.currentStepKey === 'review'" />
+        <ImportResultsStep v-else-if="store.currentStepKey === 'results'" />
+      </CardContent>
+    </Card>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
+import { Card, CardContent } from '@/components/lib/ui/card';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
-import { useStatementParserStore } from '@/stores/statement-parser';
-import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, LockIcon } from '@lucide/vue';
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { type StatementParserStepKey, useStatementParserStore } from '@/stores/statement-parser';
+import { ChevronLeftIcon } from '@lucide/vue';
+import { computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 
+import ImportWizardStepper from '../components/import-wizard-stepper.vue';
 import AccountSelectionStep from './components/account-selection-step.vue';
 import ImportResultsStep from './components/import-results-step.vue';
 import TransactionReviewStep from './components/transaction-review-step.vue';
 import UploadExtractStep from './components/upload-extract-step.vue';
 
-onMounted(() => {
-  trackAnalyticsEvent({ event: 'import_opened', properties: { import_type: 'statement_parser' } });
-});
+/** i18n key for each step label. */
+const STEP_LABEL_KEYS: Record<StatementParserStepKey, string> = {
+  upload: 'pages.statementParser.stepper.steps.upload',
+  account: 'pages.statementParser.stepper.steps.account',
+  review: 'pages.statementParser.stepper.steps.review',
+  results: 'pages.statementParser.stepper.steps.results',
+};
 
 const store = useStatementParserStore();
 
-const step1Ref = ref<HTMLElement | null>(null);
-const step2Ref = ref<HTMLElement | null>(null);
-const step3Ref = ref<HTMLElement | null>(null);
-const step4Ref = ref<HTMLElement | null>(null);
-
-const scrollToStep = async (step: number) => {
-  await nextTick();
-
-  const stepRefs: Record<number, typeof step1Ref> = {
-    1: step1Ref,
-    2: step2Ref,
-    3: step3Ref,
-    4: step4Ref,
-  };
-
-  const stepRef = stepRefs[step]?.value;
-  if (stepRef) {
-    setTimeout(() => {
-      stepRef.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    }, 200);
-  }
-};
-
-watch(
-  () => store.currentStep,
-  (newStep, oldStep) => {
-    // Only scroll when moving forward to a new step
-    if (newStep > oldStep) {
-      scrollToStep(newStep);
-    }
-  },
+/** Visible steps paired with their localized label keys for the shared stepper. */
+const stepperSteps = computed(() =>
+  store.visibleSteps.map((step) => ({ key: step.key, labelKey: STEP_LABEL_KEYS[step.key] })),
 );
 
-const isStepCompleted = (stepNumber: number): boolean => {
-  return store.completedSteps.includes(stepNumber);
-};
+/** The stepper only emits keys for reachable (completed) steps, all valid StatementParserStepKeys. */
+function onNavigate(key: string) {
+  store.goToStep(key as StatementParserStepKey);
+}
 
-const isStepLocked = (stepNumber: number): boolean => {
-  // A step is locked if it's not the current step and not completed
-  return store.currentStep !== stepNumber && !store.completedSteps.includes(stepNumber);
-};
-
-// Reset store when leaving the page
-onUnmounted(() => {
-  // Optionally reset - commented out to allow coming back
-  // store.reset();
+onMounted(() => {
+  trackAnalyticsEvent({ event: 'import_opened', properties: { import_type: 'statement_parser' } });
 });
 </script>
