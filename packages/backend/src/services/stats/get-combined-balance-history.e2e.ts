@@ -668,6 +668,61 @@ describe('[Stats] Combined balance history', () => {
       expect(entry!.portfoliosBalance).toBe(400);
     });
 
+    it('walks back to a rate from BEFORE the fetch window when none exists inside it', async () => {
+      // Regression (Sentry MONEY-MATTER-BACKEND-7B): the per-day rate walk only saw
+      // rates preloaded inside [windowStart, windowEnd]. A currency whose latest rate
+      // predates the window had no in-window row, so the walk found nothing and the
+      // value silently collapsed to 1:1. The lookup now seeds one anchor from before
+      // the window. Here USD→AED exists only 20 days ago while the loader's lower bound
+      // is ~11 days ago, so without the pre-window anchor this would wrongly read 100.
+      const pickedDay = subDays(new Date(), 3);
+      pickedDay.setUTCHours(0, 0, 0, 0);
+      const dayKey = format(pickedDay, 'yyyy-MM-dd');
+
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Pre-window walk-back portfolio' }),
+        raw: true,
+      });
+
+      const usdSecurity = await Securities.create({
+        symbol: 'NVDA',
+        providerSymbol: 'NVDA',
+        currencyCode: 'USD',
+        providerName: SECURITY_PROVIDER.yahoo,
+        assetClass: ASSET_CLASS.stocks,
+        name: 'NVIDIA',
+      });
+
+      await seedHoldingAndPriceHistory({
+        portfolioId: portfolio.id,
+        securityId: usdSecurity.id,
+        pickedDay,
+        dayKey,
+      });
+
+      // Seed USD→AED ONLY 20 days ago — strictly before the loader's lower bound
+      // (query window is day-4..today, so rates preload from ~day-11 onward).
+      const preWindowDay = subDays(new Date(), 20);
+      preWindowDay.setUTCHours(0, 0, 0, 0);
+      await ExchangeRates.create({
+        baseCode: API_LAYER_BASE_CURRENCY_CODE,
+        quoteCode: 'AED',
+        rate: 4,
+        date: preWindowDay,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(pickedDay, 1), 'yyyy-MM-dd'),
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      const entry = data.find((e) => e.date === dayKey);
+      expect(entry).toBeDefined();
+      // Pre-window anchor applied: 1 share * $100 * 4 AED/USD = 400 AED (not the 1:1 100).
+      expect(entry!.portfoliosBalance).toBe(400);
+    });
+
     it('prefers a UserExchangeRates override over the canonical USD-pivot rate', async () => {
       // System rate USD→AED = 4. User override (UserExchangeRates baseCode=USD,
       // quoteCode=AED) = 10. Override must win.
