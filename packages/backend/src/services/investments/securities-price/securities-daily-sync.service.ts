@@ -278,7 +278,13 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
     }
 
     if (actuallyMissing.length > 0) {
-      logger.warn(
+      // Logged at info, not warn: every `logger.warn` is forwarded to Sentry, and a
+      // symbol with no price on a given weekday is usually an expected provider gap —
+      // an exchange holiday the weekend-only `isMarketClosedOn` check can't detect yet
+      // (e.g. an LSE ETF on a UK bank holiday), or a thinly-traded security. These are
+      // not actionable per-occurrence; genuinely failed updates are still counted in
+      // `result.failedUpdates`/`errors` and surfaced in the run summary below.
+      logger.info(
         `[${label}] ${actuallyMissing.length} symbols had no price data from provider: ${actuallyMissing.map((s) => s.symbol).join(', ')}`,
       );
 
