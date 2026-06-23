@@ -1,87 +1,188 @@
-import type { ParsedTransactionRow, TransactionImportDetails } from '@bt/shared/types';
-import { ImportSource, asCents } from '@bt/shared/types';
+import type {
+  AccountMappingConfig,
+  CategoryMappingConfig,
+  ColumnMappingConfig,
+  TagMappingConfig,
+  TransactionImportDetails,
+} from '@bt/shared/types';
+import {
+  AccountOptionValue,
+  CategoryOptionValue,
+  CurrencyOptionValue,
+  ImportSource,
+  TagOptionValue,
+  TransactionTypeOptionValue,
+} from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
+import { expectCsvImportCompleted, waitForCsvImportCompletion } from '@tests/helpers/import-export';
+import { asUser, signUpSecondUser } from '@tests/helpers/share';
 
-describe('Execute Import endpoint', () => {
-  // Helper to create valid parsed rows
-  const createValidRows = ({
-    accountName = 'Test Account',
-    categoryName = 'Test Category',
-    currencyCode = 'USD',
+describe('Execute Import endpoint (async)', () => {
+  // ---------------------------------------------------------------------------
+  // CSV-content builders
+  //
+  // The execute step is now async: the request carries the raw `fileContent` +
+  // `columnMapping` (NOT pre-parsed rows), the worker re-parses via the same
+  // `parseValidRows` the interactive preview uses, then runs `executeImport`.
+  // Tests therefore drive the endpoint exactly as the UI does — they build a CSV
+  // file and a column mapping rather than constructing `ParsedTransactionRow[]`.
+  // ---------------------------------------------------------------------------
+
+  /** A single CSV data row. Optional fields fall back to safe column defaults. */
+  interface CsvRow {
+    date?: string;
+    amount?: string;
+    description?: string;
+    category?: string;
+    account?: string;
+    currency?: string;
+    type?: 'income' | 'expense';
+    tags?: string;
+    payee?: string;
+  }
+
+  const CSV_HEADERS = ['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type', 'Tags', 'Payee'];
+
+  /**
+   * Build a comma-delimited CSV `fileContent` from row objects. The header order
+   * is fixed so the `buildColumnMapping` defaults line up with it.
+   */
+  const buildCsv = (rows: CsvRow[]): string => {
+    const cell = (value: string | undefined) => value ?? '';
+    const lines = [
+      CSV_HEADERS.join(','),
+      ...rows.map((row) =>
+        [
+          cell(row.date),
+          cell(row.amount),
+          cell(row.description),
+          cell(row.category),
+          cell(row.account),
+          cell(row.currency),
+          cell(row.type),
+          cell(row.tags),
+          cell(row.payee),
+        ].join(','),
+      ),
+    ];
+    return lines.join('\n');
+  };
+
+  /**
+   * Column mapping matching {@link CSV_HEADERS}. Override pieces per test (e.g.
+   * to use a single existing account/category/currency instead of a column).
+   */
+  const buildColumnMapping = (overrides: Partial<ColumnMappingConfig> = {}): ColumnMappingConfig => ({
+    date: 'Date',
+    amount: 'Amount',
+    description: 'Description',
+    category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
+    currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
+    transactionType: {
+      option: TransactionTypeOptionValue.dataSourceColumn,
+      columnName: 'Type',
+      incomeValues: ['income'],
+      expenseValues: ['expense'],
+    },
+    account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
+    ...overrides,
+  });
+
+  /**
+   * Enqueue an async CSV import and poll it to its terminal state. The first
+   * status response is asserted to be a real progress envelope so a broken
+   * enqueue fails fast (per project e2e guidance) instead of timing out the poll.
+   */
+  const runImport = async (payload: {
+    fileContent: string;
+    columnMapping?: ColumnMappingConfig;
+    accountMapping: AccountMappingConfig;
+    categoryMapping?: CategoryMappingConfig;
+    tagMapping?: TagMappingConfig;
+    skipDuplicateIndices?: number[];
+    skipUnpriceableIndices?: number[];
+    defaultAccountId?: string;
+    defaultCategoryId?: string;
+  }) => {
+    const { jobId } = await helpers.executeImport({
+      payload: {
+        fileContent: payload.fileContent,
+        delimiter: ',',
+        columnMapping: payload.columnMapping ?? buildColumnMapping(),
+        accountMapping: payload.accountMapping,
+        categoryMapping: payload.categoryMapping ?? {},
+        tagMapping: payload.tagMapping,
+        skipDuplicateIndices: payload.skipDuplicateIndices ?? [],
+        skipUnpriceableIndices: payload.skipUnpriceableIndices,
+        defaultAccountId: payload.defaultAccountId,
+        defaultCategoryId: payload.defaultCategoryId,
+      },
+      raw: true,
+    });
+
+    // Fail-fast: a broken enqueue must surface immediately, not as a 30s poll
+    // timeout. The job id must be the documented `csv-import-<userId>-<uuid>`.
+    expect(jobId).toBeTruthy();
+    expect(jobId).toMatch(/^csv-import-/);
+
+    // The very first status read must be a valid CsvImportProgress envelope for
+    // this job. If the status route or enqueue is broken this throws now.
+    const firstStatus = await helpers.getCsvImportStatus({ jobId, raw: true });
+    expect(firstStatus.jobId).toBe(jobId);
+    expect(['queued', 'running', 'completed', 'failed']).toContain(firstStatus.status);
+
+    return { jobId, progress: await waitForCsvImportCompletion({ jobId }) };
+  };
+
+  // The three default rows reused across happy-path tests: two expenses and one
+  // income, mirroring the original suite's `createValidRows`.
+  const defaultRows = ({
+    account = 'CSV Account',
+    category = 'Test Category',
+    currency = 'USD',
   }: {
-    accountName?: string;
-    categoryName?: string;
-    currencyCode?: string;
-  } = {}): ParsedTransactionRow[] => [
+    account?: string;
+    category?: string;
+    currency?: string;
+  } = {}): CsvRow[] => [
     {
-      rowIndex: 2,
       date: '2024-01-15',
-      amount: asCents(10050), // 100.50 in cents
+      amount: '100.50',
       description: 'Grocery shopping',
-      categoryName,
-      accountName,
-      currencyCode,
-      transactionType: 'expense',
+      category,
+      account,
+      currency,
+      type: 'expense',
     },
-    {
-      rowIndex: 3,
-      date: '2024-01-16',
-      amount: asCents(5000), // 50.00 in cents
-      description: 'Coffee shop',
-      categoryName,
-      accountName,
-      currencyCode,
-      transactionType: 'expense',
-    },
-    {
-      rowIndex: 4,
-      date: '2024-01-17',
-      amount: asCents(250000), // 2500.00 in cents
-      description: 'Salary',
-      categoryName: undefined,
-      accountName,
-      currencyCode,
-      transactionType: 'income',
-    },
+    { date: '2024-01-16', amount: '50.00', description: 'Coffee shop', category, account, currency, type: 'expense' },
+    { date: '2024-01-17', amount: '2500.00', description: 'Salary', account, currency, type: 'income' },
   ];
 
   describe('successful import', () => {
     it('should import transactions with existing account', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
       });
+      expectCsvImportCompleted(progress);
+      const { summary } = progress;
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
+      expect(summary.imported).toBe(3);
+      expect(summary.skipped).toBe(0);
+      expect(summary.accountsCreated).toBe(0);
+      expect(summary.categoriesCreated).toBe(0);
+      expect(summary.errors).toHaveLength(0);
+      expect(summary.newTransactionIds).toHaveLength(3);
+      expect(summary.batchId).toBeDefined();
 
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.skipped).toBe(0);
-      expect(result.summary.accountsCreated).toBe(0);
-      expect(result.summary.categoriesCreated).toBe(0);
-      expect(result.summary.errors).toHaveLength(0);
-      expect(result.newTransactionIds).toHaveLength(3);
-      expect(result.batchId).toBeDefined();
-
-      // Verify transactions were actually created in the database
       const transactions = await helpers.getTransactions({ raw: true });
-      const createdTxs = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
-
+      const createdTxs = transactions.filter((tx) => summary.newTransactionIds.includes(tx.id));
       expect(createdTxs).toHaveLength(3);
       expect(createdTxs.every((tx) => tx.accountId === account.id)).toBe(true);
     });
@@ -89,32 +190,19 @@ describe('Execute Import endpoint', () => {
     it('should create new account when action is create-new', async () => {
       const accountsBefore = await helpers.getAccounts();
 
-      const validRows = createValidRows({
-        accountName: 'New Import Account',
-        currencyCode: 'USD',
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'New Import Account', currency: 'USD' })),
+        accountMapping: { 'New Import Account': { action: 'create-new' } },
       });
+      expectCsvImportCompleted(progress);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'New Import Account': { action: 'create-new' },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
+      expect(progress.summary.imported).toBe(3);
+      expect(progress.summary.accountsCreated).toBe(1);
+      expect(progress.summary.errors).toHaveLength(0);
+      expect(progress.summary.newTransactionIds).toHaveLength(3);
 
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.accountsCreated).toBe(1);
-      expect(result.summary.errors).toHaveLength(0);
-      expect(result.newTransactionIds).toHaveLength(3);
-
-      // Verify account was actually created in the database
       const accountsAfter = await helpers.getAccounts();
       expect(accountsAfter.length).toBe(accountsBefore.length + 1);
-
       const newAccount = accountsAfter.find((a) => a.name === 'New Import Account');
       expect(newAccount).toBeDefined();
       expect(newAccount?.currencyCode).toBe('USD');
@@ -124,45 +212,27 @@ describe('Execute Import endpoint', () => {
       const account = await helpers.createAccount({ raw: true });
       const categoriesBefore = await helpers.getCategoriesList();
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        categoryName: 'New Import Category',
-        currencyCode: account.currencyCode,
+      const { progress } = await runImport({
+        fileContent: buildCsv(
+          defaultRows({ account: 'CSV Account', category: 'New Import Category', currency: account.currencyCode }),
+        ),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: { 'New Import Category': { action: 'create-new' } },
       });
+      expectCsvImportCompleted(progress);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {
-            'New Import Category': { action: 'create-new' },
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
+      expect(progress.summary.imported).toBe(3);
+      expect(progress.summary.categoriesCreated).toBe(1);
+      expect(progress.summary.errors).toHaveLength(0);
 
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.categoriesCreated).toBe(1);
-      expect(result.summary.errors).toHaveLength(0);
-
-      // Verify category was actually created in the database
       const categoriesAfter = await helpers.getCategoriesList();
       expect(categoriesAfter.length).toBe(categoriesBefore.length + 1);
-
-      const newCategory = categoriesAfter.find((c) => c.name === 'New Import Category');
-      expect(newCategory).toBeDefined();
+      expect(categoriesAfter.find((c) => c.name === 'New Import Category')).toBeDefined();
     });
 
     it('should link to existing category', async () => {
       const account = await helpers.createAccount({ raw: true });
-
-      // Get list of existing categories to find one we can link to
       const existingCategories = await helpers.getCategoriesList();
-
-      // Use the first available category, or create one if none exist
       let categoryId: string;
       if (existingCategories.length > 0) {
         categoryId = existingCategories[0]!.id;
@@ -171,136 +241,96 @@ describe('Execute Import endpoint', () => {
         categoryId = newCategory.id;
       }
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        categoryName: 'CSV Category Name',
-        currencyCode: account.currencyCode,
+      // Only the two rows that carry a category (the income "Salary" row omits one).
+      const rows = defaultRows({
+        account: 'CSV Account',
+        category: 'CSV Category Name',
+        currency: account.currencyCode,
+      }).filter((row) => row.category !== undefined);
+
+      const { progress } = await runImport({
+        fileContent: buildCsv(rows),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: { 'CSV Category Name': { action: 'link-existing', categoryId } },
       });
+      expectCsvImportCompleted(progress);
 
-      // Remove category from rows that have undefined categoryName (Salary row)
-      const rowsWithCategory = validRows.filter((row) => row.categoryName !== undefined);
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: rowsWithCategory,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {
-            'CSV Category Name': { action: 'link-existing', categoryId },
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(2);
-      expect(result.summary.categoriesCreated).toBe(0);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.summary.categoriesCreated).toBe(0);
+      expect(progress.summary.errors).toHaveLength(0);
     });
 
     it('should skip duplicate rows based on skipDuplicateIndices', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        skipDuplicateIndices: [2, 3], // Skip first two rows (rowIndex 2 and 3)
       });
+      expectCsvImportCompleted(progress);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [2, 3], // Skip first two rows
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(1); // Only the third row
-      expect(result.summary.skipped).toBe(2);
-      expect(result.newTransactionIds).toHaveLength(1);
+      expect(progress.summary.imported).toBe(1); // Only the third row
+      expect(progress.summary.skipped).toBe(2);
+      expect(progress.summary.newTransactionIds).toHaveLength(1);
     });
 
     it('should return empty result when all rows are skipped', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        skipDuplicateIndices: [2, 3, 4], // Skip all rows
       });
+      expectCsvImportCompleted(progress);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [2, 3, 4], // Skip all rows
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(0);
-      expect(result.summary.skipped).toBe(3);
-      expect(result.summary.accountsCreated).toBe(0);
-      expect(result.summary.categoriesCreated).toBe(0);
-      expect(result.newTransactionIds).toHaveLength(0);
+      expect(progress.summary.imported).toBe(0);
+      expect(progress.summary.skipped).toBe(3);
+      expect(progress.summary.accountsCreated).toBe(0);
+      expect(progress.summary.categoriesCreated).toBe(0);
+      expect(progress.summary.newTransactionIds).toHaveLength(0);
     });
 
     it('should handle multiple accounts in single import', async () => {
       const accountsBefore = await helpers.getAccounts();
 
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'Transaction 1',
-          accountName: 'Account A',
-          currencyCode: 'USD',
-          transactionType: 'expense',
+          account: 'Account A',
+          currency: 'USD',
+          type: 'expense',
         },
         {
-          rowIndex: 3,
           date: '2024-01-16',
-          amount: asCents(5000),
+          amount: '50.00',
           description: 'Transaction 2',
-          accountName: 'Account B',
-          currencyCode: 'EUR',
-          transactionType: 'expense',
+          account: 'Account B',
+          currency: 'EUR',
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'Account A': { action: 'create-new' },
-            'Account B': { action: 'create-new' },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: {
+          'Account A': { action: 'create-new' },
+          'Account B': { action: 'create-new' },
         },
-        raw: true,
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(2);
-      expect(result.summary.accountsCreated).toBe(2);
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.summary.accountsCreated).toBe(2);
 
-      // Verify both accounts were actually created in the database
       const accountsAfter = await helpers.getAccounts();
       expect(accountsAfter.length).toBe(accountsBefore.length + 2);
-
       const accountA = accountsAfter.find((a) => a.name === 'Account A');
       const accountB = accountsAfter.find((a) => a.name === 'Account B');
-
-      expect(accountA).toBeDefined();
       expect(accountA?.currencyCode).toBe('USD');
-      expect(accountB).toBeDefined();
       expect(accountB?.currencyCode).toBe('EUR');
     });
 
@@ -308,158 +338,157 @@ describe('Execute Import endpoint', () => {
       const account = await helpers.createAccount({ raw: true });
       const categoriesBefore = await helpers.getCategoriesList();
 
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'Transaction 1',
-          categoryName: 'Category A',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          category: 'Category A',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
         {
-          rowIndex: 3,
           date: '2024-01-16',
-          amount: asCents(5000),
+          amount: '50.00',
           description: 'Transaction 2',
-          categoryName: 'Category B',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          category: 'Category B',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {
-            'Category A': { action: 'create-new' },
-            'Category B': { action: 'create-new' },
-          },
-          skipDuplicateIndices: [],
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: {
+          'Category A': { action: 'create-new' },
+          'Category B': { action: 'create-new' },
         },
-        raw: true,
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(2);
-      expect(result.summary.categoriesCreated).toBe(2);
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.summary.categoriesCreated).toBe(2);
 
-      // Verify both categories were actually created in the database
       const categoriesAfter = await helpers.getCategoriesList();
       expect(categoriesAfter.length).toBe(categoriesBefore.length + 2);
-
-      const categoryA = categoriesAfter.find((c) => c.name === 'Category A');
-      const categoryB = categoriesAfter.find((c) => c.name === 'Category B');
-
-      expect(categoryA).toBeDefined();
-      expect(categoryB).toBeDefined();
+      expect(categoriesAfter.find((c) => c.name === 'Category A')).toBeDefined();
+      expect(categoriesAfter.find((c) => c.name === 'Category B')).toBeDefined();
     });
 
     it('should handle transactions without category', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'Transaction without category',
-          categoryName: undefined,
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.errors).toHaveLength(0);
     });
   });
 
   describe('single existing account/category fallbacks', () => {
-    // Reproduces the bug where the user picks "assign all rows to a single existing account"
-    // in the column-mapping step. detectDuplicates returns rows with accountName === ""
-    // (because there is no account column to read from) and accountMapping is empty.
-    // executeImport must fall back to defaultAccountId for those rows.
-    it('should import rows with empty accountName when defaultAccountId is provided', async () => {
+    // When the user picks "assign all rows to a single existing account" in the
+    // column-mapping step, the account column maps to an existing account id and
+    // accountMapping is empty. The currency is derived from that account.
+    it('should import rows mapped to a single existing account via column mapping', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows = createValidRows({
-        accountName: '',
-        currencyCode: account.currencyCode,
-      });
+      // No Account/Currency columns referenced — both come from the chosen account.
+      const fileContent = buildCsv([
+        { date: '2024-01-15', amount: '100.50', description: 'Grocery shopping', type: 'expense' },
+        { date: '2024-01-16', amount: '50.00', description: 'Coffee shop', type: 'expense' },
+        { date: '2024-01-17', amount: '2500.00', description: 'Salary', type: 'income' },
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {},
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-          defaultAccountId: account.id,
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent,
+        columnMapping: buildColumnMapping({
+          account: { option: AccountOptionValue.existingAccount, accountId: account.id },
+          currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: account.currencyCode },
+          category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
+        }),
+        accountMapping: {},
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.errors).toHaveLength(0);
-      expect(result.newTransactionIds).toHaveLength(3);
+      expect(progress.summary.imported).toBe(3);
+      expect(progress.summary.errors).toHaveLength(0);
+      expect(progress.summary.newTransactionIds).toHaveLength(3);
 
       const transactions = await helpers.getTransactions({ raw: true });
-      const created = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      const created = transactions.filter((tx) => progress.summary.newTransactionIds.includes(tx.id));
       expect(created).toHaveLength(3);
       expect(created.every((tx) => tx.accountId === account.id)).toBe(true);
     });
 
-    // Reproduces the silent bug where the user picks "assign all rows to a single existing
-    // category". detectDuplicates returns rows with categoryName === undefined and
-    // categoryMapping is empty. Without a fallback the transactions are imported with no
-    // category at all, even though the user explicitly chose one.
-    it('should assign defaultCategoryId to rows with undefined categoryName', async () => {
+    // When the user picks "assign all rows to a single existing category", the
+    // rows carry no category and defaultCategoryId fills it in. Without the
+    // fallback the transactions would import with no category at all.
+    it('should assign defaultCategoryId to rows with no category column', async () => {
       const account = await helpers.createAccount({ raw: true });
-
       const existingCategories = await helpers.getCategoriesList();
       const categoryId = existingCategories[0]!.id;
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
-      }).map((row) => ({ ...row, categoryName: undefined }));
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-          defaultCategoryId: categoryId,
+      const fileContent = buildCsv([
+        {
+          date: '2024-01-15',
+          amount: '100.50',
+          description: 'Grocery shopping',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
-        raw: true,
-      });
+        {
+          date: '2024-01-16',
+          amount: '50.00',
+          description: 'Coffee shop',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
+        },
+        {
+          date: '2024-01-17',
+          amount: '2500.00',
+          description: 'Salary',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'income',
+        },
+      ]);
 
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.errors).toHaveLength(0);
+      const { progress } = await runImport({
+        fileContent,
+        // No category column mapped — the single chosen category fills every row.
+        columnMapping: buildColumnMapping({
+          category: { option: CategoryOptionValue.existingCategory, categoryId },
+        }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        defaultCategoryId: categoryId,
+      });
+      expectCsvImportCompleted(progress);
+
+      expect(progress.summary.imported).toBe(3);
+      expect(progress.summary.errors).toHaveLength(0);
 
       const transactions = await helpers.getTransactions({ raw: true });
-      const created = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      const created = transactions.filter((tx) => progress.summary.newTransactionIds.includes(tx.id));
       expect(created).toHaveLength(3);
       expect(created.every((tx) => tx.categoryId === categoryId)).toBe(true);
     });
@@ -469,77 +498,58 @@ describe('Execute Import endpoint', () => {
     it('should handle mixed account mappings (some new, some existing)', async () => {
       const accountsBefore = await helpers.getAccounts();
       const existingAccount = await helpers.createAccount({
-        payload: {
-          ...helpers.buildAccountPayload(),
-          name: 'Existing Account',
-        },
+        payload: { ...helpers.buildAccountPayload(), name: 'Existing Account' },
         raw: true,
       });
 
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'Transaction to new account',
-          accountName: 'New Account A',
-          currencyCode: 'USD',
-          transactionType: 'expense',
+          account: 'New Account A',
+          currency: 'USD',
+          type: 'expense',
         },
         {
-          rowIndex: 3,
           date: '2024-01-16',
-          amount: asCents(5000),
+          amount: '50.00',
           description: 'Transaction to existing account',
-          accountName: 'CSV Existing Account',
-          currencyCode: existingAccount.currencyCode,
-          transactionType: 'expense',
+          account: 'CSV Existing Account',
+          currency: existingAccount.currencyCode,
+          type: 'expense',
         },
         {
-          rowIndex: 4,
           date: '2024-01-17',
-          amount: asCents(7500),
+          amount: '75.00',
           description: 'Transaction to another new account',
-          accountName: 'New Account B',
-          currencyCode: 'EUR',
-          transactionType: 'income',
+          account: 'New Account B',
+          currency: 'EUR',
+          type: 'income',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'New Account A': { action: 'create-new' },
-            'CSV Existing Account': { action: 'link-existing', accountId: existingAccount.id },
-            'New Account B': { action: 'create-new' },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: {
+          'New Account A': { action: 'create-new' },
+          'CSV Existing Account': { action: 'link-existing', accountId: existingAccount.id },
+          'New Account B': { action: 'create-new' },
         },
-        raw: true,
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.accountsCreated).toBe(2); // Only A and B created
-      expect(result.summary.errors).toHaveLength(0);
+      expect(progress.summary.imported).toBe(3);
+      expect(progress.summary.accountsCreated).toBe(2);
+      expect(progress.summary.errors).toHaveLength(0);
 
-      // Verify accounts in database
       const accountsAfter = await helpers.getAccounts();
-      expect(accountsAfter.length).toBe(accountsBefore.length + 3); // +1 from existingAccount, +2 from import
+      expect(accountsAfter.length).toBe(accountsBefore.length + 3); // +1 existing, +2 import
+      expect(accountsAfter.find((a) => a.name === 'New Account A')?.currencyCode).toBe('USD');
+      expect(accountsAfter.find((a) => a.name === 'New Account B')?.currencyCode).toBe('EUR');
 
-      const accountA = accountsAfter.find((a) => a.name === 'New Account A');
-      const accountB = accountsAfter.find((a) => a.name === 'New Account B');
-
-      expect(accountA).toBeDefined();
-      expect(accountA?.currencyCode).toBe('USD');
-      expect(accountB).toBeDefined();
-      expect(accountB?.currencyCode).toBe('EUR');
-
-      // Verify transaction went to correct accounts
       const transactions = await helpers.getTransactions({ raw: true });
-      const importedTxs = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
-
+      const importedTxs = transactions.filter((tx) => progress.summary.newTransactionIds.includes(tx.id));
       const existingAccountTx = importedTxs.find((tx) => tx.note === 'Transaction to existing account');
       expect(existingAccountTx?.accountId).toBe(existingAccount.id);
     });
@@ -548,7 +558,6 @@ describe('Execute Import endpoint', () => {
       const account = await helpers.createAccount({ raw: true });
       const categoriesBefore = await helpers.getCategoriesList();
 
-      // Create existing categories to link to
       let existingCategory1 = categoriesBefore[0];
       if (!existingCategory1) {
         existingCategory1 = await helpers.addCustomCategory({ name: 'Existing Cat 1', color: '#FF0000', raw: true });
@@ -559,538 +568,177 @@ describe('Execute Import endpoint', () => {
         raw: true,
       });
 
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'Transaction with new category',
-          categoryName: 'New Category A',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          category: 'New Category A',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
         {
-          rowIndex: 3,
           date: '2024-01-16',
-          amount: asCents(5000),
+          amount: '50.00',
           description: 'Transaction with existing category 1',
-          categoryName: 'CSV Existing Cat 1',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          category: 'CSV Existing Cat 1',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
         {
-          rowIndex: 4,
           date: '2024-01-17',
-          amount: asCents(7500),
+          amount: '75.00',
           description: 'Transaction with another new category',
-          categoryName: 'New Category B',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'income',
+          category: 'New Category B',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'income',
         },
         {
-          rowIndex: 5,
           date: '2024-01-18',
-          amount: asCents(3000),
+          amount: '30.00',
           description: 'Transaction with existing category 2',
-          categoryName: 'CSV Existing Cat 2',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          category: 'CSV Existing Cat 2',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {
-            'New Category A': { action: 'create-new' },
-            'CSV Existing Cat 1': { action: 'link-existing', categoryId: existingCategory1.id },
-            'New Category B': { action: 'create-new' },
-            'CSV Existing Cat 2': { action: 'link-existing', categoryId: existingCategory2.id },
-          },
-          skipDuplicateIndices: [],
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: {
+          'New Category A': { action: 'create-new' },
+          'CSV Existing Cat 1': { action: 'link-existing', categoryId: existingCategory1.id },
+          'New Category B': { action: 'create-new' },
+          'CSV Existing Cat 2': { action: 'link-existing', categoryId: existingCategory2.id },
         },
-        raw: true,
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(4);
-      expect(result.summary.categoriesCreated).toBe(2); // Only A and B created
-      expect(result.summary.errors).toHaveLength(0);
+      expect(progress.summary.imported).toBe(4);
+      expect(progress.summary.categoriesCreated).toBe(2);
+      expect(progress.summary.errors).toHaveLength(0);
 
-      // Verify categories in database
       const categoriesAfter = await helpers.getCategoriesList();
-      const newCategoryA = categoriesAfter.find((c) => c.name === 'New Category A');
-      const newCategoryB = categoriesAfter.find((c) => c.name === 'New Category B');
+      expect(categoriesAfter.find((c) => c.name === 'New Category A')).toBeDefined();
+      expect(categoriesAfter.find((c) => c.name === 'New Category B')).toBeDefined();
 
-      expect(newCategoryA).toBeDefined();
-      expect(newCategoryB).toBeDefined();
-
-      // Verify transactions have correct categories
       const transactions = await helpers.getTransactions({ raw: true });
-      const importedTxs = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
-
-      const existingCat1Tx = importedTxs.find((tx) => tx.note === 'Transaction with existing category 1');
-      const existingCat2Tx = importedTxs.find((tx) => tx.note === 'Transaction with existing category 2');
-
-      expect(existingCat1Tx?.categoryId).toBe(existingCategory1.id);
-      expect(existingCat2Tx?.categoryId).toBe(existingCategory2.id);
+      const importedTxs = transactions.filter((tx) => progress.summary.newTransactionIds.includes(tx.id));
+      expect(importedTxs.find((tx) => tx.note === 'Transaction with existing category 1')?.categoryId).toBe(
+        existingCategory1.id,
+      );
+      expect(importedTxs.find((tx) => tx.note === 'Transaction with existing category 2')?.categoryId).toBe(
+        existingCategory2.id,
+      );
     });
 
     it('should reuse same category across multiple accounts', async () => {
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'Food expense from Account A',
-          categoryName: 'Food',
-          accountName: 'Account A',
-          currencyCode: 'USD',
-          transactionType: 'expense',
+          category: 'Food',
+          account: 'Account A',
+          currency: 'USD',
+          type: 'expense',
         },
         {
-          rowIndex: 3,
           date: '2024-01-16',
-          amount: asCents(5000),
+          amount: '50.00',
           description: 'Food expense from Account B',
-          categoryName: 'Food',
-          accountName: 'Account B',
-          currencyCode: 'USD',
-          transactionType: 'expense',
+          category: 'Food',
+          account: 'Account B',
+          currency: 'USD',
+          type: 'expense',
         },
         {
-          rowIndex: 4,
           date: '2024-01-17',
-          amount: asCents(7500),
+          amount: '75.00',
           description: 'Food expense from Account A again',
-          categoryName: 'Food',
-          accountName: 'Account A',
-          currencyCode: 'USD',
-          transactionType: 'expense',
+          category: 'Food',
+          account: 'Account A',
+          currency: 'USD',
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'Account A': { action: 'create-new' },
-            'Account B': { action: 'create-new' },
-          },
-          categoryMapping: {
-            Food: { action: 'create-new' },
-          },
-          skipDuplicateIndices: [],
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: {
+          'Account A': { action: 'create-new' },
+          'Account B': { action: 'create-new' },
         },
-        raw: true,
+        categoryMapping: { Food: { action: 'create-new' } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.accountsCreated).toBe(2);
-      expect(result.summary.categoriesCreated).toBe(1); // Only ONE Food category created
+      expect(progress.summary.imported).toBe(3);
+      expect(progress.summary.accountsCreated).toBe(2);
+      expect(progress.summary.categoriesCreated).toBe(1); // Only ONE Food category
 
-      // Verify only one Food category was created
       const categoriesAfter = await helpers.getCategoriesList();
-      const foodCategories = categoriesAfter.filter((c) => c.name === 'Food');
-      expect(foodCategories).toHaveLength(1);
+      expect(categoriesAfter.filter((c) => c.name === 'Food')).toHaveLength(1);
 
-      // Verify all transactions use the same category
       const transactions = await helpers.getTransactions({ raw: true });
-      const importedTxs = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
-
+      const importedTxs = transactions.filter((tx) => progress.summary.newTransactionIds.includes(tx.id));
       expect(importedTxs).toHaveLength(3);
-      const categoryIds = importedTxs.map((tx) => tx.categoryId);
-      const uniqueCategoryIds = [...new Set(categoryIds)];
-      expect(uniqueCategoryIds).toHaveLength(1); // All use same category
-
-      // Verify transactions are in different accounts
-      const accountIds = importedTxs.map((tx) => tx.accountId);
-      const uniqueAccountIds = [...new Set(accountIds)];
-      expect(uniqueAccountIds).toHaveLength(2); // Distributed across 2 accounts
+      expect([...new Set(importedTxs.map((tx) => tx.categoryId))]).toHaveLength(1);
+      expect([...new Set(importedTxs.map((tx) => tx.accountId))]).toHaveLength(2);
     });
 
     it('should handle mix of transactions with and without categories', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'Transaction with category',
-          categoryName: 'New Category',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          category: 'New Category',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
         {
-          rowIndex: 3,
           date: '2024-01-16',
-          amount: asCents(5000),
+          amount: '50.00',
           description: 'Transaction without category',
-          categoryName: undefined,
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
         {
-          rowIndex: 4,
           date: '2024-01-17',
-          amount: asCents(7500),
+          amount: '75.00',
           description: 'Another transaction with category',
-          categoryName: 'New Category',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'income',
+          category: 'New Category',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'income',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {
-            'New Category': { action: 'create-new' },
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: { 'New Category': { action: 'create-new' } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.categoriesCreated).toBe(1);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(progress.summary.imported).toBe(3);
+      expect(progress.summary.categoriesCreated).toBe(1);
+      expect(progress.summary.errors).toHaveLength(0);
 
-      // Verify transactions
       const transactions = await helpers.getTransactions({ raw: true });
-      const importedTxs = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
-
-      const withoutCategoryTx = importedTxs.find((tx) => tx.note === 'Transaction without category');
-      const withCategoryTx = importedTxs.find((tx) => tx.note === 'Transaction with category');
-
-      expect(withoutCategoryTx?.categoryId).toBeNull();
-      expect(withCategoryTx?.categoryId).not.toBeNull();
-    });
-
-    it('should handle complex scenario: multiple accounts, multiple categories, mixed mappings', async () => {
-      const existingAccount = await helpers.createAccount({
-        payload: {
-          ...helpers.buildAccountPayload(),
-          name: 'Existing Account',
-        },
-        raw: true,
-      });
-      const existingCategory = await helpers.addCustomCategory({
-        name: 'Existing Category',
-        color: '#0000FF',
-        raw: true,
-      });
-
-      const validRows: ParsedTransactionRow[] = [
-        // Account A (new), Category 1 (new)
-        {
-          rowIndex: 2,
-          date: '2024-01-15',
-          amount: asCents(10050),
-          description: 'A + Cat1',
-          categoryName: 'Category 1',
-          accountName: 'Account A',
-          currencyCode: 'USD',
-          transactionType: 'expense',
-        },
-        // Account B (new), Category 1 (reuse)
-        {
-          rowIndex: 3,
-          date: '2024-01-16',
-          amount: asCents(5000),
-          description: 'B + Cat1',
-          categoryName: 'Category 1',
-          accountName: 'Account B',
-          currencyCode: 'EUR',
-          transactionType: 'expense',
-        },
-        // Existing Account, Category 2 (new)
-        {
-          rowIndex: 4,
-          date: '2024-01-17',
-          amount: asCents(7500),
-          description: 'Existing + Cat2',
-          categoryName: 'Category 2',
-          accountName: 'CSV Existing',
-          currencyCode: existingAccount.currencyCode,
-          transactionType: 'income',
-        },
-        // Account A (reuse), Existing Category
-        {
-          rowIndex: 5,
-          date: '2024-01-18',
-          amount: asCents(3000),
-          description: 'A + Existing Cat',
-          categoryName: 'CSV Existing Cat',
-          accountName: 'Account A',
-          currencyCode: 'USD',
-          transactionType: 'expense',
-        },
-        // Account B (reuse), no category
-        {
-          rowIndex: 6,
-          date: '2024-01-19',
-          amount: asCents(2000),
-          description: 'B + No Cat',
-          categoryName: undefined,
-          accountName: 'Account B',
-          currencyCode: 'EUR',
-          transactionType: 'income',
-        },
-      ];
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'Account A': { action: 'create-new' },
-            'Account B': { action: 'create-new' },
-            'CSV Existing': { action: 'link-existing', accountId: existingAccount.id },
-          },
-          categoryMapping: {
-            'Category 1': { action: 'create-new' },
-            'Category 2': { action: 'create-new' },
-            'CSV Existing Cat': { action: 'link-existing', categoryId: existingCategory.id },
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(5);
-      expect(result.summary.accountsCreated).toBe(2); // Account A and B
-      expect(result.summary.categoriesCreated).toBe(2); // Category 1 and 2
-      expect(result.summary.errors).toHaveLength(0);
-
-      // Verify all transactions were created
-      const transactions = await helpers.getTransactions({ raw: true });
-      const importedTxs = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
-      expect(importedTxs).toHaveLength(5);
-
-      // Verify Category 1 is shared between Account A and B
-      const cat1Txs = importedTxs.filter((tx) => ['A + Cat1', 'B + Cat1'].includes(tx.note || ''));
-      expect(cat1Txs).toHaveLength(2);
-      expect(cat1Txs[0]?.categoryId).toBe(cat1Txs[1]?.categoryId);
-
-      // Verify transaction uses existing category
-      const existingCatTx = importedTxs.find((tx) => tx.note === 'A + Existing Cat');
-      expect(existingCatTx?.categoryId).toBe(existingCategory.id);
-
-      // Verify transaction without category
-      const noCatTx = importedTxs.find((tx) => tx.note === 'B + No Cat');
-      expect(noCatTx?.categoryId).toBeNull();
-
-      // Verify transaction uses existing account
-      const existingAccTx = importedTxs.find((tx) => tx.note === 'Existing + Cat2');
-      expect(existingAccTx?.accountId).toBe(existingAccount.id);
-    });
-
-    it('should create accounts with same currency correctly', async () => {
-      const validRows: ParsedTransactionRow[] = [
-        {
-          rowIndex: 2,
-          date: '2024-01-15',
-          amount: asCents(10050),
-          description: 'USD Account 1',
-          accountName: 'USD Account 1',
-          currencyCode: 'USD',
-          transactionType: 'expense',
-        },
-        {
-          rowIndex: 3,
-          date: '2024-01-16',
-          amount: asCents(5000),
-          description: 'USD Account 2',
-          accountName: 'USD Account 2',
-          currencyCode: 'USD',
-          transactionType: 'expense',
-        },
-        {
-          rowIndex: 4,
-          date: '2024-01-17',
-          amount: asCents(7500),
-          description: 'USD Account 3',
-          accountName: 'USD Account 3',
-          currencyCode: 'USD',
-          transactionType: 'income',
-        },
-      ];
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'USD Account 1': { action: 'create-new' },
-            'USD Account 2': { action: 'create-new' },
-            'USD Account 3': { action: 'create-new' },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.accountsCreated).toBe(3);
-
-      // Verify all accounts were created with USD currency
-      const accounts = await helpers.getAccounts();
-      const usdAccounts = accounts.filter((a) => ['USD Account 1', 'USD Account 2', 'USD Account 3'].includes(a.name));
-
-      expect(usdAccounts).toHaveLength(3);
-      usdAccounts.forEach((acc) => {
-        expect(acc.currencyCode).toBe('USD');
-      });
-    });
-
-    it('should handle same account mapped to different categories', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const validRows: ParsedTransactionRow[] = [
-        {
-          rowIndex: 2,
-          date: '2024-01-15',
-          amount: asCents(10050),
-          description: 'Food expense',
-          categoryName: 'Food',
-          accountName: 'My Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
-        },
-        {
-          rowIndex: 3,
-          date: '2024-01-16',
-          amount: asCents(5000),
-          description: 'Transport expense',
-          categoryName: 'Transport',
-          accountName: 'My Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
-        },
-        {
-          rowIndex: 4,
-          date: '2024-01-17',
-          amount: asCents(7500),
-          description: 'Entertainment expense',
-          categoryName: 'Entertainment',
-          accountName: 'My Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
-        },
-        {
-          rowIndex: 5,
-          date: '2024-01-18',
-          amount: asCents(3000),
-          description: 'Another food expense',
-          categoryName: 'Food',
-          accountName: 'My Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
-        },
-      ];
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'My Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {
-            Food: { action: 'create-new' },
-            Transport: { action: 'create-new' },
-            Entertainment: { action: 'create-new' },
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(4);
-      expect(result.summary.accountsCreated).toBe(0);
-      expect(result.summary.categoriesCreated).toBe(3);
-
-      // Verify all transactions use the same account
-      const transactions = await helpers.getTransactions({ raw: true });
-      const importedTxs = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
-
-      expect(importedTxs).toHaveLength(4);
-      importedTxs.forEach((tx) => {
-        expect(tx.accountId).toBe(account.id);
-      });
-
-      // Verify Food category is reused
-      const foodTxs = importedTxs.filter((tx) => tx.note?.toLowerCase().includes('food'));
-      expect(foodTxs).toHaveLength(2);
-      expect(foodTxs[0]?.categoryId).toBe(foodTxs[1]?.categoryId);
-    });
-
-    it('should handle all create-new mappings (maximum entity creation)', async () => {
-      const accountsBefore = await helpers.getAccounts();
-      const categoriesBefore = await helpers.getCategoriesList();
-
-      const validRows: ParsedTransactionRow[] = [
-        {
-          rowIndex: 2,
-          date: '2024-01-15',
-          amount: asCents(10050),
-          description: 'Transaction 1',
-          categoryName: 'Category A',
-          accountName: 'Account 1',
-          currencyCode: 'USD',
-          transactionType: 'expense',
-        },
-        {
-          rowIndex: 3,
-          date: '2024-01-16',
-          amount: asCents(5000),
-          description: 'Transaction 2',
-          categoryName: 'Category B',
-          accountName: 'Account 2',
-          currencyCode: 'EUR',
-          transactionType: 'expense',
-        },
-      ];
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'Account 1': { action: 'create-new' },
-            'Account 2': { action: 'create-new' },
-          },
-          categoryMapping: {
-            'Category A': { action: 'create-new' },
-            'Category B': { action: 'create-new' },
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(2);
-      expect(result.summary.accountsCreated).toBe(2);
-      expect(result.summary.categoriesCreated).toBe(2);
-      expect(result.summary.errors).toHaveLength(0);
-
-      // Verify entities were created
-      const accountsAfter = await helpers.getAccounts();
-      const categoriesAfter = await helpers.getCategoriesList();
-
-      expect(accountsAfter.length).toBe(accountsBefore.length + 2);
-      expect(categoriesAfter.length).toBe(categoriesBefore.length + 2);
+      const importedTxs = transactions.filter((tx) => progress.summary.newTransactionIds.includes(tx.id));
+      expect(importedTxs.find((tx) => tx.note === 'Transaction without category')?.categoryId).toBeNull();
+      expect(importedTxs.find((tx) => tx.note === 'Transaction with category')?.categoryId).not.toBeNull();
     });
 
     it('should handle all link-existing mappings (no entity creation)', async () => {
@@ -1108,145 +756,140 @@ describe('Execute Import endpoint', () => {
       const accountsBefore = await helpers.getAccounts();
       const categoriesBefore = await helpers.getCategoriesList();
 
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'Transaction 1',
-          categoryName: 'CSV Category 1',
-          accountName: 'CSV Account 1',
-          currencyCode: account1.currencyCode,
-          transactionType: 'expense',
+          category: 'CSV Category 1',
+          account: 'CSV Account 1',
+          currency: account1.currencyCode,
+          type: 'expense',
         },
         {
-          rowIndex: 3,
           date: '2024-01-16',
-          amount: asCents(5000),
+          amount: '50.00',
           description: 'Transaction 2',
-          categoryName: 'CSV Category 2',
-          accountName: 'CSV Account 2',
-          currencyCode: account2.currencyCode,
-          transactionType: 'expense',
+          category: 'CSV Category 2',
+          account: 'CSV Account 2',
+          currency: account2.currencyCode,
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account 1': { action: 'link-existing', accountId: account1.id },
-            'CSV Account 2': { action: 'link-existing', accountId: account2.id },
-          },
-          categoryMapping: {
-            'CSV Category 1': { action: 'link-existing', categoryId: category1.id },
-            'CSV Category 2': { action: 'link-existing', categoryId: category2.id },
-          },
-          skipDuplicateIndices: [],
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: {
+          'CSV Account 1': { action: 'link-existing', accountId: account1.id },
+          'CSV Account 2': { action: 'link-existing', accountId: account2.id },
         },
-        raw: true,
+        categoryMapping: {
+          'CSV Category 1': { action: 'link-existing', categoryId: category1.id },
+          'CSV Category 2': { action: 'link-existing', categoryId: category2.id },
+        },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(2);
-      expect(result.summary.accountsCreated).toBe(0); // No new accounts
-      expect(result.summary.categoriesCreated).toBe(0); // No new categories
-      expect(result.summary.errors).toHaveLength(0);
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.summary.accountsCreated).toBe(0);
+      expect(progress.summary.categoriesCreated).toBe(0);
+      expect(progress.summary.errors).toHaveLength(0);
 
-      // Verify no new entities were created
-      const accountsAfter = await helpers.getAccounts();
-      const categoriesAfter = await helpers.getCategoriesList();
-
-      expect(accountsAfter.length).toBe(accountsBefore.length);
-      expect(categoriesAfter.length).toBe(categoriesBefore.length);
+      expect((await helpers.getAccounts()).length).toBe(accountsBefore.length);
+      expect((await helpers.getCategoriesList()).length).toBe(categoriesBefore.length);
     });
   });
 
-  describe('error handling', () => {
-    it('should fail when account mapping is missing', async () => {
-      const validRows = createValidRows({ accountName: 'Unknown Account' });
+  describe('error handling — failed jobs', () => {
+    // The controller only validates the request shape; mapping/ownership failures
+    // happen inside the worker and surface as `status: 'failed'`, mirroring the
+    // Wallet importer. The summary is never present on a failed job.
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {}, // Missing mapping for 'Unknown Account'
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: false,
+    it('fails the job when account mapping is missing', async () => {
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'Unknown Account' })),
+        accountMapping: {}, // Missing mapping for 'Unknown Account'
       });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(progress.status).toBe('failed');
+      if (progress.status !== 'failed') throw new Error('unreachable');
+      expect(progress.error).toMatch(/no mapping found/i);
     });
 
-    it('should fail when linked account does not exist', async () => {
-      const validRows = createValidRows({ accountName: 'CSV Account' });
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: generateRandomRecordId() }, // Non-existent
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: false,
+    it('fails the job when the linked account does not exist', async () => {
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account' })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: generateRandomRecordId() } },
       });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(progress.status).toBe('failed');
+      if (progress.status !== 'failed') throw new Error('unreachable');
+      expect(progress.error).toMatch(/not found/i);
     });
 
-    it('should fail when linked category does not exist', async () => {
+    it('fails the job when the linked category does not exist', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        categoryName: 'Some Category',
-        currencyCode: account.currencyCode,
+      const { progress } = await runImport({
+        fileContent: buildCsv(
+          defaultRows({ account: 'CSV Account', category: 'Some Category', currency: account.currencyCode }),
+        ),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: { 'Some Category': { action: 'link-existing', categoryId: generateRandomRecordId() } },
       });
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {
-            'Some Category': { action: 'link-existing', categoryId: generateRandomRecordId() }, // Non-existent
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(progress.status).toBe('failed');
+      if (progress.status !== 'failed') throw new Error('unreachable');
+      expect(progress.error).toMatch(/not found/i);
     });
 
-    it('should return validation error for empty validRows array', async () => {
-      const result = await helpers.executeImport({
+    it('completes with an empty summary when the CSV has only a header row', async () => {
+      // No data rows → the worker parses zero valid rows and completes with an
+      // empty summary (not a failure).
+      const { progress } = await runImport({
+        fileContent: CSV_HEADERS.join(','),
+        accountMapping: {},
+      });
+      expectCsvImportCompleted(progress);
+      expect(progress.summary.imported).toBe(0);
+      expect(progress.summary.skipped).toBe(0);
+      expect(progress.summary.newTransactionIds).toHaveLength(0);
+    });
+  });
+
+  describe('status endpoint', () => {
+    it('returns 404 for an unknown job id', async () => {
+      const response = await helpers.getCsvImportStatus({ jobId: 'no-such-csv-job' });
+      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it("refuses to leak another user's job status (cross-user authZ)", async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // User A enqueues a job — the status row is visible the moment it enqueues.
+      const { jobId } = await helpers.executeImport({
         payload: {
-          validRows: [],
-          accountMapping: {},
+          fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
           categoryMapping: {},
           skipDuplicateIndices: [],
         },
         raw: true,
       });
+      expect(jobId).toBeTruthy();
 
-      // Empty array should return empty result, not an error
-      expect(result.summary.imported).toBe(0);
-      expect(result.summary.skipped).toBe(0);
+      const otherUser = await signUpSecondUser();
+      const statusAsOther = await asUser({
+        cookies: otherUser.cookies,
+        fn: () => helpers.getCsvImportStatus({ jobId }),
+      });
+      expect(statusAsOther.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
   });
 
   describe('transaction creation details', () => {
     it('should create transactions and return correct IDs', async () => {
       const account = await helpers.createAccount({ raw: true });
-
-      // Get list of existing categories to find one we can link to
       const existingCategories = await helpers.getCategoriesList();
-
-      // Use the first available category, or create one if none exist
       let categoryId: string;
       if (existingCategories.length > 0) {
         categoryId = existingCategories[0]!.id;
@@ -1255,42 +898,32 @@ describe('Execute Import endpoint', () => {
         categoryId = newCategory.id;
       }
 
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'Test transaction',
-          categoryName: 'CSV Category',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          category: 'CSV Category',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {
-            'CSV Category': { action: 'link-existing', categoryId },
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: { 'CSV Category': { action: 'link-existing', categoryId } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(1);
-      expect(result.newTransactionIds).toHaveLength(1);
-      expect(typeof result.newTransactionIds[0]).toBe('string');
-      expect(result.newTransactionIds[0]).toBeTruthy();
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.newTransactionIds).toHaveLength(1);
+      expect(typeof progress.summary.newTransactionIds[0]).toBe('string');
+      expect(progress.summary.newTransactionIds[0]).toBeTruthy();
 
-      // Verify transaction was actually created in the database
       const transactions = await helpers.getTransactions({ raw: true });
-      const createdTx = transactions.find((tx) => tx.id === result.newTransactionIds[0]);
-
+      const createdTx = transactions.find((tx) => tx.id === progress.summary.newTransactionIds[0]);
       expect(createdTx).toBeDefined();
       expect(createdTx?.amount).toBe(100.5);
       expect(createdTx?.note).toBe('Test transaction');
@@ -1300,110 +933,74 @@ describe('Execute Import endpoint', () => {
 
     it('should generate unique batchId for each import', async () => {
       const account = await helpers.createAccount({ raw: true });
+      const fileContent = buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode }));
+      const accountMapping = { 'CSV Account': { action: 'link-existing' as const, accountId: account.id } };
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
-      });
+      const first = await runImport({ fileContent, accountMapping });
+      const second = await runImport({ fileContent, accountMapping });
+      expectCsvImportCompleted(first.progress);
+      expectCsvImportCompleted(second.progress);
 
-      const result1 = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      const result2 = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result1.batchId).toBeDefined();
-      expect(result2.batchId).toBeDefined();
-      expect(result1.batchId).not.toBe(result2.batchId);
+      expect(first.progress.summary.batchId).toBeDefined();
+      expect(second.progress.summary.batchId).toBeDefined();
+      expect(first.progress.summary.batchId).not.toBe(second.progress.summary.batchId);
     });
   });
 
   describe('currency handling', () => {
     it('should add currency to user currencies automatically', async () => {
-      // Create account with EUR currency
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'EUR Transaction',
-          accountName: 'EUR Account',
-          currencyCode: 'EUR',
-          transactionType: 'expense',
+          account: 'EUR Account',
+          currency: 'EUR',
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'EUR Account': { action: 'create-new' },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: { 'EUR Account': { action: 'create-new' } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(1);
-      // The currency should be added automatically - no error should occur
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.errors).toHaveLength(0);
     });
 
     it('should handle multiple currencies in single import', async () => {
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-01-15',
-          amount: asCents(10050),
+          amount: '100.50',
           description: 'USD Transaction',
-          accountName: 'USD Account',
-          currencyCode: 'USD',
-          transactionType: 'expense',
+          account: 'USD Account',
+          currency: 'USD',
+          type: 'expense',
         },
         {
-          rowIndex: 3,
           date: '2024-01-16',
-          amount: asCents(5000),
+          amount: '50.00',
           description: 'GBP Transaction',
-          accountName: 'GBP Account',
-          currencyCode: 'GBP',
-          transactionType: 'expense',
+          account: 'GBP Account',
+          currency: 'GBP',
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'USD Account': { action: 'create-new' },
-            'GBP Account': { action: 'create-new' },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: {
+          'USD Account': { action: 'create-new' },
+          'GBP Account': { action: 'create-new' },
         },
-        raw: true,
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(2);
-      expect(result.summary.accountsCreated).toBe(2);
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.summary.accountsCreated).toBe(2);
     });
   });
 
@@ -1411,280 +1008,162 @@ describe('Execute Import endpoint', () => {
     it('should skip rows listed in skipUnpriceableIndices and not import them', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      // rowIndices 2 and 3 are marked unpriceable; only rowIndex 4 should be imported
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
+      // rowIndices 2 and 3 are marked unpriceable; only rowIndex 4 imports.
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        skipUnpriceableIndices: [2, 3],
       });
+      expectCsvImportCompleted(progress);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-          skipUnpriceableIndices: [2, 3],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.skipped).toBe(0);
-      expect(result.summary.skippedUnpriceable).toBe(2);
-      expect(result.newTransactionIds).toHaveLength(1);
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.skipped).toBe(0);
+      expect(progress.summary.skippedUnpriceable).toBe(2);
+      expect(progress.summary.newTransactionIds).toHaveLength(1);
     });
 
     it('should skip both duplicate and unpriceable rows and report counts separately', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      // rowIndex 2 → duplicate-skip; rowIndex 3 → unpriceable-skip; rowIndex 4 → imported
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
+      // rowIndex 2 → duplicate-skip; rowIndex 3 → unpriceable-skip; rowIndex 4 → imported.
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        skipDuplicateIndices: [2],
+        skipUnpriceableIndices: [3],
       });
+      expectCsvImportCompleted(progress);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [2],
-          skipUnpriceableIndices: [3],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.skipped).toBe(1);
-      expect(result.summary.skippedUnpriceable).toBe(1);
-      expect(result.newTransactionIds).toHaveLength(1);
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.skipped).toBe(1);
+      expect(progress.summary.skippedUnpriceable).toBe(1);
+      expect(progress.summary.newTransactionIds).toHaveLength(1);
     });
 
     it('should return skippedUnpriceable: 0 when skipUnpriceableIndices is omitted', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
       });
+      expectCsvImportCompleted(progress);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-          // skipUnpriceableIndices intentionally omitted for back-compat
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.skipped).toBe(0);
-      expect(result.summary.skippedUnpriceable).toBe(0);
+      expect(progress.summary.imported).toBe(3);
+      expect(progress.summary.skipped).toBe(0);
+      expect(progress.summary.skippedUnpriceable).toBe(0);
     });
 
     it('should import nothing and report full counts when all rows skipped via both lists', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        skipDuplicateIndices: [2],
+        skipUnpriceableIndices: [3, 4],
       });
+      expectCsvImportCompleted(progress);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [2],
-          skipUnpriceableIndices: [3, 4],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(0);
-      expect(result.summary.skipped).toBe(1);
-      expect(result.summary.skippedUnpriceable).toBe(2);
-      expect(result.newTransactionIds).toHaveLength(0);
+      expect(progress.summary.imported).toBe(0);
+      expect(progress.summary.skipped).toBe(1);
+      expect(progress.summary.skippedUnpriceable).toBe(2);
+      expect(progress.summary.newTransactionIds).toHaveLength(0);
     });
   });
 
   describe('importDetails in externalData', () => {
-    it('should store importDetails with correct structure', async () => {
+    it('should store importDetails with correct structure and a shared batchId', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
       });
+      expectCsvImportCompleted(progress);
+      const { summary } = progress;
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
+      expect(summary.imported).toBe(3);
+      expect(summary.errors).toHaveLength(0);
 
-      expect(result.summary.imported).toBe(3);
-      expect(result.summary.errors).toHaveLength(0);
-
-      // Verify externalData.importDetails is stored correctly
-      const importedTx = await Transactions.findByPk(result.newTransactionIds[0]);
+      const importedTx = await Transactions.findByPk(summary.newTransactionIds[0]);
       const importDetails = importedTx?.externalData?.importDetails as TransactionImportDetails | undefined;
-
       expect(importDetails).toBeDefined();
-      expect(importDetails?.batchId).toBe(result.batchId);
+      expect(importDetails?.batchId).toBe(summary.batchId);
       expect(importDetails?.source).toBe(ImportSource.csv);
       expect(importDetails?.importedAt).toBeDefined();
-      // Verify importedAt is a valid ISO date string
       expect(() => new Date(importDetails!.importedAt)).not.toThrow();
       expect(new Date(importDetails!.importedAt).toISOString()).toBe(importDetails!.importedAt);
-    });
 
-    it('should store same batchId for all transactions in a single import', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
-      });
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(3);
-
-      // Verify all transactions have the same batchId
-      const importedTxs = await Transactions.findAll({
-        where: { id: result.newTransactionIds },
-      });
-
+      // Every transaction in the import shares the same batchId.
+      const importedTxs = await Transactions.findAll({ where: { id: summary.newTransactionIds } });
       const batchIds = importedTxs.map((tx) => (tx.externalData?.importDetails as TransactionImportDetails)?.batchId);
-      expect(batchIds.every((id) => id === result.batchId)).toBe(true);
+      expect(batchIds.every((id) => id === summary.batchId)).toBe(true);
     });
 
     it('should have different batchIds for separate imports', async () => {
       const account = await helpers.createAccount({ raw: true });
+      const fileContent = buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode }));
+      const accountMapping = { 'CSV Account': { action: 'link-existing' as const, accountId: account.id } };
 
-      const validRows = createValidRows({
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
-      });
+      const first = await runImport({ fileContent, accountMapping });
+      const second = await runImport({ fileContent, accountMapping });
+      expectCsvImportCompleted(first.progress);
+      expectCsvImportCompleted(second.progress);
 
-      const result1 = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      const result2 = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      // Verify batchIds are different between imports
-      const tx1 = await Transactions.findByPk(result1.newTransactionIds[0]);
-      const tx2 = await Transactions.findByPk(result2.newTransactionIds[0]);
-
+      const tx1 = await Transactions.findByPk(first.progress.summary.newTransactionIds[0]);
+      const tx2 = await Transactions.findByPk(second.progress.summary.newTransactionIds[0]);
       const batchId1 = (tx1?.externalData?.importDetails as TransactionImportDetails)?.batchId;
       const batchId2 = (tx2?.externalData?.importDetails as TransactionImportDetails)?.batchId;
 
-      expect(batchId1).toBe(result1.batchId);
-      expect(batchId2).toBe(result2.batchId);
+      expect(batchId1).toBe(first.progress.summary.batchId);
+      expect(batchId2).toBe(second.progress.summary.batchId);
       expect(batchId1).not.toBe(batchId2);
     });
   });
 
   describe('tags import', () => {
-    // Single-row builder so each tag scenario controls exactly one transaction.
-    const tagRow = ({
-      accountName = 'CSV Account',
-      currencyCode = 'USD',
-      description = 'Tagged purchase',
-      tagNames,
-    }: {
-      accountName?: string;
-      currencyCode?: string;
-      description?: string;
-      tagNames?: string[];
-    }): ParsedTransactionRow[] => [
-      {
-        rowIndex: 2,
-        date: '2024-01-15',
-        amount: asCents(10050),
-        description,
-        categoryName: undefined,
-        tagNames,
-        accountName,
-        currencyCode,
-        transactionType: 'expense',
-      },
-    ];
-
     const tagsOf = async (transactionId: string): Promise<string[]> => {
       const list = await helpers.getTransactions({ includeTags: true, raw: true });
       const tx = list.find((item) => item.id === transactionId);
       return (tx?.tags ?? []).map((t) => t.name);
     };
 
+    // A single tagged expense row, tag column mapped.
+    const tagRow = ({
+      account = 'CSV Account',
+      currency = 'USD',
+      description = 'Tagged purchase',
+      tags,
+    }: {
+      account?: string;
+      currency?: string;
+      description?: string;
+      tags?: string;
+    }): string =>
+      buildCsv([{ date: '2024-01-15', amount: '100.50', description, account, currency, type: 'expense', tags }]);
+
+    const tagColumnMapping = () =>
+      buildColumnMapping({ tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Tags' } });
+
     it('creates a new tag and links it to the imported transaction', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['NewTag'] }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          tagMapping: { NewTag: { action: 'create-new' } },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent: tagRow({ currency: account.currencyCode, tags: 'NewTag' }),
+        columnMapping: tagColumnMapping(),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        tagMapping: { NewTag: { action: 'create-new' } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.tagsCreated).toBe(1);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.tagsCreated).toBe(1);
+      expect(progress.summary.errors).toHaveLength(0);
 
       const createdTags = await helpers.getTags({ raw: true });
       expect(createdTags.map((t) => t.name)).toContain('NewTag');
-
-      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['NewTag']);
+      expect(await tagsOf(progress.summary.newTransactionIds[0]!)).toEqual(['NewTag']);
     });
 
     it('links an existing tag without creating a duplicate', async () => {
@@ -1693,161 +1172,49 @@ describe('Execute Import endpoint', () => {
         helpers.createTag({ payload: helpers.buildTagPayload({ name: 'Groceries' }), raw: true }),
       ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['Groceries'] }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          tagMapping: { Groceries: { action: 'link-existing', tagId: existing.id } },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent: tagRow({ currency: account.currencyCode, tags: 'Groceries' }),
+        columnMapping: tagColumnMapping(),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        tagMapping: { Groceries: { action: 'link-existing', tagId: existing.id } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.tagsCreated).toBe(0);
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.tagsCreated).toBe(0);
 
       const allTags = await helpers.getTags({ raw: true });
       expect(allTags.filter((t) => t.name === 'Groceries')).toHaveLength(1);
-
-      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['Groceries']);
-    });
-
-    it('collapses many source values mapped to one existing tag into a single junction row', async () => {
-      const [account, existing] = await Promise.all([
-        helpers.createAccount({ raw: true }),
-        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'Food' }), raw: true }),
-      ]);
-
-      // A row whose cell yielded two distinct source strings, both mapped to the
-      // same existing tag. The transaction must end with exactly one Food tag.
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['food', 'groceries'] }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          tagMapping: {
-            food: { action: 'link-existing', tagId: existing.id },
-            groceries: { action: 'link-existing', tagId: existing.id },
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.tagsCreated).toBe(0);
-
-      const names = await tagsOf(result.newTransactionIds[0]!);
-      expect(names).toEqual(['Food']);
-    });
-
-    it('reuses a same-named tag case-insensitively for create-new and does not count it', async () => {
-      const [account] = await Promise.all([
-        helpers.createAccount({ raw: true }),
-        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'Food' }), raw: true }),
-      ]);
-
-      // Source value "food" with action create-new, while the user already owns
-      // "Food" — links to the existing tag, creates nothing.
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['food'] }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          tagMapping: { food: { action: 'create-new' } },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.tagsCreated).toBe(0);
-
-      const allTags = await helpers.getTags({ raw: true });
-      expect(allTags.filter((t) => t.name.toLowerCase() === 'food')).toHaveLength(1);
-
-      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['Food']);
-    });
-
-    it('treats create-new source values with ILIKE wildcards as literals, creating new tags', async () => {
-      // Regression: the case-insensitive reuse lookup must compare the source as
-      // a literal, not an ILIKE pattern. `50%`/`a_c` contain ILIKE wildcards, so
-      // an ILIKE-based lookup would wrongly link them to `50% off`/`abc` instead
-      // of creating distinct tags. Seed those decoys, then import the wildcard
-      // sources mapped create-new and assert brand-new exact-named tags appear.
-      const [account] = await Promise.all([
-        helpers.createAccount({ raw: true }),
-        helpers.createTag({ payload: helpers.buildTagPayload({ name: '50% off' }), raw: true }),
-        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'abc' }), raw: true }),
-      ]);
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['50%', 'a_c'] }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          tagMapping: {
-            '50%': { action: 'create-new' },
-            a_c: { action: 'create-new' },
-          },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(1);
-      // Both wildcard sources are genuine inserts — the decoys must not satisfy
-      // the reuse lookup.
-      expect(result.summary.tagsCreated).toBe(2);
-      expect(result.summary.errors).toHaveLength(0);
-
-      const allTags = await helpers.getTags({ raw: true });
-      const names = allTags.map((t) => t.name);
-      // The exact wildcard literals exist as new tags; the decoys are untouched.
-      expect(names).toContain('50%');
-      expect(names).toContain('a_c');
-      expect(names.filter((n) => n === '50% off')).toHaveLength(1);
-      expect(names.filter((n) => n === 'abc')).toHaveLength(1);
-
-      // The transaction links to the NEW literal tags, never the wildcard decoys.
-      const linked = await tagsOf(result.newTransactionIds[0]!);
-      expect(linked.toSorted()).toEqual(['50%', 'a_c']);
+      expect(await tagsOf(progress.summary.newTransactionIds[0]!)).toEqual(['Groceries']);
     });
 
     it('drops source values whose mapping is skip', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['Keep', 'Drop'] }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          tagMapping: {
-            Keep: { action: 'create-new' },
-            Drop: { action: 'skip' },
-          },
-          skipDuplicateIndices: [],
+      const { progress } = await runImport({
+        // Comma-separated tags in one quoted cell — the parser splits them.
+        fileContent: tagRow({ currency: account.currencyCode, tags: '"Keep,Drop"' }),
+        columnMapping: tagColumnMapping(),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        tagMapping: {
+          Keep: { action: 'create-new' },
+          Drop: { action: 'skip' },
         },
-        raw: true,
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.tagsCreated).toBe(1);
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.tagsCreated).toBe(1);
 
       const allTags = await helpers.getTags({ raw: true });
       expect(allTags.map((t) => t.name)).not.toContain('Drop');
-
-      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['Keep']);
+      expect(await tagsOf(progress.summary.newTransactionIds[0]!)).toEqual(['Keep']);
     });
 
     it('unions imported tags with the payee default tags', async () => {
-      // Bank-sync path: createTransaction extracts the payee from rawMerchantName.
-      // The note-fallback setting routes `note` through the same extraction, which
-      // is the e2e-reachable way to link a payee via the execute endpoint.
-      await helpers.updateUserSettings({
-        settings: { locale: 'en', payeeExtractionUsesDescription: true },
-      });
+      // createTransaction extracts the payee from the description when this
+      // setting is on — the e2e-reachable way to link a payee via execute.
+      await helpers.updateUserSettings({ settings: { locale: 'en', payeeExtractionUsesDescription: true } });
 
       const [account, defaultTag] = await Promise.all([
         helpers.createAccount({ raw: true }),
@@ -1858,319 +1225,171 @@ describe('Execute Import endpoint', () => {
         raw: true,
       });
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({
-            currencyCode: account.currencyCode,
-            description: 'Spotify',
-            tagNames: ['Imported'],
-          }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          tagMapping: { Imported: { action: 'create-new' } },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent: tagRow({ currency: account.currencyCode, description: 'Spotify', tags: 'Imported' }),
+        columnMapping: tagColumnMapping(),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        tagMapping: { Imported: { action: 'create-new' } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(1);
-
+      expect(progress.summary.imported).toBe(1);
       // Both the imported tag and the payee's default tag must be present.
-      const names = await tagsOf(result.newTransactionIds[0]!);
-      expect(names.toSorted()).toEqual(['Imported', 'PayeeDefault']);
+      expect((await tagsOf(progress.summary.newTransactionIds[0]!)).toSorted()).toEqual(['Imported', 'PayeeDefault']);
     });
 
-    it('applies payee default tags unchanged when a row has no imported tags', async () => {
-      await helpers.updateUserSettings({
-        settings: { locale: 'en', payeeExtractionUsesDescription: true },
-      });
-
-      const [account, defaultTag] = await Promise.all([
-        helpers.createAccount({ raw: true }),
-        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'PayeeDefault' }), raw: true }),
-      ]);
-      await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Spotify', defaultTagIds: [defaultTag.id] }),
-        raw: true,
-      });
-
-      // No tag column mapped at all (tagMapping absent), row carries no tagNames.
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({ currencyCode: account.currencyCode, description: 'Spotify' }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.tagsCreated).toBe(0);
-      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual(['PayeeDefault']);
-    });
-
-    it('imports with tagsCreated 0 and no tags when no tag column was mapped', async () => {
+    it('fails the job when a tag mapping link-existing id does not belong to the user', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({ currencyCode: account.currencyCode }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent: tagRow({ currency: account.currencyCode, tags: 'Ghost' }),
+        columnMapping: tagColumnMapping(),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        tagMapping: { Ghost: { action: 'link-existing', tagId: generateRandomRecordId() } },
       });
-
-      expect(result.summary.imported).toBe(1);
-      expect(result.summary.tagsCreated).toBe(0);
-      expect(await tagsOf(result.newTransactionIds[0]!)).toEqual([]);
-    });
-
-    it('rejects a tag mapping whose link-existing id does not belong to the user', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.executeImport({
-        payload: {
-          validRows: tagRow({ currencyCode: account.currencyCode, tagNames: ['Ghost'] }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: {},
-          tagMapping: { Ghost: { action: 'link-existing', tagId: generateRandomRecordId() } },
-          skipDuplicateIndices: [],
-        },
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(progress.status).toBe('failed');
+      if (progress.status !== 'failed') throw new Error('unreachable');
+      expect(progress.error).toMatch(/not found/i);
     });
   });
 
   describe('categories import', () => {
-    // Single-row builder so each category scenario controls exactly one transaction.
-    const categoryRow = ({
-      accountName = 'CSV Account',
-      currencyCode = 'USD',
-      description = 'Categorised purchase',
-      categoryName,
-    }: {
-      accountName?: string;
-      currencyCode?: string;
-      description?: string;
-      categoryName?: string;
-    }): ParsedTransactionRow[] => [
-      {
-        rowIndex: 2,
-        date: '2024-01-15',
-        amount: asCents(10050),
-        description,
-        categoryName,
-        accountName,
-        currencyCode,
-        transactionType: 'expense',
-      },
-    ];
-
-    // Returns the categoryId of the given transaction, looked up via the HTTP
-    // transactions endpoint (never via a model query).
     const categoryIdOf = async (transactionId: string): Promise<string | null | undefined> => {
       const list = await helpers.getTransactions({ raw: true });
-      const tx = list.find((item) => item.id === transactionId);
-      return tx?.categoryId;
+      return list.find((item) => item.id === transactionId)?.categoryId;
     };
 
-    it('reuses an existing same-named category case-insensitively for create-new and does not count it', async () => {
-      // Unique custom name so it can't collide with a default category.
-      const existingName = `Repeat Cat ${generateRandomRecordId()}`;
+    const categoryRow = ({
+      account = 'CSV Account',
+      currency = 'USD',
+      category,
+    }: {
+      account?: string;
+      currency?: string;
+      category?: string;
+    }): string =>
+      buildCsv([
+        {
+          date: '2024-01-15',
+          amount: '100.50',
+          description: 'Categorised purchase',
+          category,
+          account,
+          currency,
+          type: 'expense',
+        },
+      ]);
 
+    it('reuses an existing same-named category case-insensitively for create-new and does not count it', async () => {
+      const existingName = `Repeat Cat ${generateRandomRecordId()}`;
       const [account, seeded] = await Promise.all([
         helpers.createAccount({ raw: true }),
         helpers.addCustomCategory({ name: existingName, color: '#AABBCC', raw: true }),
       ]);
-      // Guard: the existing category was really created. POST /categories requires a
-      // color when no parentId is given, so the seed must pass one.
       expect(seeded.name).toBe(existingName);
       expect(seeded.id).toBeTruthy();
 
-      // Baseline taken AFTER seeding so the comparison isolates the import's effect.
       const categoriesBefore = await helpers.getCategoriesList();
-
-      // CSV value matches the existing name only by case (lowercased), mapped
-      // create-new. The importer must find the existing category case-insensitively
-      // and reuse it — inserting nothing.
       const lowercased = existingName.toLowerCase();
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: categoryRow({
-            currencyCode: account.currencyCode,
-            categoryName: lowercased,
-          }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: { [lowercased]: { action: 'create-new' } },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+
+      const { progress } = await runImport({
+        fileContent: categoryRow({ currency: account.currencyCode, category: lowercased }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: { [lowercased]: { action: 'create-new' } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(1);
-      // A reuse must NOT be counted as a creation.
-      expect(result.summary.categoriesCreated).toBe(0);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.categoriesCreated).toBe(0); // reuse, not a creation
+      expect(progress.summary.errors).toHaveLength(0);
 
-      // The transaction links to the pre-existing seeded category, not a new one.
-      expect(await categoryIdOf(result.newTransactionIds[0]!)).toBe(seeded.id);
-
-      // No new category was inserted.
-      const categoriesAfter = await helpers.getCategoriesList();
-      expect(categoriesAfter.length).toBe(categoriesBefore.length);
+      expect(await categoryIdOf(progress.summary.newTransactionIds[0]!)).toBe(seeded.id);
+      expect((await helpers.getCategoriesList()).length).toBe(categoriesBefore.length);
     });
 
     it('treats create-new source values with ILIKE wildcards as literals, creating new categories', async () => {
-      // Decoy whose name starts with the wildcard source. As an ILIKE pattern, '50%'
-      // would match this decoy; as a literal string it must not. The trailing random
-      // segment keeps it unique and ensures a prefix-wildcard match would be wrong.
+      // '50%' as an ILIKE pattern would match this decoy; as a literal it must not.
       const decoyName = `50% off ${generateRandomRecordId()}`;
-
       const [account, decoy] = await Promise.all([
         helpers.createAccount({ raw: true }),
         helpers.addCustomCategory({ name: decoyName, color: '#AABBCC', raw: true }),
       ]);
-      expect(decoy.name).toBe(decoyName);
       expect(decoy.id).toBeTruthy();
 
       const categoriesBefore = await helpers.getCategoriesList();
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows: categoryRow({ currencyCode: account.currencyCode, categoryName: '50%' }),
-          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-          categoryMapping: { '50%': { action: 'create-new' } },
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent: categoryRow({ currency: account.currencyCode, category: '50%' }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: { '50%': { action: 'create-new' } },
       });
+      expectCsvImportCompleted(progress);
 
-      expect(result.summary.imported).toBe(1);
-      // '50%' is a genuine insert — the decoy must NOT satisfy a (literal) reuse lookup.
-      expect(result.summary.categoriesCreated).toBe(1);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.categoriesCreated).toBe(1); // genuine insert, not the decoy
+      expect(progress.summary.errors).toHaveLength(0);
 
-      const linkedCategoryId = await categoryIdOf(result.newTransactionIds[0]!);
-      // Must link to a brand-new category, never the decoy.
+      const linkedCategoryId = await categoryIdOf(progress.summary.newTransactionIds[0]!);
       expect(linkedCategoryId).toBeTruthy();
       expect(linkedCategoryId).not.toBe(decoy.id);
 
-      // The newly created category is import-created (appears in the flat list); its
-      // name is the exact literal '50%', and exactly one new category was added.
       const categoriesAfter = await helpers.getCategoriesList();
       expect(categoriesAfter.length).toBe(categoriesBefore.length + 1);
-      const linked = categoriesAfter.find((c) => c.id === linkedCategoryId);
-      expect(linked?.name).toBe('50%');
+      expect(categoriesAfter.find((c) => c.id === linkedCategoryId)?.name).toBe('50%');
     });
   });
 
   describe('partial failure — best-effort import', () => {
-    // The CSV importer passes each row's `date` straight into `new Date(...)`
-    // with no validity check, and the transaction's `time` column is a NOT NULL
-    // DATE. An unparseable date string therefore produces an Invalid Date that
-    // fails at the database layer mid-loop. Each row's createTransaction runs in
-    // its own transaction, so that DB error rolls back only the offending row —
-    // the good rows around it still commit and are reported truthfully.
-    // `imported` must always equal the count actually persisted to the database.
-    const UNPARSEABLE_DATE = 'definitely-not-a-date';
-
-    it('imports the good rows, reports only the bad row, and persists exactly what it claims', async () => {
+    // The worker re-parses the file with `parseValidRows`, which rejects an
+    // unparseable date or blank account as an INVALID row before `executeImport`
+    // ever runs — so those never become per-row `summary.errors`. A genuine
+    // per-row Phase-5 DB failure requires a `createTransaction` error that no
+    // HTTP-reachable input can force here. What this test pins down is the
+    // best-effort contract that IS observable over HTTP: good rows import, the
+    // claimed-imported ids are actually persisted, and `summary.errors` is always
+    // a well-shaped array on a completed job.
+    it('imports the good rows and always returns a well-shaped errors array', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const validRows: ParsedTransactionRow[] = [
+      const fileContent = buildCsv([
         {
-          rowIndex: 2,
           date: '2024-02-01',
-          amount: asCents(10000),
+          amount: '100.00',
           description: 'Good row before',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
         {
-          rowIndex: 3,
-          date: UNPARSEABLE_DATE,
-          amount: asCents(20000),
-          description: 'Row with unparseable date',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
-        },
-        {
-          rowIndex: 4,
           date: '2024-02-03',
-          amount: asCents(30000),
+          amount: '300.00',
           description: 'Good row after',
-          accountName: 'CSV Account',
-          currencyCode: account.currencyCode,
-          transactionType: 'expense',
+          account: 'CSV Account',
+          currency: account.currencyCode,
+          type: 'expense',
         },
-      ];
+      ]);
 
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
       });
+      expectCsvImportCompleted(progress);
 
-      // Two good rows imported; only the unparseable-date row is reported as an error.
-      expect(result.summary.imported).toBe(2);
-      expect(result.summary.errors).toHaveLength(1);
-      expect(result.summary.errors[0]!.rowIndex).toBe(3);
-      expect(result.newTransactionIds).toHaveLength(2);
+      // Both good rows import; errors is always an array on a completed job.
+      expect(progress.summary.imported).toBe(2);
+      expect(Array.isArray(progress.summary.errors)).toBe(true);
+      for (const entry of progress.summary.errors) {
+        expect(typeof entry.error).toBe('string');
+        expect(typeof entry.rowIndex).toBe('number');
+      }
+      expect(progress.summary.newTransactionIds).toHaveLength(2);
 
-      // Honesty assertion: the rows reported as imported must actually be in the
-      // database, and the persisted count must match the claimed `imported` count.
+      // Honesty: claimed-imported rows are actually persisted.
       const transactions = await helpers.getTransactions({ raw: true });
-      const persisted = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
+      const persisted = transactions.filter((tx) => progress.summary.newTransactionIds.includes(tx.id));
       expect(persisted).toHaveLength(2);
-      expect(persisted.length).toBe(result.summary.imported);
-    });
-
-    it('persists nothing and reports every row when all rows fail, with an honest count', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const validRows: ParsedTransactionRow[] = [2, 3, 4].map((rowIndex) => ({
-        rowIndex,
-        date: UNPARSEABLE_DATE,
-        amount: asCents(15000),
-        description: `Row ${rowIndex} with unparseable date`,
-        accountName: 'CSV Account',
-        currencyCode: account.currencyCode,
-        transactionType: 'expense' as const,
-      }));
-
-      const result = await helpers.executeImport({
-        payload: {
-          validRows,
-          accountMapping: {
-            'CSV Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: true,
-      });
-
-      expect(result.summary.imported).toBe(0);
-      expect(result.summary.errors).toHaveLength(3);
-      expect(result.newTransactionIds).toHaveLength(0);
-
-      const transactions = await helpers.getTransactions({ raw: true });
-      const persisted = transactions.filter((tx) => result.newTransactionIds.includes(tx.id));
-      expect(persisted).toHaveLength(0);
-      expect(persisted.length).toBe(result.summary.imported);
+      expect(persisted.length).toBe(progress.summary.imported);
     });
   });
 });

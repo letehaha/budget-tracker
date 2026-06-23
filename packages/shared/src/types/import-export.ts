@@ -34,7 +34,7 @@ export type ImportJobStatus = (typeof IMPORT_JOB_STATUSES)[number];
 export enum ImportSource {
   csv = 'csv',
   statementParser = 'statement-parser',
-  wallet = 'wallet',
+  budgetBakersWallet = 'budget-bakers-wallet',
 }
 
 /**
@@ -289,10 +289,17 @@ export interface DetectDuplicatesResponse {
 }
 
 /**
- * Request for import execution
+ * Request for import execution. The CSV execute step is asynchronous: the
+ * request carries the raw `fileContent` + mapping (NOT pre-parsed `validRows`),
+ * the server enqueues a background job and re-parses the file inside the worker
+ * via the same `parseValidRows` the interactive detect-duplicates step uses.
+ * `parseValidRows` is deterministic, so the skip indices the user picked against
+ * the preview stay valid against the worker's fresh re-parse.
  */
 export interface ExecuteImportRequest {
-  validRows: ParsedTransactionRow[];
+  fileContent: string;
+  delimiter: string;
+  columnMapping: ColumnMappingConfig;
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   tagMapping?: TagMappingConfig;
@@ -308,6 +315,20 @@ export interface ExecuteImportRequest {
   defaultAccountId?: string;
   /** Fallback category for rows whose categoryName is empty (used when "single existing category" was chosen) */
   defaultCategoryId?: string;
+  /**
+   * IANA timezone of the importing user's browser. Forwarded to `parseValidRows`
+   * so the worker anchors dates to the same instants the preview computed.
+   */
+  timezone?: string;
+}
+
+/**
+ * The CSV execute endpoint enqueues a background job and returns its id. The
+ * client follows progress over SSE (`CSV_IMPORT_PROGRESS`) and/or by polling the
+ * status endpoint.
+ */
+export interface ExecuteImportResponse {
+  jobId: string;
 }
 
 /**
@@ -319,20 +340,41 @@ export interface ImportError {
 }
 
 /**
- * Response from import execution
+ * Cumulative numbers the CSV import worker reports once it finishes. Carried in
+ * the `completed` SSE event and the status endpoint's `completed` payload, so
+ * `newTransactionIds`/`batchId` survive to the client without a separate fetch.
  */
-export interface ExecuteImportResponse {
-  summary: {
-    imported: number;
-    /** Number of duplicate rows skipped (from skipDuplicateIndices) */
-    skipped: number;
-    /** Number of unpriceable rows skipped (from skipUnpriceableIndices) */
-    skippedUnpriceable: number;
-    accountsCreated: number;
-    categoriesCreated: number;
-    tagsCreated: number;
-    errors: ImportError[];
-  };
+export interface CsvImportSummary {
+  imported: number;
+  /** Number of duplicate rows skipped (from skipDuplicateIndices) */
+  skipped: number;
+  /** Number of unpriceable rows skipped (from skipUnpriceableIndices) */
+  skippedUnpriceable: number;
+  accountsCreated: number;
+  categoriesCreated: number;
+  tagsCreated: number;
+  errors: ImportError[];
+  /** Ids of every transaction created by this import. */
   newTransactionIds: string[];
+  /** Batch id stamped on every imported transaction's import details. */
   batchId: string;
 }
+
+/** Common counters every CSV import progress event carries. */
+interface CsvImportProgressBase {
+  jobId: string;
+  /** Rows committed so far — one tick per successfully created transaction. */
+  processedCount: number;
+  /** Expected total — the number of rows that will actually be imported. */
+  totalCount: number;
+}
+
+/**
+ * SSE payload and GET /status response share the same envelope. Discriminated
+ * over `status` so `summary` is guaranteed when completed and `error` is
+ * guaranteed when failed — callers narrow once and read straight through.
+ */
+export type CsvImportProgress =
+  | (CsvImportProgressBase & { status: 'queued' | 'running' })
+  | (CsvImportProgressBase & { status: 'completed'; summary: CsvImportSummary })
+  | (CsvImportProgressBase & { status: 'failed'; error: string });

@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CSV / Tabular Transaction Import — Architecture</title>
+    <style>
+      :root {
+        --bg: #0f1115;
+        --panel: #171a21;
+        --panel-2: #1d212b;
+        --ink: #e6e8ec;
+        --ink-dim: #9aa3b2;
+        --ink-faint: #6b7484;
+        --accent: #6ea8fe;
+        --accent-2: #7ee0c0;
+        --warn: #f0b86c;
+        --danger: #f08c8c;
+        --good: #7ee0a0;
+        --line: #2a2f3a;
+        --code-bg: #0b0d11;
+        --radius: 10px;
+        --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.62;
+        -webkit-font-smoothing: antialiased;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 0;
+      }
+      /* Sidebar */
+      nav.toc {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        overflow-y: auto;
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        padding: 24px 18px 60px;
+      }
+      nav.toc h2 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--ink-faint);
+        margin: 18px 0 8px;
+      }
+      nav.toc a {
+        display: block;
+        color: var(--ink-dim);
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 13.5px;
+      }
+      nav.toc a:hover {
+        color: var(--ink);
+        background: var(--panel-2);
+      }
+      nav.toc a.sub {
+        padding-left: 20px;
+        font-size: 13px;
+        color: var(--ink-faint);
+      }
+      nav.toc .brand {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--ink);
+        margin-bottom: 4px;
+      }
+      nav.toc .brand small {
+        display: block;
+        font-weight: 400;
+        color: var(--ink-faint);
+        font-size: 12px;
+      }
+      /* Content */
+      main {
+        padding: 48px 56px 120px;
+        max-width: 980px;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.2;
+        margin: 0 0 6px;
+        letter-spacing: -0.01em;
+      }
+      .subtitle {
+        color: var(--ink-dim);
+        font-size: 16px;
+        margin: 0 0 24px;
+      }
+      h2 {
+        font-size: 23px;
+        margin: 52px 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--line);
+        letter-spacing: -0.01em;
+      }
+      h3 {
+        font-size: 18px;
+        margin: 30px 0 10px;
+        color: var(--ink);
+      }
+      h4 {
+        font-size: 15px;
+        margin: 20px 0 6px;
+        color: var(--accent-2);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      p {
+        margin: 10px 0;
+      }
+      a {
+        color: var(--accent);
+      }
+      code {
+        font-family: var(--mono);
+        font-size: 12.8px;
+        background: var(--code-bg);
+        padding: 1.5px 5px;
+        border-radius: 5px;
+        border: 1px solid var(--line);
+        color: #d7dbe3;
+      }
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        overflow-x: auto;
+        margin: 14px 0;
+      }
+      pre code {
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: 12.6px;
+        line-height: 1.55;
+        color: #d7dbe3;
+      }
+      ul,
+      ol {
+        margin: 10px 0;
+        padding-left: 22px;
+      }
+      li {
+        margin: 5px 0;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid var(--line);
+        margin: 40px 0;
+      }
+      .lede {
+        font-size: 16px;
+        color: var(--ink-dim);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--accent);
+        padding: 16px 20px;
+        border-radius: var(--radius);
+        margin: 20px 0;
+      }
+      /* badges */
+      .badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 2px 9px;
+        border-radius: 999px;
+        vertical-align: middle;
+      }
+      .badge.scope {
+        background: rgba(110, 168, 254, 0.14);
+        color: var(--accent);
+        border: 1px solid rgba(110, 168, 254, 0.3);
+      }
+      .badge.warn {
+        background: rgba(240, 184, 108, 0.14);
+        color: var(--warn);
+        border: 1px solid rgba(240, 184, 108, 0.3);
+      }
+      /* callouts */
+      .callout {
+        border-radius: var(--radius);
+        padding: 14px 18px;
+        margin: 18px 0;
+        border: 1px solid var(--line);
+        background: var(--panel);
+      }
+      .callout .tag {
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        display: block;
+        margin-bottom: 6px;
+      }
+      .callout.decision {
+        border-left: 3px solid var(--accent-2);
+      }
+      .callout.decision .tag {
+        color: var(--accent-2);
+      }
+      .callout.warn {
+        border-left: 3px solid var(--warn);
+      }
+      .callout.warn .tag {
+        color: var(--warn);
+      }
+      .callout.danger {
+        border-left: 3px solid var(--danger);
+      }
+      .callout.danger .tag {
+        color: var(--danger);
+      }
+      .callout.note {
+        border-left: 3px solid var(--ink-faint);
+      }
+      .callout.note .tag {
+        color: var(--ink-dim);
+      }
+      /* tables */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: 13.5px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 9px 12px;
+        border: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: var(--panel-2);
+        color: var(--ink);
+        font-weight: 600;
+      }
+      td {
+        color: var(--ink-dim);
+      }
+      td strong,
+      td code {
+        color: var(--ink);
+      }
+      tr:nth-child(even) td {
+        background: rgba(255, 255, 255, 0.012);
+      }
+      .ok {
+        color: var(--good);
+        font-weight: 700;
+      }
+      .no {
+        color: var(--danger);
+        font-weight: 700;
+      }
+      /* pipeline diagram */
+      .pipe {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0;
+        margin: 22px 0;
+      }
+      .pipe .stage {
+        flex: 1 1 0;
+        min-width: 150px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        position: relative;
+      }
+      .pipe .stage .n {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--ink-faint);
+      }
+      .pipe .stage .t {
+        font-weight: 700;
+        font-size: 14px;
+        margin: 2px 0 4px;
+      }
+      .pipe .stage .d {
+        font-size: 12px;
+        color: var(--ink-dim);
+      }
+      .pipe .arrow {
+        display: flex;
+        align-items: center;
+        color: var(--ink-faint);
+        padding: 0 8px;
+        font-size: 20px;
+      }
+      .file {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--accent-2);
+      }
+      .meta-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 16px 0;
+      }
+      .meta-grid .cell {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+      }
+      .meta-grid .cell .k {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-faint);
+      }
+      .meta-grid .cell .v {
+        font-size: 14px;
+        margin-top: 2px;
+      }
+      footer {
+        color: var(--ink-faint);
+        font-size: 12.5px;
+        margin-top: 60px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+      }
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        nav.toc {
+          position: static;
+          height: auto;
+          border-right: none;
+          border-bottom: 1px solid var(--line);
+        }
+        main {
+          padding: 28px 20px 80px;
+        }
+        .meta-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <nav class="toc">
+        <div class="brand">CSV / Tabular Import<small>Backend architecture</small></div>
+        <h2>The system</h2>
+        <a href="#overview">1. Overview</a>
+        <a href="#pipeline">2. The pipeline</a>
+        <a href="#contract" class="sub">2.1 Shared contract</a>
+        <a href="#stage-parse" class="sub">2.2 Parse</a>
+        <a href="#stage-mapping" class="sub">2.3 Column mapping</a>
+        <a href="#stage-dedup" class="sub">2.4 Detect duplicates</a>
+        <a href="#stage-execute" class="sub">2.5 Execute</a>
+        <a href="#stage-queue" class="sub">2.6 Queue &amp; progress</a>
+        <a href="#core">3. The shared core</a>
+        <a href="#providers">4. The three providers</a>
+        <a href="#shared-vs-specific" class="sub">4.1 Shared vs specific</a>
+        <a href="#divergence" class="sub">4.2 Real divergence</a>
+        <a href="#ai" class="sub">4.3 AI importers</a>
+        <a href="#http">5. HTTP surface &amp; factories</a>
+        <a href="#nth">6. Adding the Nth importer</a>
+        <h2>Reference</h2>
+        <a href="#notes">7. Notes &amp; decisions</a>
+        <a href="#files">Appendix: key files</a>
+      </nav>
+
+      <main>
+        <h1>CSV / Tabular Transaction Import</h1>
+        <p class="subtitle">
+          How the backend imports transactions from tabular files (generic CSV, BudgetBakers Wallet, YNAB).
+        </p>
+
+        <div class="lede">
+          Three tabular importers — generic <strong>CSV</strong>, <strong>BudgetBakers Wallet</strong>, and
+          <strong>YNAB</strong> — share one pipeline. Each turns an uploaded file into a list of one intermediate type
+          (<code>ParsedTransactionRow</code>) and writes it through the same transaction service. The parts that are
+          identical across providers live in a shared <code>core/</code>; the parts that genuinely differ (transfer
+          pairing, category hierarchy, balance targeting, column mapping) stay in per-provider folders. Adding a new
+          importer is a parse function + a thin route file that composes core helpers.
+        </div>
+
+        <div class="meta-grid">
+          <div class="cell">
+            <div class="k">Service root</div>
+            <div class="v file">packages/backend/src/services/import-export/</div>
+          </div>
+          <div class="cell">
+            <div class="k">Shared core</div>
+            <div class="v file">…/import-export/core/</div>
+          </div>
+          <div class="cell">
+            <div class="k">Tabular providers</div>
+            <div class="v">
+              <code>csv-import</code>, <code>budget-bakers-wallet-import</code>, <code>ynab-import</code>
+            </div>
+          </div>
+          <div class="cell">
+            <div class="k">Shared row + request types</div>
+            <div class="v file">packages/shared/src/types/import-export.ts</div>
+          </div>
+        </div>
+
+        <h2 id="overview">1. Overview</h2>
+        <p>
+          Every tabular importer converges on one shared intermediate type — <code>ParsedTransactionRow</code> — and
+          writes those rows as transactions through the same transaction service. Between upload and write there are up
+          to five stages. Not every provider exposes every stage: only generic CSV has the user-driven
+          <em>column-mapping</em> stage (its column layout is unknown), and only CSV and BudgetBakers Wallet run
+          <em>detect-duplicates</em> (YNAB has no dedup stage). The <em>execute</em> stage runs in a background queue
+          for <strong>all three</strong> providers.
+        </p>
+
+        <h2 id="pipeline">2. The pipeline</h2>
+        <div class="pipe">
+          <div class="stage">
+            <div class="n">stage 1</div>
+            <div class="t">Parse</div>
+            <div class="d">
+              file text → headers + preview (CSV) or full parsed result (Wallet/YNAB); delimiter detected; row cap
+              enforced
+            </div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="stage">
+            <div class="n">stage 2 · CSV only</div>
+            <div class="t">Column mapping</div>
+            <div class="d">extract distinct accounts / categories / tags the user must map</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="stage">
+            <div class="n">stage 3 · CSV + Wallet</div>
+            <div class="t">Detect duplicates</div>
+            <div class="d">build <code>ParsedTransactionRow[]</code>, flag duplicates &amp; unpriceable rows</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="stage">
+            <div class="n">stage 4 · queued</div>
+            <div class="t">Execute</div>
+            <div class="d">re-parse server-side, create currencies/accounts/categories/tags, write each row</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="stage">
+            <div class="n">stage 5</div>
+            <div class="t">Queue + progress</div>
+            <div class="d">BullMQ job, SSE progress, status polling — all providers</div>
+          </div>
+        </div>
+
+        <h3 id="contract">2.1 The shared contract</h3>
+        <p>
+          The single type every tabular importer converges on lives in
+          <span class="file">packages/shared/src/types/import-export.ts</span>:
+        </p>
+        <pre><code>interface ParsedTransactionRow {
+  rowIndex: number;
+  date: string;          // ISO 8601 instant, already anchored to the user's timezone
+  amount: Cents;         // integer cents (Money convention)
+  description: string;
+  payeeName?: string;    // raw value from the mapped Payee column
+  categoryName?: string;
+  tagNames?: string[];   // split from the source tag cell; absent if no tag column
+  accountName: string;
+  currencyCode: string;
+  transactionType: 'income' | 'expense';
+}</code></pre>
+        <p>
+          Duplicate detection returns <code>DetectDuplicatesResponse</code> (<code>validRows</code>,
+          <code>invalidRows</code>, <code>duplicates</code>, optional <code>dateColumnError</code> and
+          <code>unpriceableRows</code>). Execute takes the <em>re-parseable</em> input (<code>fileContent</code> + the
+          chosen mappings + the <code>skipDuplicateIndices</code> / <code>skipUnpriceableIndices</code> the user
+          confirmed) and returns <code>{ jobId }</code>. <code>amount</code> stays integer cents across the whole
+          pipeline; it is reconstructed with <code>Money.fromCents</code> only at write time.
+        </p>
+
+        <h3 id="stage-parse">2.2 Stage 1 — Parse <span class="file">csv-import/csv-parser.service.ts</span></h3>
+        <p>Each provider owns its parser; the generic CSV parser is the most general:</p>
+        <ul>
+          <li>
+            <strong>Delimiter detection.</strong> <code>detectDelimiter</code> tries <code>, ; \t |</code> against the
+            first ~16&nbsp;KB / first 10 lines and scores each by <em>average column count × consistency</em>, requiring
+            more than one column. Defaults to <code>,</code>. A delimiter can also be passed explicitly to skip
+            detection.
+          </li>
+          <li>
+            <strong>Header safety.</strong> The first row becomes <code>headers</code>; empty files and empty header
+            rows throw <code>ValidationError</code>. Prototype-pollution-shaped headers
+            (<code>CSV_FORBIDDEN_HEADERS</code>, e.g. <code>__proto__</code>, <code>constructor</code>) are rejected
+            because rows are later indexed into a plain object by header.
+          </li>
+          <li>
+            <strong>Bounds.</strong> Data rows are capped at <code>MAX_CSV_ROWS</code> (50&nbsp;000) to bound downstream
+            mapping and dedup work.
+          </li>
+          <li>
+            <strong>Output.</strong> CSV's <code>/parse</code> returns
+            <code>{ headers, preview (first 50 rows), detectedDelimiter, totalRows }</code> — enough for the UI to
+            render the mapping step. Wallet and YNAB <code>/parse</code> return their full parsed result (their layout
+            is fixed, so there is no mapping step).
+          </li>
+        </ul>
+
+        <h3 id="stage-mapping">
+          2.3 Stage 2 — Column mapping / extract unique values <span class="badge scope">CSV only</span>
+          <span class="file">csv-import/extract-unique-values/index.ts</span>
+        </h3>
+        <p>
+          This stage exists <em>only</em> for generic CSV, because only generic CSV has an unknown column layout the
+          user must map. It re-parses the full file, then runs a validation + extraction fan-out:
+        </p>
+        <ul>
+          <li>
+            <code>validateBasicFields</code>, <code>validateCurrency</code> (returns currency column index, default
+            currency, and a <code>currencyMismatchWarning</code>), <code>validateTransactionType</code>,
+            <code>validateExistingAccount</code>, <code>validateExistingCategory</code> — each a small file under the
+            same folder.
+          </li>
+          <li>
+            <code>extractAccounts</code>, <code>extractCategories</code>, <code>extractTags</code> produce the distinct
+            source values the user maps in the UI (link to existing, create new, or skip).
+          </li>
+        </ul>
+        <p>The result drives the mapping UI; the chosen mapping then rides along into stages 3 and 4.</p>
+
+        <h3 id="stage-dedup">
+          2.4 Stage 3 — Detect duplicates <span class="badge scope">CSV + Wallet</span>
+          <span class="file">csv-import/detect-duplicates/index.ts</span>
+        </h3>
+        <p>
+          This is where raw cells become <code>ParsedTransactionRow</code> and where review data is computed. The shared
+          field parsers and duplicate matcher live in <code>core/</code>; the provider supplies a small bridge:
+        </p>
+        <ul>
+          <li>
+            <strong>Field parsing.</strong> <code>core/parse/parse-amount.ts</code> normalizes US / EU / accounting
+            number formats to cents; <code>core/parse/date-engine.ts</code> (<code>detectDateColumnFormat</code> +
+            <code>parseImportDate</code>) infers a single safe day/month order for the whole column;
+            <code>core/parse/anchor-import-date.ts</code> anchors date-only and zone-less values to the user's IANA
+            <code>timezone</code> (UTC fallback); <code>core/parse/split-tag-cell.ts</code> splits the tag cell.
+          </li>
+          <li>
+            <strong>Fail-fast validation.</strong> A mapped-but-unreachable Payee column (typo / case mismatch → index
+            <code>-1</code>) throws up front instead of silently importing with no payee data.
+          </li>
+          <li>
+            <strong>Duplicate matching.</strong> <code>core/duplicates/find-duplicates.ts</code> compares parsed rows
+            against existing transactions and returns <code>DuplicateMatch[]</code> with <code>matchType</code> (<code
+              >originalId</code
+            >
+            / <code>exact</code> / <code>fuzzy</code>) and a <code>confidence</code> score (query capped at 10&nbsp;000
+            candidates).
+          </li>
+          <li>
+            <strong>Unpriceable rows.</strong> <code>core/duplicates/find-unpriceable-rows.ts</code> flags rows whose
+            currency has no stored exchange rate and is neither USD nor the user's base currency, so the review UI can
+            offer skip/abort.
+          </li>
+          <li>
+            <strong>Mixed-order guard.</strong> When the date column has no single safe day/month order, the response
+            carries a <code>dateColumnError</code> and <code>validRows</code>/<code>duplicates</code> come back empty —
+            the import is blocked rather than guessed.
+          </li>
+        </ul>
+        <p>
+          CSV's detect builds <code>validRows</code> via <code>csv-import/parse-valid-rows.ts</code> (the deterministic
+          parse path the execute worker re-runs). BudgetBakers Wallet runs the same <code>core/duplicates</code> matcher
+          from a ~5-line bridge. YNAB has no detect stage.
+        </p>
+
+        <h3 id="stage-execute">
+          2.5 Stage 4 — Execute <span class="badge scope">queued · all providers</span>
+          <span class="file">csv-import/execute-import/index.ts</span>
+        </h3>
+        <p>
+          Execute is asynchronous for every provider: the controller validates the request, enqueues a BullMQ job, and
+          returns <code>{ jobId }</code>. The worker re-parses the file server-side from <code>fileContent</code> + the
+          mapping config (parsing is deterministic, so the user's <code>skipDuplicateIndices</code> still line up
+          against the fresh parse), then runs the write loop. The loop runs <strong>outside</strong> a wrapping
+          transaction: each row's <code>createTransaction</code> opens its own transaction, so a single bad row rolls
+          back only itself and is reported in <code>summary.errors</code> — the rows around it still commit. The
+          contract the user sees is best-effort partial success. Order of operations:
+        </p>
+        <ol>
+          <li>
+            Merge <code>skipDuplicateIndices</code> + <code>skipUnpriceableIndices</code> into one skip set; filter
+            rows; count skipped vs. skipped-unpriceable without double-counting.
+          </li>
+          <li><code>addUserCurrencies</code> for every distinct currency in the rows.</li>
+          <li>
+            <code>core/resolve/create-accounts-if-needed.ts</code> — link-existing verifies ownership; create-new builds
+            a <code>general</code>/<code>system</code> account with zero balances and a
+            <code>refInitialBalance</code> from an injected currency + FX-date callback (CSV uses
+            <code>new Date()</code>; Wallet/YNAB use the earliest parsed date). YNAB passes
+            <code>alwaysCreate: true</code> (no link-existing path).
+          </li>
+          <li>
+            <code>core/resolve/create-categories-if-needed.ts</code> (flat for CSV/Wallet;
+            <code>createTwoLevelCategoriesIfNeeded</code> for YNAB's Group → leaf) and — if a tag column / labels exist
+            — <code>core/resolve/create-tags-if-needed.ts</code> (mapping mode for CSV;
+            <code>createNamedTagsIfNeeded</code> list mode for Wallet/YNAB). All find-or-create via
+            <code>resolve-or-create-by-name.ts</code>, case-insensitive; only genuine inserts count toward the created
+            totals. Tag-creation failures are fail-fast (see §7).
+          </li>
+          <li>
+            <strong>Per-row write loop.</strong> Resolve account + category, build
+            <code>TransactionImportDetails</code> (<code>batchId</code>, <code>importedAt</code>, <code>source</code>),
+            resolve tag ids, then <code>createTransaction</code> with <code>Money.fromCents(row.amount)</code>,
+            <code>rawMerchantName</code> from the payee, and the resolved <code>tagIds</code>, ticking
+            <code>onProgress(processed, total)</code> per committed row. When the row supplied tags, payee default tags
+            are re-applied additively so imported tags and payee defaults form a union.
+          </li>
+        </ol>
+        <p>
+          The job result is a <code>summary</code> (imported / skipped / created counts + per-row <code>errors</code>,
+          <code>newTransactionIds</code>, <code>batchId</code>), surfaced over SSE and the status endpoint.
+        </p>
+
+        <h3 id="stage-queue">
+          2.6 Stage 5 — Queue &amp; progress <span class="badge scope">all providers</span>
+          <span class="file">core/queue/create-import-job-queue.ts</span>
+        </h3>
+        <p>
+          Each provider has one BullMQ queue bundle built by <code>createImportJobQueue</code>, a shared scaffold
+          parameterized by the few bits that differ (base name, SSE event type, log label, the
+          <code>processJob</code> body):
+        </p>
+        <ul>
+          <li>
+            <strong>Worker lifetime.</strong> The <code>Worker</code> is created at module scope, once per importer. It
+            must never be created inside <code>withTransaction()</code>: Sequelize v7 propagates the active transaction
+            via AsyncLocalStorage, so a Worker built in a transaction context would have its own queries throw
+            <code>"commit has been called"</code>.
+          </li>
+          <li>
+            <strong>Connection &amp; naming.</strong> Its own Redis connection (<code>APPLICATION_REDIS_HOST</code>,
+            <code>maxRetriesPerRequest: null</code>); queue name is namespaced by <code>JEST_WORKER_ID</code> in tests
+            so parallel runs don't cross-fire. Job ids use <code>-</code> (never <code>:</code>, which BullMQ rejects)
+            and a random suffix (not a timestamp) so two imports in the same millisecond don't collide.
+          </li>
+          <li>
+            <strong>Retention &amp; retries.</strong> <code>attempts: 1</code> (a user-triggered import must not
+            auto-retry partial commits); completed jobs kept 24h, failed 7d so <code>/status</code> can still fetch
+            them.
+          </li>
+          <li>
+            <strong>Progress.</strong> The execute service ticks <code>onProgress(processed, total)</code> per committed
+            row. Progress is persisted with <code>job.updateProgress</code> (so <code>/status</code> polling works with
+            no SSE listener) and emitted over SSE; <code>completed</code>/<code>failed</code> always carry the true
+            counts. Progress emission is best-effort — a Redis/SSE hiccup is swallowed and logged, never failing a
+            committed row.
+          </li>
+          <li>
+            <strong>Status read race guard.</strong> <code>getImportProgress</code> snapshots the job via
+            <code>getJob</code> and then re-queries state; when a job flips to <code>completed</code>/<code
+              >failed</code
+            >
+            in that window before its <code>returnvalue</code>/<code>failedReason</code> has surfaced, it reports
+            <em>running</em> so the next poll picks up the real terminal payload (rather than an empty summary or
+            "Unknown error").
+          </li>
+        </ul>
+
+        <h2 id="core">3. The shared core <span class="file">…/import-export/core/</span></h2>
+        <p>
+          <code>core/</code> is a flat bag of pure functions and the queue scaffold —
+          <strong>no base class, no inheritance</strong>. Providers <em>compose</em> these functions; they do not
+          implement a common parse interface.
+        </p>
+        <pre><code>import-export/
+  core/
+    parse/
+      parse-amount.ts        (+ parse-amount.unit.ts)   # string → integer cents (US/EU/accounting)
+      date-engine.ts         (+ unit)                    # detect single safe day/month order for a column
+      anchor-import-date.ts  (+ unit)                    # anchor date-only / zone-less values to user TZ
+      parse-date.ts          (+ unit)                    # multi-format date → YYYY-MM-DD (also used by investment-parser)
+      split-tag-cell.ts      (+ unit)
+    duplicates/
+      find-duplicates.ts     (+ unit)                    # dedup key accountId:day:absAmount:type, capped at 10k
+      find-unpriceable-rows.ts
+      import-day-key.ts
+    resolve/
+      resolve-or-create-by-name.ts                       # case-insensitive find-or-create
+      create-accounts-if-needed.ts                       # injected currency + FX-date callbacks
+      create-categories-if-needed.ts (+ unit)            # flat + createTwoLevelCategoriesIfNeeded (YNAB)
+      create-tags-if-needed.ts       (+ unit)            # mapping mode + createNamedTagsIfNeeded (list)
+      resolve-row-tag-ids.ts         (+ unit)
+    queue/
+      create-import-job-queue.ts                         # BullMQ + SSE scaffold + default payload builders
+    round-currency.ts
+
+  csv-import/                  csv-parser.service · extract-unique-values/ · detect-duplicates/ · parse-valid-rows · execute-import/ · csv-import-queue
+  budget-bakers-wallet-import/ parse-budget-bakers-wallet.service · parse-amount · parse-date · detect-duplicates.service · execute-import.service · budget-bakers-wallet-import-queue · index
+  ynab-import/                 parse-ynab.service · parse-amount · parse-date · execute-import.service · ynab-import-queue · index
+
+  statement-parser/ investment-transactions-parser/      # AI importers — separate pipeline (§4.3)</code></pre>
+        <p>
+          The provider-local <code>parse-amount.ts</code> / <code>parse-date.ts</code> in
+          <code>budget-bakers-wallet-import/</code> and <code>ynab-import/</code> are <em>not</em> duplicates of the
+          core ones — each handles that vendor's specific number/date contract (e.g. YNAB's <code>$1,234.56</code> + US
+          <code>MM/DD/YYYY</code>; Wallet's ISO instants). The core <code>parse-amount</code>/<code>parse-date</code>
+          serve the generic CSV importer.
+        </p>
+
+        <h2 id="providers">4. The three providers</h2>
+        <p>
+          All three converge on <code>ParsedTransactionRow</code> and reuse the same <code>core/</code> primitives for
+          the back half (field parsing, dedup, resolve, queue). What stays per-provider is the genuinely-divergent logic
+          — the file-format parse and a few structural concerns.
+        </p>
+
+        <h3 id="shared-vs-specific">4.1 What is shared vs provider-specific</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Stage</th>
+              <th>Shared core</th>
+              <th>Provider-specific</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>parse</strong></td>
+              <td><code>core/parse/*</code> field parsers</td>
+              <td>
+                column → <code>ParsedTransactionRow</code> mapping; CSV delimiter detect; Wallet
+                <code>pair-transfers</code>; YNAB Outflow/Inflow + flag + starting-balance
+              </td>
+            </tr>
+            <tr>
+              <td><strong>column mapping</strong></td>
+              <td>—</td>
+              <td>CSV only (<code>extract-unique-values/</code>)</td>
+            </tr>
+            <tr>
+              <td><strong>detect-duplicates</strong></td>
+              <td><code>core/duplicates/find-duplicates.ts</code> + <code>find-unpriceable-rows.ts</code></td>
+              <td>CSV + Wallet: a small <code>accountNameToId</code> bridge. YNAB: no detect stage.</td>
+            </tr>
+            <tr>
+              <td><strong>execute</strong></td>
+              <td>
+                queued; worker re-parses, then <code>addUserCurrencies</code> → <code>create-accounts-if-needed</code> →
+                <code>create-categories-if-needed</code> → <code>create-tags-if-needed</code> → per-row
+                <code>createTransaction</code> loop ticking <code>onProgress</code>
+              </td>
+              <td>two-level categories (YNAB); balance targeting (Wallet); transfer writes (Wallet/YNAB)</td>
+            </tr>
+            <tr>
+              <td><strong>queue</strong></td>
+              <td>
+                <code>core/queue/create-import-job-queue.ts</code> with default payload builders — one bundle per
+                provider
+              </td>
+              <td>base name, SSE event type, <code>processJob</code> body</td>
+            </tr>
+            <tr>
+              <td><strong>HTTP</strong></td>
+              <td>shared <code>createParseController</code> / <code>createStatusController</code> factories (§5)</td>
+              <td>execute &amp; detect controllers + the per-stage Zod schema</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          Money convention is uniform: <code>ParsedTransactionRow.amount</code> stays integer cents; execute
+          reconstructs via <code>Money.fromCents</code>; no <code>raw: true</code>. Progress payloads carry plain
+          counts, not money.
+        </p>
+
+        <h3 id="divergence">4.2 Where the divergence is real (and stays provider-owned)</h3>
+        <ul>
+          <li>
+            <strong>BudgetBakers Wallet transfer pairing</strong> — <code>pairTransfers()</code> in
+            <code>parse-budget-bakers-wallet.service.ts</code>: ~1% ref-amount tolerance, out-of-wallet leg promotion.
+            No CSV/YNAB equivalent.
+          </li>
+          <li>
+            <strong>YNAB structure</strong> — two-level categories (Group → leaf), flag-color → tag mapping,
+            <code>Transfer :</code> payee prefix, synthetic starting-balance rows, always-create accounts.
+          </li>
+          <li>
+            <strong>BudgetBakers Wallet balance targeting</strong> — restores linked-account balances after import (runs
+            after <code>create-accounts-if-needed</code>, inside the Wallet executor).
+          </li>
+          <li>
+            <strong>CSV-only specifics</strong> — delimiter auto-detection, prototype-pollution header guard, and the
+            entire user-driven column-mapping stage.
+          </li>
+          <li>
+            <strong>FX date for opening balance</strong> — CSV uses <code>new Date()</code>; Wallet/YNAB use the
+            earliest parsed date. Load-bearing: getting it wrong skews <code>refInitialBalance</code>. Wired explicitly
+            per provider through the <code>create-accounts-if-needed</code> callback.
+          </li>
+        </ul>
+
+        <h3 id="ai">4.3 AI importers — a separate pipeline</h3>
+        <p>
+          <code>statement-parser/</code> and <code>investment-transactions-parser/</code> do <em>not</em> use this
+          column-mapping pipeline: AI extraction instead of a deterministic parse, no
+          <code>extract-unique-values</code> stage, and different skip schemes (statement uses
+          <code>skipIndices: number[]</code>, investment uses <code>skipTempIds: string[]</code>). They live alongside
+          but are not part of the tabular core. Their one shared tie-in:
+          <code>investment-transactions-parser/csv-parser.service.ts</code> reuses <code>parseDate</code> from
+          <code>core/parse/parse-date.ts</code>.
+        </p>
+
+        <h2 id="http">5. HTTP surface &amp; controller factories</h2>
+        <p>
+          Each provider keeps its own route file and its own URL namespace; there is no dynamic dispatch route (see §7).
+          The endpoints, by provider:
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Endpoints</th>
+              <th>Route file</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>CSV</strong></td>
+              <td>
+                <code>POST /csv/parse</code>, <code>/csv/extract-unique-values</code>,
+                <code>/csv/detect-duplicates</code>, <code>/csv/execute</code>;
+                <code>GET /csv/execute/status/:jobId</code>
+              </td>
+              <td class="file">routes/import-export/csv.route.ts</td>
+            </tr>
+            <tr>
+              <td><strong>BudgetBakers Wallet</strong></td>
+              <td>
+                <code>POST /budget-bakers-wallet/parse</code>, <code>/detect-duplicates</code>, <code>/execute</code>;
+                <code>GET /budget-bakers-wallet/status/:jobId</code>
+              </td>
+              <td class="file">routes/import-export/budget-bakers-wallet.route.ts</td>
+            </tr>
+            <tr>
+              <td><strong>YNAB</strong></td>
+              <td><code>POST /ynab/parse</code>, <code>/ynab/execute</code>; <code>GET /ynab/status/:jobId</code></td>
+              <td class="file">routes/import-export/ynab.route.ts</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          All execute/parse routes carry <code>authenticateSession</code> + a rate limiter +
+          <code>validateEndpoint</code>; the status routes carry auth + validation but <strong>no</strong> rate limiter
+          (the frontend polls them every ~2&nbsp;s).
+        </p>
+        <p>
+          The <em>parse</em> and <em>status</em> controllers are identical boilerplate across providers, so they are
+          built by two shared factories in <code>controllers/import-export/helpers/</code>:
+        </p>
+        <pre><code>// status — identical except the progress reader + the not-found copy
+export const csvStatusController = createStatusController({
+  getProgress: getCsvImportProgress,
+  notFoundMessage: 'CSV import job not found.',
+});
+
+// parse — validate body, run a sync parser, wrap the result
+export const parseBudgetBakersWalletController = createParseController({
+  schema: fileContentParseSchema,                 // CSV passes its own (it also takes a delimiter)
+  parse: ({ fileContent }) => parseBudgetBakersWalletCsv({ fileContent }),
+  // wrap defaults to { result }; CSV overrides with identity (it returns the value flat)
+});</code></pre>
+        <p>
+          The <em>execute</em> and <em>detect-duplicates</em> controllers stay per-provider: their request Zod schemas
+          genuinely differ (CSV sends a full column mapping; Wallet/YNAB send their own account-mapping shapes), so a
+          single handler would have to branch on the provider anyway. Factoring only the controllers that are actually
+          identical keeps full per-endpoint static typing and per-route middleware.
+        </p>
+
+        <h2 id="nth">6. Adding the Nth importer</h2>
+        <p>To add, say, a "Revolut CSV" importer, the work is:</p>
+        <ol>
+          <li>
+            <strong><code>services/import-export/revolut-import/parse-revolut.service.ts</code></strong> — the only file
+            with new logic. A pure function producing <code>ParsedTransactionRow[]</code> (+ invalid rows). Reuse
+            <code>core/parse/parse-amount.ts</code> and <code>core/parse/date-engine.ts</code>; write only the Revolut
+            column-name mapping (and a vendor-specific <code>parse-amount</code>/<code>parse-date</code> only if the
+            format is unusual).
+          </li>
+          <li>
+            <strong>execute service</strong> — compose the core resolve helpers + a per-row
+            <code>createTransaction</code> loop with <code>onProgress</code>. No re-implemented find-or-create.
+          </li>
+          <li>
+            <strong>queue bundle</strong> — one <code>createImportJobQueue</code> call (new base name + a new SSE event
+            type in <code>sse.ts</code>) exposing <code>queueRevolutImport</code> +
+            <code>getRevolutImportProgress</code>.
+          </li>
+          <li>
+            <strong>controllers</strong> — <code>parse</code> + <code>status</code> via the shared factories; an
+            <code>execute</code> (and optionally <code>detect-duplicates</code>) controller with a Zod schema reusing
+            the shared mapping schemas.
+          </li>
+          <li>
+            <strong>route file + register</strong> — a small <code>revolut.route.ts</code> wired in
+            <code>setup-routes.ts</code>; register the queue's worker teardown in <code>setupIntegrationTests.ts</code>.
+          </li>
+          <li>
+            <strong>e2e through HTTP only</strong> (per project rules): happy path, empty state, at least one error
+            case.
+          </li>
+        </ol>
+        <div class="callout decision">
+          <span class="tag">Net new work</span>
+          One parse file + a thin execute composition + a route file. The field parsers, dedup, resolve helpers, queue
+          scaffold, and the parse/status controllers are all reused. Provider-specific logic (a weird format, a transfer
+          model) is added in the provider folder, never forced into the shared core.
+        </div>
+
+        <h2 id="notes">7. Notes &amp; decisions</h2>
+        <p>
+          The body above describes the current logic. These notes record <em>why</em> a few non-obvious choices were
+          made and which alternatives were rejected.
+        </p>
+
+        <div class="callout decision">
+          <span class="tag">Execute is uniformly queued + re-parsed</span>
+          Every provider's execute runs as a BullMQ job and re-parses the file server-side from
+          <code>fileContent</code> + mappings + skip indices. CSV is not small (it caps at 50&nbsp;000 rows), so a
+          synchronous write loop inside one HTTP request was a real timeout risk, and posting back up to 50k pre-parsed
+          rows was a multi-MB body. Re-parsing is deterministic, so <code>skipDuplicateIndices</code> still align
+          against the worker's fresh parse. One execution path for all three providers.
+        </div>
+
+        <div class="callout decision">
+          <span class="tag">detect-duplicates &amp; extract-unique-values stay synchronous</span>
+          These are also full-file stages, but they are <em>interactive</em> request→response steps that return the
+          review list the user acts on, not a fire-and-forget write — a job would add a blank-wait UX and lifecycle
+          complexity. They are read-only and the duplicate query is capped at 10k. The queue scaffold can promote either
+          to a result-producing job later (job → poll for result) if profiling ever shows a timeout, with no rework.
+        </div>
+
+        <div class="callout decision">
+          <span class="tag">Tag-creation failures are fail-fast</span>
+          All providers create each unique tag/label once, up front (before the row loop), via the shared
+          <code>create-tags-if-needed</code> helper. The helper <strong>propagates</strong> a creation failure, and it
+          runs <em>outside</em> the per-row <code>try/catch</code> — so a single failed tag aborts the whole import (the
+          job ends <code>failed</code>) rather than silently landing transactions without that tag. This is an up-front
+          batch step, not a per-row failure. Revisit if a provider ever needs best-effort tagging (add a configurable
+          error mode to the helper).
+        </div>
+
+        <div class="callout note">
+          <span class="tag">Rejected — dynamic dispatch &amp; a provider registry</span>
+          A single <code>/import/:provider/:stage</code> route resolving the provider from a registry was considered and
+          rejected as overengineering at three providers. It would not remove the genuinely-different per-provider
+          execute/detect schemas (the dispatcher would branch on provider anyway), it loses per-endpoint static typing
+          (<code>req.body</code> becomes a union + cast), it complicates per-stage middleware (the rate-limited stages
+          vs the unlimited status poll), and the provider×stage grid is ragged (CSV has extract-unique-values; YNAB has
+          no detect-duplicates). Per-provider URLs + the two controller factories capture the real duplication without
+          any of that. An <code>ImportProvider</code> interface + registry object were dropped for the same reason —
+          with per-provider routes, nothing would consume them.
+        </div>
+
+        <div class="callout note">
+          <span class="tag">Rejected — a declarative "importer = data" engine</span>
+          The verified divergence (Wallet transfer pairing, YNAB two-level categories + starting-balance, out-of-wallet
+          legs) would all live in a <code>customParse</code> escape hatch, so the engine would be declarative only for
+          plain bank CSVs and a thin shim for everything hard. Composing <code>core/</code> functions gets the same
+          reuse without config-as-data indirection. Likewise: the dedup key (<code>accountId:day:absAmount:type</code>)
+          stays a function, not data; parse stays a provider-owned pure function; there is no base class.
+        </div>
+
+        <div class="callout note">
+          <span class="tag">Persisted provider id</span>
+          The provider id is stored on every imported transaction at
+          <code>externalData.importDetails.source</code> via the <code>ImportSource</code> enum (<code>csv</code>,
+          <code>budget-bakers-wallet</code>, <code>ynab</code>, <code>statement-parser</code>). Renaming a provider id
+          therefore requires a data migration to re-tag existing rows, not just a code change.
+        </div>
+
+        <h4>Risks to keep in mind</h4>
+        <ul>
+          <li>
+            <strong>Blast radius.</strong> A bug in <code>core/duplicates/find-duplicates.ts</code> now affects all
+            providers at once. <code>find-duplicates.unit.ts</code> is the gate.
+          </li>
+          <li>
+            <strong>FX-date.</strong> Mis-wiring the <code>create-accounts-if-needed</code> callback skews
+            <code>refInitialBalance</code> (CSV = today, Wallet/YNAB = earliest date). Each provider wires it
+            explicitly, gated by its e2e.
+          </li>
+          <li>
+            <strong>Transfers don't fit <code>ParsedTransactionRow</code></strong> (no source/dest pair). They stay a
+            provider-private concern inside <code>execute</code>; never forced into the shared row type.
+          </li>
+        </ul>
+
+        <h2 id="files">Appendix: key files</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Path</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Shared row + request/response types</td>
+              <td class="file">packages/shared/src/types/import-export.ts</td>
+            </tr>
+            <tr>
+              <td>Wallet types</td>
+              <td class="file">packages/shared/src/types/budget-bakers-wallet-import.ts</td>
+            </tr>
+            <tr>
+              <td>SSE event types</td>
+              <td class="file">packages/shared/src/types/sse.ts</td>
+            </tr>
+            <tr>
+              <td>Shared core (parse / duplicates / resolve / queue)</td>
+              <td class="file">…/import-export/core/</td>
+            </tr>
+            <tr>
+              <td>CSV parse / mapping / detect / execute</td>
+              <td class="file">…/import-export/csv-import/</td>
+            </tr>
+            <tr>
+              <td>BudgetBakers Wallet provider</td>
+              <td class="file">…/import-export/budget-bakers-wallet-import/</td>
+            </tr>
+            <tr>
+              <td>YNAB provider</td>
+              <td class="file">…/import-export/ynab-import/</td>
+            </tr>
+            <tr>
+              <td>Controller factories (parse / status)</td>
+              <td class="file">…/controllers/import-export/helpers/</td>
+            </tr>
+            <tr>
+              <td>HTTP controllers</td>
+              <td class="file">…/controllers/import-export/{,csv/,budget-bakers-wallet/,ynab/}</td>
+            </tr>
+            <tr>
+              <td>HTTP routes</td>
+              <td class="file">…/routes/import-export/{csv,budget-bakers-wallet,ynab,text-source}.route.ts</td>
+            </tr>
+            <tr>
+              <td>AI importers (separate pipeline)</td>
+              <td class="file">…/import-export/{statement-parser,investment-transactions-parser}/</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <footer>
+          Reference for the backend tabular-import subsystem. Describes the system as implemented; update it when the
+          code changes.
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

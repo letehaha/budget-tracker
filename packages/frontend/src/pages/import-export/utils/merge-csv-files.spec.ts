@@ -12,9 +12,9 @@ const unreadableFile = (name: string): File =>
   ({ name, text: () => Promise.reject(new Error('boom')) }) as unknown as File;
 
 /** Re-parses combined CSV output into header + data rows for assertions. */
-const parseBack = async (csv: string): Promise<{ header: string[]; rows: string[][] }> => {
+const parseBack = async (csv: string, delimiter?: string): Promise<{ header: string[]; rows: string[][] }> => {
   const Papa = (await import('papaparse')).default;
-  const { data } = Papa.parse<string[]>(csv, { skipEmptyLines: true });
+  const { data } = Papa.parse<string[]>(csv, { skipEmptyLines: true, delimiter });
   return { header: data[0] ?? [], rows: data.slice(1) };
 };
 
@@ -148,6 +148,60 @@ describe('mergeCsvFiles', () => {
     await expect(mergeCsvFiles({ files: [fakeFile('big.csv', tooMany)] })).rejects.toMatchObject({
       code: 'TOO_MANY_ROWS',
       meta: { max: MAX_CSV_ROWS },
+    });
+  });
+
+  it('re-serializes with a custom output delimiter, keeping comma-delimited input intact', async () => {
+    // BudgetBakers Wallet parses with ';', so the merge must emit ';' even though the
+    // source files (and the default output) are comma-delimited.
+    const result = await mergeCsvFiles({
+      files: [
+        fakeFile('a.csv', 'account,category,amount\nCash,Food,100'),
+        fakeFile('b.csv', 'account,category,amount\nBank,Bills,200'),
+      ],
+      outputDelimiter: ';',
+    });
+
+    expect(result.combinedContent).toContain('account;category;amount');
+    expect(result.combinedContent).not.toContain('account,category,amount');
+
+    const { header, rows } = await parseBack(result.combinedContent, ';');
+    expect(header).toEqual(['account', 'category', 'amount']);
+    expect(rows).toEqual([
+      ['Cash', 'Food', '100'],
+      ['Bank', 'Bills', '200'],
+    ]);
+  });
+
+  it('quotes fields containing the custom delimiter so the round-trip is lossless', async () => {
+    // A note containing the output delimiter (';') must be quoted, or re-parsing
+    // with ';' would split it into two columns and corrupt every later column.
+    const result = await mergeCsvFiles({
+      files: [fakeFile('semi.csv', 'date,note\n2026-01-01,"shopping; groceries"')],
+      outputDelimiter: ';',
+    });
+
+    const { rows } = await parseBack(result.combinedContent, ';');
+    expect(rows[0]).toEqual(['2026-01-01', 'shopping; groceries']);
+  });
+
+  it('honors a custom maxRows above the default', async () => {
+    // A provider with a higher backend ceiling (e.g. Wallet's 100k) must not be
+    // rejected at the default 50k limit.
+    const rowCount = MAX_CSV_ROWS + 10;
+    const content = ['date,amount', ...Array.from({ length: rowCount }, (_, i) => `2026-01-01,${i}`)].join('\n');
+
+    const result = await mergeCsvFiles({ files: [fakeFile('big.csv', content)], maxRows: MAX_CSV_ROWS + 100 });
+    expect(result.totalDataRows).toBe(rowCount);
+  });
+
+  it('reports the custom maxRows in the TOO_MANY_ROWS error', async () => {
+    const customMax = 3;
+    const content = ['date,amount', ...Array.from({ length: customMax + 1 }, (_, i) => `2026-01-01,${i}`)].join('\n');
+
+    await expect(mergeCsvFiles({ files: [fakeFile('big.csv', content)], maxRows: customMax })).rejects.toMatchObject({
+      code: 'TOO_MANY_ROWS',
+      meta: { max: customMax },
     });
   });
 

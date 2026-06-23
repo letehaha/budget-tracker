@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-card rounded-lg border p-6">
+  <div>
     <div class="mb-4">
       <h2 class="text-lg font-semibold">{{ $t('pages.importExport.ynabImport.fileUpload.stepTitle') }}</h2>
       <p class="text-muted-foreground text-sm">{{ $t('pages.importExport.ynabImport.fileUpload.description') }}</p>

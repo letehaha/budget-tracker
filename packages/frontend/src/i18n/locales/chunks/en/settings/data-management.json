@@ -28,7 +28,7 @@
         "cta": "Import from YNAB",
         "listDescription": "Accounts, transactions, categories, and payees"
       },
-      "wallet": {
+      "budget-bakers-wallet": {
         "title": "Wallet (BudgetBakers)",
         "description": "Import transactions exported from the Wallet app by BudgetBakers. Supports multi-currency accounts and automatic transfer pairing.",
         "cta": "Import from Wallet",

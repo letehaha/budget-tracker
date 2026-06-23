@@ -1,16 +1,10 @@
-import { createController } from '@controllers/helpers/controller-factory';
+import {
+  createParseController,
+  fileContentParseSchema,
+} from '@controllers/import-export/helpers/create-parse-controller';
 import { parseYnabRegister } from '@root/services/import-export/ynab-import/parse-ynab.service';
-import { z } from 'zod';
 
-export const parseYnabController = createController(
-  z.object({
-    body: z.object({
-      fileContent: z.string().min(1, 'File content cannot be empty'),
-    }),
-  }),
-  async ({ body }) => {
-    const { fileContent } = body;
-    const result = parseYnabRegister({ fileContent });
-    return { data: { result } };
-  },
-);
+export const parseYnabController = createParseController({
+  schema: fileContentParseSchema,
+  parse: ({ fileContent }) => parseYnabRegister({ fileContent }),
+});

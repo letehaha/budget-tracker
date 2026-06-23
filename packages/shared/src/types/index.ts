@@ -12,7 +12,7 @@ export * from './vehicles';
 export * from './api';
 export * from './import-export';
 export * from './ynab-import';
-export * from './wallet-import';
+export * from './budget-bakers-wallet-import';
 export * from './data-export';
 export * from './statement-parser';
 export * from './sse';

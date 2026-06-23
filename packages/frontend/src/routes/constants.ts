@@ -67,7 +67,7 @@ export const ROUTES_NAMES = Object.freeze({
   importCsv: `${ROUTER_LAYOUTS.dashboard}.import-csv`,
   importStatement: `${ROUTER_LAYOUTS.dashboard}.import-statement`,
   importYnab: `${ROUTER_LAYOUTS.dashboard}.import-ynab`,
-  importWallet: `${ROUTER_LAYOUTS.dashboard}.import-wallet`,
+  importBudgetBakersWallet: `${ROUTER_LAYOUTS.dashboard}.import-budget-bakers-wallet`,
   notFound: `${ROUTER_LAYOUTS.dashboard}.not-found`,
 
   auth: ROUTER_LAYOUTS.auth,

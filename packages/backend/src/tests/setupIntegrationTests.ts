@@ -12,7 +12,11 @@ import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
 import { categorizationQueue, categorizationWorker } from '@services/ai-categorization/categorization-queue';
 import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
 import { closeAllMonobankQueueBundles } from '@services/bank-data-providers/monobank/transaction-sync-queue';
-import { walletImportQueue, walletImportWorker } from '@services/import-export/wallet-import';
+import {
+  budgetBakersWalletImportQueue,
+  budgetBakersWalletImportWorker,
+} from '@services/import-export/budget-bakers-wallet-import';
+import { csvImportQueue, csvImportWorker } from '@services/import-export/csv-import/csv-import-queue';
 import { ynabImportQueue, ynabImportWorker } from '@services/import-export/ynab-import';
 import { logoResolutionQueue, logoResolutionWorker } from '@services/payees/logo-resolution-queue';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
@@ -443,8 +447,10 @@ afterAll(async () => {
     await categorizationQueue.close();
     await ynabImportWorker.close();
     await ynabImportQueue.close();
-    await walletImportWorker.close();
-    await walletImportQueue.close();
+    await budgetBakersWalletImportWorker.close();
+    await budgetBakersWalletImportQueue.close();
+    await csvImportWorker.close();
+    await csvImportQueue.close();
     await logoResolutionWorker.close();
     await logoResolutionQueue.close();
 

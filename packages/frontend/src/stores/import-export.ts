@@ -5,12 +5,13 @@ import {
   type CategoryMappingConfig,
   type CategoryMappingValue,
   CategoryOptionValue,
+  type CsvImportProgress,
   type DateColumnError,
   type DetectDuplicatesResponse,
   type DuplicateMatch,
-  type ExecuteImportResponse,
   type InvalidRow,
   type ParsedTransactionRow,
+  SSE_EVENT_TYPES,
   type SourceAccount,
   type TagMappingConfig,
   type TagMappingValue,
@@ -20,7 +21,9 @@ import {
 import type { AccountMappingConfig } from '@bt/shared/types';
 
 type UnpriceableRow = NonNullable<DetectDuplicatesResponse['unpriceableRows']>[number];
+import { executeImport as executeImportApi, getCsvImportStatus } from '@/api/import-export';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
+import { useImportJobProgress } from '@/composable/use-import-job-progress';
 import { useResolveMapping } from '@/composable/use-resolve-mapping';
 import { useWizardSteps } from '@/composable/use-wizard-steps';
 import { i18n } from '@/i18n';
@@ -141,12 +144,85 @@ export const useImportExportStore = defineStore('importExport', () => {
   const isDetectingDuplicates = ref<boolean>(false);
   const detectError = ref<string | null>(null);
 
-  // Step 6: Import execution
-  const importInProgress = ref<boolean>(false);
-  const importResult = ref<ExecuteImportResponse | null>(null);
-  // Set when the execute-import API call itself fails (network, 5xx, validation).
-  // A post-success refresh failure (loadCategories/loadTags) does NOT set this.
-  const importError = ref<string | null>(null);
+  // Step 6: Import execution (asynchronous).
+  //
+  // The execute endpoint enqueues a background job and returns a jobId; the
+  // watchdog below follows it over SSE + a status poll, and the terminal
+  // `summary` lives on `progress` (the `completed` branch of CsvImportProgress)
+  // rather than a separate result ref.
+  //
+  // SSE + status-poll watchdog for the running import. Owns the live `progress`
+  // and the terminal `executeError`. On success the wizard is already on the
+  // `results` step, so completion only refreshes caches; lost contact bounces
+  // back to `review` so the user can retry.
+  const jobProgress = useImportJobProgress<CsvImportProgress>({
+    sseEventType: SSE_EVENT_TYPES.CSV_IMPORT_PROGRESS,
+    fetchStatus: getCsvImportStatus,
+    onComplete: async ({ summary }) => {
+      // Note: import_completed is tracked on the backend for reliability.
+
+      // Mark onboarding task as complete.
+      useOnboardingStore().completeTask('import-csv');
+
+      // Invalidate the query groups that an import can mutate.
+      //
+      // transactionChange prefix: covers all widgets, analytics, records lists,
+      // allAccounts, accountGroups, balances, and everything else keyed on tx changes.
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+
+      // currencies prefix: import can connect new user currencies (e.g. a row uses
+      // EUR when only USD was active). Covers userCurrencies, allCurrencies, baseCurrency,
+      // and exchange-rate-for-date queries in one shot.
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.currencies] });
+
+      // categoriesByAccount has no shared prefix, so it must be invalidated explicitly.
+      // Import can create new categories that would otherwise be missing from category pickers.
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.categoriesByAccount });
+
+      // The Pinia categories store is not VueQuery-backed, so invalidateQueries alone won't
+      // refresh it. Call loadCategories explicitly so newly-created categories appear in
+      // category pickers and lists without a full page reload.
+      //
+      // The import already succeeded by this point, so a refresh failure must NOT surface
+      // as an import error. Swallow and log it instead of letting it reject the handler.
+      if (summary.categoriesCreated > 0) {
+        try {
+          await useCategoriesStore().loadCategories();
+        } catch (refreshError) {
+          captureException({ error: refreshError, context: { scope: 'import-csv:post-import-refresh' } });
+        }
+      }
+
+      // Same reasoning for tags: Pinia store is not VueQuery-backed, so newly-created
+      // tags must be loaded explicitly to appear in tag pickers without a page reload.
+      // Also guarded so a post-success refresh failure never fake-fails the import.
+      if (summary.tagsCreated > 0) {
+        try {
+          await useTagsStore().loadTags();
+        } catch (refreshError) {
+          captureException({ error: refreshError, context: { scope: 'import-csv:post-import-refresh' } });
+        }
+      }
+    },
+    // On failure the wizard stays on the results step, where the failed status
+    // callout (with the server's error message) is rendered.
+    onFailure: () => {},
+    onLostContact: () => goToStep('review'),
+  });
+  const progress = jobProgress.progress;
+  /** Terminal watchdog error (lost contact / expired job) for the results step. */
+  const executeError = jobProgress.executeError;
+
+  // Covers the gap between the execute POST being sent and the watchdog being
+  // armed (progress is still null at that point), so the review-step button can
+  // show a busy state immediately on click.
+  const isEnqueuing = ref<boolean>(false);
+
+  /** True while the import job is enqueuing or in flight (queued/running). Drives
+   *  the review-step button's busy state. */
+  const isExecuting = computed(
+    () => isEnqueuing.value || progress.value?.status === 'queued' || progress.value?.status === 'running',
+  );
 
   // ---- Step model getters ----
 
@@ -486,101 +562,77 @@ export const useImportExportStore = defineStore('importExport', () => {
   // binding in the review-duplicates step; delegates to the shared engine.
   const toggleDuplicateUnmark = (rowIndex: number) => resolveEngine.toggleDuplicateUnmark({ rowIndex });
 
+  /**
+   * Enqueues the asynchronous import job and arms the progress watchdog. The
+   * server re-parses the raw file inside the worker, so the request carries the
+   * raw `fileContent` + mapping (NOT pre-parsed `validRows`); the user's skip
+   * indices stay valid only because the worker's re-parse is deterministic given
+   * the same timezone the detect-duplicates step sent.
+   *
+   * Returns right after the job is accepted: the wizard advances to `results`
+   * where the execute step renders live progress and the done step renders the
+   * terminal summary.
+   */
   const executeImport = async ({ skipUnpriceableIndices }: { skipUnpriceableIndices?: number[] } = {}) => {
-    importInProgress.value = true;
-    importError.value = null;
+    jobProgress.setExecuteError(null);
 
+    // This path runs only after isMapStepValid is true, so the mapping is
+    // complete; a null projection here is defensive, not an expected state.
+    const config = toColumnMappingConfig({ mapping: columnMapping.value });
+    if (!config) {
+      jobProgress.setExecuteError(i18n.global.t('pages.importExport.csvImport.results.importFailed'));
+      return;
+    }
+
+    // Calculate which duplicates should be skipped
+    const skipDuplicateIndices = duplicates.value
+      .filter((d) => !unmarkedDuplicateIndices.value.has(d.rowIndex))
+      .map((d) => d.rowIndex);
+
+    // Only send tagMapping when a tags column is actually mapped. When the user
+    // deselects the tags column, tagMapping may still hold stale entries; sending
+    // them would make the backend create tags the user opted out of. The backend
+    // treats an omitted tagMapping as "no tags" (see execute-import service).
+    const tagMappingPayload = columnMapping.value.tags ? tagMapping.value : undefined;
+
+    isEnqueuing.value = true;
+    let response: Awaited<ReturnType<typeof executeImportApi>>;
     try {
-      const { executeImport: executeImportApi } = await import('@/api/import-export');
-
-      // Calculate which duplicates should be skipped
-      const skipDuplicateIndices = duplicates.value
-        .filter((d) => !unmarkedDuplicateIndices.value.has(d.rowIndex))
-        .map((d) => d.rowIndex);
-
-      const accountOption = columnMapping.value.account;
-      const defaultAccountId =
-        accountOption?.option === AccountOptionValue.existingAccount ? accountOption.accountId : undefined;
-
-      const categoryOption = columnMapping.value.category;
-      const defaultCategoryId =
-        categoryOption?.option === CategoryOptionValue.existingCategory ? categoryOption.categoryId : undefined;
-
-      // Only send tagMapping when a tags column is actually mapped. When the user
-      // deselects the tags column, tagMapping may still hold stale entries; sending
-      // them would make the backend create tags the user opted out of. The backend
-      // treats an omitted tagMapping as "no tags" (see execute-import service).
-      const tagMappingPayload = columnMapping.value.tags ? tagMapping.value : undefined;
-
-      const response = await executeImportApi({
-        validRows: validRows.value,
+      response = await executeImportApi({
+        fileContent: fileContent.value!,
+        delimiter: detectedDelimiter.value,
+        columnMapping: config,
         accountMapping: accountMapping.value,
         categoryMapping: categoryMapping.value,
         tagMapping: tagMappingPayload,
         skipDuplicateIndices,
         skipUnpriceableIndices,
-        defaultAccountId,
-        defaultCategoryId,
+        // Must match the timezone the detect-duplicates step sent — the worker
+        // re-parses server-side and the user's skip indices are only valid if the
+        // parse anchors dates to the same instants.
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
-
-      importResult.value = response;
-
-      // Note: import_completed is tracked on the backend for reliability
-
-      // Mark onboarding task as complete
-      const onboardingStore = useOnboardingStore();
-      onboardingStore.completeTask('import-csv');
-
-      // Invalidate the query groups that an import can mutate.
-      //
-      // transactionChange prefix: covers all widgets, analytics, records lists,
-      // allAccounts, accountGroups, balances, and everything else keyed on tx changes.
-      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
-
-      // currencies prefix: import can connect new user currencies (e.g. a row uses
-      // EUR when only USD was active). Covers userCurrencies, allCurrencies, baseCurrency,
-      // and exchange-rate-for-date queries in one shot.
-      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.currencies] });
-
-      // categoriesByAccount has no shared prefix, so it must be invalidated explicitly.
-      // Import can create new categories that would otherwise be missing from category pickers.
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.categoriesByAccount });
-
-      // The Pinia categories store is not VueQuery-backed, so invalidateQueries alone won't
-      // refresh it. Call loadCategories explicitly so newly-created categories appear in
-      // category pickers and lists without a full page reload.
-      //
-      // The import already succeeded by this point, so a refresh failure must NOT surface
-      // as an import error. Swallow and log it instead of letting it reject executeImport.
-      if (response.summary.categoriesCreated > 0) {
-        try {
-          await useCategoriesStore().loadCategories();
-        } catch (refreshError) {
-          captureException({ error: refreshError, context: { scope: 'import-csv:post-import-refresh' } });
-        }
-      }
-
-      // Same reasoning for tags: Pinia store is not VueQuery-backed, so newly-created
-      // tags must be loaded explicitly to appear in tag pickers without a page reload.
-      // Also guarded so a post-success refresh failure never fake-fails the import.
-      if (response.summary.tagsCreated > 0) {
-        try {
-          await useTagsStore().loadTags();
-        } catch (refreshError) {
-          captureException({ error: refreshError, context: { scope: 'import-csv:post-import-refresh' } });
-        }
-      }
-
-      markStepCompleted('review');
-      goToStep('results');
     } catch (error) {
-      // A genuine import-API failure: surface a user-readable message for the UI to render,
-      // then re-throw so callers can react (their handlers absorb the rejection).
-      importError.value = i18n.global.t('pages.importExport.csvImport.results.importFailed');
-      throw error;
+      // The call never started the job — keep the user on `review` (not marked
+      // complete) so they can correct the input and retry.
+      jobProgress.setExecuteError(i18n.global.t('pages.importExport.csvImport.results.importFailed'));
+      captureException({ error, context: { scope: 'import-csv:execute' } });
+      return;
     } finally {
-      importInProgress.value = false;
+      isEnqueuing.value = false;
     }
+
+    // Job accepted: only now advance the wizard and arm the progress watchdog.
+    markStepCompleted('review');
+    goToStep('results');
+    jobProgress.start({
+      initialProgress: {
+        jobId: response.jobId,
+        status: 'queued',
+        processedCount: 0,
+        totalCount: 0,
+      },
+    });
   };
 
   // ---- Resolve step engine ----
@@ -717,9 +769,10 @@ export const useImportExportStore = defineStore('importExport', () => {
     unpriceableRows.value = [];
     isDetectingDuplicates.value = false;
     detectError.value = null;
-    importInProgress.value = false;
-    importResult.value = null;
-    importError.value = null;
+    isEnqueuing.value = false;
+    jobProgress.stop();
+    jobProgress.setExecuteError(null);
+    progress.value = null;
     resetSteps();
   };
 
@@ -751,9 +804,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     unpriceableRows,
     isDetectingDuplicates,
     detectError,
-    importInProgress,
-    importResult,
-    importError,
+    progress,
+    executeError,
+    isExecuting,
     currentStepKey,
     completedStepKeys,
     currentStep,

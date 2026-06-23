@@ -97,8 +97,26 @@ function headersEqual(a: string[], b: string[]): boolean {
  * Combines `files` into a single CSV string. Rejects with a {@link MergeCsvError}
  * if the selection is empty, any file can't be read or parsed, or the headers
  * don't all match the first file's. Preserves selection order.
+ *
+ * `outputDelimiter` controls the delimiter of the re-serialized combined CSV
+ * (default comma). Providers whose backend parser expects a fixed delimiter pass
+ * theirs — BudgetBakers Wallet, for instance, parses with `;`, so feeding it
+ * comma-joined output would collapse every row into a single column. Each input
+ * file's own delimiter is still auto-detected by papaparse regardless.
+ *
+ * `maxRows` caps the combined data-row count (default {@link MAX_CSV_ROWS}); a
+ * provider with a higher backend ceiling passes its own so the merge does not
+ * reject imports the backend would accept.
  */
-export async function mergeCsvFiles({ files }: { files: File[] }): Promise<MergeCsvResult> {
+export async function mergeCsvFiles({
+  files,
+  outputDelimiter = ',',
+  maxRows = MAX_CSV_ROWS,
+}: {
+  files: File[];
+  outputDelimiter?: string;
+  maxRows?: number;
+}): Promise<MergeCsvResult> {
   if (files.length === 0) {
     throw new MergeCsvError('No files selected.', 'EMPTY_SELECTION');
   }
@@ -170,17 +188,18 @@ export async function mergeCsvFiles({ files }: { files: File[] }): Promise<Merge
   }
 
   const totalDataRows = perFile.reduce((sum, file) => sum + file.dataRowCount, 0);
-  if (totalDataRows > MAX_CSV_ROWS) {
-    throw new MergeCsvError(`Selected files total more than ${MAX_CSV_ROWS} rows.`, 'TOO_MANY_ROWS', undefined, {
-      max: MAX_CSV_ROWS,
+  if (totalDataRows > maxRows) {
+    throw new MergeCsvError(`Selected files total more than ${maxRows} rows.`, 'TOO_MANY_ROWS', undefined, {
+      max: maxRows,
     });
   }
 
   // First file's verbatim header + every file's data rows, re-serialized as one
-  // canonical comma-delimited CSV.
+  // canonical CSV using `outputDelimiter`. Papaparse quotes any field containing
+  // the delimiter, a quote, or a newline, so the round-trip is delimiter-safe.
   const first = parsed[0]!;
   const dataRows: string[][] = parsed.flatMap((file) => file.dataRows);
-  const combinedContent = Papa.unparse([first.rawHeader, ...dataRows]);
+  const combinedContent = Papa.unparse([first.rawHeader, ...dataRows], { delimiter: outputDelimiter });
 
   return {
     combinedContent,

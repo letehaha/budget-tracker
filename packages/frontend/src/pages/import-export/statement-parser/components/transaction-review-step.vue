@@ -286,7 +286,7 @@ function handleRowClick(item: TimelineItem) {
 }
 
 function handleBack() {
-  store.goBackToStep({ step: 2 });
+  store.goBack();
 }
 
 function handleProceed() {

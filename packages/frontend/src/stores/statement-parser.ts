@@ -8,6 +8,7 @@ import {
   extractStatementTransactions,
 } from '@/api/import-export';
 import { loadTransactions } from '@/api/transactions';
+import { useWizardSteps } from '@/composable/use-wizard-steps';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import type { AccountModel, StatementCostEstimate, StatementExtractionResult } from '@bt/shared/types';
 import type { TransactionModel } from '@bt/shared/types/db-models';
@@ -27,12 +28,44 @@ import { useOnboardingStore } from './onboarding';
  * 4. Review Duplicates - (only for existing accounts) Review and exclude duplicates
  * 5. Import - Execute import and show results
  */
+
+/**
+ * Wizard steps, mirroring the CSV/Wallet importers' key-based step machine:
+ *  - `upload`  — file upload + AI extraction
+ *  - `account` — select an existing account or create a new one
+ *  - `review`  — review/exclude detected duplicates (existing accounts only)
+ *  - `results` — confirm + execute import, then show the summary
+ */
+export type StatementParserStepKey = 'upload' | 'account' | 'review' | 'results';
+
+/** Every step in canonical order. `review` is filtered out for new accounts. */
+const ALL_STEP_KEYS: readonly StatementParserStepKey[] = ['upload', 'account', 'review', 'results'];
+
 export const useStatementParserStore = defineStore('statementParser', () => {
   const queryClient = useQueryClient();
 
-  // Step tracking
-  const currentStep = ref<number>(1);
-  const completedSteps = ref<number[]>([]);
+  // Account selection state — declared up front because the wizard's `review`
+  // step is only visible for existing accounts, so the key-based step machine's
+  // visibility predicate (below) reads `isNewAccount`.
+  const selectedAccount = ref<AccountModel | null>(null);
+  const isNewAccount = ref(false);
+
+  // Step tracking — key-based machine shared with the CSV/Wallet importers.
+  const {
+    currentStepKey,
+    completedStepKeys,
+    visibleSteps,
+    goToStep,
+    goBack,
+    markStepCompleted,
+    reset: resetSteps,
+  } = useWizardSteps<StatementParserStepKey>({
+    stepKeys: ALL_STEP_KEYS,
+    // The duplicate-review step only applies to imports into an existing account;
+    // a brand-new account has nothing to detect duplicates against, so it's hidden
+    // and navigation skips straight from account selection to import.
+    isStepVisible: (key) => (key === 'review' ? !isNewAccount.value : true),
+  });
 
   // Step 1: File upload
   const uploadedFile = ref<File | null>(null);
@@ -48,9 +81,8 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   const extractionResult = ref<StatementExtractionResult | null>(null);
   const extractionError = ref<string | null>(null);
 
-  // Step 4: Account selection
-  const selectedAccount = ref<AccountModel | null>(null);
-  const isNewAccount = ref(false);
+  // Step 4: Account selection (selectedAccount + isNewAccount declared above,
+  // ahead of the step machine that reads them).
   // Manual currency selection (used when AI doesn't detect currency)
   const manualCurrency = ref<string | null>(null);
 
@@ -201,11 +233,9 @@ export const useStatementParserStore = defineStore('statementParser', () => {
         properties: { feature: 'statement_parser' },
       });
 
-      // Mark step 1 as completed and move to step 2 (account selection)
-      if (!completedSteps.value.includes(1)) {
-        completedSteps.value.push(1);
-      }
-      currentStep.value = 2;
+      // Mark upload complete and move to account selection.
+      markStepCompleted('upload');
+      goToStep('account');
     } catch (error) {
       extractionError.value = error instanceof Error ? error.message : 'Failed to extract transactions';
     } finally {
@@ -236,20 +266,15 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   async function proceedFromAccountSelection() {
     if (!selectedAccount.value || !extractionResult.value) return;
 
-    // Mark account selection step as completed
-    if (!completedSteps.value.includes(2)) {
-      completedSteps.value.push(2);
-    }
+    markStepCompleted('account');
 
     if (isNewAccount.value) {
-      // Skip duplicate detection for new accounts - go directly to import
-      currentStep.value = 4;
-      if (!completedSteps.value.includes(3)) {
-        completedSteps.value.push(3);
-      }
+      // New account: the `review` step is hidden (nothing to detect duplicates
+      // against), so jump straight to import.
+      goToStep('results');
     } else {
-      // Detect duplicates for existing accounts
-      currentStep.value = 3;
+      // Detect duplicates for existing accounts.
+      goToStep('review');
       await detectDuplicates();
     }
   }
@@ -286,9 +311,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
       existingTransactions.value = existingResult;
 
       // Mark duplicate review step as completed
-      if (!completedSteps.value.includes(3)) {
-        completedSteps.value.push(3);
-      }
+      markStepCompleted('review');
     } catch (error) {
       console.error('Failed to detect duplicates:', error);
       // Continue anyway - duplicates detection is not critical
@@ -318,7 +341,8 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   }
 
   function proceedToImport() {
-    currentStep.value = 4;
+    markStepCompleted('review');
+    goToStep('results');
   }
 
   async function executeImport() {
@@ -344,11 +368,6 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
       // Invalidate all queries to refetch data after import
       queryClient.invalidateQueries();
-
-      // Mark import step as completed
-      if (!completedSteps.value.includes(4)) {
-        completedSteps.value.push(4);
-      }
     } catch (error) {
       importError.value = error instanceof Error ? error.message : 'Failed to import transactions';
     } finally {
@@ -357,8 +376,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   }
 
   function reset() {
-    currentStep.value = 1;
-    completedSteps.value = [];
+    resetSteps();
     uploadedFile.value = null;
     fileBase64.value = null;
     isEstimating.value = false;
@@ -380,22 +398,11 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     importError.value = null;
   }
 
-  /**
-   * Go back to a previous step (used by Back buttons).
-   * Removes completion status of steps after the target step.
-   */
-  function goBackToStep({ step }: { step: number }) {
-    if (step < currentStep.value) {
-      // Remove completion status for all steps >= target step
-      completedSteps.value = completedSteps.value.filter((s) => s < step);
-      currentStep.value = step;
-    }
-  }
-
   return {
     // State
-    currentStep,
-    completedSteps,
+    currentStepKey,
+    completedStepKeys,
+    visibleSteps,
     uploadedFile,
     fileBase64,
     isEstimating,
@@ -425,6 +432,10 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     skipIndices,
     importSummary,
 
+    // Step navigation
+    goToStep,
+    goBack,
+
     // Actions
     setFile,
     estimateCost,
@@ -439,6 +450,5 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     proceedToImport,
     executeImport,
     reset,
-    goBackToStep,
   };
 });

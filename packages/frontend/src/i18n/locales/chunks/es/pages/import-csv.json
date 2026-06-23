@@ -62,6 +62,16 @@
           "nextExtract": "Siguiente: Extraer valores",
           "continueToDuplicates": "Continuar a verificación de duplicados"
         },
+        "execute": {
+          "starting": "Iniciando importación…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "En cola",
+          "statusRunning": "Importando…",
+          "statusCompleted": "Completo",
+          "statusFailed": "Fallido",
+          "failed": "Importación fallida.",
+          "partialImportNote": "Es posible que algunas filas ya se hayan importado antes de este error. Volver a importar podría crear duplicados."
+        },
         "review": {
           "stepTitle": "Revisar importación",
           "description": "Revise los datos antes de importar",

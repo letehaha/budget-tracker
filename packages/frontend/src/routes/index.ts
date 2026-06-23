@@ -326,11 +326,15 @@ const routes: RouteRecordRaw[] = [
             meta: { i18nChunks: ['pages/import-ynab', 'settings/data-management'] as I18nChunkName[] },
           },
           {
-            path: 'data-management/import/wallet',
-            name: ROUTES_NAMES.importWallet,
-            component: () => import('@/pages/import-export/wallet-import/index.vue'),
+            path: 'data-management/import/budget-bakers-wallet',
+            name: ROUTES_NAMES.importBudgetBakersWallet,
+            component: () => import('@/pages/import-export/budget-bakers-wallet-import/index.vue'),
             meta: {
-              i18nChunks: ['pages/import-wallet', 'pages/import-shared', 'settings/data-management'] as I18nChunkName[],
+              i18nChunks: [
+                'pages/import-budget-bakers-wallet',
+                'pages/import-shared',
+                'settings/data-management',
+              ] as I18nChunkName[],
             },
           },
           {

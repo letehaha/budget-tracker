@@ -28,7 +28,7 @@
         "cta": "Імпортувати з YNAB",
         "listDescription": "Рахунки, транзакції, категорії та контрагенти"
       },
-      "wallet": {
+      "budget-bakers-wallet": {
         "title": "Wallet (BudgetBakers)",
         "description": "Імпортуйте транзакції, експортовані з додатку Wallet від BudgetBakers. Підтримує мультивалютні рахунки та автоматичне визначення переказів.",
         "cta": "Імпортувати з Wallet",

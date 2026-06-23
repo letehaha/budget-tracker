@@ -62,6 +62,16 @@
           "nextExtract": "Next: Extract Values",
           "continueToDuplicates": "Continue to Duplicate Check"
         },
+        "execute": {
+          "starting": "Starting import…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "Queued",
+          "statusRunning": "Importing…",
+          "statusCompleted": "Complete",
+          "statusFailed": "Failed",
+          "failed": "Import failed.",
+          "partialImportNote": "Some rows may have already been imported before this failure. Re-importing could create duplicates."
+        },
         "review": {
           "stepTitle": "Review Import",
           "description": "Review the data before importing",

@@ -3,6 +3,14 @@
     "statementParser": {
       "pageTitle": "Statement Parser",
       "pageDescription": "Upload a bank statement (PDF, CSV, or TXT) to extract transactions using AI. Requires an AI API key configured in settings.",
+      "stepper": {
+        "steps": {
+          "upload": "Upload",
+          "account": "Account",
+          "review": "Review",
+          "results": "Import"
+        }
+      },
       "steps": {
         "uploadTitle": "Upload & Extract",
         "uploadDescription": "Upload statement and extract transactions with AI",

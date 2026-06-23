@@ -4,6 +4,13 @@
       "ynabImport": {
         "pageTitle": "Importar desde YNAB",
         "pageDescription": "Carga tu exportación YNAB Register.csv para traer cuentas, transacciones, categorías, beneficiarios y etiquetas a MoneyMatter.",
+        "stepper": {
+          "steps": {
+            "upload": "Subir",
+            "preview": "Revisar",
+            "results": "Listo"
+          }
+        },
         "steps": {
           "uploadTitle": "Cargar archivo",
           "uploadDescription": "Elige el Register.csv de tu exportación YNAB.",
