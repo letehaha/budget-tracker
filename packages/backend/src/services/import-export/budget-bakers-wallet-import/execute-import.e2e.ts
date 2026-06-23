@@ -830,6 +830,55 @@ describe('Execute Budget Bakers Wallet import endpoint', () => {
     expect(importedTags!.some((tag) => tag.id === existingTag.id)).toBe(true);
   });
 
+  /**
+   * T8b — Wallet joins several labels on one row with ", " in the `labels` cell.
+   * The importer must split them into distinct tags (two created here) and attach
+   * BOTH to the imported transaction, rather than creating a single combined
+   * "labelA, labelB" tag.
+   */
+  it('splits a comma-separated labels cell into multiple tags, all attached to the transaction', async () => {
+    const labelA = `multi-a-${generateRandomRecordId()}`;
+    const labelB = `multi-b-${generateRandomRecordId()}`;
+
+    const fileContent = [
+      'account;category;currency;amount;ref_currency_amount;type;payment_type;note;date;transfer;payee;labels',
+      `MultiTagAcc UAH;Food;UAH;500;500;Expense;Cash;Multi tag tx;2025-06-07T10:00:00.000Z;false;;${labelA}, ${labelB}`,
+    ].join('\n');
+
+    const accountMapping = {
+      'MultiTagAcc UAH': { action: 'create-new' as const, currencyCode: 'UAH', currentBalance: null },
+    };
+
+    const { jobId } = await helpers.executeBudgetBakersWallet({
+      payload: { fileContent, accountMapping, skipDuplicateIndices: [] },
+      raw: true,
+    });
+    expect(jobId).toBeTruthy();
+    const progress = await waitForBudgetBakersWalletCompletion({ jobId });
+    expectCompleted(progress);
+
+    // Two distinct labels → two created tags, not one combined tag.
+    expect(progress.summary.tagsCreated).toBe(2);
+    expect(progress.summary.transactionsImported).toBe(1);
+    expect(progress.summary.errors).toHaveLength(0);
+
+    const allTags = await helpers.getTags({ raw: true });
+    const tagA = allTags.find((t) => t.name === labelA);
+    const tagB = allTags.find((t) => t.name === labelB);
+    expect(tagA).toBeDefined();
+    expect(tagB).toBeDefined();
+    // The combined string must never become a tag of its own.
+    expect(allTags.some((t) => t.name === `${labelA}, ${labelB}`)).toBe(false);
+
+    const txs = await helpers.getTransactions({ includeTags: true, raw: true });
+    const imported = txs.find((t) => t.note === 'Multi tag tx');
+    expect(imported).toBeDefined();
+    const importedTags = (imported as any).tags as Array<{ id: string }> | undefined;
+    expect(importedTags).toBeDefined();
+    expect(importedTags!.some((tag) => tag.id === tagA!.id)).toBe(true);
+    expect(importedTags!.some((tag) => tag.id === tagB!.id)).toBe(true);
+  });
+
   // ---------------------------------------------------------------------------
   // Per-row error shape (T9)
   // ---------------------------------------------------------------------------

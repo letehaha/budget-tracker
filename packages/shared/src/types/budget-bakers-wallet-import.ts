@@ -55,8 +55,9 @@ export interface BudgetBakersWalletParseCategory {
   transactionCount: number;
 }
 
-/** Distinct label value (Wallet's `labels` column: `Want` | `Need` | `Must`)
- *  found across all rows. Each becomes a tag on execute. */
+/** Distinct label value found across all rows. Wallet's `labels` column joins
+ *  multiple labels on one row with `, ` (e.g. `Maru, Ahorro`), so a single row
+ *  can contribute several of these. Each distinct value becomes a tag on execute. */
 export interface BudgetBakersWalletParseTag {
   name: string;
   transactionCount: number;
@@ -91,9 +92,10 @@ export interface BudgetBakersWalletParseTransaction {
    *  `Transfer`). The execute step maps this to the app's PAYMENT_TYPES
    *  enum; passing it raw keeps the parser free of enum dependencies. */
   paymentType: string;
-  /** Raw label string (`Want`, `Need`, `Must`) or null when the cell is
-   *  empty. Becomes a tag on execute. */
-  tag: string | null;
+  /** Distinct label names parsed from the row's `labels` cell (comma-separated
+   *  in the export, e.g. `Maru, Ahorro` → `['Maru', 'Ahorro']`). Empty when the
+   *  cell is blank. Each becomes a tag attached to the transaction on execute. */
+  tags: string[];
   /** True when this row is an unpaired transfer leg (no matching counterpart
    *  was found during pairing). The execute step imports these as
    *  `transfer_out_wallet` transactions rather than ordinary income/expense. */

@@ -505,4 +505,45 @@ describe('parseBudgetBakersWalletCsv', () => {
       expect(result.warnings.some((w) => w.code === 'row-skipped')).toBe(true);
     });
   });
+
+  // Wallet joins several labels on one row with ", " in the `labels` cell, so a
+  // single cell like "Maru, Ahorro" must yield two distinct tags both attached to
+  // the row — not one combined "Maru, Ahorro" tag.
+  describe('comma-separated labels', () => {
+    it('splits a multi-label cell into distinct tags attached to the transaction', () => {
+      const csv = [
+        WALLET_HEADERS,
+        'Acc;Food;USD;10;10;Expense;Cash;Lunch;2025-01-01T10:00:00.000Z;false;;Maru, Ahorro',
+      ].join('\n');
+      const result = parseBudgetBakersWalletCsv({ fileContent: csv });
+
+      expect(result.transactions).toHaveLength(1);
+      expect(result.transactions[0]!.tags).toEqual(['Maru', 'Ahorro']);
+      expect(result.tags.map((t) => t.name).toSorted()).toEqual(['Ahorro', 'Maru']);
+    });
+
+    it('counts each label across rows independently', () => {
+      const csv = [
+        WALLET_HEADERS,
+        'Acc;Food;USD;10;10;Expense;Cash;;2025-01-01T10:00:00.000Z;false;;Ahorro, Recompensas',
+        'Acc;Food;USD;20;20;Expense;Cash;;2025-01-02T10:00:00.000Z;false;;Ahorro',
+      ].join('\n');
+      const result = parseBudgetBakersWalletCsv({ fileContent: csv });
+
+      const ahorro = result.tags.find((t) => t.name === 'Ahorro')!;
+      const recompensas = result.tags.find((t) => t.name === 'Recompensas')!;
+      expect(ahorro.transactionCount).toBe(2);
+      expect(recompensas.transactionCount).toBe(1);
+    });
+
+    it('treats a single-label cell as one tag (no regression)', () => {
+      const csv = [WALLET_HEADERS, 'Acc;Food;USD;10;10;Expense;Cash;;2025-01-01T10:00:00.000Z;false;;Recompensas'].join(
+        '\n',
+      );
+      const result = parseBudgetBakersWalletCsv({ fileContent: csv });
+
+      expect(result.transactions[0]!.tags).toEqual(['Recompensas']);
+      expect(result.tags.map((t) => t.name)).toEqual(['Recompensas']);
+    });
+  });
 });

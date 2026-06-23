@@ -236,8 +236,14 @@ export async function executeBudgetBakersWalletImport({
       // category through the mapping; an unmapped name yields undefined (no
       // category), matching CSV behaviour.
       const categoryId = !tx.outOfWallet && tx.categoryName ? categoryNameToId.get(tx.categoryName) : undefined;
-      const tagId = tx.tag ? tagIdByName.get(tx.tag) : undefined;
-      const tagIds = tagId ? [tagId] : undefined;
+      // A row can carry several comma-separated Wallet labels; attach every one.
+      // Any name without a resolved id (should not happen — all parsed tags are
+      // created in Phase 4) is dropped; an empty result becomes undefined so the
+      // row imports untagged rather than with an empty tag list.
+      const resolvedTagIds = tx.tags
+        .map((name) => tagIdByName.get(name))
+        .filter((id): id is string => id !== undefined);
+      const tagIds = resolvedTagIds.length > 0 ? resolvedTagIds : undefined;
       const transferNature = tx.outOfWallet
         ? TRANSACTION_TRANSFER_NATURE.transfer_out_wallet
         : TRANSACTION_TRANSFER_NATURE.not_transfer;

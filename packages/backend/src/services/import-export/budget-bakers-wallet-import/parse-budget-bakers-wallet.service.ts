@@ -17,6 +17,7 @@ import { parse } from 'csv-parse/sync';
 import { interpretBudgetBakersWalletType, isBudgetBakersWalletTransferCategory } from './localized-values';
 import { parseBudgetBakersWalletAmount } from './parse-amount';
 import { parseBudgetBakersWalletDate } from './parse-date';
+import { parseBudgetBakersWalletLabels } from './parse-labels';
 
 /** Roadmap board where users request importer support for more Wallet export languages. */
 const BUDGET_BAKERS_WALLET_ROADMAP_URL = 'https://moneymatter.featurebase.app/dashboard/roadmap';
@@ -55,7 +56,8 @@ interface ParsedLeg {
   date: string;
   /** Whether this row is a transfer leg (`transfer` column === 'true'). */
   isTransfer: boolean;
-  tag: string | null;
+  /** Distinct label names from the row's `labels` cell (comma-separated in the export). */
+  tags: string[];
   category: string | null;
 }
 
@@ -177,8 +179,9 @@ export function parseBudgetBakersWalletCsv({ fileContent }: { fileContent: strin
     const paymentType = (record['payment_type'] ?? '').trim();
     const note = (record['note'] ?? '').trim();
     const isTransfer = (record['transfer'] ?? '').trim() === 'true';
-    const rawLabels = (record['labels'] ?? '').trim();
-    const tag = rawLabels || null;
+    // Wallet joins multiple labels on one row with ", " in the `labels` cell;
+    // split them so each becomes its own tag rather than one combined tag.
+    const tags = parseBudgetBakersWalletLabels({ raw: record['labels'] });
     const rawCategory = (record['category'] ?? '').trim();
     // The transfer-marker string is never a real category; store null for it
     // so downstream code never sees it as a category name.
@@ -196,7 +199,7 @@ export function parseBudgetBakersWalletCsv({ fileContent }: { fileContent: strin
       note,
       date,
       isTransfer,
-      tag,
+      tags,
       category,
     });
   });
@@ -239,7 +242,7 @@ export function parseBudgetBakersWalletCsv({ fileContent }: { fileContent: strin
         amount: l.signedAmount,
         type: l.type === 'Expense' ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
         paymentType: l.paymentType,
-        tag: l.tag,
+        tags: l.tags,
         outOfWallet: false,
       }),
     ),
@@ -253,7 +256,7 @@ export function parseBudgetBakersWalletCsv({ fileContent }: { fileContent: strin
         amount: l.signedAmount,
         type: l.type === 'Expense' ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
         paymentType: l.paymentType,
-        tag: l.tag,
+        tags: l.tags,
         outOfWallet: true,
       }),
     ),
@@ -420,8 +423,10 @@ function collectTags({ legs }: { legs: ParsedLeg[] }): BudgetBakersWalletParseTa
   const byName = new Map<string, number>();
 
   for (const leg of legs) {
-    if (!leg.tag) continue;
-    byName.set(leg.tag, (byName.get(leg.tag) ?? 0) + 1);
+    // A leg can carry several labels; each distinct one counts the leg once.
+    for (const tag of leg.tags) {
+      byName.set(tag, (byName.get(tag) ?? 0) + 1);
+    }
   }
 
   return Array.from(byName.entries())
