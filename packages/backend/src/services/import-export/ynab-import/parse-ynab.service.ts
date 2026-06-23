@@ -15,9 +15,9 @@ import {
   type YnabParseWarning,
 } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
+import { roundCurrency } from '@services/import-export/core/round-currency';
 import { parse } from 'csv-parse/sync';
 
-import { roundCurrency } from '../round-currency';
 import { parseYnabAmount } from './parse-amount';
 import { parseYnabDate } from './parse-date';
 

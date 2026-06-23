@@ -152,7 +152,7 @@
 
             <!-- Skip-or-abort choice inline with the callout -->
             <div class="flex flex-wrap gap-2">
-              <UiButton variant="default" size="sm" :disabled="store.importInProgress" @click="handleSkipAndImport">
+              <UiButton variant="default" size="sm" :disabled="store.isExecuting" @click="handleSkipAndImport">
                 {{ $t('pages.importExport.csvImport.review.skipAndImport') }}
               </UiButton>
               <UiButton variant="outline" size="sm" @click="store.goBack()">
@@ -185,9 +185,9 @@
         </p>
       </div>
 
-      <!-- Import error callout (execute-import API failure) -->
-      <Callout v-if="store.importError" variant="destructive" role="alert">
-        <p>{{ store.importError }}</p>
+      <!-- Import error callout (execute-import enqueue failure) -->
+      <Callout v-if="store.executeError" variant="destructive" role="alert">
+        <p>{{ store.executeError }}</p>
       </Callout>
 
       <!-- Footer actions — hidden when the unpriceable consent panel is active (it has its own buttons) -->
@@ -197,11 +197,8 @@
           {{ $t('pages.importExport.csvImport.review.backToMapping') }}
         </UiButton>
 
-        <UiButton
-          :disabled="store.importSummary.willImport === 0 || store.importInProgress"
-          @click="handleExecuteImport"
-        >
-          <template v-if="store.importInProgress">
+        <UiButton :disabled="store.importSummary.willImport === 0 || store.isExecuting" @click="handleExecuteImport">
+          <template v-if="store.isExecuting">
             <LoaderCircleIcon class="mr-1.5 size-4 animate-spin" />
             {{ $t('pages.importExport.csvImport.review.importing') }}
           </template>
@@ -302,20 +299,15 @@ const compactRowSummary = (rawData: InvalidRow['rawData']): string => {
 
 // --- Actions ---
 
+// executeImport enqueues the async job and resolves once it's accepted (or sets
+// store.executeError and returns on enqueue failure), so no try/catch is needed:
+// any error surfaces via the executeError callout below.
 const handleExecuteImport = async () => {
-  try {
-    await store.executeImport();
-  } catch {
-    // Error captured in store.importError and shown via Callout.
-  }
+  await store.executeImport();
 };
 
 const handleSkipAndImport = async () => {
   const skipUnpriceableIndices = store.unpriceableRows.map((r) => r.rowIndex);
-  try {
-    await store.executeImport({ skipUnpriceableIndices });
-  } catch {
-    // Error captured in store.importError and shown via Callout.
-  }
+  await store.executeImport({ skipUnpriceableIndices });
 };
 </script>

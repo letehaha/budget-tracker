@@ -157,7 +157,7 @@ watch(
           <button
             v-if="clearable && displayItem"
             type="button"
-            :aria-label="t('components.selectField.clearSelection')"
+            :aria-label="t('common.components.selectField.clearSelection')"
             class="text-muted-foreground hover:text-foreground focus-visible:ring-ring mr-1 ml-auto shrink-0 rounded focus:outline-none focus-visible:ring-1"
             @click="handleClear"
             @keydown.enter.stop="handleClear"

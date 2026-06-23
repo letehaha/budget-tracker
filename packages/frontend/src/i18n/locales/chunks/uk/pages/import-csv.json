@@ -62,6 +62,16 @@
           "nextExtract": "Далі: Вилучити значення",
           "continueToDuplicates": "Перейти до перевірки дублікатів"
         },
+        "execute": {
+          "starting": "Початок імпорту…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "В черзі",
+          "statusRunning": "Імпортування…",
+          "statusCompleted": "Завершено",
+          "statusFailed": "Помилка",
+          "failed": "Помилка імпорту.",
+          "partialImportNote": "Деякі рядки могли бути вже імпортовані до цієї помилки. Повторний імпорт може створити дублікати."
+        },
         "review": {
           "stepTitle": "Перегляд імпорту",
           "description": "Перегляньте дані перед імпортом",

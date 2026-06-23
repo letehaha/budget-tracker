@@ -1,23 +1,23 @@
 import type {
   AccountMappingConfig,
+  BudgetBakersWalletAccountMapping,
+  BudgetBakersWalletImportProgress,
   CategoryMappingConfig,
   ColumnMappingConfig,
+  CsvImportProgress,
+  DetectBudgetBakersWalletDuplicatesResponse,
   DetectDuplicatesResponse,
-  DetectWalletDuplicatesResponse,
+  ExecuteBudgetBakersWalletResponse,
   ExecuteImportResponse,
   ExecuteYnabResponse,
-  ExecuteWalletResponse,
   ExtractUniqueValuesResponse,
   ExtractedMetadata,
   ExtractedTransaction,
-  ParsedTransactionRow,
+  ParseBudgetBakersWalletResponse,
   ParseYnabResponse,
-  ParseWalletResponse,
   StatementDetectDuplicatesResponse,
   StatementExecuteImportResponse,
   TagMappingConfig,
-  WalletAccountMapping,
-  WalletImportProgress,
   YnabAccountMapping,
   YnabImportProgress,
 } from '@bt/shared/types';
@@ -30,7 +30,7 @@ import { type UtilizeReturnType, makeRequest } from './common';
 const FIXTURES_PATH = path.join(__dirname, '../fixtures/csv-import');
 const STATEMENT_FIXTURES_PATH = path.join(__dirname, '../fixtures');
 const YNAB_FIXTURES_PATH = path.join(__dirname, '../fixtures/ynab-import');
-const WALLET_FIXTURES_PATH = path.join(__dirname, '../fixtures/wallet-import');
+const BUDGET_BAKERS_WALLET_FIXTURES_PATH = path.join(__dirname, '../fixtures/budget-bakers-wallet-import');
 
 /** Load a YNAB Register.csv fixture by filename. */
 export function loadYnabFixture(filename: string): string {
@@ -149,7 +149,9 @@ export function detectDuplicates<R extends boolean | undefined = false>({
 // ============================================
 
 interface ExecuteImportParams {
-  validRows: ParsedTransactionRow[];
+  fileContent: string;
+  delimiter: string;
+  columnMapping: ColumnMappingConfig;
   accountMapping: AccountMappingConfig;
   categoryMapping: CategoryMappingConfig;
   tagMapping?: TagMappingConfig;
@@ -157,8 +159,14 @@ interface ExecuteImportParams {
   skipUnpriceableIndices?: number[];
   defaultAccountId?: string;
   defaultCategoryId?: string;
+  timezone?: string;
 }
 
+/**
+ * POST /import/csv/execute. The CSV execute step is asynchronous: this enqueues a
+ * background job and resolves to `{ jobId }`. Callers poll the result via
+ * {@link waitForCsvImportCompletion} (mirrors `executeBudgetBakersWallet` / `executeYnab`).
+ */
 export function executeImport<R extends boolean | undefined = false>({
   payload,
   raw,
@@ -172,6 +180,58 @@ export function executeImport<R extends boolean | undefined = false>({
     payload,
     raw,
   });
+}
+
+export function getCsvImportStatus<R extends boolean | undefined = false>({
+  jobId,
+  raw,
+}: {
+  jobId: string;
+  raw?: R;
+}): UtilizeReturnType<() => CsvImportProgress, R> {
+  return makeRequest<CsvImportProgress, R>({
+    method: 'get',
+    url: `/import/csv/execute/status/${jobId}`,
+    raw,
+  });
+}
+
+/**
+ * Poll GET /import/csv/execute/status/:jobId every 100 ms until the job leaves
+ * the running/queued states or the timeout elapses. The BullMQ worker is async,
+ * so the execute response only carries `jobId` — callers must poll for the
+ * result. Mirrors `waitForBudgetBakersWalletCompletion`.
+ */
+export async function waitForCsvImportCompletion({
+  jobId,
+  timeoutMs = 30_000,
+}: {
+  jobId: string;
+  timeoutMs?: number;
+}): Promise<CsvImportProgress> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const progress = await getCsvImportStatus({ jobId, raw: true });
+    if (progress.status === 'completed' || progress.status === 'failed') {
+      return progress;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`CSV import job ${jobId} did not finish within ${timeoutMs}ms`);
+}
+
+/**
+ * Narrow terminal CSV-import progress to the `completed` branch so tests can read
+ * `summary` directly. Throws (failing the calling test) when the worker finished
+ * with `status:'failed'`. Mirrors the Budget Bakers Wallet importer's `expectCompleted`.
+ */
+export function expectCsvImportCompleted(
+  progress: CsvImportProgress,
+): asserts progress is Extract<CsvImportProgress, { status: 'completed' }> {
+  if (progress.status !== 'completed') {
+    const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
+    throw new Error(`Expected completed CSV import, got status="${progress.status}".${detail}`);
+  }
 }
 
 // ============================================
@@ -289,69 +349,69 @@ export function getYnabImportStatus<R extends boolean | undefined = false>({
 }
 
 // ============================================
-// Wallet Import - Fixture Loader
+// Budget Bakers Wallet Import - Fixture Loader
 // ============================================
 
 /** Load a Wallet (BudgetBakers) CSV fixture by filename. */
-export function loadWalletFixture(filename: string): string {
-  const filePath = path.join(WALLET_FIXTURES_PATH, filename);
+export function loadBudgetBakersWalletFixture(filename: string): string {
+  const filePath = path.join(BUDGET_BAKERS_WALLET_FIXTURES_PATH, filename);
   return fs.readFileSync(filePath, 'utf-8');
 }
 
 // ============================================
-// Wallet Import - Parse Endpoint
+// Budget Bakers Wallet Import - Parse Endpoint
 // ============================================
 
-interface ParseWalletParams {
+interface ParseBudgetBakersWalletParams {
   fileContent: string;
 }
 
-export function parseWallet<R extends boolean | undefined = false>({
+export function parseBudgetBakersWallet<R extends boolean | undefined = false>({
   payload,
   raw,
 }: {
-  payload: ParseWalletParams;
+  payload: ParseBudgetBakersWalletParams;
   raw?: R;
-}): UtilizeReturnType<() => ParseWalletResponse, R> {
-  return makeRequest<ParseWalletResponse, R>({
+}): UtilizeReturnType<() => ParseBudgetBakersWalletResponse, R> {
+  return makeRequest<ParseBudgetBakersWalletResponse, R>({
     method: 'post',
-    url: '/import/wallet/parse',
+    url: '/import/budget-bakers-wallet/parse',
     payload,
     raw,
   });
 }
 
 // ============================================
-// Wallet Import - Detect Duplicates Endpoint
+// Budget Bakers Wallet Import - Detect Duplicates Endpoint
 // ============================================
 
-interface DetectWalletDuplicatesParams {
+interface DetectBudgetBakersWalletDuplicatesParams {
   fileContent: string;
-  accountMapping: WalletAccountMapping;
+  accountMapping: BudgetBakersWalletAccountMapping;
 }
 
-export function detectWalletDuplicates<R extends boolean | undefined = false>({
+export function detectBudgetBakersWalletDuplicates<R extends boolean | undefined = false>({
   payload,
   raw,
 }: {
-  payload: DetectWalletDuplicatesParams;
+  payload: DetectBudgetBakersWalletDuplicatesParams;
   raw?: R;
-}): UtilizeReturnType<() => DetectWalletDuplicatesResponse, R> {
-  return makeRequest<DetectWalletDuplicatesResponse, R>({
+}): UtilizeReturnType<() => DetectBudgetBakersWalletDuplicatesResponse, R> {
+  return makeRequest<DetectBudgetBakersWalletDuplicatesResponse, R>({
     method: 'post',
-    url: '/import/wallet/detect-duplicates',
+    url: '/import/budget-bakers-wallet/detect-duplicates',
     payload,
     raw,
   });
 }
 
 // ============================================
-// Wallet Import - Execute Endpoint
+// Budget Bakers Wallet Import - Execute Endpoint
 // ============================================
 
-interface ExecuteWalletParams {
+interface ExecuteBudgetBakersWalletParams {
   fileContent: string;
-  accountMapping: WalletAccountMapping;
+  accountMapping: BudgetBakersWalletAccountMapping;
   /** Per-category decision keyed by the verbatim Wallet `category` value.
    *  Defaults to `{}` so existing callers that omit it still satisfy the
    *  backend's required field — an empty record is valid (all parsed categories
@@ -360,19 +420,19 @@ interface ExecuteWalletParams {
   skipDuplicateIndices?: number[];
 }
 
-export function executeWallet<R extends boolean | undefined = false>({
+export function executeBudgetBakersWallet<R extends boolean | undefined = false>({
   payload,
   raw,
 }: {
-  payload: ExecuteWalletParams;
+  payload: ExecuteBudgetBakersWalletParams;
   raw?: R;
-}): UtilizeReturnType<() => ExecuteWalletResponse, R> {
+}): UtilizeReturnType<() => ExecuteBudgetBakersWalletResponse, R> {
   // `?? []` / `?? {}` guard against a caller passing the field as `undefined`,
   // which would otherwise overwrite the safe default and fail Zod validation.
   const { skipDuplicateIndices, categoryMapping, ...rest } = payload;
-  return makeRequest<ExecuteWalletResponse, R>({
+  return makeRequest<ExecuteBudgetBakersWalletResponse, R>({
     method: 'post',
-    url: '/import/wallet/execute',
+    url: '/import/budget-bakers-wallet/execute',
     payload: {
       ...rest,
       skipDuplicateIndices: skipDuplicateIndices ?? [],
@@ -383,51 +443,52 @@ export function executeWallet<R extends boolean | undefined = false>({
 }
 
 // ============================================
-// Wallet Import - Status Endpoint
+// Budget Bakers Wallet Import - Status Endpoint
 // ============================================
 
-export function getWalletImportStatus<R extends boolean | undefined = false>({
+export function getBudgetBakersWalletImportStatus<R extends boolean | undefined = false>({
   jobId,
   raw,
 }: {
   jobId: string;
   raw?: R;
-}): UtilizeReturnType<() => WalletImportProgress, R> {
-  return makeRequest<WalletImportProgress, R>({
+}): UtilizeReturnType<() => BudgetBakersWalletImportProgress, R> {
+  return makeRequest<BudgetBakersWalletImportProgress, R>({
     method: 'get',
-    url: `/import/wallet/status/${jobId}`,
+    url: `/import/budget-bakers-wallet/status/${jobId}`,
     raw,
   });
 }
 
 // ============================================
-// Wallet Import - Shared polling helper
+// Budget Bakers Wallet Import - Shared polling helper
 // ============================================
 
 /**
- * Poll GET /import/wallet/status/:jobId every 100 ms until the job leaves the
- * running/queued states or the timeout elapses. The BullMQ worker is async, so
- * the execute response only carries `jobId` — callers must poll for the result.
+ * Poll GET /import/budget-bakers-wallet/status/:jobId every 100 ms until the job
+ * leaves the running/queued states or the timeout elapses. The BullMQ worker is
+ * async, so the execute response only carries `jobId` — callers must poll for the
+ * result.
  *
  * A single shared implementation avoids divergent timeouts across test files
  * (detect-duplicates and execute-import both need it).
  */
-export async function waitForWalletCompletion({
+export async function waitForBudgetBakersWalletCompletion({
   jobId,
   timeoutMs = 30_000,
 }: {
   jobId: string;
   timeoutMs?: number;
-}): Promise<WalletImportProgress> {
+}): Promise<BudgetBakersWalletImportProgress> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const progress = await getWalletImportStatus({ jobId, raw: true });
+    const progress = await getBudgetBakersWalletImportStatus({ jobId, raw: true });
     if (progress.status === 'completed' || progress.status === 'failed') {
       return progress;
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`Wallet import job ${jobId} did not finish within ${timeoutMs}ms`);
+  throw new Error(`Budget Bakers Wallet import job ${jobId} did not finish within ${timeoutMs}ms`);
 }
 
 /**
@@ -438,8 +499,8 @@ export async function waitForWalletCompletion({
  * completion identically.
  */
 export function expectCompleted(
-  progress: WalletImportProgress,
-): asserts progress is Extract<WalletImportProgress, { status: 'completed' }> {
+  progress: BudgetBakersWalletImportProgress,
+): asserts progress is Extract<BudgetBakersWalletImportProgress, { status: 'completed' }> {
   if (progress.status !== 'completed') {
     const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
     throw new Error(`Expected completed import, got status="${progress.status}".${detail}`);

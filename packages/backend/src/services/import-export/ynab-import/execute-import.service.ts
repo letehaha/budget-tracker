@@ -1,7 +1,5 @@
 import {
-  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
-  CATEGORY_TYPES,
   ImportSource,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
@@ -12,24 +10,20 @@ import {
   type YnabFlagColor,
   type YnabImportSummary,
 } from '@bt/shared/types';
-import { pickRandomColor } from '@common/lib/random-color';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import * as Accounts from '@models/accounts.model';
-import Categories from '@models/categories.model';
 import Payees from '@models/payees.model';
-import Tags from '@models/tags.model';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { createCategory } from '@services/categories/create-category';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { normalizePayeeName } from '@services/payees/normalize-name';
 import { createPayee } from '@services/payees/payees.service';
-import { createTag } from '@services/tags/create-tag';
 import { createTransaction } from '@services/transactions';
 import { Op } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
+import { createAccountsIfNeeded } from '../core/resolve/create-accounts-if-needed';
+import { createTwoLevelCategoriesIfNeeded } from '../core/resolve/create-categories-if-needed';
+import { createNamedTagsIfNeeded } from '../core/resolve/create-tags-if-needed';
 import { parseYnabRegister } from './parse-ynab.service';
 
 /** User-facing tag name for each flag color. */
@@ -109,87 +103,39 @@ export async function executeYnabImport({
   // Phase 2: accounts (Map<ynabName, accountId>). Every YNAB account always
   // creates a fresh app account — the wizard never links into an existing one,
   // so users get an isolated import that's safe to delete wholesale if they
-  // want to re-import.
-  const accountIdByName = new Map<string, string>();
+  // want to re-import. `alwaysCreate` bypasses the link-existing path entirely;
+  // currency comes from the per-account mapping and the starting balance is
+  // converted at the earliest CSV date via `initialBalanceFxDate`.
+  const startingBalanceCentsByName = new Map<string, number>();
   for (const ynabAccount of parsed.accounts) {
-    const mapping = accountMapping[ynabAccount.originalName]!;
-    const initialBalance = Money.fromDecimal(ynabAccount.startingBalance);
-    const refInitialBalance = await calculateRefAmount({
-      userId,
-      amount: initialBalance,
-      baseCode: mapping.currencyCode,
-      date: initialBalanceFxDate,
-    });
-    const created = await Accounts.createAccount({
-      userId,
-      name: ynabAccount.originalName,
-      currencyCode: mapping.currencyCode,
-      accountCategory: ACCOUNT_CATEGORIES.general,
-      type: ACCOUNT_TYPES.system,
-      initialBalance,
-      refInitialBalance,
-      creditLimit: Money.zero(),
-      refCreditLimit: Money.zero(),
-    });
-    if (!created) {
-      throw new ValidationError({ message: `Failed to create account "${ynabAccount.originalName}".` });
-    }
-    accountIdByName.set(ynabAccount.originalName, created.id);
-    summary.accountsCreated += 1;
+    startingBalanceCentsByName.set(ynabAccount.originalName, Money.fromDecimal(ynabAccount.startingBalance).toCents());
   }
+  const { accountNameToId: accountIdByName, accountsCreated } = await createAccountsIfNeeded({
+    userId,
+    accountNames: parsed.accounts.map((a) => a.originalName),
+    accountMapping: {},
+    alwaysCreate: true,
+    resolveCurrencyCode: (accountName) => accountMapping[accountName]?.currencyCode,
+    resolveFxDate: () => initialBalanceFxDate,
+    resolveInitialBalanceCents: (accountName) => startingBalanceCentsByName.get(accountName) ?? 0,
+  });
+  summary.accountsCreated = accountsCreated;
 
   // Phase 3: categories. YNAB "Bills > Taxes" becomes parent "Bills" + child
   // "Taxes" under it. Existing same-named categories on the user are reused
-  // instead of duplicated. Lookups are batched (one query per level) so an
-  // import with dozens of categories doesn't issue a roundtrip per name.
-  const categoryByFullName = new Map<string, string>();
-  const parentByGroupName = new Map<string, string>();
-  const uniqueGroups = Array.from(new Set(parsed.categories.map((c) => c.groupName)));
-  if (uniqueGroups.length > 0) {
-    const existingParents = await Categories.findAll({
-      where: { userId, parentId: null, name: { [Op.in]: uniqueGroups } },
-    });
-    for (const parent of existingParents) {
-      parentByGroupName.set(parent.name, parent.id);
-    }
-  }
-  for (const groupName of uniqueGroups) {
-    if (parentByGroupName.has(groupName)) continue;
-    const newParent = await createCategory({
-      userId,
-      name: groupName,
-      color: pickRandomColor(),
-      type: CATEGORY_TYPES.custom,
-    });
-    parentByGroupName.set(groupName, newParent.id);
-    summary.categoriesCreated += 1;
-  }
-  const parentIds = Array.from(new Set(parentByGroupName.values()));
-  const childIdByParentAndName = new Map<string, string>();
-  if (parentIds.length > 0) {
-    const existingChildren = await Categories.findAll({
-      where: { userId, parentId: { [Op.in]: parentIds } },
-    });
-    for (const child of existingChildren) {
-      childIdByParentAndName.set(`${child.parentId}:${child.name}`, child.id);
-    }
-  }
-  for (const cat of parsed.categories) {
-    const parentId = parentByGroupName.get(cat.groupName)!;
-    const existingId = childIdByParentAndName.get(`${parentId}:${cat.categoryName}`);
-    if (existingId) {
-      categoryByFullName.set(cat.fullName, existingId);
-    } else {
-      const created = await createCategory({
-        userId,
-        name: cat.categoryName,
-        parentId,
-        type: CATEGORY_TYPES.custom,
-      });
-      categoryByFullName.set(cat.fullName, created.id);
-      summary.categoriesCreated += 1;
-    }
-  }
+  // instead of duplicated. The two-level helper batches the lookups (one query
+  // per level) so an import with dozens of categories doesn't issue a roundtrip
+  // per name, and keys the result by the parser's `fullName` — the same key the
+  // transaction loop builds as `${categoryGroup}: ${categoryName}`.
+  const { categoryIdByFullName: categoryByFullName, categoriesCreated } = await createTwoLevelCategoriesIfNeeded({
+    userId,
+    categories: parsed.categories.map((c) => ({
+      groupName: c.groupName,
+      categoryName: c.categoryName,
+      fullName: c.fullName,
+    })),
+  });
+  summary.categoriesCreated = categoriesCreated;
 
   // Phase 4: payees. Find-or-create on normalized name, with a single batched
   // lookup for everything that already exists.
@@ -231,38 +177,19 @@ export async function executeYnabImport({
     }
   }
 
-  // Phase 5: tags. Map flag colors to tag rows; reuse same-named tags.
+  // Phase 5: tags. Each YNAB flag color maps to a verbatim tag name (its flag
+  // color, hex from `YNAB_FLAG_HEX`). The shared helper find-or-creates them in
+  // one batched lookup and keys the result by tag name; rebuild the
+  // color → id map the row loops use from that.
+  const { tagIdByName, tagsCreated } = await createNamedTagsIfNeeded({
+    userId,
+    tags: parsed.tagsUsed.map((t) => ({ name: flagToTagName(t.color), color: YNAB_FLAG_HEX[t.color] })),
+  });
+  summary.tagsCreated = tagsCreated;
+
   const tagByColor = new Map<YnabFlagColor, string>();
-  const tagIdByName = new Map<string, string>();
-  if (parsed.tagsUsed.length > 0) {
-    const existingTags = await Tags.findAll({
-      where: { userId, name: { [Op.in]: parsed.tagsUsed.map((t) => flagToTagName(t.color)) } },
-    });
-    for (const tag of existingTags) {
-      tagIdByName.set(tag.name, tag.id);
-    }
-  }
   for (const tagUsage of parsed.tagsUsed) {
-    const tagName = flagToTagName(tagUsage.color);
-    const existingId = tagIdByName.get(tagName);
-    if (existingId) {
-      tagByColor.set(tagUsage.color, existingId);
-      continue;
-    }
-    try {
-      const created = await createTag({
-        userId,
-        name: tagName,
-        color: YNAB_FLAG_HEX[tagUsage.color],
-      });
-      tagByColor.set(tagUsage.color, created.id);
-      summary.tagsCreated += 1;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      logger.error({ message: `[YNAB import] Failed to create tag "${tagName}"`, error: err as Error });
-      // Flagged transactions will still land — just without this tag.
-      summary.errors.push({ rowIndex: -1, error: `Failed to create tag "${tagName}": ${message}` });
-    }
+    tagByColor.set(tagUsage.color, tagIdByName.get(flagToTagName(tagUsage.color))!);
   }
 
   let processedCount = 0;

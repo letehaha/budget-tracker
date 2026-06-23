@@ -1,0 +1,155 @@
+<template>
+  <div v-if="summary" class="@container/wallet-done space-y-6">
+    <!-- Banner variant driven by import outcome, not just job status -->
+    <Callout
+      v-if="importOutcome === 'success'"
+      variant="success"
+      :title="$t('pages.importExport.budgetBakersWalletImport.done.successTitle')"
+    >
+      <p class="text-sm opacity-80">{{ $t('pages.importExport.budgetBakersWalletImport.done.successDescription') }}</p>
+    </Callout>
+    <Callout
+      v-else-if="importOutcome === 'partial'"
+      variant="warning"
+      :title="$t('pages.importExport.budgetBakersWalletImport.done.partialTitle', { count: summary.errors.length })"
+    >
+      <p class="text-sm opacity-80">{{ $t('pages.importExport.budgetBakersWalletImport.done.partialDescription') }}</p>
+    </Callout>
+    <Callout v-else variant="warning" :title="$t('pages.importExport.budgetBakersWalletImport.done.allFailedTitle')">
+      <p class="text-sm opacity-80">
+        {{ $t('pages.importExport.budgetBakersWalletImport.done.allFailedDescription') }}
+      </p>
+    </Callout>
+
+    <div class="grid grid-cols-2 gap-3 @sm/wallet-done:grid-cols-3 @lg/wallet-done:grid-cols-4">
+      <StatCard
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.accountsCreated')"
+        :value="summary.accountsCreated"
+      />
+      <StatCard
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.accountsLinked')"
+        :value="summary.accountsLinked"
+      />
+      <StatCard
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.categoriesCreated')"
+        :value="summary.categoriesCreated"
+      />
+      <StatCard
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.tagsCreated')"
+        :value="summary.tagsCreated"
+      />
+      <StatCard
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.transactionsImported')"
+        :value="summary.transactionsImported"
+      />
+      <StatCard
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.transfersImported')"
+        :value="summary.transfersImported"
+      />
+      <StatCard
+        v-if="summary.outOfWalletImported > 0"
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.outOfWalletImported')"
+        :value="summary.outOfWalletImported"
+      />
+      <StatCard
+        v-if="summary.duplicatesSkipped > 0"
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.duplicatesSkipped')"
+        :value="summary.duplicatesSkipped"
+      />
+    </div>
+
+    <!-- Balance-desync callout: account balances could not be restored after import -->
+    <Callout
+      v-if="balanceDesyncErrors.length > 0"
+      variant="destructive"
+      role="alert"
+      :title="$t('pages.importExport.budgetBakersWalletImport.done.balanceWarningTitle')"
+    >
+      <p class="text-sm opacity-80">{{ $t('pages.importExport.budgetBakersWalletImport.done.balanceWarningBody') }}</p>
+      <ul class="mt-2 list-disc space-y-0.5 pl-5 text-xs">
+        <li v-for="(e, i) in balanceDesyncErrors" :key="i">{{ e.error }}</li>
+      </ul>
+    </Callout>
+
+    <Callout v-if="summary.errors.length > 0" variant="warning">
+      <p class="text-sm font-medium">
+        {{ $t('pages.importExport.budgetBakersWalletImport.done.errorsTitle', { count: summary.errors.length }) }}
+      </p>
+      <ul class="mt-1 list-disc space-y-0.5 pl-5 text-xs">
+        <li v-for="(e, i) in summary.errors.slice(0, MAX_ERRORS_SHOWN)" :key="i">
+          <!--
+            rowIndex is null for account-level errors (e.g. balance-restore failures)
+            that have no associated row; only prefix with "Row N:" when the index is known.
+          -->
+          <template v-if="e.rowIndex != null">
+            <span class="text-muted-foreground">
+              {{ $t('pages.importExport.budgetBakersWalletImport.preview.rowPrefix', { rowIndex: e.rowIndex }) }}
+            </span>
+          </template>
+          {{ e.error }}
+        </li>
+      </ul>
+      <!-- Overflow indicator when the error list is truncated -->
+      <p v-if="summary.errors.length > MAX_ERRORS_SHOWN" class="text-muted-foreground mt-1 text-xs">
+        {{
+          $t('pages.importExport.budgetBakersWalletImport.done.errorsOverflow', {
+            count: summary.errors.length - MAX_ERRORS_SHOWN,
+          })
+        }}
+      </p>
+    </Callout>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <UiButton @click="goToTransactions">
+        {{ $t('pages.importExport.budgetBakersWalletImport.done.viewTransactions') }}
+      </UiButton>
+      <UiButton variant="ghost" @click="store.reset()">
+        {{ $t('pages.importExport.budgetBakersWalletImport.done.importAnother') }}
+      </UiButton>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { Button as UiButton } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
+import { StatCard } from '@/components/lib/ui/stat-card';
+import { ROUTES_NAMES } from '@/routes';
+import { useImportBudgetBakersWalletStore } from '@/stores/import-budget-bakers-wallet';
+import { storeToRefs } from 'pinia';
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
+
+const MAX_ERRORS_SHOWN = 10;
+
+const router = useRouter();
+const store = useImportBudgetBakersWalletStore();
+const { progress } = storeToRefs(store);
+
+const summary = computed(() => (progress.value?.status === 'completed' ? progress.value.summary : null));
+
+/** Errors whose `code` indicates a post-import account balance restore failure. */
+const balanceDesyncErrors = computed(
+  () => summary.value?.errors.filter((e) => e.code === 'account-balance-desync') ?? [],
+);
+
+/**
+ * Derives the visual outcome from summary counts rather than raw job status.
+ * - 'success':  no errors (including no balance-desync errors), at least one row was imported
+ * - 'partial':  some rows imported AND some errors (mixed result), or balance-desync errors present
+ * - 'failure':  nothing was imported at all (every row failed or file was empty with errors)
+ */
+const importOutcome = computed(() => {
+  if (!summary.value) return 'failure';
+  const { transactionsImported, transfersImported, outOfWalletImported, errors } = summary.value;
+  const totalImported = transactionsImported + transfersImported + outOfWalletImported;
+  if (errors.length === 0 && balanceDesyncErrors.value.length === 0 && totalImported > 0) return 'success';
+  if (totalImported > 0) return 'partial';
+  return 'failure';
+});
+
+function goToTransactions() {
+  store.reset();
+  router.push({ name: ROUTES_NAMES.transactions });
+}
+</script>

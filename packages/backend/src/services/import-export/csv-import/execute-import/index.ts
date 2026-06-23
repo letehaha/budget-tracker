@@ -1,14 +1,13 @@
 import type {
   AccountMappingConfig,
   CategoryMappingConfig,
-  ExecuteImportResponse,
+  CsvImportSummary,
   ImportError,
   ParsedTransactionRow,
   TagMappingConfig,
   TransactionImportDetails,
 } from '@bt/shared/types';
 import {
-  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   ImportSource,
   PAYMENT_TYPES,
@@ -16,18 +15,16 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { ValidationError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import { trackImportCompleted } from '@js/utils/posthog';
-import * as Accounts from '@models/accounts.model';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
+import { createAccountsIfNeeded } from '@services/import-export/core/resolve/create-accounts-if-needed';
+import { createCategoriesIfNeeded } from '@services/import-export/core/resolve/create-categories-if-needed';
+import { createTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
+import { resolveRowTagIds } from '@services/import-export/core/resolve/resolve-row-tag-ids';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
-
-import { createCategoriesIfNeeded } from './create-categories-if-needed';
-import { createTagsIfNeeded } from './create-tags-if-needed';
-import { resolveRowTagIds } from './resolve-row-tag-ids';
 
 interface ExecuteImportParams {
   userId: number;
@@ -47,6 +44,13 @@ interface ExecuteImportParams {
   skipUnpriceableIndices?: number[];
   defaultAccountId?: string;
   defaultCategoryId?: string;
+  /**
+   * Called with the cumulative `processedCount` after each successfully created
+   * transaction so the BullMQ worker can fan progress out over SSE. `totalCount`
+   * is the number of rows that will actually be imported (`rowsToImport.length`).
+   * Optional — safe to omit in tests or one-shot callers.
+   */
+  onProgress?: (processedCount: number, totalCount: number) => void | Promise<void>;
 }
 
 /**
@@ -68,7 +72,8 @@ async function executeImportImpl({
   skipUnpriceableIndices,
   defaultAccountId,
   defaultCategoryId,
-}: ExecuteImportParams): Promise<ExecuteImportResponse> {
+  onProgress,
+}: ExecuteImportParams): Promise<CsvImportSummary> {
   const batchId = uuidv4();
   const importedAt = new Date();
 
@@ -86,17 +91,19 @@ async function executeImportImpl({
   const dupSkipSet = new Set(skipDuplicateIndices);
   const skippedUnpriceableCount = (skipUnpriceableIndices ?? []).filter((i) => !dupSkipSet.has(i)).length;
 
+  // Report the real total once up front so a no-op import still surfaces its
+  // total and the worker reports the correct `totalCount` instead of 0.
+  if (onProgress) await onProgress(0, rowsToImport.length);
+
   if (rowsToImport.length === 0) {
     return {
-      summary: {
-        imported: 0,
-        skipped: skipDuplicateIndices.length,
-        skippedUnpriceable: skippedUnpriceableCount,
-        accountsCreated: 0,
-        categoriesCreated: 0,
-        tagsCreated: 0,
-        errors: [],
-      },
+      imported: 0,
+      skipped: skipDuplicateIndices.length,
+      skippedUnpriceable: skippedUnpriceableCount,
+      accountsCreated: 0,
+      categoriesCreated: 0,
+      tagsCreated: 0,
+      errors: [],
       newTransactionIds: [],
       batchId,
     };
@@ -108,11 +115,16 @@ async function executeImportImpl({
   // Add all currencies to user's currencies
   await addUserCurrencies(Array.from(uniqueCurrencies).map((code) => ({ userId, currencyCode: code })));
 
-  // Create accounts that need to be created
-  const accountNameToId = await createAccountsIfNeeded({
+  // Create accounts that need to be created. Currency for a new account comes
+  // from the first row that uses it; the fx reference date is "now" to preserve
+  // the prior behavior.
+  const uniqueAccountNames = Array.from(new Set(rowsToImport.map((r) => r.accountName)));
+  const { accountNameToId } = await createAccountsIfNeeded({
     userId,
-    rowsToImport,
+    accountNames: uniqueAccountNames,
     accountMapping,
+    resolveCurrencyCode: (accountName) => rowsToImport.find((r) => r.accountName === accountName)?.currencyCode,
+    resolveFxDate: () => new Date(),
     defaultAccountId,
   });
 
@@ -141,6 +153,21 @@ async function executeImportImpl({
   // Create transactions
   const errors: ImportError[] = [];
   const newTransactionIds: string[] = [];
+
+  let processedCount = 0;
+  const tick = async () => {
+    processedCount += 1;
+    if (!onProgress) return;
+    // Progress reporting is a best-effort side-effect (it fans out over SSE). A
+    // failure here must never reject the import nor be attributed to a row, so
+    // it is contained and logged rather than propagated. The count is already
+    // advanced above, so a dropped tick does not desync the final total.
+    try {
+      await onProgress(processedCount, rowsToImport.length);
+    } catch (err) {
+      logger.error({ message: '[CSV import] Progress callback failed', error: err as Error });
+    }
+  };
 
   for (const row of rowsToImport) {
     try {
@@ -214,6 +241,11 @@ async function executeImportImpl({
             payeeId: transaction.payeeId,
           });
         }
+
+        // Tick once per committed row, OUTSIDE the correctness path above: a
+        // progress/SSE error must not be recorded as a fake per-row import
+        // error against a row that did commit, nor abort the run.
+        await tick();
       }
     } catch (error) {
       errors.push({
@@ -233,108 +265,16 @@ async function executeImportImpl({
   }
 
   return {
-    summary: {
-      imported: newTransactionIds.length,
-      skipped: skipDuplicateIndices.length,
-      skippedUnpriceable: skippedUnpriceableCount,
-      accountsCreated,
-      categoriesCreated,
-      tagsCreated,
-      errors,
-    },
+    imported: newTransactionIds.length,
+    skipped: skipDuplicateIndices.length,
+    skippedUnpriceable: skippedUnpriceableCount,
+    accountsCreated,
+    categoriesCreated,
+    tagsCreated,
+    errors,
     newTransactionIds,
     batchId,
   };
-}
-
-interface CreateAccountsParams {
-  userId: number;
-  rowsToImport: ParsedTransactionRow[];
-  accountMapping: AccountMappingConfig;
-  defaultAccountId?: string;
-}
-
-async function createAccountsIfNeeded({
-  userId,
-  rowsToImport,
-  accountMapping,
-  defaultAccountId,
-}: CreateAccountsParams): Promise<Map<string, string>> {
-  const accountNameToId = new Map<string, string>();
-
-  // Get unique account names from rows
-  const uniqueAccountNames = new Set(rowsToImport.map((r) => r.accountName));
-
-  for (const accountName of uniqueAccountNames) {
-    const mapping = accountMapping[accountName];
-
-    if (!mapping) {
-      // Fallback: when the user picked "single existing account" for the whole import,
-      // accountName is empty for every row and per-name mapping is empty. Use defaultAccountId.
-      if (defaultAccountId !== undefined) {
-        const account = await Accounts.getAccountById({ userId, id: defaultAccountId });
-        if (!account) {
-          throw new ValidationError({
-            message: `Account with ID ${defaultAccountId} not found`,
-          });
-        }
-        accountNameToId.set(accountName, account.id);
-        continue;
-      }
-
-      throw new ValidationError({
-        message: `No mapping found for account "${accountName}"`,
-      });
-    }
-
-    if (mapping.action === 'link-existing') {
-      // Verify account exists
-      const account = await Accounts.getAccountById({ userId, id: mapping.accountId });
-      if (!account) {
-        throw new ValidationError({
-          message: `Account with ID ${mapping.accountId} not found`,
-        });
-      }
-      accountNameToId.set(accountName, account.id);
-    } else if (mapping.action === 'create-new') {
-      // Get currency for this account from the first row that uses it
-      const rowWithAccount = rowsToImport.find((r) => r.accountName === accountName);
-      const currencyCode = rowWithAccount?.currencyCode;
-
-      if (!currencyCode) {
-        throw new ValidationError({
-          message: `Cannot determine currency for new account "${accountName}"`,
-        });
-      }
-
-      // Calculate ref values
-      const refInitialBalance = await calculateRefAmount({
-        userId,
-        amount: Money.zero(),
-        baseCode: currencyCode,
-        date: new Date(),
-      });
-
-      // Create the account
-      const newAccount = await Accounts.createAccount({
-        userId,
-        name: accountName,
-        currencyCode,
-        accountCategory: ACCOUNT_CATEGORIES.general,
-        type: ACCOUNT_TYPES.system,
-        initialBalance: Money.zero(),
-        refInitialBalance,
-        creditLimit: Money.zero(),
-        refCreditLimit: Money.zero(),
-      });
-
-      if (newAccount) {
-        accountNameToId.set(accountName, newAccount.id);
-      }
-    }
-  }
-
-  return accountNameToId;
 }
 
 export const executeImport = executeImportImpl;

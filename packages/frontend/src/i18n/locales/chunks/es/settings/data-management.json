@@ -24,7 +24,7 @@
         "cta": "Importar desde YNAB",
         "listDescription": "Cuentas, transacciones, categorías y beneficiarios"
       },
-      "wallet": {
+      "budget-bakers-wallet": {
         "title": "Wallet (BudgetBakers)",
         "description": "Importe transacciones exportadas desde la app Wallet de BudgetBakers. Compatible con cuentas multidivisa y emparejamiento automático de transferencias.",
         "cta": "Importar desde Wallet",

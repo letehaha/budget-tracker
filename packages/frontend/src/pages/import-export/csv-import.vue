@@ -33,7 +33,10 @@
       <ColumnMappingStep v-else-if="store.currentStepKey === 'map'" />
       <ResolveValuesStep v-else-if="store.currentStepKey === 'resolve'" />
       <ReviewDuplicatesStep v-else-if="store.currentStepKey === 'review'" />
-      <ImportResultsStep v-else-if="store.currentStepKey === 'results'" />
+      <template v-else-if="store.currentStepKey === 'results'">
+        <ImportResultsStep v-if="store.progress?.status === 'completed'" />
+        <ImportExecuteStep v-else />
+      </template>
     </div>
   </div>
 </template>
@@ -48,6 +51,7 @@ import { RouterLink } from 'vue-router';
 import ImportWizardStepper from './components/import-wizard-stepper.vue';
 import ColumnMappingStep from './components/column-mapping-step/index.vue';
 import FileUploadStep from './components/file-upload-step/index.vue';
+import ImportExecuteStep from './components/import-execute-step/index.vue';
 import ImportResultsStep from './components/import-results-step/index.vue';
 import ResolveValuesStep from './components/resolve-values-step/index.vue';
 import ReviewDuplicatesStep from './components/review-duplicates-step/index.vue';
