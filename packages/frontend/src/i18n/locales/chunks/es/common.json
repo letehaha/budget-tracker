@@ -181,7 +181,10 @@
       "useDomainDirectly": "Usar {domain}",
       "autoLabel": "Automático (desde el nombre)",
       "domainHint": "Para encontrar la marca exacta, escriba el dominio del sitio web de la empresa (p. ej. amazon.com) – eso siempre coincide con el logotipo correcto.",
-      "searchError": "No se pudieron cargar los logotipos – intente de nuevo"
+      "searchError": "No se pudieron cargar los logotipos – intente de nuevo",
+      "editAriaLabel": "Editar logo",
+      "dialogTitle": "Cambiar logo",
+      "resetToAuto": "Restablecer a automático"
     }
   },
   "validation": {

@@ -181,7 +181,10 @@
       "useDomainDirectly": "Use {domain}",
       "autoLabel": "Automatic (from name)",
       "domainHint": "To find the exact brand, type the company's website domain (e.g. amazon.com) – that always matches the right logo.",
-      "searchError": "Couldn't load logos – try again"
+      "searchError": "Couldn't load logos – try again",
+      "editAriaLabel": "Edit logo",
+      "dialogTitle": "Change logo",
+      "resetToAuto": "Reset to automatic"
     }
   },
   "validation": {

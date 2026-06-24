@@ -102,7 +102,9 @@
           "1_week": "1 semana antes",
           "2_weeks": "2 semanas antes",
           "1_month": "1 mes antes"
-        }
+        },
+        "scheduleSectionLabel": "Programa de pagos",
+        "scheduleSectionHint": "Registre fechas de vencimiento, genere períodos, envíe recordatorios"
       },
       "progress": {
         "title": "Progreso de cuotas",

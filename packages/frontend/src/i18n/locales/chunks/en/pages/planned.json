@@ -102,7 +102,9 @@
           "1_week": "1 week before",
           "2_weeks": "2 weeks before",
           "1_month": "1 month before"
-        }
+        },
+        "scheduleSectionLabel": "Payment schedule",
+        "scheduleSectionHint": "Track due dates, generate periods, send reminders"
       },
       "progress": {
         "title": "Installment progress",

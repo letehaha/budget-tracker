@@ -9,7 +9,6 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { Label } from '@/components/lib/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { Switch } from '@/components/lib/ui/switch';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { useFormValidation } from '@/composable/form-validator';
@@ -29,12 +28,12 @@ import {
   type SubscriptionModel,
   type RecordId,
 } from '@bt/shared/types';
-import { ChevronDownIcon } from '@lucide/vue';
+import { ChevronDownIcon, CreditCardIcon, ReceiptIcon, RepeatIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import LogoField from '@/components/common/logo-field.vue';
+import LogoSquareField from '@/components/common/logo-square-field.vue';
 
 import MatchingRulesBuilder from './matching-rules-builder.vue';
 
@@ -204,6 +203,29 @@ const selectedFrequency = computed(() => {
 
 const isInstallment = computed(() => form.value.type === SUBSCRIPTION_TYPES.installment);
 
+const typeOptions = computed(() => [
+  {
+    value: SUBSCRIPTION_TYPES.subscription,
+    label: t('planned.subscriptions.typeSubscription'),
+    desc: t('planned.subscriptions.form.typeSubscriptionDesc'),
+    icon: RepeatIcon,
+  },
+  {
+    value: SUBSCRIPTION_TYPES.bill,
+    label: t('planned.subscriptions.typeBill'),
+    desc: t('planned.subscriptions.form.typeBillDesc'),
+    icon: ReceiptIcon,
+  },
+  {
+    value: SUBSCRIPTION_TYPES.installment,
+    label: t('planned.subscriptions.typeInstallment'),
+    desc: t('planned.subscriptions.form.typeInstallmentDesc'),
+    icon: CreditCardIcon,
+  },
+]);
+
+const selectedTypeOption = computed(() => typeOptions.value.find((opt) => opt.value === form.value.type) ?? null);
+
 // Projected total an installment commits to (amount x number of payments), shown
 // as a hint once both are known. Null when amount or count is missing.
 const installmentTotalLabel = computed(() => {
@@ -272,12 +294,21 @@ const isSubmitDisabled = computed(() => {
   return !form.value.name;
 });
 
-// Auto-expand extra options when editing and any extra field has a value
+// Auto-expand the schedule + advanced sections when editing an existing entry
+// that already has values inside them. Installments require a schedule, so the
+// section stays open whenever installment is the chosen type.
 const hasExtraValues = computed(() => {
   const f = form.value;
-  return !!(f.accountId || f.categoryId || f.notes || f.endDate);
+  return !!(f.accountId || f.categoryId || f.notes || f.endDate || f.matchingRules.length);
 });
 const isExtraOpen = ref(!!props.initialValues && hasExtraValues.value);
+const isScheduleOpen = ref(isInstallment.value || !!form.value.dueDate);
+
+// Keep the schedule section in sync with installment selection – the schedule
+// is mandatory for installments so we force it open whenever that type is picked.
+watch(isInstallment, (installment) => {
+  if (installment) isScheduleOpen.value = true;
+});
 
 defineExpose({ isSubmitDisabled, setError });
 
@@ -345,74 +376,54 @@ const handleSubmit = () => {
       <span>{{ formError }}</span>
     </Callout>
 
-    <!-- Name -->
-    <InputField
-      v-model="form.name"
-      :label="$t('planned.subscriptions.form.nameLabel')"
-      :placeholder="$t('planned.subscriptions.form.namePlaceholder')"
-      :error-message="getFieldErrorMessage('form.name')"
-      @blur="touchField('form.name')"
-    />
-
-    <!-- Logo: defaults to auto-resolution from the name; the picker sets a manual
-         override (or clears it to show a plain monogram). -->
-    <div class="flex flex-col gap-2">
-      <Label class="mb-2 block text-sm font-medium">{{ $t('planned.subscriptions.form.logoLabel') }}</Label>
-      <LogoField v-model="form.logoDomain" :name-for-search="form.name" />
-      <p class="text-muted-foreground -mt-1 text-xs">{{ $t('common.logo.domainHint') }}</p>
+    <!-- Name + Logo (square trigger) in a single row. Label sits above the input
+         column only, logo on the right is unlabelled so swapping its order keeps
+         the "Name" caption hugging the field it actually describes. items-start
+         so a validation error growing below the input doesn't drag the logo down. -->
+    <div class="flex items-start gap-3">
+      <div class="min-w-0 flex-1">
+        <InputField
+          v-model="form.name"
+          :label="$t('planned.subscriptions.form.nameLabel')"
+          :placeholder="$t('planned.subscriptions.form.namePlaceholder')"
+          :error-message="getFieldErrorMessage('form.name')"
+          @blur="touchField('form.name')"
+        />
+      </div>
+      <LogoSquareField
+        v-model="form.logoDomain"
+        :name-for-search="form.name"
+        size-class="size-10 rounded-lg"
+        class="mt-[21px]"
+      />
     </div>
 
-    <!-- Type -->
-    <div class="@container/type">
-      <Label class="mb-2 block text-sm font-medium">{{ $t('planned.subscriptions.form.typeLabel') }}</Label>
-      <RadioGroup v-model="form.type" class="grid grid-cols-1 gap-3 @sm/type:grid-cols-3">
-        <Label
-          :class="
-            cn(
-              'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
-              form.type === SUBSCRIPTION_TYPES.subscription && 'border-primary bg-primary/5',
-            )
-          "
-        >
-          <div class="flex items-center gap-2">
-            <RadioGroupItem :value="SUBSCRIPTION_TYPES.subscription" />
-            <span class="font-medium">{{ $t('planned.subscriptions.typeSubscription') }}</span>
+    <!-- Type: SelectField with rich items (icon + title + description). Trigger
+         stays compact – the selected type's name plus a one-line caption below. -->
+    <div>
+      <SelectField
+        :model-value="selectedTypeOption"
+        :values="typeOptions"
+        label-key="label"
+        value-key="value"
+        :label="$t('planned.subscriptions.form.typeLabel')"
+        @update:model-value="(v: any) => v && (form.type = v.value)"
+      >
+        <template #item="{ item }">
+          <div class="flex items-start gap-2.5 py-0.5">
+            <span
+              class="border-input bg-muted/40 text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-md border"
+            >
+              <component :is="item.icon" class="h-4 w-4" />
+            </span>
+            <div class="flex min-w-0 flex-col gap-0.5">
+              <span class="text-sm leading-tight font-medium">{{ item.label }}</span>
+              <span class="text-muted-foreground text-xs leading-snug">{{ item.desc }}</span>
+            </div>
           </div>
-          <span class="text-muted-foreground pl-6 text-xs">{{
-            $t('planned.subscriptions.form.typeSubscriptionDesc')
-          }}</span>
-        </Label>
-        <Label
-          :class="
-            cn(
-              'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
-              form.type === SUBSCRIPTION_TYPES.bill && 'border-primary bg-primary/5',
-            )
-          "
-        >
-          <div class="flex items-center gap-2">
-            <RadioGroupItem :value="SUBSCRIPTION_TYPES.bill" />
-            <span class="font-medium">{{ $t('planned.subscriptions.typeBill') }}</span>
-          </div>
-          <span class="text-muted-foreground pl-6 text-xs">{{ $t('planned.subscriptions.form.typeBillDesc') }}</span>
-        </Label>
-        <Label
-          :class="
-            cn(
-              'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
-              form.type === SUBSCRIPTION_TYPES.installment && 'border-primary bg-primary/5',
-            )
-          "
-        >
-          <div class="flex items-center gap-2">
-            <RadioGroupItem :value="SUBSCRIPTION_TYPES.installment" />
-            <span class="font-medium">{{ $t('planned.subscriptions.typeInstallment') }}</span>
-          </div>
-          <span class="text-muted-foreground pl-6 text-xs">{{
-            $t('planned.subscriptions.form.typeInstallmentDesc')
-          }}</span>
-        </Label>
-      </RadioGroup>
+        </template>
+      </SelectField>
+      <p v-if="selectedTypeOption" class="text-muted-foreground mt-1.5 text-xs">{{ selectedTypeOption.desc }}</p>
     </div>
 
     <!-- Amount + Currency -->
@@ -450,102 +461,108 @@ const handleSubmit = () => {
     />
 
     <!-- Payment schedule: opt-in. Setting a due date generates payable periods
-         (mark-as-paid + reminders). Left empty, the subscription is detection-only. -->
-    <div class="border-border bg-muted/20 grid gap-3 rounded-lg border p-3">
-      <DateField
-        :model-value="form.dueDate ?? undefined"
-        :label="$t('planned.subscriptions.form.dueDateLabel')"
-        @update:model-value="(v: Date | null) => (form.dueDate = v)"
-      />
-      <p class="text-muted-foreground -mt-2 text-xs">
-        {{
-          isInstallment
-            ? $t('planned.subscriptions.form.installmentScheduleHint')
-            : $t('planned.subscriptions.form.dueDateDescription')
-        }}
-      </p>
-      <p v-if="getFieldErrorMessage('form.dueDate')" class="text-destructive-text -mt-2 text-xs">
-        {{ getFieldErrorMessage('form.dueDate') }}
-      </p>
+         (mark-as-paid + reminders). Left empty, the subscription is detection-only.
+         Installments require a schedule, so the toggle is hidden + forced open. -->
+    <Collapsible v-model:open="isScheduleOpen">
+      <CollapsibleTrigger v-if="!isInstallment" as-child>
+        <button
+          type="button"
+          class="border-input bg-background hover:bg-accent/40 flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors"
+        >
+          <span class="flex min-w-0 flex-col">
+            <span class="text-sm font-medium">{{ $t('planned.subscriptions.form.scheduleSectionLabel') }}</span>
+            <span class="text-muted-foreground text-xs">{{
+              $t('planned.subscriptions.form.scheduleSectionHint')
+            }}</span>
+          </span>
+          <ChevronDownIcon
+            :class="cn('text-muted-foreground size-4 shrink-0 transition-transform', isScheduleOpen && 'rotate-180')"
+          />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div :class="cn('border-border bg-muted/20 grid gap-3 rounded-lg border p-3', !isInstallment && 'mt-2')">
+          <DateField
+            :model-value="form.dueDate ?? undefined"
+            :label="$t('planned.subscriptions.form.dueDateLabel')"
+            @update:model-value="(v: Date | null) => (form.dueDate = v)"
+          />
+          <p class="text-muted-foreground -mt-2 text-xs">
+            {{
+              isInstallment
+                ? $t('planned.subscriptions.form.installmentScheduleHint')
+                : $t('planned.subscriptions.form.dueDateDescription')
+            }}
+          </p>
+          <p v-if="getFieldErrorMessage('form.dueDate')" class="text-destructive-text -mt-2 text-xs">
+            {{ getFieldErrorMessage('form.dueDate') }}
+          </p>
 
-      <!-- The payment count caps generation: an installment requires it (the finite
-           plan length); on subscriptions/bills it stays optional and null repeats
-           indefinitely. Shown for installments even before a date is set so both
-           required fields are visible together. -->
-      <InputField
-        v-if="form.dueDate || isInstallment"
-        :model-value="form.maxOccurrences ?? undefined"
-        type="number"
-        :label="$t('planned.subscriptions.form.maxOccurrencesLabel')"
-        :placeholder="$t('planned.subscriptions.form.maxOccurrencesPlaceholder')"
-        :error-message="getFieldErrorMessage('form.maxOccurrences')"
-        only-positive
-        @update:model-value="(v: string | number | null) => (form.maxOccurrences = v ? Number(v) : null)"
-        @blur="touchField('form.maxOccurrences')"
-      />
-      <p v-if="installmentTotalLabel" class="text-muted-foreground -mt-1 text-xs">
-        {{ $t('planned.subscriptions.form.installmentTotalCommitment', { total: installmentTotalLabel }) }}
-      </p>
+          <!-- Payment count caps generation: required for installments (finite plan
+               length), optional for subscriptions/bills where null repeats forever.
+               Shown for installments even before a date is set so both required
+               fields are visible together. -->
+          <InputField
+            v-if="form.dueDate || isInstallment"
+            :model-value="form.maxOccurrences ?? undefined"
+            type="number"
+            :label="$t('planned.subscriptions.form.maxOccurrencesLabel')"
+            :placeholder="$t('planned.subscriptions.form.maxOccurrencesPlaceholder')"
+            :error-message="getFieldErrorMessage('form.maxOccurrences')"
+            only-positive
+            @update:model-value="(v: string | number | null) => (form.maxOccurrences = v ? Number(v) : null)"
+            @blur="touchField('form.maxOccurrences')"
+          />
+          <p v-if="installmentTotalLabel" class="text-muted-foreground -mt-1 text-xs">
+            {{ $t('planned.subscriptions.form.installmentTotalCommitment', { total: installmentTotalLabel }) }}
+          </p>
 
-      <!-- Advance reminders only apply to scheduled periods, so they share the due-date gate. -->
-      <div v-if="form.dueDate" class="grid gap-2">
-        <Label class="text-sm font-medium">{{ $t('planned.subscriptions.form.remindBeforeLabel') }}</Label>
-        <div class="flex flex-wrap gap-2">
-          <Label
-            v-for="preset in REMIND_BEFORE_OPTIONS"
-            :key="preset"
-            :class="
-              cn(
-                'border-input flex cursor-pointer items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                form.remindBefore.includes(preset)
-                  ? 'border-primary bg-primary/5'
-                  : 'hover:bg-accent hover:text-accent-foreground',
-                !form.remindBefore.includes(preset) &&
-                  form.remindBefore.length >= MAX_REMIND_BEFORE_PRESETS &&
-                  'pointer-events-none cursor-not-allowed opacity-50',
-              )
-            "
-          >
-            <input
-              type="checkbox"
-              class="sr-only"
-              :checked="form.remindBefore.includes(preset)"
-              :disabled="!form.remindBefore.includes(preset) && form.remindBefore.length >= MAX_REMIND_BEFORE_PRESETS"
-              @change="toggleRemindBefore({ preset })"
-            />
-            {{ $t(`planned.subscriptions.form.remindPresets.${preset}`) }}
-          </Label>
+          <!-- Advance reminders only apply to scheduled periods, so they share the due-date gate. -->
+          <div v-if="form.dueDate" class="grid gap-2">
+            <Label class="text-sm font-medium">{{ $t('planned.subscriptions.form.remindBeforeLabel') }}</Label>
+            <div class="flex flex-wrap gap-2">
+              <Label
+                v-for="preset in REMIND_BEFORE_OPTIONS"
+                :key="preset"
+                :class="
+                  cn(
+                    'border-input flex cursor-pointer items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    form.remindBefore.includes(preset)
+                      ? 'border-primary bg-primary/5'
+                      : 'hover:bg-accent hover:text-accent-foreground',
+                    !form.remindBefore.includes(preset) &&
+                      form.remindBefore.length >= MAX_REMIND_BEFORE_PRESETS &&
+                      'pointer-events-none cursor-not-allowed opacity-50',
+                  )
+                "
+              >
+                <input
+                  type="checkbox"
+                  class="sr-only"
+                  :checked="form.remindBefore.includes(preset)"
+                  :disabled="
+                    !form.remindBefore.includes(preset) && form.remindBefore.length >= MAX_REMIND_BEFORE_PRESETS
+                  "
+                  @change="toggleRemindBefore({ preset })"
+                />
+                {{ $t(`planned.subscriptions.form.remindPresets.${preset}`) }}
+              </Label>
+            </div>
+            <p class="text-muted-foreground text-xs">
+              {{ $t('planned.subscriptions.form.remindBeforeHelper') }}
+            </p>
+
+            <label class="mt-1 flex cursor-pointer items-center justify-between gap-3">
+              <span class="text-sm">{{ $t('planned.subscriptions.form.notifyEmailLabel') }}</span>
+              <Switch v-model="form.notifyEmail" />
+            </label>
+          </div>
         </div>
-        <p class="text-muted-foreground text-xs">
-          {{ $t('planned.subscriptions.form.remindBeforeHelper') }}
-        </p>
+      </CollapsibleContent>
+    </Collapsible>
 
-        <label class="mt-1 flex cursor-pointer items-center justify-between gap-3">
-          <span class="text-sm">{{ $t('planned.subscriptions.form.notifyEmailLabel') }}</span>
-          <Switch v-model="form.notifyEmail" />
-        </label>
-      </div>
-    </div>
-
-    <!-- Matching Rules -->
-    <div>
-      <Label class="mb-2 block text-sm font-medium">{{ $t('planned.subscriptions.form.matchingRulesLabel') }}</Label>
-      <p class="text-muted-foreground mb-2 text-xs">{{ $t('planned.subscriptions.form.matchingRulesDescription') }}</p>
-      <div v-if="form.matchingRules.length" class="border-border mb-2 rounded-lg border p-3">
-        <p class="text-sm">
-          {{ $t('planned.subscriptions.form.rulesCount', { count: form.matchingRules.length }) }}
-        </p>
-      </div>
-      <Button type="button" variant="outline" size="sm" @click="openRulesDialog">
-        {{
-          form.matchingRules.length
-            ? $t('planned.subscriptions.form.editRules')
-            : $t('planned.subscriptions.form.addRules')
-        }}
-      </Button>
-    </div>
-
-    <!-- Extra Options -->
+    <!-- Advanced section: account, category, dates, notes, matching rules. Auto-opens
+         when editing an entry that already has any of these set. -->
     <Collapsible v-model:open="isExtraOpen">
       <CollapsibleTrigger as-child>
         <button
@@ -558,21 +575,6 @@ const handleSubmit = () => {
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div class="grid gap-4 pt-3">
-          <!-- Dates -->
-          <div class="grid grid-cols-2 gap-3">
-            <DateField
-              :model-value="form.startDate ?? undefined"
-              :calendar-options="{ maxDate: form.endDate ?? undefined }"
-              :label="$t('planned.subscriptions.form.startDateLabel')"
-              @update:model-value="(v: Date | null) => (form.startDate = v)"
-            />
-            <DateField
-              :model-value="form.endDate ?? undefined"
-              :label="$t('planned.subscriptions.form.endDateLabel')"
-              @update:model-value="(v: Date | null) => (form.endDate = v)"
-            />
-          </div>
-
           <!-- Account -->
           <SelectField
             :model-value="selectedAccount"
@@ -592,6 +594,43 @@ const handleSubmit = () => {
             :placeholder="$t('planned.subscriptions.form.categoryPlaceholder')"
             @update:model-value="(v: any) => (form.categoryId = v?.id ?? null)"
           />
+
+          <!-- Dates -->
+          <div class="grid grid-cols-2 gap-3">
+            <DateField
+              :model-value="form.startDate ?? undefined"
+              :calendar-options="{ maxDate: form.endDate ?? undefined }"
+              :label="$t('planned.subscriptions.form.startDateLabel')"
+              @update:model-value="(v: Date | null) => (form.startDate = v)"
+            />
+            <DateField
+              :model-value="form.endDate ?? undefined"
+              :label="$t('planned.subscriptions.form.endDateLabel')"
+              @update:model-value="(v: Date | null) => (form.endDate = v)"
+            />
+          </div>
+
+          <!-- Matching Rules -->
+          <div>
+            <Label class="mb-1.5 block text-sm font-medium">
+              {{ $t('planned.subscriptions.form.matchingRulesLabel') }}
+            </Label>
+            <p class="text-muted-foreground mb-2 text-xs">
+              {{ $t('planned.subscriptions.form.matchingRulesDescription') }}
+            </p>
+            <div v-if="form.matchingRules.length" class="border-border mb-2 rounded-lg border p-3">
+              <p class="text-sm">
+                {{ $t('planned.subscriptions.form.rulesCount', { count: form.matchingRules.length }) }}
+              </p>
+            </div>
+            <Button type="button" variant="outline" size="sm" @click="openRulesDialog">
+              {{
+                form.matchingRules.length
+                  ? $t('planned.subscriptions.form.editRules')
+                  : $t('planned.subscriptions.form.addRules')
+              }}
+            </Button>
+          </div>
 
           <!-- Notes -->
           <TextareaField
