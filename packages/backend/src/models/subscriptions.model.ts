@@ -1,9 +1,16 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules, RecordId } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, DataType } from 'sequelize-typescript';
+import {
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_TYPES,
+  SubscriptionMatchingRules,
+  RemindBeforePreset,
+  RecordId,
+} from '@bt/shared/types';
+import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, HasMany, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
 import Categories from './categories.model';
+import SubscriptionPeriods from './subscription-periods.model';
 import SubscriptionTransactions from './subscription-transactions.model';
 import Transactions from './transactions.model';
 import Users from './users.model';
@@ -105,6 +112,45 @@ export default class Subscriptions extends Model {
   })
   notes!: string | null;
 
+  @Column({
+    type: DataType.DATEONLY,
+    allowNull: true,
+  })
+  dueDate!: string | null;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  anchorDay!: number | null;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  maxOccurrences!: number | null;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  })
+  showInWidget!: boolean;
+
+  @Column({
+    type: DataType.JSONB,
+    allowNull: false,
+    defaultValue: [],
+  })
+  remindBefore!: RemindBeforePreset[];
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  notifyEmail!: boolean;
+
   declare createdAt: Date;
   declare updatedAt: Date;
 
@@ -123,4 +169,7 @@ export default class Subscriptions extends Model {
     otherKey: 'transactionId',
   })
   transactions!: Transactions[];
+
+  @HasMany(() => SubscriptionPeriods, { foreignKey: 'subscriptionId' })
+  periods!: SubscriptionPeriods[];
 }

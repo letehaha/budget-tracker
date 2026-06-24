@@ -477,7 +477,7 @@ describe('Data export (POST /user/data-export)', () => {
         name: 'Multi subscription',
         frequency: 'monthly' as never,
         startDate: '2026-01-01',
-        expectedAmount: 1000,
+        expectedAmount: 10,
         expectedCurrencyCode: account.currencyCode,
         raw: true,
       });
@@ -655,7 +655,7 @@ describe('Data export (POST /user/data-export)', () => {
         frequency: 'monthly' as never,
         startDate: '2026-01-01',
         endDate: '2026-12-31',
-        expectedAmount: 1000,
+        expectedAmount: 10,
         expectedCurrencyCode: account.currencyCode,
         raw: true,
       });

@@ -8,7 +8,7 @@ describe('Subscriptions', () => {
     it('creates a subscription', async () => {
       const sub = await helpers.createSubscription({
         name: 'Netflix',
-        expectedAmount: 1599,
+        expectedAmount: 15.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -28,7 +28,7 @@ describe('Subscriptions', () => {
       const sub = await helpers.createSubscription({
         name: 'Spotify',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 999,
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-15',
@@ -43,7 +43,7 @@ describe('Subscriptions', () => {
       });
 
       expect(sub.name).toBe('Spotify');
-      expect(sub.expectedAmount).toBe(999);
+      expect(sub.expectedAmount).toBe(9.99);
       expect(sub.accountId).toBe(account.id);
       expect(sub.categoryId).toBe(categoryId);
       expect(sub.notes).toBe('Family plan');
@@ -52,7 +52,7 @@ describe('Subscriptions', () => {
     it('lists subscriptions', async () => {
       await helpers.createSubscription({
         name: 'Sub A',
-        expectedAmount: 1000,
+        expectedAmount: 10,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -60,7 +60,7 @@ describe('Subscriptions', () => {
       });
       await helpers.createSubscription({
         name: 'Sub B',
-        expectedAmount: 500,
+        expectedAmount: 5,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.weekly,
         startDate: '2025-02-01',
@@ -74,7 +74,7 @@ describe('Subscriptions', () => {
     it('gets subscription by id', async () => {
       const sub = await helpers.createSubscription({
         name: 'Detail Sub',
-        expectedAmount: 1599,
+        expectedAmount: 15.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -90,7 +90,7 @@ describe('Subscriptions', () => {
     it('updates a subscription', async () => {
       const sub = await helpers.createSubscription({
         name: 'Original',
-        expectedAmount: 999,
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -111,7 +111,7 @@ describe('Subscriptions', () => {
     it('deletes a subscription', async () => {
       const sub = await helpers.createSubscription({
         name: 'To Delete',
-        expectedAmount: 999,
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -131,7 +131,7 @@ describe('Subscriptions', () => {
       const account = await helpers.createAccount({ raw: true });
       const sub = await helpers.createSubscription({
         name: 'Link Test',
-        expectedAmount: 1500,
+        expectedAmount: 15,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -165,7 +165,7 @@ describe('Subscriptions', () => {
       const account = await helpers.createAccount({ raw: true });
       const sub1 = await helpers.createSubscription({
         name: 'Sub 1',
-        expectedAmount: 1500,
+        expectedAmount: 15,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -173,7 +173,7 @@ describe('Subscriptions', () => {
       });
       const sub2 = await helpers.createSubscription({
         name: 'Sub 2',
-        expectedAmount: 1500,
+        expectedAmount: 15,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -206,7 +206,7 @@ describe('Subscriptions', () => {
       const account = await helpers.createAccount({ raw: true });
       const sub = await helpers.createSubscription({
         name: 'Unlink Test',
-        expectedAmount: 1500,
+        expectedAmount: 15,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -244,7 +244,7 @@ describe('Subscriptions', () => {
       const account = await helpers.createAccount({ raw: true });
       const sub = await helpers.createSubscription({
         name: 'Relink Test',
-        expectedAmount: 1500,
+        expectedAmount: 15,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -300,7 +300,7 @@ describe('Subscriptions', () => {
 
       const sub = await helpers.createSubscription({
         name: 'Netflix',
-        expectedAmount: 1500,
+        expectedAmount: 15,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -334,7 +334,7 @@ describe('Subscriptions', () => {
       const account = await helpers.createAccount({ raw: true });
       const sub = await helpers.createSubscription({
         name: 'Count Test',
-        expectedAmount: 1000,
+        expectedAmount: 10,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -401,7 +401,7 @@ describe('Subscriptions', () => {
 
       const sub = await helpers.createSubscription({
         name: 'Netflix',
-        expectedAmount: 1500,
+        expectedAmount: 15,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -443,7 +443,7 @@ describe('Subscriptions', () => {
       // The transaction is in UAH but should match after conversion
       const sub = await helpers.createSubscription({
         name: 'Apple TV',
-        expectedAmount: 999, // $9.99 in cents
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -470,7 +470,7 @@ describe('Subscriptions', () => {
       it('returns summary with correct monthly and yearly cost', async () => {
         await helpers.createSubscription({
           name: 'Netflix',
-          expectedAmount: 1500,
+          expectedAmount: 15,
           expectedCurrencyCode: global.BASE_CURRENCY_CODE,
           frequency: SUBSCRIPTION_FREQUENCIES.monthly,
           startDate: '2025-01-01',
@@ -502,7 +502,7 @@ describe('Subscriptions', () => {
         await helpers.createSubscription({
           name: 'Netflix',
           type: SUBSCRIPTION_TYPES.subscription,
-          expectedAmount: 1500,
+          expectedAmount: 15,
           expectedCurrencyCode: global.BASE_CURRENCY_CODE,
           frequency: SUBSCRIPTION_FREQUENCIES.monthly,
           startDate: '2025-01-01',
@@ -511,7 +511,7 @@ describe('Subscriptions', () => {
         await helpers.createSubscription({
           name: 'Electricity',
           type: SUBSCRIPTION_TYPES.bill,
-          expectedAmount: 10000,
+          expectedAmount: 100,
           expectedCurrencyCode: global.BASE_CURRENCY_CODE,
           frequency: SUBSCRIPTION_FREQUENCIES.monthly,
           startDate: '2025-01-01',
@@ -540,7 +540,7 @@ describe('Subscriptions', () => {
       it('excludes inactive subscriptions', async () => {
         const sub = await helpers.createSubscription({
           name: 'Paused Sub',
-          expectedAmount: 2000,
+          expectedAmount: 20,
           expectedCurrencyCode: global.BASE_CURRENCY_CODE,
           frequency: SUBSCRIPTION_FREQUENCIES.monthly,
           startDate: '2025-01-01',
@@ -570,7 +570,7 @@ describe('Subscriptions', () => {
       it('normalizes annual frequency to monthly', async () => {
         await helpers.createSubscription({
           name: 'Annual Sub',
-          expectedAmount: 12000,
+          expectedAmount: 120,
           expectedCurrencyCode: global.BASE_CURRENCY_CODE,
           frequency: SUBSCRIPTION_FREQUENCIES.annual,
           startDate: '2025-01-01',
@@ -579,7 +579,7 @@ describe('Subscriptions', () => {
 
         const summary = await helpers.getSubscriptionsSummary({ raw: true });
         expect(summary.activeCount).toBe(1);
-        // 12000 cents = $120/year → $10/month
+        // $120/year → $10/month
         expect(summary.estimatedMonthlyCost).toBe(10);
         expect(summary.projectedYearlyCost).toBe(120);
       });
@@ -587,7 +587,7 @@ describe('Subscriptions', () => {
       it('returns null percentOfIncome when no income transactions exist', async () => {
         await helpers.createSubscription({
           name: 'Netflix',
-          expectedAmount: 1500,
+          expectedAmount: 15,
           expectedCurrencyCode: global.BASE_CURRENCY_CODE,
           frequency: SUBSCRIPTION_FREQUENCIES.monthly,
           startDate: '2025-01-01',
@@ -621,7 +621,7 @@ describe('Subscriptions', () => {
 
         await helpers.createSubscription({
           name: 'Netflix',
-          expectedAmount: 6000,
+          expectedAmount: 60,
           expectedCurrencyCode: global.BASE_CURRENCY_CODE,
           frequency: SUBSCRIPTION_FREQUENCIES.monthly,
           startDate: '2025-01-01',
@@ -721,7 +721,7 @@ describe('Subscriptions', () => {
 
       const sub = await helpers.createSubscription({
         name: 'Netflix',
-        expectedAmount: 1599,
+        expectedAmount: 15.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -752,7 +752,7 @@ describe('Subscriptions', () => {
 
       const sub = await helpers.createSubscription({
         name: 'Netflix',
-        expectedAmount: 1599,
+        expectedAmount: 15.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -782,7 +782,7 @@ describe('Subscriptions', () => {
 
       const sub = await helpers.createSubscription({
         name: 'Netflix',
-        expectedAmount: 1599,
+        expectedAmount: 15.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -813,7 +813,7 @@ describe('Subscriptions', () => {
 
       const sub = await helpers.createSubscription({
         name: 'Netflix',
-        expectedAmount: 1599,
+        expectedAmount: 15.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',

@@ -36,7 +36,7 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 
 const isCreateDialogOpen = ref(false);
 const createFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null);
-const prefillValues = ref<SubscriptionModel | null>(null);
+const prefillValues = ref<Partial<SubscriptionModel> | null>(null);
 // Track which candidate is being accepted so we can mark it after subscription creation
 const pendingAcceptCandidateId = ref<string | null>(null);
 const linkingId = ref<string | null>(null);

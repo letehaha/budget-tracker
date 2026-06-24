@@ -25,7 +25,6 @@ export * from './tags';
 export * from './transaction-groups';
 export * from './subscriptions';
 export * from './payees';
-export * from './payment-reminders';
 export * from './vehicles';
 export * from './share';
 export * from './investments/securities';

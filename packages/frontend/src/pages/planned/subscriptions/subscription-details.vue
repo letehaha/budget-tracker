@@ -4,25 +4,40 @@ import {
   linkTransactionsToSubscription,
   loadSubscriptionById,
   loadSuggestedMatches,
+  revertSubscriptionPeriod,
+  skipSubscriptionPeriod,
   toggleSubscriptionActive,
+  unlinkSubscriptionPeriodTransaction,
   unlinkTransactionsFromSubscription,
   updateSubscription,
 } from '@/api/subscriptions';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { loadTransactionById } from '@/api/transactions';
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
+import TransactionDetailsModal from '@/components/transactions-list/transaction-details-modal.vue';
+import { useManageTransactionDialog } from '@/components/transactions-list/use-manage-transaction-dialog';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
+import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useFormatCurrency } from '@/composable/formatters';
 import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
-import { SUBSCRIPTION_MATCH_SOURCE, type SubscriptionModel, type TransactionModel } from '@bt/shared/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { format } from 'date-fns';
 import {
+  SUBSCRIPTION_MATCH_SOURCE,
+  SUBSCRIPTION_PERIOD_STATUSES,
+  type SubscriptionModel,
+  type SubscriptionPeriodModel,
+  type TransactionModel,
+} from '@bt/shared/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { differenceInCalendarDays, format, parseISO, startOfDay } from 'date-fns';
+import {
+  CheckIcon,
   CirclePauseIcon,
   EditIcon,
   EllipsisVerticalIcon,
@@ -30,17 +45,24 @@ import {
   RepeatIcon,
   SearchIcon,
   SettingsIcon,
+  SkipForwardIcon,
   Trash2Icon,
+  UndoIcon,
   UnlinkIcon,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
+import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
 import SubscriptionServiceLogo from './components/subscription-service-logo.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
 import { formatFrequency, formatMatchSource } from './utils';
+
+const ManageTransactionDialogContent = defineAsyncComponent(
+  () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
+);
 
 const { t } = useI18n();
 const route = useRoute();
@@ -89,6 +111,7 @@ const invalidateQueries = () => {
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
+  queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
 };
 
 const { mutate: updateSub } = useMutation({
@@ -192,6 +215,179 @@ const MATCH_SOURCE_CLASSES: Record<string, string> = {
 
 const getMatchSourceClass = ({ source }: { source: string }): string =>
   MATCH_SOURCE_CLASSES[source] ?? 'bg-muted text-muted-foreground';
+
+// --- Scheduled payment engine (only for subscriptions that have a dueDate / periods) ---
+
+/**
+ * A subscription is "scheduled" when the backend has generated periods for it.
+ * This happens only when a dueDate has been set; detection-only subscriptions
+ * (no dueDate) will always have an empty periods array.
+ */
+const isScheduled = computed(() => (subscription.value?.periods?.length ?? 0) > 0);
+
+const periods = computed(() => subscription.value?.periods ?? []);
+
+/** The earliest upcoming or overdue period — the one the user acts on next. */
+const currentPeriod = computed(() => {
+  return (
+    periods.value.find(
+      (p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming || p.status === SUBSCRIPTION_PERIOD_STATUSES.overdue,
+    ) ?? null
+  );
+});
+
+function getDaysUntilDue({ dueDate }: { dueDate: string }): number {
+  return differenceInCalendarDays(parseISO(dueDate), startOfDay(new Date()));
+}
+
+function groupPeriodsByMonth(periodsList: SubscriptionPeriodModel[]) {
+  const groups: Record<string, SubscriptionPeriodModel[]> = {};
+  for (const p of periodsList) {
+    const key = p.dueDate.substring(0, 7); // "YYYY-MM"
+    if (!groups[key]) groups[key] = [];
+    groups[key]!.push(p);
+  }
+  return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+}
+
+const periodGroups = computed(() => groupPeriodsByMonth(periods.value));
+
+function getStatusBadge({ status }: { status: string }): { label: string; class: string } {
+  switch (status) {
+    case SUBSCRIPTION_PERIOD_STATUSES.paid:
+      return {
+        label: t('planned.subscriptions.periods.status.paid'),
+        class: 'bg-success-text/20 text-success-text',
+      };
+    case SUBSCRIPTION_PERIOD_STATUSES.overdue:
+      return {
+        label: t('planned.subscriptions.periods.status.overdue'),
+        class: 'bg-destructive/10 text-destructive-text',
+      };
+    case SUBSCRIPTION_PERIOD_STATUSES.skipped:
+      return {
+        label: t('planned.subscriptions.periods.status.skipped'),
+        class: 'bg-muted text-muted-foreground',
+      };
+    case SUBSCRIPTION_PERIOD_STATUSES.upcoming:
+      return {
+        label: t('planned.subscriptions.periods.status.upcoming'),
+        class: 'border border-border text-foreground',
+      };
+    default:
+      return { label: status, class: 'border border-border text-foreground' };
+  }
+}
+
+function isStatusActionable({ status }: { status: string }): boolean {
+  return status === SUBSCRIPTION_PERIOD_STATUSES.upcoming || status === SUBSCRIPTION_PERIOD_STATUSES.overdue;
+}
+
+function isStatusRevertable({ status }: { status: string }): boolean {
+  return status === SUBSCRIPTION_PERIOD_STATUSES.paid || status === SUBSCRIPTION_PERIOD_STATUSES.skipped;
+}
+
+// Mark paid dialog
+const markPaidRef = ref<InstanceType<typeof SubscriptionMarkPaidDialog>>();
+const isMarkingPaid = computed(() => markPaidRef.value?.isPending ?? false);
+
+function payPeriod({ periodId }: { periodId: string }) {
+  if (!subscription.value) return;
+  markPaidRef.value?.triggerPay({ subscription: subscription.value, periodId });
+}
+
+// Skip period
+const { mutate: skipMutation, isPending: isSkipping } = useMutation({
+  mutationFn: skipSubscriptionPeriod,
+  onSuccess: () => {
+    invalidateQueries();
+    addSuccessNotification(t('planned.subscriptions.periods.notifications.periodSkipped'));
+  },
+  onError(err) {
+    const message =
+      err instanceof ApiErrorResponseError
+        ? err.data.message
+        : t('planned.subscriptions.periods.notifications.skipFailed');
+    addErrorNotification(message ?? t('planned.subscriptions.periods.notifications.skipFailed'));
+  },
+});
+
+// Unlink period transaction
+const { mutate: unlinkPeriodMutation, isPending: isUnlinkingPeriod } = useMutation({
+  mutationFn: unlinkSubscriptionPeriodTransaction,
+  onSuccess: () => {
+    invalidateQueries();
+    addSuccessNotification(t('planned.subscriptions.periods.notifications.transactionUnlinked'));
+  },
+  onError(err) {
+    const message =
+      err instanceof ApiErrorResponseError
+        ? err.data.message
+        : t('planned.subscriptions.periods.notifications.unlinkFailed');
+    addErrorNotification(message ?? t('planned.subscriptions.periods.notifications.unlinkFailed'));
+  },
+});
+
+// Revert period
+const revertTarget = ref<SubscriptionPeriodModel | null>(null);
+const { mutate: revertMutation, isPending: isReverting } = useMutation({
+  mutationFn: revertSubscriptionPeriod,
+  onSuccess: () => {
+    invalidateQueries();
+    revertTarget.value = null;
+    addSuccessNotification(t('planned.subscriptions.periods.notifications.periodReverted'));
+  },
+  onError(err) {
+    const message =
+      err instanceof ApiErrorResponseError
+        ? err.data.message
+        : t('planned.subscriptions.periods.notifications.revertFailed');
+    addErrorNotification(message ?? t('planned.subscriptions.periods.notifications.revertFailed'));
+  },
+});
+
+/**
+ * Reverting behaves differently depending on the period's transaction link:
+ * - App-generated transaction → deleted (balance restored)
+ * - User-linked transaction → only detached
+ * - No transaction → period simply returns to unpaid
+ */
+const revertDescriptionKey = computed(() => {
+  const period = revertTarget.value;
+  if (period?.transactionId && period.transactionAutoCreated) {
+    return 'planned.subscriptions.periods.dialogs.revertDescriptionDeletesTransaction';
+  }
+  if (period?.transactionId) {
+    return 'planned.subscriptions.periods.dialogs.revertDescriptionUnlinksTransaction';
+  }
+  return 'planned.subscriptions.periods.dialogs.revertDescription';
+});
+
+const isPeriodActionPending = computed(
+  () => isMarkingPaid.value || isSkipping.value || isUnlinkingPeriod.value || isReverting.value,
+);
+
+// Open the transaction linked to a period in the canonical manage-transaction dialog.
+const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
+const { isDialogVisible, dialogProps, isCompactDialog, handleRecordClick, closeDialog } = useManageTransactionDialog();
+const isOpeningTransaction = ref(false);
+
+async function openTransaction({ transactionId }: { transactionId: string }) {
+  if (isOpeningTransaction.value) return;
+  isOpeningTransaction.value = true;
+  try {
+    const tx = await loadTransactionById({ id: transactionId });
+    if (tx) {
+      handleRecordClick([tx, undefined]);
+    } else {
+      addErrorNotification(t('planned.subscriptions.periods.notifications.transactionLoadFailed'));
+    }
+  } catch {
+    addErrorNotification(t('planned.subscriptions.periods.notifications.transactionLoadFailed'));
+  } finally {
+    isOpeningTransaction.value = false;
+  }
+}
 </script>
 
 <template>
@@ -368,6 +564,171 @@ const getMatchSourceClass = ({ source }: { source: string }): string =>
       </span>
     </div>
 
+    <!-- Next Due (scheduled subscriptions only) -->
+    <div v-if="isScheduled && currentPeriod" class="bg-card mb-6 rounded-lg border p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-muted-foreground text-xs font-medium uppercase">
+            {{ $t('planned.subscriptions.periods.nextDue') }}
+          </p>
+          <p class="mt-0.5 text-sm font-medium">
+            {{ format(parseISO(currentPeriod.dueDate), 'MMM d, yyyy') }}
+          </p>
+          <p
+            :class="[
+              'text-xs',
+              currentPeriod.status === SUBSCRIPTION_PERIOD_STATUSES.overdue
+                ? 'text-destructive-text'
+                : 'text-muted-foreground',
+            ]"
+          >
+            <template v-if="currentPeriod.status === SUBSCRIPTION_PERIOD_STATUSES.overdue">
+              {{ $t('planned.subscriptions.periods.overdueBadge') }}
+            </template>
+            <template v-else>
+              {{
+                $t('planned.subscriptions.periods.inDays', {
+                  count: getDaysUntilDue({ dueDate: currentPeriod.dueDate }),
+                })
+              }}
+            </template>
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <DesktopOnlyTooltip :content="$t('planned.subscriptions.periods.tooltips.skip')">
+            <Button
+              variant="ghost"
+              size="sm"
+              :disabled="isPeriodActionPending"
+              @click="skipMutation({ id: subscription.id, periodId: currentPeriod.id })"
+            >
+              <SkipForwardIcon class="mr-1.5 size-4" />
+              {{ $t('planned.subscriptions.periods.actions.skip') }}
+            </Button>
+          </DesktopOnlyTooltip>
+          <Button
+            variant="success"
+            size="sm"
+            :disabled="isPeriodActionPending"
+            @click="payPeriod({ periodId: currentPeriod.id })"
+          >
+            <CheckIcon class="mr-1.5 size-4" />
+            {{ $t('planned.subscriptions.periods.actions.markPaid') }}
+          </Button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment History (scheduled subscriptions only) -->
+    <template v-if="isScheduled">
+      <div class="mb-4">
+        <h2 class="text-muted-foreground mb-3 text-sm font-medium tracking-wide uppercase">
+          {{ $t('planned.subscriptions.periods.paymentHistory') }}
+        </h2>
+
+        <div v-if="!periods.length" class="text-muted-foreground py-8 text-center text-sm">
+          {{ $t('planned.subscriptions.periods.noPaymentPeriods') }}
+        </div>
+
+        <div v-for="[monthKey, monthPeriods] in periodGroups" :key="monthKey" class="mb-4">
+          <h3 class="text-muted-foreground mb-2 text-xs font-medium">
+            {{ format(parseISO(monthKey + '-01'), 'MMMM yyyy') }}
+          </h3>
+          <div class="grid gap-2">
+            <div
+              v-for="period in monthPeriods"
+              :key="period.id"
+              class="bg-card flex items-center justify-between rounded-lg border p-3"
+            >
+              <div class="flex items-center gap-3">
+                <span
+                  :class="[
+                    'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium',
+                    getStatusBadge({ status: period.status }).class,
+                  ]"
+                >
+                  {{ getStatusBadge({ status: period.status }).label }}
+                </span>
+                <div>
+                  <p class="text-sm font-medium">
+                    {{ $t('planned.subscriptions.periods.dueOn', { date: period.dueDate }) }}
+                  </p>
+                  <p v-if="period.paidAt" class="text-muted-foreground text-xs">
+                    {{ $t('planned.subscriptions.periods.paidAt', { date: format(new Date(period.paidAt), 'PP') }) }}
+                  </p>
+                  <Button
+                    v-if="period.transactionId"
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    class="h-auto p-0 text-xs"
+                    :disabled="isOpeningTransaction"
+                    @click="openTransaction({ transactionId: period.transactionId })"
+                  >
+                    <LinkIcon class="size-3" />
+                    {{ $t('planned.subscriptions.periods.viewTransaction') }}
+                  </Button>
+                  <p v-if="period.notes" class="text-muted-foreground text-xs italic">
+                    {{ period.notes }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1">
+                <DesktopOnlyTooltip
+                  v-if="isStatusActionable({ status: period.status })"
+                  :content="$t('planned.subscriptions.periods.tooltips.markAsPaid')"
+                >
+                  <Button
+                    variant="soft-success"
+                    size="sm"
+                    :disabled="isPeriodActionPending"
+                    @click="payPeriod({ periodId: period.id })"
+                  >
+                    <CheckIcon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+                <DesktopOnlyTooltip
+                  v-if="isStatusActionable({ status: period.status })"
+                  :content="$t('planned.subscriptions.periods.tooltips.skip')"
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    :disabled="isPeriodActionPending"
+                    @click="skipMutation({ id: subscription.id, periodId: period.id })"
+                  >
+                    <SkipForwardIcon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+                <DesktopOnlyTooltip
+                  v-if="period.transactionId"
+                  :content="$t('planned.subscriptions.periods.tooltips.unlinkTransaction')"
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    :disabled="isPeriodActionPending"
+                    @click="unlinkPeriodMutation({ id: subscription.id, periodId: period.id })"
+                  >
+                    <UnlinkIcon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+                <DesktopOnlyTooltip
+                  v-if="isStatusRevertable({ status: period.status })"
+                  :content="$t('planned.subscriptions.periods.tooltips.revert')"
+                >
+                  <Button variant="ghost" size="sm" :disabled="isPeriodActionPending" @click="revertTarget = period">
+                    <UndoIcon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- Linked Transactions -->
     <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-lg font-semibold">{{ $t('planned.subscriptions.linkedTransactionsTitle') }}</h2>
@@ -510,5 +871,32 @@ const getMatchSourceClass = ({ source }: { source: string }): string =>
         </div>
       </template>
     </ResponsiveDialog>
+
+    <!-- Revert period confirmation -->
+    <ResponsiveAlertDialog
+      :open="!!revertTarget"
+      :confirm-label="$t('planned.subscriptions.periods.dialogs.revertConfirm')"
+      confirm-variant="default"
+      @update:open="
+        (val: boolean) => {
+          if (!val) revertTarget = null;
+        }
+      "
+      @confirm="revertTarget && revertMutation({ id: subscription.id, periodId: revertTarget.id })"
+      @cancel="revertTarget = null"
+    >
+      <template #title>{{ $t('planned.subscriptions.periods.dialogs.revertTitle') }}</template>
+      <template #description>
+        {{ $t(revertDescriptionKey, { date: revertTarget?.dueDate }) }}
+      </template>
+    </ResponsiveAlertDialog>
+
+    <!-- Mark-paid flow (decides instant vs. amount dialog internally) -->
+    <SubscriptionMarkPaidDialog ref="markPaidRef" @paid="invalidateQueries" />
+
+    <!-- Linked-transaction detail dialog -->
+    <TransactionDetailsModal v-model:open="isDialogVisible" :mobile="isMobileView" :is-compact="isCompactDialog">
+      <ManageTransactionDialogContent v-bind="dialogProps" @close-modal="closeDialog" />
+    </TransactionDetailsModal>
   </div>
 </template>

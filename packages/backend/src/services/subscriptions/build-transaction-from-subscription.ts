@@ -1,0 +1,95 @@
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { ValidationError } from '@js/errors';
+import * as Accounts from '@models/accounts.model';
+import Subscriptions from '@models/subscriptions.model';
+import * as Users from '@models/users.model';
+import type { CreateTransactionParams } from '@services/transactions/types';
+
+import { convertSubscriptionAmountToAccountCurrency } from './convert-subscription-amount';
+
+/**
+ * Translates a subscription into the params for `createTransaction`.
+ *
+ * Subscription payments book an expense against the subscription's stored
+ * account. The transfer-related fields are fixed: `transferNature` is
+ * `not_transfer` and `accountType` is `system` (the manage-transaction HTTP
+ * path's default for omitted accountType). `paymentType` is `bankTransfer` —
+ * the closest neutral match for "I paid a recurring bill".
+ *
+ * `categoryId` falls back to the user's `defaultCategoryId` when the
+ * subscription has none. `createTransaction` accepts a null/undefined category,
+ * so when neither the subscription nor the user provides one the transaction is
+ * created uncategorized rather than rejected.
+ *
+ * The booked transaction is always denominated in the account's currency. When
+ * the subscription is billed in a different currency (e.g. a USD plan paid from
+ * a UAH account), the amount is resolved as follows:
+ *   - an explicit `amount` override is taken verbatim (already in the account's
+ *     currency, confirmed by the user in the pay dialog);
+ *   - otherwise the subscription's `expectedAmount` (stored as cents) is
+ *     converted into the account currency via
+ *     `convertSubscriptionAmountToAccountCurrency`.
+ *
+ * Validation (account presence, amount availability) lives here so create-mode
+ * fails before any row is written.
+ */
+export async function buildTransactionFromSubscription({
+  subscription,
+  amount,
+  time,
+}: {
+  subscription: Subscriptions;
+  /** Decimal override for the booked amount, expressed in the ACCOUNT's currency. */
+  amount?: number;
+  /** Actual payment date override. Falls back to now. */
+  time?: Date;
+}): Promise<CreateTransactionParams> {
+  if (subscription.accountId == null) {
+    throw new ValidationError({
+      message: 'A created transaction requires an account on the subscription.',
+    });
+  }
+
+  const effectiveTime = time ?? new Date();
+
+  let amountMoney: Money;
+  if (amount != null) {
+    amountMoney = Money.fromDecimal(amount);
+  } else {
+    const account = await Accounts.getAccountCurrency({ userId: subscription.userId, id: subscription.accountId });
+    if (account == null) {
+      throw new ValidationError({
+        message: 'A created transaction requires an account on the subscription.',
+      });
+    }
+
+    const converted = await convertSubscriptionAmountToAccountCurrency({
+      subscription,
+      accountCurrencyCode: account.currency.code,
+      date: effectiveTime,
+    });
+    if (converted == null) {
+      throw new ValidationError({
+        message: 'A created transaction requires an amount.',
+      });
+    }
+    amountMoney = converted;
+  }
+
+  const categoryId =
+    subscription.categoryId ?? (await Users.getUserDefaultCategory({ id: subscription.userId })) ?? undefined;
+
+  return {
+    userId: subscription.userId,
+    accountId: subscription.accountId,
+    amount: amountMoney,
+    transactionType: TRANSACTION_TYPES.expense,
+    paymentType: PAYMENT_TYPES.bankTransfer,
+    transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+    accountType: ACCOUNT_TYPES.system,
+    categoryId,
+    time: effectiveTime,
+    note: subscription.name,
+  };
+}

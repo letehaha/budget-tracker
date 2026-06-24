@@ -19,6 +19,10 @@ import {
 import { csvImportQueue, csvImportWorker } from '@services/import-export/csv-import/csv-import-queue';
 import { ynabImportQueue, ynabImportWorker } from '@services/import-export/ynab-import';
 import { logoResolutionQueue, logoResolutionWorker } from '@services/payees/logo-resolution-queue';
+import {
+  subscriptionReminderEmailQueue,
+  subscriptionReminderEmailWorker,
+} from '@services/subscriptions/reminder-email-queue';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 
@@ -453,6 +457,8 @@ afterAll(async () => {
     await csvImportQueue.close();
     await logoResolutionWorker.close();
     await logoResolutionQueue.close();
+    await subscriptionReminderEmailWorker.close();
+    await subscriptionReminderEmailQueue.close();
 
     // Now safe to close Redis client
     await redisClient.quit();

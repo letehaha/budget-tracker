@@ -152,11 +152,6 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // optimizations
   bulkTransferScan: [transactionChange, 'bulk-transfer-scan'] as const,
 
-  // payment reminders
-  remindersList: ['reminders-list'] as const,
-  reminderDetails: ['reminder-details'] as const,
-  reminderPeriods: ['reminder-periods'] as const,
-
   // vehicles
   vehiclesList: [transactionChange, 'vehicles-list'] as const,
   vehicleDetail: [transactionChange, 'vehicle-detail'] as const,

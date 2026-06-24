@@ -146,28 +146,6 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/planned/subscriptions/subscription-details.vue'),
           },
           {
-            path: 'scheduled-payments',
-            name: ROUTES_NAMES.plannedReminders,
-            component: () => import('@/pages/planned/reminders/index.vue'),
-          },
-          {
-            path: 'scheduled-payments/:id',
-            name: ROUTES_NAMES.plannedReminderDetails,
-            component: () => import('@/pages/planned/reminders/reminder-details.vue'),
-          },
-          // Backward-compat redirects for old reminders URLs
-          {
-            path: 'reminders',
-            redirect: { name: ROUTES_NAMES.plannedReminders },
-          },
-          {
-            path: 'reminders/:id',
-            redirect: (to) => ({
-              name: ROUTES_NAMES.plannedReminderDetails,
-              params: { id: to.params.id },
-            }),
-          },
-          {
             path: 'budgets',
             name: ROUTES_NAMES.plannedBudgets,
             component: () => import('@/pages/budgets/budgets.vue'),

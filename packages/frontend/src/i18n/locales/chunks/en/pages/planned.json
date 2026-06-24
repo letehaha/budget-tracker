@@ -3,155 +3,6 @@
     "budgets": {
       "backToList": "Back to Budgets"
     },
-    "reminders": {
-      "notFound": "Scheduled payment not found",
-      "notFoundDescription": "We couldn't find this scheduled payment. It may have been deleted or you might not have access to it.",
-      "backToList": "Back to scheduled payments",
-      "title": "Scheduled Payments",
-      "newReminder": "New Scheduled Payment",
-      "edit": "Edit",
-      "delete": "Delete",
-      "emptyState": {
-        "title": "No scheduled payments yet",
-        "description": "Create your first scheduled payment to get started."
-      },
-      "list": {
-        "upcoming": "Upcoming",
-        "dueLabels": {
-          "today": "Due today",
-          "tomorrow": "Due tomorrow",
-          "inDays": "Due in {days} days",
-          "overdueBy": "Overdue by {days} day | Overdue by {days} days"
-        },
-        "tooltips": {
-          "markAsPaid": "Mark as paid",
-          "skipPeriod": "Skip period",
-          "delete": "Delete"
-        }
-      },
-      "dialogs": {
-        "deleteTitle": "Delete Scheduled Payment",
-        "deleteDescription": "Are you sure you want to delete \"{name}\"? This will remove all payment history.",
-        "editTitle": "Edit Scheduled Payment",
-        "revertTitle": "Revert Period",
-        "revertDescription": "Revert the payment due {date} back to unpaid?",
-        "revertDescriptionDeletesTransaction": "Revert the payment due {date} back to unpaid? The transaction it created will be deleted and the account balance restored.",
-        "revertDescriptionUnlinksTransaction": "Revert the payment due {date} back to unpaid? Its linked transaction will be detached but kept.",
-        "revertConfirm": "Revert"
-      },
-      "notifications": {
-        "reminderCreated": "Scheduled payment created",
-        "reminderUpdated": "Scheduled payment updated",
-        "reminderDeleted": "Scheduled payment deleted",
-        "markedAsPaid": "Marked as paid",
-        "periodSkipped": "Period skipped",
-        "periodReverted": "Period reverted",
-        "transactionUnlinked": "Transaction unlinked",
-        "notFound": "Scheduled payment not found",
-        "updated": "Scheduled payment updated",
-        "updateFailed": "Failed to update",
-        "unlinked": "Transaction unlinked",
-        "unlinkFailed": "Failed to unlink",
-        "reverted": "Period reverted",
-        "revertFailed": "Failed to revert",
-        "createFailed": "Failed to create scheduled payment",
-        "deleteFailed": "Failed to delete scheduled payment",
-        "markAsPaidFailed": "Failed to mark as paid",
-        "skipFailed": "Failed to skip period",
-        "transactionLoadFailed": "Couldn't open the transaction"
-      },
-      "frequencies": {
-        "oneTime": "One-time",
-        "weekly": "Weekly",
-        "biweekly": "Every 2 weeks",
-        "monthly": "Monthly",
-        "quarterly": "Quarterly",
-        "semiAnnual": "Every 6 months",
-        "annual": "Annually"
-      },
-      "form": {
-        "nameLabel": "Name",
-        "namePlaceholder": "e.g. Rent, Insurance, Taxes...",
-        "dueDateLabel": "Due date",
-        "frequencyLabel": "Frequency",
-        "amountLabel": "Amount",
-        "amountPlaceholder": "Optional",
-        "currencyLabel": "Currency",
-        "currencyPlaceholder": "Select currency",
-        "notificationTimeLabel": "Notification time",
-        "notesLabel": "Notes",
-        "notesPlaceholder": "Optional notes...",
-        "emailNotifications": "Also send email notifications",
-        "extraOptions": "Extra options",
-        "dueDatePastError": "Due date cannot be in the past",
-        "remindBeforeLabel": "Remind before (max {max})",
-        "accountLabel": "Account",
-        "accountPlaceholder": "Select an account",
-        "categoryLabel": "Category",
-        "categoryPlaceholder": "Select a category",
-        "endsAfterLabel": "Ends after",
-        "endsAfterPlaceholder": "Number of payments",
-        "endsAfterHint": "Leave empty to repeat indefinitely",
-        "crossCurrencyHint": "Billed in {reminderCurrency}; converted to {accountCurrency} when you mark it paid."
-      },
-      "remindBefore": {
-        "oneDay": "1 day before",
-        "twoDays": "2 days before",
-        "threeDays": "3 days before",
-        "fiveDays": "5 days before",
-        "oneWeek": "1 week before",
-        "twoWeeks": "2 weeks before",
-        "oneMonth": "1 month before",
-        "onDueDate": "On due date"
-      },
-      "details": {
-        "infoCard": {
-          "dueDate": "Due Date",
-          "amount": "Amount",
-          "email": "Email",
-          "remindBefore": "Remind Before",
-          "enabled": "Enabled",
-          "disabled": "Disabled",
-          "emailEnabled": "Enabled",
-          "emailDisabled": "Disabled"
-        },
-        "paymentHistory": "Payment History",
-        "noPaymentPeriods": "No payment periods yet.",
-        "period": {
-          "upcoming": "Upcoming",
-          "due": "Due {date}",
-          "paid": "Paid",
-          "overdue": "Overdue",
-          "skipped": "Skipped",
-          "paidAt": "Paid {date}",
-          "transaction": "Transaction #{id}",
-          "duePrefix": "Due ",
-          "paidPrefix": "Paid ",
-          "transactionPrefix": "Transaction #",
-          "tooltips": {
-            "markAsPaid": "Mark as paid",
-            "skip": "Skip",
-            "unlinkTransaction": "Unlink transaction",
-            "revert": "Revert"
-          },
-          "installment": "Payment {current} of {total}",
-          "viewTransaction": "View transaction"
-        },
-        "linkedTo": "Linked to {name}",
-        "loadMore": "Load more"
-      },
-      "markPaid": {
-        "title": "Mark as paid",
-        "description": "Record a payment for {name}.",
-        "amountLabel": "Amount",
-        "amountPlaceholder": "Enter the paid amount",
-        "dateLabel": "Payment date",
-        "accountLabel": "Account",
-        "confirm": "Mark as paid",
-        "estimateLoading": "Calculating estimate…",
-        "crossCurrencyEstimate": "Estimated from {sourceAmount} {sourceCurrency} at today's rate. Edit to match the exact {accountCurrency} amount charged."
-      }
-    },
     "subscriptions": {
       "notFound": "Subscription not found",
       "notFoundDescription": "We couldn't find this subscription. It may have been deleted or you might not have access to it.",
@@ -226,7 +77,24 @@
         "saveRules": "Save Rules",
         "extraOptions": "Extra options",
         "validationAmountCurrency": "Both amount and currency must be provided together.",
-        "validationSubscriptionRequiresAmount": "Subscriptions require an amount and currency."
+        "validationSubscriptionRequiresAmount": "Subscriptions require an amount and currency.",
+        "dueDateLabel": "Payment schedule date",
+        "dueDateDescription": "When set, this subscription gets a payment schedule you can mark paid each billing cycle.",
+        "maxOccurrencesLabel": "Number of installments",
+        "maxOccurrencesPlaceholder": "Leave blank for indefinite",
+        "remindBeforeLabel": "Remind me before due date",
+        "remindBeforeHelper": "Reminders show in-app. Enable email below to also get them by email. Pick up to 3.",
+        "notifyEmailLabel": "Also email me",
+        "remindPresets": {
+          "0_days": "On due date",
+          "1_day": "1 day before",
+          "2_days": "2 days before",
+          "3_days": "3 days before",
+          "5_days": "5 days before",
+          "1_week": "1 week before",
+          "2_weeks": "2 weeks before",
+          "1_month": "1 month before"
+        }
       },
       "rules": {
         "ruleLabel": "Rule {number}",
@@ -304,6 +172,61 @@
         "sampleTransactionsTitle": "Sample transactions",
         "sampleTransactionsDescription": "These are sample transactions that triggered this subscription detection.",
         "noTransactionsFound": "No transactions found"
+      },
+      "periods": {
+        "status": {
+          "paid": "Paid",
+          "overdue": "Overdue",
+          "skipped": "Skipped",
+          "upcoming": "Upcoming"
+        },
+        "nextDue": "Next Due",
+        "overdueBadge": "Overdue",
+        "inDays": "in {count} days",
+        "paymentHistory": "Payment History",
+        "noPaymentPeriods": "No payment periods yet.",
+        "dueOn": "Due {date}",
+        "paidAt": "Paid {date}",
+        "viewTransaction": "View transaction",
+        "actions": {
+          "markPaid": "Mark Paid",
+          "skip": "Skip"
+        },
+        "tooltips": {
+          "markAsPaid": "Mark as paid",
+          "skip": "Skip",
+          "unlinkTransaction": "Unlink transaction",
+          "revert": "Revert"
+        },
+        "markPaid": {
+          "title": "Mark Payment",
+          "description": "Record a payment for {name}",
+          "amountLabel": "Amount",
+          "amountPlaceholder": "0.00",
+          "estimateLoading": "Loading estimate…",
+          "crossCurrencyEstimate": "~{sourceAmount} {sourceCurrency} → {accountCurrency} (estimated)",
+          "dateLabel": "Payment date",
+          "accountLabel": "Account",
+          "confirm": "Confirm"
+        },
+        "dialogs": {
+          "revertTitle": "Revert Period",
+          "revertConfirm": "Revert",
+          "revertDescription": "This period will be marked as unpaid again.",
+          "revertDescriptionUnlinksTransaction": "The linked transaction will be detached, and this period will be marked as unpaid.",
+          "revertDescriptionDeletesTransaction": "The generated transaction will be deleted, and this period will be marked as unpaid."
+        },
+        "notifications": {
+          "markedAsPaid": "Payment recorded",
+          "markAsPaidFailed": "Failed to record payment",
+          "periodSkipped": "Period skipped",
+          "skipFailed": "Failed to skip period",
+          "transactionUnlinked": "Transaction unlinked",
+          "unlinkFailed": "Failed to unlink transaction",
+          "periodReverted": "Period reverted",
+          "revertFailed": "Failed to revert period",
+          "transactionLoadFailed": "Failed to load transaction"
+        }
       }
     }
   }

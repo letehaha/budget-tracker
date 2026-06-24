@@ -292,7 +292,7 @@ export const NOTIFICATION_TYPES = {
   system: 'system',
   changelog: 'changelog',
   tagReminder: 'tag_reminder',
-  paymentReminder: 'payment_reminder',
+  subscriptionReminder: 'subscription_reminder',
   shareInvitationReceived: 'share_invitation_received',
   shareInvitationSendFailed: 'share_invitation_send_failed',
   shareAccepted: 'share_accepted',
@@ -393,16 +393,17 @@ export enum SUBSCRIPTION_CANDIDATE_STATUS {
 }
 
 /**
- * Payment reminder period statuses
+ * Subscription period statuses.
+ * Stored as VARCHAR(50) in the DB — not a Postgres ENUM.
  */
-export const PAYMENT_REMINDER_STATUSES = {
-  upcoming: 'upcoming',
-  overdue: 'overdue',
-  paid: 'paid',
-  skipped: 'skipped',
-} as const;
+export enum SUBSCRIPTION_PERIOD_STATUSES {
+  upcoming = 'upcoming',
+  paid = 'paid',
+  overdue = 'overdue',
+  skipped = 'skipped',
+}
 
-export type PaymentReminderStatus = (typeof PAYMENT_REMINDER_STATUSES)[keyof typeof PAYMENT_REMINDER_STATUSES];
+export type SubscriptionPeriodStatus = `${SUBSCRIPTION_PERIOD_STATUSES}`;
 
 /**
  * Fixed "remind before" presets for payment reminders.
@@ -439,10 +440,6 @@ export const REMIND_BEFORE_DAYS: Record<RemindBeforePreset, number> = {
 
 /** Maximum number of remind-before presets per reminder */
 export const MAX_REMIND_BEFORE_PRESETS = 3;
-
-/** Allowed hour slots for reminder notification time */
-export const PREFERRED_TIME_SLOTS = [0, 4, 8, 12, 16, 20] as const;
-export type PreferredTimeSlot = (typeof PREFERRED_TIME_SLOTS)[number];
 
 /**
  * Resource types that can be shared with other users.

@@ -4,9 +4,9 @@ import { CronJob } from 'cron';
 
 /**
  * Daily sweep that flips `pending` ShareInvitations rows past their `expiresAt` to
- * `expired` and emits a `share_expired` notification to each owner. Mirrors the
- * tag-reminders / payment-reminders cron shape so ops surface (start/stop, manual trigger
- * for tests) is consistent across cron services.
+ * `expired` and emits a `share_expired` notification to each owner. Follows the
+ * tag-reminders cron shape so ops surface (start/stop, manual trigger for tests) is
+ * consistent across cron services.
  */
 class ShareInvitationsExpireCronService {
   private job: CronJob | null = null;

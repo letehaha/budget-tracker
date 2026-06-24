@@ -27,7 +27,6 @@ import mcpRoutes from './routes/mcp.route';
 import notificationsRoutes from './routes/notifications.route';
 import { setupOAuthMetadataRoutes } from './routes/oauth-metadata.route';
 import payeesRoutes from './routes/payees.route';
-import paymentRemindersRoutes from './routes/payment-reminders.route';
 import shareRoutes from './routes/share.route';
 import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
@@ -175,7 +174,6 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/transaction-groups`, transactionGroupsRoutes);
   app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
   app.use(`${API_PREFIX}/payees`, payeesRoutes);
-  app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);
   app.use(`${API_PREFIX}/vehicles`, vehiclesRoutes);
   app.use(`${API_PREFIX}/share`, shareRoutes);
   app.use(`${API_PREFIX}/investments`, investmentsRoutes);

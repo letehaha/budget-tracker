@@ -10,6 +10,7 @@ import { Callout } from '@/components/lib/ui/callout';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
+import { Switch } from '@/components/lib/ui/switch';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrencyName } from '@/composable/formatters';
@@ -18,6 +19,10 @@ import { cn } from '@/lib/utils';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
 import {
   type CurrencyModel,
+  MAX_REMIND_BEFORE_PRESETS,
+  REMIND_BEFORE_DAYS,
+  REMIND_BEFORE_PRESETS,
+  type RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
   type SubscriptionMatchingRule,
@@ -33,12 +38,24 @@ import MatchingRulesBuilder from './matching-rules-builder.vue';
 import SubscriptionServiceLogo from './subscription-service-logo.vue';
 
 const props = defineProps<{
-  initialValues?: SubscriptionModel;
+  initialValues?: Partial<SubscriptionModel>;
   formId?: string;
 }>();
 
 const emit = defineEmits<{
-  submit: [payload: Omit<SubscriptionModel, 'id' | 'userId' | 'createdAt' | 'updatedAt'>];
+  submit: [
+    payload: Partial<Omit<SubscriptionModel, 'id' | 'userId' | 'createdAt' | 'updatedAt'>> & {
+      name: string;
+      type: SUBSCRIPTION_TYPES;
+      frequency: SUBSCRIPTION_FREQUENCIES;
+      startDate: string;
+      isActive: boolean;
+      dueDate?: string | null;
+      maxOccurrences?: number | null;
+      remindBefore?: RemindBeforePreset[];
+      notifyEmail?: boolean;
+    },
+  ];
   cancel: [];
 }>();
 
@@ -71,12 +88,30 @@ const accountOptions = computed(() => [
   })),
 ]);
 
+// Reminder presets rendered as togglable pills, ordered nearest-to-due first.
+const REMIND_BEFORE_OPTIONS = (Object.values(REMIND_BEFORE_PRESETS) as RemindBeforePreset[]).sort(
+  (a, b) => REMIND_BEFORE_DAYS[a] - REMIND_BEFORE_DAYS[b],
+);
+
+const toggleRemindBefore = ({ preset }: { preset: RemindBeforePreset }) => {
+  const selected = form.value.remindBefore;
+  if (selected.includes(preset)) {
+    form.value.remindBefore = selected.filter((p) => p !== preset);
+  } else if (selected.length < MAX_REMIND_BEFORE_PRESETS) {
+    form.value.remindBefore = [...selected, preset];
+  }
+};
+
 interface FormState {
   name: string;
   type: SUBSCRIPTION_TYPES;
   expectedAmount: number | null;
   expectedCurrencyCode: string;
   frequency: SUBSCRIPTION_FREQUENCIES;
+  dueDate: Date | null;
+  maxOccurrences: number | null;
+  remindBefore: RemindBeforePreset[];
+  notifyEmail: boolean;
   startDate: Date | null;
   endDate: Date | null;
   accountId: string | null;
@@ -88,15 +123,19 @@ interface FormState {
 const getInitialState = (): FormState => {
   if (props.initialValues) {
     return {
-      name: props.initialValues.name,
-      type: props.initialValues.type,
+      name: props.initialValues.name ?? '',
+      type: props.initialValues.type ?? SUBSCRIPTION_TYPES.subscription,
       expectedAmount: props.initialValues.expectedAmount ?? null,
       expectedCurrencyCode: props.initialValues.expectedCurrencyCode ?? '',
-      frequency: props.initialValues.frequency,
-      startDate: new Date(props.initialValues.startDate),
+      frequency: props.initialValues.frequency ?? SUBSCRIPTION_FREQUENCIES.monthly,
+      dueDate: props.initialValues.dueDate ? new Date(props.initialValues.dueDate) : null,
+      maxOccurrences: props.initialValues.maxOccurrences ?? null,
+      remindBefore: props.initialValues.remindBefore ?? [],
+      notifyEmail: props.initialValues.notifyEmail ?? false,
+      startDate: props.initialValues.startDate ? new Date(props.initialValues.startDate) : new Date(),
       endDate: props.initialValues.endDate ? new Date(props.initialValues.endDate) : null,
-      accountId: props.initialValues.accountId,
-      categoryId: props.initialValues.categoryId,
+      accountId: props.initialValues.accountId ?? null,
+      categoryId: props.initialValues.categoryId ?? null,
       matchingRules: props.initialValues.matchingRules?.rules ?? [],
       notes: props.initialValues.notes ?? '',
     };
@@ -107,6 +146,10 @@ const getInitialState = (): FormState => {
     expectedAmount: null,
     expectedCurrencyCode: baseCurrency.value?.currencyCode ?? '',
     frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+    dueDate: null,
+    maxOccurrences: null,
+    remindBefore: [],
+    notifyEmail: false,
     startDate: new Date(),
     endDate: null,
     accountId: null,
@@ -218,12 +261,16 @@ const handleSubmit = () => {
 
   formError.value = null;
 
-  const payload: Omit<SubscriptionModel, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
+  const payload = {
     name: form.value.name,
     type: form.value.type,
-    expectedAmount: form.value.expectedAmount ? Math.round(form.value.expectedAmount * 100) : null,
+    expectedAmount: form.value.expectedAmount || null,
     expectedCurrencyCode: form.value.expectedCurrencyCode || null,
     frequency: form.value.frequency,
+    dueDate: form.value.dueDate ? form.value.dueDate.toISOString().split('T')[0]! : null,
+    maxOccurrences: form.value.maxOccurrences ?? null,
+    remindBefore: form.value.remindBefore,
+    notifyEmail: form.value.notifyEmail,
     startDate: form.value.startDate?.toISOString().split('T')[0] ?? new Date().toISOString().split('T')[0]!,
     endDate: form.value.endDate ? form.value.endDate.toISOString().split('T')[0]! : null,
     accountId: (form.value.accountId || null) as RecordId | null,
@@ -341,6 +388,69 @@ const handleSubmit = () => {
       :label="$t('planned.subscriptions.form.frequencyLabel')"
       @update:model-value="(v: any) => v && (form.frequency = v.value)"
     />
+
+    <!-- Payment schedule: opt-in. Setting a due date generates payable periods
+         (mark-as-paid + reminders). Left empty, the subscription is detection-only. -->
+    <div class="border-border bg-muted/20 grid gap-3 rounded-lg border p-3">
+      <DateField
+        :model-value="form.dueDate ?? undefined"
+        :label="$t('planned.subscriptions.form.dueDateLabel')"
+        @update:model-value="(v: Date | null) => (form.dueDate = v)"
+      />
+      <p class="text-muted-foreground -mt-2 text-xs">
+        {{ $t('planned.subscriptions.form.dueDateDescription') }}
+      </p>
+
+      <!-- Installment cap only makes sense once a schedule exists; null repeats indefinitely. -->
+      <InputField
+        v-if="form.dueDate"
+        :model-value="form.maxOccurrences ?? undefined"
+        type="number"
+        :label="$t('planned.subscriptions.form.maxOccurrencesLabel')"
+        :placeholder="$t('planned.subscriptions.form.maxOccurrencesPlaceholder')"
+        only-positive
+        @update:model-value="(v: string | number | null) => (form.maxOccurrences = v ? Number(v) : null)"
+      />
+
+      <!-- Advance reminders only apply to scheduled periods, so they share the due-date gate. -->
+      <div v-if="form.dueDate" class="grid gap-2">
+        <Label class="text-sm font-medium">{{ $t('planned.subscriptions.form.remindBeforeLabel') }}</Label>
+        <div class="flex flex-wrap gap-2">
+          <Label
+            v-for="preset in REMIND_BEFORE_OPTIONS"
+            :key="preset"
+            :class="
+              cn(
+                'border-input flex cursor-pointer items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                form.remindBefore.includes(preset)
+                  ? 'border-primary bg-primary/5'
+                  : 'hover:bg-accent hover:text-accent-foreground',
+                !form.remindBefore.includes(preset) &&
+                  form.remindBefore.length >= MAX_REMIND_BEFORE_PRESETS &&
+                  'pointer-events-none cursor-not-allowed opacity-50',
+              )
+            "
+          >
+            <input
+              type="checkbox"
+              class="sr-only"
+              :checked="form.remindBefore.includes(preset)"
+              :disabled="!form.remindBefore.includes(preset) && form.remindBefore.length >= MAX_REMIND_BEFORE_PRESETS"
+              @change="toggleRemindBefore({ preset })"
+            />
+            {{ $t(`planned.subscriptions.form.remindPresets.${preset}`) }}
+          </Label>
+        </div>
+        <p class="text-muted-foreground text-xs">
+          {{ $t('planned.subscriptions.form.remindBeforeHelper') }}
+        </p>
+
+        <label class="mt-1 flex cursor-pointer items-center justify-between gap-3">
+          <span class="text-sm">{{ $t('planned.subscriptions.form.notifyEmailLabel') }}</span>
+          <Switch v-model="form.notifyEmail" />
+        </label>
+      </div>
+    </div>
 
     <!-- Matching Rules -->
     <div>

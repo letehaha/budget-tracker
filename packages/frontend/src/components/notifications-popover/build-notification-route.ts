@@ -108,12 +108,12 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
       };
     }
 
-    case NOTIFICATION_TYPES.paymentReminder: {
-      const payload = notification.payload as { reminderId?: string } | undefined;
-      if (!payload?.reminderId) return null;
+    case NOTIFICATION_TYPES.subscriptionReminder: {
+      const payload = notification.payload as { subscriptionId?: string } | undefined;
+      if (!payload?.subscriptionId) return null;
       return {
         kind: 'spa',
-        to: { name: ROUTES_NAMES.plannedReminderDetails, params: { id: payload.reminderId } },
+        to: { name: ROUTES_NAMES.plannedSubscriptionDetails, params: { id: payload.subscriptionId } },
       };
     }
 

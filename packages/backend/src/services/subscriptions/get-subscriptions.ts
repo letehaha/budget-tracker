@@ -1,12 +1,17 @@
-import { SUBSCRIPTION_LINK_STATUS } from '@bt/shared/types';
+import {
+  SUBSCRIPTION_LINK_STATUS,
+  SUBSCRIPTION_PERIOD_STATUSES,
+  type SubscriptionPeriodStatus,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
+import SubscriptionPeriods from '@models/subscription-periods.model';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions, { type TransactionsAttributes } from '@models/transactions.model';
-import { fn, literal } from 'sequelize';
+import { fn, literal, Op } from 'sequelize';
 
 import { computeNextExpectedDate } from './subscription-date.utils';
 
@@ -43,6 +48,8 @@ interface SubscriptionBase extends Pick<
   | 'matchingRules'
   | 'isActive'
   | 'notes'
+  | 'remindBefore'
+  | 'notifyEmail'
   | 'createdAt'
   | 'updatedAt'
 > {
@@ -50,8 +57,17 @@ interface SubscriptionBase extends Pick<
   category: SubscriptionCategory | null;
 }
 
+/** Minimal period shape exposed on the list — enough for a "Due in N days" chip. */
+interface CurrentPeriod {
+  id: string;
+  dueDate: string;
+  status: SubscriptionPeriodStatus;
+}
+
 interface SubscriptionListItem extends SubscriptionBase {
   linkedTransactionsCount: number;
+  /** Earliest open (upcoming or overdue) period, or null for detection-only subs. */
+  currentPeriod: CurrentPeriod | null;
 }
 
 /**
@@ -70,9 +86,23 @@ interface SubscriptionLinkedTransaction extends Omit<
   SubscriptionTransactions: Pick<SubscriptionTransactions, 'matchSource' | 'matchedAt' | 'status'>;
 }
 
+interface SubscriptionPeriodItem {
+  id: string;
+  subscriptionId: string;
+  dueDate: string;
+  status: string;
+  paidAt: Date | null;
+  transactionId: string | null;
+  transactionAutoCreated: boolean;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 interface SubscriptionDetail extends SubscriptionBase {
   transactions: SubscriptionLinkedTransaction[];
   nextExpectedDate: string | null;
+  periods: SubscriptionPeriodItem[];
 }
 
 export const getSubscriptions = async ({
@@ -113,7 +143,7 @@ export const getSubscriptions = async ({
     subQuery: false,
   });
 
-  return subscriptions.map((s) => {
+  const mapped = subscriptions.map((s) => {
     const plain = s.toJSON() as unknown as SubscriptionBase & { linkedTransactionsCount: number | string | null };
     return {
       ...plain,
@@ -121,6 +151,36 @@ export const getSubscriptions = async ({
       linkedTransactionsCount: Number(plain.linkedTransactionsCount ?? 0),
     };
   });
+
+  if (mapped.length === 0) {
+    return mapped.map((item) => ({ ...item, currentPeriod: null }));
+  }
+
+  // Single query for all open periods across the result set.
+  // Ordered ASC so the first row per subscriptionId is always the earliest due date.
+  const subscriptionIds = mapped.map((item) => item.id);
+  const openPeriods = await SubscriptionPeriods.findAll({
+    where: {
+      subscriptionId: { [Op.in]: subscriptionIds },
+      status: { [Op.in]: [SUBSCRIPTION_PERIOD_STATUSES.upcoming, SUBSCRIPTION_PERIOD_STATUSES.overdue] },
+    },
+    attributes: ['id', 'subscriptionId', 'dueDate', 'status'],
+    order: [['dueDate', 'ASC']],
+  });
+
+  // Keep only the earliest open period per subscription (first occurrence wins because of ASC order).
+  const earliestBySubscriptionId = new Map<string, CurrentPeriod>();
+  for (const period of openPeriods) {
+    const { subscriptionId, id, dueDate, status } = period;
+    if (!earliestBySubscriptionId.has(subscriptionId)) {
+      earliestBySubscriptionId.set(subscriptionId, { id, dueDate, status });
+    }
+  }
+
+  return mapped.map((item) => ({
+    ...item,
+    currentPeriod: earliestBySubscriptionId.get(item.id) ?? null,
+  }));
 };
 
 export const getSubscriptionById = async ({
@@ -143,7 +203,12 @@ export const getSubscriptionById = async ({
             where: { status: SUBSCRIPTION_LINK_STATUS.active },
           },
         },
+        {
+          model: SubscriptionPeriods,
+          as: 'periods',
+        },
       ],
+      order: [[{ model: SubscriptionPeriods, as: 'periods' }, 'dueDate', 'ASC']],
     }),
     message: 'Subscription not found.',
   });
@@ -156,6 +221,7 @@ export const getSubscriptionById = async ({
         SubscriptionTransactions: Pick<SubscriptionTransactions, 'matchSource' | 'matchedAt' | 'status'>;
       }
     >;
+    periods?: SubscriptionPeriodItem[];
   };
 
   const transactions: SubscriptionLinkedTransaction[] = (raw.transactions ?? []).map((tx) => ({
@@ -178,5 +244,6 @@ export const getSubscriptionById = async ({
     expectedAmount: raw.expectedAmount !== null ? Money.fromCents(raw.expectedAmount).toNumber() : null,
     transactions,
     nextExpectedDate,
+    periods: raw.periods ?? [],
   };
 };
