@@ -34,13 +34,20 @@ import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import LogoField from '@/components/common/logo-field.vue';
+
 import MatchingRulesBuilder from './matching-rules-builder.vue';
-import SubscriptionServiceLogo from './subscription-service-logo.vue';
 
 const props = defineProps<{
   initialValues?: Partial<SubscriptionModel>;
   formId?: string;
 }>();
+
+// Snapshot of the logo at open time. The submit payload includes `logoDomain`
+// only when it differs from this, so an untouched subscription keeps its
+// auto-resolved logo (the key is omitted, leaving the resolver in charge) while
+// a user pick or clear is sent as a manual override.
+const initialLogoDomain = props.initialValues?.logoDomain ?? null;
 
 const emit = defineEmits<{
   submit: [
@@ -118,6 +125,8 @@ interface FormState {
   categoryId: string | null;
   matchingRules: SubscriptionMatchingRule[];
   notes: string;
+  /** Manually chosen logo domain. null = let the backend auto-resolve from the name. */
+  logoDomain: string | null;
 }
 
 const getInitialState = (): FormState => {
@@ -138,6 +147,7 @@ const getInitialState = (): FormState => {
       categoryId: props.initialValues.categoryId ?? null,
       matchingRules: props.initialValues.matchingRules?.rules ?? [],
       notes: props.initialValues.notes ?? '',
+      logoDomain: props.initialValues.logoDomain ?? null,
     };
   }
   return {
@@ -156,6 +166,7 @@ const getInitialState = (): FormState => {
     categoryId: null,
     matchingRules: [],
     notes: '',
+    logoDomain: null,
   };
 };
 
@@ -291,6 +302,7 @@ const handleSubmit = () => {
     },
     isActive: props.initialValues?.isActive ?? true,
     notes: form.value.notes || null,
+    ...(form.value.logoDomain !== initialLogoDomain ? { logoDomain: form.value.logoDomain } : {}),
   };
 
   emit('submit', payload);
@@ -305,17 +317,20 @@ const handleSubmit = () => {
     </Callout>
 
     <!-- Name -->
-    <div class="flex items-start gap-3">
-      <SubscriptionServiceLogo :name="form.name" class="mt-6 size-8" />
+    <InputField
+      v-model="form.name"
+      :label="$t('planned.subscriptions.form.nameLabel')"
+      :placeholder="$t('planned.subscriptions.form.namePlaceholder')"
+      :error-message="getFieldErrorMessage('form.name')"
+      @blur="touchField('form.name')"
+    />
 
-      <InputField
-        v-model="form.name"
-        :label="$t('planned.subscriptions.form.nameLabel')"
-        :placeholder="$t('planned.subscriptions.form.namePlaceholder')"
-        :error-message="getFieldErrorMessage('form.name')"
-        class="flex-1"
-        @blur="touchField('form.name')"
-      />
+    <!-- Logo: defaults to auto-resolution from the name; the picker sets a manual
+         override (or clears it to show a plain monogram). -->
+    <div class="flex flex-col gap-2">
+      <Label class="mb-2 block text-sm font-medium">{{ $t('planned.subscriptions.form.logoLabel') }}</Label>
+      <LogoField v-model="form.logoDomain" :name-for-search="form.name" />
+      <p class="text-muted-foreground -mt-1 text-xs">{{ $t('common.logo.domainHint') }}</p>
     </div>
 
     <!-- Type -->

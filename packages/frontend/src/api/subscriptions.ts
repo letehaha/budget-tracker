@@ -124,6 +124,8 @@ export const loadSuggestedMatches = async ({ id }: { id: string }): Promise<Tran
 interface UpcomingPayment {
   subscriptionId: string;
   subscriptionName: string;
+  /** Resolved brand domain for the logo, or null to fall back to a monogram. */
+  logoDomain: string | null;
   expectedAmount: number;
   expectedCurrencyCode: string | null;
   nextPaymentDate: string | null;

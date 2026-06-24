@@ -1,8 +1,8 @@
 import { logger } from '@js/utils/logger';
 import BrandLogos from '@models/brand-logos.model';
+import { normalizePayeeName } from '@services/payees/normalize-name';
 
 import brandLogosSeed from './brand-logos-seed.json';
-import { normalizePayeeName } from './normalize-name';
 
 interface SeedEntry {
   name: string;
@@ -11,7 +11,8 @@ interface SeedEntry {
 
 /**
  * Populate the shared `BrandLogos` cache with the bundled list of common
- * brands so the most frequent payees resolve with zero logo.dev calls.
+ * brands so the most frequent payees and subscriptions resolve with zero
+ * logo.dev calls.
  *
  * Idempotent: `bulkCreate(..., { ignoreDuplicates: true })` inserts only rows
  * whose `normalizedName` isn't present yet, so re-running never clobbers

@@ -21,7 +21,7 @@
               <InfoIcon class="text-muted-foreground size-3.5 cursor-help" @click.prevent.stop />
             </ResponsiveTooltip>
           </div>
-          <PayeeLogoField v-model="form.logoDomain" :name-for-search="form.name" />
+          <LogoField v-model="form.logoDomain" :name-for-search="form.name" />
         </div>
 
         <CategorySelectField
@@ -73,7 +73,7 @@ import { storeToRefs } from 'pinia';
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import PayeeLogoField from './payee-logo-field.vue';
+import LogoField from '@/components/common/logo-field.vue';
 
 interface Props {
   open: boolean;
@@ -143,7 +143,7 @@ const form = reactive<{
 
 // Resolved against the live options array instead of reading
 // `form.categorizationMode.hint` directly, because that field is a snapshot
-// taken when the option was selected — once `pages/payees` finishes loading
+// taken when the option was selected – once `pages/payees` finishes loading
 // and the labels re-translate, the snapshot's hint is stale.
 const activeModeHint = computed(
   () =>

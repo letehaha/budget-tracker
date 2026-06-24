@@ -52,6 +52,7 @@
       "form": {
         "nameLabel": "Name",
         "namePlaceholder": "e.g. Netflix, Electricity bill",
+        "logoLabel": "Logo",
         "typeLabel": "Type",
         "typeSubscriptionDesc": "Recurring service payment",
         "typeBillDesc": "Recurring bill or utility",

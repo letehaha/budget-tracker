@@ -8,6 +8,7 @@ import {
 import { Money } from '@common/types/money';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
+import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { validateAccountOwnership, validateCategoryOwnership } from './helpers';
@@ -29,6 +30,13 @@ interface CreateSubscriptionParams {
   maxOccurrences?: number | null;
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
+  /**
+   * When present (including null), the new subscription is stamped with this
+   * logo domain and `logoSource: 'manual'` so the background resolver treats it
+   * as authoritative and never overwrites it. When absent (undefined), the logo
+   * fields stay unset and the post-commit resolver auto-resolves them.
+   */
+  logoDomain?: string | null;
 }
 
 export const createSubscription = withTransaction(
@@ -42,6 +50,7 @@ export const createSubscription = withTransaction(
     endDate = null,
     notes = null,
     dueDate = null,
+    logoDomain,
     ...rest
   }: CreateSubscriptionParams) => {
     if (accountId) {
@@ -71,6 +80,9 @@ export const createSubscription = withTransaction(
       dueDate,
       anchorDay,
       ...rest,
+      // A supplied domain (even null) is a manual override; `logoSource: 'manual'`
+      // makes the resolver treat it as authoritative.
+      ...(logoDomain !== undefined ? { logoDomain, logoSource: 'manual' as const } : {}),
     });
 
     // When a dueDate is provided, create the first upcoming period so the
@@ -82,6 +94,11 @@ export const createSubscription = withTransaction(
         status: SUBSCRIPTION_PERIOD_STATUSES.upcoming,
       });
     }
+
+    // Always enqueue: the resolver no-ops on `logoSource: 'manual'` rows, so a
+    // manual logo is never clobbered. Deferred to afterCommit so the worker only
+    // sees a committed row.
+    enqueueLogoResolutionAfterCommit({ entity: 'subscription', id: subscription.id });
 
     // Surface expectedAmount as a decimal so the response matches GET (the
     // column holds raw cents).

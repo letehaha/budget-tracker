@@ -3,10 +3,11 @@ import { namespace } from '@models/connection';
 import { Job, Queue, Worker } from 'bullmq';
 import type { Transaction } from 'sequelize';
 
-import { resolveLogoForPayee } from './resolve-logo.service';
+import { LogoEntity, resolveBrandLogo } from './resolve-brand-logo.service';
 
 interface LogoResolutionJobData {
-  payeeId: string;
+  entity: LogoEntity;
+  id: string;
 }
 
 // Redis connection configuration for BullMQ. Mirrors the resilient settings of
@@ -24,11 +25,11 @@ const connection = {
 // don't share a queue.
 const queueName =
   process.env.NODE_ENV === 'test' && process.env.JEST_WORKER_ID
-    ? `payee-logo-resolution-${process.env.JEST_WORKER_ID}`
-    : 'payee-logo-resolution';
+    ? `brand-logo-resolution-${process.env.JEST_WORKER_ID}`
+    : 'brand-logo-resolution';
 
 /**
- * Queue for per-Payee brand-logo resolution jobs.
+ * Queue for per-entity brand-logo resolution jobs (payees and subscriptions).
  */
 export const logoResolutionQueue = new Queue<LogoResolutionJobData>(queueName, {
   connection,
@@ -49,29 +50,22 @@ export const logoResolutionQueue = new Queue<LogoResolutionJobData>(queueName, {
 logoResolutionQueue.on('error', (err) => {
   // Ignore "Connection is closed" errors during test teardown.
   if (!err.message.includes('Connection is closed')) {
-    logger.error({ message: '[Payee Logo Queue] Queue error', error: err });
+    logger.error({ message: '[Brand Logo Queue] Queue error', error: err });
   }
 });
 
 /**
- * Worker that resolves one Payee's logo per job. Concurrency plus a rate
+ * Worker that resolves one entity's logo per job. Concurrency plus a rate
  * limiter bound the logo.dev request rate across all in-flight jobs.
  * Exported for proper cleanup in test teardown.
  */
 export const logoResolutionWorker = new Worker<LogoResolutionJobData>(
   queueName,
   async (job: Job<LogoResolutionJobData>) => {
-    const { payeeId } = job.data;
-    // Pass `transaction: null` so the resolver's queries opt out of Sequelize's
-    // cls-hooked transaction injection. The worker shares its process with the
-    // HTTP server; cls-hooked can bleed a concurrent request's already-committed
-    // transaction into this async chain, and an inherited committed transaction
-    // makes `payee.update()` throw "commit has been called on this transaction".
-    // Sequelize only consults the ambient CLS transaction when `options.transaction`
-    // is `undefined`, so an explicit `null` bypasses it — more reliable than
-    // clearing the ambient value, which cls-hooked can't guarantee across native
-    // promise continuations.
-    await resolveLogoForPayee({ payeeId, transaction: null });
+    const { entity, id } = job.data;
+    // `transaction: null` bypasses Sequelize's cls-hooked ambient transaction
+    // injection – see resolveBrandLogo JSDoc for the full rationale.
+    await resolveBrandLogo({ entity, id, transaction: null });
   },
   {
     connection,
@@ -85,51 +79,51 @@ export const logoResolutionWorker = new Worker<LogoResolutionJobData>(
 );
 
 logoResolutionWorker.on('failed', (job, err) => {
-  logger.error({ message: `[Payee Logo Worker] Job ${job?.id} failed`, error: err });
+  logger.error({ message: `[Brand Logo Worker] Job ${job?.id} failed`, error: err });
 });
 
 logoResolutionWorker.on('error', (err) => {
   // Ignore "Connection is closed" errors during test teardown.
   if (!err.message.includes('Connection is closed')) {
-    logger.error({ message: '[Payee Logo Worker] Worker error', error: err });
+    logger.error({ message: '[Brand Logo Worker] Worker error', error: err });
   }
 });
 
 /**
- * Enqueue logo resolution for a single Payee. The `payee-logo-<payeeId>` jobId
- * dedups re-enqueues of the same Payee (e.g. lazy-on-read backfill firing on
+ * Enqueue logo resolution for a single entity. The `<entity>-logo-<id>` jobId
+ * dedups re-enqueues of the same row (e.g. lazy-on-read backfill firing on
  * every list request) down to one in-flight job. BullMQ forbids `:` in a custom
- * job id, so the separator is `-`.
+ * job id, so the separator is `-` (entity ids are uuids – no colons).
  *
  * Safe to call when Redis / the queue is unavailable: a failed enqueue is
- * logged and swallowed so it can never break Payee creation or a read path.
+ * logged and swallowed so it can never break a write path or a read path.
  */
-export async function enqueueLogoResolution({ payeeId }: { payeeId: string }): Promise<void> {
+export async function enqueueLogoResolution({ entity, id }: { entity: LogoEntity; id: string }): Promise<void> {
   try {
-    await logoResolutionQueue.add('resolve-logo', { payeeId }, { jobId: `payee-logo-${payeeId}` });
+    await logoResolutionQueue.add('resolve-logo', { entity, id }, { jobId: `${entity}-logo-${id}` });
   } catch (error) {
-    logger.warn(`[Payee Logo Queue] Failed to enqueue logo resolution for payee ${payeeId}: ${String(error)}`);
+    logger.warn(`[Brand Logo Queue] Failed to enqueue logo resolution for ${entity} ${id}: ${String(error)}`);
   }
 }
 
 /**
  * Enqueue logo resolution only after the surrounding DB transaction commits.
  *
- * A Payee created inside a transaction isn't visible to the worker (a separate
- * connection) until commit, and the row vanishes entirely on rollback — so
+ * A row created inside a transaction isn't visible to the worker (a separate
+ * connection) until commit, and the row vanishes entirely on rollback – so
  * enqueuing before commit risks the worker reading a not-yet-visible or
  * rolled-back row. The active transaction is read from the Sequelize CLS
  * namespace (`withTransaction` runs queries inside it). When one is in scope we
  * defer via `afterCommit`; otherwise (no ambient transaction) we enqueue
  * directly.
  */
-export function enqueueLogoResolutionAfterCommit({ payeeId }: { payeeId: string }): void {
+export function enqueueLogoResolutionAfterCommit({ entity, id }: { entity: LogoEntity; id: string }): void {
   // `finished` ('commit' | 'rollback') isn't on the public Transaction type, but
   // `withTransaction` checks it the same way to detect stale CLS transactions.
   const transaction = namespace.get('transaction') as (Transaction & { finished?: string }) | undefined;
   if (transaction && !transaction.finished) {
-    transaction.afterCommit(() => enqueueLogoResolution({ payeeId }));
+    transaction.afterCommit(() => enqueueLogoResolution({ entity, id }));
   } else {
-    void enqueueLogoResolution({ payeeId });
+    void enqueueLogoResolution({ entity, id });
   }
 }

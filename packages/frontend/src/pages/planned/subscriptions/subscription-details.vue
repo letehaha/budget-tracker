@@ -54,9 +54,10 @@ import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+import BrandLogo from '@/components/common/brand-logo.vue';
+
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
 import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
-import SubscriptionServiceLogo from './components/subscription-service-logo.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
 import { formatFrequency, formatMatchSource } from './utils';
 
@@ -227,7 +228,7 @@ const isScheduled = computed(() => (subscription.value?.periods?.length ?? 0) > 
 
 const periods = computed(() => subscription.value?.periods ?? []);
 
-/** The earliest upcoming or overdue period — the one the user acts on next. */
+/** The earliest upcoming or overdue period – the one the user acts on next. */
 const currentPeriod = computed(() => {
   return (
     periods.value.find(
@@ -412,7 +413,7 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
         <div class="flex items-center gap-3">
-          <SubscriptionServiceLogo :name="subscription.name" class="size-10" />
+          <BrandLogo :domain="subscription.logoDomain" :name="subscription.name" class="size-10" />
           <h1 class="text-2xl font-semibold tracking-tight">{{ subscription.name }}</h1>
           <SubscriptionTypeBadge :type="subscription.type" size="md" />
           <span
@@ -507,7 +508,7 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           {{
             subscription.expectedAmount && subscription.expectedCurrencyCode
               ? formatAmountByCurrencyCode(subscription.expectedAmount, subscription.expectedCurrencyCode)
-              : '—'
+              : '–'
           }}
         </p>
       </div>
@@ -522,7 +523,7 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           {{ $t('planned.subscriptions.nextExpected') }}
         </p>
         <p class="mt-1 text-sm font-medium">
-          {{ subscription.nextExpectedDate ? format(new Date(subscription.nextExpectedDate), 'MMM d, yyyy') : '—' }}
+          {{ subscription.nextExpectedDate ? format(new Date(subscription.nextExpectedDate), 'MMM d, yyyy') : '–' }}
         </p>
       </div>
       <div>
@@ -537,7 +538,7 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           {{
             hasMatchingRules
               ? $t('planned.subscriptions.form.rulesCount', { count: subscription.matchingRules.rules.length })
-              : '—'
+              : '–'
           }}
         </p>
         <Button type="button" variant="link" size="sm" class="h-auto p-0 text-xs" @click="isEditDialogOpen = true">

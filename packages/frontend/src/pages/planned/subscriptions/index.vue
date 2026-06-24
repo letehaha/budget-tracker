@@ -25,10 +25,11 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import BrandLogo from '@/components/common/brand-logo.vue';
+
 import DiscoverCandidatesDialog from './components/discover-candidates-dialog.vue';
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
 import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
-import SubscriptionServiceLogo from './components/subscription-service-logo.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
 import SubscriptionsSummary from './components/subscriptions-summary.vue';
 import { formatFrequency } from './utils';
@@ -200,7 +201,7 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
       >
         <!-- Name -->
         <div class="flex min-w-0 items-center gap-2">
-          <SubscriptionServiceLogo :name="subscription.name" class="size-5" />
+          <BrandLogo :domain="subscription.logoDomain" :name="subscription.name" class="size-5" />
           <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
         </div>
 

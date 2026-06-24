@@ -43,6 +43,7 @@ interface CreateSubscriptionPayload {
   maxOccurrences?: number | null;
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
+  logoDomain?: string | null;
 }
 
 interface UpdateSubscriptionPayload {
@@ -61,6 +62,7 @@ interface UpdateSubscriptionPayload {
   maxOccurrences?: number | null;
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
+  logoDomain?: string | null;
 }
 
 export async function createSubscription<R extends boolean | undefined = undefined>({
@@ -133,6 +135,20 @@ export async function deleteSubscription<R extends boolean | undefined = undefin
   return makeRequest<{ success: boolean }, R>({
     method: 'delete',
     url: `/subscriptions/${id}`,
+    raw,
+  });
+}
+
+export async function resetSubscriptionLogo<R extends boolean | undefined = undefined>({
+  id,
+  raw,
+}: {
+  id: string;
+  raw?: R;
+}) {
+  return makeRequest<SubscriptionModel, R>({
+    method: 'post',
+    url: `/subscriptions/${id}/reset-logo`,
     raw,
   });
 }

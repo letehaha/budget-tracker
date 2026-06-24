@@ -3,6 +3,7 @@ import {
   SUBSCRIPTION_TYPES,
   SubscriptionMatchingRules,
   RemindBeforePreset,
+  LogoResolutionState,
   RecordId,
 } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, HasMany, DataType } from 'sequelize-typescript';
@@ -150,6 +151,20 @@ export default class Subscriptions extends Model {
     defaultValue: false,
   })
   notifyEmail!: boolean;
+
+  @Column({
+    type: DataType.STRING(253),
+    allowNull: true,
+  })
+  logoDomain!: string | null;
+
+  // VARCHAR + TS-side union (project convention: no DB enums). 'auto' =
+  // system-resolved via BrandLogos; 'manual' = user override; null = unresolved.
+  @Column({
+    type: DataType.STRING(16),
+    allowNull: true,
+  })
+  logoSource!: LogoResolutionState;
 
   declare createdAt: Date;
   declare updatedAt: Date;

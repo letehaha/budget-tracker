@@ -31,6 +31,13 @@ interface UpdateSubscriptionParams {
   maxOccurrences?: number | null;
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
+  /**
+   * When present (including null), sets logoDomain to this value and stamps
+   * logoSource = 'manual' so the auto-resolver never overwrites the user's
+   * choice. null = user explicitly wants no logo, still treated as manual. When
+   * absent (undefined), both logo fields are left untouched.
+   */
+  logoDomain?: string | null;
 }
 
 export const updateSubscription = withTransaction(async ({ id, userId, ...fields }: UpdateSubscriptionParams) => {
@@ -60,6 +67,12 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     fields = { ...fields, anchorDay: new Date(fields.dueDate + 'T00:00:00Z').getUTCDate() } as typeof fields & {
       anchorDay: number;
     };
+  }
+
+  // Key present (even null) → user is making a manual override; stamp logoSource
+  // so the background resolver never overwrites the user's choice.
+  if (fields.logoDomain !== undefined) {
+    fields = { ...fields, logoSource: 'manual' } as typeof fields & { logoSource: 'manual' };
   }
 
   await subscription.update(fields);

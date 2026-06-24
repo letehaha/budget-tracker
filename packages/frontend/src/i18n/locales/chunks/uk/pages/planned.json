@@ -52,6 +52,7 @@
       "form": {
         "nameLabel": "Назва",
         "namePlaceholder": "напр. Netflix, рахунок за електрику",
+        "logoLabel": "Логотип",
         "typeLabel": "Тип",
         "typeSubscriptionDesc": "Регулярний платіж за послугу",
         "typeBillDesc": "Регулярний рахунок або комунальний платіж",

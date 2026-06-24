@@ -1,4 +1,4 @@
-import { CATEGORIZATION_MODE, PayeeLogoSource, RecordId } from '@bt/shared/types';
+import { CATEGORIZATION_MODE, LogoResolutionState, RecordId } from '@bt/shared/types';
 import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, HasMany, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -61,12 +61,12 @@ export default class Payees extends Model {
   logoDomain!: string | null;
 
   // VARCHAR + TS-side union (project convention: no DB enums). 'auto' =
-  // system-resolved via BrandLogos; 'manual' = user override.
+  // system-resolved via BrandLogos; 'manual' = user override; null = unresolved.
   @Column({
     type: DataType.STRING(16),
     allowNull: true,
   })
-  logoSource!: PayeeLogoSource | null;
+  logoSource!: LogoResolutionState;
 
   declare createdAt: Date;
   declare updatedAt: Date;

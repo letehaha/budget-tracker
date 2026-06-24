@@ -10,7 +10,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { PayeeModel } from '@bt/shared/types';
 import PayeeFormDialog from '@/pages/settings/subpages/payees/components/payee-form-dialog.vue';
-import PayeeLogo from '@/pages/settings/subpages/payees/components/payee-logo.vue';
+import BrandLogo from '@/components/common/brand-logo.vue';
 import FieldLabel from './components/field-label.vue';
 
 const DEBOUNCE_MS = 200;
@@ -74,7 +74,7 @@ const inputValue = ref('');
 const debouncedRaw = useDebounce(inputValue, DEBOUNCE_MS);
 const debouncedQuery = computed(() => debouncedRaw.value.trim());
 
-// Sort by last-seen so the most recently used payees lead — that's what the
+// Sort by last-seen so the most recently used payees lead – that's what the
 // user typically reaches for when entering a new transaction. The backend
 // default is `transactionCount`, which would surface lifetime favourites
 // instead of "what I just paid".
@@ -103,7 +103,7 @@ const displayPayees = computed(() =>
   props.excludeId ? allPayees.value.filter((p) => p.id !== props.excludeId) : allPayees.value,
 );
 
-// Inline create is hidden in owner-scoped mode — the caller can't create
+// Inline create is hidden in owner-scoped mode – the caller can't create
 // payees in the account owner's namespace from the transaction form.
 const showCreateAffordance = computed(() => !props.ownerScoped);
 
@@ -173,7 +173,7 @@ function handlePayeeCreated(payee: PayeeModel) {
           "
           data-test="payee-select-field"
         >
-          <PayeeLogo
+          <BrandLogo
             v-if="selectedPayee"
             :domain="selectedPayee.logoDomain ?? null"
             :name="selectedPayee.name"
@@ -226,7 +226,7 @@ function handlePayeeCreated(payee: PayeeModel) {
               :class="{ 'bg-primary/15 hover:bg-primary/20': modelValue === item.id }"
               @click="selectPayee(item)"
             >
-              <PayeeLogo :domain="item.logoDomain ?? null" :name="item.name" class="size-6 shrink-0" />
+              <BrandLogo :domain="item.logoDomain ?? null" :name="item.name" class="size-6 shrink-0" />
               <span class="min-w-0 grow truncate">{{ item.name }}</span>
             </button>
 

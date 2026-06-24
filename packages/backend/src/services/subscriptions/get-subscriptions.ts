@@ -11,6 +11,7 @@ import SubscriptionPeriods from '@models/subscription-periods.model';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions, { type TransactionsAttributes } from '@models/transactions.model';
+import { applyCachedLogos, enqueueLogoResolution } from '@services/brand-logos';
 import { fn, literal, Op } from 'sequelize';
 
 import { computeNextExpectedDate } from './subscription-date.utils';
@@ -30,7 +31,7 @@ type SubscriptionCategory = Pick<Categories, 'id' | 'name' | 'color' | 'icon'>;
 /**
  * Subscription scalar columns plus its trimmed account/category associations.
  * `expectedAmount` is a BIGINT (cents) on the model but is surfaced here as a
- * decimal number — the type stays `number | null`, only the value changes.
+ * decimal number – the type stays `number | null`, only the value changes.
  */
 interface SubscriptionBase extends Pick<
   Subscriptions,
@@ -50,6 +51,8 @@ interface SubscriptionBase extends Pick<
   | 'notes'
   | 'remindBefore'
   | 'notifyEmail'
+  | 'logoDomain'
+  | 'logoSource'
   | 'createdAt'
   | 'updatedAt'
 > {
@@ -57,7 +60,20 @@ interface SubscriptionBase extends Pick<
   category: SubscriptionCategory | null;
 }
 
-/** Minimal period shape exposed on the list — enough for a "Due in N days" chip. */
+/**
+ * Lazy-on-read logo backfill for subscriptions with `logoSource IS NULL`.
+ * Stamps `BrandLogos` cache hits onto the model instances (not their toJSON
+ * projections) so hits are reflected when the caller serializes them on THIS
+ * request; cache misses are enqueued for async logo.dev resolution.
+ */
+async function backfillLogosForUnresolved({ subscriptions }: { subscriptions: Subscriptions[] }): Promise<void> {
+  const misses = await applyCachedLogos({ entity: 'subscription', rows: subscriptions });
+  for (const subscription of misses) {
+    void enqueueLogoResolution({ entity: 'subscription', id: subscription.id });
+  }
+}
+
+/** Minimal period shape exposed on the list – enough for a "Due in N days" chip. */
 interface CurrentPeriod {
   id: string;
   dueDate: string;
@@ -143,6 +159,8 @@ export const getSubscriptions = async ({
     subQuery: false,
   });
 
+  await backfillLogosForUnresolved({ subscriptions });
+
   const mapped = subscriptions.map((s) => {
     const plain = s.toJSON() as unknown as SubscriptionBase & { linkedTransactionsCount: number | string | null };
     return {
@@ -212,6 +230,8 @@ export const getSubscriptionById = async ({
     }),
     message: 'Subscription not found.',
   });
+
+  await backfillLogosForUnresolved({ subscriptions: [subscription] });
 
   // toJSON() is untyped; describe the loaded shape (Money fields still boxed,
   // join-table metadata nested under SubscriptionTransactions) so the rest is typed.

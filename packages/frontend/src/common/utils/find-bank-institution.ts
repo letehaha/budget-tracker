@@ -1,7 +1,7 @@
 import { BANK_INSTITUTIONS, type BankInstitutionEntry } from '@/data/bank-institutions';
 
-import { getServiceLogoUrl } from './find-subscription-service';
 import { createFuzzyFinder } from './fuzzy-finder';
+import { getServiceLogoUrl } from './logo-url';
 
 const findBankInstitution = createFuzzyFinder<BankInstitutionEntry>({
   items: BANK_INSTITUTIONS,

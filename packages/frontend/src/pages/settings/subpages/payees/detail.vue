@@ -20,7 +20,7 @@
 
       <div class="mt-3 flex items-center gap-3 px-5 sm:px-6">
         <div class="group relative shrink-0">
-          <PayeeLogo :domain="payeeData?.logoDomain ?? null" :name="payeeData?.name ?? ''" class="size-11 text-lg" />
+          <BrandLogo :domain="payeeData?.logoDomain ?? null" :name="payeeData?.name ?? ''" class="size-11 text-lg" />
           <DesktopOnlyTooltip :content="$t('payees.logo.change')">
             <Button
               variant="ghost"
@@ -88,7 +88,7 @@
               :category-id="payeeData.stats.topCategoryId"
               class="size-5 shrink-0"
             />
-            <span class="truncate">{{ categoryName(payeeData.stats.topCategoryId) || '—' }}</span>
+            <span class="truncate">{{ categoryName(payeeData.stats.topCategoryId) || '–' }}</span>
           </dd>
         </div>
       </dl>
@@ -345,10 +345,11 @@ import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
+import BrandLogo from '@/components/common/brand-logo.vue';
+
 import PayeeActionsDropdown from './components/payee-actions-dropdown.vue';
 import PayeeFormDialog from './components/payee-form-dialog.vue';
 import PayeeLogoPicker from './components/payee-logo-picker.vue';
-import PayeeLogo from './components/payee-logo.vue';
 import PayeeTransactionsDialog from './components/payee-transactions-dialog.vue';
 
 defineOptions({ name: 'settings-payee-detail' });
@@ -364,7 +365,7 @@ const { data: payeeData, refetch } = usePayee({ id: payeeId });
 
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
 
-// TagSelectField renders pills from the tags store — make sure it's populated
+// TagSelectField renders pills from the tags store – make sure it's populated
 // when the user lands on this page directly.
 useTagsStore().loadTags();
 
@@ -445,7 +446,7 @@ const defaultTagsProxy = computed<string[]>({
       addSuccessNotification(t('payees.toasts.updated'));
     } catch (error) {
       // The backend rejects with a specific message (e.g. tag not owned by
-      // the user) — surface it instead of the generic fallback. The query
+      // the user) – surface it instead of the generic fallback. The query
       // invalidation snaps the field back to the saved set.
       if (error instanceof ApiErrorResponseError) {
         addErrorNotification(error.data.message ?? t('payees.errors.generic'));
@@ -587,7 +588,7 @@ async function handleAddAlias() {
   } catch (error) {
     // Cross-payee collisions carry the other Payee in `details` so the UI
     // can render a link instead of a name string. Same-payee duplicates
-    // don't include `details` — fall back to the message the server sent.
+    // don't include `details` – fall back to the message the server sent.
     const conflicting = getPayeeNameConflict(error);
     if (conflicting) {
       aliasError.value = { conflictingPayee: conflicting };
@@ -601,7 +602,7 @@ async function handleAddAlias() {
       aliasError.value = { message: error.data.message ?? t('payees.errors.generic') };
       return;
     }
-    // Non-API failure (network layer, client-side bug) — report it so the
+    // Non-API failure (network layer, client-side bug) – report it so the
     // generic toast isn't the only trace.
     captureException({ error, context: { flow: 'createPayeeAlias' } });
     addErrorNotification(t('payees.errors.generic'));

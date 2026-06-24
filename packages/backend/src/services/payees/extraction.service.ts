@@ -3,11 +3,11 @@ import PayeeAliases from '@models/payee-aliases.model';
 import PayeeIgnoredNames from '@models/payee-ignored-names.model';
 import Payees from '@models/payees.model';
 import Transactions from '@models/transactions.model';
+import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { FUZZY_MATCH_THRESHOLD, buildHaystack, fuzzyFindBestMatch } from './fuzzy-matcher';
-import { enqueueLogoResolutionAfterCommit } from './logo-resolution-queue';
 import { normalizePayeeName } from './normalize-name';
 import { ensureAliasExists, resolveNormalizedName } from './payee-namespace';
 
@@ -113,13 +113,13 @@ async function collectPriorUnmatched({
 }
 
 /**
- * Resolve a Payee for a raw provider merchant string. Pure resolver — does
+ * Resolve a Payee for a raw provider merchant string. Pure resolver – does
  * not write the returned `payeeId` onto the caller's transaction; the caller
  * is expected to set it on the create payload. Aliases and any newly
  * promoted Payee ARE written here (they need to land before the caller
  * inserts the current row).
  *
- * Skipping `payeeLocked` rows is the caller's responsibility — pass `null`
+ * Skipping `payeeLocked` rows is the caller's responsibility – pass `null`
  * for `rawMerchantName` or skip the call entirely when the row is locked.
  */
 export const resolvePayeeForRawMerchant = withTransaction(
@@ -134,7 +134,7 @@ export const resolvePayeeForRawMerchant = withTransaction(
     if (!normalizedQuery) return noMatch;
 
     // Step 1: exact match on canonical name or alias. Either way no alias
-    // write is needed — canonical names are self-evident and alias hits
+    // write is needed – canonical names are self-evident and alias hits
     // already have the row.
     const exactPayeeId = await findExactMatch({ userId, normalizedQuery });
     if (exactPayeeId) {
@@ -218,9 +218,9 @@ export const resolvePayeeForRawMerchant = withTransaction(
       });
       // This promotion always runs inside the sync/create-transaction
       // transaction (this resolver is `withTransaction`-wrapped and its callers
-      // are too), so the helper defers the enqueue to `afterCommit` — the
+      // are too), so the helper defers the enqueue to `afterCommit` – the
       // worker only sees the Payee once the row is committed and visible.
-      enqueueLogoResolutionAfterCommit({ payeeId: created.id });
+      enqueueLogoResolutionAfterCommit({ entity: 'payee', id: created.id });
       return { payeeId: created.id };
     }
 

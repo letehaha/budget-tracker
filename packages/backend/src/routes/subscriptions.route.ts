@@ -11,6 +11,7 @@ import getSubscriptionsSummary from '@controllers/subscriptions/get-subscription
 import getUpcomingPayments from '@controllers/subscriptions/get-upcoming-payments';
 import linkTransactions from '@controllers/subscriptions/link-transactions';
 import markPeriodPaid from '@controllers/subscriptions/mark-period-paid';
+import resetLogo from '@controllers/subscriptions/reset-logo';
 import revertPeriod from '@controllers/subscriptions/revert-period';
 import skipPeriod from '@controllers/subscriptions/skip-period';
 import suggestMatches from '@controllers/subscriptions/suggest-matches';
@@ -60,6 +61,8 @@ router.put('/:id', authenticateSession, validateEndpoint(updateSubscription.sche
 router.delete('/:id', authenticateSession, validateEndpoint(deleteSubscription.schema), deleteSubscription.handler);
 
 router.patch('/:id/toggle-active', authenticateSession, validateEndpoint(toggleActive.schema), toggleActive.handler);
+
+router.post('/:id/reset-logo', authenticateSession, validateEndpoint(resetLogo.schema), resetLogo.handler);
 
 router.post(
   '/:id/transactions',

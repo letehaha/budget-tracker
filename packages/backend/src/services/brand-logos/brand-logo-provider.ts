@@ -3,10 +3,8 @@ import { logger } from '@js/utils/logger';
 import { withRetry } from '@js/utils/requests-calling.utils';
 
 const LOGO_DEV_SEARCH_URL = 'https://api.logo.dev/search';
-/** logo.dev returns at most 10 results per search. */
 const LOGO_DEV_REQUEST_TIMEOUT_MS = 5_000;
 
-// logo.dev response shape per-item
 interface LogoDevResult {
   name: string;
   domain: string;
@@ -31,7 +29,7 @@ let unconfiguredWarningEmitted = false;
  * - The API returns no results.
  * - The response is malformed.
  *
- * Never throws on empty / no-result responses — only propagates after all
+ * Never throws on empty / no-result responses – only propagates after all
  * `withRetry` attempts have been exhausted on genuine network/server errors.
  */
 export async function searchBrands({ query }: { query: string }): Promise<BrandSearchResult[]> {

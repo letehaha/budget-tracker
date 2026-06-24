@@ -12,6 +12,7 @@ import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
 import bankDataProvidersRoutes from './routes/bank-data-providers.route';
 import betterAuthExtensionsRoutes from './routes/better-auth-extensions.route';
+import brandLogosRoutes from './routes/brand-logos.route';
 import budgetsRoutes from './routes/budgets.route';
 import categoriesRoutes from './routes/categories.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
@@ -59,7 +60,7 @@ export function setupRoutes(app: Express) {
   // Patch OAuth2 dynamic client registration requests so they always register as
   // public clients.  better-auth's oauth-provider treats clients without
   // `token_endpoint_auth_method: "none"` as confidential and rejects unauthenticated
-  // registration with 401 — even when allowUnauthenticatedClientRegistration is true.
+  // registration with 401 – even when allowUnauthenticatedClientRegistration is true.
   // MCP clients (e.g. Claude.ai) often omit this field, so we default it here.
   //
   // We can't patch the stream in-place (Node 23's Fetch API reads the internal
@@ -86,7 +87,7 @@ export function setupRoutes(app: Express) {
         }
         body = Buffer.from(JSON.stringify(parsed));
       } catch {
-        // Not valid JSON — proxy the original bytes and let better-auth error
+        // Not valid JSON – proxy the original bytes and let better-auth error
         logger.warn('[register-patch] Failed to parse request body as JSON');
         body = Buffer.concat(chunks);
       }
@@ -174,6 +175,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/transaction-groups`, transactionGroupsRoutes);
   app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
   app.use(`${API_PREFIX}/payees`, payeesRoutes);
+  app.use(`${API_PREFIX}/brand-logos`, brandLogosRoutes);
   app.use(`${API_PREFIX}/vehicles`, vehiclesRoutes);
   app.use(`${API_PREFIX}/share`, shareRoutes);
   app.use(`${API_PREFIX}/investments`, investmentsRoutes);
@@ -200,7 +202,7 @@ export function setupRoutes(app: Express) {
     res.type('text/plain').send('User-agent: *\nDisallow: /');
   });
 
-  // RFC 9116 — security disclosure contact. Served on api.moneymatter.app and
+  // RFC 9116 – security disclosure contact. Served on api.moneymatter.app and
   // mcp.moneymatter.app; the SPA host has a static mirror in nginx.
   // Refresh `Expires` before it lapses, otherwise scanners flag it as expired.
   const securityTxt = [

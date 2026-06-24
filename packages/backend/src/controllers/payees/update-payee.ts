@@ -1,10 +1,10 @@
 import { CATEGORIZATION_MODE } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as payeesService from '@services/payees';
 import { z } from 'zod';
 
-import { logoDomainSchema } from './logo-domain.schema';
 import { serializePayee } from './serializer';
 
 const schema = z.object({

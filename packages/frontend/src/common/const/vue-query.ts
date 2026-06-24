@@ -183,8 +183,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   payeeById: ['payee-by-id'] as const,
   payeesIgnoredNames: ['payees-ignored-names'] as const,
   payeeTransactionsDialog: [transactionChange, 'payee-tx-dialog'] as const,
+
+  // brand logos – shared by payee + subscription logo pickers.
   // append the search term when using
-  payeeLogoSearch: ['payee-logo-search'] as const,
+  brandLogoSearch: ['brand-logo-search'] as const,
 
   // venture
   venturePlatformsList: [ventureChange, 'venture-platforms-list'] as const,

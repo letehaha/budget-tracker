@@ -8,7 +8,7 @@ import { RotateCcwIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import PayeeLogoSearch from './payee-logo-search.vue';
+import LogoSearch from '@/components/common/logo-search.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -68,7 +68,7 @@ const isSubmitting = computed(() => updateMut.isPending.value || resetMut.isPend
     <template #default>
       <div class="flex flex-col gap-4 p-4">
         <div class="border-input overflow-hidden rounded-md border">
-          <PayeeLogoSearch
+          <LogoSearch
             :model-value="currentDomain"
             :name-for-search="payeeName"
             @update:model-value="handlePickDomain"

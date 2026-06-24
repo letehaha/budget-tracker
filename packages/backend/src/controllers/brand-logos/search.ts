@@ -1,5 +1,5 @@
 import { createController } from '@controllers/helpers/controller-factory';
-import { searchBrands } from '@services/payees/logo-provider';
+import { searchBrands } from '@services/brand-logos';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -10,6 +10,8 @@ const schema = z.object({
     .optional(),
 });
 
+// Shared brand-logo search backing the manual logo picker for every entity
+// (payees, subscriptions). Proxies the logo.dev Brand Search API.
 export default createController(schema, async ({ query }) => {
   const q = query?.q ?? '';
 

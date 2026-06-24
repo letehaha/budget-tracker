@@ -52,6 +52,7 @@
       "form": {
         "nameLabel": "Nombre",
         "namePlaceholder": "p. ej., Netflix, Factura de electricidad",
+        "logoLabel": "Logotipo",
         "typeLabel": "Tipo",
         "typeSubscriptionDesc": "Pago recurrente de servicio",
         "typeBillDesc": "Factura o suministro recurrente",

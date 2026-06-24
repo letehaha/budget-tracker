@@ -10,8 +10,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { useDateLocale } from '@/composable/use-date-locale';
-import { findServiceByName } from '@/common/utils/find-subscription-service';
-import SubscriptionServiceLogo from '@/pages/planned/subscriptions/components/subscription-service-logo.vue';
+import BrandLogo from '@/components/common/brand-logo.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
@@ -101,8 +100,6 @@ const formatNextDate = (dateStr: string | null) => {
   if (!dateStr) return '';
   return formatDistanceToNow(parseISO(dateStr), { addSuffix: true });
 };
-
-const hasServiceLogo = (name: string) => !!findServiceByName({ name });
 </script>
 
 <template>
@@ -146,11 +143,7 @@ const hasServiceLogo = (name: string) => !!findServiceByName({ name });
           :to="{ name: ROUTES_NAMES.plannedSubscriptionDetails, params: { id: payment.subscriptionId } }"
           class="hover:bg-muted/50 flex items-center gap-3 rounded-md px-3 py-1.5 transition-colors"
         >
-          <SubscriptionServiceLogo
-            v-if="hasServiceLogo(payment.subscriptionName)"
-            :name="payment.subscriptionName"
-            class="size-5"
-          />
+          <BrandLogo :domain="payment.logoDomain" :name="payment.subscriptionName" class="size-5" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">{{ payment.subscriptionName }}</p>
             <p class="text-muted-foreground text-xs">{{ formatNextDate(payment.nextPaymentDate) }}</p>

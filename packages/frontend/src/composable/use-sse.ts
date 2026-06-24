@@ -6,13 +6,12 @@ import {
   type SSEEventPayloadMap,
   type SSEEventType,
   SSE_EVENT_TYPES,
-  type SyncStatusChangedPayload,
 } from '@bt/shared/types';
 import { EventSourceMessage, fetchEventSource } from '@microsoft/fetch-event-source';
 import { ref } from 'vue';
 
 // Re-export types for consumers of this composable
-export { SSE_EVENT_TYPES, type AiCategorizationProgressPayload, type SyncStatusChangedPayload };
+export { SSE_EVENT_TYPES, type AiCategorizationProgressPayload };
 
 type SSEEventHandler<T extends SSEEventPayload = SSEEventPayload> = (data: T) => void;
 
@@ -185,7 +184,7 @@ function on<K extends keyof SSEEventPayloadMap>(
 /**
  * Composable for SSE functionality.
  *
- * Note: no per-component unmount cleanup — the connection is global and may be
+ * Note: no per-component unmount cleanup – the connection is global and may be
  * used by other components. Call `disconnect()` explicitly (e.g. on logout).
  */
 export function useSSE() {

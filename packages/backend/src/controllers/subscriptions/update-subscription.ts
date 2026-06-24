@@ -6,6 +6,7 @@ import {
   SUBSCRIPTION_TYPES,
 } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as subscriptionsService from '@services/subscriptions';
 import { z } from 'zod';
@@ -50,6 +51,8 @@ const schema = z.object({
       maxOccurrences: z.number().int().positive().nullable().optional(),
       remindBefore: z.array(z.enum(remindBeforePresetValues)).max(MAX_REMIND_BEFORE_PRESETS).optional(),
       notifyEmail: z.boolean().optional(),
+      // Present key (even null) → manual override; absent → leave logo untouched.
+      logoDomain: logoDomainSchema.optional(),
     })
     .superRefine((data, ctx) => {
       // When both are explicitly provided in the same update, they must be consistent

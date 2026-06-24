@@ -4,8 +4,8 @@
  * keeps working on one logical file and needs no multi-file awareness.
  *
  * Every file must share the same header row (same column names, same order).
- * Anything that would make the combined file ambiguous or unsafe — a mismatched
- * header, an unreadable file, an empty one, or a reserved header name — aborts
+ * Anything that would make the combined file ambiguous or unsafe – a mismatched
+ * header, an unreadable file, an empty one, or a reserved header name – aborts
  * the whole batch with a {@link MergeCsvError} naming the offending file, rather
  * than silently dropping rows.
  *
@@ -19,10 +19,10 @@ import { CSV_FORBIDDEN_HEADERS, MAX_CSV_ROWS } from '@bt/shared/types';
 
 const FORBIDDEN_HEADERS = new Set<string>(CSV_FORBIDDEN_HEADERS);
 
-export type MergeCsvErrorCode =
+type MergeCsvErrorCode =
   /** No files were passed in. */
   | 'EMPTY_SELECTION'
-  /** `file.text()` threw — the file could not be read. */
+  /** `file.text()` threw – the file could not be read. */
   | 'FILE_READ_FAILED'
   /** A file is blank or has no usable header row. */
   | 'FILE_EMPTY'
@@ -59,20 +59,20 @@ export class MergeCsvError extends Error {
 }
 
 /** Per-file row count, in selection order, for UI display. */
-export interface MergeCsvFileSummary {
+interface MergeCsvFileSummary {
   name: string;
   dataRowCount: number;
 }
 
-export interface MergeCsvResult {
+interface MergeCsvResult {
   /** Combined CSV text: one header row followed by every file's data rows. */
   combinedContent: string;
   /** Column names from the first file (identical across all by contract). */
   headers: string[];
   /**
    * Every file's data rows (no header), in selection order, aligned to `headers`.
-   * Lets the caller scan the full data set client-side — e.g. for transaction-type
-   * coverage — without re-parsing the combined output.
+   * Lets the caller scan the full data set client-side – e.g. for transaction-type
+   * coverage – without re-parsing the combined output.
    */
   dataRows: string[][];
   /** Per-file row counts, in selection order. */
@@ -100,7 +100,7 @@ function headersEqual(a: string[], b: string[]): boolean {
  *
  * `outputDelimiter` controls the delimiter of the re-serialized combined CSV
  * (default comma). Providers whose backend parser expects a fixed delimiter pass
- * theirs — BudgetBakers Wallet, for instance, parses with `;`, so feeding it
+ * theirs – BudgetBakers Wallet, for instance, parses with `;`, so feeding it
  * comma-joined output would collapse every row into a single column. Each input
  * file's own delimiter is still auto-detected by papaparse regardless.
  *

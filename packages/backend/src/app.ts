@@ -12,9 +12,9 @@ import { initializeBackgroundJobs, shutdownBackgroundJobs } from './background-j
 import { API_PREFIX } from './config';
 import { registerAiCategorizationListeners } from './services/ai-categorization';
 import { initializeBankProviders } from './services/bank-data-providers/initialize-providers';
+import { seedBrandLogos } from './services/brand-logos';
 import { initializeExchangeRateProviders } from './services/exchange-rates/providers';
 import { registerPayeeNoteBackfillListeners } from './services/payees';
-import { seedBrandLogos } from './services/payees/seed-brand-logos';
 import { registerSubscriptionMatchingListeners } from './services/subscriptions';
 import { registerTagReminderListeners } from './services/tag-reminders';
 import { setupMiddleware } from './setup-middleware';
@@ -73,7 +73,7 @@ if (isTest) {
     onServerReady({ protocol: 'http' });
   });
 } else if (isProduction) {
-  // Production: always HTTP — TLS is terminated by the reverse proxy (Traefik)
+  // Production: always HTTP – TLS is terminated by the reverse proxy (Traefik)
   serverInstance = app.listen(app.get('port'), () => onServerReady({ protocol: 'http' }));
 } else {
   // Dev: use HTTPS if local certs exist, otherwise fall back to HTTP

@@ -30,7 +30,7 @@ module.exports = {
       );
 
       // maxOccurrences: installment cap; null means generate periods indefinitely.
-      // When set it must be >= 1 — installments.ts stops generating once
+      // When set it must be >= 1 – installments.ts stops generating once
       // count >= maxOccurrences, so a stored 0 or negative would silently halt
       // all period generation.
       await queryInterface.addColumn(
@@ -88,6 +88,28 @@ module.exports = {
         { transaction: t },
       );
 
+      // STRING(253) matches RFC 1035 max domain length.
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'logoDomain',
+        {
+          type: DataTypes.STRING(253),
+          allowNull: true,
+        },
+        { transaction: t },
+      );
+
+      // VARCHAR + TS-side LogoSource union (project convention: no DB enums).
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'logoSource',
+        {
+          type: DataTypes.STRING(16),
+          allowNull: true,
+        },
+        { transaction: t },
+      );
+
       // SubscriptionPeriods: one row per generated payment occurrence for a
       // subscription. Tracks whether the payment is upcoming, paid, overdue, or
       // skipped, and optionally links to the transaction that settled it.
@@ -110,7 +132,7 @@ module.exports = {
             type: DataTypes.DATEONLY,
             allowNull: false,
           },
-          // VARCHAR not a Postgres ENUM — TS-side SUBSCRIPTION_PERIOD_STATUSES
+          // VARCHAR not a Postgres ENUM – TS-side SUBSCRIPTION_PERIOD_STATUSES
           // enum enforces the allowed set without a DB migration on every change.
           status: {
             type: DataTypes.STRING(50),
@@ -226,6 +248,8 @@ module.exports = {
       await queryInterface.dropTable('SubscriptionPeriodNotifications', { transaction: t });
       await queryInterface.dropTable('SubscriptionPeriods', { transaction: t });
 
+      await queryInterface.removeColumn('Subscriptions', 'logoSource', { transaction: t });
+      await queryInterface.removeColumn('Subscriptions', 'logoDomain', { transaction: t });
       await queryInterface.removeColumn('Subscriptions', 'notifyEmail', { transaction: t });
       await queryInterface.removeColumn('Subscriptions', 'remindBefore', { transaction: t });
       await queryInterface.removeColumn('Subscriptions', 'showInWidget', { transaction: t });

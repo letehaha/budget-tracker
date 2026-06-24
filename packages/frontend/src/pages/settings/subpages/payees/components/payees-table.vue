@@ -99,7 +99,7 @@
               <!-- Compact (card) -->
               <div class="flex flex-col gap-1.5 @2xl/payees-table:hidden">
                 <div class="flex items-center gap-2">
-                  <PayeeLogo
+                  <BrandLogo
                     :domain="list[virtualRow.index]!.logoDomain ?? null"
                     :name="list[virtualRow.index]!.name"
                     class="size-7 shrink-0"
@@ -141,7 +141,7 @@
               <!-- Wide (grid row) -->
               <div :class="['hidden items-center gap-3 text-sm @2xl/payees-table:grid', DESKTOP_GRID]">
                 <div class="flex min-w-0 items-center gap-2">
-                  <PayeeLogo
+                  <BrandLogo
                     :domain="list[virtualRow.index]!.logoDomain ?? null"
                     :name="list[virtualRow.index]!.name"
                     class="size-7 shrink-0"
@@ -194,13 +194,13 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import CategoryDisplay from './category-display.vue';
-import PayeeLogo from './payee-logo.vue';
+import BrandLogo from '@/components/common/brand-logo.vue';
 import PayeeRowSkeleton from './payee-row-skeleton.vue';
 import SortHeaderButton from './sort-header-button.vue';
 
 const SKELETON_ROW_COUNT = 6;
 // Cap the list to (viewport - everything-above-the-table) so the table itself
-// is the only thing that scrolls — no nested scrollbars on the page. The
+// is the only thing that scrolls – no nested scrollbars on the page. The
 // subtraction covers the app header, settings card header, tabs, search row,
 // and inter-section padding. `min-h-80` keeps it usable on tiny viewports.
 const SCROLL_VERTICAL_OFFSET_PX = 340;
@@ -238,7 +238,7 @@ const setSort = (key: PayeeSortBy) => {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
   } else {
     sortBy.value = key;
-    // Numbers default to descending (largest first) — that's the natural read.
+    // Numbers default to descending (largest first) – that's the natural read.
     // Name defaults to ascending (A → Z).
     sortDir.value = key === 'name' ? 'asc' : 'desc';
   }

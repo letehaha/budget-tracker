@@ -1,15 +1,15 @@
 <script setup lang="ts">
+import { getServiceLogoUrl } from '@/common/utils/logo-url';
 import AsyncLogo from '@/components/common/async-logo.vue';
 import { Button } from '@/components/lib/ui/button';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
-import { getServiceLogoUrl } from '@/common/utils/logo-url';
 import {
+  type BrandLogoSearchResult,
   LOGO_SEARCH_MIN_QUERY_LENGTH,
-  useSearchPayeeLogo,
-  type PayeeLogoSearchResult,
-} from '@/composable/data-queries/payees';
+  useSearchBrandLogo,
+} from '@/composable/data-queries/brand-logos';
 import { cn } from '@/lib/utils';
-import { CheckIcon, SearchIcon } from '@lucide/vue';
+import { AlertCircleIcon, CheckIcon, SearchIcon } from '@lucide/vue';
 import { useDebounce } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -17,7 +17,7 @@ import { useI18n } from 'vue-i18n';
 const props = defineProps<{
   /** Currently selected logo domain (null = none). Highlights the matching row. */
   modelValue: string | null;
-  /** Seeds the search field so the panel opens already showing matches for the payee. */
+  /** Seeds the search field so the panel opens already showing matches for the entity. */
   nameForSearch: string;
 }>();
 
@@ -31,30 +31,28 @@ const { t } = useI18n({ useScope: 'global' });
 // fast typist produces one request per word rather than one per character.
 const SEARCH_DEBOUNCE_MS = 300;
 
-// Seeded once at mount. The panel re-mounts each time the field's popover opens
-// (and each time the edit dialog opens), so the query always starts fresh from
-// the current payee name — there is no long-lived stale state to reconcile.
+// Panel re-mounts on each open so the query always starts fresh from the current name.
 const searchQuery = ref(props.nameForSearch);
 const debounced = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
 
 const trimmedQuery = computed(() => searchQuery.value.trim());
 const debouncedQuery = computed(() => debounced.value.trim());
-// True between a keystroke and the debounce settling — used to keep the panel in
+// True between a keystroke and the debounce settling – used to keep the panel in
 // its "searching" state during that window instead of flashing "no results".
 const isTyping = computed(() => trimmedQuery.value !== debouncedQuery.value);
 
-const { results: brandResults, isFetching } = useSearchPayeeLogo({ q: debouncedQuery });
+const { results: brandResults, isFetching, isError } = useSearchBrandLogo({ q: debouncedQuery });
 
 // A trimmed query that looks like a bare domain (has a dot, no spaces, no
-// slashes — e.g. "amazon.com"). logo.dev always returns a 200 monogram for any
+// slashes – e.g. "amazon.com"). logo.dev always returns a 200 monogram for any
 // domain, so the user can pick one directly even when the brand search misses.
 const DOMAIN_SHAPE = /^[^\s/]+\.[^\s/]+$/;
 
-const syntheticDomainResult = computed<PayeeLogoSearchResult | null>(() => {
+const syntheticDomainResult = computed<BrandLogoSearchResult | null>(() => {
   const q = trimmedQuery.value;
   if (!DOMAIN_SHAPE.test(q)) return null;
   return {
-    name: t('payees.logo.useDomainDirectly', { domain: q }),
+    name: t('common.logo.useDomainDirectly', { domain: q }),
     domain: q,
     logoUrl: getServiceLogoUrl({ domain: q }),
   };
@@ -62,15 +60,14 @@ const syntheticDomainResult = computed<PayeeLogoSearchResult | null>(() => {
 
 // The typed domain sits on top, followed by the brand-search hits with any
 // duplicate of the synthetic domain removed so it never appears twice.
-const displayedResults = computed<PayeeLogoSearchResult[]>(() => {
+const displayedResults = computed<BrandLogoSearchResult[]>(() => {
   const synthetic = syntheticDomainResult.value;
   if (!synthetic) return brandResults.value;
   return [synthetic, ...brandResults.value.filter((result) => result.domain !== synthetic.domain)];
 });
 
 const hasResults = computed(() => displayedResults.value.length > 0);
-// "Searching" spans both the debounce gap and the in-flight request, but only
-// once the query is long enough to actually trigger one.
+// Spans the debounce gap and in-flight request, but only once the query is long enough to fire.
 const isSearching = computed(
   () => trimmedQuery.value.length >= LOGO_SEARCH_MIN_QUERY_LENGTH && (isTyping.value || isFetching.value),
 );
@@ -80,14 +77,17 @@ const isSearching = computed(
 const showTypePrompt = computed(
   () => !syntheticDomainResult.value && trimmedQuery.value.length < LOGO_SEARCH_MIN_QUERY_LENGTH,
 );
-// Skeletons appear only on the first search for a term — refetches keep the
-// existing rows visible so the list doesn't flicker on every keystroke.
+// Skeleton only on first search; refetches keep existing rows visible to avoid flicker.
 const showSkeleton = computed(() => isSearching.value && !hasResults.value);
-const showNoResults = computed(() => !isSearching.value && !showTypePrompt.value && !hasResults.value);
+// Checked before showNoResults so a failed query doesn't surface the "no brand matched" copy.
+const showError = computed(() => isError.value && !isSearching.value);
+const showNoResults = computed(
+  () => !isError.value && !isSearching.value && !showTypePrompt.value && !hasResults.value,
+);
 
 const SKELETON_ROW_COUNT = 4;
 
-function handlePick({ domain }: PayeeLogoSearchResult) {
+function handlePick({ domain }: BrandLogoSearchResult) {
   emit('update:modelValue', domain);
 }
 
@@ -101,12 +101,16 @@ function selectAllOnFocus(event: FocusEvent) {
     <div class="border-input border-b p-2">
       <div class="relative">
         <SearchIcon class="text-muted-foreground absolute top-1/2 left-2 size-4 -translate-y-1/2" />
+        <!-- NOTE: raw <input> used here instead of InputField because this search
+             box lives inside a popover panel – no label, no error display, needs
+             a custom leading icon slot and a @focus handler that InputField does
+             not natively support without a full wrapper rewrite. -->
         <input
           v-model="searchQuery"
           type="text"
           class="border-input bg-input-background focus-visible:ring-ring h-9 w-full rounded-md border pr-2 pl-8 text-sm focus-visible:ring-2 focus-visible:outline-hidden"
-          :placeholder="$t('payees.logo.searchPlaceholder')"
-          data-test="payee-logo-search-input"
+          :placeholder="$t('common.logo.searchPlaceholder')"
+          data-test="logo-search-input"
           @focus="selectAllOnFocus"
         />
       </div>
@@ -115,7 +119,7 @@ function selectAllOnFocus(event: FocusEvent) {
     <!-- Prompt: query still too short to search and not a domain. -->
     <div v-if="showTypePrompt" class="text-muted-foreground flex flex-col items-center gap-1.5 px-4 py-6 text-center">
       <SearchIcon class="size-5" />
-      <p class="text-sm">{{ $t('payees.logo.searchHint') }}</p>
+      <p class="text-sm">{{ $t('common.logo.searchHint') }}</p>
     </div>
 
     <!-- First-search skeletons. -->
@@ -129,13 +133,19 @@ function selectAllOnFocus(event: FocusEvent) {
       </div>
     </div>
 
+    <!-- Error state: distinct from no-results so the user knows to retry, not rephrase. -->
+    <div v-else-if="showError" class="text-muted-foreground flex flex-col items-center gap-1.5 px-4 py-6 text-center">
+      <AlertCircleIcon class="text-destructive-text size-5" />
+      <p class="text-sm">{{ $t('common.logo.searchError') }}</p>
+    </div>
+
     <!-- No brand matched the search. -->
     <div
       v-else-if="showNoResults"
       class="text-muted-foreground flex flex-col items-center gap-1.5 px-4 py-6 text-center"
     >
       <SearchIcon class="size-5" />
-      <p class="text-sm">{{ $t('payees.logo.noResults') }}</p>
+      <p class="text-sm">{{ $t('common.logo.noResults') }}</p>
     </div>
 
     <ScrollArea v-else class="max-h-72">

@@ -254,11 +254,24 @@ export enum CATEGORIZATION_MODE {
 }
 
 /**
- * How a Payee's logoDomain was resolved. 'auto' = matched by the brand
- * resolver against BrandLogos; 'manual' = explicitly set by the user.
- * VARCHAR column — no DB enum (project convention).
+ * How an entity's logoDomain was resolved, on the write-only paths that always
+ * set a concrete source. 'auto' = matched by the brand resolver against
+ * BrandLogos; 'manual' = explicitly set by the user. Shared by every entity that
+ * carries a denormalized brand logo (payees, subscriptions). VARCHAR column – no
+ * DB enum (project convention).
  */
-export type PayeeLogoSource = 'auto' | 'manual';
+export type LogoSource = 'auto' | 'manual';
+
+/**
+ * Persisted three-state of an entity's logo resolution:
+ * - `'auto'`: the brand resolver matched (or negative-resolved) this entity.
+ * - `'manual'`: the user set the logo explicitly; the resolver treats it as authoritative.
+ * - `null`: unresolved – the entity has never been through a resolution pass.
+ *
+ * This is the column type. `LogoSource` is the narrower write-only type for code
+ * paths that always stamp a concrete source.
+ */
+export type LogoResolutionState = LogoSource | null;
 
 /**
  * Supported AI providers for features like transaction categorization
@@ -394,7 +407,7 @@ export enum SUBSCRIPTION_CANDIDATE_STATUS {
 
 /**
  * Subscription period statuses.
- * Stored as VARCHAR(50) in the DB — not a Postgres ENUM.
+ * Stored as VARCHAR(50) in the DB – not a Postgres ENUM.
  */
 export enum SUBSCRIPTION_PERIOD_STATUSES {
   upcoming = 'upcoming',

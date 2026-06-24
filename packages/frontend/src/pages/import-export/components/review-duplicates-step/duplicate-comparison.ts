@@ -2,7 +2,7 @@ import { formatShortDate } from '@/common/utils/date';
 import type { DuplicateMatch } from '@bt/shared/types';
 
 /** Shown in a comparison cell when that side has no value for the field. */
-export const DUPLICATE_PLACEHOLDER = '—';
+export const DUPLICATE_PLACEHOLDER = '–';
 
 /** detect-duplicates returns amounts as integer cents; the UI always shows decimals. */
 export const formatDuplicateAmount = (cents: number): string => (cents / 100).toFixed(2);
@@ -17,12 +17,12 @@ export const formatDuplicateDate = (iso: string): string => formatShortDate(iso)
 export type ComparisonFieldKey = 'amount' | 'date' | 'note' | 'category';
 
 /** One field compared across both sides; a `null` value means that side has nothing. */
-export interface ComparisonRow {
-  /** Stable field key — the caller maps it to a localized label. */
+interface ComparisonRow {
+  /** Stable field key – the caller maps it to a localized label. */
   key: ComparisonFieldKey;
   csv: string | null;
   existing: string | null;
-  /** Amount — render monospace + medium weight. */
+  /** Amount – render monospace + medium weight. */
   emphasis?: boolean;
 }
 
@@ -49,6 +49,6 @@ export const buildComparisonRows = (item: DuplicateMatch): ComparisonRow[] => {
   return rows.filter((row) => row.csv !== null || row.existing !== null);
 };
 
-/** Per-side field list (one side of the comparison) — drops fields absent on that side. */
+/** Per-side field list (one side of the comparison) – drops fields absent on that side. */
 export const sideComparisonFields = (item: DuplicateMatch, side: 'csv' | 'existing'): ComparisonRow[] =>
   buildComparisonRows(item).filter((row) => row[side] !== null);

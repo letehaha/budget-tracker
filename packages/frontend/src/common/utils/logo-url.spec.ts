@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { getServiceLogoUrl } from './find-subscription-service';
+import { getServiceLogoUrl } from './logo-url';
 
 vi.stubEnv('VITE_LOGO_DEV_TOKEN', 'test-token');
 
