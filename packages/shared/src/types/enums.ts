@@ -254,11 +254,24 @@ export enum CATEGORIZATION_MODE {
 }
 
 /**
- * How a Payee's logoDomain was resolved. 'auto' = matched by the brand
- * resolver against BrandLogos; 'manual' = explicitly set by the user.
- * VARCHAR column — no DB enum (project convention).
+ * How an entity's logoDomain was resolved, on the write-only paths that always
+ * set a concrete source. 'auto' = matched by the brand resolver against
+ * BrandLogos; 'manual' = explicitly set by the user. Shared by every entity that
+ * carries a denormalized brand logo (payees, subscriptions). VARCHAR column – no
+ * DB enum (project convention).
  */
-export type PayeeLogoSource = 'auto' | 'manual';
+export type LogoSource = 'auto' | 'manual';
+
+/**
+ * Persisted three-state of an entity's logo resolution:
+ * - `'auto'`: the brand resolver matched (or negative-resolved) this entity.
+ * - `'manual'`: the user set the logo explicitly; the resolver treats it as authoritative.
+ * - `null`: unresolved – the entity has never been through a resolution pass.
+ *
+ * This is the column type. `LogoSource` is the narrower write-only type for code
+ * paths that always stamp a concrete source.
+ */
+export type LogoResolutionState = LogoSource | null;
 
 /**
  * Supported AI providers for features like transaction categorization
@@ -292,7 +305,7 @@ export const NOTIFICATION_TYPES = {
   system: 'system',
   changelog: 'changelog',
   tagReminder: 'tag_reminder',
-  paymentReminder: 'payment_reminder',
+  subscriptionReminder: 'subscription_reminder',
   shareInvitationReceived: 'share_invitation_received',
   shareInvitationSendFailed: 'share_invitation_send_failed',
   shareAccepted: 'share_accepted',
@@ -352,6 +365,7 @@ export type NotificationPriority = (typeof NOTIFICATION_PRIORITIES)[keyof typeof
 export enum SUBSCRIPTION_TYPES {
   subscription = 'subscription',
   bill = 'bill',
+  installment = 'installment',
 }
 
 /**
@@ -393,22 +407,28 @@ export enum SUBSCRIPTION_CANDIDATE_STATUS {
 }
 
 /**
- * Payment reminder period statuses
+ * Subscription period statuses.
+ * Stored as VARCHAR(50) in the DB – not a Postgres ENUM.
  */
-export const PAYMENT_REMINDER_STATUSES = {
-  upcoming: 'upcoming',
-  overdue: 'overdue',
-  paid: 'paid',
-  skipped: 'skipped',
-} as const;
+export enum SUBSCRIPTION_PERIOD_STATUSES {
+  upcoming = 'upcoming',
+  paid = 'paid',
+  overdue = 'overdue',
+  skipped = 'skipped',
+}
 
-export type PaymentReminderStatus = (typeof PAYMENT_REMINDER_STATUSES)[keyof typeof PAYMENT_REMINDER_STATUSES];
+export type SubscriptionPeriodStatus = `${SUBSCRIPTION_PERIOD_STATUSES}`;
 
 /**
  * Fixed "remind before" presets for payment reminders.
  * Up to 3 can be selected per reminder.
+ *
+ * `onDueDate` (0 days) fires ON the due date itself rather than ahead of it –
+ * for bills that arrive and are due the same day (e.g. an internet bill dated
+ * the 4th that the user wants to be reminded about on the 4th).
  */
 export const REMIND_BEFORE_PRESETS = {
+  onDueDate: '0_days',
   oneDay: '1_day',
   twoDays: '2_days',
   threeDays: '3_days',
@@ -422,6 +442,7 @@ export type RemindBeforePreset = (typeof REMIND_BEFORE_PRESETS)[keyof typeof REM
 
 /** Map presets to number of days for calculation */
 export const REMIND_BEFORE_DAYS: Record<RemindBeforePreset, number> = {
+  '0_days': 0,
   '1_day': 1,
   '2_days': 2,
   '3_days': 3,
@@ -433,10 +454,6 @@ export const REMIND_BEFORE_DAYS: Record<RemindBeforePreset, number> = {
 
 /** Maximum number of remind-before presets per reminder */
 export const MAX_REMIND_BEFORE_PRESETS = 3;
-
-/** Allowed hour slots for reminder notification time */
-export const PREFERRED_TIME_SLOTS = [0, 4, 8, 12, 16, 20] as const;
-export type PreferredTimeSlot = (typeof PREFERRED_TIME_SLOTS)[number];
 
 /**
  * Resource types that can be shared with other users.

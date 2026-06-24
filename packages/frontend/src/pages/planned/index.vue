@@ -43,10 +43,6 @@ const nestedRouteMap: Record<string, { parent: { name: string }; labelKey?: stri
     parent: { name: ROUTES_NAMES.plannedBudgets },
     labelKey: 'planned.budgets.backToList',
   },
-  [ROUTES_NAMES.plannedReminderDetails]: {
-    parent: { name: ROUTES_NAMES.plannedReminders },
-    labelKey: 'planned.reminders.backToList',
-  },
 };
 
 const isOnNestedChildRoute = computed(() => !!nestedRouteMap[route.name as string]);

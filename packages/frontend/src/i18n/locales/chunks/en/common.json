@@ -173,6 +173,18 @@
       "title": "Update available",
       "description": "A new version is ready. Reload to get the latest improvements.",
       "reload": "Reload"
+    },
+    "logo": {
+      "searchPlaceholder": "Brand name or domain",
+      "searchHint": "Type a brand name, or a domain like amazon.com",
+      "noResults": "No matching brands found.",
+      "useDomainDirectly": "Use {domain}",
+      "autoLabel": "Automatic (from name)",
+      "domainHint": "To find the exact brand, type the company's website domain (e.g. amazon.com) – that always matches the right logo.",
+      "searchError": "Couldn't load logos – try again",
+      "editAriaLabel": "Edit logo",
+      "dialogTitle": "Change logo",
+      "resetToAuto": "Reset to automatic"
     }
   },
   "validation": {
@@ -265,7 +277,7 @@
     "fileTooLargeNamed": "{name} is larger than {max}",
     "filesSelected": "{count} file selected | {count} files selected",
     "clearAll": "Clear all",
-    "onlyFirstFileTaken": "Multiple files dropped — only the first was used."
+    "onlyFirstFileTaken": "Multiple files dropped – only the first was used."
   },
   "demo": {
     "loadingOverlay": {

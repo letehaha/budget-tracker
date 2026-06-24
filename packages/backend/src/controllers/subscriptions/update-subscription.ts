@@ -1,10 +1,19 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import {
+  MAX_REMIND_BEFORE_PRESETS,
+  REMIND_BEFORE_PRESETS,
+  RemindBeforePreset,
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_TYPES,
+} from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
+import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as subscriptionsService from '@services/subscriptions';
 import { z } from 'zod';
 
 import { matchingRuleSchema } from './shared-schemas';
+
+const remindBeforePresetValues = Object.values(REMIND_BEFORE_PRESETS) as [RemindBeforePreset, ...RemindBeforePreset[]];
 
 const schema = z.object({
   params: z.object({
@@ -14,7 +23,8 @@ const schema = z.object({
     .object({
       name: z.string().min(1).max(200).trim().optional(),
       type: z.enum(Object.values(SUBSCRIPTION_TYPES) as [SUBSCRIPTION_TYPES, ...SUBSCRIPTION_TYPES[]]).optional(),
-      expectedAmount: z.number().int().nonnegative().nullable().optional(),
+      // Decimal amount (e.g. 9.99). Stored as cents internally by the service.
+      expectedAmount: z.number().nonnegative().nullable().optional(),
       expectedCurrencyCode: z.string().length(3).nullable().optional(),
       frequency: z
         .enum(Object.values(SUBSCRIPTION_FREQUENCIES) as [SUBSCRIPTION_FREQUENCIES, ...SUBSCRIPTION_FREQUENCIES[]])
@@ -33,6 +43,16 @@ const schema = z.object({
       matchingRules: z.object({ rules: z.array(matchingRuleSchema) }).optional(),
       isActive: z.boolean().optional(),
       notes: z.string().max(5000).nullable().optional(),
+      dueDate: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .nullable()
+        .optional(),
+      maxOccurrences: z.number().int().positive().nullable().optional(),
+      remindBefore: z.array(z.enum(remindBeforePresetValues)).max(MAX_REMIND_BEFORE_PRESETS).optional(),
+      notifyEmail: z.boolean().optional(),
+      // Present key (even null) → manual override; absent → leave logo untouched.
+      logoDomain: logoDomainSchema.optional(),
     })
     .superRefine((data, ctx) => {
       // When both are explicitly provided in the same update, they must be consistent
@@ -45,6 +65,27 @@ const schema = z.object({
           message: 'Both expectedAmount and expectedCurrencyCode must be provided together.',
           path: [hasAmount ? 'expectedCurrencyCode' : 'expectedAmount'],
         });
+      }
+
+      // When this update sets the type to installment, the count and schedule that
+      // define the finite plan must travel in the same payload (the edit form sends
+      // the full object). A partial payload that nulls either is caught by the DB
+      // CHECK constraint instead.
+      if (data.type === SUBSCRIPTION_TYPES.installment) {
+        if (data.maxOccurrences == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Installments require maxOccurrences (the number of payments).',
+            path: ['maxOccurrences'],
+          });
+        }
+        if (data.dueDate == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Installments require a payment schedule date (dueDate).',
+            path: ['dueDate'],
+          });
+        }
       }
     }),
 });

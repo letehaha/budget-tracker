@@ -11,10 +11,11 @@ import * as helpers from '@tests/helpers';
  *
  * Test exchange rate: 1 USD ≈ 41.43 UAH (from seeded test data)
  *
- * IMPORTANT: The API accepts amounts in **decimal** format (e.g., 9.99 for $9.99),
- * while DB stores amounts in **cents** (e.g., 999). Subscription expectedAmount
- * and matching rule min/max are stored in cents. The helper below converts
- * USD cents to UAH decimal (API format).
+ * IMPORTANT: Transaction amounts and subscription expectedAmount cross the API
+ * as **decimals** (e.g., 9.99 for $9.99). Matching rule min/max, by contrast,
+ * are expressed in **cents** (e.g., 999) — the matching engine compares them
+ * against the transaction amount in cents. The helper below converts USD cents
+ * to a UAH decimal (API format) for transaction amounts.
  */
 
 const UAH_PER_USD = 41.429899;
@@ -40,7 +41,7 @@ describe('Subscription matching disambiguation', () => {
       const appleOne = await helpers.createSubscription({
         name: 'Apple One',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 1999,
+        expectedAmount: 19.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -57,7 +58,7 @@ describe('Subscription matching disambiguation', () => {
       const iCloud = await helpers.createSubscription({
         name: 'iCloud',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 299,
+        expectedAmount: 2.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -74,7 +75,7 @@ describe('Subscription matching disambiguation', () => {
       const appleTv = await helpers.createSubscription({
         name: 'Apple TV',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 999,
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -91,7 +92,7 @@ describe('Subscription matching disambiguation', () => {
       const appleMusic = await helpers.createSubscription({
         name: 'Apple Music',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 1099,
+        expectedAmount: 10.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -172,7 +173,7 @@ describe('Subscription matching disambiguation', () => {
       const appleTv = await helpers.createSubscription({
         name: 'Apple TV',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 999,
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -190,7 +191,7 @@ describe('Subscription matching disambiguation', () => {
       const appleMusic = await helpers.createSubscription({
         name: 'Apple Music',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 1099,
+        expectedAmount: 10.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -243,7 +244,7 @@ describe('Subscription matching disambiguation', () => {
       const appleTv = await helpers.createSubscription({
         name: 'Apple TV',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 999,
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -295,7 +296,7 @@ describe('Subscription matching disambiguation', () => {
       await helpers.createSubscription({
         name: 'Apple TV',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 999,
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -331,7 +332,7 @@ describe('Subscription matching disambiguation', () => {
       const appleTv = await helpers.createSubscription({
         name: 'Apple TV',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 999,
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -386,7 +387,7 @@ describe('Subscription matching disambiguation', () => {
       const appleTv = await helpers.createSubscription({
         name: 'Apple TV',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 999,
+        expectedAmount: 9.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -403,7 +404,7 @@ describe('Subscription matching disambiguation', () => {
       const appleMusic = await helpers.createSubscription({
         name: 'Apple Music',
         type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 1099,
+        expectedAmount: 10.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',

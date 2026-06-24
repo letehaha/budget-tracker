@@ -8,11 +8,11 @@ import PayeeTags from '@models/payee-tags.model';
 import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import Transactions from '@models/transactions.model';
+import { applyCachedLogos, enqueueLogoResolution, enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { Op, QueryTypes } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
-import { enqueueLogoResolution, enqueueLogoResolutionAfterCommit } from './logo-resolution-queue';
 import { normalizePayeeName } from './normalize-name';
 import { ensureAliasExists, parsePayeeName, resolveNormalizedName } from './payee-namespace';
 import { getPayeeStatsMap, PayeeStatsRow } from './payee-stats';
@@ -49,16 +49,14 @@ async function assertTagsOwnedByUser({ userId, tagIds }: { userId: number; tagId
 }
 
 /**
- * Lazy-on-read backfill for Payees that predate the logo feature
- * (`logoSource IS NULL`). Fire-and-forget: never awaited, never blocks the
- * response. The `payee-logo-<id>` dedup jobId keeps repeated reads of the same
- * Payee from piling up duplicate work. Bounded by the caller's page size.
+ * Lazy-on-read logo backfill for Payees with `logoSource IS NULL`.
+ * Stamps `BrandLogos` cache hits onto the in-memory rows so hits surface on
+ * THIS request; cache misses are enqueued for async logo.dev resolution.
  */
-function enqueueLogoBackfillForUnresolved({ payees }: { payees: Payees[] }): void {
-  for (const payee of payees) {
-    if (payee.logoSource == null) {
-      void enqueueLogoResolution({ payeeId: payee.id });
-    }
+async function backfillLogosForUnresolved({ payees }: { payees: Payees[] }): Promise<void> {
+  const misses = await applyCachedLogos({ entity: 'payee', rows: payees });
+  for (const payee of misses) {
+    void enqueueLogoResolution({ entity: 'payee', id: payee.id });
   }
 }
 
@@ -212,9 +210,7 @@ export const listPayees = withTransaction(
 
     const payeesById = new Map<string, Payees>(payees.map((p) => [p.id, p]));
 
-    // Lazy backfill: kick off async logo resolution for any returned Payee that
-    // predates the feature. Fire-and-forget, bounded by page size.
-    enqueueLogoBackfillForUnresolved({ payees });
+    await backfillLogosForUnresolved({ payees });
 
     // Preserve the SQL-driven order – `findAll` returns rows in PK order, not
     // in our sort order, so re-project through the id list.
@@ -229,7 +225,7 @@ export const listPayees = withTransaction(
 );
 
 /**
- * Add-only attach of default tags to a Payee's rule — never removes existing
+ * Add-only attach of default tags to a Payee's rule – never removes existing
  * rows; duplicates are skipped via the `PayeeTags` composite PK. Full
  * replacement of the rule goes through `payee.$set('defaultTags', ...)` in
  * `updatePayee` instead.
@@ -277,7 +273,7 @@ export const createPayee = withTransaction(
 
     // A canonical name that collides with an existing alias would shadow that
     // alias in `resolveNormalizedName` (canonical wins), silently re-routing
-    // future extractions — so alias hits are rejected too, with a pointer to
+    // future extractions – so alias hits are rejected too, with a pointer to
     // the owning Payee.
     const hit = await resolveNormalizedName({ userId, normalized });
     if (hit) {
@@ -308,7 +304,7 @@ export const createPayee = withTransaction(
     // Always enqueued: when this Payee was created with a manual logo the
     // resolver reads the committed `logoSource: 'manual'` row and no-ops, so the
     // manual choice is never clobbered.
-    enqueueLogoResolutionAfterCommit({ payeeId: created.id });
+    enqueueLogoResolutionAfterCommit({ entity: 'payee', id: created.id });
     return loadPayeeOrThrow({ userId, id: created.id });
   },
 );
@@ -322,8 +318,7 @@ export const getPayee = withTransaction(
   async ({ userId, id }: GetPayeeParams): Promise<{ payee: Payees; stats: PayeeStatsRow | null }> => {
     const payee = await loadPayeeOrThrow({ userId, id });
     const statsMap = await getPayeeStatsMap({ userId, payeeIds: [id] });
-    // Lazy backfill for a Payee that predates the feature. Fire-and-forget.
-    enqueueLogoBackfillForUnresolved({ payees: [payee] });
+    await backfillLogosForUnresolved({ payees: [payee] });
     return { payee, stats: statsMap.get(id) ?? null };
   },
 );
@@ -384,8 +379,8 @@ export const updatePayee = withTransaction(
       const { display, normalized } = parsePayeeName({ raw: name, emptyMessageKey: 'payees.nameRequired' });
 
       if (normalized !== payee.normalizedName) {
-        // Renaming onto a name already in the namespace — another Payee's
-        // canonical name OR alias — would make `resolveNormalizedName`
+        // Renaming onto a name already in the namespace – another Payee's
+        // canonical name OR alias – would make `resolveNormalizedName`
         // ambiguous. A hit on the payee being renamed (one of its own
         // aliases) is fine: canonical + same-payee alias stay consistent.
         const hit = await resolveNormalizedName({ userId, normalized });
@@ -440,7 +435,7 @@ interface ResetPayeeLogoParams {
  * waiting for the next lazy backfill. Enqueuing after commit is required: the
  * worker reads the Payee on a separate connection, so enqueuing inside the open
  * transaction races the commit and the worker can still see the stale
- * `logoSource = 'manual'` value, which its guard skips on — leaving the reset
+ * `logoSource = 'manual'` value, which its guard skips on – leaving the reset
  * payee with no logo and no re-resolution.
  */
 export const resetPayeeLogo = withTransaction(async ({ userId, id }: ResetPayeeLogoParams): Promise<Payees> => {
@@ -448,7 +443,7 @@ export const resetPayeeLogo = withTransaction(async ({ userId, id }: ResetPayeeL
   payee.logoDomain = null;
   payee.logoSource = null;
   await payee.save();
-  enqueueLogoResolutionAfterCommit({ payeeId: id });
+  enqueueLogoResolutionAfterCommit({ entity: 'payee', id });
   return loadPayeeOrThrow({ userId, id });
 });
 
@@ -536,7 +531,7 @@ interface CreatePayeeAliasParams {
  * the same form (exact match in `findExactMatch`) and boosts the fuzzy
  * haystack (`buildHaystack`) so near-variants score above the threshold.
  *
- * Refuses an alias whose normalized form is already in this user's namespace —
+ * Refuses an alias whose normalized form is already in this user's namespace –
  * either on the same Payee (already attached) or on a different Payee (would
  * make the extraction step's exact-match path ambiguous). Cross-Payee conflicts
  * carry the conflicting Payee's id+name in `details.conflictingPayee` so the UI
@@ -549,7 +544,7 @@ export const createPayeeAlias = withTransaction(
     const { display, normalized } = parsePayeeName({ raw: rawName, emptyMessageKey: 'payees.aliasNameRequired' });
 
     // The alias only adds value when its normalized form isn't already a
-    // path to one of this user's Payees — otherwise the insert would break
+    // path to one of this user's Payees – otherwise the insert would break
     // the one-Payee-per-normalizedName invariant `resolveNormalizedName`
     // documents.
     const hit = await resolveNormalizedName({ userId, normalized });

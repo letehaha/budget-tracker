@@ -15,9 +15,8 @@
     "settings": "Settings",
     "planned": {
       "planned": "Planned",
-      "subscriptions": "Subscriptions",
-      "budgets": "Budgets",
-      "reminders": "Reminders"
+      "subscriptions": "Recurring Charges",
+      "budgets": "Budgets"
     },
     "venture": "Venture"
   },

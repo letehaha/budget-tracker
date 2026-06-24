@@ -1,9 +1,17 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, SubscriptionMatchingRules, RecordId } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, DataType } from 'sequelize-typescript';
+import {
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_TYPES,
+  SubscriptionMatchingRules,
+  RemindBeforePreset,
+  LogoResolutionState,
+  RecordId,
+} from '@bt/shared/types';
+import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, HasMany, DataType } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
 import Categories from './categories.model';
+import SubscriptionPeriods from './subscription-periods.model';
 import SubscriptionTransactions from './subscription-transactions.model';
 import Transactions from './transactions.model';
 import Users from './users.model';
@@ -34,8 +42,10 @@ export default class Subscriptions extends Model {
   })
   name!: string;
 
+  // VARCHAR + TS-side enum (project convention: no DB enums). One of
+  // SUBSCRIPTION_TYPES: 'subscription' | 'bill' | 'installment'.
   @Column({
-    type: DataType.ENUM(...Object.values(SUBSCRIPTION_TYPES)),
+    type: DataType.STRING(50),
     allowNull: false,
     defaultValue: SUBSCRIPTION_TYPES.subscription,
   })
@@ -105,6 +115,69 @@ export default class Subscriptions extends Model {
   })
   notes!: string | null;
 
+  @Column({
+    type: DataType.DATEONLY,
+    allowNull: true,
+  })
+  dueDate!: string | null;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  anchorDay!: number | null;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  maxOccurrences!: number | null;
+
+  // Set when an installment consumes its full schedule (paid/skipped all
+  // maxOccurrences periods); the engine deactivates it at the same time. Null
+  // for open installments and for subscriptions/bills. Lets a finished
+  // installment be told apart from a manually paused one (both isActive=false).
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  completedAt!: Date | null;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  })
+  showInWidget!: boolean;
+
+  @Column({
+    type: DataType.JSONB,
+    allowNull: false,
+    defaultValue: [],
+  })
+  remindBefore!: RemindBeforePreset[];
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  notifyEmail!: boolean;
+
+  @Column({
+    type: DataType.STRING(253),
+    allowNull: true,
+  })
+  logoDomain!: string | null;
+
+  // VARCHAR + TS-side union (project convention: no DB enums). 'auto' =
+  // system-resolved via BrandLogos; 'manual' = user override; null = unresolved.
+  @Column({
+    type: DataType.STRING(16),
+    allowNull: true,
+  })
+  logoSource!: LogoResolutionState;
+
   declare createdAt: Date;
   declare updatedAt: Date;
 
@@ -123,4 +196,7 @@ export default class Subscriptions extends Model {
     otherKey: 'transactionId',
   })
   transactions!: Transactions[];
+
+  @HasMany(() => SubscriptionPeriods, { foreignKey: 'subscriptionId' })
+  periods!: SubscriptionPeriods[];
 }

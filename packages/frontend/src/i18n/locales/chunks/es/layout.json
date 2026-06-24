@@ -15,9 +15,8 @@
     "settings": "Ajustes",
     "planned": {
       "planned": "Planificado",
-      "subscriptions": "Suscripciones",
-      "budgets": "Presupuestos",
-      "reminders": "Recordatorios"
+      "subscriptions": "Cargos recurrentes",
+      "budgets": "Presupuestos"
     },
     "venture": "Venture"
   },

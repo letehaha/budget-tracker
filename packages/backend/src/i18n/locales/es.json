@@ -395,16 +395,6 @@
       }
     }
   },
-  "paymentReminders": {
-    "reminderNotFound": "Recordatorio de pago no encontrado",
-    "periodNotFound": "Período del recordatorio de pago no encontrado",
-    "cannotSkipPaidPeriod": "No se puede omitir un período ya pagado",
-    "periodAlreadySkipped": "El período ya está omitido",
-    "periodAlreadyPaid": "El período ya está marcado como pagado",
-    "periodSkippedUndoFirst": "El período está omitido. Deshaga la omisión antes de marcarlo como pagado.",
-    "periodAlreadyActive": "El período ya está en estado activo",
-    "transactionAlreadyLinkedToPeriod": "Esta transacción ya está vinculada a otro período de este recordatorio"
-  },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Una o más transacciones no encontradas o no pertenecen al usuario."
   },

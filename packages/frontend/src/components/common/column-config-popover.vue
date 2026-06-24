@@ -104,9 +104,9 @@ import { VueDraggable } from 'vue-draggable-plus';
 
 /**
  * Column id type: opaque string. Different tables use their own enums, but the
- * popover only forwards ids back through events — it never inspects them.
+ * popover only forwards ids back through events – it never inspects them.
  */
-export interface ConfigurableColumnDefinition {
+interface ConfigurableColumnDefinition {
   id: string;
   labelKey: string;
 }
@@ -142,7 +142,7 @@ watch(isOpen, (open) => {
 
 const visibleCount = computed(() => props.configurableColumns.filter((item) => item.visible).length);
 
-// VueDraggable mutates its model on drop — keep a local copy and emit the new
+// VueDraggable mutates its model on drop – keep a local copy and emit the new
 // order upward instead of mutating the prop.
 const draggableColumns = computed({
   get: () => props.configurableColumns,

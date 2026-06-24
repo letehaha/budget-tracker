@@ -6,14 +6,13 @@ import {
   BANK_PROVIDER_TYPE,
   BUDGET_TYPES,
   CATEGORIZATION_MODE,
-  PayeeLogoSource,
+  LogoResolutionState,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
   NotificationPriority,
   NotificationStatus,
   NotificationType,
   PAYMENT_TYPES,
-  PaymentReminderStatus,
   RemindBeforePreset,
   ResourceType,
   SharePermission,
@@ -22,7 +21,9 @@ import {
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_LINK_STATUS,
   SUBSCRIPTION_MATCH_SOURCE,
+  SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
+  SubscriptionPeriodStatus,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TagReminderFrequency,
@@ -92,7 +93,7 @@ export interface AccountExternalData {
  * `accessSource` tells the frontend which kind of grant is in effect so it can pick
  * the right label and management entry point: per-resource shares keep the "Shared
  * by X" affordances, while household membership routes users into Settings → Household
- * for management. (Budgets never carry `'household'` — they're explicit-share only —
+ * for management. (Budgets never carry `'household'` – they're explicit-share only –
  * but the union stays open so a future selective-share extension doesn't force a type
  * widening.)
  */
@@ -182,7 +183,7 @@ export interface TransactionSplitModel {
 
 /**
  * Frozen identity of a transaction's original creator. Populated only when the creator's
- * Users row is being deleted — at that point we copy the last-known username/avatar before
+ * Users row is being deleted – at that point we copy the last-known username/avatar before
  * the FK SET NULL nulls `Transactions.userId`. Lets the frontend render
  * "alice (deleted)" on shared-account transactions whose creator is gone instead of
  * an anonymous "Unknown user" placeholder.
@@ -246,7 +247,7 @@ export interface TransactionModel {
    * same row with merchant "NETFLIX.COM"; without the lock the matcher
    * would revert it to plain "Netflix".
    *
-   * `(payeeLocked: true, payeeId: null)` is valid — means "user deliberately
+   * `(payeeLocked: true, payeeId: null)` is valid – means "user deliberately
    * chose no payee here; don't auto-link one." Lock does not affect user
    * edits, categorization rules, or any other column.
    */
@@ -262,8 +263,8 @@ export interface TransactionModel {
    *  the UI. Non-null ⇒ the budget recipient who clicked Attach for this row. */
   addedBy?: { id: number; username: string; avatar: string | null } | null;
   /** Whether the caller has write access to this row. Set by list endpoints so the UI
-   *  can render an inert details dialog (vs an edit form) when the row is visible —
-   *  typically via a budget share — but not editable. Absent on write-result payloads
+   *  can render an inert details dialog (vs an edit form) when the row is visible –
+   *  typically via a budget share – but not editable. Absent on write-result payloads
    *  and internal fetches; absent ⇒ "unknown / fall back to opportunistic UI". */
   canEdit?: boolean;
   /** Timestamp when the record was created (defaults to transaction time for existing records) */
@@ -449,7 +450,7 @@ export interface ShareLifecycleNotificationPayload {
   permission?: SharePermission;
   /** Present on permission-change notifications so the recipient's UI can render the active write scope. */
   policy?: SharePolicy | null;
-  /** The other party in the share — recipient (for owner-side notifications) or owner (for recipient-side). */
+  /** The other party in the share – recipient (for owner-side notifications) or owner (for recipient-side). */
   counterpartUser: {
     id: number;
     username: string;
@@ -459,7 +460,7 @@ export interface ShareLifecycleNotificationPayload {
 
 /**
  * Owner-side notification fired when the inline Resend email for an invitation rejected
- * or errored after the DB row was already committed. The invitation stays in `pending` —
+ * or errored after the DB row was already committed. The invitation stays in `pending` –
  * this surfaces the delivery failure as a durable record so the owner can resend from the
  * UI without having to remember the API response.
  */
@@ -522,7 +523,7 @@ export interface SubscriptionModel {
   userId: number;
   name: string;
   type: SUBSCRIPTION_TYPES;
-  /** Expected amount in cents */
+  /** Expected billed amount as a decimal (e.g. 9.99). Persisted as cents internally. */
   expectedAmount: number | null;
   expectedCurrencyCode: string | null;
   frequency: SUBSCRIPTION_FREQUENCIES;
@@ -532,6 +533,44 @@ export interface SubscriptionModel {
   categoryId: RecordId | null;
   matchingRules: SubscriptionMatchingRules;
   isActive: boolean;
+  notes: string | null;
+  /** Rolling next payment date. Null until a period-payment schedule is configured. */
+  dueDate: string | null;
+  /** Day-of-month (1-31) preserved from the initial dueDate for month-end clamping. */
+  anchorDay: number | null;
+  /** Installment cap: stop generating periods after this many. Null = indefinite. */
+  maxOccurrences: number | null;
+  /** When an installment consumed its full schedule it is marked finished here and
+   *  deactivated. Null for open installments and for subscriptions/bills, which never
+   *  complete. Distinguishes a finished installment from a manually paused one (both
+   *  carry isActive=false). */
+  completedAt: Date | null;
+  /** Whether this subscription appears in the dashboard "Subscriptions & Bills" widget. */
+  showInWidget: boolean;
+  /** JSONB array of RemindBeforePreset strings. Empty array means no advance notifications. */
+  remindBefore: RemindBeforePreset[];
+  notifyEmail: boolean;
+  /** Resolved brand domain used to fetch the logo (e.g. "netflix.com"). Null
+   *  when the brand resolver has not yet matched this subscription, or when the
+   *  user explicitly cleared the logo (paired with logoSource 'manual'). */
+  logoDomain: string | null;
+  /** How logoDomain was resolved – see LogoResolutionState. 'manual' can pair
+   *  with a null logoDomain (user explicitly cleared the logo); null only before
+   *  the subscription has been through a resolution pass. */
+  logoSource: LogoResolutionState;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SubscriptionPeriodModel {
+  id: RecordId;
+  subscriptionId: RecordId;
+  dueDate: string;
+  status: SubscriptionPeriodStatus;
+  paidAt: Date | null;
+  transactionId: RecordId | null;
+  /** True when `transactionId` was generated by the app (CREATE-mode pay) vs. linked by the user. */
+  transactionAutoCreated: boolean;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -565,45 +604,7 @@ export interface SubscriptionCandidateModel {
   resolvedAt: Date | null;
 }
 
-export interface PaymentReminderModel {
-  id: RecordId;
-  userId: number;
-  subscriptionId: RecordId | null;
-  name: string;
-  /** Amount in cents, null means no expected amount */
-  expectedAmount: number | null;
-  currencyCode: string | null;
-  /** null = one-off reminder */
-  frequency: SUBSCRIPTION_FREQUENCIES | null;
-  /** Anchor day for recurring reminders (1-31). Derived from initial dueDate. */
-  anchorDay: number;
-  dueDate: string;
-  remindBefore: RemindBeforePreset[];
-  notifyEmail: boolean;
-  /** Hour slot for notifications in user's timezone (0, 4, 8, 12, 16, 20) */
-  preferredTime: number;
-  /** IANA timezone string */
-  timezone: string;
-  categoryId: RecordId | null;
-  notes: string | null;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface PaymentReminderPeriodModel {
-  id: RecordId;
-  reminderId: RecordId;
-  dueDate: string;
-  status: PaymentReminderStatus;
-  paidAt: Date | null;
-  transactionId: RecordId | null;
-  notes: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface PaymentReminderNotificationModel {
+export interface SubscriptionPeriodNotificationModel {
   id: RecordId;
   periodId: RecordId;
   remindBeforePreset: RemindBeforePreset;
@@ -686,7 +687,7 @@ export interface PayeeAliasModel {
   /**
    * True when this alias's normalizedName equals the owning Payee's canonical
    * normalizedName. The canonical alias cannot be deleted (the API rejects
-   * with 422) — clients should hide the delete affordance instead of
+   * with 422) – clients should hide the delete affordance instead of
    * re-deriving normalization rules.
    */
   isCanonical: boolean;
@@ -711,7 +712,7 @@ export interface PayeeModel {
   name: string;
   normalizedName: string;
   defaultCategoryId: RecordId | null;
-  /** Controls how strongly `defaultCategoryId` applies during create-tx —
+  /** Controls how strongly `defaultCategoryId` applies during create-tx –
    *  see CATEGORIZATION_MODE in enums.ts for semantics. */
   categorizationMode: CATEGORIZATION_MODE;
   /**
@@ -723,10 +724,10 @@ export interface PayeeModel {
   /** Resolved brand domain used to fetch the logo (e.g. "amazon.com"). Null
    *  when the brand resolver has not yet matched this Payee. */
   logoDomain: string | null;
-  /** How logoDomain was resolved — see PayeeLogoSource. 'manual' can pair with
-   *  a null logoDomain (user explicitly cleared the logo); null only before the
-   *  Payee has been through a resolution pass. */
-  logoSource: PayeeLogoSource | null;
+  /** How logoDomain was resolved – see LogoResolutionState. 'manual' can pair
+   *  with a null logoDomain (user explicitly cleared the logo); null only before
+   *  the Payee has been through a resolution pass. */
+  logoSource: LogoResolutionState;
   createdAt: Date;
   updatedAt: Date;
   aliases?: PayeeAliasModel[];
@@ -734,7 +735,7 @@ export interface PayeeModel {
 }
 
 /**
- * Stats aggregated at query time from `Transactions` for a Payee. Not stored —
+ * Stats aggregated at query time from `Transactions` for a Payee. Not stored –
  * computed from the `(userId, payeeId, time DESC)` index. Signed `netFlowRef`
  * works naturally for both income and expense Payees (income positive, expense
  * negative) and is reported in the user's ref currency as a decimal.

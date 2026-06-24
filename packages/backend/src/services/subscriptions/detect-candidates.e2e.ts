@@ -157,7 +157,7 @@ describe('Subscription Candidate Detection', () => {
       // Create a subscription (mimicking what the form does)
       const sub = await helpers.createSubscription({
         name: 'Accept Link Test',
-        expectedAmount: 1599,
+        expectedAmount: 15.99,
         expectedCurrencyCode: account.currencyCode,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -293,7 +293,7 @@ describe('Subscription Candidate Detection', () => {
       // Create a subscription and link the transactions
       const sub = await helpers.createSubscription({
         name: 'Linked Service',
-        expectedAmount: 1599,
+        expectedAmount: 15.99,
         expectedCurrencyCode: account.currencyCode,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -628,7 +628,7 @@ describe('Subscription Candidate Detection', () => {
       // Create an existing subscription
       const sub = await helpers.createSubscription({
         name: 'Digital Ocean',
-        expectedAmount: 700,
+        expectedAmount: 7,
         expectedCurrencyCode: account.currencyCode,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -666,7 +666,7 @@ describe('Subscription Candidate Detection', () => {
 
       const sub = await helpers.createSubscription({
         name: 'Digital Ocean',
-        expectedAmount: 700,
+        expectedAmount: 7,
         expectedCurrencyCode: account.currencyCode,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -703,7 +703,7 @@ describe('Subscription Candidate Detection', () => {
       // Link first 2 transactions to an existing subscription
       const existingSub = await helpers.createSubscription({
         name: 'Existing Sub',
-        expectedAmount: 1000,
+        expectedAmount: 10,
         expectedCurrencyCode: account.currencyCode,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -726,7 +726,7 @@ describe('Subscription Candidate Detection', () => {
       if (candidate) {
         const targetSub = await helpers.createSubscription({
           name: 'Target Sub',
-          expectedAmount: 1000,
+          expectedAmount: 10,
           expectedCurrencyCode: account.currencyCode,
           frequency: SUBSCRIPTION_FREQUENCIES.monthly,
           startDate: '2025-01-01',
@@ -748,7 +748,7 @@ describe('Subscription Candidate Detection', () => {
 
       const sub = await helpers.createSubscription({
         name: 'Some Sub',
-        expectedAmount: 1000,
+        expectedAmount: 10,
         expectedCurrencyCode: account.currencyCode,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -782,7 +782,7 @@ describe('Subscription Candidate Detection', () => {
 
       const sub = await helpers.createSubscription({
         name: 'Netflix',
-        expectedAmount: 1599,
+        expectedAmount: 15.99,
         expectedCurrencyCode: account.currencyCode,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -828,7 +828,7 @@ describe('Subscription Candidate Detection', () => {
       // Create an existing subscription
       await helpers.createSubscription({
         name: 'Digital Ocean',
-        expectedAmount: 700,
+        expectedAmount: 7,
         expectedCurrencyCode: account.currencyCode,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',

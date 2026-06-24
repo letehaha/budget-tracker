@@ -91,6 +91,7 @@
         "configTypeAll": "Всі",
         "configTypeSubscriptions": "Підписки",
         "configTypeBills": "Рахунки",
+        "configTypeInstallments": "Розстрочки",
         "activeSummary": "{count} активна",
         "perYear": " на рік",
         "percentOfIncome": "{percent}% від сер. доходу",

@@ -11,21 +11,25 @@ import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.v
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable/formatters';
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
-import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { SUBSCRIPTION_PERIOD_STATUSES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { CirclePauseIcon, PlusIcon, RepeatIcon, SearchIcon, Trash2Icon } from '@lucide/vue';
+import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
+import { CheckIcon, CirclePauseIcon, PlusIcon, RepeatIcon, SearchIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import BrandLogo from '@/components/common/brand-logo.vue';
+
 import DiscoverCandidatesDialog from './components/discover-candidates-dialog.vue';
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
-import SubscriptionServiceLogo from './components/subscription-service-logo.vue';
+import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
 import SubscriptionsSummary from './components/subscriptions-summary.vue';
 import { formatFrequency } from './utils';
@@ -59,6 +63,7 @@ const filterItems = computed(() => [
   { value: 'all', label: t('planned.subscriptions.summary.filterAll') },
   { value: SUBSCRIPTION_TYPES.subscription, label: t('planned.subscriptions.summary.filterSubscriptions') },
   { value: SUBSCRIPTION_TYPES.bill, label: t('planned.subscriptions.summary.filterBills') },
+  { value: SUBSCRIPTION_TYPES.installment, label: t('planned.subscriptions.summary.filterInstallments') },
 ]);
 
 const { mutate: createSub } = useMutation({
@@ -114,6 +119,56 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
   if (!subscription.expectedAmount || !subscription.expectedCurrencyCode) return null;
   return formatAmountByCurrencyCode(subscription.expectedAmount, subscription.expectedCurrencyCode);
 };
+
+// A finished installment (completedAt set) reads as "Completed", distinct from a
+// manually paused subscription. Both carry isActive=false.
+const isCompleted = ({ subscription }: { subscription: SubscriptionListItem }): boolean =>
+  subscription.completedAt != null;
+
+/** Paid-vs-total progress for any capped plan (maxOccurrences set); null otherwise. */
+const installmentProgress = ({
+  subscription,
+}: {
+  subscription: SubscriptionListItem;
+}): { paid: number; total: number } | null => {
+  if (subscription.maxOccurrences == null) return null;
+  return { paid: subscription.paidPeriodsCount, total: subscription.maxOccurrences };
+};
+
+// --- Quick mark-paid from the list (scheduled subscriptions that have an open period) ---
+const markPaidRef = ref<InstanceType<typeof SubscriptionMarkPaidDialog>>();
+const isMarkingPaid = computed(() => markPaidRef.value?.isPending ?? false);
+
+type OpenPeriod = NonNullable<SubscriptionListItem['currentPeriod']>;
+
+function getDaysUntilDue({ dueDate }: { dueDate: string }): number {
+  return differenceInCalendarDays(parseISO(dueDate), startOfDay(new Date()));
+}
+
+// An `upcoming` period whose due date has already passed reads as overdue right
+// away, without waiting for the daily cron that flips the stored status — so a
+// past due date never shows "in -1 days".
+function isPeriodOverdue({ period }: { period: OpenPeriod }): boolean {
+  return period.status === SUBSCRIPTION_PERIOD_STATUSES.overdue || getDaysUntilDue({ dueDate: period.dueDate }) < 0;
+}
+
+function dueLabel({ period }: { period: OpenPeriod }): string {
+  if (isPeriodOverdue({ period })) {
+    return t('planned.subscriptions.periods.overdueBadge');
+  }
+  return t('planned.subscriptions.periods.inDays', { count: getDaysUntilDue({ dueDate: period.dueDate }) });
+}
+
+function dueChipClass({ period }: { period: OpenPeriod }): string {
+  return isPeriodOverdue({ period })
+    ? 'bg-destructive/10 text-destructive-text'
+    : 'bg-success-text/10 text-success-text';
+}
+
+function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
+  if (!subscription.currentPeriod) return;
+  markPaidRef.value?.triggerPay({ subscription, periodId: subscription.currentPeriod.id });
+}
 </script>
 
 <template>
@@ -126,11 +181,11 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
       </div>
       <div class="flex shrink-0 gap-2">
         <Button variant="outline" size="sm" @click="isDiscoverDialogOpen = true">
-          <SearchIcon class="mr-1 size-4 sm:mr-2" />
+          <SearchIcon class="size-4" />
           {{ $t('planned.subscriptions.candidates.discover') }}
         </Button>
         <Button size="sm" @click="isCreateDialogOpen = true">
-          <PlusIcon class="mr-1 size-4 sm:mr-2" />
+          <PlusIcon class="size-4" />
           {{ $t('planned.subscriptions.addSubscription') }}
         </Button>
       </div>
@@ -169,7 +224,7 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
       >
         <!-- Name -->
         <div class="flex min-w-0 items-center gap-2">
-          <SubscriptionServiceLogo :name="subscription.name" class="size-5" />
+          <BrandLogo :domain="subscription.logoDomain" :name="subscription.name" class="size-5" />
           <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
         </div>
 
@@ -177,7 +232,14 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
         <div class="flex shrink-0 items-center justify-end gap-1.5">
           <SubscriptionTypeBadge :type="subscription.type" />
           <span
-            v-if="!subscription.isActive"
+            v-if="isCompleted({ subscription })"
+            class="bg-success-text/10 text-success-text inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
+          >
+            <CheckIcon class="size-3" />
+            {{ $t('planned.subscriptions.completed') }}
+          </span>
+          <span
+            v-else-if="!subscription.isActive"
             class="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
           >
             <CirclePauseIcon class="size-3" />
@@ -193,6 +255,25 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
           <span class="flex items-center gap-1">
             <RepeatIcon class="size-3.5" />
             {{ formatFrequency({ frequency: subscription.frequency, t }) }}
+          </span>
+          <!-- Installment / capped-plan progress -->
+          <span
+            v-if="installmentProgress({ subscription })"
+            class="text-foreground inline-flex items-center text-xs font-medium"
+          >
+            {{ $t('planned.subscriptions.progress.paidOfTotal', installmentProgress({ subscription })!) }}
+          </span>
+          <!-- Due status (scheduled subscriptions only) -->
+          <span
+            v-if="subscription.currentPeriod"
+            :class="
+              cn(
+                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                dueChipClass({ period: subscription.currentPeriod }),
+              )
+            "
+          >
+            {{ dueLabel({ period: subscription.currentPeriod }) }}
           </span>
         </div>
 
@@ -212,27 +293,37 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
           </span>
 
           <div class="flex items-center gap-1" @click.stop>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              :title="
+            <DesktopOnlyTooltip
+              v-if="subscription.currentPeriod"
+              :content="$t('planned.subscriptions.periods.tooltips.markAsPaid')"
+            >
+              <Button
+                variant="soft-success"
+                size="icon-sm"
+                :disabled="isMarkingPaid"
+                @click="payPeriod({ subscription })"
+              >
+                <CheckIcon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+            <DesktopOnlyTooltip
+              v-if="!isCompleted({ subscription })"
+              :content="
                 subscription.isActive
                   ? $t('planned.subscriptions.pauseSubscription')
                   : $t('planned.subscriptions.resumeSubscription')
               "
-              @click="handleToggleActive({ subscription })"
             >
-              <CirclePauseIcon v-if="subscription.isActive" class="size-4" />
-              <RepeatIcon v-else class="size-4" />
-            </Button>
-            <Button
-              variant="ghost-destructive"
-              size="icon-sm"
-              :title="$t('planned.subscriptions.deleteSubscription')"
-              @click="deleteTarget = subscription"
-            >
-              <Trash2Icon class="size-4" />
-            </Button>
+              <Button variant="ghost" size="icon-sm" @click="handleToggleActive({ subscription })">
+                <CirclePauseIcon v-if="subscription.isActive" class="size-4" />
+                <RepeatIcon v-else class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+            <DesktopOnlyTooltip :content="$t('planned.subscriptions.deleteSubscription')">
+              <Button variant="ghost-destructive" size="icon-sm" @click="deleteTarget = subscription">
+                <Trash2Icon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
           </div>
         </div>
       </div>
@@ -289,5 +380,8 @@ const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }):
 
     <!-- Discover Candidates Dialog -->
     <DiscoverCandidatesDialog v-model:open="isDiscoverDialogOpen" />
+
+    <!-- Quick mark-paid flow (books instantly for same-currency, opens dialog for cross-currency) -->
+    <SubscriptionMarkPaidDialog ref="markPaidRef" />
   </div>
 </template>

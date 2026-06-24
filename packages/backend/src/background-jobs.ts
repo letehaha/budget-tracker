@@ -5,12 +5,12 @@ import { cryptoPricesSyncCron } from './crons/crypto-prices-sync';
 import { demoCleanupCron } from './crons/demo-cleanup';
 import { demoTemplateRefreshCron } from './crons/demo-template-refresh';
 import { loadCurrencyRatesJob } from './crons/exchange-rates';
-import { paymentRemindersCron } from './crons/payment-reminders-check';
 import { purgeDeletedPortfoliosCron } from './crons/purge-deleted-portfolios';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import { shareInvitationsExpireCron } from './crons/share-invitations-expire';
 import { shareResourceOrphanCleanupCron } from './crons/share-resource-orphan-cleanup';
 import { subscriptionCandidateDetectionCron } from './crons/subscription-candidate-detection';
+import { subscriptionRemindersCron } from './crons/subscription-reminders-check';
 import { tagRemindersCron } from './crons/tag-reminders-check';
 import { initializeHistoricalRates } from './services/exchange-rates/initialize-historical-rates.service';
 
@@ -34,7 +34,7 @@ export function initializeBackgroundJobs() {
       securitiesDailySyncCron.startCron();
       cryptoPricesSyncCron.startCron();
       tagRemindersCron.startCron();
-      paymentRemindersCron.startCron();
+      subscriptionRemindersCron.startCron();
       subscriptionCandidateDetectionCron.startCron();
       shareInvitationsExpireCron.startCron();
       shareResourceOrphanCleanupCron.startCron();
@@ -49,6 +49,7 @@ export async function shutdownBackgroundJobs() {
   securitiesDailySyncCron.stopCron();
   cryptoPricesSyncCron.stopCron();
   tagRemindersCron.stopCron();
+  subscriptionRemindersCron.stopCron();
   subscriptionCandidateDetectionCron.stopCron();
   shareInvitationsExpireCron.stopCron();
   shareResourceOrphanCleanupCron.stopCron();

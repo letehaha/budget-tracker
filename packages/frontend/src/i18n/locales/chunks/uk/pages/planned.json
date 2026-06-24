@@ -3,141 +3,19 @@
     "budgets": {
       "backToList": "Назад до бюджетів"
     },
-    "reminders": {
-      "notFound": "Нагадування не знайдено",
-      "notFoundDescription": "Не вдалося знайти це нагадування. Можливо, його було видалено, або у вас немає до нього доступу.",
-      "backToList": "Повернутися до нагадувань",
-      "title": "Нагадування про платежі",
-      "newReminder": "Нове нагадування",
-      "edit": "Редагувати",
-      "delete": "Видалити",
-      "emptyState": {
-        "title": "Ще немає нагадувань",
-        "description": "Створіть своє перше нагадування, щоб розпочати."
-      },
-      "list": {
-        "upcoming": "Майбутні",
-        "dueLabels": {
-          "today": "Термін сьогодні",
-          "tomorrow": "Термін завтра",
-          "inDays": "Термін через {days} днів",
-          "overdueBy": "Прострочено на {days} день | Прострочено на {days} дні | Прострочено на {days} днів"
-        },
-        "tooltips": {
-          "markAsPaid": "Позначити як сплачено",
-          "skipPeriod": "Пропустити період",
-          "delete": "Видалити"
-        }
-      },
-      "dialogs": {
-        "deleteTitle": "Видалити нагадування",
-        "deleteDescription": "Ви впевнені, що хочете видалити \"{name}\"? Це видалить всю історію платежів.",
-        "editTitle": "Редагувати нагадування",
-        "revertTitle": "Повернути період",
-        "revertDescription": "Це повернути період (термін {date}) до активного стану. Будь-яка пов'язана транзакція буде від'єднана.",
-        "revertConfirm": "Повернути"
-      },
-      "notifications": {
-        "reminderCreated": "Нагадування створено",
-        "reminderUpdated": "Нагадування оновлено",
-        "reminderDeleted": "Нагадування видалено",
-        "markedAsPaid": "Позначено як сплачено",
-        "periodSkipped": "Період пропущено",
-        "periodReverted": "Період повернено",
-        "transactionUnlinked": "Транзакція від'єднана",
-        "notFound": "Нагадування не знайдено",
-        "updated": "Нагадування оновлено",
-        "updateFailed": "Не вдалося оновити",
-        "unlinked": "Транзакція від'єднана",
-        "unlinkFailed": "Не вдалося від'єднати",
-        "reverted": "Період повернено",
-        "revertFailed": "Не вдалося повернути",
-        "createFailed": "Не вдалося створити нагадування",
-        "deleteFailed": "Не вдалося видалити нагадування",
-        "markAsPaidFailed": "Не вдалося позначити як сплачено",
-        "skipFailed": "Не вдалося пропустити період"
-      },
-      "frequencies": {
-        "oneTime": "Один раз",
-        "weekly": "Щотижня",
-        "biweekly": "Кожні 2 тижні",
-        "monthly": "Щомісяця",
-        "quarterly": "Щокварталу",
-        "semiAnnual": "Кожні 6 місяців",
-        "annual": "Щорічно"
-      },
-      "form": {
-        "nameLabel": "Назва",
-        "namePlaceholder": "напр. Оренда, Страхування, Податки...",
-        "dueDateLabel": "Термін платежу",
-        "frequencyLabel": "Частота",
-        "amountLabel": "Сума",
-        "amountPlaceholder": "Необов'язково",
-        "currencyLabel": "Валюта",
-        "currencyPlaceholder": "Оберіть валюту",
-        "notificationTimeLabel": "Час сповіщення",
-        "notesLabel": "Нотатки",
-        "notesPlaceholder": "Необов'язкові нотатки...",
-        "emailNotifications": "Також надсилати сповіщення електронною поштою",
-        "extraOptions": "Додаткові опції",
-        "dueDatePastError": "Термін платежу не може бути в минулому",
-        "remindBeforeLabel": "Нагадати перед (макс. {max})"
-      },
-      "remindBefore": {
-        "oneDay": "1 день перед",
-        "twoDays": "2 дні перед",
-        "threeDays": "3 дні перед",
-        "fiveDays": "5 днів перед",
-        "oneWeek": "1 тиждень перед",
-        "twoWeeks": "2 тижні перед",
-        "oneMonth": "1 місяць перед"
-      },
-      "details": {
-        "infoCard": {
-          "dueDate": "Термін платежу",
-          "amount": "Сума",
-          "email": "Електронна пошта",
-          "remindBefore": "Нагадати перед",
-          "enabled": "Увімкнено",
-          "disabled": "Вимкнено",
-          "emailEnabled": "Увімкнено",
-          "emailDisabled": "Вимкнено"
-        },
-        "paymentHistory": "Історія платежів",
-        "noPaymentPeriods": "Ще немає періодів платежів.",
-        "period": {
-          "upcoming": "Майбутні",
-          "due": "Термін {date}",
-          "paid": "Сплачено",
-          "overdue": "Прострочено",
-          "skipped": "Пропущено",
-          "paidAt": "Сплачено {date}",
-          "transaction": "Транзакція #{id}",
-          "duePrefix": "Термін ",
-          "paidPrefix": "Сплачено ",
-          "transactionPrefix": "Транзакція #",
-          "tooltips": {
-            "markAsPaid": "Позначити як сплачено",
-            "skip": "Пропустити",
-            "unlinkTransaction": "Від'єднати транзакцію",
-            "revert": "Повернути"
-          }
-        },
-        "linkedTo": "Пов'язано з {name}",
-        "loadMore": "Завантажити ще"
-      }
-    },
     "subscriptions": {
       "notFound": "Підписку не знайдено",
       "notFoundDescription": "Не вдалося знайти цю підписку. Можливо, її було видалено, або у вас немає до неї доступу.",
-      "title": "Підписки та рахунки",
-      "description": "Відстежуйте регулярні платежі та рахунки",
-      "addSubscription": "Додати підписку",
-      "backToList": "Повернутися до підписок",
-      "createTitle": "Створити підписку",
-      "editTitle": "Редагувати підписку",
+      "title": "Регулярні витрати",
+      "description": "Відстежуйте регулярні витрати та рахунки",
+      "addSubscription": "Додати регулярну витрату",
+      "backToList": "Повернутися до регулярних витрат",
+      "createTitle": "Створити регулярну витрату",
+      "editTitle": "Редагувати регулярну витрату",
       "typeSubscription": "Підписка",
       "typeBill": "Рахунок",
+      "typeInstallment": "Розстрочка",
+      "completed": "Завершено",
       "paused": "Призупинено",
       "edit": "Редагувати",
       "cancel": "Скасувати",
@@ -176,6 +54,7 @@
       "form": {
         "nameLabel": "Назва",
         "namePlaceholder": "напр. Netflix, рахунок за електрику",
+        "logoLabel": "Логотип",
         "typeLabel": "Тип",
         "typeSubscriptionDesc": "Регулярний платіж за послугу",
         "typeBillDesc": "Регулярний рахунок або комунальний платіж",
@@ -201,7 +80,39 @@
         "saveRules": "Зберегти правила",
         "extraOptions": "Додаткові опції",
         "validationAmountCurrency": "Сума та валюта мають бути вказані разом.",
-        "validationSubscriptionRequiresAmount": "Підписки потребують суму та валюту."
+        "validationSubscriptionRequiresAmount": "Підписки потребують суму та валюту.",
+        "typeInstallmentDesc": "Фінансована покупка, що сплачується фіксованою кількістю платежів",
+        "installmentScheduleHint": "Вкажіть дату першого платежу та кількість платежів для відстеження цього плану.",
+        "installmentTotalCommitment": "Загальна сума: {total}",
+        "validationInstallmentRequiresSchedule": "Розстрочка потребує дати платіжного розкладу.",
+        "validationInstallmentRequiresCount": "Розстрочка потребує кількості платежів.",
+        "dueDateLabel": "Дата платіжного розкладу",
+        "dueDateDescription": "Якщо встановлено, ця підписка отримує платіжний розклад, який можна позначати як сплачений кожен розрахунковий цикл.",
+        "maxOccurrencesLabel": "Кількість платежів",
+        "maxOccurrencesPlaceholder": "Залиште порожнім для безстрокового",
+        "remindBeforeLabel": "Нагадати перед терміном оплати",
+        "remindBeforeHelper": "Нагадування з'являються в застосунку. Увімкніть email нижче, щоб також отримувати їх на пошту. Оберіть до 3.",
+        "notifyEmailLabel": "Також надіслати на email",
+        "remindPresets": {
+          "0_days": "В день оплати",
+          "1_day": "За 1 день",
+          "2_days": "За 2 дні",
+          "3_days": "За 3 дні",
+          "5_days": "За 5 днів",
+          "1_week": "За 1 тиждень",
+          "2_weeks": "За 2 тижні",
+          "1_month": "За 1 місяць"
+        },
+        "scheduleSectionLabel": "Платіжний розклад",
+        "scheduleSectionHint": "Відстежуйте терміни, генеруйте періоди, надсилайте нагадування"
+      },
+      "progress": {
+        "title": "Прогрес розстрочки",
+        "titleGeneric": "Прогрес платежів",
+        "paidOfTotal": "{paid} з {total} сплачено",
+        "remaining": "{count} платежів залишилося",
+        "remainingTotal": "Залишилося {amount}",
+        "completedNote": "План завершено"
       },
       "rules": {
         "ruleLabel": "Правило {number}",
@@ -237,20 +148,20 @@
       "deleteConfirmDescription": "Ви впевнені, що хочете видалити цю підписку? Цю дію неможливо скасувати.",
       "deleteConfirm": "Видалити",
       "toggleError": "Не вдалося оновити статус підписки",
-      "notFound": "Підписку не знайдено",
       "unlinkSuccess": "Транзакцію успішно від'єднано",
       "unlinkError": "Не вдалося від'єднати транзакцію",
       "suggestError": "Не вдалося завантажити запропоновані збіги",
       "linkSuccess": "Транзакції успішно прив'язано",
       "linkError": "Не вдалося прив'язати транзакції",
       "emptyState": {
-        "title": "Ще немає підписок",
-        "description": "Додайте першу підписку або рахунок, щоб почати відстежувати регулярні платежі"
+        "title": "Ще немає регулярних витрат",
+        "description": "Додайте першу регулярну витрату або рахунок, щоб почати відстежувати регулярні платежі"
       },
       "summary": {
         "filterAll": "Усі",
         "filterSubscriptions": "Підписки",
         "filterBills": "Рахунки",
+        "filterInstallments": "Розстрочки",
         "monthlyCost": "~{amount}/міс",
         "yearlyProjected": "прогнозовано {amount}",
         "perYear": "{amount}/рік",
@@ -280,6 +191,68 @@
         "sampleTransactionsTitle": "Зразки транзакцій",
         "sampleTransactionsDescription": "Це зразки транзакцій, які спричинили виявлення цієї підписки.",
         "noTransactionsFound": "Транзакцій не знайдено"
+      },
+      "periods": {
+        "status": {
+          "paid": "Сплачено",
+          "overdue": "Прострочено",
+          "skipped": "Пропущено",
+          "upcoming": "Майбутнє"
+        },
+        "nextDue": "Наступний платіж",
+        "overdueBadge": "Прострочено",
+        "inDays": "через {count} днів",
+        "paymentHistory": "Історія платежів",
+        "noPaymentPeriods": "Ще немає платіжних періодів.",
+        "dueOn": "Термін {date}",
+        "paidAt": "Сплачено {date}",
+        "viewTransaction": "Переглянути транзакцію",
+        "actions": {
+          "markPaid": "Позначити сплаченим",
+          "skip": "Пропустити"
+        },
+        "tooltips": {
+          "markAsPaid": "Позначити як сплачено",
+          "skip": "Пропустити",
+          "unlinkTransaction": "Від'єднати транзакцію",
+          "revert": "Повернути"
+        },
+        "markPaid": {
+          "title": "Зафіксувати платіж",
+          "description": "Зафіксуйте платіж для {name}",
+          "chooseDescription": "Як ви хочете зафіксувати цей платіж для {name}?",
+          "amountLabel": "Сума",
+          "amountPlaceholder": "0.00",
+          "estimateLoading": "Завантаження оцінки…",
+          "crossCurrencyEstimate": "~{sourceAmount} {sourceCurrency} → {accountCurrency} (приблизно)",
+          "dateLabel": "Дата платежу",
+          "accountLabel": "Рахунок",
+          "accountPlaceholder": "Оберіть рахунок",
+          "confirm": "Підтвердити",
+          "confirmMarkOnly": "Позначити як сплачено",
+          "recordModeMarkTitle": "Просто позначити як сплачено",
+          "recordModeMarkDescription": "Оновлює лише розклад — транзакція не створюється.",
+          "recordModeTransactionTitle": "Створити транзакцію",
+          "recordModeTransactionDescription": "Зафіксуйте реальну витрату на рахунку. Вона також буде пов'язана з майбутніми платежами."
+        },
+        "dialogs": {
+          "revertTitle": "Скасувати період",
+          "revertConfirm": "Скасувати",
+          "revertDescription": "Цей період буде знову позначено як несплачений.",
+          "revertDescriptionUnlinksTransaction": "Пов'язану транзакцію буде від'єднано, а цей період буде позначено як несплачений.",
+          "revertDescriptionDeletesTransaction": "Згенеровану транзакцію буде видалено, а цей період буде позначено як несплачений."
+        },
+        "notifications": {
+          "markedAsPaid": "Платіж зафіксовано",
+          "markAsPaidFailed": "Не вдалося зафіксувати платіж",
+          "periodSkipped": "Період пропущено",
+          "skipFailed": "Не вдалося пропустити період",
+          "transactionUnlinked": "Транзакцію від'єднано",
+          "unlinkFailed": "Не вдалося від'єднати транзакцію",
+          "periodReverted": "Період скасовано",
+          "revertFailed": "Не вдалося скасувати період",
+          "transactionLoadFailed": "Не вдалося завантажити транзакцію"
+        }
       }
     }
   }

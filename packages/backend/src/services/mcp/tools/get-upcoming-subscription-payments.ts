@@ -15,9 +15,9 @@ export function registerGetUpcomingSubscriptionPayments(server: McpServer) {
       inputSchema: {
         limit: z.number().optional().describe('Maximum number of upcoming payments to return. Default: 5'),
         type: z
-          .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill])
+          .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill, SUBSCRIPTION_TYPES.installment])
           .optional()
-          .describe('Filter by type: "subscription" or "bill"'),
+          .describe('Filter by type: "subscription", "bill", or "installment"'),
       },
     },
     async (args, extra) => {

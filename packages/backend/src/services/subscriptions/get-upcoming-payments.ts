@@ -48,6 +48,7 @@ export const getUpcomingPayments = async ({ userId, limit = 5, type }: GetUpcomi
       return {
         subscriptionId: plain.id,
         subscriptionName: plain.name,
+        logoDomain: plain.logoDomain ?? null,
         expectedAmount: Money.fromCents(plain.expectedAmount!).toNumber(),
         expectedCurrencyCode: plain.expectedCurrencyCode,
         nextPaymentDate,

@@ -13,6 +13,7 @@ import {
 } from '@bt/shared/types';
 import {
   AlertTriangleIcon,
+  CalendarClockIcon,
   ClockIcon,
   HandshakeIcon,
   HomeIcon,
@@ -79,6 +80,8 @@ const getIcon = (type: NotificationType) => {
       return SparklesIcon;
     case NOTIFICATION_TYPES.tagReminder:
       return TagIcon;
+    case NOTIFICATION_TYPES.subscriptionReminder:
+      return CalendarClockIcon;
     case NOTIFICATION_TYPES.shareInvitationReceived:
     case NOTIFICATION_TYPES.householdInvitationReceived:
       return MailIcon;
@@ -122,6 +125,8 @@ const getIconBg = (type: NotificationType) => {
       return 'bg-purple-500';
     case NOTIFICATION_TYPES.tagReminder:
       return 'bg-amber-500';
+    case NOTIFICATION_TYPES.subscriptionReminder:
+      return 'bg-cyan-500';
     case NOTIFICATION_TYPES.shareInvitationReceived:
     case NOTIFICATION_TYPES.householdInvitationReceived:
       return 'bg-violet-500';
