@@ -1,6 +1,7 @@
 import {
   RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
   SubscriptionMatchingRules,
 } from '@bt/shared/types';
@@ -8,11 +9,20 @@ import { Money } from '@common/types/money';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { Op } from 'sequelize';
 
-import { ensureNextPeriodExists } from './ensure-next-period';
-import { findSubscriptionOrThrow, validateAccountOwnership, validateCategoryOwnership } from './helpers';
-import { assertInstallmentScheduleComplete, isSubscriptionInstallmentCapReached } from './installments';
+import { ensureNextPeriodExists, reconcileInstallmentCompletion } from './ensure-next-period';
+import {
+  assertAmountCurrencyConsistent,
+  findSubscriptionOrThrow,
+  validateAccountOwnership,
+  validateCategoryOwnership,
+} from './helpers';
+import { assertInstallmentScheduleComplete, assertMaxOccurrencesNotBelowConsumed } from './installments';
 import { resolveOpenPeriodStatus } from './resolve-period-status';
+
+/** Statuses that count as a live, un-consumed period. */
+const OPEN_PERIOD_STATUSES = [SUBSCRIPTION_PERIOD_STATUSES.upcoming, SUBSCRIPTION_PERIOD_STATUSES.overdue];
 
 interface UpdateSubscriptionParams {
   id: string;
@@ -62,6 +72,22 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     dueDate: fields.dueDate !== undefined ? fields.dueDate : subscription.dueDate,
   });
 
+  // Validate the merged amount/currency pairing (only null-ness matters, so the
+  // stored cents vs. the incoming decimal is irrelevant). Covers MCP callers that
+  // send a partial payload the controller's request schema can't reconcile.
+  assertAmountCurrencyConsistent({
+    expectedAmount: fields.expectedAmount !== undefined ? fields.expectedAmount : subscription.expectedAmount,
+    expectedCurrencyCode:
+      fields.expectedCurrencyCode !== undefined ? fields.expectedCurrencyCode : subscription.expectedCurrencyCode,
+  });
+
+  // Refuse lowering the payment count below the periods already paid/skipped —
+  // that history is immutable, so the plan can't shrink beneath it.
+  await assertMaxOccurrencesNotBelowConsumed({
+    subscriptionId: id,
+    maxOccurrences: fields.maxOccurrences !== undefined ? fields.maxOccurrences : subscription.maxOccurrences,
+  });
+
   // The API exchanges decimals; the column stores raw cents (no Money getter).
   // Only touch the field when the caller actually sent it, so omitting it leaves
   // the stored amount unchanged. `null` clears the amount.
@@ -73,11 +99,14 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
   }
 
   // When a dueDate is being set (not cleared), derive anchorDay so recurring
-  // logic can use the calendar day without reparsing the date string.
+  // logic can use the calendar day without reparsing the date string. Clearing
+  // the dueDate clears the anchor with it (no schedule to anchor to).
   if (fields.dueDate != null) {
     fields = { ...fields, anchorDay: new Date(fields.dueDate + 'T00:00:00Z').getUTCDate() } as typeof fields & {
       anchorDay: number;
     };
+  } else if (fields.dueDate === null) {
+    fields = { ...fields, anchorDay: null } as typeof fields & { anchorDay: number | null };
   }
 
   // Key present (even null) → user is making a manual override; stamp logoSource
@@ -86,38 +115,77 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     fields = { ...fields, logoSource: 'manual' } as typeof fields & { logoSource: 'manual' };
   }
 
+  // Remember the pre-edit type before `update` overwrites it, so a type change
+  // away from installment can be detected below.
+  const wasInstallment = subscription.type === SUBSCRIPTION_TYPES.installment;
+
   await subscription.update(fields);
 
-  // Seed the first period only when introducing a schedule on a subscription that
-  // has no periods at all. Guarding on a zero period count (not "no open period")
-  // is what stops a re-sent dueDate from duplicating an already paid/skipped period
-  // — e.g. editing a completed installment, whose only period is paid. A past
-  // dueDate is born overdue (mirrors the cron).
+  // Keep the live schedule in step with an edited due date.
+  //  - dueDate moved: shift the single open (upcoming/overdue) period onto the new
+  //    date and re-resolve its status, so the shown/reminded date and the next-cycle
+  //    anchor track the schedule the user just set. Paid/skipped periods are
+  //    immutable history and are never moved. A re-sent (unchanged) dueDate is a
+  //    no-op, so a frequency-only edit doesn't disturb the period.
+  //  - no open period yet (first time a schedule is added): seed one. Guarding on a
+  //    zero TOTAL count stops a re-sent dueDate from duplicating an already
+  //    paid/skipped period (e.g. editing a completed installment, whose only period
+  //    is paid). A past dueDate is born overdue (mirrors the cron).
+  //  - dueDate cleared to null: the subscription becomes detection-only, so drop any
+  //    open period (nothing left to fall due).
   if (fields.dueDate != null) {
-    const existingPeriodCount = await SubscriptionPeriods.count({ where: { subscriptionId: id } });
+    const openPeriod = await SubscriptionPeriods.findOne({
+      where: { subscriptionId: id, status: { [Op.in]: OPEN_PERIOD_STATUSES } },
+      order: [['dueDate', 'ASC']],
+    });
 
-    if (existingPeriodCount === 0) {
-      await SubscriptionPeriods.create({
-        subscriptionId: id,
-        dueDate: fields.dueDate,
-        status: resolveOpenPeriodStatus({ dueDate: fields.dueDate }),
-      });
+    if (openPeriod) {
+      if (openPeriod.dueDate !== fields.dueDate) {
+        await openPeriod.update({
+          dueDate: fields.dueDate,
+          status: resolveOpenPeriodStatus({ dueDate: fields.dueDate }),
+        });
+      }
+    } else {
+      const existingPeriodCount = await SubscriptionPeriods.count({ where: { subscriptionId: id } });
+
+      if (existingPeriodCount === 0) {
+        await SubscriptionPeriods.create({
+          subscriptionId: id,
+          dueDate: fields.dueDate,
+          status: resolveOpenPeriodStatus({ dueDate: fields.dueDate }),
+        });
+      }
     }
+  } else if (fields.dueDate === null) {
+    await SubscriptionPeriods.destroy({
+      where: { subscriptionId: id, status: { [Op.in]: OPEN_PERIOD_STATUSES } },
+    });
   }
 
-  // Re-evaluate installment completion after the edit. Raising maxOccurrences past
-  // the paid count un-finishes a completed installment: clear the completion,
-  // reactivate, and let the schedule generate the next period. ensureNextPeriodExists
-  // re-finishes it (via finalizeInstallmentCompletion) if the cap is still reached.
+  // Re-evaluate completion/scheduling now that the fields and the open period are
+  // up to date.
   if (subscription.type === SUBSCRIPTION_TYPES.installment) {
-    const capReached = await isSubscriptionInstallmentCapReached({ subscription });
-    if (!capReached && subscription.completedAt != null) {
-      await subscription.update({ isActive: true, completedAt: null });
+    // Raising the cap reopens a finished plan and continues the schedule; lowering
+    // it to/below the consumed count finalizes the plan and prunes any surplus open
+    // period. Both directions handled here.
+    await reconcileInstallmentCompletion({ subscription });
+  } else if (wasInstallment) {
+    // Converting away from installment: the finite-plan cap and completion no longer
+    // apply. Drop maxOccurrences so the recurring schedule generates indefinitely.
+    // A set `completedAt` means the installment had finished — which forced
+    // isActive=false — so reactivate it (a subscription/bill has no "finished" state),
+    // then ensure an open period exists to fall due.
+    const wasFinished = subscription.completedAt != null;
+    await subscription.update({
+      maxOccurrences: null,
+      ...(wasFinished ? { completedAt: null, isActive: true } : {}),
+    });
+    // Only continue the schedule if one still exists — a same-edit dueDate clear
+    // makes it detection-only.
+    if (subscription.dueDate != null) {
+      await ensureNextPeriodExists({ subscription });
     }
-    await ensureNextPeriodExists({ subscription });
-  } else if (subscription.completedAt != null) {
-    // Type changed away from installment — a completion stamp no longer applies.
-    await subscription.update({ completedAt: null });
   }
 
   // Surface expectedAmount as a decimal so the response matches GET (the

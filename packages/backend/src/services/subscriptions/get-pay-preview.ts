@@ -57,11 +57,20 @@ export const getSubscriptionPayPreview = withTransaction(
     const isCrossCurrency =
       subscription.expectedCurrencyCode != null && subscription.expectedCurrencyCode !== accountCurrencyCode;
 
-    const converted = await convertSubscriptionAmountToAccountCurrency({
-      subscription,
-      accountCurrencyCode,
-      date: new Date(),
-    });
+    // Best-effort: a preview must never surface a 4xx/5xx. When the rate can't be
+    // resolved (billed currency not connected yet, or no rate for today), fall back
+    // to a null converted amount so the pay dialog still opens and the user can
+    // enter the amount manually. The actual booking auto-connects + revalidates.
+    let converted: Money | null = null;
+    try {
+      converted = await convertSubscriptionAmountToAccountCurrency({
+        subscription,
+        accountCurrencyCode,
+        date: new Date(),
+      });
+    } catch {
+      converted = null;
+    }
 
     return {
       isCrossCurrency,

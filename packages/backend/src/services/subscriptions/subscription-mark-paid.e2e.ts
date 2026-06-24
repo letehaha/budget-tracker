@@ -613,3 +613,66 @@ describe('GET /subscriptions/:id/pay-preview', () => {
     });
   });
 });
+
+describe('Cross-currency pay when the billed currency is unconnected', () => {
+  // UAH ships rates in MODELS_CURRENCIES but is NOT connected to a fresh user, so a
+  // subscription billed in it reproduces the unconnected-currency path.
+  it('auto-connects the billed currency on create-mode pay and books the converted amount (no 404)', async () => {
+    const uahCode = global.MODELS_CURRENCIES!.find((c) => c.code === 'UAH')!.code;
+    const account = await helpers.createAccount({ raw: true }); // base currency
+    const sub = await helpers.createSubscription({
+      name: 'Unconnected-currency plan',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: futureDate({ monthsAhead: 1, day: 1 }),
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      accountId: account.id,
+      categoryId: global.DEFAULT_CATEGORY_ID,
+      expectedAmount: 100,
+      expectedCurrencyCode: uahCode, // user has NOT connected UAH
+      raw: true,
+    });
+
+    const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    const upcoming = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+
+    // Quick-pay with no amount override: the billed currency is auto-connected so the
+    // rate lookup no longer throws a 404, and the expense books in the account currency.
+    const paid = await helpers.markSubscriptionPeriodPaid({
+      id: sub.id,
+      periodId: upcoming!.id,
+      createTransaction: true,
+      raw: true,
+    });
+
+    expect(paid.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
+    expect(paid.transactionId).toBeTruthy();
+
+    const tx = await helpers.getTransactionById({ id: paid.transactionId!, raw: true });
+    expect(tx).not.toBeNull();
+    expect(tx!.currencyCode).toBe(global.BASE_CURRENCY.code);
+    expect(tx!.amount).toBeGreaterThan(0);
+  });
+
+  it('previews with convertedAmount null instead of erroring when the currency is unconnected', async () => {
+    const uahCode = global.MODELS_CURRENCIES!.find((c) => c.code === 'UAH')!.code;
+    const account = await helpers.createAccount({ raw: true });
+    const sub = await helpers.createSubscription({
+      name: 'Unconnected-currency preview',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: futureDate({ monthsAhead: 1, day: 1 }),
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      accountId: account.id,
+      categoryId: global.DEFAULT_CATEGORY_ID,
+      expectedAmount: 100,
+      expectedCurrencyCode: uahCode,
+      raw: true,
+    });
+
+    const preview = await helpers.getSubscriptionPayPreview({ id: sub.id, raw: true });
+    expect(preview.isCrossCurrency).toBe(true);
+    expect(preview.subscriptionCurrencyCode).toBe(uahCode);
+    expect(preview.expectedAmount).toBe(100);
+    // Best-effort: an unresolved rate degrades to null rather than a 4xx/5xx.
+    expect(preview.convertedAmount).toBeNull();
+  });
+});

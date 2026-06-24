@@ -1,9 +1,10 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { ValidationError } from '@js/errors';
+import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import Subscriptions from '@models/subscriptions.model';
 import * as Users from '@models/users.model';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import type { CreateTransactionParams } from '@services/transactions/types';
 
 import { convertSubscriptionAmountToAccountCurrency } from './convert-subscription-amount';
@@ -64,11 +65,36 @@ export async function buildTransactionFromSubscription({
       });
     }
 
-    const converted = await convertSubscriptionAmountToAccountCurrency({
-      subscription,
-      accountCurrencyCode: account.currency.code,
-      date: effectiveTime,
-    });
+    // The billed currency may be one the user hasn't connected (the subscription
+    // form offers every currency). Connect it before the rate lookup — otherwise it
+    // throws `currencyNotConnected` (a 404) from inside the conversion. Idempotent
+    // and joins the active transaction, mirroring the shared-account write path.
+    if (subscription.expectedCurrencyCode && subscription.expectedCurrencyCode !== account.currency.code) {
+      await ensureUserCurrencyConnected({
+        userId: subscription.userId,
+        currencyCode: subscription.expectedCurrencyCode,
+      });
+    }
+
+    let converted: Money | null;
+    try {
+      converted = await convertSubscriptionAmountToAccountCurrency({
+        subscription,
+        accountCurrencyCode: account.currency.code,
+        date: effectiveTime,
+      });
+    } catch (error) {
+      // No exchange rate exists for this currency/date. Surface a clean validation
+      // error — the caller can retry with an explicit `amount` — rather than letting
+      // the rate service's UnexpectedError bubble up as a 500.
+      if (error instanceof UnexpectedError) {
+        throw new ValidationError({
+          message: `No exchange rate is available to convert ${subscription.expectedCurrencyCode} to ${account.currency.code}. Provide the amount manually.`,
+        });
+      }
+      throw error;
+    }
+
     if (converted == null) {
       throw new ValidationError({
         message: 'A created transaction requires an amount.',

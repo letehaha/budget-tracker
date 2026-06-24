@@ -10,7 +10,7 @@ import Subscriptions from '@models/subscriptions.model';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
 
-import { validateAccountOwnership, validateCategoryOwnership } from './helpers';
+import { assertAmountCurrencyConsistent, validateAccountOwnership, validateCategoryOwnership } from './helpers';
 import { assertInstallmentScheduleComplete } from './installments';
 import { resolveOpenPeriodStatus } from './resolve-period-status';
 
@@ -69,6 +69,10 @@ export const createSubscription = withTransaction(
       maxOccurrences: rest.maxOccurrences,
       dueDate,
     });
+
+    // Amount and currency must travel together (covers MCP callers that bypass the
+    // controller's request schema).
+    assertAmountCurrencyConsistent({ expectedAmount, expectedCurrencyCode });
 
     // Derive the calendar day from dueDate so recurring logic can anchor
     // future periods to the same day-of-month without reparsing the date.

@@ -1,7 +1,8 @@
-import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { SUBSCRIPTION_PERIOD_STATUSES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
+import { Op } from 'sequelize';
 
 /**
  * Guards the installment invariant: a finite plan must carry a payment count
@@ -23,6 +24,39 @@ export function assertInstallmentScheduleComplete({
   if (type === SUBSCRIPTION_TYPES.installment && (maxOccurrences == null || dueDate == null)) {
     throw new ValidationError({
       message: 'Installments require a payment count (maxOccurrences) and a schedule date (dueDate).',
+    });
+  }
+}
+
+/**
+ * Rejects lowering a payment count below what the schedule has already consumed
+ * (paid + skipped periods). Those periods are immutable history — a plan can't
+ * truthfully become "2 payments" once 3 have been made or skipped — so the edit
+ * is refused rather than silently leaving `paidPeriodsCount > maxOccurrences`.
+ *
+ * Lives in the service layer so MCP callers (which bypass the controller schema)
+ * are covered too. `null` (uncapped) and a count at/above the consumed total are
+ * allowed. Pass the post-change ("merged") maxOccurrences.
+ */
+export async function assertMaxOccurrencesNotBelowConsumed({
+  subscriptionId,
+  maxOccurrences,
+}: {
+  subscriptionId: string;
+  maxOccurrences: number | null | undefined;
+}): Promise<void> {
+  if (maxOccurrences == null) return;
+
+  const consumedCount = await SubscriptionPeriods.count({
+    where: {
+      subscriptionId,
+      status: { [Op.in]: [SUBSCRIPTION_PERIOD_STATUSES.paid, SUBSCRIPTION_PERIOD_STATUSES.skipped] },
+    },
+  });
+
+  if (maxOccurrences < consumedCount) {
+    throw new ValidationError({
+      message: `Cannot reduce the payment count to ${maxOccurrences}: ${consumedCount} payment(s) have already been made or skipped.`,
     });
   }
 }
@@ -67,12 +101,17 @@ export async function isSubscriptionInstallmentCapReached({
  * manually paused installment also carries `isActive = false`, so `completedAt` is what
  * tells the two apart and what `revertPeriod` clears to reopen a finished installment.
  *
+ * Idempotent: re-running on an already-finished installment preserves the original
+ * `completedAt` (never re-stamps it). It still re-asserts `isActive = false` so a plan
+ * that was reactivated (e.g. toggled active while still cap-reached) and then
+ * reconciled is left correctly finished rather than active-yet-complete.
+ *
  * No-op for subscriptions and bills (only installments complete) and for an installment
- * already marked complete.
+ * already finished and inactive.
  */
 export async function finalizeInstallmentCompletion({ subscription }: { subscription: Subscriptions }): Promise<void> {
   if (subscription.type !== SUBSCRIPTION_TYPES.installment) return;
-  if (subscription.completedAt != null) return;
+  if (subscription.completedAt != null && !subscription.isActive) return;
 
-  await subscription.update({ isActive: false, completedAt: new Date() });
+  await subscription.update({ isActive: false, completedAt: subscription.completedAt ?? new Date() });
 }

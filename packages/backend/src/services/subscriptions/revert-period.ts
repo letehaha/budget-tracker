@@ -38,13 +38,15 @@ export const revertPeriod = withTransaction(async ({ userId, subscriptionId, per
   const dueDate = new Date(period.dueDate + 'T23:59:59Z');
   const newStatus = dueDate < now ? SUBSCRIPTION_PERIOD_STATUSES.overdue : SUBSCRIPTION_PERIOD_STATUSES.upcoming;
 
-  // Remove the auto-created next upcoming period to avoid a duplicate active
-  // period once this one is re-opened. That successor belongs to the LATEST
-  // consumed period: if any paid or skipped period sits after this one (greater
-  // dueDate), the current upcoming follows that later period, so reverting this
-  // earlier one must leave the upcoming untouched. dueDate is a DATEONLY
-  // 'YYYY-MM-DD' string, so Op.gt compares chronologically and strict `>`
-  // excludes the reverted period itself.
+  // Remove the auto-created next open period to avoid a duplicate active period
+  // once this one is re-opened. That successor belongs to the LATEST consumed
+  // period: if any paid or skipped period sits after this one (greater dueDate),
+  // the current open period follows that later period, so reverting this earlier
+  // one must leave it untouched. dueDate is a DATEONLY 'YYYY-MM-DD' string, so
+  // Op.gt compares chronologically and strict `>` excludes the reverted period
+  // itself. The successor can be `upcoming` OR `overdue` (born overdue from a past
+  // dueDate, or cron-flipped), so both count — matching on `upcoming` alone would
+  // strand an overdue successor and leave two open periods.
   const laterConsumedPeriod = await SubscriptionPeriods.findOne({
     where: {
       subscriptionId,
@@ -54,16 +56,16 @@ export const revertPeriod = withTransaction(async ({ userId, subscriptionId, per
   });
 
   if (!laterConsumedPeriod) {
-    const newerUpcoming = await SubscriptionPeriods.findOne({
+    const newerOpenPeriod = await SubscriptionPeriods.findOne({
       where: {
         subscriptionId,
-        status: SUBSCRIPTION_PERIOD_STATUSES.upcoming,
+        status: { [Op.in]: [SUBSCRIPTION_PERIOD_STATUSES.upcoming, SUBSCRIPTION_PERIOD_STATUSES.overdue] },
       },
       order: [['dueDate', 'DESC']],
     });
 
-    if (newerUpcoming && newerUpcoming.dueDate > period.dueDate) {
-      await newerUpcoming.destroy();
+    if (newerOpenPeriod && newerOpenPeriod.dueDate > period.dueDate) {
+      await newerOpenPeriod.destroy();
     }
   }
 

@@ -57,6 +57,7 @@ interface UpdateSubscriptionPayload {
   accountId?: string | null;
   categoryId?: string | null;
   matchingRules?: { rules: Array<Record<string, unknown>> };
+  isActive?: boolean;
   notes?: string | null;
   dueDate?: string | null;
   maxOccurrences?: number | null;
