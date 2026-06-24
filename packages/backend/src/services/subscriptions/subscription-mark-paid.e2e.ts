@@ -4,6 +4,7 @@ import {
   SUBSCRIPTION_TYPES,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { addMonths, format } from 'date-fns';
@@ -253,6 +254,133 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
       expect(period.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
       const tx = await helpers.getTransactionById({ id: period.transactionId!, raw: true });
       expect(tx!.amount).toBe(50);
+    });
+  });
+
+  describe('Pay-time account selection (account-less subscription)', () => {
+    it('links the chosen account, books the expense against it, and advances the schedule', async () => {
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      // Installment created WITHOUT an account.
+      const sub = await helpers.createSubscription({
+        name: 'Phone installment',
+        type: SUBSCRIPTION_TYPES.installment,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: futureDate({ monthsAhead: 1, day: 15 }),
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
+        categoryId: global.DEFAULT_CATEGORY_ID,
+        expectedAmount: 90,
+        expectedCurrencyCode: global.BASE_CURRENCY.code,
+        maxOccurrences: 12,
+        raw: true,
+      });
+      expect(sub.accountId).toBeNull();
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const upcoming = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+
+      const period = await helpers.markSubscriptionPeriodPaid({
+        id: sub.id,
+        periodId: upcoming!.id,
+        createTransaction: true,
+        accountId: account.id,
+        raw: true,
+      });
+
+      // The period booked an auto-created expense against the chosen account.
+      expect(period.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
+      expect(period.transactionAutoCreated).toBe(true);
+      expect(period.transactionId).toBeTruthy();
+
+      const tx = await helpers.getTransactionById({ id: period.transactionId!, raw: true });
+      expect(tx).not.toBeNull();
+      expect(tx!.transactionType).toBe(TRANSACTION_TYPES.expense);
+      expect(tx!.accountId).toBe(account.id);
+      expect(tx!.amount).toBe(90);
+
+      // The account is now persisted on the subscription, and the schedule advanced.
+      const after = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(after.accountId).toBe(account.id);
+      const nextUpcoming = after.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      expect(nextUpcoming).toBeDefined();
+    });
+
+    it('reuses the linked account on the next pay without re-sending accountId', async () => {
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+      const sub = await helpers.createSubscription({
+        name: 'Phone installment',
+        type: SUBSCRIPTION_TYPES.installment,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: futureDate({ monthsAhead: 1, day: 15 }),
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
+        categoryId: global.DEFAULT_CATEGORY_ID,
+        expectedAmount: 90,
+        expectedCurrencyCode: global.BASE_CURRENCY.code,
+        maxOccurrences: 12,
+        raw: true,
+      });
+
+      // First pay links the account.
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const first = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      await helpers.markSubscriptionPeriodPaid({
+        id: sub.id,
+        periodId: first!.id,
+        createTransaction: true,
+        accountId: account.id,
+        raw: true,
+      });
+
+      // Second pay omits accountId — the now-linked account is used automatically.
+      const afterFirst = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const second = afterFirst.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      const secondPaid = await helpers.markSubscriptionPeriodPaid({
+        id: sub.id,
+        periodId: second!.id,
+        createTransaction: true,
+        raw: true,
+      });
+
+      const tx = await helpers.getTransactionById({ id: secondPaid.transactionId!, raw: true });
+      expect(tx!.accountId).toBe(account.id);
+    });
+
+    it('returns 404 and leaves the period unpaid when the chosen account is not the user’s', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'Account-less plan',
+        type: SUBSCRIPTION_TYPES.installment,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: futureDate({ monthsAhead: 1, day: 15 }),
+        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
+        categoryId: global.DEFAULT_CATEGORY_ID,
+        expectedAmount: 90,
+        expectedCurrencyCode: global.BASE_CURRENCY.code,
+        maxOccurrences: 12,
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const upcoming = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+
+      const res = await helpers.markSubscriptionPeriodPaid({
+        id: sub.id,
+        periodId: upcoming!.id,
+        createTransaction: true,
+        accountId: generateRandomRecordId(),
+        raw: false,
+      });
+      expect(res.statusCode).toBe(404);
+
+      // The failed link rolled back: no account on the subscription, period still open.
+      const after = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(after.accountId).toBeNull();
+      expect(after.periods.find((p) => p.id === upcoming!.id)!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.upcoming);
     });
   });
 

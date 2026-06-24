@@ -324,6 +324,70 @@ describe('Editing an installment whose period is overdue', () => {
 });
 
 // ===========================================================================
+// Linking an account to a partially-paid installment
+// ===========================================================================
+
+describe('Linking an account to an installment that already has paid history', () => {
+  it('does not drag the live open period back onto the stale anchor date', async () => {
+    // Installment with NO account, anchored a month back so its first periods are
+    // already due. The stored dueDate (anchor) never advances as periods are paid
+    // — only the live open period moves forward — so the two diverge.
+    const anchor = pastDateMonths({ monthsAgo: 1, day: 15 });
+    const sub = await helpers.createSubscription({
+      name: 'Phone installment',
+      type: SUBSCRIPTION_TYPES.installment,
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: anchor,
+      dueDate: anchor,
+      categoryId: global.DEFAULT_CATEGORY_ID,
+      expectedAmount: 10,
+      expectedCurrencyCode: global.BASE_CURRENCY.code,
+      maxOccurrences: 12,
+      raw: true,
+    });
+
+    // Mark two periods paid WITHOUT an account (plain mark-paid, no transaction).
+    const p1 = await getOpenPeriod({ subId: sub.id });
+    await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: p1!.id, raw: true });
+    const p2 = await getOpenPeriod({ subId: sub.id });
+    await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: p2!.id, raw: true });
+
+    // The live open period now sits two cycles ahead of the stored anchor.
+    const openBefore = await getOpenPeriod({ subId: sub.id });
+    const before = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    expect(before.periods).toHaveLength(3);
+    expect(openBefore!.dueDate).not.toBe(anchor);
+
+    // Link an account. The edit form re-sends the FULL payload, including the
+    // stored (stale) anchor dueDate unchanged.
+    const account = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+      raw: true,
+    });
+    await helpers.updateSubscription({
+      id: sub.id,
+      type: SUBSCRIPTION_TYPES.installment,
+      maxOccurrences: 12,
+      dueDate: anchor,
+      accountId: account.id,
+      raw: true,
+    });
+
+    const after = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    // Nothing added or moved: still 3 periods, the open one untouched.
+    expect(after.periods).toHaveLength(3);
+    const openAfter = after.periods.filter(isOpen);
+    expect(openAfter).toHaveLength(1);
+    expect(openAfter[0]!.id).toBe(openBefore!.id);
+    expect(openAfter[0]!.dueDate).toBe(openBefore!.dueDate);
+    expect(openAfter[0]!.status).toBe(openBefore!.status);
+    // No two periods collide on a due date (the duplicate-row symptom).
+    const dueDates = after.periods.map((p) => p.dueDate);
+    expect(new Set(dueDates).size).toBe(dueDates.length);
+  });
+});
+
+// ===========================================================================
 // Revert with an overdue successor
 // ===========================================================================
 

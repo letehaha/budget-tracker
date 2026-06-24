@@ -20,6 +20,10 @@ const schema = z.object({
       amount: z.number().positive().optional(),
       // Actual payment date for the created transaction. Falls back to now when omitted.
       time: z.coerce.date().optional(),
+      // Account to book the created transaction against. When supplied it is also
+      // linked to the subscription so future payments reuse it. Used by the
+      // pay-time "create a transaction" flow for account-less subscriptions.
+      accountId: recordId().nullable().optional(),
     })
     .optional()
     // Create-mode and link-mode can't be combined: the user either links an
@@ -40,6 +44,7 @@ export default createController(schema, async ({ user, params, body }) => {
     createTransaction: body?.createTransaction,
     amount: body?.amount,
     time: body?.time,
+    accountId: body?.accountId,
   });
 
   return { data: period };

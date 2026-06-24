@@ -195,6 +195,7 @@ export const markSubscriptionPeriodPaid = async ({
   createTransaction,
   amount,
   time,
+  accountId,
 }: {
   id: string;
   periodId: string;
@@ -206,6 +207,12 @@ export const markSubscriptionPeriodPaid = async ({
   amount?: number;
   /** Actual payment date for the generated transaction. Falls back to now. */
   time?: Date;
+  /**
+   * Account to book the generated transaction against. When supplied it is also
+   * linked to the subscription, so future payments reuse it. Used by the pay-time
+   * "create a transaction" flow for account-less subscriptions.
+   */
+  accountId?: string | null;
 }): Promise<SubscriptionPeriodModel> => {
   const payload: Record<string, unknown> = {};
   if (transactionId !== undefined) payload.transactionId = transactionId;
@@ -213,6 +220,7 @@ export const markSubscriptionPeriodPaid = async ({
   if (createTransaction !== undefined) payload.createTransaction = createTransaction;
   if (amount !== undefined) payload.amount = amount;
   if (time !== undefined) payload.time = time.toISOString();
+  if (accountId !== undefined) payload.accountId = accountId;
 
   return api.post(`/subscriptions/${id}/periods/${periodId}/pay`, Object.keys(payload).length ? payload : undefined);
 };

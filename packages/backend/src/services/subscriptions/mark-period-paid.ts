@@ -8,7 +8,7 @@ import { createTransaction } from '@services/transactions/create-transaction';
 
 import { buildTransactionFromSubscription } from './build-transaction-from-subscription';
 import { ensureNextPeriodExists } from './ensure-next-period';
-import { findSubscriptionOrThrow } from './helpers';
+import { findSubscriptionOrThrow, validateAccountOwnership } from './helpers';
 
 interface MarkPeriodPaidParams {
   userId: number;
@@ -23,6 +23,13 @@ interface MarkPeriodPaidParams {
   amount?: number;
   /** Actual payment date for the created transaction. Falls back to now. */
   time?: Date;
+  /**
+   * Account to book the created transaction against. When supplied for an
+   * account-less subscription it is also persisted onto the subscription, so the
+   * booked expense and every future payment reuse it (the user picks an account
+   * once, at the first pay, rather than every cycle).
+   */
+  accountId?: string | null;
 }
 
 export const markPeriodPaid = withTransaction(
@@ -35,6 +42,7 @@ export const markPeriodPaid = withTransaction(
     createTransaction: shouldCreateTransaction = false,
     amount,
     time,
+    accountId,
   }: MarkPeriodPaidParams) => {
     const subscription = await findSubscriptionOrThrow({ id: subscriptionId, userId });
 
@@ -51,6 +59,15 @@ export const markPeriodPaid = withTransaction(
 
     if (period.status === SUBSCRIPTION_PERIOD_STATUSES.skipped) {
       throw new ConflictError({ message: 'This period was skipped — undo the skip first.' });
+    }
+
+    // Pay-time account selection: an account-less subscription can name an account
+    // when booking this payment. Persist it onto the subscription (same active
+    // transaction as the period update below) so the booked expense reads it and
+    // future payments default to it. No-op when it already matches.
+    if (accountId != null && accountId !== subscription.accountId) {
+      await validateAccountOwnership({ accountId, userId });
+      await subscription.update({ accountId });
     }
 
     // Resolve the transaction to link: either the caller's existing one, or a

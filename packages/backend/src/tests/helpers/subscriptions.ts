@@ -336,6 +336,7 @@ export async function markSubscriptionPeriodPaid<R extends boolean | undefined =
   createTransaction,
   amount,
   time,
+  accountId,
 }: {
   id: string;
   periodId: string;
@@ -345,6 +346,7 @@ export async function markSubscriptionPeriodPaid<R extends boolean | undefined =
   createTransaction?: boolean;
   amount?: number;
   time?: string;
+  accountId?: string | null;
 }) {
   const payload: Record<string, unknown> = {};
   if (transactionId !== undefined) payload.transactionId = transactionId;
@@ -352,6 +354,7 @@ export async function markSubscriptionPeriodPaid<R extends boolean | undefined =
   if (createTransaction !== undefined) payload.createTransaction = createTransaction;
   if (amount !== undefined) payload.amount = amount;
   if (time !== undefined) payload.time = time;
+  if (accountId !== undefined) payload.accountId = accountId;
 
   return makeRequest<Awaited<ReturnType<typeof apiMarkPeriodPaid>>, R>({
     method: 'post',

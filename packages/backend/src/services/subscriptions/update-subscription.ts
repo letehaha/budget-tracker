@@ -115,37 +115,45 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     fields = { ...fields, logoSource: 'manual' } as typeof fields & { logoSource: 'manual' };
   }
 
-  // Remember the pre-edit type before `update` overwrites it, so a type change
-  // away from installment can be detected below.
+  // Remember the pre-edit type and dueDate before `update` overwrites them. The
+  // type lets a change away from installment be detected below; the dueDate lets
+  // us tell a genuine reschedule from the edit form re-sending the unchanged
+  // (stored) anchor.
   const wasInstallment = subscription.type === SUBSCRIPTION_TYPES.installment;
+  const previousDueDate = subscription.dueDate;
 
   await subscription.update(fields);
 
-  // Keep the live schedule in step with an edited due date.
-  //  - dueDate moved: shift the single open (upcoming/overdue) period onto the new
-  //    date and re-resolve its status, so the shown/reminded date and the next-cycle
-  //    anchor track the schedule the user just set. Paid/skipped periods are
-  //    immutable history and are never moved. A re-sent (unchanged) dueDate is a
-  //    no-op, so a frequency-only edit doesn't disturb the period.
+  // Keep the live schedule in step with an edited due date. Realigning only fires
+  // when the due date ACTUALLY changed (`fields.dueDate !== previousDueDate`). The
+  // edit form always re-sends the stored dueDate, even on edits that don't touch
+  // the schedule (e.g. linking an account). subscriptions.dueDate is the static
+  // anchor — it never advances as periods are paid — so once the schedule has
+  // moved on, the open period sits ahead of the anchor. Comparing the re-sent
+  // anchor against the open period (rather than the pre-edit anchor) would read it
+  // as a reschedule and drag the open period backwards onto an already-consumed
+  // date, spawning a duplicate overdue period.
+  //  - dueDate changed: shift the single open (upcoming/overdue) period onto the
+  //    new date and re-resolve its status, so the shown/reminded date and the
+  //    next-cycle anchor track the schedule the user just set. Paid/skipped periods
+  //    are immutable history and are never moved.
   //  - no open period yet (first time a schedule is added): seed one. Guarding on a
-  //    zero TOTAL count stops a re-sent dueDate from duplicating an already
-  //    paid/skipped period (e.g. editing a completed installment, whose only period
-  //    is paid). A past dueDate is born overdue (mirrors the cron).
+  //    zero TOTAL count stops a re-anchored finished installment (whose only periods
+  //    are paid) from duplicating history. A past dueDate is born overdue (mirrors
+  //    the cron).
   //  - dueDate cleared to null: the subscription becomes detection-only, so drop any
   //    open period (nothing left to fall due).
-  if (fields.dueDate != null) {
+  if (fields.dueDate != null && fields.dueDate !== previousDueDate) {
     const openPeriod = await SubscriptionPeriods.findOne({
       where: { subscriptionId: id, status: { [Op.in]: OPEN_PERIOD_STATUSES } },
       order: [['dueDate', 'ASC']],
     });
 
     if (openPeriod) {
-      if (openPeriod.dueDate !== fields.dueDate) {
-        await openPeriod.update({
-          dueDate: fields.dueDate,
-          status: resolveOpenPeriodStatus({ dueDate: fields.dueDate }),
-        });
-      }
+      await openPeriod.update({
+        dueDate: fields.dueDate,
+        status: resolveOpenPeriodStatus({ dueDate: fields.dueDate }),
+      });
     } else {
       const existingPeriodCount = await SubscriptionPeriods.count({ where: { subscriptionId: id } });
 

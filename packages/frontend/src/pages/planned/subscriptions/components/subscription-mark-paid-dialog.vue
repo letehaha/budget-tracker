@@ -9,9 +9,13 @@ import { getAccountDisplayLabel } from '@/common/utils/account-display';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
+import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Label } from '@/components/lib/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
+import { cn } from '@/lib/utils';
 import { useAccountsStore } from '@/stores';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
@@ -28,14 +32,18 @@ interface PayableSubscription {
   /** Decimal expected amount; null means the amount varies per payment. */
   expectedAmount: number | null;
   expectedCurrencyCode: string | null;
-  /** Account the generated expense is booked against. */
+  /** Account the generated expense is booked against. null = no account yet. */
   accountId: string | null;
 }
+
+/** How an account-less payment is recorded: status-only vs. a booked expense. */
+type RecordMode = 'mark' | 'transaction';
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
-const { accountsRecord } = storeToRefs(useAccountsStore());
+const accountsStore = useAccountsStore();
+const { accountsRecord } = storeToRefs(accountsStore);
 
 const emit = defineEmits<{
   paid: [];
@@ -67,7 +75,7 @@ const { mutate: markPaid, isPending } = useMutation({
   },
 });
 
-// --- Dialog state (only used when the amount must be confirmed) ---
+// --- Dialog state ---
 
 const isDialogOpen = ref(false);
 const activeSubscription = ref<PayableSubscription | null>(null);
@@ -77,6 +85,25 @@ const paidDate = ref<Date>(new Date());
 const isEstimateLoading = ref(false);
 const estimate = ref<SubscriptionPayPreview | null>(null);
 const today = new Date();
+
+// Account-less flow only: the user's choice + the account they pick to book against.
+const recordMode = ref<RecordMode>('mark');
+const selectedAccountId = ref<string | null>(null);
+
+/** A subscription that already has an account skips the choice UI entirely. */
+const hasAccount = computed(() => activeSubscription.value?.accountId != null);
+
+/** Whether the account/amount/date fields are shown (booking a real transaction). */
+const isBooking = computed(() => hasAccount.value || recordMode.value === 'transaction');
+
+const accountOptions = computed(() =>
+  accountsStore.activeAccounts.map((account) => ({
+    label: `${account.name} (${account.currencyCode})`,
+    value: account.id,
+  })),
+);
+
+const selectedAccount = computed(() => accountOptions.value.find((a) => a.value === selectedAccountId.value) ?? null);
 
 const accountLabel = computed(() => {
   const accountId = activeSubscription.value?.accountId;
@@ -100,28 +127,54 @@ function isCrossCurrency(subscription: PayableSubscription): boolean {
 }
 
 /**
- * The dialog captures the amount booked, which is always in the account's
- * currency. Falls back to the subscription's own currency for account-less or
- * same-currency subscriptions.
+ * The booked amount is always denominated in the account's currency. For an
+ * account-less subscription that follows the account the user is selecting; it
+ * falls back to the subscription's own currency before one is chosen.
  */
 const dialogAmountCurrency = computed(() => {
   const sub = activeSubscription.value;
   if (!sub) return null;
+  if (sub.accountId == null) {
+    if (selectedAccountId.value) return accountsRecord.value[selectedAccountId.value]?.currencyCode ?? null;
+    return sub.expectedCurrencyCode ?? null;
+  }
   return accountCurrencyFor(sub) ?? sub.expectedCurrencyCode ?? null;
 });
 
-const isConfirmDisabled = computed(() => !amount.value || Number(amount.value) <= 0 || isPending.value);
+const isConfirmDisabled = computed(() => {
+  if (isPending.value) return true;
+  // Plain "just mark as paid" needs no input.
+  if (!isBooking.value) return false;
+  // Booking against a not-yet-linked account requires picking one.
+  if (!hasAccount.value && !selectedAccountId.value) return true;
+  return !amount.value || Number(amount.value) <= 0;
+});
+
+const confirmLabel = computed(() =>
+  isBooking.value
+    ? t('planned.subscriptions.periods.markPaid.confirm')
+    : t('planned.subscriptions.periods.markPaid.confirmMarkOnly'),
+);
 
 /**
- * Entry point. Fixed same-currency amounts are booked in one click (no dialog);
- * variable amounts or cross-currency subscriptions open the dialog to capture /
- * confirm the booked amount.
+ * Entry point.
+ *  - No account: open the dialog so the user chooses between a plain mark-paid
+ *    and booking a real transaction (which needs an account).
+ *  - Fixed same-currency amount: book in one click, no dialog.
+ *  - Variable / cross-currency amount: open the dialog to capture the amount.
  */
 async function triggerPay({ subscription, periodId }: { subscription: PayableSubscription; periodId: string }) {
-  // Without an account the backend cannot generate a transaction — fall back to
-  // a plain mark-paid that only changes the period status.
   if (subscription.accountId == null) {
-    markPaid({ id: subscription.id, periodId });
+    activeSubscription.value = subscription;
+    activePeriodId.value = periodId;
+    recordMode.value = 'mark';
+    selectedAccountId.value = null;
+    // Seed with the plan's expected amount as a convenience; the user confirms or
+    // edits it, and it is booked in the chosen account's currency.
+    amount.value = subscription.expectedAmount != null ? String(subscription.expectedAmount) : '';
+    paidDate.value = new Date();
+    estimate.value = null;
+    isDialogOpen.value = true;
     return;
   }
 
@@ -167,14 +220,27 @@ async function loadPreviewEstimate({ subscriptionId }: { subscriptionId: string 
   }
 }
 
-function confirmAmount() {
+function confirmPay() {
   if (isConfirmDisabled.value || !activeSubscription.value || !activePeriodId.value) return;
+
+  const id = activeSubscription.value.id;
+  const periodId = activePeriodId.value;
+
+  // Account-less, user chose to only update the schedule.
+  if (!isBooking.value) {
+    markPaid({ id, periodId });
+    return;
+  }
+
   markPaid({
-    id: activeSubscription.value.id,
-    periodId: activePeriodId.value,
+    id,
+    periodId,
     createTransaction: true,
     amount: Number(amount.value),
     time: paidDate.value,
+    // Pass the picked account only in the account-less flow; the backend links
+    // it to the subscription so future payments reuse it.
+    ...(!hasAccount.value && selectedAccountId.value ? { accountId: selectedAccountId.value } : {}),
   });
 }
 
@@ -185,47 +251,108 @@ defineExpose({ triggerPay, isPending });
   <ResponsiveDialog v-model:open="isDialogOpen" dialog-content-class="max-w-md">
     <template #title>{{ $t('planned.subscriptions.periods.markPaid.title') }}</template>
     <template #description>
-      {{ $t('planned.subscriptions.periods.markPaid.description', { name: activeSubscription?.name }) }}
+      <template v-if="!hasAccount">
+        {{ $t('planned.subscriptions.periods.markPaid.chooseDescription', { name: activeSubscription?.name }) }}
+      </template>
+      <template v-else>
+        {{ $t('planned.subscriptions.periods.markPaid.description', { name: activeSubscription?.name }) }}
+      </template>
     </template>
 
     <div class="grid gap-4">
-      <InputField
-        v-model="amount"
-        type="number"
-        step="0.01"
-        min="0.01"
-        only-positive
-        :label="$t('planned.subscriptions.periods.markPaid.amountLabel')"
-        :placeholder="$t('planned.subscriptions.periods.markPaid.amountPlaceholder')"
-      >
-        <template v-if="dialogAmountCurrency" #iconTrailing>
-          <span>{{ dialogAmountCurrency }}</span>
-        </template>
-      </InputField>
+      <!-- Account-less: choose how to record the payment. -->
+      <RadioGroup v-if="!hasAccount" v-model="recordMode" class="grid gap-3">
+        <Label
+          :class="
+            cn(
+              'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
+              recordMode === 'mark' && 'border-primary bg-primary/5',
+            )
+          "
+        >
+          <div class="flex items-center gap-2">
+            <RadioGroupItem value="mark" />
+            <span class="font-medium">{{ $t('planned.subscriptions.periods.markPaid.recordModeMarkTitle') }}</span>
+          </div>
+          <span class="text-muted-foreground pl-6 text-xs">
+            {{ $t('planned.subscriptions.periods.markPaid.recordModeMarkDescription') }}
+          </span>
+        </Label>
+        <Label
+          :class="
+            cn(
+              'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
+              recordMode === 'transaction' && 'border-primary bg-primary/5',
+            )
+          "
+        >
+          <div class="flex items-center gap-2">
+            <RadioGroupItem value="transaction" />
+            <span class="font-medium">
+              {{ $t('planned.subscriptions.periods.markPaid.recordModeTransactionTitle') }}
+            </span>
+          </div>
+          <span class="text-muted-foreground pl-6 text-xs">
+            {{ $t('planned.subscriptions.periods.markPaid.recordModeTransactionDescription') }}
+          </span>
+        </Label>
+      </RadioGroup>
 
-      <p v-if="isEstimateLoading" class="text-muted-foreground text-xs">
-        {{ $t('planned.subscriptions.periods.markPaid.estimateLoading') }}
-      </p>
-      <p v-else-if="estimate?.isCrossCurrency && estimate.expectedAmount != null" class="text-muted-foreground text-xs">
-        {{
-          $t('planned.subscriptions.periods.markPaid.crossCurrencyEstimate', {
-            sourceAmount: estimate.expectedAmount,
-            sourceCurrency: estimate.subscriptionCurrencyCode,
-            accountCurrency: estimate.accountCurrencyCode,
-          })
-        }}
-      </p>
+      <!-- Booking a real transaction: capture account (when not yet linked), amount, date. -->
+      <template v-if="isBooking">
+        <SelectField
+          v-if="!hasAccount"
+          :model-value="selectedAccount"
+          :values="accountOptions"
+          label-key="label"
+          value-key="value"
+          with-search
+          :label="$t('planned.subscriptions.periods.markPaid.accountLabel')"
+          :placeholder="$t('planned.subscriptions.periods.markPaid.accountPlaceholder')"
+          @update:model-value="(v: any) => (selectedAccountId = v?.value ?? null)"
+        />
 
-      <DateField
-        v-model="paidDate"
-        :label="$t('planned.subscriptions.periods.markPaid.dateLabel')"
-        :calendar-options="{ maxDate: today }"
-      />
+        <InputField
+          v-model="amount"
+          type="number"
+          step="0.01"
+          min="0.01"
+          only-positive
+          :label="$t('planned.subscriptions.periods.markPaid.amountLabel')"
+          :placeholder="$t('planned.subscriptions.periods.markPaid.amountPlaceholder')"
+        >
+          <template v-if="dialogAmountCurrency" #iconTrailing>
+            <span>{{ dialogAmountCurrency }}</span>
+          </template>
+        </InputField>
 
-      <div v-if="accountLabel" class="bg-muted/40 rounded-md px-3 py-2 text-sm">
-        <p class="text-muted-foreground text-xs">{{ $t('planned.subscriptions.periods.markPaid.accountLabel') }}</p>
-        <p class="font-medium">{{ accountLabel }}</p>
-      </div>
+        <p v-if="isEstimateLoading" class="text-muted-foreground text-xs">
+          {{ $t('planned.subscriptions.periods.markPaid.estimateLoading') }}
+        </p>
+        <p
+          v-else-if="estimate?.isCrossCurrency && estimate.expectedAmount != null"
+          class="text-muted-foreground text-xs"
+        >
+          {{
+            $t('planned.subscriptions.periods.markPaid.crossCurrencyEstimate', {
+              sourceAmount: estimate.expectedAmount,
+              sourceCurrency: estimate.subscriptionCurrencyCode,
+              accountCurrency: estimate.accountCurrencyCode,
+            })
+          }}
+        </p>
+
+        <DateField
+          v-model="paidDate"
+          :label="$t('planned.subscriptions.periods.markPaid.dateLabel')"
+          :calendar-options="{ maxDate: today }"
+        />
+
+        <div v-if="accountLabel" class="bg-muted/40 rounded-md px-3 py-2 text-sm">
+          <p class="text-muted-foreground text-xs">{{ $t('planned.subscriptions.periods.markPaid.accountLabel') }}</p>
+          <p class="font-medium">{{ accountLabel }}</p>
+        </div>
+      </template>
     </div>
 
     <template #footer>
@@ -233,8 +360,8 @@ defineExpose({ triggerPay, isPending });
         <UiButton variant="outline" :disabled="isPending" @click="isDialogOpen = false">
           {{ $t('common.actions.cancel') }}
         </UiButton>
-        <UiButton :disabled="isConfirmDisabled" :loading="isPending" @click="confirmAmount">
-          {{ $t('planned.subscriptions.periods.markPaid.confirm') }}
+        <UiButton :disabled="isConfirmDisabled" :loading="isPending" @click="confirmPay">
+          {{ confirmLabel }}
         </UiButton>
       </div>
     </template>

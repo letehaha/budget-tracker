@@ -218,13 +218,20 @@
         "markPaid": {
           "title": "Mark Payment",
           "description": "Record a payment for {name}",
+          "chooseDescription": "How do you want to record this payment for {name}?",
           "amountLabel": "Amount",
           "amountPlaceholder": "0.00",
           "estimateLoading": "Loading estimate…",
           "crossCurrencyEstimate": "~{sourceAmount} {sourceCurrency} → {accountCurrency} (estimated)",
           "dateLabel": "Payment date",
           "accountLabel": "Account",
-          "confirm": "Confirm"
+          "accountPlaceholder": "Select an account",
+          "confirm": "Confirm",
+          "confirmMarkOnly": "Mark as paid",
+          "recordModeMarkTitle": "Just mark as paid",
+          "recordModeMarkDescription": "Updates the schedule only — no transaction is created.",
+          "recordModeTransactionTitle": "Create a transaction",
+          "recordModeTransactionDescription": "Book a real expense in an account. It's linked for future payments too."
         },
         "dialogs": {
           "revertTitle": "Revert Period",

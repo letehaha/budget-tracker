@@ -218,13 +218,20 @@
         "markPaid": {
           "title": "Зафіксувати платіж",
           "description": "Зафіксуйте платіж для {name}",
+          "chooseDescription": "Як ви хочете зафіксувати цей платіж для {name}?",
           "amountLabel": "Сума",
           "amountPlaceholder": "0.00",
           "estimateLoading": "Завантаження оцінки…",
           "crossCurrencyEstimate": "~{sourceAmount} {sourceCurrency} → {accountCurrency} (приблизно)",
           "dateLabel": "Дата платежу",
           "accountLabel": "Рахунок",
-          "confirm": "Підтвердити"
+          "accountPlaceholder": "Оберіть рахунок",
+          "confirm": "Підтвердити",
+          "confirmMarkOnly": "Позначити як сплачено",
+          "recordModeMarkTitle": "Просто позначити як сплачено",
+          "recordModeMarkDescription": "Оновлює лише розклад — транзакція не створюється.",
+          "recordModeTransactionTitle": "Створити транзакцію",
+          "recordModeTransactionDescription": "Зафіксуйте реальну витрату на рахунку. Вона також буде пов'язана з майбутніми платежами."
         },
         "dialogs": {
           "revertTitle": "Скасувати період",
