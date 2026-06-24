@@ -14,6 +14,8 @@
       "editTitle": "Edit Recurring Charge",
       "typeSubscription": "Subscription",
       "typeBill": "Bill",
+      "typeInstallment": "Installment",
+      "completed": "Completed",
       "paused": "Paused",
       "edit": "Edit",
       "cancel": "Cancel",
@@ -79,6 +81,11 @@
         "extraOptions": "Extra options",
         "validationAmountCurrency": "Both amount and currency must be provided together.",
         "validationSubscriptionRequiresAmount": "Subscriptions require an amount and currency.",
+        "typeInstallmentDesc": "Financed purchase paid over a fixed number of payments",
+        "installmentScheduleHint": "Set the first payment date and number of payments to track this plan.",
+        "installmentTotalCommitment": "Total commitment: {total}",
+        "validationInstallmentRequiresSchedule": "Installments need a payment schedule date.",
+        "validationInstallmentRequiresCount": "Installments need a number of payments.",
         "dueDateLabel": "Payment schedule date",
         "dueDateDescription": "When set, this subscription gets a payment schedule you can mark paid each billing cycle.",
         "maxOccurrencesLabel": "Number of installments",
@@ -96,6 +103,14 @@
           "2_weeks": "2 weeks before",
           "1_month": "1 month before"
         }
+      },
+      "progress": {
+        "title": "Installment progress",
+        "titleGeneric": "Payment progress",
+        "paidOfTotal": "{paid} of {total} paid",
+        "remaining": "{count} payments left",
+        "remainingTotal": "{amount} remaining",
+        "completedNote": "Plan complete"
       },
       "rules": {
         "ruleLabel": "Rule {number}",
@@ -144,6 +159,7 @@
         "filterAll": "All",
         "filterSubscriptions": "Subscriptions",
         "filterBills": "Bills",
+        "filterInstallments": "Installments",
         "monthlyCost": "~{amount}/mo",
         "yearlyProjected": "{amount} projected",
         "perYear": "{amount}/yr",

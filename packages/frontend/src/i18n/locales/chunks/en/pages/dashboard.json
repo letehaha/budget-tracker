@@ -91,6 +91,7 @@
         "configTypeAll": "All",
         "configTypeSubscriptions": "Subscriptions",
         "configTypeBills": "Bills",
+        "configTypeInstallments": "Installments",
         "activeSummary": "{count} active",
         "perYear": " per year",
         "percentOfIncome": "{percent}% of avg income",

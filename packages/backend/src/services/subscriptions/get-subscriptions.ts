@@ -12,7 +12,7 @@ import SubscriptionTransactions from '@models/subscription-transactions.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions, { type TransactionsAttributes } from '@models/transactions.model';
 import { applyCachedLogos, enqueueLogoResolution } from '@services/brand-logos';
-import { fn, literal, Op } from 'sequelize';
+import { col, fn, literal, Op } from 'sequelize';
 
 import { computeNextExpectedDate } from './subscription-date.utils';
 
@@ -48,6 +48,8 @@ interface SubscriptionBase extends Pick<
   | 'categoryId'
   | 'matchingRules'
   | 'isActive'
+  | 'completedAt'
+  | 'maxOccurrences'
   | 'notes'
   | 'remindBefore'
   | 'notifyEmail'
@@ -84,6 +86,9 @@ interface SubscriptionListItem extends SubscriptionBase {
   linkedTransactionsCount: number;
   /** Earliest open (upcoming or overdue) period, or null for detection-only subs. */
   currentPeriod: CurrentPeriod | null;
+  /** Count of periods already paid. Paired with `maxOccurrences` it renders the
+   *  "N of M paid" installment progress without fetching the full periods array. */
+  paidPeriodsCount: number;
 }
 
 /**
@@ -171,12 +176,30 @@ export const getSubscriptions = async ({
   });
 
   if (mapped.length === 0) {
-    return mapped.map((item) => ({ ...item, currentPeriod: null }));
+    return mapped.map((item) => ({ ...item, currentPeriod: null, paidPeriodsCount: 0 }));
+  }
+
+  const subscriptionIds = mapped.map((item) => item.id);
+
+  // One grouped query for the paid-period count across the result set, keyed by
+  // subscription. Aggregate-only (no Money columns), so raw rows are safe.
+  const paidCountRows = (await SubscriptionPeriods.findAll({
+    where: {
+      subscriptionId: { [Op.in]: subscriptionIds },
+      status: SUBSCRIPTION_PERIOD_STATUSES.paid,
+    },
+    attributes: ['subscriptionId', [fn('COUNT', col('id')), 'count']],
+    group: ['subscriptionId'],
+    raw: true,
+  })) as unknown as Array<{ subscriptionId: string; count: string | number }>;
+
+  const paidCountBySubscriptionId = new Map<string, number>();
+  for (const row of paidCountRows) {
+    paidCountBySubscriptionId.set(row.subscriptionId, Number(row.count));
   }
 
   // Single query for all open periods across the result set.
   // Ordered ASC so the first row per subscriptionId is always the earliest due date.
-  const subscriptionIds = mapped.map((item) => item.id);
   const openPeriods = await SubscriptionPeriods.findAll({
     where: {
       subscriptionId: { [Op.in]: subscriptionIds },
@@ -198,6 +221,7 @@ export const getSubscriptions = async ({
   return mapped.map((item) => ({
     ...item,
     currentPeriod: earliestBySubscriptionId.get(item.id) ?? null,
+    paidPeriodsCount: paidCountBySubscriptionId.get(item.id) ?? 0,
   }));
 };
 

@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { Switch } from '@/components/lib/ui/switch';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { useFormValidation } from '@/composable/form-validator';
-import { useCurrencyName } from '@/composable/formatters';
+import { useCurrencyName, useFormatCurrency } from '@/composable/formatters';
 import { helpers, required } from '@/js/helpers/validators';
 import { cn } from '@/lib/utils';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
@@ -74,6 +74,7 @@ const { formattedCategories } = storeToRefs(categoriesStore);
 const { baseCurrency } = storeToRefs(currenciesStore);
 const { currencies } = usePrioritizedCurrencies();
 const { formatCurrencyLabel } = useCurrencyName();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const FREQUENCY_OPTIONS = [
   { label: t('planned.subscriptions.frequency.weekly'), value: SUBSCRIPTION_FREQUENCIES.weekly },
@@ -201,6 +202,17 @@ const selectedFrequency = computed(() => {
   return FREQUENCY_OPTIONS.find((f) => f.value === form.value.frequency) ?? null;
 });
 
+const isInstallment = computed(() => form.value.type === SUBSCRIPTION_TYPES.installment);
+
+// Projected total an installment commits to (amount x number of payments), shown
+// as a hint once both are known. Null when amount or count is missing.
+const installmentTotalLabel = computed(() => {
+  if (!isInstallment.value) return null;
+  const { expectedAmount, maxOccurrences, expectedCurrencyCode } = form.value;
+  if (!expectedAmount || !maxOccurrences || !expectedCurrencyCode) return null;
+  return formatAmountByCurrencyCode(expectedAmount * maxOccurrences, expectedCurrencyCode);
+});
+
 const formError = ref<string | null>(null);
 
 const setError = ({ error }: { error: string }) => {
@@ -217,20 +229,35 @@ const validationRules = computed(() => ({
         return value !== null && value > 0;
       },
     ),
-    requiredWithCurrency: helpers.withMessage(
-      t('planned.subscriptions.form.validationAmountCurrency'),
-      (value: number | null, siblings: FormState) => {
-        if (!siblings.expectedCurrencyCode) return true;
-        return value !== null && value > 0;
-      },
-    ),
   },
+  // Only require a currency once an amount is actually entered. The reverse coupling
+  // (amount required when a currency is set) is intentionally absent: the base currency
+  // is auto-prefilled, so an amount-optional bill/installment must not be forced to
+  // carry an amount. The submit handler drops the prefilled currency when no amount is set.
   expectedCurrencyCode: {
     requiredWithAmount: helpers.withMessage(
       t('planned.subscriptions.form.validationAmountCurrency'),
       (value: string, siblings: FormState) => {
         if (siblings.expectedAmount === null || siblings.expectedAmount <= 0) return true;
         return !!value;
+      },
+    ),
+  },
+  dueDate: {
+    requiredForInstallment: helpers.withMessage(
+      t('planned.subscriptions.form.validationInstallmentRequiresSchedule'),
+      (value: Date | null, siblings: FormState) => {
+        if (siblings.type !== SUBSCRIPTION_TYPES.installment) return true;
+        return value != null;
+      },
+    ),
+  },
+  maxOccurrences: {
+    requiredForInstallment: helpers.withMessage(
+      t('planned.subscriptions.form.validationInstallmentRequiresCount'),
+      (value: number | null, siblings: FormState) => {
+        if (siblings.type !== SUBSCRIPTION_TYPES.installment) return true;
+        return value != null && value > 0;
       },
     ),
   },
@@ -276,7 +303,9 @@ const handleSubmit = () => {
     name: form.value.name,
     type: form.value.type,
     expectedAmount: form.value.expectedAmount || null,
-    expectedCurrencyCode: form.value.expectedCurrencyCode || null,
+    // Currency is meaningless without an amount and the API rejects one without the
+    // other, so drop the (auto-prefilled) currency when no amount is entered.
+    expectedCurrencyCode: form.value.expectedAmount ? form.value.expectedCurrencyCode || null : null,
     frequency: form.value.frequency,
     dueDate: form.value.dueDate ? form.value.dueDate.toISOString().split('T')[0]! : null,
     maxOccurrences: form.value.maxOccurrences ?? null,
@@ -334,9 +363,9 @@ const handleSubmit = () => {
     </div>
 
     <!-- Type -->
-    <div>
+    <div class="@container/type">
       <Label class="mb-2 block text-sm font-medium">{{ $t('planned.subscriptions.form.typeLabel') }}</Label>
-      <RadioGroup v-model="form.type" class="grid grid-cols-2 gap-3">
+      <RadioGroup v-model="form.type" class="grid grid-cols-1 gap-3 @sm/type:grid-cols-3">
         <Label
           :class="
             cn(
@@ -366,6 +395,22 @@ const handleSubmit = () => {
             <span class="font-medium">{{ $t('planned.subscriptions.typeBill') }}</span>
           </div>
           <span class="text-muted-foreground pl-6 text-xs">{{ $t('planned.subscriptions.form.typeBillDesc') }}</span>
+        </Label>
+        <Label
+          :class="
+            cn(
+              'border-input hover:bg-accent hover:text-accent-foreground flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors',
+              form.type === SUBSCRIPTION_TYPES.installment && 'border-primary bg-primary/5',
+            )
+          "
+        >
+          <div class="flex items-center gap-2">
+            <RadioGroupItem :value="SUBSCRIPTION_TYPES.installment" />
+            <span class="font-medium">{{ $t('planned.subscriptions.typeInstallment') }}</span>
+          </div>
+          <span class="text-muted-foreground pl-6 text-xs">{{
+            $t('planned.subscriptions.form.typeInstallmentDesc')
+          }}</span>
         </Label>
       </RadioGroup>
     </div>
@@ -413,19 +458,34 @@ const handleSubmit = () => {
         @update:model-value="(v: Date | null) => (form.dueDate = v)"
       />
       <p class="text-muted-foreground -mt-2 text-xs">
-        {{ $t('planned.subscriptions.form.dueDateDescription') }}
+        {{
+          isInstallment
+            ? $t('planned.subscriptions.form.installmentScheduleHint')
+            : $t('planned.subscriptions.form.dueDateDescription')
+        }}
+      </p>
+      <p v-if="getFieldErrorMessage('form.dueDate')" class="text-destructive-text -mt-2 text-xs">
+        {{ getFieldErrorMessage('form.dueDate') }}
       </p>
 
-      <!-- Installment cap only makes sense once a schedule exists; null repeats indefinitely. -->
+      <!-- The payment count caps generation: an installment requires it (the finite
+           plan length); on subscriptions/bills it stays optional and null repeats
+           indefinitely. Shown for installments even before a date is set so both
+           required fields are visible together. -->
       <InputField
-        v-if="form.dueDate"
+        v-if="form.dueDate || isInstallment"
         :model-value="form.maxOccurrences ?? undefined"
         type="number"
         :label="$t('planned.subscriptions.form.maxOccurrencesLabel')"
         :placeholder="$t('planned.subscriptions.form.maxOccurrencesPlaceholder')"
+        :error-message="getFieldErrorMessage('form.maxOccurrences')"
         only-positive
         @update:model-value="(v: string | number | null) => (form.maxOccurrences = v ? Number(v) : null)"
+        @blur="touchField('form.maxOccurrences')"
       />
+      <p v-if="installmentTotalLabel" class="text-muted-foreground -mt-1 text-xs">
+        {{ $t('planned.subscriptions.form.installmentTotalCommitment', { total: installmentTotalLabel }) }}
+      </p>
 
       <!-- Advance reminders only apply to scheduled periods, so they share the due-date gate. -->
       <div v-if="form.dueDate" class="grid gap-2">

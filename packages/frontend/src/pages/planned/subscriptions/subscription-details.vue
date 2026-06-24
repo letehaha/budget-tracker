@@ -30,6 +30,7 @@ import { ROUTES_NAMES } from '@/routes';
 import {
   SUBSCRIPTION_MATCH_SOURCE,
   SUBSCRIPTION_PERIOD_STATUSES,
+  SUBSCRIPTION_TYPES,
   type SubscriptionModel,
   type SubscriptionPeriodModel,
   type TransactionModel,
@@ -228,6 +229,35 @@ const isScheduled = computed(() => (subscription.value?.periods?.length ?? 0) > 
 
 const periods = computed(() => subscription.value?.periods ?? []);
 
+const isInstallment = computed(() => subscription.value?.type === SUBSCRIPTION_TYPES.installment);
+
+// A finished installment (completedAt set) reads as "Completed", distinct from a
+// manually paused subscription. Both carry isActive=false.
+const isCompleted = computed(() => subscription.value?.completedAt != null);
+
+/**
+ * Paid-vs-total progress for any capped plan (maxOccurrences set). `remaining` is
+ * the count still to pay; `remainingTotal` multiplies it by the expected amount
+ * (null for variable-amount plans). Null when the plan has no cap.
+ */
+const installmentProgress = computed(() => {
+  const sub = subscription.value;
+  if (!sub || sub.maxOccurrences == null) return null;
+
+  const total = sub.maxOccurrences;
+  const paid = periods.value.filter((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.paid).length;
+  const remaining = Math.max(0, total - paid);
+  // A completed installment has consumed its whole schedule (every period paid OR
+  // skipped), so the bar is full even when some periods were skipped not paid.
+  const percent = isCompleted.value ? 100 : total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+  const remainingTotal =
+    sub.expectedAmount != null && sub.expectedCurrencyCode != null
+      ? formatAmountByCurrencyCode(remaining * sub.expectedAmount, sub.expectedCurrencyCode)
+      : null;
+
+  return { total, paid, remaining, percent, remainingTotal };
+});
+
 /** The earliest upcoming or overdue period – the one the user acts on next. */
 const currentPeriod = computed(() => {
   return (
@@ -240,6 +270,22 @@ const currentPeriod = computed(() => {
 function getDaysUntilDue({ dueDate }: { dueDate: string }): number {
   return differenceInCalendarDays(parseISO(dueDate), startOfDay(new Date()));
 }
+
+/**
+ * Status to display for a period. An `upcoming` period whose due date has already
+ * passed is shown as `overdue` immediately, without waiting for the daily cron
+ * that flips the stored status — so a past due date never reads as "in -1 days".
+ */
+function effectivePeriodStatus({ period }: { period: SubscriptionPeriodModel }): string {
+  if (period.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming && getDaysUntilDue({ dueDate: period.dueDate }) < 0) {
+    return SUBSCRIPTION_PERIOD_STATUSES.overdue;
+  }
+  return period.status;
+}
+
+const currentPeriodStatus = computed(() =>
+  currentPeriod.value ? effectivePeriodStatus({ period: currentPeriod.value }) : null,
+);
 
 function groupPeriodsByMonth(periodsList: SubscriptionPeriodModel[]) {
   const groups: Record<string, SubscriptionPeriodModel[]> = {};
@@ -417,7 +463,14 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           <h1 class="text-2xl font-semibold tracking-tight">{{ subscription.name }}</h1>
           <SubscriptionTypeBadge :type="subscription.type" size="md" />
           <span
-            v-if="!subscription.isActive"
+            v-if="isCompleted"
+            class="bg-success-text/10 text-success-text inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs"
+          >
+            <CheckIcon class="size-3" />
+            {{ $t('planned.subscriptions.completed') }}
+          </span>
+          <span
+            v-else-if="!subscription.isActive"
             class="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs"
           >
             <CirclePauseIcon class="size-3" />
@@ -433,7 +486,7 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           <EditIcon class="mr-1.5 size-4" />
           {{ $t('planned.subscriptions.edit') }}
         </Button>
-        <Button variant="outline" size="sm" @click="handleToggleActive">
+        <Button v-if="!isCompleted" variant="outline" size="sm" @click="handleToggleActive">
           <CirclePauseIcon v-if="subscription.isActive" class="mr-1.5 size-4" />
           <RepeatIcon v-else class="mr-1.5 size-4" />
           {{
@@ -469,6 +522,7 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
             {{ $t('planned.subscriptions.edit') }}
           </Button>
           <Button
+            v-if="!isCompleted"
             variant="ghost"
             size="sm"
             class="w-full justify-start"
@@ -551,6 +605,43 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
       </div>
     </div>
 
+    <!-- Installment / capped-plan progress -->
+    <div v-if="installmentProgress" class="border-border mb-6 rounded-lg border p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-muted-foreground text-xs font-medium uppercase">
+          {{
+            isInstallment
+              ? $t('planned.subscriptions.progress.title')
+              : $t('planned.subscriptions.progress.titleGeneric')
+          }}
+        </p>
+        <p class="text-sm font-medium">
+          {{
+            $t('planned.subscriptions.progress.paidOfTotal', {
+              paid: installmentProgress.paid,
+              total: installmentProgress.total,
+            })
+          }}
+        </p>
+      </div>
+      <div class="bg-muted mt-2 h-2 w-full overflow-hidden rounded-full">
+        <div
+          class="h-full rounded-full transition-all"
+          :class="isCompleted ? 'bg-success-text' : 'bg-primary'"
+          :style="{ width: `${installmentProgress.percent}%` }"
+        />
+      </div>
+      <div class="text-muted-foreground mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span v-if="isCompleted">{{ $t('planned.subscriptions.progress.completedNote') }}</span>
+        <span v-else>{{
+          $t('planned.subscriptions.progress.remaining', { count: installmentProgress.remaining })
+        }}</span>
+        <span v-if="installmentProgress.remainingTotal && !isCompleted">
+          {{ $t('planned.subscriptions.progress.remainingTotal', { amount: installmentProgress.remainingTotal }) }}
+        </span>
+      </div>
+    </div>
+
     <!-- Category + Account -->
     <div
       v-if="subscription.category || subscription.account"
@@ -578,12 +669,12 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           <p
             :class="[
               'text-xs',
-              currentPeriod.status === SUBSCRIPTION_PERIOD_STATUSES.overdue
+              currentPeriodStatus === SUBSCRIPTION_PERIOD_STATUSES.overdue
                 ? 'text-destructive-text'
                 : 'text-muted-foreground',
             ]"
           >
-            <template v-if="currentPeriod.status === SUBSCRIPTION_PERIOD_STATUSES.overdue">
+            <template v-if="currentPeriodStatus === SUBSCRIPTION_PERIOD_STATUSES.overdue">
               {{ $t('planned.subscriptions.periods.overdueBadge') }}
             </template>
             <template v-else>
@@ -603,17 +694,17 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
               :disabled="isPeriodActionPending"
               @click="skipMutation({ id: subscription.id, periodId: currentPeriod.id })"
             >
-              <SkipForwardIcon class="mr-1.5 size-4" />
+              <SkipForwardIcon class="size-4" />
               {{ $t('planned.subscriptions.periods.actions.skip') }}
             </Button>
           </DesktopOnlyTooltip>
           <Button
-            variant="success"
+            variant="soft-success"
             size="sm"
             :disabled="isPeriodActionPending"
             @click="payPeriod({ periodId: currentPeriod.id })"
           >
-            <CheckIcon class="mr-1.5 size-4" />
+            <CheckIcon class="size-4" />
             {{ $t('planned.subscriptions.periods.actions.markPaid') }}
           </Button>
         </div>
@@ -645,10 +736,10 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
                 <span
                   :class="[
                     'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium',
-                    getStatusBadge({ status: period.status }).class,
+                    getStatusBadge({ status: effectivePeriodStatus({ period }) }).class,
                   ]"
                 >
-                  {{ getStatusBadge({ status: period.status }).label }}
+                  {{ getStatusBadge({ status: effectivePeriodStatus({ period }) }).label }}
                 </span>
                 <div>
                   <p class="text-sm font-medium">

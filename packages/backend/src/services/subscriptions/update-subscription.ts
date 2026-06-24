@@ -1,7 +1,6 @@
 import {
   RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
-  SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
   SubscriptionMatchingRules,
 } from '@bt/shared/types';
@@ -10,7 +9,10 @@ import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
+import { ensureNextPeriodExists } from './ensure-next-period';
 import { findSubscriptionOrThrow, validateAccountOwnership, validateCategoryOwnership } from './helpers';
+import { assertInstallmentScheduleComplete, isSubscriptionInstallmentCapReached } from './installments';
+import { resolveOpenPeriodStatus } from './resolve-period-status';
 
 interface UpdateSubscriptionParams {
   id: string;
@@ -51,6 +53,15 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     await validateCategoryOwnership({ categoryId: fields.categoryId, userId });
   }
 
+  // Validate the merged post-update state (incoming field when sent, else the stored
+  // value) so switching to — or keeping — an installment without a count + schedule
+  // fails cleanly. Covers MCP callers, which bypass the controller's request schema.
+  assertInstallmentScheduleComplete({
+    type: fields.type ?? subscription.type,
+    maxOccurrences: fields.maxOccurrences !== undefined ? fields.maxOccurrences : subscription.maxOccurrences,
+    dueDate: fields.dueDate !== undefined ? fields.dueDate : subscription.dueDate,
+  });
+
   // The API exchanges decimals; the column stores raw cents (no Money getter).
   // Only touch the field when the caller actually sent it, so omitting it leaves
   // the stored amount unchanged. `null` clears the amount.
@@ -77,20 +88,36 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
 
   await subscription.update(fields);
 
-  // If a dueDate was introduced on a subscription that had no upcoming period,
-  // create the first one. Guard against duplicates by checking first.
+  // Seed the first period only when introducing a schedule on a subscription that
+  // has no periods at all. Guarding on a zero period count (not "no open period")
+  // is what stops a re-sent dueDate from duplicating an already paid/skipped period
+  // — e.g. editing a completed installment, whose only period is paid. A past
+  // dueDate is born overdue (mirrors the cron).
   if (fields.dueDate != null) {
-    const existingUpcoming = await SubscriptionPeriods.findOne({
-      where: { subscriptionId: id, status: SUBSCRIPTION_PERIOD_STATUSES.upcoming },
-    });
+    const existingPeriodCount = await SubscriptionPeriods.count({ where: { subscriptionId: id } });
 
-    if (!existingUpcoming) {
+    if (existingPeriodCount === 0) {
       await SubscriptionPeriods.create({
         subscriptionId: id,
         dueDate: fields.dueDate,
-        status: SUBSCRIPTION_PERIOD_STATUSES.upcoming,
+        status: resolveOpenPeriodStatus({ dueDate: fields.dueDate }),
       });
     }
+  }
+
+  // Re-evaluate installment completion after the edit. Raising maxOccurrences past
+  // the paid count un-finishes a completed installment: clear the completion,
+  // reactivate, and let the schedule generate the next period. ensureNextPeriodExists
+  // re-finishes it (via finalizeInstallmentCompletion) if the cap is still reached.
+  if (subscription.type === SUBSCRIPTION_TYPES.installment) {
+    const capReached = await isSubscriptionInstallmentCapReached({ subscription });
+    if (!capReached && subscription.completedAt != null) {
+      await subscription.update({ isActive: true, completedAt: null });
+    }
+    await ensureNextPeriodExists({ subscription });
+  } else if (subscription.completedAt != null) {
+    // Type changed away from installment — a completion stamp no longer applies.
+    await subscription.update({ completedAt: null });
   }
 
   // Surface expectedAmount as a decimal so the response matches GET (the

@@ -17,6 +17,8 @@ export interface SubscriptionListItem extends SubscriptionModel {
   linkedTransactionsCount: number;
   /** Earliest open (upcoming or overdue) period, or null for detection-only subscriptions. */
   currentPeriod: SubscriptionListCurrentPeriod | null;
+  /** Count of paid periods. With `maxOccurrences` it renders "N of M paid" progress on the card. */
+  paidPeriodsCount: number;
   account?: { id: string; name: string; currencyCode: string } | null;
   category?: { id: string; name: string; color: string; icon: string | null } | null;
 }

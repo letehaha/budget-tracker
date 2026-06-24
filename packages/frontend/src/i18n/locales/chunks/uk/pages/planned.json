@@ -14,6 +14,8 @@
       "editTitle": "Редагувати регулярну витрату",
       "typeSubscription": "Підписка",
       "typeBill": "Рахунок",
+      "typeInstallment": "Розстрочка",
+      "completed": "Завершено",
       "paused": "Призупинено",
       "edit": "Редагувати",
       "cancel": "Скасувати",
@@ -79,6 +81,11 @@
         "extraOptions": "Додаткові опції",
         "validationAmountCurrency": "Сума та валюта мають бути вказані разом.",
         "validationSubscriptionRequiresAmount": "Підписки потребують суму та валюту.",
+        "typeInstallmentDesc": "Фінансована покупка, що сплачується фіксованою кількістю платежів",
+        "installmentScheduleHint": "Вкажіть дату першого платежу та кількість платежів для відстеження цього плану.",
+        "installmentTotalCommitment": "Загальна сума: {total}",
+        "validationInstallmentRequiresSchedule": "Розстрочка потребує дати платіжного розкладу.",
+        "validationInstallmentRequiresCount": "Розстрочка потребує кількості платежів.",
         "dueDateLabel": "Дата платіжного розкладу",
         "dueDateDescription": "Якщо встановлено, ця підписка отримує платіжний розклад, який можна позначати як сплачений кожен розрахунковий цикл.",
         "maxOccurrencesLabel": "Кількість платежів",
@@ -96,6 +103,14 @@
           "2_weeks": "За 2 тижні",
           "1_month": "За 1 місяць"
         }
+      },
+      "progress": {
+        "title": "Прогрес розстрочки",
+        "titleGeneric": "Прогрес платежів",
+        "paidOfTotal": "{paid} з {total} сплачено",
+        "remaining": "{count} платежів залишилося",
+        "remainingTotal": "Залишилося {amount}",
+        "completedNote": "План завершено"
       },
       "rules": {
         "ruleLabel": "Правило {number}",
@@ -144,6 +159,7 @@
         "filterAll": "Усі",
         "filterSubscriptions": "Підписки",
         "filterBills": "Рахунки",
+        "filterInstallments": "Розстрочки",
         "monthlyCost": "~{amount}/міс",
         "yearlyProjected": "прогнозовано {amount}",
         "perYear": "{amount}/рік",

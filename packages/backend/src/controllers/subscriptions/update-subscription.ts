@@ -66,6 +66,27 @@ const schema = z.object({
           path: [hasAmount ? 'expectedCurrencyCode' : 'expectedAmount'],
         });
       }
+
+      // When this update sets the type to installment, the count and schedule that
+      // define the finite plan must travel in the same payload (the edit form sends
+      // the full object). A partial payload that nulls either is caught by the DB
+      // CHECK constraint instead.
+      if (data.type === SUBSCRIPTION_TYPES.installment) {
+        if (data.maxOccurrences == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Installments require maxOccurrences (the number of payments).',
+            path: ['maxOccurrences'],
+          });
+        }
+        if (data.dueDate == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Installments require a payment schedule date (dueDate).',
+            path: ['dueDate'],
+          });
+        }
+      }
     }),
 });
 

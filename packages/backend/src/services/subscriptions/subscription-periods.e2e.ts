@@ -1,17 +1,24 @@
 import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { addMonths, format } from 'date-fns';
+
+/** A dueDate comfortably in the future so its seed period stays `upcoming`. */
+function futureDueDate(): string {
+  return format(addMonths(new Date(), 1), 'yyyy-MM-dd');
+}
 
 describe('Subscription periods', () => {
   describe('Period created on subscription create', () => {
     it('creates one upcoming period when dueDate is provided', async () => {
+      const dueDate = futureDueDate();
       const sub = await helpers.createSubscription({
         name: 'Netflix',
         expectedAmount: 15.99,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
-        dueDate: '2025-01-15',
+        dueDate,
         raw: true,
       });
 
@@ -19,7 +26,7 @@ describe('Subscription periods', () => {
 
       expect(detail.periods).toHaveLength(1);
       expect(detail.periods[0]!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-      expect(detail.periods[0]!.dueDate).toBe('2025-01-15');
+      expect(detail.periods[0]!.dueDate).toBe(dueDate);
     });
 
     it('creates no periods when dueDate is omitted (detection-only subscription)', async () => {
@@ -40,6 +47,7 @@ describe('Subscription periods', () => {
 
   describe('Period created on subscription update', () => {
     it('creates one upcoming period when dueDate is added via update', async () => {
+      const dueDate = futureDueDate();
       // Start without dueDate so no period is created on creation
       const sub = await helpers.createSubscription({
         name: 'iCloud',
@@ -55,7 +63,7 @@ describe('Subscription periods', () => {
 
       await helpers.updateSubscription({
         id: sub.id,
-        dueDate: '2025-02-10',
+        dueDate,
         raw: true,
       });
 
@@ -63,7 +71,7 @@ describe('Subscription periods', () => {
 
       expect(after.periods).toHaveLength(1);
       expect(after.periods[0]!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-      expect(after.periods[0]!.dueDate).toBe('2025-02-10');
+      expect(after.periods[0]!.dueDate).toBe(dueDate);
     });
 
     it('does not create a duplicate period when dueDate update is repeated', async () => {

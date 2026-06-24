@@ -139,6 +139,7 @@ const TYPE_CHOICES = [
   { value: '', label: 'dashboard.widgets.subscriptions.configTypeAll' },
   { value: 'subscription', label: 'dashboard.widgets.subscriptions.configTypeSubscriptions' },
   { value: 'bill', label: 'dashboard.widgets.subscriptions.configTypeBills' },
+  { value: 'installment', label: 'dashboard.widgets.subscriptions.configTypeInstallments' },
 ] as const;
 
 const LOOKBACK_CHOICES: Array<{ value: IncomeLookbackMonths; label: string }> = [

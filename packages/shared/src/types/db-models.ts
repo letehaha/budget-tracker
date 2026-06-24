@@ -540,6 +540,11 @@ export interface SubscriptionModel {
   anchorDay: number | null;
   /** Installment cap: stop generating periods after this many. Null = indefinite. */
   maxOccurrences: number | null;
+  /** When an installment consumed its full schedule it is marked finished here and
+   *  deactivated. Null for open installments and for subscriptions/bills, which never
+   *  complete. Distinguishes a finished installment from a manually paused one (both
+   *  carry isActive=false). */
+  completedAt: Date | null;
   /** Whether this subscription appears in the dashboard "Subscriptions & Bills" widget. */
   showInWidget: boolean;
   /** JSONB array of RemindBeforePreset strings. Empty array means no advance notifications. */

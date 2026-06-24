@@ -1,7 +1,6 @@
 import {
   RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
-  SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
   SubscriptionMatchingRules,
 } from '@bt/shared/types';
@@ -12,6 +11,8 @@ import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { validateAccountOwnership, validateCategoryOwnership } from './helpers';
+import { assertInstallmentScheduleComplete } from './installments';
+import { resolveOpenPeriodStatus } from './resolve-period-status';
 
 interface CreateSubscriptionParams {
   userId: number;
@@ -61,6 +62,14 @@ export const createSubscription = withTransaction(
       await validateCategoryOwnership({ categoryId, userId });
     }
 
+    // Enforce the installment invariant here too (not just in the controller) so MCP
+    // callers, which reach the service directly, fail cleanly rather than on the DB CHECK.
+    assertInstallmentScheduleComplete({
+      type: rest.type ?? SUBSCRIPTION_TYPES.subscription,
+      maxOccurrences: rest.maxOccurrences,
+      dueDate,
+    });
+
     // Derive the calendar day from dueDate so recurring logic can anchor
     // future periods to the same day-of-month without reparsing the date.
     const anchorDay = dueDate ? new Date(dueDate + 'T00:00:00Z').getUTCDate() : null;
@@ -85,13 +94,14 @@ export const createSubscription = withTransaction(
       ...(logoDomain !== undefined ? { logoDomain, logoSource: 'manual' as const } : {}),
     });
 
-    // When a dueDate is provided, create the first upcoming period so the
-    // subscription immediately has a trackable payment target.
+    // When a dueDate is provided, create the first period so the subscription
+    // immediately has a trackable payment target. A past dueDate is born overdue
+    // (mirrors the cron) instead of showing "in -1 days" until the next cron tick.
     if (dueDate) {
       await SubscriptionPeriods.create({
         subscriptionId: subscription.id,
         dueDate,
-        status: SUBSCRIPTION_PERIOD_STATUSES.upcoming,
+        status: resolveOpenPeriodStatus({ dueDate }),
       });
     }
 

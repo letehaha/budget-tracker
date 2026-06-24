@@ -365,6 +365,7 @@ export type NotificationPriority = (typeof NOTIFICATION_PRIORITIES)[keyof typeof
 export enum SUBSCRIPTION_TYPES {
   subscription = 'subscription',
   bill = 'bill',
+  installment = 'installment',
 }
 
 /**

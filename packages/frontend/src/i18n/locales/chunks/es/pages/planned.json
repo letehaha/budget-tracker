@@ -14,6 +14,8 @@
       "editTitle": "Editar cargo recurrente",
       "typeSubscription": "Suscripción",
       "typeBill": "Factura",
+      "typeInstallment": "A plazos",
+      "completed": "Completado",
       "paused": "En pausa",
       "edit": "Editar",
       "cancel": "Cancelar",
@@ -79,6 +81,11 @@
         "extraOptions": "Opciones adicionales",
         "validationAmountCurrency": "El importe y la moneda deben proporcionarse juntos.",
         "validationSubscriptionRequiresAmount": "Las suscripciones requieren un importe y una moneda.",
+        "typeInstallmentDesc": "Compra financiada pagada en un número fijo de cuotas",
+        "installmentScheduleHint": "Establece la fecha del primer pago y el número de cuotas para hacer seguimiento de este plan.",
+        "installmentTotalCommitment": "Compromiso total: {total}",
+        "validationInstallmentRequiresSchedule": "Los plazos necesitan una fecha de calendario de pagos.",
+        "validationInstallmentRequiresCount": "Los plazos necesitan un número de cuotas.",
         "dueDateLabel": "Fecha del calendario de pagos",
         "dueDateDescription": "Cuando se establece, esta suscripción obtiene un calendario de pagos que puede marcar como pagado cada ciclo de facturación.",
         "maxOccurrencesLabel": "Número de cuotas",
@@ -96,6 +103,14 @@
           "2_weeks": "2 semanas antes",
           "1_month": "1 mes antes"
         }
+      },
+      "progress": {
+        "title": "Progreso de cuotas",
+        "titleGeneric": "Progreso de pagos",
+        "paidOfTotal": "{paid} de {total} pagados",
+        "remaining": "{count} pagos pendientes",
+        "remainingTotal": "{amount} restante",
+        "completedNote": "Plan completado"
       },
       "rules": {
         "ruleLabel": "Regla {number}",
@@ -144,6 +159,7 @@
         "filterAll": "Todas",
         "filterSubscriptions": "Suscripciones",
         "filterBills": "Facturas",
+        "filterInstallments": "A plazos",
         "monthlyCost": "~{amount}/mes",
         "yearlyProjected": "{amount} proyectado",
         "perYear": "{amount}/año",

@@ -73,6 +73,25 @@ const schema = z.object({
           path: ['expectedAmount'],
         });
       }
+
+      // An installment is a finite plan: it needs a payment count and a schedule
+      // to track progress against. Amount stays optional (supports variable plans).
+      if (data.type === SUBSCRIPTION_TYPES.installment) {
+        if (data.maxOccurrences == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Installments require maxOccurrences (the number of payments).',
+            path: ['maxOccurrences'],
+          });
+        }
+        if (data.dueDate == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Installments require a payment schedule date (dueDate).',
+            path: ['dueDate'],
+          });
+        }
+      }
     }),
 });
 

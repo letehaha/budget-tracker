@@ -3,7 +3,8 @@ import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 
 import { calculateNextDueDate } from './calculate-next-due-date';
-import { isSubscriptionInstallmentCapReached } from './installments';
+import { finalizeInstallmentCompletion, isSubscriptionInstallmentCapReached } from './installments';
+import { resolveOpenPeriodStatus } from './resolve-period-status';
 
 /**
  * After a period is marked paid or skipped, ensures the next upcoming period
@@ -21,9 +22,13 @@ export async function ensureNextPeriodExists({ subscription }: { subscription: S
 
   if (upcomingPeriod) return;
 
-  // Stop generating once all installments are consumed. Does NOT touch isActive
-  // because that field is the user's manual pause/resume toggle.
-  if (await isSubscriptionInstallmentCapReached({ subscription })) return;
+  // Stop generating once the schedule is fully consumed. For an installment that
+  // also means the plan is finished, so finalize it (deactivate + stamp completedAt);
+  // for subscriptions/bills this is a no-op and isActive is left to the user's toggle.
+  if (await isSubscriptionInstallmentCapReached({ subscription })) {
+    await finalizeInstallmentCompletion({ subscription });
+    return;
+  }
 
   const latestPeriod = await SubscriptionPeriods.findOne({
     where: { subscriptionId: subscription.id },
@@ -47,6 +52,6 @@ export async function ensureNextPeriodExists({ subscription }: { subscription: S
   await SubscriptionPeriods.create({
     subscriptionId: subscription.id,
     dueDate: nextDueDate,
-    status: SUBSCRIPTION_PERIOD_STATUSES.upcoming,
+    status: resolveOpenPeriodStatus({ dueDate: nextDueDate }),
   });
 }

@@ -16,7 +16,7 @@ interface RevertPeriodParams {
 
 export const revertPeriod = withTransaction(async ({ userId, subscriptionId, periodId }: RevertPeriodParams) => {
   // Validates the subscription exists and belongs to the user (throws 404 otherwise).
-  await findSubscriptionOrThrow({ id: subscriptionId, userId });
+  const subscription = await findSubscriptionOrThrow({ id: subscriptionId, userId });
 
   const period = await findOrThrowNotFound({
     query: SubscriptionPeriods.findOne({
@@ -94,9 +94,13 @@ export const revertPeriod = withTransaction(async ({ userId, subscriptionId, per
     transactionAutoCreated: false,
   });
 
-  // NOTE: isActive-reactivation is intentionally absent here.
-  // On subscriptions, isActive is the user's manual pause/resume toggle.
-  // Reverting a period must never auto-resume a subscription the user paused.
+  // Reopening a consumed period un-finishes a completed installment, so clear its
+  // completion and bring it back to active. Gated on `completedAt`, which only
+  // installment-completion ever sets — a manually paused subscription has
+  // `completedAt == null`, so its isActive toggle is never auto-resumed here.
+  if (subscription.completedAt != null) {
+    await subscription.update({ isActive: true, completedAt: null });
+  }
 
   return period.reload();
 });

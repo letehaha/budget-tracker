@@ -42,8 +42,10 @@ export default class Subscriptions extends Model {
   })
   name!: string;
 
+  // VARCHAR + TS-side enum (project convention: no DB enums). One of
+  // SUBSCRIPTION_TYPES: 'subscription' | 'bill' | 'installment'.
   @Column({
-    type: DataType.ENUM(...Object.values(SUBSCRIPTION_TYPES)),
+    type: DataType.STRING(50),
     allowNull: false,
     defaultValue: SUBSCRIPTION_TYPES.subscription,
   })
@@ -130,6 +132,16 @@ export default class Subscriptions extends Model {
     allowNull: true,
   })
   maxOccurrences!: number | null;
+
+  // Set when an installment consumes its full schedule (paid/skipped all
+  // maxOccurrences periods); the engine deactivates it at the same time. Null
+  // for open installments and for subscriptions/bills. Lets a finished
+  // installment be told apart from a manually paused one (both isActive=false).
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  completedAt!: Date | null;
 
   @Column({
     type: DataType.BOOLEAN,
