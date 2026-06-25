@@ -70,7 +70,8 @@ const {
   },
 });
 
-const parentRef = ref(null);
+const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
+const parentRef = computed<HTMLElement | null>(() => scrollAreaRef.value?.viewportRef?.viewportElement ?? null);
 const flatTransactions = computed(() => transactionsPages.value?.pages?.flat() ?? []);
 const isListEmpty = computed(() => isFetched.value && flatTransactions.value.length === 0);
 
@@ -141,13 +142,13 @@ watch(
 </script>
 
 <template>
-  <ResponsiveDialog v-model:open="isOpen" dialog-content-class="max-w-[900px]">
+  <ResponsiveDialog v-model:open="isOpen" dialog-content-class="max-w-[900px] h-[85vh]" no-internal-scroll>
     <template #title>{{ $t('loans.linkPayments.title') }}</template>
     <template #description>{{ $t('loans.linkPayments.description') }}</template>
 
     <div
       ref="contentWrapperRef"
-      class="grid max-h-[70vh] grid-cols-1 gap-4"
+      class="grid min-h-0 flex-1 grid-cols-1 gap-4"
       :class="{ 'grid-cols-[max-content_minmax(0,1fr)]': !isMobileView }"
     >
       <ScrollArea class="relative min-h-0 px-1">
@@ -200,8 +201,7 @@ watch(
           <p class="text-muted-foreground max-w-xs text-sm">{{ $t('loans.linkPayments.emptyDescription') }}</p>
         </div>
 
-        <!-- Raw overflow div: useVirtualizedInfiniteScroll requires direct DOM access via parentRef for scroll measurements. ScrollArea wraps in an extra element and would break the virtualizer. -->
-        <div v-else-if="transactionsPages" ref="parentRef" class="relative max-h-[60vh] min-h-0 w-full overflow-y-auto">
+        <ScrollArea v-else-if="transactionsPages" ref="scrollAreaRef" class="min-h-0 flex-1" viewport-class="h-full">
           <div :style="{ height: `${totalSize}px`, position: 'relative' }">
             <div
               v-for="virtualRow in virtualRows"
@@ -217,7 +217,7 @@ watch(
               <label
                 v-if="flatTransactions[virtualRow.index]"
                 :class="[
-                  'grid cursor-pointer grid-cols-[min-content_minmax(0,1fr)] items-center gap-2',
+                  'grid cursor-pointer grid-cols-[min-content_minmax(0,1fr)] items-center gap-2 pr-3',
                   { 'select-none': isShiftKeyPressed },
                 ]"
               >
@@ -241,7 +241,7 @@ watch(
           <template v-if="!hasNextTransactionsPage">
             <p class="text-muted-foreground flex justify-center text-sm">{{ $t('transactions.list.noMoreData') }}</p>
           </template>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   </ResponsiveDialog>

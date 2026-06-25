@@ -5,7 +5,7 @@
 
       <CreateLoanDialog>
         <UiButton>
-          <PlusIcon class="mr-2 size-4" />
+          <PlusIcon class="size-4" />
           {{ $t('loans.addButton.label') }}
         </UiButton>
       </CreateLoanDialog>
