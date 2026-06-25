@@ -18,15 +18,15 @@ import type { Component } from 'vue';
  * `from-*`/`bg-*` utilities from one token at runtime.
  */
 
-const LOAN_TYPE_STRIPE_CLASSES: Record<LOAN_TYPE, string> = {
-  [LOAN_TYPE.mortgage]: 'from-blue-500 via-blue-500/60 to-transparent',
-  [LOAN_TYPE.auto]: 'from-amber-500 via-amber-500/60 to-transparent',
-  [LOAN_TYPE.student]: 'from-violet-500 via-violet-500/60 to-transparent',
-  [LOAN_TYPE.personal]: 'from-emerald-500 via-emerald-500/60 to-transparent',
-  [LOAN_TYPE.heloc]: 'from-cyan-500 via-cyan-500/60 to-transparent',
-  [LOAN_TYPE.business]: 'from-rose-500 via-rose-500/60 to-transparent',
-  [LOAN_TYPE.medical]: 'from-pink-500 via-pink-500/60 to-transparent',
-  [LOAN_TYPE.other]: 'from-slate-500 via-slate-500/60 to-transparent',
+const LOAN_TYPE_SOLID_BADGE_CLASSES: Record<LOAN_TYPE, string> = {
+  [LOAN_TYPE.mortgage]: 'bg-blue-500 text-white',
+  [LOAN_TYPE.auto]: 'bg-amber-500 text-white',
+  [LOAN_TYPE.student]: 'bg-violet-500 text-white',
+  [LOAN_TYPE.personal]: 'bg-emerald-500 text-white',
+  [LOAN_TYPE.heloc]: 'bg-cyan-500 text-white',
+  [LOAN_TYPE.business]: 'bg-rose-500 text-white',
+  [LOAN_TYPE.medical]: 'bg-pink-500 text-white',
+  [LOAN_TYPE.other]: 'bg-slate-500 text-white',
 };
 
 const LOAN_TYPE_BADGE_CLASSES: Record<LOAN_TYPE, string> = {
@@ -53,8 +53,8 @@ const LOAN_TYPE_ICONS: Record<LOAN_TYPE, Component> = {
 
 // Fall back to `other` so an unrecognized loanType (e.g. a value added
 // server-side before the frontend ships its mapping) still renders.
-export const getLoanTypeStripeClass = ({ loanType }: { loanType: LOAN_TYPE }): string =>
-  LOAN_TYPE_STRIPE_CLASSES[loanType] ?? LOAN_TYPE_STRIPE_CLASSES[LOAN_TYPE.other];
+export const getLoanTypeSolidBadgeClass = ({ loanType }: { loanType: LOAN_TYPE }): string =>
+  LOAN_TYPE_SOLID_BADGE_CLASSES[loanType] ?? LOAN_TYPE_SOLID_BADGE_CLASSES[LOAN_TYPE.other];
 
 export const getLoanTypeBadgeClass = ({ loanType }: { loanType: LOAN_TYPE }): string =>
   LOAN_TYPE_BADGE_CLASSES[loanType] ?? LOAN_TYPE_BADGE_CLASSES[LOAN_TYPE.other];

@@ -3,15 +3,13 @@
     <Card
       :class="
         cn(
-          'group/loan-card focus-visible:ring-ring/40 @container/loan-card relative cursor-pointer overflow-hidden',
+          'group/loan-card focus-visible:ring-ring/40 @container/loan-card relative cursor-pointer overflow-hidden border border-transparent',
           'transition-[transform,border-color,box-shadow] duration-300 ease-out',
-          'hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-22px_rgba(0,0,0,0.45)]',
+          'hover:border-primary/40 hover:shadow-[0_18px_40px_-22px_rgba(0,0,0,0.45)]',
           'focus-visible:ring-2',
         )
       "
     >
-      <div :class="cn('pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-linear-to-r', loanTypeStripeClass)" />
-
       <div
         class="pointer-events-none absolute -top-3 -right-3 size-16 opacity-[0.06] @[22rem]/loan-card:-top-5 @[22rem]/loan-card:-right-5 @[22rem]/loan-card:size-32 dark:opacity-[0.08]"
       >
@@ -21,12 +19,17 @@
       <CardHeader class="relative pb-3">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0 flex-1">
-            <div
-              class="text-muted-foreground flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.18em] uppercase"
+            <span
+              :class="
+                cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.18em] uppercase',
+                  loanTypeSolidBadgeClass,
+                )
+              "
             >
               <component :is="loanTypeIconComponent" class="size-3" stroke-width="2" />
               <span>{{ $t(`loans.types.${loan.loanDetails.loanType}`) }}</span>
-            </div>
+            </span>
             <div class="mt-1.5 truncate text-lg font-semibold tracking-tight">{{ loan.name }}</div>
             <div v-if="loan.loanDetails.lenderName" class="text-muted-foreground mt-0.5 truncate text-xs">
               {{ loan.loanDetails.lenderName }}
@@ -134,7 +137,7 @@ import { useI18n } from 'vue-i18n';
 import { RouterLink } from 'vue-router';
 
 import { useLoanProjectionDisplay } from '../composables/use-loan-projection-display';
-import { getLoanTypeIcon, getLoanTypeStripeClass } from '../loan-type-presentation';
+import { getLoanTypeIcon, getLoanTypeSolidBadgeClass } from '../loan-type-presentation';
 
 const props = defineProps<{ loan: LoanApi }>();
 
@@ -178,7 +181,9 @@ const interestRemainingDisplay = computed(() => {
   return formatAmountByCurrencyCode(interest, props.loan.currencyCode);
 });
 
-const loanTypeStripeClass = computed(() => getLoanTypeStripeClass({ loanType: props.loan.loanDetails.loanType }));
+const loanTypeSolidBadgeClass = computed(() =>
+  getLoanTypeSolidBadgeClass({ loanType: props.loan.loanDetails.loanType }),
+);
 
 const loanTypeIconComponent = computed(() => getLoanTypeIcon({ loanType: props.loan.loanDetails.loanType }));
 </script>
