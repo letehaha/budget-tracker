@@ -134,7 +134,7 @@
 
 <script setup lang="ts">
 import ApiKeySourceBadge from '@/components/common/api-key-source-badge.vue';
-import FileDropzone from '@/components/common/file-dropzone.vue';
+import { FileDropzone } from '@/components/common/dropzone';
 import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { useStatementParserStore } from '@/stores/statement-parser';

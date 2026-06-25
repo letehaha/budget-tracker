@@ -248,5 +248,14 @@
       "successMessage": "{count} transacciones eliminadas",
       "unexpectedError": "No se pudieron eliminar las transacciones. Por favor, intente de nuevo."
     }
+  },
+  "records": {
+    "upcomingSection": {
+      "title": "Próximos",
+      "overdueBadge": "Vencido",
+      "scheduledBadge": "Programado",
+      "payAction": "Marcar como pagado",
+      "hideToggle": "Ocultar pagos próximos"
+    }
   }
 }

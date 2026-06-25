@@ -5,7 +5,7 @@ import {
   type YnabImportSummary,
 } from '@bt/shared/types';
 import { SentryTraceData } from '@js/utils/sentry';
-import { createImportJobQueue } from '@services/import-export/create-import-job-queue';
+import { createImportJobQueue } from '@services/import-export/core/queue/create-import-job-queue';
 import { randomUUID } from 'node:crypto';
 
 import { executeYnabImport } from './execute-import.service';
@@ -34,26 +34,6 @@ const {
       onProgress,
     });
   },
-  buildRunningPayload: ({ jobId, processedCount, totalCount }) => ({
-    jobId,
-    status: 'running',
-    processedCount,
-    totalCount,
-  }),
-  buildCompletedPayload: ({ jobId, totalCount, summary }) => ({
-    jobId,
-    status: 'completed',
-    processedCount: totalCount,
-    totalCount,
-    summary,
-  }),
-  buildFailedPayload: ({ jobId, processedCount, totalCount, error }) => ({
-    jobId,
-    status: 'failed',
-    processedCount,
-    totalCount,
-    error,
-  }),
 });
 
 export { ynabImportQueue, ynabImportWorker };
@@ -74,12 +54,7 @@ export async function queueYnabImport({
   const jobId = `ynab-import-${userId}-${randomUUID()}`;
   const data: YnabImportJobData = { userId, fileContent, accountMapping };
 
-  await enqueue({
-    userId,
-    jobId,
-    data,
-    queuedPayload: { jobId, status: 'queued', processedCount: 0, totalCount: 0 },
-  });
+  await enqueue({ userId, jobId, data });
 
   return jobId;
 }

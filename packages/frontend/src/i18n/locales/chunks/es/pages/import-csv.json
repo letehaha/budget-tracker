@@ -26,7 +26,7 @@
         },
         "fileUpload": {
           "stepTitle": "Subir archivo CSV",
-          "description": "Seleccione su archivo CSV para importar transacciones",
+          "description": "Cargue uno o más archivos CSV para importar transacciones. Todos los archivos deben tener las mismas columnas.",
           "dragDrop": "Arrastre y suelte su archivo CSV aquí",
           "orBrowse": "o haga clic para explorar",
           "maxSize": "Tamaño máximo del archivo: 50 MB",
@@ -35,20 +35,42 @@
           "continueToMapping": "Continuar al mapeo",
           "errors": {
             "invalidFormat": "Formato de archivo no válido. Por favor, suba un archivo CSV.",
+            "invalidFormatNamed": "{name} no es un archivo CSV",
             "fileTooLarge": "El tamaño del archivo ({size}) supera el máximo permitido (50 MB)",
-            "parseFailed": "Error al procesar el archivo. Compruebe el formato e inténtelo de nuevo."
+            "parseFailed": "Error al procesar el archivo. Compruebe el formato e inténtelo de nuevo.",
+            "merge": {
+              "emptySelection": "Seleccione al menos un archivo CSV",
+              "fileReadFailed": "No se pudo leer \"{file}\"",
+              "fileEmpty": "\"{file}\" está vacío",
+              "fileNoDataRows": "\"{file}\" no tiene filas de datos",
+              "headerMismatch": "Las columnas de \"{file}\" no coinciden con el primer archivo. Todos los archivos deben tener las mismas columnas en el mismo orden.",
+              "forbiddenHeader": "\"{file}\" usa un nombre de columna reservado",
+              "tooManyRows": "Los archivos seleccionados superan {max} filas en total. Elimine algunos archivos o filas e inténtelo de nuevo.",
+              "parseError": "No se pudo analizar \"{file}\". Asegúrese de que sea un CSV válido."
+            }
           }
         },
         "columnMapping": {
           "stepTitle": "Mapear columnas",
           "description": "Relacione las columnas de su CSV con los campos requeridos",
           "file": "Archivo",
+          "filesCount": "{count} archivo | {count} archivos",
           "totalRows": "Total de filas",
           "delimiter": "Delimitador",
           "extracting": "Extrayendo...",
           "detecting": "Detectando duplicados…",
           "nextExtract": "Siguiente: Extraer valores",
           "continueToDuplicates": "Continuar a verificación de duplicados"
+        },
+        "execute": {
+          "starting": "Iniciando importación…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "En cola",
+          "statusRunning": "Importando…",
+          "statusCompleted": "Completo",
+          "statusFailed": "Fallido",
+          "failed": "Importación fallida.",
+          "partialImportNote": "Es posible que algunas filas ya se hayan importado antes de este error. Volver a importar podría crear duplicados."
         },
         "review": {
           "stepTitle": "Revisar importación",
@@ -133,6 +155,7 @@
         "incomeValuesLabel": "Valores de ingreso",
         "expenseValuesLabel": "Valores de gasto",
         "commaSeparatedHint": "Valores separados por coma",
+        "uncoveredValues": "Estos valores en la columna de tipo aún no están asignados a Ingreso o Gasto: {values}. Añade cada uno a una lista de arriba para continuar.",
         "selectMethod": "Seleccione un método...",
         "selectColumn": "Seleccione una columna...",
         "incomeValuesPlaceholder": "p. ej., Crédito, Depósito, Ingreso",

@@ -108,6 +108,15 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
       };
     }
 
+    case NOTIFICATION_TYPES.subscriptionReminder: {
+      const payload = notification.payload as { subscriptionId?: string } | undefined;
+      if (!payload?.subscriptionId) return null;
+      return {
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.plannedSubscriptionDetails, params: { id: payload.subscriptionId } },
+      };
+    }
+
     default:
       return null;
   }

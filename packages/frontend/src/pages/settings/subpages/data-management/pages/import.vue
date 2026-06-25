@@ -77,7 +77,7 @@ const groups: ImportGroup[] = [
     id: 'fromOtherApps',
     sources: [
       { id: 'ynab', iconSrc: YNAB_LOGO, to: { name: ROUTES_NAMES.importYnab } },
-      { id: 'wallet', iconSrc: BUDGETBAKERS_LOGO, to: { name: ROUTES_NAMES.importWallet } },
+      { id: 'budget-bakers-wallet', iconSrc: BUDGETBAKERS_LOGO, to: { name: ROUTES_NAMES.importBudgetBakersWallet } },
     ],
   },
 ];

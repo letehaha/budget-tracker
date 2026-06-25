@@ -12,7 +12,7 @@ export function registerCreateSubscription(server: McpServer) {
     'create_subscription',
     {
       description:
-        'Create a new subscription or recurring bill. Use type="subscription" for SaaS/streaming services and type="bill" for utilities and one-time recurring payments. expectedAmount is a decimal in the subscription currency. Requires finance:write scope.',
+        'Create a new subscription, recurring bill, or installment plan. Use type="subscription" for SaaS/streaming services, type="bill" for utilities, and type="installment" for a finite financed purchase paid off over a fixed number of payments. An installment requires maxOccurrences (number of payments) and dueDate (first payment date). expectedAmount is a decimal in the subscription currency. Requires finance:write scope.',
       inputSchema: {
         name: z.string().describe('Display name of the subscription (e.g. "Netflix", "Electricity")'),
         frequency: z
@@ -27,9 +27,9 @@ export function registerCreateSubscription(server: McpServer) {
           .describe('Billing frequency: weekly, biweekly, monthly, quarterly, semi_annual, annual'),
         startDate: z.string().describe('Start date of the subscription (ISO 8601, e.g. "2024-01-01")'),
         type: z
-          .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill])
+          .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill, SUBSCRIPTION_TYPES.installment])
           .optional()
-          .describe('Type: "subscription" (default) or "bill"'),
+          .describe('Type: "subscription" (default), "bill", or "installment"'),
         expectedAmount: z
           .number()
           .nullable()
@@ -41,6 +41,18 @@ export function registerCreateSubscription(server: McpServer) {
           .optional()
           .describe('Currency code for expectedAmount (e.g. "USD", "EUR")'),
         endDate: z.string().nullable().optional().describe('End date if the subscription is finite (ISO 8601)'),
+        dueDate: z
+          .string()
+          .nullable()
+          .optional()
+          .describe('First payment date (ISO 8601). Required for installments; enables a payment schedule.'),
+        maxOccurrences: z
+          .number()
+          .int()
+          .positive()
+          .nullable()
+          .optional()
+          .describe('Total number of payments. Required for installments; null/omitted means an indefinite schedule.'),
         accountId: recordId().nullable().optional().describe('Account ID to associate with this subscription'),
         categoryId: recordId().nullable().optional().describe('Category ID to associate with this subscription'),
         notes: z.string().nullable().optional().describe('Additional notes about the subscription'),
@@ -60,6 +72,8 @@ export function registerCreateSubscription(server: McpServer) {
         expectedAmount: args.expectedAmount,
         expectedCurrencyCode: args.expectedCurrencyCode,
         endDate: args.endDate,
+        dueDate: args.dueDate,
+        maxOccurrences: args.maxOccurrences,
         accountId: args.accountId,
         categoryId: args.categoryId,
         notes: args.notes,

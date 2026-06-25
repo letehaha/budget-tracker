@@ -52,6 +52,20 @@
   <p class="text-muted-foreground mt-2 text-xs">
     {{ $t('pages.importExport.transactionTypeMapping.commaSeparatedHint') }}
   </p>
+
+  <!-- Values present in the column but not yet assigned to income/expense. Blocks Next
+       (via isMapStepValid) until the user adds them to a list above. -->
+  <p
+    v-if="importStore.uncoveredTransactionTypeValues.length"
+    class="text-warning-text mt-2 text-xs font-medium"
+    role="alert"
+  >
+    {{
+      $t('pages.importExport.transactionTypeMapping.uncoveredValues', {
+        values: importStore.uncoveredTransactionTypeValues.join(', '),
+      })
+    }}
+  </p>
 </template>
 
 <script setup lang="ts">

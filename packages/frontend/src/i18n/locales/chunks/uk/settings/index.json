@@ -16,7 +16,8 @@
       "appearance": "Зовнішній вигляд",
       "language": "Мова",
       "statistics": "Статистика",
-      "payees": "Отримувачі"
+      "payees": "Отримувачі",
+      "subscriptions": "Заплановані платежі"
     },
     "backToSettings": "Назад до налаштувань"
   }

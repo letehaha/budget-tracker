@@ -190,11 +190,21 @@ const onKeypress = (event: KeyboardEvent) => {
   }
 };
 
+// A focused number input changes its value on mouse wheel, so scrolling the page
+// past a focused field silently mutates it. Blur on wheel: the value stays put and
+// the wheel event still scrolls the page normally.
+const onWheel = (event: WheelEvent) => {
+  if (props.type === 'number' && document.activeElement === event.target) {
+    (event.target as HTMLInputElement).blur();
+  }
+};
+
 const computedAttrs = computed(() => ({
   ...attrs,
   class: attrs.class,
   onInput,
   onkeypress: onKeypress,
+  onWheel,
 }));
 
 const inputFieldRef = ref<HTMLInputElement | null>(null);

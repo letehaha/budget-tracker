@@ -1,0 +1,270 @@
+import { DataTypes, QueryInterface, Transaction } from 'sequelize';
+
+module.exports = {
+  up: async (queryInterface: QueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.transaction();
+
+    try {
+      // dueDate: rolling next payment date, nullable so existing subscriptions
+      // remain valid before a period-payment schedule is configured.
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'dueDate',
+        {
+          type: DataTypes.DATEONLY,
+          allowNull: true,
+        },
+        { transaction: t },
+      );
+
+      // anchorDay: day-of-month (1-31) preserved from the initial dueDate for
+      // month-end clamping when advancing to the next period.
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'anchorDay',
+        {
+          type: DataTypes.INTEGER,
+          allowNull: true,
+        },
+        { transaction: t },
+      );
+
+      // maxOccurrences: installment cap; null means generate periods indefinitely.
+      // When set it must be >= 1 – installments.ts stops generating once
+      // count >= maxOccurrences, so a stored 0 or negative would silently halt
+      // all period generation.
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'maxOccurrences',
+        {
+          type: DataTypes.INTEGER,
+          allowNull: true,
+        },
+        { transaction: t },
+      );
+
+      await queryInterface.sequelize.query(
+        `ALTER TABLE "Subscriptions" ADD CONSTRAINT "chk_subscriptions_max_occurrences"
+         CHECK ("maxOccurrences" IS NULL OR "maxOccurrences" >= 1);`,
+        { transaction: t },
+      );
+
+      // showInWidget: whether this subscription appears in the dashboard
+      // "Subscriptions & Bills" widget. Users opt non-deterministic items out to
+      // avoid distorting the widget's projected total.
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'showInWidget',
+        {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: true,
+        },
+        { transaction: t },
+      );
+
+      // remindBefore: JSONB array of RemindBeforePreset strings (e.g. ["1_day",
+      // "1_week"]). Empty array means no advance notifications.
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'remindBefore',
+        {
+          type: DataTypes.JSONB,
+          allowNull: false,
+          defaultValue: [],
+        },
+        { transaction: t },
+      );
+
+      // notifyEmail: send an email notification when a remind-before preset fires.
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'notifyEmail',
+        {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: false,
+        },
+        { transaction: t },
+      );
+
+      // STRING(253) matches RFC 1035 max domain length.
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'logoDomain',
+        {
+          type: DataTypes.STRING(253),
+          allowNull: true,
+        },
+        { transaction: t },
+      );
+
+      // VARCHAR + TS-side LogoSource union (project convention: no DB enums).
+      await queryInterface.addColumn(
+        'Subscriptions',
+        'logoSource',
+        {
+          type: DataTypes.STRING(16),
+          allowNull: true,
+        },
+        { transaction: t },
+      );
+
+      // SubscriptionPeriods: one row per generated payment occurrence for a
+      // subscription. Tracks whether the payment is upcoming, paid, overdue, or
+      // skipped, and optionally links to the transaction that settled it.
+      await queryInterface.createTable(
+        'SubscriptionPeriods',
+        {
+          id: {
+            type: DataTypes.UUID,
+            primaryKey: true,
+            allowNull: false,
+          },
+          subscriptionId: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: { model: 'Subscriptions', key: 'id' },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+          },
+          dueDate: {
+            type: DataTypes.DATEONLY,
+            allowNull: false,
+          },
+          // VARCHAR not a Postgres ENUM – TS-side SUBSCRIPTION_PERIOD_STATUSES
+          // enum enforces the allowed set without a DB migration on every change.
+          status: {
+            type: DataTypes.STRING(50),
+            allowNull: false,
+            defaultValue: 'upcoming',
+          },
+          paidAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+          },
+          transactionId: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: { model: 'Transactions', key: 'id' },
+            onUpdate: 'CASCADE',
+            onDelete: 'SET NULL',
+          },
+          // True when the linked transaction was generated by the app (CREATE-mode
+          // pay). Reverting deletes only an app-generated transaction, never a
+          // user-linked one.
+          transactionAutoCreated: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+          },
+          notes: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+          },
+          createdAt: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+          },
+          updatedAt: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+          },
+        },
+        { transaction: t },
+      );
+
+      await queryInterface.addIndex('SubscriptionPeriods', ['subscriptionId', 'dueDate'], {
+        name: 'subscription_periods_subscription_id_due_date_idx',
+        transaction: t,
+      });
+
+      await queryInterface.addIndex('SubscriptionPeriods', ['subscriptionId', 'status'], {
+        name: 'subscription_periods_subscription_id_status_idx',
+        transaction: t,
+      });
+
+      // Per-(period, preset) dedup ledger: one row per reminder already sent for
+      // a given SubscriptionPeriod + RemindBeforePreset combination. The UNIQUE
+      // constraint prevents the same advance reminder from being re-sent if the
+      // cron fires more than once within the same window.
+      await queryInterface.createTable(
+        'SubscriptionPeriodNotifications',
+        {
+          id: {
+            type: DataTypes.UUID,
+            primaryKey: true,
+            allowNull: false,
+          },
+          periodId: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: { model: 'SubscriptionPeriods', key: 'id' },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+          },
+          remindBeforePreset: {
+            type: DataTypes.STRING(20),
+            allowNull: false,
+          },
+          sentAt: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+          },
+          emailSent: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+          },
+          emailError: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+          },
+        },
+        { transaction: t },
+      );
+
+      await queryInterface.addConstraint('SubscriptionPeriodNotifications', {
+        fields: ['periodId', 'remindBeforePreset'],
+        type: 'unique',
+        name: 'subscription_period_notifications_period_preset_uq',
+        transaction: t,
+      });
+
+      await t.commit();
+    } catch (error) {
+      await t.rollback();
+      throw error;
+    }
+  },
+
+  down: async (queryInterface: QueryInterface): Promise<void> => {
+    const t: Transaction = await queryInterface.sequelize.transaction();
+
+    try {
+      await queryInterface.dropTable('SubscriptionPeriodNotifications', { transaction: t });
+      await queryInterface.dropTable('SubscriptionPeriods', { transaction: t });
+
+      await queryInterface.removeColumn('Subscriptions', 'logoSource', { transaction: t });
+      await queryInterface.removeColumn('Subscriptions', 'logoDomain', { transaction: t });
+      await queryInterface.removeColumn('Subscriptions', 'notifyEmail', { transaction: t });
+      await queryInterface.removeColumn('Subscriptions', 'remindBefore', { transaction: t });
+      await queryInterface.removeColumn('Subscriptions', 'showInWidget', { transaction: t });
+      await queryInterface.sequelize.query(
+        `ALTER TABLE "Subscriptions" DROP CONSTRAINT IF EXISTS "chk_subscriptions_max_occurrences";`,
+        { transaction: t },
+      );
+      await queryInterface.removeColumn('Subscriptions', 'maxOccurrences', { transaction: t });
+      await queryInterface.removeColumn('Subscriptions', 'anchorDay', { transaction: t });
+      await queryInterface.removeColumn('Subscriptions', 'dueDate', { transaction: t });
+
+      await t.commit();
+    } catch (error) {
+      await t.rollback();
+      throw error;
+    }
+  },
+};

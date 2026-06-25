@@ -4,7 +4,11 @@ import { CheckIcon, MinusIcon, PlusIcon, SkipForwardIcon, SparklesIcon, XIcon, t
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n();
+// This shared indicator carries no local messages, so its keys live in the global
+// scope. Resolve against it explicitly: a bare `useI18n()` does a failed parent-scope
+// lookup (then warns + falls back to global) on every instance — noisy where the
+// indicator renders once per row (import mapping tables).
+const { t } = useI18n({ useScope: 'global' });
 
 type Status = 'auto-matched' | 'suggested' | 'will-create' | 'needs-attention' | 'invalid' | 'optional' | 'skipped';
 type Size = 'xs' | 'sm' | 'default';
@@ -28,15 +32,19 @@ interface StatusConfig {
   circleClass: string;
 }
 
-/** i18n key for each status's default aria label. Resolved at render time so locale switches are reactive. */
+/**
+ * i18n key for each status's default aria label. Resolved at render time so locale
+ * switches are reactive. These live in the `common` chunk, so the path carries the
+ * `common.` prefix (the shared-chunk convention used across the app).
+ */
 const STATUS_ARIA_KEYS: Record<Status, string> = {
-  'auto-matched': 'components.statusIndicator.autoMatched',
-  suggested: 'components.statusIndicator.suggested',
-  'will-create': 'components.statusIndicator.willCreate',
-  'needs-attention': 'components.statusIndicator.needsAttention',
-  invalid: 'components.statusIndicator.invalid',
-  optional: 'components.statusIndicator.optional',
-  skipped: 'components.statusIndicator.skipped',
+  'auto-matched': 'common.components.statusIndicator.autoMatched',
+  suggested: 'common.components.statusIndicator.suggested',
+  'will-create': 'common.components.statusIndicator.willCreate',
+  'needs-attention': 'common.components.statusIndicator.needsAttention',
+  invalid: 'common.components.statusIndicator.invalid',
+  optional: 'common.components.statusIndicator.optional',
+  skipped: 'common.components.statusIndicator.skipped',
 };
 
 const STATUS_CONFIG: Record<Status, StatusConfig> = {

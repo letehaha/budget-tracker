@@ -6,7 +6,7 @@ describe('GET /subscriptions/upcoming', () => {
   it('returns upcoming payments sorted by next payment date', async () => {
     await helpers.createSubscription({
       name: 'Weekly Sub',
-      expectedAmount: 500,
+      expectedAmount: 5,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.weekly,
       startDate: '2025-01-01',
@@ -14,7 +14,7 @@ describe('GET /subscriptions/upcoming', () => {
     });
     await helpers.createSubscription({
       name: 'Monthly Sub',
-      expectedAmount: 1599,
+      expectedAmount: 15.99,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-15',
@@ -22,7 +22,7 @@ describe('GET /subscriptions/upcoming', () => {
     });
     await helpers.createSubscription({
       name: 'Annual Sub',
-      expectedAmount: 9999,
+      expectedAmount: 99.99,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.annual,
       startDate: '2025-06-01',
@@ -67,7 +67,7 @@ describe('GET /subscriptions/upcoming', () => {
   it('excludes inactive subscriptions', async () => {
     const activeSub = await helpers.createSubscription({
       name: 'Active Sub',
-      expectedAmount: 1000,
+      expectedAmount: 10,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',
@@ -76,7 +76,7 @@ describe('GET /subscriptions/upcoming', () => {
 
     const inactiveSub = await helpers.createSubscription({
       name: 'Inactive Sub',
-      expectedAmount: 2000,
+      expectedAmount: 20,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',
@@ -99,7 +99,7 @@ describe('GET /subscriptions/upcoming', () => {
   it('excludes subscriptions with null expectedAmount', async () => {
     await helpers.createSubscription({
       name: 'With Amount',
-      expectedAmount: 1500,
+      expectedAmount: 15,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',
@@ -125,7 +125,7 @@ describe('GET /subscriptions/upcoming', () => {
     for (let i = 0; i < 10; i++) {
       await helpers.createSubscription({
         name: `Sub ${i}`,
-        expectedAmount: 1000,
+        expectedAmount: 10,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -141,7 +141,7 @@ describe('GET /subscriptions/upcoming', () => {
     for (let i = 0; i < 7; i++) {
       await helpers.createSubscription({
         name: `Default Limit Sub ${i}`,
-        expectedAmount: 1000,
+        expectedAmount: 10,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -162,7 +162,7 @@ describe('GET /subscriptions/upcoming', () => {
     await helpers.createSubscription({
       name: 'My Subscription',
       type: SUBSCRIPTION_TYPES.subscription,
-      expectedAmount: 1000,
+      expectedAmount: 10,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',
@@ -171,7 +171,7 @@ describe('GET /subscriptions/upcoming', () => {
     await helpers.createSubscription({
       name: 'My Bill',
       type: SUBSCRIPTION_TYPES.bill,
-      expectedAmount: 2000,
+      expectedAmount: 20,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',
@@ -188,7 +188,7 @@ describe('GET /subscriptions/upcoming', () => {
     await helpers.createSubscription({
       name: 'My Subscription',
       type: SUBSCRIPTION_TYPES.subscription,
-      expectedAmount: 1000,
+      expectedAmount: 10,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',
@@ -197,7 +197,7 @@ describe('GET /subscriptions/upcoming', () => {
     await helpers.createSubscription({
       name: 'My Bill',
       type: SUBSCRIPTION_TYPES.bill,
-      expectedAmount: 2000,
+      expectedAmount: 20,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',
@@ -214,7 +214,7 @@ describe('GET /subscriptions/upcoming', () => {
     await helpers.createSubscription({
       name: 'My Subscription',
       type: SUBSCRIPTION_TYPES.subscription,
-      expectedAmount: 1000,
+      expectedAmount: 10,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',
@@ -223,7 +223,7 @@ describe('GET /subscriptions/upcoming', () => {
     await helpers.createSubscription({
       name: 'My Bill',
       type: SUBSCRIPTION_TYPES.bill,
-      expectedAmount: 2000,
+      expectedAmount: 20,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',
@@ -244,7 +244,7 @@ describe('GET /subscriptions/upcoming', () => {
 
     await helpers.createSubscription({
       name: 'Categorized Sub',
-      expectedAmount: 999,
+      expectedAmount: 9.99,
       expectedCurrencyCode: 'USD',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: '2025-01-01',

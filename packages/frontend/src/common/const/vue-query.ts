@@ -63,6 +63,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // widget latest records
   widgetLatestRecords: [transactionChange, 'widget-latest-records'] as const,
+  widgetLatestRecordsScheduled: [transactionChange, 'widget-latest-records-scheduled'] as const,
 
   // widget category spending tracker
   widgetCategorySpendingTracker: [transactionChange, 'widget-category-spending-tracker'] as const,
@@ -143,6 +144,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   subscriptionDetails: [transactionChange, 'subscription-details'] as const,
   subscriptionsSummary: [transactionChange, 'subscriptions-summary'] as const,
   widgetSubscriptionsUpcoming: [transactionChange, 'widget-subscriptions-upcoming'] as const,
+  recordsUpcomingPayments: [transactionChange, 'records-upcoming-payments'] as const,
   subscriptionCandidates: ['subscription-candidates'] as const,
 
   // transaction groups
@@ -151,11 +153,6 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // optimizations
   bulkTransferScan: [transactionChange, 'bulk-transfer-scan'] as const,
-
-  // payment reminders
-  remindersList: ['reminders-list'] as const,
-  reminderDetails: ['reminder-details'] as const,
-  reminderPeriods: ['reminder-periods'] as const,
 
   // vehicles
   vehiclesList: [transactionChange, 'vehicles-list'] as const,
@@ -194,8 +191,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   payeeById: ['payee-by-id'] as const,
   payeesIgnoredNames: ['payees-ignored-names'] as const,
   payeeTransactionsDialog: [transactionChange, 'payee-tx-dialog'] as const,
+
+  // brand logos – shared by payee + subscription logo pickers.
   // append the search term when using
-  payeeLogoSearch: ['payee-logo-search'] as const,
+  brandLogoSearch: ['brand-logo-search'] as const,
 
   // venture
   venturePlatformsList: [ventureChange, 'venture-platforms-list'] as const,

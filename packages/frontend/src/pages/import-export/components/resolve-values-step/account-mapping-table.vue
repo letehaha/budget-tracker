@@ -18,7 +18,7 @@
 import SelectField from '@/components/fields/select-field.vue';
 import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
 import { StatusIndicator } from '@/components/lib/ui/status-indicator';
-import type { AccountModel, AccountMappingValue, WalletAccountMappingValue } from '@bt/shared/types';
+import type { AccountModel, AccountMappingValue, BudgetBakersWalletAccountMappingValue } from '@bt/shared/types';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import QuickActionsToolbar, { type QuickAction } from './quick-action-toolbar.vue';
@@ -34,8 +34,8 @@ interface SourceItem {
 
 /**
  * Read-only view of a single account mapping decision. Both CSV's
- * `AccountMappingValue` and Wallet's `WalletAccountMappingValue` are
- * structurally assignable to this — extra fields on Wallet's `create-new`
+ * `AccountMappingValue` and BudgetBakers Wallet's `BudgetBakersWalletAccountMappingValue` are
+ * structurally assignable to this — extra fields on BudgetBakers Wallet's `create-new`
  * variant (currencyCode/currentBalance) are tolerated.
  */
 type AccountMappingView = { action: 'create-new' | 'link-existing'; accountId?: string };
@@ -45,7 +45,7 @@ type AccountMappingView = { action: 'create-new' | 'link-existing'; accountId?: 
 // than silently breaking the component at runtime.
 type _AssertAccountMappingViewCompat = [
   AccountMappingValue extends AccountMappingView ? true : never,
-  WalletAccountMappingValue extends AccountMappingView ? true : never,
+  BudgetBakersWalletAccountMappingValue extends AccountMappingView ? true : never,
 ];
 
 const props = defineProps<{

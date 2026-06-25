@@ -1,6 +1,6 @@
 export type SettlementMode = 'fee' | 'auto' | 'rate';
 
-export interface SettlementPreview {
+interface SettlementPreview {
   /** Security→settlement conversion rate that would be recorded. */
   rate: number;
   /** Fee in the settlement currency that would be recorded. */
@@ -8,7 +8,7 @@ export interface SettlementPreview {
 }
 
 interface SettlementPreviewParams {
-  /** sell/dividend — cash comes in; buy/fee/tax — cash goes out. */
+  /** sell/dividend – cash comes in; buy/fee/tax – cash goes out. */
   isCashIn: boolean;
   quantity: string;
   price: string;
@@ -26,14 +26,14 @@ interface SettlementPreviewParams {
 
 /**
  * Client-side approximation of the backend's cross-currency settlement math
- * (`resolveSettlement`), used only for the live form preview — the backend
+ * (`resolveSettlement`), used only for the live form preview – the backend
  * recomputes everything authoritatively on submit.
  *
  * - 'fee' mode: the conversion rate is derived from the cash moved net of the
  *   fee: rate = (total ∓ fee) / (quantity × price)
  * - 'rate' / 'auto' modes: the fee is the residual between the cash moved and
  *   `quantity × price × rate`; a negative residual is rate inaccuracy, not a
- *   real negative fee — fee becomes 0 and the difference folds into the rate
+ *   real negative fee – fee becomes 0 and the difference folds into the rate
  *
  * Returns `null` while inputs are incomplete or non-positive.
  */

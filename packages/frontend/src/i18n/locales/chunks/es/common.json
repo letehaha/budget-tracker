@@ -173,6 +173,18 @@
       "title": "Actualización disponible",
       "description": "Hay una nueva versión lista. Recargue para obtener las últimas mejoras.",
       "reload": "Recargar"
+    },
+    "logo": {
+      "searchPlaceholder": "Nombre de marca o dominio",
+      "searchHint": "Escriba un nombre de marca o un dominio como amazon.com",
+      "noResults": "No se encontraron marcas coincidentes.",
+      "useDomainDirectly": "Usar {domain}",
+      "autoLabel": "Automático (desde el nombre)",
+      "domainHint": "Para encontrar la marca exacta, escriba el dominio del sitio web de la empresa (p. ej. amazon.com) – eso siempre coincide con el logotipo correcto.",
+      "searchError": "No se pudieron cargar los logotipos – intente de nuevo",
+      "editAriaLabel": "Editar logo",
+      "dialogTitle": "Cambiar logo",
+      "resetToAuto": "Restablecer a automático"
     }
   },
   "validation": {
@@ -257,10 +269,15 @@
   },
   "fileDropzone": {
     "clickOrDrag": "Haga clic o arrastre un archivo aquí",
+    "clickOrDragMultiple": "Haga clic o arrastre archivos CSV aquí",
     "dropHere": "Suelte el archivo para cargarlo",
+    "dropHereMultiple": "Suelte los archivos aquí",
     "removeFile": "Eliminar archivo",
     "fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es {max}.",
-    "onlyFirstFileTaken": "Se soltaron varios archivos — solo se usó el primero."
+    "fileTooLargeNamed": "{name} supera {max}",
+    "filesSelected": "{count} archivo seleccionado | {count} archivos seleccionados",
+    "clearAll": "Borrar todo",
+    "onlyFirstFileTaken": "Se soltaron varios archivos – solo se usó el primero."
   },
   "demo": {
     "loadingOverlay": {

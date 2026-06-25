@@ -1,7 +1,6 @@
 import { type ColumnMappingConfig, TagOptionValue } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
-
-import { splitTagCell } from '../split-tag-cell';
+import { splitTagCell } from '@services/import-export/core/parse/split-tag-cell';
 
 /**
  * Extract the distinct tag strings the import will need to map. A row's tags

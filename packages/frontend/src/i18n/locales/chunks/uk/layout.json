@@ -16,9 +16,8 @@
     "settings": "Налаштування",
     "planned": {
       "planned": "Заплановане",
-      "subscriptions": "Підписки",
-      "budgets": "Бюджети",
-      "reminders": "Нагадування"
+      "subscriptions": "Регулярні витрати",
+      "budgets": "Бюджети"
     },
     "venture": "Венчур"
   },

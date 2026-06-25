@@ -1,6 +1,7 @@
 import { api } from '@/api/_api';
 import type {
   ColumnMappingConfig,
+  CsvImportProgress,
   DetectDuplicatesRequest,
   DetectDuplicatesResponse,
   ExecuteImportRequest,
@@ -49,6 +50,10 @@ export const detectDuplicates = async (payload: DetectDuplicatesRequest): Promis
 export const executeImport = async (payload: ExecuteImportRequest): Promise<ExecuteImportResponse> => {
   const result = await api.post('/import/csv/execute', payload);
   return result;
+};
+
+export const getCsvImportStatus = async ({ jobId }: { jobId: string }): Promise<CsvImportProgress> => {
+  return api.get(`/import/csv/execute/status/${jobId}`);
 };
 
 // Statement Parser API (supports PDF, CSV, TXT)

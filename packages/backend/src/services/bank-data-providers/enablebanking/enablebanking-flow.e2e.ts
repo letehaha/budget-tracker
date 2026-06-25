@@ -14,6 +14,7 @@ import {
   MOCK_IDENTIFICATION_HASH_1,
   MOCK_IDENTIFICATION_HASH_2,
   getAllMockAccountUIDs,
+  getMockedAccountDetails,
 } from '@tests/mocks/enablebanking/data';
 import { HttpResponse, http } from 'msw';
 
@@ -191,6 +192,53 @@ describe('Enable Banking Data Provider E2E', () => {
           expect(account).toHaveProperty('currencyCode');
         },
       );
+    });
+  });
+
+  // Regression (Sentry MONEY-MATTER-BACKEND-82/83): a bank account whose currency
+  // is an ISO 4217 non-currency (e.g. "XXX" = no currency) has no exchange rate, so
+  // connecting it used to reach calculateRefAmount and throw "Exchange rate not
+  // available for XXX/EUR", surfacing as a 500 mid-sync. The connect must now reject
+  // with a clear 400 and create nothing.
+  describe('unsupported account currency', () => {
+    it('rejects an account whose currency is an ISO non-currency (XXX) with a 400, creating nothing', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: connectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+
+      // Force every fetched account's currency to XXX while preserving its stable
+      // identification_hash, so the selected account routes an XXX currency into the
+      // connect path.
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/details', ({ params }) =>
+          HttpResponse.json({ ...getMockedAccountDetails(params.accountId as string), currency: 'XXX' }),
+        ),
+      );
+
+      const result = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
+      });
+      expect(result.status).toEqual(ERROR_CODES.BadRequest);
+
+      // The account-creation transaction must have rolled back — nothing linked.
+      const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId: connectResult.connectionId,
+        raw: true,
+      });
+      expect(connection.accounts.length).toBe(0);
     });
   });
 

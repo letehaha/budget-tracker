@@ -12,9 +12,17 @@ import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
 import { categorizationQueue, categorizationWorker } from '@services/ai-categorization/categorization-queue';
 import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
 import { closeAllMonobankQueueBundles } from '@services/bank-data-providers/monobank/transaction-sync-queue';
-import { walletImportQueue, walletImportWorker } from '@services/import-export/wallet-import';
+import { logoResolutionQueue, logoResolutionWorker } from '@services/brand-logos';
+import {
+  budgetBakersWalletImportQueue,
+  budgetBakersWalletImportWorker,
+} from '@services/import-export/budget-bakers-wallet-import';
+import { csvImportQueue, csvImportWorker } from '@services/import-export/csv-import/csv-import-queue';
 import { ynabImportQueue, ynabImportWorker } from '@services/import-export/ynab-import';
-import { logoResolutionQueue, logoResolutionWorker } from '@services/payees/logo-resolution-queue';
+import {
+  subscriptionReminderEmailQueue,
+  subscriptionReminderEmailWorker,
+} from '@services/subscriptions/reminder-email-queue';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 
@@ -100,7 +108,7 @@ jest.mock('@coingecko/coingecko-typescript', () => {
  * registers a provider when its API key is present in `process.env`, so a
  * missing key silently turns the corresponding provider into a no-op and any
  * test that expects results from it fails with a misleading "empty array"
- * assertion — costing hours to diagnose.
+ * assertion – costing hours to diagnose.
  *
  * CI generates a fresh `.env.test` from `check-source-code.yml`; local files
  * are gitignored and easily drift. We fail loud here so the fix is obvious.
@@ -123,7 +131,7 @@ if (missingEnvVars.length > 0) {
 
 /**
  * logo.dev brand search is always MSW-mocked in tests, so a real key is never
- * needed — but `searchBrands` short-circuits to [] when LOGO_DEV_SECRET_KEY is
+ * needed – but `searchBrands` short-circuits to [] when LOGO_DEV_SECRET_KEY is
  * unset, before reaching the fetch() that MSW intercepts. Default a dummy value
  * so the request reaches the mock. Unlike the real-provider keys above, there's
  * no stale-.env.test failure mode to guard against, so we default rather than
@@ -443,10 +451,14 @@ afterAll(async () => {
     await categorizationQueue.close();
     await ynabImportWorker.close();
     await ynabImportQueue.close();
-    await walletImportWorker.close();
-    await walletImportQueue.close();
+    await budgetBakersWalletImportWorker.close();
+    await budgetBakersWalletImportQueue.close();
+    await csvImportWorker.close();
+    await csvImportQueue.close();
     await logoResolutionWorker.close();
     await logoResolutionQueue.close();
+    await subscriptionReminderEmailWorker.close();
+    await subscriptionReminderEmailQueue.close();
 
     // Now safe to close Redis client
     await redisClient.quit();

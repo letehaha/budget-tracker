@@ -177,8 +177,9 @@ const hasErrors = computed(() => {
 });
 
 function handleBack() {
-  // Go back to step 3 (review) for existing accounts, or step 2 (account selection) for new accounts
-  store.goBackToStep({ step: store.isNewAccount ? 2 : 3 });
+  // Walks to the previous visible step: `review` for existing accounts (where it
+  // is shown) or `account` for new accounts (where `review` is hidden).
+  store.goBack();
 }
 
 async function handleImport() {

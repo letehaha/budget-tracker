@@ -3,7 +3,7 @@ import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent } from 'vue';
+import { type Ref, defineComponent, ref } from 'vue';
 
 import { useImportExportStore } from './import-export';
 
@@ -16,6 +16,37 @@ vi.mock('@/api/import-export', () => ({
   parseCsv: vi.fn(),
   extractUniqueValues: vi.fn(),
   executeImport: vi.fn(),
+  getCsvImportStatus: vi.fn(),
+}));
+
+// The execute action is now asynchronous: it enqueues a BullMQ job and arms the
+// `useImportJobProgress` watchdog (SSE + status poll). The watchdog is mocked so
+// the test controls the async boundary deterministically instead of driving real
+// timers/SSE. The mock captures the config object the store passes at
+// construction time, so a test can later invoke the real onComplete/onFailure/
+// onLostContact callbacks to drive completion/failure and assert side-effects.
+type ImportJobProgressConfig = Parameters<
+  typeof import('@/composable/use-import-job-progress').useImportJobProgress
+>[0];
+
+let capturedJobProgressConfig: ImportJobProgressConfig | null = null;
+let mockJobProgressStart: ReturnType<typeof vi.fn>;
+let mockJobProgressStop: ReturnType<typeof vi.fn>;
+let mockJobProgressSetExecuteError: ReturnType<typeof vi.fn>;
+let mockJobProgress: Ref<unknown>;
+let mockJobExecuteError: Ref<string | null>;
+
+vi.mock('@/composable/use-import-job-progress', () => ({
+  useImportJobProgress: vi.fn((config: ImportJobProgressConfig) => {
+    capturedJobProgressConfig = config;
+    return {
+      progress: mockJobProgress,
+      executeError: mockJobExecuteError,
+      setExecuteError: mockJobProgressSetExecuteError,
+      start: mockJobProgressStart,
+      stop: mockJobProgressStop,
+    };
+  }),
 }));
 
 // useQueryClient is called at store construction time. We keep a reference to the
@@ -39,14 +70,22 @@ vi.mock('./categories/categories', () => ({
   useCategoriesStore: vi.fn(() => ({ loadCategories: vi.fn() })),
 }));
 
+// onComplete refreshes the Pinia tags store when the import created tags; mock it
+// so a completed payload with tagsCreated > 0 doesn't reach the real store.
+vi.mock('./tags', () => ({
+  useTagsStore: vi.fn(() => ({ loadTags: vi.fn() })),
+}));
+
 // ----- helpers -----
 
 import * as apiModule from '@/api/import-export';
 import {
   AccountOptionValue,
   CategoryOptionValue,
+  type CsvImportSummary,
   CurrencyOptionValue,
   type DetectDuplicatesResponse,
+  type ExecuteImportResponse,
   type SourceAccount,
   TagOptionValue,
   TransactionTypeOptionValue,
@@ -57,10 +96,55 @@ import { useCategoriesStore } from './categories/categories';
 const mockDetectDuplicatesApi = vi.mocked(apiModule.detectDuplicates);
 const mockExecuteImportApi = vi.mocked(apiModule.executeImport);
 
+/** Async execute now resolves to a bare job id; the summary arrives later over the watchdog. */
+const EXECUTE_RESPONSE: ExecuteImportResponse = { jobId: 'job-1' };
+
+/**
+ * Builds a terminal `completed` watchdog payload. The store's onComplete reads
+ * only `summary.*Created` counters, so the rest of the summary is filled with
+ * neutral defaults that each test can override.
+ */
+const completedPayload = (summary: Partial<CsvImportSummary> = {}) => ({
+  jobId: 'job-1',
+  status: 'completed' as const,
+  processedCount: 0,
+  totalCount: 0,
+  summary: {
+    imported: 0,
+    skipped: 0,
+    skippedUnpriceable: 0,
+    accountsCreated: 0,
+    categoriesCreated: 0,
+    tagsCreated: 0,
+    errors: [],
+    newTransactionIds: [],
+    batchId: 'batch-1',
+    ...summary,
+  } satisfies CsvImportSummary,
+});
+
+/** Invokes the onComplete callback the store registered with the mocked watchdog. */
+const fireOnComplete = async (summary: Partial<CsvImportSummary> = {}) => {
+  // The store always constructs the watchdog at init, so config is captured.
+  await capturedJobProgressConfig!.onComplete(completedPayload(summary) as never);
+};
+
 /** Mount a minimal component so Pinia + VueQuery plugins are active. */
 const mountWithPlugins = () => {
   // Create a fresh shared client before each test so spies start clean.
   sharedQueryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+  // Reset the mocked watchdog before the store is constructed so each test gets
+  // its own spies, fresh refs, and a freshly-captured config.
+  capturedJobProgressConfig = null;
+  mockJobProgressStart = vi.fn();
+  mockJobProgressStop = vi.fn();
+  mockJobProgressSetExecuteError = vi.fn((message: string | null) => {
+    mockJobExecuteError.value = message;
+  });
+  mockJobProgress = ref(null);
+  mockJobExecuteError = ref<string | null>(null);
+
   const pinia = createPinia();
   setActivePinia(pinia);
 
@@ -290,21 +374,7 @@ describe('useImportExportStore – unpriceableRows', () => {
   });
 });
 
-describe('useImportExportStore – executeImport skipUnpriceableIndices', () => {
-  const EXECUTE_RESPONSE = {
-    summary: {
-      imported: 5,
-      skipped: 1,
-      skippedUnpriceable: 2,
-      accountsCreated: 0,
-      categoriesCreated: 0,
-      tagsCreated: 0,
-      errors: [],
-    },
-    newTransactionIds: [],
-    batchId: 'batch-abc',
-  };
-
+describe('useImportExportStore – executeImport async payload', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mountWithPlugins();
@@ -341,38 +411,71 @@ describe('useImportExportStore – executeImport skipUnpriceableIndices', () => 
 
     expect(mockExecuteImportApi).toHaveBeenCalledWith(expect.objectContaining({ skipUnpriceableIndices: undefined }));
   });
+
+  it('sends the async payload (raw fileContent + mapping + timezone), never pre-parsed validRows', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+
+    await store.executeImport();
+
+    const payload = mockExecuteImportApi.mock.calls[0]![0];
+    // The worker re-parses server-side, so the request carries the raw file + the
+    // built columnMapping config, the per-entity mappings, the skip indices, and
+    // the browser timezone — but NOT pre-parsed validRows or the removed
+    // defaultAccountId / defaultCategoryId (the backend derives those now).
+    expect(payload).toEqual(
+      expect.objectContaining({
+        fileContent: store.fileContent,
+        delimiter: store.detectedDelimiter,
+        columnMapping: expect.any(Object),
+        accountMapping: store.accountMapping,
+        categoryMapping: store.categoryMapping,
+        skipDuplicateIndices: expect.any(Array),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    );
+    expect(payload).not.toHaveProperty('validRows');
+    expect(payload).not.toHaveProperty('defaultAccountId');
+    expect(payload).not.toHaveProperty('defaultCategoryId');
+  });
+
+  it('arms the progress watchdog with the returned jobId and advances the wizard to results', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue({ jobId: 'job-xyz' });
+
+    const store = useImportExportStore();
+    seedStore(store);
+    await store.detectDuplicates();
+
+    await store.executeImport();
+
+    // Job accepted: the watchdog is started with the server's jobId seeded into
+    // the initial (queued) progress, and the wizard moves to the results step.
+    expect(mockJobProgressStart).toHaveBeenCalledWith({
+      initialProgress: expect.objectContaining({ jobId: 'job-xyz', status: 'queued' }),
+    });
+    expect(store.currentStepKey).toBe('results');
+  });
 });
 
-describe('useImportExportStore – executeImport cache invalidation', () => {
-  const EXECUTE_RESPONSE = {
-    summary: {
-      imported: 3,
-      skipped: 0,
-      skippedUnpriceable: 0,
-      accountsCreated: 1,
-      categoriesCreated: 1,
-      tagsCreated: 0,
-      errors: [],
-    },
-    newTransactionIds: ['tx-1', 'tx-2', 'tx-3'],
-    batchId: 'batch-xyz',
-  };
-
+describe('useImportExportStore – import completion cache invalidation', () => {
+  // Cache invalidation no longer runs inline in executeImport — it runs in the
+  // watchdog's onComplete when the job reports `completed`. These tests drive that
+  // callback directly via the captured config.
   beforeEach(() => {
     vi.clearAllMocks();
     mountWithPlugins();
   });
 
-  it('invalidates transactionChange-prefixed queries after a successful import', async () => {
-    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
-    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
-
+  it('invalidates transactionChange-prefixed queries on job completion', async () => {
     const invalidateSpy = vi.spyOn(sharedQueryClient, 'invalidateQueries');
 
-    const store = useImportExportStore();
-    seedStore(store);
-    await store.detectDuplicates();
-    await store.executeImport();
+    useImportExportStore();
+    await fireOnComplete();
 
     // All transaction-change queries (widgets, analytics, records, accounts, balances, etc.)
     // must be invalidated so views reflect newly imported transactions.
@@ -381,16 +484,11 @@ describe('useImportExportStore – executeImport cache invalidation', () => {
     );
   });
 
-  it('invalidates currencies-prefixed queries after a successful import', async () => {
-    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
-    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
-
+  it('invalidates currencies-prefixed queries on job completion', async () => {
     const invalidateSpy = vi.spyOn(sharedQueryClient, 'invalidateQueries');
 
-    const store = useImportExportStore();
-    seedStore(store);
-    await store.detectDuplicates();
-    await store.executeImport();
+    useImportExportStore();
+    await fireOnComplete();
 
     // Import can connect new user currencies; invalidate the whole currencies prefix
     // so userCurrencies, allCurrencies, baseCurrency and rate queries all refresh.
@@ -399,16 +497,11 @@ describe('useImportExportStore – executeImport cache invalidation', () => {
     );
   });
 
-  it('invalidates categoriesByAccount queries after a successful import', async () => {
-    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
-    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
-
+  it('invalidates categoriesByAccount queries on job completion', async () => {
     const invalidateSpy = vi.spyOn(sharedQueryClient, 'invalidateQueries');
 
-    const store = useImportExportStore();
-    seedStore(store);
-    await store.detectDuplicates();
-    await store.executeImport();
+    useImportExportStore();
+    await fireOnComplete();
 
     // Import can create new categories; categoriesByAccount has no prefix so it
     // must be explicitly invalidated (not covered by transactionChange).
@@ -417,7 +510,7 @@ describe('useImportExportStore – executeImport cache invalidation', () => {
     );
   });
 
-  it('does not call invalidateQueries when the import API call fails', async () => {
+  it('does not invalidate caches when enqueuing the job fails (no completion)', async () => {
     mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
     mockExecuteImportApi.mockRejectedValue(new Error('Import failed'));
 
@@ -427,43 +520,28 @@ describe('useImportExportStore – executeImport cache invalidation', () => {
     seedStore(store);
     await store.detectDuplicates();
 
-    await expect(store.executeImport()).rejects.toThrow('Import failed');
+    // The enqueue failure is handled internally (no re-throw) and the job never
+    // reaches `completed`, so onComplete never runs and nothing is invalidated.
+    await store.executeImport();
 
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
 });
 
-describe('useImportExportStore – executeImport categories store refresh', () => {
-  const makeExecuteResponse = (categoriesCreated: number) => ({
-    summary: {
-      imported: 2,
-      skipped: 0,
-      skippedUnpriceable: 0,
-      accountsCreated: 0,
-      categoriesCreated,
-      tagsCreated: 0,
-      errors: [],
-    },
-    newTransactionIds: ['tx-1'],
-    batchId: 'batch-cat',
-  });
-
+describe('useImportExportStore – categories store refresh on completion', () => {
+  // The conditional loadCategories refresh moved into the watchdog's onComplete,
+  // gated on summary.categoriesCreated. Drive that callback to exercise it.
   beforeEach(() => {
     vi.clearAllMocks();
     mountWithPlugins();
   });
 
-  it('calls loadCategories after a successful import that created new categories', async () => {
-    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
-    mockExecuteImportApi.mockResolvedValue(makeExecuteResponse(2));
-
+  it('calls loadCategories when the completed import created new categories', async () => {
     const mockLoadCategories = vi.fn();
     vi.mocked(useCategoriesStore).mockReturnValue({ loadCategories: mockLoadCategories } as never);
 
-    const store = useImportExportStore();
-    seedStore(store);
-    await store.detectDuplicates();
-    await store.executeImport();
+    useImportExportStore();
+    await fireOnComplete({ categoriesCreated: 2 });
 
     // The Pinia categories store is not VueQuery-backed, so invalidateQueries
     // alone won't refresh it — loadCategories must be called explicitly so
@@ -472,21 +550,16 @@ describe('useImportExportStore – executeImport categories store refresh', () =
   });
 
   it('does not call loadCategories when no categories were created', async () => {
-    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
-    mockExecuteImportApi.mockResolvedValue(makeExecuteResponse(0));
-
     const mockLoadCategories = vi.fn();
     vi.mocked(useCategoriesStore).mockReturnValue({ loadCategories: mockLoadCategories } as never);
 
-    const store = useImportExportStore();
-    seedStore(store);
-    await store.detectDuplicates();
-    await store.executeImport();
+    useImportExportStore();
+    await fireOnComplete({ categoriesCreated: 0 });
 
     expect(mockLoadCategories).not.toHaveBeenCalled();
   });
 
-  it('does not call loadCategories when the import API call fails', async () => {
+  it('does not call loadCategories when enqueuing the job fails (no completion)', async () => {
     mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
     mockExecuteImportApi.mockRejectedValue(new Error('Import failed'));
 
@@ -497,27 +570,15 @@ describe('useImportExportStore – executeImport categories store refresh', () =
     seedStore(store);
     await store.detectDuplicates();
 
-    await expect(store.executeImport()).rejects.toThrow('Import failed');
+    // Enqueue failure short-circuits before the job exists, so onComplete (and
+    // therefore the categories refresh) never runs.
+    await store.executeImport();
 
     expect(mockLoadCategories).not.toHaveBeenCalled();
   });
 });
 
 describe('useImportExportStore – executeImport tagMapping inclusion', () => {
-  const EXECUTE_RESPONSE = {
-    summary: {
-      imported: 1,
-      skipped: 0,
-      skippedUnpriceable: 0,
-      accountsCreated: 0,
-      categoriesCreated: 0,
-      tagsCreated: 0,
-      errors: [],
-    },
-    newTransactionIds: ['tx-1'],
-    batchId: 'batch-tags',
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
     mountWithPlugins();
@@ -559,64 +620,86 @@ describe('useImportExportStore – executeImport tagMapping inclusion', () => {
   });
 });
 
-describe('useImportExportStore – importError', () => {
-  const EXECUTE_RESPONSE = {
-    summary: {
-      imported: 1,
-      skipped: 0,
-      skippedUnpriceable: 0,
-      accountsCreated: 0,
-      categoriesCreated: 0,
-      tagsCreated: 0,
-      errors: [],
-    },
-    newTransactionIds: ['tx-1'],
-    batchId: 'batch-err',
-  };
-
+describe('useImportExportStore – execute error handling', () => {
+  // The two real failure modes of the async import:
+  //   1. enqueue failure — the execute POST itself rejects, surfaced via the
+  //      watchdog's setExecuteError; the wizard must NOT advance off `review`.
+  //   2. job failure — the enqueued job later reports `failed`, surfaced via the
+  //      watchdog's `progress`/`executeError` (driven here through the captured
+  //      onFailure callback). The old `importError`/`importResult` refs are gone.
   beforeEach(() => {
     vi.clearAllMocks();
     mountWithPlugins();
   });
 
-  it('sets importError when the import API call rejects', async () => {
+  it('records the error and stays on review when enqueuing the job fails', async () => {
     mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
     mockExecuteImportApi.mockRejectedValue(new Error('Import failed'));
 
     const store = useImportExportStore();
     seedStore(store);
     await store.detectDuplicates();
+    expect(store.currentStepKey).toBe('review');
 
-    await expect(store.executeImport()).rejects.toThrow('Import failed');
+    // The store no longer re-throws on an enqueue failure; it sets the terminal
+    // error via the watchdog and leaves the user on `review` to retry.
+    await store.executeImport();
 
-    expect(store.importError).not.toBeNull();
+    expect(mockJobProgressSetExecuteError).toHaveBeenCalledWith(expect.any(String));
+    expect(store.executeError).not.toBeNull();
+    // Wizard must not advance to results, and the watchdog must not be armed.
+    expect(store.currentStepKey).toBe('review');
+    expect(mockJobProgressStart).not.toHaveBeenCalled();
   });
 
-  it('clears importError on a fresh import that succeeds after a prior failure', async () => {
+  it('does not arm the watchdog or advance when the column mapping cannot be built', async () => {
+    const store = useImportExportStore();
+    // No seedStore: an empty mapping makes toColumnMappingConfig return null, so
+    // executeImport bails early with a terminal error before ever calling the API.
+    await store.executeImport();
+
+    expect(mockExecuteImportApi).not.toHaveBeenCalled();
+    expect(mockJobProgressSetExecuteError).toHaveBeenCalledWith(expect.any(String));
+    expect(mockJobProgressStart).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a failed job via progress/executeError once the job reports failure', async () => {
     mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
-    mockExecuteImportApi.mockRejectedValueOnce(new Error('Import failed'));
-    mockExecuteImportApi.mockResolvedValueOnce(EXECUTE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
 
     const store = useImportExportStore();
     seedStore(store);
     await store.detectDuplicates();
-
-    // First attempt fails and records the error.
-    await expect(store.executeImport()).rejects.toThrow('Import failed');
-    expect(store.importError).not.toBeNull();
-
-    // Second attempt succeeds and must clear the stale error.
     await store.executeImport();
-    expect(store.importError).toBeNull();
+
+    // The job was accepted, so the wizard is on results with the watchdog armed.
+    expect(store.currentStepKey).toBe('results');
+
+    // Simulate the watchdog observing a terminal `failed` payload: it updates its
+    // `progress` ref and runs onFailure. The store exposes that failure through
+    // `progress` (status === 'failed') rather than the removed importError ref.
+    const failedPayload = {
+      jobId: 'job-1',
+      status: 'failed' as const,
+      processedCount: 0,
+      totalCount: 0,
+      error: 'Worker blew up',
+    };
+    mockJobProgress.value = failedPayload;
+    await capturedJobProgressConfig!.onFailure(failedPayload as never);
+
+    expect(store.progress).toEqual(expect.objectContaining({ status: 'failed', error: 'Worker blew up' }));
   });
 
-  it('reset clears importError', () => {
+  it('reset clears the watchdog error and stops the watchdog', () => {
     const store = useImportExportStore();
-    store.importError = 'Something went wrong';
 
     store.reset();
 
-    expect(store.importError).toBeNull();
+    // reset() tears the watchdog down and clears its terminal error.
+    expect(mockJobProgressStop).toHaveBeenCalled();
+    expect(mockJobProgressSetExecuteError).toHaveBeenCalledWith(null);
+    expect(store.executeError).toBeNull();
   });
 });
 
@@ -812,7 +895,7 @@ describe('useImportExportStore – needsResolveStep & visibleSteps', () => {
   });
 });
 
-describe('useImportExportStore – parseFile', () => {
+describe('useImportExportStore – parseFiles', () => {
   const mockParseCsvApi = vi.mocked(apiModule.parseCsv);
 
   beforeEach(() => {
@@ -820,8 +903,9 @@ describe('useImportExportStore – parseFile', () => {
     mountWithPlugins();
   });
 
-  /** Minimal File stand-in: parseFile only calls `.text()` on it. */
-  const fakeFile = (content: string) => ({ text: () => Promise.resolve(content) }) as unknown as File;
+  /** Minimal File stand-in: parseFiles reads `.name` and calls `.text()` (via the merge util). */
+  const fakeFile = (content: string, name = 'test.csv') =>
+    ({ name, text: () => Promise.resolve(content) }) as unknown as File;
 
   it('strips empty-string headers and seeds columnMapping/columnMatch from the parse response', async () => {
     mockParseCsvApi.mockResolvedValue({
@@ -834,7 +918,7 @@ describe('useImportExportStore – parseFile', () => {
 
     const store = useImportExportStore();
 
-    await store.parseFile(fakeFile('date,amount,\n2026-01-01,100,'));
+    await store.parseFiles({ files: [fakeFile('date,amount,\n2026-01-01,100,')] });
 
     expect(store.csvHeaders).toEqual(['date', 'amount']);
     expect(store.csvHeaders).not.toContain('');
@@ -847,5 +931,94 @@ describe('useImportExportStore – parseFile', () => {
 
     // Upload is marked done and the wizard advances to the Map step.
     expect(store.currentStepKey).toBe('map');
+  });
+
+  it('merges several files into one combined payload before parsing', async () => {
+    mockParseCsvApi.mockResolvedValue({
+      headers: ['date', 'amount'],
+      preview: [{ date: '2026-01-01', amount: '100' }],
+      detectedDelimiter: ',',
+      totalRows: 2,
+    });
+
+    const store = useImportExportStore();
+
+    await store.parseFiles({
+      files: [fakeFile('date,amount\n2026-01-01,100', 'jan.csv'), fakeFile('date,amount\n2026-02-01,200', 'feb.csv')],
+    });
+
+    // Both files are retained, and the backend received a single combined CSV
+    // carrying every file's rows.
+    expect(store.uploadedFiles).toHaveLength(2);
+    expect(mockParseCsvApi).toHaveBeenCalledTimes(1);
+    const sentContent = mockParseCsvApi.mock.calls[0]![0].fileContent;
+    expect(sentContent).toContain('2026-01-01');
+    expect(sentContent).toContain('2026-02-01');
+    expect(store.currentStepKey).toBe('map');
+  });
+
+  it('propagates a MergeCsvError when headers differ across files', async () => {
+    const store = useImportExportStore();
+
+    await expect(
+      store.parseFiles({
+        files: [fakeFile('date,amount\n2026-01-01,100', 'a.csv'), fakeFile('date,total\n2026-02-01,200', 'b.csv')],
+      }),
+    ).rejects.toMatchObject({ code: 'HEADER_MISMATCH', fileName: 'b.csv' });
+
+    // The backend parse is never reached, and the wizard stays on upload.
+    expect(mockParseCsvApi).not.toHaveBeenCalled();
+    expect(store.currentStepKey).toBe('upload');
+  });
+
+  it('classifies transaction-type values over the full data, covering values past the preview', async () => {
+    // Preview shows only the first (Spanish) row, mirroring the real bug: the
+    // English values appear later. Re-classification over the full data must cover them.
+    mockParseCsvApi.mockResolvedValue({
+      headers: ['date', 'amount', 'type'],
+      preview: [{ date: '2026-01-01', amount: '100', type: 'Gasto' }],
+      detectedDelimiter: ',',
+      totalRows: 4,
+    });
+
+    const store = useImportExportStore();
+
+    await store.parseFiles({
+      files: [
+        fakeFile(
+          'date,amount,type\n2026-01-01,100,Gasto\n2026-01-02,200,Ingreso\n2026-01-03,300,Expense\n2026-01-04,400,Income',
+          'mixed.csv',
+        ),
+      ],
+    });
+
+    expect(store.uncoveredTransactionTypeValues).toEqual([]);
+
+    const transactionType = store.columnMapping.transactionType;
+    expect(transactionType.option).toBe(TransactionTypeOptionValue.dataSourceColumn);
+    if (transactionType.option === TransactionTypeOptionValue.dataSourceColumn) {
+      // Assert each list separately so an income/expense swap is caught — a merged-and-sorted
+      // union would still pass even if the classifier mislabelled every value.
+      expect([...transactionType.incomeValues].sort()).toEqual(['Income', 'Ingreso']);
+      expect([...transactionType.expenseValues].sort()).toEqual(['Expense', 'Gasto']);
+    }
+  });
+
+  it('flags transaction-type values it cannot classify and blocks the Map step', async () => {
+    mockParseCsvApi.mockResolvedValue({
+      headers: ['date', 'amount', 'type'],
+      preview: [{ date: '2026-01-01', amount: '100', type: 'ZZZ' }],
+      detectedDelimiter: ',',
+      totalRows: 2,
+    });
+
+    const store = useImportExportStore();
+
+    await store.parseFiles({
+      files: [fakeFile('date,amount,type\n2026-01-01,100,ZZZ\n2026-01-02,200,QQQ', 'unknown.csv')],
+    });
+
+    expect(store.uncoveredTransactionTypeValues).toEqual(['ZZZ', 'QQQ']);
+    expect(store.isMapStepValid).toBe(false);
   });
 });

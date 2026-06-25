@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-card rounded-lg border p-6">
+  <div>
     <div class="mb-4">
       <h2 class="text-lg font-semibold">{{ $t('pages.importExport.ynabImport.fileUpload.stepTitle') }}</h2>
       <p class="text-muted-foreground text-sm">{{ $t('pages.importExport.ynabImport.fileUpload.description') }}</p>
@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import FileDropzone from '@/components/common/file-dropzone.vue';
+import { FileDropzone } from '@/components/common/dropzone';
 import { Button as UiButton } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { useImportYnabStore } from '@/stores/import-ynab';

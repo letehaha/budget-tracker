@@ -158,16 +158,6 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/planned/subscriptions/subscription-details.vue'),
           },
           {
-            path: 'reminders',
-            name: ROUTES_NAMES.plannedReminders,
-            component: () => import('@/pages/planned/reminders/index.vue'),
-          },
-          {
-            path: 'reminders/:id',
-            name: ROUTES_NAMES.plannedReminderDetails,
-            component: () => import('@/pages/planned/reminders/reminder-details.vue'),
-          },
-          {
             path: 'budgets',
             name: ROUTES_NAMES.plannedBudgets,
             component: () => import('@/pages/budgets/budgets.vue'),
@@ -338,11 +328,15 @@ const routes: RouteRecordRaw[] = [
             meta: { i18nChunks: ['pages/import-ynab', 'settings/data-management'] as I18nChunkName[] },
           },
           {
-            path: 'data-management/import/wallet',
-            name: ROUTES_NAMES.importWallet,
-            component: () => import('@/pages/import-export/wallet-import/index.vue'),
+            path: 'data-management/import/budget-bakers-wallet',
+            name: ROUTES_NAMES.importBudgetBakersWallet,
+            component: () => import('@/pages/import-export/budget-bakers-wallet-import/index.vue'),
             meta: {
-              i18nChunks: ['pages/import-wallet', 'pages/import-shared', 'settings/data-management'] as I18nChunkName[],
+              i18nChunks: [
+                'pages/import-budget-bakers-wallet',
+                'pages/import-shared',
+                'settings/data-management',
+              ] as I18nChunkName[],
             },
           },
           {
@@ -434,6 +428,12 @@ const routes: RouteRecordRaw[] = [
             name: ROUTES_NAMES.settingsHousehold,
             component: () => import('@/pages/settings/subpages/household/index.vue'),
             meta: { i18nChunks: ['pages/household'] as I18nChunkName[] },
+          },
+          {
+            path: 'subscriptions',
+            name: ROUTES_NAMES.settingsSubscriptions,
+            component: () => import('@/pages/settings/subpages/subscriptions/index.vue'),
+            meta: { i18nChunks: ['settings/subscriptions'] as I18nChunkName[] },
           },
         ],
       },

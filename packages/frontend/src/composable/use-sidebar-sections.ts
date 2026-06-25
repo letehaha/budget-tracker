@@ -3,9 +3,9 @@ import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { CarIcon, RocketIcon, TrendingUpIcon } from '@lucide/vue';
 import { type Component, computed } from 'vue';
 
-export type SidebarSectionKey = keyof SidebarSectionsConfig;
+type SidebarSectionKey = keyof SidebarSectionsConfig;
 
-export interface ToggleableSidebarSection {
+interface ToggleableSidebarSection {
   key: SidebarSectionKey;
   labelKey: string;
   icon: Component;

@@ -416,18 +416,18 @@
       }
     }
   },
-  "paymentReminders": {
-    "reminderNotFound": "Нагадування про оплату не знайдено",
-    "periodNotFound": "Період нагадування про оплату не знайдено",
-    "cannotSkipPaidPeriod": "Неможливо пропустити оплачений період",
-    "periodAlreadySkipped": "Період вже пропущено",
-    "periodAlreadyPaid": "Період вже позначено як оплачений",
-    "periodSkippedUndoFirst": "Період пропущено. Скасуйте пропуск перед позначенням як оплачений.",
-    "periodAlreadyActive": "Період вже в активному стані",
-    "transactionAlreadyLinkedToPeriod": "Ця транзакція вже привязана до іншого періоду цього нагадування"
-  },
   "subscriptions": {
-    "transactionsNotFoundOrNotBelongToUser": "Одну або кілька транзакцій не знайдено або вони не належать користувачу."
+    "transactionsNotFoundOrNotBelongToUser": "Одну або кілька транзакцій не знайдено або вони не належать користувачу.",
+    "validation": {
+      "autoRecord": {
+        "requiresAccount": "Автоматичне записування потребує рахунку, щоб забезпечити місце для розміщення записаної транзакції.",
+        "requiresAmount": "Автоматичне записування потребує expectedAmount та expectedCurrencyCode для визначення вартості записаної транзакції.",
+        "excludesMatching": "Автоматичне записування та правила зіставлення не можна використовувати разом — обидва поселяють один і той же період.",
+        "requiresAccountField": "Автоматичне записування потребує рахунку для запису транзакції.",
+        "requiresAmountField": "Автоматичне записування потребує expectedAmount та expectedCurrencyCode.",
+        "excludesMatchingField": "Автоматичне записування та правила зіставлення є взаємовиключними."
+      }
+    }
   },
   "payees": {
     "aliasNameRequired": "Назва псевдоніма обов'язкова",

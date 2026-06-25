@@ -29,13 +29,12 @@ import PayeeAliasesModel from './payee-aliases.model';
 import PayeeIgnoredNamesModel from './payee-ignored-names.model';
 import PayeeTagsModel from './payee-tags.model';
 import PayeesModel from './payees.model';
-import PaymentReminderNotificationsModel from './payment-reminder-notifications.model';
-import PaymentReminderPeriodsModel from './payment-reminder-periods.model';
-import PaymentRemindersModel from './payment-reminders.model';
 import RefundTransactionsModel from './refund-transactions.model';
 import ResourceSharesModel from './resource-shares.model';
 import ShareInvitationsModel from './share-invitations.model';
 import SubscriptionCandidatesModel from './subscription-candidates.model';
+import SubscriptionPeriodNotificationsModel from './subscription-period-notifications.model';
+import SubscriptionPeriodsModel from './subscription-periods.model';
 import SubscriptionTransactionsModel from './subscription-transactions.model';
 import SubscriptionsModel from './subscriptions.model';
 import TagRemindersModel from './tag-reminders.model';
@@ -111,6 +110,8 @@ const models = [
   PortfolioBalancesModel,
   PortfolioTransfersModel,
   SubscriptionsModel,
+  SubscriptionPeriodsModel,
+  SubscriptionPeriodNotificationsModel,
   SubscriptionTransactionsModel,
   SubscriptionCandidatesModel,
   PayeesModel,
@@ -118,9 +119,6 @@ const models = [
   BrandLogosModel,
   PayeeIgnoredNamesModel,
   PayeeTagsModel,
-  PaymentRemindersModel,
-  PaymentReminderPeriodsModel,
-  PaymentReminderNotificationsModel,
   TransferSuggestionDismissalsModel,
   VenturePlatformsModel,
   VentureDealsModel,

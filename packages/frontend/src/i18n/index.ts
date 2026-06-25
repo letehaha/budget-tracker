@@ -47,7 +47,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/import-csv': () => import('./locales/chunks/en/pages/import-csv.json'),
     'pages/import-statement': () => import('./locales/chunks/en/pages/import-statement.json'),
     'pages/import-ynab': () => import('./locales/chunks/en/pages/import-ynab.json'),
-    'pages/import-wallet': () => import('./locales/chunks/en/pages/import-wallet.json'),
+    'pages/import-budget-bakers-wallet': () => import('./locales/chunks/en/pages/import-budget-bakers-wallet.json'),
     'pages/investments-import': () => import('./locales/chunks/en/pages/investments-import.json'),
     'pages/planned': () => import('./locales/chunks/en/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/en/pages/optimizations.json'),
@@ -67,6 +67,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/ai': () => import('./locales/chunks/en/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/en/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/en/settings/admin.json'),
+    'settings/subscriptions': () => import('./locales/chunks/en/settings/subscriptions.json'),
   },
   uk: {
     // Core chunks
@@ -98,7 +99,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/import-csv': () => import('./locales/chunks/uk/pages/import-csv.json'),
     'pages/import-statement': () => import('./locales/chunks/uk/pages/import-statement.json'),
     'pages/import-ynab': () => import('./locales/chunks/uk/pages/import-ynab.json'),
-    'pages/import-wallet': () => import('./locales/chunks/uk/pages/import-wallet.json'),
+    'pages/import-budget-bakers-wallet': () => import('./locales/chunks/uk/pages/import-budget-bakers-wallet.json'),
     'pages/investments-import': () => import('./locales/chunks/uk/pages/investments-import.json'),
     'pages/planned': () => import('./locales/chunks/uk/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/uk/pages/optimizations.json'),
@@ -118,6 +119,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/ai': () => import('./locales/chunks/uk/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/uk/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/uk/settings/admin.json'),
+    'settings/subscriptions': () => import('./locales/chunks/uk/settings/subscriptions.json'),
   },
   es: {
     // Core chunks
@@ -149,7 +151,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/import-csv': () => import('./locales/chunks/es/pages/import-csv.json'),
     'pages/import-statement': () => import('./locales/chunks/es/pages/import-statement.json'),
     'pages/import-ynab': () => import('./locales/chunks/es/pages/import-ynab.json'),
-    'pages/import-wallet': () => import('./locales/chunks/es/pages/import-wallet.json'),
+    'pages/import-budget-bakers-wallet': () => import('./locales/chunks/es/pages/import-budget-bakers-wallet.json'),
     'pages/investments-import': () => import('./locales/chunks/es/pages/investments-import.json'),
     'pages/planned': () => import('./locales/chunks/es/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/es/pages/optimizations.json'),
@@ -169,6 +171,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/ai': () => import('./locales/chunks/es/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/es/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/es/settings/admin.json'),
+    'settings/subscriptions': () => import('./locales/chunks/es/settings/subscriptions.json'),
   },
 };
 

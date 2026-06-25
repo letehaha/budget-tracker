@@ -248,5 +248,14 @@
       "successMessage": "{count} transactions deleted",
       "unexpectedError": "Failed to delete transactions. Please try again."
     }
+  },
+  "records": {
+    "upcomingSection": {
+      "title": "Upcoming",
+      "overdueBadge": "Overdue",
+      "scheduledBadge": "Scheduled",
+      "payAction": "Mark paid",
+      "hideToggle": "Hide upcoming payments"
+    }
   }
 }

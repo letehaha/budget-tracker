@@ -4,6 +4,13 @@
       "ynabImport": {
         "pageTitle": "Import from YNAB",
         "pageDescription": "Upload your YNAB Register.csv export to bring accounts, transactions, categories, payees and tags into MoneyMatter.",
+        "stepper": {
+          "steps": {
+            "upload": "Upload",
+            "preview": "Review",
+            "results": "Done"
+          }
+        },
         "steps": {
           "uploadTitle": "Upload file",
           "uploadDescription": "Pick the Register.csv from your YNAB export.",

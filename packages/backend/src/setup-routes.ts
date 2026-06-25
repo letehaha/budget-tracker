@@ -12,15 +12,16 @@ import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
 import bankDataProvidersRoutes from './routes/bank-data-providers.route';
 import betterAuthExtensionsRoutes from './routes/better-auth-extensions.route';
+import brandLogosRoutes from './routes/brand-logos.route';
 import budgetsRoutes from './routes/budgets.route';
 import categoriesRoutes from './routes/categories.route';
 import modelsCurrenciesRoutes from './routes/currencies.route';
 import demoRoutes from './routes/demo.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
 import githubRoutes from './routes/github.route';
+import budgetBakersWalletImportRoutes from './routes/import-export/budget-bakers-wallet.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
-import walletImportRoutes from './routes/import-export/wallet.route';
 import ynabImportRoutes from './routes/import-export/ynab.route';
 import investmentsRoutes from './routes/investments.route';
 import loansRoutes from './routes/loans.route';
@@ -28,7 +29,6 @@ import mcpRoutes from './routes/mcp.route';
 import notificationsRoutes from './routes/notifications.route';
 import { setupOAuthMetadataRoutes } from './routes/oauth-metadata.route';
 import payeesRoutes from './routes/payees.route';
-import paymentRemindersRoutes from './routes/payment-reminders.route';
 import shareRoutes from './routes/share.route';
 import sseRoutes from './routes/sse.route';
 import statsRoutes from './routes/stats.route';
@@ -61,7 +61,7 @@ export function setupRoutes(app: Express) {
   // Patch OAuth2 dynamic client registration requests so they always register as
   // public clients.  better-auth's oauth-provider treats clients without
   // `token_endpoint_auth_method: "none"` as confidential and rejects unauthenticated
-  // registration with 401 — even when allowUnauthenticatedClientRegistration is true.
+  // registration with 401 – even when allowUnauthenticatedClientRegistration is true.
   // MCP clients (e.g. Claude.ai) often omit this field, so we default it here.
   //
   // We can't patch the stream in-place (Node 23's Fetch API reads the internal
@@ -88,7 +88,7 @@ export function setupRoutes(app: Express) {
         }
         body = Buffer.from(JSON.stringify(parsed));
       } catch {
-        // Not valid JSON — proxy the original bytes and let better-auth error
+        // Not valid JSON – proxy the original bytes and let better-auth error
         logger.warn('[register-patch] Failed to parse request body as JSON');
         body = Buffer.concat(chunks);
       }
@@ -176,7 +176,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/transaction-groups`, transactionGroupsRoutes);
   app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
   app.use(`${API_PREFIX}/payees`, payeesRoutes);
-  app.use(`${API_PREFIX}/payment-reminders`, paymentRemindersRoutes);
+  app.use(`${API_PREFIX}/brand-logos`, brandLogosRoutes);
   app.use(`${API_PREFIX}/vehicles`, vehiclesRoutes);
   app.use(`${API_PREFIX}/loans`, loansRoutes);
   app.use(`${API_PREFIX}/share`, shareRoutes);
@@ -186,7 +186,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
   app.use(`${API_PREFIX}/import`, statementParserRoutes);
   app.use(`${API_PREFIX}/import`, ynabImportRoutes);
-  app.use(`${API_PREFIX}/import`, walletImportRoutes);
+  app.use(`${API_PREFIX}/import`, budgetBakersWalletImportRoutes);
   app.use(`${API_PREFIX}/sse`, sseRoutes);
   app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
   app.use(`${API_PREFIX}/github`, githubRoutes);
@@ -204,7 +204,7 @@ export function setupRoutes(app: Express) {
     res.type('text/plain').send('User-agent: *\nDisallow: /');
   });
 
-  // RFC 9116 — security disclosure contact. Served on api.moneymatter.app and
+  // RFC 9116 – security disclosure contact. Served on api.moneymatter.app and
   // mcp.moneymatter.app; the SPA host has a static mirror in nginx.
   // Refresh `Expires` before it lapses, otherwise scanners flag it as expired.
   const securityTxt = [

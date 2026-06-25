@@ -47,10 +47,11 @@ export default class Currencies extends Model {
 }
 
 /**
- * ISO 4217 codes that are not actual currencies (precious metals, testing codes, supranational currencies)
- * These should be excluded from the currency selection UI
+ * ISO 4217 codes that are not actual currencies (precious metals, testing codes, supranational currencies).
+ * These are excluded from the currency selection UI and rejected on bank-account import — none of them
+ * have an exchange rate, so trying to compute a ref-amount against the user's base currency throws.
  */
-const NON_CURRENCY_CODES = [
+export const NON_CURRENCY_CODES = [
   'XAU', // Gold
   'XAG', // Silver
   'XPT', // Platinum

@@ -32,6 +32,14 @@ interface TransactionsTableSettings {
   extraFilters?: string[];
 }
 
+interface TransactionsListSettings {
+  /**
+   * When true, the pinned "Upcoming" section (overdue + due within 3 days) is
+   * hidden from the list view. Defaults to false (section visible).
+   */
+  hideUpcoming?: boolean;
+}
+
 interface InvestmentTransactionsTableSettings {
   /** Ordered list of column ids the user wants visible. */
   visibleColumns: string[];
@@ -41,7 +49,14 @@ interface InvestmentTransactionsTableSettings {
 
 export interface UiSettings {
   transactionsTable?: TransactionsTableSettings;
+  transactionsList?: TransactionsListSettings;
   investmentTransactionsTable?: InvestmentTransactionsTableSettings;
+}
+
+export interface SubscriptionsSettings {
+  /** Seeds the auto-record toggle on the create-subscription form; the form
+   *  still lets the user override it per subscription. */
+  defaultAutoRecord?: boolean;
 }
 
 export interface UserSettingsSchema {
@@ -53,6 +68,7 @@ export interface UserSettingsSchema {
   sidebarSections?: SidebarSectionsConfig;
   payeeExtractionUsesDescription?: boolean;
   ui?: UiSettings;
+  subscriptions?: SubscriptionsSettings;
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

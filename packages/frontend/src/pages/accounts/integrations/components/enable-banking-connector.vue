@@ -181,7 +181,7 @@
             <p>
               {{ t('pages.integrations.enableBankingConnector.steps.authDescription', { bank: selectedBankName }) }}
             </p>
-            <p class="text-warning font-medium">
+            <p class="text-warning-text font-medium">
               {{ t('pages.integrations.enableBankingConnector.steps.authWarning', { bank: selectedBankName }) }}
             </p>
           </div>

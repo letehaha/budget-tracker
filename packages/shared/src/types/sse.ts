@@ -1,4 +1,5 @@
-import type { WalletImportProgress } from './wallet-import';
+import type { BudgetBakersWalletImportProgress } from './budget-bakers-wallet-import';
+import type { CsvImportProgress } from './import-export';
 /**
  * Server-Sent Events (SSE) shared types
  *
@@ -13,7 +14,8 @@ export const SSE_EVENT_TYPES = {
   AI_CATEGORIZATION_PROGRESS: 'ai_categorization_progress',
   SYNC_STATUS_CHANGED: 'bank_connections_sync_status_changed',
   YNAB_IMPORT_PROGRESS: 'ynab_import_progress',
-  WALLET_IMPORT_PROGRESS: 'wallet_import_progress',
+  BUDGET_BAKERS_WALLET_IMPORT_PROGRESS: 'budget_bakers_wallet_import_progress',
+  CSV_IMPORT_PROGRESS: 'csv_import_progress',
 } as const;
 
 export type SSEEventType = (typeof SSE_EVENT_TYPES)[keyof typeof SSE_EVENT_TYPES];
@@ -80,7 +82,8 @@ export type SSEEventPayload =
   | AiCategorizationProgressPayload
   | SyncStatusChangedPayload
   | YnabImportProgress
-  | WalletImportProgress;
+  | BudgetBakersWalletImportProgress
+  | CsvImportProgress;
 
 /**
  * Maps each SSE event name to the payload its listeners receive. Lets a typed
@@ -93,5 +96,6 @@ export interface SSEEventPayloadMap {
   [SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS]: AiCategorizationProgressPayload;
   [SSE_EVENT_TYPES.SYNC_STATUS_CHANGED]: SyncStatusChangedPayload;
   [SSE_EVENT_TYPES.YNAB_IMPORT_PROGRESS]: YnabImportProgress;
-  [SSE_EVENT_TYPES.WALLET_IMPORT_PROGRESS]: WalletImportProgress;
+  [SSE_EVENT_TYPES.BUDGET_BAKERS_WALLET_IMPORT_PROGRESS]: BudgetBakersWalletImportProgress;
+  [SSE_EVENT_TYPES.CSV_IMPORT_PROGRESS]: CsvImportProgress;
 }

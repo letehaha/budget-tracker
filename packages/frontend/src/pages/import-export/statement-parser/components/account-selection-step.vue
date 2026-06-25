@@ -154,7 +154,7 @@ function handleCurrencyChange(currencyCode: string) {
 }
 
 function handleBack() {
-  store.goBackToStep({ step: 1 });
+  store.goBack();
 }
 
 async function handleProceed() {

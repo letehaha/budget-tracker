@@ -5,13 +5,12 @@ import Payees from '@models/payees.model';
 import { Op } from 'sequelize';
 
 import { connection } from '../models';
-import { enqueueLogoResolution, logoResolutionQueue } from '../services/payees/logo-resolution-queue';
-import { applyCachedLogosToPayees } from '../services/payees/resolve-logo.service';
+import { applyCachedLogos, enqueueLogoResolution, logoResolutionQueue } from '../services/brand-logos';
 
 /**
  * Eager backfill for Payees that predate the brand-logo feature
  * (`logoSource IS NULL`). For each page:
- *   1. `applyCachedLogosToPayees` resolves seed/cache hits with zero API calls.
+ *   1. `applyCachedLogos` resolves seed/cache hits with zero API calls.
  *   2. The returned cache misses are enqueued for async logo.dev resolution.
  *
  * Paginates by ascending primary key. Because step 1 stamps `logoSource` on the
@@ -45,9 +44,9 @@ async function backfillPayeeLogos(): Promise<void> {
     scanned += page.length;
     cursorId = page[page.length - 1]!.id;
 
-    const misses = await applyCachedLogosToPayees({ payees: page });
+    const misses = await applyCachedLogos<Payees>({ entity: 'payee', rows: page });
     for (const payee of misses) {
-      await enqueueLogoResolution({ payeeId: payee.id });
+      await enqueueLogoResolution({ entity: 'payee', id: payee.id });
     }
     enqueued += misses.length;
 

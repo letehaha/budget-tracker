@@ -16,11 +16,11 @@ import {
   type InvestmentImportTransactionSide,
 } from '@bt/shared/types/investments';
 import { ValidationError } from '@js/errors';
+import { parseDate } from '@services/import-export/core/parse/parse-date';
 import { Big } from 'big.js';
 import { parse } from 'csv-parse/sync';
 
 import { parseCSV } from '../csv-import/csv-parser.service';
-import { parseDate } from '../csv-import/detect-duplicates/parse-date';
 import type { NormalizedInvestmentRow } from './group-rows-into-holdings.service';
 import { normaliseCurrency } from './symbol-resolution.service';
 

@@ -26,7 +26,7 @@
     <!-- File info -->
     <p class="text-muted-foreground mb-6 text-xs">
       {{ $t('pages.importExport.columnMapping.file') }}:
-      <span class="text-foreground font-medium">{{ importStore.uploadedFile?.name }}</span>
+      <span class="text-foreground font-medium">{{ fileLabel }}</span>
       <span class="mx-1.5">·</span>
       {{ $t('pages.importExport.columnMapping.totalRows') }}: {{ importStore.totalRows }}
       <span class="mx-1.5">·</span>
@@ -278,6 +278,13 @@ const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
 const { activeAccounts } = storeToRefs(accountsStore);
 const { categories, formattedCategories, categoriesMap } = storeToRefs(categoriesStore);
+
+/** Single file → its name; several files → a "N files" count (they were merged into one). */
+const fileLabel = computed(() => {
+  const files = importStore.uploadedFiles;
+  if (files.length === 1) return files[0]!.name;
+  return t('pages.importExport.columnMapping.filesCount', { count: files.length }, files.length);
+});
 
 interface CurrencyWithDisplay extends CurrencyModel {
   displayName: string;
@@ -695,13 +702,16 @@ const currencyStatus = computed<MapRowStatus>(() =>
   }),
 );
 
-const transactionTypeStatus = computed<MapRowStatus>(() =>
-  deriveMapRowStatus({
+const transactionTypeStatus = computed<MapRowStatus>(() => {
+  // Type-column values not yet assigned to income/expense are a blocking problem
+  // the user must resolve here, so flag the row regardless of method-level decidedness.
+  if (importStore.uncoveredTransactionTypeValues.length > 0) return 'needs-attention';
+  return deriveMapRowStatus({
     hasValue: isTransactionTypeDecided({ transactionType: m.value.transactionType }),
     required: true,
     match: importStore.columnMatch?.transactionType ?? null,
-  }),
-);
+  });
+});
 
 interface ComplexRow {
   id: 'category' | 'account' | 'currency' | 'transactionType';

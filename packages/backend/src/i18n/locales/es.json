@@ -413,18 +413,18 @@
       }
     }
   },
-  "paymentReminders": {
-    "reminderNotFound": "Recordatorio de pago no encontrado",
-    "periodNotFound": "Período del recordatorio de pago no encontrado",
-    "cannotSkipPaidPeriod": "No se puede omitir un período ya pagado",
-    "periodAlreadySkipped": "El período ya está omitido",
-    "periodAlreadyPaid": "El período ya está marcado como pagado",
-    "periodSkippedUndoFirst": "El período está omitido. Deshaga la omisión antes de marcarlo como pagado.",
-    "periodAlreadyActive": "El período ya está en estado activo",
-    "transactionAlreadyLinkedToPeriod": "Esta transacción ya está vinculada a otro período de este recordatorio"
-  },
   "subscriptions": {
-    "transactionsNotFoundOrNotBelongToUser": "Una o más transacciones no encontradas o no pertenecen al usuario."
+    "transactionsNotFoundOrNotBelongToUser": "Una o más transacciones no encontradas o no pertenecen al usuario.",
+    "validation": {
+      "autoRecord": {
+        "requiresAccount": "El registro automático requiere una cuenta para que la transacción registrada tenga un lugar dónde aterrizar.",
+        "requiresAmount": "El registro automático requiere expectedAmount y expectedCurrencyCode para que la transacción registrada tenga un valor.",
+        "excludesMatching": "El registro automático y las reglas de coincidencia no se pueden usar juntos — ambos resolverían el mismo período.",
+        "requiresAccountField": "El registro automático requiere una cuenta para registrar la transacción.",
+        "requiresAmountField": "El registro automático requiere expectedAmount y expectedCurrencyCode.",
+        "excludesMatchingField": "El registro automático y las reglas de coincidencia son mutuamente excluyentes."
+      }
+    }
   },
   "payees": {
     "aliasNameRequired": "El nombre del alias es obligatorio",

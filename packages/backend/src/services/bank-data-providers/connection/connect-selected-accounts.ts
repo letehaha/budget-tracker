@@ -14,7 +14,7 @@ import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import { getCurrency } from '@models/currencies.model';
+import { NON_CURRENCY_CODES, getCurrency } from '@models/currencies.model';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
@@ -124,9 +124,12 @@ const createAccountsForConnection = withTransaction(
         });
         createdAccounts.push(existingAccount);
       } else {
-        // Ensure user has the currency for this account
+        // Ensure user has the currency for this account. Reject both unknown codes
+        // and ISO 4217 non-currencies (XXX "no currency", precious metals, test
+        // codes): none have an exchange rate, so the calculateRefAmount call below
+        // would throw "Exchange rate not available" and surface as a 500 mid-sync.
         const currency = await getCurrency({ code: providerAccount.currency.toUpperCase() });
-        if (!currency) {
+        if (!currency || NON_CURRENCY_CODES.includes(currency.code)) {
           throw new BadRequestError({
             message: t({
               key: 'bankDataProviders.accountCurrencyNotSupported',

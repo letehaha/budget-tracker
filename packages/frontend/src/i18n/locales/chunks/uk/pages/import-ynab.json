@@ -4,6 +4,13 @@
       "ynabImport": {
         "pageTitle": "Імпортувати з YNAB",
         "pageDescription": "Завантажте експорт YNAB Register.csv, щоб перенести облікові записи, операції, категорії, контрагентів та теги в MoneyMatter.",
+        "stepper": {
+          "steps": {
+            "upload": "Завантажити",
+            "preview": "Перегляд",
+            "results": "Готово"
+          }
+        },
         "steps": {
           "uploadTitle": "Завантажити файл",
           "uploadDescription": "Виберіть Register.csv із вашого експорту YNAB.",

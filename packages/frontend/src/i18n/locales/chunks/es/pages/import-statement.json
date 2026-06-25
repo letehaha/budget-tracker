@@ -3,6 +3,14 @@
     "statementParser": {
       "pageTitle": "Analizador de extractos",
       "pageDescription": "Suba un extracto bancario (PDF, CSV o TXT) para extraer transacciones con IA. Requiere una clave de API de IA configurada en los ajustes.",
+      "stepper": {
+        "steps": {
+          "upload": "Subir",
+          "account": "Cuenta",
+          "review": "Revisar",
+          "results": "Importar"
+        }
+      },
       "steps": {
         "uploadTitle": "Subir y extraer",
         "uploadDescription": "Suba el extracto y extraiga las transacciones con IA",

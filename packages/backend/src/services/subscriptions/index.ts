@@ -1,5 +1,6 @@
 export { createSubscription } from './create-subscription';
 export { updateSubscription } from './update-subscription';
+export { resetSubscriptionLogo } from './reset-subscription-logo';
 export { deleteSubscription } from './delete-subscription';
 export { getSubscriptions, getSubscriptionById } from './get-subscriptions';
 export { toggleSubscriptionActive } from './toggle-active';

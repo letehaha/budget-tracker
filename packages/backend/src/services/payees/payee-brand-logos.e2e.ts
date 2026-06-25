@@ -7,59 +7,7 @@ import * as helpers from '@tests/helpers';
 import { getLogoDevSearchMock } from '@tests/mocks/logo-dev/mock-api';
 
 // ---------------------------------------------------------------------------
-// GET /api/payees/logo-search?q=...
-// ---------------------------------------------------------------------------
-
-describe('Payee brand-logo search', () => {
-  describe('GET /payees/logo-search', () => {
-    it('returns matching results when the provider returns brands', async () => {
-      global.mswMockServer.use(
-        getLogoDevSearchMock({
-          results: [
-            { name: 'Amazon', domain: 'amazon.com', logoUrl: 'https://img.logo.dev/amazon.com' },
-            { name: 'Amazon Web Services', domain: 'aws.amazon.com', logoUrl: 'https://img.logo.dev/aws.amazon.com' },
-          ],
-        }),
-      );
-
-      const data = await helpers.searchPayeeLogos({ q: 'amazon', raw: true });
-
-      expect(data.results).toHaveLength(2);
-      expect(data.results[0]).toMatchObject({
-        name: 'Amazon',
-        domain: 'amazon.com',
-        logoUrl: 'https://img.logo.dev/amazon.com',
-      });
-      expect(data.results[1]).toMatchObject({
-        name: 'Amazon Web Services',
-        domain: 'aws.amazon.com',
-      });
-    });
-
-    it('returns empty results when the provider returns nothing', async () => {
-      // Default MSW handler already returns [] — no override needed.
-      const data = await helpers.searchPayeeLogos({ q: 'xyznonexistentbrand', raw: true });
-
-      expect(data.results).toEqual([]);
-    });
-
-    it('returns empty results when q is absent', async () => {
-      // The controller short-circuits before calling searchBrands when q is empty / missing.
-      const data = await helpers.searchPayeeLogos({ raw: true });
-
-      expect(data.results).toEqual([]);
-    });
-
-    it('returns empty results when q is an empty string', async () => {
-      const data = await helpers.searchPayeeLogos({ q: '', raw: true });
-
-      expect(data.results).toEqual([]);
-    });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// POST /api/payees  — logoDomain field (manual logo at creation time)
+// POST /api/payees  – logoDomain field (manual logo at creation time)
 // ---------------------------------------------------------------------------
 
 describe('Payee POST logoDomain', () => {
@@ -103,7 +51,7 @@ describe('Payee POST logoDomain', () => {
     });
 
     it('keeps a manual logoDomain even when a matching BrandLogos cache entry exists', async () => {
-      // A cache entry that WOULD be picked up by auto-resolution — the manual
+      // A cache entry that WOULD be picked up by auto-resolution – the manual
       // override must win because the resolver bails on logoSource = 'manual'.
       await BrandLogos.create({
         normalizedName: 'dropbox',
@@ -153,7 +101,7 @@ describe('Payee POST logoDomain', () => {
 });
 
 // ---------------------------------------------------------------------------
-// PATCH /api/payees/:id  — logoDomain field
+// PATCH /api/payees/:id  – logoDomain field
 // ---------------------------------------------------------------------------
 
 describe('Payee PATCH logoDomain', () => {
@@ -202,7 +150,7 @@ describe('Payee PATCH logoDomain', () => {
         raw: true,
       });
 
-      // Update a different field — logo fields must remain unchanged.
+      // Update a different field – logo fields must remain unchanged.
       const updated = await helpers.updatePayee({
         id: payee.id,
         payload: { name: 'Spotify Premium' },
@@ -304,7 +252,7 @@ describe('Payee reset-logo', () => {
       expect(reset.logoSource).toBeNull();
     });
 
-    it('is idempotent — resetting a payee that already has no logo succeeds', async () => {
+    it('is idempotent – resetting a payee that already has no logo succeeds', async () => {
       const payee = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'No Logo Co' }),
         raw: true,
@@ -349,7 +297,7 @@ describe('Payee reset-logo', () => {
 //
 // The logo-resolution worker is running in the test environment (started by
 // setupIntegrationTests). We seed the shared BrandLogos cache directly (via
-// the Sequelize model — allowed here because this is background-data seeding,
+// the Sequelize model – allowed here because this is background-data seeding,
 // not the endpoint under test). When a new Payee is created its name matches
 // a BrandLogos row, the worker picks it up and writes logoDomain + 'auto'.
 // We poll GET /payees/:id until logoDomain is populated.

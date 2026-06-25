@@ -1,27 +1,21 @@
-import type { Cents } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
-import { executeImport } from '@services/import-export/csv-import/execute-import';
+import { queueCsvImport } from '@services/import-export/csv-import/csv-import-queue';
 import { z } from 'zod';
 
-import { accountMappingValueSchema, categoryMappingValueSchema, tagMappingValueSchema } from './shared-schemas';
-
-const parsedTransactionRowSchema = z.object({
-  rowIndex: z.number(),
-  date: z.string(), // ISO format
-  amount: z.number().transform((n) => n as Cents),
-  description: z.string(),
-  categoryName: z.string().optional(),
-  tagNames: z.array(z.string()).optional(),
-  accountName: z.string(),
-  currencyCode: z.string(),
-  transactionType: z.enum(['income', 'expense']),
-});
+import {
+  accountMappingValueSchema,
+  categoryMappingValueSchema,
+  columnMappingConfigSchema,
+  tagMappingValueSchema,
+} from './shared-schemas';
 
 export const executeImportController = createController(
   z.object({
     body: z.object({
-      validRows: z.array(parsedTransactionRowSchema),
+      fileContent: z.string(),
+      delimiter: z.string(),
+      columnMapping: columnMappingConfigSchema,
       accountMapping: z.record(z.string(), accountMappingValueSchema),
       categoryMapping: z.record(z.string(), categoryMappingValueSchema),
       tagMapping: z.record(z.string(), tagMappingValueSchema).optional(),
@@ -29,11 +23,14 @@ export const executeImportController = createController(
       skipUnpriceableIndices: z.array(z.number()).optional(),
       defaultAccountId: recordId().optional(),
       defaultCategoryId: recordId().optional(),
+      timezone: z.string().optional(),
     }),
   }),
   async ({ user, body }) => {
     const {
-      validRows,
+      fileContent,
+      delimiter,
+      columnMapping,
       accountMapping,
       categoryMapping,
       tagMapping,
@@ -41,11 +38,14 @@ export const executeImportController = createController(
       skipUnpriceableIndices,
       defaultAccountId,
       defaultCategoryId,
+      timezone,
     } = body;
 
-    const result = await executeImport({
+    const jobId = await queueCsvImport({
       userId: user.id,
-      validRows,
+      fileContent,
+      delimiter,
+      columnMapping,
       accountMapping,
       categoryMapping,
       tagMapping,
@@ -53,10 +53,11 @@ export const executeImportController = createController(
       skipUnpriceableIndices,
       defaultAccountId,
       defaultCategoryId,
+      timezone,
     });
 
     return {
-      data: result,
+      data: { jobId },
     };
   },
 );

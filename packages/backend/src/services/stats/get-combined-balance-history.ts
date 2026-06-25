@@ -14,6 +14,7 @@ import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants
 import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
 
+import { buildUsdRateLookup } from './build-usd-rate-lookup';
 import { calculateVehiclesBalanceHistory } from './calculate-vehicles-balance-history';
 import { calculateVentureBalanceHistory } from './calculate-venture-balance-history';
 import { getAggregatedBalanceHistory } from './get-balance-history';
@@ -217,25 +218,16 @@ const calculatePortfolioBalanceHistory = async ({
     userRatesMap.set(`${r.baseCode}_${formatDate(r.date)}`, r.rate);
   }
 
-  // System rates indexed by `${quoteCode}_${dateStr}` — value is `1 USD = N quoteCode`.
-  // Same currency can be queried under multiple cross-pairs so this stays a single
-  // source of truth instead of one map per pair.
-  const usdRatesMap = new Map<string, number>();
-  // Per-currency sorted date list, ascending — used by `findLatestUsdRate` to walk
-  // backwards from the requested date when an exact match is missing (weekends,
-  // pre-historical-init dates).
-  const usdRateDatesByQuote = new Map<string, string[]>();
-  for (const rate of systemExchangeRates) {
-    const dateStr = formatDate(rate.date);
-    usdRatesMap.set(`${rate.quoteCode}_${dateStr}`, rate.rate);
-
-    const dates = usdRateDatesByQuote.get(rate.quoteCode);
-    if (dates) {
-      dates.push(dateStr);
-    } else {
-      usdRateDatesByQuote.set(rate.quoteCode, [dateStr]);
-    }
-  }
+  // System rates indexed by `${quoteCode}_${dateStr}` (value `1 USD = N quoteCode`) plus
+  // a per-currency ascending date list, both used by `findLatestUsdRate` to walk
+  // backwards when an exact day is missing (weekends, pre-historical-init dates). The
+  // lookup is seeded with one rate from before the window so a currency whose latest
+  // stored rate predates the chart range still resolves instead of collapsing to 1:1.
+  const { usdRatesMap, usdRateDatesByQuote } = await buildUsdRateLookup({
+    systemRates: systemExchangeRates,
+    quoteCodes: usdRateQuoteCodes,
+    windowStart: dataFetchMinDate,
+  });
 
   const missingRateCurrencies = new Set<string>();
 

@@ -16,7 +16,8 @@
       "appearance": "Apariencia",
       "language": "Idioma",
       "statistics": "Estadísticas",
-      "payees": "Beneficiarios"
+      "payees": "Beneficiarios",
+      "subscriptions": "Pagos programados"
     },
     "backToSettings": "Volver a ajustes"
   }

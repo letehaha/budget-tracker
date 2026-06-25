@@ -70,6 +70,7 @@ import { useUserStore } from '@/stores';
 import { useElementSize } from '@vueuse/core';
 import {
   BarChart3Icon,
+  CalendarClockIcon,
   ChevronRightIcon,
   CircleDollarSignIcon,
   HomeIcon,
@@ -187,6 +188,12 @@ const workspaceTabs = computed<Tab[]>(() => {
       to: { name: ROUTES_NAMES.settingsPayees },
       icon: StoreIcon,
       badgeSince: '2026-06-04',
+    },
+    {
+      name: 'subscriptions',
+      label: t('settings.navigation.subscriptions'),
+      to: { name: ROUTES_NAMES.settingsSubscriptions },
+      icon: CalendarClockIcon,
     },
     {
       name: 'accounts',

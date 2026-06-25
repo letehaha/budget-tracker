@@ -1,4 +1,4 @@
-import type { BrandSearchResult } from '@services/payees/logo-provider';
+import type { BrandSearchResult } from '@services/brand-logos';
 import { HttpResponse, http } from 'msw';
 
 export const LOGO_DEV_SEARCH_URL_REGEX = /api\.logo\.dev\/search/;

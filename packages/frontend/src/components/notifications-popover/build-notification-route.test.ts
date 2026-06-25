@@ -151,7 +151,6 @@ describe('buildNotificationRoute', () => {
       NOTIFICATION_TYPES.system,
       NOTIFICATION_TYPES.changelog,
       NOTIFICATION_TYPES.tagReminder,
-      NOTIFICATION_TYPES.paymentReminder,
       NOTIFICATION_TYPES.shareDeclined,
       NOTIFICATION_TYPES.shareRevoked,
       NOTIFICATION_TYPES.shareLeft,
@@ -159,6 +158,33 @@ describe('buildNotificationRoute', () => {
       NOTIFICATION_TYPES.shareOwnerAccountDeleted,
     ])('returns null for type "%s"', (type) => {
       const route = buildNotificationRoute(baseNotification({ type, payload: {} }));
+      expect(route).toBeNull();
+    });
+  });
+
+  describe('subscription_reminder', () => {
+    it('returns SPA route to subscription details when subscriptionId present', () => {
+      const route = buildNotificationRoute(
+        baseNotification({
+          type: NOTIFICATION_TYPES.subscriptionReminder,
+          payload: { subscriptionId: NONEXISTENT_ID },
+        }),
+      );
+
+      expect(route).toEqual({
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.plannedSubscriptionDetails, params: { id: NONEXISTENT_ID } },
+      });
+    });
+
+    it('returns null when subscriptionId is missing', () => {
+      const route = buildNotificationRoute(
+        baseNotification({
+          type: NOTIFICATION_TYPES.subscriptionReminder,
+          payload: {},
+        }),
+      );
+
       expect(route).toBeNull();
     });
   });

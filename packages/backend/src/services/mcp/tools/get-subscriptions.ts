@@ -15,9 +15,9 @@ export function registerGetSubscriptions(server: McpServer) {
       inputSchema: {
         isActive: z.boolean().optional().describe('Filter by active state. Omit to return all subscriptions'),
         type: z
-          .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill])
+          .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill, SUBSCRIPTION_TYPES.installment])
           .optional()
-          .describe('Filter by type: "subscription" or "bill"'),
+          .describe('Filter by type: "subscription", "bill", or "installment"'),
       },
     },
     async (args, extra) => {

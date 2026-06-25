@@ -8,6 +8,7 @@ import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import Vehicles from '@models/vehicles.model';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
+import { buildUsdRateLookup } from '@services/stats/build-usd-rate-lookup';
 import { computeVehicleValue } from '@services/vehicles/compute-vehicle-value';
 import { endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
@@ -210,16 +211,11 @@ export const calculateVehiclesBalanceHistory = async ({
     userRatesMap.set(`${r.baseCode}_${formatDate(r.date)}`, r.rate);
   }
 
-  const usdRatesMap = new Map<string, number>();
-  const usdRateDatesByQuote = new Map<string, string[]>();
-  for (const rate of systemExchangeRates) {
-    const dateStr = formatDate(rate.date);
-    usdRatesMap.set(`${rate.quoteCode}_${dateStr}`, rate.rate);
-
-    const dates = usdRateDatesByQuote.get(rate.quoteCode);
-    if (dates) dates.push(dateStr);
-    else usdRateDatesByQuote.set(rate.quoteCode, [dateStr]);
-  }
+  const { usdRatesMap, usdRateDatesByQuote } = await buildUsdRateLookup({
+    systemRates: systemExchangeRates,
+    quoteCodes: usdRateQuoteCodes,
+    windowStart: dataFetchMinDate,
+  });
 
   const missingRateCurrencies = new Set<string>();
 

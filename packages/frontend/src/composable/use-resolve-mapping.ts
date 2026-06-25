@@ -24,10 +24,10 @@ import { type ComputedRef, type Ref, computed } from 'vue';
 /**
  * Per-entity wiring. The entry type `E` is the store's mapping value for that
  * entity (e.g. CSV's `AccountMappingValue`, Wallet's account form value,
- * `TagMappingValue`). The engine never inspects `E` beyond its `action` tag —
+ * `TagMappingValue`). The engine never inspects `E` beyond its `action` tag –
  * shape-specific construction is delegated to `toLink` / `toCreate`.
  */
-export interface ResolveEntityConfig<E extends { action: string }> {
+interface ResolveEntityConfig<E extends { action: string }> {
   /**
    * Whether this entity participates in the current resolve step. CSV gates each
    * entity on whether its column mapping needs reconciliation; Wallet's entities
@@ -67,7 +67,7 @@ export interface ResolveEntityConfig<E extends { action: string }> {
 }
 
 /** Entity identifiers the dispatching actions accept. */
-export type ResolveEntityKind = 'accounts' | 'categories' | 'tags';
+type ResolveEntityKind = 'accounts' | 'categories' | 'tags';
 
 /**
  * Builds the shared resolve engine over the given per-entity configs. `accounts`

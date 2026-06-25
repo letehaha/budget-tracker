@@ -7,7 +7,6 @@ import Categories from '@models/categories.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Notifications from '@models/notifications.model';
-import PaymentReminders from '@models/payment-reminders.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
@@ -108,8 +107,8 @@ export const wipeUserData = async ({ userId }: { userId: number }) => {
       //   Accounts → Balances, Transactions, BankDataProviderConnections,
       //              TransactionTags, TransactionSplits, RefundTransactions
       //   Budget → BudgetCategories, BudgetTransactions
-      //   Subscriptions → SubscriptionTransactions
-      //   PaymentReminders → PaymentReminderPeriods, PaymentReminderNotifications
+      //   Subscriptions → SubscriptionPeriods → SubscriptionPeriodNotifications,
+      //                   SubscriptionTransactions
       //   Portfolios → Holdings, PortfolioBalances, PortfolioTransfers, InvestmentTransaction
       //   VentureDeals → VentureEvents → VentureEventLinks
       //   TransactionGroups → TransactionGroupItems
@@ -129,7 +128,6 @@ export const wipeUserData = async ({ userId }: { userId: number }) => {
       await TransferSuggestionDismissals.destroy({ where: { userId: user.id } });
       await Budget.destroy({ where: { userId: user.id } });
       await Subscriptions.destroy({ where: { userId: user.id } });
-      await PaymentReminders.destroy({ where: { userId: user.id } });
       // PortfolioTransfers FKs Transactions / Accounts / Portfolios all via SET NULL.
       // A prior failed wipe (or any inconsistency) can leave a PT row whose transactionId
       // points at a Transaction that no longer exists. When `Accounts.destroy` below
