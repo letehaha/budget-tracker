@@ -10,13 +10,19 @@
         </div>
         <div class="flex shrink-0 flex-col items-end gap-1.5">
           <span
-            :class="cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', loanTypeBadgeClass)"
+            :class="
+              cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.18em] uppercase',
+                loanTypeSolidBadgeClass,
+              )
+            "
           >
-            {{ $t(`loans.types.${loan.loanDetails.loanType}`) }}
+            <component :is="loanTypeIconComponent" class="size-3" stroke-width="2" />
+            <span>{{ $t(`loans.types.${loan.loanDetails.loanType}`) }}</span>
           </span>
           <span
             v-if="loan.projection.isPaidOff"
-            class="bg-app-income-color/15 text-app-income-color inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+            class="bg-app-income-color/15 text-app-income-color inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium tracking-wider uppercase"
           >
             {{ $t('loans.detail.paidOffBadge') }}
           </span>
@@ -85,7 +91,7 @@ import { parseISO } from 'date-fns';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { getLoanTypeBadgeClass } from '../loan-type-presentation';
+import { getLoanTypeIcon, getLoanTypeSolidBadgeClass } from '../loan-type-presentation';
 
 const props = defineProps<{ loan: LoanApi }>();
 
@@ -117,5 +123,9 @@ const paymentDayDisplay = computed(() => {
   return t('loans.detail.summary.dayOfMonth', { day });
 });
 
-const loanTypeBadgeClass = computed(() => getLoanTypeBadgeClass({ loanType: props.loan.loanDetails.loanType }));
+const loanTypeSolidBadgeClass = computed(() =>
+  getLoanTypeSolidBadgeClass({ loanType: props.loan.loanDetails.loanType }),
+);
+
+const loanTypeIconComponent = computed(() => getLoanTypeIcon({ loanType: props.loan.loanDetails.loanType }));
 </script>
