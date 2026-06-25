@@ -43,7 +43,7 @@ const close = () => {
   </UseFooterTemplate>
 
   <UseScrollArea>
-    <ScrollArea v-if="!props.noInternalScroll" class="-mx-1 min-h-0 flex-1" viewport-class="px-1">
+    <ScrollArea v-if="!props.noInternalScroll" class="-mx-1 min-h-0 flex-1" viewport-class="pl-1 pr-4">
       <SlotContent />
     </ScrollArea>
     <SlotContent v-else />
