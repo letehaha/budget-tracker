@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type CreateLoanPayload, type UpdateLoanPayload } from '@/api/loans';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import UiButton from '@/components/lib/ui/button/Button.vue';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCreateLoan } from '@/composable/data-queries/loans';
 import { captureException } from '@/lib/sentry';
@@ -10,6 +11,8 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import LoanForm from './loan-form.vue';
+
+const FORM_ID = 'create-loan-form';
 
 const router = useRouter();
 const { t } = useI18n();
@@ -40,6 +43,19 @@ const handleSubmit = async (payload: CreateLoanPayload | UpdateLoanPayload) => {
     <template #title>{{ $t('loans.dialog.createTitle') }}</template>
     <template #description>{{ $t('loans.dialog.createDescription') }}</template>
 
-    <LoanForm :submitting="createLoanMutation.isPending.value" @submit="handleSubmit" @cancel="isOpen = false" />
+    <LoanForm :form-id="FORM_ID" :submitting="createLoanMutation.isPending.value" @submit="handleSubmit" />
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UiButton type="button" variant="ghost" :disabled="createLoanMutation.isPending.value" @click="isOpen = false">
+          {{ $t('forms.loan.cancelButton') }}
+        </UiButton>
+        <UiButton type="submit" :form="FORM_ID" class="min-w-30" :disabled="createLoanMutation.isPending.value">
+          {{
+            createLoanMutation.isPending.value ? $t('forms.loan.submitButtonLoading') : $t('forms.loan.submitButton')
+          }}
+        </UiButton>
+      </div>
+    </template>
   </ResponsiveDialog>
 </template>

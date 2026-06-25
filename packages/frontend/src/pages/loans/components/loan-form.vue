@@ -34,14 +34,14 @@ const props = withDefaults(
     mode?: 'create' | 'edit';
     initialLoan?: LoanApi | null;
     submitting?: boolean;
-    submitLabel?: string;
+    /** Required when the submit button lives outside the <form> (e.g. in a dialog footer slot). */
+    formId?: string;
   }>(),
-  { mode: 'create', initialLoan: null, submitting: false, submitLabel: undefined },
+  { mode: 'create', initialLoan: null, submitting: false, formId: undefined },
 );
 
 const emit = defineEmits<{
   submit: [payload: CreateLoanPayload | UpdateLoanPayload];
-  cancel: [];
 }>();
 
 const isEdit = computed(() => props.mode === 'edit');
@@ -305,7 +305,7 @@ const submit = () => {
 </script>
 
 <template>
-  <form class="@container/loan-form grid gap-6" @submit.prevent="submit">
+  <form :id="formId" class="@container/loan-form grid gap-6" @submit.prevent="submit">
     <InputField
       v-model="form.name"
       :label="$t('forms.loan.nameLabel')"
@@ -459,15 +459,6 @@ const submit = () => {
         :error-message="getFieldErrorMessage('form.accountNumber')"
         @blur="touchField('form.accountNumber')"
       />
-    </div>
-
-    <div class="flex justify-end gap-2">
-      <UiButton type="button" variant="ghost" :disabled="submitting" @click="emit('cancel')">
-        {{ $t('forms.loan.cancelButton') }}
-      </UiButton>
-      <UiButton type="submit" class="min-w-30" :disabled="submitting">
-        {{ submitting ? $t('forms.loan.submitButtonLoading') : (submitLabel ?? $t('forms.loan.submitButton')) }}
-      </UiButton>
     </div>
   </form>
 </template>
