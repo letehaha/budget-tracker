@@ -143,11 +143,26 @@ const ZodInvestmentTransactionsTableSettingsSchema = z.object({
   columnOrder: z.array(z.string()).default([]),
 });
 
+// List-view-only preferences for /records (the table view has its own schema).
+const ZodTransactionsListSettingsSchema = z.object({
+  /** When true the pinned "Upcoming" section (overdue + due within 3 days) is
+   *  suppressed from list view. Defaults to false (section visible). */
+  hideUpcoming: z.boolean().optional(),
+});
+
 // UI-state preferences (table layouts, view modes). Functional settings keep
 // their own top-level keys; this namespace is only for presentation state.
 const ZodUiSettingsSchema = z.object({
   transactionsTable: ZodTransactionsTableSettingsSchema.optional(),
+  transactionsList: ZodTransactionsListSettingsSchema.optional(),
   investmentTransactionsTable: ZodInvestmentTransactionsTableSettingsSchema.optional(),
+});
+
+// Subscription-related defaults. Currently only `defaultAutoRecord`, which seeds
+// the auto-record toggle on the create-subscription form. The form still lets
+// the user override it per subscription — this is only the default.
+const ZodSubscriptionsSettingsSchema = z.object({
+  defaultAutoRecord: z.boolean().optional(),
 });
 
 export const ZodSettingsSchema = z.object({
@@ -161,6 +176,7 @@ export const ZodSettingsSchema = z.object({
   includeCreditLimitInStats: z.boolean().optional(),
   sidebarSections: ZodSidebarSectionsSchema.optional(),
   ui: ZodUiSettingsSchema.optional(),
+  subscriptions: ZodSubscriptionsSettingsSchema.optional(),
   // When true, both the inline sync-time Payee extraction and the post-sync
   // note fuzzy backfill fall back to the transaction description/note if the
   // provider's dedicated merchant field is empty. Off by default — Monobank's
@@ -230,12 +246,22 @@ export const ZodSettingsPatchSchema = z.object({
           extraFilters: z.array(z.string()).optional(),
         })
         .optional(),
+      transactionsList: z
+        .object({
+          hideUpcoming: z.boolean().optional(),
+        })
+        .optional(),
       investmentTransactionsTable: z
         .object({
           visibleColumns: z.array(z.string()).optional(),
           columnOrder: z.array(z.string()).optional(),
         })
         .optional(),
+    })
+    .optional(),
+  subscriptions: z
+    .object({
+      defaultAutoRecord: z.boolean().optional(),
     })
     .optional(),
   payeeExtractionUsesDescription: z.boolean().optional(),

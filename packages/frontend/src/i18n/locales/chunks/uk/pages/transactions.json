@@ -248,5 +248,14 @@
       "successMessage": "{count} транзакцій видалено",
       "unexpectedError": "Не вдалося видалити транзакції. Спробуйте ще раз."
     }
+  },
+  "records": {
+    "upcomingSection": {
+      "title": "Заплановані",
+      "overdueBadge": "Прострочено",
+      "scheduledBadge": "Заплановано",
+      "payAction": "Позначити як сплачено",
+      "hideToggle": "Сховати заплановані платежі"
+    }
   }
 }

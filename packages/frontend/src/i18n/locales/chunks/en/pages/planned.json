@@ -104,7 +104,14 @@
           "1_month": "1 month before"
         },
         "scheduleSectionLabel": "Payment schedule",
-        "scheduleSectionHint": "Track due dates, generate periods, send reminders"
+        "scheduleSectionHint": "Track due dates, generate periods, send reminders",
+        "autoRecord": {
+          "label": "Auto-record on due date",
+          "help": "Records the transaction automatically at 00:00 UTC of the due date.",
+          "requiresAccount": "Auto-record needs an account.",
+          "requiresAmount": "Auto-record needs an amount and currency.",
+          "conflictsMatching": "Existing matching rules were cleared — auto-record and matching rules cannot be used together."
+        }
       },
       "progress": {
         "title": "Installment progress",
@@ -217,24 +224,6 @@
           "unlinkTransaction": "Unlink transaction",
           "revert": "Revert"
         },
-        "markPaid": {
-          "title": "Mark Payment",
-          "description": "Record a payment for {name}",
-          "chooseDescription": "How do you want to record this payment for {name}?",
-          "amountLabel": "Amount",
-          "amountPlaceholder": "0.00",
-          "estimateLoading": "Loading estimate…",
-          "crossCurrencyEstimate": "~{sourceAmount} {sourceCurrency} → {accountCurrency} (estimated)",
-          "dateLabel": "Payment date",
-          "accountLabel": "Account",
-          "accountPlaceholder": "Select an account",
-          "confirm": "Confirm",
-          "confirmMarkOnly": "Mark as paid",
-          "recordModeMarkTitle": "Just mark as paid",
-          "recordModeMarkDescription": "Updates the schedule only — no transaction is created.",
-          "recordModeTransactionTitle": "Create a transaction",
-          "recordModeTransactionDescription": "Book a real expense in an account. It's linked for future payments too."
-        },
         "dialogs": {
           "revertTitle": "Revert Period",
           "revertConfirm": "Revert",
@@ -243,8 +232,6 @@
           "revertDescriptionDeletesTransaction": "The generated transaction will be deleted, and this period will be marked as unpaid."
         },
         "notifications": {
-          "markedAsPaid": "Payment recorded",
-          "markAsPaidFailed": "Failed to record payment",
           "periodSkipped": "Period skipped",
           "skipFailed": "Failed to skip period",
           "transactionUnlinked": "Transaction unlinked",

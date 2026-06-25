@@ -396,7 +396,17 @@
     }
   },
   "subscriptions": {
-    "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user."
+    "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user.",
+    "validation": {
+      "autoRecord": {
+        "requiresAccount": "Auto-record requires an account so the booked transaction has somewhere to land.",
+        "requiresAmount": "Auto-record requires expectedAmount and expectedCurrencyCode so the booked transaction has a value.",
+        "excludesMatching": "Auto-record and matching rules cannot be used together — both would settle the same period.",
+        "requiresAccountField": "Auto-record requires an account to book the transaction against.",
+        "requiresAmountField": "Auto-record requires expectedAmount and expectedCurrencyCode.",
+        "excludesMatchingField": "Auto-record and matching rules are mutually exclusive."
+      }
+    }
   },
   "payees": {
     "aliasNameRequired": "Alias name is required",

@@ -88,6 +88,8 @@
         "title": "Subscriptions & Bills",
         "titleSubscriptions": "Subscriptions",
         "titleBills": "Bills",
+        "titleAll": "Recurring Charges",
+        "titleInstallments": "Installments",
         "configTypeAll": "All",
         "configTypeSubscriptions": "Subscriptions",
         "configTypeBills": "Bills",
@@ -172,6 +174,30 @@
         "thisYear": "This Year",
         "previousYear": "Previous Year"
       }
+    }
+  },
+  "widgets": {
+    "subscriptionsOverview": {
+      "upcoming": {
+        "collapsed": "{count} upcoming payments",
+        "collapsedAction": "Open"
+      },
+      "empty": "All caught up — nothing due in the next 3 days.",
+      "overdueBadge": "Overdue",
+      "payAction": "Mark paid"
+    },
+    "latestRecords": {
+      "config": {
+        "includeScheduled": {
+          "label": "Include scheduled payments",
+          "description": "Show upcoming and overdue payment reminders above your recent transactions",
+          "on": "On",
+          "off": "Off"
+        }
+      },
+      "overdueBadge": "Overdue",
+      "scheduledBadge": "Scheduled",
+      "payAction": "Mark paid"
     }
   }
 }

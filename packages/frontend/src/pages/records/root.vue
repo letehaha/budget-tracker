@@ -68,24 +68,30 @@
           </div>
         </div>
 
-        <Card v-if="activeView === 'list'" class="min-h-75 flex-1 overflow-hidden">
-          <ScrollArea class="h-full" :scroll-area-id="SCROLL_AREA_IDS.transactionsPage">
-            <!-- No top padding: the list's bulk toolbar is sticky top-0 and must sit flush
-                 with the scroll viewport edge, otherwise rows peek through the gap -->
-            <div v-if="isFetched" class="px-3 pb-3">
-              <TransactionsList
-                ref="transactionsListRef"
-                enable-bulk-edit
-                :content-filters-active="contentFiltersActive"
-                :transactions="transactionsPages?.pages.flat() ?? []"
-                :has-next-page="hasNextPage"
-                :is-fetching-next-page="isFetchingNextPage"
-                :scroll-area-id="SCROLL_AREA_IDS.transactionsPage"
-                @fetch-next-page="fetchNextPage"
-              />
-            </div>
-          </ScrollArea>
-        </Card>
+        <template v-if="activeView === 'list'">
+          <!-- Pinned upcoming section: overdue + due within 3 days. Hidden when
+               any filter is active or the user has opted it out. -->
+          <UpcomingSection v-if="showUpcomingSection" @toggle-hide="toggleHideUpcoming" />
+
+          <Card class="min-h-75 flex-1 overflow-hidden">
+            <ScrollArea class="h-full" :scroll-area-id="SCROLL_AREA_IDS.transactionsPage">
+              <!-- No top padding: the list's bulk toolbar is sticky top-0 and must sit flush
+                   with the scroll viewport edge, otherwise rows peek through the gap -->
+              <div v-if="isFetched" class="px-3 pb-3">
+                <TransactionsList
+                  ref="transactionsListRef"
+                  enable-bulk-edit
+                  :content-filters-active="contentFiltersActive"
+                  :transactions="transactionsPages?.pages.flat() ?? []"
+                  :has-next-page="hasNextPage"
+                  :is-fetching-next-page="isFetchingNextPage"
+                  :scroll-area-id="SCROLL_AREA_IDS.transactionsPage"
+                  @fetch-next-page="fetchNextPage"
+                />
+              </div>
+            </ScrollArea>
+          </Card>
+        </template>
       </template>
 
       <!-- Desktop list view: sticky filters sidebar on the left + the casual
@@ -132,22 +138,28 @@
           </ScrollArea>
         </Card>
 
-        <Card class="min-w-0 flex-1 overflow-hidden">
-          <ScrollArea class="h-full" :scroll-area-id="SCROLL_AREA_IDS.transactionsPage">
-            <div v-if="isFetched" class="px-3 pb-3">
-              <TransactionsList
-                ref="transactionsListRef"
-                enable-bulk-edit
-                :content-filters-active="contentFiltersActive"
-                :transactions="transactionsPages?.pages.flat() ?? []"
-                :has-next-page="hasNextPage"
-                :is-fetching-next-page="isFetchingNextPage"
-                :scroll-area-id="SCROLL_AREA_IDS.transactionsPage"
-                @fetch-next-page="fetchNextPage"
-              />
-            </div>
-          </ScrollArea>
-        </Card>
+        <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+          <!-- Pinned upcoming section: overdue + due within 3 days. Hidden when
+               any filter is active or the user has opted it out. -->
+          <UpcomingSection v-if="showUpcomingSection" @toggle-hide="toggleHideUpcoming" />
+
+          <Card class="min-h-0 flex-1 overflow-hidden">
+            <ScrollArea class="h-full" :scroll-area-id="SCROLL_AREA_IDS.transactionsPage">
+              <div v-if="isFetched" class="px-3 pb-3">
+                <TransactionsList
+                  ref="transactionsListRef"
+                  enable-bulk-edit
+                  :content-filters-active="contentFiltersActive"
+                  :transactions="transactionsPages?.pages.flat() ?? []"
+                  :has-next-page="hasNextPage"
+                  :is-fetching-next-page="isFetchingNextPage"
+                  :scroll-area-id="SCROLL_AREA_IDS.transactionsPage"
+                  @fetch-next-page="fetchNextPage"
+                />
+              </div>
+            </ScrollArea>
+          </Card>
+        </div>
       </div>
 
       <Card v-if="showDesktopToolbar" class="shrink-0">
@@ -330,6 +342,8 @@ import { DEFAULT_SORTING, type TableSorting } from './components/table/columns';
 import TransactionsTable from './components/table/transactions-table.vue';
 import { useTableColumns } from './components/table/use-table-columns';
 import { useTransactionsView } from './components/use-transactions-view';
+import UpcomingSection from './components/upcoming-section.vue';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 
 const sorting = ref<TableSorting>({ ...DEFAULT_SORTING });
 
@@ -360,6 +374,22 @@ const { width: pageContentWidth } = useElementSize(pageContentRef);
 const isMobileMode = computed(() => pageContentWidth.value > 0 && pageContentWidth.value < MOBILE_MODE_MAX_WIDTH_PX);
 
 const { mobileView, setMobileView, desktopView, setDesktopView } = useTransactionsView();
+
+const { data: userSettings, patch: patchSettings } = useUserSettings();
+
+/**
+ * The pinned Upcoming section is shown only in compact list view, only when no
+ * filter is active, and only when the user has not opted it out via the
+ * hide-upcoming toggle.
+ */
+const showUpcomingSection = computed(
+  () => !isAnyFiltersApplied.value && !userSettings.value?.ui?.transactionsList?.hideUpcoming,
+);
+
+function toggleHideUpcoming() {
+  const current = userSettings.value?.ui?.transactionsList?.hideUpcoming ?? false;
+  patchSettings({ ui: { transactionsList: { hideUpcoming: !current } } });
+}
 
 // User's preferred view for the current screen-size class. Drives both the
 // active layout and which setting the toggle writes back to.

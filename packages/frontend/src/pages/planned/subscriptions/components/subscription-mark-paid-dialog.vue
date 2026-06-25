@@ -62,7 +62,7 @@ const { mutate: markPaid, isPending } = useMutation({
   mutationFn: markSubscriptionPeriodPaid,
   onSuccess: () => {
     invalidateSubscriptionQueries();
-    addSuccessNotification(t('planned.subscriptions.periods.notifications.markedAsPaid'));
+    addSuccessNotification(t('dialogs.subscriptionMarkPaid.notifications.markedAsPaid'));
     isDialogOpen.value = false;
     emit('paid');
   },
@@ -70,8 +70,8 @@ const { mutate: markPaid, isPending } = useMutation({
     const message =
       error instanceof ApiErrorResponseError
         ? error.data.message
-        : t('planned.subscriptions.periods.notifications.markAsPaidFailed');
-    addErrorNotification(message ?? t('planned.subscriptions.periods.notifications.markAsPaidFailed'));
+        : t('dialogs.subscriptionMarkPaid.notifications.markAsPaidFailed');
+    addErrorNotification(message ?? t('dialogs.subscriptionMarkPaid.notifications.markAsPaidFailed'));
   },
 });
 
@@ -151,9 +151,7 @@ const isConfirmDisabled = computed(() => {
 });
 
 const confirmLabel = computed(() =>
-  isBooking.value
-    ? t('planned.subscriptions.periods.markPaid.confirm')
-    : t('planned.subscriptions.periods.markPaid.confirmMarkOnly'),
+  isBooking.value ? t('dialogs.subscriptionMarkPaid.confirm') : t('dialogs.subscriptionMarkPaid.confirmMarkOnly'),
 );
 
 /**
@@ -249,13 +247,13 @@ defineExpose({ triggerPay, isPending });
 
 <template>
   <ResponsiveDialog v-model:open="isDialogOpen" dialog-content-class="max-w-md">
-    <template #title>{{ $t('planned.subscriptions.periods.markPaid.title') }}</template>
+    <template #title>{{ $t('dialogs.subscriptionMarkPaid.title') }}</template>
     <template #description>
       <template v-if="!hasAccount">
-        {{ $t('planned.subscriptions.periods.markPaid.chooseDescription', { name: activeSubscription?.name }) }}
+        {{ $t('dialogs.subscriptionMarkPaid.chooseDescription', { name: activeSubscription?.name }) }}
       </template>
       <template v-else>
-        {{ $t('planned.subscriptions.periods.markPaid.description', { name: activeSubscription?.name }) }}
+        {{ $t('dialogs.subscriptionMarkPaid.description', { name: activeSubscription?.name }) }}
       </template>
     </template>
 
@@ -272,10 +270,10 @@ defineExpose({ triggerPay, isPending });
         >
           <div class="flex items-center gap-2">
             <RadioGroupItem value="mark" />
-            <span class="font-medium">{{ $t('planned.subscriptions.periods.markPaid.recordModeMarkTitle') }}</span>
+            <span class="font-medium">{{ $t('dialogs.subscriptionMarkPaid.recordModeMarkTitle') }}</span>
           </div>
           <span class="text-muted-foreground pl-6 text-xs">
-            {{ $t('planned.subscriptions.periods.markPaid.recordModeMarkDescription') }}
+            {{ $t('dialogs.subscriptionMarkPaid.recordModeMarkDescription') }}
           </span>
         </Label>
         <Label
@@ -289,11 +287,11 @@ defineExpose({ triggerPay, isPending });
           <div class="flex items-center gap-2">
             <RadioGroupItem value="transaction" />
             <span class="font-medium">
-              {{ $t('planned.subscriptions.periods.markPaid.recordModeTransactionTitle') }}
+              {{ $t('dialogs.subscriptionMarkPaid.recordModeTransactionTitle') }}
             </span>
           </div>
           <span class="text-muted-foreground pl-6 text-xs">
-            {{ $t('planned.subscriptions.periods.markPaid.recordModeTransactionDescription') }}
+            {{ $t('dialogs.subscriptionMarkPaid.recordModeTransactionDescription') }}
           </span>
         </Label>
       </RadioGroup>
@@ -307,8 +305,8 @@ defineExpose({ triggerPay, isPending });
           label-key="label"
           value-key="value"
           with-search
-          :label="$t('planned.subscriptions.periods.markPaid.accountLabel')"
-          :placeholder="$t('planned.subscriptions.periods.markPaid.accountPlaceholder')"
+          :label="$t('dialogs.subscriptionMarkPaid.accountLabel')"
+          :placeholder="$t('dialogs.subscriptionMarkPaid.accountPlaceholder')"
           @update:model-value="(v: any) => (selectedAccountId = v?.value ?? null)"
         />
 
@@ -318,8 +316,8 @@ defineExpose({ triggerPay, isPending });
           step="0.01"
           min="0.01"
           only-positive
-          :label="$t('planned.subscriptions.periods.markPaid.amountLabel')"
-          :placeholder="$t('planned.subscriptions.periods.markPaid.amountPlaceholder')"
+          :label="$t('dialogs.subscriptionMarkPaid.amountLabel')"
+          :placeholder="$t('dialogs.subscriptionMarkPaid.amountPlaceholder')"
         >
           <template v-if="dialogAmountCurrency" #iconTrailing>
             <span>{{ dialogAmountCurrency }}</span>
@@ -327,14 +325,14 @@ defineExpose({ triggerPay, isPending });
         </InputField>
 
         <p v-if="isEstimateLoading" class="text-muted-foreground text-xs">
-          {{ $t('planned.subscriptions.periods.markPaid.estimateLoading') }}
+          {{ $t('dialogs.subscriptionMarkPaid.estimateLoading') }}
         </p>
         <p
           v-else-if="estimate?.isCrossCurrency && estimate.expectedAmount != null"
           class="text-muted-foreground text-xs"
         >
           {{
-            $t('planned.subscriptions.periods.markPaid.crossCurrencyEstimate', {
+            $t('dialogs.subscriptionMarkPaid.crossCurrencyEstimate', {
               sourceAmount: estimate.expectedAmount,
               sourceCurrency: estimate.subscriptionCurrencyCode,
               accountCurrency: estimate.accountCurrencyCode,
@@ -344,12 +342,12 @@ defineExpose({ triggerPay, isPending });
 
         <DateField
           v-model="paidDate"
-          :label="$t('planned.subscriptions.periods.markPaid.dateLabel')"
+          :label="$t('dialogs.subscriptionMarkPaid.dateLabel')"
           :calendar-options="{ maxDate: today }"
         />
 
         <div v-if="accountLabel" class="bg-muted/40 rounded-md px-3 py-2 text-sm">
-          <p class="text-muted-foreground text-xs">{{ $t('planned.subscriptions.periods.markPaid.accountLabel') }}</p>
+          <p class="text-muted-foreground text-xs">{{ $t('dialogs.subscriptionMarkPaid.accountLabel') }}</p>
           <p class="font-medium">{{ accountLabel }}</p>
         </div>
       </template>

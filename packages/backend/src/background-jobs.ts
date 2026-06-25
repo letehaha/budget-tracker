@@ -9,6 +9,7 @@ import { purgeDeletedPortfoliosCron } from './crons/purge-deleted-portfolios';
 import { securitiesDailySyncCron } from './crons/securities-daily-sync';
 import { shareInvitationsExpireCron } from './crons/share-invitations-expire';
 import { shareResourceOrphanCleanupCron } from './crons/share-resource-orphan-cleanup';
+import { subscriptionAutoRecordCron } from './crons/subscription-auto-record';
 import { subscriptionCandidateDetectionCron } from './crons/subscription-candidate-detection';
 import { subscriptionRemindersCron } from './crons/subscription-reminders-check';
 import { tagRemindersCron } from './crons/tag-reminders-check';
@@ -35,6 +36,7 @@ export function initializeBackgroundJobs() {
       cryptoPricesSyncCron.startCron();
       tagRemindersCron.startCron();
       subscriptionRemindersCron.startCron();
+      subscriptionAutoRecordCron.startCron();
       subscriptionCandidateDetectionCron.startCron();
       shareInvitationsExpireCron.startCron();
       shareResourceOrphanCleanupCron.startCron();
@@ -50,6 +52,7 @@ export async function shutdownBackgroundJobs() {
   cryptoPricesSyncCron.stopCron();
   tagRemindersCron.stopCron();
   subscriptionRemindersCron.stopCron();
+  subscriptionAutoRecordCron.stopCron();
   subscriptionCandidateDetectionCron.stopCron();
   shareInvitationsExpireCron.stopCron();
   shareResourceOrphanCleanupCron.stopCron();

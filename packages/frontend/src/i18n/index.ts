@@ -66,6 +66,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/ai': () => import('./locales/chunks/en/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/en/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/en/settings/admin.json'),
+    'settings/subscriptions': () => import('./locales/chunks/en/settings/subscriptions.json'),
   },
   uk: {
     // Core chunks
@@ -116,6 +117,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/ai': () => import('./locales/chunks/uk/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/uk/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/uk/settings/admin.json'),
+    'settings/subscriptions': () => import('./locales/chunks/uk/settings/subscriptions.json'),
   },
   es: {
     // Core chunks
@@ -166,6 +168,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/ai': () => import('./locales/chunks/es/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/es/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/es/settings/admin.json'),
+    'settings/subscriptions': () => import('./locales/chunks/es/settings/subscriptions.json'),
   },
 };
 

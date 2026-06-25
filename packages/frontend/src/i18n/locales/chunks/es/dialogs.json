@@ -472,6 +472,28 @@
         "deliveryFailed": "Invitación creada, pero no se pudo enviar el correo electrónico. Inténtelo de nuevo más tarde.",
         "error": "Error al enviar la invitación."
       }
+    },
+    "subscriptionMarkPaid": {
+      "title": "Registrar pago",
+      "description": "Registrar un pago para {name}",
+      "chooseDescription": "¿Cómo quieres registrar este pago para {name}?",
+      "amountLabel": "Importe",
+      "amountPlaceholder": "0.00",
+      "estimateLoading": "Cargando estimación…",
+      "crossCurrencyEstimate": "~{sourceAmount} {sourceCurrency} → {accountCurrency} (estimado)",
+      "dateLabel": "Fecha de pago",
+      "accountLabel": "Cuenta",
+      "accountPlaceholder": "Seleccionar una cuenta",
+      "confirm": "Confirmar",
+      "confirmMarkOnly": "Marcar como pagado",
+      "recordModeMarkTitle": "Solo marcar como pagado",
+      "recordModeMarkDescription": "Actualiza solo el calendario — no se crea ninguna transacción.",
+      "recordModeTransactionTitle": "Crear una transacción",
+      "recordModeTransactionDescription": "Registra un gasto real en una cuenta. También quedará vinculada a pagos futuros.",
+      "notifications": {
+        "markedAsPaid": "Pago registrado",
+        "markAsPaidFailed": "Error al registrar el pago"
+      }
     }
   }
 }

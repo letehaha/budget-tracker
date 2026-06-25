@@ -43,6 +43,7 @@ interface CreateSubscriptionPayload {
   maxOccurrences?: number | null;
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
+  autoRecord?: boolean;
   logoDomain?: string | null;
 }
 
@@ -63,6 +64,7 @@ interface UpdateSubscriptionPayload {
   maxOccurrences?: number | null;
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
+  autoRecord?: boolean;
   logoDomain?: string | null;
 }
 

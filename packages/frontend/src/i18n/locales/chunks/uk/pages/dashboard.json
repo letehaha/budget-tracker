@@ -88,6 +88,8 @@
         "title": "Підписки та рахунки",
         "titleSubscriptions": "Підписки",
         "titleBills": "Рахунки",
+        "titleAll": "Регулярні платежі",
+        "titleInstallments": "Розстрочки",
         "configTypeAll": "Всі",
         "configTypeSubscriptions": "Підписки",
         "configTypeBills": "Рахунки",
@@ -172,6 +174,30 @@
         "thisYear": "Цей рік",
         "previousYear": "Минулий рік"
       }
+    }
+  },
+  "widgets": {
+    "subscriptionsOverview": {
+      "upcoming": {
+        "collapsed": "{count} майбутніх платежів",
+        "collapsedAction": "Відкрити"
+      },
+      "empty": "Все оплачено — найближчі 3 дні без платежів.",
+      "overdueBadge": "Прострочено",
+      "payAction": "Позначити як оплачено"
+    },
+    "latestRecords": {
+      "config": {
+        "includeScheduled": {
+          "label": "Включити заплановані платежі",
+          "description": "Показувати майбутні та прострочені нагадування про платежі вище останніх транзакцій",
+          "on": "Увім.",
+          "off": "Вимк."
+        }
+      },
+      "overdueBadge": "Прострочено",
+      "scheduledBadge": "Заплановано",
+      "payAction": "Позначити як оплачено"
     }
   }
 }
