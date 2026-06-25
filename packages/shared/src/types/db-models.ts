@@ -547,6 +547,10 @@ export interface SubscriptionModel {
   completedAt: Date | null;
   /** Whether this subscription appears in the dashboard "Subscriptions & Bills" widget. */
   showInWidget: boolean;
+  /** When true, the hourly auto-record cron books the expense for the next due
+   *  period and marks it paid. Requires accountId + expectedAmount + expectedCurrencyCode.
+   *  Mutually exclusive with `matchingRules.rules` (both routes would race). */
+  autoRecord: boolean;
   /** JSONB array of RemindBeforePreset strings. Empty array means no advance notifications. */
   remindBefore: RemindBeforePreset[];
   notifyEmail: boolean;

@@ -150,6 +150,16 @@ export default class Subscriptions extends Model {
   })
   showInWidget!: boolean;
 
+  // When true, the hourly auto-record cron creates the expense transaction for
+  // the next due period and marks it paid. Cannot coexist with matchingRules
+  // (DB CHECK enforces) — both routes would race to book the same period.
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  autoRecord!: boolean;
+
   @Column({
     type: DataType.JSONB,
     allowNull: false,

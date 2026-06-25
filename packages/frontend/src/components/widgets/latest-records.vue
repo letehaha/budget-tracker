@@ -1,23 +1,42 @@
 <script lang="ts" setup>
+import { loadSubscriptions, type SubscriptionListItem } from '@/api/subscriptions';
 import { loadTransactions as apiLoadTransactions } from '@/api/transactions';
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { useFormatCurrency } from '@/composable/formatters';
 import { buttonVariants } from '@/components/lib/ui/button';
+import UiButton from '@/components/lib/ui/button/Button.vue';
+import BrandLogo from '@/components/common/brand-logo.vue';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
+import SubscriptionMarkPaidDialog from '@/pages/planned/subscriptions/components/subscription-mark-paid-dialog.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
+import { differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { ListIcon } from '@lucide/vue';
+import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
-import { computed, inject } from 'vue';
+import { computed, inject, ref } from 'vue';
 
 import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 
+// Days ahead threshold for "upcoming" payments shown in the widget.
+const UPCOMING_DAYS_WINDOW = 3;
+
 const { isAppInitialized } = storeToRefs(useRootStore());
+const { formatAmountByCurrencyCode, formatBaseCurrency } = useFormatCurrency();
 const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
+
+// Whether the widget should show the scheduled row. Stored as the string 'true'/'false'
+// (config values are always strings in the segmented-button config UI); default true.
+const includeScheduled = computed(() => {
+  const raw = widgetConfigRef?.value?.config?.includeScheduled;
+  // Explicit opt-out only; undefined (first use) defaults to enabled.
+  return raw !== 'false';
+});
 
 const maxDisplay = computed(() => {
   const config = widgetConfigRef?.value;
@@ -25,7 +44,7 @@ const maxDisplay = computed(() => {
   return (config.rowSpan ?? 1) >= 2 ? 12 : 5;
 });
 
-const { data: transactions, isFetching } = useQuery({
+const { data: transactions, isFetching: isTxFetching } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecords,
   queryFn: () =>
     apiLoadTransactions({ limit: 40, from: 0, includeSplits: true, includeTags: true, includeGroups: true }), // Over-fetch to account for deduplication and grouping
@@ -34,8 +53,71 @@ const { data: transactions, isFetching } = useQuery({
   enabled: isAppInitialized,
 });
 
-const isInitialLoading = computed(() => isFetching.value && (transactions.value?.length ?? 0) === 0);
-const isDataEmpty = computed(() => !isFetching.value && (transactions.value?.length ?? 0) === 0);
+// Fetched in parallel with transactions; only active when the toggle is on.
+const { data: subscriptions, isFetching: isScheduledFetching } = useQuery({
+  queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecordsScheduled,
+  queryFn: () => loadSubscriptions({ isActive: true }),
+  staleTime: Infinity,
+  placeholderData: [],
+  enabled: computed(() => isAppInitialized.value && includeScheduled.value),
+});
+
+// Subscriptions whose current period is overdue or due within the next UPCOMING_DAYS_WINDOW days.
+const scheduledItems = computed<SubscriptionListItem[]>(() => {
+  if (!includeScheduled.value || !subscriptions.value) return [];
+  const today = new Date();
+  return subscriptions.value.filter((sub) => {
+    const period = sub.currentPeriod;
+    if (!period) return false;
+    if (period.status === SUBSCRIPTION_PERIOD_STATUSES.overdue) return true;
+    if (period.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming) {
+      const daysUntilDue = differenceInCalendarDays(parseISO(period.dueDate), today);
+      return daysUntilDue >= 0 && daysUntilDue <= UPCOMING_DAYS_WINDOW;
+    }
+    return false;
+  });
+});
+
+// Scheduled items sorted: overdue first, then upcoming ascending by dueDate.
+const sortedScheduledItems = computed<SubscriptionListItem[]>(() => {
+  return [...scheduledItems.value].sort((a, b) => {
+    const aOverdue = a.currentPeriod?.status === SUBSCRIPTION_PERIOD_STATUSES.overdue;
+    const bOverdue = b.currentPeriod?.status === SUBSCRIPTION_PERIOD_STATUSES.overdue;
+    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+    const aDate = a.currentPeriod?.dueDate ?? '';
+    const bDate = b.currentPeriod?.dueDate ?? '';
+    return aDate < bDate ? -1 : aDate > bDate ? 1 : 0;
+  });
+});
+
+// Scheduled rows consume slots first; transactions fill whatever remains up to maxDisplay.
+const scheduledRows = computed(() => sortedScheduledItems.value.slice(0, maxDisplay.value));
+const txMaxDisplay = computed(() => Math.max(0, maxDisplay.value - scheduledRows.value.length));
+
+const markPaidDialogRef = ref<InstanceType<typeof SubscriptionMarkPaidDialog> | null>(null);
+
+function handleMarkPaid({ subscription }: { subscription: SubscriptionListItem }) {
+  const period = subscription.currentPeriod;
+  if (!period) return;
+  markPaidDialogRef.value?.triggerPay({
+    subscription: {
+      id: subscription.id,
+      name: subscription.name,
+      expectedAmount: subscription.expectedAmount ?? null,
+      expectedCurrencyCode: subscription.expectedCurrencyCode ?? null,
+      accountId: subscription.accountId ?? null,
+    },
+    periodId: period.id,
+  });
+}
+
+function formatDueDate({ dueDate }: { dueDate: string }): string {
+  return format(parseISO(dueDate), 'MMM d');
+}
+
+const isFetching = computed(() => isTxFetching.value || (includeScheduled.value && isScheduledFetching.value));
+const isInitialLoading = computed(() => isTxFetching.value && (transactions.value?.length ?? 0) === 0);
+const isDataEmpty = computed(() => !isTxFetching.value && (transactions.value?.length ?? 0) === 0);
 </script>
 
 <template>
@@ -51,6 +133,7 @@ const isDataEmpty = computed(() => !isFetching.value && (transactions.value?.len
         </router-link>
       </template>
     </template>
+
     <template v-if="isInitialLoading">
       <LoadingState />
     </template>
@@ -60,7 +143,59 @@ const isDataEmpty = computed(() => !isFetching.value && (transactions.value?.len
       </EmptyState>
     </template>
     <template v-else>
-      <TransactionsList raw-list class="gap-0.5!" :transactions="transactions || []" :max-display="maxDisplay" />
+      <!-- Scheduled payment rows: one row per item, overdue first, sorted by dueDate -->
+      <template v-if="includeScheduled && scheduledRows.length > 0">
+        <div
+          v-for="sub in scheduledRows"
+          :key="sub.id"
+          class="bg-muted/40 mb-1.5 flex items-center gap-2.5 rounded-md px-3 py-2"
+        >
+          <BrandLogo :domain="sub.logoDomain ?? null" :name="sub.name" class="size-5 shrink-0" />
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm leading-tight font-medium">{{ sub.name }}</p>
+            <p class="text-muted-foreground overflow-hidden text-xs text-ellipsis whitespace-nowrap">
+              <span v-if="sub.currentPeriod?.status === 'overdue'" class="text-app-expense-color font-medium">
+                {{ $t('widgets.latestRecords.overdueBadge') }}
+              </span>
+              <span v-else class="text-warning-text font-medium">
+                {{ $t('widgets.latestRecords.scheduledBadge') }}
+              </span>
+              <span v-if="sub.currentPeriod">
+                &nbsp;&middot;&nbsp;{{ formatDueDate({ dueDate: sub.currentPeriod.dueDate }) }}
+              </span>
+            </p>
+          </div>
+          <div class="flex shrink-0 items-center gap-1.5">
+            <span class="text-sm font-medium">
+              <template v-if="sub.expectedCurrencyCode && sub.expectedAmount != null">
+                {{ formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode) }}
+              </template>
+              <template v-else-if="sub.expectedAmount != null">
+                {{ formatBaseCurrency(sub.expectedAmount) }}
+              </template>
+            </span>
+            <UiButton
+              size="sm"
+              variant="outline"
+              class="h-7 shrink-0 px-2 text-xs"
+              @click="handleMarkPaid({ subscription: sub })"
+            >
+              {{ $t('widgets.latestRecords.payAction') }}
+            </UiButton>
+          </div>
+        </div>
+      </template>
+
+      <TransactionsList
+        v-if="txMaxDisplay > 0"
+        raw-list
+        class="gap-0.5!"
+        :transactions="transactions || []"
+        :max-display="txMaxDisplay"
+      />
     </template>
+
+    <!-- Mark-paid dialog: rendered once, opened imperatively via triggerPay() -->
+    <SubscriptionMarkPaidDialog ref="markPaidDialogRef" />
   </WidgetWrapper>
 </template>

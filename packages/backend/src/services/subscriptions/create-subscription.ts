@@ -10,7 +10,12 @@ import Subscriptions from '@models/subscriptions.model';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
 
-import { assertAmountCurrencyConsistent, validateAccountOwnership, validateCategoryOwnership } from './helpers';
+import {
+  assertAmountCurrencyConsistent,
+  assertAutoRecordConsistent,
+  validateAccountOwnership,
+  validateCategoryOwnership,
+} from './helpers';
 import { assertInstallmentScheduleComplete } from './installments';
 import { resolveOpenPeriodStatus } from './resolve-period-status';
 
@@ -31,6 +36,7 @@ interface CreateSubscriptionParams {
   maxOccurrences?: number | null;
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
+  autoRecord?: boolean;
   /**
    * When present (including null), the new subscription is stamped with this
    * logo domain and `logoSource: 'manual'` so the background resolver treats it
@@ -73,6 +79,17 @@ export const createSubscription = withTransaction(
     // Amount and currency must travel together (covers MCP callers that bypass the
     // controller's request schema).
     assertAmountCurrencyConsistent({ expectedAmount, expectedCurrencyCode });
+
+    // Auto-record needs booking inputs and is mutually exclusive with matching
+    // rules — assert against the resolved post-default values so MCP callers
+    // hit the same gate as HTTP callers.
+    assertAutoRecordConsistent({
+      autoRecord: rest.autoRecord ?? false,
+      accountId,
+      expectedAmount,
+      expectedCurrencyCode,
+      matchingRules,
+    });
 
     // Derive the calendar day from dueDate so recurring logic can anchor
     // future periods to the same day-of-month without reparsing the date.

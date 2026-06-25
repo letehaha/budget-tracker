@@ -472,6 +472,28 @@
         "deliveryFailed": "Запрошення створено, але листа не вдалося надіслати. Спробуйте пізніше.",
         "error": "Не вдалося надіслати запрошення."
       }
+    },
+    "subscriptionMarkPaid": {
+      "title": "Зафіксувати платіж",
+      "description": "Зафіксуйте платіж для {name}",
+      "chooseDescription": "Як ви хочете зафіксувати цей платіж для {name}?",
+      "amountLabel": "Сума",
+      "amountPlaceholder": "0.00",
+      "estimateLoading": "Завантаження оцінки…",
+      "crossCurrencyEstimate": "~{sourceAmount} {sourceCurrency} → {accountCurrency} (приблизно)",
+      "dateLabel": "Дата платежу",
+      "accountLabel": "Рахунок",
+      "accountPlaceholder": "Оберіть рахунок",
+      "confirm": "Підтвердити",
+      "confirmMarkOnly": "Позначити як сплачено",
+      "recordModeMarkTitle": "Просто позначити як сплачено",
+      "recordModeMarkDescription": "Оновлює лише розклад — транзакція не створюється.",
+      "recordModeTransactionTitle": "Створити транзакцію",
+      "recordModeTransactionDescription": "Зафіксуйте реальну витрату на рахунку. Вона також буде пов'язана з майбутніми платежами.",
+      "notifications": {
+        "markedAsPaid": "Платіж зафіксовано",
+        "markAsPaidFailed": "Не вдалося зафіксувати платіж"
+      }
     }
   }
 }

@@ -104,7 +104,14 @@
           "1_month": "За 1 місяць"
         },
         "scheduleSectionLabel": "Платіжний розклад",
-        "scheduleSectionHint": "Відстежуйте терміни, генеруйте періоди, надсилайте нагадування"
+        "scheduleSectionHint": "Відстежуйте терміни, генеруйте періоди, надсилайте нагадування",
+        "autoRecord": {
+          "label": "Автозапис у день оплати",
+          "help": "Автоматично записує транзакцію о 00:00 UTC у день оплати.",
+          "requiresAccount": "Для автозапису потрібен рахунок.",
+          "requiresAmount": "Для автозапису потрібна сума та валюта.",
+          "conflictsMatching": "Існуючі правила зіставлення були очищені — автозапис і правила зіставлення не можна використовувати одночасно."
+        }
       },
       "progress": {
         "title": "Прогрес розстрочки",
@@ -217,24 +224,6 @@
           "unlinkTransaction": "Від'єднати транзакцію",
           "revert": "Повернути"
         },
-        "markPaid": {
-          "title": "Зафіксувати платіж",
-          "description": "Зафіксуйте платіж для {name}",
-          "chooseDescription": "Як ви хочете зафіксувати цей платіж для {name}?",
-          "amountLabel": "Сума",
-          "amountPlaceholder": "0.00",
-          "estimateLoading": "Завантаження оцінки…",
-          "crossCurrencyEstimate": "~{sourceAmount} {sourceCurrency} → {accountCurrency} (приблизно)",
-          "dateLabel": "Дата платежу",
-          "accountLabel": "Рахунок",
-          "accountPlaceholder": "Оберіть рахунок",
-          "confirm": "Підтвердити",
-          "confirmMarkOnly": "Позначити як сплачено",
-          "recordModeMarkTitle": "Просто позначити як сплачено",
-          "recordModeMarkDescription": "Оновлює лише розклад — транзакція не створюється.",
-          "recordModeTransactionTitle": "Створити транзакцію",
-          "recordModeTransactionDescription": "Зафіксуйте реальну витрату на рахунку. Вона також буде пов'язана з майбутніми платежами."
-        },
         "dialogs": {
           "revertTitle": "Скасувати період",
           "revertConfirm": "Скасувати",
@@ -243,8 +232,6 @@
           "revertDescriptionDeletesTransaction": "Згенеровану транзакцію буде видалено, а цей період буде позначено як несплачений."
         },
         "notifications": {
-          "markedAsPaid": "Платіж зафіксовано",
-          "markAsPaidFailed": "Не вдалося зафіксувати платіж",
           "periodSkipped": "Період пропущено",
           "skipFailed": "Не вдалося пропустити період",
           "transactionUnlinked": "Транзакцію від'єднано",

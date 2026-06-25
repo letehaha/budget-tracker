@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "subscriptions": {
+      "title": "Pagos programados",
+      "defaultAutoRecord": {
+        "label": "Registro automático predeterminado para nuevos pagos programados",
+        "help": "Cuando está activado, el interruptor de registro automático en el formulario de creación de suscripción comienza activado por defecto. Siempre puedes cambiarlo por suscripción.",
+        "successNotification": "Ajuste guardado",
+        "errorNotification": "Error al guardar el ajuste"
+      }
+    }
+  }
+}

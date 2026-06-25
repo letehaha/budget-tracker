@@ -88,6 +88,8 @@
         "title": "Suscripciones y facturas",
         "titleSubscriptions": "Suscripciones",
         "titleBills": "Facturas",
+        "titleAll": "Cargos recurrentes",
+        "titleInstallments": "A plazos",
         "configTypeAll": "Todo",
         "configTypeSubscriptions": "Suscripciones",
         "configTypeBills": "Facturas",
@@ -172,6 +174,30 @@
         "thisYear": "Este año",
         "previousYear": "Año anterior"
       }
+    }
+  },
+  "widgets": {
+    "subscriptionsOverview": {
+      "upcoming": {
+        "collapsed": "{count} pagos próximos",
+        "collapsedAction": "Abrir"
+      },
+      "empty": "Todo al día — nada pendiente en los próximos 3 días.",
+      "overdueBadge": "Vencido",
+      "payAction": "Marcar como pagado"
+    },
+    "latestRecords": {
+      "config": {
+        "includeScheduled": {
+          "label": "Incluir pagos programados",
+          "description": "Mostrar recordatorios de pagos próximos y vencidos encima de las transacciones recientes",
+          "on": "Activado",
+          "off": "Desactivado"
+        }
+      },
+      "overdueBadge": "Vencido",
+      "scheduledBadge": "Programado",
+      "payAction": "Marcar como pagado"
     }
   }
 }

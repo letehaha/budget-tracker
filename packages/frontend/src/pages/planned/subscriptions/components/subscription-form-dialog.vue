@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Label } from '@/components/lib/ui/label';
 import { Switch } from '@/components/lib/ui/switch';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrencyName, useFormatCurrency } from '@/composable/formatters';
 import { helpers, required } from '@/js/helpers/validators';
@@ -69,6 +70,7 @@ const { t } = useI18n();
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
 const currenciesStore = useCurrenciesStore();
+const { data: userSettings } = useUserSettings();
 const { formattedCategories } = storeToRefs(categoriesStore);
 const { baseCurrency } = storeToRefs(currenciesStore);
 const { currencies } = usePrioritizedCurrencies();
@@ -127,6 +129,10 @@ interface FormState {
   notes: string;
   /** Manually chosen logo domain. null = let the backend auto-resolve from the name. */
   logoDomain: string | null;
+  /** When true, the hourly cron books the expense at 00:00 UTC of the due date and
+   *  marks the period paid. Mutually exclusive with matchingRules (the backend rejects
+   *  both being set simultaneously). */
+  autoRecord: boolean;
 }
 
 const getInitialState = (): FormState => {
@@ -148,6 +154,7 @@ const getInitialState = (): FormState => {
       matchingRules: props.initialValues.matchingRules?.rules ?? [],
       notes: props.initialValues.notes ?? '',
       logoDomain: props.initialValues.logoDomain ?? null,
+      autoRecord: props.initialValues.autoRecord ?? false,
     };
   }
   return {
@@ -167,6 +174,8 @@ const getInitialState = (): FormState => {
     matchingRules: [],
     notes: '',
     logoDomain: null,
+    // Seed from the user's preference; they can override per subscription.
+    autoRecord: userSettings.value?.subscriptions?.defaultAutoRecord ?? false,
   };
 };
 
@@ -202,6 +211,22 @@ const selectedFrequency = computed(() => {
 });
 
 const isInstallment = computed(() => form.value.type === SUBSCRIPTION_TYPES.installment);
+
+// autoRecord is mutually exclusive with matching rules. When the user turns the
+// toggle ON while rules exist, we auto-clear the rules and show a brief callout
+// instead of blocking the action (clears are recoverable via the dialog re-open).
+const autoRecordConflictWarning = ref(false);
+
+const handleAutoRecordToggle = ({ value }: { value: boolean }) => {
+  if (value && form.value.matchingRules.length > 0) {
+    // Clear rules so the backend doesn't reject the payload, and warn the user.
+    form.value.matchingRules = [];
+    autoRecordConflictWarning.value = true;
+  } else {
+    autoRecordConflictWarning.value = false;
+  }
+  form.value.autoRecord = value;
+};
 
 const typeOptions = computed(() => [
   {
@@ -251,6 +276,13 @@ const validationRules = computed(() => ({
         return value !== null && value > 0;
       },
     ),
+    requiredForAutoRecord: helpers.withMessage(
+      t('planned.subscriptions.form.autoRecord.requiresAmount'),
+      (value: number | null, siblings: FormState) => {
+        if (!siblings.autoRecord) return true;
+        return value !== null && value > 0;
+      },
+    ),
   },
   // Only require a currency once an amount is actually entered. The reverse coupling
   // (amount required when a currency is set) is intentionally absent: the base currency
@@ -261,6 +293,22 @@ const validationRules = computed(() => ({
       t('planned.subscriptions.form.validationAmountCurrency'),
       (value: string, siblings: FormState) => {
         if (siblings.expectedAmount === null || siblings.expectedAmount <= 0) return true;
+        return !!value;
+      },
+    ),
+    requiredForAutoRecord: helpers.withMessage(
+      t('planned.subscriptions.form.autoRecord.requiresAmount'),
+      (value: string, siblings: FormState) => {
+        if (!siblings.autoRecord) return true;
+        return !!value;
+      },
+    ),
+  },
+  accountId: {
+    requiredForAutoRecord: helpers.withMessage(
+      t('planned.subscriptions.form.autoRecord.requiresAccount'),
+      (value: string | null, siblings: FormState) => {
+        if (!siblings.autoRecord) return true;
         return !!value;
       },
     ),
@@ -299,7 +347,7 @@ const isSubmitDisabled = computed(() => {
 // section stays open whenever installment is the chosen type.
 const hasExtraValues = computed(() => {
   const f = form.value;
-  return !!(f.accountId || f.categoryId || f.notes || f.endDate || f.matchingRules.length);
+  return !!(f.accountId || f.categoryId || f.notes || f.endDate || f.matchingRules.length || f.autoRecord);
 });
 const isExtraOpen = ref(!!props.initialValues && hasExtraValues.value);
 const isScheduleOpen = ref(isInstallment.value || !!form.value.dueDate);
@@ -346,20 +394,25 @@ const handleSubmit = () => {
     endDate: form.value.endDate ? form.value.endDate.toISOString().split('T')[0]! : null,
     accountId: (form.value.accountId || null) as RecordId | null,
     categoryId: (form.value.categoryId || null) as RecordId | null,
+    // autoRecord and matchingRules are mutually exclusive: when autoRecord is on
+    // the backend rejects a non-empty rules array, so we always send [] in that case.
     matchingRules: {
-      rules: form.value.matchingRules.filter((r) => {
-        // Filter out empty rules
-        if (r.field === 'note') {
-          const keywords = r.value as string[];
-          return keywords.some((k) => k.trim().length > 0);
-        }
-        if (r.field === 'amount') {
-          const val = r.value as { min: number; max: number };
-          return val.min > 0 || val.max > 0;
-        }
-        return r.value !== 0 && r.value !== '';
-      }),
+      rules: form.value.autoRecord
+        ? []
+        : form.value.matchingRules.filter((r) => {
+            // Filter out empty rules
+            if (r.field === 'note') {
+              const keywords = r.value as string[];
+              return keywords.some((k) => k.trim().length > 0);
+            }
+            if (r.field === 'amount') {
+              const val = r.value as { min: number; max: number };
+              return val.min > 0 || val.max > 0;
+            }
+            return r.value !== 0 && r.value !== '';
+          }),
     },
+    autoRecord: form.value.autoRecord,
     isActive: props.initialValues?.isActive ?? true,
     notes: form.value.notes || null,
     ...(form.value.logoDomain !== initialLogoDomain ? { logoDomain: form.value.logoDomain } : {}),
@@ -426,7 +479,10 @@ const handleSubmit = () => {
       <p v-if="selectedTypeOption" class="text-muted-foreground mt-1.5 text-xs">{{ selectedTypeOption.desc }}</p>
     </div>
 
-    <!-- Amount + Currency -->
+    <!-- Amount + Currency. When autoRecord is on the fields become required
+         (the cron needs a concrete amount to book). An asterisk and validation
+         errors on submit communicate this; we avoid the native `required` attr
+         to prevent browser-native tooltip bubbles. -->
     <div class="grid grid-cols-2 gap-3">
       <InputField
         v-model.number="form.expectedAmount"
@@ -436,13 +492,18 @@ const handleSubmit = () => {
         :error-message="getFieldErrorMessage('form.expectedAmount')"
         only-positive
         @blur="touchField('form.expectedAmount')"
-      />
+      >
+        <template v-if="form.autoRecord" #label-after>
+          <span class="text-destructive-text" aria-hidden="true">*</span>
+        </template>
+      </InputField>
       <SelectField
         :model-value="selectedCurrency"
         :values="currencies"
         value-key="code"
         :label="$t('planned.subscriptions.form.currencyLabel')"
         :error-message="getFieldErrorMessage('form.expectedCurrencyCode')"
+        :required="form.autoRecord"
         with-search
         :label-key="(item: CurrencyModel) => formatCurrencyLabel({ code: item.code, fallbackName: item.currency })"
         @update:model-value="(v: any) => (form.expectedCurrencyCode = v?.code ?? '')"
@@ -575,13 +636,37 @@ const handleSubmit = () => {
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div class="grid gap-4 pt-3">
-          <!-- Account -->
+          <!-- Auto-record toggle. When on, the hourly cron books the expense
+               at 00:00 UTC on the due date. Mutually exclusive with matching
+               rules — enabling while rules exist auto-clears them (see
+               handleAutoRecordToggle). Account + amount become required. -->
+          <div>
+            <label class="flex cursor-pointer items-center justify-between gap-3">
+              <span class="flex flex-col gap-0.5">
+                <span class="text-sm font-medium">{{ $t('planned.subscriptions.form.autoRecord.label') }}</span>
+                <span class="text-muted-foreground text-xs">{{
+                  $t('planned.subscriptions.form.autoRecord.help')
+                }}</span>
+              </span>
+              <Switch
+                :model-value="form.autoRecord"
+                @update:model-value="(v: boolean) => handleAutoRecordToggle({ value: v })"
+              />
+            </label>
+            <Callout v-if="autoRecordConflictWarning" variant="warning" class="mt-2">
+              <span class="text-xs">{{ $t('planned.subscriptions.form.autoRecord.conflictsMatching') }}</span>
+            </Callout>
+          </div>
+
+          <!-- Account. Required when autoRecord is on (the cron needs an account to book against). -->
           <SelectField
             :model-value="selectedAccount"
             :values="accountOptions"
             label-key="label"
             value-key="value"
             :label="$t('planned.subscriptions.form.accountLabel')"
+            :required="form.autoRecord"
+            :error-message="getFieldErrorMessage('form.accountId')"
             with-search
             @update:model-value="(v: any) => (form.accountId = v?.value === 0 ? null : (v?.value ?? null))"
           />
@@ -610,8 +695,9 @@ const handleSubmit = () => {
             />
           </div>
 
-          <!-- Matching Rules -->
-          <div>
+          <!-- Matching Rules. Hidden when autoRecord is on — the two mechanisms
+               are mutually exclusive (backend rejects both set simultaneously). -->
+          <div v-if="!form.autoRecord">
             <Label class="mb-1.5 block text-sm font-medium">
               {{ $t('planned.subscriptions.form.matchingRulesLabel') }}
             </Label>

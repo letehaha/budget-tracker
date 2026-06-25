@@ -104,7 +104,14 @@
           "1_month": "1 mes antes"
         },
         "scheduleSectionLabel": "Programa de pagos",
-        "scheduleSectionHint": "Registre fechas de vencimiento, genere períodos, envíe recordatorios"
+        "scheduleSectionHint": "Registre fechas de vencimiento, genere períodos, envíe recordatorios",
+        "autoRecord": {
+          "label": "Registro automático en la fecha de vencimiento",
+          "help": "Registra la transacción automáticamente a las 00:00 UTC de la fecha de vencimiento.",
+          "requiresAccount": "El registro automático necesita una cuenta.",
+          "requiresAmount": "El registro automático necesita un importe y una moneda.",
+          "conflictsMatching": "Las reglas de coincidencia existentes fueron eliminadas — el registro automático y las reglas de coincidencia no pueden usarse juntos."
+        }
       },
       "progress": {
         "title": "Progreso de cuotas",
@@ -217,24 +224,6 @@
           "unlinkTransaction": "Desvincular transacción",
           "revert": "Revertir"
         },
-        "markPaid": {
-          "title": "Registrar pago",
-          "description": "Registrar un pago para {name}",
-          "chooseDescription": "¿Cómo quieres registrar este pago para {name}?",
-          "amountLabel": "Importe",
-          "amountPlaceholder": "0.00",
-          "estimateLoading": "Cargando estimación…",
-          "crossCurrencyEstimate": "~{sourceAmount} {sourceCurrency} → {accountCurrency} (estimado)",
-          "dateLabel": "Fecha de pago",
-          "accountLabel": "Cuenta",
-          "accountPlaceholder": "Seleccionar una cuenta",
-          "confirm": "Confirmar",
-          "confirmMarkOnly": "Marcar como pagado",
-          "recordModeMarkTitle": "Solo marcar como pagado",
-          "recordModeMarkDescription": "Actualiza solo el calendario — no se crea ninguna transacción.",
-          "recordModeTransactionTitle": "Crear una transacción",
-          "recordModeTransactionDescription": "Registra un gasto real en una cuenta. También quedará vinculada a pagos futuros."
-        },
         "dialogs": {
           "revertTitle": "Revertir período",
           "revertConfirm": "Revertir",
@@ -243,8 +232,6 @@
           "revertDescriptionDeletesTransaction": "La transacción generada será eliminada y este período será marcado como no pagado."
         },
         "notifications": {
-          "markedAsPaid": "Pago registrado",
-          "markAsPaidFailed": "Error al registrar el pago",
           "periodSkipped": "Período omitido",
           "skipFailed": "Error al omitir el período",
           "transactionUnlinked": "Transacción desvinculada",

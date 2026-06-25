@@ -16,7 +16,8 @@
       "appearance": "Appearance",
       "language": "Language",
       "statistics": "Statistics",
-      "payees": "Payees"
+      "payees": "Payees",
+      "subscriptions": "Scheduled payments"
     },
     "backToSettings": "Back to Settings"
   }

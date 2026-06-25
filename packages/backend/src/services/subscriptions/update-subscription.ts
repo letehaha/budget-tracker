@@ -14,6 +14,7 @@ import { Op } from 'sequelize';
 import { ensureNextPeriodExists, reconcileInstallmentCompletion } from './ensure-next-period';
 import {
   assertAmountCurrencyConsistent,
+  assertAutoRecordConsistent,
   findSubscriptionOrThrow,
   validateAccountOwnership,
   validateCategoryOwnership,
@@ -43,6 +44,7 @@ interface UpdateSubscriptionParams {
   maxOccurrences?: number | null;
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
+  autoRecord?: boolean;
   /**
    * When present (including null), sets logoDomain to this value and stamps
    * logoSource = 'manual' so the auto-resolver never overwrites the user's
@@ -79,6 +81,18 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     expectedAmount: fields.expectedAmount !== undefined ? fields.expectedAmount : subscription.expectedAmount,
     expectedCurrencyCode:
       fields.expectedCurrencyCode !== undefined ? fields.expectedCurrencyCode : subscription.expectedCurrencyCode,
+  });
+
+  // Auto-record requires the booking inputs and excludes matching rules. Apply
+  // against the merged post-update state so a PATCH that only flips the toggle
+  // still validates against the eventually-stored account/amount/rules.
+  assertAutoRecordConsistent({
+    autoRecord: fields.autoRecord !== undefined ? fields.autoRecord : subscription.autoRecord,
+    accountId: fields.accountId !== undefined ? fields.accountId : subscription.accountId,
+    expectedAmount: fields.expectedAmount !== undefined ? fields.expectedAmount : subscription.expectedAmount,
+    expectedCurrencyCode:
+      fields.expectedCurrencyCode !== undefined ? fields.expectedCurrencyCode : subscription.expectedCurrencyCode,
+    matchingRules: fields.matchingRules !== undefined ? fields.matchingRules : subscription.matchingRules,
   });
 
   // Refuse lowering the payment count below the periods already paid/skipped —

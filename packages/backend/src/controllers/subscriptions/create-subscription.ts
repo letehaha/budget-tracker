@@ -8,6 +8,7 @@ import {
 import { recordId } from '@common/lib/zod/custom-types';
 import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
 import { createController } from '@controllers/helpers/controller-factory';
+import { t } from '@i18n/index';
 import * as subscriptionsService from '@services/subscriptions';
 import { z } from 'zod';
 
@@ -50,6 +51,7 @@ const schema = z.object({
       maxOccurrences: z.number().int().positive().nullable().optional(),
       remindBefore: z.array(z.enum(remindBeforePresetValues)).max(MAX_REMIND_BEFORE_PRESETS).optional(),
       notifyEmail: z.boolean().optional(),
+      autoRecord: z.boolean().optional(),
       // Present key (even null) → manual override on the new subscription; absent
       // key → leave the logo unset so the background resolver auto-resolves it.
       logoDomain: logoDomainSchema.optional(),
@@ -89,6 +91,33 @@ const schema = z.object({
             code: z.ZodIssueCode.custom,
             message: 'Installments require a payment schedule date (dueDate).',
             path: ['dueDate'],
+          });
+        }
+      }
+
+      // Auto-record books a transaction every cycle, so it needs the booking
+      // inputs and conflicts with matching rules (both would settle the same
+      // period — auto-record on dueDate, matching on the next bank import).
+      if (data.autoRecord) {
+        if (data.accountId == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: t({ key: 'subscriptions.validation.autoRecord.requiresAccountField' }),
+            path: ['accountId'],
+          });
+        }
+        if (data.expectedAmount == null || data.expectedCurrencyCode == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: t({ key: 'subscriptions.validation.autoRecord.requiresAmountField' }),
+            path: ['expectedAmount'],
+          });
+        }
+        if (data.matchingRules && data.matchingRules.rules.length > 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: t({ key: 'subscriptions.validation.autoRecord.excludesMatchingField' }),
+            path: ['matchingRules'],
           });
         }
       }

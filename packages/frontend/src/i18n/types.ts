@@ -53,6 +53,7 @@ const I18N_CHUNKS = [
   'settings/security',
   'settings/admin',
   'settings/ai-integrations',
+  'settings/subscriptions',
   // Auth pages (OAuth)
   'auth/oauth-authorize',
 ] as const;

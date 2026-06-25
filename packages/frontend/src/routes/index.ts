@@ -417,6 +417,12 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/settings/subpages/household/index.vue'),
             meta: { i18nChunks: ['pages/household'] as I18nChunkName[] },
           },
+          {
+            path: 'subscriptions',
+            name: ROUTES_NAMES.settingsSubscriptions,
+            component: () => import('@/pages/settings/subpages/subscriptions/index.vue'),
+            meta: { i18nChunks: ['settings/subscriptions'] as I18nChunkName[] },
+          },
         ],
       },
     ],
