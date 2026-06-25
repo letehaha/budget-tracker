@@ -126,8 +126,15 @@ const vehicleAccountIds = computed(() => new Set((vehicles.value ?? []).map((v) 
 const groupedAccounts = computed(() =>
   (accounts.value ?? []).reduce(
     (acc, account) => {
-      // Vehicles render in their own section — keep them out of the manual list.
-      if (account.accountCategory === ACCOUNT_CATEGORIES.vehicle || vehicleAccountIds.value.has(account.id)) {
+      // Vehicles and the user's own loans render on their own pages — keep them
+      // out of the manual list. Loans shared with the user fall through to the
+      // shared section below (the owner-scoped loans page can't show them).
+      const isOwnLoan = account.accountCategory === ACCOUNT_CATEGORIES.loan && account.share?.isOwner !== false;
+      if (
+        account.accountCategory === ACCOUNT_CATEGORIES.vehicle ||
+        vehicleAccountIds.value.has(account.id) ||
+        isOwnLoan
+      ) {
         return acc;
       }
       if (account.share?.isOwner === false) {

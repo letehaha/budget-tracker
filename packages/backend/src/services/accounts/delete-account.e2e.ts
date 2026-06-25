@@ -1,3 +1,4 @@
+import { API_ERROR_CODES, TRANSACTION_TRANSFER_NATURE, type RecordId } from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -163,6 +164,41 @@ describe('Delete Account', () => {
       const accountGroupAfter = groupsAfter.find((g) => g.id === group.id);
       expect(accountGroupAfter).toBeDefined();
       expect(accountGroupAfter!.accounts).not.toContainEqual(expect.objectContaining({ id: account.id }));
+    });
+  });
+
+  describe('Account deletion with loan payments', () => {
+    it('rejects deleting a source account that has paid into a loan', async () => {
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          initialBalance: 1_000,
+          originalPrincipal: 1_000,
+        }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 300 }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 300,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const response = await helpers.deleteAccount({ id: sourceAccount.id, raw: false });
+      expect(response.statusCode).toBe(422);
+      const errorBody = (response as helpers.CustomResponse<unknown>).body.response as {
+        code: string;
+        message: string;
+      };
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(errorBody.message).toMatch(/loan/i);
+
+      const accountsAfter = await helpers.getAccounts();
+      expect(accountsAfter.some((acc) => acc.id === sourceAccount.id)).toBe(true);
     });
   });
 });

@@ -14,7 +14,6 @@ export const ACCOUNT_CATEGORIES_TRANSLATION_KEYS = Object.freeze<Record<ACCOUNT_
   [ACCOUNT_CATEGORIES.insurance]: 'common.accountCategories.insurance',
   [ACCOUNT_CATEGORIES.investment]: 'common.accountCategories.investment',
   [ACCOUNT_CATEGORIES.loan]: 'common.accountCategories.loan',
-  [ACCOUNT_CATEGORIES.mortgage]: 'common.accountCategories.mortgage',
   [ACCOUNT_CATEGORIES.overdraft]: 'common.accountCategories.overdraft',
   [ACCOUNT_CATEGORIES.crypto]: 'common.accountCategories.crypto',
   [ACCOUNT_CATEGORIES.vehicle]: 'common.accountCategories.vehicle',

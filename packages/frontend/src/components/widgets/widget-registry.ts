@@ -127,6 +127,8 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
     component: () => import('@/components/widgets/subscriptions-overview.vue'),
     needsPeriod: false,
   },
+  // TODO: 'liabilities' widget — total loan debt + payoff progress + next payment date.
+  // Mirror credit-utilization shape, source from /loans aggregate.
 };
 
 export const DEFAULT_DASHBOARD_LAYOUT = [

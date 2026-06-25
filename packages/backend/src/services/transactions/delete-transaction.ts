@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { isTwoLegTransfer, ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -26,7 +26,7 @@ export const deleteTransaction = withTransaction(
       assertSharedWritePhase1Guards({
         isOwner: ctx.isOwner,
         involvesTransfer:
-          transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer ||
+          isTwoLegTransfer(transferNature) ||
           transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio ||
           transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture,
         involvesRefund: Boolean(refundLinked),
@@ -54,10 +54,11 @@ export const deleteTransaction = withTransaction(
         // Venture-linked transactions are deleted directly; the venture event service
         // is responsible for unlinking its own VentureEventLink before calling this.
         transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture ||
-        // Orphaned transfer leg: flagged as a common transfer but its pair is gone and
-        // `transferId` was cleared. There's no twin to delete alongside it, so treat it
-        // as a standalone row instead of falling through to the "unexpected" guard below.
-        (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && !transferId)
+        // Orphaned two-leg transfer (common_transfer / transfer_to_loan) whose pair is
+        // gone and `transferId` was cleared. There's no twin to delete alongside it,
+        // so treat it as a standalone row instead of falling through to the "unexpected"
+        // guard below.
+        (isTwoLegTransfer(transferNature) && !transferId)
       ) {
         await Transactions.deleteTransactionById({ id, userId: creatorUserId });
       } else if (transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio) {
@@ -76,7 +77,7 @@ export const deleteTransaction = withTransaction(
         } else {
           await Transactions.deleteTransactionById({ id, userId: creatorUserId });
         }
-      } else if (transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && transferId) {
+      } else if (isTwoLegTransfer(transferNature) && transferId) {
         // Find both legs of the pair by transferId only. Cross-user transfers (created
         // through a household share) have legs that live under different `userId`s, so a
         // userId-scoped lookup would silently orphan the partner row. The caller's

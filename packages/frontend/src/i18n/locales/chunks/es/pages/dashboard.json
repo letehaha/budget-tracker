@@ -13,14 +13,16 @@
           "accounts": "Cuentas",
           "portfolios": "Carteras",
           "ventures": "Proyectos",
-          "vehicles": "Vehículos"
+          "vehicles": "Vehículos",
+          "loans": "Préstamos"
         },
         "tooltip": {
           "accounts": "Cuentas:",
           "portfolios": "Carteras:",
           "total": "Total:",
           "ventures": "Proyectos:",
-          "vehicles": "Vehículos:"
+          "vehicles": "Vehículos:",
+          "loans": "Préstamos:"
         },
         "today": "Hoy",
         "vsPreviousPeriod": "vs período anterior",
@@ -60,6 +62,8 @@
           "description": "Elija qué componentes cuentan hacia la línea de saldo Total.",
           "vehicles": "Vehículos",
           "ventures": "Proyectos",
+          "loans": "Préstamos",
+          "loansTooltip": "Cuando está activado, sus saldos de préstamos pendientes se restan del total (patrimonio neto real). Cuando está desactivado, los préstamos se ignoran para que el total solo muestre los activos.",
           "allIncluded": "Todos los componentes",
           "excluding": "Excluyendo {items}"
         }

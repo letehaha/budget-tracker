@@ -193,6 +193,7 @@ interface CombinedBalanceHistoryItemApiResponse {
   portfoliosBalance: number;
   venturesBalance: number;
   vehiclesBalance: number;
+  loansBalance: number;
   totalBalance: number;
 }
 
@@ -208,6 +209,7 @@ export function serializeCombinedBalanceHistory(
     portfoliosBalance: centsToApiDecimal(item.portfoliosBalance),
     venturesBalance: centsToApiDecimal(item.venturesBalance),
     vehiclesBalance: centsToApiDecimal(item.vehiclesBalance),
+    loansBalance: centsToApiDecimal(item.loansBalance),
     totalBalance: centsToApiDecimal(item.totalBalance),
   }));
 }

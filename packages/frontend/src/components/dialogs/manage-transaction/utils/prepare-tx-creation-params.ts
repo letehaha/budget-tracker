@@ -1,11 +1,6 @@
 import { createTransaction } from '@/api';
 import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
-import {
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-  type RecordId,
-  // TransactionModel,
-} from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type RecordId } from '@bt/shared/types';
 import type { SplitInput } from '@bt/shared/types/endpoints';
 
 import { getTxTypeFromFormType } from '../helpers';
@@ -30,10 +25,8 @@ export const prepareTxCreationParams = ({
   form,
   isTransferTx,
   isCurrenciesDifferent,
-  // linkedTransaction,
 }: {
   form: UI_FORM_STRUCT;
-  // linkedTransaction: TransactionModel;
   isTransferTx: boolean;
   isCurrenciesDifferent: boolean;
 }) => {
@@ -73,7 +66,13 @@ export const prepareTxCreationParams = ({
   if (isTransferTx) {
     creationParams.destinationAccountId = toAccount!.id;
     creationParams.destinationAmount = isCurrenciesDifferent ? form.targetAmount! : amount!;
-    creationParams.transferNature = TRANSACTION_TRANSFER_NATURE.common_transfer;
+    // A transfer whose destination is a loan-category account is a loan
+    // payment. Stamp the distinct `transfer_to_loan` nature so reports can
+    // isolate loan payments without joining through the destination account.
+    creationParams.transferNature =
+      toAccount!.accountCategory === ACCOUNT_CATEGORIES.loan
+        ? TRANSACTION_TRANSFER_NATURE.transfer_to_loan
+        : TRANSACTION_TRANSFER_NATURE.common_transfer;
   } else {
     creationParams.categoryId = category.id;
 

@@ -128,6 +128,10 @@
         "toPortfolioLabel": "До портфелю",
         "selectPortfolioPlaceholder": "Оберіть портфель",
         "noPortfoliosExist": "Портфелів немає",
+        "destinationTypeLoan": "Позика",
+        "toLoanLabel": "На позику",
+        "selectLoanPlaceholder": "Оберіть позику",
+        "noLoansExist": "Позик немає",
         "validation": {
           "required": "Це поле обов'язкове",
           "minValue": "Сума повинна бути більше нуля"

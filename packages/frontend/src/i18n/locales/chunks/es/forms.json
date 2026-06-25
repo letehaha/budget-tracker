@@ -49,7 +49,7 @@
         "autoHint": "La comisión se deriva automáticamente usando el tipo de cambio de mercado para la fecha de la transacción.",
         "previewRate": "≈ se registrará el tipo de cambio {rate}",
         "previewFee": "≈ se registrará una comisión de {fee} {currency} (tipo {rate})",
-        "previewUnavailable": "No se encontró tipo de mercado para esta fecha — introduzca la comisión o el tipo de cambio manualmente.",
+        "previewUnavailable": "No se encontró tipo de mercado para esta fecha – introduzca la comisión o el tipo de cambio manualmente.",
         "previewFetchFailed": "No se pudieron cargar los tipos de mercado. Compruebe su conexión o introduzca el tipo manualmente.",
         "previewPlaceholder": "La vista previa aparecerá aquí a medida que rellene el formulario."
       }
@@ -239,6 +239,63 @@
         "success": "Vehículo actualizado",
         "error": "Error al actualizar el vehículo"
       }
+    },
+    "loan": {
+      "nameLabel": "Nombre del préstamo",
+      "namePlaceholder": "Ej.: Hipoteca principal",
+      "loanTypeLabel": "Tipo de préstamo",
+      "loanTypePlaceholder": "Seleccionar tipo de préstamo",
+      "currencyLabel": "Moneda",
+      "originalPrincipalLabel": "Capital original",
+      "originalPrincipalPlaceholder": "Ej.: 320.000",
+      "initialBalanceLabel": "Saldo pendiente actual",
+      "initialBalancePlaceholder": "Lo que debe hoy",
+      "interestRateLabel": "Tipo de interés (TAE %)",
+      "interestRatePlaceholder": "Ej.: 6.25",
+      "minPaymentEstimateTooltip": "Estimado a partir del capital, tipo de interés anual y plazo utilizando la fórmula de amortización estándar.",
+      "minPaymentApplyEstimateAriaLabel": "Usar cuota mínima estimada",
+      "termMonthsLabel": "Plazo (meses)",
+      "termPresetsAriaLabel": "Presets de plazo",
+      "termPresetsHeader": "Plazos comunes",
+      "termMonthsSuffix": "m",
+      "termPresetYears": "{count} año | {count} años",
+      "termMonthsPlaceholder": "Ej.: 360 para un préstamo a 30 años",
+      "startDateLabel": "Fecha de inicio",
+      "startDatePlaceholder": "DD/MM/AAAA",
+      "startDateTooltip": "La fecha en que se originó el préstamo, es decir, cuando lo contrató. Es solo informativa y no afecta al saldo pendiente actual ni a la proyección de amortización.",
+      "plannedPaymentLabel": "Cuota mensual planificada",
+      "plannedPaymentPlaceholder": "Lo que realmente paga",
+      "minPaymentLabel": "Cuota mensual mínima",
+      "minPaymentPlaceholder": "Opcional, según su prestamista",
+      "paymentDayLabel": "Día de pago del mes",
+      "paymentDayPlaceholder": "1–31",
+      "lenderNameLabel": "Prestamista",
+      "lenderNamePlaceholder": "Ej.: Banco Santander, BBVA",
+      "accountNumberLabel": "Número de cuenta / préstamo",
+      "accountNumberPlaceholder": "Opcional",
+      "currentBalanceLabel": "Saldo pendiente actual",
+      "balanceAsOfLabel": "Saldo a fecha de",
+      "balanceAsOfPlaceholder": "DD/MM/AAAA",
+      "saveButton": "Guardar cambios",
+      "submitButton": "Crear préstamo",
+      "submitButtonLoading": "Creando…",
+      "cancelButton": "Cancelar",
+      "notifications": {
+        "success": "Préstamo creado.",
+        "error": "Error al crear el préstamo. Inténtelo de nuevo.",
+        "updateSuccess": "Préstamo actualizado",
+        "updateError": "Error al actualizar el préstamo"
+      },
+      "errors": {
+        "required": "Este campo es obligatorio.",
+        "mustBePositive": "Debe ser mayor que 0.",
+        "mustBeNonNegative": "Debe ser 0 o mayor.",
+        "interestRateRange": "El tipo de interés debe estar entre 0 y 99,9999.",
+        "termRange": "El plazo debe estar entre 1 y 1200 meses.",
+        "paymentDayRange": "El día del mes debe estar entre 1 y 31.",
+        "asOfInFuture": "La fecha no puede ser futura"
+      },
+      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
     }
   },
   "fields": {

@@ -32,7 +32,7 @@
           :model-value="destinationType"
           :items="destinationTypeItems"
           size="sm"
-          :disabled="disabled || toAccountDisabled"
+          :disabled="disabled || toAccountDisabled || destinationTypeDisabled"
           class="w-full"
           @update:model-value="updateDestinationType"
         />
@@ -63,7 +63,7 @@
         </select-field>
       </form-row>
 
-      <form-row v-else>
+      <form-row v-else-if="destinationType === 'portfolio'">
         <select-field
           :label="$t('dialogs.manageTransaction.form.toPortfolioLabel')"
           :placeholder="
@@ -79,6 +79,28 @@
           :model-value="toPortfolio"
           @update:model-value="updateToPortfolio"
         />
+      </form-row>
+
+      <form-row v-else>
+        <select-field
+          :label="$t('dialogs.manageTransaction.form.toLoanLabel')"
+          :placeholder="
+            loanAccounts.length
+              ? $t('dialogs.manageTransaction.form.selectLoanPlaceholder')
+              : $t('dialogs.manageTransaction.form.noLoansExist')
+          "
+          :values="loanAccounts"
+          :label-key="getAccountLabel"
+          value-key="id"
+          with-search
+          :disabled="disabled || toAccountDisabled || !loanAccounts.length"
+          :model-value="toAccount"
+          @update:model-value="updateToAccount"
+        >
+          <template #item="{ item, label }">
+            <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+          </template>
+        </select-field>
       </form-row>
     </template>
     <template v-else>
@@ -137,10 +159,11 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES } from '@bt/shared/types';
-import { BriefcaseIcon, WalletIcon } from '@lucide/vue';
-import { computed } from 'vue';
+import { BriefcaseIcon, HandCoinsIcon, WalletIcon } from '@lucide/vue';
+import { type Component, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { getAvailableTransferDestinationTypes } from '../helpers';
 import type { TransferDestinationType } from '../composables/transfer-form';
 import FormRow from './form-row.vue';
 
@@ -154,26 +177,20 @@ const getAccountLabel = (account: AccountModel & { _isOutOfWallet?: boolean }) =
   return getAccountDisplayLabel(account);
 };
 
-const destinationTypeItems = computed(() => [
-  {
-    value: 'account' as TransferDestinationType,
-    label: t('dialogs.manageTransaction.form.destinationTypeAccount'),
-    icon: WalletIcon,
-  },
-  {
-    value: 'portfolio' as TransferDestinationType,
-    label: t('dialogs.manageTransaction.form.destinationTypePortfolio'),
-    icon: BriefcaseIcon,
-  },
-]);
+const DESTINATION_TYPE_META: Record<TransferDestinationType, { labelKey: string; icon: Component }> = {
+  account: { labelKey: 'dialogs.manageTransaction.form.destinationTypeAccount', icon: WalletIcon },
+  portfolio: { labelKey: 'dialogs.manageTransaction.form.destinationTypePortfolio', icon: BriefcaseIcon },
+  loan: { labelKey: 'dialogs.manageTransaction.form.destinationTypeLoan', icon: HandCoinsIcon },
+};
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     account?: AccountModel | null;
     toAccount?: AccountModel | null;
     toPortfolio?: PortfolioModel | null;
     destinationType?: TransferDestinationType;
     portfolios?: PortfolioModel[];
+    loanAccounts?: AccountModel[];
     isTransferTransaction: boolean;
     accounts: AccountModel[];
     filteredAccounts: AccountModel[];
@@ -181,6 +198,8 @@ withDefaults(
     transactionType: TRANSACTION_TYPES;
     fromAccountDisabled?: boolean;
     toAccountDisabled?: boolean;
+    /** Locks the destination-type pills while keeping the pickers themselves usable. */
+    destinationTypeDisabled?: boolean;
     disabled?: boolean;
   }>(),
   {
@@ -189,10 +208,20 @@ withDefaults(
     toPortfolio: null,
     destinationType: 'account',
     portfolios: () => [],
+    loanAccounts: () => [],
     isTransactionLinking: false,
     fromAccountDisabled: false,
     toAccountDisabled: false,
+    destinationTypeDisabled: false,
   },
+);
+
+const destinationTypeItems = computed(() =>
+  getAvailableTransferDestinationTypes(props.transactionType).map((value) => ({
+    value,
+    label: t(DESTINATION_TYPE_META[value].labelKey),
+    icon: DESTINATION_TYPE_META[value].icon,
+  })),
 );
 
 const emit = defineEmits<{

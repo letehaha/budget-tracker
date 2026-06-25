@@ -1,6 +1,7 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
 import type { FormattedCategory } from '@/common/types';
 import {
+  ACCOUNT_CATEGORIES,
   type AccountModel,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
@@ -144,6 +145,47 @@ describe('prepareTxCreationParams', () => {
         destinationAmount: 90,
         transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       });
+    });
+
+    it('stamps transfer_to_loan when the destination is a loan-category account', () => {
+      const form = createBaseForm({
+        type: FORM_TYPES.transfer,
+        toAccount: createMockAccount({
+          id: '00000000-0000-0000-0000-000000000002' as RecordId,
+          name: 'Loan Account',
+          accountCategory: ACCOUNT_CATEGORIES.loan,
+        }),
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: true,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result).toMatchObject({
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+        destinationAccountId: '00000000-0000-0000-0000-000000000002',
+        destinationAmount: 100,
+      });
+    });
+
+    it('stamps common_transfer when the destination is not a loan-category account', () => {
+      const form = createBaseForm({
+        type: FORM_TYPES.transfer,
+        toAccount: createMockAccount({
+          id: '00000000-0000-0000-0000-000000000002' as RecordId,
+          accountCategory: ACCOUNT_CATEGORIES.general,
+        }),
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: true,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
     });
   });
 

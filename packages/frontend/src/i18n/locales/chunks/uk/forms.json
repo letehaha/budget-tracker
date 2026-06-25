@@ -49,7 +49,7 @@
         "autoHint": "Комісія розраховується автоматично за ринковим курсом на дату транзакції.",
         "previewRate": "≈ буде записано обмінний курс {rate}",
         "previewFee": "≈ буде записано комісію {fee} {currency} (курс {rate})",
-        "previewUnavailable": "Ринковий курс на цю дату не знайдено — введіть комісію або обмінний курс вручну.",
+        "previewUnavailable": "Ринковий курс на цю дату не знайдено – введіть комісію або обмінний курс вручну.",
         "previewFetchFailed": "Не вдалося завантажити ринкові курси. Перевірте з'єднання або введіть курс вручну.",
         "previewPlaceholder": "Попередній перегляд з'явиться тут у міру заповнення форми."
       }
@@ -239,6 +239,63 @@
         "success": "Транспорт оновлено",
         "error": "Не вдалося оновити транспорт"
       }
+    },
+    "loan": {
+      "nameLabel": "Назва кредиту",
+      "namePlaceholder": "напр. Основна іпотека",
+      "loanTypeLabel": "Тип кредиту",
+      "loanTypePlaceholder": "Оберіть тип кредиту",
+      "currencyLabel": "Валюта",
+      "originalPrincipalLabel": "Початкова сума боргу",
+      "originalPrincipalPlaceholder": "напр. 320 000",
+      "initialBalanceLabel": "Поточний залишок боргу",
+      "initialBalancePlaceholder": "Скільки ви винні сьогодні",
+      "interestRateLabel": "Процентна ставка (річна %)",
+      "interestRatePlaceholder": "напр. 6.25",
+      "minPaymentEstimateTooltip": "Розраховано на основі основної суми, річної ставки та терміну за допомогою стандартної формули амортизації.",
+      "minPaymentApplyEstimateAriaLabel": "Використати розраховану мінімальну виплату",
+      "termMonthsLabel": "Термін (місяців)",
+      "termPresetsAriaLabel": "Предустановки терміну",
+      "termPresetsHeader": "Поширені терміни",
+      "termMonthsSuffix": "міс",
+      "termPresetYears": "{count} рік | {count} роки | {count} років",
+      "termMonthsPlaceholder": "напр. 360 для 30-річного кредиту",
+      "startDateLabel": "Дата початку",
+      "startDatePlaceholder": "ДД.ММ.РРРР",
+      "startDateTooltip": "Дата оформлення кредиту — коли ви його отримали. Це інформаційне поле: воно не впливає на поточний залишок боргу і не змінює прогноз виплат.",
+      "plannedPaymentLabel": "Плановий щомісячний платіж",
+      "plannedPaymentPlaceholder": "Скільки ви реально платите",
+      "minPaymentLabel": "Мінімальний щомісячний платіж",
+      "minPaymentPlaceholder": "Необов'язково, вказано кредитором",
+      "paymentDayLabel": "День платежу в місяці",
+      "paymentDayPlaceholder": "1–31",
+      "lenderNameLabel": "Кредитор",
+      "lenderNamePlaceholder": "напр. ПриватБанк, Ощадбанк",
+      "accountNumberLabel": "Номер рахунку / кредиту",
+      "accountNumberPlaceholder": "Необов'язково",
+      "currentBalanceLabel": "Поточний залишок боргу",
+      "balanceAsOfLabel": "Залишок станом на",
+      "balanceAsOfPlaceholder": "ДД.ММ.РРРР",
+      "saveButton": "Зберегти зміни",
+      "submitButton": "Створити кредит",
+      "submitButtonLoading": "Створення…",
+      "cancelButton": "Скасувати",
+      "notifications": {
+        "success": "Кредит створено.",
+        "error": "Не вдалося створити кредит. Спробуйте ще раз.",
+        "updateSuccess": "Кредит оновлено",
+        "updateError": "Не вдалося оновити кредит"
+      },
+      "errors": {
+        "required": "Це поле обов'язкове.",
+        "mustBePositive": "Повинно бути більше 0.",
+        "mustBeNonNegative": "Повинно бути 0 або більше.",
+        "interestRateRange": "Процентна ставка має бути від 0 до 99.9999.",
+        "termRange": "Термін має бути від 1 до 1200 місяців.",
+        "paymentDayRange": "День місяця має бути від 1 до 31.",
+        "asOfInFuture": "Дата не може бути в майбутньому"
+      },
+      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
     }
   },
   "fields": {

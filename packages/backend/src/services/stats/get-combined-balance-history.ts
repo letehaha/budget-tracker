@@ -23,15 +23,22 @@ import { getCreditLimitAdjustment } from './get-credit-limit-adjustment';
 export interface CombinedBalanceHistoryItem {
   date: string;
   /**
-   * Sum of all "real" account categories (cash, credit card, savings, etc.).
+   * Sum of all "real" asset account categories (cash, credit card, savings, etc.).
    * Vehicles are excluded so the line tracks actual cash position rather than
    * being dragged down by depreciation curves on assets the user can't spend.
+   * Loans are excluded so the asset line isn't dragged down by liabilities
+   * the user owes — they get their own `loansBalance` field.
    */
   accountsBalance: number;
   portfoliosBalance: number;
   venturesBalance: number;
   /** Sum of vehicle-account balances. Separated to avoid polluting accountsBalance. */
   vehiclesBalance: number;
+  /**
+   * Sum of loan-account balances. Stored as negative numbers (user owes) so
+   * adding this to `totalBalance` correctly subtracts liabilities from net worth.
+   */
+  loansBalance: number;
   totalBalance: number;
 }
 
@@ -479,28 +486,42 @@ export const getCombinedBalanceHistory = async ({
       end: parseISO(maxDate),
     }).map((date) => format(date, 'yyyy-MM-dd'));
 
-    // Run the accounts/vehicles split as two filtered aggregations. Both hit
+    // Run the accounts/vehicles/loans split as three filtered aggregations. All hit
     // the same Balances rows but with different category filters — cheaper than
     // one big query partitioned in memory, and keeps `aggregateBalanceTrendData`'s
     // forward-fill semantics correct per partition (otherwise vehicles' anchor
-    // dates would forward-fill into the cash-accounts series and vice versa).
-    const [accountsBalanceHistory, vehicleValuesByDate, portfolioValuesByDate, ventureValuesByDate, creditLimitSum] =
-      await Promise.all([
-        getAggregatedBalanceHistory({
-          userId,
-          from: minDate,
-          to: maxDate,
-          categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle] },
-        }),
-        calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates }),
-        calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
-        calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
-        includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
-      ]);
+    // dates would forward-fill into the cash-accounts series and vice versa, and
+    // loan negatives would drag the asset line below its real value).
+    const [
+      accountsBalanceHistory,
+      loansBalanceHistory,
+      vehicleValuesByDate,
+      portfolioValuesByDate,
+      ventureValuesByDate,
+      creditLimitSum,
+    ] = await Promise.all([
+      getAggregatedBalanceHistory({
+        userId,
+        from: minDate,
+        to: maxDate,
+        categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle, ACCOUNT_CATEGORIES.loan] },
+      }),
+      getAggregatedBalanceHistory({
+        userId,
+        from: minDate,
+        to: maxDate,
+        categoryFilter: { only: [ACCOUNT_CATEGORIES.loan] },
+      }),
+      calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates }),
+      calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
+      calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
+      includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
+    ]);
 
     // If no data at all, return empty array
     if (
       (!accountsBalanceHistory || accountsBalanceHistory.length === 0) &&
+      (!loansBalanceHistory || loansBalanceHistory.length === 0) &&
       (!vehicleValuesByDate || vehicleValuesByDate.size === 0) &&
       (!portfolioValuesByDate || portfolioValuesByDate.size === 0) &&
       (!ventureValuesByDate || ventureValuesByDate.size === 0)
@@ -514,12 +535,18 @@ export const getCombinedBalanceHistory = async ({
       accountsBalanceByDate.set(item.date, item.amount);
     }
 
-    // Combine accounts, vehicles, portfolio, and venture balances with O(1) lookups
+    const loansBalanceByDate = new Map<string, number>();
+    for (const item of loansBalanceHistory) {
+      loansBalanceByDate.set(item.date, item.amount);
+    }
+
+    // Combine accounts, vehicles, portfolio, venture, and loan balances with O(1) lookups
     const combinedHistory: CombinedBalanceHistoryItem[] = uniqueDates.map((dateStr) => {
       const accountsBalance = (accountsBalanceByDate.get(dateStr) ?? 0) - creditLimitSum;
       const vehiclesBalance = vehicleValuesByDate?.get(dateStr) ?? 0;
       const portfoliosBalance = portfolioValuesByDate?.get(dateStr) ?? 0;
       const venturesBalance = ventureValuesByDate?.get(dateStr) ?? 0;
+      const loansBalance = loansBalanceByDate.get(dateStr) ?? 0;
 
       return {
         date: dateStr,
@@ -527,7 +554,8 @@ export const getCombinedBalanceHistory = async ({
         portfoliosBalance,
         venturesBalance,
         vehiclesBalance,
-        totalBalance: accountsBalance + portfoliosBalance + venturesBalance + vehiclesBalance,
+        loansBalance,
+        totalBalance: accountsBalance + portfoliosBalance + venturesBalance + vehiclesBalance + loansBalance,
       };
     });
 

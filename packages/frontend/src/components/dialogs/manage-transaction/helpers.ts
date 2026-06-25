@@ -1,6 +1,7 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
 import type { FormattedCategory } from '@/common/types';
 import {
+  isTwoLegTransfer,
   ACCOUNT_TYPES,
   AccountModel,
   CategoryModel,
@@ -9,6 +10,7 @@ import {
   TransactionModel,
 } from '@bt/shared/types';
 
+import type { TransferDestinationType } from './composables/transfer-form';
 import { FORM_TYPES, type FormSplit, UI_FORM_STRUCT } from './types';
 
 export const getDestinationAccount = ({
@@ -50,11 +52,7 @@ export const getDestinationAmount = ({
 };
 
 export const getFormTypeFromTransaction = (tx: TransactionModel): FORM_TYPES => {
-  if (
-    [TRANSACTION_TRANSFER_NATURE.common_transfer, TRANSACTION_TRANSFER_NATURE.transfer_out_wallet].includes(
-      tx.transferNature,
-    )
-  ) {
+  if (isTwoLegTransfer(tx.transferNature) || tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
     return FORM_TYPES.transfer;
   }
 
@@ -70,6 +68,22 @@ export const getTxTypeFromFormType = (formType: FORM_TYPES): TRANSACTION_TYPES =
 };
 
 export const isOutOfWalletAccount = (account: typeof OUT_OF_WALLET_ACCOUNT_MOCK) => account._isOutOfWallet;
+
+/**
+ * Transfer destinations offered for a given base transaction type.
+ *
+ * A loan payment is an outflow — its source leg is an expense that pays the
+ * loan down, and the backend rejects an income base for `transfer_to_loan`. So
+ * an income transaction switched into transfer mode can target an account or a
+ * portfolio, but never a loan.
+ */
+export const getAvailableTransferDestinationTypes = (transactionType: TRANSACTION_TYPES): TransferDestinationType[] => {
+  const types: TransferDestinationType[] = ['account', 'portfolio'];
+  if (transactionType !== TRANSACTION_TYPES.income) {
+    types.push('loan');
+  }
+  return types;
+};
 
 // The backend cascades a transfer delete across both legs, so an external-bank
 // partner (which can't be removed) would orphan the call — hide the button instead.

@@ -1,4 +1,10 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  isTwoLegTransfer,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -15,6 +21,7 @@ import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
+import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
 import {
   assertSharedWritePhase1Guards,
   assertTxWriteAccess,
@@ -97,6 +104,83 @@ const validateTransaction = async (
     throw new ValidationError({
       message: t({ key: 'transactions.cannotEditPortfolioLinkedTransaction' }),
     });
+  }
+
+  // The transfer kind is frozen once a pair exists: relabeling a live pair
+  // (common_transfer ↔ transfer_to_loan) would require restamping both legs
+  // atomically and re-validating the destination's category. The supported
+  // flow is unlink first (nature → not_transfer), then mark the expense again —
+  // the re-mark goes through the create path, which stamps both legs and
+  // validates the loan destination.
+  if (
+    newData.transferNature !== undefined &&
+    isTwoLegTransfer(prevData.transferNature) &&
+    isTwoLegTransfer(newData.transferNature) &&
+    newData.transferNature !== prevData.transferNature
+  ) {
+    throw new ValidationError({
+      message: t({ key: 'transactions.transferNatureChangeNotAllowed' }),
+    });
+  }
+
+  // Loan invariants for edits touching the destination leg — keyed off the
+  // destination account's *category*, not the nature label (mirrors
+  // createOppositeTransaction). A frozen-nature pair can't be re-pointed to a
+  // different loan; the supported flow is unlink first, then re-mark.
+  const effectiveNature = newData.transferNature ?? prevData.transferNature;
+  if (
+    isTwoLegTransfer(prevData.transferNature) &&
+    prevData.transferId &&
+    (newData.destinationAmount !== undefined || newData.destinationAccountId !== undefined)
+  ) {
+    const oppositeLeg = await Transactions.default.findOne({
+      where: { transferId: prevData.transferId, id: { [Op.ne]: prevData.id } },
+      attributes: ['id', 'accountId', 'amount'],
+    });
+    if (oppositeLeg) {
+      const destinationAccountId = newData.destinationAccountId ?? oppositeLeg.accountId;
+      const isSameDestination = destinationAccountId === oppositeLeg.accountId;
+
+      // Category-only read, deliberately not scoped by userId: on a shared
+      // cross-user pair the opposite leg can live on another user's account,
+      // and an owner-scoped lookup would 404 a plain amount edit. Ownership
+      // is still enforced where it matters — `assertLoanPaymentAllowed`
+      // locks the loan row by (id, ownerUserId), and a re-pointed
+      // destination is ownership-checked downstream in
+      // `updateTransferTransaction`'s currency lookup.
+      const destAccount = await Accounts.default.findOne({
+        where: { id: destinationAccountId },
+        attributes: ['accountCategory'],
+      });
+      if (!destAccount) {
+        throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+      }
+      const isLoanDestination = destAccount.accountCategory === ACCOUNT_CATEGORIES.loan;
+
+      if (effectiveNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan && !isLoanDestination) {
+        throw new ValidationError({
+          message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
+        });
+      }
+      if (effectiveNature !== TRANSACTION_TRANSFER_NATURE.transfer_to_loan && isLoanDestination && !isSameDestination) {
+        throw new ValidationError({
+          message: t({ key: 'transactions.transferToLoanRelinkRequired' }),
+        });
+      }
+      if (isLoanDestination) {
+        await assertLoanPaymentAllowed({
+          ownerUserId: ctx.accountOwnerUserId,
+          loanAccountId: destinationAccountId,
+          newLegAmount: newData.destinationAmount ?? oppositeLeg.amount,
+          // The old leg is part of this loan's balance only when the
+          // destination stays put; on a re-point the new loan never saw it.
+          currentLegAmount: isSameDestination ? oppositeLeg.amount : null,
+          // Effective post-update date; both legs share it. Falls back to the
+          // existing tx time when the edit doesn't move the date.
+          paymentDate: newData.time ?? prevData.time,
+        });
+      }
+    }
   }
 
   // We doesn't allow users to change non-source trasnaction for several reasons:
@@ -442,7 +526,10 @@ const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
     }
   }
 
-  await Transactions.updateTransactionById({
+  // Return the refreshed base tx so callers can surface the cleared
+  // transferId/transferNature in the API response — the `baseTransaction`
+  // snapshot they hold predates this update.
+  return Transactions.updateTransactionById({
     id: baseTransaction.id,
     userId: baseTransaction.userId,
     transferId: null,
@@ -451,29 +538,26 @@ const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
 };
 
 const isUpdatingTransferTx = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
-  // Previously was transfer, now NOT a transfer
-  const nowNotTransfer =
-    payload.transferNature === undefined && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+  // nature label only affects reporting; the bookkeeping path is identical for both transfer kinds.
+  const stillTransfer = payload.transferNature === undefined && isTwoLegTransfer(prevData.transferNature);
 
   // Previously was transfer, now also transfer
-  const updatingTransfer =
-    payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+  const updatingTransfer = isTwoLegTransfer(payload.transferNature) && isTwoLegTransfer(prevData.transferNature);
 
-  return nowNotTransfer || updatingTransfer;
+  return stillTransfer || updatingTransfer;
 };
 
 const isCreatingTransfer = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
   return (
-    payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer
+    isTwoLegTransfer(payload.transferNature) && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer
   );
 };
 
 const isDiscardingTransfer = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
   return (
-    payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
+    payload.transferNature !== undefined &&
+    !isTwoLegTransfer(payload.transferNature) &&
+    isTwoLegTransfer(prevData.transferNature)
   );
 };
 
@@ -500,20 +584,12 @@ export const updateTransaction = withTransaction(
         isOwner: authCtx.isOwner,
       };
 
-      // PATCH semantics: when `transferNature` is omitted from the payload, the predicates
-      // below interpret that as "keep current state" for the purpose of the recipient gate
-      // (an unspecified field doesn't mean the caller wants to discard the link). Only an
-      // explicit nature change — promoting a non-transfer to a transfer, or explicitly
-      // setting nature to something other than `common_transfer` on a transfer — has its
-      // own broken cross-user opposite-tx handling and stays blocked for recipients.
-      const explicitlyDiscardingTransfer =
-        payload.transferNature !== undefined &&
-        payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
-        prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
-
+      // Only an explicit nature change — promoting a non-transfer to a transfer, or
+      // explicitly discarding a transfer link — has its own broken cross-user
+      // opposite-tx handling and stays blocked for recipients.
       assertSharedWritePhase1Guards({
         isOwner: authCtx.isOwner,
-        involvesTransfer: isCreatingTransfer(payload, prevData) || explicitlyDiscardingTransfer,
+        involvesTransfer: isCreatingTransfer(payload, prevData) || isDiscardingTransfer(payload, prevData),
         involvesRefund: payload.refundedByTxIds !== undefined || payload.refundsTxId !== undefined,
         changesAccountId: payload.accountId !== undefined && payload.accountId !== prevData.accountId,
       });
@@ -588,13 +664,12 @@ export const updateTransaction = withTransaction(
           updatedTransactions = [baseTx, oppositeTx];
         }
       } else if (isDiscardingTransfer(payload, prevData)) {
-        await unlinkOppositeTransaction(helperFunctionsArgs);
+        const unlinkedBaseTx = await unlinkOppositeTransaction(helperFunctionsArgs);
+        if (unlinkedBaseTx) updatedTransactions = [unlinkedBaseTx];
       }
 
       // Handle splits
-      const isTransfer =
-        baseTransaction.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer ||
-        payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+      const isTransfer = isTwoLegTransfer(baseTransaction.transferNature) || isTwoLegTransfer(payload.transferNature);
 
       if (payload.splits !== undefined) {
         if (isTransfer) {

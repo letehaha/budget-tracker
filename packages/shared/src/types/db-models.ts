@@ -9,6 +9,7 @@ import {
   LogoResolutionState,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
+  LOAN_TYPE,
   NotificationPriority,
   NotificationStatus,
   NotificationType,
@@ -31,6 +32,7 @@ import {
   TransactionsWriteScope,
   UserRole,
 } from './enums';
+import { LoanEvent } from './loans';
 import { RecordId } from './record-id';
 
 export interface UserModel {
@@ -751,4 +753,52 @@ export interface PayeeStats {
   firstSeenAt: Date | null;
   lastSeenAt: Date | null;
   topCategoryId: RecordId | null;
+}
+
+/**
+ * 1:1 sidecar on `Accounts` for loan-category accounts. Holds the loan-only
+ * fields that don't belong on the Account record – APR, payment plan, lender
+ * metadata, event log. The underlying Account still owns the balance (stored
+ * negative) and the currency. Required: a loan-category Account must have a
+ * LoanDetails row, enforced at the service layer (existing Vehicles precedent).
+ *
+ * Monetary values are stored as cents (BIGINT) and surfaced as Money via the
+ * model getters.
+ */
+export interface LoanDetailsModel {
+  id: RecordId;
+  accountId: RecordId;
+  userId: number;
+  /** Sub-type (mortgage, auto, student…) – drives UI grouping only. */
+  loanType: LOAN_TYPE;
+  /**
+   * Lender-issued principal at origination, in cents. Immutable after create –
+   * Account.initialBalance may drift when the user backdates transactions, so a
+   * separate frozen field preserves the amortization reference.
+   */
+  originalPrincipal: number;
+  /** Same value converted to the user's base currency at LoanDetails creation. */
+  refOriginalPrincipal: number;
+  /**
+   * APR as percent, e.g. 3.75 for 3.75%. Range [0, 100). DECIMAL at rest;
+   * the model getter parses Postgres' string representation to a number.
+   */
+  interestRate: number;
+  termMonths: number | null;
+  startDate: string;
+  minPayment: number | null;
+  refMinPayment: number | null;
+  plannedPayment: number | null;
+  refPlannedPayment: number | null;
+  /** Day-of-month [1, 31]. Values 29/30/31 clamp to the last day of short months at display/schedule time. */
+  paymentDayOfMonth: number | null;
+  lenderName: string | null;
+  /** Lender's account/loan identifier as the user records it — last four, full number, or any reference they prefer. No format enforced. */
+  accountNumber: string | null;
+  /** When this loan was replaced by a refinance – points to the new loan's Account id. */
+  replacedByLoanId: RecordId | null;
+  /** Append-only audit/timeline; see LoanEvent. */
+  events: LoanEvent[];
+  createdAt: Date;
+  updatedAt: Date;
 }

@@ -90,8 +90,16 @@ describe('[Stats] Combined balance history', () => {
     expect(record).toHaveProperty('accountsBalance');
     expect(record).toHaveProperty('portfoliosBalance', 0);
     expect(record).toHaveProperty('venturesBalance', 0);
+    expect(record).toHaveProperty('vehiclesBalance', 0);
+    expect(record).toHaveProperty('loansBalance', 0);
     expect(record).toHaveProperty('totalBalance');
-    expect(record.totalBalance).toBe(record.accountsBalance + record.portfoliosBalance + record.venturesBalance);
+    expect(record.totalBalance).toBe(
+      record.accountsBalance +
+        record.portfoliosBalance +
+        record.venturesBalance +
+        record.vehiclesBalance +
+        record.loansBalance,
+    );
   });
 
   it('Returns correct combined balance data with date filtering', async () => {
@@ -991,6 +999,77 @@ describe('[Stats] Combined balance history', () => {
       for (const entry of data) {
         expect(entry.date < purchaseDateStr).toBe(true);
         expect(entry.vehiclesBalance).toBe(0);
+      }
+    });
+  });
+
+  describe('Loans in combined balance history', () => {
+    it('reports negative loansBalance and keeps it out of accountsBalance', async () => {
+      // Cash account stays untouched by the loan split — its only contribution
+      // is to accountsBalance. The loan account holds a negative balance and
+      // must surface in loansBalance only, never dragging accountsBalance down.
+      const cash = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: global.BASE_CURRENCY_CODE,
+          initialBalance: 50_000,
+          originalPrincipal: 50_000,
+        }),
+        raw: true,
+      });
+
+      const fromDate = format(subDays(new Date(), 2), 'yyyy-MM-dd');
+      const toDate = format(new Date(), 'yyyy-MM-dd');
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: fromDate,
+        to: toDate,
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      const today = data.find((entry) => entry.date === toDate)!;
+      expect(today).toBeDefined();
+
+      // Loan was opened with a 50_000 outstanding balance — stored negative.
+      expect(today.loansBalance).toBeLessThan(0);
+      expect(Math.abs(today.loansBalance)).toBe(50_000);
+
+      // accountsBalance reflects only the cash account; the loan negative is
+      // routed into loansBalance instead of being silently lumped in here.
+      expect(today.accountsBalance).toBe(1000);
+
+      // totalBalance is the algebraic sum across all buckets, so liabilities
+      // subtract from net worth: 1000 + (-50_000) = -49_000.
+      expect(today.totalBalance).toBe(
+        today.accountsBalance +
+          today.portfoliosBalance +
+          today.venturesBalance +
+          today.vehiclesBalance +
+          today.loansBalance,
+      );
+      expect(today.totalBalance).toBe(1000 - 50_000);
+
+      // The asset account never created a loan — keep the loanId reference
+      // alive for type-safety / unused-var lints in CI.
+      expect(loan.id).toBeDefined();
+      expect(cash.id).toBeDefined();
+    });
+
+    it('keeps loansBalance at 0 when the user has no loans', async () => {
+      await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({ raw: true })) as CombinedBalanceHistoryItem[];
+
+      expect(data.length).toBeGreaterThan(0);
+      for (const entry of data) {
+        expect(entry.loansBalance).toBe(0);
       }
     });
   });

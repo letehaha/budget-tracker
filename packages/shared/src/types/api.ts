@@ -41,6 +41,9 @@ export enum API_ERROR_CODES {
 
   // wipe-data
   wipeDataSharingAcknowledgementRequired = 'WIPE_DATA_SHARING_ACK_REQUIRED',
+
+  // loans-related
+  loanPaymentOverpayConfirmationRequired = 'LOAN_PAYMENT_OVERPAY_CONFIRMATION_REQUIRED',
 }
 
 /**
@@ -49,6 +52,21 @@ export enum API_ERROR_CODES {
  * each blocker without re-deriving the shape from the error code.
  */
 export type BaseCurrencyBlocker = { type: 'household' | 'share'; count: number };
+
+/**
+ * Payload carried in the `details` field of a `ValidationError` with code
+ * `loanPaymentOverpayConfirmationRequired`. All amounts are in the loan's
+ * currency as decimals (not cents). `overpayBy` is the positive overshoot —
+ * i.e. how far the batch pushes the balance past zero.
+ */
+export type LoanPaymentOverpayDetails = {
+  /** Projected loan balance after linking the batch (positive = overshoot). */
+  projectedBalance: number;
+  /** Maximum linkable total without overshooting (equals the current owed balance). */
+  maxLinkable: number;
+  /** Positive amount by which the batch exceeds the owed balance. */
+  overpayBy: number;
+};
 
 /**
  * Preflight summary returned in the `details` of a 409 with code

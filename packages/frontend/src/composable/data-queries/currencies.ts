@@ -112,9 +112,28 @@ export const useExchangeRates = (queryOptions = {}) => {
     ),
   );
 
+  /**
+   * Converts an amount between two of the user's currencies, rounded to 2
+   * decimals. Every saved rate maps `baseCode → user's base currency` (the
+   * quoteCode), so converting between two non-base currencies pivots through
+   * that shared base: A→B = A.rate / B.rate. Returns `null` while rates are
+   * still loading or when either rate is missing — callers should treat that
+   * as "conversion unavailable", not zero.
+   */
+  const convert = ({ amount, from, to }: { amount: number; from: string; to: string }): number | null => {
+    if (from === to) return amount;
+    const fromRate = ratesMap.value[from]?.rate;
+    const toRate = ratesMap.value[to]?.rate;
+    if (!fromRate || !toRate) return null;
+    const converted = (amount * fromRate) / toRate;
+    if (!Number.isFinite(converted)) return null;
+    return Math.round(converted * 100) / 100;
+  };
+
   return {
     ...query,
     ratesMap,
+    convert,
     invalidate: () => queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates }),
   };
 };
