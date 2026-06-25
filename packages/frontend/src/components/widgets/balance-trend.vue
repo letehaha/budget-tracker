@@ -85,6 +85,10 @@
               {{ $t('dashboard.widgets.balanceTrend.tooltip.vehicles') }}
               {{ formatLargeNumber(tooltip.vehiclesBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
             </div>
+            <div v-if="showLoansRow">
+              {{ $t('dashboard.widgets.balanceTrend.tooltip.loans') }}
+              {{ formatLargeNumber(tooltip.loansBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
+            </div>
             <div class="font-medium">
               {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }}
               {{ formatLargeNumber(tooltip.totalBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
@@ -205,7 +209,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-type BalanceTypeValue = 'total' | 'accounts' | 'portfolios' | 'ventures' | 'vehicles';
+type BalanceTypeValue = 'total' | 'accounts' | 'portfolios' | 'ventures' | 'vehicles' | 'loans';
 type BalanceTypeOption = { value: BalanceTypeValue; label: string };
 
 const selectedBalanceType = ref<BalanceTypeOption>({
@@ -238,7 +242,7 @@ const fitToLatestData = computed<boolean>(() => {
 // User-controlled toggles for what counts toward the "Total" balance line.
 // Default true so behavior matches pre-toggle releases (no migration needed).
 // Affects the "total" chart line + tooltip total + headline number only; the
-// per-component balance types (vehicles, ventures) in the dropdown stay
+// per-component balance types (vehicles, ventures, loans) in the dropdown stay
 // unaffected so users can still drill into them directly.
 const includeVehiclesInTotal = computed<boolean>(() => {
   const cfg = widgetConfigRef?.value?.config;
@@ -248,21 +252,31 @@ const includeVenturesInTotal = computed<boolean>(() => {
   const cfg = widgetConfigRef?.value?.config;
   return (cfg?.includeVenturesInTotal as boolean | undefined) ?? true;
 });
+const includeLoansInTotal = computed<boolean>(() => {
+  const cfg = widgetConfigRef?.value?.config;
+  return (cfg?.includeLoansInTotal as boolean | undefined) ?? true;
+});
 
 type BalancePoint = {
   accountsBalance: number;
   portfoliosBalance: number;
   venturesBalance: number;
   vehiclesBalance: number;
+  loansBalance: number;
   totalBalance: number;
 };
 
 const getEffectiveTotal = (point: BalancePoint): number => {
   // Fast path: nothing excluded → use the server-computed total verbatim.
-  if (includeVehiclesInTotal.value && includeVenturesInTotal.value) return point.totalBalance;
+  if (includeVehiclesInTotal.value && includeVenturesInTotal.value && includeLoansInTotal.value) {
+    return point.totalBalance;
+  }
   let total = point.accountsBalance + point.portfoliosBalance;
   if (includeVenturesInTotal.value) total += point.venturesBalance;
   if (includeVehiclesInTotal.value) total += point.vehiclesBalance;
+  // Loans are stored as negatives — excluding them raises net worth (the
+  // user "ignores" their debt). Including them subtracts liabilities as usual.
+  if (includeLoansInTotal.value) total += point.loansBalance;
   return total;
 };
 
@@ -279,6 +293,7 @@ const tooltip = reactive({
   portfoliosBalance: 0,
   venturesBalance: 0,
   vehiclesBalance: 0,
+  loansBalance: 0,
   totalBalance: 0,
   deltaAbsolute: 0,
   deltaPercent: 0,
@@ -378,8 +393,12 @@ const hasVehicleData = computed(
   () => !!balanceHistory.value && balanceHistory.value.some((i) => i.vehiclesBalance !== 0),
 );
 
-// Tooltip rows for vehicles/ventures show when the component contributes to
-// what the user is currently viewing — either it's flowing into the Total
+// Same gating for loans. Loan balances are negative, so we check `!== 0`
+// rather than `> 0` to detect any active loan.
+const hasLoanData = computed(() => !!balanceHistory.value && balanceHistory.value.some((i) => i.loansBalance !== 0));
+
+// Tooltip rows for vehicles/ventures/loans show when the component contributes
+// to what the user is currently viewing — either it's flowing into the Total
 // (and Total is the selected line), or the user explicitly picked that
 // component's line from the dropdown. Hidden when toggled out of Total to
 // avoid showing a value that doesn't add up to the displayed Total.
@@ -392,6 +411,11 @@ const showVenturesRow = computed(() => {
   if (!hasVentureData.value) return false;
   if (selectedBalanceType.value.value === 'ventures') return true;
   return includeVenturesInTotal.value;
+});
+const showLoansRow = computed(() => {
+  if (!hasLoanData.value) return false;
+  if (selectedBalanceType.value.value === 'loans') return true;
+  return includeLoansInTotal.value;
 });
 
 const balanceTypeOptions = computed<BalanceTypeOption[]>(() => {
@@ -406,12 +430,15 @@ const balanceTypeOptions = computed<BalanceTypeOption[]>(() => {
   if (hasVehicleData.value) {
     options.push({ value: 'vehicles', label: t('dashboard.widgets.balanceTrend.balanceTypes.vehicles') });
   }
+  if (hasLoanData.value) {
+    options.push({ value: 'loans', label: t('dashboard.widgets.balanceTrend.balanceTypes.loans') });
+  }
   return options;
 });
 
-// Roll the user off the ventures/vehicles views if the underlying data
-// disappears (last deal/vehicle deleted while widget mounted) — otherwise the
-// select would display a stale label after the option vanishes from the list.
+// Roll the user off the ventures/vehicles/loans views if the underlying data
+// disappears (last deal/vehicle/loan deleted while widget mounted) — otherwise
+// the select would display a stale label after the option vanishes from the list.
 watch(hasVentureData, (val) => {
   if (!val && selectedBalanceType.value.value === 'ventures') {
     selectedBalanceType.value = balanceTypeOptions.value[0]!;
@@ -419,6 +446,11 @@ watch(hasVentureData, (val) => {
 });
 watch(hasVehicleData, (val) => {
   if (!val && selectedBalanceType.value.value === 'vehicles') {
+    selectedBalanceType.value = balanceTypeOptions.value[0]!;
+  }
+});
+watch(hasLoanData, (val) => {
+  if (!val && selectedBalanceType.value.value === 'loans') {
     selectedBalanceType.value = balanceTypeOptions.value[0]!;
   }
 });
@@ -481,6 +513,9 @@ const chartData = computed(() => {
       case 'vehicles':
         value = point.vehiclesBalance;
         break;
+      case 'loans':
+        value = point.loansBalance;
+        break;
       default:
         value = effectiveTotal;
     }
@@ -492,6 +527,7 @@ const chartData = computed(() => {
       portfoliosBalance: point.portfoliosBalance,
       venturesBalance: point.venturesBalance,
       vehiclesBalance: point.vehiclesBalance,
+      loansBalance: point.loansBalance,
       totalBalance: effectiveTotal,
     };
   });
@@ -842,6 +878,7 @@ const renderChart = () => {
       tooltip.portfoliosBalance = d.portfoliosBalance;
       tooltip.venturesBalance = d.venturesBalance;
       tooltip.vehiclesBalance = d.vehiclesBalance;
+      tooltip.loansBalance = d.loansBalance;
       tooltip.totalBalance = d.totalBalance;
 
       // Compute day-over-day delta
@@ -937,6 +974,11 @@ const displayBalance = computed(() => {
       return {
         current: latestEntry.vehiclesBalance || 0,
         previous: prevPeriodLastEntry?.vehiclesBalance || 0,
+      };
+    case 'loans':
+      return {
+        current: latestEntry.loansBalance || 0,
+        previous: prevPeriodLastEntry?.loansBalance || 0,
       };
     case 'total':
     default:
