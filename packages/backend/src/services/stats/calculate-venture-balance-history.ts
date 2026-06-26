@@ -55,18 +55,16 @@ export const calculateVentureBalanceHistory = async ({
   minDate,
   maxDate,
   uniqueDates,
+  userBaseCurrencyPromise,
 }: {
   userId: number;
   minDate: string;
   maxDate: string;
   uniqueDates: string[];
+  userBaseCurrencyPromise: Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
 }): Promise<Map<string, number> | null> => {
   const [userBaseCurrency, deals] = await Promise.all([
-    UsersCurrencies.findOne({
-      where: { userId, isDefaultCurrency: true },
-      raw: true,
-      attributes: ['currencyCode'],
-    }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>,
+    userBaseCurrencyPromise,
     VentureDeals.findAll({
       where: { userId },
       attributes: ['id', 'currencyCode', 'investmentDate', 'principal', 'entryFee'],

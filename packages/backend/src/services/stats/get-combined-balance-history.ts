@@ -46,18 +46,16 @@ const calculatePortfolioBalanceHistory = async ({
   minDate,
   maxDate,
   uniqueDates,
+  userBaseCurrencyPromise,
 }: {
   userId: number;
   minDate: string;
   maxDate: string;
   uniqueDates: string[];
+  userBaseCurrencyPromise: Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
 }): Promise<Map<string, number> | null> => {
   const [userBaseCurrency, portfolios] = await Promise.all([
-    UsersCurrencies.findOne({
-      where: { userId, isDefaultCurrency: true },
-      raw: true,
-      attributes: ['currencyCode'],
-    }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>,
+    userBaseCurrencyPromise,
     Portfolios.findAll({
       where: { userId, isEnabled: true },
       attributes: ['id'],
@@ -479,6 +477,13 @@ export const getCombinedBalanceHistory = async ({
       end: parseISO(maxDate),
     }).map((date) => format(date, 'yyyy-MM-dd'));
 
+    // Shared by every sub-calculator that converts to base currency. To avoid 3+ calls
+    const userBaseCurrencyPromise = UsersCurrencies.findOne({
+      where: { userId, isDefaultCurrency: true },
+      raw: true,
+      attributes: ['currencyCode'],
+    }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
+
     // Run the accounts/vehicles split as two filtered aggregations. Both hit
     // the same Balances rows but with different category filters — cheaper than
     // one big query partitioned in memory, and keeps `aggregateBalanceTrendData`'s
@@ -492,9 +497,9 @@ export const getCombinedBalanceHistory = async ({
           to: maxDate,
           categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle] },
         }),
-        calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates }),
-        calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
-        calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
+        calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
         includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
       ]);
 
