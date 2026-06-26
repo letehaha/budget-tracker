@@ -10,6 +10,7 @@ import SecurityPricing from '@models/investments/security-pricing.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import VentureDeals from '@models/venture/venture-deals.model';
+import { withTransaction } from '@services/common/with-transaction';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
 import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
@@ -46,18 +47,16 @@ const calculatePortfolioBalanceHistory = async ({
   minDate,
   maxDate,
   uniqueDates,
+  userBaseCurrencyPromise,
 }: {
   userId: number;
   minDate: string;
   maxDate: string;
   uniqueDates: string[];
+  userBaseCurrencyPromise: Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
 }): Promise<Map<string, number> | null> => {
   const [userBaseCurrency, portfolios] = await Promise.all([
-    UsersCurrencies.findOne({
-      where: { userId, isDefaultCurrency: true },
-      raw: true,
-      attributes: ['currencyCode'],
-    }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>,
+    userBaseCurrencyPromise,
     Portfolios.findAll({
       where: { userId, isEnabled: true },
       attributes: ['id'],
@@ -479,23 +478,44 @@ export const getCombinedBalanceHistory = async ({
       end: parseISO(maxDate),
     }).map((date) => format(date, 'yyyy-MM-dd'));
 
+    // Shared by every sub-calculator that converts to base currency. To avoid 3+ calls
+    const userBaseCurrencyPromise = UsersCurrencies.findOne({
+      where: { userId, isDefaultCurrency: true },
+      raw: true,
+      attributes: ['currencyCode'],
+    }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
+
     // Run the accounts/vehicles split as two filtered aggregations. Both hit
     // the same Balances rows but with different category filters — cheaper than
     // one big query partitioned in memory, and keeps `aggregateBalanceTrendData`'s
     // forward-fill semantics correct per partition (otherwise vehicles' anchor
     // dates would forward-fill into the cash-accounts series and vice versa).
+    //
+    // Each call is wrapped in its own transaction to pin one Postgres
+    // connection for the calls's lifetime. Bare reads acquire+release per
+    // query, so 5 parallel calls each issuing 2-3 sequential calls would
+    // re-fire Sequelize's per-connection session init (SET client_min_messages,
+    // SET TIME ZONE) ~15× per request and starve the pool under concurrent load.
     const [accountsBalanceHistory, vehicleValuesByDate, portfolioValuesByDate, ventureValuesByDate, creditLimitSum] =
       await Promise.all([
-        getAggregatedBalanceHistory({
-          userId,
-          from: minDate,
-          to: maxDate,
-          categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle] },
-        }),
-        calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates }),
-        calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
-        calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates }),
-        includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
+        withTransaction(() =>
+          getAggregatedBalanceHistory({
+            userId,
+            from: minDate,
+            to: maxDate,
+            categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle] },
+          }),
+        )(),
+        withTransaction(() =>
+          calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        )(),
+        withTransaction(() =>
+          calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        )(),
+        withTransaction(() =>
+          calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        )(),
+        includeCreditLimit ? withTransaction(() => getCreditLimitAdjustment({ userId }))() : Promise.resolve(0),
       ]);
 
     // If no data at all, return empty array

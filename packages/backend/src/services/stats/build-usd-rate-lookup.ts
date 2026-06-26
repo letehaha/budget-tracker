@@ -44,24 +44,35 @@ export const buildUsdRateLookup = async ({
 }): Promise<UsdRateLookup> => {
   const anchorCodes = quoteCodes.filter((code) => code !== API_LAYER_BASE_CURRENCY_CODE);
 
-  const preWindowAnchors = anchorCodes.length
-    ? (
-        await Promise.all(
-          anchorCodes.map((quoteCode) =>
-            ExchangeRates.findOne({
-              where: {
-                baseCode: API_LAYER_BASE_CURRENCY_CODE,
-                quoteCode,
-                date: { [Op.lt]: startOfDay(parseISO(windowStart)) },
-              },
-              order: [['date', 'DESC']],
-              attributes: ['quoteCode', 'date', 'rate'],
-              raw: true,
-            }),
-          ),
-        )
-      ).filter((row): row is ExchangeRates => row !== null)
+  // Single query for every pre-window row across all anchor currencies, then
+  // keep the latest per quoteCode in JS. One findOne-per-currency Promise.all
+  // here previously triggered N parallel `pg.connect` spans that Sentry's
+  // detector flagged as N+1.
+  const preWindowRows = anchorCodes.length
+    ? ((await ExchangeRates.findAll({
+        where: {
+          baseCode: API_LAYER_BASE_CURRENCY_CODE,
+          quoteCode: { [Op.in]: anchorCodes },
+          date: { [Op.lt]: startOfDay(parseISO(windowStart)) },
+        },
+        order: [
+          ['quoteCode', 'ASC'],
+          ['date', 'DESC'],
+        ],
+        attributes: ['quoteCode', 'date', 'rate'],
+        raw: true,
+      })) as UsdRateRow[])
     : [];
+
+  // First row per quoteCode is the latest pre-window rate (rows are sorted
+  // by quoteCode ASC, date DESC).
+  const preWindowAnchors: UsdRateRow[] = [];
+  const seenQuotes = new Set<string>();
+  for (const row of preWindowRows) {
+    if (seenQuotes.has(row.quoteCode)) continue;
+    seenQuotes.add(row.quoteCode);
+    preWindowAnchors.push(row);
+  }
 
   const usdRatesMap = new Map<string, number>();
   const usdRateDatesByQuote = new Map<string, string[]>();
