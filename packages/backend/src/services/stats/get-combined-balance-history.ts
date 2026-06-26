@@ -10,6 +10,7 @@ import SecurityPricing from '@models/investments/security-pricing.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import VentureDeals from '@models/venture/venture-deals.model';
+import { withTransaction } from '@services/common/with-transaction';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
 import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { Op } from 'sequelize';
@@ -489,18 +490,32 @@ export const getCombinedBalanceHistory = async ({
     // one big query partitioned in memory, and keeps `aggregateBalanceTrendData`'s
     // forward-fill semantics correct per partition (otherwise vehicles' anchor
     // dates would forward-fill into the cash-accounts series and vice versa).
+    //
+    // Each call is wrapped in its own transaction to pin one Postgres
+    // connection for the calls's lifetime. Bare reads acquire+release per
+    // query, so 5 parallel calls each issuing 2-3 sequential calls would
+    // re-fire Sequelize's per-connection session init (SET client_min_messages,
+    // SET TIME ZONE) ~15× per request and starve the pool under concurrent load.
     const [accountsBalanceHistory, vehicleValuesByDate, portfolioValuesByDate, ventureValuesByDate, creditLimitSum] =
       await Promise.all([
-        getAggregatedBalanceHistory({
-          userId,
-          from: minDate,
-          to: maxDate,
-          categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle] },
-        }),
-        calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates, userBaseCurrencyPromise }),
-        calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
-        calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
-        includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
+        withTransaction(() =>
+          getAggregatedBalanceHistory({
+            userId,
+            from: minDate,
+            to: maxDate,
+            categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle] },
+          }),
+        )(),
+        withTransaction(() =>
+          calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        )(),
+        withTransaction(() =>
+          calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        )(),
+        withTransaction(() =>
+          calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        )(),
+        includeCreditLimit ? withTransaction(() => getCreditLimitAdjustment({ userId }))() : Promise.resolve(0),
       ]);
 
     // If no data at all, return empty array
