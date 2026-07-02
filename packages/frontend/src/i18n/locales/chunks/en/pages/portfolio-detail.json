@@ -16,6 +16,7 @@
     },
     "balance": {
       "totalValue": "Total Value",
+      "baseCurrencyEquivalent": "≈ {value} in {code}",
       "loadError": "Failed to load portfolio summary.",
       "metrics": {
         "costBasis": "Cost Basis",

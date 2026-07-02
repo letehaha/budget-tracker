@@ -26,6 +26,25 @@ describe('Create Portfolio Service E2E', () => {
       });
     });
 
+    it('should create a portfolio with a display currency when it is connected', async () => {
+      await helpers.addUserCurrencyByCode({ code: 'EUR', raw: true });
+
+      const portfolio = await helpers.createPortfolio({
+        payload: { name: 'Broker View Portfolio', displayCurrencyCode: 'EUR' },
+        raw: true,
+      });
+
+      expect(portfolio.displayCurrencyCode).toBe('EUR');
+    });
+
+    it('should return ValidationError for a display currency not connected to the user', async () => {
+      const response = await helpers.createPortfolio({
+        payload: { name: 'Broker View Portfolio', displayCurrencyCode: 'PLN' },
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
     it('should create a portfolio with minimal required fields', async () => {
       const portfolioData = helpers.buildPortfolioPayload({
         name: 'Minimal Portfolio',

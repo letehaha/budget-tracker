@@ -21,6 +21,13 @@ export interface HoldingModel {
   unrealizedGainPercent?: string;
   realizedGainValue?: string;
   realizedGainPercent?: string;
+  // Present only when the portfolio has a displayCurrencyCode: money values
+  // above converted to that currency. Percent fields are ratios — unchanged.
+  displayCurrencyCode?: string;
+  displayCostBasis?: string;
+  displayMarketValue?: string;
+  displayUnrealizedGainValue?: string;
+  displayRealizedGainValue?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

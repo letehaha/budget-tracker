@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import DisplayCurrencySelect from '@/components/fields/display-currency-select.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
@@ -24,6 +25,7 @@ const form = reactive({
   name: '',
   portfolioType: PORTFOLIO_TYPE.investment,
   description: '',
+  displayCurrencyCode: null as string | null,
 });
 
 // Portfolio type options for the select dropdown
@@ -42,6 +44,7 @@ const resetForm = () => {
   form.name = '';
   form.portfolioType = PORTFOLIO_TYPE.investment;
   form.description = '';
+  form.displayCurrencyCode = null;
 };
 
 const onPortfolioCreation = () => {
@@ -56,6 +59,7 @@ const createPortfolio = async () => {
       name: form.name.trim(),
       portfolioType: form.portfolioType,
       description: form.description.trim() || undefined,
+      displayCurrencyCode: form.displayCurrencyCode,
       isEnabled: true,
     });
 
@@ -131,6 +135,8 @@ const createPortfolio = async () => {
           </Select.Select>
         </FieldLabel>
       </div>
+
+      <DisplayCurrencySelect v-model="form.displayCurrencyCode" :disabled="createPortfolioMutation.isPending.value" />
 
       <TextareaField
         v-model="form.description"

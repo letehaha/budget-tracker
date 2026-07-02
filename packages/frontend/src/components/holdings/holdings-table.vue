@@ -156,6 +156,20 @@ const getRealizedGain = (holding: HoldingModel) => {
   };
 };
 
+// Money columns render display-currency values when present; Price and AC/Share stay native.
+const formatMoneyCell = ({
+  holding,
+  native,
+  display,
+}: {
+  holding: HoldingModel;
+  native: number;
+  display: string | undefined;
+}) =>
+  holding.displayCurrencyCode && display !== undefined
+    ? formatCurrency(Number(display), holding.displayCurrencyCode)
+    : formatCurrency(native, holding.currencyCode);
+
 const { isExpanded, toggleExpand, collapseIfMatches } = useHoldingRowExpansion();
 
 // Delete holding flow
@@ -433,10 +447,22 @@ const theadLabelStyles = 'block max-w-32 truncate';
                     {{ formatCurrency(getAverageCost(row.holding), row.holding.currencyCode) }}
                   </td>
                   <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
-                    {{ formatCurrency(getTotalCost(row.holding), row.holding.currencyCode) }}
+                    {{
+                      formatMoneyCell({
+                        holding: row.holding,
+                        native: getTotalCost(row.holding),
+                        display: row.holding.displayCostBasis,
+                      })
+                    }}
                   </td>
                   <td :class="[cellStyles, 'px-3 text-right font-medium tabular-nums']">
-                    {{ formatCurrency(Number(row.holding.marketValue || 0), row.holding.currencyCode) }}
+                    {{
+                      formatMoneyCell({
+                        holding: row.holding,
+                        native: Number(row.holding.marketValue || 0),
+                        display: row.holding.displayMarketValue,
+                      })
+                    }}
                   </td>
                   <td :class="[cellStyles, 'px-3 text-right']">
                     <div
@@ -444,7 +470,13 @@ const theadLabelStyles = 'block max-w-32 truncate';
                       class="tabular-nums"
                     >
                       <div class="font-semibold">
-                        {{ formatCurrency(getUnrealizedGain(row.holding).value, row.holding.currencyCode) }}
+                        {{
+                          formatMoneyCell({
+                            holding: row.holding,
+                            native: getUnrealizedGain(row.holding).value,
+                            display: row.holding.displayUnrealizedGainValue,
+                          })
+                        }}
                       </div>
                       <div class="text-xs">{{ getUnrealizedGain(row.holding).percent.toFixed(2) }}%</div>
                     </div>
@@ -455,7 +487,13 @@ const theadLabelStyles = 'block max-w-32 truncate';
                       class="tabular-nums"
                     >
                       <div class="font-semibold">
-                        {{ formatCurrency(getRealizedGain(row.holding).value, row.holding.currencyCode) }}
+                        {{
+                          formatMoneyCell({
+                            holding: row.holding,
+                            native: getRealizedGain(row.holding).value,
+                            display: row.holding.displayRealizedGainValue,
+                          })
+                        }}
                       </div>
                       <div class="text-xs">{{ getRealizedGain(row.holding).percent.toFixed(2) }}%</div>
                     </div>

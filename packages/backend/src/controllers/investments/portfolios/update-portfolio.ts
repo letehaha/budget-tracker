@@ -14,6 +14,12 @@ export default createController(
         name: z.string().min(1).max(255).optional(),
         portfolioType: z.nativeEnum(PORTFOLIO_TYPE).optional(),
         description: z.string().nullable().optional(),
+        displayCurrencyCode: z
+          .string()
+          .length(3)
+          .transform((v) => v.toUpperCase())
+          .nullable()
+          .optional(),
         isEnabled: z.boolean().optional(),
       })
       .strict()

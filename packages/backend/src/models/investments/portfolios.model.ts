@@ -42,6 +42,13 @@ export default class Portfolios extends Model {
   @Column({ type: DataType.TEXT, allowNull: true })
   description!: string | null;
 
+  /**
+   * Currency the portfolio's summary/stats are converted to for display (e.g. PLN to match a Polish broker).
+   * Display-only — stored ref* values stay in base currency. Null means the user's base currency.
+   */
+  @Column({ type: DataType.STRING(3), allowNull: true })
+  displayCurrencyCode!: string | null;
+
   @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
   isEnabled!: boolean;
 
