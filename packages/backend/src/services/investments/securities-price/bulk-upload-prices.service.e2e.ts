@@ -125,10 +125,12 @@ describe('POST /investments/securities/prices/bulk-upload', () => {
     });
 
     it('should reject when no exchange rates exist for currency', async () => {
+      // Valid ISO code with no exchange rates seeded, so the request passes
+      // schema validation and fails deeper on the missing rate lookup.
       const response = await helpers.bulkUploadSecurityPrices({
         payload: {
-          searchResult: helpers.buildSecuritySearchResult({ currencyCode: 'XYZ' }),
-          prices: [{ price: 100, date: '2024-01-01', currency: 'XYZ' }],
+          searchResult: helpers.buildSecuritySearchResult({ currencyCode: 'SSP' }),
+          prices: [{ price: 100, date: '2024-01-01', currency: 'SSP' }],
         },
       });
 
@@ -492,8 +494,10 @@ describe('POST /investments/securities/price-upload-info', () => {
     });
 
     it('should return error for currency with no exchange rates', async () => {
+      // Valid ISO code with no exchange rates seeded, so the request passes
+      // schema validation and fails deeper on the missing rate lookup.
       const response = await helpers.getPriceUploadInfo({
-        payload: { currencyCode: 'XYZ' },
+        payload: { currencyCode: 'SSP' },
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);

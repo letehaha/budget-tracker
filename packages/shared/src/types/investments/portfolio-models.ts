@@ -31,6 +31,8 @@ export interface PortfolioModel {
   userId: number;
   portfolioType: PORTFOLIO_TYPE;
   description: string | null;
+  /** Currency for displaying portfolio summary/stats. Null = user's base currency. */
+  displayCurrencyCode: string | null;
   isEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;

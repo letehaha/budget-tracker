@@ -1,18 +1,12 @@
+import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as userExchangeRates from '@services/user-exchange-rate';
-import cc from 'currency-codes';
 import { z } from 'zod';
-
-const isValidCurrencyCode = (code: string) => cc.code(code) !== undefined;
-
-const CurrencyCodeSchema = z.string().refine((code) => isValidCurrencyCode(code), {
-  message: 'Invalid currency code. Use ISO 4217 Code. For example: USD',
-});
 
 const UpdateExchangeRatePairSchema = z
   .object({
-    baseCode: CurrencyCodeSchema,
-    quoteCode: CurrencyCodeSchema,
+    baseCode: currencyCode(),
+    quoteCode: currencyCode(),
     rate: z.number().positive(),
   })
   .strict();

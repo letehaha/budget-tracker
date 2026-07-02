@@ -41,12 +41,17 @@ export const CURRENCY_RATES_API_SUPPORTED_CURRENCIES = [
   'ZAR',
 ];
 
+// USD-based rates that e2e tests assert against. Exported so tests derive
+// expected conversions from the exact values the mocked providers serve below.
+export const EUR_PER_USD = 0.949355;
+export const AED_PER_USD = 3.672898;
+
 export const getApiLayerResposeMock = (date: string) => ({
   base: 'USD',
   date,
   historical: true,
   rates: {
-    AED: 3.672898,
+    AED: AED_PER_USD,
     AFN: 68.266085,
     ALL: 93.025461,
     AMD: 389.644872,
@@ -93,7 +98,7 @@ export const getApiLayerResposeMock = (date: string) => ({
     EGP: 49.351845,
     ERN: 15,
     ETB: 121.465364,
-    EUR: 0.949355,
+    EUR: EUR_PER_USD,
     FJD: 2.27595,
     FKP: 0.789317,
     GBP: 0.79257,
@@ -227,7 +232,7 @@ export const getCurrencyRatesApiResponseMock = (date: string) => ({
   base: 'USD',
   date,
   rates: {
-    AED: 3.672898,
+    AED: AED_PER_USD,
     AUD: 1.54724,
     BGN: 1.857551,
     BRL: 5.79695,
@@ -237,7 +242,7 @@ export const getCurrencyRatesApiResponseMock = (date: string) => ({
     CZK: 23.997008,
     DKK: 7.08093,
     EGP: 49.351845,
-    EUR: 0.949355,
+    EUR: EUR_PER_USD,
     GBP: 0.79257,
     GEL: 2.734996,
     HKD: 7.786599,

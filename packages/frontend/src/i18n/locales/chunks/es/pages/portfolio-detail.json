@@ -16,6 +16,7 @@
     },
     "balance": {
       "totalValue": "Valor total",
+      "baseCurrencyEquivalent": "≈ {value} en {code}",
       "loadError": "Error al cargar el resumen de la cartera.",
       "metrics": {
         "costBasis": "Coste base",

@@ -1,12 +1,14 @@
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
+import { logger } from '@js/utils';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
 import Portfolios from '@models/investments/portfolios.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { calculateRefAmount, calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { getHoldingValues } from '@services/investments/holdings/get-holding-values.service';
+import * as userExchangeRateService from '@services/user-exchange-rate';
 
 interface GetPortfolioSummaryParams {
   userId: number;
@@ -23,11 +25,67 @@ interface PortfolioSummaryResult {
   unrealizedGainPercent: string;
   realizedGainValue: string;
   realizedGainPercent: string;
-  currencyCode: string; // User's base currency
+  currencyCode: string; // Portfolio's displayCurrencyCode, or user's base currency when unset
   totalCashInBaseCurrency: string;
   availableCashInBaseCurrency: string;
   totalPortfolioValue: string; // Holdings value + cash
+  baseCurrencyCode: string; // User's base currency, regardless of display currency
+  // Holdings value + cash in the user's base currency; equals totalPortfolioValue when no display currency is set
+  totalPortfolioValueInBaseCurrency: string;
 }
+
+/**
+ * Resolves the summary's display currency code and the base→display rate for the
+ * requested date. Falls back to the base currency when the display currency is
+ * unset, equal to base, not connected to the user, or its rate is unavailable.
+ */
+const resolveDisplayCurrency = async ({
+  userId,
+  portfolio,
+  baseCurrencyCode,
+  date,
+}: {
+  userId: number;
+  portfolio: Portfolios;
+  baseCurrencyCode: string;
+  date: Date;
+}): Promise<{ code: string; rate: number }> => {
+  const displayCode = portfolio.displayCurrencyCode;
+
+  if (!displayCode || displayCode === baseCurrencyCode) {
+    return { code: baseCurrencyCode, rate: 1 };
+  }
+
+  const connectedCurrency = await UsersCurrencies.getCurrency({ userId, currencyCode: displayCode });
+  if (!connectedCurrency) {
+    logger.warn(
+      'Portfolio displayCurrencyCode is no longer connected to the user; summary falls back to base currency',
+      {
+        portfolioId: portfolio.id,
+        displayCurrencyCode: displayCode,
+      },
+    );
+    return { code: baseCurrencyCode, rate: 1 };
+  }
+
+  try {
+    const { rate } = await userExchangeRateService.getExchangeRate({
+      userId,
+      date,
+      baseCode: baseCurrencyCode,
+      quoteCode: displayCode,
+    });
+
+    return { code: displayCode, rate };
+  } catch (error) {
+    logger.error('Failed to resolve display currency rate; summary falls back to base currency', {
+      portfolioId: portfolio.id,
+      displayCurrencyCode: displayCode,
+      error,
+    });
+    return { code: baseCurrencyCode, rate: 1 };
+  }
+};
 
 const getPortfolioSummaryImpl = async ({
   userId,
@@ -52,6 +110,11 @@ const getPortfolioSummaryImpl = async ({
   });
 
   const baseCurrencyCode = userCurrency.currency.code;
+
+  const conversionDate = date || new Date();
+  const display = await resolveDisplayCurrency({ userId, portfolio, baseCurrencyCode, date: conversionDate });
+  const toDisplay = (amount: Money): string =>
+    calculateRefAmountFromParams({ amount, rate: display.rate }).toNumber().toFixed(2);
 
   // Fetch portfolio cash balances across all currencies
   const balances = await PortfolioBalances.findAll({
@@ -80,10 +143,12 @@ const getPortfolioSummaryImpl = async ({
       unrealizedGainPercent: '0.00',
       realizedGainValue: '0.00',
       realizedGainPercent: '0.00',
-      currencyCode: baseCurrencyCode,
-      totalCashInBaseCurrency: totalCashInBase.toNumber().toFixed(2),
-      availableCashInBaseCurrency: availableCashInBase.toNumber().toFixed(2),
-      totalPortfolioValue: totalCashInBase.toNumber().toFixed(2),
+      currencyCode: display.code,
+      totalCashInBaseCurrency: toDisplay(totalCashInBase),
+      availableCashInBaseCurrency: toDisplay(availableCashInBase),
+      totalPortfolioValue: toDisplay(totalCashInBase),
+      baseCurrencyCode,
+      totalPortfolioValueInBaseCurrency: totalCashInBase.toNumber().toFixed(2),
     };
   }
 
@@ -92,8 +157,6 @@ const getPortfolioSummaryImpl = async ({
   let totalCostBasisInBase = Money.zero();
   let totalUnrealizedGainInBase = Money.zero();
   let totalRealizedGainInBase = Money.zero();
-
-  const conversionDate = date || new Date();
 
   for (const holding of holdings) {
     // Use reference currency values (already converted to user's base currency)
@@ -127,16 +190,18 @@ const getPortfolioSummaryImpl = async ({
   return {
     portfolioId,
     portfolioName: portfolio.name,
-    totalCurrentValue: totalCurrentValueInBase.toNumber().toFixed(2),
-    totalCostBasis: totalCostBasisInBase.toNumber().toFixed(2),
-    unrealizedGainValue: totalUnrealizedGainInBase.toNumber().toFixed(2),
+    totalCurrentValue: toDisplay(totalCurrentValueInBase),
+    totalCostBasis: toDisplay(totalCostBasisInBase),
+    unrealizedGainValue: toDisplay(totalUnrealizedGainInBase),
     unrealizedGainPercent: unrealizedGainPercent.toFixed(2),
-    realizedGainValue: totalRealizedGainInBase.toNumber().toFixed(2),
+    realizedGainValue: toDisplay(totalRealizedGainInBase),
     realizedGainPercent: realizedGainPercent.toFixed(2),
-    currencyCode: baseCurrencyCode,
-    totalCashInBaseCurrency: totalCashInBase.toNumber().toFixed(2),
-    availableCashInBaseCurrency: availableCashInBase.toNumber().toFixed(2),
-    totalPortfolioValue: totalCurrentValueInBase.add(totalCashInBase).toNumber().toFixed(2),
+    currencyCode: display.code,
+    totalCashInBaseCurrency: toDisplay(totalCashInBase),
+    availableCashInBaseCurrency: toDisplay(availableCashInBase),
+    totalPortfolioValue: toDisplay(totalCurrentValueInBase.add(totalCashInBase)),
+    baseCurrencyCode,
+    totalPortfolioValueInBaseCurrency: totalCurrentValueInBase.add(totalCashInBase).toNumber().toFixed(2),
   };
 };
 

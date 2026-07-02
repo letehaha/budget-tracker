@@ -1,5 +1,6 @@
 import type { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import cc from 'currency-codes';
 import { z } from 'zod';
 
 /**
@@ -46,7 +47,34 @@ export const uniqueRecordIds = ({ min, max }: { min?: number; max?: number } = {
  * })
  */
 export const decimalMoney = () => z.number().transform((val) => Money.fromDecimal(val));
-export const currencyCode = () => z.string().length(3);
+
+/**
+ * Canonical currency-code validator for API input.
+ *
+ * Normalizes to uppercase, then enforces membership in ISO 4217 via the
+ * `currency-codes` dataset — the same source that seeds the Currencies
+ * table — so an unknown code is rejected at the request boundary instead
+ * of failing deeper against a foreign key or exchange-rate lookup.
+ *
+ * Precious-metal and test codes (XAU, XXX, …) are valid ISO 4217 and pass
+ * here; contexts that need spendable-only currencies filter them out
+ * separately via NON_CURRENCY_CODES.
+ *
+ * @example
+ * body: z.object({
+ *   currencyCode: currencyCode(),                       // "usd" => "USD"
+ *   displayCurrencyCode: currencyCode().nullable().optional(),
+ * })
+ */
+export const currencyCode = () =>
+  z
+    .string()
+    .trim()
+    .toUpperCase()
+    .length(3)
+    .refine((code) => cc.code(code) !== undefined, {
+      message: 'Invalid currency code. Use an ISO 4217 code, e.g. "USD".',
+    });
 
 /**
  * Optional comma-separated record IDs for query parameters.

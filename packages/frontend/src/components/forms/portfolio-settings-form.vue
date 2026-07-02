@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DisplayCurrencySelect from '@/components/fields/display-currency-select.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
@@ -38,6 +39,7 @@ const form = reactive({
   name: '',
   portfolioType: PORTFOLIO_TYPE.investment as PORTFOLIO_TYPE,
   description: '',
+  displayCurrencyCode: null as string | null,
 });
 
 watch(
@@ -47,6 +49,7 @@ watch(
       form.name = p.name;
       form.portfolioType = p.portfolioType;
       form.description = p.description ?? '';
+      form.displayCurrencyCode = p.displayCurrencyCode ?? null;
     }
   },
   { immediate: true },
@@ -61,7 +64,8 @@ const isSubmitDisabled = computed(
     !form.name.trim() ||
     (form.name.trim() === props.portfolio.name &&
       form.portfolioType === props.portfolio.portfolioType &&
-      (form.description ?? '') === (props.portfolio.description ?? '')),
+      (form.description ?? '') === (props.portfolio.description ?? '') &&
+      form.displayCurrencyCode === (props.portfolio.displayCurrencyCode ?? null)),
 );
 
 const onSubmit = async () => {
@@ -71,6 +75,7 @@ const onSubmit = async () => {
       name: form.name.trim(),
       portfolioType: form.portfolioType,
       description: form.description?.trim() || undefined,
+      displayCurrencyCode: form.displayCurrencyCode,
     });
 
     addNotification({
@@ -89,7 +94,7 @@ const onSubmit = async () => {
 </script>
 
 <template>
-  <form class="grid w-full max-w-[600px] gap-6" @submit.prevent="onSubmit">
+  <form class="grid w-full max-w-150 gap-6" @submit.prevent="onSubmit">
     <InputField
       v-model="form.name"
       :label="$t('forms.portfolioSettings.nameLabel')"
@@ -113,6 +118,8 @@ const onSubmit = async () => {
       </FieldLabel>
     </div>
 
+    <DisplayCurrencySelect v-model="form.displayCurrencyCode" :disabled="updateMutation.isPending.value || disabled" />
+
     <TextareaField
       v-model="form.description"
       :label="$t('forms.portfolioSettings.descriptionLabel')"
@@ -129,7 +136,7 @@ const onSubmit = async () => {
       >
         {{ $t('forms.portfolioSettings.cancelButton') }}
       </UiButton>
-      <UiButton type="submit" class="min-w-[120px]" :disabled="isSubmitDisabled">
+      <UiButton type="submit" class="min-w-30" :disabled="isSubmitDisabled">
         {{
           updateMutation.isPending.value
             ? $t('forms.portfolioSettings.submitButtonLoading')

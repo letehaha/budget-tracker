@@ -67,6 +67,10 @@ export const useUpdatePortfolio = () => {
     mutationFn: (params: Parameters<typeof updatePortfolio>[0]) => updatePortfolio(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfoliosList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioDetails });
+      // Summary and holdings values depend on the portfolio's displayCurrencyCode
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.portfolioSummary });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.holdingsList });
     },
   });
 };

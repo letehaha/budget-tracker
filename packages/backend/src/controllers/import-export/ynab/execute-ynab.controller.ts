@@ -1,9 +1,10 @@
+import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { queueYnabImport } from '@root/services/import-export/ynab-import';
 import { z } from 'zod';
 
 const accountMappingValueSchema = z.object({
-  currencyCode: z.string().length(3),
+  currencyCode: currencyCode(),
 });
 
 export const executeYnabController = createController(

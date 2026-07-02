@@ -1,5 +1,5 @@
 import { VENTURE_CASH_FLOW_MODE, VENTURE_SPV_SUBTYPE } from '@bt/shared/types/venture';
-import { dateString, decimalString, percentageFraction, recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, dateString, decimalString, percentageFraction, recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createVentureDeal } from '@services/venture/deals/create.service';
@@ -15,7 +15,7 @@ export function registerCreateVentureDeal(server: McpServer) {
         'Create a venture deal (private/illiquid investment record). All monetary amounts are decimal strings in the deal\'s currency (e.g. "16000"). Fee percentages are decimal fractions in [0,1] — e.g. 0.085 for 8.5%, NOT 8.5. If platformId is provided, omitted fee fields are auto-filled from the platform\'s defaults. Optionally creates the initial_investment event in the same operation when `initialInvestment` is supplied. Only the SPV vehicle type is supported in v1.',
       inputSchema: {
         name: z.string().describe('Deal name (e.g. "SK 116 — Series A")'),
-        currencyCode: z.string().length(3).describe('Three-letter ISO currency code (e.g. "USD")'),
+        currencyCode: currencyCode().describe('Three-letter ISO currency code (e.g. "USD")'),
         principal: decimalString().describe('Principal amount as a decimal string (e.g. "16000")'),
         investmentDate: dateString().describe('Investment date in YYYY-MM-DD'),
         platformId: recordId().nullable().optional().describe('Optional platform id (from list_venture_platforms)'),

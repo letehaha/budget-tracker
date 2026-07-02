@@ -94,6 +94,59 @@ describe('Update Portfolio Service E2E', () => {
         const sameNamePortfolio = helpers.extractResponse(sameNameResponse);
         expect(sameNamePortfolio.name).toBe('Multi-field Update');
       });
+
+      it('should set, uppercase, and reset displayCurrencyCode', async () => {
+        const createResponse = await helpers.createPortfolio({
+          payload: { name: 'Display Currency Portfolio' },
+        });
+        const createdPortfolio = helpers.extractResponse(createResponse);
+
+        await helpers.addUserCurrencyByCode({ code: 'EUR', raw: true });
+
+        // Lowercase input is normalized to the uppercase currency code
+        const setResponse = await helpers.updatePortfolio({
+          portfolioId: createdPortfolio.id,
+          payload: { displayCurrencyCode: 'eur' },
+        });
+
+        expect(setResponse.statusCode).toBe(200);
+        expect(helpers.extractResponse(setResponse).displayCurrencyCode).toBe('EUR');
+
+        // Null resets back to the user's base currency
+        const resetResponse = await helpers.updatePortfolio({
+          portfolioId: createdPortfolio.id,
+          payload: { displayCurrencyCode: null },
+        });
+
+        expect(resetResponse.statusCode).toBe(200);
+        expect(helpers.extractResponse(resetResponse).displayCurrencyCode).toBeNull();
+      });
+
+      it('should keep displayCurrencyCode when updating unrelated fields', async () => {
+        const createResponse = await helpers.createPortfolio({
+          payload: { name: 'Sticky Display Currency Portfolio' },
+        });
+        const createdPortfolio = helpers.extractResponse(createResponse);
+
+        await helpers.addUserCurrencyByCode({ code: 'EUR', raw: true });
+
+        const setResponse = await helpers.updatePortfolio({
+          portfolioId: createdPortfolio.id,
+          payload: { displayCurrencyCode: 'EUR' },
+        });
+        expect(setResponse.statusCode).toBe(200);
+
+        // An update payload without the displayCurrencyCode key must not reset it
+        const nameUpdateResponse = await helpers.updatePortfolio({
+          portfolioId: createdPortfolio.id,
+          payload: { name: 'Renamed Portfolio' },
+        });
+
+        expect(nameUpdateResponse.statusCode).toBe(200);
+        const updatedPortfolio = helpers.extractResponse(nameUpdateResponse);
+        expect(updatedPortfolio.name).toBe('Renamed Portfolio');
+        expect(updatedPortfolio.displayCurrencyCode).toBe('EUR');
+      });
     });
 
     describe('Error cases', () => {
@@ -161,6 +214,30 @@ describe('Update Portfolio Service E2E', () => {
         const response = await helpers.updatePortfolio({
           portfolioId: createdPortfolio.id,
           payload: { name: '' },
+        });
+
+        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      });
+
+      it('should return ValidationError for a display currency not connected to the user', async () => {
+        const createResponse = await helpers.createPortfolio();
+        const createdPortfolio = helpers.extractResponse(createResponse);
+
+        const response = await helpers.updatePortfolio({
+          portfolioId: createdPortfolio.id,
+          payload: { displayCurrencyCode: 'PLN' },
+        });
+
+        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      });
+
+      it('should return ValidationError for a malformed display currency code', async () => {
+        const createResponse = await helpers.createPortfolio();
+        const createdPortfolio = helpers.extractResponse(createResponse);
+
+        const response = await helpers.updatePortfolio({
+          portfolioId: createdPortfolio.id,
+          payload: { displayCurrencyCode: 'EURO' },
         });
 
         expect(response.statusCode).toBe(ERROR_CODES.ValidationError);

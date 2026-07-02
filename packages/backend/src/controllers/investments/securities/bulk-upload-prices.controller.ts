@@ -1,4 +1,5 @@
 import { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
+import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { bulkUploadSecurityPrices } from '@root/services/investments/securities-price/bulk-upload-prices.service';
 import { z } from 'zod';
@@ -64,7 +65,7 @@ export default createController(
         z.object({
           price: z.number().positive().max(1e12), // Max 1 trillion (reasonable upper bound)
           date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-          currency: z.string().length(3).toUpperCase(),
+          currency: currencyCode(),
         }),
       ),
       autoFilter: z.boolean().default(false),

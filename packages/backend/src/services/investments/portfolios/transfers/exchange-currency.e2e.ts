@@ -213,7 +213,7 @@ describe('Exchange Currency', () => {
         toAmount: '100',
       }),
     });
-    expect(badFromResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
+    expect(badFromResponse.statusCode).toBe(ERROR_CODES.ValidationError);
 
     // Non-existent toCurrencyCode
     const badToResponse = await helpers.exchangeCurrency({
@@ -225,7 +225,7 @@ describe('Exchange Currency', () => {
         toAmount: '100',
       }),
     });
-    expect(badToResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
+    expect(badToResponse.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
   it('should accumulate balances correctly across multiple sequential exchanges', async () => {
