@@ -1,12 +1,15 @@
 import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
+import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { calculateRefAmount, calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withDeduplication } from '@services/common/with-deduplication';
 import { calculateAllGains } from '@services/investments/gains/gains-calculator.utils';
+import * as userExchangeRateService from '@services/user-exchange-rate';
 import { Op, WhereOptions, fn, col } from 'sequelize';
 
 interface GetHoldingValuesParams {
@@ -34,6 +37,12 @@ interface HoldingValue {
   unrealizedGainPercent?: string;
   realizedGainValue?: string;
   realizedGainPercent?: string;
+  // Present only when the portfolio has a displayCurrencyCode; percent fields are ratios and need no conversion
+  displayCurrencyCode?: string;
+  displayCostBasis?: string;
+  displayMarketValue?: string;
+  displayUnrealizedGainValue?: string;
+  displayRealizedGainValue?: string;
 }
 
 /**
@@ -132,10 +141,51 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
   // calculateRefAmount then takes its original (throwing) path, which the loop
   // already tolerates.
   let baseCurrencyCode: string | undefined;
+  let displayCurrencyCode: string | undefined;
   if (userId) {
     const userCurrency = await UsersCurrencies.getCurrency({ userId, isDefaultCurrency: true });
     baseCurrencyCode = userCurrency?.currency.code;
+
+    // Display currency applies only while it stays connected to the user; otherwise holdings carry no display fields.
+    const portfolio = await Portfolios.findByPk(portfolioId);
+    if (portfolio?.displayCurrencyCode) {
+      const connected = await UsersCurrencies.getCurrency({ userId, currencyCode: portfolio.displayCurrencyCode });
+      if (connected) displayCurrencyCode = portfolio.displayCurrencyCode;
+    }
   }
+
+  // One native→display rate per distinct holding currency; a failed lookup is cached as null so those holdings omit display fields.
+  const displayRates = new Map<string, number | null>();
+  const getDisplayRate = async (holdingCurrencyCode: string): Promise<number | null> => {
+    if (!displayCurrencyCode || !userId) return null;
+    if (holdingCurrencyCode === displayCurrencyCode) return 1;
+    if (!displayRates.has(holdingCurrencyCode)) {
+      try {
+        const { rate } = await userExchangeRateService.getExchangeRate({
+          userId,
+          date: date || new Date(),
+          baseCode: holdingCurrencyCode,
+          quoteCode: displayCurrencyCode,
+        });
+        displayRates.set(holdingCurrencyCode, rate);
+      } catch (error) {
+        logger.error('Failed to resolve holding display rate; holding omits display fields', {
+          portfolioId,
+          holdingCurrencyCode,
+          displayCurrencyCode,
+          error,
+        });
+        displayRates.set(holdingCurrencyCode, null);
+      }
+    }
+    return displayRates.get(holdingCurrencyCode)!;
+  };
+
+  // oxlint-disable-next-line unicorn/consistent-function-scoping
+  const toDisplay = ({ decimal, rate }: { decimal: string; rate: number }): string =>
+    calculateRefAmountFromParams({ amount: Money.fromDecimal(decimal), rate })
+      .toNumber()
+      .toFixed(2);
 
   // Calculate market values for each holding
   const holdingValues: HoldingValue[] = [];
@@ -187,6 +237,8 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       })),
     );
 
+    const displayRate = await getDisplayRate(holding.currencyCode);
+
     holdingValues.push({
       portfolioId: holding.portfolioId,
       securityId: holding.securityId,
@@ -204,6 +256,16 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       unrealizedGainPercent: gains.unrealizedGainPercent.toFixed(2),
       realizedGainValue: gains.realizedGainValue.toFixed(2),
       realizedGainPercent: gains.realizedGainPercent.toFixed(2),
+      ...(displayRate !== null && {
+        displayCurrencyCode,
+        displayCostBasis: toDisplay({
+          decimal: holding.costBasis.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+          rate: displayRate,
+        }),
+        displayMarketValue: toDisplay({ decimal: marketValue, rate: displayRate }),
+        displayUnrealizedGainValue: toDisplay({ decimal: gains.unrealizedGainValue.toFixed(2), rate: displayRate }),
+        displayRealizedGainValue: toDisplay({ decimal: gains.realizedGainValue.toFixed(2), rate: displayRate }),
+      }),
     });
   }
 

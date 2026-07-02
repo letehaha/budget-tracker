@@ -187,6 +187,7 @@ jobs:
                 "CURRENCY_RATES_API_URL=http://${CURRENCY_RATES_CONTAINER}:8080" \
                 "PREVIEW_DB_PASSWORD=$PREVIEW_DB_PASSWORD" \
                 "DISABLE_AUTH_RATE_LIMIT=true" \
+                "ENABLE_TEST_SEEDING_ENDPOINTS=true" \
                 "COINGECKO_API_KEY=$COINGECKO_API_KEY" \
                 "LOGO_DEV_SECRET_KEY=$LOGO_DEV_SECRET_KEY" \
                 > .env

@@ -21,8 +21,10 @@ export type LogoEntity = 'payee' | 'subscription';
  * error rather than a runtime crash inside `loadResolvable`.
  */
 export interface LogoResolvable {
+  id: string;
   name: string;
   normalizedName?: string | null;
+  logoDomain: string | null;
   logoSource: LogoResolutionState;
   update(
     values: { logoDomain: string | null; logoSource: LogoSource },

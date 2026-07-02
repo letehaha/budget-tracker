@@ -28,7 +28,7 @@ describe('Execute Import endpoint (async)', () => {
   // The execute step is now async: the request carries the raw `fileContent` +
   // `columnMapping` (NOT pre-parsed rows), the worker re-parses via the same
   // `parseValidRows` the interactive preview uses, then runs `executeImport`.
-  // Tests therefore drive the endpoint exactly as the UI does — they build a CSV
+  // Tests therefore drive the endpoint exactly as the UI does – they build a CSV
   // file and a column mapping rather than constructing `ParsedTransactionRow[]`.
   // ---------------------------------------------------------------------------
 
@@ -410,7 +410,7 @@ describe('Execute Import endpoint (async)', () => {
     it('should import rows mapped to a single existing account via column mapping', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      // No Account/Currency columns referenced — both come from the chosen account.
+      // No Account/Currency columns referenced – both come from the chosen account.
       const fileContent = buildCsv([
         { date: '2024-01-15', amount: '100.50', description: 'Grocery shopping', type: 'expense' },
         { date: '2024-01-16', amount: '50.00', description: 'Coffee shop', type: 'expense' },
@@ -475,7 +475,7 @@ describe('Execute Import endpoint (async)', () => {
 
       const { progress } = await runImport({
         fileContent,
-        // No category column mapped — the single chosen category fills every row.
+        // No category column mapped – the single chosen category fills every row.
         columnMapping: buildColumnMapping({
           category: { option: CategoryOptionValue.existingCategory, categoryId },
         }),
@@ -800,7 +800,7 @@ describe('Execute Import endpoint (async)', () => {
     });
   });
 
-  describe('error handling — failed jobs', () => {
+  describe('error handling – failed jobs', () => {
     // The controller only validates the request shape; mapping/ownership failures
     // happen inside the worker and surface as `status: 'failed'`, mirroring the
     // Wallet importer. The summary is never present on a failed job.
@@ -840,6 +840,30 @@ describe('Execute Import endpoint (async)', () => {
       expect(progress.error).toMatch(/not found/i);
     });
 
+    it('fails the job with a clean validation error when a create-new category name exceeds the column limit', async () => {
+      // Categories.name is varchar(255): a longer source name must surface as a
+      // ValidationError, not Postgres's raw "value too long..." text.
+      const account = await helpers.createAccount({ raw: true });
+      const tooLongCategoryName = 'A'.repeat(300);
+
+      const { progress } = await runImport({
+        fileContent: buildCsv(
+          defaultRows({
+            account: 'CSV Account',
+            category: tooLongCategoryName,
+            currency: account.currencyCode,
+          }),
+        ),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: { [tooLongCategoryName]: { action: 'create-new' } },
+      });
+
+      expect(progress.status).toBe('failed');
+      if (progress.status !== 'failed') throw new Error('unreachable');
+      expect(progress.error).toMatch(/category name.*too long|too long.*category/i);
+      expect(progress.error).not.toMatch(/character varying|sequelize/i);
+    });
+
     it('completes with an empty summary when the CSV has only a header row', async () => {
       // No data rows → the worker parses zero valid rows and completes with an
       // empty summary (not a failure).
@@ -863,7 +887,7 @@ describe('Execute Import endpoint (async)', () => {
     it("refuses to leak another user's job status (cross-user authZ)", async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      // User A enqueues a job — the status row is visible the moment it enqueues.
+      // User A enqueues a job – the status row is visible the moment it enqueues.
       const { jobId } = await helpers.executeImport({
         payload: {
           fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
@@ -1192,7 +1216,7 @@ describe('Execute Import endpoint (async)', () => {
       const account = await helpers.createAccount({ raw: true });
 
       const { progress } = await runImport({
-        // Comma-separated tags in one quoted cell — the parser splits them.
+        // Comma-separated tags in one quoted cell – the parser splits them.
         fileContent: tagRow({ currency: account.currencyCode, tags: '"Keep,Drop"' }),
         columnMapping: tagColumnMapping(),
         accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
@@ -1213,7 +1237,7 @@ describe('Execute Import endpoint (async)', () => {
 
     it('unions imported tags with the payee default tags', async () => {
       // createTransaction extracts the payee from the description when this
-      // setting is on — the e2e-reachable way to link a payee via execute.
+      // setting is on – the e2e-reachable way to link a payee via execute.
       await helpers.updateUserSettings({ settings: { locale: 'en', payeeExtractionUsesDescription: true } });
 
       const [account, defaultTag] = await Promise.all([
@@ -1339,10 +1363,10 @@ describe('Execute Import endpoint (async)', () => {
     });
   });
 
-  describe('partial failure — best-effort import', () => {
+  describe('partial failure – best-effort import', () => {
     // The worker re-parses the file with `parseValidRows`, which rejects an
     // unparseable date or blank account as an INVALID row before `executeImport`
-    // ever runs — so those never become per-row `summary.errors`. A genuine
+    // ever runs – so those never become per-row `summary.errors`. A genuine
     // per-row Phase-5 DB failure requires a `createTransaction` error that no
     // HTTP-reachable input can force here. What this test pins down is the
     // best-effort contract that IS observable over HTTP: good rows import, the

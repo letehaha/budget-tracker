@@ -1,11 +1,17 @@
 import type { CategoryMappingConfig } from '@bt/shared/types';
 import { CATEGORY_TYPES } from '@bt/shared/types';
 import { pickRandomColor } from '@common/lib/random-color';
+import { ValidationError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import Categories from '@models/categories.model';
 import { createCategory } from '@services/categories/create-category';
 import { Op } from 'sequelize';
 
 import { resolveOrCreateByName } from './resolve-or-create-by-name';
+
+// Mirrors `Categories.name` varchar(255); checked up-front so a too-long
+// source name fails with ValidationError instead of a raw Postgres reject.
+const CATEGORY_NAME_MAX_LENGTH = 255;
 
 interface CreateCategoriesIfNeededParams {
   userId: number;
@@ -36,6 +42,17 @@ export async function createCategoriesIfNeeded({
   userId,
   categoryMapping,
 }: CreateCategoriesIfNeededParams): Promise<CreateCategoriesIfNeededResult> {
+  for (const [sourceName, mapping] of Object.entries(categoryMapping)) {
+    if (mapping.action !== 'create-new') continue;
+    if (sourceName.length > CATEGORY_NAME_MAX_LENGTH) {
+      const preview = `${sourceName.slice(0, 50)}…`;
+      logger.info(`Tried to import too long category name: ${preview}`);
+      throw new ValidationError({
+        message: `Category name "${preview}" is too long (${sourceName.length} characters); maximum is ${CATEGORY_NAME_MAX_LENGTH}.`,
+      });
+    }
+  }
+
   const { nameToId, created } = await resolveOrCreateByName({
     userId,
     mapping: Object.fromEntries(

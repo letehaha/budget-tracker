@@ -1,4 +1,4 @@
-import { currencyCode, recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, decimalString, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { updatePortfolioBalance } from '@services/investments/portfolios/balances';
 import { z } from 'zod';
@@ -11,10 +11,10 @@ export default createController(
     body: z
       .object({
         currencyCode: currencyCode(),
-        availableCashDelta: z.string().optional(),
-        totalCashDelta: z.string().optional(),
-        setAvailableCash: z.string().optional(),
-        setTotalCash: z.string().optional(),
+        availableCashDelta: decimalString().optional(),
+        totalCashDelta: decimalString().optional(),
+        setAvailableCash: decimalString().optional(),
+        setTotalCash: decimalString().optional(),
       })
       .strict()
       .refine(
@@ -25,6 +25,16 @@ export default createController(
           data.setTotalCash !== undefined,
         {
           message: 'At least one balance field must be provided',
+        },
+      )
+      .refine(
+        (data) => {
+          const hasDelta = data.availableCashDelta !== undefined || data.totalCashDelta !== undefined;
+          const hasSet = data.setAvailableCash !== undefined || data.setTotalCash !== undefined;
+          return !(hasDelta && hasSet);
+        },
+        {
+          message: 'Delta fields and set fields cannot be combined in the same request',
         },
       ),
   }),

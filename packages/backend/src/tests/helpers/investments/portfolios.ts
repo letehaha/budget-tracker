@@ -17,6 +17,7 @@ export function buildPortfolioPayload({
   name = 'Test Portfolio',
   portfolioType = PORTFOLIO_TYPE.investment,
   description = 'Test portfolio description',
+  displayCurrencyCode,
   isEnabled = true,
 }: Partial<Omit<Parameters<typeof _createPortfolio>[0], 'userId'>> = {}): Omit<
   Parameters<typeof _createPortfolio>[0],
@@ -26,6 +27,7 @@ export function buildPortfolioPayload({
     name,
     portfolioType,
     description,
+    ...(displayCurrencyCode !== undefined ? { displayCurrencyCode } : {}),
     isEnabled,
   };
 }
@@ -110,7 +112,7 @@ export async function updatePortfolio<R extends boolean | undefined = false>({
   raw,
 }: {
   portfolioId: string;
-  payload: Partial<ReturnType<typeof buildPortfolioPayload>>;
+  payload: Partial<Omit<Parameters<typeof _updatePortfolio>[0], 'userId' | 'portfolioId'>>;
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _updatePortfolio>>, R>({

@@ -81,17 +81,15 @@ export const calculateVehiclesBalanceHistory = async ({
   userId,
   maxDate,
   uniqueDates,
+  userBaseCurrencyPromise,
 }: {
   userId: number;
   maxDate: string;
   uniqueDates: string[];
+  userBaseCurrencyPromise: Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
 }): Promise<Map<string, number> | null> => {
   const [userBaseCurrency, vehicles] = await Promise.all([
-    UsersCurrencies.findOne({
-      where: { userId, isDefaultCurrency: true },
-      raw: true,
-      attributes: ['currencyCode'],
-    }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>,
+    userBaseCurrencyPromise,
     Vehicles.findAll({
       where: { userId },
       include: [{ model: Accounts, attributes: ['id', 'currencyCode', 'excludeFromStats'] }],

@@ -306,7 +306,7 @@ describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transac
         },
       });
 
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 });

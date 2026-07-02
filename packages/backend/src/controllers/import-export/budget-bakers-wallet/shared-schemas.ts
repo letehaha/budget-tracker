@@ -1,3 +1,4 @@
+import { currencyCode } from '@common/lib/zod/custom-types';
 import { z } from 'zod';
 
 // `create-new` branch: user wants the importer to create a fresh account.
@@ -5,7 +6,7 @@ import { z } from 'zod';
 // `currentBalance` is the desired post-import balance; null means "sum of imported txns".
 const createNewSchema = z.object({
   action: z.literal('create-new'),
-  currencyCode: z.string().length(3),
+  currencyCode: currencyCode(),
   currentBalance: z.number().finite().nullable(),
 });
 

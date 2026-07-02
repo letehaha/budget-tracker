@@ -52,6 +52,20 @@
               </span>
             </div>
           </div>
+          <!-- Base-currency equivalent, only when the display currency differs -->
+          <i18n-t
+            v-if="summary.baseCurrencyCode && summary.currencyCode !== summary.baseCurrencyCode"
+            keypath="portfolioDetail.balance.baseCurrencyEquivalent"
+            tag="p"
+            class="text-muted-foreground mt-1 text-base tabular-nums"
+          >
+            <template #value>
+              <span class="text-foreground font-medium">
+                {{ formatCurrency(Number(summary.totalPortfolioValueInBaseCurrency), summary.baseCurrencyCode) }}
+              </span>
+            </template>
+            <template #code>{{ summary.baseCurrencyCode }}</template>
+          </i18n-t>
           <p class="text-muted-foreground mt-0.5 text-sm">{{ $t('portfolioDetail.balance.totalValue') }}</p>
         </div>
 

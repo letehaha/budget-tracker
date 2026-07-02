@@ -1,3 +1,4 @@
+import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { getPriceUploadInfo } from '@root/services/investments/securities-price/get-price-upload-info.service';
 import { z } from 'zod';
@@ -18,7 +19,7 @@ import { z } from 'zod';
 export default createController(
   z.object({
     body: z.object({
-      currencyCode: z.string().length(3),
+      currencyCode: currencyCode(),
     }),
   }),
   async ({ body }) => {

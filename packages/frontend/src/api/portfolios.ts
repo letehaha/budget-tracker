@@ -12,6 +12,8 @@ interface CreatePortfolioRequest {
   name: string;
   portfolioType?: PORTFOLIO_TYPE;
   description?: string;
+  /** Currency for displaying portfolio summary/stats. Null/omitted = user's base currency. */
+  displayCurrencyCode?: string | null;
   isEnabled?: boolean;
 }
 

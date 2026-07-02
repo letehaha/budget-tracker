@@ -16,6 +16,7 @@
     },
     "balance": {
       "totalValue": "Загальна вартість",
+      "baseCurrencyEquivalent": "≈ {value} у {code}",
       "loadError": "Не вдалося завантажити підсумок портфеля.",
       "metrics": {
         "costBasis": "Базова вартість",

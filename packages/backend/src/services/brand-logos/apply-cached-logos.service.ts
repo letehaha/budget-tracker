@@ -1,5 +1,7 @@
 import BrandLogos from '@models/brand-logos.model';
+import { connection } from '@models/connection';
 import { normalizePayeeName } from '@services/payees/normalize-name';
+import { QueryTypes } from 'sequelize';
 
 import type { LogoEntity, LogoResolvable } from './resolve-brand-logo.service';
 
@@ -50,18 +52,36 @@ export async function applyCachedLogos<T extends LogoResolvable>({
   const domainByKey = new Map(cacheRows.map((cacheRow) => [cacheRow.normalizedName, cacheRow.domain]));
 
   const misses: T[] = [];
+  const hits: { id: string; domain: string }[] = [];
   for (const row of unresolved) {
     const domain = domainByKey.get(keyByRow.get(row)!);
     if (domain !== undefined) {
-      // No explicit transaction: Sequelize picks up the caller's ambient CLS
-      // transaction when one is in scope (the payee read paths run inside
-      // `withTransaction`), and auto-commits otherwise (the subscription read
-      // path is not transactional). Either way the in-memory row is mutated so
-      // the cache hit surfaces on this response.
-      await row.update({ logoDomain: domain, logoSource: 'auto' });
+      // Mutate in-memory so the cache hit surfaces on this response.
+      row.logoDomain = domain;
+      row.logoSource = 'auto';
+      hits.push({ id: row.id, domain });
     } else {
       misses.push(row);
     }
+  }
+
+  if (hits.length > 0) {
+    // One statement via VALUES join – per-row `.update()` trips Sentry's N+1 detector.
+    const table = entity === 'payee' ? 'Payees' : 'Subscriptions';
+    const bind: string[] = [];
+    const valuesClauses = hits.map(({ id, domain }) => {
+      bind.push(id, domain);
+      return `($${bind.length - 1}::uuid, $${bind.length})`;
+    });
+    await connection.sequelize.query(
+      `UPDATE "${table}" AS t
+          SET "logoDomain" = v.domain,
+              "logoSource" = 'auto',
+              "updatedAt" = NOW()
+         FROM (VALUES ${valuesClauses.join(', ')}) AS v(id, domain)
+        WHERE t.id = v.id`,
+      { bind, type: QueryTypes.UPDATE },
+    );
   }
 
   return misses;
