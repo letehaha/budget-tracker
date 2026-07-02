@@ -37,7 +37,7 @@ describe('Add user currencies', () => {
   it('should return validation error if non-existent currency code is provided', async () => {
     const res = await helpers.addUserCurrencies({ currencyCodes: ['ZZZ'] });
 
-    expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
+    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
   it('should return validation error if exchange rate is negative', async () => {

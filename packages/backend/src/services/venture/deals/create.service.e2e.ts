@@ -85,7 +85,7 @@ describe('Create Venture Deal Service E2E', () => {
 
     it('rejects unknown currency', async () => {
       const response = await helpers.createVentureDeal({ payload: { currencyCode: 'ZZZ' } });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('rejects unknown platformId', async () => {

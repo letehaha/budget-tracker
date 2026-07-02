@@ -5,7 +5,7 @@ import {
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
 } from '@bt/shared/types';
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
@@ -26,7 +26,7 @@ const schema = z.object({
         .default(SUBSCRIPTION_TYPES.subscription),
       // Decimal amount (e.g. 9.99). Stored as cents internally by the service.
       expectedAmount: z.number().nonnegative().nullable().optional(),
-      expectedCurrencyCode: z.string().length(3).nullable().optional(),
+      expectedCurrencyCode: currencyCode().nullable().optional(),
       frequency: z.enum(
         Object.values(SUBSCRIPTION_FREQUENCIES) as [SUBSCRIPTION_FREQUENCIES, ...SUBSCRIPTION_FREQUENCIES[]],
       ),

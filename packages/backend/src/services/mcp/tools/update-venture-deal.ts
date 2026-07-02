@@ -1,5 +1,5 @@
 import { VENTURE_DEAL_STATUS, VENTURE_SPV_SUBTYPE } from '@bt/shared/types/venture';
-import { dateString, decimalString, percentageFraction, recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, dateString, decimalString, percentageFraction, recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { updateVentureDeal } from '@services/venture/deals/update.service';
@@ -19,7 +19,7 @@ export function registerUpdateVentureDeal(server: McpServer) {
         platformId: recordId().nullable().optional().describe('Move to a different platform (or null to clear)'),
         spvSubtype: z.nativeEnum(VENTURE_SPV_SUBTYPE).nullable().optional().describe('New SPV subtype'),
         targetCompany: z.string().nullable().optional().describe('New target company name'),
-        currencyCode: z.string().length(3).optional().describe('New currency code (locked once events exist)'),
+        currencyCode: currencyCode().optional().describe('New currency code (locked once events exist)'),
         status: z.nativeEnum(VENTURE_DEAL_STATUS).optional().describe('Override the deal status manually'),
         principal: decimalString().optional().describe('New principal (locked once events exist)'),
         entryFee: decimalString().optional().describe('New entry fee amount (locked once events exist)'),

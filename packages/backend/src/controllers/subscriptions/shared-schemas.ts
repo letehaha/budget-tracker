@@ -1,4 +1,4 @@
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { z } from 'zod';
 
 export const matchingRuleSchema = z.discriminatedUnion('field', [
@@ -11,7 +11,7 @@ export const matchingRuleSchema = z.discriminatedUnion('field', [
     field: z.literal('amount'),
     operator: z.literal('between'),
     value: z.object({ min: z.number().int(), max: z.number().int() }),
-    currencyCode: z.string().length(3).optional(),
+    currencyCode: currencyCode().optional(),
   }),
   z.object({
     field: z.literal('transactionType'),
