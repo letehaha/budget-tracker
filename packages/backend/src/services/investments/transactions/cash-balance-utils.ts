@@ -34,5 +34,12 @@ export function calculateCashDelta({
     case INVESTMENT_TRANSACTION_CATEGORY.cancel:
     case INVESTMENT_TRANSACTION_CATEGORY.other:
       return null;
+
+    default: {
+      // Exhaustiveness guard: breaks the build if the enum gains a member, and
+      // fails loudly at runtime instead of silently returning `undefined`.
+      const exhaustiveCheck: never = category;
+      throw new Error(`Unhandled investment transaction category in calculateCashDelta: ${exhaustiveCheck}`);
+    }
   }
 }

@@ -6,6 +6,7 @@
   "compilerOptions": {
     "strict": true,
     "target": "es2023",
+    "lib": ["es2024"],
     "useDefineForClassFields": false,
     "module": "commonjs",
     "outDir": "./dist",

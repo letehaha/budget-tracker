@@ -64,6 +64,23 @@ describe('[Stats] Combined balance history', () => {
     }
   });
 
+  // Shared by the cross-currency and cash-balance describes.
+  // `ExchangeRates` survives test truncation (seed data — see
+  // `SEED_DATA_TABLES`), so any test that seeds AED/EUR rows leaves them visible
+  // to the next test unless wiped explicitly. `UserExchangeRates` is wiped for
+  // the default user (`userId=1`) by the same call so per-user FX overrides don't
+  // leak either.
+  const FX_QUOTE_CODES_TOUCHED = ['AED', 'EUR'];
+  const wipeFxState = async () => {
+    await ExchangeRates.destroy({
+      where: {
+        baseCode: API_LAYER_BASE_CURRENCY_CODE,
+        quoteCode: { [Op.in]: FX_QUOTE_CODES_TOUCHED },
+      },
+    });
+    await UserExchangeRates.destroy({ where: { userId: 1 } });
+  };
+
   it('Returns correct combined balance data for accounts only', async () => {
     const account = await helpers.createAccount({
       payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
@@ -437,38 +454,27 @@ describe('[Stats] Combined balance history', () => {
   });
 
   describe('Portfolio cross-currency conversion (USD-base ExchangeRates pivot)', () => {
-    // ExchangeRates is preserved across test truncation as seed data (see
-    // `SEED_DATA_TABLES` in `setupIntegrationTests.ts`). Tests in this block
-    // need precise control over which rates exist when the history endpoint
-    // runs, so the cleanup happens BOTH before each test (to clear any prior
-    // describe's leak) and inside `seedHoldingAndPriceHistory` AFTER the
-    // investment-transaction insert (because `calculateRefAmount` lazily
-    // fetches rates and stores them — without that second wipe, every test
-    // would observe an unexpected USD→AED row).
-    const FX_QUOTE_CODES_TOUCHED = ['AED', 'EUR'];
-
-    const wipeFxState = async () => {
-      await ExchangeRates.destroy({
-        where: {
-          baseCode: API_LAYER_BASE_CURRENCY_CODE,
-          quoteCode: { [Op.in]: FX_QUOTE_CODES_TOUCHED },
-        },
-      });
-      await UserExchangeRates.destroy({ where: { userId: 1 } });
-    };
-
+    // Tests in this block need precise control over which rates exist when the
+    // history endpoint runs, so `wipeFxState` runs BOTH before each test (to
+    // clear any prior describe's leak) and inside `seedHoldingAndPriceHistory`
+    // AFTER the investment-transaction insert (because `calculateRefAmount`
+    // lazily fetches rates and stores them — without that second wipe, every
+    // test would observe an unexpected USD→AED row).
     const seedHoldingAndPriceHistory = async ({
       portfolioId,
       securityId,
       pickedDay,
       dayKey,
       price = '100',
+      cashCurrencyCode = 'USD',
     }: {
       portfolioId: string;
       securityId: string;
       pickedDay: Date;
       dayKey: string;
       price?: string;
+      /** Settlement currency of the buy (= the security's currency); the buy is funded in it. */
+      cashCurrencyCode?: string;
     }) => {
       await helpers.createHolding({ payload: { portfolioId, securityId } });
       // Drain any background sync from createHolding before clobbering the
@@ -512,6 +518,18 @@ describe('[Stats] Combined balance history', () => {
         raw: true,
       });
 
+      // portfoliosBalance sums holdings market value and portfolio cash, so the
+      // buy above leaves a negative cash leg of `price` in settlement currency.
+      // Deposit the same amount in the same currency to net that leg to zero;
+      // otherwise the negative cash would exactly cancel the holding and every
+      // FX assertion in this block would collapse to 0 — these tests must verify
+      // holdings FX conversion in isolation.
+      await helpers.directCashTransaction({
+        portfolioId,
+        payload: { type: 'deposit', amount: price, currencyCode: cashCurrencyCode, date: dayKey },
+        raw: true,
+      });
+
       // The transaction-create flow calls `calculateRefAmount`, which lazily
       // hits the live FX provider and writes a row to `ExchangeRates`. Wipe
       // that row so each test asserts only against the rates it explicitly
@@ -520,6 +538,10 @@ describe('[Stats] Combined balance history', () => {
     };
 
     beforeEach(wipeFxState);
+    // Leave the FX tables cleared after every test in this block: the venture and
+    // vehicle blocks that follow rely on the cleared state (no stray USD-pivot rate
+    // leaking a non-1:1 conversion into their base-currency assertions).
+    afterEach(wipeFxState);
 
     it('converts USD security holdings into the user base currency via stored USD-pivot rates', async () => {
       // Regression guard for the case where `ExchangeRates` is queried as
@@ -572,99 +594,6 @@ describe('[Stats] Combined balance history', () => {
       expect(entry).toBeDefined();
       // 1 share * $100 * 4 AED/USD = 400 AED. The API serializer returns
       // decimals (not cents), so 400 is the expected value over the wire.
-      expect(entry!.portfoliosBalance).toBe(400);
-    });
-
-    it('computes the correct cross-rate when neither security nor user base is USD', async () => {
-      // Security in EUR, user base AED. USD→EUR = 2, USD→AED = 4 -> EUR→AED = 2.
-      // 1 share * €100 * 2 AED/EUR = 200 AED.
-      const pickedDay = subDays(new Date(), 3);
-      pickedDay.setUTCHours(0, 0, 0, 0);
-      const dayKey = format(pickedDay, 'yyyy-MM-dd');
-
-      const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'EUR Stocks' }),
-        raw: true,
-      });
-
-      const eurSecurity = await Securities.create({
-        symbol: 'ASML',
-        providerSymbol: 'ASML.AS',
-        currencyCode: 'EUR',
-        providerName: SECURITY_PROVIDER.yahoo,
-        assetClass: ASSET_CLASS.stocks,
-        name: 'ASML Holding',
-      });
-
-      await seedHoldingAndPriceHistory({
-        portfolioId: portfolio.id,
-        securityId: eurSecurity.id,
-        pickedDay,
-        dayKey,
-      });
-
-      await ExchangeRates.bulkCreate([
-        { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'EUR', rate: 2, date: pickedDay },
-        { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'AED', rate: 4, date: pickedDay },
-      ]);
-
-      const data = (await helpers.getCombinedBalanceHistory({
-        from: format(subDays(pickedDay, 1), 'yyyy-MM-dd'),
-        to: format(new Date(), 'yyyy-MM-dd'),
-        raw: true,
-      })) as CombinedBalanceHistoryItem[];
-
-      const entry = data.find((e) => e.date === dayKey);
-      expect(entry).toBeDefined();
-      expect(entry!.portfoliosBalance).toBe(200);
-    });
-
-    it('walks back to a prior-date rate when no rate exists for the requested day', async () => {
-      // Seed USD→AED only at day-5; query on pickedDay (day-2). `findLatestUsdRate`
-      // must walk back to the prior rate rather than fall through to 1:1.
-      const pickedDay = subDays(new Date(), 2);
-      pickedDay.setUTCHours(0, 0, 0, 0);
-      const rateSeedDay = subDays(pickedDay, 3);
-      rateSeedDay.setUTCHours(0, 0, 0, 0);
-      const dayKey = format(pickedDay, 'yyyy-MM-dd');
-
-      const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'Walk-back portfolio' }),
-        raw: true,
-      });
-
-      const usdSecurity = await Securities.create({
-        symbol: 'MSFT',
-        providerSymbol: 'MSFT',
-        currencyCode: 'USD',
-        providerName: SECURITY_PROVIDER.yahoo,
-        assetClass: ASSET_CLASS.stocks,
-        name: 'Microsoft',
-      });
-
-      await seedHoldingAndPriceHistory({
-        portfolioId: portfolio.id,
-        securityId: usdSecurity.id,
-        pickedDay,
-        dayKey,
-      });
-
-      await ExchangeRates.create({
-        baseCode: API_LAYER_BASE_CURRENCY_CODE,
-        quoteCode: 'AED',
-        rate: 4,
-        date: rateSeedDay,
-      });
-
-      const data = (await helpers.getCombinedBalanceHistory({
-        from: format(subDays(pickedDay, 1), 'yyyy-MM-dd'),
-        to: format(new Date(), 'yyyy-MM-dd'),
-        raw: true,
-      })) as CombinedBalanceHistoryItem[];
-
-      const entry = data.find((e) => e.date === dayKey);
-      expect(entry).toBeDefined();
-      // Walk-back must use the seeded rate, not the 1:1 fallback.
       expect(entry!.portfoliosBalance).toBe(400);
     });
 
@@ -725,7 +654,9 @@ describe('[Stats] Combined balance history', () => {
 
     it('prefers a UserExchangeRates override over the canonical USD-pivot rate', async () => {
       // System rate USD→AED = 4. User override (UserExchangeRates baseCode=USD,
-      // quoteCode=AED) = 10. Override must win.
+      // quoteCode=AED) = 10. Override must win — this pins the precedence
+      // through the real DB fetch (`buildUserRatesMap` short-circuiting the
+      // USD-pivot cross-rate in `createGetExchangeRate`).
       const pickedDay = subDays(new Date(), 3);
       pickedDay.setUTCHours(0, 0, 0, 0);
       const dayKey = format(pickedDay, 'yyyy-MM-dd');
@@ -780,35 +711,53 @@ describe('[Stats] Combined balance history', () => {
       expect(entry!.portfoliosBalance).toBe(1000);
     });
 
-    it('falls back to 1:1 (security-currency value) when no rate of any kind exists', async () => {
-      // No ExchangeRates / UserExchangeRates seeded. The endpoint must not
-      // crash — it returns the security-currency value as-is (1:1) and the
-      // dispatcher emits a single trailing warn. This pins the documented
-      // graceful-degradation contract.
+    it('includes non-base portfolio CASH converted via the USD-pivot cross-rate', async () => {
+      // Cash held inside a portfolio in a non-base currency must be converted to
+      // the user base just like security holdings. EUR cash, user base AED:
+      // USD→EUR = 2, USD→AED = 4 -> EUR→AED = 2, so €100 of cash = 200 AED. This
+      // also guards the currency-set extension: EUR is not a security currency
+      // here, so it only reaches the USD-pivot loader via the cash leg.
       const pickedDay = subDays(new Date(), 3);
       pickedDay.setUTCHours(0, 0, 0, 0);
       const dayKey = format(pickedDay, 'yyyy-MM-dd');
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
 
       const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'No-rate portfolio' }),
+        payload: helpers.buildPortfolioPayload({ name: 'EUR cash portfolio' }),
         raw: true,
       });
 
-      const usdSecurity = await Securities.create({
-        symbol: 'AMZN',
-        providerSymbol: 'AMZN',
-        currencyCode: 'USD',
-        providerName: SECURITY_PROVIDER.yahoo,
-        assetClass: ASSET_CLASS.stocks,
-        name: 'Amazon',
+      // Ephemeral rates so the deposit's ref-amount computation resolves (for both
+      // the event date and `new Date()`); wiped immediately after so the assertion
+      // runs only against the rates seeded below.
+      await ExchangeRates.bulkCreate(
+        [
+          { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'EUR', rate: 1, date: pickedDay },
+          { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'AED', rate: 1, date: pickedDay },
+          { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'EUR', rate: 1, date: today },
+          { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'AED', rate: 1, date: today },
+        ],
+        { ignoreDuplicates: true },
+      );
+
+      // The cash deposit converts EUR→AED at write time, and getExchangeRate
+      // refuses to convert a currency the user isn't connected to. A security
+      // holding would connect it implicitly; a bare cash deposit needs it here.
+      await helpers.addUserCurrencies({ currencyCodes: ['EUR'] });
+
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: { type: 'deposit', amount: '100', currencyCode: 'EUR', date: dayKey },
+        raw: true,
       });
 
-      await seedHoldingAndPriceHistory({
-        portfolioId: portfolio.id,
-        securityId: usdSecurity.id,
-        pickedDay,
-        dayKey,
-      });
+      await wipeFxState();
+
+      await ExchangeRates.bulkCreate([
+        { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'EUR', rate: 2, date: pickedDay },
+        { baseCode: API_LAYER_BASE_CURRENCY_CODE, quoteCode: 'AED', rate: 4, date: pickedDay },
+      ]);
 
       const data = (await helpers.getCombinedBalanceHistory({
         from: format(subDays(pickedDay, 1), 'yyyy-MM-dd'),
@@ -818,8 +767,8 @@ describe('[Stats] Combined balance history', () => {
 
       const entry = data.find((e) => e.date === dayKey);
       expect(entry).toBeDefined();
-      // Rate falls back to 1 -> 1 * 100 * 1 = 100 in user-base units.
-      expect(entry!.portfoliosBalance).toBe(100);
+      // €100 * (USD→AED 4 / USD→EUR 2) = 200 AED.
+      expect(entry!.portfoliosBalance).toBe(200);
     });
   });
 
@@ -992,6 +941,341 @@ describe('[Stats] Combined balance history', () => {
         expect(entry.date < purchaseDateStr).toBe(true);
         expect(entry.vehiclesBalance).toBe(0);
       }
+    });
+  });
+
+  describe('Portfolio cash balance', () => {
+    // Base-currency (AED) cash so getExchangeRate short-circuits to 1 and these
+    // assertions stay exact without any FX seeding. `wipeFxState` runs anyway
+    // so a future non-base test added to this block can't be polluted by an
+    // ambient AED/EUR row left over from another describe.
+    beforeEach(wipeFxState);
+
+    it('reflects a direct cash deposit in portfoliosBalance from the deposit day forward', async () => {
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Cash-only portfolio' }),
+        raw: true,
+      });
+
+      const depositDay = format(subDays(new Date(), 3), 'yyyy-MM-dd');
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: { type: 'deposit', amount: '500', currencyCode: global.BASE_CURRENCY_CODE, date: depositDay },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      // Before the deposit: no cash in the portfolio.
+      const beforeDeposit = data.find((e) => e.date === format(subDays(new Date(), 4), 'yyyy-MM-dd'));
+      expect(beforeDeposit).toBeDefined();
+      expect(beforeDeposit!.portfoliosBalance).toBe(0);
+
+      // On and after the deposit day: cash is tracked in base currency.
+      const onDeposit = data.find((e) => e.date === depositDay);
+      expect(onDeposit).toBeDefined();
+      expect(onDeposit!.portfoliosBalance).toBe(500);
+
+      const today = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'))!;
+      expect(today).toBeDefined();
+      expect(today.portfoliosBalance).toBe(500);
+      expect(today.totalBalance).toBe(
+        today.accountsBalance + today.portfoliosBalance + today.venturesBalance + today.vehiclesBalance,
+      );
+    });
+
+    it('does not smear post-window cash activity into a window that ends in the past', async () => {
+      // Regression: `computePortfolioCashByDate` anchors on the CURRENT stored
+      // cash, so cash rows must be fetched through today even when `to` is in
+      // the past. If deltas between `to` and today were missing from the replay,
+      // the seed `stored - sum(deltas)` would misattribute today's deposit as a
+      // constant offset across every historical day (500 would read as 900),
+      // and today's stored refTotalCash would be stamped onto the historical
+      // `to` cell.
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Past-window portfolio' }),
+        raw: true,
+      });
+
+      const inWindowDepositDay = format(subDays(new Date(), 5), 'yyyy-MM-dd');
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: { type: 'deposit', amount: '500', currencyCode: global.BASE_CURRENCY_CODE, date: inWindowDepositDay },
+        raw: true,
+      });
+      // Second deposit dated TODAY — strictly after the requested window's `to`.
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'deposit',
+          amount: '400',
+          currencyCode: global.BASE_CURRENCY_CODE,
+          date: format(new Date(), 'yyyy-MM-dd'),
+        },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
+        to: format(subDays(new Date(), 2), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      // Before the in-window deposit: no cash yet.
+      const beforeDeposit = data.find((e) => e.date === format(subDays(new Date(), 6), 'yyyy-MM-dd'));
+      expect(beforeDeposit).toBeDefined();
+      expect(beforeDeposit!.portfoliosBalance).toBe(0);
+
+      // From the deposit day through the window end: exactly 500 on every day —
+      // today's 400 deposit and today's stored cash total (900) must not leak
+      // backwards into the historical window.
+      const fromDepositOnward = data.filter((e) => e.date >= inWindowDepositDay);
+      expect(fromDepositOnward.length).toBeGreaterThan(0);
+      for (const entry of fromDepositOnward) {
+        expect(entry.portfoliosBalance).toBe(500);
+      }
+    });
+
+    it('conserves total net worth when cash moves from an account into a portfolio', async () => {
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Funded portfolio' }),
+        raw: true,
+      });
+
+      const today = format(new Date(), 'yyyy-MM-dd');
+      await helpers.accountToPortfolioTransfer({
+        portfolioId: portfolio.id,
+        payload: { accountId: account.id, amount: '300', date: today },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(new Date(), 2), 'yyyy-MM-dd'),
+        to: today,
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      const todayEntry = data.find((e) => e.date === today)!;
+      expect(todayEntry).toBeDefined();
+      // Cash left the account and now lives in the portfolio.
+      expect(todayEntry.accountsBalance).toBe(700);
+      expect(todayEntry.portfoliosBalance).toBe(300);
+      // Net worth unchanged — moving cash into a portfolio must not make it vanish.
+      expect(todayEntry.totalBalance).toBe(1000);
+    });
+
+    it('credits sell proceeds to portfoliosBalance on/after the sell day', async () => {
+      // Pins `calculateCashDelta(sell)` -> positive settlement amount funneled
+      // into the per-currency cash bucket. AED security so settlement is AED
+      // and `getExchangeRate` short-circuits to 1 throughout.
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Sell-proceeds portfolio' }),
+        raw: true,
+      });
+
+      const aedSecurity = await Securities.create({
+        symbol: 'EMAAR',
+        providerSymbol: 'EMAAR.AE',
+        currencyCode: global.BASE_CURRENCY_CODE,
+        providerName: SECURITY_PROVIDER.yahoo,
+        assetClass: ASSET_CLASS.stocks,
+        name: 'Emaar Properties',
+      });
+
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: aedSecurity.id } });
+      // Drain background syncHistoricalPrices then clear any rows it inserted so
+      // every holding-value lookup falls back to costBasis deterministically.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await SecurityPricing.destroy({ where: { securityId: aedSecurity.id } });
+
+      const fundingDay = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+      const buyDay = format(subDays(new Date(), 5), 'yyyy-MM-dd');
+      const sellDay = format(subDays(new Date(), 2), 'yyyy-MM-dd');
+
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: { type: 'deposit', amount: '1000', currencyCode: global.BASE_CURRENCY_CODE, date: fundingDay },
+        raw: true,
+      });
+
+      // Buy 5 @ 100 -> settlementAmount 500, cashDelta -500. Holding qty=5, costBasis=500.
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: aedSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          date: buyDay,
+          quantity: '5',
+          price: '100',
+          fees: '0',
+        },
+        raw: true,
+      });
+
+      // Sell 5 @ 120 -> settlementAmount 600, cashDelta +600. Holding qty=0, costBasis=0.
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: aedSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          date: sellDay,
+          quantity: '5',
+          price: '120',
+          fees: '0',
+        },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(new Date(), 10), 'yyyy-MM-dd'),
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      // Between buy and sell: cash 500 + holding costBasis 500 = 1000.
+      const beforeSell = data.find((e) => e.date === format(subDays(new Date(), 3), 'yyyy-MM-dd'));
+      expect(beforeSell).toBeDefined();
+      expect(beforeSell!.portfoliosBalance).toBe(1000);
+
+      // On sell day: cash 500 + 600 = 1100, holding cleared.
+      const onSell = data.find((e) => e.date === sellDay);
+      expect(onSell).toBeDefined();
+      expect(onSell!.portfoliosBalance).toBe(1100);
+
+      // Running balance carries forward.
+      const today = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
+      expect(today!.portfoliosBalance).toBe(1100);
+    });
+
+    it('extends the auto-range back to the oldest transfer when from is omitted', async () => {
+      // Without the `oldestTransfer` candidate in `getCombinedBalanceHistory`'s
+      // auto-range resolver, a cash-only portfolio (no investment transactions,
+      // no venture deals) would collapse minDate to today and the series would
+      // contain a single point. Asserting the series spans back to the deposit
+      // day proves the transfer candidate is load-bearing.
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Auto-range cash portfolio' }),
+        raw: true,
+      });
+
+      const depositDay = format(subDays(new Date(), 10), 'yyyy-MM-dd');
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: { type: 'deposit', amount: '500', currencyCode: global.BASE_CURRENCY_CODE, date: depositDay },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({ raw: true })) as CombinedBalanceHistoryItem[];
+
+      // Series reaches back to (or before) the deposit day.
+      expect(data.length).toBeGreaterThanOrEqual(10);
+      expect(data[0]!.date <= depositDay).toBe(true);
+
+      // Cash is tracked from the deposit day forward.
+      const onDeposit = data.find((e) => e.date === depositDay);
+      expect(onDeposit).toBeDefined();
+      expect(onDeposit!.portfoliosBalance).toBe(500);
+
+      const today = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
+      expect(today!.portfoliosBalance).toBe(500);
+    });
+
+    it('reflects direct PortfolioBalances writes when no transactions or transfers were issued', async () => {
+      // `PUT /investments/portfolios/:id/balance` writes `PortfolioBalances`
+      // directly with no `InvestmentTransaction` / `PortfolioTransfers` audit row.
+      // Replay must anchor to the stored cash so this channel is not invisible:
+      // a pure direct-write of 750 AED has to appear as 750 today, not 0.
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Direct-write portfolio' }),
+        raw: true,
+      });
+
+      await helpers.updatePortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode: global.BASE_CURRENCY_CODE,
+        setAvailableCash: '750',
+        setTotalCash: '750',
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      const today = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
+      expect(today).toBeDefined();
+      expect(today!.portfoliosBalance).toBe(750);
+    });
+
+    it('combines direct PortfolioBalances writes with transaction-driven deltas without double-counting', async () => {
+      // Reproduces the production bug: user funds IBKR via a direct balance
+      // write (e.g. importer / manual seed), then buys securities. The buy
+      // debits cash through `calculateCashDelta` while the stored cash row
+      // already reflects the post-buy state. Replay must end at the stored
+      // 200 today (seed 1000 + buy -800), not at -800.
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Direct-write + buy portfolio' }),
+        raw: true,
+      });
+
+      const aedSecurity = await Securities.create({
+        symbol: 'ALDAR',
+        providerSymbol: 'ALDAR.AE',
+        currencyCode: global.BASE_CURRENCY_CODE,
+        providerName: SECURITY_PROVIDER.yahoo,
+        assetClass: ASSET_CLASS.stocks,
+        name: 'Aldar Properties',
+      });
+
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: aedSecurity.id } });
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await SecurityPricing.destroy({ where: { securityId: aedSecurity.id } });
+
+      // Seed cash directly (simulates importer / manual adjustment) to 1000.
+      await helpers.updatePortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode: global.BASE_CURRENCY_CODE,
+        setAvailableCash: '1000',
+        setTotalCash: '1000',
+        raw: true,
+      });
+
+      // Buy 8 @ 100 -> cash debit 800. updatePortfolioBalance is called by the
+      // transaction service, leaving stored cash at 200 today.
+      const buyDay = format(subDays(new Date(), 2), 'yyyy-MM-dd');
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: aedSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          date: buyDay,
+          quantity: '8',
+          price: '100',
+          fees: '0',
+        },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      // Today: 200 stored cash + 800 cost-basis fallback for the holding = 1000.
+      const today = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
+      expect(today).toBeDefined();
+      expect(today!.portfoliosBalance).toBe(1000);
     });
   });
 });
