@@ -35,9 +35,8 @@ const deleteAccount = async () => {
     addSuccessNotification(t('pages.account.deletion.success', { accountName }));
     router.push({ name: ROUTES_NAMES.accounts });
   } catch (e) {
-    // Surface the backend message verbatim for explicit-block validation errors
-    // (e.g. "delete blocked because loan payments exist") — the server knows
-    // why this attempt fails and the message is already localised.
+    // Surface the backend message verbatim for validation errors (e.g. "delete
+    // blocked — loan payments exist") — already localised.
     if (isApiErrorWithCode(e, API_ERROR_CODES.validationError) && e.data?.message) {
       addErrorNotification(e.data.message);
     } else {

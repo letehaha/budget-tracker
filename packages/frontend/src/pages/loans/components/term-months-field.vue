@@ -71,9 +71,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-// Year-aligned terms are what users actually quote ("a 30-year mortgage", "5-year auto");
-// the months value beside each one is a sanity-check so the user can confirm what they
-// just picked maps to a sensible duration.
+// Year-aligned terms are what users actually quote ("a 30-year mortgage"); the months value beside
+// each one is a sanity-check.
 const PRESET_YEARS = [1, 2, 3, 5, 7, 10, 15, 20, 25, 30];
 
 const presets = computed(() =>

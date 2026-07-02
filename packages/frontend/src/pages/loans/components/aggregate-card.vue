@@ -140,10 +140,8 @@ const earliestPayoffDisplay = computed(() => {
 });
 
 const interestProjected = computed(() => {
-  // Projection values are in each loan's own currency — convert per loan to
-  // the base currency before summing, like `totalLiabilities` does via the
-  // API-provided ref values. When any rate is unavailable the total would be
-  // silently understated, so render "—" instead.
+  // Projection values are per-loan currency — convert before summing. Render "—" if any rate is
+  // unavailable rather than silently understate the total.
   const baseCode = baseCurrency.value?.currencyCode;
   if (!baseCode) return null;
   const withProjection = props.loans.filter((loan) => loan.projection.totalInterestRemaining !== null);

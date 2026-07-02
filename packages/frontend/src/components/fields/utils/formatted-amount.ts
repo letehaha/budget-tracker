@@ -1,11 +1,7 @@
 /**
- * Pure helpers behind `formatted-amount-field.vue`: parsing the user's typed
- * text into a numeric model value plus a display-only "fragment", and keeping
- * the caret anchored while thousand separators get redistributed around it.
- *
- * All parsing works on a canonical '.' decimal separator; the locale-specific
- * separator is normalized on the way in and re-applied by the component on the
- * way out.
+ * Helpers behind `formatted-amount-field.vue`: parse typed text into a numeric
+ * value + display fragment, and keep the caret anchored through reformatting.
+ * All parsing uses a canonical '.'; the component normalizes locale separators in/out.
  */
 
 export interface AmountSeparators {
@@ -23,21 +19,28 @@ export const getAmountSeparators = (): AmountSeparators => {
 };
 
 /**
- * Parses raw typed input into (numeric value, display fragment). The fragment
- * is the tail of the typed decimals that a `Number` round-trip loses — a
- * trailing decimal point ("1234." → '.') or trailing zeros ("1.50" → '0',
- * "2.00" → '.00') — preserved so mid-typing keystrokes don't visually vanish.
- * Decimals are capped at 2 digits: extra typed precision is ignored instead of
- * letting the model and the 2-digit display diverge.
+ * Splits typed input into a numeric value + fragment (the decimal tail a Number
+ * round-trip would lose, e.g. "1234." or "2.00"). Decimals cap at 2 digits — extra
+ * typed precision is dropped rather than letting model and display diverge.
+ *
+ * `groupSeparator`, when given, is stripped before the decimal separator gets
+ * canonicalized to '.'. This matters for locales (de-DE, es-ES, ...) whose
+ * group separator IS '.' — without stripping it first, canonicalizing the
+ * decimal separator produces a string with two dots and the "collapse extra
+ * dots" step below keeps the wrong one, truncating the value (e.g. typed
+ * "1.234,56" would parse as 1.23 instead of 1234.56).
  */
 export const parseAmountInput = ({
   raw,
   decimalSeparator,
+  groupSeparator = '',
 }: {
   raw: string;
   decimalSeparator: string;
+  groupSeparator?: string;
 }): { fragment: string; numeric: number | null } => {
-  const canonical = decimalSeparator === '.' ? raw : raw.split(decimalSeparator).join('.');
+  const withoutGroups = groupSeparator ? raw.split(groupSeparator).join('') : raw;
+  const canonical = decimalSeparator === '.' ? withoutGroups : withoutGroups.split(decimalSeparator).join('.');
   const stripped = canonical.replace(/[^\d.]/g, '');
   const firstDot = stripped.indexOf('.');
   // Collapse any extra decimal points after the first — pasting "1.2.3" lands on "1.23".
@@ -74,10 +77,8 @@ const isCaretAnchorChar = ({ char, decimalSeparator }: { char: string; decimalSe
   /\d/.test(char) || char === decimalSeparator || char === '.';
 
 /**
- * Counts how many digits (and decimal points) sit at or before `caret` in the
- * displayed string. Used to anchor the cursor after reformatting — keeps
- * "12,3|45" stable when the user types in the middle of the number and the
- * group separators get redistributed.
+ * Counts digits/decimal points at or before `caret`. Anchors the cursor after
+ * reformatting so mid-number typing stays stable when group separators shift.
  */
 export const countDigitsBeforeCaret = ({
   text,
@@ -95,11 +96,7 @@ export const countDigitsBeforeCaret = ({
   return count;
 };
 
-/**
- * Walks the freshly formatted string and returns the offset just past the
- * `digitCount`-th anchor character — i.e. right after the same digit the user
- * was on before the reformat.
- */
+/** Offset just past the `digitCount`-th anchor char — the same digit the user was on before reformatting. */
 export const caretOffsetAfterDigits = ({
   text,
   digitCount,

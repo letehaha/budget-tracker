@@ -8,8 +8,7 @@ describe('getMaxLoanPayment', () => {
   });
 
   it('credits an existing payment leg back into the allowance when editing', () => {
-    // Editing a $1,000 payment on a loan that still owes $49,000: the cap is
-    // $50,000 so the user can raise the same payment without a false overpay.
+    // $49,000 owed + $1,000 existing leg = $50,000 cap, so raising to it isn't a false overpay.
     expect(getMaxLoanPayment({ loanCurrentBalance: -49000, existingLegAmount: 1000 })).toBe(50000);
   });
 

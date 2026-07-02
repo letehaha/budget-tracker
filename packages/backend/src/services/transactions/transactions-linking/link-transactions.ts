@@ -109,13 +109,10 @@ export const linkTransactions = withTransaction(
           ignoreBaseTxTypeValidation,
         });
 
-        // A loan account holds only `transfer_to_loan` payment legs, and
-        // `validateTransactionLinking` already rejects those as already-linked,
-        // so a link can never legitimately resolve onto a loan account. Guard
-        // the impossible case loudly: silently stamping `common_transfer` on a
-        // loan leg would hide it from the loan's payment list and delete guards,
-        // while stamping `transfer_to_loan` would skip the balance recompute
-        // that only the payment-creation path performs.
+        // `validateTransactionLinking` already rejects `transfer_to_loan` legs as
+        // already-linked, so a link can never legitimately land on a loan account.
+        // Guard the impossible case loudly — stamping either nature here would
+        // desync the loan's payment list or skip the balance recompute.
         const incomeLeg = base.transactionType === TRANSACTION_TYPES.income ? base : opposite;
         const incomeLegAccount = await Accounts.findOne({
           where: { id: incomeLeg.accountId },

@@ -28,17 +28,12 @@ export interface LoanDetailsApi {
   paymentDayOfMonth: number | null;
   lenderName: string | null;
   accountNumber: string | null;
-  replacedByLoanId: RecordId | null;
   events: LoanEventApi[];
   createdAt: string;
   updatedAt: string;
 }
 
-/**
- * Flat Account fields + nested loanDetails + projection. The top-level `id` is
- * the underlying Account id – a loan IS an Account from the frontend's
- * perspective. Liability balances arrive negative.
- */
+/** `id` is the underlying Account id – a loan IS an Account. Liability balances arrive negative. */
 export interface LoanApi {
   id: RecordId;
   name: string;
@@ -74,10 +69,7 @@ export const getLoanById = async ({ id }: { id: string }): Promise<LoanApi> => {
   return api.get(`/loans/${id}`);
 };
 
-/**
- * Decimals in, decimals out. The backend converts incoming decimals to cents
- * via the MoneyColumn pipeline; never send cents from the frontend.
- */
+/** Decimals in/out – backend converts to cents via MoneyColumn; never send cents. */
 export interface CreateLoanPayload {
   name: string;
   currencyCode: string;
@@ -100,13 +92,9 @@ export const createLoan = async (payload: CreateLoanPayload): Promise<LoanApi> =
 };
 
 /**
- * Patch payload. Every field is optional; backend rejects an empty body.
- * `currencyCode` and `loanType` are intentionally absent – switching currency
- * on an existing account isn't supported, and loanType is UI-only metadata
- * that doesn't warrant a timeline event.
- *
- * `currentBalance` is the outstanding amount as a positive decimal; the
- * service flips the sign before writing to Accounts.currentBalance.
+ * All fields optional (empty body rejected). No `currencyCode`/`loanType` – currency
+ * switch unsupported, loanType is UI-only. `currentBalance` is positive; the service
+ * flips the sign before writing to Accounts.currentBalance.
  */
 export interface UpdateLoanPayload {
   name?: string;
@@ -138,10 +126,8 @@ interface LinkLoanPaymentsResponse {
 }
 
 /**
- * Bulk-convert existing expense transactions into payments on this loan (each
- * becomes a transfer-to-loan). When the batch would push the loan past its owed
- * balance the backend first refuses with a `loanPaymentOverpayConfirmationRequired`
- * error; re-send with `confirmOverpay: true` to proceed anyway.
+ * Converts expense transactions into transfer-to-loan payments. Backend refuses with
+ * `loanPaymentOverpayConfirmationRequired` on overpay; retry with `confirmOverpay: true`.
  */
 export const linkLoanPayments = async ({
   id,
@@ -155,7 +141,6 @@ export const linkLoanPayments = async ({
   return api.post(`/loans/${id}/link-payments`, { transactionIds, confirmOverpay });
 };
 
-/** Response from POST /loans/:id/unlink-payment. */
 interface UnlinkLoanPaymentResponse {
   loan: LoanApi;
   /** Id of the expense transaction that was restored from the deleted loan-side leg. */

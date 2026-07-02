@@ -27,9 +27,8 @@ export const useLoans = (queryOptions = {}) => {
   };
 };
 
-// A loan IS an Accounts row, so any loan mutation must also bust the global
-// accounts cache — otherwise pickers (transaction-create destination, sidebar,
-// etc.) won't see a newly created loan or a renamed/deleted one.
+// A loan IS an Accounts row — mutations must also bust the global accounts cache,
+// or pickers (tx destination, sidebar) won't see the change.
 const invalidateAccountsCache = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts });
 };
@@ -77,9 +76,8 @@ export const useLinkLoanPayments = () => {
 
   return useMutation({
     mutationFn: linkLoanPayments,
-    // Linking rewrites transactions and recomputes the loan balance/projection.
-    // The transactionChange prefix fans out to the loan detail, its payment
-    // lists, the records list, and the global accounts cache in one shot.
+    // Linking rewrites transactions and recomputes balance/projection; the
+    // transactionChange prefix fans out to loan detail, payment lists, records, and accounts cache.
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
     },
@@ -91,9 +89,8 @@ export const useUnlinkLoanPayment = () => {
 
   return useMutation({
     mutationFn: unlinkLoanPayment,
-    // Unlinking deletes the loan-side leg and restores the original expense.
-    // The transactionChange prefix fans out to the loan detail, its payment
-    // lists, the records list, and the global accounts cache in one shot.
+    // Unlinking deletes the loan-side leg and restores the expense; the
+    // transactionChange prefix fans out to loan detail, payment lists, records, and accounts cache.
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
     },

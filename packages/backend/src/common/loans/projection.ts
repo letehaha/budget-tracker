@@ -3,41 +3,14 @@ import { centsToApiDecimal } from '@common/types/money';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 
 /**
- * Pure-function payoff projection for a loan. Deterministic — pass `today` as
- * a parameter so callers can fix the clock in tests and so the same module
- * runs identically on backend and (later) frontend.
- *
- * Math runs in cents to avoid floating-point drift; output values are decimals
- * (Number) so callers can hand the result straight to `res.json()` without
- * extra conversion.
- *
- * The standard closed-form amortization is used for non-zero APR:
- *
- *     n = ⌈ log( P / (P − B·r) ) / log(1 + r) ⌉
- *
- * where B = currentBalanceCents, P = plannedPaymentCents, r = APR / 100 / 12.
- *
- * A zero-APR loan is a degenerate case — the log formula divides by zero, so
- * months remaining collapses to ⌈B / P⌉ with no interest accrual.
- *
- * A planned payment of `0` is treated identically to `null`: it expresses the
- * absence of a plan, not an underfunded one, and yields `no_planned_payment`.
- *
- * Both amortization paths are capped at `MAX_PROJECTION_MONTHS`. A payment that
- * is positive yet so small the loan would take longer than that to clear (e.g.
- * a six-figure balance paid a cent a month) does not amortize within any horizon
- * a Date can represent; it returns the `payment_below_interest` shape rather than
- * overflowing into an unrepresentable payoff date.
- *
- * Banker's rounding (round-half-to-even) is used for the per-month interest
- * accrual so cumulative bias stays minimal across long-running mortgages.
+ * Pure payoff projection for a loan — `today` is injected so tests can fix the
+ * clock. Math runs in integer cents (banker's rounding for monthly interest);
+ * outputs are decimals ready for `res.json()`. Must stay in lockstep with the
+ * frontend's `computePayoffScenario` (pages/loans/utils/payoff-schedule.ts) so
+ * the Projection card and the payoff chart agree to the cent.
  */
 interface LoanProjectionInput {
-  /**
-   * Outstanding balance the user owes, expressed as a non-negative integer in
-   * cents. Zero (a loan created with nothing outstanding, or fully paid down)
-   * projects as `isPaidOff: true`.
-   */
+  /** Outstanding balance in cents, non-negative. Zero projects as `isPaidOff: true`. */
   currentBalanceCents: number;
   /** Lender-issued principal at origination, in cents. */
   originalPrincipalCents: number;
@@ -45,35 +18,24 @@ interface LoanProjectionInput {
   interestRate: number;
   /** Planned monthly payment, in cents. `null` when the user hasn't set one. */
   plannedPaymentCents: number | null;
-  /**
-   * Reference "now" used to anchor `payoffDate`. Pass a Date instance or a
-   * parseable date string. Injecting the clock keeps the function pure and the
-   * unit tests deterministic.
-   */
+  /** Reference "now" anchoring `payoffDate`. */
   today: Date | string;
 }
 
 const MONTHS_PER_YEAR = 12;
 
-/**
- * Upper bound on a projectable payoff horizon, in months (100 years — matching
- * the loan-term cap). A payment that would take longer than this to clear the
- * balance is treated as never amortizing within a representable horizon.
- */
+/** Payoff-horizon cap in months (100 years, matching the loan-term cap). */
 const MAX_PROJECTION_MONTHS = 1200;
 
 export function computeLoanProjection(input: LoanProjectionInput): LoanProjection {
   const { currentBalanceCents, originalPrincipalCents, interestRate } = input;
-  // A zero planned payment is the absence of a plan, not an underfunded one;
-  // normalize it to null so it takes the `no_planned_payment` branch below
-  // rather than falling through to the `payment_below_interest` check.
+  // A planned payment of 0 means "no plan", not underfunded — normalize to null
+  // so it yields `no_planned_payment`, not `payment_below_interest`.
   const plannedPaymentCents = input.plannedPaymentCents === 0 ? null : input.plannedPaymentCents;
   const today = input.today instanceof Date ? input.today : new Date(input.today);
 
-  // Outstanding above the original principal (negative amortization, or a
-  // correction that raised the balance) would make principal-paid negative.
-  // Floor it at zero so the UI reads "0 paid" instead of a nonsensical negative
-  // "paid" amount; the percent is derived from the same floored value.
+  // A balance above the original principal (negative amortization) would make
+  // principal-paid negative; floor at zero so the UI reads "0 paid".
   const paidToDateCents = Math.max(0, originalPrincipalCents - currentBalanceCents);
   const paidToDate = centsToApiDecimal(paidToDateCents);
   const paidToDatePercent = computePaidToDatePercent({ paidToDateCents, originalPrincipalCents });
@@ -110,8 +72,8 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
     };
   }
 
-  // A payment that cannot cover the monthly interest accrual never reduces the
-  // principal. Equality counts as below — no principal would be paid down.
+  // A payment ≤ monthly interest never reduces principal (equality counts as
+  // below), so `monthlyPrincipal` is null — there is nothing to display.
   const paymentBelowInterest = {
     payoffDate: null,
     monthsRemaining: null,
@@ -119,7 +81,7 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
     paidToDate,
     paidToDatePercent,
     monthlyInterest: centsToApiDecimal(monthlyInterestCents),
-    monthlyPrincipal: centsToApiDecimal(plannedPaymentCents - monthlyInterestCents),
+    monthlyPrincipal: null,
     isPaidOff: false,
     warning: 'payment_below_interest',
   } as const;
@@ -134,15 +96,18 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
     interestRate,
   });
 
-  // A payment that is positive yet so small the loan outlasts the projectable
-  // horizon (e.g. a zero-APR balance paid a cent a month) does not amortize
-  // within any representable date range, so it reports the same way an
-  // underfunded payment does.
+  // A positive payment so small the loan outlasts the horizon reports the same
+  // way an underfunded payment does.
   if (monthsRemaining > MAX_PROJECTION_MONTHS) {
     return paymentBelowInterest;
   }
 
-  const totalInterestRemainingCents = plannedPaymentCents * monthsRemaining - currentBalanceCents;
+  const totalInterestRemainingCents = computeTotalInterestCents({
+    balanceCents: currentBalanceCents,
+    paymentCents: plannedPaymentCents,
+    interestRate,
+    months: monthsRemaining,
+  });
 
   return {
     payoffDate: addMonthsIso({ from: today, months: monthsRemaining }),
@@ -175,6 +140,35 @@ function computeMonthsRemaining({
   return Math.ceil(numerator / denominator);
 }
 
+/**
+ * Month-by-month interest accrual in integer cents. Closed-form
+ * `payment × months − balance` would overstate: the final month pays only the
+ * leftover balance plus its interest. Mirrors the frontend's
+ * `computePayoffScenario` accrual (same per-month banker's rounding).
+ */
+function computeTotalInterestCents({
+  balanceCents,
+  paymentCents,
+  interestRate,
+  months,
+}: {
+  balanceCents: number;
+  paymentCents: number;
+  interestRate: number;
+  months: number;
+}): number {
+  const monthlyRate = interestRate / 100 / MONTHS_PER_YEAR;
+  let remainingCents = balanceCents;
+  let totalInterestCents = 0;
+  for (let month = 1; month <= months && remainingCents > 0; month += 1) {
+    const interestCents = roundHalfToEven(remainingCents * monthlyRate);
+    totalInterestCents += interestCents;
+    // The last payment clears whatever is left instead of a full planned payment.
+    remainingCents = Math.max(0, remainingCents + interestCents - paymentCents);
+  }
+  return totalInterestCents;
+}
+
 function computePaidToDatePercent({
   paidToDateCents,
   originalPrincipalCents,
@@ -189,16 +183,13 @@ function computePaidToDatePercent({
 }
 
 function addMonthsIso({ from, months }: { from: Date; months: number }): string {
-  // Clamp to the last day of the target month instead of letting the Date
-  // constructor normalize the overflow — Jan 31 + 1 month must land on
-  // Feb 28/29, not Mar 2/3, to match "same day next month" payment-schedule
-  // semantics for days 29–31.
+  // Clamp to the last day of the target month: Jan 31 + 1 month must land on
+  // Feb 28/29, not Mar 2/3 (Date-constructor overflow).
   const targetMonth = from.getMonth() + months;
   const lastDayOfTargetMonth = new Date(from.getFullYear(), targetMonth + 1, 0).getDate();
   const result = new Date(from.getFullYear(), targetMonth, Math.min(from.getDate(), lastDayOfTargetMonth));
   if (!Number.isFinite(result.getTime())) {
-    // An unrepresentable date here means `months` was never bounded before this
-    // call — a caller-side bug. Surface it instead of serializing "NaN-NaN-NaN".
+    // Caller failed to bound `months`; fail loudly instead of serializing "NaN-NaN-NaN".
     throw new Error(`addMonthsIso produced an invalid date from ${months} months`);
   }
   const yyyy = result.getFullYear();

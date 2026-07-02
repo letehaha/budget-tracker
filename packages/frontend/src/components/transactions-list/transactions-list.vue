@@ -65,9 +65,8 @@ const { displayTransactions } = useTransactionsDisplay({
   maxDisplay: () => props.maxDisplay,
 });
 
-// Transaction detail dialog (Dialog on desktop, Drawer on mobile). A clicked
-// `transfer_to_loan` pair gets routed to a separate, simpler loan dialog with
-// its own visibility flag and props ref.
+// Transaction detail dialog (Dialog on desktop, Drawer on mobile). transfer_to_loan
+// pairs route to a separate, simpler loan dialog with its own visibility flag.
 const {
   isDialogVisible,
   dialogProps,

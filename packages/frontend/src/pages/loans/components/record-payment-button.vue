@@ -13,9 +13,8 @@ const props = defineProps<{ loan: LoanApi }>();
 const accountsStore = useAccountsStore();
 const { accountsRecord } = storeToRefs(accountsStore);
 
-// The loan IS an Accounts row; the store has it cached after the loan list
-// query. While the store is hydrating we render nothing — the dialog can't
-// open without an account model anyway, and the button is a visual nicety.
+// The loan IS an Accounts row, cached in the store after the loan list query. Renders nothing while
+// hydrating — the dialog needs an account model to open anyway.
 const loanAccount = computed(() => accountsRecord.value[props.loan.id]);
 
 const isOpen = ref(false);

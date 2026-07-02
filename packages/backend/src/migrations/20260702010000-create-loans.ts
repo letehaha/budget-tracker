@@ -1,21 +1,14 @@
 import { DataTypes, QueryInterface } from 'sequelize';
 
 /**
- * Loans schema foundation.
- *
- * 1. Migrate `Transactions.transferNature` from the Postgres ENUM
- *    `enum_transfer_nature` to VARCHAR(50). Project convention is VARCHAR +
- *    TS-side enums (see `.claude/memory/feedback_no_db_enums.md`); converting
- *    now lets future transfer-nature values (`transfer_to_loan` here, anything
- *    later) land via a shared-enums edit instead of an `ALTER TYPE ADD VALUE`
- *    per addition.
- * 2. Add `transfer_to_loan` as a usable value on the freshly-typed VARCHAR
- *    column. Loan payments recorded via the new flow tag with this nature;
- *    legacy `common_transfer` payments to loan-category accounts continue to
- *    work (reporting queries union both).
- * 3. Create the `LoanDetails` table – 1:1 sidecar to a loan-category
- *    `Accounts` row that holds APR, term, payment plan, lender metadata, and
- *    the append-only `events` JSONB log used as a lightweight audit timeline.
+ * Loans schema foundation:
+ * 1. Convert `transferNature` from the Postgres ENUM `enum_transfer_nature` to
+ *    VARCHAR(50) — project convention is VARCHAR + TS-side enums, so new
+ *    natures (`transfer_to_loan` and beyond) land via a shared-enums edit.
+ * 2. `transfer_to_loan` becomes usable; legacy `common_transfer` payments to
+ *    loan-category accounts keep working (reporting unions both).
+ * 3. Create `LoanDetails` — 1:1 sidecar to a loan-category `Accounts` row (APR,
+ *    term, payment plan, lender metadata, append-only `events` JSONB timeline).
  *    The Account still owns the balance and currency.
  */
 
@@ -30,13 +23,9 @@ const TRANSFER_NATURE_VALUES_BEFORE_LOAN = [
 module.exports = {
   up: async (queryInterface: QueryInterface): Promise<void> => {
     await queryInterface.sequelize.transaction(async (transaction) => {
-      // Step 1: convert transferNature ENUM -> VARCHAR(50) on every table that
-      // references the `enum_transfer_nature` Postgres type. Currently
-      // `Transactions` and `InvestmentTransactions` both bind to it; missing
-      // either would make the final DROP TYPE fail with a dependent-object
-      // error and roll back the whole migration.
-      // Defaults must drop before the cast – Postgres can't auto-cast an enum
-      // default to text.
+      // Convert every table bound to `enum_transfer_nature` (missing one would
+      // fail the final DROP TYPE with a dependent-object error). Defaults must
+      // drop before the cast — Postgres can't auto-cast an enum default to text.
       for (const tableName of ['Transactions', 'InvestmentTransactions']) {
         await queryInterface.sequelize.query(`ALTER TABLE "${tableName}" ALTER COLUMN "transferNature" DROP DEFAULT;`, {
           transaction,
@@ -57,18 +46,15 @@ module.exports = {
         transaction,
       });
 
-      // The TS-side ACCOUNT_CATEGORIES enum drops `mortgage` in favor of the
-      // loan feature's `loan` category. Fold any existing rows in so they keep
-      // passing the model's isIn validation and stay visible to category-based
-      // UI mappings. Not reversed in `down` — `loan` predates this migration,
-      // so the original mortgage/loan split can't be reconstructed.
+      // ACCOUNT_CATEGORIES drops `mortgage` in favor of `loan`; fold existing
+      // rows so they keep passing the model's isIn validation. Not reversed in
+      // `down` — `loan` predates this migration, so the split can't be reconstructed.
       await queryInterface.sequelize.query(
         `UPDATE "Accounts" SET "accountCategory" = 'loan' WHERE "accountCategory" = 'mortgage';`,
         { transaction },
       );
 
-      // Step 2: create the LoanDetails table. Sidecar to Accounts; unique
-      // accountId enforces the 1:1 with the underlying loan-category Account.
+      // Unique accountId enforces the 1:1 with the underlying loan-category Account.
       await queryInterface.createTable(
         'LoanDetails',
         {
@@ -159,14 +145,6 @@ module.exports = {
             allowNull: true,
             comment:
               "Lender's account/loan identifier as the user records it — last four digits, full number, or whatever they prefer. No format enforced",
-          },
-          replacedByLoanId: {
-            type: DataTypes.UUID,
-            allowNull: true,
-            references: { model: 'Accounts', key: 'id' },
-            onUpdate: 'CASCADE',
-            onDelete: 'SET NULL',
-            comment: 'Breadcrumb to the loan that replaced this one via refinance',
           },
           events: {
             type: DataTypes.JSONB,

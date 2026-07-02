@@ -12,10 +12,8 @@ import {
 import type { Component } from 'vue';
 
 /**
- * Single source for the per-loan-type hue and icon, so list cards and the
- * detail summary can't drift apart. The hue is intentionally split into two
- * class maps (gradient stripe vs. badge) because Tailwind can't compose
- * `from-*`/`bg-*` utilities from one token at runtime.
+ * Single source for per-loan-type hue and icon so cards don't drift apart. Hue is split into two class maps
+ * (gradient stripe vs. badge) because Tailwind can't compose `from-*`/`bg-*` utilities from one token at runtime.
  */
 
 const LOAN_TYPE_SOLID_BADGE_CLASSES: Record<LOAN_TYPE, string> = {
@@ -40,8 +38,7 @@ const LOAN_TYPE_ICONS: Record<LOAN_TYPE, Component> = {
   [LOAN_TYPE.other]: CoinsIcon,
 };
 
-// Fall back to `other` so an unrecognized loanType (e.g. a value added
-// server-side before the frontend ships its mapping) still renders.
+// Fall back to `other` so an unrecognized loanType (e.g. new server-side value) still renders.
 export const getLoanTypeSolidBadgeClass = ({ loanType }: { loanType: LOAN_TYPE }): string =>
   LOAN_TYPE_SOLID_BADGE_CLASSES[loanType] ?? LOAN_TYPE_SOLID_BADGE_CLASSES[LOAN_TYPE.other];
 

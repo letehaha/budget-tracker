@@ -274,8 +274,8 @@ const getEffectiveTotal = (point: BalancePoint): number => {
   let total = point.accountsBalance + point.portfoliosBalance;
   if (includeVenturesInTotal.value) total += point.venturesBalance;
   if (includeVehiclesInTotal.value) total += point.vehiclesBalance;
-  // Loans are stored as negatives — excluding them raises net worth (the
-  // user "ignores" their debt). Including them subtracts liabilities as usual.
+  // Loans are stored as negatives — excluding them raises net worth (ignoring debt);
+  // including them subtracts liabilities as usual.
   if (includeLoansInTotal.value) total += point.loansBalance;
   return total;
 };
@@ -393,8 +393,7 @@ const hasVehicleData = computed(
   () => !!balanceHistory.value && balanceHistory.value.some((i) => i.vehiclesBalance !== 0),
 );
 
-// Same gating for loans. Loan balances are negative, so we check `!== 0`
-// rather than `> 0` to detect any active loan.
+// Same gating for loans; balances are negative, so check `!== 0` (not `> 0`) to detect any active loan.
 const hasLoanData = computed(() => !!balanceHistory.value && balanceHistory.value.some((i) => i.loansBalance !== 0));
 
 // Tooltip rows for vehicles/ventures/loans show when the component contributes

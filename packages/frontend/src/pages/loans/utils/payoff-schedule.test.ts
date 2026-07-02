@@ -50,9 +50,19 @@ describe('computePayoffScenario', () => {
 
     expect(result.paysOff).toBe(true);
     expect(result.monthsRemaining).toBe(91);
-    // payment * months - balance = 7000 * 91 - 500000 = 137,000
-    expect(result.totalInterest).toBeCloseTo(137000, 2);
+    // Partial final payment clears only the remaining balance + interest, not a full 7,000; matches
+    // the backend's computeLoanProjection to the cent.
+    expect(result.totalInterest).toBeCloseTo(133957.52, 2);
     expect(result.payoffDate).toEqual(addMonths(today, 91));
+  });
+
+  it('accrues interest only on the actual declining balance — the final month pays just the remainder', () => {
+    // 1,000 at 12% APR (1%/mo) paying 500/mo: m1 bal 510, m2 bal 15.10, m3 final payment 15.25 clears it.
+    // Total interest 15.25 must match the backend projection to the cent.
+    const result = computePayoffScenario({ balance: 1000, interestRate: 12, payment: 500, today });
+
+    expect(result.monthsRemaining).toBe(3);
+    expect(result.totalInterest).toBe(15.25);
   });
 
   it('produces a monotonically declining series that ends exactly at zero', () => {
@@ -85,6 +95,15 @@ describe('computePayoffScenario', () => {
     expect(result.monthsRemaining).toBe(12);
     expect(result.totalInterest).toBe(0);
     expect(result.points.at(-1)).toMatchObject({ month: 12, balance: 0 });
+  });
+
+  it('reports zero interest on a 0% loan even when the balance does not divide evenly by the payment', () => {
+    // 1,000 at 0% paying 300/mo → 4 months, final payment only 100.
+    const result = computePayoffScenario({ balance: 1000, interestRate: 0, payment: 300, today });
+
+    expect(result.paysOff).toBe(true);
+    expect(result.monthsRemaining).toBe(4);
+    expect(result.totalInterest).toBe(0);
   });
 
   it('treats an already-paid-off balance as complete', () => {
@@ -151,8 +170,7 @@ describe('comparePayoffScenarios', () => {
   });
 
   it('sub-cent interest difference registers as sameInterest via SAME_INTEREST_EPSILON', () => {
-    // Construct two synthetic scenario objects whose totalInterest differs by less
-    // than SAME_INTEREST_EPSILON (0.005) — e.g. 137000.001 vs 137000.000.
+    // totalInterest differs by 0.001, under SAME_INTEREST_EPSILON (0.005).
     const syntheticBaseline: import('./payoff-schedule').PayoffScenario = {
       paysOff: true,
       monthsRemaining: 91,
@@ -170,7 +188,6 @@ describe('comparePayoffScenarios', () => {
 
     const result = comparePayoffScenarios({ scenario: syntheticScenario, baseline: syntheticBaseline });
 
-    // Delta is 0.001, which is < SAME_INTEREST_EPSILON (0.005).
     expect(Math.abs(result.interestDelta)).toBeLessThan(SAME_INTEREST_EPSILON);
     expect(result.sameInterest).toBe(true);
     expect(result.costsInterest).toBe(false);

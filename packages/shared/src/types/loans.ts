@@ -1,19 +1,10 @@
 /**
- * Append-only audit/timeline entries stored on `LoanDetails.events` (JSONB).
- * Reads with the loan record; not indexed independently. New event types can
- * be added without a schema migration — extend the union and a Zod validator.
- *
- * `at` is an ISO 8601 timestamp.
- * `rate_change.from/to` are APR percent (e.g. 3.75 for 3.75%).
- * `term_change.from/to` are months; `null` means "no term set".
- * `planned_payment_change.fromCents/toCents` — `null` means "no planned
- * payment set".
- * `balance_correction` records a manual outstanding-balance edit (the escape
- * hatch that bypasses the payment flow); `fromCents/toCents` are the positive
- * outstanding amounts.
- * Money values in events are stored as cents to match the project's Money
- * convention; the API serializer converts them to decimals (see
- * `LoanEventApi`).
+ * Append-only audit/timeline entries on `LoanDetails.events` (JSONB) — new
+ * event types need only a union + Zod extension, no migration. `at` is ISO
+ * 8601; rate values are APR percent; `null` from/to means "not set". Money
+ * fields are cents at rest — the API serializer converts to decimals (see
+ * `LoanEventApi`). `balance_correction` records a manual outstanding edit
+ * (positive amounts) that bypasses the payment flow.
  */
 export type LoanEvent =
   | { type: 'rate_change'; at: string; from: number; to: number }
@@ -21,16 +12,13 @@ export type LoanEvent =
   | { type: 'planned_payment_change'; at: string; fromCents: number | null; toCents: number | null }
   | { type: 'balance_correction'; at: string; fromCents: number; toCents: number }
   | { type: 'note'; at: string; text: string }
-  | { type: 'paid_off'; at: string }
-  | { type: 'refinanced'; at: string; replacedByLoanId: string };
+  | { type: 'paid_off'; at: string };
 
 export type LoanEventType = LoanEvent['type'];
 
 /**
- * Wire shape of `LoanEvent`: identical union, but monetary fields arrive as
- * decimals named `from`/`to` — the API serializer converts from the cents
- * stored at rest, matching the project-wide decimals-in-API convention so the
- * frontend never divides by 100 itself.
+ * Wire shape of `LoanEvent`: same union, but monetary fields are decimals named
+ * `from`/`to` per the decimals-in-API convention.
  */
 export type LoanEventApi =
   | { type: 'rate_change'; at: string; from: number; to: number }
@@ -38,22 +26,17 @@ export type LoanEventApi =
   | { type: 'planned_payment_change'; at: string; from: number | null; to: number | null }
   | { type: 'balance_correction'; at: string; from: number; to: number }
   | { type: 'note'; at: string; text: string }
-  | { type: 'paid_off'; at: string }
-  | { type: 'refinanced'; at: string; replacedByLoanId: string };
+  | { type: 'paid_off'; at: string };
 
 /**
- * Why the projection's forward-looking metrics are unavailable. Surfaces in
- * the UI as a banner. Distinguishes "user hasn't told us how much they're
- * paying" from "what they're paying is mathematically too little".
+ * Why forward-looking projection metrics are unavailable: no planned payment
+ * set vs. a payment mathematically too small to amortize.
  */
 export type LoanProjectionWarning = 'no_planned_payment' | 'payment_below_interest';
 
 /**
- * Output of the client-side projection. Optional fields are `null` when a
- * warning is set or when the loan is already paid off.
- *
- * All monetary values are decimals (number) to match the API decimal-in-API
- * convention; the backend serializer converts from cents before sending.
+ * Nullable fields are `null` when a warning is set or the loan is paid off.
+ * All monetary values are decimals per the decimals-in-API convention.
  */
 export interface LoanProjection {
   /** ISO date (YYYY-MM-DD) when the loan would be paid off at the current trajectory. */
@@ -67,7 +50,7 @@ export interface LoanProjection {
   paidToDatePercent: number;
   /** Interest accruing on the current balance over the next month at the current APR. */
   monthlyInterest: number;
-  /** plannedPayment − monthlyInterest. Null when plannedPayment is absent. */
+  /** plannedPayment − monthlyInterest. Null when plannedPayment is absent or below monthly interest. */
   monthlyPrincipal: number | null;
   isPaidOff: boolean;
   warning: LoanProjectionWarning | null;

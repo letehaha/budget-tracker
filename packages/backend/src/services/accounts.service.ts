@@ -231,10 +231,9 @@ export const updateAccount = withTransaction(
   }: Accounts.UpdateAccountByIdPayload &
     (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>) & {
       /**
-       * Internal opt-in that authorises a loan's `currentBalance` write. Set only
-       * by `updateLoan`'s balance_correction path; destructured out here so it is
-       * never forwarded to `Accounts.updateAccountById` (it is not a column). The
-       * HTTP controller forwards a fixed field allowlist, so a client cannot set it.
+       * Authorises a loan `currentBalance` write — set only by `updateLoan`.
+       * Destructured out so it never reaches `Accounts.updateAccountById`; the
+       * controller's field allowlist keeps clients from setting it.
        */
       loanBalanceCorrection?: boolean;
     }) => {
@@ -255,24 +254,18 @@ export const updateAccount = withTransaction(
       });
     }
 
-    // A loan's outstanding balance is reconciled by the dedicated loan flow,
-    // which negates to the negative-cents liability convention and appends a
-    // `balance_correction` timeline event (the only record of a manual edit,
-    // since it leaves no transaction trail). A raw `currentBalance` write here
-    // would skip both, desyncing the projection's paidToDate from the recorded
-    // history. Only `updateLoan` may opt in via `loanBalanceCorrection`; every
-    // other caller — including the generic PATCH /accounts/:id endpoint — must
-    // go through `PATCH /loans/:id`. Enforced in the service so non-HTTP callers
-    // (MCP tools, internal services) can't bypass it either.
+    // A loan's balance must go through `updateLoan` (PATCH /loans/:id), which
+    // negates to the liability convention, appends the balance_correction event,
+    // and re-anchors — a raw currentBalance write here would skip all of that.
+    // Enforced in the service so non-HTTP callers (MCP, internal) can't bypass it.
     if (accountData.accountCategory === ACCOUNT_CATEGORIES.loan) {
       if (payload.currentBalance !== undefined && !loanBalanceCorrection) {
         throw new ValidationError({
           message: t({ key: 'accounts.loanBalanceUseUpdateLoan' }),
         });
       }
-      // Flipping a loan out of the 'loan' category would orphan its LoanDetails
-      // sidecar (and the events/projection it carries), so the category is
-      // immutable here — loans are created/destroyed via the /loans endpoints.
+      // Changing the category would orphan the LoanDetails sidecar — loans are
+      // created/destroyed only via the /loans endpoints.
       if (payload.accountCategory !== undefined && payload.accountCategory !== ACCOUNT_CATEGORIES.loan) {
         throw new ValidationError({
           message: t({ key: 'accounts.loanCategoryImmutable' }),
@@ -374,10 +367,9 @@ const deleteAccountByIdInTx = withTransaction(
       throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
     }
 
-    // Cascading the destroy would wipe the source-leg expense rows for any
-    // loan payments made from this account, which the model hooks would treat
-    // as a reversal and silently restore the loan's owed balance back to its
-    // disbursement value. Block until the user clears those payments first.
+    // Cascade-deleting would wipe the source legs of loan payments made from this
+    // account; the model hooks would treat that as reversals and silently restore
+    // the loan's owed balance. Block until those payments are cleared.
     const loanPaymentCount = await Transactions.count({
       where: { accountId: id, userId, transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan },
     });

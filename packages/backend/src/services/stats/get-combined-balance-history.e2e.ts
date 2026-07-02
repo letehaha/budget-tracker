@@ -954,9 +954,6 @@ describe('[Stats] Combined balance history', () => {
 
   describe('Loans in combined balance history', () => {
     it('reports negative loansBalance and keeps it out of accountsBalance', async () => {
-      // Cash account stays untouched by the loan split — its only contribution
-      // is to accountsBalance. The loan account holds a negative balance and
-      // must surface in loansBalance only, never dragging accountsBalance down.
       const cash = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
         raw: true,
@@ -983,16 +980,14 @@ describe('[Stats] Combined balance history', () => {
       const today = data.find((entry) => entry.date === toDate)!;
       expect(today).toBeDefined();
 
-      // Loan was opened with a 50_000 outstanding balance — stored negative.
+      // Outstanding loan balance is stored negative.
       expect(today.loansBalance).toBeLessThan(0);
       expect(Math.abs(today.loansBalance)).toBe(50_000);
 
-      // accountsBalance reflects only the cash account; the loan negative is
-      // routed into loansBalance instead of being silently lumped in here.
+      // The loan negative is routed into loansBalance, not accountsBalance.
       expect(today.accountsBalance).toBe(1000);
 
-      // totalBalance is the algebraic sum across all buckets, so liabilities
-      // subtract from net worth: 1000 + (-50_000) = -49_000.
+      // totalBalance sums all buckets algebraically: 1000 + (-50_000) = -49_000.
       expect(today.totalBalance).toBe(
         today.accountsBalance +
           today.portfoliosBalance +
@@ -1002,8 +997,7 @@ describe('[Stats] Combined balance history', () => {
       );
       expect(today.totalBalance).toBe(1000 - 50_000);
 
-      // The asset account never created a loan — keep the loanId reference
-      // alive for type-safety / unused-var lints in CI.
+      // Only assert existence — these vars are otherwise unused, avoiding unused-var lint.
       expect(loan.id).toBeDefined();
       expect(cash.id).toBeDefined();
     });

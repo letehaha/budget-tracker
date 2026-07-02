@@ -1,32 +1,19 @@
 import { addMonths } from 'date-fns';
 
 /**
- * Client-side amortization for the payoff-projection chart. The backend's
- * `computeLoanProjection` only returns summary numbers (no per-month series),
- * and the chart needs to recompute instantly as the user types a custom
- * payment — so the month-by-month schedule is generated here.
- *
- * The headline figures (`monthsRemaining`, `payoffDate`, `totalInterest`) use
- * the exact same closed-form formulas as the backend so the planned scenario's
- * numbers line up to the penny with the Projection card. The balance series is
- * a faithful amortization curve drawn under those figures.
- *
- * Monetary inputs/outputs are decimals (the frontend's convention); the
- * iteration runs in integer cents internally to avoid floating-point drift and
- * to match the backend's banker's-rounded interest accrual.
+ * Client-side amortization for the payoff-projection chart: the backend's
+ * `computeLoanProjection` returns only summary numbers, and the chart needs a
+ * per-month series that recomputes instantly as the user types. Must stay in
+ * lockstep with `computeLoanProjection` so the chart matches the Projection
+ * card to the cent. Monetary inputs/outputs are decimals; iteration runs in
+ * integer cents internally.
  */
 
-/** 100-year horizon cap, matching the backend loan-term cap. A payment too small
- * to clear the balance within this window does not amortize within any
- * representable date range and is reported as "never pays off". */
+/** Payoff-horizon cap in months (100 years, matching the backend loan-term cap). */
 const MAX_PROJECTION_MONTHS = 1200;
 const MONTHS_PER_YEAR = 12;
 
-/**
- * Round-half-to-even (banker's rounding) to the nearest integer. Mirrors the
- * backend's per-month interest accrual so cumulative rounding bias stays
- * minimal across long mortgages and the payoff month matches the card.
- */
+/** Banker's rounding — mirrors the backend's per-month interest accrual. */
 export function roundHalfToEven(value: number): number {
   const floor = Math.floor(value);
   const diff = value - floor;
@@ -37,10 +24,8 @@ export function roundHalfToEven(value: number): number {
 }
 
 /**
- * Fixed monthly payment that fully amortizes `principal` over `termMonths` at
- * the given APR — the contractual "minimum payment" of a level-payment loan.
- * Returned as a decimal rounded to the cent, or `null` when there's no term to
- * derive it from.
+ * Fixed monthly payment that fully amortizes `principal` over `termMonths` —
+ * the contractual minimum of a level-payment loan. Null when there is no term.
  */
 export function computeMinimumPaymentFromTerm({
   principal,
@@ -60,9 +45,8 @@ export function computeMinimumPaymentFromTerm({
 
   const monthlyRate = interestRate / 100 / MONTHS_PER_YEAR;
   const payment = (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -termMonths));
-  // Round half-up to the cent — conventional for a displayed payment amount. (This
-  // differs from the half-to-even rounding used for interest accrual below, which
-  // exists only to mirror the backend's per-month rounding.)
+  // Half-up to the cent (displayed-payment convention) — unlike the half-to-even
+  // interest accrual, which must mirror the backend.
   return Math.round(payment * 100) / 100;
 }
 
@@ -85,12 +69,7 @@ export interface PayoffScenario {
   points: PayoffPoint[];
 }
 
-/**
- * Closed-form months-to-payoff — identical to the backend formula so the
- * planned scenario matches the Projection card exactly.
- *
- *     n = ⌈ log( P / (P − B·r) ) / log(1 + r) ⌉
- */
+/** Closed-form months-to-payoff: n = ⌈log(P / (P − B·r)) / log(1 + r)⌉ — identical to the backend formula. */
 function computeMonthsRemaining({
   balanceCents,
   paymentCents,
@@ -110,13 +89,8 @@ function computeMonthsRemaining({
 }
 
 /**
- * Project a single fixed-payment scenario into a month-by-month payoff series.
- *
- * @param balance Outstanding balance owed, as a positive decimal.
- * @param interestRate APR as percent (e.g. 6 for 6%).
- * @param payment Fixed monthly payment, decimal.
- * @param today Reference "now" anchoring the dates — injected so the function
- *   stays pure and unit-testable.
+ * Project a fixed-payment scenario into a month-by-month payoff series.
+ * Decimals in; `today` is injected so the function stays pure.
  */
 export function computePayoffScenario({
   balance,
@@ -161,17 +135,21 @@ export function computePayoffScenario({
     return neverPaysOff;
   }
 
-  const totalInterestCents = paymentCents * monthsRemaining - balanceCents;
+  // Accumulated month by month (closed-form would overstate: the final month pays
+  // only the leftover balance plus its interest). Same accrual as the backend's
+  // `computeLoanProjection`, so the figure matches the Projection card to the cent.
+  let totalInterestCents = 0;
 
   const points: PayoffPoint[] = [{ month: 0, date: today, balance: balanceCents / 100 }];
   let runningCents = balanceCents;
   for (let month = 1; month <= monthsRemaining; month += 1) {
     const interestCents = roundHalfToEven((Math.max(0, runningCents) * interestRate) / 100 / MONTHS_PER_YEAR);
-    runningCents = runningCents + interestCents - paymentCents;
-    // The closed-form month count is authoritative; force the final point to
-    // zero so the curve lands exactly on the payoff marker and absorbs the
-    // sub-cent rounding remainder into the last payment.
-    const displayCents = month === monthsRemaining ? 0 : Math.max(0, runningCents);
+    totalInterestCents += interestCents;
+    // The last payment clears whatever is left instead of a full planned payment.
+    runningCents = Math.max(0, runningCents + interestCents - paymentCents);
+    // Force the final point to zero so the curve lands exactly on the payoff
+    // marker; the sub-cent rounding remainder is absorbed into the last payment.
+    const displayCents = month === monthsRemaining ? 0 : runningCents;
     points.push({ month, date: addMonths(today, month), balance: displayCents / 100 });
   }
 
@@ -201,9 +179,8 @@ export interface PayoffComparison {
 }
 
 /**
- * Compare a payoff scenario against a baseline scenario (the planned payment).
- * Precondition: both pay off with non-null totalInterest & monthsRemaining — the
- * caller guards this; missing figures are treated as 0 defensively.
+ * Compare a payoff scenario against the planned-payment baseline. Caller
+ * ensures both pay off; missing figures fall back to 0.
  */
 export function comparePayoffScenarios({
   scenario,

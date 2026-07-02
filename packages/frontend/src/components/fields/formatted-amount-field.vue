@@ -54,15 +54,13 @@ const emit = defineEmits<{
 
 const inputRef = ref<HTMLInputElement | null>(null);
 
-// Display-only tail the numeric model can't represent — a trailing decimal
-// point or trailing decimal zeros ("1234." / "1234.50") — so the input keeps
-// rendering exactly what the user typed mid-edit.
+// Tail the numeric model can't represent (trailing '.' or zeros, e.g. "1234.50") —
+// keeps the input showing exactly what the user typed mid-edit.
 const trailingFragment = ref<string>('');
 
 const separators = getAmountSeparators();
 
-// Browser-locale grouping/decimal separators, matching the rest of the app's
-// number rendering (e.g. the min-payment estimate in the loan form).
+// Locale grouping/decimal separators, matching the rest of the app's number rendering.
 const formatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
   minimumFractionDigits: 0,
@@ -75,8 +73,7 @@ const formatNumber = (value: number): string => {
 
 const displayValue = computed(() => {
   if (props.modelValue === null || props.modelValue === undefined) return '';
-  // The fragment is stored with a canonical '.' — render it with the locale's
-  // decimal separator so it matches the formatter's output.
+  // fragment uses a canonical '.' — swap in the locale's decimal separator to match the formatter.
   const fragment = trailingFragment.value.replace('.', separators.decimal);
   return `${formatNumber(props.modelValue)}${fragment}`;
 });
@@ -91,15 +88,18 @@ const onInput = (event: Event) => {
     decimalSeparator: separators.decimal,
   });
 
-  const { fragment, numeric } = parseAmountInput({ raw, decimalSeparator: separators.decimal });
+  const { fragment, numeric } = parseAmountInput({
+    raw,
+    decimalSeparator: separators.decimal,
+    groupSeparator: separators.group,
+  });
   trailingFragment.value = fragment;
 
   if (numeric !== props.modelValue) {
     emit('update:modelValue', numeric);
   }
 
-  // The displayValue computed reruns after the prop update, but the DOM
-  // doesn't refresh until the next tick — restore the caret then.
+  // displayValue reruns after the prop update, but the DOM refreshes only next tick — restore caret then.
   nextTick(() => {
     const formatted = displayValue.value;
     const nextCaret = caretOffsetAfterDigits({

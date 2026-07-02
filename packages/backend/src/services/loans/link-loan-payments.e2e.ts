@@ -94,8 +94,7 @@ describe('POST /loans/:id/link-payments', () => {
     const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
     expect(reloaded.currentBalance).toBe(-500);
 
-    // Each linked expense gains its income leg on the loan account: 2 source
-    // legs + 2 loan legs.
+    // Each linked expense gains an income leg on the loan account: 2 source + 2 loan legs.
     const txs = await helpers.getTransactions({ raw: true });
     expect(txs.length).toBe(4);
     const loanLegs = txs.filter((tx) => tx.accountId === loan.id);
@@ -115,8 +114,8 @@ describe('POST /loans/:id/link-payments', () => {
   });
 
   it('auto-converts a foreign-currency expense to the loan currency when linking', async () => {
-    // Loan in the base currency; payment made from a USD account. The loan-side
-    // leg must land in the loan currency, converted from USD.
+    // Loan in base currency, payment from a USD account: the loan-side leg must
+    // land in the loan currency, converted from USD.
     const loan = await createLoan({ initialBalance: 1_000_000 });
     const { account: usdAccount } = await helpers.createAccountWithNewCurrency({ currency: 'USD' });
     const expense = await createExpense({ accountId: usdAccount.id as RecordId, amount: 100 });
@@ -129,8 +128,7 @@ describe('POST /loans/:id/link-payments', () => {
 
     expect(result.linkedCount).toBe(1);
 
-    // The loan-side leg is denominated in the loan's currency, and the balance
-    // moved toward zero by the converted amount (not the raw USD figure).
+    // Balance moved by the converted amount, not the raw USD figure.
     const txs = await helpers.getTransactions({ raw: true });
     const loanLeg = txs.find((tx) => tx.accountId === loan.id);
     expect(loanLeg?.currencyCode).toBe(global.BASE_CURRENCY_CODE);
@@ -143,8 +141,8 @@ describe('POST /loans/:id/link-payments', () => {
   it('records a pre-anchor payment for history without changing the balance', async () => {
     const loan = await createLoan({ initialBalance: 1_000 });
     const source = await helpers.createAccount({ raw: true });
-    // Dated a year before the loan's balance anchor (today): linkable for the
-    // record, but already baked into the opening balance so it must not move it.
+    // Dated before the balance anchor (today): linkable for the record, but
+    // already baked into the opening balance, so it must not move it.
     const expense = await createExpense({
       accountId: source.id as RecordId,
       amount: 300,
@@ -274,23 +272,20 @@ describe('POST /loans/:id/link-payments', () => {
       const txA = await createExpense({ accountId: source.id as RecordId, amount: 100 });
       const txB = await createExpense({ accountId: source.id as RecordId, amount: 200 });
 
-      // Link only txA so it becomes transfer_to_loan.
       await helpers.linkLoanPayments({ id: loan.id, transactionIds: [txA.id], raw: true });
 
       const balanceAfterFirst = (await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance;
 
-      // Attempt to link [txA (already linked), txB] together — txA is ineligible.
+      // txA is already linked, so including it again makes the batch ineligible.
       const response = await helpers.linkLoanPayments({ id: loan.id, transactionIds: [txA.id, txB.id] });
 
       expect(response.statusCode).toBe(422);
       expect(extractError(response).code).toBe(API_ERROR_CODES.validationError);
 
-      // Balance must be exactly the same as after the first (successful) link —
-      // txB was NOT linked because the batch rolled back atomically.
+      // txB was NOT linked — the batch rolled back atomically.
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.currentBalance).toBe(balanceAfterFirst);
 
-      // txB must still be an ordinary expense on its source account.
       const allTxs = await helpers.getTransactions({ raw: true });
       const txBReloaded = allTxs.find((tx) => tx.id === txB.id);
       expect(txBReloaded?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
@@ -305,9 +300,8 @@ describe('POST /loans/:id/link-payments', () => {
         cookies: userBCookies,
         fn: async () => {
           const account = await helpers.createAccount({ raw: true });
-          // `buildTransactionPayload` defaults `categoryId` to user A's seeded
-          // category; under user B's auth the create endpoint 404s on that foreign
-          // category, so use one of user B's own default categories instead.
+          // `buildTransactionPayload` defaults categoryId to user A's seeded category,
+          // which 404s under user B's auth, so use one of user B's own categories.
           const userBCategories = await helpers.getCategoriesList();
           const [expense] = await helpers.createTransaction({
             payload: {
@@ -325,13 +319,12 @@ describe('POST /loans/:id/link-payments', () => {
         },
       });
 
-      // As user A, attempt to link a transaction owned by user B.
+      // Back on user A's auth: attempt to link a transaction owned by user B.
       const response = await helpers.linkLoanPayments({ id: loan.id, transactionIds: [userBExpenseId] });
 
       expect(response.statusCode).toBe(422);
       expect(extractError(response).code).toBe(API_ERROR_CODES.validationError);
 
-      // Loan balance must remain unchanged.
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.currentBalance).toBe(-1_000);
     });
@@ -347,7 +340,6 @@ describe('POST /loans/:id/link-payments', () => {
       expect(response.statusCode).toBe(422);
       expect(extractError(response).code).toBe(API_ERROR_CODES.validationError);
 
-      // txA must remain unlinked and the loan balance unchanged.
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.currentBalance).toBe(-1_000);
 

@@ -54,10 +54,8 @@ export enum API_ERROR_CODES {
 export type BaseCurrencyBlocker = { type: 'household' | 'share'; count: number };
 
 /**
- * Payload carried in the `details` field of a `ValidationError` with code
- * `loanPaymentOverpayConfirmationRequired`. All amounts are in the loan's
- * currency as decimals (not cents). `overpayBy` is the positive overshoot —
- * i.e. how far the batch pushes the balance past zero.
+ * `details` payload of a ValidationError with code
+ * `loanPaymentOverpayConfirmationRequired`. Amounts are decimals in the loan's currency.
  */
 export type LoanPaymentOverpayDetails = {
   /** Projected loan balance after linking the batch (positive = overshoot). */

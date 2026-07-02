@@ -1,11 +1,6 @@
-/**
- * Loan Serializers
- *
- * A loan response is the underlying Account spread at the top level (a loan
- * IS an Account) with `loanDetails` and `projection` nested alongside. Lets
- * the frontend treat a loan as an Account with extra fields instead of a
- * brand-new shape it has to learn.
- */
+// A loan response spreads the underlying Account at the top level (a loan IS
+// an Account) with `loanDetails` and `projection` nested alongside, so the
+// frontend treats a loan as an Account plus extras instead of a new shape.
 import {
   type LOAN_TYPE,
   type LoanEvent,
@@ -33,7 +28,6 @@ export interface LoanDetailsApiResponse {
   paymentDayOfMonth: number | null;
   lenderName: string | null;
   accountNumber: string | null;
-  replacedByLoanId: RecordId | null;
   events: LoanEventApi[];
   createdAt: string;
   updatedAt: string;
@@ -42,19 +36,12 @@ export interface LoanDetailsApiResponse {
 export type LoanApiResponse = AccountApiResponse & {
   loanDetails: LoanDetailsApiResponse;
   projection: LoanProjection;
-  /**
-   * Count of payment legs recorded against this loan. The frontend uses it to
-   * warn that deletion is blocked (payments must be removed first) before the
-   * user confirms.
-   */
+  /** Payment-leg count; frontend warns deletion is blocked before the user confirms. */
   paymentsCount: number;
 };
 
-/**
- * Events are stored with monetary values in cents (`fromCents`/`toCents`);
- * the wire shape carries decimals named `from`/`to` like every other money
- * field, so the frontend never converts cents itself.
- */
+// Events store cents (`fromCents`/`toCents`); wire shape uses decimal `from`/`to`
+// like every other money field, so the frontend never converts cents itself.
 function serializeLoanEvent(event: LoanEvent): LoanEventApi {
   switch (event.type) {
     case 'planned_payment_change':
@@ -93,7 +80,6 @@ function serializeLoanDetails(loanDetails: LoanDetails): LoanDetailsApiResponse 
     paymentDayOfMonth: loanDetails.paymentDayOfMonth,
     lenderName: loanDetails.lenderName,
     accountNumber: loanDetails.accountNumber,
-    replacedByLoanId: loanDetails.replacedByLoanId,
     events: (loanDetails.events ?? []).map(serializeLoanEvent),
     createdAt: loanDetails.createdAt.toISOString(),
     updatedAt: loanDetails.updatedAt.toISOString(),

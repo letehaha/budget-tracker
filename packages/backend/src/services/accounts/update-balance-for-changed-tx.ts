@@ -78,10 +78,8 @@ async function updateAccountBalanceForChangedTxImpl({
     return undefined;
   }
 
-  // Loan balances are recomputed from the anchor snapshot + post-anchor payment
-  // legs by recomputeLoanBalance (driven by the Transactions hooks and the
-  // link/unlink/correction paths), never deltad here — a delta would double-apply
-  // and ignore the anchor boundary.
+  // Loan balances are recomputed from the anchor snapshot by recomputeLoanBalance,
+  // never deltad here — a delta would double-apply and ignore the anchor boundary.
   if (account.accountCategory === ACCOUNT_CATEGORIES.loan) return undefined;
 
   const currentBalance = account.currentBalance;

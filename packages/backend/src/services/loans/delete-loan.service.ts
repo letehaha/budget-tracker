@@ -19,13 +19,9 @@ const deleteLoanImpl = async ({ userId, accountId }: DeleteLoanParams) => {
     message: t({ key: 'loans.loanNotFound' }),
   });
 
-  // Payment legs are real ledger entries on the loan account – deleting the loan
-  // would orphan them and discard the principal-paid history, so they hard-block
-  // deletion. Timeline events (balance corrections, notes, rate/term changes) are
-  // self-contained metadata that disappears with the loan, so they deliberately
-  // do NOT block: a user who wants the loan gone shouldn't be forced to archive
-  // over a correction or note. Archiving stays available for those who want to
-  // keep the timeline.
+  // Payment legs are real ledger entries; deleting the loan would orphan them,
+  // so they hard-block. Timeline events (corrections, notes) are self-contained
+  // metadata that disappears with the loan and deliberately do NOT block.
   const paymentCount = await Transactions.count({
     where: {
       accountId,
@@ -37,8 +33,7 @@ const deleteLoanImpl = async ({ userId, accountId }: DeleteLoanParams) => {
     throw new ValidationError({ message: t({ key: 'loans.deleteBlockedByPayments' }) });
   }
 
-  // Delegating to deleteAccountById covers share cleanup, cross-user transfer
-  // conversion, and post-commit notification fan-out. The LoanDetails row
+  // deleteAccountById covers share cleanup and notification fan-out; LoanDetails
   // disappears via ON DELETE CASCADE on the accountId FK.
   await deleteAccountById({ id: accountId, userId });
 

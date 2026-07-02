@@ -23,8 +23,7 @@ import FormattedAmountField from '@/components/fields/formatted-amount-field.vue
 import TermMonthsField from './term-months-field.vue';
 
 const MIN_INTEREST_RATE = 0;
-// Backend caps at 99.9999; mirror that on the client so the server validation
-// only kicks in for genuinely malicious requests.
+// Backend caps at 99.9999; mirrored so server validation only fires for malicious requests.
 const MAX_INTEREST_RATE = 99.9999;
 const MIN_TERM_MONTHS = 1;
 const MAX_TERM_MONTHS = 1200;
@@ -136,10 +135,8 @@ const currencyFormatter = computed(
     }),
 );
 
-// Standard amortization formula: M = P * r * (1+r)^n / ((1+r)^n - 1), where
-// P = principal, r = monthly rate (annual / 12 / 100), n = term in months.
-// Zero-interest case degenerates to a straight P/n split. Returns null when
-// any input is missing or non-positive so the caller can hide the hint.
+// Standard amortization formula: M = P * r * (1+r)^n / ((1+r)^n - 1). Zero-interest degenerates to
+// P/n. Returns null on missing/non-positive input so the caller can hide the hint.
 const estimatedMinPayment = computed<number | null>(() => {
   const principal = form.originalPrincipal;
   const annualRate = form.interestRate;
@@ -164,16 +161,12 @@ const estimatedMinPaymentLabel = computed(() => {
 
 const applyEstimatedMinPayment = () => {
   if (estimatedMinPayment.value === null) return;
-  // Round to 2 decimals so the number stays clean – the picker is for
-  // user-quoted amounts, not the raw long-division result.
+  // Round to 2 decimals – field is for user-quoted amounts, not the raw long-division result.
   form.minPayment = Math.round(estimatedMinPayment.value * 100) / 100;
 };
 
-// Outstanding above the original principal is legitimate (negative
-// amortization, capitalized interest), so this is a soft heads-up rather than a
-// validation error. On edit the principal isn't editable, so compare against
-// the loan's stored value. Owing more than was borrowed is unusual enough to
-// flag a likely typo.
+// Balance above principal is legitimate (negative amortization, capitalized interest) — soft heads-up,
+// not a validation error. On edit the principal isn't editable, so compare against the stored value.
 const referencePrincipal = computed<number | null>(() =>
   isEdit.value ? (props.initialLoan?.loanDetails.originalPrincipal ?? null) : form.originalPrincipal,
 );
@@ -184,17 +177,14 @@ const balanceExceedsPrincipal = computed(
     Number(form.balance) > Number(referencePrincipal.value),
 );
 
-// Show the "as of" date picker only in edit mode and only when the user has
-// actually changed the balance – the field is irrelevant for unchanged values
-// (the server skips the correction event entirely in that case).
+// Show the "as of" picker only when the balance actually changed – the server skips the
+// correction event entirely for unchanged values, so the field is irrelevant otherwise.
 const isBalanceChanged = computed(
   () =>
     isEdit.value && props.initialLoan !== null && Math.abs(props.initialLoan.currentBalance) !== Number(form.balance),
 );
 
-// DateField expects a Date object; form.balanceAsOf stores a yyyy-MM-dd string
-// for the payload. This computed bridges the two without adding a separate Date
-// field to the form state.
+// Bridges DateField's Date object and form.balanceAsOf's yyyy-MM-dd string without a separate Date field.
 const balanceAsOfDate = computed({
   get: () => parseISO(form.balanceAsOf),
   set: (date: Date) => {
@@ -212,10 +202,8 @@ const nonNegativeMoney = helpers.withMessage(
   (v: unknown) => v === null || v === undefined || Number(v) >= 0,
 );
 
-// The balance-correction "as of" date can't be in the future. Validated against
-// the browser's local date (format(new Date()) is local) so the feedback is
-// timezone-correct and instant; the backend re-checks with a one-day grace as a
-// skew backstop.
+// Validated against the browser's local date for instant, timezone-correct feedback; the backend
+// re-checks with a one-day grace as a clock-skew backstop.
 const notInFuture = helpers.withMessage(
   () => t('forms.loan.errors.asOfInFuture'),
   (v: unknown) => typeof v !== 'string' || v <= format(new Date(), 'yyyy-MM-dd'),
@@ -280,9 +268,8 @@ const submit = () => {
 
   if (isEdit.value) {
     const payload: UpdateLoanPayload = { ...commonFields };
-    // `currentBalance` is a manual balance correction (appends a timeline
-    // event server-side), not a regular field – only send it when the user
-    // actually changed it. `currentBalanceAsOf` travels with it.
+    // `currentBalance` triggers a manual balance correction (appends a timeline event server-side) –
+    // only send it when actually changed. `currentBalanceAsOf` travels with it.
     const balance = Number(form.balance);
     if (!props.initialLoan || Math.abs(props.initialLoan.currentBalance) !== balance) {
       payload.currentBalance = balance;

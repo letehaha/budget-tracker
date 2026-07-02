@@ -756,14 +756,10 @@ export interface PayeeStats {
 }
 
 /**
- * 1:1 sidecar on `Accounts` for loan-category accounts. Holds the loan-only
- * fields that don't belong on the Account record – APR, payment plan, lender
- * metadata, event log. The underlying Account still owns the balance (stored
- * negative) and the currency. Required: a loan-category Account must have a
- * LoanDetails row, enforced at the service layer (existing Vehicles precedent).
- *
- * Monetary values are stored as cents (BIGINT) and surfaced as Money via the
- * model getters.
+ * 1:1 sidecar on `Accounts` for loan-category accounts (APR, payment plan,
+ * lender metadata, event log); the Account still owns the balance (stored
+ * negative) and currency. Monetary values are cents (BIGINT), surfaced as
+ * Money via model getters.
  */
 export interface LoanDetailsModel {
   id: RecordId;
@@ -772,20 +768,23 @@ export interface LoanDetailsModel {
   /** Sub-type (mortgage, auto, student…) – drives UI grouping only. */
   loanType: LOAN_TYPE;
   /**
-   * Lender-issued principal at origination, in cents. Immutable after create –
-   * Account.initialBalance may drift when the user backdates transactions, so a
-   * separate frozen field preserves the amortization reference.
+   * Lender-issued principal in cents, immutable after create —
+   * Account.initialBalance drifts with balance corrections, so this frozen
+   * field preserves the amortization reference.
    */
   originalPrincipal: number;
   /** Same value converted to the user's base currency at LoanDetails creation. */
   refOriginalPrincipal: number;
-  /**
-   * APR as percent, e.g. 3.75 for 3.75%. Range [0, 100). DECIMAL at rest;
-   * the model getter parses Postgres' string representation to a number.
-   */
+  /** APR as percent, e.g. 3.75. Range [0, 100). DECIMAL at rest; the model getter parses Postgres' string to number. */
   interestRate: number;
   termMonths: number | null;
   startDate: string;
+  /**
+   * Date the outstanding balance (Account.initialBalance) is asserted as-of;
+   * post-anchor payments adjust it, earlier ones are baked into the snapshot.
+   * Distinct from startDate (contractual origination, never moves).
+   */
+  balanceAnchorDate: string;
   minPayment: number | null;
   refMinPayment: number | null;
   plannedPayment: number | null;
@@ -795,8 +794,6 @@ export interface LoanDetailsModel {
   lenderName: string | null;
   /** Lender's account/loan identifier as the user records it — last four, full number, or any reference they prefer. No format enforced. */
   accountNumber: string | null;
-  /** When this loan was replaced by a refinance – points to the new loan's Account id. */
-  replacedByLoanId: RecordId | null;
   /** Append-only audit/timeline; see LoanEvent. */
   events: LoanEvent[];
   createdAt: Date;

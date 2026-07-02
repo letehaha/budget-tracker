@@ -76,6 +76,81 @@ describe('parseAmountInput', () => {
       });
     });
   });
+
+  describe('group separator conflicts with the canonical dot (de-DE, es-ES style)', () => {
+    it('strips a "." group separator before normalizing a "," decimal (de-DE)', () => {
+      expect(parseAmountInput({ raw: '1.234,56', decimalSeparator: ',', groupSeparator: '.' })).toEqual({
+        numeric: 1234.56,
+        fragment: '',
+      });
+    });
+
+    it('handles multiple group separators ahead of the decimal', () => {
+      expect(parseAmountInput({ raw: '1.234.567,89', decimalSeparator: ',', groupSeparator: '.' })).toEqual({
+        numeric: 1234567.89,
+        fragment: '',
+      });
+    });
+
+    it('handles a grouped integer with no decimals yet', () => {
+      expect(parseAmountInput({ raw: '1.234', decimalSeparator: ',', groupSeparator: '.' })).toEqual({
+        numeric: 1234,
+        fragment: '',
+      });
+    });
+
+    it('progressive typing: appending a digit after the group separator grows the integer instead of adding a fraction', () => {
+      // Field re-renders "1234" as "1.234" (de-DE thousands grouping) between
+      // keystrokes; the next raw input event delivers "1.2345" verbatim.
+      expect(parseAmountInput({ raw: '1.2345', decimalSeparator: ',', groupSeparator: '.' })).toEqual({
+        numeric: 12345,
+        fragment: '',
+      });
+    });
+
+    it('parses a grouped integer followed by a typed decimal comma', () => {
+      expect(parseAmountInput({ raw: '1.234,5', decimalSeparator: ',', groupSeparator: '.' })).toEqual({
+        numeric: 1234.5,
+        fragment: '',
+      });
+    });
+  });
+
+  describe('narrow/no-break-space group separator (fr-FR style)', () => {
+    // The literal group-separator characters below are U+202F (narrow no-break
+    // space) and U+00A0 (no-break space) — what Intl.NumberFormat('fr-FR', ...)
+    // actually reports, not an ASCII space. They render identically to a
+    // regular space in most editors.
+    it('strips a narrow no-break space group separator', () => {
+      expect(parseAmountInput({ raw: '1 234,56', decimalSeparator: ',', groupSeparator: ' ' })).toEqual({
+        numeric: 1234.56,
+        fragment: '',
+      });
+    });
+
+    it('strips a plain no-break space group separator', () => {
+      expect(parseAmountInput({ raw: '1 234,56', decimalSeparator: ',', groupSeparator: ' ' })).toEqual({
+        numeric: 1234.56,
+        fragment: '',
+      });
+    });
+
+    it('progressive typing past the group boundary still grows the integer', () => {
+      expect(parseAmountInput({ raw: '1 2345', decimalSeparator: ',', groupSeparator: ' ' })).toEqual({
+        numeric: 12345,
+        fragment: '',
+      });
+    });
+  });
+
+  describe('groupSeparator omitted (backward compatible default)', () => {
+    it('still strips "," group separators via the general non-digit strip when no groupSeparator is passed', () => {
+      expect(parseAmountInput({ raw: '1,234.5', decimalSeparator: '.' })).toEqual({
+        numeric: 1234.5,
+        fragment: '',
+      });
+    });
+  });
 });
 
 describe('countDigitsBeforeCaret', () => {
@@ -96,8 +171,7 @@ describe('countDigitsBeforeCaret', () => {
 
 describe('caretOffsetAfterDigits', () => {
   it('lands right after the n-th anchor character', () => {
-    // "12,345" with 3 anchors consumed: '1', '2', then ',' is skipped, '3' is
-    // the 3rd anchor at index 3 — caret goes to 4.
+    // "12,345", 3 anchors consumed ('1','2', skip ',', '3') → index 3, caret goes to 4.
     expect(caretOffsetAfterDigits({ text: '12,345', digitCount: 3, decimalSeparator: '.' })).toBe(4);
   });
 

@@ -60,9 +60,8 @@ const {
 } = useTransactionsWithFilters({
   appendQueryKey: [computed(() => props.loan.id)],
   queryEnabled: computed(() => props.open),
-  // Default to outgoing money that isn't already a transfer, since the loan's
-  // origination — the natural pool of past payments to attach. The user can
-  // widen any of these in the filter panel.
+  // Default to outgoing non-transfer money since the loan's origination — the natural pool of
+  // payments to attach. Widenable in the filter panel.
   staticFilters: {
     transactionType: TRANSACTION_TYPES.expense,
     transferFilter: FILTER_OPERATION.exclude,

@@ -11,6 +11,9 @@ interface RenderableLine {
   key: ScenarioKey;
   dashed: boolean;
   scenario: PayoffScenario | null;
+  /** Marker label date — planned scenario uses the backend projection's date so the chart never
+   * disagrees with the Projection card. Curve/marker position still come from the local schedule. */
+  displayPayoffDate?: Date;
 }
 
 /** The reactive tooltip object the chart mutates as the pointer moves. */
@@ -42,9 +45,8 @@ export interface UsePayoffChartRenderOptions {
 }
 
 const MOBILE_CHART_BREAKPOINT_PX = 400;
-// Deliberate approximation used ONLY to index into the per-month points array
-// for hover snapping (convert a hovered x-pixel back to a month index). It never
-// feeds a displayed date or any money math, so do not "fix" it into date-fns.
+// Approximation used ONLY to index into the per-month points array for hover snapping — never feeds
+// a displayed date or money math, so do not "fix" it into date-fns.
 const APPROX_MONTH_MS_FOR_HOVER_SNAP = 1000 * 60 * 60 * 24 * 30.4375;
 
 const SCENARIO_STROKE: Record<ScenarioKey, (colors: ReturnType<typeof getChartColors>) => string> = {
@@ -54,10 +56,8 @@ const SCENARIO_STROKE: Record<ScenarioKey, (colors: ReturnType<typeof getChartCo
 };
 
 /**
- * Hand-rolled D3 renderer for the multi-line loan-payoff chart. Extracted from
- * the component as a pure structural move — everything it closes over is passed
- * in via options. The returned `render` is wired into the component's
- * `useResizeObserver` and re-render `watch`.
+ * Hand-rolled D3 renderer for the multi-line loan-payoff chart; everything it closes over is passed
+ * in via options so it stays a pure structural extraction from the component.
  */
 export function usePayoffChartRender({
   svgRef,
@@ -98,11 +98,8 @@ export function usePayoffChartRender({
     );
     const xScale = d3.scaleTime().domain([today, latestPayoff]).range([0, innerWidth]);
 
-    // Pin the top of the axis to the actual starting balance (no `.nice()` /
-    // headroom multiplier) so the curve starts at the very top of the plot — the
-    // axis ticks still land on round values within that domain. Adding headroom
-    // here rounds the max up to the next 100K and leaves an empty band that reads
-    // as a gap between the header and the chart.
+    // No `.nice()`/headroom multiplier: pin the axis top to the actual starting balance so the curve
+    // starts at the very top of the plot instead of leaving an empty gap below the header.
     const startBalance = d3.max(lines, (d) => d.scenario!.points[0]!.balance) ?? 1;
     const yScale = d3.scaleLinear().domain([0, startBalance]).range([innerHeight, 0]);
 
@@ -186,7 +183,7 @@ export function usePayoffChartRender({
         .attr('fill', stroke)
         .attr('font-size', '10px')
         .attr('font-weight', '600')
-        .text(formatDate(d.scenario!.payoffDate as Date, "MMM ''yy"));
+        .text(formatDate(d.displayPayoffDate ?? (d.scenario!.payoffDate as Date), "MMM ''yy"));
     });
 
     // Hover interaction

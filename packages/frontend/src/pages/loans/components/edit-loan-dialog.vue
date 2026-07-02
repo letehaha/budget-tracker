@@ -25,10 +25,8 @@ const handleSubmit = async (payload: CreateLoanPayload | UpdateLoanPayload) => {
     addNotification({ text: t('forms.loan.notifications.updateSuccess'), type: NotificationType.success });
     emit('update:open', false);
   } catch (error) {
-    // Surface the backend's validation message (e.g. an out-of-range balance
-    // correction date) instead of a blanket failure toast. Conflict/validation
-    // codes carry a user-facing message; anything else falls back to the generic
-    // copy.
+    // Surface the backend's validation message (e.g. out-of-range balance correction date) instead of a
+    // blanket toast; falls back to the generic copy for non-conflict errors.
     addNotification({
       text: getApiErrorMessage({
         e: error,
@@ -38,8 +36,7 @@ const handleSubmit = async (payload: CreateLoanPayload | UpdateLoanPayload) => {
       }),
       type: NotificationType.error,
     });
-    // A rejected validation is an expected user outcome already shown above –
-    // only report genuinely unexpected failures to Sentry.
+    // Expected validation rejection is already shown above; only report unexpected failures to Sentry.
     if (!(error instanceof ApiErrorResponseError)) {
       captureException({ error, context: { source: 'editLoanDialog' } });
     }

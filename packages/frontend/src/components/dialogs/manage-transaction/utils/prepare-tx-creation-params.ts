@@ -66,8 +66,7 @@ export const prepareTxCreationParams = ({
   if (isTransferTx) {
     creationParams.destinationAccountId = toAccount!.id;
     creationParams.destinationAmount = isCurrenciesDifferent ? form.targetAmount! : amount!;
-    // A transfer whose destination is a loan-category account is a loan
-    // payment. Stamp the distinct `transfer_to_loan` nature so reports can
+    // Destination is loan-category → stamp transfer_to_loan so reports can
     // isolate loan payments without joining through the destination account.
     creationParams.transferNature =
       toAccount!.accountCategory === ACCOUNT_CATEGORIES.loan

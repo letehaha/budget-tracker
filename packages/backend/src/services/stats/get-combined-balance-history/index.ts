@@ -318,16 +318,11 @@ export const getCombinedBalanceHistory = async ({
       attributes: ['currencyCode'],
     }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
 
-    // Run the accounts/vehicles/loans split as filtered aggregations. All hit
-    // the same Balances rows but with different category filters — cheaper than
-    // one big query partitioned in memory, and keeps `aggregateBalanceTrendData`'s
-    // forward-fill semantics correct per partition (otherwise vehicles' anchor
-    // dates would forward-fill into the cash-accounts series and vice versa, and
-    // loan negatives would drag the asset line below its real value).
-    //
-    // Each call is wrapped in its own transaction to pin one Postgres
-    // connection for the call's lifetime instead of acquiring/releasing per
-    // query — reduces pool churn under the parallel fan-out.
+    // Split accounts/vehicles/loans into separate filtered aggregations so each
+    // keeps its own forward-fill partition (otherwise vehicle/loan anchor dates
+    // would forward-fill into the cash-accounts series). Each call runs in its
+    // own transaction to pin one Postgres connection for its lifetime, reducing
+    // pool churn under the parallel fan-out.
     const [
       accountsBalanceHistory,
       loansBalanceHistory,

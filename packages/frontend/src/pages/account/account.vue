@@ -198,12 +198,9 @@ watch(isVehicleNotFound, (notFound) => {
   });
 });
 
-// A loan is also stored as a regular `system` account, so its id can land on
-// this generic page. The balance/category edits this page exposes are rejected
-// by the backend for loan accounts and belong on the dedicated loan page. The
-// loan's id IS the account id, so it bounces straight there with no sidecar
-// lookup. Loans shared with the user stay on this page — the loans page is
-// owner-scoped and can't load someone else's loan.
+// A loan is a regular `system` account, so its id can land on this page; the
+// balance/category edits here are rejected for loans, so redirect to the loan page
+// (id IS the account id). Loans shared with the user stay here — the loans page is owner-scoped only.
 const isOwnLoanAccount = computed(
   () => account.value?.accountCategory === ACCOUNT_CATEGORIES.loan && account.value?.share?.isOwner !== false,
 );

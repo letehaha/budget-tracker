@@ -16,9 +16,8 @@ interface UpdateLoanParams extends UpdateLoanBody {
   userId: number;
   accountId: string;
   /**
-   * Internal-only hook used by POST /loans/:id/events. Not part of the PATCH
-   * API surface; the dedicated endpoint translates its body.text into this
-   * field so both code paths share one service.
+   * Internal-only, not part of the PATCH API: POST /loans/:id/events translates
+   * its body.text into this field so both endpoints share one service.
    */
   appendNote?: string;
 }
@@ -107,26 +106,22 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
     newEvents.push({ type: 'note', at: now.toISOString(), text: appendNote });
   }
 
-  // API takes a positive outstanding amount; loan accounts persist it as a
-  // negative ledger balance so net worth aggregation includes liabilities.
-  // Same-value writes are dropped so a PATCH that merely echoes the current
-  // balance doesn't append a bogus event or move the anchor.
+  // API takes a positive outstanding amount; loan accounts persist it negated
+  // (liability convention). An echo of the current balance WITHOUT an as-of date
+  // is dropped (no bogus event, anchor stays); with `currentBalanceAsOf` it is a
+  // genuine re-anchor — the same amount asserted on a different date changes
+  // which payment legs count as post-anchor.
+  const balanceDiffers = currentBalance !== undefined && !currentBalance.negate().equals(loan.account.currentBalance);
   let anchorInitialBalance: Money | null = null;
   let anchorRefInitialBalance: Money | null = null;
-  if (currentBalance !== undefined && !currentBalance.negate().equals(loan.account.currentBalance)) {
-    // A correction re-states the outstanding *as-of* a date, so it moves the
-    // balance anchor rather than shifting it by a diff: the new amount becomes
-    // the anchor balance (Account.initialBalance) on the asserted date, and
-    // `recomputeLoanBalance` then folds in any post-anchor payment legs.
-    //
-    // The anchor boundary is inclusive (recompute sums legs dated >= the anchor
-    // date), so a payment dated on the same day as the correction is counted on
-    // top of the corrected amount — the corrected balance is taken as the
-    // outstanding *before* that day's payments, not after. This is what keeps
-    // the "open a loan today, log today's payment, watch the balance drop" flow
-    // working. The accepted trade-off: a user who corrects to a post-payment
-    // statement balance on a day they also logged that payment sees it applied
-    // twice. Same-day correction + payment is a narrow overlap left as-is.
+  if (currentBalance !== undefined && (balanceDiffers || currentBalanceAsOf !== undefined)) {
+    // A correction moves the balance anchor: the new amount becomes
+    // Accounts.initialBalance on the asserted date and `recomputeLoanBalance`
+    // folds in post-anchor payment legs. The boundary is inclusive (legs dated
+    // >= anchor date count), so the corrected amount is the outstanding *before*
+    // that day's payments — keeps "create loan today, log today's payment"
+    // working. Accepted trade-off: correcting to a post-payment statement
+    // balance on the day that payment is logged applies it twice.
     const asOfDate = currentBalanceAsOf ?? format(now, 'yyyy-MM-dd');
     anchorInitialBalance = currentBalance.negate();
     anchorRefInitialBalance = await calculateRefAmount({
@@ -136,9 +131,8 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
       date: now,
     });
     detailUpdates.balanceAnchorDate = asOfDate;
-    // Manual balance edits bypass the payment flow, so they leave no
-    // transaction trail — the timeline event is the only record reconciling
-    // the projection's paidToDate with the recorded payment history.
+    // Manual balance edits leave no transaction trail — this timeline event is
+    // the only record of the correction.
     newEvents.push({
       type: 'balance_correction',
       at: now.toISOString(),
@@ -157,29 +151,23 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
     await loan.update(detailUpdates);
   }
 
-  // A name-only change still routes through the canonical account-update path;
-  // the balance write is handled separately below because a correction sets the
-  // anchor directly rather than shifting initialBalance by a diff.
+  // Name routes through the canonical account-update path; the balance write is
+  // separate because a correction sets the anchor directly (see below).
   if (name !== undefined) {
     await updateAccount({ id: accountId, userId, name });
   }
 
   if (anchorInitialBalance !== null && anchorRefInitialBalance !== null) {
-    // Set the anchor balance directly — the canonical updateAccount path shifts
-    // initialBalance by the balance diff, which would defeat re-anchoring. The
-    // authoritative currentBalance/refCurrentBalance + today's Balances row are
-    // derived from this anchor by recomputeLoanBalance immediately after.
+    // Set the anchor balance directly — `updateAccount` shifts initialBalance by
+    // the balance diff, which would defeat re-anchoring.
     await Accounts.update(
       { initialBalance: anchorInitialBalance, refInitialBalance: anchorRefInitialBalance },
-      { where: { id: accountId } },
+      { where: { id: accountId, userId } },
     );
 
-    // Recompute last: it depends on both the new anchor date (on LoanDetails)
-    // and the new initialBalance (on Accounts) already being persisted, then
-    // sums the post-anchor legs into the authoritative currentBalance and the
-    // Balances history row. Only a correction touches the anchor, so non-balance
-    // PATCHes leave the recomputed balance untouched.
-    await recomputeLoanBalance({ loanAccountId: accountId });
+    // Recompute last — it reads both the persisted balanceAnchorDate (LoanDetails)
+    // and initialBalance (Accounts) to derive the authoritative currentBalance.
+    await recomputeLoanBalance({ loanAccountId: accountId, userId });
   }
 
   return loan.reload({ include: [{ model: Accounts, as: 'account' }] });

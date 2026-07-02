@@ -1,16 +1,11 @@
-// Float fuzz at the cent boundary — the backend compares cents, the frontend
-// compares decimals. 0.005 ≈ half a cent, enough slack to keep an exact payoff
-// valid without letting a real overpay through.
+// Half-cent slack: backend compares cents, frontend compares decimals — keeps
+// an exact payoff valid without letting a real overpay through.
 const OVERPAY_CENT_SLACK = 0.005;
 
 /**
- * Largest payment that still leaves the loan at or above a zero balance, in the
- * loan's currency as a positive decimal.
- *
- * `loanCurrentBalance` is the loan account's signed balance — liabilities are
- * stored negative, so the magnitude is what's still owed. `existingLegAmount`
- * credits back a payment already applied to this loan when editing it, so
- * re-saving the same amount (or a smaller one) doesn't trip the overpay guard.
+ * Max payment that keeps the loan at/above zero, as a positive decimal.
+ * `loanCurrentBalance` is signed (liabilities negative); `existingLegAmount`
+ * credits back an already-applied payment so editing it doesn't false-trip the guard.
  */
 export const getMaxLoanPayment = ({
   loanCurrentBalance,

@@ -130,13 +130,10 @@ export default class Balances extends Model {
 
     switch (data.accountType) {
       case ACCOUNT_TYPES.system: {
-        // Loan balances + history are owned by the anchor recompute flow
-        // (recomputeLoanBalance writes the loan's Balances row directly). Skip a
-        // loan's own payment leg – the income leg landing on the loan account –
-        // so a pre-anchor payment doesn't shift history the anchor snapshot
-        // already accounts for. A `transfer_to_loan` income leg only ever lives on
-        // a loan account, so it's identified from the leg itself with no account
-        // lookup on this per-transaction hot path.
+        // Loan balances + history are owned by `recomputeLoanBalance`, which
+        // writes the loan's Balances rows directly — skip the loan's own payment
+        // leg here. A `transfer_to_loan` income leg only ever lives on a loan
+        // account, so no account lookup is needed on this hot path.
         if (
           data.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan &&
           data.transactionType === TRANSACTION_TYPES.income

@@ -51,19 +51,16 @@ const archiveAlsoExclude = ref(true);
 
 const isArchived = computed(() => props.loan.status === ACCOUNT_STATUSES.archived);
 
-// The backend refuses to delete a loan that still has recorded payments –
-// they're ledger entries the delete would orphan. Surface that in the confirm
-// dialog and disable the destructive button, instead of letting the user
-// confirm and only then meet a rejection toast. Timeline events (corrections,
-// notes, rate changes) are dropped with the loan and don't block deletion.
+// Backend refuses to delete a loan with recorded payments (would orphan ledger entries) — surface that
+// upfront and disable the destructive button rather than let the user hit a rejection toast. Timeline
+// events (corrections, notes, rate changes) don't block deletion.
 const deleteBlockReason = computed<'payments' | null>(() => {
   if (props.loan.paymentsCount > 0) return 'payments';
   return null;
 });
 
-// Local mirror so the Switch updates immediately; a debounce/save would be
-// overkill on a single boolean toggle. Stays in sync with the persisted value
-// (e.g. when archive also flips it on via "Also exclude from statistics").
+// Local mirror so the Switch updates immediately; synced back when the persisted value changes
+// (e.g. archive flips it on via "Also exclude from statistics").
 const excludeFromStats = ref(props.loan.excludeFromStats);
 watch(
   () => props.loan.excludeFromStats,

@@ -54,10 +54,9 @@ export const deleteTransaction = withTransaction(
         // Venture-linked transactions are deleted directly; the venture event service
         // is responsible for unlinking its own VentureEventLink before calling this.
         transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_venture ||
-        // Orphaned two-leg transfer (common_transfer / transfer_to_loan) whose pair is
-        // gone and `transferId` was cleared. There's no twin to delete alongside it,
-        // so treat it as a standalone row instead of falling through to the "unexpected"
-        // guard below.
+        // Orphaned two-leg transfer whose pair is gone and `transferId` was cleared:
+        // no twin to delete alongside, so treat it as a standalone row instead of
+        // falling through to the "unexpected" guard below.
         (isTwoLegTransfer(transferNature) && !transferId)
       ) {
         await Transactions.deleteTransactionById({ id, userId: creatorUserId });

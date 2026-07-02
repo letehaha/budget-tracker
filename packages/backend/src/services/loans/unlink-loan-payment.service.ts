@@ -15,19 +15,11 @@ interface UnlinkLoanPaymentParams {
 }
 
 /**
- * Reverse a single loan payment: delete the loan-side income leg and restore the
- * source transaction to the plain expense it was before linking.
- *
- * Linking converts an ordinary expense into a transfer-to-loan — the expense
- * becomes the source leg and a matching income leg is created on the loan account
- * (see `linkLoanPayments`). Unlinking is the exact inverse: the income leg is
- * removed and the source leg's `transferNature`/`transferId` are cleared, leaving
- * the original expense untouched on its own account. The loan balance recomputes
- * on its own — deleting the income leg fires the loan-balance recompute hook,
- * which excludes this payment from the post-anchor sum.
- *
- * Deleting the payment outright (both legs) remains the other supported undo;
- * unlink keeps the spend on the books and only detaches it from the loan.
+ * Reverse a single loan payment: delete the loan-side income leg and clear the
+ * source leg's transferNature/transferId, restoring it to a plain expense on
+ * its own account. Deleting the income leg fires the loan-balance recompute
+ * hook. Unlink keeps the spend on the books — deleting the payment outright
+ * (both legs) is the other supported undo.
  */
 const unlinkLoanPaymentImpl = async ({ userId, accountId, transactionId }: UnlinkLoanPaymentParams) => {
   const sequelizeTx = namespace.get('transaction');
@@ -52,10 +44,8 @@ const unlinkLoanPaymentImpl = async ({ userId, accountId, transactionId }: Unlin
     throw new ValidationError({ message: t({ key: 'loans.unlinkPaymentInvalidSelection' }) });
   }
 
-  // Resolve both legs from the shared transferId, then split by account: the leg
-  // sitting on the loan account is the income leg to delete, the other is the
-  // source expense to restore. Keying off the account (not off which id the
-  // caller passed) lets the caller hand us either leg of the pair.
+  // Split the pair by account (the leg on the loan account is the income leg to
+  // delete) rather than by the passed id — so the caller may hand us either leg.
   const legs = await Transactions.default.findAll({ where: { transferId: transaction.transferId } });
   const loanLeg = legs.find((leg) => leg.accountId === accountId);
   const sourceLeg = legs.find((leg) => leg.id !== loanLeg?.id);

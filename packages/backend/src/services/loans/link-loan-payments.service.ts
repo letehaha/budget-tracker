@@ -23,29 +23,18 @@ interface LinkLoanPaymentsParams {
   accountId: string;
   transactionIds: string[];
   /**
-   * When the post-anchor payments would push the loan past its owed balance,
-   * the service first refuses with a confirmation-required error. The caller
-   * re-sends with this flag to proceed anyway (small FX-rounding overshoots
-   * shouldn't block linking real payments).
+   * A batch overshooting the owed balance first fails with a confirmation-required
+   * error; re-sending with this flag proceeds (FX rounding can land a few cents over).
    */
   confirmOverpay?: boolean;
 }
 
 /**
- * Bulk-link existing expense transactions to a loan as payments.
- *
- * Each selected transaction is an ordinary expense on a normal account. Linking
- * converts it into a transfer-to-loan: the expense becomes the source leg and a
- * matching income leg is created on the loan account (the same path the
- * single-transaction edit dialog uses to mark one expense as a loan payment).
- * The loan balance recomputes from its anchor automatically via the model
- * hooks, so payments dated on/after the anchor reduce the outstanding while
- * earlier ones are recorded for history only.
- *
- * Overpay handling differs from the single-payment guard: the whole batch is
- * validated once against the row-locked loan balance, and an overshoot is a
- * confirmable warning rather than a hard block — FX conversion of each leg to
- * the loan currency can land the sum a few cents over the exact owed amount.
+ * Bulk-link existing expense transactions to a loan as payments: each expense
+ * becomes the source leg of a transfer-to-loan with a matching income leg on
+ * the loan account (same path the single-transaction edit dialog uses). Unlike
+ * the per-payment guard, overpay is validated once for the whole batch against
+ * the row-locked balance, and is confirmable rather than a hard block.
  */
 const linkLoanPaymentsImpl = async ({
   userId,
@@ -78,9 +67,7 @@ const linkLoanPaymentsImpl = async ({
 
   const transactions = await Transactions.findAll({ where: { id: transactionIds, userId } });
   if (transactions.length !== new Set(transactionIds).size) {
-    // A requested id didn't resolve to one of the user's transactions — the
-    // selection is stale or tampered. Fail the whole batch rather than silently
-    // linking a subset.
+    // Stale or tampered selection — fail the whole batch rather than silently link a subset.
     throw new ValidationError({ message: t({ key: 'loans.linkPaymentsInvalidSelection' }) });
   }
 

@@ -148,14 +148,11 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
   const destOwnerUserId = destAccess.ownerUserId;
   const isCrossUser = destOwnerUserId !== baseTransaction.userId;
 
-  // The loan-payment treatment keys off the destination account's *category*,
-  // not the caller-supplied nature label: any two-leg transfer into a
-  // loan-category account mutates the loan's balance via the model hooks, so
-  // it must be stamped `transfer_to_loan` (keeps it visible to the loan's
-  // payment list and the loan/account delete guards) and pass the overpay
-  // check. A `transfer_to_loan` label on a non-loan destination is a caller
-  // bug — fail loudly so the FE mis-stamp surfaces instead of producing a
-  // transfer with a meaningless reporting label.
+  // Loan-payment treatment keys off the destination account's *category*, not
+  // the caller-supplied nature: any two-leg transfer into a loan account moves
+  // the loan balance, so it must be stamped `transfer_to_loan` and pass the
+  // overpay check. A `transfer_to_loan` label on a non-loan destination is a
+  // caller bug — fail loudly.
   const destAccount = await Accounts.default.findOne({
     where: { id: destinationAccountId, userId: destOwnerUserId },
     attributes: ['accountCategory'],
@@ -164,12 +161,9 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
   }
   const isLoanDestination = destAccount.accountCategory === ACCOUNT_CATEGORIES.loan;
-  // A loan payment is an outflow: the base leg is the expense that leaves the
-  // user's cash account, and the auto-created loan-side leg is the income that
-  // pays the balance down. An income base inverts both legs — stamping the loan
-  // with an expense leg that grows the debt — so reject it. Gate on the
-  // destination *category*, not the nature label, since a common_transfer into
-  // a loan account is auto-stamped `transfer_to_loan` just below.
+  // A loan payment is an outflow: the base leg is the expense, the auto-created
+  // loan-side leg is the income that pays the balance down. An income base
+  // would invert both legs and grow the debt — reject it.
   if (isLoanDestination && transactionType === TRANSACTION_TYPES.income) {
     throw new ValidationError({
       message: t({ key: 'transactions.loanPaymentMustBeExpense' }),
@@ -180,20 +174,17 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
       message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
     });
   }
-  // `transfer_to_loan` and `common_transfer` share all two-leg machinery; the
-  // distinct nature gets stamped onto both legs so loan-payment reporting can
-  // filter on the label instead of joining via the destination account.
+  // The nature is stamped onto both legs so loan-payment reporting can filter
+  // on the label instead of joining via the destination account.
   const oppositeTransferNature = isLoanDestination
     ? TRANSACTION_TRANSFER_NATURE.transfer_to_loan
     : isTwoLegTransfer(creationParams.transferNature)
       ? creationParams.transferNature!
       : TRANSACTION_TRANSFER_NATURE.common_transfer;
 
-  // The bulk loan-payment linker pre-validates the whole batch against the
-  // row-locked loan balance in one aggregate check (and may proceed past it on
-  // explicit confirmation, since FX rounding can nudge the sum a few cents past
-  // the owed amount). It sets `skipLoanOverpayAssert` so the per-leg guard here
-  // doesn't re-reject mid-batch as each linked leg moves the balance.
+  // `linkLoanPayments` validates the whole batch in one aggregate overpay check
+  // and sets `skipLoanOverpayAssert` so the per-leg guard here doesn't
+  // re-reject mid-batch as each linked leg moves the balance.
   if (isLoanDestination && !creationParams.skipLoanOverpayAssert) {
     await assertLoanPaymentAllowed({
       ownerUserId: destOwnerUserId,

@@ -72,7 +72,8 @@ describe('computeLoanProjection', () => {
       expect(result.warning).toBe('payment_below_interest');
       expect(result.payoffDate).toBeNull();
       expect(result.monthsRemaining).toBeNull();
-      expect(result.monthlyPrincipal).toBeLessThan(0);
+      // No meaningful "principal per month" exists when nothing is paid down.
+      expect(result.monthlyPrincipal).toBeNull();
     });
 
     it('treats exact equality (payment == interest) as below — no principal would be paid down', () => {
@@ -108,12 +109,31 @@ describe('computeLoanProjection', () => {
       expect(result.warning).toBeNull();
       expect(result.monthsRemaining).toBe(360);
       expect(result.payoffDate).toBe('2056-06-09');
-      // Total interest paid over the full term at $1200/mo:
-      //   1200 * 360 − 200000 = 432000 − 200000 = $232,000.
-      expect(result.totalInterestRemaining).toBeCloseTo(232_000, 0);
+      // Simulated month-by-month interest at $1200/mo with a partial final
+      // payment (the last month clears only what's left, not a full $1200).
+      expect(result.totalInterestRemaining).toBeCloseTo(231_096.87, 2);
       // First-month interest on $200k @ 6% APR = $1,000.00.
       expect(result.monthlyInterest).toBeCloseTo(1_000, 1);
       expect(result.monthlyPrincipal).toBeCloseTo(200, 1);
+    });
+
+    it('accrues interest only on the actual declining balance — the final month pays just the remainder', () => {
+      // $1,000 at 12% APR (1%/mo) paying $500/mo:
+      //   m1: interest $10.00 → balance 1010 − 500 = 510
+      //   m2: interest  $5.10 → balance 515.10 − 500 = 15.10
+      //   m3: interest  $0.15 → final payment of $15.25 clears the loan
+      // Total interest = $15.25. A full-final-payment formula
+      // (payment × months − balance = 3 × 500 − 1000) would claim $500.
+      const result = computeLoanProjection({
+        currentBalanceCents: 100_000,
+        originalPrincipalCents: 100_000,
+        interestRate: 12,
+        plannedPaymentCents: 50_000,
+        today: TODAY,
+      });
+
+      expect(result.monthsRemaining).toBe(3);
+      expect(result.totalInterestRemaining).toBe(15.25);
     });
 
     it('handles zero APR as a degenerate case (no interest, no log formula)', () => {
@@ -144,6 +164,10 @@ describe('computeLoanProjection', () => {
       });
 
       expect(result.monthsRemaining).toBe(4);
+      // The final month pays only the $100 remainder — a zero-interest loan
+      // must never report interest, even when the balance doesn't divide
+      // evenly by the payment.
+      expect(result.totalInterestRemaining).toBe(0);
     });
   });
 
@@ -189,9 +213,8 @@ describe('computeLoanProjection', () => {
 
   describe('non-amortizing horizon (zero APR, tiny payment)', () => {
     it('does not amortize within a projectable horizon when a 0% loan has a near-zero payment', () => {
-      // $100,000 at 0% APR paid one cent per month would take a billion months —
-      // far beyond any horizon a Date can represent. The projection must refuse to
-      // amortize rather than overflow into a "NaN-NaN-NaN" payoff date.
+      // $100,000 at 0% APR paid 1¢/month would take ~833M months — beyond any
+      // Date horizon, so the projection refuses to amortize instead of emitting "NaN-NaN-NaN".
       const result = computeLoanProjection({
         currentBalanceCents: 10_000_000, // $100,000
         originalPrincipalCents: 10_000_000,
@@ -281,7 +304,7 @@ describe('computeLoanProjection', () => {
 
       expect(result.warning).toBe('payment_below_interest');
       expect(result.monthsRemaining).toBeNull();
-      expect(result.monthlyPrincipal).toBeLessThan(0);
+      expect(result.monthlyPrincipal).toBeNull();
     });
 
     it('still treats a null planned payment as no_planned_payment', () => {

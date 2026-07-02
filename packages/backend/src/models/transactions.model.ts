@@ -24,6 +24,7 @@ import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import Currencies from '@models/currencies.model';
+import LoanDetails from '@models/loan-details.model';
 import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import TransactionGroupItems from '@models/transaction-group-items.model';
@@ -218,9 +219,10 @@ export default class Transactions extends Model {
   refCurrencyCode!: string;
 
   @Column({
-    type: DataType.ENUM(...Object.values(TRANSACTION_TRANSFER_NATURE)),
+    type: DataType.STRING(50),
     allowNull: false,
     defaultValue: TRANSACTION_TRANSFER_NATURE.not_transfer,
+    validate: { isIn: [Object.values(TRANSACTION_TRANSFER_NATURE)] },
   })
   transferNature!: TRANSACTION_TRANSFER_NATURE;
 
@@ -312,11 +314,9 @@ export default class Transactions extends Model {
     switch (transferNature) {
       case TRANSACTION_TRANSFER_NATURE.common_transfer:
       case TRANSACTION_TRANSFER_NATURE.transfer_to_loan: {
-        // Loan payments are two-leg transfers between two user-owned Accounts
-        // (the loan account is itself an `Accounts` row with accountCategory='loan'),
-        // so they require the same paired-row fields as a regular common_transfer.
-        // The distinct nature label exists only so reporting can isolate loan
-        // payments without joining through the destination account's category.
+        // Loan payments are two-leg transfers between user-owned Accounts, so they
+        // need the same paired-row fields as common_transfer; the distinct nature
+        // exists only so reporting can isolate loan payments without an account join.
         const requiredFields = [transferId, refCurrencyCode, refAmount];
         if (requiredFields.some((item) => item === undefined)) {
           throw new ValidationError({
@@ -390,50 +390,50 @@ export default class Transactions extends Model {
   }
 
   /**
-   * Loan-account write invariant — enforced at the same lowest funnel as the
-   * vehicle guard above.
-   *
-   * A loan is a regular `Accounts` row (accountCategory: 'loan', type: 'system')
-   * whose balance is owned by the payment flow. The ONLY write it accepts is the
-   * income leg of a `transfer_to_loan` payment, which `assertLoanPaymentAllowed`
-   * has already overpay-checked before the row reaches this hook. Any other
-   * transaction (plain income/expense, or a transfer that uses the loan account
-   * as its source) would move `Account.currentBalance` outside that guard,
-   * pushing the loan past its principal or otherwise corrupting the payoff
-   * projection.
-   *
-   * Rejecting every nature except `transfer_to_loan` here covers every path that
-   * creates or moves a transaction row: the manage-transaction UI, MCP tools,
-   * bank sync, CSV import, direct API calls and any future endpoint all funnel
-   * through this model. The legit payment passes for free — its income leg IS a
-   * `transfer_to_loan`.
+   * Loan-account write invariant. A managed loan (accountCategory 'loan' with a
+   * `LoanDetails` sidecar) accepts exactly one write: the INCOME leg of a
+   * `transfer_to_loan` payment, already overpay-checked by
+   * `assertLoanPaymentAllowed`. Anything else would move the balance while
+   * staying invisible to `recomputeLoanBalance` (which sums only income legs),
+   * corrupting the payoff projection. Loan-category accounts WITHOUT a sidecar
+   * stay unrestricted. Enforced at the model so every write path (UI, MCP,
+   * bank sync, CSV import, direct API) funnels through it.
    */
   @BeforeCreate
   @BeforeUpdate
   static async enforceLoanAccountInvariant(instance: Transactions) {
-    // `transfer_to_loan` is the only nature ever valid on a loan account (and it
-    // is already overpay-checked by `assertLoanPaymentAllowed`), so short-circuit
-    // before the account lookup. The lookup still runs for every other write —
-    // it's a narrow single-column PK read, and only loan-payment legs skip it.
-    if (instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) return;
+    // Only the income leg short-circuits. The expense-side leg of the same pair
+    // must NOT: it belongs on the cash account, and landing on the loan account
+    // would move the balance invisibly to the recompute (income legs only).
+    if (
+      instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan &&
+      instance.transactionType === TRANSACTION_TYPES.income
+    ) {
+      return;
+    }
 
     const account = await Accounts.findByPk(instance.accountId, {
       attributes: ['accountCategory'],
     });
-    // A missing account isn't a loan (FK / other validation rejects orphan rows);
-    // only loan accounts are locked down here.
+    // Orphan accountIds are rejected by FK validation; only loans are locked down here.
     if (account?.accountCategory !== ACCOUNT_CATEGORIES.loan) return;
+
+    // Enforcement applies only to managed loans; the sidecar lookup runs solely
+    // for loan-category accounts, keeping it off the hot path of ordinary writes.
+    const loanDetails = await LoanDetails.findOne({
+      where: { accountId: instance.accountId },
+      attributes: ['id'],
+    });
+    if (!loanDetails) return;
 
     throw new ValidationError({
       message: t({ key: 'transactions.loanAccountReadonly' }),
     });
   }
 
-  // A loan account's balance is recomputed (not deltad) whenever one of its
-  // payment legs is created, edited, or destroyed. Lazy-imported to keep the
-  // model layer free of a service-layer import cycle (same approach as the
+  // Lazy-imported to avoid a model→service import cycle (same approach as the
   // vehicle anchor reconcile hook). recomputeLoanBalance no-ops for non-loan
-  // accounts, so the caller only needs the cheap transfer-nature gate.
+  // accounts, so callers only need the cheap transfer-nature gate.
   private static async triggerLoanBalanceRecompute(accountId: string): Promise<void> {
     const { recomputeLoanBalance } = await import('@services/loans/recompute-loan-balance.service');
     await recomputeLoanBalance({ loanAccountId: accountId });
@@ -454,9 +454,7 @@ export default class Transactions extends Model {
     }
 
     await Balances.handleTransactionChange({ data: instance });
-    // Only loan-transfer legs can change a loan's outstanding; gating on the
-    // nature keeps the recompute (and its account lookup) off the hot path for
-    // the overwhelming majority of transactions, which are not loan payments.
+    // Gate on the nature to keep the recompute off the non-loan hot path.
     if (instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
       await Transactions.triggerLoanBalanceRecompute(instance.accountId);
     }
@@ -529,9 +527,8 @@ export default class Transactions extends Model {
       prevData: originalData,
     });
 
-    // Recompute when either side of the edit is a loan-transfer leg — covers an
-    // amount/date edit on a loan payment and the rare case of a leg moving onto
-    // or off a loan account. Non-loan edits skip the lookup entirely.
+    // Either side of the edit may be a loan-transfer leg (amount/date edits, or
+    // a leg moving onto/off a loan account). Non-loan edits skip entirely.
     if (
       newData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan ||
       prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan

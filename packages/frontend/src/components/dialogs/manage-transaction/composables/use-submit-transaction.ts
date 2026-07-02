@@ -128,11 +128,9 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
         invalidateTransferRelatedQueries(queryClient);
       }
 
-      // Loan list/detail caches need no special handling here: their query keys
-      // are prefixed with `transactionChange`, so the blanket invalidation
-      // above already refreshes loan balances and projections — for the new
-      // destination AND a previous loan the payment may have been re-pointed
-      // away from.
+      // Loan caches need no extra handling: their keys are prefixed with
+      // transactionChange, so the blanket invalidation above already covers
+      // both the new destination and any previous loan the payment moved off.
 
       if (params.transaction?.id) {
         queryClient.invalidateQueries({

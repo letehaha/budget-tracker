@@ -177,9 +177,8 @@ export enum TRANSACTION_TRANSFER_NATURE {
 }
 
 /**
- * Loan sub-type stored on `LoanDetails.loanType`. Drives UI grouping/badges
- * only – has no impact on amortization math or balance handling. VARCHAR in
- * the DB, TS-side enum per the project's no-DB-enums rule.
+ * Loan sub-type on `LoanDetails.loanType` — UI grouping/badges only, no impact
+ * on amortization or balance handling. VARCHAR in the DB (no-DB-enums rule).
  */
 export enum LOAN_TYPE {
   mortgage = 'mortgage',
@@ -192,11 +191,7 @@ export enum LOAN_TYPE {
   other = 'other',
 }
 
-/**
- * Subset of `LOAN_TYPE` that the create/edit form picker exposes today.
- *
- * Currently excluded: HELOC + line-of-credit needs multi-disbursement support
- */
+/** Subset of `LOAN_TYPE` the form picker exposes; HELOC-style types need multi-disbursement support first. */
 export const SUPPORTED_LOAN_TYPES = [
   LOAN_TYPE.mortgage,
   LOAN_TYPE.auto,

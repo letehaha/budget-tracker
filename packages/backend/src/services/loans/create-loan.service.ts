@@ -37,9 +37,8 @@ const createLoanImpl = async (params: CreateLoanParams) => {
 
   const now = new Date();
 
-  // Loan balances live on the negative side of the ledger so the user's net
-  // worth aggregation picks them up automatically. The API surface accepts a
-  // positive outstanding amount; flip it here.
+  // Loan balances are stored negative so net-worth aggregation picks them up
+  // automatically; the API accepts a positive outstanding amount, flip here.
   const negativeBalance = initialBalance.negate();
   const refNegativeBalance = await calculateRefAmount({
     userId,

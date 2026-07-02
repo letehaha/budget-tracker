@@ -30,9 +30,8 @@ export const useTransferFormLogic = ({
   const { currenciesMap } = storeToRefs(useCurrenciesStore());
   // Vehicle accounts can't be a transfer source or destination — the backend
   // rejects transfers touching them, so keep them out of both pickers.
-  // Loan accounts CAN be a transfer destination (`transfer_to_loan`) but never
-  // a transfer source — money only flows into a loan — so the source list uses
-  // the loan-excluded variant while the destination list keeps the full set.
+  // Loans can be a transfer destination (transfer_to_loan) but never a source —
+  // money only flows in — so the source list uses the loan-excluded variant.
   const { txTargetableAccountsActiveFirst, txTargetableSourceAccountsActiveFirst } = storeToRefs(useAccountsStore());
 
   const toAccount = computed(() => form.value.toAccount);
@@ -40,11 +39,8 @@ export const useTransferFormLogic = ({
   const isTargetFieldVisible = computed(() => {
     if (isTransferTx.value && linkedTransaction.value) return false;
     if (transferDestinationType.value === 'portfolio') return false;
-    // A loan payment is recorded in the loan's currency: when the source
-    // account already matches there's nothing extra to enter, but a
-    // cross-currency payment still needs the user to provide the loan-side
-    // amount — hiding the field would leave the submit payload without a
-    // destination amount.
+    // A loan payment posts in the loan's currency — cross-currency needs the user
+    // to enter the loan-side amount too, or the payload has no destination amount.
     if (transferDestinationType.value === 'loan') {
       const sourceCode = form.value.account?.currencyCode;
       const loanCode = form.value.toAccount?.currencyCode;

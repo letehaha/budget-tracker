@@ -61,9 +61,8 @@ export const useFormatCurrency = () => {
     });
 
   /**
-   * Get the currency symbol for a currency code (e.g., "$", "€", "UAH").
-   * Defaults to the current base currency so existing no-arg callers keep working.
-   * Falls back to the currency code itself if the runtime can't resolve a symbol.
+   * Currency symbol for a code (e.g. "$", "€"). Defaults to base currency for
+   * existing no-arg callers; falls back to the code itself if unresolvable.
    */
   const getCurrencySymbol = (currencyCode?: string) => {
     const code = currencyCode || baseCurrency.value?.currency?.code || 'USD';

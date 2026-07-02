@@ -144,7 +144,6 @@
         "termChange": "Plazo cambiado de {from} a {to} meses",
         "plannedPaymentChange": "Pago planificado cambiado de {from} a {to}",
         "paidOff": "Préstamo liquidado",
-        "refinanced": "Préstamo refinanciado",
         "balanceCorrection": "Saldo pendiente corregido de {from} a {to}"
       },
       "payments": {

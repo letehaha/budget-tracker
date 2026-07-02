@@ -15,11 +15,7 @@ const TOMORROW = format(addDays(new Date(), 1), 'yyyy-MM-dd');
 /** ISO timestamp 30 days in the past — safely before the creation-date anchor. */
 const PAST_ISO = subDays(new Date(), 30).toISOString();
 
-/**
- * Base-currency loan with originalPrincipal=250000, initialBalance=175000.
- * At creation: currentBalance = -175000, paidToDate = 250000 - 175000 = 75000,
- * balanceAnchorDate = today.
- */
+/** Base-currency loan: originalPrincipal=250000, initialBalance=175000 → currentBalance=-175000, paidToDate=75000, anchor=today. */
 function buildAnchorLoanPayload(overrides: Record<string, unknown> = {}) {
   return helpers.buildCreateLoanPayload({
     currencyCode: global.BASE_CURRENCY_CODE,
@@ -45,8 +41,7 @@ describe('Loan balance anchor', () => {
 
   describe('pre-anchor payments are informational', () => {
     it('a transfer_to_loan dated before the anchor does NOT reduce the outstanding or paidToDate', async () => {
-      // Headline anchor bug: back-tagging a payment must not move the balance
-      // because that amount is already baked into the opening snapshot.
+      // Back-tagging a payment before the anchor must not move the balance — it's already baked into the opening snapshot.
       const loan = await helpers.createLoan({
         payload: buildAnchorLoanPayload(),
         raw: true,
@@ -71,17 +66,14 @@ describe('Loan balance anchor', () => {
       expect(base).toBeDefined();
 
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
-      // Pre-anchor payment must not change paidToDate or the outstanding.
       expect(reloaded.currentBalance).toBe(-175_000);
       expect(reloaded.projection.paidToDate).toBe(75_000);
-      // A pre-anchor payment must not shift the anchor forward — the anchor
-      // must remain pinned to the creation date (today).
+      // A pre-anchor payment must not shift the anchor forward — it stays pinned to the creation date.
       expect(reloaded.loanDetails.balanceAnchorDate).toBe(TODAY);
     });
 
     it('deleting a pre-anchor payment leaves paidToDate unchanged', async () => {
-      // Deleting an informational (pre-anchor) payment must also be a no-op
-      // for the balance: there was nothing to remove from the outstanding.
+      // Deleting an informational (pre-anchor) payment is a no-op — nothing was ever counted against the outstanding.
       const loan = await helpers.createLoan({
         payload: buildAnchorLoanPayload(),
         raw: true,
@@ -170,10 +162,7 @@ describe('Loan balance anchor', () => {
     });
 
     it('attempting to unlink a transfer_to_loan payment is rejected with 422 (delete is the only undo path)', async () => {
-      // Unlinking would orphan the loan-side income leg as a standalone
-      // transaction, which the loan-account write guard forbids. The supported
-      // way to undo a payment is deletion — this regression pin documents that
-      // unlinking stays blocked even for anchor-eligible payments.
+      // Unlinking would orphan the loan-side income leg as a standalone transaction, which the loan-account write guard forbids — deletion is the only supported undo path.
       const loan = await helpers.createLoan({
         payload: buildAnchorLoanPayload(),
         raw: true,
@@ -196,14 +185,12 @@ describe('Loan balance anchor', () => {
       const afterPayment = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(afterPayment.currentBalance).toBe(-170_000);
 
-      // Attempt unlink — must be rejected.
       const unlinkResponse = await helpers.unlinkTransferTransactions({
         transferIds: [base.transferId as string],
         raw: false,
       });
       expect(unlinkResponse.statusCode).toBe(422);
 
-      // Outstanding must be unchanged after the rejected unlink.
       const stillPaid = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(stillPaid.currentBalance).toBe(-170_000);
       expect(stillPaid.projection.paidToDate).toBe(80_000);
@@ -217,8 +204,7 @@ describe('Loan balance anchor', () => {
         raw: true,
       });
 
-      // Correct the outstanding from 175000 to 160000.
-      // paidToDate = 250000 − 160000 = 90000.
+      // 175000 → 160000 correction; paidToDate = 250000 − 160000 = 90000.
       const updated = await helpers.updateLoan({
         id: loan.id,
         payload: { currentBalance: 160_000, currentBalanceAsOf: TODAY },
@@ -230,7 +216,6 @@ describe('Loan balance anchor', () => {
       expect(updated.projection.paidToDate).toBe(90_000);
       expect(updated.loanDetails.balanceAnchorDate).toBe(TODAY);
 
-      // A balance_correction event must appear in the loan timeline.
       const correctionEvent = updated.loanDetails.events.find((e) => e.type === 'balance_correction');
       expect(correctionEvent).toBeDefined();
       if (correctionEvent?.type === 'balance_correction') {
@@ -242,11 +227,8 @@ describe('Loan balance anchor', () => {
 
   describe('cross-currency (FX) recompute', () => {
     it('pins refCurrentBalance: a post-anchor payment reduces both currentBalance and refCurrentBalance by the payment amounts', async () => {
-      // Regression pin: the recompute path writes BOTH currentBalance and
-      // refCurrentBalance. This test is the first coverage for the ref path.
-      //
-      // Base currency is AED; use USD so the loan is in a foreign currency
-      // and the system must maintain a separate ref-currency balance.
+      // The recompute path writes BOTH currentBalance and refCurrentBalance; base currency
+      // is AED, so USD forces a separate ref-currency balance to exist.
       await helpers.addUserCurrencies({ currencyCodes: ['USD'] });
 
       const loan = await helpers.createLoan({
@@ -258,7 +240,6 @@ describe('Loan balance anchor', () => {
         raw: true,
       });
 
-      // refCurrentBalance must be present and non-zero after creation.
       expect(loan.refCurrentBalance).toBeDefined();
       expect(loan.refCurrentBalance).not.toBe(0);
       // Outstanding is negative (liability convention).
@@ -332,9 +313,8 @@ describe('Loan balance anchor', () => {
       // 10000 − 2000 = 8000 outstanding.
       expect(afterPayment.currentBalance).toBe(-8_000);
 
-      // Move the anchor back one day with a corrected balance of 7000.
-      // The today-dated 2000 payment is still on/after the new (earlier) anchor,
-      // so it continues to reduce the outstanding.
+      // Move anchor back to yesterday with corrected balance 7000; the today-dated 2000
+      // payment is still on/after the new anchor, so it keeps reducing the outstanding.
       await helpers.updateLoan({
         id: loan.id,
         payload: { currentBalance: 7_000, currentBalanceAsOf: YESTERDAY },
@@ -342,18 +322,14 @@ describe('Loan balance anchor', () => {
       });
 
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
-      // Corrected balance 7000 minus the 2000 payment that post-dates the new
-      // anchor (yesterday) = 5000 outstanding.
+      // 7000 − 2000 (still post-anchor) = 5000 outstanding.
       expect(reloaded.currentBalance).toBe(-5_000);
     });
 
     it('a correction re-counts a payment dated on the same day as the correction (inclusive >= boundary)', async () => {
-      // The `>=` anchor boundary intentionally counts a payment whose date
-      // equals the correction's as-of date. The corrected balance represents
-      // the outstanding *before* that day's payments have been applied, so any
-      // payment recorded on the same day is still post-anchor and must reduce
-      // the outstanding. The same rationale is documented at the correction
-      // site in update-loan.service.ts.
+      // The `>=` anchor boundary counts a payment dated on the correction's as-of date:
+      // the corrected balance is the outstanding before that day's payments, so same-day
+      // payments stay post-anchor (see update-loan.service.ts).
       const loan = await helpers.createLoan({
         payload: buildAnchorLoanPayload({
           originalPrincipal: 10_000,
@@ -384,14 +360,10 @@ describe('Loan balance anchor', () => {
       // 10000 − 2000 = 8000 outstanding.
       expect(afterPayment.currentBalance).toBe(-8_000);
 
-      // Re-anchor to today with a corrected opening balance of 10000. It must
-      // differ from the current 8000 outstanding, otherwise the echo-guard in
-      // update-loan.service drops the write as a no-op. Because the anchor
-      // boundary is inclusive (>=), today's 2000 payment is NOT absorbed into
-      // the new snapshot — it stays a post-anchor leg and is re-applied on top
-      // of the corrected 10000. This pins the documented same-day rule (see the
-      // correction comment in update-loan.service.ts); a strict `>` here would
-      // make today's payment informational and yield -10000 instead.
+      // Corrected balance (10000) must differ from the current outstanding (8000) or the
+      // echo-guard in update-loan.service drops it as a no-op. Because the boundary is
+      // inclusive (>=), today's 2000 payment stays post-anchor and re-applies on top of
+      // 10000 — a strict `>` would yield -10000 instead.
       await helpers.updateLoan({
         id: loan.id,
         payload: { currentBalance: 10_000, currentBalanceAsOf: TODAY },
@@ -431,7 +403,6 @@ describe('Loan balance anchor', () => {
       });
 
       const afterPreAnchor = await helpers.getLoanById({ id: loan.id, raw: true });
-      // Pre-anchor payment is informational — outstanding unchanged.
       expect(afterPreAnchor.currentBalance).toBe(-10_000);
 
       // Move the payment date to today — it now crosses into the counted window.
@@ -456,6 +427,66 @@ describe('Loan balance anchor', () => {
       // Payment is pre-anchor again — outstanding restored to 10000.
       expect(afterCrossBack.currentBalance).toBe(-10_000);
     });
+
+    it('rejects a date-only edit that would carry a pre-anchor payment across the anchor into overpay', async () => {
+      // A pre-anchor payment is NOT reflected in the outstanding, so moving it
+      // past the anchor adds its FULL amount to the post-anchor sum. The overpay
+      // assertion must treat it as a brand-new payment, not net it out against
+      // itself — otherwise the edit sails through and the loan goes into credit.
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload({
+          originalPrincipal: 1_000,
+          initialBalance: 1_000,
+        }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      // Post-anchor payment of 700 — outstanding drops to 300.
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 700,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 700,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      // Informational pre-anchor payment of 500 — allowed, balance untouched.
+      const [preAnchorBase] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 500,
+            time: PAST_ISO,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 500,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const beforeEdit = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(beforeEdit.currentBalance).toBe(-300);
+
+      // Re-dating the 500 payment to today would recompute the outstanding to
+      // -1000 + 700 + 500 = +200 — an overpaid loan. Must reject.
+      const response = await helpers.updateTransaction({
+        id: preAnchorBase.id,
+        payload: { time: new Date().toISOString() },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(422);
+
+      const afterEdit = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(afterEdit.currentBalance).toBe(-300);
+    });
   });
 
   describe('balance correction validation', () => {
@@ -465,8 +496,7 @@ describe('Loan balance anchor', () => {
         raw: true,
       });
 
-      // A future anchor date is nonsensical — the balance can only be known
-      // up to today, not a date that has not yet occurred.
+      // A future anchor date is nonsensical — balance can't be known ahead of today.
       const response = await helpers.updateLoan({
         id: loan.id,
         payload: { currentBalance: 5_000, currentBalanceAsOf: '2099-01-01' },
@@ -477,9 +507,9 @@ describe('Loan balance anchor', () => {
     });
 
     it('accepts an as-of date one day ahead of the server clock (timezone grace)', async () => {
-      // A user ahead of the server's timezone legitimately sits on a calendar
-      // date the server still reads as tomorrow. The +1 day grace lets that real
-      // "today" through; the browser form enforces the exact local-today bound.
+      // A user ahead of the server's timezone can legitimately be on a date the server
+      // still reads as tomorrow; the +1 day grace lets that real "today" through (the
+      // form enforces the exact local-today bound).
       const loan = await helpers.createLoan({
         payload: buildAnchorLoanPayload(),
         raw: true,

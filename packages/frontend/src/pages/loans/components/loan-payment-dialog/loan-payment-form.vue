@@ -40,10 +40,8 @@ const emit = defineEmits<{ 'close-modal': [] }>();
 const { t } = useI18n();
 const { txTargetableSourceAccountsActiveFirst, accountsRecord } = storeToRefs(useAccountsStore());
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
-// Submit/delete composables expect a populated categories map even though
-// loan payments are transfers (categoryId stays null on the wire). Pull it so
-// `prepopulateForm`-style fallbacks inside `useSubmitTransaction` see a real
-// FormattedCategory rather than undefined.
+// `useSubmitTransaction`'s prepopulateForm-style fallbacks need a real FormattedCategory even though
+// loan payments are transfers (categoryId stays null on the wire).
 const { formattedCategories } = storeToRefs(useCategoriesStore());
 
 const isEdit = computed(() => Boolean(props.transaction));
@@ -87,10 +85,8 @@ const maxLoanPaymentAllowed = computed(() =>
   }),
 );
 
-// Soft heads-up: a payment larger than the source account's balance overdraws
-// it. Only flag a positive-balance account being driven negative — accounts
-// already in the red (credit lines) overdraw by design. Non-blocking; the app
-// allows negative balances.
+// Soft heads-up only: flags a positive-balance account being driven negative. Accounts already in the
+// red (credit lines) overdraw by design, so they're excluded; the app allows negative balances anyway.
 const wouldOverdrawSource = computed(() => {
   const account = form.value.account;
   if (!account) return false;
@@ -109,15 +105,13 @@ const isLoading = computed(
   () => submitMutation.isPending.value || deleteMutation.isPending.value || unlinkMutation.isPending.value,
 );
 
-// `submit` needs a fallback category from the categories store (see the guard
-// inside `submit`). Keep the button disabled until the store hydrates so a
+// `submit` needs a fallback category from the store; keep the button disabled until it hydrates so a
 // fast click after page load doesn't turn into a silent no-op.
 const categoriesReady = computed(() => formattedCategories.value.length > 0);
 
 const validationRules = computed(() => {
-  // Match the backend's row-locked overpay guard. The active field depends on
-  // currency parity: cross-currency uses the user-entered loan-side amount;
-  // same-currency uses Amount directly (no targetAmount field shown).
+  // Matches the backend's row-locked overpay guard. Cross-currency validates the loan-side amount;
+  // same-currency validates Amount directly (no targetAmount field shown).
   const overpayRule = helpers.withMessage(
     () =>
       t('loans.detail.payment.overpayError', {
@@ -156,7 +150,7 @@ const accountErrorMessage = computed(() => getFieldErrorMessage('form.account'))
 const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
 const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
 
-// Re-fires on every Amount blur so the loan-side hint tracks edits; a user's edit to the loan-side field survives until Amount changes again.
+// Re-fires on every Amount blur; a hand-edited loan-side value survives until Amount changes again.
 const prefillTargetAmount = () => {
   if (!isCurrenciesDifferent.value) return;
   if (form.value.amount == null) return;
@@ -176,18 +170,15 @@ const onAmountBlur = () => {
   prefillTargetAmount();
 };
 
-// The rates query starts with empty placeholder data: a user who fills Amount
-// before the rates arrive would get no prefill and never learn why. Re-run the
-// prefill once rates land — but only while the loan-side field is still empty,
-// so a hand-entered value isn't overwritten.
+// Rates start as empty placeholder data, so a user who fills Amount first gets no prefill. Re-run once
+// rates land, but only while the loan-side field is still empty so a hand-entered value survives.
 watch(exchangeRates, () => {
   if (form.value.targetAmount != null) return;
   prefillTargetAmount();
 });
 
-// The update params always forward `paymentType`, so in edit mode it must
-// reflect the stored value — a fixed default would silently rewrite whatever
-// the payment had. `creditCard` is only the fallback for brand-new payments.
+// Update params always forward `paymentType`, so in edit mode it must reflect the stored value — a
+// fixed default would silently rewrite it. `creditCard` is only the fallback for new payments.
 const paymentType = computed(
   () =>
     VERBOSE_PAYMENT_TYPES.find((item) => item.value === (props.transaction?.paymentType ?? PAYMENT_TYPES.creditCard)) ??
@@ -207,8 +198,12 @@ const buildFormStruct = ({ fallbackCategory }: { fallbackCategory: FormattedCate
   note: undefined,
   refundedByTxs: undefined,
   refundsTx: undefined,
-  tagIds: [],
-  payeeId: null,
+  // Seeded from the source leg so an edit with no tag/payee UI in this dialog
+  // diffs to "unchanged" against `prepareTxUpdationParams` instead of wiping
+  // whatever the transaction already carries. `props.transaction` is absent
+  // in creation mode, so both fall back to empty naturally.
+  tagIds: props.transaction?.tags?.map((tag) => tag.id) ?? [],
+  payeeId: props.transaction?.payeeId ?? null,
   categoryUserTouched: false,
 });
 
@@ -218,10 +213,8 @@ const submit = () => {
   touchField('form.targetAmount');
   if (!isFormValid('form')) return;
 
-  // Transfers persist with `categoryId: null` — the struct's category only
-  // satisfies UI_FORM_STRUCT's non-nullable type, the transfer branch of the
-  // submit params never reads it. The guard keeps an unhydrated categories
-  // store from smuggling `undefined` through that type.
+  // Transfers persist with `categoryId: null` — `fallbackCategory` only satisfies UI_FORM_STRUCT's
+  // non-nullable type; this guard keeps an unhydrated categories store from smuggling `undefined` through it.
   const fallbackCategory = formattedCategories.value[0];
   if (!fallbackCategory) return;
 

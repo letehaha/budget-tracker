@@ -10,12 +10,9 @@ import { useI18n } from 'vue-i18n';
 
 import LoanPaymentForm from './loan-payment-form.vue';
 
-// The dialog can be opened from any list (Dashboard's Latest Transactions,
-// the Transactions page, account detail), but most of those routes don't list
-// `pages/loans` in their i18nChunks. Pull it in on mount AND gate the form
-// render on completion — mergeLocaleMessage doesn't always rerender already-
-// mounted templates in this app, so the form needs to mount with the chunk
-// already merged or it'll display raw key paths until the user re-opens it.
+// This dialog opens from routes that don't list `pages/loans` in their i18nChunks. Load it on mount
+// and gate the form on completion — mergeLocaleMessage doesn't rerender already-mounted templates here,
+// so the form must mount after the chunk merges or it shows raw key paths until reopened.
 const i18nReady = ref(false);
 ensureChunkLoaded('pages/loans').then(() => {
   i18nReady.value = true;

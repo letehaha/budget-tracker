@@ -40,9 +40,8 @@ export function useTransactionsDisplay({
     // Collect which transferIds have their expense side present in this list.
     // Used to decide whether the income side of a pair should be shown (when the
     // expense side is absent — e.g. account-scoped view) or suppressed (when both
-    // sides are present and we only want to show one). Loan payments
-    // (`transfer_to_loan`) share the same paired-row invariant as common
-    // transfers, so they participate in the same dedup pass.
+    // sides are present and we only want to show one). transfer_to_loan payments
+    // share this paired-row invariant, so they hit the same dedup pass.
     const transferIdsWithExpense = new Set(
       txs
         .filter((tx) => isTwoLegTransfer(tx.transferNature) && tx.transactionType === TRANSACTION_TYPES.expense)

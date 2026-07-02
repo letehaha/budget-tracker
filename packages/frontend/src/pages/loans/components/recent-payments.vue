@@ -107,12 +107,11 @@ import LoanPaymentDialog from './loan-payment-dialog/index.vue';
 
 const props = defineProps<{ loan: LoanApi }>();
 
-// The card itself shows only the latest few payments so it stays the same
-// height as its grid neighbors; the full history lives in the "See all" dialog.
+// Card shows only the latest few so it stays the same height as its grid neighbors; full history
+// lives in the "See all" dialog.
 const VISIBLE_PAYMENTS_COUNT = 3;
-// Fetched over-count: the loan account also carries non-income legs (interest
-// charges, disbursements) that get filtered out below, plus we need at least
-// one extra income leg to know whether to render the "See all" trigger.
+// Fetched over-count: filters out non-income legs (interest, disbursements) below, plus needs one
+// extra income leg to know whether to render "See all".
 const RECENT_PAYMENTS_LIMIT = 10;
 const ALL_PAYMENTS_PAGE_SIZE = 30;
 
@@ -123,9 +122,8 @@ const { accountsRecord } = storeToRefs(useAccountsStore());
 const loanAccount = computed(() => accountsRecord.value[props.loan.id]);
 
 const paymentsQuery = useQuery({
-  // The key's `transactionChange` prefix opts this query into the global
-  // invalidation fired by use-submit-transaction / use-delete-transaction,
-  // so a recorded payment shows up here without a manual refetch.
+  // The `transactionChange` key prefix opts this into global invalidation from
+  // use-submit-transaction / use-delete-transaction, so no manual refetch is needed.
   queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.loanRecentPayments, props.loan.id] as const),
   queryFn: () =>
     loadTransactions({
@@ -136,16 +134,14 @@ const paymentsQuery = useQuery({
   staleTime: 1000 * 60 * 5,
 });
 
-// On a loan account, paid principal arrives as an income leg (positive amount).
-// Interest charges and disbursements show up as negative legs — filter those
-// out so the section reads as "money you sent against this loan".
+// Paid principal arrives as an income leg; interest charges and disbursements are negative legs —
+// filter those out so the section reads as "money you sent against this loan".
 const filterPayments = (txs: TransactionModel[]) => txs.filter((tx) => tx.transactionType === TRANSACTION_TYPES.income);
 
 const payments = computed(() => filterPayments(paymentsQuery.data.value ?? []));
 const visiblePayments = computed(() => payments.value.slice(0, VISIBLE_PAYMENTS_COUNT));
-// More than the card shows, OR the raw page came back full — in the latter
-// case older income legs may exist past the fetch window even when the
-// filtered count is small (interest/disbursement legs crowd out payments).
+// More than the card shows, OR the raw page came back full — older income legs may exist past the
+// fetch window even when the filtered count is small.
 const hasMorePayments = computed(
   () =>
     payments.value.length > VISIBLE_PAYMENTS_COUNT || (paymentsQuery.data.value ?? []).length === RECENT_PAYMENTS_LIMIT,
@@ -170,10 +166,8 @@ const allPaymentsQuery = useInfiniteQuery({
 
 const allPayments = computed(() => filterPayments(allPaymentsQuery.data.value?.pages.flat() ?? []));
 
-// Rows hold the loan-side (income) leg; the dedicated dialog also needs the
-// source-side (expense) leg. TransactionRecord already resolves the opposite
-// leg for its grouped display and hands it along with the click — fall back to
-// an explicit transferId fetch only when that resolution hasn't finished yet.
+// Rows hold the loan-side (income) leg; the dialog also needs the source-side (expense) leg.
+// TransactionRecord usually hands both along with the click — fetch by transferId only as a fallback.
 const isDialogOpen = ref(false);
 const dialogTransaction = ref<TransactionModel | null>(null);
 const dialogOppositeTransaction = ref<TransactionModel | null>(null);

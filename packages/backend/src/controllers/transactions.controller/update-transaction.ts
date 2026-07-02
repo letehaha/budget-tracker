@@ -45,10 +45,7 @@ const bodyZodSchema = z
     message: "Both 'refundedByTxIds' and 'refundsTxId' are not allowed simultaneously",
   })
   .refine(
-    // Loan payments are only ever created against a loan account
-    // ("destinationAccountId"), never by linking to an existing transaction —
-    // linking always produces a common_transfer and the loan label is applied
-    // by editing the expense afterwards.
+    // Loan payments only link via destinationAccountId, never destinationTransactionId.
     (data) => !(data.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan && data.destinationTransactionId),
     {
       message: `"${TRANSACTION_TRANSFER_NATURE.transfer_to_loan}" cannot be combined with "destinationTransactionId" - loan payments are created via "destinationAccountId" only`,

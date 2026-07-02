@@ -1,6 +1,7 @@
 import { API_ERROR_CODES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type RecordId } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { subYears } from 'date-fns';
 
 async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T> }): Promise<T> {
   const original = global.APP_AUTH_COOKIES;
@@ -54,23 +55,21 @@ const createLoan = ({ initialBalance }: { initialBalance: number }) =>
   });
 
 /** Creates a plain (not-yet-linked) expense on `accountId`. */
-const createExpense = async ({ accountId, amount }: { accountId: RecordId; amount: number }) => {
+const createExpense = async ({ accountId, amount, time }: { accountId: RecordId; amount: number; time?: string }) => {
   const [tx] = await helpers.createTransaction({
     payload: helpers.buildTransactionPayload({
       accountId,
       amount,
       transactionType: TRANSACTION_TYPES.expense,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      ...(time ? { time } : {}),
     }),
     raw: true,
   });
   return tx;
 };
 
-/**
- * Sets up a loan with one expense already linked as a payment. Returns the loan,
- * the source account/expense (now the source leg) and the loan-side income leg id.
- */
+/** Sets up a loan with one expense already linked as a payment. */
 const linkOnePayment = async ({
   initialBalance = 1_000,
   amount = 300,
@@ -97,14 +96,12 @@ describe('POST /loans/:id/unlink-payment', () => {
     const result = await helpers.unlinkLoanPayment({ id: loan.id, transactionId: expense.id, raw: true });
 
     expect(result.restoredTransactionId).toBe(expense.id);
-    // Balance returns to the original owed amount — the payment no longer counts.
+    // Payment no longer counts, so the balance returns to the original owed amount.
     expect(result.loan.currentBalance).toBe(-1_000);
     expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-1_000);
 
     const txs = await helpers.getTransactions({ raw: true });
-    // The loan-side income leg is gone.
     expect(txs.filter((tx) => tx.accountId === loan.id).length).toBe(0);
-    // The source expense survives as an ordinary expense on its own account.
     const restored = txs.find((tx) => tx.id === expense.id);
     expect(restored?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
     expect(restored?.transferId).toBeNull();
@@ -115,8 +112,7 @@ describe('POST /loans/:id/unlink-payment', () => {
   it('accepts the loan-side leg id and still restores the source expense', async () => {
     const { loan, expense, loanLegId } = await linkOnePayment({ initialBalance: 1_000, amount: 300 });
 
-    // Pass the loan-side income leg rather than the source expense — the service
-    // splits the pair by account, so either leg id resolves to the same unlink.
+    // Either leg id resolves to the same unlink — the service splits the pair by account.
     const result = await helpers.unlinkLoanPayment({ id: loan.id, transactionId: loanLegId, raw: true });
 
     expect(result.restoredTransactionId).toBe(expense.id);
@@ -138,6 +134,109 @@ describe('POST /loans/:id/unlink-payment', () => {
     expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-700);
   });
 
+  it('unlinks a pre-anchor payment, leaving the balance unchanged before and after', async () => {
+    const loan = await createLoan({ initialBalance: 1_000 });
+    const source = await helpers.createAccount({ raw: true });
+    // Dated a year before the anchor (today) — informational only, already
+    // baked into the opening balance.
+    const expense = await createExpense({
+      accountId: source.id as RecordId,
+      amount: 300,
+      time: subYears(new Date(), 1).toISOString(),
+    });
+
+    await helpers.linkLoanPayments({ id: loan.id, transactionIds: [expense.id], raw: true });
+
+    // Linking a pre-anchor payment must not move the balance.
+    expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-1_000);
+
+    const result = await helpers.unlinkLoanPayment({ id: loan.id, transactionId: expense.id, raw: true });
+
+    // There was nothing counted against the balance, so unlinking is also a no-op.
+    expect(result.loan.currentBalance).toBe(-1_000);
+    expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-1_000);
+
+    const txs = await helpers.getTransactions({ raw: true });
+    expect(txs.filter((tx) => tx.accountId === loan.id).length).toBe(0);
+    const restored = txs.find((tx) => tx.id === expense.id);
+    expect(restored?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    expect(restored?.transferId).toBeNull();
+    expect(restored?.transactionType).toBe(TRANSACTION_TYPES.expense);
+    expect(restored?.accountId).toBe(source.id);
+  });
+
+  it('unlinks a cross-currency payment, fully restoring the loan balance and the source expense', async () => {
+    const loan = await createLoan({ initialBalance: 1_000_000 });
+    const { account: usdAccount } = await helpers.createAccountWithNewCurrency({ currency: 'USD' });
+    // Post-anchor (today) so the converted amount actually reduces the balance.
+    const expense = await createExpense({ accountId: usdAccount.id as RecordId, amount: 100 });
+
+    await helpers.linkLoanPayments({ id: loan.id, transactionIds: [expense.id], raw: true });
+
+    const afterLink = await helpers.getLoanById({ id: loan.id, raw: true });
+    // The converted payment moved the balance toward zero.
+    expect(afterLink.currentBalance).toBeGreaterThan(-1_000_000);
+    expect(afterLink.currentBalance).toBeLessThan(0);
+
+    const result = await helpers.unlinkLoanPayment({ id: loan.id, transactionId: expense.id, raw: true });
+
+    // Unlinking restores exactly the converted amount that was subtracted.
+    expect(result.loan.currentBalance).toBe(-1_000_000);
+    expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-1_000_000);
+
+    const txs = await helpers.getTransactions({ raw: true });
+    expect(txs.filter((tx) => tx.accountId === loan.id).length).toBe(0);
+    // The source expense survives as an ordinary expense in its own currency.
+    const restored = txs.find((tx) => tx.id === expense.id);
+    expect(restored?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    expect(restored?.transferId).toBeNull();
+    expect(restored?.transactionType).toBe(TRANSACTION_TYPES.expense);
+    expect(restored?.accountId).toBe(usdAccount.id);
+    expect(restored?.currencyCode).toBe('USD');
+  });
+
+  it('unlinks one of several linked payments, leaving the others linked and reflected in the balance', async () => {
+    const loan = await createLoan({ initialBalance: 1_000 });
+    const source = await helpers.createAccount({ raw: true });
+    const first = await createExpense({ accountId: source.id as RecordId, amount: 100 });
+    const second = await createExpense({ accountId: source.id as RecordId, amount: 200 });
+    const third = await createExpense({ accountId: source.id as RecordId, amount: 300 });
+
+    await helpers.linkLoanPayments({
+      id: loan.id,
+      transactionIds: [first.id, second.id, third.id],
+      raw: true,
+    });
+
+    // All three post-anchor payments reduced the balance: 1000 - 100 - 200 - 300 = 400.
+    expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-400);
+
+    const result = await helpers.unlinkLoanPayment({ id: loan.id, transactionId: second.id, raw: true });
+
+    // Only the 200 payment is removed: 1000 - 100 - 300 = 600.
+    expect(result.loan.currentBalance).toBe(-600);
+    expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-600);
+
+    const txs = await helpers.getTransactions({ raw: true });
+
+    // The unlinked payment is restored to a plain expense.
+    const restoredSecond = txs.find((tx) => tx.id === second.id);
+    expect(restoredSecond?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    expect(restoredSecond?.transferId).toBeNull();
+
+    // The other two pairs remain intact — still linked as loan payments.
+    const restoredFirst = txs.find((tx) => tx.id === first.id);
+    const restoredThird = txs.find((tx) => tx.id === third.id);
+    expect(restoredFirst?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+    expect(restoredFirst?.transferId).not.toBeNull();
+    expect(restoredThird?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+    expect(restoredThird?.transferId).not.toBeNull();
+
+    // Exactly two loan-side income legs remain (for the first and third payments).
+    const loanLegs = txs.filter((tx) => tx.accountId === loan.id);
+    expect(loanLegs.length).toBe(2);
+  });
+
   describe('invalid requests', () => {
     it('rejects an empty body at the schema level', async () => {
       const loan = await createLoan({ initialBalance: 1_000 });
@@ -157,7 +256,6 @@ describe('POST /loans/:id/unlink-payment', () => {
       expect(response.statusCode).toBe(422);
       expect(extractError(response).code).toBe(API_ERROR_CODES.validationError);
 
-      // The expense is untouched and the loan balance is unchanged.
       const txs = await helpers.getTransactions({ raw: true });
       expect(txs.find((tx) => tx.id === expense.id)?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
       expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-1_000);

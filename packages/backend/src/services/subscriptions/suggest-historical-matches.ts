@@ -26,10 +26,8 @@ export const suggestHistoricalMatches = async ({
     return [];
   }
 
-  // Snap to start-of-day so the lower bound doesn't slide through the day as
-  // wall-clock time advances — otherwise a transaction recorded at 10:00 UTC
-  // exactly N months ago drops out of suggestions sometime after 10:00 UTC
-  // today, producing flaky day-boundary behavior.
+  // Snap to start-of-day so the cutoff doesn't slide with wall-clock time —
+  // otherwise a transaction drops out of suggestions partway through the day.
   const cutoffDate = startOfDay(subMonths(new Date(), HISTORICAL_MONTHS));
 
   // Separate rules into SQL-applicable and post-processing rules

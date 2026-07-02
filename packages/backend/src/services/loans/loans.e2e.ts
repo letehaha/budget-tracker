@@ -8,13 +8,43 @@ import {
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { format, subDays } from 'date-fns';
 
-/**
- * Stands up a loan through the real POST /loans endpoint so the read tests
- * exercise the same creation path (ref-amount calc, transaction wrapping) as
- * production. Cents-based overrides are kept so call sites read in the same
- * unit the projection math uses.
- */
+/** Runs `fn` authenticated as the user owning `cookies`, restoring the default test user afterwards. */
+async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T> }): Promise<T> {
+  const original = global.APP_AUTH_COOKIES;
+  global.APP_AUTH_COOKIES = cookies;
+  try {
+    return await fn();
+  } finally {
+    global.APP_AUTH_COOKIES = original;
+  }
+}
+
+async function createSecondUser(): Promise<string> {
+  const signupRes = await helpers.makeAuthRequest({
+    method: 'post',
+    url: '/auth/sign-up/email',
+    payload: {
+      email: `user2-${Date.now()}-${Math.random()}@test.local`,
+      password: 'testpassword123',
+      name: 'Second User',
+    },
+  });
+  const cookies = helpers.extractCookies(signupRes);
+  await asUser({
+    cookies,
+    fn: () =>
+      helpers.makeRequest({
+        method: 'post',
+        url: '/user/currencies/base',
+        payload: { currencyCode: global.BASE_CURRENCY.code },
+      }),
+  });
+  return cookies;
+}
+
+/** Creates a loan through POST /loans so tests exercise the real creation path (ref-amount calc, tx wrapping). */
 async function createLoanFixture(
   overrides: {
     accountName?: string;
@@ -112,8 +142,7 @@ describe('Loans read API', () => {
     });
 
     it('clamps paidToDate to zero when the outstanding balance exceeds the original principal', async () => {
-      // Owing more than was borrowed (negative amortization, or a correction
-      // that raised the balance) must not render as a negative "paid" amount.
+      // Outstanding above principal (negative amortization/correction) must not render as a negative "paid" amount.
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({ originalPrincipal: 1_000, initialBalance: 5_000 }),
         raw: true,
@@ -185,11 +214,8 @@ describe('Loans read API', () => {
     });
 
     it('does not mark a loan paid off when outstanding is below principal and the start date is years in the past', async () => {
-      // The start date is informational only at creation: the balance anchor is
-      // today and the paid-off projection keys solely off the outstanding
-      // balance. A loan whose outstanding ($20k) sits below its original
-      // principal ($106k), with a start date years in the past, therefore reads
-      // as still owing $20k rather than paid off.
+      // startDate is informational only: the balance anchor is always today, and
+      // paid-off is derived solely from the outstanding balance, not elapsed term.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           startDate: '2022-01-10',
@@ -260,6 +286,17 @@ describe('Loans read API', () => {
       });
       expect(result.statusCode).toBe(422);
     });
+
+    it.each(['2024-02-30', '2024-13-45'])(
+      'rejects a calendar-invalid startDate (%s) with 422 instead of failing at the DATEONLY column',
+      async (startDate) => {
+        const result = await helpers.createLoan({
+          payload: helpers.buildCreateLoanPayload({ startDate }),
+          raw: false,
+        });
+        expect(result.statusCode).toBe(422);
+      },
+    );
   });
 
   describe('PATCH /loans/:id', () => {
@@ -470,14 +507,94 @@ describe('Loans read API', () => {
       expect(result.statusCode).toBe(422);
     });
 
+    it('rejects a calendar-invalid startDate on PATCH with 422', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+      const result = await helpers.updateLoan({
+        id: created.id,
+        payload: { startDate: '2024-02-30' },
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('rejects a calendar-invalid currentBalanceAsOf with 422', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+      const result = await helpers.updateLoan({
+        id: created.id,
+        payload: { currentBalance: 150_000, currentBalanceAsOf: '2024-02-30' },
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('rejects currentBalanceAsOf sent without currentBalance', async () => {
+      // The anchor date is a statement "the outstanding was X as-of Y" — a date
+      // with no amount has nothing to anchor, so it must be a clean 400-class
+      // rejection rather than a 200 that silently drops the payload.
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+      const result = await helpers.updateLoan({
+        id: created.id,
+        payload: { currentBalanceAsOf: format(subDays(new Date(), 5), 'yyyy-MM-dd') },
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('re-anchors when the same balance is asserted as-of an earlier date, re-counting later payments', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: global.BASE_CURRENCY_CODE,
+          initialBalance: 10_000,
+          originalPrincipal: 10_000,
+        }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      // Payment dated today (on the creation anchor) — outstanding drops to 8000.
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 2_000 }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 2_000,
+          destinationAccountId: created.id as RecordId,
+        },
+        raw: true,
+      });
+      expect((await helpers.getLoanById({ id: created.id, raw: true })).currentBalance).toBe(-8_000);
+
+      // Assert the SAME 8000 outstanding, but as-of yesterday. The amount echoes
+      // the current balance, yet the request must not be dropped: the moved
+      // anchor makes today's 2000 payment post-anchor again, so it is re-applied
+      // on top of the asserted 8000.
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { currentBalance: 8_000, currentBalanceAsOf: format(subDays(new Date(), 1), 'yyyy-MM-dd') },
+        raw: true,
+      });
+
+      expect(updated.currentBalance).toBe(-6_000);
+      const event = updated.loanDetails.events.at(-1);
+      expect(event?.type).toBe('balance_correction');
+      if (event?.type === 'balance_correction') {
+        expect(event.from).toBe(8_000);
+        expect(event.to).toBe(8_000);
+      }
+    });
+
     it('ignores attempts to change currencyCode on a loan with payments', async () => {
-      // Currency change on an Account with denominated transactions would
-      // re-interpret every prior amount under the new currency and corrupt
-      // history, so loan currency is fixed at creation.
-      // updateLoanBodySchema and the PATCH /accounts/:id schema both omit
-      // currencyCode, so unknown-key stripping silently drops it. This
-      // regression pins that behaviour – if the field is ever added, this
-      // test forces a conscious carve-out for loans with payments.
+      // Currency is fixed at loan creation — changing it on an Account with existing
+      // transactions would re-interpret every prior amount under the new currency.
+      // Both update schemas omit currencyCode, so unknown-key stripping silently drops it.
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({ currencyCode: 'USD' }),
         raw: true,
@@ -505,12 +622,9 @@ describe('Loans read API', () => {
   });
 
   describe('generic PATCH /accounts/:id is restricted on loan accounts', () => {
-    // A loan IS an Account (accountCategory='loan', type='system') carrying a
-    // negative-cents liability balance plus a LoanDetails sidecar. The generic
-    // account-update endpoint must not be a back door around the dedicated loan
-    // path: it may not push the balance (which has its own balance_correction
-    // flow on PATCH /loans/:id) nor change accountCategory (which would orphan
-    // the LoanDetails sidecar). This mirrors the existing vehicle carve-out.
+    // A loan IS an Account (accountCategory='loan', type='system') with a
+    // LoanDetails sidecar. The generic account-update endpoint must not be a back
+    // door around the dedicated loan path for balance or accountCategory changes.
 
     it('F2a: rejects a currentBalance change on a loan account through the generic endpoint and leaves the balance untouched', async () => {
       const loan = await helpers.createLoan({
@@ -518,8 +632,8 @@ describe('Loans read API', () => {
         raw: true,
       });
 
-      // Positive value also stands in for the "loan pushed into credit" case the
-      // dedicated path forbids (it clamps to a non-negative outstanding balance).
+      // Positive also covers "loan pushed into credit", which the dedicated path
+      // forbids by clamping to a non-negative outstanding balance.
       const result = await helpers.updateAccount({
         id: loan.id,
         payload: { currentBalance: 5_000 },
@@ -529,8 +643,6 @@ describe('Loans read API', () => {
       expect(result.statusCode).toBe(422);
       expect((result.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.validationError);
 
-      // Reload through the loan endpoint: the write must have been blocked, so the
-      // ledger still holds the original negative liability balance.
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.currentBalance).toBe(-200_000);
     });
@@ -550,16 +662,13 @@ describe('Loans read API', () => {
       expect(result.statusCode).toBe(422);
       expect((result.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.validationError);
 
-      // Reload: the account is still categorised as a loan, so its LoanDetails
-      // sidecar is not orphaned.
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
     });
 
     it('regression: the dedicated PATCH /loans/:id still edits the outstanding balance and records a balance_correction event', async () => {
-      // Co-located with the guard tests above: the upcoming generic-endpoint
-      // carve-out must NOT break the legitimate loan-balance edit path, which
-      // negates to the liability convention and appends a balance_correction.
+      // Confirms the generic-endpoint carve-out above doesn't break the legitimate
+      // loan-balance edit path, which negates to the liability convention.
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
@@ -604,9 +713,8 @@ describe('Loans read API', () => {
     });
 
     it('rejects deleting a loan that has recorded payments', async () => {
-      // Deleting a loan that received payments would silently throw away the
-      // expense legs and the principal-paid history. Force the user to clear
-      // payments first.
+      // Deleting a loan with payments would silently throw away the expense legs
+      // and principal-paid history, so payments must be cleared first.
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
@@ -637,10 +745,8 @@ describe('Loans read API', () => {
     });
 
     it('deletes a loan that has timeline events but no payments', async () => {
-      // Timeline events (notes, corrections, rate changes) are self-contained
-      // metadata that disappears with the loan, so they don't block deletion –
-      // only real payment legs do. A user shouldn't be forced to archive over a
-      // note they jotted.
+      // Timeline events are self-contained metadata that disappears with the loan,
+      // so only real payment legs block deletion.
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
@@ -660,9 +766,7 @@ describe('Loans read API', () => {
     });
 
     it('deletes a loan whose only history is a balance correction', async () => {
-      // Reproduces the reported flow: a user corrects the outstanding balance
-      // (which stamps a balance_correction event) and then wants the loan gone.
-      // The correction event must not stand in the way of deletion.
+      // A balance_correction event must not block deletion.
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
@@ -721,6 +825,136 @@ describe('Loans read API', () => {
         raw: false,
       });
       expect(result.statusCode).toBe(404);
+    });
+  });
+
+  describe('paid_off timeline event', () => {
+    /** Base-currency loan owing `initialBalance`, plus a cash account to pay from. */
+    const setupLoanWithSource = async ({ initialBalance }: { initialBalance: number }) => {
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: global.BASE_CURRENCY_CODE,
+          initialBalance,
+          originalPrincipal: initialBalance,
+        }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+      return { loan, sourceAccount };
+    };
+
+    const payLoan = async ({
+      loanId,
+      sourceAccountId,
+      amount,
+    }: {
+      loanId: string;
+      sourceAccountId: RecordId;
+      amount: number;
+    }) => {
+      const [base] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: sourceAccountId, amount }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: amount,
+          destinationAccountId: loanId as RecordId,
+        },
+        raw: true,
+      });
+      return base;
+    };
+
+    it('appends a single paid_off event when a payment zeroes the outstanding', async () => {
+      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
+
+      await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.currentBalance).toBe(0);
+      expect(reloaded.projection.isPaidOff).toBe(true);
+      const paidOffEvents = reloaded.loanDetails.events.filter((e) => e.type === 'paid_off');
+      expect(paidOffEvents).toHaveLength(1);
+      if (paidOffEvents[0]?.type === 'paid_off') {
+        expect(typeof paidOffEvents[0].at).toBe('string');
+      }
+    });
+
+    it('does not duplicate paid_off on reopen, and appends a second one when the loan re-zeroes', async () => {
+      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
+
+      const payment = await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
+      // Deleting the payoff payment reopens the loan — the balance goes negative
+      // again, which must NOT add another paid_off event.
+      await helpers.deleteTransaction({ id: payment.id });
+
+      const reopened = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reopened.currentBalance).toBe(-1_000);
+      expect(reopened.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(1);
+
+      // Paying it off again is a fresh negative→zero transition — second event.
+      await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
+
+      const repaid = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(repaid.currentBalance).toBe(0);
+      expect(repaid.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(2);
+    });
+
+    it('appends paid_off when a manual balance correction zeroes the outstanding', async () => {
+      const { loan } = await setupLoanWithSource({ initialBalance: 1_000 });
+
+      const updated = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 0 },
+        raw: true,
+      });
+
+      expect(updated.currentBalance).toBe(0);
+      const types = updated.loanDetails.events.map((e) => e.type);
+      expect(types).toContain('balance_correction');
+      expect(types.filter((t) => t === 'paid_off')).toHaveLength(1);
+    });
+  });
+
+  describe('cross-user isolation', () => {
+    it("responds 404 on GET/PATCH/DELETE /loans/:id and POST /loans/:id/events for another user's loan", async () => {
+      const userBCookies = await createSecondUser();
+      const userBLoanId = await asUser({
+        cookies: userBCookies,
+        fn: async () => {
+          const loan = await helpers.createLoan({
+            payload: helpers.buildCreateLoanPayload({ currencyCode: global.BASE_CURRENCY_CODE }),
+            raw: true,
+          });
+          return loan.id;
+        },
+      });
+
+      // All four id-addressed endpoints must behave exactly as if the loan does
+      // not exist — a real foreign id and a random id are indistinguishable.
+      const getResult = await helpers.getLoanById({ id: userBLoanId, raw: false });
+      expect(getResult.statusCode).toBe(404);
+
+      const patchResult = await helpers.updateLoan({
+        id: userBLoanId,
+        payload: { interestRate: 1.5 },
+        raw: false,
+      });
+      expect(patchResult.statusCode).toBe(404);
+
+      const deleteResult = await helpers.deleteLoan({ id: userBLoanId, raw: false });
+      expect(deleteResult.statusCode).toBe(404);
+
+      const noteResult = await helpers.appendLoanNote({ id: userBLoanId, text: 'intrusion', raw: false });
+      expect(noteResult.statusCode).toBe(404);
+
+      // The owner's loan is untouched by all of the rejected calls above.
+      const fromOwner = await asUser({
+        cookies: userBCookies,
+        fn: () => helpers.getLoanById({ id: userBLoanId, raw: true }),
+      });
+      expect(fromOwner.id).toBe(userBLoanId);
+      expect(fromOwner.loanDetails.interestRate).toBe(6);
+      expect(fromOwner.loanDetails.events).toEqual([]);
     });
   });
 });

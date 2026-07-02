@@ -6,10 +6,8 @@
     </div>
 
     <template v-else>
-      <!-- Header: the title sits opposite the "play with numbers" custom-payment
-           field as a single inline row (label · input · save). The icon-button
-           applies the typed amount as the loan's planned payment behind a confirm
-           dialog; its meaning is surfaced on hover. -->
+      <!-- Header: title + custom-payment field in one row. Icon-button applies the typed amount as the
+           loan's planned payment behind a confirm dialog. -->
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div v-if="withTitle" class="flex items-center gap-1.5 text-base font-semibold">
           {{ $t('loans.detail.payoffChart.title') }}
@@ -161,7 +159,7 @@ import { useFormatCurrency } from '@/composable/formatters';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { captureException } from '@/lib/sentry';
 import { refDebounced, useResizeObserver } from '@vueuse/core';
-import { startOfToday } from 'date-fns';
+import { parseISO, startOfToday } from 'date-fns';
 import { SaveIcon } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -201,8 +199,8 @@ const formatCurrency = (amount: number) => formatAmountByCurrencyCode(amount, cu
 
 const currencySymbol = computed(() => getCurrencySymbol(currencyCode.value));
 
-// Minimum payment: a saved value wins; otherwise derive the level payment that
-// amortizes the original principal over the contractual term.
+// Minimum payment: a saved value wins; otherwise derive the level payment amortizing the original
+// principal over the contractual term.
 const minimumPayment = computed<number | null>(() => {
   const saved = props.loan.loanDetails.minPayment;
   if (saved != null && saved > 0) return saved;
@@ -213,17 +211,15 @@ const minimumPayment = computed<number | null>(() => {
   });
 });
 
-// Custom payment seeds from the planned (or minimum) payment so the curve
-// starts on a sensible value the user can then nudge.
+// Seeds from the planned (or minimum) payment so the curve starts on a sensible value to nudge.
 const customPayment = ref<number | null>(plannedPayment.value ?? minimumPayment.value ?? null);
 
 const onCustomInput = (value: string | number | null) => {
   customPayment.value = typeof value === 'number' ? value : null;
 };
 
-// The field updates immediately (responsive typing), but every projection,
-// warning, and the apply action read this debounced copy so we don't recompute
-// the schedule or flash a "below interest" error on each intermediate keystroke.
+// Field updates immediately, but projections/warnings/apply read this debounced copy so they don't
+// recompute or flash a "below interest" error on each keystroke.
 const CUSTOM_PAYMENT_DEBOUNCE_MS = 400;
 const debouncedCustomPayment = refDebounced(customPayment, CUSTOM_PAYMENT_DEBOUNCE_MS);
 
@@ -253,8 +249,24 @@ const scenarioMap = computed(
   () => Object.fromEntries(scenarioDefs.value.map((d) => [d.key, d])) as Record<ScenarioKey, ScenarioDef>,
 );
 
+// The backend's projection (shown on the Projection card) anchors "today" on
+// the server clock, while the chart's scenarios anchor on the client clock —
+// around midnight or across timezones the two can land on different payoff
+// months. Any displayed payoff DATE for the planned scenario therefore prefers
+// the backend's figure so the same page never shows two different dates; the
+// locally computed schedule is still what draws the curve.
+const backendPlannedPayoffDate = computed<Date | null>(() =>
+  props.loan.projection.payoffDate ? parseISO(props.loan.projection.payoffDate) : null,
+);
+
 const renderableLines = computed(() =>
-  scenarioDefs.value.filter((d) => d.scenario?.paysOff && d.scenario.points.length > 1),
+  scenarioDefs.value
+    .filter((d) => d.scenario?.paysOff && d.scenario.points.length > 1)
+    .map((d) => ({
+      ...d,
+      displayPayoffDate:
+        (d.key === 'planned' ? backendPlannedPayoffDate.value : null) ?? (d.scenario!.payoffDate as Date),
+    })),
 );
 const hasAnyLine = computed(() => renderableLines.value.length > 0);
 
@@ -279,7 +291,10 @@ const legendEntries = computed(() =>
       bgClass: SCENARIO_SWATCH[d.key].bgClass,
       borderClass: SCENARIO_SWATCH[d.key].borderClass,
       payoffText: d.scenario?.paysOff
-        ? formatDate(d.scenario.payoffDate as Date, 'MMM yyyy')
+        ? formatDate(
+            (d.key === 'planned' ? backendPlannedPayoffDate.value : null) ?? (d.scenario.payoffDate as Date),
+            'MMM yyyy',
+          )
         : t('loans.detail.payoffChart.neverPaysOff'),
     })),
 );
@@ -292,8 +307,7 @@ const formatDuration = (totalMonths: number): string => {
   return t('loans.detail.payoffChart.yearsMonthsLabel', { y: years, m: months });
 };
 
-// Per-scenario comparison vs the planned payment (the baseline). When there's
-// no planned baseline, fall back to an absolute payoff/interest summary.
+// Per-scenario comparison vs the planned baseline; falls back to an absolute summary without one.
 const comparisons = computed(() => {
   const planned = scenarioMap.value.planned?.scenario;
   const baseline = planned?.paysOff ? planned : null;
@@ -354,8 +368,7 @@ const comparisons = computed(() => {
   return result;
 });
 
-// "Apply as planned payment" — persists the custom amount as the loan's planned
-// monthly payment.
+// "Apply as planned payment" — persists the custom amount as the loan's planned monthly payment.
 const canApply = computed(() => {
   const custom = scenarioMap.value.custom;
   return (

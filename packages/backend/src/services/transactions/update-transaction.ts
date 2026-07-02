@@ -106,12 +106,10 @@ const validateTransaction = async (
     });
   }
 
-  // The transfer kind is frozen once a pair exists: relabeling a live pair
+  // The transfer kind is frozen once a pair exists — relabeling
   // (common_transfer ↔ transfer_to_loan) would require restamping both legs
-  // atomically and re-validating the destination's category. The supported
-  // flow is unlink first (nature → not_transfer), then mark the expense again —
-  // the re-mark goes through the create path, which stamps both legs and
-  // validates the loan destination.
+  // atomically and re-validating the destination's category. Supported flow:
+  // unlink first, then re-mark via the create path.
   if (
     newData.transferNature !== undefined &&
     isTwoLegTransfer(prevData.transferNature) &&
@@ -123,15 +121,31 @@ const validateTransaction = async (
     });
   }
 
-  // Loan invariants for edits touching the destination leg — keyed off the
+  // The loan-side income leg is system-managed: every sanctioned flow edits the
+  // *expense* leg, which propagates here and passes the overpay assertion. A
+  // direct edit would bypass that assertion and restamp the opposite leg's
+  // transactionType — rejected; edit via the expense leg or delete the pair.
+  if (
+    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan &&
+    prevData.transactionType === TRANSACTION_TYPES.income
+  ) {
+    throw new ValidationError({
+      message: t({ key: 'transactions.loanAccountReadonly' }),
+    });
+  }
+
+  // Loan invariants for edits that can move a loan's balance — keyed off the
   // destination account's *category*, not the nature label (mirrors
-  // createOppositeTransaction). A frozen-nature pair can't be re-pointed to a
-  // different loan; the supported flow is unlink first, then re-mark.
+  // createOppositeTransaction).
   const effectiveNature = newData.transferNature ?? prevData.transferNature;
   if (
     isTwoLegTransfer(prevData.transferNature) &&
     prevData.transferId &&
-    (newData.destinationAmount !== undefined || newData.destinationAccountId !== undefined)
+    (newData.destinationAmount !== undefined ||
+      newData.destinationAccountId !== undefined ||
+      // A date edit can carry the payment across the loan's balance anchor
+      // (informational → counted), so it must pass the overpay assertion too.
+      newData.time !== undefined)
   ) {
     const oppositeLeg = await Transactions.default.findOne({
       where: { transferId: prevData.transferId, id: { [Op.ne]: prevData.id } },
@@ -141,13 +155,11 @@ const validateTransaction = async (
       const destinationAccountId = newData.destinationAccountId ?? oppositeLeg.accountId;
       const isSameDestination = destinationAccountId === oppositeLeg.accountId;
 
-      // Category-only read, deliberately not scoped by userId: on a shared
-      // cross-user pair the opposite leg can live on another user's account,
-      // and an owner-scoped lookup would 404 a plain amount edit. Ownership
-      // is still enforced where it matters — `assertLoanPaymentAllowed`
-      // locks the loan row by (id, ownerUserId), and a re-pointed
-      // destination is ownership-checked downstream in
-      // `updateTransferTransaction`'s currency lookup.
+      // Deliberately not scoped by userId: on a shared cross-user pair the
+      // opposite leg can live on another user's account, and an owner-scoped
+      // lookup would 404 a plain amount edit. Ownership is still enforced by
+      // `assertLoanPaymentAllowed`'s (id, ownerUserId) lock and by
+      // `updateTransferTransaction`'s currency lookup on a re-point.
       const destAccount = await Accounts.default.findOne({
         where: { id: destinationAccountId },
         attributes: ['accountCategory'],
@@ -175,8 +187,10 @@ const validateTransaction = async (
           // The old leg is part of this loan's balance only when the
           // destination stays put; on a re-point the new loan never saw it.
           currentLegAmount: isSameDestination ? oppositeLeg.amount : null,
-          // Effective post-update date; both legs share it. Falls back to the
-          // existing tx time when the edit doesn't move the date.
+          // Pre-edit date of the pair — decides whether the replaced leg is
+          // post-anchor (counted) or informational.
+          currentLegDate: isSameDestination ? prevData.time : null,
+          // Effective post-update date; both legs share it.
           paymentDate: newData.time ?? prevData.time,
         });
       }
@@ -526,9 +540,8 @@ const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
     }
   }
 
-  // Return the refreshed base tx so callers can surface the cleared
-  // transferId/transferNature in the API response — the `baseTransaction`
-  // snapshot they hold predates this update.
+  // Return the refreshed row — callers hold a stale `baseTransaction` snapshot
+  // and need the cleared transferId/transferNature for the API response.
   return Transactions.updateTransactionById({
     id: baseTransaction.id,
     userId: baseTransaction.userId,

@@ -25,11 +25,9 @@ export const unlinkTransferTransactions = withTransaction(
         });
       }
 
-      // A loan payment's income leg lives on a read-only loan account; unlinking
-      // it would clear its transfer nature and strand a standalone transaction
-      // the loan account can't hold. Deleting the payment is the supported undo
-      // (it restores the outstanding balance) – match the per-transaction guard
-      // and reject the unlink here.
+      // Unlinking a loan payment would strand its income leg as a standalone tx
+      // on the read-only loan account. Deleting the payment is the supported
+      // undo (it restores the outstanding balance) — reject the unlink.
       if (transactions.some((tx) => tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan)) {
         throw new ValidationError({ message: t({ key: 'transactions.loanAccountReadonly' }) });
       }

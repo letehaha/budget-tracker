@@ -29,15 +29,7 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useDateLocale } from '@/composable/use-date-locale';
 import type { LoanEventApi } from '@bt/shared/types';
-import {
-  CheckCircleIcon,
-  MessageSquareIcon,
-  PencilIcon,
-  PercentIcon,
-  RefreshCcwIcon,
-  RotateCcwIcon,
-  WalletIcon,
-} from '@lucide/vue';
+import { CheckCircleIcon, MessageSquareIcon, PencilIcon, PercentIcon, RotateCcwIcon, WalletIcon } from '@lucide/vue';
 import { parseISO } from 'date-fns';
 import { type FunctionalComponent, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -61,7 +53,6 @@ const ICONS: Record<LoanEventApi['type'], FunctionalComponent> = {
   balance_correction: PencilIcon,
   note: MessageSquareIcon,
   paid_off: CheckCircleIcon,
-  refinanced: RefreshCcwIcon,
 };
 
 // `null` on term/planned-payment events means the field was cleared, not zero.
@@ -90,8 +81,6 @@ function describe(event: LoanEventApi): string {
       return event.text;
     case 'paid_off':
       return t('loans.detail.events.paidOff');
-    case 'refinanced':
-      return t('loans.detail.events.refinanced');
   }
 }
 

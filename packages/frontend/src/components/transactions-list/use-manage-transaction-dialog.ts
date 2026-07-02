@@ -38,10 +38,9 @@ export function useManageTransactionDialog() {
     oppositeTransaction: undefined,
   });
 
-  // Loan payments get their own simplified dialog (no note/tags/payment-type/
-  // link section). The same click handler routes here when the clicked tx is
-  // a `transfer_to_loan` two-leg pair — both legs are required to populate the
-  // edit form (source-side amount + loan-side amount for currency mismatch).
+  // Loan payments get a simplified dialog (no note/tags/payment-type/link section).
+  // Same click handler routes here for transfer_to_loan pairs; both legs are needed
+  // to populate the source and loan-side amounts.
   const isLoanDialogVisible = ref(false);
   const loanDialogProps = ref<LoanDialogProps>({
     loanAccount: undefined,
@@ -68,11 +67,9 @@ export function useManageTransactionDialog() {
     return tx.accountType !== ACCOUNT_TYPES.system;
   };
 
-  // Route a clicked transfer_to_loan pair to the dedicated loan dialog. We
-  // need both legs — the loan-side (income) leg names the loan account, the
-  // source-side (expense) leg carries the user's bank account and the amount
-  // they entered. If the opposite leg hasn't loaded yet, fall back to the
-  // regular dialog rather than opening a half-populated form.
+  // Routes a transfer_to_loan pair to the loan dialog: the income leg names the
+  // loan, the expense leg carries the source account/amount. Falls back to the
+  // regular dialog if the opposite leg hasn't loaded yet.
   const tryRouteToLoanDialog = (baseTx: TransactionModel, oppositeTx: TransactionModel | undefined): boolean => {
     if (baseTx.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_to_loan) return false;
     if (!oppositeTx) return false;

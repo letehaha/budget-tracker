@@ -32,9 +32,8 @@
 
       <div class="w-full text-left">
         <template v-if="isLoadingGroupedTransfer">
-          <!-- Loading skeleton for grouped transfer: the known leg stays on its
-               own side (source on the left, destination on the right), the
-               still-loading opposite leg renders as a placeholder. -->
+          <!-- Loading skeleton: known leg renders on its side (source left, dest
+               right); the still-loading opposite leg is a placeholder. -->
           <div class="mb-1 flex items-center gap-1.5">
             <div v-if="ownLegIsIncome" class="h-4 w-20 animate-pulse rounded bg-white/10"></div>
             <span v-else class="text-sm font-medium tracking-wide">
@@ -257,10 +256,9 @@ const accountTo = computed(() =>
   oppositeTransferTransaction.value ? accountsRecord.value[oppositeTransferTransaction.value.accountId] : undefined,
 );
 
-// A two-leg transfer row can hold either leg: lists scoped to the destination
-// account (e.g. loan recent payments) hand us the income leg. Grouped display
-// always renders source → destination, so resolve the legs by transaction type
-// instead of assuming the row is the expense side.
+// A two-leg row can hold either leg — lists scoped to the destination (e.g. loan
+// payments) hand us the income leg. Resolve legs by transaction type rather than
+// assuming the row is the expense side.
 const ownLegIsIncome = computed(() => transaction.value.transactionType === TRANSACTION_TYPES.income);
 const transferSourceLeg = computed(() =>
   ownLegIsIncome.value ? oppositeTransferTransaction.value : transaction.value,

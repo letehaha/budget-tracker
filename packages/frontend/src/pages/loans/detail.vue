@@ -35,10 +35,7 @@
 
     <template v-else>
       <div ref="gridContainerRef">
-        <!-- Wide layout: Summary + Projection on top, then the tall payoff
-             chart on the left with Recent payments + Timeline stacked on the
-             right. `items-start` keeps the right-hand cards at their natural
-             height instead of stretching them to match the chart. -->
+        <!-- Wide layout: `items-start` keeps the right column at natural height instead of stretching to the chart. -->
         <div v-if="!isCompact" class="flex flex-col gap-4">
           <div class="grid grid-cols-2 gap-4">
             <SummaryCard :loan="loan" />
@@ -46,8 +43,7 @@
           </div>
           <div class="grid grid-cols-2 items-start gap-4">
             <Card>
-              <!-- The chart owns its header so the title sits in the same row as
-                   the custom-payment field. -->
+              <!-- Chart owns its header so the title shares a row with the custom-payment field. -->
               <CardContent class="pt-2 sm:pt-6">
                 <PayoffProjectionChart :loan="loan" with-title />
               </CardContent>
@@ -59,8 +55,7 @@
           </div>
         </div>
 
-        <!-- Narrow layout: projection details and the payoff chart share one
-             card, with the chart tucked into a collapsible section. -->
+        <!-- Narrow layout: projection and chart share one card, chart tucked into a collapsible section. -->
         <div v-else class="grid grid-cols-1 gap-4">
           <SummaryCard :loan="loan" />
           <Card>
@@ -121,27 +116,20 @@ const loanQuery = useLoanById({ id: loanId });
 
 const loan = computed(() => loanQuery.data.value ?? null);
 
-// Below this content width the two-column grid crushes the cards (payment rows
-// truncate, the projection metrics squash), so the page collapses to a single
-// column and merges the projection + chart into one card and reorders sections.
-// That restructuring (merge + reorder) can't be expressed with CSS alone, so
-// JS-measured container width drives the switch instead of a pure CSS container
-// query. The loading skeleton above uses a CSS `@3xl/loans-detail` container
-// query for the same 48rem / 768px threshold — two separate mechanisms that
-// happen to share the same breakpoint. If either value changes, update both.
+// Restructuring (merge + reorder cards) below this width can't be expressed in pure CSS, so JS-measured
+// width drives the switch. The loading skeleton uses a CSS `@3xl/loans-detail` query for the same 768px —
+// keep both in sync if this changes.
 const TWO_COLUMN_MIN_WIDTH_PX = 768;
 
 const gridContainerRef = ref<HTMLDivElement | null>(null);
 const { width: gridWidth } = useElementSize(gridContainerRef);
-// Treat the unmeasured (0) state as wide so the desktop layout doesn't flash
-// for users who are actually on a wide screen.
+// Treat unmeasured (0) as wide so desktop users don't see a layout flash.
 const isCompact = computed(() => gridWidth.value > 0 && gridWidth.value < TWO_COLUMN_MIN_WIDTH_PX);
 
 const isChartOpen = ref(false);
 
 const goBack = () => {
-  // Prefer browser back when the user navigated in from the list — keeps scroll
-  // position. Fall back to the list route on direct deep-links.
+  // Prefer browser back (keeps scroll position); fall back to the list route on direct deep-links.
   if (window.history.state?.back) {
     router.back();
   } else {

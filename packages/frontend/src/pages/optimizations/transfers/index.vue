@@ -432,8 +432,7 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
       </Dialog.Dialog>
     </template>
 
-    <!-- Dedicated loan-payment dialog: `handleRecordClick` routes
-         transfer_to_loan rows here instead of the generic dialog -->
+    <!-- Dedicated loan-payment dialog: handleRecordClick routes transfer_to_loan rows here. -->
     <LoanPaymentDialog
       v-if="loanDialogProps.loanAccount"
       :open="isLoanDialogVisible"

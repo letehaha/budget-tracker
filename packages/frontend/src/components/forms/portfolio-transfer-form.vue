@@ -50,8 +50,7 @@ const emit = defineEmits<Emit>();
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
-// Loan accounts are excluded from the picker because money only flows INTO a loan (via transfer_to_loan),
-// so they can't be a transfer source or a portfolio↔account participant.
+// Loan accounts excluded – money only flows INTO a loan (transfer_to_loan), so they can't be a transfer source.
 const { txTargetableSourceAccountsActiveFirst: txTargetableAccountsActiveFirst, accountsRecord } =
   storeToRefs(useAccountsStore());
 const { currencies } = storeToRefs(useCurrenciesStore());

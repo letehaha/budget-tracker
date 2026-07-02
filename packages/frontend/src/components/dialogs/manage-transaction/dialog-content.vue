@@ -362,10 +362,8 @@ const loanDestinationAccounts = computed(() =>
   txTargetableAccountsActiveFirst.value.filter((item) => item.accountCategory === ACCOUNT_CATEGORIES.loan),
 );
 
-// The transfer kind is frozen on a live pair (the backend rejects relabeling),
-// so switching the destination pill while editing an existing transfer could
-// only produce a guaranteed 422. Lock the pill – the supported flow is
-// unlink the transfer first, then mark the transaction again.
+// Transfer kind is frozen on a live pair (backend rejects relabeling) – switching
+// the pill mid-edit would 422. Lock it; unlink the transfer first to change destination type.
 const isDestinationTypeLocked = computed(() => isTwoLegTransfer(transaction.value?.transferNature));
 
 const {
@@ -426,22 +424,41 @@ const { convert: convertCurrency, data: exchangeRates } = useExchangeRates();
 
 // --- Transfer → Loan payment guards ---
 
+// Credit already reflected in the loan's balance for THIS specific payment –
+// mirrors the backend's `currentLegAmount`/`isSameDestination` pair in
+// `updateTransaction`: a leg only counts when it already landed as an income
+// row on the currently-selected loan account. Re-pointing to a different loan,
+// or promoting a plain (never-transferred) transaction into a loan payment,
+// starts from zero credit, since no prior write touched that account's
+// balance. Naturally 0 in creation mode too (`transaction`/`oppositeTransaction`
+// are both undefined there).
+const existingLoanLegAmount = computed(() => {
+  const loanAccountId = form.value.toAccount?.id;
+  if (!loanAccountId) return 0;
+  const existingLeg = [transaction.value, oppositeTransaction.value].find(
+    (tx) => tx?.transactionType === TRANSACTION_TYPES.income && tx.accountId === loanAccountId,
+  );
+  return existingLeg?.amount ?? 0;
+});
+
 // Largest payment that keeps the destination loan at or above zero.
 const loanOverpayMax = computed(() =>
-  getMaxLoanPayment({ loanCurrentBalance: form.value.toAccount?.currentBalance ?? 0 }),
+  getMaxLoanPayment({
+    loanCurrentBalance: form.value.toAccount?.currentBalance ?? 0,
+    existingLegAmount: existingLoanLegAmount.value,
+  }),
 );
 
-// Inline overpay guard for the create path, mirroring the dedicated payment
-// dialog so the user sees the exact remaining balance inline instead of a
-// figureless toast after submit. Edits run through the dedicated dialog and
-// defer to the backend's row-locked guard.
-const isLoanOverpayCheckActive = computed(
-  () => isLoanDestination.value && isFormCreation.value && !!form.value.toAccount,
-);
+// Inline overpay guard, mirroring the dedicated payment dialog so the user
+// sees the exact remaining balance inline instead of a figureless toast after
+// submit. Active for both creation and edits (e.g. promoting an existing
+// transaction into a loan payment via the type/destination pickers) –
+// `existingLoanLegAmount` above keeps the threshold aligned with the
+// backend's row-locked guard in either case.
+const isLoanOverpayCheckActive = computed(() => isLoanDestination.value && !!form.value.toAccount);
 
-// Soft heads-up when a loan payment would overdraw the source account. Only a
-// positive-balance account driven negative is flagged – accounts already in the
-// red (credit lines) overdraw by design. Non-blocking; the app allows negatives.
+// Soft warning when a loan payment would overdraw the source. Only flags a positive
+// balance going negative – credit lines already in the red overdraw by design. Non-blocking.
 const wouldOverdrawLoanSource = computed(() => {
   if (!isLoanDestination.value) return false;
   const account = form.value.account;
@@ -451,13 +468,11 @@ const wouldOverdrawLoanSource = computed(() => {
   return account.currentBalance >= 0 && amount > account.currentBalance;
 });
 
-// Loans list is already fetched by the Loans page and cached; this call reuses
-// the TanStack Query cache so no extra network request fires when the dialog opens.
+// Reuses the Loans page's TanStack Query cache – no extra request fires when the dialog opens.
 const { data: loansData } = useLoans();
 
-// Informational hint: the transaction date is before the destination loan's
-// balance anchor date, so this payment is already baked into the loan's opening
-// snapshot and won't adjust the outstanding balance.
+// Hint: tx date is before the loan's balance anchor date, so this payment is already
+// baked into the opening snapshot and won't adjust the outstanding balance.
 const isPreAnchorLoanPayment = computed(() => {
   if (!isLoanDestination.value) return false;
   const toAccountId = form.value.toAccount?.id;
@@ -470,10 +485,8 @@ const isPreAnchorLoanPayment = computed(() => {
   return txDate < anchorDate;
 });
 
-// Pre-fill the loan-currency target from the live exchange rate so a cross-
-// currency loan payment defaults to the converted amount instead of an
-// accidentally mismatched one. Re-runs on each Amount blur; a hand-typed target
-// survives until Amount changes again.
+// Pre-fills the loan-currency target from the live rate so cross-currency payments
+// default to the converted amount. Reruns on each Amount blur; a hand-typed value survives.
 const prefillLoanTargetAmount = () => {
   if (!isLoanDestination.value || !isCurrenciesDifferent.value) return;
   if (form.value.amount == null) return;
@@ -490,7 +503,8 @@ watch(transferDestinationType, (type, prev) => {
     form.value.toAccount = null;
     return;
   }
-  // Auto-pick the first loan when switching to the 'loan' destination unless one is already selected (edit-mode prepopulation runs before this watch); clear toAccount on exit so a loan selection doesn't leak into the account picker.
+  // Auto-pick first loan on switch to 'loan' unless already selected (edit prepop runs first).
+  // Clear toAccount on exit so a loan selection doesn't leak into the account picker.
   form.value.toPortfolio = null;
   if (type === 'loan' && prev !== 'loan') {
     if (form.value.toAccount?.accountCategory !== ACCOUNT_CATEGORIES.loan) {
@@ -581,8 +595,7 @@ const isTargetAmountRequired = computed(
 // resolves through `rules.value.form.amount` instead of failing on a nested
 // ComputedRef and silently dropping the error message.
 const validationRules = computed(() => {
-  // Cross-currency loan payments apply the user-entered loan-side amount
-  // (targetAmount); same-currency ones apply Amount directly (no target field).
+  // Cross-currency loan payments validate targetAmount; same-currency ones validate Amount directly.
   const loanOverpayRule = helpers.withMessage(
     () =>
       t('loans.detail.payment.overpayError', {
@@ -630,8 +643,7 @@ const onAmountBlur = () => {
   prefillLoanTargetAmount();
 };
 
-// Rates load async (placeholder data first); fill the loan target once they
-// arrive, but only while it's still empty so a manual entry isn't clobbered.
+// Rates load async – fill the loan target once they arrive, but only if still empty so a manual entry isn't clobbered.
 watch(exchangeRates, () => {
   if (form.value.targetAmount != null) return;
   prefillLoanTargetAmount();
@@ -711,7 +723,7 @@ const prepopulateIfReady = () => {
     formattedCategories: effectiveFormattedCategories.value,
   });
   if (data) form.value = data;
-  // Edit fallback: if the opposite leg couldn't be resolved, surface a loan-destination tx under the Loan pill so the picker matches the row.
+  // Edit fallback: when the resolved opposite leg is a loan account, switch the picker to the Loan pill so it matches the row.
   if (data?.toAccount?.accountCategory === ACCOUNT_CATEGORIES.loan) {
     transferDestinationType.value = 'loan';
   }
@@ -959,9 +971,8 @@ onUnmounted(() => {
 
           <!-- Transfer linking on accounts shared *with* the caller isn't supported by
                the backend yet – hide the linker for recipients rather than letting
-               them trigger a confusing server error. Loan payments are a single-
-               purpose path (one source → one loan) and never link two pre-existing
-               legs, so the section is irrelevant there. -->
+               them trigger a confusing server error. Loan payments never link two
+               pre-existing legs (single source → one loan), so it's irrelevant here. -->
           <LinkTransactionSection
             v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
             v-model:linked-transaction="linkedTransaction"

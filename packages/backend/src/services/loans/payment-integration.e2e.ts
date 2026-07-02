@@ -1,4 +1,10 @@
-import { API_ERROR_CODES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type RecordId } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  API_ERROR_CODES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  type RecordId,
+} from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
@@ -106,10 +112,9 @@ describe('Loan payment integration', () => {
     });
 
     it('auto-stamps transfer_to_loan when a common_transfer-labeled transfer targets a loan account', async () => {
-      // The loan treatment keys off the destination account's category, not
-      // the caller's label — otherwise a common_transfer into a loan would
-      // mutate the balance while staying invisible to the loan's payment
-      // list, the delete guards, and the overpay validation.
+      // Loan treatment keys off the destination account's category, not the caller's label —
+      // otherwise a common_transfer into a loan would mutate the balance while staying
+      // invisible to the loan's payment list, delete guards, and overpay validation.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           initialBalance: 1_000,
@@ -251,8 +256,7 @@ describe('Loan payment integration', () => {
       const { expenseLeg } = await setupLoanPaymentPair({ initialBalance: 2_500, amount: 500 });
       const regularAccount = await helpers.createAccount({ raw: true });
 
-      // Nature is omitted — the pair stays transfer_to_loan, so the destination
-      // must remain a loan-category account.
+      // Nature omitted — pair stays transfer_to_loan, so destination must remain a loan-category account.
       const response = await helpers.updateTransaction({
         id: expenseLeg.id,
         payload: {
@@ -268,10 +272,9 @@ describe('Loan payment integration', () => {
     });
 
     it('rejects unlinking a loan payment because it would orphan the loan-side leg', async () => {
-      // Unlinking sets the loan-side income leg to not_transfer, leaving a
-      // standalone transaction on the loan account — which the loan-account
-      // write guard forbids. The supported way to undo a payment is to delete
-      // it (which restores the balance), not to unlink it.
+      // Unlinking sets the loan-side income leg to not_transfer, leaving a standalone
+      // transaction on the loan account — forbidden by the write guard. Deleting the
+      // payment (which restores the balance) is the only supported undo.
       const { loan, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 2_500, amount: 500 });
 
       const response = await helpers.updateTransaction({
@@ -283,7 +286,6 @@ describe('Loan payment integration', () => {
       const errorBody = extractError(response);
       expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
 
-      // The payment is untouched: the balance still reflects the $500 payment.
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(-2_000);
     });
@@ -421,10 +423,9 @@ describe('Loan payment integration', () => {
     });
 
     it('rejects re-pointing a payment to a different loan it would overpay', async () => {
-      // Regression: the guard must project against the NEW loan's balance
-      // without backing out the old leg (which never touched that loan) —
-      // otherwise a $500 payment re-pointed onto a $100 loan slips through
-      // and drives it into credit.
+      // The overpay guard must project against the NEW loan's balance without backing out
+      // the old leg (which never touched that loan) — otherwise a $500 payment re-pointed
+      // onto a $100 loan would slip through and drive it into credit.
       const { loan, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 500 });
       const smallLoan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
@@ -450,8 +451,7 @@ describe('Loan payment integration', () => {
     });
 
     it('runs the overpay guard when only destinationAccountId changes (amount omitted)', async () => {
-      // Regression: a PATCH that re-points the destination but keeps the
-      // amount must not skip balance validation.
+      // A PATCH that re-points the destination but keeps the amount must still run balance validation.
       const { expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 500 });
       const smallLoan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
@@ -516,10 +516,8 @@ describe('Loan payment integration', () => {
     });
 
     it('rejects POST overpay when source account currency differs from the loan currency', async () => {
-      // Loan in USD owes $1,000. Source account in UAH. Even though the
-      // source-side amount is in UAH, the overpay check must compare
-      // destinationAmount (loan currency, USD) against the loan's owed
-      // balance. $2,000 destination overshoots regardless of UAH amount.
+      // Loan in USD owes $1,000; source account is UAH. Overpay check must compare
+      // destinationAmount (loan currency, USD), not the UAH source amount, against the owed balance.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           initialBalance: 1_000,
@@ -552,10 +550,9 @@ describe('Loan payment integration', () => {
     });
 
     it('blocks two concurrent POSTs from together overpaying the loan', async () => {
-      // Loan owes $1,000. Two concurrent $700 payments each pass the
-      // individual overpay check (1000 - 700 = 300 still owed) — but applied
-      // together they would push the loan to +$400. Row-level locking on the
-      // loan account must force them to serialize so exactly one succeeds.
+      // Two concurrent $700 payments each individually pass the overpay check (1000 − 700 =
+      // 300 owed), but together would push the loan to +$400. Row-level locking on the loan
+      // account must serialize them so exactly one succeeds.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           initialBalance: 1_000,
@@ -585,6 +582,146 @@ describe('Loan payment integration', () => {
 
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(-300);
+    });
+  });
+
+  describe('PUT /transactions/:id targeting the loan-side income leg', () => {
+    it('rejects a direct amount edit of the loan-side income leg', async () => {
+      // The income leg is system-managed: a direct amount edit would move the
+      // loan balance without passing the overpay assertion (the destination
+      // fields the source-leg edit path keys on are absent from the payload).
+      const { loan, base, opposite, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 300 });
+      const incomeLeg = base.id === expenseLeg.id ? opposite : base;
+
+      const response = await helpers.updateTransaction({
+        id: incomeLeg.id,
+        payload: { amount: 1_500 },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-700);
+    });
+
+    it('rejects any edit of the loan-side income leg (payments are edited via the expense leg)', async () => {
+      // Even a "harmless" note edit is rejected: routing an income-leg edit
+      // through the transfer-update machinery would restamp the opposite
+      // (cash) leg's transactionType, corrupting the cash account balance.
+      const { base, opposite, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 300 });
+      const incomeLeg = base.id === expenseLeg.id ? opposite : base;
+
+      const response = await helpers.updateTransaction({
+        id: incomeLeg.id,
+        payload: { note: 'edited from the loan side' },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+    });
+  });
+
+  describe('moving the expense leg onto the loan account', () => {
+    it('rejects re-pointing the loan-payment expense leg accountId to the loan account itself', async () => {
+      // An expense leg on the loan account is a semantically impossible shape:
+      // the balance recompute sums only income legs, so the expense would move
+      // the account's history while staying invisible to the loan machinery.
+      const { loan, sourceAccount, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 300 });
+
+      const response = await helpers.updateTransaction({
+        id: expenseLeg.id,
+        payload: { accountId: loan.id as RecordId },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+
+      // The expense leg stays on the cash account; the loan balance is untouched.
+      const reloadedLeg = await helpers.getTransactionById({ id: expenseLeg.id, raw: true });
+      expect(reloadedLeg!.accountId).toBe(sourceAccount.id);
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-700);
+    });
+  });
+
+  describe('loan-category accounts without a LoanDetails sidecar stay unrestricted', () => {
+    // Accounts created with the plain accounts endpoint (or migrated legacy
+    // mortgages) carry accountCategory='loan' but no LoanDetails row — no
+    // managed balance, no recompute, so none of the loan write guards apply.
+    const createBareLoanAccount = () =>
+      helpers.createAccount({
+        payload: helpers.buildAccountPayload({ accountCategory: ACCOUNT_CATEGORIES.loan }),
+        raw: true,
+      });
+
+    it('accepts plain income and expense transactions on a sidecar-less loan-category account', async () => {
+      const bareLoanAccount = await createBareLoanAccount();
+
+      const expenseResponse = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: bareLoanAccount.id,
+          amount: 500,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+      });
+      expect(expenseResponse.statusCode).toBe(200);
+
+      const incomeResponse = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: bareLoanAccount.id,
+          amount: 200,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+      });
+      expect(incomeResponse.statusCode).toBe(200);
+    });
+
+    it('accepts editing an existing transaction on a sidecar-less loan-category account', async () => {
+      const bareLoanAccount = await createBareLoanAccount();
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: bareLoanAccount.id,
+          amount: 500,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const response = await helpers.updateTransaction({
+        id: tx.id,
+        payload: { amount: 700 },
+      });
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('does not apply the overpay guard to a transfer into a sidecar-less loan-category account', async () => {
+      // The account has a zero balance, so any payment would be an overpay on
+      // a managed loan — but with no sidecar there is no owed amount to guard.
+      const bareLoanAccount = await createBareLoanAccount();
+      const cashAccount = await helpers.createAccount({ raw: true });
+
+      const [base, opposite] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: cashAccount.id,
+            amount: 500,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: 500,
+          destinationAccountId: bareLoanAccount.id as RecordId,
+        },
+        raw: true,
+      });
+
+      // The transfer still gets the loan stamp (keyed off the account category),
+      // it just skips the managed-balance enforcement.
+      expect(base.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+      expect(opposite!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
     });
   });
 
@@ -622,9 +759,9 @@ describe('Loan payment integration', () => {
 
   describe('Loan accounts reject direct writes outside the transfer_to_loan flow', () => {
     it('rejects a plain income transaction posted directly onto a loan account', async () => {
-      // A loan balance may only move through the validated transfer_to_loan
-      // flow. A standalone income leg would bump it (here toward credit) with
-      // no overpay check and no payment record the loan guards can see.
+      // A loan balance may only move through the validated transfer_to_loan flow — a
+      // standalone income leg would bump it (toward credit here) with no overpay check
+      // and no payment record the loan guards can see.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           initialBalance: 1_000,
@@ -651,8 +788,7 @@ describe('Loan payment integration', () => {
     });
 
     it('rejects a plain expense transaction posted directly onto a loan account', async () => {
-      // The mirror hole: a standalone expense leg drives the loan deeper into
-      // debt, again skipping the payment flow and its audit trail.
+      // A standalone expense leg drives the loan deeper into debt, skipping the payment flow and its audit trail.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           initialBalance: 1_000,
@@ -679,9 +815,8 @@ describe('Loan payment integration', () => {
     });
 
     it('rejects a common_transfer that uses the loan account as the transfer source', async () => {
-      // With the loan as the source, the expense leg lands on the loan but is
-      // labeled common_transfer — so it moves the balance yet stays invisible
-      // to the loan/account delete guards that only recognise transfer_to_loan.
+      // With the loan as source, the expense leg lands on the loan labeled common_transfer —
+      // it moves the balance yet stays invisible to delete guards that only recognise transfer_to_loan.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           initialBalance: 1_000,
@@ -712,9 +847,8 @@ describe('Loan payment integration', () => {
     });
 
     it('still accepts a legitimate transfer_to_loan payment from a cash account into the loan', async () => {
-      // Regression: the readonly guard must let the only sanctioned write
-      // through — the income leg of a transfer_to_loan payment — and move the
-      // loan balance toward zero. This passes before and after the guard ships.
+      // The readonly guard must still let the one sanctioned write through — the income leg
+      // of a transfer_to_loan payment — and move the balance toward zero.
       const { loan } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 400 });
 
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
@@ -724,9 +858,9 @@ describe('Loan payment integration', () => {
 
   describe('rejects an income base for a loan payment', () => {
     it('rejects a transfer_to_loan whose base transaction is income', async () => {
-      // A loan payment is an outflow: the base leg must be the expense that
-      // leaves the user's cash account. An income base would invert both legs,
-      // stamping the loan with an expense leg that grows the debt.
+      // A loan payment is an outflow — the base leg must be the expense leaving the user's
+      // cash account. An income base would invert both legs, stamping the loan with an
+      // expense leg that grows the debt.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({ initialBalance: 1_000, originalPrincipal: 1_000 }),
         raw: true,
@@ -755,9 +889,8 @@ describe('Loan payment integration', () => {
     });
 
     it('rejects an income base even when labeled common_transfer (the loan auto-stamp path)', async () => {
-      // A common_transfer into a loan account is auto-stamped transfer_to_loan,
-      // so the income guard keys off the loan destination — not the label — to
-      // catch this otherwise-bypassing case.
+      // A common_transfer into a loan is auto-stamped transfer_to_loan, so the income guard
+      // keys off the loan destination, not the label, to catch this bypass.
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({ initialBalance: 1_000, originalPrincipal: 1_000 }),
         raw: true,
