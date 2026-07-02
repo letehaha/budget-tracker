@@ -75,12 +75,24 @@ router.get(
   getPortfolioSummaryController.handler,
 );
 
-router.put(
-  '/portfolios/:id/balance',
-  checkBaseCurrencyLock,
-  validateEndpoint(updatePortfolioBalanceController.schema),
-  updatePortfolioBalanceController.handler,
-);
+// Test-only cash seeding: writes `PortfolioBalances` directly, bypassing the
+// InvestmentTransaction/PortfolioTransfers audit trail. Production cash moves
+// through transfers and cash-transactions instead, so this stays off there.
+// "development" is required: Playwright frontend e2e run against the dev backend.
+// ENABLE_TEST_SEEDING_ENDPOINTS covers the preview environment: it runs with
+// NODE_ENV=production yet hosts the Playwright e2e suite that seeds via this route.
+if (
+  process.env.NODE_ENV === 'test' ||
+  process.env.NODE_ENV === 'development' ||
+  process.env.ENABLE_TEST_SEEDING_ENDPOINTS === 'true'
+) {
+  router.put(
+    '/portfolios/:id/balance',
+    checkBaseCurrencyLock,
+    validateEndpoint(updatePortfolioBalanceController.schema),
+    updatePortfolioBalanceController.handler,
+  );
+}
 
 router.post(
   '/portfolios/:id/cash-transaction',

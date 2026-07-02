@@ -1,0 +1,388 @@
+import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
+import { Money } from '@common/types/money';
+import { logger } from '@js/utils';
+import ExchangeRates from '@models/exchange-rates.model';
+import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import PortfolioBalances from '@models/investments/portfolio-balances.model';
+import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
+import Portfolios from '@models/investments/portfolios.model';
+import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
+import UserExchangeRates from '@models/user-exchange-rates.model';
+import UsersCurrencies from '@models/users-currencies.model';
+import { withTransaction } from '@services/common/with-transaction';
+import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
+import { buildUsdRateLookup } from '@services/stats/build-usd-rate-lookup';
+import { calculateVehiclesBalanceHistory } from '@services/stats/calculate-vehicles-balance-history';
+import { calculateVentureBalanceHistory } from '@services/stats/calculate-venture-balance-history';
+import { getAggregatedBalanceHistory } from '@services/stats/get-balance-history';
+import { getCreditLimitAdjustment } from '@services/stats/get-credit-limit-adjustment';
+import { eachDayOfInterval, endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
+import { Op } from 'sequelize';
+
+import { resolveOldestEventDate } from './date-range';
+import { buildUserRatesMap, createFindLatestUsdRate, createGetExchangeRate } from './exchange-rate-lookup';
+import { computeHoldingsValueByDate } from './holdings-replay';
+import { accumulateCashDeltas, computePortfolioCashByDate } from './portfolio-cash-replay';
+import { buildPriceLookup, createFindPriceForDate } from './security-price-lookup';
+import type { CombinedBalanceHistoryItem, CurrentBalanceRow, SecurityRow, TransactionRow, TransferRow } from './types';
+
+export type { CombinedBalanceHistoryItem } from './types';
+
+/**
+ * Portfolio slice of the combined history. Runs independently of the accounts
+ * balance calculation; the orchestrator merges the per-date values back in.
+ */
+const calculatePortfolioBalanceHistory = async ({
+  userId,
+  minDate,
+  maxDate,
+  uniqueDates,
+  userBaseCurrencyPromise,
+}: {
+  userId: number;
+  minDate: string;
+  maxDate: string;
+  uniqueDates: string[];
+  userBaseCurrencyPromise: Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
+}): Promise<Map<string, number> | null> => {
+  const [userBaseCurrency, portfolios] = await Promise.all([
+    userBaseCurrencyPromise,
+    Portfolios.findAll({
+      where: { userId, isEnabled: true },
+      attributes: ['id'],
+      raw: true,
+    }),
+  ]);
+
+  if (!userBaseCurrency?.currencyCode || portfolios.length === 0) {
+    return null;
+  }
+
+  const portfolioIds = portfolios.map((p: { id: string }) => p.id);
+
+  // Fetch cash rows through end-of-TODAY even when the window ends earlier:
+  // `computePortfolioCashByDate` anchors on current stored cash and needs
+  // every delta through today (see its doc) — otherwise post-window deltas
+  // smear a constant offset across every historical day.
+  const todayKey = format(new Date(), 'yyyy-MM-dd');
+  const cashFetchMaxDate = maxDate > todayKey ? maxDate : todayKey;
+
+  const [transactions, portfolioTransfers, currentBalances]: [TransactionRow[], TransferRow[], CurrentBalanceRow[]] =
+    await Promise.all([
+      InvestmentTransaction.findAll({
+        where: {
+          portfolioId: { [Op.in]: portfolioIds },
+          // `date` is TIMESTAMPTZ; end-of-day bound keeps the final day's intraday trades.
+          date: { [Op.lte]: `${cashFetchMaxDate}T23:59:59.999Z` },
+        },
+        order: [
+          ['portfolioId', 'ASC'],
+          ['date', 'ASC'],
+          ['createdAt', 'ASC'],
+        ],
+        attributes: [
+          'portfolioId',
+          'securityId',
+          'category',
+          'date',
+          'quantity',
+          'refAmount',
+          'refFees',
+          'currencyCode',
+          'settlementAmount',
+          'settlementCurrencyCode',
+        ],
+      }),
+      // Cash that settled inside a portfolio (deposits/withdrawals, account↔portfolio
+      // transfers, portfolio↔portfolio moves, in-portfolio FX) is recorded here.
+      // `date` is DATEONLY, so a `yyyy-MM-dd` upper bound compares as a plain string.
+      // No lower bound: pre-window rows seed the opening cash balance in
+      // `computePortfolioCashByDate`.
+      PortfolioTransfers.findAll({
+        where: {
+          userId,
+          date: { [Op.lte]: cashFetchMaxDate },
+          [Op.or]: [{ fromPortfolioId: { [Op.in]: portfolioIds } }, { toPortfolioId: { [Op.in]: portfolioIds } }],
+        },
+        attributes: [
+          'fromPortfolioId',
+          'toPortfolioId',
+          'amount',
+          'currencyCode',
+          'toCurrencyCode',
+          'toAmount',
+          'date',
+        ],
+      }),
+      // Stored cash position per portfolio/currency. Anchors the replay so
+      // writers that bypass InvestmentTransaction/PortfolioTransfers — importer
+      // cash seeds, the test/dev-only `PUT /portfolios/:id/balance` — still
+      // surface in the chart.
+      PortfolioBalances.findAll({
+        where: { portfolioId: { [Op.in]: portfolioIds } },
+        attributes: ['portfolioId', 'currencyCode', 'totalCash', 'refTotalCash'],
+      }),
+    ]);
+
+  // A user with portfolios but no trades, transfers, or stored cash has nothing to chart.
+  if (transactions.length === 0 && portfolioTransfers.length === 0 && currentBalances.length === 0) {
+    return null;
+  }
+
+  const securityIds = [...new Set(transactions.map((t) => t.securityId))];
+
+  // Look up securities to get the *security's* native currency and asset class.
+  // Transactions store the cash-leg currency (often the brokerage's settlement
+  // currency, e.g. USD for an ASML.AS purchase), which is NOT the right currency
+  // for converting market value — prices are in the security's native currency.
+  const securities: SecurityRow[] = await Securities.findAll({
+    where: { id: { [Op.in]: securityIds } },
+    attributes: ['id', 'currencyCode', 'assetClass'],
+    raw: true,
+  });
+  const securitiesById = new Map(securities.map((s) => [s.id, s]));
+
+  // Every currency needing a base-conversion rate: security currencies plus
+  // cash-leg currencies of transactions, transfers, and stored balances (a
+  // direct-write seeded currency may have no tx/transfer row). Missing one
+  // here means the USD-pivot loader skips it and it silently converts 1:1.
+  const cashCurrencyCodes: string[] = [];
+  for (const tx of transactions) cashCurrencyCodes.push(tx.settlementCurrencyCode);
+  for (const tr of portfolioTransfers) {
+    cashCurrencyCodes.push(tr.currencyCode);
+    if (tr.toCurrencyCode) cashCurrencyCodes.push(tr.toCurrencyCode);
+  }
+  for (const b of currentBalances) cashCurrencyCodes.push(b.currencyCode);
+  const currencyCodes = [...new Set([...securities.map((s) => s.currencyCode), ...cashCurrencyCodes])];
+
+  // Fetch starting 7 days before minDate to ensure fallback lookups have prior
+  // trading-day data available for weekends/holidays.
+  const dataFetchMinDate = format(subDays(parseISO(minDate), 7), 'yyyy-MM-dd');
+
+  // Currencies we need a `USD → X` rate for: every cash/security currency PLUS
+  // the user's base currency (used as the numerator in the cross-rate). USD
+  // itself is excluded because `findLatestUsdRate` short-circuits to 1 for it.
+  const usdRateQuoteCodes = [...new Set([userBaseCurrency.currencyCode, ...currencyCodes])].filter(
+    (code) => code !== API_LAYER_BASE_CURRENCY_CODE,
+  );
+
+  const [securityPrices, userCustomExchangeRates, systemExchangeRates] = await Promise.all([
+    SecurityPricing.findAll({
+      where: {
+        securityId: { [Op.in]: securityIds },
+        // `date` is TIMESTAMPTZ; end-of-day bound keeps the final day's intraday rows.
+        date: { [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(maxDate))] },
+      },
+      order: [
+        ['securityId', 'ASC'],
+        ['date', 'ASC'],
+      ],
+      attributes: ['securityId', 'date', 'priceClose'],
+    }),
+    UserExchangeRates.findAll({
+      where: {
+        userId,
+        baseCode: { [Op.in]: currencyCodes },
+        quoteCode: userBaseCurrency.currencyCode,
+        date: { [Op.between]: [dataFetchMinDate, maxDate] },
+      },
+      attributes: ['baseCode', 'quoteCode', 'date', 'rate'],
+      raw: true,
+    }),
+    // System rates are stored only canonically: `baseCode = USD, quoteCode = X`
+    // (1 USD = N X). Fetch that direction for every needed currency plus the
+    // user's base; `createGetExchangeRate` computes the cross-rate (see its
+    // doc for the sync constraint with the main FX service).
+    ExchangeRates.findAll({
+      where: {
+        baseCode: API_LAYER_BASE_CURRENCY_CODE,
+        quoteCode: { [Op.in]: usdRateQuoteCodes },
+        date: { [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(maxDate))] },
+      },
+      order: [
+        ['quoteCode', 'ASC'],
+        ['date', 'ASC'],
+      ],
+      raw: true,
+    }),
+  ]);
+
+  const priceLookup = buildPriceLookup(securityPrices);
+  const findPriceForDate = createFindPriceForDate(priceLookup);
+
+  const userRatesMap = buildUserRatesMap(userCustomExchangeRates);
+
+  // The lookup is seeded with one rate from before the window so a currency
+  // whose latest stored rate predates the chart range still resolves instead
+  // of collapsing to 1:1.
+  const { usdRatesMap, usdRateDatesByQuote } = await buildUsdRateLookup({
+    systemRates: systemExchangeRates,
+    quoteCodes: usdRateQuoteCodes,
+    windowStart: dataFetchMinDate,
+  });
+
+  const missingRateCurrencies = new Set<string>();
+  const findLatestUsdRate = createFindLatestUsdRate({ usdRatesMap, usdRateDatesByQuote });
+  const getExchangeRate = createGetExchangeRate({
+    userBaseCurrencyCode: userBaseCurrency.currencyCode,
+    userRatesMap,
+    findLatestUsdRate,
+    onMissingRate: (code) => missingRateCurrencies.add(code),
+  });
+
+  const transactionsByPortfolio = Map.groupBy(transactions, (tx) => tx.portfolioId);
+
+  // Holdings give securities market value; portfolio cash (deposits, sale/dividend
+  // proceeds, transfers, in-portfolio FX) lives in `PortfolioBalances` and must
+  // be added so the trend matches the portfolio detail page (`getPortfolioSummary`
+  // = holdings + cash).
+  const cashDeltaByCurrencyDay = accumulateCashDeltas({
+    transactions,
+    portfolioTransfers,
+    portfolioIdSet: new Set(portfolioIds),
+  });
+
+  const cashInBaseByDate = computePortfolioCashByDate({
+    cashDeltaByCurrencyDay,
+    currentBalances,
+    uniqueDates,
+    maxDate,
+    getExchangeRate,
+    // Same key the cash-row fetch was bounded with — avoids a midnight-boundary disagreement mid-request.
+    todayKey,
+  });
+
+  const holdingsValueByDate = computeHoldingsValueByDate({
+    uniqueDates,
+    portfolioIds,
+    transactionsByPortfolio,
+    securitiesById,
+    findPriceForDate,
+    getExchangeRate,
+  });
+
+  const portfolioValuesByDate = new Map<string, number>();
+  for (const dateStr of uniqueDates) {
+    const holdingsForDate = holdingsValueByDate.get(dateStr) ?? 0;
+    const cashForDate = cashInBaseByDate.get(dateStr) ?? 0;
+    portfolioValuesByDate.set(dateStr, Money.fromDecimal(holdingsForDate + cashForDate).toCents());
+  }
+
+  // Error (not warn) so the fallback reaches Sentry: silent 1:1 conversion is
+  // a known production failure mode (MONEY-MATTER-BACKEND-7B). Aggregated to
+  // one log per request rather than one per lookup.
+  if (missingRateCurrencies.size > 0) {
+    logger.error('Exchange rate fallback to 1:1', {
+      userId,
+      baseCurrency: userBaseCurrency.currencyCode,
+      currencies: Array.from(missingRateCurrencies),
+      dateRange: { from: minDate, to: maxDate },
+    });
+  }
+
+  return portfolioValuesByDate;
+};
+
+/**
+ * Daily balance snapshots (accounts, portfolios, ventures, vehicles, total)
+ * for a user within an inclusive `yyyy-MM-dd` date range. Portfolio values
+ * are replayed from transaction history against daily prices. When `from` is
+ * omitted the window extends back to the oldest recorded event
+ * (`resolveOldestEventDate`).
+ */
+export const getCombinedBalanceHistory = async ({
+  userId,
+  from,
+  to,
+  includeCreditLimit = false,
+}: {
+  userId: number;
+  from?: string;
+  to?: string;
+  includeCreditLimit?: boolean;
+}): Promise<CombinedBalanceHistoryItem[]> => {
+  try {
+    const maxDate = to || format(new Date(), 'yyyy-MM-dd');
+    const minDate = from ?? (await resolveOldestEventDate({ userId, fallback: maxDate }));
+
+    const uniqueDates = eachDayOfInterval({
+      start: parseISO(minDate),
+      end: parseISO(maxDate),
+    }).map((date) => format(date, 'yyyy-MM-dd'));
+
+    // Shared by every sub-calculator that converts to base currency — fetch once.
+    const userBaseCurrencyPromise = UsersCurrencies.findOne({
+      where: { userId, isDefaultCurrency: true },
+      raw: true,
+      attributes: ['currencyCode'],
+    }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
+
+    // Run the accounts/vehicles split as two filtered aggregations. Both hit
+    // the same Balances rows but with different category filters — cheaper than
+    // one big query partitioned in memory, and keeps `aggregateBalanceTrendData`'s
+    // forward-fill semantics correct per partition (otherwise vehicles' anchor
+    // dates would forward-fill into the cash-accounts series and vice versa).
+    //
+    // Each call is wrapped in its own transaction to pin one Postgres
+    // connection for the call's lifetime instead of acquiring/releasing per
+    // query — reduces pool churn under the 5-way parallel fan-out.
+    const [accountsBalanceHistory, vehicleValuesByDate, portfolioValuesByDate, ventureValuesByDate, creditLimitSum] =
+      await Promise.all([
+        withTransaction(() =>
+          getAggregatedBalanceHistory({
+            userId,
+            from: minDate,
+            to: maxDate,
+            categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle] },
+          }),
+        )(),
+        withTransaction(() =>
+          calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        )(),
+        withTransaction(() =>
+          calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        )(),
+        withTransaction(() =>
+          calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        )(),
+        includeCreditLimit ? withTransaction(() => getCreditLimitAdjustment({ userId }))() : Promise.resolve(0),
+      ]);
+
+    if (
+      (!accountsBalanceHistory || accountsBalanceHistory.length === 0) &&
+      (!vehicleValuesByDate || vehicleValuesByDate.size === 0) &&
+      (!portfolioValuesByDate || portfolioValuesByDate.size === 0) &&
+      (!ventureValuesByDate || ventureValuesByDate.size === 0)
+    ) {
+      return [];
+    }
+
+    // Build Maps for O(1) lookup instead of O(n) find on each merge cell.
+    const accountsBalanceByDate = new Map<string, number>();
+    for (const item of accountsBalanceHistory) {
+      accountsBalanceByDate.set(item.date, item.amount);
+    }
+
+    const combinedHistory: CombinedBalanceHistoryItem[] = uniqueDates.map((dateStr) => {
+      const accountsBalance = (accountsBalanceByDate.get(dateStr) ?? 0) - creditLimitSum;
+      const vehiclesBalance = vehicleValuesByDate?.get(dateStr) ?? 0;
+      const portfoliosBalance = portfolioValuesByDate?.get(dateStr) ?? 0;
+      const venturesBalance = ventureValuesByDate?.get(dateStr) ?? 0;
+
+      return {
+        date: dateStr,
+        accountsBalance,
+        portfoliosBalance,
+        venturesBalance,
+        vehiclesBalance,
+        totalBalance: accountsBalance + portfoliosBalance + venturesBalance + vehiclesBalance,
+      };
+    });
+
+    return combinedHistory;
+  } catch (err) {
+    console.error('Error getting optimized combined balance history:', err);
+    throw err;
+  }
+};

@@ -19,7 +19,7 @@ const githubCache = new CacheClient<GitHubActivityData>({
 const CACHE_KEY = 'github:activity';
 
 async function fetchGitHubActivity(): Promise<GitHubActivityData | null> {
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     Accept: 'application/vnd.github.v3+json',
     'User-Agent': 'MoneyMatter-App',
   };
