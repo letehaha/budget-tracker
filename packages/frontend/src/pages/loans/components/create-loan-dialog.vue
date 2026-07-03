@@ -24,9 +24,9 @@ const isOpen = ref(false);
 const handleSubmit = async (payload: CreateLoanPayload | UpdateLoanPayload) => {
   try {
     const loan = await createLoanMutation.mutateAsync(payload as CreateLoanPayload);
-    addNotification({ text: t('forms.loan.notifications.success'), type: NotificationType.success });
-    isOpen.value = false;
+    // Don't bother with closing dialog, navigating out will do it
     await router.push({ name: ROUTES_NAMES.loanDetail, params: { id: loan.id } });
+    addNotification({ text: t('forms.loan.notifications.success'), type: NotificationType.success });
   } catch (error) {
     addNotification({ text: t('forms.loan.notifications.error'), type: NotificationType.error });
     captureException({ error, context: { source: 'createLoanDialog' } });
