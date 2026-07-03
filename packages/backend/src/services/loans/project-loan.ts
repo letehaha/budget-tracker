@@ -15,7 +15,10 @@ export function projectLoan({
   account: Accounts;
   today: Date;
 }): LoanProjection {
-  const currentBalanceCents = Math.abs(account.currentBalance.toCents());
+  // The stored balance is negative (liability) and floored at zero upstream, so
+  // negating yields the positive outstanding the projection wants. Floor at zero
+  // rather than abs: abs would render a stray credit as an equal amount of debt.
+  const currentBalanceCents = Math.max(0, -account.currentBalance.toCents());
   const plannedPaymentMoney = loanDetails.plannedPayment;
 
   return computeLoanProjection({

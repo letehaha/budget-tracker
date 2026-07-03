@@ -72,8 +72,14 @@ const recomputeLoanBalanceImpl = async ({
     refCentsByDay.set(legDay, (refCentsByDay.get(legDay) ?? 0) + leg.refAmount.toCents());
   }
 
-  const newCurrentBalance = account.initialBalance.add(Money.fromCents(sumCents));
-  const newRefCurrentBalance = account.refInitialBalance.add(Money.fromCents(sumRefCents));
+  // Loan balances are stored negative (liability); income legs add toward zero.
+  // A batch that overshoots the owed amount would push the balance positive
+  // (credit), but a loan never carries credit — the outstanding balance is
+  // floored at zero and the excess stays only on the cash-account expense legs.
+  const rawCurrentBalance = account.initialBalance.add(Money.fromCents(sumCents));
+  const rawRefCurrentBalance = account.refInitialBalance.add(Money.fromCents(sumRefCents));
+  const newCurrentBalance = rawCurrentBalance.isPositive() ? Money.zero() : rawCurrentBalance;
+  const newRefCurrentBalance = rawRefCurrentBalance.isPositive() ? Money.zero() : rawRefCurrentBalance;
 
   if (!newCurrentBalance.equals(account.currentBalance) || !newRefCurrentBalance.equals(account.refCurrentBalance)) {
     await Accounts.update(
@@ -101,6 +107,9 @@ const recomputeLoanBalanceImpl = async ({
   }
   for (const day of [...refCentsByDay.keys()].toSorted((a, b) => a - b)) {
     runningRefBalance = runningRefBalance.add(Money.fromCents(refCentsByDay.get(day)!));
+    // Floor each history row at zero for the same reason as the current balance:
+    // a paid-off loan's last row sits at 0, never in credit.
+    if (runningRefBalance.isPositive()) runningRefBalance = Money.zero();
     rebuiltRows.push({ date: new Date(day), refBalance: runningRefBalance });
   }
 

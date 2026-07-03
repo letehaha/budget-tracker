@@ -188,7 +188,7 @@ describe('POST /loans/:id/link-payments', () => {
       expect(txs.filter((tx) => tx.accountId === loan.id).length).toBe(0);
     });
 
-    it('links an overpaying batch when confirmOverpay is set', async () => {
+    it('caps an overpaying batch at zero and marks the loan paid off, never crediting the excess', async () => {
       const loan = await createLoan({ initialBalance: 1_000 });
       const source = await helpers.createAccount({ raw: true });
       const first = await createExpense({ accountId: source.id as RecordId, amount: 800 });
@@ -203,9 +203,24 @@ describe('POST /loans/:id/link-payments', () => {
 
       expect(result.linkedCount).toBe(2);
 
-      // Loan owed 1,000; 1,500 linked → 500 overpaid (positive balance).
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloaded.currentBalance).toBe(500);
+
+      // Loan owed 1,000; 1,500 linked. The outstanding balance floors at zero —
+      // the 500 excess is never credited back to the loan.
+      expect(reloaded.currentBalance).toBe(0);
+
+      // The owing → settled transition stamps exactly one paid_off event.
+      const paidOffEvents = reloaded.loanDetails.events.filter((e) => e.type === 'paid_off');
+      expect(paidOffEvents).toHaveLength(1);
+
+      // Reads report a settled loan with no phantom credit (never over 100% paid).
+      expect(reloaded.projection.isPaidOff).toBe(true);
+      expect(reloaded.projection.paidToDatePercent).toBe(100);
+
+      // The excess stays on the cash-account expense legs: both link as payments.
+      const txs = await helpers.getTransactions({ raw: true });
+      const loanLegs = txs.filter((tx) => tx.accountId === loan.id);
+      expect(loanLegs.length).toBe(2);
     });
   });
 
