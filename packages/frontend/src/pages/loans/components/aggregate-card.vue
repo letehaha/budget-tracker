@@ -86,10 +86,23 @@ const totalLiabilitiesDisplay = computed(() => formatBaseCurrency(totalLiabiliti
 const principalRepaidDisplay = computed(() => {
   // Only active loans count: a settled loan's principal would pad the % with debt that no longer
   // exists, and with zero active loans "100% of $0 repaid" is meaningless — hidden via the guard below.
-  const loans = activeLoans.value;
-  const totalPrincipal = loans.reduce((acc, loan) => acc + loan.loanDetails.refOriginalPrincipal, 0);
+  //
+  // Both sides are converted from loan-currency figures at live rates so they share one FX epoch.
+  // refOriginalPrincipal is unusable here: it's frozen at creation-time FX while the balance floats
+  // at current FX, so currency moves would fake (or hide) repayment progress on foreign-currency
+  // loans. Render nothing rather than mix epochs when a rate is unavailable.
+  const baseCode = baseCurrency.value?.currencyCode;
+  if (!baseCode) return null;
+  let totalPrincipal = 0;
+  let outstanding = 0;
+  for (const loan of activeLoans.value) {
+    const principal = convert({ amount: loan.loanDetails.originalPrincipal, from: loan.currencyCode, to: baseCode });
+    const balance = convert({ amount: Math.abs(loan.currentBalance), from: loan.currencyCode, to: baseCode });
+    if (principal === null || balance === null) return null;
+    totalPrincipal += principal;
+    outstanding += balance;
+  }
   if (totalPrincipal <= 0) return null;
-  const outstanding = loans.reduce((acc, loan) => acc + Math.abs(loan.refCurrentBalance), 0);
   // Balance can exceed principal when interest has accrued — clamp so we never show a negative "repaid".
   const percent = Math.min(100, Math.max(0, ((totalPrincipal - outstanding) / totalPrincipal) * 100));
   return t('loans.aggregate.principalRepaid', {
