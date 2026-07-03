@@ -539,4 +539,55 @@ describe('Loan balance anchor', () => {
       expect(response.statusCode).toBe(422);
     });
   });
+
+  describe('balance correction cannot predate the loan start date', () => {
+    // Origination fixed 10 days in the past, leaving room on both sides of the
+    // boundary (11 days back = before, 5 days back = after) without touching "future".
+    const START_DATE = format(subDays(new Date(), 10), 'yyyy-MM-dd');
+
+    it('rejects a currentBalanceAsOf earlier than the loan startDate with 422', async () => {
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload({ startDate: START_DATE }),
+        raw: true,
+      });
+
+      const response = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 160_000, currentBalanceAsOf: format(subDays(new Date(), 11), 'yyyy-MM-dd') },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(422);
+    });
+
+    it('accepts a currentBalanceAsOf equal to the loan startDate (inclusive boundary)', async () => {
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload({ startDate: START_DATE }),
+        raw: true,
+      });
+
+      const response = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 160_000, currentBalanceAsOf: START_DATE },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('accepts a currentBalanceAsOf after the loan startDate', async () => {
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload({ startDate: START_DATE }),
+        raw: true,
+      });
+
+      const response = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 160_000, currentBalanceAsOf: format(subDays(new Date(), 5), 'yyyy-MM-dd') },
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+  });
 });

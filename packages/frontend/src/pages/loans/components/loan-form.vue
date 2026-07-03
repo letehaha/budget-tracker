@@ -355,7 +355,7 @@ const submit = () => {
       v-model="balanceAsOfDate"
       :label="$t('forms.loan.balanceAsOfLabel')"
       :placeholder="$t('forms.loan.balanceAsOfPlaceholder')"
-      :calendar-options="{ maxDate: new Date() }"
+      :calendar-options="{ minDate: form.startDate, maxDate: new Date() }"
       :error-message="getFieldErrorMessage('form.balanceAsOf')"
     />
 
@@ -381,6 +381,7 @@ const submit = () => {
       v-model="form.startDate"
       :label="$t('forms.loan.startDateLabel')"
       :placeholder="$t('forms.loan.startDatePlaceholder')"
+      :calendar-options="{ maxDate: new Date() }"
     >
       <template #label-after>
         <HintIcon :content="$t('forms.loan.startDateTooltip')" />

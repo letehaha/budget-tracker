@@ -8,7 +8,7 @@ import {
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
-import { format, subDays } from 'date-fns';
+import { addDays, format, subDays } from 'date-fns';
 
 /** Runs `fn` authenticated as the user owning `cookies`, restoring the default test user afterwards. */
 async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T> }): Promise<T> {
@@ -370,6 +370,22 @@ describe('Loans read API', () => {
         expect(result.statusCode).toBe(422);
       },
     );
+
+    it('rejects a startDate in the future with 422', async () => {
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ startDate: format(addDays(new Date(), 2), 'yyyy-MM-dd') }),
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('accepts a startDate of today (boundary)', async () => {
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ startDate: format(new Date(), 'yyyy-MM-dd') }),
+        raw: false,
+      });
+      expect(result.statusCode).toBe(201);
+    });
   });
 
   describe('PATCH /loans/:id', () => {
@@ -588,6 +604,19 @@ describe('Loans read API', () => {
       const result = await helpers.updateLoan({
         id: created.id,
         payload: { startDate: '2024-02-30' },
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it('rejects patching startDate to a future date with 422', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+      const result = await helpers.updateLoan({
+        id: created.id,
+        payload: { startDate: format(addDays(new Date(), 2), 'yyyy-MM-dd') },
         raw: false,
       });
       expect(result.statusCode).toBe(422);

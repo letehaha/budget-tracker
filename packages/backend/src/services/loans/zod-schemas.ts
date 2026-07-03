@@ -38,6 +38,16 @@ const calendarDateString = () =>
   );
 
 /**
+ * Calendar-valid YYYY-MM-DD that also rejects dates in the future. Ceiling is
+ * server "tomorrow" rather than "today" so a client ahead of the server's
+ * timezone isn't rejected for its own valid local date — any local calendar
+ * date is at most one day ahead of UTC. Lexicographic compare is sound for
+ * YYYY-MM-DD strings.
+ */
+const notFutureCalendarDate = ({ message }: { message: string }) =>
+  calendarDateString().refine((value) => value <= format(addDays(new Date(), 1), 'yyyy-MM-dd'), { message });
+
+/**
  * Spans both the underlying Account and the LoanDetails sidecar.
  * `initialBalance` is the outstanding amount as a positive decimal — the
  * service negates it into the negative-liability convention on
@@ -54,7 +64,8 @@ export const createLoanBodySchema = z.object({
   }),
   interestRate: z.number().min(0).max(99.9999),
   termMonths: optionalNullableInt({ min: 1, max: 1200 }),
-  startDate: calendarDateString(),
+  // Contractual origination date — a loan can't originate in the future.
+  startDate: notFutureCalendarDate({ message: 'startDate must not be in the future' }),
   minPayment: nonNegativeDecimalMoney({ field: 'minPayment' }).nullable().optional(),
   plannedPayment: nonNegativeDecimalMoney({ field: 'plannedPayment' }).nullable().optional(),
   paymentDayOfMonth: optionalNullableInt({ min: 1, max: 31 }),
@@ -79,18 +90,13 @@ export const updateLoanBodySchema = z
     // Balance-anchor date: "the outstanding was `currentBalance` as-of this date".
     // Meaningless without `currentBalance` (cross-field refine enforces pairing);
     // future dates are rejected because post-anchor payment legs are summed
-    // against the anchor. Ceiling is server "tomorrow" to absorb timezone skew —
-    // any local calendar date is at most one day ahead of UTC. Lexicographic
-    // compare is sound for YYYY-MM-DD.
-    currentBalanceAsOf: calendarDateString()
-      .refine((value) => value <= format(addDays(new Date(), 1), 'yyyy-MM-dd'), {
-        message: 'currentBalanceAsOf must not be in the future',
-      })
-      .optional(),
+    // against the anchor.
+    currentBalanceAsOf: notFutureCalendarDate({ message: 'currentBalanceAsOf must not be in the future' }).optional(),
 
     interestRate: z.number().min(0).max(99.9999).optional(),
     termMonths: optionalNullableInt({ min: 1, max: 1200 }),
-    startDate: calendarDateString().optional(),
+    // Contractual origination date — a loan can't originate in the future.
+    startDate: notFutureCalendarDate({ message: 'startDate must not be in the future' }).optional(),
     minPayment: nonNegativeDecimalMoney({ field: 'minPayment' }).nullable().optional(),
     plannedPayment: nonNegativeDecimalMoney({ field: 'plannedPayment' }).nullable().optional(),
     paymentDayOfMonth: optionalNullableInt({ min: 1, max: 31 }),

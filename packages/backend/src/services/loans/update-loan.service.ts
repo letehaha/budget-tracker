@@ -2,6 +2,7 @@ import type { LoanEvent } from '@bt/shared/types';
 import type { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
+import { ValidationError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import LoanDetails from '@models/loan-details.model';
 import { updateAccount } from '@services/accounts.service';
@@ -114,6 +115,7 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
   const balanceDiffers = currentBalance !== undefined && !currentBalance.negate().equals(loan.account.currentBalance);
   let anchorInitialBalance: Money | null = null;
   let anchorRefInitialBalance: Money | null = null;
+
   if (currentBalance !== undefined && (balanceDiffers || currentBalanceAsOf !== undefined)) {
     // A correction moves the balance anchor: the new amount becomes
     // Accounts.initialBalance on the asserted date and `recomputeLoanBalance`
@@ -123,6 +125,15 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
     // working. Accepted trade-off: correcting to a post-payment statement
     // balance on the day that payment is logged applies it twice.
     const asOfDate = currentBalanceAsOf ?? format(now, 'yyyy-MM-dd');
+
+    // The outstanding balance can't be known before the loan originated. The
+    // start date may be set in this same PATCH (`detailFields.startDate`) or,
+    // if untouched, taken from the persisted row. Rejected before any DB write.
+    const effectiveStartDate = detailFields.startDate ?? loan.startDate;
+    if (asOfDate < effectiveStartDate) {
+      throw new ValidationError({ message: 'currentBalanceAsOf cannot be earlier than the loan start date' });
+    }
+
     anchorInitialBalance = currentBalance.negate();
     anchorRefInitialBalance = await calculateRefAmount({
       userId,
