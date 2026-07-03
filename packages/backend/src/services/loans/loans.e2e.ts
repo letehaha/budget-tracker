@@ -112,6 +112,10 @@ describe('Loans read API', () => {
       expect(row.projection.warning).toBeNull();
       expect(row.projection.monthsRemaining).toBe(360);
       expect(row.projection.paidToDate).toBe(0);
+      // Near-zero on an untouched loan: the only drift is the gap between the
+      // $1,200 planned payment and the ~$1,199.10 scheduled payment.
+      expect(row.projection.estimatedInterestPaid).toBeGreaterThanOrEqual(0);
+      expect(row.projection.estimatedInterestPaid).toBeLessThan(1_000);
     });
   });
 
@@ -133,6 +137,8 @@ describe('Loans read API', () => {
       const loan = await helpers.getLoanById({ id: account.id, raw: true });
       expect(loan.projection.warning).toBe('payment_below_interest');
       expect(loan.projection.payoffDate).toBeNull();
+      // Mirrors totalInterestRemaining's null: no payoff trajectory, no estimate.
+      expect(loan.projection.estimatedInterestPaid).toBeNull();
     });
 
     it('responds 404 when no loan exists for the given Account id', async () => {
@@ -185,6 +191,72 @@ describe('Loans read API', () => {
 
       const list = await helpers.getLoans({ raw: true });
       expect(list.find((row) => row.id === loan.id)?.paymentsCount).toBe(1);
+    });
+  });
+
+  describe('estimatedInterestPaid exposure', () => {
+    // $1,000 loan at 12% APR (1%/mo) with a 3-month term: the scheduled
+    // payment is $340.02/mo and the full schedule costs $20.07 in interest
+    // (1,000¢ + 670¢ + 337¢) — small enough to hand-verify to the cent.
+    const createTermLoan = () =>
+      helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: global.BASE_CURRENCY_CODE,
+          initialBalance: 1_000,
+          originalPrincipal: 1_000,
+          interestRate: 12,
+          termMonths: 3,
+        }),
+        raw: true,
+      });
+
+    const payLoan = async ({ loanId, amount }: { loanId: string; amount: number }) => {
+      const sourceAccount = await helpers.createAccount({ raw: true });
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: amount,
+          destinationAccountId: loanId as RecordId,
+        },
+        raw: true,
+      });
+    };
+
+    it('is null for a loan created without a term — no schedule exists to estimate from', async () => {
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ termMonths: null }),
+        raw: true,
+      });
+
+      expect(loan.projection.estimatedInterestPaid).toBeNull();
+      // The forward-looking sibling still projects fine from the planned payment.
+      expect(loan.projection.totalInterestRemaining).not.toBeNull();
+    });
+
+    it('reflects the scheduled share consumed after a partial payment', async () => {
+      const loan = await createTermLoan();
+      await payLoan({ loanId: loan.id, amount: 500 });
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.currentBalance).toBe(-500);
+      // Remaining $500 at the $1,200 planned payment clears in one month
+      // costing $5.00 interest; estimate = 20.07 − 5.00.
+      expect(reloaded.projection.totalInterestRemaining).toBe(5);
+      expect(reloaded.projection.estimatedInterestPaid).toBe(15.07);
+    });
+
+    it('reports the full scheduled lifetime interest once the loan is paid off, on both detail and list', async () => {
+      const loan = await createTermLoan();
+      await payLoan({ loanId: loan.id, amount: 1_000 });
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.projection.isPaidOff).toBe(true);
+      expect(reloaded.projection.totalInterestRemaining).toBe(0);
+      expect(reloaded.projection.estimatedInterestPaid).toBe(20.07);
+
+      const list = await helpers.getLoans({ raw: true });
+      expect(list.find((row) => row.id === loan.id)?.projection.estimatedInterestPaid).toBe(20.07);
     });
   });
 
@@ -245,6 +317,7 @@ describe('Loans read API', () => {
       expect(loan.projection.payoffDate).toBeNull();
       expect(loan.projection.monthsRemaining).toBeNull();
       expect(loan.projection.monthlyInterest).toBeGreaterThan(0);
+      expect(loan.projection.estimatedInterestPaid).toBeNull();
     });
 
     it('rejects payload missing required fields', async () => {

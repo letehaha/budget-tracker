@@ -44,6 +44,15 @@ export interface LoanProjection {
   monthsRemaining: number | null;
   /** Total interest still to be paid between now and payoff. */
   totalInterestRemaining: number | null;
+  /**
+   * Amortization-schedule ESTIMATE of interest paid so far: scheduled lifetime
+   * interest (originalPrincipal amortized over termMonths at interestRate)
+   * minus totalInterestRemaining, clamped at 0. Payments are recorded as 100%
+   * principal — no actual interest split is stored — so this is derived, not
+   * measured. Null when termMonths is unset or whenever totalInterestRemaining
+   * is null; a paid-off loan reports the full scheduled lifetime interest.
+   */
+  estimatedInterestPaid: number | null;
   /** Cumulative principal paid down to date (originalPrincipal − currentBalance). */
   paidToDate: number;
   /** 0..100 — paidToDate / originalPrincipal × 100. */

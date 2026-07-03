@@ -18,6 +18,12 @@ interface LoanProjectionInput {
   interestRate: number;
   /** Planned monthly payment, in cents. `null` when the user hasn't set one. */
   plannedPaymentCents: number | null;
+  /**
+   * Contractual term in months, used only to derive `estimatedInterestPaid`
+   * from the original amortization schedule. Omitted/`null` means the term is
+   * unknown and the estimate is `null`.
+   */
+  termMonths?: number | null;
   /** Reference "now" anchoring `payoffDate`. */
   today: Date | string;
 }
@@ -42,11 +48,20 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
 
   const isPaidOff = currentBalanceCents <= 0;
 
+  const scheduledLifetimeInterestCents = computeScheduledLifetimeInterestCents({
+    originalPrincipalCents,
+    interestRate,
+    termMonths: input.termMonths ?? null,
+  });
+
   if (isPaidOff) {
     return {
       payoffDate: null,
       monthsRemaining: 0,
+      // Nothing remains, so the estimate is the full scheduled lifetime interest.
       totalInterestRemaining: 0,
+      estimatedInterestPaid:
+        scheduledLifetimeInterestCents === null ? null : centsToApiDecimal(scheduledLifetimeInterestCents),
       paidToDate,
       paidToDatePercent,
       monthlyInterest: 0,
@@ -63,6 +78,9 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
       payoffDate: null,
       monthsRemaining: null,
       totalInterestRemaining: null,
+      // Mirrors totalInterestRemaining: with no payoff trajectory there is no
+      // remaining-interest figure to subtract from the schedule.
+      estimatedInterestPaid: null,
       paidToDate,
       paidToDatePercent,
       monthlyInterest: centsToApiDecimal(monthlyInterestCents),
@@ -78,6 +96,7 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
     payoffDate: null,
     monthsRemaining: null,
     totalInterestRemaining: null,
+    estimatedInterestPaid: null,
     paidToDate,
     paidToDatePercent,
     monthlyInterest: centsToApiDecimal(monthlyInterestCents),
@@ -113,6 +132,12 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
     payoffDate: addMonthsIso({ from: today, months: monthsRemaining }),
     monthsRemaining,
     totalInterestRemaining: centsToApiDecimal(totalInterestRemainingCents),
+    // Clamped at 0: a payoff trajectory faster than the contractual schedule
+    // makes remaining interest exceed the scheduled share "used up" so far.
+    estimatedInterestPaid:
+      scheduledLifetimeInterestCents === null
+        ? null
+        : centsToApiDecimal(Math.max(0, scheduledLifetimeInterestCents - totalInterestRemainingCents)),
     paidToDate,
     paidToDatePercent,
     monthlyInterest: centsToApiDecimal(monthlyInterestCents),
@@ -167,6 +192,45 @@ function computeTotalInterestCents({
     remainingCents = Math.max(0, remainingCents + interestCents - paymentCents);
   }
   return totalInterestCents;
+}
+
+/**
+ * Total interest a borrower pays over the loan's whole life when following the
+ * original amortization schedule: `originalPrincipal` amortized over
+ * `termMonths` at `interestRate`, accrued with the same month-by-month
+ * banker's rounding as `computeTotalInterestCents`. This is an ESTIMATE input
+ * for `estimatedInterestPaid` — recorded payments carry no interest split, so
+ * the schedule is the only interest model available. `null` when there is no
+ * usable schedule (missing/degenerate term or principal); a zero-APR schedule
+ * costs 0.
+ */
+function computeScheduledLifetimeInterestCents({
+  originalPrincipalCents,
+  interestRate,
+  termMonths,
+}: {
+  originalPrincipalCents: number;
+  interestRate: number;
+  termMonths: number | null;
+}): number | null {
+  if (termMonths === null || termMonths <= 0 || termMonths > MAX_PROJECTION_MONTHS) return null;
+  if (originalPrincipalCents <= 0) return null;
+  if (interestRate === 0) return 0;
+
+  const monthlyRate = interestRate / 100 / MONTHS_PER_YEAR;
+  // Standard amortized payment. Rounding it to a whole cent can leave a
+  // few-cent residual after the final scheduled month; that residual's
+  // interest is ignored as noise.
+  const scheduledPaymentCents = roundHalfToEven(
+    (originalPrincipalCents * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -termMonths)),
+  );
+
+  return computeTotalInterestCents({
+    balanceCents: originalPrincipalCents,
+    paymentCents: scheduledPaymentCents,
+    interestRate,
+    months: termMonths,
+  });
 }
 
 function computePaidToDatePercent({

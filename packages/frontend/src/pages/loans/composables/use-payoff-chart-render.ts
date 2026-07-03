@@ -1,10 +1,13 @@
 import { getChartColors } from '@/composable/charts/chart-colors';
 import * as d3 from 'd3';
+import { addMonths } from 'date-fns';
 import { type ComputedRef, type Ref } from 'vue';
 
 import { type PayoffPoint, type PayoffScenario } from '../utils/payoff-schedule';
 
-type ScenarioKey = 'minimum' | 'planned' | 'custom';
+// Forward-projection scenarios (`minimum`/`planned`/`custom`) plus the two
+// retrospective lines the paid-off "balance journey" chart feeds in.
+type ScenarioKey = 'minimum' | 'planned' | 'custom' | 'actual' | 'schedule';
 
 /** Minimal shape `render` reads off each renderable scenario line. */
 interface RenderableLine {
@@ -53,6 +56,9 @@ const SCENARIO_STROKE: Record<ScenarioKey, (colors: ReturnType<typeof getChartCo
   minimum: (c) => c.text,
   planned: (c) => c.primary,
   custom: (c) => c.appIncome,
+  // Retrospective lines: the loan's real balance history (green) vs. its original schedule (muted).
+  actual: (c) => c.appIncome,
+  schedule: (c) => c.text,
 };
 
 /**
@@ -96,7 +102,10 @@ export function usePayoffChartRender({
       (max, d) => ((d.scenario!.payoffDate as Date) > max ? (d.scenario!.payoffDate as Date) : max),
       lines[0]!.scenario!.payoffDate as Date,
     );
-    const xScale = d3.scaleTime().domain([today, latestPayoff]).range([0, innerWidth]);
+    // A payoff landing on `today` (loan opened and settled the same day) would collapse the time
+    // domain to a single instant and turn every x position into NaN — pad the end to one month.
+    const domainEnd = latestPayoff > today ? latestPayoff : addMonths(today, 1);
+    const xScale = d3.scaleTime().domain([today, domainEnd]).range([0, innerWidth]);
 
     // No `.nice()`/headroom multiplier: pin the axis top to the actual starting balance so the curve
     // starts at the very top of the plot instead of leaving an empty gap below the header.

@@ -12,28 +12,21 @@
     </div>
 
     <template v-if="loansQuery.isLoading.value">
-      <div class="space-y-4">
-        <Card>
-          <CardContent class="p-6">
-            <div class="bg-muted mb-3 h-3 w-24 animate-pulse rounded" />
-            <div class="bg-muted mb-2 h-10 w-48 animate-pulse rounded" />
-            <div class="bg-muted h-3 w-32 animate-pulse rounded" />
-          </CardContent>
-        </Card>
-        <div class="@container/loans-list">
-          <div class="grid grid-cols-1 gap-4 @[34rem]/loans-list:grid-cols-2 @[52rem]/loans-list:grid-cols-3">
-            <Card v-for="i in 3" :key="i">
-              <CardHeader class="pb-2">
-                <div class="bg-muted h-3 w-16 animate-pulse rounded" />
-                <div class="bg-muted mt-1.5 h-5 w-32 animate-pulse rounded" />
-              </CardHeader>
-              <CardContent class="space-y-4">
-                <div class="bg-muted h-8 w-28 animate-pulse rounded" />
-                <div class="bg-muted h-1.5 w-full animate-pulse rounded" />
-                <div class="bg-muted h-3 w-24 animate-pulse rounded" />
-              </CardContent>
-            </Card>
+      <Card class="mb-6">
+        <CardContent class="p-6">
+          <div class="bg-muted mb-3 h-3 w-24 animate-pulse rounded" />
+          <div class="bg-muted mb-2 h-10 w-48 animate-pulse rounded" />
+          <div class="bg-muted h-3 w-32 animate-pulse rounded" />
+        </CardContent>
+      </Card>
+      <div class="border-border/60 divide-border/60 divide-y overflow-hidden rounded-xl border">
+        <div v-for="i in 3" :key="i" class="flex items-center gap-3 px-4 py-4">
+          <div class="bg-muted size-9 animate-pulse rounded-lg" />
+          <div class="flex-1 space-y-2">
+            <div class="bg-muted h-4 w-32 animate-pulse rounded" />
+            <div class="bg-muted h-3 w-24 animate-pulse rounded" />
           </div>
+          <div class="bg-muted h-5 w-20 animate-pulse rounded" />
         </div>
       </div>
     </template>
@@ -47,11 +40,17 @@
 
     <template v-else-if="loans.length">
       <AggregateCard class="mb-6" :loans="loans" />
-      <div class="@container/loans-list">
-        <div class="grid grid-cols-1 gap-4 @[34rem]/loans-list:grid-cols-2 @[52rem]/loans-list:grid-cols-3">
-          <LoanCard v-for="loan in loans" :key="loan.id" :loan="loan" />
+      <LoanList v-if="activeLoans.length" :loans="activeLoans" />
+
+      <section v-if="paidOffLoans.length" class="mt-8">
+        <div class="mb-3 flex items-center gap-2 px-1">
+          <h2 class="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
+            {{ $t('loans.paidOff.sectionTitle') }}
+          </h2>
+          <span class="text-muted-foreground/70 text-xs font-medium tabular-nums">{{ paidOffLoans.length }}</span>
         </div>
-      </div>
+        <PaidOffLoanList :loans="paidOffLoans" />
+      </section>
     </template>
 
     <template v-else>
@@ -79,16 +78,21 @@
 <script setup lang="ts">
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
+import { Card, CardContent } from '@/components/lib/ui/card';
 import { useLoans } from '@/composable/data-queries/loans';
 import { HandCoinsIcon, PlusIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 import AggregateCard from './components/aggregate-card.vue';
 import CreateLoanDialog from './components/create-loan-dialog.vue';
-import LoanCard from './components/loan-card.vue';
+import LoanList from './components/loan-list.vue';
+import PaidOffLoanList from './components/paid-off-loan-list.vue';
 
 const loansQuery = useLoans();
 
 const loans = computed(() => loansQuery.data.value ?? []);
+
+const activeLoans = computed(() => loans.value.filter((loan) => !loan.projection.isPaidOff));
+
+const paidOffLoans = computed(() => loans.value.filter((loan) => loan.projection.isPaidOff));
 </script>

@@ -17,7 +17,7 @@
               )
             "
           >
-            <component :is="loanTypeIconComponent" class="size-3" stroke-width="2" />
+            <span aria-hidden="true">{{ loanTypeEmoji }}</span>
             <span>{{ $t(`loans.types.${loan.loanDetails.loanType}`) }}</span>
           </span>
           <span
@@ -30,17 +30,21 @@
       </div>
     </CardHeader>
     <CardContent>
-      <div class="text-app-expense-color text-3xl font-semibold tracking-tight">
-        {{ formatAmountByCurrencyCode(Math.abs(loan.currentBalance), loan.currencyCode) }}
-      </div>
-      <div class="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
-        <span>{{ $t('loans.detail.summary.outstanding') }}</span>
-        <DesktopOnlyTooltip :content="$t('loans.detail.summary.principalOnlyTooltip')" side="top">
-          <InfoIcon class="size-3 cursor-help" />
-        </DesktopOnlyTooltip>
-      </div>
+      <!-- Active loans lead with the outstanding balance; paid-off loans surface that in the settled
+           banner instead, so the card opens straight into the details grid. -->
+      <template v-if="!isPaidOff">
+        <div class="text-app-expense-color text-3xl font-semibold tracking-tight">
+          {{ formatAmountByCurrencyCode(Math.abs(loan.currentBalance), loan.currencyCode) }}
+        </div>
+        <div class="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+          <span>{{ $t('loans.detail.summary.outstanding') }}</span>
+          <DesktopOnlyTooltip :content="$t('loans.detail.summary.principalOnlyTooltip')" side="top">
+            <InfoIcon class="size-3 cursor-help" />
+          </DesktopOnlyTooltip>
+        </div>
+      </template>
 
-      <div class="mt-5 grid grid-cols-2 gap-4 text-sm @sm/loan-summary:grid-cols-3">
+      <div :class="cn('grid grid-cols-2 gap-4 text-sm @sm/loan-summary:grid-cols-3', isPaidOff ? '' : 'mt-5')">
         <div>
           <div class="text-muted-foreground text-xs">{{ $t('loans.detail.summary.apr') }}</div>
           <div class="mt-0.5 font-medium">{{ aprDisplay }}</div>
@@ -74,6 +78,20 @@
           <div class="text-muted-foreground text-xs">{{ $t('loans.detail.summary.accountNumber') }}</div>
           <div class="mt-0.5 font-medium">{{ loan.loanDetails.accountNumber }}</div>
         </div>
+        <template v-if="isPaidOff">
+          <div>
+            <div class="text-muted-foreground text-xs">{{ $t('loans.paidOff.opened') }}</div>
+            <div class="mt-0.5 font-medium">{{ openedFullDisplay }}</div>
+          </div>
+          <div>
+            <div class="text-muted-foreground text-xs">{{ $t('loans.paidOff.closed') }}</div>
+            <div class="mt-0.5 font-medium">{{ closedFullDisplay }}</div>
+          </div>
+          <div>
+            <div class="text-muted-foreground text-xs">{{ $t('loans.detail.summary.actualDuration') }}</div>
+            <div class="mt-0.5 font-medium">{{ actualDurationDisplay }}</div>
+          </div>
+        </template>
       </div>
     </CardContent>
   </Card>
@@ -91,7 +109,8 @@ import { parseISO } from 'date-fns';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { getLoanTypeIcon, getLoanTypeSolidBadgeClass } from '../loan-type-presentation';
+import { getLoanDurationParts, getMonthsEarly } from '../utils/paid-off-stats';
+import { getLoanTypeEmoji, getLoanTypeSolidBadgeClass } from '../loan-type-presentation';
 
 const props = defineProps<{ loan: LoanApi }>();
 
@@ -127,5 +146,33 @@ const loanTypeSolidBadgeClass = computed(() =>
   getLoanTypeSolidBadgeClass({ loanType: props.loan.loanDetails.loanType }),
 );
 
-const loanTypeIconComponent = computed(() => getLoanTypeIcon({ loanType: props.loan.loanDetails.loanType }));
+const loanTypeEmoji = computed(() => getLoanTypeEmoji({ loanType: props.loan.loanDetails.loanType }));
+
+const isPaidOff = computed(() => props.loan.projection.isPaidOff);
+
+// Last `paid_off` event is the definitive close date (a reopen appends a newer one).
+const closedDate = computed(() => {
+  const paidOffEvents = props.loan.loanDetails.events.filter((event) => event.type === 'paid_off');
+  const last = paidOffEvents.at(-1)?.at;
+  return last ? parseISO(last) : null;
+});
+
+const openedFullDisplay = computed(() => formatDate(parseISO(props.loan.loanDetails.startDate), 'MMM d, yyyy'));
+const closedFullDisplay = computed(() => (closedDate.value ? formatDate(closedDate.value, 'MMM d, yyyy') : '—'));
+
+const actualDurationDisplay = computed(() => {
+  if (!closedDate.value) return '—';
+  const { totalMonths } = getLoanDurationParts({
+    start: parseISO(props.loan.loanDetails.startDate),
+    end: closedDate.value,
+  });
+  const base = t('loans.detail.summary.termMonths', { count: totalMonths }, totalMonths);
+  const early = getMonthsEarly({
+    startDate: parseISO(props.loan.loanDetails.startDate),
+    termMonths: props.loan.loanDetails.termMonths,
+    closedDate: closedDate.value,
+  });
+  if (early && early > 0) return `${base} · ${t('loans.detail.paidOff.monthsEarly', { count: early })}`;
+  return base;
+});
 </script>

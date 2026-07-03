@@ -23,6 +23,7 @@ export function projectLoan({
     originalPrincipalCents: loanDetails.originalPrincipal.toCents(),
     interestRate: loanDetails.interestRate,
     plannedPaymentCents: plannedPaymentMoney === null ? null : plannedPaymentMoney.toCents(),
+    termMonths: loanDetails.termMonths,
     today,
   });
 }

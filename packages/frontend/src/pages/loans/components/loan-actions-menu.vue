@@ -25,14 +25,17 @@ import {
   Link2Icon,
   MoreHorizontalIcon,
   PencilIcon,
+  PlusIcon,
   Trash2Icon,
 } from '@lucide/vue';
+import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import EditLoanDialog from './edit-loan-dialog.vue';
 import LinkPaymentsDialog from './link-payments-dialog.vue';
+import LoanPaymentDialog from './loan-payment-dialog/index.vue';
 
 const props = defineProps<{ loan: LoanApi }>();
 
@@ -40,10 +43,16 @@ const { t } = useI18n();
 const router = useRouter();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { accountsRecord } = storeToRefs(accountsStore);
 const deleteLoanMutation = useDeleteLoan();
 const loanQuery = useLoanById({ id: computed(() => props.loan.id) });
 
+// The loan IS an Accounts row; the payment dialog needs that account model to open.
+const loanAccount = computed(() => accountsRecord.value[props.loan.id]);
+const isPaidOff = computed(() => props.loan.projection.isPaidOff);
+
 const isEditDialogOpen = ref(false);
+const isRecordPaymentOpen = ref(false);
 const isLinkPaymentsOpen = ref(false);
 const isArchiveDialogOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
@@ -155,6 +164,15 @@ const handleDelete = async () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" class="w-64">
+        <!-- Paid-off loans hide the header "Record payment" button; keep it here for after-the-fact corrections. -->
+        <template v-if="isPaidOff">
+          <DropdownMenuItem @select="isRecordPaymentOpen = true">
+            <PlusIcon class="size-4" />
+            {{ $t('loans.detail.recordPayment') }}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+        </template>
+
         <DropdownMenuItem @select="isLinkPaymentsOpen = true">
           <Link2Icon class="size-4" />
           {{ $t('loans.actions.linkPayments') }}
@@ -198,6 +216,8 @@ const handleDelete = async () => {
   </div>
 
   <EditLoanDialog v-model:open="isEditDialogOpen" :loan="loan" />
+
+  <LoanPaymentDialog v-if="loanAccount" v-model:open="isRecordPaymentOpen" :loan-account="loanAccount" />
 
   <LinkPaymentsDialog v-model:open="isLinkPaymentsOpen" :loan="loan" />
 

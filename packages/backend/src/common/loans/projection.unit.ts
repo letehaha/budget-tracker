@@ -322,6 +322,101 @@ describe('computeLoanProjection', () => {
     });
   });
 
+  describe('estimatedInterestPaid (amortization-schedule estimate)', () => {
+    // $1,000 at 12% APR (1%/mo) over a 3-month term. Scheduled payment is
+    // 34,002 cents; month-by-month accrual of the full schedule:
+    //   m1: 1,000¢ → m2: 670¢ → m3: 337¢ = 2,007¢ ($20.07) lifetime interest.
+    const TERM_LOAN = {
+      originalPrincipalCents: 100_000,
+      interestRate: 12,
+      termMonths: 3,
+      today: TODAY,
+    };
+
+    it('is null when the loan has no term — there is no schedule to derive from', () => {
+      const result = computeLoanProjection({
+        ...TERM_LOAN,
+        termMonths: null,
+        currentBalanceCents: 100_000,
+        plannedPaymentCents: 120_000,
+      });
+
+      expect(result.estimatedInterestPaid).toBeNull();
+      // The sibling forward-looking field is unaffected by a missing term.
+      expect(result.totalInterestRemaining).not.toBeNull();
+    });
+
+    it('is null whenever totalInterestRemaining is null (no planned payment)', () => {
+      const result = computeLoanProjection({
+        ...TERM_LOAN,
+        currentBalanceCents: 100_000,
+        plannedPaymentCents: null,
+      });
+
+      expect(result.totalInterestRemaining).toBeNull();
+      expect(result.estimatedInterestPaid).toBeNull();
+    });
+
+    it('is null whenever totalInterestRemaining is null (payment below interest)', () => {
+      const result = computeLoanProjection({
+        ...TERM_LOAN,
+        currentBalanceCents: 100_000,
+        plannedPaymentCents: 500, // below the 1,000¢ first-month interest
+      });
+
+      expect(result.warning).toBe('payment_below_interest');
+      expect(result.estimatedInterestPaid).toBeNull();
+    });
+
+    it('is zero on a fresh loan paying exactly the scheduled payment', () => {
+      const result = computeLoanProjection({
+        ...TERM_LOAN,
+        currentBalanceCents: 100_000, // untouched principal
+        plannedPaymentCents: 34_002, // the amortized payment for the 3-month schedule
+      });
+
+      expect(result.totalInterestRemaining).toBe(20.07);
+      expect(result.estimatedInterestPaid).toBe(0);
+    });
+
+    it('reports the scheduled share consumed so far on a mid-term loan', () => {
+      // Half the principal remains; at a $1,200 payment it clears in one month
+      // costing 500¢ interest → estimate = 2,007 − 500 = 1,507¢ ($15.07).
+      const result = computeLoanProjection({
+        ...TERM_LOAN,
+        currentBalanceCents: 50_000,
+        plannedPaymentCents: 120_000,
+      });
+
+      expect(result.totalInterestRemaining).toBe(5);
+      expect(result.estimatedInterestPaid).toBe(15.07);
+    });
+
+    it('equals the full scheduled lifetime interest on a paid-off loan', () => {
+      const result = computeLoanProjection({
+        ...TERM_LOAN,
+        currentBalanceCents: 0,
+        plannedPaymentCents: 120_000,
+      });
+
+      expect(result.isPaidOff).toBe(true);
+      expect(result.estimatedInterestPaid).toBe(20.07);
+    });
+
+    it('clamps to zero when the payoff trajectory outpaces the contractual schedule', () => {
+      // $200/mo pays the full principal off slower than the 3-month schedule,
+      // so remaining interest (~3,100¢) exceeds the 2,007¢ scheduled lifetime
+      // — the difference must clamp instead of going negative.
+      const result = computeLoanProjection({
+        ...TERM_LOAN,
+        currentBalanceCents: 100_000,
+        plannedPaymentCents: 20_000,
+      });
+
+      expect(result.estimatedInterestPaid).toBe(0);
+    });
+  });
+
   describe('determinism', () => {
     it('returns the same result when called repeatedly with the same input', () => {
       const input = {

@@ -67,32 +67,40 @@
       "description": "Haga seguimiento aquí de hipotecas, préstamos de auto, préstamos estudiantiles y otras deudas.",
       "createFirstButton": "Añadir su primer préstamo"
     },
+    "paidOff": {
+      "sectionTitle": "Liquidados",
+      "repaid": "Reembolsado",
+      "opened": "Abierto",
+      "closed": "Cerrado",
+      "interestPaid": "Interés pagado (aprox.)"
+    },
     "page": {
       "overline": "Pasivos"
     },
     "aggregate": {
       "overline": "Cartera de Pasivos",
       "activePill": "Activo",
-      "totalOwedContext": "Total pendiente en {count}",
       "avgApr": "TAE media",
       "monthlyObligation": "Obligación mensual",
-      "earliestPayoff": "Liquidación más próxima",
       "interestProjected": "Intereses proyectados",
       "title": "Resumen de deudas",
-      "totalOwed": "Total pendiente",
-      "count": "préstamo | préstamos"
+      "totalOutstanding": "Total pendiente",
+      "principalRepaid": "{percent}% de {amount} de capital reembolsado",
+      "debtFree": "Sin deudas"
     },
-    "card": {
-      "principalContext": "de {amount} de capital",
+    "list": {
+      "columns": {
+        "loan": "Préstamo",
+        "progress": "Progreso",
+        "balance": "Saldo",
+        "apr": "TAE",
+        "monthly": "Mensual",
+        "payoff": "Liquidación",
+        "interestLeft": "Intereses restantes"
+      },
       "paidPercent": "{value}% pagado",
-      "monthly": "Mensual",
-      "monthsLeft": "Meses restantes",
-      "interestRemaining": "Intereses restantes",
-      "currentBalance": "Saldo actual",
-      "paidLabel": "Pagado",
-      "apr": "TAE",
-      "payoffDate": "Fecha de liquidación",
-      "monthsRemaining": "Meses restantes"
+      "monthsLeft": "{count} m restante",
+      "ofPrincipal": "de {amount} de capital"
     },
     "types": {
       "mortgage": "Hipoteca",
@@ -124,7 +132,32 @@
         "dayOfMonth": "El {day} de cada mes",
         "accountNumber": "Número de cuenta",
         "balanceAnchor": "Saldo a fecha de",
-        "balanceAnchorTooltip": "El saldo pendiente está fijado a esta fecha. Los pagos anteriores a ella se conservan en el historial pero no modifican el progreso de pago."
+        "balanceAnchorTooltip": "El saldo pendiente está fijado a esta fecha. Los pagos anteriores a ella se conservan en el historial pero no modifican el progreso de pago.",
+        "actualDuration": "Duración real"
+      },
+      "paidOff": {
+        "bannerTitle": "{name} — pagado en su totalidad",
+        "bannerSubline": "{type} · Abierto {opened} · Cerrado {closed}",
+        "took": "Tardó",
+        "monthsEarly": "{count} meses antes",
+        "duration": {
+          "full": "{years} años {months} meses",
+          "years": "{years} años",
+          "months": "{months} meses"
+        },
+        "cost": {
+          "title": "Costo de este préstamo",
+          "totalLabel": "Costo total",
+          "principal": "Principal",
+          "interest": "Interés (est.)",
+          "estimateFootnote": "El interés es una estimación del calendario de amortización — los pagos se registran como principal, por lo que no se almacena ninguna división de interés exacta.",
+          "effectiveCost": "Costo efectivo: {cents}¢ de interés por cada $1 prestado"
+        },
+        "chart": {
+          "title": "Historial de saldos",
+          "titleHint": "El saldo registrado real de su préstamo a lo largo del tiempo, en comparación con el calendario de amortización original.",
+          "noData": "No hay suficiente historial para mostrar el historial de saldos de este préstamo."
+        }
       },
       "projection": {
         "title": "Proyección",
@@ -207,7 +240,9 @@
         "legend": {
           "minimum": "Pago mínimo",
           "planned": "Pago planificado",
-          "custom": "Pago personalizado"
+          "custom": "Pago personalizado",
+          "actual": "Saldo actual",
+          "schedule": "Calendario original"
         }
       }
     }

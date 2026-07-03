@@ -6,7 +6,7 @@
         {{ $t('loans.detail.backToList') }}
       </UiButton>
       <div v-if="loan" class="flex items-center gap-2">
-        <RecordPaymentButton :loan="loan" />
+        <RecordPaymentButton v-if="!loan.projection.isPaidOff" :loan="loan" />
         <LoanActionsMenu :loan="loan" />
       </div>
     </div>
@@ -35,17 +35,21 @@
 
     <template v-else>
       <div ref="gridContainerRef">
+        <SettledBanner v-if="isPaidOff" :loan="loan" class="mb-4" />
+
         <!-- Wide layout: `items-start` keeps the right column at natural height instead of stretching to the chart. -->
         <div v-if="!isCompact" class="flex flex-col gap-4">
           <div class="grid grid-cols-2 gap-4">
             <SummaryCard :loan="loan" />
-            <ProjectionCard :loan="loan" />
+            <LoanCostCard v-if="isPaidOff" :loan="loan" />
+            <ProjectionCard v-else :loan="loan" />
           </div>
           <div class="grid grid-cols-2 items-start gap-4">
             <Card>
               <!-- Chart owns its header so the title shares a row with the custom-payment field. -->
               <CardContent class="pt-2 sm:pt-6">
-                <PayoffProjectionChart :loan="loan" with-title />
+                <BalanceJourneyChart v-if="isPaidOff" :loan="loan" with-title />
+                <PayoffProjectionChart v-else :loan="loan" with-title />
               </CardContent>
             </Card>
             <div class="flex flex-col gap-4">
@@ -58,7 +62,17 @@
         <!-- Narrow layout: projection and chart share one card, chart tucked into a collapsible section. -->
         <div v-else class="grid grid-cols-1 gap-4">
           <SummaryCard :loan="loan" />
-          <Card>
+
+          <template v-if="isPaidOff">
+            <LoanCostCard :loan="loan" />
+            <Card>
+              <CardContent class="pt-2 sm:pt-6">
+                <BalanceJourneyChart :loan="loan" with-title />
+              </CardContent>
+            </Card>
+          </template>
+
+          <Card v-else>
             <CardHeader class="pb-3">
               <div class="text-base font-semibold">{{ $t('loans.detail.projection.title') }}</div>
             </CardHeader>
@@ -78,6 +92,7 @@
               </Collapsible>
             </CardContent>
           </Card>
+
           <RecentPayments :loan="loan" />
           <EventsTimeline :events="loan.loanDetails.events" :currency-code="loan.currencyCode" />
         </div>
@@ -99,13 +114,16 @@ import { ChevronDownIcon, ChevronLeftIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import BalanceJourneyChart from './components/balance-journey-chart.vue';
 import EventsTimeline from './components/events-timeline.vue';
 import LoanActionsMenu from './components/loan-actions-menu.vue';
+import LoanCostCard from './components/loan-cost-card.vue';
 import PayoffProjectionChart from './components/payoff-projection-chart.vue';
 import ProjectionCard from './components/projection-card.vue';
 import ProjectionCardContent from './components/projection-card-content.vue';
 import RecentPayments from './components/recent-payments.vue';
 import RecordPaymentButton from './components/record-payment-button.vue';
+import SettledBanner from './components/settled-banner.vue';
 import SummaryCard from './components/summary-card.vue';
 
 const route = useRoute();
@@ -115,6 +133,8 @@ const loanId = computed(() => route.params.id as string);
 const loanQuery = useLoanById({ id: loanId });
 
 const loan = computed(() => loanQuery.data.value ?? null);
+
+const isPaidOff = computed(() => loan.value?.projection.isPaidOff ?? false);
 
 // Restructuring (merge + reorder cards) below this width can't be expressed in pure CSS, so JS-measured
 // width drives the switch. The loading skeleton uses a CSS `@3xl/loans-detail` query for the same 768px —

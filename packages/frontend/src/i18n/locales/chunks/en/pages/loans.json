@@ -67,32 +67,40 @@
       "description": "Track mortgages, auto loans, student loans, and other liabilities here.",
       "createFirstButton": "Add your first loan"
     },
+    "paidOff": {
+      "sectionTitle": "Paid off",
+      "repaid": "Repaid",
+      "opened": "Opened",
+      "closed": "Closed",
+      "interestPaid": "Interest paid (est.)"
+    },
     "page": {
       "overline": "Liabilities"
     },
     "aggregate": {
       "overline": "Liability Portfolio",
       "activePill": "Active",
-      "totalOwedContext": "Total outstanding across {count}",
       "avgApr": "Avg APR",
       "monthlyObligation": "Monthly obligation",
-      "earliestPayoff": "Earliest payoff",
       "interestProjected": "Interest projected",
       "title": "Liabilities overview",
-      "totalOwed": "Total outstanding",
-      "count": "loan | loans"
+      "totalOutstanding": "Total outstanding",
+      "principalRepaid": "{percent}% of {amount} principal repaid",
+      "debtFree": "Debt-free"
     },
-    "card": {
-      "principalContext": "of {amount} principal",
+    "list": {
+      "columns": {
+        "loan": "Loan",
+        "progress": "Progress",
+        "balance": "Balance",
+        "apr": "APR",
+        "monthly": "Monthly",
+        "payoff": "Payoff",
+        "interestLeft": "Interest left"
+      },
       "paidPercent": "{value}% paid",
-      "monthly": "Monthly",
-      "monthsLeft": "Months left",
-      "interestRemaining": "Interest left",
-      "currentBalance": "Current balance",
-      "paidLabel": "Paid",
-      "apr": "APR",
-      "payoffDate": "Payoff date",
-      "monthsRemaining": "Months remaining"
+      "monthsLeft": "{count} mo left",
+      "ofPrincipal": "of {amount}"
     },
     "types": {
       "mortgage": "Mortgage",
@@ -124,7 +132,32 @@
         "dayOfMonth": "{day} of each month",
         "accountNumber": "Account number",
         "balanceAnchor": "Balance as of",
-        "balanceAnchorTooltip": "The outstanding balance is fixed as of this date. Payments dated before it are kept for history but don't change the Paid progress."
+        "balanceAnchorTooltip": "The outstanding balance is fixed as of this date. Payments dated before it are kept for history but don't change the Paid progress.",
+        "actualDuration": "Actual duration"
+      },
+      "paidOff": {
+        "bannerTitle": "{name} — paid off in full",
+        "bannerSubline": "{type} · Opened {opened} · Closed {closed}",
+        "took": "Took",
+        "monthsEarly": "{count} mo early",
+        "duration": {
+          "full": "{years} yrs {months} mo",
+          "years": "{years} yrs",
+          "months": "{months} mo"
+        },
+        "cost": {
+          "title": "What this loan cost",
+          "totalLabel": "Total cost",
+          "principal": "Principal",
+          "interest": "Interest (est.)",
+          "estimateFootnote": "Interest is an amortization-schedule estimate — payments are recorded as principal, so no exact interest split is stored.",
+          "effectiveCost": "Effective cost: {cents}¢ of interest per $1 borrowed"
+        },
+        "chart": {
+          "title": "Balance journey",
+          "titleHint": "Your loan's actual recorded balance over time, against the original amortization schedule.",
+          "noData": "Not enough history to chart this loan's balance journey."
+        }
       },
       "projection": {
         "title": "Projection",
@@ -207,7 +240,9 @@
         "legend": {
           "minimum": "Minimum payment",
           "planned": "Planned payment",
-          "custom": "Custom payment"
+          "custom": "Custom payment",
+          "actual": "Actual balance",
+          "schedule": "Original schedule"
         }
       }
     }

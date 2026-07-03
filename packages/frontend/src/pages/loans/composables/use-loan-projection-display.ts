@@ -4,7 +4,7 @@ import { parseISO } from 'date-fns';
 import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 
 /**
- * Shared projection display formatting so the list card and detail projection card render the same
+ * Shared projection display formatting so the list row and detail projection card render the same
  * clamped progress width and null-to-em-dash rules.
  */
 export function useLoanProjectionDisplay({
