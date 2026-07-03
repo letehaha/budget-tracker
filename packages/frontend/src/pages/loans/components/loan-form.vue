@@ -13,7 +13,7 @@ import { useFormValidation } from '@/composable/form-validator';
 import { useCurrenciesStore } from '@/stores';
 import { LOAN_TYPE, SUPPORTED_LOAN_TYPES } from '@bt/shared/types';
 import { between, helpers, integer, maxLength, required } from '@vuelidate/validators';
-import { format, parseISO } from 'date-fns';
+import { differenceInCalendarMonths, format, parseISO } from 'date-fns';
 import { InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, reactive } from 'vue';
@@ -135,21 +135,29 @@ const currencyFormatter = computed(
     }),
 );
 
-// Standard amortization formula: M = P * r * (1+r)^n / ((1+r)^n - 1). Zero-interest degenerates to
-// P/n. Returns null on missing/non-positive input so the caller can hide the hint.
+// Amortization over what's left: M = B·r·(1+r)^m / ((1+r)^m − 1), where B is the outstanding
+// balance and m the months remaining in the term. Interest accrues on the current balance, so for
+// an off-schedule loan (extra payments, missed payments, mid-life creation) this yields the payment
+// that actually reaches zero by the end of the term — the abolished alternative, original principal
+// over the full term, quotes the contractual payment but not "what do I need from here".
+// Zero-interest degenerates to B/m. Returns null on missing/non-positive input so the caller can
+// hide the hint. On an on-schedule loan both bases produce the same number.
 const estimatedMinPayment = computed<number | null>(() => {
-  const principal = form.originalPrincipal;
+  const balance = form.balance ?? form.originalPrincipal;
   const annualRate = form.interestRate;
   const months = form.termMonths;
-  if (!principal || principal <= 0) return null;
+  if (!balance || balance <= 0) return null;
   if (annualRate == null || annualRate < 0) return null;
   if (!months || months <= 0) return null;
 
-  if (annualRate === 0) return principal / months;
+  const elapsedMonths = Math.max(differenceInCalendarMonths(new Date(), form.startDate), 0);
+  const remainingMonths = Math.max(months - elapsedMonths, 1);
+
+  if (annualRate === 0) return balance / remainingMonths;
 
   const r = annualRate / 12 / 100;
-  const compound = Math.pow(1 + r, months);
-  const payment = (principal * r * compound) / (compound - 1);
+  const compound = Math.pow(1 + r, remainingMonths);
+  const payment = (balance * r * compound) / (compound - 1);
   if (!Number.isFinite(payment) || payment <= 0) return null;
   return payment;
 });
