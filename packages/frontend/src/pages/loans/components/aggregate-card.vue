@@ -84,10 +84,14 @@ const totalLiabilities = computed(() => props.loans.reduce((acc, loan) => acc + 
 const totalLiabilitiesDisplay = computed(() => formatBaseCurrency(totalLiabilities.value));
 
 const principalRepaidDisplay = computed(() => {
-  const totalPrincipal = props.loans.reduce((acc, loan) => acc + loan.loanDetails.refOriginalPrincipal, 0);
+  // Only active loans count: a settled loan's principal would pad the % with debt that no longer
+  // exists, and with zero active loans "100% of $0 repaid" is meaningless — hidden via the guard below.
+  const loans = activeLoans.value;
+  const totalPrincipal = loans.reduce((acc, loan) => acc + loan.loanDetails.refOriginalPrincipal, 0);
   if (totalPrincipal <= 0) return null;
+  const outstanding = loans.reduce((acc, loan) => acc + Math.abs(loan.refCurrentBalance), 0);
   // Balance can exceed principal when interest has accrued — clamp so we never show a negative "repaid".
-  const percent = Math.min(100, Math.max(0, ((totalPrincipal - totalLiabilities.value) / totalPrincipal) * 100));
+  const percent = Math.min(100, Math.max(0, ((totalPrincipal - outstanding) / totalPrincipal) * 100));
   return t('loans.aggregate.principalRepaid', {
     percent: percent.toFixed(1),
     amount: formatBaseCurrency(totalPrincipal),
