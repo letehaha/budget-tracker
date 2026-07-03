@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
-import { getMaxLoanPayment, isLoanOverpayment } from '@/common/utils/loan-payment';
+import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import { captureException } from '@/lib/sentry';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
@@ -28,7 +28,6 @@ import {
   TRANSACTION_TYPES,
   type TransactionModel,
 } from '@bt/shared/types';
-import { format } from 'date-fns';
 import { helpers, minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { SplitIcon } from '@lucide/vue';
@@ -478,11 +477,10 @@ const isPreAnchorLoanPayment = computed(() => {
   const toAccountId = form.value.toAccount?.id;
   if (!toAccountId) return false;
   const loan = loansData.value?.find((l) => l.id === toAccountId);
-  const anchorDate = loan?.loanDetails.balanceAnchorDate;
-  if (!anchorDate) return false;
-  // yyyy-MM-dd lexicographic compare is correct for ISO date strings.
-  const txDate = format(form.value.time, 'yyyy-MM-dd');
-  return txDate < anchorDate;
+  return isLoanPaymentPreAnchor({
+    paymentDate: form.value.time,
+    balanceAnchorDate: loan?.loanDetails.balanceAnchorDate,
+  });
 });
 
 // Pre-fills the loan-currency target from the live rate so cross-currency payments
@@ -606,8 +604,11 @@ const validationRules = computed(() => {
       return !isLoanOverpayment({ amount: Number(value), maxPayment: loanOverpayMax.value });
     },
   );
-  const overpayOnAmount = isLoanOverpayCheckActive.value && !isCurrenciesDifferent.value;
-  const overpayOnTarget = isLoanOverpayCheckActive.value && isCurrenciesDifferent.value;
+  // A pre-anchor payment is exempt from the overpay guard on the backend (it never
+  // enters the post-anchor balance sum), so mirror that and skip the rule here too.
+  const overpayActive = isLoanOverpayCheckActive.value && !isPreAnchorLoanPayment.value;
+  const overpayOnAmount = overpayActive && !isCurrenciesDifferent.value;
+  const overpayOnTarget = overpayActive && isCurrenciesDifferent.value;
 
   return {
     form: {

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { VERBOSE_PAYMENT_TYPES } from '@/common/const';
-import { getMaxLoanPayment, isLoanOverpayment } from '@/common/utils/loan-payment';
+import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import FormRow from '@/components/dialogs/manage-transaction/components/form-row.vue';
 import { useDeleteTransaction, useSubmitTransaction } from '@/components/dialogs/manage-transaction/composables';
-import { useUnlinkLoanPayment } from '@/composable/data-queries/loans';
+import { useLoans, useUnlinkLoanPayment } from '@/composable/data-queries/loans';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { FORM_TYPES, type UI_FORM_STRUCT } from '@/components/dialogs/manage-transaction/types';
@@ -87,6 +87,19 @@ const maxLoanPaymentAllowed = computed(() =>
   }),
 );
 
+// Reuses the Loans page's TanStack Query cache to reach the loan's balance anchor date.
+const { data: loansData } = useLoans();
+
+// A payment dated before the anchor is already baked into the opening snapshot and
+// exempt from the overpay guard on the backend, so the client-side rule skips it too.
+const isPreAnchorPayment = computed(() => {
+  const loan = loansData.value?.find((l) => l.id === props.loanAccount.id);
+  return isLoanPaymentPreAnchor({
+    paymentDate: form.value.time,
+    balanceAnchorDate: loan?.loanDetails.balanceAnchorDate,
+  });
+});
+
 // Soft heads-up only: flags a positive-balance account being driven negative. Accounts already in the
 // red (credit lines) overdraw by design, so they're excluded; the app allows negative balances anyway.
 const wouldOverdrawSource = computed(() => {
@@ -120,6 +133,9 @@ const validationRules = computed(() => {
         max: formatAmountByCurrencyCode(maxLoanPaymentAllowed.value, props.loanAccount.currencyCode),
       }),
     (value: unknown) => {
+      // Pre-anchor payments never enter the post-anchor balance sum, so the backend
+      // exempts them from the overpay guard — mirror that and let any amount through.
+      if (isPreAnchorPayment.value) return true;
       if (value == null || value === '') return true;
       return !isLoanOverpayment({ amount: Number(value), maxPayment: maxLoanPaymentAllowed.value });
     },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getMaxLoanPayment, isLoanOverpayment } from './loan-payment';
+import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from './loan-payment';
 
 describe('getMaxLoanPayment', () => {
   it('returns the magnitude of a negative (owed) loan balance', () => {
@@ -37,5 +37,38 @@ describe('isLoanOverpayment', () => {
 
   it('is false for a non-finite amount (defer to the required-field rule)', () => {
     expect(isLoanOverpayment({ amount: Number.NaN, maxPayment: 49000 })).toBe(false);
+  });
+});
+
+describe('isLoanPaymentPreAnchor', () => {
+  it('is true when the payment date is strictly before the anchor date', () => {
+    expect(
+      isLoanPaymentPreAnchor({ paymentDate: new Date('2026-01-14T10:00:00Z'), balanceAnchorDate: '2026-01-15' }),
+    ).toBe(true);
+  });
+
+  it('is false when the payment date equals the anchor date (counted, not exempt)', () => {
+    expect(
+      isLoanPaymentPreAnchor({ paymentDate: new Date('2026-01-15T00:00:00'), balanceAnchorDate: '2026-01-15' }),
+    ).toBe(false);
+  });
+
+  it('is false when the payment date is after the anchor date', () => {
+    expect(
+      isLoanPaymentPreAnchor({ paymentDate: new Date('2026-02-01T10:00:00'), balanceAnchorDate: '2026-01-15' }),
+    ).toBe(false);
+  });
+
+  it('accepts an ISO date string for the payment date', () => {
+    expect(isLoanPaymentPreAnchor({ paymentDate: '2026-01-14', balanceAnchorDate: '2026-01-15' })).toBe(true);
+  });
+
+  it('is false when the anchor date is unknown (null/undefined)', () => {
+    expect(isLoanPaymentPreAnchor({ paymentDate: new Date('2020-01-01'), balanceAnchorDate: null })).toBe(false);
+    expect(isLoanPaymentPreAnchor({ paymentDate: new Date('2020-01-01'), balanceAnchorDate: undefined })).toBe(false);
+  });
+
+  it('is false when the payment date is missing', () => {
+    expect(isLoanPaymentPreAnchor({ paymentDate: null, balanceAnchorDate: '2026-01-15' })).toBe(false);
   });
 });
