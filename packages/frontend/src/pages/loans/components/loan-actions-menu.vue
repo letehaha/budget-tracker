@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { type LoanApi } from '@/api/loans';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import {
   DropdownMenu,
@@ -18,6 +19,7 @@ import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
 import { ACCOUNT_STATUSES, API_ERROR_CODES } from '@bt/shared/types';
+import { useQueryClient } from '@tanstack/vue-query';
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
@@ -33,6 +35,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import { useUnarchiveLoan } from '../composables/use-unarchive-loan';
 import EditLoanDialog from './edit-loan-dialog.vue';
 import LinkPaymentsDialog from './link-payments-dialog.vue';
 import LoanPaymentDialog from './loan-payment-dialog/index.vue';
@@ -46,6 +49,8 @@ const accountsStore = useAccountsStore();
 const { accountsRecord } = storeToRefs(accountsStore);
 const deleteLoanMutation = useDeleteLoan();
 const loanQuery = useLoanById({ id: computed(() => props.loan.id) });
+const queryClient = useQueryClient();
+const { unarchive, isPending: isUnarchivePending } = useUnarchiveLoan();
 
 // The loan IS an Accounts row; the payment dialog needs that account model to open.
 const loanAccount = computed(() => accountsRecord.value[props.loan.id]);
@@ -105,26 +110,16 @@ const handleArchive = async () => {
       status: ACCOUNT_STATUSES.archived,
       ...(archiveAlsoExclude.value ? { excludeFromStats: true } : {}),
     });
-    await loanQuery.invalidate();
+    // The list query must refetch too — /loans moves the loan into the Archived section.
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.loansList }),
+      loanQuery.invalidate(),
+    ]);
     isArchiveDialogOpen.value = false;
     addNotification({ text: t('loans.settings.archiveSuccess'), type: NotificationType.success });
   } catch (error) {
     addNotification({ text: t('loans.settings.archiveError'), type: NotificationType.error });
     captureException({ error, context: { source: 'loanSettings.archive' } });
-  } finally {
-    isArchiveSaving.value = false;
-  }
-};
-
-const handleUnarchive = async () => {
-  isArchiveSaving.value = true;
-  try {
-    await accountsStore.editAccount({ id: props.loan.id, status: ACCOUNT_STATUSES.active });
-    await loanQuery.invalidate();
-    addNotification({ text: t('loans.settings.unarchiveSuccess'), type: NotificationType.success });
-  } catch (error) {
-    addNotification({ text: t('loans.settings.archiveError'), type: NotificationType.error });
-    captureException({ error, context: { source: 'loanSettings.unarchive' } });
   } finally {
     isArchiveSaving.value = false;
   }
@@ -199,7 +194,7 @@ const handleDelete = async () => {
           <ArchiveIcon class="size-4" />
           {{ $t('loans.settings.archiveButton') }}
         </DropdownMenuItem>
-        <DropdownMenuItem v-else :disabled="isArchiveSaving" @select="handleUnarchive">
+        <DropdownMenuItem v-else :disabled="isUnarchivePending" @select="unarchive({ loan })">
           <ArchiveRestoreIcon class="size-4" />
           {{ $t('loans.settings.unarchiveButton') }}
         </DropdownMenuItem>

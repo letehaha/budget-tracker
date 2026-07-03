@@ -43,10 +43,10 @@
       "archiveDescription": "Hides the loan from the sidebar and account lists. You can restore it any time.",
       "archiveButton": "Archive",
       "archivedTitle": "This loan is archived",
-      "archivedDescription": "It won't appear in account lists or sidebar groups. Restore it to use it again.",
+      "archivedDescription": "It's hidden from the sidebar and account pickers and listed under Archived on the loans page. Restore it to resume tracking.",
       "unarchiveButton": "Restore",
       "archiveConfirmTitle": "Archive this loan?",
-      "archiveConfirmDescription": "{name} will be hidden from the sidebar and account pickers.",
+      "archiveConfirmDescription": "{name} will move to the Archived section on this page and be hidden from the sidebar and account pickers.",
       "archiveAlsoExclude": "Also exclude from statistics",
       "deleteTitle": "Delete loan",
       "deleteDescription": "Permanently removes the loan and its history. This cannot be undone.",
@@ -73,6 +73,11 @@
       "opened": "Opened",
       "closed": "Closed",
       "interestPaid": "Interest paid (est.)"
+    },
+    "archivedList": {
+      "sectionTitle": "Archived",
+      "badge": "Archived",
+      "outstanding": "Outstanding"
     },
     "page": {
       "overline": "Liabilities"

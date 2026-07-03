@@ -39,7 +39,7 @@
     </template>
 
     <template v-else-if="loans.length">
-      <AggregateCard class="mb-6" :loans="loans" />
+      <AggregateCard v-if="trackedLoans.length" class="mb-6" :loans="trackedLoans" />
       <LoanList v-if="activeLoans.length" :loans="activeLoans" />
 
       <section v-if="paidOffLoans.length" class="mt-8">
@@ -50,6 +50,26 @@
           <span class="text-muted-foreground/70 text-xs font-medium tabular-nums">{{ paidOffLoans.length }}</span>
         </div>
         <PaidOffLoanList :loans="paidOffLoans" />
+      </section>
+
+      <section v-if="archivedLoans.length" class="mt-8">
+        <Collapsible v-model:open="isArchivedOpen">
+          <CollapsibleTrigger
+            class="focus-visible:ring-ring/40 flex w-full items-center gap-2 rounded px-1 focus-visible:ring-2 focus-visible:outline-none"
+          >
+            <h2 class="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
+              {{ $t('loans.archivedList.sectionTitle') }}
+            </h2>
+            <span class="text-muted-foreground/70 text-xs font-medium tabular-nums">{{ archivedLoans.length }}</span>
+            <ChevronDownIcon
+              class="text-muted-foreground size-3.5 transition-transform"
+              :class="{ 'rotate-180': isArchivedOpen }"
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent class="mt-3">
+            <ArchivedLoanList :loans="archivedLoans" />
+          </CollapsibleContent>
+        </Collapsible>
       </section>
     </template>
 
@@ -79,20 +99,32 @@
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent } from '@/components/lib/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { useLoans } from '@/composable/data-queries/loans';
-import { HandCoinsIcon, PlusIcon } from '@lucide/vue';
-import { computed } from 'vue';
+import { ChevronDownIcon, HandCoinsIcon, PlusIcon } from '@lucide/vue';
+import { computed, ref } from 'vue';
 
 import AggregateCard from './components/aggregate-card.vue';
+import ArchivedLoanList from './components/archived-loan-list.vue';
 import CreateLoanDialog from './components/create-loan-dialog.vue';
 import LoanList from './components/loan-list.vue';
 import PaidOffLoanList from './components/paid-off-loan-list.vue';
+import { partitionLoans } from './utils/partition-loans';
 
 const loansQuery = useLoans();
 
 const loans = computed(() => loansQuery.data.value ?? []);
 
-const activeLoans = computed(() => loans.value.filter((loan) => !loan.projection.isPaidOff));
+const partitioned = computed(() => partitionLoans({ loans: loans.value }));
 
-const paidOffLoans = computed(() => loans.value.filter((loan) => loan.projection.isPaidOff));
+const activeLoans = computed(() => partitioned.value.active);
+
+const paidOffLoans = computed(() => partitioned.value.paidOff);
+
+const archivedLoans = computed(() => partitioned.value.archived);
+
+// Aggregates read as "debts I track" — archived loans are excluded from every metric.
+const trackedLoans = computed(() => [...activeLoans.value, ...paidOffLoans.value]);
+
+const isArchivedOpen = ref(false);
 </script>

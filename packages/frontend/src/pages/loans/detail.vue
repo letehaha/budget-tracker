@@ -35,6 +35,7 @@
 
     <template v-else>
       <div ref="gridContainerRef">
+        <ArchivedBanner v-if="isArchived" :loan="loan" class="mb-4" />
         <SettledBanner v-if="isPaidOff" :loan="loan" class="mb-4" />
 
         <!-- Wide layout: `items-start` keeps the right column at natural height instead of stretching to the chart. -->
@@ -109,11 +110,13 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { useLoanById } from '@/composable/data-queries/loans';
 import { ROUTES_NAMES } from '@/routes';
+import { ACCOUNT_STATUSES } from '@bt/shared/types';
 import { useElementSize } from '@vueuse/core';
 import { ChevronDownIcon, ChevronLeftIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import ArchivedBanner from './components/archived-banner.vue';
 import BalanceJourneyChart from './components/balance-journey-chart.vue';
 import EventsTimeline from './components/events-timeline.vue';
 import LoanActionsMenu from './components/loan-actions-menu.vue';
@@ -135,6 +138,8 @@ const loanQuery = useLoanById({ id: loanId });
 const loan = computed(() => loanQuery.data.value ?? null);
 
 const isPaidOff = computed(() => loan.value?.projection.isPaidOff ?? false);
+
+const isArchived = computed(() => loan.value?.status === ACCOUNT_STATUSES.archived);
 
 // Restructuring (merge + reorder cards) below this width can't be expressed in pure CSS, so JS-measured
 // width drives the switch. The loading skeleton uses a CSS `@3xl/loans-detail` query for the same 768px —

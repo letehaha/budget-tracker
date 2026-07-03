@@ -43,10 +43,10 @@
       "archiveDescription": "Oculta el préstamo de la barra lateral y las listas de cuentas. Puede restaurarlo en cualquier momento.",
       "archiveButton": "Archivar",
       "archivedTitle": "Este préstamo está archivado",
-      "archivedDescription": "No aparecerá en las listas de cuentas ni en los grupos de la barra lateral. Restáurelo para volver a usarlo.",
+      "archivedDescription": "Está oculto de la barra lateral y los selectores de cuentas, y aparece en la sección Archivados de la página de préstamos. Restáurelo para reanudar el seguimiento.",
       "unarchiveButton": "Restaurar",
       "archiveConfirmTitle": "¿Archivar este préstamo?",
-      "archiveConfirmDescription": "{name} se ocultará de la barra lateral y los selectores de cuentas.",
+      "archiveConfirmDescription": "{name} se moverá a la sección Archivados de esta página y se ocultará de la barra lateral y los selectores de cuentas.",
       "archiveAlsoExclude": "También excluir de las estadísticas",
       "deleteTitle": "Eliminar préstamo",
       "deleteDescription": "Elimina permanentemente el préstamo y su historial. Esta acción no se puede deshacer.",
@@ -73,6 +73,11 @@
       "opened": "Abierto",
       "closed": "Cerrado",
       "interestPaid": "Interés pagado (aprox.)"
+    },
+    "archivedList": {
+      "sectionTitle": "Archivados",
+      "badge": "Archivado",
+      "outstanding": "Pendiente"
     },
     "page": {
       "overline": "Pasivos"
