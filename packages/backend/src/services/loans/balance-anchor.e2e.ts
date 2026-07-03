@@ -324,6 +324,8 @@ describe('Loan balance anchor', () => {
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       // 7000 − 2000 (still post-anchor) = 5000 outstanding.
       expect(reloaded.currentBalance).toBe(-5_000);
+      // The projected balance stays negative, so the correction is accepted and recorded.
+      expect(reloaded.loanDetails.events.filter((e) => e.type === 'balance_correction')).toHaveLength(1);
     });
 
     it('a correction re-counts a payment dated on the same day as the correction (inclusive >= boundary)', async () => {
@@ -486,6 +488,135 @@ describe('Loan balance anchor', () => {
 
       const afterEdit = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(afterEdit.currentBalance).toBe(-300);
+    });
+  });
+
+  describe('balance correction overpay guard', () => {
+    /** Two months back — a re-anchor date safely earlier than PAST_ISO payments. */
+    const TWO_MONTHS_AGO = format(subDays(new Date(), 60), 'yyyy-MM-dd');
+
+    it('rejects with 422 a re-anchor that projects positive across a later payment, and leaves the loan untouched', async () => {
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload({
+          originalPrincipal: 1_100,
+          initialBalance: 1_100,
+        }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      // Payment of 500 dated 30 days ago — pre-anchor (anchor = today), informational.
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 500,
+            time: PAST_ISO,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 500,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      // Correcting to 100 as-of two months ago pulls the 30-day-old 500 payment
+      // into the post-anchor window: −100 + 500 = +400 projected — overpaid.
+      const response = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 100, currentBalanceAsOf: TWO_MONTHS_AGO },
+        raw: false,
+      });
+      expect(response.statusCode).toBe(422);
+
+      // Full rollback: balance, anchor, and events all untouched.
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.currentBalance).toBe(-1_100);
+      expect(reloaded.loanDetails.balanceAnchorDate).toBe(TODAY);
+      expect(reloaded.loanDetails.events.some((e) => e.type === 'balance_correction')).toBe(false);
+      expect(reloaded.loanDetails.events.some((e) => e.type === 'paid_off')).toBe(false);
+    });
+
+    it('rejects with 422 a same-day correction overshot by a payment dated on the as-of day (inclusive boundary)', async () => {
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload({
+          originalPrincipal: 1_100,
+          initialBalance: 1_100,
+        }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      // Payment of 500 dated today — post-anchor, outstanding drops to 600.
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 500,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 500,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const afterPayment = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(afterPayment.currentBalance).toBe(-600);
+
+      // The >= anchor boundary keeps today's 500 payment counted, so asserting
+      // 100 as-of today projects −100 + 500 = +400 — overpaid.
+      const response = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 100, currentBalanceAsOf: TODAY },
+        raw: false,
+      });
+      expect(response.statusCode).toBe(422);
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.currentBalance).toBe(-600);
+      expect(reloaded.loanDetails.events.some((e) => e.type === 'balance_correction')).toBe(false);
+    });
+
+    it('accepts a correction that projects exactly zero and stamps paid_off exactly once', async () => {
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload({
+          originalPrincipal: 1_000,
+          initialBalance: 1_000,
+        }),
+        raw: true,
+      });
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      // Payment of 500 dated 30 days ago — pre-anchor, informational for now.
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 500,
+            time: PAST_ISO,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 500,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      // Asserting 500 as-of two months ago folds the later 500 payment back in:
+      // −500 + 500 = 0 — a legit backdated payoff, allowed through.
+      const updated = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 500, currentBalanceAsOf: TWO_MONTHS_AGO },
+        raw: true,
+      });
+
+      expect(updated.currentBalance).toBe(0);
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.currentBalance).toBe(0);
+      expect(reloaded.loanDetails.events.filter((e) => e.type === 'balance_correction')).toHaveLength(1);
+      expect(reloaded.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(1);
     });
   });
 

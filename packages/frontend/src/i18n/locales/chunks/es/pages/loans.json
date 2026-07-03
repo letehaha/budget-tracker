@@ -212,7 +212,15 @@
         "unlinkConfirmTitle": "¿Desvincular este pago?",
         "unlinkConfirmDescription": "La transacción se mantendrá como un gasto regular pero se eliminará de este préstamo. El saldo del préstamo será recalculado.",
         "unlinkSuccess": "Pago desvinculado",
-        "unlinkError": "No se pudo desvincular el pago. Por favor, inténtelo de nuevo."
+        "unlinkError": "No se pudo desvincular el pago. Por favor, inténtelo de nuevo.",
+        "syncedAccountHint": "¿Pagando desde una cuenta sincronizada? Usa Pagos vinculados para adjuntar el gasto importado en su lugar.",
+        "sourceInfo": {
+          "trigger": "Más detalles",
+          "title": "¿Por qué solo estas cuentas?",
+          "manualOnly": "Este selector solo muestra sus cuentas administradas manualmente.",
+          "whySynced": "Las transacciones en cuentas sincronizadas con el banco se importan directamente desde su banco. Registrar un pago de préstamo desde aquí crearía un duplicado de la transacción que su banco enviará.",
+          "howToLink": "En su lugar, una vez que aparezca la transacción bancaria, ábrala y elija Pagos vinculados para adjuntarla a este préstamo. Eso mantiene una única fuente de verdad y actualiza el saldo del préstamo correctamente."
+        }
       },
       "payoffChart": {
         "title": "Proyección de liquidación",

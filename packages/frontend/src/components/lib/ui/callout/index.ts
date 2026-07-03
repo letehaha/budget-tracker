@@ -9,7 +9,7 @@ export const calloutVariants = cva('flex items-start gap-3 rounded-lg border p-3
       warning: 'bg-warning/10 border-warning/20 text-warning-text',
       destructive: 'bg-destructive/10 border-destructive/20 text-destructive-text',
       success: 'bg-success/10 border-success/20 text-success-text',
-      info: 'bg-muted/50 border-border text-foreground',
+      info: 'bg-muted/40 border-border/70 text-muted-foreground',
     },
   },
   defaultVariants: {

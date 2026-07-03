@@ -1,13 +1,13 @@
-import { ACCOUNT_CATEGORIES, type LoanEvent, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, type LoanEvent } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import LoanDetails from '@models/loan-details.model';
-import Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
 import { parseISO, startOfDay } from 'date-fns';
-import { Op, fn, col, where as sqlWhere } from 'sequelize';
+import { Op } from 'sequelize';
 
 /**
  * Recompute a loan's authoritative balance from its anchor snapshot plus
@@ -48,18 +48,12 @@ const recomputeLoanBalanceImpl = async ({
   const anchorDate = loanDetails.balanceAnchorDate;
   const anchorDay = startOfDay(parseISO(anchorDate));
 
-  const legs = await Transactions.findAll({
-    where: {
-      accountId: loanAccountId,
-      userId: account.userId,
-      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
-      // A loan account only ever holds the income legs of its payments; pinning
-      // the type keeps a stray non-income leg from flipping the sign of the sum.
-      transactionType: TRANSACTION_TYPES.income,
-      // Only DATE(time) >= anchor adjusts the outstanding; the snapshot already
-      // accounts for earlier payments.
-      [Op.and]: [sqlWhere(fn('DATE', col('time')), Op.gte, anchorDate)],
-    },
+  // Only DATE(time) >= anchor adjusts the outstanding; the snapshot already
+  // accounts for earlier payments.
+  const legs = await getPostAnchorPaymentLegs({
+    loanAccountId,
+    userId: account.userId,
+    anchorDate,
   });
 
   // Income legs move a negative liability balance toward zero, so they add.

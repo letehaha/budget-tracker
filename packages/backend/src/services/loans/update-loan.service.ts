@@ -1,5 +1,5 @@
 import type { LoanEvent } from '@bt/shared/types';
-import type { Money } from '@common/types/money';
+import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -8,6 +8,7 @@ import LoanDetails from '@models/loan-details.model';
 import { updateAccount } from '@services/accounts.service';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
 import { recomputeLoanBalance } from '@services/loans/recompute-loan-balance.service';
 import { format } from 'date-fns';
 
@@ -135,6 +136,26 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
     }
 
     anchorInitialBalance = currentBalance.negate();
+
+    // Re-anchoring changes which payment legs count as post-anchor, so the
+    // asserted balance must leave room for every leg dated on/after the new
+    // as-of date — otherwise `recomputeLoanBalance` would push the outstanding
+    // past zero into credit and stamp a bogus `paid_off` event. Projected
+    // exactly zero is allowed (a legit backdated payoff). Rejected before any
+    // DB write.
+    const postAnchorLegs = await getPostAnchorPaymentLegs({
+      loanAccountId: accountId,
+      userId,
+      anchorDate: asOfDate,
+    });
+    const postAnchorPaymentsTotal = postAnchorLegs.reduce((sum, leg) => sum.add(leg.amount), Money.zero());
+    const projectedBalance = anchorInitialBalance.add(postAnchorPaymentsTotal);
+    if (projectedBalance.toCents() > 0) {
+      throw new ValidationError({
+        message: `Corrected balance would overpay the loan by ${projectedBalance.toNumber()}: payments totaling ${postAnchorPaymentsTotal.toNumber()} are dated on/after ${asOfDate}`,
+      });
+    }
+
     anchorRefInitialBalance = await calculateRefAmount({
       userId,
       amount: anchorInitialBalance,

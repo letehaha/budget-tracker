@@ -212,7 +212,15 @@
         "unlinkConfirmTitle": "Unlink this payment?",
         "unlinkConfirmDescription": "The transaction will be kept as a regular expense but removed from this loan. The loan balance will be recalculated.",
         "unlinkSuccess": "Payment unlinked",
-        "unlinkError": "Couldn't unlink the payment. Please try again."
+        "unlinkError": "Couldn't unlink the payment. Please try again.",
+        "syncedAccountHint": "Paying from a synced account? Use Link payments to attach the imported expense instead.",
+        "sourceInfo": {
+          "trigger": "More details",
+          "title": "Why only these accounts?",
+          "manualOnly": "This picker lists only your manually-managed accounts.",
+          "whySynced": "Transactions on bank-synced accounts are imported directly from your bank. Recording a loan payment from one here would create a duplicate of the transaction your bank will send.",
+          "howToLink": "Instead, once the bank transaction appears, open it and choose Link payments to attach it to this loan. That keeps a single source of truth and updates the loan balance correctly."
+        }
       },
       "payoffChart": {
         "title": "Payoff projection",

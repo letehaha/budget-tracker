@@ -13,6 +13,8 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { FORM_TYPES, type UI_FORM_STRUCT } from '@/components/dialogs/manage-transaction/types';
 import type { FormattedCategory } from '@/common/types';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
+import SourceAccountInfoPopover from './source-account-info-popover.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormValidation } from '@/composable/form-validator';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
@@ -296,6 +298,10 @@ const unlinkPayment = () => {
           :error-message="accountErrorMessage"
         />
       </FormRow>
+
+      <Callout variant="info" class="mb-2 text-xs">
+        {{ $t('loans.detail.payment.syncedAccountHint') }} <SourceAccountInfoPopover />
+      </Callout>
 
       <FormRow>
         <InputField
