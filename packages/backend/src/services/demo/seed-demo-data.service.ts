@@ -4,7 +4,9 @@ import {
   ACCOUNT_TYPES,
   BUDGET_STATUSES,
   DEPRECIATION_PRESET,
+  LOAN_TYPE,
   SUBSCRIPTION_FREQUENCIES,
+  SUPPORTED_LOAN_TYPES,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
 } from '@bt/shared/types';
@@ -33,6 +35,7 @@ import * as UsersCurrencies from '@models/users-currencies.model';
 import * as accountsService from '@services/accounts.service';
 import { createBudget } from '@services/budgets/create-budget';
 import * as categoriesService from '@services/categories.service';
+import { createLoan } from '@services/loans/create-loan.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
 import { createVehicle } from '@services/vehicles/create-vehicle.service';
@@ -826,4 +829,82 @@ export async function setupVentures({ userId, referenceDate }: { userId: number;
   });
 
   logger.info(`Created 3 demo venture deals for user ${userId}`);
+}
+
+interface DemoLoanConfig {
+  name: string;
+  loanType: (typeof SUPPORTED_LOAN_TYPES)[number];
+  /** Amount borrowed at origination. */
+  originalPrincipal: number;
+  /** Outstanding balance as-of the reference date (progress already paid down). */
+  outstanding: number;
+  interestRate: number;
+  termMonths: number;
+  /** Months before the reference date the loan originated. */
+  startMonthsAgo: number;
+  plannedPayment: number;
+  paymentDayOfMonth: number;
+  lenderName: string;
+}
+
+// Deliberately small consumer loans (≤ $25k) so the demo net worth stays
+// realistic and each loan type the picker exposes is represented once.
+const DEMO_LOANS: DemoLoanConfig[] = [
+  {
+    name: 'Car Loan',
+    loanType: LOAN_TYPE.auto,
+    originalPrincipal: 22000,
+    outstanding: 15400,
+    interestRate: 6.9,
+    termMonths: 60,
+    startMonthsAgo: 18,
+    plannedPayment: 434,
+    paymentDayOfMonth: 15,
+    lenderName: 'Chase Auto Finance',
+  },
+  {
+    name: 'Student Loan',
+    loanType: LOAN_TYPE.student,
+    originalPrincipal: 18000,
+    outstanding: 15750,
+    interestRate: 4.5,
+    termMonths: 120,
+    startMonthsAgo: 24,
+    plannedPayment: 187,
+    paymentDayOfMonth: 1,
+    lenderName: 'SoFi',
+  },
+  {
+    name: 'Personal Loan',
+    loanType: LOAN_TYPE.personal,
+    originalPrincipal: 12000,
+    outstanding: 7200,
+    interestRate: 9.9,
+    termMonths: 36,
+    startMonthsAgo: 15,
+    plannedPayment: 387,
+    paymentDayOfMonth: 10,
+    lenderName: 'Marcus by Goldman Sachs',
+  },
+];
+
+export async function setupLoans({ userId, referenceDate }: { userId: number; referenceDate: Date }): Promise<void> {
+  for (const config of DEMO_LOANS) {
+    await createLoan({
+      userId,
+      name: config.name,
+      currencyCode: DEMO_CONFIG.baseCurrency,
+      loanType: config.loanType,
+      originalPrincipal: Money.fromDecimal(config.originalPrincipal),
+      initialBalance: Money.fromDecimal(config.outstanding),
+      interestRate: config.interestRate,
+      termMonths: config.termMonths,
+      startDate: format(subMonths(referenceDate, config.startMonthsAgo), 'yyyy-MM-dd'),
+      plannedPayment: Money.fromDecimal(config.plannedPayment),
+      paymentDayOfMonth: config.paymentDayOfMonth,
+      lenderName: config.lenderName,
+    });
+  }
+
+  logger.info(`Created ${DEMO_LOANS.length} demo loans for user ${userId}`);
 }
