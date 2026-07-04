@@ -43,6 +43,8 @@ export interface ColumnMapping {
   amount: string | null;
   /** Matched description column header, or `null` when none matched (optional field). */
   description: string | null;
+  /** Matched payee column header, or `null` when none matched (optional field). */
+  payee: string | null;
   /** `null` until the user picks a category assignment method. */
   category: CategoryOption | null;
   /** `null` means no tags column is mapped (optional field). */
@@ -116,6 +118,7 @@ export function buildInitialColumnMapping({
     date: matchResult.date?.column ?? null,
     amount: matchResult.amount?.column ?? null,
     description: matchResult.description?.column ?? null,
+    payee: matchResult.payee?.column ?? null,
     category,
     // Tags stay unset on initial build; the user opts in via the Map step.
     tags: null,

@@ -26,6 +26,7 @@ export function toColumnMappingConfig({ mapping }: { mapping: ColumnMapping }): 
     date,
     amount,
     description: mapping.description || undefined,
+    payee: mapping.payee || undefined,
     category,
     tags: mapping.tags ?? undefined,
     account,

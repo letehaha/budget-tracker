@@ -79,6 +79,7 @@ const emptyColumnMapping = (): ColumnMapping => ({
   date: null,
   amount: null,
   description: null,
+  payee: null,
   category: null,
   tags: null,
   account: null,

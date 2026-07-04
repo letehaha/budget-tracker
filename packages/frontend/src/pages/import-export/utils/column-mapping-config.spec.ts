@@ -23,6 +23,7 @@ const baseMapping: ColumnMapping = {
   date: 'Date',
   amount: 'Amount',
   description: 'Memo',
+  payee: null,
   category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
   tags: null,
   account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
@@ -141,6 +142,30 @@ describe('toColumnMappingConfig — full ColumnMappingConfig when all required f
     });
     expect(result).not.toBeNull();
     expect(result!.description).toBe('Notes');
+  });
+
+  it('converts empty-string payee to undefined', () => {
+    const result = toColumnMappingConfig({
+      mapping: { ...baseMapping, payee: '' },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.payee).toBeUndefined();
+  });
+
+  it('does not include payee key when payee is null', () => {
+    const result = toColumnMappingConfig({
+      mapping: { ...baseMapping, payee: null },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.payee).toBeUndefined();
+  });
+
+  it('passes through a non-empty payee unchanged', () => {
+    const result = toColumnMappingConfig({
+      mapping: { ...baseMapping, payee: 'Merchant' },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.payee).toBe('Merchant');
   });
 
   it('passes through existingCategory variant for category', () => {

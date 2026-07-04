@@ -116,6 +116,7 @@ const completedPayload = (summary: Partial<CsvImportSummary> = {}) => ({
     accountsCreated: 0,
     categoriesCreated: 0,
     tagsCreated: 0,
+    payeesCreated: 0,
     errors: [],
     newTransactionIds: [],
     batchId: 'batch-1',

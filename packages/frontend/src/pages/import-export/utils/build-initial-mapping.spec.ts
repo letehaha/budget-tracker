@@ -55,6 +55,7 @@ describe('buildInitialColumnMapping — all columns matched', () => {
     expect(result.date).toBe('Date');
     expect(result.amount).toBe('Amount');
     expect(result.description).toBe('Memo');
+    expect(result.payee).toBe('Payee');
   });
 
   it('sets category to map-data-source-column with the matched column', () => {
@@ -101,6 +102,7 @@ describe('buildInitialColumnMapping — no columns matched', () => {
     expect(result.date).toBeNull();
     expect(result.amount).toBeNull();
     expect(result.description).toBeNull();
+    expect(result.payee).toBeNull();
   });
 
   it('leaves category / account / currency unset (needs-attention)', () => {

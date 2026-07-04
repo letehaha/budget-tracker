@@ -118,6 +118,7 @@
           "accountsCreated": "Cuentas creadas",
           "categoriesCreated": "Categorías creadas",
           "tagsCreated": "Etiquetas creadas",
+          "payeesCreated": "Beneficiarios creados",
           "importErrors": "Errores de importación",
           "rowNumber": "Fila n.º",
           "error": "Error",
@@ -365,7 +366,8 @@
           "category": "Categoría",
           "account": "Cuenta",
           "currency": "Moneda",
-          "transactionType": "Tipo de transacción"
+          "transactionType": "Tipo de transacción",
+          "payee": "Beneficiario"
         }
       },
       "importResults": {

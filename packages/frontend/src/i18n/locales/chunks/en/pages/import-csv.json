@@ -118,6 +118,7 @@
           "accountsCreated": "Accounts Created",
           "categoriesCreated": "Categories Created",
           "tagsCreated": "Tags Created",
+          "payeesCreated": "Payees Created",
           "importErrors": "Import Errors",
           "rowNumber": "Row #",
           "error": "Error",
@@ -365,7 +366,8 @@
           "category": "Category",
           "account": "Account",
           "currency": "Currency",
-          "transactionType": "Transaction type"
+          "transactionType": "Transaction type",
+          "payee": "Payee"
         }
       },
       "importResults": {
