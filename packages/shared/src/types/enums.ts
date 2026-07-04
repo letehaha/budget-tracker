@@ -94,6 +94,24 @@ export enum ACCOUNT_CATEGORIES {
 }
 
 /**
+ * Account categories that own a required 1:1 sidecar row (LoanDetails,
+ * Vehicles) and a dedicated creation flow (`/loans`, `/vehicles`). They must
+ * never be created through the generic `POST /accounts` path — that would
+ * produce a sidecar-less account with none of the managed-balance machinery,
+ * so the create service rejects them and the create-account UI hides them.
+ * Each is created only via its own endpoint, which writes the account and its
+ * sidecar in one transaction.
+ */
+const DEDICATED_FLOW_ACCOUNT_CATEGORIES = [ACCOUNT_CATEGORIES.loan, ACCOUNT_CATEGORIES.vehicle] as const;
+
+type DedicatedFlowAccountCategory = (typeof DEDICATED_FLOW_ACCOUNT_CATEGORIES)[number];
+
+export const isDedicatedFlowAccountCategory = (
+  category: ACCOUNT_CATEGORIES,
+): category is DedicatedFlowAccountCategory =>
+  DEDICATED_FLOW_ACCOUNT_CATEGORIES.includes(category as DedicatedFlowAccountCategory);
+
+/**
  * Vehicle body / drivetrain class used to pick the default depreciation curve.
  * VARCHAR in DB, TS-side enum for type safety (per project's no-DB-enums rule).
  */

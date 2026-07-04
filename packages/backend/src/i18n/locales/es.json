@@ -12,7 +12,8 @@
     "accountNotFoundForTransaction": "Cuenta no encontrada para esta transacción",
     "deleteBlockedByLoanPayments": "Esta cuenta tiene pagos de préstamos. Elimínelos o reasígnalos antes de eliminar la cuenta.",
     "loanBalanceUseUpdateLoan": "Cambie el saldo pendiente de un préstamo desde su página de préstamo, no desde la configuración de la cuenta.",
-    "loanCategoryImmutable": "La categoría de una cuenta de préstamo no se puede cambiar."
+    "loanCategoryImmutable": "La categoría de una cuenta de préstamo no se puede cambiar.",
+    "dedicatedFlowCategoryNotAllowed": "Las cuentas de préstamos y vehículos deben crearse a través de sus puntos finales dedicados, no a través del punto final genérico de cuentas."
   },
   "balanceAdjustment": {
     "defaultNote": "Ajuste de saldo",

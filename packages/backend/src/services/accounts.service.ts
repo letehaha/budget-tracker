@@ -6,6 +6,7 @@ import {
   AccountExternalData,
   BANK_PROVIDER_TYPE,
   TRANSACTION_TRANSFER_NATURE,
+  isDedicatedFlowAccountCategory,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
@@ -189,7 +190,13 @@ export const createAccount = withTransaction(
     payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
   ): Promise<Accounts.default | null> => {
     try {
-      const { userId, creditLimit, currencyCode, initialBalance } = payload;
+      const { userId, accountCategory, creditLimit, currencyCode, initialBalance } = payload;
+
+      if (accountCategory && isDedicatedFlowAccountCategory(accountCategory)) {
+        throw new ValidationError({
+          message: t({ key: 'accounts.dedicatedFlowCategoryNotAllowed' }),
+        });
+      }
 
       await UsersCurrencies.addCurrency({ userId, currencyCode });
 

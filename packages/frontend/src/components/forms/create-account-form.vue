@@ -11,7 +11,7 @@ import { useCurrencyName } from '@/composable';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useCurrenciesStore } from '@/stores';
 import { useOnboardingStore } from '@/stores/onboarding';
-import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, isDedicatedFlowAccountCategory } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed, defineAsyncComponent, reactive } from 'vue';
@@ -35,11 +35,9 @@ const defaultCurrency = computed(
   () => systemCurrenciesVerbose.value.linked.find((i) => i.code === baseCurrency.value!.currencyCode)!.code || '',
 );
 
-const HIDDEN_ACCOUNT_CATEGORIES = new Set<ACCOUNT_CATEGORIES>([ACCOUNT_CATEGORIES.vehicle, ACCOUNT_CATEGORIES.loan]);
-
 const queryCategory = route.query.category as ACCOUNT_CATEGORIES | undefined;
 const defaultAccountCategory =
-  queryCategory && !HIDDEN_ACCOUNT_CATEGORIES.has(queryCategory) ? queryCategory : ACCOUNT_CATEGORIES.general;
+  queryCategory && !isDedicatedFlowAccountCategory(queryCategory) ? queryCategory : ACCOUNT_CATEGORIES.general;
 
 const form = reactive<{
   name: string;
@@ -57,7 +55,7 @@ const form = reactive<{
 
 const selectableAccountCategories = computed(() =>
   Object.entries(ACCOUNT_CATEGORIES_TRANSLATION_KEYS).filter(
-    ([category]) => !HIDDEN_ACCOUNT_CATEGORIES.has(category as ACCOUNT_CATEGORIES),
+    ([category]) => !isDedicatedFlowAccountCategory(category as ACCOUNT_CATEGORIES),
   ),
 );
 

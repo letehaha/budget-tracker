@@ -12,7 +12,8 @@
     "accountNotFoundForTransaction": "Account not found for this transaction",
     "deleteBlockedByLoanPayments": "This account has loan payments. Delete or reassign them before deleting the account.",
     "loanBalanceUseUpdateLoan": "Change a loan's outstanding balance from its loan page, not from account settings.",
-    "loanCategoryImmutable": "A loan account's category can't be changed."
+    "loanCategoryImmutable": "A loan account's category can't be changed.",
+    "dedicatedFlowCategoryNotAllowed": "Loan and vehicle accounts must be created through their dedicated endpoints, not the generic accounts endpoint."
   },
   "balanceAdjustment": {
     "defaultNote": "Balance adjustment",

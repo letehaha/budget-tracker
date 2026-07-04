@@ -708,80 +708,19 @@ describe('Loan payment integration', () => {
     });
   });
 
-  describe('loan-category accounts without a LoanDetails sidecar stay unrestricted', () => {
-    // Accounts created with the plain accounts endpoint (or migrated legacy
-    // mortgages) carry accountCategory='loan' but no LoanDetails row — no
-    // managed balance, no recompute, so none of the loan write guards apply.
-    const createBareLoanAccount = () =>
-      helpers.createAccount({
+  describe('generic POST /accounts rejects the loan category', () => {
+    // Loans own a required 1:1 LoanDetails sidecar and are created only via
+    // `/loans`. The generic accounts endpoint must refuse `accountCategory:
+    // 'loan'` so a sidecar-less loan account can never come into existence.
+    it('rejects creating a loan-category account through the plain accounts endpoint', async () => {
+      const response = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ accountCategory: ACCOUNT_CATEGORIES.loan }),
-        raw: true,
+        raw: false,
       });
 
-    it('accepts plain income and expense transactions on a sidecar-less loan-category account', async () => {
-      const bareLoanAccount = await createBareLoanAccount();
-
-      const expenseResponse = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: bareLoanAccount.id,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-      });
-      expect(expenseResponse.statusCode).toBe(200);
-
-      const incomeResponse = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: bareLoanAccount.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-      });
-      expect(incomeResponse.statusCode).toBe(200);
-    });
-
-    it('accepts editing an existing transaction on a sidecar-less loan-category account', async () => {
-      const bareLoanAccount = await createBareLoanAccount();
-
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: bareLoanAccount.id,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.updateTransaction({
-        id: tx.id,
-        payload: { amount: 700 },
-      });
-      expect(response.statusCode).toBe(200);
-    });
-
-    it('does not apply the overpay guard to a transfer into a sidecar-less loan-category account', async () => {
-      // The account has a zero balance, so any payment would be an overpay on
-      // a managed loan — but with no sidecar there is no owed amount to guard.
-      const bareLoanAccount = await createBareLoanAccount();
-      const cashAccount = await helpers.createAccount({ raw: true });
-
-      const [base, opposite] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({
-            accountId: cashAccount.id,
-            amount: 500,
-          }),
-          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-          destinationAmount: 500,
-          destinationAccountId: bareLoanAccount.id as RecordId,
-        },
-        raw: true,
-      });
-
-      // The transfer still gets the loan stamp (keyed off the account category),
-      // it just skips the managed-balance enforcement.
-      expect(base.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
-      expect(opposite!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
     });
   });
 
