@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Loans — Behavior Specification</title>
+    <title>Loans – Behavior Specification</title>
     <style>
       :root {
         --bg: #14111c;
@@ -480,10 +480,7 @@
     <div class="topbar">
       <div class="inner">
         <span class="tag">Spec</span>
-        <span class="crumb"
-          >budget-tracker · <code>feat/institutional-loans-tracking</code> · Loans behavior specification ·
-          2026-07-03</span
-        >
+        <span class="crumb">budget-tracker · Loans behavior specification · 2026-07-03</span>
       </div>
     </div>
     <div class="wrap">
@@ -504,7 +501,7 @@
         <a href="#scope">12. Out of scope / future</a>
       </nav>
       <main>
-        <h1>Loans — Behavior Specification</h1>
+        <h1>Loans – Behavior Specification</h1>
         <p class="subtitle">
           Source of truth for how every loans user-flow behaves, edge cases included. Every statement carries a status
           badge; noteworthy behaviors and known gaps are called out inline in the section they belong to. When a bug is
@@ -531,13 +528,13 @@
           <h2><span class="secnum">1</span>Concepts &amp; data model</h2>
 
           <div class="principle">
-            <div class="ptitle">Product principle — the balance is a user-maintained principal ledger</div>
+            <div class="ptitle">Product principle – the balance is a user-maintained principal ledger</div>
             <p>
               A loan's balance moves <strong>only</strong> on user-recorded events: the initial snapshot, payments, and
-              manual balance corrections. Every recorded payment is <strong>100% principal</strong> — linking a $1,000
+              manual balance corrections. Every recorded payment is <strong>100% principal</strong> – linking a $1,000
               transaction always reduces the owed amount by exactly $1,000; no principal/interest split exists anywhere
               in the schema. The app never simulates lender-side interest accrual onto the balance.
-              <em>Abolished alternative (do not reach for it):</em> auto-accruing interest from APR between payments —
+              <em>Abolished alternative (do not reach for it):</em> auto-accruing interest from APR between payments –
               rejected because lender math varies too much across day-count conventions, posting rules, fees, and
               jurisdictions to reproduce; a confidently-wrong balance the user must fight is worse than an
               honestly-simple one the user understands. APR is used exclusively for <em>forward projection</em> and for
@@ -545,7 +542,7 @@
             </p>
             <p>
               Consequences, all intended: the ledger understates the lender's figure by accrued interest, so it can
-              reach zero — and settle the loan — before the lender's books do (e.g. 10 × $1,000 payments clear a $10,000
+              reach zero – and settle the loan – before the lender's books do (e.g. 10 × $1,000 payments clear a $10,000
               ledger while the real loan still carries the interest portion).
               <strong>Reconciliation via balance corrections (§4) is the designed workflow, not a workaround:</strong>
               the user restates "I actually still owe $X" from a lender statement, a prematurely-settled loan reopens
@@ -579,7 +576,7 @@
             so a positive value could never display as debt.
           </p>
 
-          <h3>startDate vs balanceAnchorDate — two different dates</h3>
+          <h3>startDate vs balanceAnchorDate – two different dates</h3>
           <p>This distinction is the most-confused part of the model.</p>
           <div class="tablewrap">
             <table>
@@ -592,8 +589,8 @@
               <tr>
                 <td><code>startDate</code></td>
                 <td>
-                  Contractual origination date at the lender — when the loan began in the real world. UI label:
-                  <strong>"Origination date"</strong> (§3) — distinct from the anchor.
+                  Contractual origination date at the lender – when the loan began in the real world. UI label:
+                  <strong>"Origination date"</strong> (§3) – distinct from the anchor.
                 </td>
                 <td>Create form; editable later (§3).</td>
                 <td>
@@ -604,7 +601,7 @@
               <tr>
                 <td><code>balanceAnchorDate</code></td>
                 <td>
-                  The date on which the tracked outstanding snapshot (<code>Account.initialBalance</code>) is true —
+                  The date on which the tracked outstanding snapshot (<code>Account.initialBalance</code>) is true –
                   "the balance was X as-of this day (before that day's payments)".
                 </td>
                 <td>Stamped = today at creation; moved by balance corrections (§4).</td>
@@ -644,7 +641,7 @@
             is added to the app on 2026-07-01 with $245,100 still owed. The anchor is stamped 2026-07-01 and
             <code>initialBalance = −245,100</code>. The five years of payments made before tracking began are
             <em>already inside</em> that snapshot; if the user backfills them as transactions they must NOT reduce the
-            balance again — hence the anchor boundary.
+            balance again – hence the anchor boundary.
           </p>
           <p>
             <span class="badge b-spec">✅ SPEC</span> The anchor boundary is <strong>inclusive</strong>: legs dated
@@ -659,8 +656,7 @@
             <span class="badge b-spec">✅ SPEC</span> A payment is an ordinary transfer pair with
             <code>transferNature: 'transfer_to_loan'</code>: an expense leg on the source account and an income leg on
             the loan account, linked by <code>transferId</code>. The loan account only ever holds income legs. Income
-            legs move the negative balance toward zero. Legacy <code>common_transfer</code> rows landing on a loan are
-            not auto-migrated; reporting queries union both natures.
+            legs move the negative balance toward zero.
           </p>
 
           <h3>Balance maintenance &amp; history</h3>
@@ -669,10 +665,10 @@
             used by ordinary accounts. Instead, <code>recomputeLoanBalance</code> derives the authoritative balance from
             scratch on every payment write/edit/delete and every re-anchor:
             <code>currentBalance = initialBalance + Σ counted income legs</code> (same for <code>ref</code> amounts). It
-            also rebuilds the loan's <code>Balances</code> history rows from the anchor day forward — one row on the
+            also rebuilds the loan's <code>Balances</code> history rows from the anchor day forward – one row on the
             anchor date plus one cumulative row per later day with legs; pre-anchor rows stay untouched. Rebuilt rows
             are floored at zero (<a href="#zero-cap">zero-cap rule, §6</a>). <code>Balances.amount</code> stores the
-            <strong>base-currency (ref)</strong> running balance; the balance-journey chart does not read it — it
+            <strong>base-currency (ref)</strong> running balance; the balance-journey chart does not read it – it
             consumes the loan-currency series from <code>GET /loans/:id/balance-history</code> (§7).
           </p>
         </section>
@@ -713,7 +709,7 @@
                 <td>yes</td>
                 <td>decimal ≥ 0</td>
                 <td>
-                  Positive "outstanding now"; service negates. 0 allowed — creates an already-settled loan whose
+                  Positive "outstanding now"; service negates. 0 allowed – creates an already-settled loan whose
                   paid-off interest estimate is ≈ 0 (§8).
                 </td>
               </tr>
@@ -745,7 +741,7 @@
                 <td><code>termMonths</code></td>
                 <td>no</td>
                 <td>int 1–1200, nullable</td>
-                <td>Contractual reference; prepaying does not change it — payoff date moves instead.</td>
+                <td>Contractual reference; prepaying does not change it – payoff date moves instead.</td>
               </tr>
               <tr>
                 <td><code>startDate</code></td>
@@ -784,7 +780,7 @@
                 <td><code>accountNumber</code></td>
                 <td>no</td>
                 <td>1–100, trimmed, nullable</td>
-                <td>Free-form reference; stored plaintext — helper text tells the user to prefer last-four.</td>
+                <td>Free-form reference; stored plaintext – helper text tells the user to prefer last-four.</td>
               </tr>
             </table>
           </div>
@@ -794,13 +790,13 @@
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Balance &gt; principal:</strong> a legitimate state
               (negative amortization / capitalized interest). Allowed with a non-blocking inline warning
-              (<code>forms.loan.balanceExceedsPrincipalWarning</code>) —
+              (<code>forms.loan.balanceExceedsPrincipalWarning</code>) –
               <strong>no confirm step, no submit block, no upper cap</strong>. Projection floors "principal paid" at 0
               rather than showing negative progress.
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Anchor stamping:</strong>
-              <code>balanceAnchorDate</code> is always stamped <em>today</em> (server date) at creation — the entered
+              <code>balanceAnchorDate</code> is always stamped <em>today</em> (server date) at creation – the entered
               outstanding is true as-of the moment of entry, regardless of <code>startDate</code>.
             </li>
             <li>
@@ -816,7 +812,7 @@
                 <ul>
                   <li>
                     <strong>(a)</strong> <code>startDate</code> &gt; today is rejected with 422 on both create and edit
-                    — a loan cannot originate in the future. Enforced in the request schema
+                    – a loan cannot originate in the future. Enforced in the request schema
                     (<code>loans/zod-schemas.ts</code>) via a shared <code>notFutureCalendarDate()</code> check that
                     also gates <code>currentBalanceAsOf</code>. The ceiling is server-tomorrow so a client one calendar
                     day ahead of UTC isn't rejected for its own valid local date.
@@ -825,7 +821,7 @@
                     <strong>(b)</strong> A balance correction whose effective as-of (<code
                       >currentBalanceAsOf ?? today</code
                     >) is earlier than the effective start date (<code>startDate</code> from the same PATCH, else the
-                    persisted value) is rejected with 422 — an outstanding balance cannot be asserted for a date before
+                    persisted value) is rejected with 422 – an outstanding balance cannot be asserted for a date before
                     the loan existed. This is a cross-field rule, so it lives in
                     <code>update-loan.service.ts</code> (the schema can't see the persisted <code>startDate</code> when
                     as-of arrives without one) and runs before any DB write.
@@ -844,7 +840,7 @@
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> Missing/invalid required field → 422 with field-level Zod
-              details. Huge principals compute exactly — all arithmetic is integer cents.
+              details. Huge principals compute exactly – all arithmetic is integer cents.
             </li>
           </ul>
         </section>
@@ -855,7 +851,7 @@
           <p>
             <span class="badge b-spec">✅ SPEC</span> <code>PATCH /loans/:id</code> takes any subset of fields (at least
             one required, else 422). The service diffs each field against the persisted row; timeline events are
-            appended <strong>only on a real change</strong> — echoing the current value is a no-op and must not create
+            appended <strong>only on a real change</strong> – echoing the current value is a no-op and must not create
             an event. Edits run in one DB transaction. 404 when the loan isn't owned by the caller.
           </p>
           <div class="tablewrap">
@@ -864,25 +860,21 @@
                 <th>Field edited</th>
                 <th>Timeline event</th>
                 <th>Side effects</th>
-                <th>Status</th>
               </tr>
               <tr>
                 <td><code>name</code></td>
                 <td>none</td>
                 <td>Routes through the canonical account-update path.</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td><code>interestRate</code></td>
                 <td><code>rate_change</code> {from, to}</td>
                 <td>Projection recomputes on next read. Past payments never re-split (no split exists).</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td><code>termMonths</code></td>
                 <td><code>term_change</code> {from, to}</td>
                 <td><code>null</code> is meaningful ("term cleared") and recorded as-is.</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td><code>plannedPayment</code></td>
@@ -891,49 +883,42 @@
                   Compared in cents; <code>refPlannedPayment</code> recomputed at today's rate. <code>null</code> =
                   "cleared", distinct from 0.
                 </td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td><code>minPayment</code></td>
                 <td>none</td>
                 <td>Silent update + ref recompute.</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td><code>startDate</code></td>
                 <td>none</td>
                 <td>
-                  Silent edit (typo-fix affordance): no event, no anchor move, no recompute — display/history-only
+                  Silent edit (typo-fix affordance): no event, no anchor move, no recompute – display/history-only
                   field. Constrained to <code>startDate ≤ today</code> (enforced per
                   <a href="#date-ordering">date-ordering invariants</a>). See
                   <a href="#origination-date">origination date</a> below.
                 </td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td><code>paymentDayOfMonth</code>, <code>lenderName</code>, <code>accountNumber</code></td>
                 <td>none</td>
                 <td>Silent update.</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td><code>currentBalance</code> (+ optional <code>currentBalanceAsOf</code>)</td>
                 <td><code>balance_correction</code></td>
-                <td>Full re-anchor — see §4.</td>
-                <td>§4</td>
+                <td>Full re-anchor – see §4.</td>
               </tr>
               <tr>
                 <td><code>currencyCode</code></td>
                 <td colspan="2">
-                  Not accepted — absent from the PATCH schema. Currency switching is unsupported codebase-wide; a loan's
+                  Not accepted – absent from the PATCH schema. Currency switching is unsupported codebase-wide; a loan's
                   amortization history is single-currency.
                 </td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td><code>loanType</code></td>
-                <td colspan="2">Not accepted — absent from the PATCH schema; a loan's type is fixed at creation.</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
+                <td colspan="2">Not accepted – absent from the PATCH schema; a loan's type is fixed at creation.</td>
               </tr>
             </table>
           </div>
@@ -943,19 +928,19 @@
               <span class="ftitle">startDate is a display-only origination date</span>
             </div>
             <p>
-              <code>startDate</code> records when the loan was issued in the real world. It affects no balance math — it
+              <code>startDate</code> records when the loan was issued in the real world. It affects no balance math – it
               drives only history display (balance-journey chart start, "closed N months early"). Its identity is
               distinct from the anchor and must read that way in the UI:
             </p>
             <ul>
               <li>
                 <strong>UI label: "Origination date"</strong>, with helper text along the lines of
-                <em>"when the loan was issued — used for history display only, doesn't affect balance"</em>. It is not
+                <em>"when the loan was issued – used for history display only, doesn't affect balance"</em>. It is not
                 an anchor: <code>balanceAnchorDate</code> is the recompute boundary, stays hidden/auto (stamped at
                 creation, moved only by balance corrections §4), and is never directly editable.
               </li>
               <li>
-                <strong>Edit is silent:</strong> no timeline event, no anchor move, no recompute — it is a typo-fix
+                <strong>Edit is silent:</strong> no timeline event, no anchor move, no recompute – it is a typo-fix
                 affordance.
               </li>
               <li>
@@ -983,12 +968,12 @@
           <ol>
             <li><code>balanceAnchorDate ← asOf</code> (defaults to today when omitted);</li>
             <li>
-              <code>Account.initialBalance ← −currentBalance</code> (+ ref at today's rate) written directly —
+              <code>Account.initialBalance ← −currentBalance</code> (+ ref at today's rate) written directly –
               deliberately bypassing the generic account-update diff logic, which would shift instead of re-anchor;
             </li>
             <li>
               a <code>balance_correction</code> event is appended (<code>from</code> = old outstanding,
-              <code>to</code> = new) — manual edits leave no transaction trail, so this event is the only record;
+              <code>to</code> = new) – manual edits leave no transaction trail, so this event is the only record;
             </li>
             <li>
               <code>recomputeLoanBalance</code> re-derives <code>currentBalance</code> = snapshot + post-anchor legs,
@@ -999,12 +984,12 @@
           <ul>
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Echo without as-of:</strong> sending the current balance
-              unchanged and no <code>currentBalanceAsOf</code> is dropped — no event, anchor stays. Sending the
+              unchanged and no <code>currentBalanceAsOf</code> is dropped – no event, anchor stays. Sending the
               <em>same amount</em> with an as-of date is a genuine re-anchor (the date changes which legs count).
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span>
-              <strong><code>currentBalanceAsOf</code> without <code>currentBalance</code>:</strong> 422 — the anchor
+              <strong><code>currentBalanceAsOf</code> without <code>currentBalance</code>:</strong> 422 – the anchor
               date is meaningless alone.
             </li>
             <li>
@@ -1018,13 +1003,13 @@
               boundary is inclusive). Documented, accepted; users should enter the pre-payment statement figure.
             </li>
             <li>
-              <strong>As-of before <code>startDate</code>:</strong> rejected with 422 — a balance cannot predate
+              <strong>As-of before <code>startDate</code>:</strong> rejected with 422 – a balance cannot predate
               origination (<a href="#date-ordering">date-ordering invariants</a>).
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Overpay guard:</strong> a correction is rejected with
               422 when the re-anchored snapshot plus the payment legs dated on/after the new as-of date would project a
-              positive (credit) balance — e.g. correcting to $100 as-of two months ago with a $500 later payment
+              positive (credit) balance – e.g. correcting to $100 as-of two months ago with a $500 later payment
               (projected +$400). The message names the overpay amount and the total of the offending payments. Projected
               <em>exactly zero</em> is allowed (a legit backdated payoff). Checked before any DB write, so a rejected
               correction leaves the anchor, balance, and events untouched. A positive projection is always user error:
@@ -1050,7 +1035,7 @@
           <p>
             <span class="badge b-spec">✅ SPEC</span> The source picker offers
             <strong>system (manually-managed) accounts only</strong>, excluding vehicle and loan categories (loans are
-            never payment sources — money only flows in). Bank-synced accounts are excluded because their transactions
+            never payment sources – money only flows in). Bank-synced accounts are excluded because their transactions
             arrive from the provider; the synced expense should instead be attached via <em>Link payments</em> (§6). The
             dialog shows a hint under the source picker pointing users to <em>Link payments</em> so the omission isn't
             silent.
@@ -1073,7 +1058,7 @@
           <p>
             <span class="badge b-spec">✅ SPEC</span> A payment dated <em>before</em> <code>balanceAnchorDate</code> is
             <strong>accepted but does not move the balance</strong>, and it skips the overpay guard entirely.
-            <em>Why this exists:</em> pre-anchor payments are already baked into the anchor snapshot (§1) — they are
+            <em>Why this exists:</em> pre-anchor payments are already baked into the anchor snapshot (§1) – they are
             backfilled history, useful for the payments list and spending reports, and mathematically incapable of
             overpaying because the recompute never counts them. A $300 backfill against a $100 remaining balance is
             therefore legal. Guard symmetry on edits: when an existing leg is edited, its old amount is credited back
@@ -1102,12 +1087,12 @@
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Amount-only PATCH keeps the pair consistent:</strong> a
               generic <code>PATCH {amount}</code> on a transfer's source leg re-derives the destination leg 1:1 when the
-              pair shares a currency, and is rejected with 422 (explicit error) when the pair is cross-currency — an API
+              pair shares a currency, and is rejected with 422 (explicit error) when the pair is cross-currency – an API
               caller cannot desync the legs. Loan overpay validation runs on amount-only edits too.
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Deletes serialize on the row lock:</strong> all
-              balance-mutating payment writes, including deletes, serialize on the loan-account row lock — the recompute
+              balance-mutating payment writes, including deletes, serialize on the loan-account row lock – the recompute
               itself acquires <code>SELECT … FOR UPDATE</code>, so no write path can skip it.
             </li>
             <li>
@@ -1122,10 +1107,10 @@
           <p>
             <span class="badge b-spec">✅ SPEC</span> Unlink is a loan-specific endpoint that accepts
             <em>either leg's</em> id, deletes the loan-side income leg (firing the recompute), and restores the source
-            leg to a plain expense (<code>not_transfer</code>, <code>transferId</code> cleared) — the spend stays on the
+            leg to a plain expense (<code>not_transfer</code>, <code>transferId</code> cleared) – the spend stays on the
             books. The <strong>generic</strong> transfer-unlink endpoint rejects
             <code>transfer_to_loan</code>
-            pairs with 422 — loan pairs are asymmetric (destination leg must be destroyed, not orphaned), so only the
+            pairs with 422 – loan pairs are asymmetric (destination leg must be destroyed, not orphaned), so only the
             loan endpoint may take them apart. Deleting the whole payment (both legs) is the other supported undo.
             Stale/foreign selections (wrong loan, non-payment transfer) → 422
             <code>loans.unlinkPaymentInvalidSelection</code>.
@@ -1144,7 +1129,7 @@
           <p>
             <span class="badge b-spec">✅ SPEC</span> <code>POST /loans/:id/link-payments</code> converts existing
             expense transactions (typically imported from synced accounts) into loan payments in bulk: each becomes the
-            source leg of a <code>transfer_to_loan</code> pair with a generated income leg on the loan account — the
+            source leg of a <code>transfer_to_loan</code> pair with a generated income leg on the loan account – the
             same shape as a recorded payment.
           </p>
           <h3>Eligibility &amp; atomicity</h3>
@@ -1156,7 +1141,7 @@
               <span class="badge b-spec">✅ SPEC</span> Every transaction must be: owned by the caller,
               <code>not_transfer</code>, an <code>expense</code>, and not on the loan account itself. Any ineligible or
               missing row fails the <strong>whole batch</strong> with 422
-              <code>loans.linkPaymentsInvalidSelection</code> — never a partial link.
+              <code>loans.linkPaymentsInvalidSelection</code> – never a partial link.
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> Each expense converts to loan currency at
@@ -1167,7 +1152,7 @@
           <h3>Aggregate overpay check &amp; confirm flow</h3>
           <p>
             <span class="badge b-spec">✅ SPEC</span> Overpay is validated <strong>once for the whole batch</strong>
-            against the row-locked balance (per-leg guards are skipped — each linked leg moves the balance toward zero
+            against the row-locked balance (per-leg guards are skipped – each linked leg moves the balance toward zero
             and would falsely trip). When the counted sum overshoots: 422 with
             <code>code: loanPaymentOverpayConfirmationRequired</code> and details
             <code>{ projectedBalance, maxLinkable, overpayBy }</code>; the dialog shows a confirmation. Re-sending with
@@ -1183,14 +1168,14 @@
               A loan never carries a positive (credit) balance. When a confirmed bulk-link batch overshoots the owed
               amount, the outstanding balance floors at <code>$0</code> and the recompute stamps
               <code>paid_off</code> on the owing → settled transition (§7). The excess is
-              <strong>never</strong> credited back to the loan — it stays only as the real expense legs on the user's
+              <strong>never</strong> credited back to the loan – it stays only as the real expense legs on the user's
               cash account, who owns the selection. The confirm dialog acknowledges this: it warns the payments exceed
               the remaining balance and that the extra won't be credited back.
             </p>
             <p>
               The floor lives in <code>recompute-loan-balance.service.ts</code> and clamps both the current balance and
               every rebuilt <code>Balances</code> history row at zero, so credit is impossible regardless of entry
-              point; a settled loan's last history row sits at 0. Scope is the bulk-link confirm path — the
+              point; a settled loan's last history row sits at 0. Scope is the bulk-link confirm path – the
               balance-correction path hard-rejects any positive projection and cannot reach a credit state. As defense
               in depth, the frontend renders outstanding amounts via <code>max(0, −balance)</code>
               (<code>outstanding-amount.ts</code>), so even an anomalous positive value would display as settled ($0),
@@ -1207,13 +1192,13 @@
             <span class="badge b-spec">✅ SPEC</span> A loan is settled when
             <code>currentBalance == 0</code> (projection reports <code>isPaidOff: true</code> for balance ≤ 0).
             Settlement is <strong>ledger-driven</strong> (§1): the principal ledger reaching zero settles the loan even
-            while the lender's books still carry accrued interest — that is intended, and the user restates the real
+            while the lender's books still carry accrued interest – that is intended, and the user restates the real
             remaining amount via a balance correction (§4), which reopens the loan. The recompute stamps a
             <code>paid_off</code> timeline event exactly on the <strong>owing → settled transition</strong> (old balance
-            negative, new balance non-negative) — repeated recomputes of an already-settled loan never duplicate it, so
+            negative, new balance non-negative) – repeated recomputes of an already-settled loan never duplicate it, so
             <strong>at most one live <code>paid_off</code> event exists at any time</strong>. The event's
             <code>at</code> is the <strong>date of the payment that settled the loan</strong> (a cumulative walk over
-            the post-anchor legs finds the leg that reached zero), not the wall-clock recompute time — a backfilled
+            the post-anchor legs finds the leg that reached zero), not the wall-clock recompute time – a backfilled
             final payment gets its historical close date; a payoff produced by a correction-to-zero uses
             <code>balanceAnchorDate</code>. The account stays <code>active</code>; no auto-archive.
           </p>
@@ -1222,7 +1207,7 @@
           <ul>
             <li>
               <span class="badge b-spec">✅ SPEC</span> Detail page shows a settled banner (loan ran X years Y months;
-              closed N months early when <code>termMonths</code> is set — from <code>startDate + termMonths</code> vs
+              closed N months early when <code>termMonths</code> is set – from <code>startDate + termMonths</code> vs
               close date). List page moves the loan to a separate "Paid off" section.
             </li>
             <li>
@@ -1245,7 +1230,7 @@
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Payments on a settled loan:</strong> the overpay guard
-              rejects any counted (post-anchor) payment — projected balance would exceed 0. Pre-anchor backfill payments
+              rejects any counted (post-anchor) payment – projected balance would exceed 0. Pre-anchor backfill payments
               remain recordable for history correction (§5 exemption). Balance corrections stay available to restate the
               loan as still-owing.
             </li>
@@ -1253,7 +1238,7 @@
               <span class="badge b-spec">✅ SPEC</span> <strong>Reopen semantics:</strong> editing or deleting a payment
               that drops the balance below zero resurrects the loan: settled banner clears, it returns to the active
               list, projection resumes. A reopen removes <strong>all</strong> <code>paid_off</code> events from the
-              timeline — an active loan never shows "paid off" — and a later re-payoff stamps a fresh one.
+              timeline – an active loan never shows "paid off" – and a later re-payoff stamps a fresh one.
             </li>
           </ul>
         </section>
@@ -1263,7 +1248,7 @@
           <h2><span class="secnum">8</span>Projections &amp; math</h2>
           <p>
             <span class="badge b-spec">✅ SPEC</span> <code>computeLoanProjection</code> is a pure function (backend
-            <code>common/loans/projection.ts</code>), recomputed on every <code>GET /loans[/:id]</code> — no caching.
+            <code>common/loans/projection.ts</code>), recomputed on every <code>GET /loans[/:id]</code> – no caching.
             All arithmetic in integer cents; API outputs are decimals. <code>today</code> is injected. Every interest
             output is an estimate (§1 principle).
           </p>
@@ -1277,7 +1262,7 @@
               <tr>
                 <td><code>currentBalanceCents</code></td>
                 <td>
-                  abs of the signed balance (never positive — the recompute floors at zero, §1). 0 → paid-off branch.
+                  abs of the signed balance (never positive – the recompute floors at zero, §1). 0 → paid-off branch.
                 </td>
               </tr>
               <tr>
@@ -1310,7 +1295,7 @@ monthsRemaining = ⌈ ln(P / (P − B·r)) / ln(1 + r) ⌉   where r = rate/100/
 if monthsRemaining > 1200 → presented as 'payment_below_interest'              // 100-yr horizon cap
 
 totalInterestRemaining = Σ per-month accrual (final month pays only the leftover
-                         balance + its interest — closed-form P×n − B would overstate)
+                         balance + its interest – closed-form P×n − B would overstate)
 
 payoffDate = today + monthsRemaining     // month-end clamped: Jan 31 +1mo → Feb 28/29
 paidToDate = max(0, principal − balance);  percent clamped 0..100, 1 decimal
@@ -1329,24 +1314,24 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>FE lockstep:</strong> the frontend's
-              <code>computePayoffScenario</code> (payoff chart, what-if input) must match the backend to the cent — same
+              <code>computePayoffScenario</code> (payoff chart, what-if input) must match the backend to the cent – same
               closed form, same per-month banker's-rounded accrual, same 1200-month cap, same zero-rate and termination
               handling.
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>estimatedInterestPaid semantics:</strong> derived, never
-              measured — payments carry no interest split (§1), so the original amortization schedule
+              measured – payments carry no interest split (§1), so the original amortization schedule
               (originalPrincipal, termMonths, APR) is the only interest model. <em>Active:</em> schedule-lifetime minus
               remaining, clamped at 0 (a payoff trajectory faster than the contractual schedule clamps to 0 rather than
               going negative); null when remaining interest is null. <em>Paid-off:</em> interest accrued over the loan's
-              <strong>actual open duration</strong> — the schedule's per-month accrual summed for the first
+              <strong>actual open duration</strong> – the schedule's per-month accrual summed for the first
               <code>min(actualOpenMonths, termMonths)</code> months, where actualOpenMonths counts whole UTC calendar
               months from <code>startDate</code> to the settle date (a partial trailing month counts as full; settle ==
               start → 0). The settle date is the loan's single live <code>paid_off</code> event's <code>at</code> (§7),
               with <code>balanceAnchorDate</code> as fallback; when neither is derivable, the estimate falls back to the
               full lifetime figure. Not a proration: interest is front-loaded, so scaling the lifetime figure by
               elapsed/term would understate the early months' share. The estimate never reads payment <em>amounts</em>,
-              only dates — a single lump-sum payoff and twelve monthly payments closing on the same date estimate
+              only dates – a single lump-sum payoff and twelve monthly payments closing on the same date estimate
               identically. A loan that runs to term yields the full schedule figure; a loan created already at $0 yields
               ≈ 0. Null whenever term is missing/degenerate.
             </li>
@@ -1359,9 +1344,9 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
                 <p>
                   The paid-off figure runs the original amortization schedule over the months the loan was actually open
                   (<code>startDate</code> → settle date, capped at <code>termMonths</code>) and sums only that interest
-                  — the formula in the semantics entry above; it is the cost-breakdown card's number (§7). Early payoff
+                  – the formula in the semantics entry above; it is the cost-breakdown card's number (§7). Early payoff
                   shrinks the estimate to the front-loaded months actually elapsed; running to term reproduces the full
-                  lifetime figure — no special case. A loan created at zero balance settles on its anchor date and
+                  lifetime figure – no special case. A loan created at zero balance settles on its anchor date and
                   estimates ≈ 0.
                 </p>
               </div>
@@ -1369,7 +1354,7 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Min-payment estimate</strong> (form helper): fixed
               payment that fully amortizes the <strong>current outstanding balance</strong> over the
-              <strong>remaining term</strong> — <code>B·r / (1 − (1+r)^−m)</code> where
+              <strong>remaining term</strong> – <code>B·r / (1 − (1+r)^−m)</code> where
               <code>m = termMonths − monthsElapsed(startDate)</code>, clamped to ≥1. Interest accrues on the current
               balance, so this answers "what payment reaches zero by the end of the term from here", which stays correct
               for over/underpaid and mid-life-created loans. On an on-schedule loan it equals the contractual level
@@ -1390,8 +1375,7 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
               <tr>
                 <th>Metric</th>
                 <th>Definition</th>
-                <th>"—" when</th>
-                <th>Status</th>
+                <th>"–" when</th>
               </tr>
               <tr>
                 <td>Total outstanding</td>
@@ -1399,7 +1383,6 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
                   Σ |refCurrentBalance| over <strong>all</strong> loans, in base currency (settled loans contribute 0).
                 </td>
                 <td>never</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td>% principal repaid</td>
@@ -1412,10 +1395,9 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
                   >).
                 </td>
                 <td>
-                  no active loans, Σ principal ≤ 0 (line hidden — "100% of $0 repaid" is meaningless), or any needed FX
+                  no active loans, Σ principal ≤ 0 (line hidden – "100% of $0 repaid" is meaningless), or any needed FX
                   rate is unavailable (never mix epochs)
                 </td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td>Composition bar</td>
@@ -1423,13 +1405,11 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
                   Per-loan share of total outstanding, colored by loan type, largest first; zero-balance loans omitted.
                 </td>
                 <td>total ≤ 0 (bar hidden)</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td>Monthly obligation</td>
                 <td>Σ refPlannedPayment of active loans that have one set.</td>
                 <td>no active loan has a planned payment</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td>Avg APR</td>
@@ -1438,7 +1418,6 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
                   weights are 0.
                 </td>
                 <td>no active loans</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td>Interest projected</td>
@@ -1446,7 +1425,6 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
                   Σ totalInterestRemaining, each converted from loan currency to base at live rates. Estimate (§1).
                 </td>
                 <td>no loan has a projection, or any needed FX rate is unavailable (never silently understate)</td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
               <tr>
                 <td>Debt-free date</td>
@@ -1455,7 +1433,6 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
                   no active loans, or <strong>any</strong> active loan lacks a payoffDate (one unknowable loan makes the
                   date unknowable)
                 </td>
-                <td><span class="badge b-spec">✅ SPEC</span></td>
               </tr>
             </table>
           </div>
@@ -1466,9 +1443,9 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
             </div>
             <p>
               Numerator and denominator are built from loan-currency figures (<code>originalPrincipal</code>,
-              <code>currentBalance</code>), each converted to base at live rates — one consistent FX epoch. The line is
+              <code>currentBalance</code>), each converted to base at live rates – one consistent FX epoch. The line is
               hidden when any needed rate is unavailable, mirroring "Interest projected". Abolished alternative: the
-              precomputed <code>ref*</code> fields mix epochs — <code>refOriginalPrincipal</code> is frozen at
+              precomputed <code>ref*</code> fields mix epochs – <code>refOriginalPrincipal</code> is frozen at
               creation-time FX while <code>refCurrentBalance</code> floats at current FX, so currency moves fake (or
               hide) repayment progress on foreign-currency loans.
             </p>
@@ -1479,10 +1456,10 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
               <span class="ftitle">Repaid-% counts active loans only</span>
             </div>
             <p>
-              Both numerator and denominator sum over active loans only — the % reads as progress on debts the user
+              Both numerator and denominator sum over active loans only – the % reads as progress on debts the user
               still carries, consistent with the card's other metrics (monthly obligation, APR, debt-free date).
               Abolished alternative: including settled loans' principal ("lifetime progress") pads the % with debt that
-              no longer exists — ten old paid-off loans plus one fresh loan would read ~91% repaid. With no active loans
+              no longer exists – ten old paid-off loans plus one fresh loan would read ~91% repaid. With no active loans
               the line is hidden entirely rather than showing "100% of $0 repaid".
             </p>
           </div>
@@ -1499,25 +1476,25 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
             shared account store). Unarchive restores <code>active</code> status.
           </p>
           <p>
-            <span class="badge b-spec">✅ SPEC</span> Archive means "stopped tracking — hide, keep history" (refinanced
+            <span class="badge b-spec">✅ SPEC</span> Archive means "stopped tracking – hide, keep history" (refinanced
             elsewhere, written off, handed over, tracking abandoned); it is orthogonal to payment state and is the only
             exit for a loan with recorded payments, which deletion refuses. On the /loans page, archived loans collapse
             into a collapsed-by-default "Archived" section below "Paid off" and leave the aggregate card and the
-            Active/Paid off lists entirely — aggregates read as "debts the user tracks". Archived wins over paid-off: a
+            Active/Paid off lists entirely – aggregates read as "debts the user tracks". Archived wins over paid-off: a
             settled archived loan appears only in the Archived section. Rows there carry an inline Restore action; the
             loan detail page shows an archived banner with a Restore button.
           </p>
           <p>
             <span class="badge b-spec">✅ SPEC</span> Restore always turns <code>excludeFromStats</code> off: archive
             auto-enables it (dialog checkbox, default on), and a loan whose tracking resumes should count in stats
-            again. The flag carries no set-by-archive-vs-user provenance, so a manually-set flag is cleared too — the
+            again. The flag carries no set-by-archive-vs-user provenance, so a manually-set flag is cleared too – the
             user re-enables it from the actions menu if the loan should stay out of stats.
           </p>
           <h3>Exclude from stats</h3>
           <p>
             <span class="badge b-spec">✅ SPEC</span> <code>excludeFromStats: true</code> removes the loan from
             <strong>net worth and dashboard analytics only</strong>. It does NOT hide the loan from the /loans list,
-            detail page, or the loans page's own aggregate card — the loans page is a dedicated ledger, not a statistic.
+            detail page, or the loans page's own aggregate card – the loans page is a dedicated ledger, not a statistic.
             Toggle lives in the loan actions menu; failed saves roll the switch back.
           </p>
           <h3>Delete</h3>
@@ -1532,16 +1509,16 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
               <code>transfer_to_loan</code> leg on the account → 422
               <code>loans.deleteBlockedByPayments</code> (payments are real ledger entries; deleting the loan would
               orphan them). The frontend pre-counts payments (<code>countLoanPayments</code>) to warn before confirm.
-              Timeline events (corrections, notes) deliberately do NOT block — they are self-contained metadata.
+              Timeline events (corrections, notes) deliberately do NOT block – they are self-contained metadata.
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Source-account delete block:</strong> deleting an
               ordinary account that holds loan-payment source legs is blocked with an error naming the loans and payment
-              counts — clear or reassign the payments first.
+              counts – clear or reassign the payments first.
             </li>
             <li>
               <span class="badge b-spec">✅ SPEC</span> <strong>Deterministic response:</strong> a successful delete
-              always returns 204 — no other success shape exists server-side. Two hardenings keep transport noise from
+              always returns 204 – no other success shape exists server-side. Two hardenings keep transport noise from
               masquerading as application results: the frontend API client treats an empty body as success only when the
               HTTP status is OK, and the backend drains in-flight connections on shutdown (SIGINT/SIGTERM/SIGUSR2,
               5-second cap) so a restart finishes running requests instead of dropping them.
@@ -1556,7 +1533,7 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
             <span class="badge b-spec">✅ SPEC</span> <code>LoanDetails.events</code> is an append-only JSONB array of
             typed entries; new event types extend the union + Zod without a migration. <code>at</code> is ISO 8601.
             Money values are cents at rest, decimals on the wire. Auto-stamped types are never accepted from API input.
-            Timeline renders newest-first with per-type icons and localized copy — no raw JSON, no "undefined".
+            Timeline renders newest-first with per-type icons and localized copy – no raw JSON, no "undefined".
           </p>
           <div class="tablewrap">
             <table>
@@ -1583,7 +1560,7 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
               <tr>
                 <td><code>balance_correction</code></td>
                 <td>Balance correction (§4)</td>
-                <td>from, to — positive outstanding amounts; the only trail a manual edit leaves</td>
+                <td>from, to – positive outstanding amounts; the only trail a manual edit leaves</td>
               </tr>
               <tr>
                 <td><code>note</code></td>
@@ -1593,7 +1570,7 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
               <tr>
                 <td><code>paid_off</code></td>
                 <td>Recompute on owing→settled transition (§7)</td>
-                <td>at only — the date of the settling payment; at most one live event, removed on reopen (§7)</td>
+                <td>at only – the date of the settling payment; at most one live event, removed on reopen (§7)</td>
               </tr>
             </table>
           </div>
@@ -1604,12 +1581,12 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
             </div>
             <p>
               <code>POST /loans/:id/events</code> (append note) is implemented, validated, and e2e-tested, but no UI
-              surface invokes it — user notes are not shown anywhere yet, and there is no delete-note action (events are
+              surface invokes it – user notes are not shown anywhere yet, and there is no delete-note action (events are
               append-only today).
             </p>
           </div>
           <p class="kbd-note">
-            A <code>refinanced</code> event type is not in the shipped union — refinance is deferred (§12).
+            A <code>refinanced</code> event type is not in the shipped union – refinance is deferred (§12).
           </p>
         </section>
 
@@ -1619,7 +1596,7 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
           <ul>
             <li>
               <strong>HELOC / lines of credit / multi-disbursement:</strong> enum values exist (<code>heloc</code>,
-              <code>business</code>, <code>medical</code>, <code>other</code>) but are hidden from the create picker —
+              <code>business</code>, <code>medical</code>, <code>other</code>) but are hidden from the create picker –
               the model has no multi-disbursement or redraw support.
             </li>
             <li>
@@ -1629,7 +1606,7 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
             </li>
             <li><strong>Currency switch on an existing loan:</strong> unsupported, by design (§3).</li>
             <li>
-              <strong>Interest split tracking / auto-split of payments:</strong> deferred — the estimate-only principle
+              <strong>Interest split tracking / auto-split of payments:</strong> deferred – the estimate-only principle
               (§1) holds until a typed interest event or auto-split ships. No system "Loan Interest" category.
             </li>
             <li>
@@ -1638,7 +1615,7 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
             </li>
             <li>
               <strong>Pagination / sorting on <code>GET /loans</code>:</strong> the endpoint returns the full list
-              unpaged — deferred while loan counts stay in the single digits.
+              unpaged – deferred while loan counts stay in the single digits.
             </li>
             <li>
               <strong
