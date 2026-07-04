@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE, type RecordId } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { format, subDays } from 'date-fns';
@@ -181,5 +182,130 @@ describe('Loan Balances history rebuild', () => {
 
     const history = await getLoanHistory({ loanId: loan.id });
     expect(history).toEqual([{ date: TODAY, amount: -9_200 }]);
+  });
+});
+
+/** Runs `fn` authenticated as the user owning `cookies`, restoring the default test user afterwards. */
+async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T> }): Promise<T> {
+  const original = global.APP_AUTH_COOKIES;
+  global.APP_AUTH_COOKIES = cookies;
+  try {
+    return await fn();
+  } finally {
+    global.APP_AUTH_COOKIES = original;
+  }
+}
+
+async function createSecondUser(): Promise<string> {
+  const signupRes = await helpers.makeAuthRequest({
+    method: 'post',
+    url: '/auth/sign-up/email',
+    payload: {
+      email: `user2-${Date.now()}-${Math.random()}@test.local`,
+      password: 'testpassword123',
+      name: 'Second User',
+    },
+  });
+  const cookies = helpers.extractCookies(signupRes);
+  await asUser({
+    cookies,
+    fn: () =>
+      helpers.makeRequest({
+        method: 'post',
+        url: '/user/currencies/base',
+        payload: { currencyCode: global.BASE_CURRENCY.code },
+      }),
+  });
+  return cookies;
+}
+
+describe('GET /loans/:id/balance-history (loan-currency series)', () => {
+  /**
+   * USD loan under the AED test base currency, so base-currency (ref) figures
+   * diverge from nominal ones and the endpoint's loan-currency output is
+   * distinguishable from the Balances-table history. The source cash account
+   * shares the loan's currency so payment legs carry the nominal USD amount.
+   */
+  const setupNonBaseLoanWithSource = async ({ initialBalance }: { initialBalance: number }) => {
+    const { account: sourceAccount } = await helpers.createAccountWithNewCurrency({ currency: 'USD' });
+    const loan = await helpers.createLoan({
+      payload: helpers.buildCreateLoanPayload({
+        currencyCode: 'USD',
+        initialBalance,
+        originalPrincipal: initialBalance,
+      }),
+      raw: true,
+    });
+    return { loan, sourceAccount };
+  };
+
+  it('returns nominal loan-currency amounts for a non-base-currency loan', async () => {
+    const { loan, sourceAccount } = await setupNonBaseLoanWithSource({ initialBalance: 10_000 });
+
+    await reAnchorLoan({ loanId: loan.id, balance: 10_000, asOf: DAY_30_AGO });
+    await payLoan({
+      loanId: loan.id,
+      sourceAccountId: sourceAccount.id as RecordId,
+      amount: 2_000,
+      time: subDays(new Date(), 20).toISOString(),
+    });
+    await payLoan({
+      loanId: loan.id,
+      sourceAccountId: sourceAccount.id as RecordId,
+      amount: 1_000,
+      time: subDays(new Date(), 10).toISOString(),
+    });
+
+    const history = await helpers.getLoanBalanceHistory({ id: loan.id, raw: true });
+
+    // Nominal USD figures: opening tracked balance minus each nominal payment.
+    expect(history).toEqual([
+      { date: DAY_30_AGO, amount: -10_000 },
+      { date: DAY_20_AGO, amount: -8_000 },
+      { date: DAY_10_AGO, amount: -7_000 },
+    ]);
+
+    // The Balances-table history stores base-currency (AED) figures — the two
+    // series must diverge, proving the endpoint doesn't echo ref conversions.
+    const refHistory = await getLoanHistory({ loanId: loan.id });
+    expect(refHistory[0]!.amount).not.toBe(-10_000);
+  });
+
+  it('folds same-day payments into the anchor row', async () => {
+    // No re-anchor: the creation-day anchor and both payments share today, so
+    // the series is a single point already reflecting the payments.
+    const { loan, sourceAccount } = await setupNonBaseLoanWithSource({ initialBalance: 10_000 });
+
+    await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 500 });
+    await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 300 });
+
+    const history = await helpers.getLoanBalanceHistory({ id: loan.id, raw: true });
+    expect(history).toEqual([{ date: TODAY, amount: -9_200 }]);
+  });
+
+  it('returns a single opening point for a loan with no payments', async () => {
+    const { loan } = await setupNonBaseLoanWithSource({ initialBalance: 10_000 });
+
+    const history = await helpers.getLoanBalanceHistory({ id: loan.id, raw: true });
+
+    // Anchor defaults to the creation date, so the opening tracked balance is
+    // the only point.
+    expect(history).toEqual([{ date: TODAY, amount: -10_000 }]);
+  });
+
+  it('returns 404 for a nonexistent loan id', async () => {
+    const response = await helpers.getLoanBalanceHistory({ id: generateRandomRecordId() });
+    expect(response.statusCode).toBe(404);
+  });
+
+  it("returns 404 for another user's loan", async () => {
+    const { loan } = await setupNonBaseLoanWithSource({ initialBalance: 10_000 });
+    const secondUserCookies = await createSecondUser();
+
+    const response = await asUser({
+      cookies: secondUserCookies,
+      fn: () => helpers.getLoanBalanceHistory({ id: loan.id }),
+    });
+    expect(response.statusCode).toBe(404);
   });
 });

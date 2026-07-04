@@ -1,8 +1,10 @@
 import {
   ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
   API_ERROR_CODES,
   LOAN_TYPE,
   type RecordId,
+  SUPPORTED_LOAN_TYPES,
   TRANSACTION_TRANSFER_NATURE,
 } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
@@ -117,6 +119,25 @@ describe('Loans read API', () => {
       expect(row.projection.estimatedInterestPaid).toBeGreaterThanOrEqual(0);
       expect(row.projection.estimatedInterestPaid).toBeLessThan(1_000);
     });
+
+    it('keeps an archived loan in the list and surfaces its archived status', async () => {
+      // The /loans page renders archived loans in a collapsed "Archived" section,
+      // so the list endpoint must keep returning them (no active-only filter) with
+      // the status the frontend partitions on preserved through the serializer.
+      const { account } = await createLoanFixture({ accountName: 'Paid mortgage' });
+
+      const archived = await helpers.updateAccount({
+        id: account.id,
+        payload: { status: ACCOUNT_STATUSES.archived },
+        raw: true,
+      });
+      expect(archived.status).toBe(ACCOUNT_STATUSES.archived);
+
+      const list = await helpers.getLoans({ raw: true });
+      const row = list.find((loan) => loan.id === account.id);
+      expect(row).toBeDefined();
+      expect(row?.status).toBe(ACCOUNT_STATUSES.archived);
+    });
   });
 
   describe('GET /loans/:id', () => {
@@ -198,7 +219,7 @@ describe('Loans read API', () => {
     // $1,000 loan at 12% APR (1%/mo) with a 3-month term: the scheduled
     // payment is $340.02/mo and the full schedule costs $20.07 in interest
     // (1,000¢ + 670¢ + 337¢) — small enough to hand-verify to the cent.
-    const createTermLoan = () =>
+    const createTermLoan = (overrides: Record<string, unknown> = {}) =>
       helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           currencyCode: global.BASE_CURRENCY_CODE,
@@ -206,15 +227,16 @@ describe('Loans read API', () => {
           originalPrincipal: 1_000,
           interestRate: 12,
           termMonths: 3,
+          ...overrides,
         }),
         raw: true,
       });
 
-    const payLoan = async ({ loanId, amount }: { loanId: string; amount: number }) => {
+    const payLoan = async ({ loanId, amount, time }: { loanId: string; amount: number; time?: string }) => {
       const sourceAccount = await helpers.createAccount({ raw: true });
       await helpers.createTransaction({
         payload: {
-          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount }),
+          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount, ...(time && { time }) }),
           transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
           destinationAmount: amount,
           destinationAccountId: loanId as RecordId,
@@ -246,7 +268,10 @@ describe('Loans read API', () => {
       expect(reloaded.projection.estimatedInterestPaid).toBe(15.07);
     });
 
-    it('reports the full scheduled lifetime interest once the loan is paid off, on both detail and list', async () => {
+    it('caps the paid-off estimate at the full lifetime figure when the loan was open longer than its term, on both detail and list', async () => {
+      // Default startDate is years in the past, so the open duration far
+      // exceeds the 3-month term — the accrual caps at the term and yields the
+      // full-schedule $20.07, with no special-casing of "ran to term".
       const loan = await createTermLoan();
       await payLoan({ loanId: loan.id, amount: 1_000 });
 
@@ -257,6 +282,60 @@ describe('Loans read API', () => {
 
       const list = await helpers.getLoans({ raw: true });
       expect(list.find((row) => row.id === loan.id)?.projection.estimatedInterestPaid).toBe(20.07);
+    });
+
+    it('reports only the elapsed months of schedule interest when the loan is paid off early', async () => {
+      // Originated ~20 days ago and settled by a payment today: less than one
+      // calendar month open, and a partial month counts as a full one — the
+      // estimate is exactly the first scheduled month's interest ($10.00),
+      // strictly below the $20.07 full-schedule figure.
+      const startDate = format(subDays(new Date(), 20), 'yyyy-MM-dd');
+      const loan = await createTermLoan({ startDate });
+      await payLoan({ loanId: loan.id, amount: 1_000 });
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.projection.isPaidOff).toBe(true);
+      expect(reloaded.projection.estimatedInterestPaid).toBe(10);
+    });
+
+    it('derives the open duration from the settling payment date, not the wall clock', async () => {
+      // The loan originated ~100 days ago but the (backdated) settling payment
+      // landed ~45 days after origination — one full month plus a partial one.
+      // The estimate must accrue 2 scheduled months ($10.00 + $6.70), not the
+      // ~3+ wall-clock months that have elapsed since origination.
+      const start = subDays(new Date(), 100);
+      const startDate = format(start, 'yyyy-MM-dd');
+      const loan = await createTermLoan({ startDate });
+
+      // Re-anchor the outstanding balance on the origination date so the
+      // backdated payment counts as post-anchor and actually settles the loan.
+      await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 1_000, currentBalanceAsOf: startDate },
+        raw: true,
+      });
+      await payLoan({ loanId: loan.id, amount: 1_000, time: addDays(start, 45).toISOString() });
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.projection.isPaidOff).toBe(true);
+      expect(reloaded.projection.estimatedInterestPaid).toBe(16.7);
+    });
+
+    it('reports zero interest for a loan created with a zero outstanding balance', async () => {
+      // Already settled at creation: no payment ever zeroes the balance, so no
+      // paid_off event exists — the balance-anchor date (creation day) serves
+      // as the settle date, and zero months open accrues zero interest.
+      const loan = await createTermLoan({
+        initialBalance: 0,
+        startDate: format(new Date(), 'yyyy-MM-dd'),
+      });
+
+      expect(loan.projection.isPaidOff).toBe(true);
+      expect(loan.projection.estimatedInterestPaid).toBe(0);
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.projection.isPaidOff).toBe(true);
+      expect(reloaded.projection.estimatedInterestPaid).toBe(0);
     });
   });
 
@@ -386,6 +465,27 @@ describe('Loans read API', () => {
       });
       expect(result.statusCode).toBe(201);
     });
+
+    it('rejects a loanType the UI does not support yet', async () => {
+      // Only SUPPORTED_LOAN_TYPES flow through the form; the remaining LOAN_TYPE
+      // members (e.g. HELOC) need multi-disbursement handling first, so creation
+      // must be gated to the supported subset rather than the full enum.
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ loanType: LOAN_TYPE.heloc }),
+        raw: false,
+      });
+      expect(result.statusCode).toBe(422);
+    });
+
+    it.each(SUPPORTED_LOAN_TYPES)('accepts the supported loanType %s', async (loanType) => {
+      const result = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ loanType }),
+        raw: false,
+      });
+      expect(result.statusCode).toBe(201);
+      const loan = result.body.response as unknown as Awaited<ReturnType<typeof helpers.createLoan<true>>>;
+      expect(loan.loanDetails.loanType).toBe(loanType);
+    });
   });
 
   describe('PATCH /loans/:id', () => {
@@ -451,6 +551,63 @@ describe('Loans read API', () => {
         expect(event.from).toBe(1_200);
         expect(event.to).toBe(1_500);
       }
+    });
+
+    it('clears plannedPayment when patched to null and records the change with `to: null`', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { plannedPayment: null },
+        raw: true,
+      });
+
+      // Clearing drops both the loan-currency amount and its ref (base-currency) mirror.
+      expect(updated.loanDetails.plannedPayment).toBeNull();
+      expect(updated.loanDetails.refPlannedPayment).toBeNull();
+
+      const event = updated.loanDetails.events.at(-1);
+      expect(event?.type).toBe('planned_payment_change');
+      if (event?.type === 'planned_payment_change') {
+        expect(event.from).toBe(1_200);
+        // A cleared payment serializes as `to: null` — distinct from a $0 payment.
+        expect(event.to).toBeNull();
+      }
+
+      const fromGet = await helpers.getLoanById({ id: created.id, raw: true });
+      expect(fromGet.loanDetails.plannedPayment).toBeNull();
+      expect(fromGet.loanDetails.refPlannedPayment).toBeNull();
+    });
+
+    it('treats a plannedPayment of 0 as "set to zero", not a clear', async () => {
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
+
+      const updated = await helpers.updateLoan({
+        id: created.id,
+        payload: { plannedPayment: 0 },
+        raw: true,
+      });
+
+      // Zero is a concrete amount: the value persists as 0 (not null) and its ref mirror too.
+      expect(updated.loanDetails.plannedPayment).toBe(0);
+      expect(updated.loanDetails.refPlannedPayment).toBe(0);
+
+      const event = updated.loanDetails.events.at(-1);
+      expect(event?.type).toBe('planned_payment_change');
+      if (event?.type === 'planned_payment_change') {
+        expect(event.from).toBe(1_200);
+        // Serializes as 0, distinguishing "set to zero" from the null clear above.
+        expect(event.to).toBe(0);
+      }
+
+      const fromGet = await helpers.getLoanById({ id: created.id, raw: true });
+      expect(fromGet.loanDetails.plannedPayment).toBe(0);
     });
 
     it('does not append a rate_change event when interestRate is patched to the same value', async () => {
@@ -949,14 +1106,17 @@ describe('Loans read API', () => {
       loanId,
       sourceAccountId,
       amount,
+      time,
     }: {
       loanId: string;
       sourceAccountId: RecordId;
       amount: number;
+      /** ISO timestamp for backdated payments; defaults to now. */
+      time?: string;
     }) => {
       const [base] = await helpers.createTransaction({
         payload: {
-          ...helpers.buildTransactionPayload({ accountId: sourceAccountId, amount }),
+          ...helpers.buildTransactionPayload({ accountId: sourceAccountId, amount, ...(time && { time }) }),
           transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
           destinationAmount: amount,
           destinationAccountId: loanId as RecordId,
@@ -981,24 +1141,103 @@ describe('Loans read API', () => {
       }
     });
 
-    it('does not duplicate paid_off on reopen, and appends a second one when the loan re-zeroes', async () => {
+    it('drops the paid_off event on reopen and stamps exactly one when the loan re-zeroes', async () => {
       const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
 
       const payment = await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
       // Deleting the payoff payment reopens the loan — the balance goes negative
-      // again, which must NOT add another paid_off event.
+      // again and the timeline must no longer claim the loan is paid off.
       await helpers.deleteTransaction({ id: payment.id });
 
       const reopened = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reopened.currentBalance).toBe(-1_000);
-      expect(reopened.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(1);
+      expect(reopened.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(0);
 
-      // Paying it off again is a fresh negative→zero transition — second event.
+      // Paying it off again is a fresh negative→zero transition — exactly one event.
       await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
 
       const repaid = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(repaid.currentBalance).toBe(0);
-      expect(repaid.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(2);
+      expect(repaid.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(1);
+    });
+
+    it('drops the paid_off event when shrinking the settling payment reopens the loan', async () => {
+      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
+
+      const payment = await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
+      const paidOff = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(paidOff.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(1);
+
+      // Shrinking the payoff payment reopens the loan: −1,000 + 400 = −600 owed.
+      await helpers.updateTransaction({ id: payment.id, payload: { destinationAmount: 400 }, raw: true });
+
+      const reopened = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reopened.currentBalance).toBe(-600);
+      expect(reopened.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(0);
+    });
+
+    it('stamps paid_off with the settling payment date, not the recompute time', async () => {
+      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
+
+      // Re-anchor a month back so a backdated payment counts toward the balance.
+      const anchorDate = format(subDays(new Date(), 30), 'yyyy-MM-dd');
+      await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 1_000, currentBalanceAsOf: anchorDate },
+        raw: true,
+      });
+
+      // Single backdated payment settles the whole loan.
+      const paymentTime = subDays(new Date(), 10);
+      await payLoan({
+        loanId: loan.id,
+        sourceAccountId: sourceAccount.id as RecordId,
+        amount: 1_000,
+        time: paymentTime.toISOString(),
+      });
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.currentBalance).toBe(0);
+      const paidOffEvents = reloaded.loanDetails.events.filter((e) => e.type === 'paid_off');
+      expect(paidOffEvents).toHaveLength(1);
+      if (paidOffEvents[0]?.type === 'paid_off') {
+        expect(paidOffEvents[0].at.slice(0, 10)).toBe(paymentTime.toISOString().slice(0, 10));
+      }
+    });
+
+    it('stamps paid_off with the date of the payment that actually settles when several payments exist', async () => {
+      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
+
+      const anchorDate = format(subDays(new Date(), 30), 'yyyy-MM-dd');
+      await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 1_000, currentBalanceAsOf: anchorDate },
+        raw: true,
+      });
+
+      // First payment leaves −600 owed; the second (later-dated) one settles.
+      const firstTime = subDays(new Date(), 20);
+      const secondTime = subDays(new Date(), 10);
+      await payLoan({
+        loanId: loan.id,
+        sourceAccountId: sourceAccount.id as RecordId,
+        amount: 400,
+        time: firstTime.toISOString(),
+      });
+      await payLoan({
+        loanId: loan.id,
+        sourceAccountId: sourceAccount.id as RecordId,
+        amount: 600,
+        time: secondTime.toISOString(),
+      });
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.currentBalance).toBe(0);
+      const paidOffEvents = reloaded.loanDetails.events.filter((e) => e.type === 'paid_off');
+      expect(paidOffEvents).toHaveLength(1);
+      if (paidOffEvents[0]?.type === 'paid_off') {
+        expect(paidOffEvents[0].at.slice(0, 10)).toBe(secondTime.toISOString().slice(0, 10));
+      }
     });
 
     it('appends paid_off when a manual balance correction zeroes the outstanding', async () => {

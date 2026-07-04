@@ -1,17 +1,14 @@
 <script lang="ts" setup>
+import { Button } from '@/components/lib/ui/button';
 import * as Popover from '@/components/lib/ui/popover';
-import { InfoIcon } from '@lucide/vue';
 </script>
 
 <template>
   <Popover.Popover>
     <Popover.PopoverTrigger as-child>
-      <button
-        type="button"
-        class="inline-flex cursor-pointer items-center gap-1 font-medium underline decoration-dotted"
-      >
+      <Button variant="link" class="text-foreground h-auto gap-1 p-0 font-medium underline decoration-dotted">
         {{ $t('loans.detail.payment.sourceInfo.trigger') }}
-      </button>
+      </Button>
     </Popover.PopoverTrigger>
     <Popover.PopoverContent class="w-90 max-w-[calc(100vw-2rem)]" side="top" align="start">
       <h3 class="mb-2 font-semibold">{{ $t('loans.detail.payment.sourceInfo.title') }}</h3>

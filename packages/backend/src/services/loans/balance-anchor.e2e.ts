@@ -618,6 +618,31 @@ describe('Loan balance anchor', () => {
       expect(reloaded.loanDetails.events.filter((e) => e.type === 'balance_correction')).toHaveLength(1);
       expect(reloaded.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(1);
     });
+
+    it('stamps paid_off with the as-of date when a backdated correction to zero settles the loan', async () => {
+      const loan = await helpers.createLoan({
+        payload: buildAnchorLoanPayload({
+          originalPrincipal: 1_000,
+          initialBalance: 1_000,
+        }),
+        raw: true,
+      });
+
+      // No payment legs at all — the correction itself is the payoff, so the
+      // settlement moment is the asserted as-of date, not the PATCH wall-clock.
+      const updated = await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 0, currentBalanceAsOf: TWO_MONTHS_AGO },
+        raw: true,
+      });
+
+      expect(updated.currentBalance).toBe(0);
+      const paidOffEvents = updated.loanDetails.events.filter((e) => e.type === 'paid_off');
+      expect(paidOffEvents).toHaveLength(1);
+      if (paidOffEvents[0]?.type === 'paid_off') {
+        expect(paidOffEvents[0].at.slice(0, 10)).toBe(TWO_MONTHS_AGO);
+      }
+    });
   });
 
   describe('balance correction validation', () => {

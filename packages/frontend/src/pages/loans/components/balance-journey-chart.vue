@@ -5,14 +5,14 @@
       <HintIcon :content="$t('loans.detail.paidOff.chart.titleHint')" />
     </div>
 
-    <div v-if="isLoading" class="bg-muted h-72 w-full animate-pulse rounded sm:h-80" />
+    <div v-if="isLoading" class="bg-muted h-72 w-full animate-pulse rounded @sm/loan-journey:h-80" />
 
     <div v-else-if="!hasAnyLine" class="text-muted-foreground py-8 text-center text-sm">
       {{ $t('loans.detail.paidOff.chart.noData') }}
     </div>
 
     <template v-else>
-      <div ref="containerRef" class="relative h-72 w-full sm:h-80">
+      <div ref="containerRef" class="relative h-72 w-full @sm/loan-journey:h-80">
         <svg ref="svgRef" class="h-full w-full"></svg>
 
         <div
@@ -48,8 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { getAccountBalanceHistory } from '@/api/stats';
-import { type LoanApi } from '@/api/loans';
+import { type LoanApi, getLoanBalanceHistory } from '@/api/loans';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { currentTheme } from '@/common/utils/color-theme';
 import HintIcon from '@/components/common/hint-icon.vue';
@@ -88,9 +87,12 @@ const closedDate = computed(() => {
   return last ? parseISO(last) : new Date();
 });
 
+// Loan-currency series (anchor snapshot → per-payment-day points), so its values
+// share units with `originalPrincipal` and the currency formatting below —
+// the generic /stats/balance-history stores base-currency figures instead.
 const balanceHistoryQuery = useQuery({
   queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.loanBalanceHistory, props.loan.id] as const),
-  queryFn: () => getAccountBalanceHistory({ accountId: props.loan.id, from: startDate.value, to: closedDate.value }),
+  queryFn: () => getLoanBalanceHistory({ id: props.loan.id }),
   staleTime: 1000 * 60 * 5,
 });
 
@@ -111,15 +113,17 @@ const scheduleScenario = computed<PayoffScenario | null>(() => {
 });
 
 // Real recorded balance, resampled monthly so it shares the schedule line's hover grid.
-// `buildActualBalanceSeries` always yields a drawable principal→0 series (an empty or failed
-// balance-history fetch degrades to `data ?? []`, i.e. the pure principal→0 fallback), so a
-// paid-off loan always gets its green line.
+// `buildActualBalanceSeries` always yields a drawable opening-balance→0 series (an empty or
+// failed balance-history fetch degrades to `data ?? []`, i.e. the pure opening-balance→0
+// fallback), so a paid-off loan always gets its green line. `initialBalance` is the loan's
+// opening tracked balance, stored negative per the liability convention — flip to a positive
+// outstanding magnitude.
 const actualScenario = computed<PayoffScenario>(() => {
   const points = buildActualBalanceSeries({
     history: balanceHistoryQuery.data.value ?? [],
     startDate: startDate.value,
     closedDate: closedDate.value,
-    originalPrincipal: props.loan.loanDetails.originalPrincipal,
+    openingBalance: Math.abs(props.loan.initialBalance),
   });
   return {
     paysOff: true,

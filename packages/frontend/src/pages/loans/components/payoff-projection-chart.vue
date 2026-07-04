@@ -56,7 +56,7 @@
       </div>
 
       <template v-else>
-        <div ref="containerRef" class="relative h-72 w-full sm:h-80">
+        <div ref="containerRef" class="relative h-72 w-full @sm/loan-payoff:h-80">
           <svg ref="svgRef" class="h-full w-full"></svg>
 
           <div
@@ -165,6 +165,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { usePayoffChartRender } from '../composables/use-payoff-chart-render';
+import { outstandingAmount } from '../utils/outstanding-amount';
 import {
   type PayoffScenario,
   comparePayoffScenarios,
@@ -191,7 +192,7 @@ type ScenarioKey = 'minimum' | 'planned' | 'custom';
 
 const currencyCode = computed(() => props.loan.currencyCode);
 const isPaidOff = computed(() => props.loan.projection.isPaidOff);
-const balance = computed(() => Math.abs(props.loan.currentBalance));
+const balance = computed(() => outstandingAmount({ balance: props.loan.currentBalance }));
 const apr = computed(() => props.loan.loanDetails.interestRate);
 const plannedPayment = computed(() => props.loan.loanDetails.plannedPayment);
 

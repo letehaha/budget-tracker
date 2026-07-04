@@ -392,7 +392,7 @@ describe('computeLoanProjection', () => {
       expect(result.estimatedInterestPaid).toBe(15.07);
     });
 
-    it('equals the full scheduled lifetime interest on a paid-off loan', () => {
+    it('falls back to the full scheduled lifetime interest on a paid-off loan with no settle information', () => {
       const result = computeLoanProjection({
         ...TERM_LOAN,
         currentBalanceCents: 0,
@@ -401,6 +401,94 @@ describe('computeLoanProjection', () => {
 
       expect(result.isPaidOff).toBe(true);
       expect(result.estimatedInterestPaid).toBe(20.07);
+    });
+
+    describe('paid-off estimate capped to the months the loan was open', () => {
+      // The 3-month schedule accrues 1,000¢ (m1) + 670¢ (m2) + 337¢ (m3);
+      // cumulative: 1 month = $10.00, 2 months = $16.70, 3+ months = $20.07.
+      const PAID_OFF = {
+        ...TERM_LOAN,
+        currentBalanceCents: 0,
+        plannedPaymentCents: 120_000,
+        startDate: '2026-01-15',
+      };
+
+      it('accrues one scheduled month when the loan settles within its first month (partial month ceils)', () => {
+        const result = computeLoanProjection({ ...PAID_OFF, settleDate: '2026-02-04' });
+
+        expect(result.isPaidOff).toBe(true);
+        expect(result.estimatedInterestPaid).toBe(10);
+      });
+
+      it('accrues two scheduled months when the loan settles one full month plus a partial one after start', () => {
+        const result = computeLoanProjection({ ...PAID_OFF, settleDate: '2026-03-01' });
+
+        expect(result.estimatedInterestPaid).toBe(16.7);
+      });
+
+      it('counts an exact month boundary as that many months, without a partial bump', () => {
+        const result = computeLoanProjection({ ...PAID_OFF, settleDate: '2026-03-15' });
+
+        expect(result.estimatedInterestPaid).toBe(16.7);
+      });
+
+      it('is zero when the loan settles on its start date', () => {
+        const result = computeLoanProjection({ ...PAID_OFF, settleDate: '2026-01-15' });
+
+        expect(result.estimatedInterestPaid).toBe(0);
+      });
+
+      it('clamps to zero months when the settle date is before the start date', () => {
+        const result = computeLoanProjection({ ...PAID_OFF, settleDate: '2026-01-10' });
+
+        expect(result.estimatedInterestPaid).toBe(0);
+      });
+
+      it('reproduces the full lifetime figure when the loan ran to (or past) its term', () => {
+        const atTerm = computeLoanProjection({ ...PAID_OFF, settleDate: '2026-04-15' });
+        const pastTerm = computeLoanProjection({ ...PAID_OFF, settleDate: '2030-08-01' });
+
+        expect(atTerm.estimatedInterestPaid).toBe(20.07);
+        expect(pastTerm.estimatedInterestPaid).toBe(20.07);
+      });
+
+      it('accepts a full ISO timestamp as the settle date', () => {
+        const result = computeLoanProjection({ ...PAID_OFF, settleDate: '2026-02-20T14:30:00.000Z' });
+
+        expect(result.estimatedInterestPaid).toBe(16.7);
+      });
+
+      it('falls back to the lifetime figure when only one of startDate/settleDate is known', () => {
+        const noSettle = computeLoanProjection({ ...PAID_OFF, settleDate: null });
+        const noStart = computeLoanProjection({ ...PAID_OFF, startDate: null, settleDate: '2026-02-04' });
+
+        expect(noSettle.estimatedInterestPaid).toBe(20.07);
+        expect(noStart.estimatedInterestPaid).toBe(20.07);
+      });
+
+      it('falls back to the lifetime figure when a date is unparsable', () => {
+        const result = computeLoanProjection({ ...PAID_OFF, settleDate: 'not-a-date' });
+
+        expect(result.estimatedInterestPaid).toBe(20.07);
+      });
+
+      it('does not affect an active loan — start/settle inputs only shape the paid-off estimate', () => {
+        const withDates = computeLoanProjection({
+          ...TERM_LOAN,
+          currentBalanceCents: 50_000,
+          plannedPaymentCents: 120_000,
+          startDate: '2026-01-15',
+          settleDate: '2026-02-04',
+        });
+        const withoutDates = computeLoanProjection({
+          ...TERM_LOAN,
+          currentBalanceCents: 50_000,
+          plannedPaymentCents: 120_000,
+        });
+
+        expect(withDates).toEqual(withoutDates);
+        expect(withDates.estimatedInterestPaid).toBe(15.07);
+      });
     });
 
     it('clamps to zero when the payoff trajectory outpaces the contractual schedule', () => {

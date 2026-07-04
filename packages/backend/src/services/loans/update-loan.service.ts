@@ -8,9 +8,9 @@ import LoanDetails from '@models/loan-details.model';
 import { updateAccount } from '@services/accounts.service';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
-import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
+import { utcDayKey } from '@services/loans/anchor-day';
+import { projectLoanOverpay, sumPostAnchorPaymentLegs } from '@services/loans/project-loan-overpay';
 import { recomputeLoanBalance } from '@services/loans/recompute-loan-balance.service';
-import { format } from 'date-fns';
 
 import type { UpdateLoanBody } from './zod-schemas';
 
@@ -125,14 +125,17 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
     // that day's payments — keeps "create loan today, log today's payment"
     // working. Accepted trade-off: correcting to a post-payment statement
     // balance on the day that payment is logged applies it twice.
-    const asOfDate = currentBalanceAsOf ?? format(now, 'yyyy-MM-dd');
+    //
+    // The default anchor uses the UTC calendar day so it matches how the SQL
+    // `DATE("time")` payment filter classifies same-day legs on non-UTC servers.
+    const asOfDate = currentBalanceAsOf ?? utcDayKey({ date: now });
 
     // The outstanding balance can't be known before the loan originated. The
     // start date may be set in this same PATCH (`detailFields.startDate`) or,
     // if untouched, taken from the persisted row. Rejected before any DB write.
     const effectiveStartDate = detailFields.startDate ?? loan.startDate;
     if (asOfDate < effectiveStartDate) {
-      throw new ValidationError({ message: 'currentBalanceAsOf cannot be earlier than the loan start date' });
+      throw new ValidationError({ message: t({ key: 'loans.correctionAsOfBeforeStartDate' }) });
     }
 
     anchorInitialBalance = currentBalance.negate();
@@ -143,16 +146,24 @@ const updateLoanImpl = async (params: UpdateLoanParams) => {
     // past zero into credit and stamp a bogus `paid_off` event. Projected
     // exactly zero is allowed (a legit backdated payoff). Rejected before any
     // DB write.
-    const postAnchorLegs = await getPostAnchorPaymentLegs({
+    const postAnchorPaymentsTotal = await sumPostAnchorPaymentLegs({
       loanAccountId: accountId,
       userId,
       anchorDate: asOfDate,
     });
-    const postAnchorPaymentsTotal = postAnchorLegs.reduce((sum, leg) => sum.add(leg.amount), Money.zero());
-    const projectedBalance = anchorInitialBalance.add(postAnchorPaymentsTotal);
-    if (projectedBalance.toCents() > 0) {
+    const { projectedBalance, overpaysBy } = projectLoanOverpay({
+      projectedBalance: anchorInitialBalance.add(postAnchorPaymentsTotal),
+    });
+    if (overpaysBy.toCents() > 0) {
       throw new ValidationError({
-        message: `Corrected balance would overpay the loan by ${projectedBalance.toNumber()}: payments totaling ${postAnchorPaymentsTotal.toNumber()} are dated on/after ${asOfDate}`,
+        message: t({
+          key: 'loans.correctionOverpay',
+          variables: {
+            overpayAmount: projectedBalance.toNumber(),
+            paymentsTotal: postAnchorPaymentsTotal.toNumber(),
+            asOfDate,
+          },
+        }),
       });
     }
 

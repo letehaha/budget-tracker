@@ -250,6 +250,7 @@
       "loanTypeLabel": "Tipo de préstamo",
       "loanTypePlaceholder": "Seleccionar tipo de préstamo",
       "currencyLabel": "Moneda",
+      "currencyPlaceholder": "Seleccionar moneda",
       "originalPrincipalLabel": "Capital original",
       "originalPrincipalPlaceholder": "Ej.: 320.000",
       "initialBalanceLabel": "Saldo pendiente actual",

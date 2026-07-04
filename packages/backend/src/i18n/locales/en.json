@@ -30,6 +30,7 @@
   "transactions": {
     "notFound": "Transaction not found",
     "missingRequiredFields": "One of required fields are missing: destinationAmount, destinationAccountId.",
+    "destinationAmountRequiredCrossCurrency": "destinationAmount is required when changing the amount of a cross-currency transfer.",
     "refundAndTransferNotAllowed": "It is not allowed to create a transaction that is a refund and a transfer at the same time",
     "notOwnTransaction": "You can only edit or delete transactions you created on this shared account.",
     "sharedAccountChangeNotSupported": "Moving a transaction to a different account is only allowed for the account owner.",
@@ -157,7 +158,9 @@
     "linkPaymentsInvalidSelection": "Some selected transactions can't be linked to this loan.",
     "linkPaymentsOverpayConfirmation": "These payments exceed the remaining balance. Confirming will pay the loan off; the extra won't be credited back.",
     "unlinkPaymentNotFound": "Loan payment not found.",
-    "unlinkPaymentInvalidSelection": "This transaction is not a payment on this loan."
+    "unlinkPaymentInvalidSelection": "This transaction is not a payment on this loan.",
+    "correctionAsOfBeforeStartDate": "currentBalanceAsOf cannot be earlier than the loan start date",
+    "correctionOverpay": "Corrected balance would overpay the loan by {{overpayAmount}}: payments totaling {{paymentsTotal}} are dated on/after {{asOfDate}}"
   },
   "errors": {
     "connectionNotFound": "Connection not found",

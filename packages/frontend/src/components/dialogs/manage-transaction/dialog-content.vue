@@ -79,7 +79,7 @@ const props = withDefaults(defineProps<CreateRecordModalProps>(), {
 });
 
 // Keep `transaction` as the user-facing primary tx (set by useManageTransactionDialog
-// – for external transfers, this is always the external side). Form-data mapping
+// — for external transfers, this is always the external side). Form-data mapping
 // (which side is "from"/"to") is handled in prepopulateForm based on transactionType,
 // so we no longer swap the props.
 const transaction = computed(() => props.transaction);
@@ -151,7 +151,7 @@ const form = ref<UI_FORM_STRUCT>({
 // wins; the top (most-used) category is a fallback so users who never set
 // defaults still get a useful suggestion.
 //
-// Tags use a different model – see `usePayeeTagAutoApply`. In edit mode its
+// Tags use a different model — see `usePayeeTagAutoApply`. In edit mode its
 // tracker starts empty, so the row's saved tags count as manual: a payee
 // change only adds, never removes. Prepopulation sets `payeeId` without going
 // through the clear path, which is consistent with that empty tracker.
@@ -304,7 +304,7 @@ const isCategoriesReady = computed(
 const canMutateCurrentTx = computed(() => canMutateTx(transaction.value, currentUser.value?.id));
 
 // Lazy server-side write-access check, used only when the parent account isn't in the
-// caller's local `accountsRecord` – typically when the row is visible via a budget
+// caller's local `accountsRecord` — typically when the row is visible via a budget
 // share but the account itself isn't shared with the caller. `useAccountAccess` can't
 // decide that case (it has nothing to read), and the bulk list path intentionally
 // skips `canEdit` to keep common reads cheap. Returns `null` until resolved.
@@ -323,10 +323,10 @@ watch(
       const detail = await loadTransactionById({ id: tx.id });
       // Pessimistic default: only unlock the form when the server explicitly says
       // `canEdit: true`. A null detail (caller had no read claim) or a missing field
-      // both fall through to read-only – submitting under uncertainty would 403.
+      // both fall through to read-only — submitting under uncertainty would 403.
       lazyCanEdit.value = detail?.canEdit === true;
     } catch (error) {
-      // Form degrades to read-only on failure – the visible state change tells the
+      // Form degrades to read-only on failure — the visible state change tells the
       // user the form is locked. Sentry capture surfaces transient failures (auth
       // expiry, server crash, network drop) so ops can distinguish them from a real
       // permission denial. A toast would be noisy on flaky networks.
@@ -781,7 +781,7 @@ onUnmounted(() => {
       />
     </FormRow>
     <!-- Refund linking on accounts shared *with* the caller isn't supported by the
-         backend yet – hide the field rather than offering a button that errors on
+         backend yet — hide the field rather than offering a button that errors on
          submit. Owner-side shares (`share.isOwner === true`) keep full access. -->
     <template v-if="!isTransferTx && !isAccountSharedWithCaller">
       <FormRow>

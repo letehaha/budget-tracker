@@ -2,10 +2,9 @@ import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import type { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
-import Accounts from '@models/accounts.model';
-import { namespace } from '@models/connection';
 import LoanDetails from '@models/loan-details.model';
-import { format } from 'date-fns';
+import { isOnOrAfterAnchorDay } from '@services/loans/anchor-day';
+import { lockLoanAccountRow, projectLoanOverpay } from '@services/loans/project-loan-overpay';
 
 /**
  * Single home for the "institutional loans can't go into credit" invariant —
@@ -42,12 +41,7 @@ export const assertLoanPaymentAllowed = async ({
   /** Date the payment lands; pre-anchor payments skip the overpay guard. `null` keeps it active. */
   paymentDate?: string | Date | null;
 }): Promise<void> => {
-  const sequelizeTx = namespace.get('transaction');
-  const loanAccount = await Accounts.findOne({
-    where: { id: loanAccountId, userId: ownerUserId },
-    transaction: sequelizeTx,
-    lock: sequelizeTx?.LOCK.UPDATE,
-  });
+  const loanAccount = await lockLoanAccountRow({ loanAccountId, userId: ownerUserId });
   if (!loanAccount) {
     throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
   }
@@ -66,21 +60,24 @@ export const assertLoanPaymentAllowed = async ({
   // the overpay guard doesn't apply.
   if (!loanDetails) return;
 
-  // A leg counts toward `currentBalance` only when dated on/after the anchor;
-  // pre-anchor legs are already baked into the snapshot and stay informational.
+  // A leg counts toward `currentBalance` only when dated on/after the anchor
+  // (UTC calendar day — the same day definition as the SQL `DATE(time)` filter
+  // that feeds the balance recompute); pre-anchor legs are already baked into
+  // the snapshot and stay informational.
   const isCounted = (date: string | Date | null) =>
-    date == null || format(new Date(date), 'yyyy-MM-dd') >= loanDetails.balanceAnchorDate;
+    date == null || isOnOrAfterAnchorDay({ time: date, anchorDate: loanDetails.balanceAnchorDate });
 
   // A pre-anchor payment never enters the post-anchor sum, so it cannot overpay.
   if (paymentDate != null && !isCounted(paymentDate)) {
     return;
   }
 
-  let projectedBalance = loanAccount.currentBalance.add(newLegAmount);
+  let rawProjectedBalance = loanAccount.currentBalance.add(newLegAmount);
   if (currentLegAmount !== null && isCounted(currentLegDate)) {
-    projectedBalance = projectedBalance.subtract(currentLegAmount);
+    rawProjectedBalance = rawProjectedBalance.subtract(currentLegAmount);
   }
-  if (projectedBalance.toCents() > 0) {
+  const { overpaysBy } = projectLoanOverpay({ projectedBalance: rawProjectedBalance });
+  if (overpaysBy.toCents() > 0) {
     throw new ValidationError({
       message: t({ key: 'transactions.loanPaymentOverpay' }),
     });

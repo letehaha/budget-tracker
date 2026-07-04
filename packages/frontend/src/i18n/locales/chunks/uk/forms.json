@@ -250,6 +250,7 @@
       "loanTypeLabel": "Тип кредиту",
       "loanTypePlaceholder": "Оберіть тип кредиту",
       "currencyLabel": "Валюта",
+      "currencyPlaceholder": "Оберіть валюту",
       "originalPrincipalLabel": "Початкова сума боргу",
       "originalPrincipalPlaceholder": "напр. 320 000",
       "initialBalanceLabel": "Поточний залишок боргу",

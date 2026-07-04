@@ -86,7 +86,7 @@
         </div>
         <CreateLoanDialog>
           <UiButton size="lg">
-            <PlusIcon class="mr-2 size-4" />
+            <PlusIcon class="size-4" />
             {{ $t('loans.empty.createFirstButton') }}
           </UiButton>
         </CreateLoanDialog>

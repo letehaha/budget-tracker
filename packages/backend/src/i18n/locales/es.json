@@ -30,6 +30,7 @@
   "transactions": {
     "notFound": "Transacción no encontrada",
     "missingRequiredFields": "Falta uno de los campos requeridos: destinationAmount, destinationAccountId.",
+    "destinationAmountRequiredCrossCurrency": "destinationAmount es obligatorio al cambiar el amount de una transferencia entre divisas.",
     "refundAndTransferNotAllowed": "No está permitido crear una transacción que sea a la vez un reembolso y una transferencia",
     "notOwnTransaction": "Solo puede editar o eliminar las transacciones que usted creó en esta cuenta compartida.",
     "sharedAccountChangeNotSupported": "Mover una transacción a una cuenta diferente solo está permitido para el propietario de la cuenta.",
@@ -157,7 +158,9 @@
     "linkPaymentsInvalidSelection": "Algunas transacciones seleccionadas no se pueden vincular a este préstamo.",
     "linkPaymentsOverpayConfirmation": "Estos pagos exceden el saldo restante. Confirmar liquidará el préstamo; el exceso no se acreditará.",
     "unlinkPaymentNotFound": "Pago del préstamo no encontrado.",
-    "unlinkPaymentInvalidSelection": "Esta transacción no es un pago de este préstamo."
+    "unlinkPaymentInvalidSelection": "Esta transacción no es un pago de este préstamo.",
+    "correctionAsOfBeforeStartDate": "currentBalanceAsOf no puede ser anterior a la fecha de inicio del préstamo",
+    "correctionOverpay": "El saldo corregido pagaría de más el préstamo por {{overpayAmount}}: los pagos que suman {{paymentsTotal}} tienen fecha en o posterior a {{asOfDate}}"
   },
   "errors": {
     "connectionNotFound": "Conexión no encontrada",

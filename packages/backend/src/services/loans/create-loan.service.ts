@@ -7,7 +7,7 @@ import LoanDetails from '@models/loan-details.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
-import { format } from 'date-fns';
+import { utcDayKey } from '@services/loans/anchor-day';
 
 import type { CreateLoanBody } from './zod-schemas';
 
@@ -92,8 +92,10 @@ const createLoanImpl = async (params: CreateLoanParams) => {
     termMonths,
     startDate,
     // Anchor defaults to the creation date — the outstanding balance snapshot is
-    // true as-of when the loan was entered into the system.
-    balanceAnchorDate: format(now, 'yyyy-MM-dd'),
+    // true as-of when the loan was entered into the system. The UTC calendar day
+    // is used so the anchor matches how the SQL `DATE("time")` payment filter
+    // classifies same-day legs on non-UTC servers.
+    balanceAnchorDate: utcDayKey({ date: now }),
     minPayment,
     refMinPayment,
     plannedPayment,

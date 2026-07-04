@@ -1,44 +1,13 @@
-// A loan response spreads the underlying Account at the top level (a loan IS
-// an Account) with `loanDetails` and `projection` nested alongside, so the
-// frontend treats a loan as an Account plus extras instead of a new shape.
 import {
-  type LOAN_TYPE,
+  type LoanApiResponse,
+  type LoanDetailsApiResponse,
   type LoanEvent,
   type LoanEventApi,
   type LoanProjection,
-  type RecordId,
 } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type LoanDetails from '@models/loan-details.model';
-import { type AccountApiResponse, serializeAccount } from '@root/serializers/accounts.serializer';
-
-export interface LoanDetailsApiResponse {
-  id: RecordId;
-  loanType: LOAN_TYPE;
-  originalPrincipal: number;
-  refOriginalPrincipal: number;
-  interestRate: number;
-  termMonths: number | null;
-  startDate: string;
-  balanceAnchorDate: string;
-  minPayment: number | null;
-  refMinPayment: number | null;
-  plannedPayment: number | null;
-  refPlannedPayment: number | null;
-  paymentDayOfMonth: number | null;
-  lenderName: string | null;
-  accountNumber: string | null;
-  events: LoanEventApi[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type LoanApiResponse = AccountApiResponse & {
-  loanDetails: LoanDetailsApiResponse;
-  projection: LoanProjection;
-  /** Payment-leg count; frontend warns deletion is blocked before the user confirms. */
-  paymentsCount: number;
-};
+import { serializeAccount } from '@root/serializers/accounts.serializer';
 
 // Events store cents (`fromCents`/`toCents`); wire shape uses decimal `from`/`to`
 // like every other money field, so the frontend never converts cents itself.
@@ -58,8 +27,18 @@ function serializeLoanEvent(event: LoanEvent): LoanEventApi {
         from: centsToApiDecimal(event.fromCents),
         to: centsToApiDecimal(event.toCents),
       };
-    default:
+    case 'rate_change':
+    case 'term_change':
+    case 'note':
+    case 'paid_off':
+      // No cents fields — the wire shape is identical, so pass the event through.
       return event;
+    default: {
+      // A new event type that carries cents must add a case above; the never
+      // assignment fails to compile until it does.
+      const unhandled: never = event;
+      throw new Error(`serializeLoanEvent: unhandled loan event ${JSON.stringify(unhandled)}`);
+    }
   }
 }
 

@@ -102,6 +102,7 @@ import { RouterLink } from 'vue-router';
 
 import { useLoanProjectionDisplay } from '../composables/use-loan-projection-display';
 import { getLoanTypeIcon, getLoanTypeTintedChipClass } from '../loan-type-presentation';
+import { outstandingAmount } from '../utils/outstanding-amount';
 import { LOAN_LIST_GRID_COLS } from './loan-list-grid';
 
 const props = defineProps<{ loan: LoanApi }>();
@@ -110,7 +111,7 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { t } = useI18n();
 
 const balanceDisplay = computed(() =>
-  formatAmountByCurrencyCode(Math.abs(props.loan.currentBalance), props.loan.currencyCode),
+  formatAmountByCurrencyCode(outstandingAmount({ balance: props.loan.currentBalance }), props.loan.currencyCode),
 );
 
 const originalPrincipalDisplay = computed(() =>

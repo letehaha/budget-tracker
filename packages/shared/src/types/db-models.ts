@@ -139,6 +139,39 @@ export interface AccountModel {
 }
 
 /**
+ * Serialized account wire shape (DB → API): every monetary field is a decimal
+ * (cents converted on the way out), `id`/`type`/`accountCategory` are plain
+ * strings, and owner-only bank-link metadata is stripped for share recipients.
+ * The single source of truth for both the backend serializer's return type and
+ * the frontend loan/account response shapes, so the two can't drift.
+ */
+export interface AccountApiResponse {
+  id: string;
+  name: string;
+  initialBalance: number;
+  refInitialBalance: number;
+  currentBalance: number;
+  refCurrentBalance: number;
+  creditLimit: number;
+  refCreditLimit: number;
+  type: string;
+  accountCategory: string;
+  currencyCode: string;
+  userId: number;
+  externalId: string | null;
+  status: ACCOUNT_STATUSES;
+  excludeFromStats: boolean;
+  bankDataProviderConnectionId: string | null;
+  /** Provider type denormalized from the connection so the frontend can render the
+   *  bank logo without a per-account connection-details lookup (which is owner-scoped
+   *  and unreachable for share recipients). */
+  bankProviderType: BANK_PROVIDER_TYPE | null;
+  needsRelink?: boolean;
+  /** Present on user-facing list/detail responses; absent on internal serializations. */
+  share?: ResourceShareInfo;
+}
+
+/**
  * Account model with computed `needsRelink` flag.
  * Used in API responses where the backend computes whether an Enable Banking
  * account needs to be re-linked due to schema migration (externalId was uid,

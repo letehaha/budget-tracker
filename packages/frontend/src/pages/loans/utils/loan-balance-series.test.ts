@@ -8,6 +8,8 @@ describe('buildActualBalanceSeries', () => {
   const closedDate = new Date(2024, 3, 1); // 2024-04-01 → 3-month span
 
   it('resamples history onto a monthly grid ending at zero', () => {
+    // openingBalance deliberately differs from a would-be principal so the test
+    // proves the pre-history fallback uses the opening tracked balance.
     const points = buildActualBalanceSeries({
       history: [
         { date: '2024-01-15', amount: -900 },
@@ -16,13 +18,13 @@ describe('buildActualBalanceSeries', () => {
       ],
       startDate,
       closedDate,
-      originalPrincipal: 1000,
+      openingBalance: 950,
     });
 
     expect(points).toHaveLength(4); // months 0..3
-    // Month 0 (2024-01-01) has no record on or before it → falls back to principal.
-    expect(points[0]).toMatchObject({ month: 0, balance: 1000 });
-    // Later months take the abs of the latest record on or before the month anchor.
+    // Month 0 (2024-01-01) has no record on or before it → falls back to the opening tracked balance.
+    expect(points[0]).toMatchObject({ month: 0, balance: 950 });
+    // Later months take the outstanding magnitude of the latest record on or before the month anchor.
     expect(points[1]!.balance).toBe(900);
     expect(points[2]!.balance).toBe(600);
     // Final month is forced to zero to land on the payoff marker.
@@ -34,7 +36,7 @@ describe('buildActualBalanceSeries', () => {
       history: [{ date: '2024-01-10', amount: -800 }],
       startDate,
       closedDate,
-      originalPrincipal: 1000,
+      openingBalance: 1000,
     });
 
     // No records after January → months 1 and 2 hold the last known 800, final month 0.
@@ -43,16 +45,30 @@ describe('buildActualBalanceSeries', () => {
     expect(points.at(-1)!.balance).toBe(0);
   });
 
-  it('produces the principal→0 fallback when the history is empty', () => {
+  it('treats a positive (credit) record as zero outstanding, not as debt', () => {
+    const points = buildActualBalanceSeries({
+      history: [{ date: '2024-01-10', amount: 250 }],
+      startDate,
+      closedDate,
+      openingBalance: 1000,
+    });
+
+    // A positive balance means the loan carries no debt; abs-ing it would
+    // fabricate outstanding debt out of a credit.
+    expect(points[1]!.balance).toBe(0);
+    expect(points[2]!.balance).toBe(0);
+  });
+
+  it('produces the opening-balance→0 fallback when the history is empty', () => {
     const points = buildActualBalanceSeries({
       history: [],
       startDate,
       closedDate,
-      originalPrincipal: 1000,
+      openingBalance: 1000,
     });
 
     // No records at all (e.g. the balance-history fetch failed) → every month
-    // holds the principal until the forced-zero close, so the actual line still draws.
+    // holds the opening balance until the forced-zero close, so the actual line still draws.
     expect(points).toHaveLength(4);
     expect(points[0]).toMatchObject({ month: 0, balance: 1000 });
     expect(points[1]!.balance).toBe(1000);
@@ -60,13 +76,13 @@ describe('buildActualBalanceSeries', () => {
     expect(points.at(-1)).toMatchObject({ month: 3, balance: 0 });
   });
 
-  it('still yields a drawable principal→0 series when the loan opened and closed the same day', () => {
+  it('still yields a drawable opening-balance→0 series when the loan opened and closed the same day', () => {
     const sameDay = new Date(2026, 6, 2); // 2026-07-02
     const points = buildActualBalanceSeries({
       history: [{ date: '2026-07-02', amount: 0 }],
       startDate: sameDay,
       closedDate: sameDay,
-      originalPrincipal: 24000,
+      openingBalance: 24000,
     });
 
     // Below the chart's monthly resolution → guaranteed 2-point shape, padded
@@ -83,7 +99,7 @@ describe('buildActualBalanceSeries', () => {
       history: [],
       startDate: new Date(2024, 0, 5),
       closedDate: new Date(2024, 0, 20),
-      originalPrincipal: 1000,
+      openingBalance: 1000,
     });
 
     expect(points).toHaveLength(2);

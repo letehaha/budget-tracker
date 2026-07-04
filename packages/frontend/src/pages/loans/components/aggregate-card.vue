@@ -63,6 +63,8 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { getLoanTypeBarClass } from '../loan-type-presentation';
+import { activePrincipalRepaid, projectedInterestRemaining, weightedAvgApr } from '../utils/aggregate-metrics';
+import { outstandingAmount } from '../utils/outstanding-amount';
 import Metric from './aggregate-metric.vue';
 
 const props = defineProps<{ loans: LoanApi[] }>();
@@ -75,39 +77,26 @@ const { baseCurrency } = storeToRefs(useCurrenciesStore());
 
 const PERCENT_DECIMAL_PRECISION = 2;
 
-// Forward-looking metrics (monthly obligation, weighted APR) must ignore paid-off loans: a settled
-// loan can still carry a planned payment / interest rate that would otherwise inflate the totals.
+// Monthly obligation and the debt-free date must ignore paid-off loans: a settled loan can still
+// carry a planned payment / projected payoff that would otherwise inflate or distort those totals.
 const activeLoans = computed(() => props.loans.filter((loan) => !loan.projection.isPaidOff));
 
-const totalLiabilities = computed(() => props.loans.reduce((acc, loan) => acc + Math.abs(loan.refCurrentBalance), 0));
+const totalLiabilities = computed(() =>
+  props.loans.reduce((acc, loan) => acc + outstandingAmount({ balance: loan.refCurrentBalance }), 0),
+);
 
 const totalLiabilitiesDisplay = computed(() => formatBaseCurrency(totalLiabilities.value));
 
 const principalRepaidDisplay = computed(() => {
-  // Only active loans count: a settled loan's principal would pad the % with debt that no longer
-  // exists, and with zero active loans "100% of $0 repaid" is meaningless — hidden via the guard below.
-  //
-  // Both sides are converted from loan-currency figures at live rates so they share one FX epoch.
-  // refOriginalPrincipal is unusable here: it's frozen at creation-time FX while the balance floats
-  // at current FX, so currency moves would fake (or hide) repayment progress on foreign-currency
-  // loans. Render nothing rather than mix epochs when a rate is unavailable.
-  const baseCode = baseCurrency.value?.currencyCode;
-  if (!baseCode) return null;
-  let totalPrincipal = 0;
-  let outstanding = 0;
-  for (const loan of activeLoans.value) {
-    const principal = convert({ amount: loan.loanDetails.originalPrincipal, from: loan.currencyCode, to: baseCode });
-    const balance = convert({ amount: Math.abs(loan.currentBalance), from: loan.currencyCode, to: baseCode });
-    if (principal === null || balance === null) return null;
-    totalPrincipal += principal;
-    outstanding += balance;
-  }
-  if (totalPrincipal <= 0) return null;
-  // Balance can exceed principal when interest has accrued — clamp so we never show a negative "repaid".
-  const percent = Math.min(100, Math.max(0, ((totalPrincipal - outstanding) / totalPrincipal) * 100));
+  const repaid = activePrincipalRepaid({
+    loans: props.loans,
+    convert,
+    baseCode: baseCurrency.value?.currencyCode,
+  });
+  if (!repaid) return null;
   return t('loans.aggregate.principalRepaid', {
-    percent: percent.toFixed(1),
-    amount: formatBaseCurrency(totalPrincipal),
+    percent: repaid.percent.toFixed(1),
+    amount: formatBaseCurrency(repaid.totalPrincipal),
   });
 });
 
@@ -115,7 +104,7 @@ const compositionSegments = computed(() => {
   const total = totalLiabilities.value;
   if (total <= 0) return [];
   return props.loans
-    .map((loan) => ({ loan, balance: Math.abs(loan.refCurrentBalance) }))
+    .map((loan) => ({ loan, balance: outstandingAmount({ balance: loan.refCurrentBalance }) }))
     .filter(({ balance }) => balance > 0)
     .sort((a, b) => b.balance - a.balance)
     .map(({ loan, balance }) => ({
@@ -127,23 +116,10 @@ const compositionSegments = computed(() => {
     }));
 });
 
-const weightedAvgApr = computed(() => {
-  const loans = activeLoans.value;
-  if (!loans.length) return null;
-  const totalBalance = loans.reduce((acc, loan) => acc + Math.abs(loan.refCurrentBalance), 0);
-  if (totalBalance <= 0) {
-    const sum = loans.reduce((acc, loan) => acc + loan.loanDetails.interestRate, 0);
-    return sum / loans.length;
-  }
-  const weighted = loans.reduce(
-    (acc, loan) => acc + loan.loanDetails.interestRate * Math.abs(loan.refCurrentBalance),
-    0,
-  );
-  return weighted / totalBalance;
-});
+const weightedApr = computed(() => weightedAvgApr({ loans: props.loans }));
 
 const avgAprDisplay = computed(() => {
-  const apr = weightedAvgApr.value;
+  const apr = weightedApr.value;
   if (apr === null) return '—';
   return `${apr.toFixed(PERCENT_DECIMAL_PRECISION)}%`;
 });
@@ -174,25 +150,13 @@ const debtFreeDisplay = computed(() => {
   return formatDate(latest, 'MMM yyyy');
 });
 
-const interestProjected = computed(() => {
-  // Projection values are per-loan currency — convert before summing. Render "—" if any rate is
-  // unavailable rather than silently understate the total.
-  const baseCode = baseCurrency.value?.currencyCode;
-  if (!baseCode) return null;
-  const withProjection = props.loans.filter((loan) => loan.projection.totalInterestRemaining !== null);
-  if (!withProjection.length) return null;
-  let sum = 0;
-  for (const loan of withProjection) {
-    const converted = convert({
-      amount: loan.projection.totalInterestRemaining!,
-      from: loan.currencyCode,
-      to: baseCode,
-    });
-    if (converted === null) return null;
-    sum += converted;
-  }
-  return sum;
-});
+const interestProjected = computed(() =>
+  projectedInterestRemaining({
+    loans: props.loans,
+    convert,
+    baseCode: baseCurrency.value?.currencyCode,
+  }),
+);
 
 const interestProjectedDisplay = computed(() => {
   const value = interestProjected.value;

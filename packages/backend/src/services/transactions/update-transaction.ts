@@ -1,10 +1,4 @@
-import {
-  ACCOUNT_CATEGORIES,
-  ACCOUNT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-  isTwoLegTransfer,
-} from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, isTwoLegTransfer } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -21,7 +15,8 @@ import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
-import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
+import { assertLoanEditAllowed } from '@services/loans/assert-loan-edit-allowed';
+import { deriveImpliedDestinationAmount } from '@services/loans/implied-destination-amount';
 import {
   assertSharedWritePhase1Guards,
   assertTxWriteAccess,
@@ -106,96 +101,12 @@ const validateTransaction = async (
     });
   }
 
-  // The transfer kind is frozen once a pair exists — relabeling
-  // (common_transfer ↔ transfer_to_loan) would require restamping both legs
-  // atomically and re-validating the destination's category. Supported flow:
-  // unlink first, then re-mark via the create path.
-  if (
-    newData.transferNature !== undefined &&
-    isTwoLegTransfer(prevData.transferNature) &&
-    isTwoLegTransfer(newData.transferNature) &&
-    newData.transferNature !== prevData.transferNature
-  ) {
-    throw new ValidationError({
-      message: t({ key: 'transactions.transferNatureChangeNotAllowed' }),
-    });
-  }
-
-  // The loan-side income leg is system-managed: every sanctioned flow edits the
-  // *expense* leg, which propagates here and passes the overpay assertion. A
-  // direct edit would bypass that assertion and restamp the opposite leg's
-  // transactionType — rejected; edit via the expense leg or delete the pair.
-  if (
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan &&
-    prevData.transactionType === TRANSACTION_TYPES.income
-  ) {
-    throw new ValidationError({
-      message: t({ key: 'transactions.loanAccountReadonly' }),
-    });
-  }
-
-  // Loan invariants for edits that can move a loan's balance — keyed off the
-  // destination account's *category*, not the nature label (mirrors
-  // createOppositeTransaction).
-  const effectiveNature = newData.transferNature ?? prevData.transferNature;
-  if (
-    isTwoLegTransfer(prevData.transferNature) &&
-    prevData.transferId &&
-    (newData.destinationAmount !== undefined ||
-      newData.destinationAccountId !== undefined ||
-      // A date edit can carry the payment across the loan's balance anchor
-      // (informational → counted), so it must pass the overpay assertion too.
-      newData.time !== undefined)
-  ) {
-    const oppositeLeg = await Transactions.default.findOne({
-      where: { transferId: prevData.transferId, id: { [Op.ne]: prevData.id } },
-      attributes: ['id', 'accountId', 'amount'],
-    });
-    if (oppositeLeg) {
-      const destinationAccountId = newData.destinationAccountId ?? oppositeLeg.accountId;
-      const isSameDestination = destinationAccountId === oppositeLeg.accountId;
-
-      // Deliberately not scoped by userId: on a shared cross-user pair the
-      // opposite leg can live on another user's account, and an owner-scoped
-      // lookup would 404 a plain amount edit. Ownership is still enforced by
-      // `assertLoanPaymentAllowed`'s (id, ownerUserId) lock and by
-      // `updateTransferTransaction`'s currency lookup on a re-point.
-      const destAccount = await Accounts.default.findOne({
-        where: { id: destinationAccountId },
-        attributes: ['accountCategory'],
-      });
-      if (!destAccount) {
-        throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
-      }
-      const isLoanDestination = destAccount.accountCategory === ACCOUNT_CATEGORIES.loan;
-
-      if (effectiveNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan && !isLoanDestination) {
-        throw new ValidationError({
-          message: t({ key: 'transactions.transferToLoanRequiresLoanDestination' }),
-        });
-      }
-      if (effectiveNature !== TRANSACTION_TRANSFER_NATURE.transfer_to_loan && isLoanDestination && !isSameDestination) {
-        throw new ValidationError({
-          message: t({ key: 'transactions.transferToLoanRelinkRequired' }),
-        });
-      }
-      if (isLoanDestination) {
-        await assertLoanPaymentAllowed({
-          ownerUserId: ctx.accountOwnerUserId,
-          loanAccountId: destinationAccountId,
-          newLegAmount: newData.destinationAmount ?? oppositeLeg.amount,
-          // The old leg is part of this loan's balance only when the
-          // destination stays put; on a re-point the new loan never saw it.
-          currentLegAmount: isSameDestination ? oppositeLeg.amount : null,
-          // Pre-edit date of the pair — decides whether the replaced leg is
-          // post-anchor (counted) or informational.
-          currentLegDate: isSameDestination ? prevData.time : null,
-          // Effective post-update date; both legs share it.
-          paymentDate: newData.time ?? prevData.time,
-        });
-      }
-    }
-  }
+  await assertLoanEditAllowed({
+    newData,
+    prevData,
+    callerUserId: ctx.callerUserId,
+    accountOwnerUserId: ctx.accountOwnerUserId,
+  });
 
   // We doesn't allow users to change non-source trasnaction for several reasons:
   // 1. Most importantly – to make things simpler. For now there's no case that
@@ -423,7 +334,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData] = params;
   let [, , baseTransaction] = params;
 
-  const { userId, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } = newData;
+  const { userId, amount, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } = newData;
 
   // Orphaned transfer leg: flagged as a transfer but `transferId` was cleared, so it has
   // no pair to update. Querying `findAll({ transferId: null })` would match every other
@@ -487,10 +398,34 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     };
   }
 
+  // A base-amount edit must keep the pair in sync. Same-currency legs of a
+  // transfer are always equal, so the destination leg mirrors the base amount
+  // 1:1; with different currencies there is no exchange rate to assume, so
+  // the caller must provide destinationAmount explicitly.
+  if (amount !== undefined && destinationAmount === undefined) {
+    const impliedDestinationAmount = deriveImpliedDestinationAmount({
+      baseAmount: amount,
+      destinationAmount,
+      baseLegCurrencyCode: baseTransaction.currencyCode,
+      destinationLegCurrencyCode: updateOppositeTxParams.currencyCode,
+    });
+    if (impliedDestinationAmount === undefined) {
+      throw new ValidationError({
+        message: t({ key: 'transactions.destinationAmountRequiredCrossCurrency' }),
+      });
+    }
+    updateOppositeTxParams.amount = impliedDestinationAmount;
+  }
+
+  // Effective post-update amount of the destination leg. Falls back to the
+  // stored opposite amount so the refAmount recompute always receives a real
+  // value even when the edit doesn't touch amounts (e.g. a note-only edit).
+  const effectiveDestinationAmount = updateOppositeTxParams.amount ?? oppositeTx.amount;
+
   const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } = await calcTransferTransactionRefAmount({
     userId,
     baseTransaction,
-    destinationAmount: updateOppositeTxParams.amount!,
+    destinationAmount: effectiveDestinationAmount,
     oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
     date: baseTransaction.time,
   });

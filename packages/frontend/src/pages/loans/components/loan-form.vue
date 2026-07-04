@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { type CreateLoanPayload, type LoanApi, type UpdateLoanPayload } from '@/api/loans';
-import FieldLabel from '@/components/fields/components/field-label.vue';
 import HintIcon from '@/components/common/hint-icon.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import * as Select from '@/components/lib/ui/select';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useCurrencyName } from '@/composable';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrenciesStore } from '@/stores';
-import { LOAN_TYPE, SUPPORTED_LOAN_TYPES } from '@bt/shared/types';
+import { type CurrencyModel, LOAN_TYPE, SUPPORTED_LOAN_TYPES } from '@bt/shared/types';
 import { between, helpers, integer, maxLength, required } from '@vuelidate/validators';
 import { differenceInCalendarMonths, format, parseISO } from 'date-fns';
 import { InfoIcon } from '@lucide/vue';
@@ -124,6 +122,13 @@ const loanTypeOptions = computed(() =>
 );
 
 const selectedLoanType = computed(() => loanTypeOptions.value.find((o) => o.value === form.loanType) ?? null);
+
+const selectedCurrency = computed(
+  () => systemCurrenciesVerbose.value.linked.find((item) => item.code === form.currencyCode) ?? null,
+);
+
+const currencyLabel = (item: CurrencyModel): string =>
+  formatCurrencyLabel({ code: item.code, fallbackName: item.currency });
 
 const currencyFormatter = computed(
   () =>
@@ -320,22 +325,16 @@ const submit = () => {
       @update:model-value="(v) => v && (form.loanType = v.value)"
     />
 
-    <div v-if="!isEdit">
-      <FieldLabel :label="$t('forms.loan.currencyLabel')">
-        <Select.Select v-model="form.currencyCode">
-          <Select.SelectTrigger>
-            <Select.SelectValue />
-          </Select.SelectTrigger>
-          <Select.SelectContent>
-            <template v-for="item of systemCurrenciesVerbose.linked" :key="item.code">
-              <Select.SelectItem :value="String(item.code)">
-                {{ formatCurrencyLabel({ code: item.code, fallbackName: item.currency }) }}
-              </Select.SelectItem>
-            </template>
-          </Select.SelectContent>
-        </Select.Select>
-      </FieldLabel>
-    </div>
+    <SelectField
+      v-if="!isEdit"
+      :model-value="selectedCurrency"
+      :values="systemCurrenciesVerbose.linked"
+      :label-key="currencyLabel"
+      value-key="code"
+      :label="$t('forms.loan.currencyLabel')"
+      :placeholder="$t('forms.loan.currencyPlaceholder')"
+      @update:model-value="(v) => v && (form.currencyCode = v.code)"
+    />
 
     <div class="grid grid-cols-1 items-end gap-4 @sm/loan-form:grid-cols-2">
       <FormattedAmountField

@@ -217,7 +217,7 @@ export function usePayoffChartRender({
         .style('pointer-events', 'none'),
     );
 
-    const showAt = (clientX: number, clientY: number, mouseX: number) => {
+    const showAt = ({ clientX, clientY, mouseX }: { clientX: number; clientY: number; mouseX: number }) => {
       const dateAtMouse = xScale.invert(mouseX);
       const monthsFromToday = Math.max(
         0,
@@ -259,7 +259,7 @@ export function usePayoffChartRender({
       .style('cursor', 'crosshair')
       .on('mousemove', (event: MouseEvent) => {
         const [mx] = d3.pointer(event);
-        showAt(event.clientX, event.clientY, mx);
+        showAt({ clientX: event.clientX, clientY: event.clientY, mouseX: mx });
       })
       .on('mouseleave', hide)
       .on('touchstart touchmove', (event: TouchEvent) => {
@@ -267,7 +267,7 @@ export function usePayoffChartRender({
         if (!touch) return;
         event.preventDefault();
         const [tx] = d3.pointer(touch, svgRef.value!);
-        showAt(touch.clientX, touch.clientY, tx - margin.left);
+        showAt({ clientX: touch.clientX, clientY: touch.clientY, mouseX: tx - margin.left });
       })
       .on('touchend', hide);
   };

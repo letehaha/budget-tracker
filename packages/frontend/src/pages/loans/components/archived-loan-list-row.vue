@@ -65,6 +65,7 @@ import { RouterLink } from 'vue-router';
 
 import { useUnarchiveLoan } from '../composables/use-unarchive-loan';
 import { getLoanTypeIcon, getLoanTypeTintedChipClass } from '../loan-type-presentation';
+import { outstandingAmount } from '../utils/outstanding-amount';
 
 const props = defineProps<{ loan: LoanApi }>();
 
@@ -73,7 +74,7 @@ const { t } = useI18n();
 const { unarchive, isPending } = useUnarchiveLoan();
 
 const outstandingDisplay = computed(() =>
-  formatAmountByCurrencyCode(Math.abs(props.loan.currentBalance), props.loan.currencyCode),
+  formatAmountByCurrencyCode(outstandingAmount({ balance: props.loan.currentBalance }), props.loan.currencyCode),
 );
 
 const subLine = computed(() => {

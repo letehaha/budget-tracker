@@ -9,24 +9,24 @@
 
       <!-- Split bar: principal vs. estimated interest, proportional, with a 2px gap between segments. -->
       <div class="mt-5 flex h-2.5 w-full gap-0.5 overflow-hidden">
-        <div class="h-full rounded-full bg-blue-500" :style="{ width: `${costSplit.principalPercent}%` }" />
+        <div class="bg-loan-principal h-full rounded-full" :style="{ width: `${costSplit.principalPercent}%` }" />
         <div
           v-if="costSplit.hasInterest"
-          class="h-full rounded-full bg-amber-500"
+          class="bg-loan-interest h-full rounded-full"
           :style="{ width: `${costSplit.interestPercent}%` }"
         />
       </div>
 
       <div class="mt-4 grid grid-cols-1 gap-3 @sm/loan-cost:grid-cols-2">
         <div class="flex items-center gap-2">
-          <span class="size-2.5 shrink-0 rounded-full bg-blue-500" aria-hidden="true" />
+          <span class="bg-loan-principal size-2.5 shrink-0 rounded-full" aria-hidden="true" />
           <div class="min-w-0">
             <div class="text-muted-foreground text-xs">{{ $t('loans.detail.paidOff.cost.principal') }}</div>
             <div class="text-sm font-medium tabular-nums">{{ formatCurrency(costSplit.principal) }}</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <span class="size-2.5 shrink-0 rounded-full bg-amber-500" aria-hidden="true" />
+          <span class="bg-loan-interest size-2.5 shrink-0 rounded-full" aria-hidden="true" />
           <div class="min-w-0">
             <div class="text-muted-foreground text-xs">{{ $t('loans.detail.paidOff.cost.interest') }}</div>
             <div class="text-sm font-medium tabular-nums">{{ interestDisplay }}</div>

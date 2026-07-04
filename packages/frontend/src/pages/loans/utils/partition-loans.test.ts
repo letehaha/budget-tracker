@@ -12,7 +12,7 @@ const makeLoan = ({
   id: string;
   status?: ACCOUNT_STATUSES;
   isPaidOff?: boolean;
-}): LoanApi => ({ id, status, projection: { isPaidOff } }) as LoanApi;
+}): LoanApi => ({ id, status, projection: { isPaidOff } }) as unknown as LoanApi;
 
 describe('partitionLoans', () => {
   it('splits loans into active, paid-off and archived groups', () => {

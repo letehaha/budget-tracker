@@ -22,6 +22,13 @@ const props = defineProps<{
   /** When true, the footer slot is not rendered in drawer (mobile) mode.
    * Use when the footer only contains a close action — swipe-to-close is enough on mobile. */
   hideDrawerFooter?: boolean;
+  /** When true, the drawer (mobile) skips the grey grab-handle indicator.
+   * Use when the content paints its own flush element at the top edge. */
+  drawerCustomIndicator?: boolean;
+  /** When true, the title/description slots are rendered as visually-hidden (`sr-only`)
+   * accessible labels with no surrounding header spacing, instead of a styled visible header.
+   * Use when the content owns its own visible heading but Radix still needs a DialogTitle. */
+  srOnlyHeader?: boolean;
 }>();
 
 const emit = defineEmits(['update:open']);
@@ -56,14 +63,24 @@ const close = () => {
       </Drawer.DrawerTrigger>
 
       <Drawer.DrawerContent
+        :custom-indicator="props.drawerCustomIndicator"
         :class="[
           !props.noInternalScroll && 'grid grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden',
           'px-4 pb-4',
           drawerContentClass,
         ]"
       >
+        <template v-if="props.srOnlyHeader">
+          <Drawer.DrawerTitle class="sr-only">
+            <slot name="title" />
+          </Drawer.DrawerTitle>
+          <Drawer.DrawerDescription class="sr-only">
+            <slot name="description" />
+          </Drawer.DrawerDescription>
+        </template>
         <component
           :is="$slots.title || $slots.description ? Drawer.DrawerHeader : 'div'"
+          v-else
           class="mb-2 px-0 pt-6 pb-0 text-center"
         >
           <Drawer.DrawerTitle>
@@ -95,7 +112,15 @@ const close = () => {
         ]"
         :custom-close="customClose"
       >
-        <template v-if="$slots.title || $slots.description">
+        <template v-if="props.srOnlyHeader">
+          <Dialog.DialogTitle class="sr-only">
+            <slot name="title" />
+          </Dialog.DialogTitle>
+          <Dialog.DialogDescription class="sr-only">
+            <slot name="description" />
+          </Dialog.DialogDescription>
+        </template>
+        <template v-else-if="$slots.title || $slots.description">
           <Dialog.DialogHeader class="mb-4 text-left">
             <Dialog.DialogTitle>
               <slot name="title" />

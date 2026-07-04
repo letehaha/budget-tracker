@@ -2,7 +2,7 @@
   <PageWrapper>
     <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
       <UiButton variant="ghost" size="sm" class="-ml-2" @click="goBack">
-        <ChevronLeftIcon class="mr-1 size-4" />
+        <ChevronLeftIcon class="size-4" />
         {{ $t('loans.detail.backToList') }}
       </UiButton>
       <div v-if="loan" class="flex items-center gap-2">

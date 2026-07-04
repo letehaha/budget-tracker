@@ -12,43 +12,45 @@ import {
 import type { Component } from 'vue';
 
 /**
- * Single source for per-loan-type hue and icon so cards don't drift apart. Hue is split into two class maps
- * (gradient stripe vs. badge) because Tailwind can't compose `from-*`/`bg-*` utilities from one token at runtime.
+ * Single source for per-loan-type color and icon so cards don't drift apart. Color comes from the
+ * `--loan-<type>` design tokens (see `global.css`) bridged to Tailwind as `bg-loan-<type>` /
+ * `text-loan-<type>`; it's split into three class maps because badge, bar, and chip apply the same
+ * hue at different fill strengths.
  */
 
 const LOAN_TYPE_SOLID_BADGE_CLASSES: Record<LOAN_TYPE, string> = {
-  [LOAN_TYPE.mortgage]: 'bg-blue-500 text-white',
-  [LOAN_TYPE.auto]: 'bg-amber-500 text-white',
-  [LOAN_TYPE.student]: 'bg-violet-500 text-white',
-  [LOAN_TYPE.personal]: 'bg-emerald-500 text-white',
-  [LOAN_TYPE.heloc]: 'bg-cyan-500 text-white',
-  [LOAN_TYPE.business]: 'bg-rose-500 text-white',
-  [LOAN_TYPE.medical]: 'bg-pink-500 text-white',
-  [LOAN_TYPE.other]: 'bg-slate-500 text-white',
+  [LOAN_TYPE.mortgage]: 'bg-loan-mortgage text-white',
+  [LOAN_TYPE.auto]: 'bg-loan-auto text-white',
+  [LOAN_TYPE.student]: 'bg-loan-student text-white',
+  [LOAN_TYPE.personal]: 'bg-loan-personal text-white',
+  [LOAN_TYPE.heloc]: 'bg-loan-heloc text-white',
+  [LOAN_TYPE.business]: 'bg-loan-business text-white',
+  [LOAN_TYPE.medical]: 'bg-loan-medical text-white',
+  [LOAN_TYPE.other]: 'bg-loan-other text-white',
 };
 
 /** Solid fill for composition-bar segments and legend dots — same hue family as the badges. */
 const LOAN_TYPE_BAR_CLASSES: Record<LOAN_TYPE, string> = {
-  [LOAN_TYPE.mortgage]: 'bg-blue-500',
-  [LOAN_TYPE.auto]: 'bg-amber-500',
-  [LOAN_TYPE.student]: 'bg-violet-500',
-  [LOAN_TYPE.personal]: 'bg-emerald-500',
-  [LOAN_TYPE.heloc]: 'bg-cyan-500',
-  [LOAN_TYPE.business]: 'bg-rose-500',
-  [LOAN_TYPE.medical]: 'bg-pink-500',
-  [LOAN_TYPE.other]: 'bg-slate-500',
+  [LOAN_TYPE.mortgage]: 'bg-loan-mortgage',
+  [LOAN_TYPE.auto]: 'bg-loan-auto',
+  [LOAN_TYPE.student]: 'bg-loan-student',
+  [LOAN_TYPE.personal]: 'bg-loan-personal',
+  [LOAN_TYPE.heloc]: 'bg-loan-heloc',
+  [LOAN_TYPE.business]: 'bg-loan-business',
+  [LOAN_TYPE.medical]: 'bg-loan-medical',
+  [LOAN_TYPE.other]: 'bg-loan-other',
 };
 
-/** Soft tinted square behind the loan-type icon in list rows. */
+/** Soft tinted square behind the loan-type icon in list rows — same hue as tint fill and text. */
 const LOAN_TYPE_TINTED_CHIP_CLASSES: Record<LOAN_TYPE, string> = {
-  [LOAN_TYPE.mortgage]: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-  [LOAN_TYPE.auto]: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-  [LOAN_TYPE.student]: 'bg-violet-500/15 text-violet-600 dark:text-violet-400',
-  [LOAN_TYPE.personal]: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-  [LOAN_TYPE.heloc]: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400',
-  [LOAN_TYPE.business]: 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
-  [LOAN_TYPE.medical]: 'bg-pink-500/15 text-pink-600 dark:text-pink-400',
-  [LOAN_TYPE.other]: 'bg-slate-500/15 text-slate-600 dark:text-slate-400',
+  [LOAN_TYPE.mortgage]: 'bg-loan-mortgage/15 text-loan-mortgage',
+  [LOAN_TYPE.auto]: 'bg-loan-auto/15 text-loan-auto',
+  [LOAN_TYPE.student]: 'bg-loan-student/15 text-loan-student',
+  [LOAN_TYPE.personal]: 'bg-loan-personal/15 text-loan-personal',
+  [LOAN_TYPE.heloc]: 'bg-loan-heloc/15 text-loan-heloc',
+  [LOAN_TYPE.business]: 'bg-loan-business/15 text-loan-business',
+  [LOAN_TYPE.medical]: 'bg-loan-medical/15 text-loan-medical',
+  [LOAN_TYPE.other]: 'bg-loan-other/15 text-loan-other',
 };
 
 /** Emoji shown in the loan-type badge pill (a warmer companion to the lucide icon kept in list chips). */

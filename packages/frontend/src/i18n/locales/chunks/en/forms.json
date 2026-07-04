@@ -250,6 +250,7 @@
       "loanTypeLabel": "Loan type",
       "loanTypePlaceholder": "Select loan type",
       "currencyLabel": "Currency",
+      "currencyPlaceholder": "Select currency",
       "originalPrincipalLabel": "Original principal",
       "originalPrincipalPlaceholder": "e.g. 320000",
       "initialBalanceLabel": "Current outstanding balance",

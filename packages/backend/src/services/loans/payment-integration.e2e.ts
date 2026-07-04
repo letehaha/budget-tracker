@@ -16,8 +16,13 @@ const extractError = (response: unknown) =>
     message: string;
   };
 
-/** Creates a loan + source account and pays `amount` from source into the loan. */
+/**
+ * Creates a loan + source account and pays `amount` from source into the loan.
+ * Both accounts share the loan's currency (USD, not the test base currency) so the
+ * pair is same-currency — amount-only edits can mirror the amount to the income leg 1:1.
+ */
 const setupLoanPaymentPair = async ({ initialBalance, amount }: { initialBalance: number; amount: number }) => {
+  await helpers.addUserCurrencies({ currencyCodes: ['USD'] });
   const loan = await helpers.createLoan({
     payload: helpers.buildCreateLoanPayload({
       initialBalance,
@@ -25,7 +30,10 @@ const setupLoanPaymentPair = async ({ initialBalance, amount }: { initialBalance
     }),
     raw: true,
   });
-  const sourceAccount = await helpers.createAccount({ raw: true });
+  const sourceAccount = await helpers.createAccount({
+    payload: helpers.buildAccountPayload({ currencyCode: 'USD' }),
+    raw: true,
+  });
 
   const [base, opposite] = await helpers.createTransaction({
     payload: {
@@ -582,6 +590,58 @@ describe('Loan payment integration', () => {
 
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(-300);
+    });
+  });
+
+  describe('PUT /transactions/:id with amount only on the expense leg', () => {
+    it('propagates an amount-only edit to the loan-side income leg and moves the loan balance', async () => {
+      // Same-currency pair: the income leg mirrors the expense leg 1:1, so an
+      // edit that carries only `amount` must rewrite both legs.
+      const { loan, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 300 });
+
+      const [updatedBase, updatedOpposite] = await helpers.updateTransaction({
+        id: expenseLeg.id,
+        payload: { amount: 500 },
+        raw: true,
+      });
+
+      expect(updatedBase.amount).toBe(500);
+      expect(updatedOpposite!.amount).toBe(500);
+      expect(updatedOpposite!.transactionType).toBe(TRANSACTION_TYPES.income);
+
+      // Both persisted legs carry the new amount.
+      const reloadedExpenseLeg = await helpers.getTransactionById({ id: updatedBase.id, raw: true });
+      const reloadedIncomeLeg = await helpers.getTransactionById({ id: updatedOpposite!.id, raw: true });
+      expect(reloadedExpenseLeg!.amount).toBe(500);
+      expect(reloadedIncomeLeg!.amount).toBe(500);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-500);
+    });
+
+    it('rejects an amount-only edit that would overpay the loan', async () => {
+      // Loan owes $1,000. Pay $300 → -$700 owed. An amount-only edit to $1,500
+      // implies the same income-leg amount, projecting the balance to +$800.
+      const { loan, base, opposite, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 300 });
+      const incomeLeg = base.id === expenseLeg.id ? opposite : base;
+
+      const response = await helpers.updateTransaction({
+        id: expenseLeg.id,
+        payload: { amount: 1_500 },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const errorBody = extractError(response);
+      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(errorBody.message).toMatch(/overpay|exceed|owed/i);
+
+      // Both legs and the loan balance stay untouched.
+      const reloadedExpenseLeg = await helpers.getTransactionById({ id: expenseLeg.id, raw: true });
+      const reloadedIncomeLeg = await helpers.getTransactionById({ id: incomeLeg.id, raw: true });
+      expect(reloadedExpenseLeg!.amount).toBe(300);
+      expect(reloadedIncomeLeg!.amount).toBe(300);
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-700);
     });
   });
 

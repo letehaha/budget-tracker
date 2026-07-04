@@ -1,4 +1,4 @@
-import type { LoanApiResponse } from '@root/serializers/loans.serializer';
+import type { LoanApiResponse, LoanBalanceHistoryPoint } from '@bt/shared/types';
 
 import { makeRequest } from './common';
 
@@ -14,6 +14,20 @@ export async function getLoanById<R extends boolean | undefined = undefined>({ i
   return makeRequest<LoanApiResponse, R>({
     method: 'get',
     url: `/loans/${id}`,
+    raw,
+  });
+}
+
+export async function getLoanBalanceHistory<R extends boolean | undefined = undefined>({
+  id,
+  raw,
+}: {
+  id: string;
+  raw?: R;
+}) {
+  return makeRequest<LoanBalanceHistoryPoint[], R>({
+    method: 'get',
+    url: `/loans/${id}/balance-history`,
     raw,
   });
 }

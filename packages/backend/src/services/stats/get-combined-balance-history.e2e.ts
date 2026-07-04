@@ -2,7 +2,9 @@ import {
   ASSET_CLASS,
   EXCHANGE_RATE_PROVIDER_TYPE,
   INVESTMENT_TRANSACTION_CATEGORY,
+  type RecordId,
   SECURITY_PROVIDER,
+  TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
 } from '@bt/shared/types';
@@ -1000,6 +1002,98 @@ describe('[Stats] Combined balance history', () => {
       // Only assert existence — these vars are otherwise unused, avoiding unused-var lint.
       expect(loan.id).toBeDefined();
       expect(cash.id).toBeDefined();
+    });
+
+    it('forward-fills loansBalance between anchor and payment days without touching accountsBalance', async () => {
+      // Same-currency (base) setup so no FX conversion enters the assertions.
+      const observerCash = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+      const paymentSource = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 100_000 }),
+        raw: true,
+      });
+
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: global.BASE_CURRENCY_CODE,
+          initialBalance: 10_000,
+          originalPrincipal: 10_000,
+        }),
+        raw: true,
+      });
+
+      // Move the balance anchor 6 days back so the loan owes 10,000 as-of then; the
+      // loan's only Balances row starts at that date and forward-fills forward.
+      const anchorDay = subDays(new Date(), 6);
+      const anchorDate = format(anchorDay, 'yyyy-MM-dd');
+      await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 10_000, currentBalanceAsOf: anchorDate },
+        raw: true,
+      });
+
+      // A single 4,000 payment dated 3 days ago steps the outstanding to 6,000 and
+      // writes a second Balances row on that day.
+      const paymentDay = subDays(new Date(), 3);
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: paymentSource.id,
+            amount: 4_000,
+            time: paymentDay.toISOString(),
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 4_000,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: anchorDate,
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      const byDate = (offset: number) => {
+        const key = format(subDays(new Date(), offset), 'yyyy-MM-dd');
+        const entry = data.find((item) => item.date === key);
+        if (!entry) throw new Error(`Expected a combined-history entry for ${key}`);
+        return entry;
+      };
+
+      // (a) Forward-fill: every day from the anchor up to (but excluding) the
+      // payment day holds the full -10,000 outstanding, even on days with no row.
+      expect(byDate(6).loansBalance).toBe(-10_000);
+      expect(byDate(5).loansBalance).toBe(-10_000);
+      expect(byDate(4).loansBalance).toBe(-10_000);
+
+      // (b) The payment day steps the series down, and it forward-fills onward.
+      expect(byDate(4).loansBalance).not.toBe(byDate(3).loansBalance);
+      expect(byDate(3).loansBalance).toBe(-6_000);
+      expect(byDate(0).loansBalance).toBe(-6_000);
+
+      // (c) The loan's anchor/payment rows never leak into the cash partition: the
+      // pre-payment window has no cash activity, so accountsBalance is identical
+      // across it (a leaked loan anchor would have injected -10,000 on day -6).
+      expect(byDate(6).accountsBalance).toBe(byDate(5).accountsBalance);
+      expect(byDate(5).accountsBalance).toBe(byDate(4).accountsBalance);
+      for (const entry of data) {
+        // Cash stays comfortably positive; a leaked loan negative would drag it under.
+        expect(entry.accountsBalance).toBeGreaterThan(0);
+        expect(entry.totalBalance).toBe(
+          entry.accountsBalance +
+            entry.portfoliosBalance +
+            entry.venturesBalance +
+            entry.vehiclesBalance +
+            entry.loansBalance,
+        );
+      }
+
+      // Only assert existence — these vars are otherwise unused, avoiding unused-var lint.
+      expect(observerCash.id).toBeDefined();
     });
 
     it('keeps loansBalance at 0 when the user has no loans', async () => {

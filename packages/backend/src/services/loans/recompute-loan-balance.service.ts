@@ -3,11 +3,42 @@ import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
+import { namespace } from '@models/connection';
 import LoanDetails from '@models/loan-details.model';
+import type Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
-import { parseISO, startOfDay } from 'date-fns';
+import { replayLoanOutstanding } from '@services/loans/replay-loan-outstanding';
 import { Op } from 'sequelize';
+
+/**
+ * The moment a loan actually settled: replay the post-anchor payment legs in
+ * date order on top of the anchor balance and return the `time` of the first
+ * leg at which the cumulative balance reaches zero. An anchor balance already
+ * at/above zero (a manual correction straight to zero, no settling leg) means
+ * the loan settled on the anchor date itself. Falls back to the current time
+ * only when neither source applies.
+ */
+const resolveSettledAt = ({
+  anchorBalanceCents,
+  anchorDate,
+  legs,
+}: {
+  anchorBalanceCents: number;
+  /** yyyy-MM-dd anchor boundary. */
+  anchorDate: string;
+  legs: Transactions[];
+}): string => {
+  if (anchorBalanceCents >= 0) return new Date(anchorDate).toISOString();
+
+  const sortedLegs = [...legs].toSorted((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+  let cumulativeCents = anchorBalanceCents;
+  for (const leg of sortedLegs) {
+    cumulativeCents += leg.amount.toCents();
+    if (cumulativeCents >= 0) return new Date(leg.time).toISOString();
+  }
+  return new Date().toISOString();
+};
 
 /**
  * Recompute a loan's authoritative balance from its anchor snapshot plus
@@ -25,8 +56,18 @@ const recomputeLoanBalanceImpl = async ({
   loanAccountId: string;
   userId?: number;
 }): Promise<void> => {
+  // SELECT ... FOR UPDATE on the loan account row: every payment write path
+  // (create/edit/link/unlink) already locks this row via
+  // `assertLoanPaymentAllowed` before projecting the balance, and this lock
+  // re-acquires it within the same transaction (a no-op there). The payment
+  // delete path reaches this recompute without going through the guard, so the
+  // lock here is what keeps a concurrent payment write from reading a
+  // pre-delete balance and jointly persisting a stale outstanding.
+  const sequelizeTx = namespace.get('transaction');
   const account = await Accounts.findOne({
     where: { id: loanAccountId, ...(userId !== undefined && { userId }) },
+    transaction: sequelizeTx,
+    lock: sequelizeTx?.LOCK.UPDATE,
   });
   if (!account || account.accountCategory !== ACCOUNT_CATEGORIES.loan) return;
 
@@ -46,7 +87,6 @@ const recomputeLoanBalanceImpl = async ({
     return;
   }
   const anchorDate = loanDetails.balanceAnchorDate;
-  const anchorDay = startOfDay(parseISO(anchorDate));
 
   // Only DATE(time) >= anchor adjusts the outstanding; the snapshot already
   // accounts for earlier payments.
@@ -57,19 +97,11 @@ const recomputeLoanBalanceImpl = async ({
   });
 
   // Income legs move a negative liability balance toward zero, so they add.
-  // Ref amounts are also grouped per calendar day for the history rebuild —
-  // Balances rows are unique per (accountId, date).
   let sumCents = 0;
   let sumRefCents = 0;
-  const refCentsByDay = new Map<number, number>();
   for (const leg of legs) {
     sumCents += leg.amount.toCents();
     sumRefCents += leg.refAmount.toCents();
-    // SQL filters by DATE(time) but this grouping uses the server-local day;
-    // clamp to the anchor day so a boundary-skewed leg folds into the anchor row
-    // instead of landing before the cleanup range (which starts at the anchor).
-    const legDay = Math.max(startOfDay(new Date(leg.time)).getTime(), anchorDay.getTime());
-    refCentsByDay.set(legDay, (refCentsByDay.get(legDay) ?? 0) + leg.refAmount.toCents());
   }
 
   // Loan balances are stored negative (liability); income legs add toward zero.
@@ -88,35 +120,49 @@ const recomputeLoanBalanceImpl = async ({
     );
   }
 
-  // Stamp paid_off only on the owing→settled transition so repeated recomputes
-  // don't duplicate it; a reopened loan earns a fresh event when it re-zeroes.
-  if (account.currentBalance.isNegative() && !newCurrentBalance.isNegative()) {
-    const paidOffEvent: LoanEvent = { type: 'paid_off', at: new Date().toISOString() };
-    await loanDetails.update({ events: [...(loanDetails.events ?? []), paidOffEvent] });
+  const events = loanDetails.events ?? [];
+
+  // A settled→owing transition means the loan reopened (a payment edit/delete
+  // pushed the balance back below zero) — the timeline must no longer claim the
+  // loan is paid off, so every `paid_off` entry is dropped. Filtering ALL of
+  // them (not just the last) also self-heals any duplicates already persisted.
+  if (!account.currentBalance.isNegative() && newCurrentBalance.isNegative()) {
+    const withoutPaidOff = events.filter((event) => event.type !== 'paid_off');
+    if (withoutPaidOff.length !== events.length) {
+      await loanDetails.update({ events: withoutPaidOff });
+    }
   }
 
-  // Rebuild the loan's Balances history: one row on the anchor date (same-day
-  // payments fold in — the anchor boundary is inclusive) plus one cumulative row
-  // per later day with legs. Loans opt out of the per-transaction Balances
-  // cascade, so this rebuild is the loan's only history writer; pre-anchor rows
-  // stay untouched. Balances.amount stores the base-currency (ref) balance.
-  const rebuiltRows: { date: Date; refBalance: Money }[] = [];
-  let runningRefBalance = account.refInitialBalance;
-  if (!refCentsByDay.has(anchorDay.getTime())) {
-    rebuiltRows.push({ date: anchorDay, refBalance: runningRefBalance });
+  // Stamp paid_off only on the owing→settled transition so repeated recomputes
+  // don't duplicate it. `at` is the moment the loan actually settled — the date
+  // of the payment leg that zeroed the balance (or the anchor date for a manual
+  // correction to zero) — not the wall-clock time of this recompute, since
+  // payments can be backdated or edited long after they landed.
+  if (account.currentBalance.isNegative() && !newCurrentBalance.isNegative()) {
+    const paidOffEvent: LoanEvent = {
+      type: 'paid_off',
+      at: resolveSettledAt({ anchorBalanceCents: account.initialBalance.toCents(), anchorDate, legs }),
+    };
+    await loanDetails.update({ events: [...events, paidOffEvent] });
   }
-  for (const day of [...refCentsByDay.keys()].toSorted((a, b) => a - b)) {
-    runningRefBalance = runningRefBalance.add(Money.fromCents(refCentsByDay.get(day)!));
-    // Floor each history row at zero for the same reason as the current balance:
-    // a paid-off loan's last row sits at 0, never in credit.
-    if (runningRefBalance.isPositive()) runningRefBalance = Money.zero();
-    rebuiltRows.push({ date: new Date(day), refBalance: runningRefBalance });
-  }
+
+  // Rebuild the loan's Balances history off the base-currency (ref) anchor
+  // snapshot: one row on the anchor date (same-day payments fold in — the anchor
+  // boundary is inclusive) plus one cumulative row per later day with legs.
+  // Balances rows are unique per (accountId, date). Loans opt out of the
+  // per-transaction Balances cascade, so this rebuild is the loan's only history
+  // writer; pre-anchor rows stay untouched. Balances.amount stores the ref balance.
+  const rebuiltRows = replayLoanOutstanding({
+    legs,
+    anchorDate,
+    openingBalance: account.refInitialBalance,
+    pickCents: ({ leg }) => leg.refAmount.toCents(),
+  }).map((row) => ({ date: new Date(row.date), refBalance: row.balance }));
 
   // Clear the range first so removed/moved payments leave no ghost rows; the
   // account-creation row falls inside it and is re-written by the anchor row.
   await Balances.destroy({
-    where: { accountId: loanAccountId, date: { [Op.gte]: anchorDay } },
+    where: { accountId: loanAccountId, date: { [Op.gte]: anchorDate } },
   });
 
   for (const row of rebuiltRows) {

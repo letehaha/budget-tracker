@@ -34,7 +34,7 @@
            banner instead, so the card opens straight into the details grid. -->
       <template v-if="!isPaidOff">
         <div class="text-app-expense-color text-3xl font-semibold tracking-tight">
-          {{ formatAmountByCurrencyCode(Math.abs(loan.currentBalance), loan.currencyCode) }}
+          {{ outstandingBalanceDisplay }}
         </div>
         <div class="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
           <span>{{ $t('loans.detail.summary.outstanding') }}</span>
@@ -110,6 +110,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { getLoanDurationParts, getMonthsEarly } from '../utils/paid-off-stats';
+import { outstandingAmount } from '../utils/outstanding-amount';
 import { getLoanTypeEmoji, getLoanTypeSolidBadgeClass } from '../loan-type-presentation';
 
 const props = defineProps<{ loan: LoanApi }>();
@@ -119,6 +120,10 @@ const { format: formatDate } = useDateLocale();
 const { t } = useI18n();
 
 const aprDisplay = computed(() => `${props.loan.loanDetails.interestRate.toFixed(2)}%`);
+
+const outstandingBalanceDisplay = computed(() =>
+  formatAmountByCurrencyCode(outstandingAmount({ balance: props.loan.currentBalance }), props.loan.currencyCode),
+);
 
 const originalPrincipalDisplay = computed(() =>
   formatAmountByCurrencyCode(props.loan.loanDetails.originalPrincipal, props.loan.currencyCode),

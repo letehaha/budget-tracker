@@ -8,14 +8,13 @@ import {
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
-import Accounts from '@models/accounts.model';
-import { namespace } from '@models/connection';
 import LoanDetails from '@models/loan-details.model';
 import Transactions from '@models/transactions.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { isOnOrAfterAnchorDay } from '@services/loans/anchor-day';
+import { lockLoanAccountRow, projectLoanOverpay } from '@services/loans/project-loan-overpay';
 import { updateTransaction } from '@services/transactions/update-transaction';
-import { format } from 'date-fns';
 
 interface LinkLoanPaymentsParams {
   userId: number;
@@ -42,15 +41,9 @@ const linkLoanPaymentsImpl = async ({
   transactionIds,
   confirmOverpay = false,
 }: LinkLoanPaymentsParams) => {
-  const sequelizeTx = namespace.get('transaction');
-
   // Row-lock the loan account so concurrent payment writes serialise against
   // this batch's balance read (same invariant as `assertLoanPaymentAllowed`).
-  const loanAccount = await Accounts.findOne({
-    where: { id: accountId, userId },
-    transaction: sequelizeTx,
-    lock: sequelizeTx?.LOCK.UPDATE,
-  });
+  const loanAccount = await lockLoanAccountRow({ loanAccountId: accountId, userId });
   if (!loanAccount || loanAccount.accountCategory !== ACCOUNT_CATEGORIES.loan) {
     throw new NotFoundError({ message: t({ key: 'loans.loanNotFound' }) });
   }
@@ -94,8 +87,10 @@ const linkLoanPaymentsImpl = async ({
       });
 
       // Only payments dated on/after the anchor move the balance; the recompute
-      // ignores earlier legs, so they're excluded from the overpay projection too.
-      const countsTowardBalance = format(new Date(tx.time), 'yyyy-MM-dd') >= anchorDate;
+      // ignores earlier legs, so they're excluded from the overpay projection
+      // too. The UTC calendar day matches how the SQL `DATE("time")` payment
+      // filter classifies same-day legs on non-UTC servers.
+      const countsTowardBalance = isOnOrAfterAnchorDay({ time: tx.time, anchorDate });
 
       return { txId: tx.id, destinationAmount, countsTowardBalance };
     }),
@@ -107,8 +102,10 @@ const linkLoanPaymentsImpl = async ({
 
   // Loan balances are negative (liability); income legs add toward zero. A
   // positive projection means the batch overshoots the owed amount.
-  const projectedBalance = loanAccount.currentBalance.add(postAnchorSum);
-  if (projectedBalance.toCents() > 0 && !confirmOverpay) {
+  const { projectedBalance, overpaysBy } = projectLoanOverpay({
+    projectedBalance: loanAccount.currentBalance.add(postAnchorSum),
+  });
+  if (overpaysBy.toCents() > 0 && !confirmOverpay) {
     const details: LoanPaymentOverpayDetails = {
       projectedBalance: projectedBalance.toNumber(),
       maxLinkable: loanAccount.currentBalance.abs().toNumber(),

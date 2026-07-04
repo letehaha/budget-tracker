@@ -5,9 +5,11 @@ import { roundHalfToEven } from '@common/utils/round-half-to-even';
 /**
  * Pure payoff projection for a loan — `today` is injected so tests can fix the
  * clock. Math runs in integer cents (banker's rounding for monthly interest);
- * outputs are decimals ready for `res.json()`. Must stay in lockstep with the
- * frontend's `computePayoffScenario` (pages/loans/utils/payoff-schedule.ts) so
- * the Projection card and the payoff chart agree to the cent.
+ * outputs are decimals ready for `res.json()`. The ACTIVE payoff trajectory
+ * must stay in lockstep with the frontend's `computePayoffScenario`
+ * (pages/loans/utils/payoff-schedule.ts) so the Projection card and the payoff
+ * chart agree to the cent; the paid-off interest estimate has no frontend
+ * counterpart — paid-off surfaces read `estimatedInterestPaid` from the API.
  */
 interface LoanProjectionInput {
   /** Outstanding balance in cents, non-negative. Zero projects as `isPaidOff: true`. */
@@ -24,6 +26,19 @@ interface LoanProjectionInput {
    * unknown and the estimate is `null`.
    */
   termMonths?: number | null;
+  /**
+   * Contractual origination date (yyyy-MM-dd). Together with `settleDate` it
+   * caps the paid-off `estimatedInterestPaid` at the schedule interest for the
+   * months the loan was actually open, instead of the full lifetime figure.
+   */
+  startDate?: string | null;
+  /**
+   * The moment the loan settled (ISO timestamp or yyyy-MM-dd); only consulted
+   * when the balance is zero. When either `startDate` or `settleDate` is
+   * missing/unparsable the open duration is unknown, and the paid-off estimate
+   * falls back to the full scheduled lifetime interest.
+   */
+  settleDate?: string | null;
   /** Reference "now" anchoring `payoffDate`. */
   today: Date | string;
 }
@@ -48,20 +63,37 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
 
   const isPaidOff = currentBalanceCents <= 0;
 
-  const scheduledLifetimeInterestCents = computeScheduledLifetimeInterestCents({
+  const scheduledLifetimeInterestCents = computeScheduledInterestCents({
     originalPrincipalCents,
     interestRate,
     termMonths: input.termMonths ?? null,
   });
 
   if (isPaidOff) {
+    // The estimate is the original schedule's interest accrued over the months
+    // the loan was actually open (a partial trailing month counts as a full
+    // one, and the accrual caps at the term — a loan open longer than its term
+    // reports the full lifetime figure). Unknown open duration falls back to
+    // the full scheduled lifetime interest.
+    const openMonths = computeOpenMonths({
+      startDate: input.startDate ?? null,
+      settleDate: input.settleDate ?? null,
+    });
+    const estimatedInterestPaidCents =
+      openMonths === null
+        ? scheduledLifetimeInterestCents
+        : computeScheduledInterestCents({
+            originalPrincipalCents,
+            interestRate,
+            termMonths: input.termMonths ?? null,
+            accrueMonths: openMonths,
+          });
+
     return {
       payoffDate: null,
       monthsRemaining: 0,
-      // Nothing remains, so the estimate is the full scheduled lifetime interest.
       totalInterestRemaining: 0,
-      estimatedInterestPaid:
-        scheduledLifetimeInterestCents === null ? null : centsToApiDecimal(scheduledLifetimeInterestCents),
+      estimatedInterestPaid: estimatedInterestPaidCents === null ? null : centsToApiDecimal(estimatedInterestPaidCents),
       paidToDate,
       paidToDatePercent,
       monthlyInterest: 0,
@@ -195,23 +227,27 @@ function computeTotalInterestCents({
 }
 
 /**
- * Total interest a borrower pays over the loan's whole life when following the
- * original amortization schedule: `originalPrincipal` amortized over
- * `termMonths` at `interestRate`, accrued with the same month-by-month
- * banker's rounding as `computeTotalInterestCents`. This is an ESTIMATE input
- * for `estimatedInterestPaid` — recorded payments carry no interest split, so
- * the schedule is the only interest model available. `null` when there is no
- * usable schedule (missing/degenerate term or principal); a zero-APR schedule
- * costs 0.
+ * Interest a borrower pays when following the original amortization schedule:
+ * `originalPrincipal` amortized over `termMonths` at `interestRate`, accrued
+ * with the same month-by-month banker's rounding as
+ * `computeTotalInterestCents`. `accrueMonths` limits the accrual to the first
+ * N scheduled months (capped at the term; the scheduled payment is always
+ * derived from the FULL term); omitted, the whole schedule accrues — the
+ * lifetime figure. This is an ESTIMATE input for `estimatedInterestPaid` —
+ * recorded payments carry no interest split, so the schedule is the only
+ * interest model available. `null` when there is no usable schedule
+ * (missing/degenerate term or principal); a zero-APR schedule costs 0.
  */
-function computeScheduledLifetimeInterestCents({
+function computeScheduledInterestCents({
   originalPrincipalCents,
   interestRate,
   termMonths,
+  accrueMonths,
 }: {
   originalPrincipalCents: number;
   interestRate: number;
   termMonths: number | null;
+  accrueMonths?: number;
 }): number | null {
   if (termMonths === null || termMonths <= 0 || termMonths > MAX_PROJECTION_MONTHS) return null;
   if (originalPrincipalCents <= 0) return null;
@@ -229,8 +265,36 @@ function computeScheduledLifetimeInterestCents({
     balanceCents: originalPrincipalCents,
     paymentCents: scheduledPaymentCents,
     interestRate,
-    months: termMonths,
+    months: Math.min(accrueMonths ?? termMonths, termMonths),
   });
+}
+
+/**
+ * Whole calendar months (UTC) a loan stayed open, from `startDate`
+ * (yyyy-MM-dd origination) to `settleDate` (ISO timestamp or yyyy-MM-dd). A
+ * partial trailing month counts as a full month (ceil); settling on the start
+ * date itself is 0 months, and a settle date somehow before the start clamps
+ * to 0. `null` when either date is missing or unparsable — the open duration
+ * is unknown.
+ */
+function computeOpenMonths({
+  startDate,
+  settleDate,
+}: {
+  startDate: string | null;
+  settleDate: string | null;
+}): number | null {
+  if (!startDate || !settleDate) return null;
+  // yyyy-MM-dd parses as UTC midnight, full ISO timestamps as themselves — so
+  // both dates compare on the same UTC calendar.
+  const start = new Date(startDate);
+  const settle = new Date(settleDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(settle.getTime())) return null;
+
+  const wholeMonths =
+    (settle.getUTCFullYear() - start.getUTCFullYear()) * MONTHS_PER_YEAR + (settle.getUTCMonth() - start.getUTCMonth());
+  const partialMonth = settle.getUTCDate() > start.getUTCDate() ? 1 : 0;
+  return Math.max(0, wholeMonths + partialMonth);
 }
 
 function computePaidToDatePercent({

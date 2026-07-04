@@ -1,4 +1,4 @@
-import { LOAN_TYPE } from '@bt/shared/types';
+import { SUPPORTED_LOAN_TYPES } from '@bt/shared/types';
 import { currencyCode, dateString, decimalMoney, recordId } from '@common/lib/zod/custom-types';
 import { addDays, format } from 'date-fns';
 import { z } from 'zod';
@@ -58,7 +58,9 @@ export const createLoanBodySchema = z.object({
   currencyCode: currencyCode(),
   initialBalance: nonNegativeDecimalMoney({ field: 'initialBalance' }),
 
-  loanType: z.nativeEnum(LOAN_TYPE),
+  // Only the loan types the form picker exposes are accepted; HELOC-style types
+  // need multi-disbursement support before the balance machinery can back them.
+  loanType: z.enum(SUPPORTED_LOAN_TYPES),
   originalPrincipal: decimalMoney().refine((m) => m.isPositive(), {
     message: 'originalPrincipal must be > 0',
   }),
