@@ -1109,6 +1109,64 @@ describe('[Stats] Combined balance history', () => {
         expect(entry.loansBalance).toBe(0);
       }
     });
+
+    it('does not retroactively change a past day loansBalance when a payoff is recorded today', async () => {
+      // The demo scenario: a loan is recorded today (balanceAnchorDate = today) with
+      // 7,200 outstanding, then paid off the same day. A payment dated today must not
+      // change what the loan owed on any prior day — history is immutable.
+      const paymentSource = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 100_000 }),
+        raw: true,
+      });
+
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: global.BASE_CURRENCY_CODE,
+          initialBalance: 7_200,
+          originalPrincipal: 7_200,
+        }),
+        raw: true,
+      });
+
+      const from = format(subDays(new Date(), 3), 'yyyy-MM-dd');
+      const to = format(new Date(), 'yyyy-MM-dd');
+      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+
+      const before = (await helpers.getCombinedBalanceHistory({
+        from,
+        to,
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+      const loanOwedYesterdayBefore = before.find((e) => e.date === yesterday)!.loansBalance;
+
+      // Full payoff dated today.
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: paymentSource.id,
+            amount: 7_200,
+            time: new Date().toISOString(),
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 7_200,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const after = (await helpers.getCombinedBalanceHistory({
+        from,
+        to,
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+      const loanOwedYesterdayAfter = after.find((e) => e.date === yesterday)!.loansBalance;
+
+      // Yesterday the loan owed 7,200 (stored negative); paying it off today cannot
+      // change that. The bug: back-fill uses the anchor-day row, which the same-day
+      // payoff folds to 0, so yesterday retroactively reads 0.
+      expect(loanOwedYesterdayBefore).toBe(-7_200);
+      expect(loanOwedYesterdayAfter).toBe(loanOwedYesterdayBefore);
+    });
   });
 
   describe('Portfolio cash balance', () => {

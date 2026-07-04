@@ -1,6 +1,7 @@
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
+import Accounts from '@models/accounts.model';
 import ExchangeRates from '@models/exchange-rates.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
@@ -339,14 +340,27 @@ export const getCombinedBalanceHistory = async ({
           categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle, ACCOUNT_CATEGORIES.loan] },
         }),
       )(),
-      withTransaction(() =>
-        getAggregatedBalanceHistory({
+      withTransaction(async () => {
+        // Back-fill each loan's pre-anchor days from its opening balance
+        // (`refInitialBalance` — the outstanding as-of the anchor date) rather than
+        // from the anchor-day Balances row. A payment only ever writes
+        // `currentBalance`, so the opening is immutable; this stops a payoff dated
+        // on the anchor day (which folds the anchor row toward zero) from
+        // retroactively rewriting the loan balance shown on earlier days.
+        const loanAccounts = await Accounts.findAll({
+          where: { userId, accountCategory: ACCOUNT_CATEGORIES.loan, excludeFromStats: false },
+          attributes: ['id', 'refInitialBalance'],
+        });
+        const openingCentsByAccount = new Map(loanAccounts.map((a) => [a.id, a.refInitialBalance.toCents()]));
+
+        return getAggregatedBalanceHistory({
           userId,
           from: minDate,
           to: maxDate,
           categoryFilter: { only: [ACCOUNT_CATEGORIES.loan] },
-        }),
-      )(),
+          openingCentsByAccount,
+        });
+      })(),
       withTransaction(() =>
         calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates, userBaseCurrencyPromise }),
       )(),
