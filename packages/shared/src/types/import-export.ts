@@ -353,6 +353,8 @@ export interface CsvImportSummary {
   accountsCreated: number;
   categoriesCreated: number;
   tagsCreated: number;
+  /** Number of Payees inserted by this import. Reused/linked Payees don't count. */
+  payeesCreated: number;
   errors: ImportError[];
   /** Ids of every transaction created by this import. */
   newTransactionIds: string[];

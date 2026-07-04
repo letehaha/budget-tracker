@@ -239,6 +239,7 @@ export const createTransaction = withTransaction(
     rawMerchantName,
     payeeId: callerPayeeId,
     payeeLocked: callerPayeeLocked,
+    categoryIdIsExplicit = false,
     ...payload
   }: CreateTransactionParams) => {
     try {
@@ -506,21 +507,31 @@ export const createTransaction = withTransaction(
       // the Payee and the Transaction row, which doesn't fit a recipient
       // caller — short-circuiting here also keeps that helper's contract
       // narrow.
+      // An `enforce`-mode Payee's `defaultCategoryId` normally overrides even a
+      // passed `categoryId` (the point of enforce mode; manual/bank-sync callers
+      // rely on it). CSV/Wallet import opts out via `categoryIdIsExplicit`, where
+      // the mapped-column category is authoritative. Inert without a `categoryId`,
+      // so import rows with no mapped category still get enforce/hint.
+      const skipPayeeCategorization =
+        categoryIdIsExplicit && payload.categoryId !== undefined && payload.categoryId !== null;
+
       if (isOwner && resolvedPayeeId && transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) {
-        try {
-          const updated = await applyPayeeCategorization({
-            accountOwnerUserId,
-            transactionId: baseTransaction!.id,
-            payeeId: resolvedPayeeId,
-          });
-          if (updated) {
-            transactions[0] = updated;
+        if (!skipPayeeCategorization) {
+          try {
+            const updated = await applyPayeeCategorization({
+              accountOwnerUserId,
+              transactionId: baseTransaction!.id,
+              payeeId: resolvedPayeeId,
+            });
+            if (updated) {
+              transactions[0] = updated;
+            }
+          } catch (error) {
+            logger.error({
+              message: 'Failed to apply payee_rule categorization; leaving transaction uncategorized',
+              error: error as Error,
+            });
           }
-        } catch (error) {
-          logger.error({
-            message: 'Failed to apply payee_rule categorization; leaving transaction uncategorized',
-            error: error as Error,
-          });
         }
 
         // Payee default tags. Only when the caller sent no tag list at all —
