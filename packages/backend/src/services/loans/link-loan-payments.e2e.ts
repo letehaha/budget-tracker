@@ -166,6 +166,42 @@ describe('POST /loans/:id/link-payments', () => {
     expect(loanLeg?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
   });
 
+  it('links a mixed batch but only counts the post-anchor expenses toward the balance', async () => {
+    const loan = await createLoan({ initialBalance: 1_000 });
+    const source = await helpers.createAccount({ raw: true });
+
+    // Dated before the anchor (today): links for the record, already baked into
+    // the opening balance, so it must not move it.
+    const preAnchor = await createExpense({
+      accountId: source.id as RecordId,
+      amount: 200,
+      time: subYears(new Date(), 1).toISOString(),
+    });
+    // Default time is today (>= anchor): counts toward the balance.
+    const postAnchor = await createExpense({ accountId: source.id as RecordId, amount: 300 });
+
+    const result = await helpers.linkLoanPayments({
+      id: loan.id,
+      transactionIds: [preAnchor.id, postAnchor.id],
+      raw: true,
+    });
+
+    // Both link (both are eligible), but only the 300 post-anchor payment moves
+    // the balance: -1,000 + 300 = -700. The pre-anchor 200 is history only.
+    expect(result.linkedCount).toBe(2);
+
+    const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+    expect(reloaded.currentBalance).toBe(-700);
+
+    // Each linked expense still gains its loan-account income leg, pre-anchor included.
+    const txs = await helpers.getTransactions({ raw: true });
+    const loanLegs = txs.filter((tx) => tx.accountId === loan.id);
+    expect(loanLegs.length).toBe(2);
+    loanLegs.forEach((leg) => {
+      expect(leg.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+    });
+  });
+
   describe('overpay handling', () => {
     it('refuses an overpaying batch without confirmation, leaving the loan untouched', async () => {
       const loan = await createLoan({ initialBalance: 1_000 });
