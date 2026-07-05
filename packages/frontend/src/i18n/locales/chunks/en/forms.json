@@ -265,14 +265,19 @@
       "allAccounts": "All accounts",
       "account": "account",
       "accountsSelected": "accounts selected",
+      "selectedOne": "1 account selected",
+      "selectedMany": "{n} accounts selected",
       "searchPlaceholder": "Search accounts...",
       "noResults": "No results found."
     },
     "comboboxCategories": {
       "searchPlaceholder": "Search categories...",
       "unselectedPlaceholder": "All categories",
-      "category": "category selected",
-      "categoriesSelected": "categories selected"
+      "selectedOne": "1 category selected",
+      "selectedMany": "{n} categories selected"
+    },
+    "accountMultiSelect": {
+      "ungrouped": "Ungrouped"
     },
     "tagSelect": {
       "placeholder": "Select tags...",
@@ -282,6 +287,14 @@
       "placeholder": "Select categories...",
       "searchPlaceholder": "Search categories...",
       "noCategoriesFound": "No categories found"
+    },
+    "payeeMultiSelect": {
+      "label": "All payees",
+      "searchPlaceholder": "Search payees",
+      "selectedMany": "{n} payees selected",
+      "noResults": "No payees found",
+      "unknownPayee": "Unknown payee",
+      "loadError": "Couldn't load payees. Please try again."
     },
     "payeeSelect": {
       "placeholder": "Select a payee",

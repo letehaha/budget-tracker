@@ -265,14 +265,19 @@
       "allAccounts": "Todas las cuentas",
       "account": "cuenta",
       "accountsSelected": "cuentas seleccionadas",
+      "selectedOne": "1 cuenta seleccionada",
+      "selectedMany": "{n} cuentas seleccionadas",
       "searchPlaceholder": "Buscar cuentas...",
       "noResults": "No se encontraron resultados."
     },
     "comboboxCategories": {
       "searchPlaceholder": "Buscar categorías...",
       "unselectedPlaceholder": "Todas las categorías",
-      "category": "categoría seleccionada",
-      "categoriesSelected": "categorías seleccionadas"
+      "selectedOne": "1 categoría seleccionada",
+      "selectedMany": "{n} categorías seleccionadas"
+    },
+    "accountMultiSelect": {
+      "ungrouped": "Sin agrupar"
     },
     "tagSelect": {
       "placeholder": "Seleccionar etiquetas...",
@@ -282,6 +287,14 @@
       "placeholder": "Seleccionar categorías...",
       "searchPlaceholder": "Buscar categorías...",
       "noCategoriesFound": "No se encontraron categorías"
+    },
+    "payeeMultiSelect": {
+      "label": "Todos los beneficiarios",
+      "searchPlaceholder": "Buscar beneficiarios",
+      "selectedMany": "{n} beneficiarios seleccionados",
+      "noResults": "No se encontraron beneficiarios",
+      "unknownPayee": "Beneficiario desconocido",
+      "loadError": "No se pudieron cargar los beneficiarios. Inténtelo de nuevo."
     },
     "payeeSelect": {
       "placeholder": "Seleccionar un beneficiario",

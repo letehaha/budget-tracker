@@ -1,5 +1,4 @@
 import {
-  AccountModel,
   CATEGORIZATION_SOURCE,
   FILTER_OPERATION,
   TRANSACTION_TRANSFER_NATURE,
@@ -24,7 +23,7 @@ export interface FiltersStruct {
   refundFilter: FILTER_OPERATION;
   /** Which transfer kinds to include. All selected = no narrowing. */
   transferNatures: TRANSACTION_TRANSFER_NATURE[];
-  accounts: AccountModel[];
+  accountIds: string[];
   budgetIds?: string[] | null;
   excludedBudgetIds?: string[] | null;
   noteIncludes: string;
@@ -43,7 +42,7 @@ export const DEFAULT_FILTERS: FiltersStruct = {
   transferFilter: FILTER_OPERATION.all,
   refundFilter: FILTER_OPERATION.all,
   transferNatures: [...SELECTABLE_TRANSFER_NATURES],
-  accounts: [],
+  accountIds: [],
   excludedBudgetIds: null,
   noteIncludes: '',
   categoryIds: [],

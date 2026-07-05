@@ -113,6 +113,46 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   return result;
 }
 
+export async function getPivotReport<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  granularity,
+  rowDimension,
+  measure,
+  accountIds,
+  categoryIds,
+  payeeIds,
+  raw,
+}: {
+  from: string;
+  to: string;
+  granularity: endpointsTypes.PivotGranularity;
+  rowDimension: endpointsTypes.PivotRowDimension;
+  measure: endpointsTypes.PivotMeasure;
+  accountIds?: string[];
+  categoryIds?: string[];
+  payeeIds?: string[];
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', to);
+  params.append('granularity', granularity);
+  params.append('rowDimension', rowDimension);
+  params.append('measure', measure);
+  if (accountIds && accountIds.length > 0) params.append('accountIds', accountIds.join(','));
+  if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+  if (payeeIds && payeeIds.length > 0) params.append('payeeIds', payeeIds.join(','));
+
+  const result = await helpers.makeRequest<endpointsTypes.GetPivotReportResponse, R>({
+    method: 'get',
+    url: `/stats/pivot?${params.toString()}`,
+    raw,
+  });
+
+  return result;
+}
+
 export async function getTotalBalance<R extends boolean | undefined = undefined>({
   date,
   raw,

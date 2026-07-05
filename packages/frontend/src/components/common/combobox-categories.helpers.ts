@@ -67,14 +67,22 @@ export const computeCheckedState = ({
   item,
   selectedIds,
   isSearching,
+  independent = false,
 }: {
   item: FlatCategory;
   selectedIds: ReadonlySet<string>;
   isSearching: boolean;
+  /**
+   * Check a row purely on its own membership — no parent roll-up, no indeterminate
+   * tri-state from descendant selection. Toggling still cascades down (clicking a
+   * parent selects its whole subtree); this only stops a selected child from making
+   * its ancestors *look* selected. The flattened search view reads self-only too.
+   */
+  independent?: boolean;
 }): CheckedState => {
   const isSelfSelected = selectedIds.has(item.id);
 
-  if (isSearching) return isSelfSelected;
+  if (isSearching || independent) return isSelfSelected;
   if (item.descendantIds.length === 0) return isSelfSelected;
 
   const selectedDescendantCount = item.descendantIds.filter((id) => selectedIds.has(id)).length;
