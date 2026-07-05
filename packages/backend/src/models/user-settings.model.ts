@@ -218,6 +218,9 @@ export const ZodSettingsSchema = z.object({
   // `counterName` is empty for most card purchases, so users have to opt in
   // to use `description` instead.
   payeeExtractionUsesDescription: z.boolean().optional(),
+  // Visibility of the header "Support" (donation) button. Defaults to visible
+  // when unset; users opt out by turning it off in Appearance settings.
+  showSupportButton: z.boolean().optional(),
 });
 
 // Infer the TypeScript type from the Zod schema
@@ -304,6 +307,7 @@ export const ZodSettingsPatchSchema = z.object({
   // all) is reused here to stay in sync with `ZodSettingsSchema`.
   savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   payeeExtractionUsesDescription: z.boolean().optional(),
+  showSupportButton: z.boolean().optional(),
 });
 
 export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;
