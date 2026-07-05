@@ -69,6 +69,8 @@
   --color-app-expense-color: var(--app-expense-color);
   --color-app-transfer-color: var(--app-transfer-color);
 
+  --color-heart: var(--heart);
+
   --color-loan-mortgage: var(--loan-mortgage);
   --color-loan-auto: var(--loan-auto);
   --color-loan-student: var(--loan-student);
@@ -273,6 +275,9 @@
     --app-expense-color: rgb(217, 84, 62);
     --app-transfer-color: rgb(128, 135, 138);
 
+    /* Donation/support heart — a true red, distinct from the coral expense/error red */
+    --heart: rgb(220, 38, 38);
+
     /*
       Per-loan-type category identity colors: one hue per loan type, shared as the single source
       behind the solid badge, the composition-bar/legend dots, and the soft tinted list-row chip so
@@ -345,6 +350,9 @@
     --app-income-color: #2ecc71;
     --app-expense-color: #e74c3c;
     --app-transfer-color: #95a5a6;
+
+    /* Donation/support heart — a true red, distinct from the coral expense/error red */
+    --heart: #ef4444;
 
     /*
       Loan category colors, brighter variants for contrast on the near-black dark background. Darker

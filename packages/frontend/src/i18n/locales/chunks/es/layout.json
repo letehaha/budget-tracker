@@ -49,11 +49,13 @@
   },
   "header": {
     "add": "Añadir",
+    "import": "Importar",
     "importData": "Importar datos",
     "language": "Idioma",
     "newTransaction": "Nueva transacción",
     "settings": "Ajustes",
     "feedback": "Enviar comentarios",
+    "support": "Apoyar",
     "sync": {
       "syncing": "Sincronizando",
       "synchronizing": "Sincronizando...",

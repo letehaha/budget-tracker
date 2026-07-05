@@ -11,6 +11,11 @@
         "title": "Sidebar sections",
         "description": "Pick which sections appear in the sidebar.",
         "alwaysVisibleTooltip": "This section is always visible."
+      },
+      "header": {
+        "title": "Header",
+        "description": "Choose which header actions are visible.",
+        "supportButton": "Support button"
       }
     }
   }

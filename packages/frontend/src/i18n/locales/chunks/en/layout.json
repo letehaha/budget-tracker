@@ -49,11 +49,13 @@
   },
   "header": {
     "add": "Add",
+    "import": "Import",
     "importData": "Import data",
     "language": "Language",
     "newTransaction": "New Transaction",
     "settings": "Settings",
     "feedback": "Send feedback",
+    "support": "Support",
     "sync": {
       "syncing": "Syncing",
       "synchronizing": "Synchronizing...",
