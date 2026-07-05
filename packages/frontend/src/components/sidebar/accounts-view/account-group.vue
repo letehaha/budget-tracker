@@ -4,12 +4,17 @@ import AccountGroupName from '@/components/common/account-group-name.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useSyncStatus } from '@/composable/use-sync-status';
+import { useCurrenciesStore } from '@/stores';
 import { AlertTriangleIcon, ChevronRightIcon, FolderIcon } from '@lucide/vue';
+import { storeToRefs } from 'pinia';
 import { computed, inject } from 'vue';
 
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
+import GroupTotal from './group-total.vue';
+import { collectGroupAccounts, sumAccountsBaseBalance } from './helpers/account-totals';
 import { useActiveAccountGroups } from './helpers/use-active-account-groups';
 
 const props = defineProps<{
@@ -26,6 +31,20 @@ const isOpen = computed({
 const { groupHasReauthAccount } = useSyncStatus();
 
 const needsReauth = computed(() => groupHasReauthAccount(props.group));
+
+const { baseCurrency } = storeToRefs(useCurrenciesStore());
+const baseCurrencyCode = computed(() => baseCurrency.value?.currency?.code);
+const { data: userSettings } = useUserSettings();
+
+// The whole subtree rolls up here: direct accounts plus every nested child group,
+// so a collapsed bank shows its full worth without expanding.
+const groupTotal = computed(() =>
+  sumAccountsBaseBalance({
+    accounts: collectGroupAccounts({ group: props.group }),
+    baseCurrencyCode: baseCurrencyCode.value,
+    includeCreditLimit: !!userSettings.value?.includeCreditLimitInStats,
+  }),
+);
 </script>
 
 <template>
@@ -43,8 +62,15 @@ const needsReauth = computed(() => groupHasReauthAccount(props.group));
           >
             <AlertTriangleIcon class="text-destructive-text size-4 shrink-0" />
           </ResponsiveTooltip>
-          <span class="text-muted-foreground ml-auto text-xs tabular-nums">
-            {{ group.accounts.length }}
+          <span class="ml-auto shrink-0">
+            <!-- Collapsed row is a summary (show the roll-up); expanded row is detail, so its
+                 own accounts carry the numbers and repeating the total here would just be noise. -->
+            <GroupTotal
+              v-if="!isOpen && baseCurrencyCode"
+              :amount="groupTotal.total"
+              :currency-code="baseCurrencyCode"
+              :is-approx="groupTotal.isApprox"
+            />
           </span>
         </div>
       </Button>

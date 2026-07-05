@@ -67,46 +67,25 @@
             :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
           >
             <div class="mb-1 font-medium">{{ tooltip.date }}</div>
-            <div>
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.accounts') }}
-              {{ formatLargeNumber(tooltip.accountsBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
-            </div>
-            <div>
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.portfolios') }}
-              {{
-                formatLargeNumber(tooltip.portfoliosBalance, { isFiat: true, currency: baseCurrency?.currency?.code })
-              }}
-            </div>
-            <div v-if="showVenturesRow">
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.ventures') }}
-              {{ formatLargeNumber(tooltip.venturesBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
-            </div>
-            <div v-if="showVehiclesRow">
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.vehicles') }}
-              {{ formatLargeNumber(tooltip.vehiclesBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
-            </div>
-            <div v-if="showLoansRow">
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.loans') }}
-              {{ formatLargeNumber(tooltip.loansBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
+            <div v-for="row in tooltipComponentRows" :key="row.key">
+              {{ row.label }} {{ formatTooltipMoney(row.value)
+              }}<span
+                v-if="shouldDisplayBalanceDelta({ delta: row.delta })"
+                class="ml-1"
+                :class="deltaColorClass(row.delta)"
+                >({{ formatBalanceDelta({ delta: row.delta, currency: tooltipCurrency }) }})</span
+              >
             </div>
             <div class="font-medium">
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }}
-              {{ formatLargeNumber(tooltip.totalBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
+              {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }} {{ formatTooltipMoney(tooltip.totalBalance) }}
             </div>
             <div
               v-if="tooltip.hasDelta"
               class="mt-1 border-t pt-1 text-xs font-medium"
-              :class="{
-                'text-success-text': tooltip.deltaAbsolute > 0,
-                'text-app-expense-color': tooltip.deltaAbsolute < 0,
-                'text-muted-foreground': tooltip.deltaAbsolute === 0,
-              }"
+              :class="deltaColorClass(tooltip.deltaAbsolute)"
             >
-              {{ tooltip.deltaAbsolute > 0 ? '+' : ''
-              }}{{
-                formatLargeNumber(tooltip.deltaAbsolute, { isFiat: true, currency: baseCurrency?.currency?.code })
-              }}
-              ({{ tooltip.deltaPercent > 0 ? '+' : '' }}{{ tooltip.deltaPercent.toFixed(1) }}%)
+              {{ formatBalanceDelta({ delta: tooltip.deltaAbsolute, currency: tooltipCurrency }) }}
+              ({{ formatBalanceDeltaPercent({ percent: tooltip.deltaPercent }) }})
             </div>
           </div>
 
@@ -168,6 +147,7 @@ import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from '
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import { formatBalanceDelta, formatBalanceDeltaPercent, shouldDisplayBalanceDelta } from './balance-trend-delta';
 import BalanceTrendSettingsPopover from './components/balance-trend-settings-popover.vue';
 import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
@@ -295,6 +275,14 @@ const tooltip = reactive({
   vehiclesBalance: 0,
   loansBalance: 0,
   totalBalance: 0,
+  // Point-over-point change of each component, so the tooltip can show which
+  // portion of net worth actually moved between the hovered day and the prior one.
+  accountsDelta: 0,
+  portfoliosDelta: 0,
+  venturesDelta: 0,
+  vehiclesDelta: 0,
+  loansDelta: 0,
+  // Change of the currently-charted line (matches the selected balance type).
   deltaAbsolute: 0,
   deltaPercent: 0,
   hasDelta: false,
@@ -416,6 +404,57 @@ const showLoansRow = computed(() => {
   if (selectedBalanceType.value.value === 'loans') return true;
   return includeLoansInTotal.value;
 });
+
+const tooltipCurrency = computed(() => baseCurrency.value?.currency?.code);
+const formatTooltipMoney = (value: number) =>
+  formatLargeNumber(value, { isFiat: true, currency: tooltipCurrency.value });
+const deltaColorClass = (delta: number) => ({
+  'text-success-text': delta > 0,
+  'text-app-expense-color': delta < 0,
+  'text-muted-foreground': delta === 0,
+});
+
+// Component breakdown shown in the tooltip, gated the same way as the standalone
+// row flags so the visible deltas always sum to the displayed Total.
+const tooltipComponentRows = computed(() =>
+  [
+    {
+      key: 'accounts',
+      label: t('dashboard.widgets.balanceTrend.tooltip.accounts'),
+      value: tooltip.accountsBalance,
+      delta: tooltip.accountsDelta,
+      show: true,
+    },
+    {
+      key: 'portfolios',
+      label: t('dashboard.widgets.balanceTrend.tooltip.portfolios'),
+      value: tooltip.portfoliosBalance,
+      delta: tooltip.portfoliosDelta,
+      show: true,
+    },
+    {
+      key: 'ventures',
+      label: t('dashboard.widgets.balanceTrend.tooltip.ventures'),
+      value: tooltip.venturesBalance,
+      delta: tooltip.venturesDelta,
+      show: showVenturesRow.value,
+    },
+    {
+      key: 'vehicles',
+      label: t('dashboard.widgets.balanceTrend.tooltip.vehicles'),
+      value: tooltip.vehiclesBalance,
+      delta: tooltip.vehiclesDelta,
+      show: showVehiclesRow.value,
+    },
+    {
+      key: 'loans',
+      label: t('dashboard.widgets.balanceTrend.tooltip.loans'),
+      value: tooltip.loansBalance,
+      delta: tooltip.loansDelta,
+      show: showLoansRow.value,
+    },
+  ].filter((row) => row.show),
+);
 
 const balanceTypeOptions = computed<BalanceTypeOption[]>(() => {
   const options: BalanceTypeOption[] = [
@@ -880,16 +919,26 @@ const renderChart = () => {
       tooltip.loansBalance = d.loansBalance;
       tooltip.totalBalance = d.totalBalance;
 
-      // Compute day-over-day delta
+      // Compute point-over-point deltas (charted line + each component)
       if (currentIndex > 0) {
         const prevPoint = chartData.value[currentIndex - 1]!;
         tooltip.deltaAbsolute = d.value - prevPoint.value;
         tooltip.deltaPercent =
           prevPoint.value !== 0 ? ((d.value - prevPoint.value) / Math.abs(prevPoint.value)) * 100 : 0;
+        tooltip.accountsDelta = d.accountsBalance - prevPoint.accountsBalance;
+        tooltip.portfoliosDelta = d.portfoliosBalance - prevPoint.portfoliosBalance;
+        tooltip.venturesDelta = d.venturesBalance - prevPoint.venturesBalance;
+        tooltip.vehiclesDelta = d.vehiclesBalance - prevPoint.vehiclesBalance;
+        tooltip.loansDelta = d.loansBalance - prevPoint.loansBalance;
         tooltip.hasDelta = true;
       } else {
         tooltip.deltaAbsolute = 0;
         tooltip.deltaPercent = 0;
+        tooltip.accountsDelta = 0;
+        tooltip.portfoliosDelta = 0;
+        tooltip.venturesDelta = 0;
+        tooltip.vehiclesDelta = 0;
+        tooltip.loansDelta = 0;
         tooltip.hasDelta = false;
       }
 
