@@ -107,7 +107,7 @@ const createDefaultConfig = (): PivotPersistedConfig => ({
   accountIds: [],
   categoryIds: [],
   payeeIds: [],
-  heatmap: true,
+  heatmap: false,
   showDelta: true,
 });
 

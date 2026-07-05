@@ -182,7 +182,7 @@ const ZodSavedPivotViewConfigSchema = z
     accountIds: z.array(z.string()).optional(),
     categoryIds: z.array(z.string()).optional(),
     payeeIds: z.array(z.string()).optional(),
-    heatmap: z.boolean().default(true),
+    heatmap: z.boolean().default(false),
     showDelta: z.boolean().default(true),
   })
   // The live report rejects an inverted range; persist the same invariant so a saved view can't
