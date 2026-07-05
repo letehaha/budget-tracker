@@ -8,7 +8,7 @@ import {
 } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
-import { flattenGroupAccounts, sortAccounts } from './use-grouped-accounts';
+import { filterSelectableAccounts, flattenGroupAccounts, sortAccounts } from './use-grouped-accounts';
 
 const makeAccount = (overrides: Partial<AccountModel> = {}): AccountModel => ({
   type: ACCOUNT_TYPES.system,
@@ -101,5 +101,55 @@ describe('sortAccounts', () => {
     const original = [...accounts];
     sortAccounts({ accounts });
     expect(accounts).toEqual(original);
+  });
+});
+
+describe('filterSelectableAccounts', () => {
+  const active = makeAccount({ id: 'active' as RecordId, name: 'Active', status: ACCOUNT_STATUSES.active });
+  const archived = makeAccount({ id: 'archived' as RecordId, name: 'Archived', status: ACCOUNT_STATUSES.archived });
+  const loan = makeAccount({ id: 'loan' as RecordId, name: 'Loan', accountCategory: ACCOUNT_CATEGORIES.loan });
+  const vehicle = makeAccount({
+    id: 'vehicle' as RecordId,
+    name: 'Vehicle',
+    accountCategory: ACCOUNT_CATEGORIES.vehicle,
+  });
+
+  it('drops archived accounts by default', () => {
+    expect(filterSelectableAccounts({ accounts: [active, archived] }).map((a) => a.id)).toEqual(['active']);
+  });
+
+  it('keeps archived accounts when includeArchived is set', () => {
+    expect(filterSelectableAccounts({ accounts: [active, archived], includeArchived: true }).map((a) => a.id)).toEqual([
+      'active',
+      'archived',
+    ]);
+  });
+
+  it('keeps loan and vehicle accounts by default', () => {
+    expect(filterSelectableAccounts({ accounts: [active, loan, vehicle] }).map((a) => a.id)).toEqual([
+      'active',
+      'loan',
+      'vehicle',
+    ]);
+  });
+
+  it('drops loan and vehicle (dedicated-flow) accounts when excludeDedicatedFlow is set', () => {
+    expect(
+      filterSelectableAccounts({ accounts: [active, loan, vehicle], excludeDedicatedFlow: true }).map((a) => a.id),
+    ).toEqual(['active']);
+  });
+
+  it('composes the archived and dedicated-flow filters', () => {
+    const archivedLoan = makeAccount({
+      id: 'archived-loan' as RecordId,
+      status: ACCOUNT_STATUSES.archived,
+      accountCategory: ACCOUNT_CATEGORIES.loan,
+    });
+    expect(
+      filterSelectableAccounts({
+        accounts: [active, archived, loan, vehicle, archivedLoan],
+        excludeDedicatedFlow: true,
+      }).map((a) => a.id),
+    ).toEqual(['active']);
   });
 });

@@ -2,7 +2,7 @@ import { loadAccountGroups } from '@/api/account-groups';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AccountGroups } from '@/common/types/models';
 import { useAccountsStore } from '@/stores';
-import { ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, AccountModel, isDedicatedFlowAccountCategory } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
@@ -41,6 +41,27 @@ export const flattenGroupAccounts = ({ group }: { group: AccountGroups }): Accou
 };
 
 /**
+ * Narrows the account store to the set a multi-select should offer: active accounts only unless
+ * `includeArchived`, and — when `excludeDedicatedFlow` is set — without loan/vehicle accounts,
+ * which own their own sidebar sections and carry special transfer semantics (e.g. the Pivot
+ * Report filters them out). Pure so it can be unit-tested without mounting the composable.
+ */
+export const filterSelectableAccounts = ({
+  accounts,
+  includeArchived = false,
+  excludeDedicatedFlow = false,
+}: {
+  accounts: AccountModel[];
+  includeArchived?: boolean;
+  excludeDedicatedFlow?: boolean;
+}): AccountModel[] => {
+  let list = accounts;
+  if (!includeArchived) list = list.filter((account) => account.status === ACCOUNT_STATUSES.active);
+  if (excludeDedicatedFlow) list = list.filter((account) => !isDedicatedFlowAccountCategory(account.accountCategory));
+  return list;
+};
+
+/**
  * Derives the account-group structure the account multi-select fields render.
  *
  * `AccountModel` carries no group id, so grouping is obtained by inverting the
@@ -49,8 +70,16 @@ export const flattenGroupAccounts = ({ group }: { group: AccountGroups }): Accou
  * Only active accounts are considered by default so the selectable universe matches
  * what the group endpoint returns (which excludes archived accounts) — pass
  * `includeArchived` to surface archived accounts as ungrouped entries.
+ *
+ * `excludeDedicatedFlow` additionally drops loan and vehicle accounts — the
+ * dedicated-flow categories that own their own sidebar sections and carry special
+ * transfer semantics — so a host like the Pivot Report can keep them out of its
+ * account filter.
  */
-export const useGroupedAccounts = ({ includeArchived = false }: { includeArchived?: boolean } = {}) => {
+export const useGroupedAccounts = ({
+  includeArchived = false,
+  excludeDedicatedFlow = false,
+}: { includeArchived?: boolean; excludeDedicatedFlow?: boolean } = {}) => {
   const { accounts: storeAccounts, isAccountsFetched } = storeToRefs(useAccountsStore());
 
   const { data: accountGroups, isLoading: isGroupsLoading } = useQuery({
@@ -60,12 +89,10 @@ export const useGroupedAccounts = ({ includeArchived = false }: { includeArchive
     placeholderData: [],
   });
 
-  /** The selectable universe: every account from the store, minus archived unless opted in. */
-  const allAccounts = computed<AccountModel[]>(() => {
-    const list = storeAccounts.value ?? [];
-    if (includeArchived) return list;
-    return list.filter((account) => account.status === ACCOUNT_STATUSES.active);
-  });
+  /** The selectable universe — see `filterSelectableAccounts`. */
+  const allAccounts = computed<AccountModel[]>(() =>
+    filterSelectableAccounts({ accounts: storeAccounts.value ?? [], includeArchived, excludeDedicatedFlow }),
+  );
 
   const accountsById = computed<Map<string, AccountModel>>(
     () => new Map(allAccounts.value.map((account) => [account.id, account])),

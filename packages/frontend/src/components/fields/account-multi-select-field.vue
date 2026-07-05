@@ -147,6 +147,9 @@ const props = withDefaults(
      * matches the account-group endpoint (active accounts only); the /transactions
      * filter opts in so history can still be narrowed to a since-archived account. */
     includeArchived?: boolean;
+    /** Drop dedicated-flow accounts (loans, vehicles) from the list. The Pivot Report
+     * opts in so its account filter only offers regular cash-flow accounts. */
+    excludeDedicatedFlow?: boolean;
   }>(),
   {
     label: undefined,
@@ -162,7 +165,10 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { groups, ungroupedAccounts, isLoading } = useGroupedAccounts({ includeArchived: props.includeArchived });
+const { groups, ungroupedAccounts, isLoading } = useGroupedAccounts({
+  includeArchived: props.includeArchived,
+  excludeDedicatedFlow: props.excludeDedicatedFlow,
+});
 
 const isOpen = ref(false);
 const searchQuery = ref('');

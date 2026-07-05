@@ -9,11 +9,12 @@ export interface DashboardWidgetConfig {
   config?: Record<string, unknown>;
 }
 
-export interface SidebarSectionsConfig {
-  portfolios: boolean;
-  ventures: boolean;
-  vehicles: boolean;
-}
+/**
+ * Per-section visibility for the sidebar's Accounts panel. Re-exported from the shared contract
+ * so it stays in lockstep with the backend Zod schema (`ZodSidebarSectionsSchema`), which is
+ * compile-time asserted against it (`SidebarSectionsSchemaIsInSync`).
+ */
+export type SidebarSectionsConfig = endpointsTypes.SidebarSectionsConfig;
 
 export type TransactionsView = 'list' | 'table';
 
