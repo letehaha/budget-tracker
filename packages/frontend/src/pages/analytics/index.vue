@@ -100,6 +100,7 @@ import {
   DollarSignIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
+  TableIcon,
   TrendingUpIcon,
 } from '@lucide/vue';
 import { type Component, computed, ref, watch } from 'vue';
@@ -154,6 +155,12 @@ const tabs = computed<Tab[]>(() => [
     label: t('analytics.navigation.cashFlow'),
     to: { name: ROUTES_NAMES.analyticsCashFlow },
     icon: DollarSignIcon,
+  },
+  {
+    name: 'pivot-report',
+    label: t('analytics.navigation.pivotReport'),
+    to: { name: ROUTES_NAMES.analyticsPivotReport },
+    icon: TableIcon,
   },
   {
     name: 'investment-calculator',

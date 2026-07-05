@@ -112,7 +112,7 @@ const BUILTIN_FILTERS: Record<BuiltinFilterKey, FilterDefinition> = {
     dissolvesGroups: false,
   },
   accounts: {
-    isActive: (filters) => filters.accounts.length > 0,
+    isActive: (filters) => filters.accountIds.length > 0,
     dissolvesGroups: true,
   },
   categories: {

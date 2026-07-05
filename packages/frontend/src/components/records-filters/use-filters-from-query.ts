@@ -1,8 +1,6 @@
 import { FiltersStruct } from '@/components/records-filters/const';
-import { useAccountsStore } from '@/stores';
 import { FILTER_OPERATION, TRANSACTION_TYPES } from '@bt/shared/types';
 import { endOfDay, parseISO } from 'date-fns';
-import { storeToRefs } from 'pinia';
 import { LocationQuery } from 'vue-router';
 
 const VALID_FILTER_OPERATIONS = new Set<string>(Object.values(FILTER_OPERATION));
@@ -19,9 +17,6 @@ function parseFilterOperation(value: string | undefined): FILTER_OPERATION | und
  * Returns only the filters that are present in the query.
  */
 export const useFiltersFromQuery = () => {
-  const accountsStore = useAccountsStore();
-  const { accounts: storeAccounts } = storeToRefs(accountsStore);
-
   const parseFiltersFromQuery = ({ query }: { query: LocationQuery }): Partial<FiltersStruct> | null => {
     if (Object.keys(query).length === 0) {
       return null;
@@ -36,11 +31,9 @@ export const useFiltersFromQuery = () => {
     }
 
     if (query.accountIds) {
-      const accountIds = Array.isArray(query.accountIds)
+      filters.accountIds = Array.isArray(query.accountIds)
         ? (query.accountIds as string[])
         : [query.accountIds as string];
-
-      filters.accounts = (storeAccounts.value ?? []).filter((account) => accountIds.includes(account.id));
     }
 
     if (query.start) {

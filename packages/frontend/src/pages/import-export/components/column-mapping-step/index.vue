@@ -347,6 +347,7 @@ const columnByField = computed<Record<string, string | null>>(() => {
     date: mapping.date,
     amount: mapping.amount,
     description: mapping.description,
+    payee: mapping.payee,
     category: categoryCol,
     account: accountCol,
     currency: currencyCol,
@@ -393,7 +394,7 @@ const simpleColumns: MappingTableColumn[] = [
 ];
 
 interface SimpleRow {
-  id: 'date' | 'amount' | 'description';
+  id: 'date' | 'amount' | 'description' | 'payee';
   label: string;
   required: boolean;
   value: string | null;
@@ -444,6 +445,20 @@ const simpleRows = computed<SimpleRow[]>(() => [
     }),
     onChange: (value) => {
       importStore.columnMapping.description = value;
+    },
+  },
+  {
+    id: 'payee',
+    label: t('pages.importExport.mapColumns.fields.payee'),
+    required: false,
+    value: m.value.payee,
+    status: deriveMapRowStatus({
+      hasValue: !!m.value.payee,
+      required: false,
+      match: importStore.columnMatch?.payee ?? null,
+    }),
+    onChange: (value) => {
+      importStore.columnMapping.payee = value;
     },
   },
 ]);

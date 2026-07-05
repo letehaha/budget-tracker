@@ -3,27 +3,15 @@ import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
+import { expandCategoryIdsWithDescendants, getRootCategoryId } from '@services/categories/category-hierarchy';
 import {
   AccessibleCategoryInfo,
   getAccessibleCategoryMap,
 } from '@services/categories/get-accessible-category-map.service';
-import {
-  addDays,
-  addMonths,
-  addWeeks,
-  endOfDay,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isBefore,
-  max,
-  min,
-  startOfMonth,
-  startOfWeek,
-} from 'date-fns';
+import { format } from 'date-fns';
 import { Op } from 'sequelize';
 
-import { getWhereConditionForTime } from './utils';
+import { findBucketIndex, generatePeriodBuckets, getWhereConditionForTime } from './utils';
 
 interface GetCashFlowParams {
   userId: number;
@@ -33,84 +21,6 @@ interface GetCashFlowParams {
   accountId?: string;
   categoryIds?: RecordId[];
 }
-
-/**
- * Generates period buckets based on granularity
- */
-const generatePeriodBuckets = ({
-  from,
-  to,
-  granularity,
-}: {
-  from: string;
-  to: string;
-  granularity: endpointsTypes.CashFlowGranularity;
-}): { periodStart: Date; periodEnd: Date }[] => {
-  const buckets: { periodStart: Date; periodEnd: Date }[] = [];
-  const startDate = new Date(from);
-  // Use endOfDay to include all transactions on the last day of the period
-  const endDate = endOfDay(new Date(to));
-
-  let currentStart: Date;
-  let currentEnd: Date;
-
-  switch (granularity) {
-    case 'monthly': {
-      currentStart = startOfMonth(startDate);
-      while (isBefore(currentStart, endDate) || currentStart.getTime() === endDate.getTime()) {
-        currentEnd = endOfMonth(currentStart);
-        buckets.push({
-          periodStart: max([currentStart, startDate]),
-          periodEnd: min([currentEnd, endDate]),
-        });
-        currentStart = addMonths(currentStart, 1);
-      }
-      break;
-    }
-    case 'biweekly': {
-      // Start from the beginning of the week containing `from`
-      currentStart = startOfWeek(startDate, { weekStartsOn: 1 });
-      while (isBefore(currentStart, endDate) || currentStart.getTime() === endDate.getTime()) {
-        // Bi-weekly: 2 weeks at a time. Use endOfDay to include all transactions on the last day.
-        currentEnd = endOfDay(addDays(addWeeks(currentStart, 2), -1));
-        buckets.push({
-          periodStart: max([currentStart, startDate]),
-          periodEnd: min([currentEnd, endDate]),
-        });
-        currentStart = addWeeks(currentStart, 2);
-      }
-      break;
-    }
-    case 'weekly': {
-      currentStart = startOfWeek(startDate, { weekStartsOn: 1 });
-      while (isBefore(currentStart, endDate) || currentStart.getTime() === endDate.getTime()) {
-        currentEnd = endOfWeek(currentStart, { weekStartsOn: 1 });
-        buckets.push({
-          periodStart: max([currentStart, startDate]),
-          periodEnd: min([currentEnd, endDate]),
-        });
-        currentStart = addWeeks(currentStart, 1);
-      }
-      break;
-    }
-  }
-
-  return buckets;
-};
-
-/**
- * Determines which bucket a transaction belongs to based on its time
- */
-const findBucketIndex = ({
-  transactionTime,
-  buckets,
-}: {
-  transactionTime: Date;
-  buckets: { periodStart: Date; periodEnd: Date }[];
-}): number => {
-  const txTime = transactionTime.getTime();
-  return buckets.findIndex((bucket) => txTime >= bucket.periodStart.getTime() && txTime <= bucket.periodEnd.getTime());
-};
 
 type CategoryInfo = AccessibleCategoryInfo;
 
@@ -124,28 +34,6 @@ interface PeriodCategoryData {
   expenses: number;
   categories: Map<string, CategoryAmounts>; // categoryId -> amounts by type (aggregated by target category)
 }
-
-/**
- * Get the root category ID for a given category
- */
-const getRootCategoryId = ({
-  categoryId,
-  categoryMap,
-}: {
-  categoryId: string;
-  categoryMap: Map<string, CategoryInfo>;
-}): string => {
-  let current = categoryMap.get(categoryId);
-  if (!current) return categoryId;
-
-  while (current.parentId !== null) {
-    const parent = categoryMap.get(current.parentId);
-    if (!parent) break;
-    current = parent;
-  }
-
-  return current.id;
-};
 
 /**
  * Get the aggregation category ID for a transaction's category.
@@ -163,7 +51,7 @@ const getAggregationCategoryId = ({
 }): string => {
   // If no target categories specified, aggregate to root
   if (!targetCategoryIds) {
-    return getRootCategoryId({ categoryId, categoryMap });
+    return getRootCategoryId({ categoryId, byId: categoryMap });
   }
 
   // If this category is itself a target, use it
@@ -219,24 +107,13 @@ export const getCashFlow = async ({
   let queryFilterCategoryIds: string[] | undefined;
 
   if (categoryIds && categoryIds.length > 0) {
-    // User selected specific categories - expand to include all children
-    const expandedCategoryIds = new Set<string>(categoryIds);
-
-    // For each selected category, add all its descendants
-    allCategories.forEach((cat) => {
-      // Check if this category's root or any ancestor is in the selected list
-      let current: CategoryInfo | undefined = categoryMap.get(cat.id);
-      while (current) {
-        if (categoryIds.includes(current.id)) {
-          expandedCategoryIds.add(cat.id);
-          break;
-        }
-        if (current.parentId === null) break;
-        current = categoryMap.get(current.parentId);
-      }
+    // User selected specific categories - expand to include all descendants so selecting a
+    // parent also matches transactions filed directly under its subcategories.
+    queryFilterCategoryIds = expandCategoryIdsWithDescendants({
+      categoryIds,
+      categories: allCategories,
+      byId: categoryMap,
     });
-
-    queryFilterCategoryIds = Array.from(expandedCategoryIds);
   }
 
   // Build where clause for categories

@@ -1,5 +1,5 @@
-import { TRANSACTION_TYPES } from '@bt/shared/types';
-import { optionalCommaSeparatedIds, recordId } from '@common/lib/zod/custom-types';
+import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import { dateString, optionalCommaSeparatedIds, recordId } from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -10,6 +10,7 @@ import {
   serializeCombinedBalanceHistory,
   serializeCumulativeData,
   serializeExpensesAmountForPeriod,
+  serializePivotReport,
   serializeSpendingsByCategories,
   serializeTotalBalance,
 } from '@root/serializers';
@@ -211,6 +212,45 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
 
   // Serialize: convert cents to decimal for API response
   return { data: serializeCashFlow(result) };
+});
+
+const pivotReportSchema = z.object({
+  query: z.object({
+    // `dateString()` (not bare `z.string()`) so an empty/malformed `from`/`to` is rejected at the
+    // boundary instead of silently producing a 200 with an empty report.
+    from: dateString(),
+    to: dateString(),
+    granularity: z.enum(endpointsTypes.PIVOT_GRANULARITIES),
+    rowDimension: z.enum(endpointsTypes.PIVOT_ROW_DIMENSIONS),
+    measure: z.enum(endpointsTypes.PIVOT_MEASURES),
+    accountIds: optionalCommaSeparatedIds(),
+    categoryIds: optionalCommaSeparatedIds(),
+    payeeIds: optionalCommaSeparatedIds(),
+  }),
+});
+
+export const getPivotReport = createController(pivotReportSchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, granularity, rowDimension, measure, accountIds, categoryIds, payeeIds } = query;
+
+  tryBasicDateValidation({ from, to });
+
+  const result = await statsService.getPivotReport(
+    removeUndefinedKeys({
+      userId,
+      from,
+      to,
+      granularity,
+      rowDimension,
+      measure,
+      accountIds,
+      categoryIds,
+      payeeIds,
+    }),
+  );
+
+  // Serialize: convert cents to decimal for API response
+  return { data: serializePivotReport(result) };
 });
 
 export const getEarliestTransactionDate = createController(z.object({}), async ({ user }) => {

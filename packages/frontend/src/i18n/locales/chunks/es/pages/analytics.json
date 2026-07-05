@@ -6,6 +6,7 @@
       "cashFlow": "Flujo de caja",
       "trendsComparison": "Comparación de tendencias",
       "investmentCalculator": "Calculadora de inversiones",
+      "pivotReport": "Tabla dinámica",
       "collapse": "Contraer"
     },
     "cashFlow": {
@@ -118,6 +119,83 @@
       "hideInputs": "Ocultar",
       "portfolioReturnOption": "{name} (su ~{rate}%/año)",
       "portfolioNoHistoryOption": "{name} — historial insuficiente"
+    }
+  },
+  "pivotReport": {
+    "title": "Informe de tabla dinámica",
+    "subtitle": "Desglose de gastos por cualquier dimensión, distribúyalo en el tiempo y compare.",
+    "controls": {
+      "rows": "Filas",
+      "columns": "Columnas",
+      "measure": "Medida",
+      "settings": "Ajustes"
+    },
+    "dimensions": {
+      "category": "Categoría",
+      "subcategory": "+ Subcategoría",
+      "payee": "Beneficiario",
+      "tag": "Etiqueta"
+    },
+    "granularity": {
+      "yearly": "Años",
+      "quarterly": "Trimestres",
+      "monthly": "Meses",
+      "weekly": "Semanas"
+    },
+    "measure": {
+      "expense": "Gastos",
+      "income": "Ingresos"
+    },
+    "display": {
+      "trigger": "Visualización",
+      "title": "Opciones de visualización"
+    },
+    "toggles": {
+      "heatmap": "Mapa de calor",
+      "percentChange": "% de cambio"
+    },
+    "filters": {
+      "period": "Período",
+      "categories": "Categorías",
+      "allCategories": "Todo",
+      "payees": "Beneficiarios",
+      "accounts": "Cuentas",
+      "reset": "Restablecer",
+      "resetTooltip": "Restablecer a valores predeterminados"
+    },
+    "periods": {
+      "last6Months": "Últimos 6 meses",
+      "last12Months": "Últimos 12 meses",
+      "thisYear": "Este año",
+      "previousYear": "Año anterior",
+      "last3Years": "Últimos 3 años",
+      "last5Years": "Últimos 5 años"
+    },
+    "savedViews": {
+      "trigger": "Vistas",
+      "empty": "Sin vistas guardadas aún",
+      "saveCurrent": "Guardar vista actual",
+      "customView": "Vista personalizada",
+      "dialogTitle": "Guardar vista",
+      "dialogDescription": "Guarde el diseño y los filtros actuales como una vista reutilizable.",
+      "nameLabel": "Nombre de la vista",
+      "namePlaceholder": "p.ej. Monitoreo de comestibles",
+      "savedToast": "Vista guardada",
+      "deletedToast": "Vista eliminada",
+      "saveError": "No se pudo guardar la vista"
+    },
+    "table": {
+      "total": "Total",
+      "collapseAll": "Contraer todo",
+      "expandAll": "Expandir todo",
+      "expandRow": "Expandir",
+      "collapseRow": "Contraer"
+    },
+    "states": {
+      "emptyTitle": "Sin datos para esta selección",
+      "emptyHint": "Pruebe con un período más amplio o filtros diferentes.",
+      "errorTitle": "No se pudo cargar el informe",
+      "errorHint": "Algo salió mal. Por favor, inténtelo de nuevo."
     }
   }
 }

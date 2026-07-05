@@ -134,6 +134,11 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/analytics/subpages/cash-flow/index.vue'),
           },
           {
+            path: 'pivot-report',
+            name: ROUTES_NAMES.analyticsPivotReport,
+            component: () => import('@/pages/analytics/subpages/pivot-report/index.vue'),
+          },
+          {
             path: 'investment-calculator',
             name: ROUTES_NAMES.analyticsInvestmentCalculator,
             component: () => import('@/pages/analytics/subpages/investment-calculator/index.vue'),

@@ -36,9 +36,10 @@
       @update:note-includes="$emit('update:filters', { ...filters, noteIncludes: $event })"
     />
 
-    <AccountsFilter
-      :accounts="filters.accounts"
-      @update:accounts="$emit('update:filters', { ...filters, accounts: $event })"
+    <AccountMultiSelectField
+      :model-value="filters.accountIds"
+      include-archived
+      @update:model-value="$emit('update:filters', { ...filters, accountIds: $event })"
     />
 
     <ComboboxCategories
@@ -48,7 +49,7 @@
 
     <TagFilter :tag-ids="filters.tagIds" @update:tag-ids="$emit('update:filters', { ...filters, tagIds: $event })" />
 
-    <PayeeFilter
+    <PayeeMultiSelectField
       :payee-ids="filters.payeeIds"
       @update:payee-ids="$emit('update:filters', { ...filters, payeeIds: $event })"
     />
@@ -75,15 +76,15 @@
 <script lang="ts" setup>
 import UiButton from '@/components/lib/ui/button/Button.vue';
 
+import AccountMultiSelectField from '@/components/fields/account-multi-select-field.vue';
 import ComboboxCategories from '@/components/common/combobox-categories.vue';
 
 import { FiltersStruct } from './const';
 import AmountRangeFilter from './filters/amount-range-filter.vue';
-import AccountsFilter from './filters/combobox-accounts.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';
 import NoteIncludesFilter from './filters/note-includes.vue';
-import PayeeFilter from './filters/payee-filter.vue';
+import PayeeMultiSelectField from '@/components/fields/payee-multi-select-field.vue';
 import TagFilter from './filters/tag-filter.vue';
 import TransactionTypeFilter from './filters/transaction-type-filter.vue';
 import TransferNatureFilter from './filters/transfer-nature-filter.vue';

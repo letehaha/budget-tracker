@@ -118,6 +118,7 @@
           "accountsCreated": "Створено рахунків",
           "categoriesCreated": "Створено категорій",
           "tagsCreated": "Створено тегів",
+          "payeesCreated": "Створено одержувачів",
           "importErrors": "Помилки імпорту",
           "rowNumber": "Рядок #",
           "error": "Помилка",
@@ -365,7 +366,8 @@
           "category": "Категорія",
           "account": "Рахунок",
           "currency": "Валюта",
-          "transactionType": "Тип транзакції"
+          "transactionType": "Тип транзакції",
+          "payee": "Одержувач"
         }
       },
       "importResults": {

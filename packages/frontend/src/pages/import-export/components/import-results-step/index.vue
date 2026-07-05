@@ -87,6 +87,12 @@
           variant="neutral"
         />
         <StatCard
+          v-if="summary.payeesCreated > 0"
+          :label="$t('pages.importExport.csvImport.results.payeesCreated')"
+          :value="summary.payeesCreated"
+          variant="neutral"
+        />
+        <StatCard
           v-if="summary.tagsCreated > 0"
           :label="$t('pages.importExport.csvImport.results.tagsCreated')"
           :value="summary.tagsCreated"
@@ -176,7 +182,13 @@ const hasRowErrors = computed(() => (summary.value?.errors.length ?? 0) > 0);
 const hasSecondaryStats = computed(() => {
   const s = summary.value;
   if (!s) return false;
-  return s.skippedUnpriceable > 0 || s.accountsCreated > 0 || s.categoriesCreated > 0 || s.tagsCreated > 0;
+  return (
+    s.skippedUnpriceable > 0 ||
+    s.accountsCreated > 0 ||
+    s.categoriesCreated > 0 ||
+    s.payeesCreated > 0 ||
+    s.tagsCreated > 0
+  );
 });
 
 const errorColumns = computed<MappingTableColumn[]>(() => [

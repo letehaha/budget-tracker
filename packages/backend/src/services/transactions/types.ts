@@ -23,6 +23,16 @@ export type CreateTransactionParams = Omit<
    * via `payee_rule` if applicable.
    */
   rawMerchantName?: string | null;
+  /**
+   * true means the provided `categoryId` is an explicit per-row/user-mapped
+   * choice (not a fallback default), so it wins over a linked Payee's
+   * `enforce`/`hint` categorization; inert when no `categoryId` is provided.
+   *
+   * Off by default: manual-entry and bank-sync rows let an `enforce` Payee
+   * override a passed `categoryId`. Only CSV / Wallet import opts in, where the
+   * mapped-column category is the source of truth.
+   */
+  categoryIdIsExplicit?: boolean;
 };
 
 interface UpdateParams {

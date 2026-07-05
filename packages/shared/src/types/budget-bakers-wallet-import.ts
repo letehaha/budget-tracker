@@ -81,6 +81,11 @@ export interface BudgetBakersWalletParseTransaction {
   /** Null for out-of-wallet legs (unpaired transfer rows). Ordinary rows carry
    *  the raw `category` column value, or null when the cell is empty. */
   categoryName: string | null;
+  /** Verbatim `payee` column value (a merchant/counterparty name), or null when
+   *  the cell is empty. The execute step resolves this to a Payee and links it
+   *  to the imported transaction. Paired transfer legs carry no payee — see
+   *  `BudgetBakersWalletParseTransfer`. */
+  payeeName: string | null;
   note: string;
   /** Signed decimal in the account's currency. Negative = expense. */
   amount: number;
@@ -258,6 +263,7 @@ export interface BudgetBakersWalletImportSummary {
   accountsCreated: number;
   accountsLinked: number;
   categoriesCreated: number;
+  payeesCreated: number;
   tagsCreated: number;
   transactionsImported: number;
   transfersImported: number;

@@ -20,6 +20,7 @@ import { trackImportCompleted } from '@js/utils/posthog';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { createAccountsIfNeeded } from '@services/import-export/core/resolve/create-accounts-if-needed';
 import { createCategoriesIfNeeded } from '@services/import-export/core/resolve/create-categories-if-needed';
+import { createPayeesIfNeeded } from '@services/import-export/core/resolve/create-payees-if-needed';
 import { createTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
 import { resolveRowTagIds } from '@services/import-export/core/resolve/resolve-row-tag-ids';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
@@ -103,6 +104,7 @@ async function executeImportImpl({
       accountsCreated: 0,
       categoriesCreated: 0,
       tagsCreated: 0,
+      payeesCreated: 0,
       errors: [],
       newTransactionIds: [],
       batchId,
@@ -143,6 +145,18 @@ async function executeImportImpl({
     ? await createTagsIfNeeded({ userId, tagMapping })
     : { tagNameToId: new Map<string, string>(), tagsCreated: 0 };
 
+  // Resolve Payees for every mapped merchant string up front. `payeesCreated`
+  // counts only genuine inserts (a raw string matching an existing Payee by
+  // canonical name or alias reuses it); the map is keyed by the verbatim source
+  // string so each row looks its id up directly.
+  const uniquePayeeNames = Array.from(
+    new Set(rowsToImport.map((r) => r.payeeName).filter((name): name is string => !!name && name.trim().length > 0)),
+  );
+  const { payeeNameToId, payeesCreated } = await createPayeesIfNeeded({
+    userId,
+    payeeNames: uniquePayeeNames,
+  });
+
   // Count created accounts
   let accountsCreated = 0;
 
@@ -180,7 +194,18 @@ async function executeImportImpl({
         continue;
       }
 
-      const categoryId = row.categoryName ? categoryNameToId.get(row.categoryName) : defaultCategoryId;
+      // A category from the mapped column is the user's explicit per-row choice
+      // and beats a linked Payee's enforce/hint default (`categoryIdIsExplicit`
+      // below). A row that only falls back to `defaultCategoryId` is NOT explicit,
+      // so a Payee rule may still categorize it — hence the flag keys off
+      // `mappedCategoryId`, not `categoryId`.
+      const mappedCategoryId = row.categoryName ? categoryNameToId.get(row.categoryName) : undefined;
+      const categoryId = mappedCategoryId ?? defaultCategoryId;
+
+      // Payee resolved up front; passed explicitly so createTransaction links it
+      // instead of re-extracting from `rawMerchantName`. `payeeLocked` stays at
+      // its default — an import-assigned Payee stays user-overridable.
+      const payeeId = row.payeeName ? payeeNameToId.get(row.payeeName) : undefined;
 
       const importDetails: TransactionImportDetails = {
         batchId,
@@ -222,7 +247,9 @@ async function executeImportImpl({
           importDetails,
         },
         rawMerchantName: row.payeeName || null,
+        payeeId: payeeId || undefined,
         tagIds: hasImportedTags ? rowTagIds : undefined,
+        categoryIdIsExplicit: Boolean(mappedCategoryId),
       });
 
       if (transaction) {
@@ -271,6 +298,7 @@ async function executeImportImpl({
     accountsCreated,
     categoriesCreated,
     tagsCreated,
+    payeesCreated,
     errors,
     newTransactionIds,
     batchId,

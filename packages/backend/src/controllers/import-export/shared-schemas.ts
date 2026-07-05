@@ -49,6 +49,7 @@ export const columnMappingConfigSchema = z.object({
   date: z.string(),
   amount: z.string(),
   description: z.string().optional(),
+  payee: z.string().optional(),
   category: categoryOptionSchema,
   tags: tagOptionSchema.nullish(),
   currency: currencyOptionSchema,

@@ -132,6 +132,42 @@ export const getCashFlow = async ({
   return api.get('/stats/cash-flow', params);
 };
 
+interface GetPivotReportParams {
+  from: Date;
+  to: Date;
+  granularity: endpointsTypes.PivotGranularity;
+  rowDimension: endpointsTypes.PivotRowDimension;
+  measure: endpointsTypes.PivotMeasure;
+  accountIds?: string[];
+  categoryIds?: string[];
+  payeeIds?: string[];
+}
+
+export const getPivotReport = async ({
+  from,
+  to,
+  granularity,
+  rowDimension,
+  measure,
+  accountIds,
+  categoryIds,
+  payeeIds,
+}: GetPivotReportParams): Promise<endpointsTypes.GetPivotReportResponse> => {
+  const params: Record<string, string> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    granularity,
+    rowDimension,
+    measure,
+  };
+
+  if (accountIds && accountIds.length > 0) params.accountIds = accountIds.join(',');
+  if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
+  if (payeeIds && payeeIds.length > 0) params.payeeIds = payeeIds.join(',');
+
+  return api.get('/stats/pivot', params);
+};
+
 interface GetCumulativeDataParams {
   from: Date;
   to: Date;

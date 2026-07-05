@@ -8,6 +8,7 @@ import { type endpointsTypes } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Balances from '@models/balances.model';
 import type { CombinedBalanceHistoryItem } from '@services/stats/get-combined-balance-history';
+import type { PivotReportResultCents } from '@services/stats/get-pivot';
 
 // ============================================================================
 // Balance History Serializers
@@ -130,6 +131,42 @@ export function serializeCashFlow(cashFlow: endpointsTypes.GetCashFlowResponse):
       netFlow: centsToApiDecimal(cashFlow.totals.netFlow),
       savingsRate: cashFlow.totals.savingsRate,
     },
+  };
+}
+
+// ============================================================================
+// Pivot Report Serializer
+// ============================================================================
+
+const decimalizeValues = (values: Record<string, number>): Record<string, number> => {
+  const result: Record<string, number> = {};
+  for (const [columnKey, cents] of Object.entries(values)) {
+    result[columnKey] = centsToApiDecimal(cents);
+  }
+  return result;
+};
+
+/**
+ * Serialize pivot report (from getPivotReport). Converts every cents amount to an API decimal;
+ * row/column identity, labels, colors and currency pass through unchanged.
+ */
+export function serializePivotReport(result: PivotReportResultCents): endpointsTypes.GetPivotReportResponse {
+  return {
+    columns: result.columns,
+    rows: result.rows.map((row) => ({
+      id: row.id,
+      label: row.label,
+      color: row.color,
+      // Only the payee dimension sets logoDomain; keep it off every other dimension's rows.
+      ...(row.logoDomain !== undefined ? { logoDomain: row.logoDomain } : {}),
+      parentId: row.parentId,
+      kind: row.kind,
+      values: decimalizeValues(row.values),
+      total: centsToApiDecimal(row.total),
+    })),
+    columnTotals: decimalizeValues(result.columnTotals),
+    grandTotal: centsToApiDecimal(result.grandTotal),
+    currencyCode: result.currencyCode,
   };
 }
 

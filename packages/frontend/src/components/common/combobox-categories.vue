@@ -1,55 +1,17 @@
 <template>
-  <Popover.Popover v-model:open="isOpen">
-    <Popover.PopoverTrigger
-      class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center gap-2 overflow-hidden rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-    >
-      <div class="flex min-w-0 flex-1 items-center gap-2">
-        <span
-          class="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border px-2 text-sm font-medium"
-        >
-          {{ isAllSelected ? totalCategoryCount : selectedCategoryCount }}
-        </span>
-        <span class="min-w-0 flex-1 truncate text-left font-medium">
-          {{
-            isAllSelected
-              ? $t('fields.comboboxCategories.unselectedPlaceholder')
-              : selectedCategoryCount === 1
-                ? $t('fields.comboboxCategories.category')
-                : $t('fields.comboboxCategories.categoriesSelected')
-          }}
-        </span>
-      </div>
-
-      <template v-if="!isAllSelected">
-        <Button variant="ghost" size="icon" class="size-6 shrink-0" @click.stop="clearSelection">
-          <XIcon class="text-muted-foreground size-4" />
-        </Button>
-      </template>
-      <template v-else>
-        <div class="size-6 shrink-0 p-1">
-          <ChevronDownIcon class="text-muted-foreground size-4" />
-        </div>
-      </template>
-    </Popover.PopoverTrigger>
-
-    <Popover.PopoverContent
-      class="w-(--reka-popover-trigger-width) min-w-75 rounded-md p-0"
-      :side="dropdownSide"
-      :avoid-collisions="false"
-      align="start"
-      :side-offset="4"
-    >
-      <div class="relative w-full items-center p-2 pb-0">
-        <input
-          v-model="searchTerm"
-          type="text"
-          class="border-input bg-background h-9 w-full rounded-md border pl-9 text-sm outline-none"
-          :placeholder="$t('fields.comboboxCategories.searchPlaceholder')"
-        />
-        <SearchIcon class="text-muted-foreground absolute top-[60%] left-4 size-5 -translate-y-1/2" />
-      </div>
-
-      <div :class="['max-h-85 overflow-y-auto p-1.25 lg:max-h-60', { 'select-none': isShiftPressed }]">
+  <MultiSelectField
+    v-model:open="isOpen"
+    v-model:search-term="searchTerm"
+    :active="!isAllSelected"
+    :label="$t('fields.comboboxCategories.unselectedPlaceholder')"
+    :selected-label="selectedLabel"
+    :search-placeholder="$t('fields.comboboxCategories.searchPlaceholder')"
+    :trigger-class="triggerClass"
+    content-class="min-w-75"
+    @clear="clearSelection"
+  >
+    <ScrollArea class="max-h-85 lg:max-h-60" viewport-class="max-h-85 lg:max-h-60">
+      <div class="p-1.25" :class="{ 'select-none': isShiftPressed }">
         <p v-if="displayedItems.length === 0" class="text-muted-foreground py-2 text-center text-xs font-medium">
           {{ $t('fields.categoryMultiSelect.noCategoriesFound') }}
         </p>
@@ -85,20 +47,20 @@
           </button>
         </template>
       </div>
-    </Popover.PopoverContent>
-  </Popover.Popover>
+    </ScrollArea>
+  </MultiSelectField>
 </template>
 
 <script setup lang="ts">
 import CategoryCircle from '@/components/common/category-circle.vue';
-import Button from '@/components/lib/ui/button/Button.vue';
+import MultiSelectField from '@/components/fields/multi-select-field.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
-import * as Popover from '@/components/lib/ui/popover';
-import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useCategoriesStore } from '@/stores';
-import { CheckIcon, ChevronDownIcon, MinusIcon, SearchIcon, XIcon } from '@lucide/vue';
+import { CheckIcon, MinusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
   type FlatCategory,
@@ -111,19 +73,27 @@ import {
 
 const props = defineProps<{
   categoryIds: string[];
+  /** Extra classes merged onto the trigger so a host can reshape it (e.g. the
+   * Pivot Report renders it as a compact rounded filter pill). */
+  triggerClass?: string;
+  /** When true, a category's checkbox reflects only its own membership — a selected
+   * child no longer paints its ancestors as indeterminate. Selecting still cascades
+   * down (clicking a parent selects its whole subtree); this only changes how partial
+   * states display. Defaults to the tri-state roll-up the Records filters and Trends
+   * comparison use. */
+  independentCheckState?: boolean;
 }>();
 
 const emit = defineEmits<{
   'update:categoryIds': [value: string[]];
 }>();
 
+const { t } = useI18n();
+
 const { formattedCategories } = storeToRefs(useCategoriesStore());
 
 const searchTerm = ref('');
 const isOpen = ref(false);
-
-const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiDesktop);
-const dropdownSide = computed(() => (isMobile.value ? 'top' : 'bottom'));
 
 const selectedIdsSet = computed(() => new Set(props.categoryIds));
 
@@ -135,7 +105,6 @@ const sessionRootOrder = ref<string[]>([]);
 
 watch(isOpen, (open) => {
   if (!open) {
-    searchTerm.value = '';
     lastClickedIndex = null;
     return;
   }
@@ -182,7 +151,12 @@ const shouldShowSeparator = ({ item, index }: { item: FlatCategory; index: numbe
 };
 
 const isCategoryChecked = (item: FlatCategory) =>
-  computeCheckedState({ item, selectedIds: selectedIdsSet.value, isSearching: isSearching.value });
+  computeCheckedState({
+    item,
+    selectedIds: selectedIdsSet.value,
+    isSearching: isSearching.value,
+    independent: props.independentCheckState ?? false,
+  });
 
 // Shift-click range selection
 const isShiftPressed = ref(false);
@@ -221,9 +195,13 @@ const handleToggle = ({ item, index }: { item: FlatCategory; index: number }) =>
   emit('update:categoryIds', next);
 };
 
-const totalCategoryCount = computed(() => baseOrderedCategories.value.length);
-
 const selectedCategoryCount = computed(() => props.categoryIds.length);
+
+const selectedLabel = computed(() =>
+  selectedCategoryCount.value === 1
+    ? t('fields.comboboxCategories.selectedOne')
+    : t('fields.comboboxCategories.selectedMany', { n: selectedCategoryCount.value }),
+);
 
 const isAllSelected = computed(() => props.categoryIds.length === 0);
 
