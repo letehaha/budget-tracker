@@ -340,6 +340,17 @@ export interface SavedPivotView {
   config: SavedPivotViewConfig;
 }
 
+// Per-section visibility for the sidebar's Accounts panel (Bank Accounts is always shown and
+// intentionally absent). Persisted in the user-settings JSONB; the backend Zod schema
+// (`ZodSidebarSectionsSchema`) is asserted to infer exactly this shape, and the frontend
+// re-exports it, so both ends share one contract and cannot drift.
+export interface SidebarSectionsConfig {
+  portfolios: boolean;
+  ventures: boolean;
+  vehicles: boolean;
+  loans: boolean;
+}
+
 // Cumulative Analytics (Trends Comparison)
 export type CumulativeMetric = 'expenses' | 'income' | 'savings';
 

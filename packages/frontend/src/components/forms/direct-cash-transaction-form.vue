@@ -48,9 +48,9 @@ const emit = defineEmits<Emit>();
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
-// Vehicle accounts reject direct transactions on the backend — exclude them from
-// the picker so users can't target one.
-const { txTargetableAccountsActiveFirst, accountsRecord } = storeToRefs(accountsStore);
+// Loan accounts excluded – money only flows INTO a loan (transfer_to_loan), so they can't be a transfer source.
+const { txTargetableSourceAccountsActiveFirst: txTargetableAccountsActiveFirst, accountsRecord } =
+  storeToRefs(accountsStore);
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { sortedCurrencies, currencyLabel } = usePortfolioCurrencySorting(computed(() => props.portfolioId));

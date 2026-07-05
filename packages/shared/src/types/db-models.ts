@@ -9,6 +9,7 @@ import {
   LogoResolutionState,
   CATEGORIZATION_SOURCE,
   CATEGORY_TYPES,
+  LOAN_TYPE,
   NotificationPriority,
   NotificationStatus,
   NotificationType,
@@ -31,6 +32,7 @@ import {
   TransactionsWriteScope,
   UserRole,
 } from './enums';
+import { LoanEvent } from './loans';
 import { RecordId } from './record-id';
 
 export interface UserModel {
@@ -132,6 +134,39 @@ export interface AccountModel {
    * to share recipients (who can't reach the owner-scoped connection-details endpoint).
    */
   bankProviderType?: BANK_PROVIDER_TYPE | null;
+  /** Present on user-facing list/detail responses; absent on internal serializations. */
+  share?: ResourceShareInfo;
+}
+
+/**
+ * Serialized account wire shape (DB → API): every monetary field is a decimal
+ * (cents converted on the way out), `id`/`type`/`accountCategory` are plain
+ * strings, and owner-only bank-link metadata is stripped for share recipients.
+ * The single source of truth for both the backend serializer's return type and
+ * the frontend loan/account response shapes, so the two can't drift.
+ */
+export interface AccountApiResponse {
+  id: string;
+  name: string;
+  initialBalance: number;
+  refInitialBalance: number;
+  currentBalance: number;
+  refCurrentBalance: number;
+  creditLimit: number;
+  refCreditLimit: number;
+  type: string;
+  accountCategory: string;
+  currencyCode: string;
+  userId: number;
+  externalId: string | null;
+  status: ACCOUNT_STATUSES;
+  excludeFromStats: boolean;
+  bankDataProviderConnectionId: string | null;
+  /** Provider type denormalized from the connection so the frontend can render the
+   *  bank logo without a per-account connection-details lookup (which is owner-scoped
+   *  and unreachable for share recipients). */
+  bankProviderType: BANK_PROVIDER_TYPE | null;
+  needsRelink?: boolean;
   /** Present on user-facing list/detail responses; absent on internal serializations. */
   share?: ResourceShareInfo;
 }
@@ -751,4 +786,49 @@ export interface PayeeStats {
   firstSeenAt: Date | null;
   lastSeenAt: Date | null;
   topCategoryId: RecordId | null;
+}
+
+/**
+ * 1:1 sidecar on `Accounts` for loan-category accounts (APR, payment plan,
+ * lender metadata, event log); the Account still owns the balance (stored
+ * negative) and currency. Monetary values are cents (BIGINT), surfaced as
+ * Money via model getters.
+ */
+export interface LoanDetailsModel {
+  id: RecordId;
+  accountId: RecordId;
+  userId: number;
+  /** Sub-type (mortgage, auto, student…) – drives UI grouping only. */
+  loanType: LOAN_TYPE;
+  /**
+   * Lender-issued principal in cents, immutable after create —
+   * Account.initialBalance drifts with balance corrections, so this frozen
+   * field preserves the amortization reference.
+   */
+  originalPrincipal: number;
+  /** Same value converted to the user's base currency at LoanDetails creation. */
+  refOriginalPrincipal: number;
+  /** APR as percent, e.g. 3.75. Range [0, 100). DECIMAL at rest; the model getter parses Postgres' string to number. */
+  interestRate: number;
+  termMonths: number | null;
+  startDate: string;
+  /**
+   * Date the outstanding balance (Account.initialBalance) is asserted as-of;
+   * post-anchor payments adjust it, earlier ones are baked into the snapshot.
+   * Distinct from startDate (contractual origination, never moves).
+   */
+  balanceAnchorDate: string;
+  minPayment: number | null;
+  refMinPayment: number | null;
+  plannedPayment: number | null;
+  refPlannedPayment: number | null;
+  /** Day-of-month [1, 31]. Values 29/30/31 clamp to the last day of short months at display/schedule time. */
+  paymentDayOfMonth: number | null;
+  lenderName: string | null;
+  /** Lender's account/loan identifier as the user records it — last four, full number, or any reference they prefer. No format enforced. */
+  accountNumber: string | null;
+  /** Append-only audit/timeline; see LoanEvent. */
+  events: LoanEvent[];
+  createdAt: Date;
+  updatedAt: Date;
 }

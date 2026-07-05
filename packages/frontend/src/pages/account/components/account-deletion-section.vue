@@ -3,9 +3,10 @@ import { AlertDialog, ClickToCopy } from '@/components/common';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
+import { isApiErrorWithCode } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
-import { AccountModel, TransactionModel } from '@bt/shared/types';
+import { AccountModel, API_ERROR_CODES, TransactionModel } from '@bt/shared/types';
 import { Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -33,8 +34,14 @@ const deleteAccount = async () => {
     });
     addSuccessNotification(t('pages.account.deletion.success', { accountName }));
     router.push({ name: ROUTES_NAMES.accounts });
-  } catch {
-    addErrorNotification(t('pages.account.deletion.error'));
+  } catch (e) {
+    // Surface the backend message verbatim for validation errors (e.g. "delete
+    // blocked — loan payments exist") — already localised.
+    if (isApiErrorWithCode(e, API_ERROR_CODES.validationError) && e.data?.message) {
+      addErrorNotification(e.data.message);
+    } else {
+      addErrorNotification(t('pages.account.deletion.error'));
+    }
   }
 };
 </script>

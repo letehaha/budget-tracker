@@ -22,6 +22,7 @@ import {
 
 import {
   canDeleteTransaction,
+  getAvailableTransferDestinationTypes,
   getDestinationAmount,
   getFormTypeFromTransaction,
   getTxTypeFromFormType,
@@ -30,6 +31,16 @@ import {
 import { FORM_TYPES } from './types';
 
 describe('components/modals/modify-record/helpers', () => {
+  describe('getAvailableTransferDestinationTypes', () => {
+    it('offers account, portfolio, and loan for an expense base', () => {
+      expect(getAvailableTransferDestinationTypes(TRANSACTION_TYPES.expense)).toEqual(['account', 'portfolio', 'loan']);
+    });
+
+    it('omits loan for an income base — a loan payment is an outflow, never income', () => {
+      expect(getAvailableTransferDestinationTypes(TRANSACTION_TYPES.income)).toEqual(['account', 'portfolio']);
+    });
+  });
+
   describe('getDestinationAmount', () => {
     test.each([
       [[10, 20, false, false, buildSystemIncomeTransaction()], 10],

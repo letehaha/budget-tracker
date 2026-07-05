@@ -50,9 +50,9 @@ const emit = defineEmits<Emit>();
 const { t } = useI18n();
 const { addNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
-// Vehicle accounts can't take part in account↔portfolio transfers — the backend
-// rejects any transfer touching them. Keep them out of both pickers.
-const { txTargetableAccountsActiveFirst, accountsRecord } = storeToRefs(useAccountsStore());
+// Loan accounts excluded – money only flows INTO a loan (transfer_to_loan), so they can't be a transfer source.
+const { txTargetableSourceAccountsActiveFirst: txTargetableAccountsActiveFirst, accountsRecord } =
+  storeToRefs(useAccountsStore());
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { data: portfolios } = usePortfolios();
 const { formatAmountByCurrencyCode } = useFormatCurrency();

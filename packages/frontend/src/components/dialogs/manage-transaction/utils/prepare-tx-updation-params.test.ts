@@ -1,5 +1,6 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
 import {
+  ACCOUNT_CATEGORIES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   AccountModel,
@@ -147,6 +148,118 @@ describe('prepareTxUpdationParams', () => {
         paymentType: transactionMock.paymentType,
         transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       });
+    });
+  });
+
+  describe('loan transfer nature handling', () => {
+    beforeEach(() => {
+      sourceAccount = getUahAccount();
+    });
+
+    it('keeps common_transfer on an existing pair even when the destination is a loan account', () => {
+      const transferTx = buildSystemTransferExpenseTransaction();
+      const loanAccount = getUah2Account({ accountCategory: ACCOUNT_CATEGORIES.loan });
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(transferTx),
+        type: FORM_TYPES.transfer,
+        account: sourceAccount as AccountModel,
+        amount: 2000,
+        targetAmount: 2000,
+        toAccount: loanAccount as AccountModel,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: transferTx,
+        linkedTransaction: null,
+        isTransferTx: true,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+      expect(result.destinationAccountId).toBe(loanAccount.id);
+    });
+
+    it('keeps transfer_to_loan on an existing loan payment pair', () => {
+      const loanPaymentTx = buildSystemTransferExpenseTransaction({
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+      });
+      const loanAccount = getUah2Account({ accountCategory: ACCOUNT_CATEGORIES.loan });
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(loanPaymentTx),
+        type: FORM_TYPES.transfer,
+        account: sourceAccount as AccountModel,
+        amount: 2000,
+        targetAmount: 2000,
+        toAccount: loanAccount as AccountModel,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: loanPaymentTx,
+        linkedTransaction: null,
+        isTransferTx: true,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+      expect(result.destinationAccountId).toBe(loanAccount.id);
+    });
+
+    it('promotes a non-transfer transaction to transfer_to_loan when the destination is a loan account', () => {
+      const expenseTx = buildSystemExpenseTransaction();
+      const loanAccount = getUah2Account({ accountCategory: ACCOUNT_CATEGORIES.loan });
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(expenseTx),
+        type: FORM_TYPES.transfer,
+        account: sourceAccount as AccountModel,
+        amount: 2000,
+        targetAmount: 2000,
+        toAccount: loanAccount as AccountModel,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: expenseTx,
+        linkedTransaction: null,
+        isTransferTx: true,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_loan);
+      expect(result.destinationAccountId).toBe(loanAccount.id);
+      expect(result.destinationAmount).toBe(2000);
+    });
+
+    it('promotes a non-transfer transaction to common_transfer when the destination is not a loan account', () => {
+      const expenseTx = buildSystemExpenseTransaction();
+      const regularAccount = getUah2Account();
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(expenseTx),
+        type: FORM_TYPES.transfer,
+        account: sourceAccount as AccountModel,
+        amount: 2000,
+        targetAmount: 2000,
+        toAccount: regularAccount as AccountModel,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: expenseTx,
+        linkedTransaction: null,
+        isTransferTx: true,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
     });
   });
 

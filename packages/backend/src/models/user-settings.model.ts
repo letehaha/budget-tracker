@@ -117,6 +117,7 @@ const ZodSidebarSectionsSchema = z.object({
   portfolios: z.boolean().default(true),
   ventures: z.boolean().default(true),
   vehicles: z.boolean().default(true),
+  loans: z.boolean().default(true),
 });
 
 // Column ids are plain strings (not an enum) on purpose: the column set is a
@@ -267,6 +268,7 @@ export const ZodSettingsPatchSchema = z.object({
       portfolios: z.boolean().optional(),
       ventures: z.boolean().optional(),
       vehicles: z.boolean().optional(),
+      loans: z.boolean().optional(),
     })
     .optional(),
   ui: z
@@ -342,6 +344,17 @@ export type SettingsPatchSchemaIsInSync = Expect<
  */
 export type SavedPivotViewSchemaIsInSync = Expect<
   Equals<z.infer<typeof ZodSavedPivotViewSchema>, endpointsTypes.SavedPivotView>
+>;
+
+/**
+ * Compile-time drift guard: the sidebar-sections schema must infer exactly the shared
+ * `SidebarSectionsConfig` contract the frontend also reads. If either side adds or renames a
+ * section without the other, this line becomes a type error.
+ *
+ * @public exported only so the assertion isn't flagged as unused – nothing should import it.
+ */
+export type SidebarSectionsSchemaIsInSync = Expect<
+  Equals<z.infer<typeof ZodSidebarSectionsSchema>, endpointsTypes.SidebarSectionsConfig>
 >;
 
 export const DEFAULT_SETTINGS: SettingsSchema = {

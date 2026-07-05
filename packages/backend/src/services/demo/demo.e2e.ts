@@ -2,6 +2,7 @@ import {
   ACCOUNT_CATEGORIES,
   API_ERROR_CODES,
   API_RESPONSE_STATUS,
+  LOAN_TYPE,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -182,24 +183,30 @@ describe('Demo Mode', () => {
       }
     });
 
-    it('seeds 4 cash accounts with different currencies (plus 2 vehicle accounts)', async () => {
+    it('seeds 4 cash accounts with different currencies (plus 2 vehicle + 3 loan accounts)', async () => {
       const accountsRes = await makeRequest({
         method: 'get',
         url: '/accounts',
         raw: true,
       });
 
-      // Vehicle assets are tracked as system accounts (category 'vehicle'), so
-      // the accounts list now also contains the 2 seeded cars.
+      // Vehicle assets (category 'vehicle') and loans (category 'loan') are both
+      // tracked as system accounts, so the accounts list also contains the 2
+      // seeded cars and 3 seeded loans.
       const cashAccounts = accountsRes.filter(
-        (a: { accountCategory: string }) => a.accountCategory !== ACCOUNT_CATEGORIES.vehicle,
+        (a: { accountCategory: string }) =>
+          a.accountCategory !== ACCOUNT_CATEGORIES.vehicle && a.accountCategory !== ACCOUNT_CATEGORIES.loan,
       );
       const vehicleAccounts = accountsRes.filter(
         (a: { accountCategory: string }) => a.accountCategory === ACCOUNT_CATEGORIES.vehicle,
       );
+      const loanAccounts = accountsRes.filter(
+        (a: { accountCategory: string }) => a.accountCategory === ACCOUNT_CATEGORIES.loan,
+      );
 
       expect(cashAccounts.length).toBe(4);
       expect(vehicleAccounts.length).toBe(2);
+      expect(loanAccounts.length).toBe(3);
 
       // Verify currencies on the cash accounts
       const currencyCodes = cashAccounts.map((a: { currencyId: number }) => a.currencyId);
@@ -356,6 +363,40 @@ describe('Demo Mode', () => {
       });
       const platforms = platformsRes.data;
       expect(platforms.some((p: { name: string }) => p.name === 'AngelList')).toBe(true);
+    });
+
+    it('seeds 3 small consumer loans (auto, student, personal) partially paid down', async () => {
+      // GET /loans returns a flat array (unwrapped by `raw`), each row carrying
+      // Account fields plus nested loanDetails and projection.
+      const loans = await makeRequest({
+        method: 'get',
+        url: '/loans',
+        raw: true,
+      });
+
+      expect(loans.length).toBe(3);
+
+      const car = loans.find((l: { name: string }) => l.name === 'Car Loan');
+      const student = loans.find((l: { name: string }) => l.name === 'Student Loan');
+      const personal = loans.find((l: { name: string }) => l.name === 'Personal Loan');
+      expect(car).toBeDefined();
+      expect(student).toBeDefined();
+      expect(personal).toBeDefined();
+
+      expect(car.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
+      expect(car.loanDetails.loanType).toBe(LOAN_TYPE.auto);
+      expect(student.loanDetails.loanType).toBe(LOAN_TYPE.student);
+      expect(personal.loanDetails.loanType).toBe(LOAN_TYPE.personal);
+
+      for (const loan of loans) {
+        // Outstanding is stored negative (liability convention) and each loan is
+        // deliberately small (≤ $25k) and partially paid down, so the
+        // outstanding sits strictly between $0 and the original principal.
+        expect(loan.currentBalance).toBeLessThan(0);
+        expect(Math.abs(loan.currentBalance)).toBeLessThan(loan.loanDetails.originalPrincipal);
+        expect(loan.loanDetails.originalPrincipal).toBeLessThanOrEqual(25_000_00);
+        expect(loan.projection.isPaidOff).toBe(false);
+      }
     });
   });
 
@@ -631,10 +672,12 @@ describe('Demo Mode', () => {
         raw: true,
       });
 
-      // Vehicle accounts are depreciation-driven: their balance is owned by the
-      // override/refresh flow, not `initialBalance + Σtx`, so exclude them here.
+      // Vehicle accounts are depreciation-driven and loan accounts are
+      // balance-anchor-driven: neither balance is `initialBalance + Σtx`, so
+      // exclude them here.
       const cashAccounts = accountsRes.filter(
-        (a: { accountCategory: string }) => a.accountCategory !== ACCOUNT_CATEGORIES.vehicle,
+        (a: { accountCategory: string }) =>
+          a.accountCategory !== ACCOUNT_CATEGORIES.vehicle && a.accountCategory !== ACCOUNT_CATEGORIES.loan,
       );
       expect(cashAccounts.length).toBe(4);
 
@@ -673,8 +716,8 @@ describe('Demo Mode', () => {
       });
 
       const accountIds = accountsRes.map((a: { id: number }) => a.id);
-      // 4 cash accounts + 2 vehicle accounts
-      expect(accountIds.length).toBe(6);
+      // 4 cash accounts + 2 vehicle accounts + 3 loan accounts
+      expect(accountIds.length).toBe(9);
 
       // Verify Balances records exist
       const [balanceRows] = await connection.sequelize.query(

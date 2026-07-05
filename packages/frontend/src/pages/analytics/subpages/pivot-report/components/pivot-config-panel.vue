@@ -126,6 +126,7 @@
       <div class="w-fit max-w-full">
         <AccountMultiSelectField
           :model-value="accountIds"
+          exclude-dedicated-flow
           :trigger-class="filterPillClass({ active: accountIds.length > 0 })"
           @update:model-value="accountIds = $event"
         />

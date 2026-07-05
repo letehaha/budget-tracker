@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, isTwoLegTransfer } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
@@ -15,6 +15,8 @@ import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
+import { assertLoanEditAllowed } from '@services/loans/assert-loan-edit-allowed';
+import { deriveImpliedDestinationAmount } from '@services/loans/implied-destination-amount';
 import {
   assertSharedWritePhase1Guards,
   assertTxWriteAccess,
@@ -98,6 +100,13 @@ const validateTransaction = async (
       message: t({ key: 'transactions.cannotEditPortfolioLinkedTransaction' }),
     });
   }
+
+  await assertLoanEditAllowed({
+    newData,
+    prevData,
+    callerUserId: ctx.callerUserId,
+    accountOwnerUserId: ctx.accountOwnerUserId,
+  });
 
   // We doesn't allow users to change non-source trasnaction for several reasons:
   // 1. Most importantly – to make things simpler. For now there's no case that
@@ -325,7 +334,7 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData] = params;
   let [, , baseTransaction] = params;
 
-  const { userId, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } = newData;
+  const { userId, amount, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } = newData;
 
   // Orphaned transfer leg: flagged as a transfer but `transferId` was cleared, so it has
   // no pair to update. Querying `findAll({ transferId: null })` would match every other
@@ -389,10 +398,34 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     };
   }
 
+  // A base-amount edit must keep the pair in sync. Same-currency legs of a
+  // transfer are always equal, so the destination leg mirrors the base amount
+  // 1:1; with different currencies there is no exchange rate to assume, so
+  // the caller must provide destinationAmount explicitly.
+  if (amount !== undefined && destinationAmount === undefined) {
+    const impliedDestinationAmount = deriveImpliedDestinationAmount({
+      baseAmount: amount,
+      destinationAmount,
+      baseLegCurrencyCode: baseTransaction.currencyCode,
+      destinationLegCurrencyCode: updateOppositeTxParams.currencyCode,
+    });
+    if (impliedDestinationAmount === undefined) {
+      throw new ValidationError({
+        message: t({ key: 'transactions.destinationAmountRequiredCrossCurrency' }),
+      });
+    }
+    updateOppositeTxParams.amount = impliedDestinationAmount;
+  }
+
+  // Effective post-update amount of the destination leg. Falls back to the
+  // stored opposite amount so the refAmount recompute always receives a real
+  // value even when the edit doesn't touch amounts (e.g. a note-only edit).
+  const effectiveDestinationAmount = updateOppositeTxParams.amount ?? oppositeTx.amount;
+
   const { oppositeRefAmount, baseTransaction: updatedBaseTransaction } = await calcTransferTransactionRefAmount({
     userId,
     baseTransaction,
-    destinationAmount: updateOppositeTxParams.amount!,
+    destinationAmount: effectiveDestinationAmount,
     oppositeTxCurrencyCode: updateOppositeTxParams.currencyCode,
     date: baseTransaction.time,
   });
@@ -442,7 +475,9 @@ const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
     }
   }
 
-  await Transactions.updateTransactionById({
+  // Return the refreshed row — callers hold a stale `baseTransaction` snapshot
+  // and need the cleared transferId/transferNature for the API response.
+  return Transactions.updateTransactionById({
     id: baseTransaction.id,
     userId: baseTransaction.userId,
     transferId: null,
@@ -451,29 +486,26 @@ const unlinkOppositeTransaction = async (params: HelperFunctionsArgs) => {
 };
 
 const isUpdatingTransferTx = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
-  // Previously was transfer, now NOT a transfer
-  const nowNotTransfer =
-    payload.transferNature === undefined && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+  // nature label only affects reporting; the bookkeeping path is identical for both transfer kinds.
+  const stillTransfer = payload.transferNature === undefined && isTwoLegTransfer(prevData.transferNature);
 
   // Previously was transfer, now also transfer
-  const updatingTransfer =
-    payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+  const updatingTransfer = isTwoLegTransfer(payload.transferNature) && isTwoLegTransfer(prevData.transferNature);
 
-  return nowNotTransfer || updatingTransfer;
+  return stillTransfer || updatingTransfer;
 };
 
 const isCreatingTransfer = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
   return (
-    payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer
+    isTwoLegTransfer(payload.transferNature) && prevData.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer
   );
 };
 
 const isDiscardingTransfer = (payload: UpdateTransactionParams, prevData: Transactions.default) => {
   return (
-    payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer
+    payload.transferNature !== undefined &&
+    !isTwoLegTransfer(payload.transferNature) &&
+    isTwoLegTransfer(prevData.transferNature)
   );
 };
 
@@ -500,20 +532,12 @@ export const updateTransaction = withTransaction(
         isOwner: authCtx.isOwner,
       };
 
-      // PATCH semantics: when `transferNature` is omitted from the payload, the predicates
-      // below interpret that as "keep current state" for the purpose of the recipient gate
-      // (an unspecified field doesn't mean the caller wants to discard the link). Only an
-      // explicit nature change — promoting a non-transfer to a transfer, or explicitly
-      // setting nature to something other than `common_transfer` on a transfer — has its
-      // own broken cross-user opposite-tx handling and stays blocked for recipients.
-      const explicitlyDiscardingTransfer =
-        payload.transferNature !== undefined &&
-        payload.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer &&
-        prevData.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
-
+      // Only an explicit nature change — promoting a non-transfer to a transfer, or
+      // explicitly discarding a transfer link — has its own broken cross-user
+      // opposite-tx handling and stays blocked for recipients.
       assertSharedWritePhase1Guards({
         isOwner: authCtx.isOwner,
-        involvesTransfer: isCreatingTransfer(payload, prevData) || explicitlyDiscardingTransfer,
+        involvesTransfer: isCreatingTransfer(payload, prevData) || isDiscardingTransfer(payload, prevData),
         involvesRefund: payload.refundedByTxIds !== undefined || payload.refundsTxId !== undefined,
         changesAccountId: payload.accountId !== undefined && payload.accountId !== prevData.accountId,
       });
@@ -588,13 +612,12 @@ export const updateTransaction = withTransaction(
           updatedTransactions = [baseTx, oppositeTx];
         }
       } else if (isDiscardingTransfer(payload, prevData)) {
-        await unlinkOppositeTransaction(helperFunctionsArgs);
+        const unlinkedBaseTx = await unlinkOppositeTransaction(helperFunctionsArgs);
+        if (unlinkedBaseTx) updatedTransactions = [unlinkedBaseTx];
       }
 
       // Handle splits
-      const isTransfer =
-        baseTransaction.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer ||
-        payload.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer;
+      const isTransfer = isTwoLegTransfer(baseTransaction.transferNature) || isTwoLegTransfer(payload.transferNature);
 
       if (payload.splits !== undefined) {
         if (isTransfer) {

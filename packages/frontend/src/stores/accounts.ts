@@ -63,6 +63,12 @@ export const useAccountsStore = defineStore('accounts', () => {
     systemAccountsActiveFirst.value.filter((item) => item.accountCategory !== ACCOUNT_CATEGORIES.vehicle),
   );
 
+  // Loans are liabilities — money only flows in via transfer_to_loan, never out.
+  // Hide them from source pickers; they stay in txTargetableAccountsActiveFirst for transfer destinations.
+  const txTargetableSourceAccountsActiveFirst = computed(() =>
+    txTargetableAccountsActiveFirst.value.filter((item) => item.accountCategory !== ACCOUNT_CATEGORIES.loan),
+  );
+
   /**
    * Accounts that need to be re-linked due to schema migration.
    * These are Enable Banking accounts where externalId doesn't match identification_hash.
@@ -127,6 +133,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     activeSystemAccounts,
     systemAccountsActiveFirst,
     txTargetableAccountsActiveFirst,
+    txTargetableSourceAccountsActiveFirst,
     accountsCurrencyCodes,
     accountsNeedingRelink,
     isAccountsFetched,

@@ -160,6 +160,13 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   vehicleDetail: [transactionChange, 'vehicle-detail'] as const,
   vehicleOverrideHistory: [transactionChange, 'vehicle-override-history'] as const,
 
+  // loans
+  loansList: [transactionChange, 'loans-list'] as const,
+  loanDetail: [transactionChange, 'loan-detail'] as const,
+  loanRecentPayments: [transactionChange, 'loan-recent-payments'] as const,
+  loanAllPayments: [transactionChange, 'loan-all-payments'] as const,
+  loanBalanceHistory: [transactionChange, 'loan-balance-history'] as const,
+
   // user settings
   userSettings: ['user-settings'] as const,
 

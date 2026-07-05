@@ -69,6 +69,17 @@
   --color-app-expense-color: var(--app-expense-color);
   --color-app-transfer-color: var(--app-transfer-color);
 
+  --color-loan-mortgage: var(--loan-mortgage);
+  --color-loan-auto: var(--loan-auto);
+  --color-loan-student: var(--loan-student);
+  --color-loan-personal: var(--loan-personal);
+  --color-loan-heloc: var(--loan-heloc);
+  --color-loan-business: var(--loan-business);
+  --color-loan-medical: var(--loan-medical);
+  --color-loan-other: var(--loan-other);
+  --color-loan-principal: var(--loan-principal);
+  --color-loan-interest: var(--loan-interest);
+
   /* Border radius */
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -261,6 +272,23 @@
     --app-income-color: rgb(42, 141, 82);
     --app-expense-color: rgb(217, 84, 62);
     --app-transfer-color: rgb(128, 135, 138);
+
+    /*
+      Per-loan-type category identity colors: one hue per loan type, shared as the single source
+      behind the solid badge, the composition-bar/legend dots, and the soft tinted list-row chip so
+      a given loan type reads as the same color everywhere. `principal`/`interest` are the two fixed
+      roles of the cost-split bar (not loan types).
+    */
+    --loan-mortgage: rgb(59, 130, 246);
+    --loan-auto: rgb(245, 158, 11);
+    --loan-student: rgb(139, 92, 246);
+    --loan-personal: rgb(16, 185, 129);
+    --loan-heloc: rgb(6, 182, 212);
+    --loan-business: rgb(244, 63, 94);
+    --loan-medical: rgb(236, 72, 153);
+    --loan-other: rgb(100, 116, 139);
+    --loan-principal: rgb(59, 130, 246);
+    --loan-interest: rgb(245, 158, 11);
   }
 
   :root.dark {
@@ -317,6 +345,22 @@
     --app-income-color: #2ecc71;
     --app-expense-color: #e74c3c;
     --app-transfer-color: #95a5a6;
+
+    /*
+      Loan category colors, brighter variants for contrast on the near-black dark background. Darker
+      hues step up to their lighter shade; already-light hues (amber, cyan, pink) stay put so white
+      badge text keeps adequate contrast.
+    */
+    --loan-mortgage: rgb(96, 165, 250);
+    --loan-auto: rgb(245, 158, 11);
+    --loan-student: rgb(167, 139, 250);
+    --loan-personal: rgb(52, 211, 153);
+    --loan-heloc: rgb(6, 182, 212);
+    --loan-business: rgb(251, 113, 133);
+    --loan-medical: rgb(236, 72, 153);
+    --loan-other: rgb(148, 163, 184);
+    --loan-principal: rgb(96, 165, 250);
+    --loan-interest: rgb(245, 158, 11);
   }
 }
 

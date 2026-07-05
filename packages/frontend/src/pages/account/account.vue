@@ -198,6 +198,23 @@ watch(isVehicleNotFound, (notFound) => {
   });
 });
 
+// A loan is a regular `system` account, so its id can land on this page; the
+// balance/category edits here are rejected for loans, so redirect to the loan page
+// (id IS the account id). Loans shared with the user stay here — the loans page is owner-scoped only.
+const isOwnLoanAccount = computed(
+  () => account.value?.accountCategory === ACCOUNT_CATEGORIES.loan && account.value?.share?.isOwner !== false,
+);
+
+watch(
+  isOwnLoanAccount,
+  (isOwnLoan) => {
+    if (isOwnLoan && account.value?.id) {
+      router.replace({ name: ROUTES_NAMES.loanDetail, params: { id: account.value.id } });
+    }
+  },
+  { immediate: true },
+);
+
 const limit = 10;
 
 const fetchTransactions = ({ pageParam }: { pageParam: number }) => {

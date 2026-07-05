@@ -1,0 +1,1632 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Loans – Behavior Specification</title>
+    <style>
+      :root {
+        --bg: #14111c;
+        --panel: #1d1928;
+        --panel-2: #241f31;
+        --ink: #ece9f5;
+        --muted: #a79fbd;
+        --faint: #7d7593;
+        --line: rgba(255, 255, 255, 0.08);
+        --line-strong: rgba(255, 255, 255, 0.14);
+        --accent: rgb(130, 100, 205);
+        --accent-strong: rgb(115, 85, 190);
+        --accent-soft: rgba(130, 100, 205, 0.16);
+        --accent-ink: #c9b8f2;
+        --code-bg: rgba(130, 100, 205, 0.12);
+        --code-ink: #d6c9f6;
+        --pre-bg: #120f1a;
+        --pre-ink: #d9d4ea;
+        --spec: #46c08a;
+        --spec-soft: rgba(70, 192, 138, 0.13);
+        --bug: #ef6a75;
+        --bug-soft: rgba(239, 106, 117, 0.12);
+        --decision: #e6a93f;
+        --decision-soft: rgba(230, 169, 63, 0.13);
+        --gap: #6fa7ff;
+        --gap-soft: rgba(111, 167, 255, 0.13);
+        --radius: 14px;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 34px rgba(0, 0, 0, 0.35);
+        --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+        --sans:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji', sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 15.5px;
+        line-height: 1.66;
+        -webkit-font-smoothing: antialiased;
+      }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: rgba(20, 17, 28, 0.86);
+        backdrop-filter: saturate(150%) blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      .topbar .inner {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 11px 28px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .topbar .tag {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #fff;
+        background: var(--accent-strong);
+        padding: 3px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .topbar .crumb {
+        font-size: 13.5px;
+        color: var(--muted);
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .topbar .crumb code {
+        font-family: var(--mono);
+        font-size: 12.5px;
+        color: var(--accent-ink);
+      }
+      .wrap {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 34px 28px 110px;
+        display: grid;
+        grid-template-columns: 278px minmax(0, 1fr);
+        gap: 42px;
+        align-items: start;
+      }
+      .toc {
+        position: sticky;
+        top: 70px;
+        align-self: start;
+        max-height: calc(100vh - 92px);
+        overflow: auto;
+        padding: 16px 14px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        font-size: 13px;
+      }
+      .toc .toc-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--faint);
+        padding: 2px 8px 10px;
+      }
+      .toc a {
+        display: block;
+        color: var(--muted);
+        text-decoration: none;
+        padding: 4px 9px;
+        border-radius: 7px;
+        border-left: 2px solid transparent;
+        line-height: 1.4;
+        transition: 0.12s;
+      }
+      .toc a:hover {
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.05);
+        border-left-color: var(--accent);
+      }
+      main {
+        min-width: 0;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.22;
+        margin: 0 0 8px;
+        letter-spacing: -0.015em;
+      }
+      .subtitle {
+        color: var(--muted);
+        font-size: 15px;
+        margin: 0 0 26px;
+        max-width: 72ch;
+      }
+      section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 26px 30px;
+        margin: 0 0 26px;
+      }
+      h2 {
+        font-size: 21px;
+        margin: 0 0 4px;
+        letter-spacing: -0.01em;
+        scroll-margin-top: 84px;
+      }
+      h2 .secnum {
+        color: var(--accent-ink);
+        font-weight: 700;
+        margin-right: 8px;
+      }
+      h3 {
+        font-size: 16px;
+        margin: 26px 0 8px;
+        scroll-margin-top: 84px;
+      }
+      h3:first-of-type {
+        margin-top: 18px;
+      }
+      p {
+        margin: 10px 0;
+        max-width: 82ch;
+      }
+      ul,
+      ol {
+        margin: 8px 0 14px;
+        padding-left: 24px;
+      }
+      li {
+        margin: 4px 0;
+        max-width: 78ch;
+      }
+      code {
+        font-family: var(--mono);
+        font-size: 0.87em;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        padding: 1.5px 5px;
+        border-radius: 5px;
+      }
+      pre {
+        background: var(--pre-bg);
+        color: var(--pre-ink);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 16px;
+        overflow-x: auto;
+        font-family: var(--mono);
+        font-size: 12.8px;
+        line-height: 1.55;
+      }
+      pre code {
+        background: none;
+        padding: 0;
+        color: inherit;
+      }
+      .tablewrap {
+        overflow-x: auto;
+        margin: 12px 0 16px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13.8px;
+      }
+      th {
+        text-align: left;
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--faint);
+        background: var(--panel-2);
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line-strong);
+        white-space: nowrap;
+      }
+      td {
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      td:first-child {
+        white-space: nowrap;
+      }
+      .badge {
+        display: inline-block;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 1.5px 8px;
+        border-radius: 999px;
+        vertical-align: 1px;
+        white-space: nowrap;
+      }
+      .b-spec {
+        color: var(--spec);
+        background: var(--spec-soft);
+        border: 1px solid rgba(70, 192, 138, 0.4);
+      }
+      .b-bug {
+        color: var(--bug);
+        background: var(--bug-soft);
+        border: 1px solid rgba(239, 106, 117, 0.4);
+      }
+      .b-dec {
+        color: var(--decision);
+        background: var(--decision-soft);
+        border: 1px solid rgba(230, 169, 63, 0.4);
+      }
+      .b-gap {
+        color: var(--gap);
+        background: var(--gap-soft);
+        border: 1px solid rgba(111, 167, 255, 0.4);
+      }
+      .finding {
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--line-strong);
+        border-radius: 10px;
+        background: var(--panel-2);
+        padding: 13px 16px;
+        margin: 14px 0;
+        max-width: none;
+      }
+      .finding p {
+        margin: 6px 0 0;
+        font-size: 14px;
+      }
+      .finding .fhead {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .finding .fid {
+        font-family: var(--mono);
+        font-size: 12.5px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .finding .ftitle {
+        font-weight: 600;
+        font-size: 14.5px;
+      }
+      .f-bug {
+        border-left-color: var(--bug);
+      }
+      .f-bug .fid {
+        color: var(--bug);
+      }
+      .f-dec {
+        border-left-color: var(--decision);
+      }
+      .f-dec .fid {
+        color: var(--decision);
+      }
+      .f-gap {
+        border-left-color: var(--gap);
+      }
+      .f-gap .fid {
+        color: var(--gap);
+      }
+      .f-spec {
+        border-left-color: var(--spec);
+      }
+      .f-spec .fid {
+        color: var(--spec);
+      }
+      .f-spec ul {
+        margin: 8px 0 0 18px;
+        font-size: 14px;
+      }
+      .f-spec li {
+        margin: 5px 0;
+      }
+      .sev {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--faint);
+        letter-spacing: 0.07em;
+      }
+      .principle {
+        border: 1px solid rgba(130, 100, 205, 0.45);
+        background: linear-gradient(180deg, rgba(130, 100, 205, 0.14), rgba(130, 100, 205, 0.06));
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin: 16px 0;
+      }
+      .principle .ptitle {
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--accent-ink);
+        margin-bottom: 6px;
+      }
+      .principle p {
+        margin: 4px 0;
+      }
+      .notes {
+        border-top: 1px dashed var(--line-strong);
+        margin-top: 24px;
+        padding-top: 12px;
+        font-size: 13.5px;
+        color: var(--muted);
+      }
+      .notes .ntitle {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--faint);
+        margin-bottom: 6px;
+      }
+      .diagram {
+        overflow-x: auto;
+        background: var(--pre-bg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 40px 16px;
+        margin: 14px 0;
+        min-height: 190px;
+      }
+      .timeline {
+        min-width: 640px;
+        position: relative;
+        padding: 26px 8px 96px;
+      }
+      .timeline .axis {
+        height: 2px;
+        background: var(--line-strong);
+        border-radius: 2px;
+        position: relative;
+      }
+      .timeline .mark {
+        position: absolute;
+        top: -7px;
+        width: 2px;
+        height: 16px;
+        border-radius: 2px;
+      }
+      .timeline .lbl {
+        position: absolute;
+        font-size: 11.5px;
+        line-height: 1.35;
+        font-family: var(--mono);
+        transform: translateX(-50%);
+        text-align: center;
+        white-space: nowrap;
+      }
+      .timeline .lbl.above {
+        bottom: 22px;
+      }
+      .timeline .lbl.below {
+        top: 16px;
+      }
+      .timeline .span-bar {
+        position: absolute;
+        top: 74px;
+        height: 8px;
+        border-radius: 4px;
+        font-size: 0;
+      }
+      .timeline .span-lbl {
+        position: absolute;
+        top: 90px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        white-space: nowrap;
+        font-size: 11px;
+        font-family: var(--mono);
+      }
+      a {
+        color: var(--accent-ink);
+      }
+      .kbd-note {
+        color: var(--faint);
+        font-size: 12.5px;
+      }
+      .legend-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .legend-grid .lg {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 13px;
+        font-size: 13.5px;
+        background: var(--panel-2);
+      }
+      .legend-grid .lg p {
+        margin: 5px 0 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      @media (max-width: 960px) {
+        .wrap {
+          grid-template-columns: 1fr;
+        }
+        .toc {
+          position: static;
+          max-height: none;
+        }
+        section {
+          padding: 20px 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="inner">
+        <span class="tag">Spec</span>
+        <span class="crumb">budget-tracker · Loans behavior specification · 2026-07-03</span>
+      </div>
+    </div>
+    <div class="wrap">
+      <nav class="toc">
+        <div class="toc-title">Contents</div>
+        <a href="#legend">Annotation legend</a>
+        <a href="#concepts">1. Concepts &amp; data model</a>
+        <a href="#creation">2. Loan creation</a>
+        <a href="#editing">3. Loan editing</a>
+        <a href="#corrections">4. Balance corrections</a>
+        <a href="#payments">5. Recording payments</a>
+        <a href="#linking">6. Linking existing expenses</a>
+        <a href="#payoff">7. Payoff &amp; paid-off state</a>
+        <a href="#projections">8. Projections &amp; math</a>
+        <a href="#aggregates">9. Aggregates (list page)</a>
+        <a href="#lifecycle">10. Archive / exclude / delete</a>
+        <a href="#events">11. Events timeline</a>
+        <a href="#scope">12. Out of scope / future</a>
+      </nav>
+      <main>
+        <h1>Loans – Behavior Specification</h1>
+        <p class="subtitle">
+          Source of truth for how every loans user-flow behaves, edge cases included. Every statement carries a status
+          badge; noteworthy behaviors and known gaps are called out inline in the section they belong to. When a bug is
+          reported against loans, check here first: if the observed behavior matches a
+          <span class="badge b-spec">✅ SPEC</span> entry, it is by design.
+        </p>
+
+        <section id="legend">
+          <h2>Annotation legend</h2>
+          <div class="legend-grid">
+            <div class="lg">
+              <span class="badge b-spec">✅ SPEC</span>
+              <p>Intended behavior, implemented and in effect.</p>
+            </div>
+            <div class="lg">
+              <span class="badge b-gap">📋 GAP</span>
+              <p>Specified/built but incomplete (e.g. backend endpoint without UI).</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="concepts">
+          <h2><span class="secnum">1</span>Concepts &amp; data model</h2>
+
+          <div class="principle">
+            <div class="ptitle">Product principle – the balance is a user-maintained principal ledger</div>
+            <p>
+              A loan's balance moves <strong>only</strong> on user-recorded events: the initial snapshot, payments, and
+              manual balance corrections. Every recorded payment is <strong>100% principal</strong> – linking a $1,000
+              transaction always reduces the owed amount by exactly $1,000; no principal/interest split exists anywhere
+              in the schema. The app never simulates lender-side interest accrual onto the balance.
+              <em>Abolished alternative (do not reach for it):</em> auto-accruing interest from APR between payments –
+              rejected because lender math varies too much across day-count conventions, posting rules, fees, and
+              jurisdictions to reproduce; a confidently-wrong balance the user must fight is worse than an
+              honestly-simple one the user understands. APR is used exclusively for <em>forward projection</em> and for
+              <em>estimating</em> interest; it never mutates the balance.
+            </p>
+            <p>
+              Consequences, all intended: the ledger understates the lender's figure by accrued interest, so it can
+              reach zero – and settle the loan – before the lender's books do (e.g. 10 × $1,000 payments clear a $10,000
+              ledger while the real loan still carries the interest portion).
+              <strong>Reconciliation via balance corrections (§4) is the designed workflow, not a workaround:</strong>
+              the user restates "I actually still owe $X" from a lender statement, a prematurely-settled loan reopens
+              (§7), and tracking continues. Every interest number in the UI is an amortization-schedule
+              <strong>estimate</strong> that must be labeled "(est.)". This lens applies to every projection and cost
+              figure in §7–§9.
+            </p>
+          </div>
+
+          <h3>What a loan is</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> A loan is an <code>Account</code> with
+            <code>accountCategory: 'loan'</code>, <code>type: 'system'</code>, plus a required 1:1
+            <code>LoanDetails</code> sidecar row carrying loan-only metadata (APR, term, original principal, payment
+            plan, event log, balance anchor). No API path creates a loan-category account without its sidecar in the
+            same DB transaction; <code>UNIQUE(accountId)</code> enforces at most one sidecar. Loan accounts still appear
+            in <code>GET /accounts</code>; the <code>/loans</code> resource is additive.
+          </p>
+
+          <h3>Balance sign convention</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> <code>Account.currentBalance</code> stores the outstanding amount
+            <strong>negative</strong> (liability convention) so net-worth aggregation picks loans up automatically. The
+            API accepts positive "outstanding" decimals on input (create <code>initialBalance</code>, edit
+            <code>currentBalance</code>) and the service negates them. API responses return the signed (negative)
+            balance. An <em>active</em> loan therefore always has <code>currentBalance &lt; 0</code>; exactly
+            <code>0</code> means settled. A positive (credit) balance is unreachable:
+            <code>recomputeLoanBalance</code> floors <code>currentBalance</code>/<code>refCurrentBalance</code> and
+            every rebuilt <code>Balances</code> row at zero (<a href="#zero-cap">zero-cap rule, §6</a>), and the
+            frontend renders outstanding amounts via <code>max(0, −balance)</code> (<code>outstanding-amount.ts</code>)
+            so a positive value could never display as debt.
+          </p>
+
+          <h3>startDate vs balanceAnchorDate – two different dates</h3>
+          <p>This distinction is the most-confused part of the model.</p>
+          <div class="tablewrap">
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Meaning</th>
+                <th>Written by</th>
+                <th>Used for</th>
+              </tr>
+              <tr>
+                <td><code>startDate</code></td>
+                <td>
+                  Contractual origination date at the lender – when the loan began in the real world. UI label:
+                  <strong>"Origination date"</strong> (§3) – distinct from the anchor.
+                </td>
+                <td>Create form; editable later (§3).</td>
+                <td>
+                  Display, amortization-schedule context, balance-journey chart start, "closed N months early". Never
+                  used in balance math.
+                </td>
+              </tr>
+              <tr>
+                <td><code>balanceAnchorDate</code></td>
+                <td>
+                  The date on which the tracked outstanding snapshot (<code>Account.initialBalance</code>) is true –
+                  "the balance was X as-of this day (before that day's payments)".
+                </td>
+                <td>Stamped = today at creation; moved by balance corrections (§4).</td>
+                <td>
+                  The recompute boundary: only payment legs dated <code>DATE(time) &gt;= balanceAnchorDate</code> move
+                  the balance. Pre-anchor legs are informational history.
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="diagram">
+            <div class="timeline">
+              <div class="axis">
+                <div class="mark" style="left: 4%; background: var(--accent)"></div>
+                <div class="lbl above" style="left: 4%; color: var(--accent-ink)">startDate<br />loan originated</div>
+                <div class="mark" style="left: 30%; background: var(--faint)"></div>
+                <div class="lbl below" style="left: 30%; color: var(--faint)">
+                  pre-anchor payment<br />(informational only)
+                </div>
+                <div class="mark" style="left: 52%; background: var(--decision)"></div>
+                <div class="lbl above" style="left: 52%; color: var(--decision)">
+                  balanceAnchorDate<br />snapshot: initialBalance = −X
+                </div>
+                <div class="mark" style="left: 74%; background: var(--spec)"></div>
+                <div class="lbl below" style="left: 74%; color: var(--spec)">post-anchor payment<br />(counted)</div>
+                <div class="mark" style="left: 94%; background: var(--spec)"></div>
+                <div class="lbl above" style="left: 94%; color: var(--spec)">today</div>
+              </div>
+              <div class="span-bar" style="left: 52%; width: 42%; background: rgba(70, 192, 138, 0.35)"></div>
+              <div class="span-lbl" style="color: var(--spec)">
+                counted range → currentBalance = initialBalance + Σ counted income legs
+              </div>
+            </div>
+          </div>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> Example: a mortgage originated 2020-06-15 (<code>startDate</code>)
+            is added to the app on 2026-07-01 with $245,100 still owed. The anchor is stamped 2026-07-01 and
+            <code>initialBalance = −245,100</code>. The five years of payments made before tracking began are
+            <em>already inside</em> that snapshot; if the user backfills them as transactions they must NOT reduce the
+            balance again – hence the anchor boundary.
+          </p>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> The anchor boundary is <strong>inclusive</strong>: legs dated
+            exactly on the anchor day count. The corrected amount is therefore the outstanding <em>before</em> that
+            day's payments, which keeps "create loan today, log today's payment" working. Accepted trade-off: entering a
+            lender statement balance that already reflects a payment, on the same day that payment is logged in the app,
+            applies the payment twice (documented in §4).
+          </p>
+
+          <h3>Payments</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> A payment is an ordinary transfer pair with
+            <code>transferNature: 'transfer_to_loan'</code>: an expense leg on the source account and an income leg on
+            the loan account, linked by <code>transferId</code>. The loan account only ever holds income legs. Income
+            legs move the negative balance toward zero.
+          </p>
+
+          <h3>Balance maintenance &amp; history</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> Loans opt out of the incremental per-transaction balance cascade
+            used by ordinary accounts. Instead, <code>recomputeLoanBalance</code> derives the authoritative balance from
+            scratch on every payment write/edit/delete and every re-anchor:
+            <code>currentBalance = initialBalance + Σ counted income legs</code> (same for <code>ref</code> amounts). It
+            also rebuilds the loan's <code>Balances</code> history rows from the anchor day forward – one row on the
+            anchor date plus one cumulative row per later day with legs; pre-anchor rows stay untouched. Rebuilt rows
+            are floored at zero (<a href="#zero-cap">zero-cap rule, §6</a>). <code>Balances.amount</code> stores the
+            <strong>base-currency (ref)</strong> running balance; the balance-journey chart does not read it – it
+            consumes the loan-currency series from <code>GET /loans/:id/balance-history</code> (§7).
+          </p>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="creation">
+          <h2><span class="secnum">2</span>Loan creation</h2>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> <code>POST /loans</code> creates the Account + LoanDetails in one
+            DB transaction. The create dialog collects all fields; on success the app navigates to
+            <code>/loans/:id</code>. The loan's currency is added to the user's currency list if new. The events log
+            starts empty. All <code>ref*</code> fields are computed at the creation-time exchange rate and frozen.
+          </p>
+
+          <h3>Fields &amp; validation</h3>
+          <div class="tablewrap">
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Required</th>
+                <th>Validation (server, Zod)</th>
+                <th>Notes</th>
+              </tr>
+              <tr>
+                <td><code>name</code></td>
+                <td>yes</td>
+                <td>1–200 chars, trimmed</td>
+                <td>Whitespace-only rejected after trim.</td>
+              </tr>
+              <tr>
+                <td><code>currencyCode</code></td>
+                <td>yes</td>
+                <td>known currency</td>
+                <td>Immutable after create (§3).</td>
+              </tr>
+              <tr>
+                <td><code>initialBalance</code></td>
+                <td>yes</td>
+                <td>decimal ≥ 0</td>
+                <td>
+                  Positive "outstanding now"; service negates. 0 allowed – creates an already-settled loan whose
+                  paid-off interest estimate is ≈ 0 (§8).
+                </td>
+              </tr>
+              <tr>
+                <td><code>loanType</code></td>
+                <td>yes</td>
+                <td><code>LOAN_TYPE</code> enum</td>
+                <td>
+                  UI picker shows mortgage/auto/student/personal only; heloc/business/medical/other reserved (§12). Not
+                  editable after create.
+                </td>
+              </tr>
+              <tr>
+                <td><code>originalPrincipal</code></td>
+                <td>yes</td>
+                <td>decimal &gt; 0</td>
+                <td>
+                  Lender-issued amount; immutable forever (survives backdated-transaction drift of
+                  <code>initialBalance</code>).
+                </td>
+              </tr>
+              <tr>
+                <td><code>interestRate</code></td>
+                <td>yes</td>
+                <td>number, 0 ≤ r ≤ 99.9999</td>
+                <td>APR as percent.</td>
+              </tr>
+              <tr>
+                <td><code>termMonths</code></td>
+                <td>no</td>
+                <td>int 1–1200, nullable</td>
+                <td>Contractual reference; prepaying does not change it – payoff date moves instead.</td>
+              </tr>
+              <tr>
+                <td><code>startDate</code></td>
+                <td>yes</td>
+                <td>calendar-valid YYYY-MM-DD (2024-02-30 rejected)</td>
+                <td>
+                  Must be ≤ today (server-tomorrow ceiling for clock skew); future dates rejected with 422 (see
+                  <a href="#date-ordering">date-ordering invariants</a>).
+                </td>
+              </tr>
+              <tr>
+                <td><code>minPayment</code></td>
+                <td>no</td>
+                <td>decimal ≥ 0, nullable</td>
+                <td>Informational.</td>
+              </tr>
+              <tr>
+                <td><code>plannedPayment</code></td>
+                <td>no</td>
+                <td>decimal ≥ 0, nullable</td>
+                <td>Drives projection. 0 is normalized to "not set" by the projection (§8).</td>
+              </tr>
+              <tr>
+                <td><code>paymentDayOfMonth</code></td>
+                <td>no</td>
+                <td>int 1–31, nullable</td>
+                <td>Short months clamp to last day at display time (31 → Feb 28).</td>
+              </tr>
+              <tr>
+                <td><code>lenderName</code></td>
+                <td>no</td>
+                <td>1–200, trimmed, nullable</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td><code>accountNumber</code></td>
+                <td>no</td>
+                <td>1–100, trimmed, nullable</td>
+                <td>Free-form reference; stored plaintext – helper text tells the user to prefer last-four.</td>
+              </tr>
+            </table>
+          </div>
+
+          <h3>Edge cases</h3>
+          <ul>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Balance &gt; principal:</strong> a legitimate state
+              (negative amortization / capitalized interest). Allowed with a non-blocking inline warning
+              (<code>forms.loan.balanceExceedsPrincipalWarning</code>) –
+              <strong>no confirm step, no submit block, no upper cap</strong>. Projection floors "principal paid" at 0
+              rather than showing negative progress.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Anchor stamping:</strong>
+              <code>balanceAnchorDate</code> is always stamped <em>today</em> (server date) at creation – the entered
+              outstanding is true as-of the moment of entry, regardless of <code>startDate</code>.
+            </li>
+            <li>
+              <div class="finding f-spec" id="date-ordering">
+                <div class="fhead">
+                  <span class="badge b-spec">✅ SPEC</span>
+                  <span class="ftitle"
+                    >Date-ordering invariants: origination ≤ today, and the balance anchor cannot predate
+                    origination</span
+                  >
+                </div>
+                <p>Three rules keep the loan's dates coherent:</p>
+                <ul>
+                  <li>
+                    <strong>(a)</strong> <code>startDate</code> &gt; today is rejected with 422 on both create and edit
+                    – a loan cannot originate in the future. Enforced in the request schema
+                    (<code>loans/zod-schemas.ts</code>) via a shared <code>notFutureCalendarDate()</code> check that
+                    also gates <code>currentBalanceAsOf</code>. The ceiling is server-tomorrow so a client one calendar
+                    day ahead of UTC isn't rejected for its own valid local date.
+                  </li>
+                  <li>
+                    <strong>(b)</strong> A balance correction whose effective as-of (<code
+                      >currentBalanceAsOf ?? today</code
+                    >) is earlier than the effective start date (<code>startDate</code> from the same PATCH, else the
+                    persisted value) is rejected with 422 – an outstanding balance cannot be asserted for a date before
+                    the loan existed. This is a cross-field rule, so it lives in
+                    <code>update-loan.service.ts</code> (the schema can't see the persisted <code>startDate</code> when
+                    as-of arrives without one) and runs before any DB write.
+                  </li>
+                  <li>
+                    <strong>(c)</strong> Together (a) and (b) guarantee <code>balanceAnchorDate ≥ startDate</code>: at
+                    creation the anchor is today and origination is ≤ today; a correction can only move the anchor to a
+                    date ≥ origination.
+                  </li>
+                </ul>
+                <p class="kbd-note">
+                  The client mirrors both rules in the pickers: the origination field caps at today, and the
+                  balance-as-of field's minimum is <code>startDate</code>.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> Missing/invalid required field → 422 with field-level Zod
+              details. Huge principals compute exactly – all arithmetic is integer cents.
+            </li>
+          </ul>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="editing">
+          <h2><span class="secnum">3</span>Loan editing</h2>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> <code>PATCH /loans/:id</code> takes any subset of fields (at least
+            one required, else 422). The service diffs each field against the persisted row; timeline events are
+            appended <strong>only on a real change</strong> – echoing the current value is a no-op and must not create
+            an event. Edits run in one DB transaction. 404 when the loan isn't owned by the caller.
+          </p>
+          <div class="tablewrap">
+            <table>
+              <tr>
+                <th>Field edited</th>
+                <th>Timeline event</th>
+                <th>Side effects</th>
+              </tr>
+              <tr>
+                <td><code>name</code></td>
+                <td>none</td>
+                <td>Routes through the canonical account-update path.</td>
+              </tr>
+              <tr>
+                <td><code>interestRate</code></td>
+                <td><code>rate_change</code> {from, to}</td>
+                <td>Projection recomputes on next read. Past payments never re-split (no split exists).</td>
+              </tr>
+              <tr>
+                <td><code>termMonths</code></td>
+                <td><code>term_change</code> {from, to}</td>
+                <td><code>null</code> is meaningful ("term cleared") and recorded as-is.</td>
+              </tr>
+              <tr>
+                <td><code>plannedPayment</code></td>
+                <td><code>planned_payment_change</code> {from, to}</td>
+                <td>
+                  Compared in cents; <code>refPlannedPayment</code> recomputed at today's rate. <code>null</code> =
+                  "cleared", distinct from 0.
+                </td>
+              </tr>
+              <tr>
+                <td><code>minPayment</code></td>
+                <td>none</td>
+                <td>Silent update + ref recompute.</td>
+              </tr>
+              <tr>
+                <td><code>startDate</code></td>
+                <td>none</td>
+                <td>
+                  Silent edit (typo-fix affordance): no event, no anchor move, no recompute – display/history-only
+                  field. Constrained to <code>startDate ≤ today</code> (enforced per
+                  <a href="#date-ordering">date-ordering invariants</a>). See
+                  <a href="#origination-date">origination date</a> below.
+                </td>
+              </tr>
+              <tr>
+                <td><code>paymentDayOfMonth</code>, <code>lenderName</code>, <code>accountNumber</code></td>
+                <td>none</td>
+                <td>Silent update.</td>
+              </tr>
+              <tr>
+                <td><code>currentBalance</code> (+ optional <code>currentBalanceAsOf</code>)</td>
+                <td><code>balance_correction</code></td>
+                <td>Full re-anchor – see §4.</td>
+              </tr>
+              <tr>
+                <td><code>currencyCode</code></td>
+                <td colspan="2">
+                  Not accepted – absent from the PATCH schema. Currency switching is unsupported codebase-wide; a loan's
+                  amortization history is single-currency.
+                </td>
+              </tr>
+              <tr>
+                <td><code>loanType</code></td>
+                <td colspan="2">Not accepted – absent from the PATCH schema; a loan's type is fixed at creation.</td>
+              </tr>
+            </table>
+          </div>
+          <div class="finding f-spec" id="origination-date">
+            <div class="fhead">
+              <span class="badge b-spec">✅ SPEC</span>
+              <span class="ftitle">startDate is a display-only origination date</span>
+            </div>
+            <p>
+              <code>startDate</code> records when the loan was issued in the real world. It affects no balance math – it
+              drives only history display (balance-journey chart start, "closed N months early"). Its identity is
+              distinct from the anchor and must read that way in the UI:
+            </p>
+            <ul>
+              <li>
+                <strong>UI label: "Origination date"</strong>, with helper text along the lines of
+                <em>"when the loan was issued – used for history display only, doesn't affect balance"</em>. It is not
+                an anchor: <code>balanceAnchorDate</code> is the recompute boundary, stays hidden/auto (stamped at
+                creation, moved only by balance corrections §4), and is never directly editable.
+              </li>
+              <li>
+                <strong>Edit is silent:</strong> no timeline event, no anchor move, no recompute – it is a typo-fix
+                affordance.
+              </li>
+              <li>
+                <strong>Validation:</strong> <code>startDate ≤ today</code> on create and edit (see
+                <a href="#date-ordering">date-ordering invariants</a>). No constraint against the anchor or earliest
+                payment date: a paid-off loan imported years after origination legitimately has a startDate long before
+                both.
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="corrections">
+          <h2><span class="secnum">4</span>Balance corrections</h2>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> A balance correction asserts:
+            <em
+              >"the outstanding was <code>currentBalance</code> (positive decimal) as-of
+              <code>currentBalanceAsOf</code>, before that day's payments."</em
+            >
+            It exists so users can reconcile the principal-only tracked balance against lender statements (interest
+            accrual, fees). Mechanics, in order, inside one transaction:
+          </p>
+          <ol>
+            <li><code>balanceAnchorDate ← asOf</code> (defaults to today when omitted);</li>
+            <li>
+              <code>Account.initialBalance ← −currentBalance</code> (+ ref at today's rate) written directly –
+              deliberately bypassing the generic account-update diff logic, which would shift instead of re-anchor;
+            </li>
+            <li>
+              a <code>balance_correction</code> event is appended (<code>from</code> = old outstanding,
+              <code>to</code> = new) – manual edits leave no transaction trail, so this event is the only record;
+            </li>
+            <li>
+              <code>recomputeLoanBalance</code> re-derives <code>currentBalance</code> = snapshot + post-anchor legs,
+              and rebuilds Balances history from the anchor forward.
+            </li>
+          </ol>
+          <h3>Edge cases</h3>
+          <ul>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Echo without as-of:</strong> sending the current balance
+              unchanged and no <code>currentBalanceAsOf</code> is dropped – no event, anchor stays. Sending the
+              <em>same amount</em> with an as-of date is a genuine re-anchor (the date changes which legs count).
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span>
+              <strong><code>currentBalanceAsOf</code> without <code>currentBalance</code>:</strong> 422 – the anchor
+              date is meaningless alone.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Future as-of:</strong> 422
+              <em>"currentBalanceAsOf must not be in the future"</em>. Ceiling is server-"tomorrow" to absorb client
+              timezone skew.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Same-day double-count trade-off:</strong> correcting to
+              a post-payment statement balance on the very day that payment is logged applies the payment twice (anchor
+              boundary is inclusive). Documented, accepted; users should enter the pre-payment statement figure.
+            </li>
+            <li>
+              <strong>As-of before <code>startDate</code>:</strong> rejected with 422 – a balance cannot predate
+              origination (<a href="#date-ordering">date-ordering invariants</a>).
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Overpay guard:</strong> a correction is rejected with
+              422 when the re-anchored snapshot plus the payment legs dated on/after the new as-of date would project a
+              positive (credit) balance – e.g. correcting to $100 as-of two months ago with a $500 later payment
+              (projected +$400). The message names the overpay amount and the total of the offending payments. Projected
+              <em>exactly zero</em> is allowed (a legit backdated payoff). Checked before any DB write, so a rejected
+              correction leaves the anchor, balance, and events untouched. A positive projection is always user error:
+              legitimate statement-sync corrections assert a <em>higher</em> outstanding (accrued interest), never one
+              below the payments already logged since that date.
+            </li>
+          </ul>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="payments">
+          <h2><span class="secnum">5</span>Recording payments</h2>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> The loan detail page's "Record payment" opens a payment dialog:
+            source account, amount (in source currency), date, note. Submit creates the
+            <code>transfer_to_loan</code> pair; the loan-side income leg amount is in the loan's currency. The recent
+            payments card and the balance update immediately (recompute runs in the same transaction). Creating a
+            generic transfer in the transactions UI with a loan destination switches the nature to
+            <code>transfer_to_loan</code> automatically.
+          </p>
+
+          <h3>Source account restriction</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> The source picker offers
+            <strong>system (manually-managed) accounts only</strong>, excluding vehicle and loan categories (loans are
+            never payment sources – money only flows in). Bank-synced accounts are excluded because their transactions
+            arrive from the provider; the synced expense should instead be attached via <em>Link payments</em> (§6). The
+            dialog shows a hint under the source picker pointing users to <em>Link payments</em> so the omission isn't
+            silent.
+          </p>
+
+          <h3>Overpay guard</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> Institutional loans cannot go into credit. The server guard
+            (<code>assertLoanPaymentAllowed</code>) row-locks the loan account (<code>SELECT … FOR UPDATE</code>) and
+            rejects any write whose projected balance would be &gt; 0 cents, with 422
+            <code>transactions.loanPaymentOverpay</code>. The lock closes the two-concurrent-submits race. Applies to
+            create, amount edit (including amount-only PATCHes), date moves, and re-pointing a transfer at a loan.
+            <strong>Exact payoff to $0 is allowed</strong> (projected balance of exactly zero passes). The client
+            mirrors the guard live with a "max payable: $X" hint (<code>getMaxLoanPayment</code> /
+            <code>isLoanOverpayment</code>, half-cent float slack); the server remains authoritative. The guard applies
+            uniformly to single payments, amount edits, and date moves, rejecting each with a 422.
+          </p>
+
+          <h3>Pre-anchor payment exemption</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> A payment dated <em>before</em> <code>balanceAnchorDate</code> is
+            <strong>accepted but does not move the balance</strong>, and it skips the overpay guard entirely.
+            <em>Why this exists:</em> pre-anchor payments are already baked into the anchor snapshot (§1) – they are
+            backfilled history, useful for the payments list and spending reports, and mathematically incapable of
+            overpaying because the recompute never counts them. A $300 backfill against a $100 remaining balance is
+            therefore legal. Guard symmetry on edits: when an existing leg is edited, its old amount is credited back
+            only if that leg was itself counted (dated on/after the anchor); moving a leg across the anchor boundary in
+            either direction re-evaluates which side it counts on.
+          </p>
+          <h3>Cross-currency payments</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> The source amount is converted to the loan's currency at the
+            payment's own date; validation and storage of the income leg are in loan currency. Missing exchange rate →
+            explicit 422, never a 500.
+          </p>
+
+          <h3>Editing / deleting a payment</h3>
+          <ul>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> Editing amount or date, or deleting either leg, triggers the
+              recompute; the guard re-runs on any change that could raise the counted sum. Deleting a payment moves the
+              balance away from zero and can reopen a settled loan (§7).
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Live overpay validation on edit:</strong> create and
+              edit share one payment form component, so the edit dialog shows the same live "max payable: $X" hint and
+              surfaces overpay violations before submit exactly like the create dialog.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Amount-only PATCH keeps the pair consistent:</strong> a
+              generic <code>PATCH {amount}</code> on a transfer's source leg re-derives the destination leg 1:1 when the
+              pair shares a currency, and is rejected with 422 (explicit error) when the pair is cross-currency – an API
+              caller cannot desync the legs. Loan overpay validation runs on amount-only edits too.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Deletes serialize on the row lock:</strong> all
+              balance-mutating payment writes, including deletes, serialize on the loan-account row lock – the recompute
+              itself acquires <code>SELECT … FOR UPDATE</code>, so no write path can skip it.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>One day definition:</strong> "the leg's calendar day" is
+              the UTC calendar day everywhere. Shared anchor-day helpers (<code>utcDayKey</code> /
+              <code>isOnOrAfterAnchorDay</code>) match SQL <code>DATE(time)</code> in the UTC database and are used by
+              both the recompute grouping and the overpay guard.
+            </li>
+          </ul>
+
+          <h3>Unlinking a payment</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> Unlink is a loan-specific endpoint that accepts
+            <em>either leg's</em> id, deletes the loan-side income leg (firing the recompute), and restores the source
+            leg to a plain expense (<code>not_transfer</code>, <code>transferId</code> cleared) – the spend stays on the
+            books. The <strong>generic</strong> transfer-unlink endpoint rejects
+            <code>transfer_to_loan</code>
+            pairs with 422 – loan pairs are asymmetric (destination leg must be destroyed, not orphaned), so only the
+            loan endpoint may take them apart. Deleting the whole payment (both legs) is the other supported undo.
+            Stale/foreign selections (wrong loan, non-payment transfer) → 422
+            <code>loans.unlinkPaymentInvalidSelection</code>.
+          </p>
+
+          <h3>Other rejected inputs</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> Zero-amount payments, self-pay (<code>source == loan</code>), and
+            non-loan destinations for <code>transfer_to_loan</code> → 422 with field-level errors.
+          </p>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="linking">
+          <h2><span class="secnum">6</span>Linking existing expenses (bulk)</h2>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> <code>POST /loans/:id/link-payments</code> converts existing
+            expense transactions (typically imported from synced accounts) into loan payments in bulk: each becomes the
+            source leg of a <code>transfer_to_loan</code> pair with a generated income leg on the loan account – the
+            same shape as a recorded payment.
+          </p>
+          <h3>Eligibility &amp; atomicity</h3>
+          <ul>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> 1–500 unique transaction ids per batch (duplicates → 422).
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> Every transaction must be: owned by the caller,
+              <code>not_transfer</code>, an <code>expense</code>, and not on the loan account itself. Any ineligible or
+              missing row fails the <strong>whole batch</strong> with 422
+              <code>loans.linkPaymentsInvalidSelection</code> – never a partial link.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> Each expense converts to loan currency at
+              <em>its own date's</em> rate; legs dated before the anchor link fine but don't count toward the balance
+              (§5 exemption).
+            </li>
+          </ul>
+          <h3>Aggregate overpay check &amp; confirm flow</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> Overpay is validated <strong>once for the whole batch</strong>
+            against the row-locked balance (per-leg guards are skipped – each linked leg moves the balance toward zero
+            and would falsely trip). When the counted sum overshoots: 422 with
+            <code>code: loanPaymentOverpayConfirmationRequired</code> and details
+            <code>{ projectedBalance, maxLinkable, overpayBy }</code>; the dialog shows a confirmation. Re-sending with
+            <code>confirmOverpay: true</code> proceeds. The confirm affordance exists because FX rounding can land a
+            batch a few cents over an exact payoff.
+          </p>
+          <div class="finding f-spec" id="zero-cap">
+            <div class="fhead">
+              <span class="badge b-spec">✅ SPEC</span>
+              <span class="ftitle">A confirmed overpay caps the balance at zero and pays the loan off</span>
+            </div>
+            <p>
+              A loan never carries a positive (credit) balance. When a confirmed bulk-link batch overshoots the owed
+              amount, the outstanding balance floors at <code>$0</code> and the recompute stamps
+              <code>paid_off</code> on the owing → settled transition (§7). The excess is
+              <strong>never</strong> credited back to the loan – it stays only as the real expense legs on the user's
+              cash account, who owns the selection. The confirm dialog acknowledges this: it warns the payments exceed
+              the remaining balance and that the extra won't be credited back.
+            </p>
+            <p>
+              The floor lives in <code>recompute-loan-balance.service.ts</code> and clamps both the current balance and
+              every rebuilt <code>Balances</code> history row at zero, so credit is impossible regardless of entry
+              point; a settled loan's last history row sits at 0. Scope is the bulk-link confirm path – the
+              balance-correction path hard-rejects any positive projection and cannot reach a credit state. As defense
+              in depth, the frontend renders outstanding amounts via <code>max(0, −balance)</code>
+              (<code>outstanding-amount.ts</code>), so even an anomalous positive value would display as settled ($0),
+              never as debt.
+            </p>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="payoff">
+          <h2><span class="secnum">7</span>Payoff &amp; paid-off state</h2>
+          <h3>Zero-crossing detection</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> A loan is settled when
+            <code>currentBalance == 0</code> (projection reports <code>isPaidOff: true</code> for balance ≤ 0).
+            Settlement is <strong>ledger-driven</strong> (§1): the principal ledger reaching zero settles the loan even
+            while the lender's books still carry accrued interest – that is intended, and the user restates the real
+            remaining amount via a balance correction (§4), which reopens the loan. The recompute stamps a
+            <code>paid_off</code> timeline event exactly on the <strong>owing → settled transition</strong> (old balance
+            negative, new balance non-negative) – repeated recomputes of an already-settled loan never duplicate it, so
+            <strong>at most one live <code>paid_off</code> event exists at any time</strong>. The event's
+            <code>at</code> is the <strong>date of the payment that settled the loan</strong> (a cumulative walk over
+            the post-anchor legs finds the leg that reached zero), not the wall-clock recompute time – a backfilled
+            final payment gets its historical close date; a payoff produced by a correction-to-zero uses
+            <code>balanceAnchorDate</code>. The account stays <code>active</code>; no auto-archive.
+          </p>
+
+          <h3>Settled presentation</h3>
+          <ul>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> Detail page shows a settled banner (loan ran X years Y months;
+              closed N months early when <code>termMonths</code> is set – from <code>startDate + termMonths</code> vs
+              close date). List page moves the loan to a separate "Paid off" section.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Cost breakdown card:</strong> total cost = principal +
+              estimated interest (est. only, per §1); split percentages; "interest per $1 borrowed" pill. When interest
+              can't be estimated (no term), the total collapses to principal only. The interest figure is the
+              actual-open-duration estimate (<a href="#paid-off-interest">paid-off interest estimate, §8</a>).
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Balance journey chart:</strong> plots the outstanding
+              balance <strong>in the loan's currency</strong> from the opening tracked balance to $0, fed by
+              <code>GET /loans/:id/balance-history</code>. The endpoint returns the outstanding-balance series in the
+              loan's native currency as signed decimals (negative while outstanding, floored at zero), computed from
+              <code>initialBalance</code> plus post-anchor legs grouped by UTC calendar day (matching SQL
+              <code>DATE(time)</code>); legs dated on the anchor day fold into the anchor row. 404 for a missing,
+              foreign, or non-loan account. Months before the first history record fall back to the opening tracked
+              balance (<code>initialBalance</code>), not <code>originalPrincipal</code>. Axis and tooltip are in loan
+              currency; the amortization-schedule overlay derived from <code>originalPrincipal</code> is unit-consistent
+              with the series.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Payments on a settled loan:</strong> the overpay guard
+              rejects any counted (post-anchor) payment – projected balance would exceed 0. Pre-anchor backfill payments
+              remain recordable for history correction (§5 exemption). Balance corrections stay available to restate the
+              loan as still-owing.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Reopen semantics:</strong> editing or deleting a payment
+              that drops the balance below zero resurrects the loan: settled banner clears, it returns to the active
+              list, projection resumes. A reopen removes <strong>all</strong> <code>paid_off</code> events from the
+              timeline – an active loan never shows "paid off" – and a later re-payoff stamps a fresh one.
+            </li>
+          </ul>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="projections">
+          <h2><span class="secnum">8</span>Projections &amp; math</h2>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> <code>computeLoanProjection</code> is a pure function (backend
+            <code>common/loans/projection.ts</code>), recomputed on every <code>GET /loans[/:id]</code> – no caching.
+            All arithmetic in integer cents; API outputs are decimals. <code>today</code> is injected. Every interest
+            output is an estimate (§1 principle).
+          </p>
+          <h3>Contract</h3>
+          <div class="tablewrap">
+            <table>
+              <tr>
+                <th>Input</th>
+                <th>Meaning</th>
+              </tr>
+              <tr>
+                <td><code>currentBalanceCents</code></td>
+                <td>
+                  abs of the signed balance (never positive – the recompute floors at zero, §1). 0 → paid-off branch.
+                </td>
+              </tr>
+              <tr>
+                <td><code>originalPrincipalCents</code></td>
+                <td>immutable lender principal.</td>
+              </tr>
+              <tr>
+                <td><code>interestRate</code></td>
+                <td>APR percent, [0, 100).</td>
+              </tr>
+              <tr>
+                <td><code>plannedPaymentCents</code></td>
+                <td>monthly payment; <strong>0 normalizes to null</strong> ("no plan", not "underfunded").</td>
+              </tr>
+              <tr>
+                <td><code>termMonths</code></td>
+                <td>only used to derive <code>estimatedInterestPaid</code>; null → estimate null.</td>
+              </tr>
+            </table>
+          </div>
+          <h3>Algorithm</h3>
+          <pre><code>monthlyInterest = roundHalfToEven(balance × rate / 100 / 12)        // banker's rounding, cents
+
+if balance ≤ 0            → isPaidOff, monthsRemaining 0, totalInterestRemaining 0
+if payment == null        → warning 'no_planned_payment'   (payoff fields null)
+if payment ≤ monthlyInterest → warning 'payment_below_interest' (payoff fields null)
+
+monthsRemaining = ⌈ ln(P / (P − B·r)) / ln(1 + r) ⌉   where r = rate/100/12    // closed form
+                = ⌈ B / P ⌉ when rate == 0
+if monthsRemaining > 1200 → presented as 'payment_below_interest'              // 100-yr horizon cap
+
+totalInterestRemaining = Σ per-month accrual (final month pays only the leftover
+                         balance + its interest – closed-form P×n − B would overstate)
+
+payoffDate = today + monthsRemaining     // month-end clamped: Jan 31 +1mo → Feb 28/29
+paidToDate = max(0, principal − balance);  percent clamped 0..100, 1 decimal
+scheduledLifetimeInterest = per-month accrual of (principal amortized over termMonths at rate)
+estimatedInterestPaid (active)   = max(0, scheduledLifetimeInterest − totalInterestRemaining)
+estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOpenMonths, termMonths)
+                                   months of the original schedule                       // see paid-off note
+                                   where actualOpenMonths = whole UTC calendar months, startDate → settle date
+                                   (partial trailing month counts as full; settle == start → 0;
+                                    settle date = the live paid_off event's at, else balanceAnchorDate)</code></pre>
+          <ul>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Warnings:</strong>
+              <code>no_planned_payment</code> (prompt to set one) and <code>payment_below_interest</code> (payment never
+              amortizes, incl. the &gt;1200-month case). UI renders banners with no bogus dates/NaN.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>FE lockstep:</strong> the frontend's
+              <code>computePayoffScenario</code> (payoff chart, what-if input) must match the backend to the cent – same
+              closed form, same per-month banker's-rounded accrual, same 1200-month cap, same zero-rate and termination
+              handling.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>estimatedInterestPaid semantics:</strong> derived, never
+              measured – payments carry no interest split (§1), so the original amortization schedule
+              (originalPrincipal, termMonths, APR) is the only interest model. <em>Active:</em> schedule-lifetime minus
+              remaining, clamped at 0 (a payoff trajectory faster than the contractual schedule clamps to 0 rather than
+              going negative); null when remaining interest is null. <em>Paid-off:</em> interest accrued over the loan's
+              <strong>actual open duration</strong> – the schedule's per-month accrual summed for the first
+              <code>min(actualOpenMonths, termMonths)</code> months, where actualOpenMonths counts whole UTC calendar
+              months from <code>startDate</code> to the settle date (a partial trailing month counts as full; settle ==
+              start → 0). The settle date is the loan's single live <code>paid_off</code> event's <code>at</code> (§7),
+              with <code>balanceAnchorDate</code> as fallback; when neither is derivable, the estimate falls back to the
+              full lifetime figure. Not a proration: interest is front-loaded, so scaling the lifetime figure by
+              elapsed/term would understate the early months' share. The estimate never reads payment <em>amounts</em>,
+              only dates – a single lump-sum payoff and twelve monthly payments closing on the same date estimate
+              identically. A loan that runs to term yields the full schedule figure; a loan created already at $0 yields
+              ≈ 0. Null whenever term is missing/degenerate.
+            </li>
+            <li>
+              <div class="finding f-spec" id="paid-off-interest">
+                <div class="fhead">
+                  <span class="badge b-spec">✅ SPEC</span>
+                  <span class="ftitle">Paid-off interest estimate reflects the actual open duration</span>
+                </div>
+                <p>
+                  The paid-off figure runs the original amortization schedule over the months the loan was actually open
+                  (<code>startDate</code> → settle date, capped at <code>termMonths</code>) and sums only that interest
+                  – the formula in the semantics entry above; it is the cost-breakdown card's number (§7). Early payoff
+                  shrinks the estimate to the front-loaded months actually elapsed; running to term reproduces the full
+                  lifetime figure – no special case. A loan created at zero balance settles on its anchor date and
+                  estimates ≈ 0.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Min-payment estimate</strong> (form helper): fixed
+              payment that fully amortizes the <strong>current outstanding balance</strong> over the
+              <strong>remaining term</strong> – <code>B·r / (1 − (1+r)^−m)</code> where
+              <code>m = termMonths − monthsElapsed(startDate)</code>, clamped to ≥1. Interest accrues on the current
+              balance, so this answers "what payment reaches zero by the end of the term from here", which stays correct
+              for over/underpaid and mid-life-created loans. On an on-schedule loan it equals the contractual level
+              payment. Falls back to original principal when no balance is entered yet.
+            </li>
+          </ul>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="aggregates">
+          <h2><span class="secnum">9</span>Aggregates (list page)</h2>
+          <p class="kbd-note">
+            "Active" below = <code>projection.isPaidOff == false</code>. Forward-looking metrics exclude paid-off loans
+            because a settled loan can still carry a planned payment / APR that would inflate totals.
+          </p>
+          <div class="tablewrap">
+            <table>
+              <tr>
+                <th>Metric</th>
+                <th>Definition</th>
+                <th>"–" when</th>
+              </tr>
+              <tr>
+                <td>Total outstanding</td>
+                <td>
+                  Σ |refCurrentBalance| over <strong>all</strong> loans, in base currency (settled loans contribute 0).
+                </td>
+                <td>never</td>
+              </tr>
+              <tr>
+                <td>% principal repaid</td>
+                <td>
+                  Over <strong>active</strong> loans only: (Σ principal − Σ |balance|) / Σ principal, clamped 0–100,
+                  both sides converted from loan-currency figures to base at <strong>live rates</strong> so they share
+                  one FX epoch (<a href="#repaid-fx-epoch">FX-epoch note</a>). "Progress on current debts" reading (<a
+                    href="#repaid-active-only"
+                    >active-only note</a
+                  >).
+                </td>
+                <td>
+                  no active loans, Σ principal ≤ 0 (line hidden – "100% of $0 repaid" is meaningless), or any needed FX
+                  rate is unavailable (never mix epochs)
+                </td>
+              </tr>
+              <tr>
+                <td>Composition bar</td>
+                <td>
+                  Per-loan share of total outstanding, colored by loan type, largest first; zero-balance loans omitted.
+                </td>
+                <td>total ≤ 0 (bar hidden)</td>
+              </tr>
+              <tr>
+                <td>Monthly obligation</td>
+                <td>Σ refPlannedPayment of active loans that have one set.</td>
+                <td>no active loan has a planned payment</td>
+              </tr>
+              <tr>
+                <td>Avg APR</td>
+                <td>
+                  Balance-weighted mean APR of active loans (weights = |refCurrentBalance|); simple mean when all
+                  weights are 0.
+                </td>
+                <td>no active loans</td>
+              </tr>
+              <tr>
+                <td>Interest projected</td>
+                <td>
+                  Σ totalInterestRemaining, each converted from loan currency to base at live rates. Estimate (§1).
+                </td>
+                <td>no loan has a projection, or any needed FX rate is unavailable (never silently understate)</td>
+              </tr>
+              <tr>
+                <td>Debt-free date</td>
+                <td>Latest payoffDate among active loans.</td>
+                <td>
+                  no active loans, or <strong>any</strong> active loan lacks a payoffDate (one unknowable loan makes the
+                  date unknowable)
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="finding f-spec" id="repaid-fx-epoch">
+            <div class="fhead">
+              <span class="badge b-spec">✅ SPEC</span>
+              <span class="ftitle">Repaid-% values both sides at one FX epoch (live rates)</span>
+            </div>
+            <p>
+              Numerator and denominator are built from loan-currency figures (<code>originalPrincipal</code>,
+              <code>currentBalance</code>), each converted to base at live rates – one consistent FX epoch. The line is
+              hidden when any needed rate is unavailable, mirroring "Interest projected". Abolished alternative: the
+              precomputed <code>ref*</code> fields mix epochs – <code>refOriginalPrincipal</code> is frozen at
+              creation-time FX while <code>refCurrentBalance</code> floats at current FX, so currency moves fake (or
+              hide) repayment progress on foreign-currency loans.
+            </p>
+          </div>
+          <div class="finding f-spec" id="repaid-active-only">
+            <div class="fhead">
+              <span class="badge b-spec">✅ SPEC</span>
+              <span class="ftitle">Repaid-% counts active loans only</span>
+            </div>
+            <p>
+              Both numerator and denominator sum over active loans only – the % reads as progress on debts the user
+              still carries, consistent with the card's other metrics (monthly obligation, APR, debt-free date).
+              Abolished alternative: including settled loans' principal ("lifetime progress") pads the % with debt that
+              no longer exists – ten old paid-off loans plus one fresh loan would read ~91% repaid. With no active loans
+              the line is hidden entirely rather than showing "100% of $0 repaid".
+            </p>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="lifecycle">
+          <h2><span class="secnum">10</span>Lifecycle: archive / exclude-from-stats / delete</h2>
+          <h3>Archive</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> Archive sets <code>Account.status = 'archived'</code> via a
+            confirm dialog with an "Also exclude from statistics" checkbox (default on). Archived loans disappear from
+            the sidebar account list and from transaction account pickers (de-emphasized/archived semantics of the
+            shared account store). Unarchive restores <code>active</code> status.
+          </p>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> Archive means "stopped tracking – hide, keep history" (refinanced
+            elsewhere, written off, handed over, tracking abandoned); it is orthogonal to payment state and is the only
+            exit for a loan with recorded payments, which deletion refuses. On the /loans page, archived loans collapse
+            into a collapsed-by-default "Archived" section below "Paid off" and leave the aggregate card and the
+            Active/Paid off lists entirely – aggregates read as "debts the user tracks". Archived wins over paid-off: a
+            settled archived loan appears only in the Archived section. Rows there carry an inline Restore action; the
+            loan detail page shows an archived banner with a Restore button.
+          </p>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> Restore always turns <code>excludeFromStats</code> off: archive
+            auto-enables it (dialog checkbox, default on), and a loan whose tracking resumes should count in stats
+            again. The flag carries no set-by-archive-vs-user provenance, so a manually-set flag is cleared too – the
+            user re-enables it from the actions menu if the loan should stay out of stats.
+          </p>
+          <h3>Exclude from stats</h3>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> <code>excludeFromStats: true</code> removes the loan from
+            <strong>net worth and dashboard analytics only</strong>. It does NOT hide the loan from the /loans list,
+            detail page, or the loans page's own aggregate card – the loans page is a dedicated ledger, not a statistic.
+            Toggle lives in the loan actions menu; failed saves roll the switch back.
+          </p>
+          <h3>Delete</h3>
+          <ul>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <code>DELETE /loans/:id</code> → <strong>204</strong>. Cascade:
+              account delete runs the shared account-deletion path (share cleanup, notification fan-out);
+              <code>LoanDetails</code> dies via <code>ON DELETE CASCADE</code>.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Hard block while payment legs exist:</strong> any
+              <code>transfer_to_loan</code> leg on the account → 422
+              <code>loans.deleteBlockedByPayments</code> (payments are real ledger entries; deleting the loan would
+              orphan them). The frontend pre-counts payments (<code>countLoanPayments</code>) to warn before confirm.
+              Timeline events (corrections, notes) deliberately do NOT block – they are self-contained metadata.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Source-account delete block:</strong> deleting an
+              ordinary account that holds loan-payment source legs is blocked with an error naming the loans and payment
+              counts – clear or reassign the payments first.
+            </li>
+            <li>
+              <span class="badge b-spec">✅ SPEC</span> <strong>Deterministic response:</strong> a successful delete
+              always returns 204 – no other success shape exists server-side. Two hardenings keep transport noise from
+              masquerading as application results: the frontend API client treats an empty body as success only when the
+              HTTP status is OK, and the backend drains in-flight connections on shutdown (SIGINT/SIGTERM/SIGUSR2,
+              5-second cap) so a restart finishes running requests instead of dropping them.
+            </li>
+          </ul>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="events">
+          <h2><span class="secnum">11</span>Events timeline</h2>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> <code>LoanDetails.events</code> is an append-only JSONB array of
+            typed entries; new event types extend the union + Zod without a migration. <code>at</code> is ISO 8601.
+            Money values are cents at rest, decimals on the wire. Auto-stamped types are never accepted from API input.
+            Timeline renders newest-first with per-type icons and localized copy – no raw JSON, no "undefined".
+          </p>
+          <div class="tablewrap">
+            <table>
+              <tr>
+                <th>Type</th>
+                <th>Stamped by</th>
+                <th>Payload</th>
+              </tr>
+              <tr>
+                <td><code>rate_change</code></td>
+                <td>PATCH changing <code>interestRate</code> (real change only)</td>
+                <td>from, to (APR %)</td>
+              </tr>
+              <tr>
+                <td><code>term_change</code></td>
+                <td>PATCH changing <code>termMonths</code></td>
+                <td>from, to (months; null = cleared)</td>
+              </tr>
+              <tr>
+                <td><code>planned_payment_change</code></td>
+                <td>PATCH changing <code>plannedPayment</code> (cents compare)</td>
+                <td>from, to (null = cleared)</td>
+              </tr>
+              <tr>
+                <td><code>balance_correction</code></td>
+                <td>Balance correction (§4)</td>
+                <td>from, to – positive outstanding amounts; the only trail a manual edit leaves</td>
+              </tr>
+              <tr>
+                <td><code>note</code></td>
+                <td><code>POST /loans/:id/events</code>, user text 1–2000 chars</td>
+                <td>text</td>
+              </tr>
+              <tr>
+                <td><code>paid_off</code></td>
+                <td>Recompute on owing→settled transition (§7)</td>
+                <td>at only – the date of the settling payment; at most one live event, removed on reopen (§7)</td>
+              </tr>
+            </table>
+          </div>
+          <div class="finding f-gap">
+            <div class="fhead">
+              <span class="badge b-gap">📋 GAP</span>
+              <span class="ftitle">Note events: backend endpoint fully built, no UI caller</span>
+            </div>
+            <p>
+              <code>POST /loans/:id/events</code> (append note) is implemented, validated, and e2e-tested, but no UI
+              surface invokes it – user notes are not shown anywhere yet, and there is no delete-note action (events are
+              append-only today).
+            </p>
+          </div>
+          <p class="kbd-note">
+            A <code>refinanced</code> event type is not in the shipped union – refinance is deferred (§12).
+          </p>
+        </section>
+
+        <!-- ============================================================ -->
+        <section id="scope">
+          <h2><span class="secnum">12</span>Out of scope / future</h2>
+          <ul>
+            <li>
+              <strong>HELOC / lines of credit / multi-disbursement:</strong> enum values exist (<code>heloc</code>,
+              <code>business</code>, <code>medical</code>, <code>other</code>) but are hidden from the create picker –
+              the model has no multi-disbursement or redraw support.
+            </li>
+            <li>
+              <strong>Refinance:</strong> no dedicated flow. Manual path: correct old loan to zero, archive it, create
+              the new loan. The <code>replacedByLoanId</code> FK and <code>refinanced</code> event are reserved
+              schema/type headroom, unpopulated.
+            </li>
+            <li><strong>Currency switch on an existing loan:</strong> unsupported, by design (§3).</li>
+            <li>
+              <strong>Interest split tracking / auto-split of payments:</strong> deferred – the estimate-only principle
+              (§1) holds until a typed interest event or auto-split ships. No system "Loan Interest" category.
+            </li>
+            <li>
+              <strong>Payment reminders wiring:</strong> <code>paymentDayOfMonth</code> stored, not connected to the
+              reminders engine.
+            </li>
+            <li>
+              <strong>Pagination / sorting on <code>GET /loans</code>:</strong> the endpoint returns the full list
+              unpaged – deferred while loan counts stay in the single digits.
+            </li>
+            <li>
+              <strong
+                >What-if simulator, snowball/avalanche, sharing, MCP tools, liabilities dashboard widget,
+                refund-from-lender event:</strong
+              >
+              all deferred.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

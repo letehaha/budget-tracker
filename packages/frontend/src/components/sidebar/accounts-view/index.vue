@@ -6,22 +6,23 @@ import CreateAccountGroupDialog from '@/components/dialogs/account-groups/create
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import CreatePortfolioDialog from '@/components/dialogs/create-portfolio-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
-import { Collapsible, CollapsibleContent } from '@/components/lib/ui/collapsible';
 import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
+import { useLoans } from '@/composable/data-queries/loans';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { useVentureDeals } from '@/composable/data-queries/venture/deals';
 import { useSidebarSections } from '@/composable/use-sidebar-sections';
 import { waitForAnimationEnd } from '@/composable/wait-for-animation-end';
+import { partitionLoans } from '@/pages/loans/utils/partition-loans';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 import { ACCOUNT_CATEGORIES, AccountModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import {
   CarIcon,
-  ChevronRightIcon,
   ChevronsUpDownIcon,
+  HandCoinsIcon,
   LayersIcon,
   PlusIcon,
   RocketIcon,
@@ -37,8 +38,11 @@ import { useSidebarNavCollapse } from '../use-nav-collapse';
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
 import AccountsSkeleton from './accounts-skeleton.vue';
+import { computeStickyOffsets } from './helpers/sticky-offsets';
 import { useActiveAccountGroups } from './helpers/use-active-account-groups';
+import LoansList from './loans-list.vue';
 import PortfoliosList from './portfolios-list.vue';
+import SidebarCollapsibleSection from './sidebar-collapsible-section.vue';
 import VenturesList from './ventures-list.vue';
 
 const accountsStore = useAccountsStore();
@@ -73,12 +77,13 @@ const accountsInGroups = computed(() => {
 
   return flattenAccounts(accountGroups.value ?? []);
 });
-// Vehicle accounts get their own "Cars" section, so keep them out of the
-// Bank Accounts list.
+// Vehicle and loan accounts get their own "Cars" and "Loans" sections, so keep
+// them out of the Bank Accounts list.
 const isVehicleAccount = (account: AccountModel) => account.accountCategory === ACCOUNT_CATEGORIES.vehicle;
+const isLoanAccount = (account: AccountModel) => account.accountCategory === ACCOUNT_CATEGORIES.loan;
 const vehicleAccounts = computed(() => activeAccounts.value.filter(isVehicleAccount));
 const accountsWithoutGroups = computed(() =>
-  activeAccounts.value.filter((i) => !accountsInGroups.value[i.id] && !isVehicleAccount(i)),
+  activeAccounts.value.filter((i) => !accountsInGroups.value[i.id] && !isVehicleAccount(i) && !isLoanAccount(i)),
 );
 
 const isPopoverOpen = ref(false);
@@ -88,6 +93,7 @@ const isBankAccountsOpen = useLocalStorage('sidebar:accounts-bank-open', true);
 const isPortfoliosOpen = useLocalStorage('sidebar:accounts-portfolios-open', true);
 const isVenturesOpen = useLocalStorage('sidebar:accounts-ventures-open', true);
 const isCarsOpen = useLocalStorage('sidebar:accounts-cars-open', true);
+const isLoansOpen = useLocalStorage('sidebar:accounts-loans-open', true);
 
 const { data: portfolios } = usePortfolios();
 const portfoliosCount = computed(() => (portfolios.value ?? []).filter((p) => !p.deletedAt).length);
@@ -97,31 +103,50 @@ const venturesCount = computed(() => (ventureDeals.value?.data ?? []).length);
 
 const carsCount = computed(() => vehicleAccounts.value.length);
 
+const { data: loans } = useLoans();
+const loansCount = computed(() => partitionLoans({ loans: loans.value ?? [] }).active.length);
+
 const { sidebarSections } = useSidebarSections();
 const showPortfolios = computed(() => sidebarSections.value.portfolios);
 const showVentures = computed(() => sidebarSections.value.ventures);
 const showVehicles = computed(() => sidebarSections.value.vehicles);
+const showLoans = computed(() => sidebarSections.value.loans);
 
 const venturesVisible = computed(() => showVentures.value && venturesCount.value > 0);
 const carsVisible = computed(() => showVehicles.value && carsCount.value > 0);
+const loansVisible = computed(() => showLoans.value && loansCount.value > 0);
 
-// Section headers stick stacked at the top (each ~2.25rem tall) and pile up at
-// the bottom on scroll-up. Offsets factor in BOTH user prefs (hidden sections)
-// and emptiness (zero-count ventures/cars auto-hide).
-const portfoliosBottomClass = computed(() => {
-  const sectionsBelow = (venturesVisible.value ? 1 : 0) + (carsVisible.value ? 1 : 0);
-  if (sectionsBelow >= 2) return 'bottom-18';
-  if (sectionsBelow === 1) return 'bottom-9';
-  return 'bottom-0';
-});
-const venturesBottomClass = computed(() => (carsVisible.value ? 'bottom-9' : 'bottom-0'));
-const venturesTopClass = computed(() => (showPortfolios.value ? 'top-18' : 'top-9'));
-const carsTopClass = computed(() => {
-  const above = (showPortfolios.value ? 1 : 0) + (venturesVisible.value ? 1 : 0);
-  if (above === 2) return 'top-27';
-  if (above === 1) return 'top-18';
-  return 'top-9';
-});
+type SidebarSection = 'bank' | 'portfolios' | 'ventures' | 'cars' | 'loans';
+
+// Ordered, top-to-bottom section list. `orderedVisibleSections` drops the ones hidden by user
+// prefs or emptiness (zero-count ventures/cars/loans auto-hide); `computeStickyOffsets` turns
+// that order into per-section stacked sticky-header offsets. Bank is always first and rendered
+// with a plain `top-0` and no bottom, so its computed entry is only used to count sections above.
+const SIDEBAR_SECTIONS = [
+  'bank',
+  'portfolios',
+  'ventures',
+  'cars',
+  'loans',
+] as const satisfies readonly SidebarSection[];
+
+const orderedVisibleSections = computed<SidebarSection[]>(() =>
+  (
+    [
+      { key: 'bank', visible: true },
+      { key: 'portfolios', visible: showPortfolios.value },
+      { key: 'ventures', visible: venturesVisible.value },
+      { key: 'cars', visible: carsVisible.value },
+      { key: 'loans', visible: loansVisible.value },
+    ] as const
+  )
+    .filter((section) => section.visible)
+    .map((section) => section.key),
+);
+
+const stickyOffsets = computed(() =>
+  computeStickyOffsets({ allKeys: SIDEBAR_SECTIONS, visibleInOrder: orderedVisibleSections.value }),
+);
 
 const route = useRoute();
 const isPortfolioRoute = computed(
@@ -149,16 +174,15 @@ watch(
   { immediate: true },
 );
 
-type SidebarSection = 'bank' | 'portfolios' | 'ventures' | 'cars';
+const isLoanRoute = computed(() => route.name === ROUTES_NAMES.loanDetail);
+watch(
+  isLoanRoute,
+  (val) => {
+    if (val) isLoansOpen.value = true;
+  },
+  { immediate: true },
+);
 
-const bankAccountsHeaderRef = ref<HTMLElement>();
-const portfoliosHeaderRef = ref<HTMLElement>();
-const venturesHeaderRef = ref<HTMLElement>();
-const carsHeaderRef = ref<HTMLElement>();
-const bankCollapsibleWrapperRef = ref<HTMLElement>();
-const portfoliosCollapsibleWrapperRef = ref<HTMLElement>();
-const venturesCollapsibleWrapperRef = ref<HTMLElement>();
-const carsCollapsibleWrapperRef = ref<HTMLElement>();
 const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
 
 const scrollSectionIntoView = async (sectionEl: HTMLElement | undefined) => {
@@ -172,23 +196,10 @@ const scrollSectionIntoView = async (sectionEl: HTMLElement | undefined) => {
   viewport.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
 };
 
-const sectionRefs = {
-  bank: { isOpen: isBankAccountsOpen, header: bankAccountsHeaderRef, wrapper: bankCollapsibleWrapperRef },
-  portfolios: { isOpen: isPortfoliosOpen, header: portfoliosHeaderRef, wrapper: portfoliosCollapsibleWrapperRef },
-  ventures: { isOpen: isVenturesOpen, header: venturesHeaderRef, wrapper: venturesCollapsibleWrapperRef },
-  cars: { isOpen: isCarsOpen, header: carsHeaderRef, wrapper: carsCollapsibleWrapperRef },
-};
-
-const onSectionHeaderClick = async (section: SidebarSection) => {
-  const refs = sectionRefs[section];
-  const wasOpen = refs.isOpen.value;
-
-  refs.isOpen.value = !wasOpen;
-
-  if (!wasOpen) {
-    await waitForAnimationEnd(refs.wrapper.value, 'collapsible-down');
-    await scrollSectionIntoView(refs.header.value);
-  }
+// When a section expands, wait for its open animation to settle, then bring its header into view.
+const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement; wrapperEl?: HTMLElement }) => {
+  await waitForAnimationEnd(wrapperEl, 'collapsible-down');
+  await scrollSectionIntoView(headerEl);
 };
 </script>
 
@@ -248,112 +259,68 @@ const onSectionHeaderClick = async (section: SidebarSection) => {
         <AccountsSkeleton />
       </template>
       <template v-else>
-        <button
-          ref="bankAccountsHeaderRef"
-          type="button"
-          class="bg-card hover:bg-accent sticky top-0 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
-          @click="onSectionHeaderClick('bank')"
+        <SidebarCollapsibleSection
+          v-model:open="isBankAccountsOpen"
+          :icon="LayersIcon"
+          :label="$t('sidebar.accountsView.bankAccounts')"
+          top-class="top-0"
+          @expand="onSectionExpand"
         >
-          <ChevronRightIcon
-            :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isBankAccountsOpen }]"
-          />
-          <LayersIcon class="text-muted-foreground size-4 shrink-0" />
-          <span>{{ $t('sidebar.accountsView.bankAccounts') }}</span>
-        </button>
-        <div ref="bankCollapsibleWrapperRef">
-          <Collapsible v-model:open="isBankAccountsOpen">
-            <CollapsibleContent>
-              <div class="mt-0.5 mb-2">
-                <AccountGroupsList :groups="accountGroups ?? []" />
-                <AccountsList :accounts="accountsWithoutGroups" />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+          <AccountGroupsList :groups="accountGroups ?? []" />
+          <AccountsList :accounts="accountsWithoutGroups" />
+        </SidebarCollapsibleSection>
 
-        <template v-if="showPortfolios">
-          <button
-            ref="portfoliosHeaderRef"
-            type="button"
-            class="bg-card hover:bg-accent sticky top-9 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
-            :class="portfoliosBottomClass"
-            @click="onSectionHeaderClick('portfolios')"
-          >
-            <ChevronRightIcon
-              :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isPortfoliosOpen }]"
-            />
-            <TrendingUpIcon class="text-muted-foreground size-4 shrink-0" />
-            <span>{{ $t('sidebar.accountsView.portfolios') }}</span>
-            <span v-if="portfoliosCount" class="text-muted-foreground ml-auto text-xs tabular-nums">
-              {{ portfoliosCount }}
-            </span>
-          </button>
-          <div ref="portfoliosCollapsibleWrapperRef">
-            <Collapsible v-model:open="isPortfoliosOpen">
-              <CollapsibleContent>
-                <div class="mt-0.5 mb-2">
-                  <PortfoliosList />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        </template>
+        <SidebarCollapsibleSection
+          v-if="showPortfolios"
+          v-model:open="isPortfoliosOpen"
+          :icon="TrendingUpIcon"
+          :label="$t('sidebar.accountsView.portfolios')"
+          :count="portfoliosCount"
+          :top-class="stickyOffsets.portfolios.top"
+          :bottom-class="stickyOffsets.portfolios.bottom"
+          @expand="onSectionExpand"
+        >
+          <PortfoliosList />
+        </SidebarCollapsibleSection>
 
-        <template v-if="venturesVisible">
-          <button
-            ref="venturesHeaderRef"
-            type="button"
-            class="bg-card hover:bg-accent sticky z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
-            :class="[venturesTopClass, venturesBottomClass]"
-            @click="onSectionHeaderClick('ventures')"
-          >
-            <ChevronRightIcon
-              :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isVenturesOpen }]"
-            />
-            <RocketIcon class="text-muted-foreground size-4 shrink-0" />
-            <span>{{ $t('sidebar.accountsView.ventures') }}</span>
-            <span class="text-muted-foreground ml-auto text-xs tabular-nums">
-              {{ venturesCount }}
-            </span>
-          </button>
-          <div ref="venturesCollapsibleWrapperRef">
-            <Collapsible v-model:open="isVenturesOpen">
-              <CollapsibleContent>
-                <div class="mt-0.5 mb-2">
-                  <VenturesList />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        </template>
+        <SidebarCollapsibleSection
+          v-if="venturesVisible"
+          v-model:open="isVenturesOpen"
+          :icon="RocketIcon"
+          :label="$t('sidebar.accountsView.ventures')"
+          :count="venturesCount"
+          :top-class="stickyOffsets.ventures.top"
+          :bottom-class="stickyOffsets.ventures.bottom"
+          @expand="onSectionExpand"
+        >
+          <VenturesList />
+        </SidebarCollapsibleSection>
 
-        <template v-if="carsVisible">
-          <button
-            ref="carsHeaderRef"
-            type="button"
-            class="bg-card hover:bg-accent sticky bottom-0 z-(--z-over-default) flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-semibold transition-colors"
-            :class="carsTopClass"
-            @click="onSectionHeaderClick('cars')"
-          >
-            <ChevronRightIcon
-              :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isCarsOpen }]"
-            />
-            <CarIcon class="text-muted-foreground size-4 shrink-0" />
-            <span>{{ $t('sidebar.accountsView.cars') }}</span>
-            <span class="text-muted-foreground ml-auto text-xs tabular-nums">
-              {{ carsCount }}
-            </span>
-          </button>
-          <div ref="carsCollapsibleWrapperRef">
-            <Collapsible v-model:open="isCarsOpen">
-              <CollapsibleContent>
-                <div class="mt-0.5 mb-2">
-                  <AccountsList :accounts="vehicleAccounts" />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        </template>
+        <SidebarCollapsibleSection
+          v-if="carsVisible"
+          v-model:open="isCarsOpen"
+          :icon="CarIcon"
+          :label="$t('sidebar.accountsView.cars')"
+          :count="carsCount"
+          :top-class="stickyOffsets.cars.top"
+          :bottom-class="stickyOffsets.cars.bottom"
+          @expand="onSectionExpand"
+        >
+          <AccountsList :accounts="vehicleAccounts" />
+        </SidebarCollapsibleSection>
+
+        <SidebarCollapsibleSection
+          v-if="loansVisible"
+          v-model:open="isLoansOpen"
+          :icon="HandCoinsIcon"
+          :label="$t('sidebar.accountsView.loans')"
+          :count="loansCount"
+          :top-class="stickyOffsets.loans.top"
+          :bottom-class="stickyOffsets.loans.bottom"
+          @expand="onSectionExpand"
+        >
+          <LoansList />
+        </SidebarCollapsibleSection>
       </template>
     </ScrollArea>
   </div>

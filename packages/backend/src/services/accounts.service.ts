@@ -5,6 +5,8 @@ import {
   ACCOUNT_TYPES,
   AccountExternalData,
   BANK_PROVIDER_TYPE,
+  TRANSACTION_TRANSFER_NATURE,
+  isDedicatedFlowAccountCategory,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
@@ -14,6 +16,7 @@ import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
@@ -187,7 +190,13 @@ export const createAccount = withTransaction(
     payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
   ): Promise<Accounts.default | null> => {
     try {
-      const { userId, creditLimit, currencyCode, initialBalance } = payload;
+      const { userId, accountCategory, creditLimit, currencyCode, initialBalance } = payload;
+
+      if (accountCategory && isDedicatedFlowAccountCategory(accountCategory)) {
+        throw new ValidationError({
+          message: t({ key: 'accounts.dedicatedFlowCategoryNotAllowed' }),
+        });
+      }
 
       await UsersCurrencies.addCurrency({ userId, currencyCode });
 
@@ -224,9 +233,17 @@ export const updateAccount = withTransaction(
   async ({
     id,
     externalId,
+    loanBalanceCorrection,
     ...payload
   }: Accounts.UpdateAccountByIdPayload &
-    (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>)) => {
+    (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>) & {
+      /**
+       * Authorises a loan `currentBalance` write — set only by `updateLoan`.
+       * Destructured out so it never reaches `Accounts.updateAccountById`; the
+       * controller's field allowlist keeps clients from setting it.
+       */
+      loanBalanceCorrection?: boolean;
+    }) => {
     const accountData = await findOrThrowNotFound({
       query: Accounts.getAccountById({ id, userId: payload.userId }),
       message: t({ key: 'accounts.accountNotFound' }),
@@ -242,6 +259,25 @@ export const updateAccount = withTransaction(
       throw new ValidationError({
         message: t({ key: 'balanceAdjustment.vehicleUseOverride' }),
       });
+    }
+
+    // A loan's balance must go through `updateLoan` (PATCH /loans/:id), which
+    // negates to the liability convention, appends the balance_correction event,
+    // and re-anchors — a raw currentBalance write here would skip all of that.
+    // Enforced in the service so non-HTTP callers (MCP, internal) can't bypass it.
+    if (accountData.accountCategory === ACCOUNT_CATEGORIES.loan) {
+      if (payload.currentBalance !== undefined && !loanBalanceCorrection) {
+        throw new ValidationError({
+          message: t({ key: 'accounts.loanBalanceUseUpdateLoan' }),
+        });
+      }
+      // Changing the category would orphan the LoanDetails sidecar — loans are
+      // created/destroyed only via the /loans endpoints.
+      if (payload.accountCategory !== undefined && payload.accountCategory !== ACCOUNT_CATEGORIES.loan) {
+        throw new ValidationError({
+          message: t({ key: 'accounts.loanCategoryImmutable' }),
+        });
+      }
     }
 
     // Handle archive side effects when transitioning to archived status
@@ -336,6 +372,18 @@ const deleteAccountByIdInTx = withTransaction(
     const account = await Accounts.default.findOne({ where: { id, userId } });
     if (!account) {
       throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
+    }
+
+    // Cascade-deleting would wipe the source legs of loan payments made from this
+    // account; the model hooks would treat that as reversals and silently restore
+    // the loan's owed balance. Block until those payments are cleared.
+    const loanPaymentCount = await Transactions.count({
+      where: { accountId: id, userId, transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan },
+    });
+    if (loanPaymentCount > 0) {
+      throw new ValidationError({
+        message: t({ key: 'accounts.deleteBlockedByLoanPayments' }),
+      });
     }
 
     // Sharing cleanup runs in the same transaction so a destroy failure rolls back the

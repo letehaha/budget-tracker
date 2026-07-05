@@ -1,4 +1,4 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { isTwoLegTransfer, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 
 import type { GroupRowData } from './transaction-group-record.vue';
@@ -40,19 +40,16 @@ export function useTransactionsDisplay({
     // Collect which transferIds have their expense side present in this list.
     // Used to decide whether the income side of a pair should be shown (when the
     // expense side is absent — e.g. account-scoped view) or suppressed (when both
-    // sides are present and we only want to show one).
+    // sides are present and we only want to show one). transfer_to_loan payments
+    // share this paired-row invariant, so they hit the same dedup pass.
     const transferIdsWithExpense = new Set(
       txs
-        .filter(
-          (tx) =>
-            tx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-            tx.transactionType === TRANSACTION_TYPES.expense,
-        )
+        .filter((tx) => isTwoLegTransfer(tx.transferNature) && tx.transactionType === TRANSACTION_TYPES.expense)
         .map((tx) => tx.transferId as string),
     );
 
     const deduplicated = txs.filter((tx) => {
-      if (tx.transferNature !== TRANSACTION_TRANSFER_NATURE.common_transfer) return true;
+      if (!isTwoLegTransfer(tx.transferNature)) return true;
       if (tx.transactionType === TRANSACTION_TYPES.expense) return true;
       // Income side: only suppress it when the expense side is also in this list
       // (i.e. we're on the all-transactions view). When viewing a single account

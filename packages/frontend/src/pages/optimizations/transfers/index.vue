@@ -35,6 +35,7 @@ const isSinglePanel = useWindowBreakpoints(SINGLE_PANEL_BREAKPOINT);
 const ManageTransactionDialogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
 );
+const LoanPaymentDialog = defineAsyncComponent(() => import('@/pages/loans/components/loan-payment-dialog/index.vue'));
 
 const [UseDialogTemplate, SlotContent] = createReusableTemplate();
 
@@ -64,11 +65,20 @@ const hasScanned = ref(false);
 const hasNextPage = computed(() => allItems.value.length < totalCount.value);
 
 // Manage transaction dialog
-const { isDialogVisible, dialogProps, isCompactDialog, handleRecordClick, closeDialog } = useManageTransactionDialog();
+const {
+  isDialogVisible,
+  dialogProps,
+  isCompactDialog,
+  handleRecordClick,
+  closeDialog,
+  isLoanDialogVisible,
+  loanDialogProps,
+  closeLoanDialog,
+} = useManageTransactionDialog();
 
-// Re-scan when the manage-transaction dialog closes (user may have edited amount/date)
-watch(isDialogVisible, (visible) => {
-  if (!visible && hasScanned.value) {
+// Re-scan when either edit dialog closes (user may have edited amount/date)
+watch([isDialogVisible, isLoanDialogVisible], ([visible, loanVisible]) => {
+  if (!visible && !loanVisible && hasScanned.value) {
     freshScan();
   }
 });
@@ -421,5 +431,15 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
         </Dialog.DialogContent>
       </Dialog.Dialog>
     </template>
+
+    <!-- Dedicated loan-payment dialog: handleRecordClick routes transfer_to_loan rows here. -->
+    <LoanPaymentDialog
+      v-if="loanDialogProps.loanAccount"
+      :open="isLoanDialogVisible"
+      :loan-account="loanDialogProps.loanAccount"
+      :transaction="loanDialogProps.transaction"
+      :opposite-transaction="loanDialogProps.oppositeTransaction"
+      @update:open="(value) => !value && closeLoanDialog()"
+    />
   </div>
 </template>

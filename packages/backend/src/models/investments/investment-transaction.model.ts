@@ -221,9 +221,10 @@ export default class InvestmentTransaction extends Model {
    * accounts and don't affect income/expense stats.
    */
   @Column({
-    type: DataType.ENUM(...Object.values(TRANSACTION_TRANSFER_NATURE)),
+    type: DataType.STRING(50),
     allowNull: false,
     defaultValue: TRANSACTION_TRANSFER_NATURE.not_transfer,
+    validate: { isIn: [Object.values(TRANSACTION_TRANSFER_NATURE)] },
   })
   transferNature!: TRANSACTION_TRANSFER_NATURE;
 

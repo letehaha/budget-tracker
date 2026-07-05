@@ -11,15 +11,17 @@ export const formatDateKey = (date: Date | string): string => format(date, 'yyyy
 export interface CombinedBalanceHistoryItem {
   date: string;
   /**
-   * Sum of all "real" account categories (cash, credit card, savings, etc.).
-   * Vehicles are excluded so the line tracks actual cash position rather than
-   * being dragged down by depreciation curves on assets the user can't spend.
+   * Sum of all "real" asset account categories (cash, credit card, savings, etc.).
+   * Vehicles and loans are excluded so the line isn't dragged down by depreciation
+   * or liabilities — those get their own `vehiclesBalance`/`loansBalance` fields.
    */
   accountsBalance: number;
   portfoliosBalance: number;
   venturesBalance: number;
   /** Sum of vehicle-account balances. Separated to avoid polluting accountsBalance. */
   vehiclesBalance: number;
+  /** Sum of loan balances (stored negative), so adding it to totalBalance subtracts liabilities. */
+  loansBalance: number;
   totalBalance: number;
 }
 

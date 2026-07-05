@@ -2,7 +2,9 @@ import {
   ASSET_CLASS,
   EXCHANGE_RATE_PROVIDER_TYPE,
   INVESTMENT_TRANSACTION_CATEGORY,
+  type RecordId,
   SECURITY_PROVIDER,
+  TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
 } from '@bt/shared/types';
@@ -107,8 +109,16 @@ describe('[Stats] Combined balance history', () => {
     expect(record).toHaveProperty('accountsBalance');
     expect(record).toHaveProperty('portfoliosBalance', 0);
     expect(record).toHaveProperty('venturesBalance', 0);
+    expect(record).toHaveProperty('vehiclesBalance', 0);
+    expect(record).toHaveProperty('loansBalance', 0);
     expect(record).toHaveProperty('totalBalance');
-    expect(record.totalBalance).toBe(record.accountsBalance + record.portfoliosBalance + record.venturesBalance);
+    expect(record.totalBalance).toBe(
+      record.accountsBalance +
+        record.portfoliosBalance +
+        record.venturesBalance +
+        record.vehiclesBalance +
+        record.loansBalance,
+    );
   });
 
   it('Returns correct combined balance data with date filtering', async () => {
@@ -941,6 +951,221 @@ describe('[Stats] Combined balance history', () => {
         expect(entry.date < purchaseDateStr).toBe(true);
         expect(entry.vehiclesBalance).toBe(0);
       }
+    });
+  });
+
+  describe('Loans in combined balance history', () => {
+    it('reports negative loansBalance and keeps it out of accountsBalance', async () => {
+      const cash = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: global.BASE_CURRENCY_CODE,
+          initialBalance: 50_000,
+          originalPrincipal: 50_000,
+        }),
+        raw: true,
+      });
+
+      const fromDate = format(subDays(new Date(), 2), 'yyyy-MM-dd');
+      const toDate = format(new Date(), 'yyyy-MM-dd');
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: fromDate,
+        to: toDate,
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      const today = data.find((entry) => entry.date === toDate)!;
+      expect(today).toBeDefined();
+
+      // Outstanding loan balance is stored negative.
+      expect(today.loansBalance).toBeLessThan(0);
+      expect(Math.abs(today.loansBalance)).toBe(50_000);
+
+      // The loan negative is routed into loansBalance, not accountsBalance.
+      expect(today.accountsBalance).toBe(1000);
+
+      // totalBalance sums all buckets algebraically: 1000 + (-50_000) = -49_000.
+      expect(today.totalBalance).toBe(
+        today.accountsBalance +
+          today.portfoliosBalance +
+          today.venturesBalance +
+          today.vehiclesBalance +
+          today.loansBalance,
+      );
+      expect(today.totalBalance).toBe(1000 - 50_000);
+
+      // Only assert existence — these vars are otherwise unused, avoiding unused-var lint.
+      expect(loan.id).toBeDefined();
+      expect(cash.id).toBeDefined();
+    });
+
+    it('forward-fills loansBalance between anchor and payment days without touching accountsBalance', async () => {
+      // Same-currency (base) setup so no FX conversion enters the assertions.
+      const observerCash = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+      const paymentSource = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 100_000 }),
+        raw: true,
+      });
+
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: global.BASE_CURRENCY_CODE,
+          initialBalance: 10_000,
+          originalPrincipal: 10_000,
+        }),
+        raw: true,
+      });
+
+      // Move the balance anchor 6 days back so the loan owes 10,000 as-of then; the
+      // loan's only Balances row starts at that date and forward-fills forward.
+      const anchorDay = subDays(new Date(), 6);
+      const anchorDate = format(anchorDay, 'yyyy-MM-dd');
+      await helpers.updateLoan({
+        id: loan.id,
+        payload: { currentBalance: 10_000, currentBalanceAsOf: anchorDate },
+        raw: true,
+      });
+
+      // A single 4,000 payment dated 3 days ago steps the outstanding to 6,000 and
+      // writes a second Balances row on that day.
+      const paymentDay = subDays(new Date(), 3);
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: paymentSource.id,
+            amount: 4_000,
+            time: paymentDay.toISOString(),
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 4_000,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: anchorDate,
+        to: format(new Date(), 'yyyy-MM-dd'),
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      const byDate = (offset: number) => {
+        const key = format(subDays(new Date(), offset), 'yyyy-MM-dd');
+        const entry = data.find((item) => item.date === key);
+        if (!entry) throw new Error(`Expected a combined-history entry for ${key}`);
+        return entry;
+      };
+
+      // (a) Forward-fill: every day from the anchor up to (but excluding) the
+      // payment day holds the full -10,000 outstanding, even on days with no row.
+      expect(byDate(6).loansBalance).toBe(-10_000);
+      expect(byDate(5).loansBalance).toBe(-10_000);
+      expect(byDate(4).loansBalance).toBe(-10_000);
+
+      // (b) The payment day steps the series down, and it forward-fills onward.
+      expect(byDate(4).loansBalance).not.toBe(byDate(3).loansBalance);
+      expect(byDate(3).loansBalance).toBe(-6_000);
+      expect(byDate(0).loansBalance).toBe(-6_000);
+
+      // (c) The loan's anchor/payment rows never leak into the cash partition: the
+      // pre-payment window has no cash activity, so accountsBalance is identical
+      // across it (a leaked loan anchor would have injected -10,000 on day -6).
+      expect(byDate(6).accountsBalance).toBe(byDate(5).accountsBalance);
+      expect(byDate(5).accountsBalance).toBe(byDate(4).accountsBalance);
+      for (const entry of data) {
+        // Cash stays comfortably positive; a leaked loan negative would drag it under.
+        expect(entry.accountsBalance).toBeGreaterThan(0);
+        expect(entry.totalBalance).toBe(
+          entry.accountsBalance +
+            entry.portfoliosBalance +
+            entry.venturesBalance +
+            entry.vehiclesBalance +
+            entry.loansBalance,
+        );
+      }
+
+      // Only assert existence — these vars are otherwise unused, avoiding unused-var lint.
+      expect(observerCash.id).toBeDefined();
+    });
+
+    it('keeps loansBalance at 0 when the user has no loans', async () => {
+      await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({ raw: true })) as CombinedBalanceHistoryItem[];
+
+      expect(data.length).toBeGreaterThan(0);
+      for (const entry of data) {
+        expect(entry.loansBalance).toBe(0);
+      }
+    });
+
+    it('does not retroactively change a past day loansBalance when a payoff is recorded today', async () => {
+      // The demo scenario: a loan is recorded today (balanceAnchorDate = today) with
+      // 7,200 outstanding, then paid off the same day. A payment dated today must not
+      // change what the loan owed on any prior day — history is immutable.
+      const paymentSource = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 100_000 }),
+        raw: true,
+      });
+
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: global.BASE_CURRENCY_CODE,
+          initialBalance: 7_200,
+          originalPrincipal: 7_200,
+        }),
+        raw: true,
+      });
+
+      const from = format(subDays(new Date(), 3), 'yyyy-MM-dd');
+      const to = format(new Date(), 'yyyy-MM-dd');
+      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+
+      const before = (await helpers.getCombinedBalanceHistory({
+        from,
+        to,
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+      const loanOwedYesterdayBefore = before.find((e) => e.date === yesterday)!.loansBalance;
+
+      // Full payoff dated today.
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: paymentSource.id,
+            amount: 7_200,
+            time: new Date().toISOString(),
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 7_200,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const after = (await helpers.getCombinedBalanceHistory({
+        from,
+        to,
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+      const loanOwedYesterdayAfter = after.find((e) => e.date === yesterday)!.loansBalance;
+
+      // Yesterday the loan owed 7,200 (stored negative); paying it off today cannot
+      // change that. The bug: back-fill uses the anchor-day row, which the same-day
+      // payoff folds to 0, so yesterday retroactively reads 0.
+      expect(loanOwedYesterdayBefore).toBe(-7_200);
+      expect(loanOwedYesterdayAfter).toBe(loanOwedYesterdayBefore);
     });
   });
 

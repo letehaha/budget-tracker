@@ -1,5 +1,5 @@
 import { api } from '@/api/_api';
-import { type TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import { type RecordId, type TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { format } from 'date-fns';
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -15,6 +15,22 @@ export interface BalanceHistoryEntity {
   amount: number;
   accountId: string;
 }
+
+/** Per-account balance history — signed amounts (liabilities negative), decimals. */
+export const getAccountBalanceHistory = async ({
+  accountId,
+  from,
+  to,
+}: {
+  accountId: RecordId;
+  from?: Date;
+  to?: Date;
+}): Promise<BalanceHistoryEntity[]> => {
+  const params: endpointsTypes.GetBalanceHistoryPayload = { accountId };
+  if (from) params.from = formatDate(from);
+  if (to) params.to = formatDate(to);
+  return api.get('/stats/balance-history', params);
+};
 
 export const getExpensesAmountForPeriod = async ({
   from,
@@ -68,6 +84,7 @@ export interface CombinedBalanceHistoryEntity {
   portfoliosBalance: number;
   venturesBalance: number;
   vehiclesBalance: number;
+  loansBalance: number;
   totalBalance: number;
 }
 
