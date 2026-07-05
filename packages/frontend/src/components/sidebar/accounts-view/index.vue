@@ -10,15 +10,17 @@ import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { useLoans } from '@/composable/data-queries/loans';
+import { portfolioSummaryQueryOptions } from '@/composable/data-queries/portfolio-summary';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useVentureDeals } from '@/composable/data-queries/venture/deals';
 import { useSidebarSections } from '@/composable/use-sidebar-sections';
 import { waitForAnimationEnd } from '@/composable/wait-for-animation-end';
 import { partitionLoans } from '@/pages/loans/utils/partition-loans';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useAccountsStore } from '@/stores';
+import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_CATEGORIES, AccountModel } from '@bt/shared/types';
-import { useQuery } from '@tanstack/vue-query';
+import { useQueries, useQuery } from '@tanstack/vue-query';
 import {
   CarIcon,
   ChevronsUpDownIcon,
@@ -38,6 +40,8 @@ import { useSidebarNavCollapse } from '../use-nav-collapse';
 import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
 import AccountsSkeleton from './accounts-skeleton.vue';
+import GroupTotal from './group-total.vue';
+import { sumAccountsBaseBalance } from './helpers/account-totals';
 import { computeStickyOffsets } from './helpers/sticky-offsets';
 import { useActiveAccountGroups } from './helpers/use-active-account-groups';
 import LoansList from './loans-list.vue';
@@ -95,16 +99,67 @@ const isVenturesOpen = useLocalStorage('sidebar:accounts-ventures-open', true);
 const isCarsOpen = useLocalStorage('sidebar:accounts-cars-open', true);
 const isLoansOpen = useLocalStorage('sidebar:accounts-loans-open', true);
 
+const { baseCurrency } = storeToRefs(useCurrenciesStore());
+const baseCurrencyCode = computed(() => baseCurrency.value?.currency?.code);
+const { data: userSettings } = useUserSettings();
+const includeCreditLimit = computed(() => !!userSettings.value?.includeCreditLimitInStats);
+
+// Bank Accounts total = every account rendered under the section (grouped + ungrouped).
+const bankAccountsTotal = computed(() =>
+  sumAccountsBaseBalance({
+    accounts: [...Object.values(accountsInGroups.value), ...accountsWithoutGroups.value],
+    baseCurrencyCode: baseCurrencyCode.value,
+    includeCreditLimit: includeCreditLimit.value,
+  }),
+);
+
 const { data: portfolios } = usePortfolios();
-const portfoliosCount = computed(() => (portfolios.value ?? []).filter((p) => !p.deletedAt).length);
+const visiblePortfolios = computed(() => (portfolios.value ?? []).filter((p) => !p.deletedAt));
+
+// One summary query per portfolio via the shared factory, so these dedupe with the per-row
+// usePortfolioSummary calls (identical cache keys) instead of firing a second request each.
+const portfolioSummaries = useQueries({
+  queries: computed(() =>
+    visiblePortfolios.value.map((portfolio) => portfolioSummaryQueryOptions({ portfolioId: portfolio.id })),
+  ),
+});
+
+const portfoliosTotal = computed(() => {
+  let total = 0;
+  for (const result of portfolioSummaries.value) {
+    if (!result.data) continue;
+    total += Number(result.data.totalPortfolioValueInBaseCurrency);
+  }
+  // Portfolio values are FX-blended market estimates — holdings priced in their own currencies,
+  // converted to base — so the roll-up is always approximate.
+  return { total, isApprox: true };
+});
+const isPortfoliosTotalLoading = computed(() => portfolioSummaries.value.some((result) => result.isLoading));
 
 const { data: ventureDeals } = useVentureDeals();
 const venturesCount = computed(() => (ventureDeals.value?.data ?? []).length);
 
+// Cars total = vehicle accounts in base currency.
+const carsTotal = computed(() =>
+  sumAccountsBaseBalance({
+    accounts: vehicleAccounts.value,
+    baseCurrencyCode: baseCurrencyCode.value,
+    includeCreditLimit: includeCreditLimit.value,
+  }),
+);
 const carsCount = computed(() => vehicleAccounts.value.length);
 
 const { data: loans } = useLoans();
-const loansCount = computed(() => partitionLoans({ loans: loans.value ?? [] }).active.length);
+const activeLoans = computed(() => partitionLoans({ loans: loans.value ?? [] }).active);
+const loansCount = computed(() => activeLoans.value.length);
+// Loans are liabilities (negative balances), so this total reads red like the loan rows.
+const loansTotal = computed(() =>
+  sumAccountsBaseBalance({
+    accounts: activeLoans.value,
+    baseCurrencyCode: baseCurrencyCode.value,
+    includeCreditLimit: includeCreditLimit.value,
+  }),
+);
 
 const { sidebarSections } = useSidebarSections();
 const showPortfolios = computed(() => sidebarSections.value.portfolios);
@@ -266,6 +321,14 @@ const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement
           top-class="top-0"
           @expand="onSectionExpand"
         >
+          <template v-if="baseCurrencyCode" #trailing>
+            <GroupTotal
+              :amount="bankAccountsTotal.total"
+              :currency-code="baseCurrencyCode"
+              :is-approx="bankAccountsTotal.isApprox"
+              emphasis
+            />
+          </template>
           <AccountGroupsList :groups="accountGroups ?? []" />
           <AccountsList :accounts="accountsWithoutGroups" />
         </SidebarCollapsibleSection>
@@ -275,11 +338,19 @@ const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement
           v-model:open="isPortfoliosOpen"
           :icon="TrendingUpIcon"
           :label="$t('sidebar.accountsView.portfolios')"
-          :count="portfoliosCount"
           :top-class="stickyOffsets.portfolios.top"
           :bottom-class="stickyOffsets.portfolios.bottom"
           @expand="onSectionExpand"
         >
+          <template v-if="baseCurrencyCode" #trailing>
+            <GroupTotal
+              :amount="portfoliosTotal.total"
+              :currency-code="baseCurrencyCode"
+              :is-approx="portfoliosTotal.isApprox"
+              :loading="isPortfoliosTotalLoading"
+              emphasis
+            />
+          </template>
           <PortfoliosList />
         </SidebarCollapsibleSection>
 
@@ -301,11 +372,18 @@ const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement
           v-model:open="isCarsOpen"
           :icon="CarIcon"
           :label="$t('sidebar.accountsView.cars')"
-          :count="carsCount"
           :top-class="stickyOffsets.cars.top"
           :bottom-class="stickyOffsets.cars.bottom"
           @expand="onSectionExpand"
         >
+          <template v-if="baseCurrencyCode" #trailing>
+            <GroupTotal
+              :amount="carsTotal.total"
+              :currency-code="baseCurrencyCode"
+              :is-approx="carsTotal.isApprox"
+              emphasis
+            />
+          </template>
           <AccountsList :accounts="vehicleAccounts" />
         </SidebarCollapsibleSection>
 
@@ -314,11 +392,18 @@ const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement
           v-model:open="isLoansOpen"
           :icon="HandCoinsIcon"
           :label="$t('sidebar.accountsView.loans')"
-          :count="loansCount"
           :top-class="stickyOffsets.loans.top"
           :bottom-class="stickyOffsets.loans.bottom"
           @expand="onSectionExpand"
         >
+          <template v-if="baseCurrencyCode" #trailing>
+            <GroupTotal
+              :amount="loansTotal.total"
+              :currency-code="baseCurrencyCode"
+              :is-approx="loansTotal.isApprox"
+              emphasis
+            />
+          </template>
           <LoansList />
         </SidebarCollapsibleSection>
       </template>
