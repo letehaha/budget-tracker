@@ -90,7 +90,7 @@
         </div>
 
         <div v-else-if="filterKey === 'payees'" class="w-44">
-          <PayeeFilter
+          <PayeeMultiSelectField
             hide-clear-button
             :payee-ids="filters.payeeIds"
             @update:payee-ids="emitFilters({ ...filters, payeeIds: $event })"
@@ -181,7 +181,7 @@ import AccountsFilter from '@/components/records-filters/filters/combobox-accoun
 import DateRangeFilter from '@/components/records-filters/filters/date-range-filter.vue';
 import NoteIncludesFilter from '@/components/records-filters/filters/note-includes.vue';
 import OperationPills from '@/components/records-filters/filters/operation-pills.vue';
-import PayeeFilter from '@/components/records-filters/filters/payee-filter.vue';
+import PayeeMultiSelectField from '@/components/fields/payee-multi-select-field.vue';
 import TagFilter from '@/components/records-filters/filters/tag-filter.vue';
 import TransactionTypeFilter from '@/components/records-filters/filters/transaction-type-filter.vue';
 import TransferNatureFilter from '@/components/records-filters/filters/transfer-nature-filter.vue';

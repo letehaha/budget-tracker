@@ -1,3 +1,4 @@
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import { SettingsSchema } from '@models/user-settings.model';
@@ -99,5 +100,63 @@ describe('Patch user settings', () => {
 
     expect(patched.onboarding).toBeUndefined();
     expect(patched.includeCreditLimitInStats).toBe(true);
+  });
+
+  it('persists a saved pivot view and defaults heatmap/showDelta to true when omitted', async () => {
+    const viewId = generateRandomRecordId();
+    const patched = await helpers.patchUserSettings({
+      raw: true,
+      patch: {
+        savedPivotViews: [
+          {
+            id: viewId,
+            name: 'Monthly expenses by category',
+            config: {
+              rowDimension: 'category',
+              granularity: 'monthly',
+              measure: 'expense',
+              from: '2025-01-01',
+              to: '2025-12-31',
+              // heatmap and showDelta intentionally omitted — must default to true.
+            },
+          },
+        ],
+      },
+    });
+
+    expect(patched.savedPivotViews).toHaveLength(1);
+    const patchedView = patched.savedPivotViews![0]!;
+    expect(patchedView.id).toBe(viewId);
+    expect(patchedView.name).toBe('Monthly expenses by category');
+    expect(patchedView.config.rowDimension).toBe('category');
+    expect(patchedView.config.granularity).toBe('monthly');
+    expect(patchedView.config.measure).toBe('expense');
+    expect(patchedView.config.from).toBe('2025-01-01');
+    expect(patchedView.config.to).toBe('2025-12-31');
+    expect(patchedView.config.heatmap).toBe(true);
+    expect(patchedView.config.showDelta).toBe(true);
+
+    const fetched = await helpers.getUserSettings({ raw: true });
+    expect(fetched.savedPivotViews).toStrictEqual(patched.savedPivotViews);
+  });
+
+  it('rejects a saved pivot view with an empty or over-long name', async () => {
+    const validConfig = {
+      rowDimension: 'category' as const,
+      granularity: 'monthly' as const,
+      measure: 'expense' as const,
+      from: '2025-01-01',
+      to: '2025-12-31',
+    };
+
+    const emptyName = await helpers.patchUserSettings({
+      patch: { savedPivotViews: [{ id: generateRandomRecordId(), name: '', config: validConfig }] },
+    });
+    expect(emptyName.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const overLongName = await helpers.patchUserSettings({
+      patch: { savedPivotViews: [{ id: generateRandomRecordId(), name: 'a'.repeat(121), config: validConfig }] },
+    });
+    expect(overLongName.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 });

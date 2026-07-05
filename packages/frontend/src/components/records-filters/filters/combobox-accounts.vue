@@ -8,7 +8,12 @@
   >
     <Combobox.ComboboxAnchor>
       <Combobox.ComboboxTrigger
-        class="border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center justify-between rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        :class="
+          cn(
+            'border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center justify-between rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+            triggerClass,
+          )
+        "
       >
         <div class="flex min-w-0 flex-1 items-center gap-2">
           <span
@@ -127,12 +132,13 @@
 <script setup lang="ts">
 import { loadAccountGroups } from '@/api/account-groups';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { AccountGroups } from '@/common/types/models';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Checkbox, type CheckedState } from '@/components/lib/ui/checkbox';
 import { Collapsible, CollapsibleContent } from '@/components/lib/ui/collapsible';
 import * as Combobox from '@/components/lib/ui/combobox';
+import { flattenGroupAccounts, sortAccounts } from '@/composable/use-grouped-accounts';
 import { useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { cn } from '@/lib/utils';
 import { useAccountsStore } from '@/stores';
 import { AccountModel, type RecordId } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
@@ -150,6 +156,9 @@ interface FlatGroup {
 
 const props = defineProps<{
   accounts: AccountModel[];
+  /** Extra classes merged onto the trigger so a host can reshape it (e.g. the
+   * Pivot Report renders it as a compact rounded filter pill). */
+  triggerClass?: string;
 }>();
 
 const emit = defineEmits(['update:accounts']);
@@ -194,14 +203,9 @@ const { data: accountGroups } = useQuery({
 });
 
 // --- Flatten groups ---
-
-const flattenGroup = ({ group }: { group: AccountGroups }): AccountModel[] => {
-  const accounts = [...group.accounts];
-  for (const child of group.childGroups ?? []) {
-    accounts.push(...flattenGroup({ group: child }));
-  }
-  return accounts;
-};
+// Flattening + balance-first sort are shared with the account multi-select field via
+// `use-grouped-accounts`. This filter keeps its own grouping (all store accounts, no active-only
+// filter, session ordering applied on open) rather than the composable's active-only view.
 
 const flattenedGroups = computed<FlatGroup[]>(() => {
   const groups = accountGroups.value ?? [];
@@ -209,7 +213,7 @@ const flattenedGroups = computed<FlatGroup[]>(() => {
     .map((g) => ({
       id: g.id,
       name: g.name,
-      accounts: flattenGroup({ group: g }),
+      accounts: flattenGroupAccounts({ group: g }),
     }))
     .filter((g) => g.accounts.length > 0);
 });
@@ -223,15 +227,6 @@ const groupedAccountIds = computed(() => {
   }
   return ids;
 });
-
-const sortAccounts = ({ accounts }: { accounts: AccountModel[] }) => {
-  return [...accounts].sort((a, b) => {
-    const aHasBalance = a.currentBalance !== 0;
-    const bHasBalance = b.currentBalance !== 0;
-    if (aHasBalance !== bHasBalance) return aHasBalance ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
-};
 
 const ungroupedAccounts = computed(() => {
   return sortAccounts({

@@ -48,7 +48,7 @@
 
     <TagFilter :tag-ids="filters.tagIds" @update:tag-ids="$emit('update:filters', { ...filters, tagIds: $event })" />
 
-    <PayeeFilter
+    <PayeeMultiSelectField
       :payee-ids="filters.payeeIds"
       @update:payee-ids="$emit('update:filters', { ...filters, payeeIds: $event })"
     />
@@ -83,7 +83,7 @@ import AccountsFilter from './filters/combobox-accounts.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';
 import NoteIncludesFilter from './filters/note-includes.vue';
-import PayeeFilter from './filters/payee-filter.vue';
+import PayeeMultiSelectField from '@/components/fields/payee-multi-select-field.vue';
 import TagFilter from './filters/tag-filter.vue';
 import TransactionTypeFilter from './filters/transaction-type-filter.vue';
 import TransferNatureFilter from './filters/transfer-nature-filter.vue';

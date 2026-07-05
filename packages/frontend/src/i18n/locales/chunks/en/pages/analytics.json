@@ -6,6 +6,7 @@
       "cashFlow": "Cash Flow",
       "trendsComparison": "Trends Comparison",
       "investmentCalculator": "Investment Calculator",
+      "pivotReport": "Pivot",
       "collapse": "Collapse"
     },
     "cashFlow": {
@@ -118,6 +119,81 @@
       "hideInputs": "Hide",
       "portfolioReturnOption": "{name} (your ~{rate}%/yr)",
       "portfolioNoHistoryOption": "{name} — not enough history"
+    }
+  },
+  "pivotReport": {
+    "title": "Pivot Report",
+    "subtitle": "Break spending down by any dimension, lay it across time, and compare.",
+    "controls": {
+      "rows": "Rows",
+      "columns": "Columns",
+      "measure": "Measure",
+      "settings": "Settings"
+    },
+    "dimensions": {
+      "category": "Category",
+      "subcategory": "+ Subcategory",
+      "payee": "Payee",
+      "tag": "Tag"
+    },
+    "granularity": {
+      "yearly": "Years",
+      "quarterly": "Quarters",
+      "monthly": "Months",
+      "weekly": "Weeks"
+    },
+    "measure": {
+      "expense": "Expenses",
+      "income": "Income"
+    },
+    "display": {
+      "trigger": "Display",
+      "title": "Display options"
+    },
+    "toggles": {
+      "heatmap": "Heatmap",
+      "percentChange": "% change"
+    },
+    "filters": {
+      "period": "Period",
+      "categories": "Categories",
+      "allCategories": "All",
+      "payees": "Payees",
+      "accounts": "Accounts"
+    },
+    "periods": {
+      "last6Months": "Last 6 months",
+      "last12Months": "Last 12 months",
+      "thisYear": "This year",
+      "previousYear": "Previous year",
+      "last3Years": "Last 3 years",
+      "last5Years": "Last 5 years"
+    },
+    "savedViews": {
+      "trigger": "Views",
+      "empty": "No saved views yet",
+      "saveCurrent": "Save current view",
+      "customView": "Custom view",
+      "dialogTitle": "Save view",
+      "dialogDescription": "Save the current layout and filters as a reusable view.",
+      "nameLabel": "View name",
+      "namePlaceholder": "e.g. Grocery watch",
+      "savedToast": "View saved",
+      "deletedToast": "View deleted",
+      "saveError": "Could not save the view"
+    },
+    "table": {
+      "total": "Total",
+      "collapseAll": "Collapse all",
+      "expandAll": "Expand all",
+      "expandRow": "Expand",
+      "collapseRow": "Collapse"
+    },
+    "states": {
+      "emptyTitle": "No data for this selection",
+      "emptyHint": "Try a wider period or different filters.",
+      "errorTitle": "Couldn't load the report",
+      "errorHint": "Something went wrong. Please try again."
     }
   }
 }

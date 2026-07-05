@@ -1,5 +1,6 @@
 import { api } from '@/api/_api';
 import type { SupportedLocale } from '@bt/shared/i18n/locales';
+import type { endpointsTypes } from '@bt/shared/types';
 
 export interface DashboardWidgetConfig {
   widgetId: string;
@@ -59,6 +60,14 @@ export interface SubscriptionsSettings {
   defaultAutoRecord?: boolean;
 }
 
+/**
+ * A saved Pivot Report view — the full configuration a user pinned so they can reload the same
+ * cross-tab later. The shape is the shared contract the backend Zod schema
+ * (`ZodSavedPivotViewConfigSchema`) is asserted against, so the two ends can't drift.
+ */
+export type SavedPivotViewConfig = endpointsTypes.SavedPivotViewConfig;
+export type SavedPivotView = endpointsTypes.SavedPivotView;
+
 export interface UserSettingsSchema {
   locale?: SupportedLocale;
   dashboard?: {
@@ -69,6 +78,7 @@ export interface UserSettingsSchema {
   payeeExtractionUsesDescription?: boolean;
   ui?: UiSettings;
   subscriptions?: SubscriptionsSettings;
+  savedPivotViews?: SavedPivotView[];
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

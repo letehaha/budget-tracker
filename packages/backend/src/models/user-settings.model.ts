@@ -5,7 +5,9 @@ import {
   AI_PROVIDER,
   NOTIFICATION_TYPES,
   RecordId,
+  endpointsTypes,
 } from '@bt/shared/types';
+import { dateString } from '@common/lib/zod/custom-types';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
@@ -165,6 +167,37 @@ const ZodSubscriptionsSettingsSchema = z.object({
   defaultAutoRecord: z.boolean().optional(),
 });
 
+// A saved Pivot Report "view": the full configuration a user pinned so they can reopen the
+// same cross-tab later. Persisted in the settings JSONB (no dedicated table). The period is
+// stored as an explicit range.
+const ZodSavedPivotViewConfigSchema = z
+  .object({
+    // Enum members come from the shared pivot tuples so a persisted view can never accept a
+    // dimension/granularity the report itself rejects.
+    rowDimension: z.enum(endpointsTypes.PIVOT_ROW_DIMENSIONS),
+    granularity: z.enum(endpointsTypes.PIVOT_GRANULARITIES),
+    measure: z.enum(endpointsTypes.PIVOT_MEASURES),
+    from: dateString(),
+    to: dateString(),
+    accountIds: z.array(z.string()).optional(),
+    categoryIds: z.array(z.string()).optional(),
+    payeeIds: z.array(z.string()).optional(),
+    heatmap: z.boolean().default(true),
+    showDelta: z.boolean().default(true),
+  })
+  // The live report rejects an inverted range; persist the same invariant so a saved view can't
+  // store a range the report will 400 on when replayed.
+  .refine(({ from, to }) => from <= to, {
+    message: '`from` must be on or before `to`',
+    path: ['from'],
+  });
+
+const ZodSavedPivotViewSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(endpointsTypes.SAVED_PIVOT_VIEW_NAME_MAX_LENGTH),
+  config: ZodSavedPivotViewConfigSchema,
+});
+
 export const ZodSettingsSchema = z.object({
   locale: z
     .enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN, SUPPORTED_LOCALES.SPANISH])
@@ -177,6 +210,7 @@ export const ZodSettingsSchema = z.object({
   sidebarSections: ZodSidebarSectionsSchema.optional(),
   ui: ZodUiSettingsSchema.optional(),
   subscriptions: ZodSubscriptionsSettingsSchema.optional(),
+  savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   // When true, both the inline sync-time Payee extraction and the post-sync
   // note fuzzy backfill fall back to the transaction description/note if the
   // provider's dedicated merchant field is empty. Off by default — Monobank's
@@ -264,6 +298,9 @@ export const ZodSettingsPatchSchema = z.object({
       defaultAutoRecord: z.boolean().optional(),
     })
     .optional(),
+  // Arrays are replaced wholesale by the PATCH merge, so the same element schema (defaults and
+  // all) is reused here to stay in sync with `ZodSettingsSchema`.
+  savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   payeeExtractionUsesDescription: z.boolean().optional(),
 });
 
@@ -294,6 +331,17 @@ type Expect<T extends true> = T;
  */
 export type SettingsPatchSchemaIsInSync = Expect<
   Equals<SettingsPatchSchema, DeepPartial<Omit<SettingsSchema, 'onboarding'>>>
+>;
+
+/**
+ * Compile-time drift guard: the persisted saved-pivot-view schema must infer exactly the shared
+ * `SavedPivotView` contract the frontend also builds against. If either side changes a field
+ * without the other, this line becomes a type error.
+ *
+ * @public exported only so the assertion isn't flagged as unused – nothing should import it.
+ */
+export type SavedPivotViewSchemaIsInSync = Expect<
+  Equals<z.infer<typeof ZodSavedPivotViewSchema>, endpointsTypes.SavedPivotView>
 >;
 
 export const DEFAULT_SETTINGS: SettingsSchema = {

@@ -5,5 +5,6 @@ export * from './get-spendings-by-categories';
 export * from './get-expenses-amount-for-period';
 export * from './get-combined-balance-history';
 export * from './get-cash-flow';
+export * from './get-pivot';
 export * from './get-cumulative-data';
 export * from './get-earliest-transaction-date';
