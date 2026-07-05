@@ -102,7 +102,7 @@ describe('Patch user settings', () => {
     expect(patched.includeCreditLimitInStats).toBe(true);
   });
 
-  it('persists a saved pivot view and defaults heatmap/showDelta to true when omitted', async () => {
+  it('persists a saved pivot view and defaults heatmap to false and showDelta to true when omitted', async () => {
     const viewId = generateRandomRecordId();
     const patched = await helpers.patchUserSettings({
       raw: true,
@@ -117,7 +117,7 @@ describe('Patch user settings', () => {
               measure: 'expense',
               from: '2025-01-01',
               to: '2025-12-31',
-              // heatmap and showDelta intentionally omitted — must default to true.
+              // heatmap and showDelta intentionally omitted — heatmap defaults to false, showDelta to true.
             },
           },
         ],
@@ -133,7 +133,7 @@ describe('Patch user settings', () => {
     expect(patchedView.config.measure).toBe('expense');
     expect(patchedView.config.from).toBe('2025-01-01');
     expect(patchedView.config.to).toBe('2025-12-31');
-    expect(patchedView.config.heatmap).toBe(true);
+    expect(patchedView.config.heatmap).toBe(false);
     expect(patchedView.config.showDelta).toBe(true);
 
     const fetched = await helpers.getUserSettings({ raw: true });
