@@ -18,9 +18,11 @@
       :saved-views="savedViews"
       :active-view-id="activeViewId"
       :is-saving-view="isPatching"
+      :can-reset="canReset"
       @save-view="onSaveView"
       @select-view="onSelectView"
       @delete-view="onDeleteView"
+      @reset="onResetConfig"
     />
 
     <!-- Loading state: approximate the pivot grid (header + labelled rows of cells) -->
@@ -85,7 +87,7 @@ import { useI18n } from 'vue-i18n';
 import PivotConfigPanel from './components/pivot-config-panel.vue';
 import PivotTable from './components/pivot-table.vue';
 import { buildSavedPivotConfig, usePivotReport } from './composables/use-pivot-report';
-import { findMatchingViewId } from './composables/pivot-derivations';
+import { arePivotConfigsEqual, findMatchingViewId } from './composables/pivot-derivations';
 
 interface PivotPersistedConfig {
   rowDimension: endpointsTypes.PivotRowDimension;
@@ -148,6 +150,21 @@ const savedViews = computed<SavedPivotView[]>(() => settings.value?.savedPivotVi
 
 const currentSavedConfig = computed(() => buildSavedPivotConfig({ config: liveConfig.value }));
 const activeViewId = computed(() => findMatchingViewId({ config: currentSavedConfig.value, views: savedViews.value }));
+
+// Whether the live config has drifted from a clean default — gates the "Reset"
+// pill so it only appears once there is something to reset.
+const canReset = computed(
+  () =>
+    !arePivotConfigsEqual({
+      a: currentSavedConfig.value,
+      b: buildSavedPivotConfig({ config: { ...createDefaultConfig(), period: getDefaultPeriod() } }),
+    }),
+);
+
+const onResetConfig = () => {
+  persisted.value = createDefaultConfig();
+  period.value = getDefaultPeriod();
+};
 
 const applySavedConfig = (config: SavedPivotViewConfig) => {
   persisted.value = {

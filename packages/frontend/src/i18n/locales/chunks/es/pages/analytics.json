@@ -159,7 +159,9 @@
       "categories": "Categorías",
       "allCategories": "Todo",
       "payees": "Beneficiarios",
-      "accounts": "Cuentas"
+      "accounts": "Cuentas",
+      "reset": "Restablecer",
+      "resetTooltip": "Restablecer a valores predeterminados"
     },
     "periods": {
       "last6Months": "Últimos 6 meses",

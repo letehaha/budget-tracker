@@ -159,7 +159,9 @@
       "categories": "Categories",
       "allCategories": "All",
       "payees": "Payees",
-      "accounts": "Accounts"
+      "accounts": "Accounts",
+      "reset": "Reset",
+      "resetTooltip": "Reset to defaults"
     },
     "periods": {
       "last6Months": "Last 6 months",

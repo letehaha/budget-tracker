@@ -159,7 +159,9 @@
       "categories": "Категорії",
       "allCategories": "Усі",
       "payees": "Контрагенти",
-      "accounts": "Рахунки"
+      "accounts": "Рахунки",
+      "reset": "Скинути",
+      "resetTooltip": "Скинути на замовчення"
     },
     "periods": {
       "last6Months": "Останні 6 місяців",

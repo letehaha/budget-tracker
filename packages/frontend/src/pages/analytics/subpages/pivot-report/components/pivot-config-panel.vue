@@ -130,6 +130,18 @@
           @update:model-value="accountIds = $event"
         />
       </div>
+
+      <DesktopOnlyTooltip v-if="canReset" :content="$t('pivotReport.filters.resetTooltip')">
+        <Button
+          type="button"
+          variant="ghost"
+          class="text-muted-foreground hover:text-foreground flex h-8 min-h-8 w-auto items-center gap-1.5 rounded-md px-3 py-1 text-sm font-normal"
+          @click="emit('reset')"
+        >
+          <RotateCcwIcon class="size-3.5 shrink-0 opacity-70" />
+          {{ $t('pivotReport.filters.reset') }}
+        </Button>
+      </DesktopOnlyTooltip>
     </div>
 
     <!-- Save-view dialog -->
@@ -175,23 +187,26 @@ import type { Period } from '@/composable/use-period-navigation';
 import { cn } from '@/lib/utils';
 import { endpointsTypes } from '@bt/shared/types';
 import { endOfMonth, endOfYear, startOfMonth, startOfYear, subMonths, subYears } from 'date-fns';
-import { CalendarIcon, CheckIcon, PlusIcon, Settings2Icon, Trash2Icon } from '@lucide/vue';
+import { CalendarIcon, CheckIcon, PlusIcon, RotateCcwIcon, Settings2Icon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import FilterPill, { filterPillClass } from './filter-pill.vue';
+import { filterPillClass } from './filter-pill.helpers';
+import FilterPill from './filter-pill.vue';
 import PivotDimensionControl from './pivot-dimension-control.vue';
 
 const props = defineProps<{
   savedViews: SavedPivotView[];
   activeViewId: string | null;
   isSavingView: boolean;
+  canReset: boolean;
 }>();
 
 const emit = defineEmits<{
   'save-view': [payload: { name: string }];
   'select-view': [payload: { id: string }];
   'delete-view': [payload: { id: string }];
+  reset: [];
 }>();
 
 const rowDimension = defineModel<endpointsTypes.PivotRowDimension>('rowDimension', { required: true });
