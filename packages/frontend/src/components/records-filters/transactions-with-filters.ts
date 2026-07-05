@@ -93,7 +93,7 @@ export const useTransactionsWithFilters = ({
           transferNatures: buildTransferNaturesParam(filter),
           sortBy: sorting?.value.sortBy,
           order: sorting?.value.order,
-          accountIds: filter.accounts.length ? filter.accounts.map((i) => i.id) : undefined,
+          accountIds: filter.accountIds.length ? filter.accountIds : undefined,
           categoryIds: filter.categoryIds.length ? filter.categoryIds : undefined,
           tagIds: filter.tagIds.length ? filter.tagIds : undefined,
           payeeIds: filter.payeeIds.length ? filter.payeeIds : undefined,

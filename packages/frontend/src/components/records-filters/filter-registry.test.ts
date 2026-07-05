@@ -1,5 +1,4 @@
 import {
-  AccountModel,
   CATEGORIZATION_SOURCE,
   FILTER_OPERATION,
   TRANSACTION_TRANSFER_NATURE,
@@ -18,7 +17,7 @@ const makeFilters = (overrides: Partial<FiltersStruct> = {}): FiltersStruct => (
 /** One narrowing value per filter – keys must stay in sync with the registry. */
 const NARROWING_EXAMPLES: Record<FilterKey, Partial<FiltersStruct>> = {
   date: { start: new Date('2026-01-01') },
-  accounts: { accounts: [{ id: 'acc-1' } as unknown as AccountModel] },
+  accounts: { accountIds: ['acc-1'] },
   categories: { categoryIds: ['cat-1'] },
   categorizationSource: { categorizationSource: CATEGORIZATION_SOURCE.ai },
   type: { transactionType: TRANSACTION_TYPES.expense },

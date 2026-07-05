@@ -143,6 +143,10 @@ const props = withDefaults(
     /** Extra classes merged onto the trigger so a host can reshape it (e.g. the
      * Pivot Report renders it as a compact rounded filter pill). */
     triggerClass?: string;
+    /** Surface archived accounts too. Off by default so the selectable universe
+     * matches the account-group endpoint (active accounts only); the /transactions
+     * filter opts in so history can still be narrowed to a since-archived account. */
+    includeArchived?: boolean;
   }>(),
   {
     label: undefined,
@@ -158,7 +162,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { groups, ungroupedAccounts, isLoading } = useGroupedAccounts();
+const { groups, ungroupedAccounts, isLoading } = useGroupedAccounts({ includeArchived: props.includeArchived });
 
 const isOpen = ref(false);
 const searchQuery = ref('');

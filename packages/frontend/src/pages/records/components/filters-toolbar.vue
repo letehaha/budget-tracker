@@ -58,7 +58,11 @@
       </div>
 
       <div class="mr-2 mb-2 inline-block w-44 align-top">
-        <AccountsFilter :accounts="filters.accounts" @update:accounts="emitFilters({ ...filters, accounts: $event })" />
+        <AccountMultiSelectField
+          :model-value="filters.accountIds"
+          include-archived
+          @update:model-value="emitFilters({ ...filters, accountIds: $event })"
+        />
       </div>
 
       <div class="mr-2 mb-2 inline-block w-44 align-top">
@@ -177,10 +181,10 @@ import { FiltersStruct } from '@/components/records-filters/const';
 import { FILTER_ICONS } from '@/components/records-filters/filter-icons';
 import { EXTRA_FILTERS, EXTRA_FILTER_KEYS, type ExtraFilterKey } from '@/components/records-filters/filter-registry';
 import AmountRangeFilter from '@/components/records-filters/filters/amount-range-filter.vue';
-import AccountsFilter from '@/components/records-filters/filters/combobox-accounts.vue';
 import DateRangeFilter from '@/components/records-filters/filters/date-range-filter.vue';
 import NoteIncludesFilter from '@/components/records-filters/filters/note-includes.vue';
 import OperationPills from '@/components/records-filters/filters/operation-pills.vue';
+import AccountMultiSelectField from '@/components/fields/account-multi-select-field.vue';
 import PayeeMultiSelectField from '@/components/fields/payee-multi-select-field.vue';
 import TagFilter from '@/components/records-filters/filters/tag-filter.vue';
 import TransactionTypeFilter from '@/components/records-filters/filters/transaction-type-filter.vue';

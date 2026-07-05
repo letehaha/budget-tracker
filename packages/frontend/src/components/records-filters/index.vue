@@ -36,9 +36,10 @@
       @update:note-includes="$emit('update:filters', { ...filters, noteIncludes: $event })"
     />
 
-    <AccountsFilter
-      :accounts="filters.accounts"
-      @update:accounts="$emit('update:filters', { ...filters, accounts: $event })"
+    <AccountMultiSelectField
+      :model-value="filters.accountIds"
+      include-archived
+      @update:model-value="$emit('update:filters', { ...filters, accountIds: $event })"
     />
 
     <ComboboxCategories
@@ -75,11 +76,11 @@
 <script lang="ts" setup>
 import UiButton from '@/components/lib/ui/button/Button.vue';
 
+import AccountMultiSelectField from '@/components/fields/account-multi-select-field.vue';
 import ComboboxCategories from '@/components/common/combobox-categories.vue';
 
 import { FiltersStruct } from './const';
 import AmountRangeFilter from './filters/amount-range-filter.vue';
-import AccountsFilter from './filters/combobox-accounts.vue';
 import DateRangeFilter from './filters/date-range-filter.vue';
 import ExclusionsFilter from './filters/exclusions.vue';
 import NoteIncludesFilter from './filters/note-includes.vue';
