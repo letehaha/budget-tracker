@@ -47,6 +47,9 @@ const accountOptionSchema = z.discriminatedUnion('option', [
 
 export const columnMappingConfigSchema = z.object({
   date: z.string(),
+  // Required: the wizard forces the user to confirm the day/month order of the
+  // date column, so every payload carries an explicit choice.
+  dateFieldOrder: z.enum(['day-first', 'month-first']),
   amount: z.string(),
   description: z.string().optional(),
   payee: z.string().optional(),

@@ -20,6 +20,7 @@ import {
   CategoryOptionValue,
   type CurrencyOption,
   CurrencyOptionValue,
+  type DateFieldOrder,
   type TagOption,
   type TransactionTypeOption,
   TransactionTypeOptionValue,
@@ -39,6 +40,12 @@ import { type ColumnMatchResult, classifyTransactionTypeValues } from './auto-ma
 export interface ColumnMapping {
   /** Matched date column header, or `null` when no column matched. */
   date: string | null;
+  /**
+   * Day/month order of the date column. `null` until the user explicitly
+   * confirms it in the Map step — auto-detection only pre-suggests an option,
+   * so the initial build never fills this in.
+   */
+  dateFieldOrder: DateFieldOrder | null;
   /** Matched amount column header, or `null` when no column matched. */
   amount: string | null;
   /** Matched description column header, or `null` when none matched (optional field). */
@@ -116,6 +123,9 @@ export function buildInitialColumnMapping({
 
   return {
     date: matchResult.date?.column ?? null,
+    // The user must confirm the day/month order themselves; suggestion happens
+    // in the Map step's date-format expansion, never here.
+    dateFieldOrder: null,
     amount: matchResult.amount?.column ?? null,
     description: matchResult.description?.column ?? null,
     payee: matchResult.payee?.column ?? null,

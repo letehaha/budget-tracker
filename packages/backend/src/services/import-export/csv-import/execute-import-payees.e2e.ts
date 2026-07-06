@@ -62,6 +62,7 @@ describe('CSV Execute Import – payee auto-create', () => {
    */
   const buildColumnMapping = (overrides: Partial<ColumnMappingConfig> = {}): ColumnMappingConfig => ({
     date: 'Date',
+    dateFieldOrder: 'month-first',
     amount: 'Amount',
     description: 'Description',
     category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },

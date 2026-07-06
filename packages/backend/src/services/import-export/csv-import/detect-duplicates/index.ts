@@ -39,25 +39,13 @@ export async function detectDuplicates({
   accountMapping,
   timezone,
 }: DetectDuplicatesParams): Promise<DetectDuplicatesResponse> {
-  const { validRows, invalidRows, dateColumnError } = await parseValidRows({
+  const { validRows, invalidRows } = await parseValidRows({
     userId,
     fileContent,
     delimiter,
     columnMapping,
     timezone,
   });
-
-  // A column with contradicting day-first and month-first signals has no single
-  // safe order. Surface it as a column-level error instead of silently splitting
-  // rows across two months — the frontend renders this and blocks the import.
-  if (dateColumnError) {
-    return {
-      validRows,
-      invalidRows,
-      duplicates: [],
-      dateColumnError,
-    };
-  }
 
   const defaultAccountId = await getDefaultAccountId(userId, columnMapping);
 

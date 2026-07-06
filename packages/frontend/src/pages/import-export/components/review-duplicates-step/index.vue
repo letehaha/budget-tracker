@@ -42,14 +42,6 @@
         </div>
       </div>
 
-      <!-- dateColumnError — blocks import, must fix CSV -->
-      <Callout v-if="store.dateColumnError" variant="destructive" role="alert">
-        <p class="font-medium">
-          {{ $t('pages.importExport.csvImport.review.dateColumnErrorTitle', { column: store.dateColumnError.column }) }}
-        </p>
-        <p class="mt-1 text-xs opacity-80">{{ store.dateColumnError.message }}</p>
-      </Callout>
-
       <!-- Invalid rows table -->
       <section v-if="store.invalidRows.length > 0" aria-labelledby="invalid-rows-heading">
         <h3 id="invalid-rows-heading" class="text-destructive-text mb-3 text-sm font-semibold">

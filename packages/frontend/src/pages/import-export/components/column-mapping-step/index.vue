@@ -3,6 +3,8 @@
 
     1. "Columns" (simple fields): status | field | CSV column | example data
        Rows: Date (required), Amount (required), Description (optional).
+       A mapped Date row expands in place to the date-format block, which forces
+       an explicit day/month-order confirmation before Next unlocks.
 
     2. "Assignments" (complex fields): status | field | how to assign | using
        Rows: Category, Account, Currency, Transaction type. The method cell picks
@@ -39,6 +41,7 @@
       :columns="simpleColumns"
       :items="simpleRows"
       :row-key="(row) => row.id"
+      :is-row-expanded="(row) => row.id === 'date' && !!row.value"
       :get-row-class="(row) => (row.status === 'needs-attention' ? 'bg-warning/10' : '')"
       class="mb-6"
     >
@@ -72,6 +75,11 @@
 
       <template #cell:example="{ item }">
         <span class="text-muted-foreground truncate">{{ exampleData(item.value) }}</span>
+      </template>
+
+      <!-- Forced date-format confirmation, always visible under a mapped Date row -->
+      <template #expansion="{ item }">
+        <DateFormatExpansion v-if="item.id === 'date'" />
       </template>
     </MappingTable>
 
@@ -198,12 +206,7 @@
       </template>
     </MappingTable>
 
-    <!-- Date column has mixed day/month order — user must fix the CSV before continuing. -->
-    <Callout v-if="importStore.dateColumnError" variant="destructive" class="mt-4" role="alert">
-      <p>{{ importStore.dateColumnError.message }}</p>
-    </Callout>
-
-    <!-- detectDuplicates transport failure (network / 5xx), distinct from dateColumnError. -->
+    <!-- detectDuplicates transport failure (network / 5xx). -->
     <Callout v-if="importStore.detectError" variant="destructive" class="mt-4" role="alert">
       <p>{{ importStore.detectError }}</p>
     </Callout>
@@ -268,6 +271,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import CellColumnSelect from './cell-column-select.vue';
+import DateFormatExpansion from './date-format-expansion.vue';
 import { type MapRowStatus, deriveMapRowStatus } from './map-row-status';
 import TransactionTypeExpansion from './transaction-type-expansion.vue';
 
@@ -407,16 +411,21 @@ const simpleRows = computed<SimpleRow[]>(() => [
     id: 'date',
     label: t('pages.importExport.mapColumns.fields.date'),
     required: true,
+    // The Date row counts as filled only once the day/month order is confirmed
+    // too, so the row stays flagged until the expansion's pick is made.
     value: m.value.date,
     status: deriveMapRowStatus({
-      hasValue: !!m.value.date,
+      hasValue: !!m.value.date && !!m.value.dateFieldOrder,
       required: true,
       match: importStore.columnMatch?.date ?? null,
     }),
     onChange: (value) => {
+      // A different column's cells may follow a different day/month order —
+      // the user must confirm the format again.
+      if (value !== importStore.columnMapping.date) {
+        importStore.columnMapping.dateFieldOrder = null;
+      }
       importStore.columnMapping.date = value;
-      // Selecting a different column clears the stale mixed day/month order error.
-      importStore.dateColumnError = null;
     },
   },
   {
@@ -787,6 +796,7 @@ const isAdvancing = computed(() => importStore.isDetectingDuplicates);
 const missingHint = computed(() => {
   const missing: string[] = [];
   if (!m.value.date) missing.push(t('pages.importExport.mapColumns.fields.date'));
+  else if (!m.value.dateFieldOrder) missing.push(t('pages.importExport.mapColumns.dateFormat.label'));
   if (!m.value.amount) missing.push(t('pages.importExport.mapColumns.fields.amount'));
   if (categoryStatus.value === 'needs-attention') missing.push(t('pages.importExport.mapColumns.fields.category'));
   if (accountStatus.value === 'needs-attention') missing.push(t('pages.importExport.mapColumns.fields.account'));

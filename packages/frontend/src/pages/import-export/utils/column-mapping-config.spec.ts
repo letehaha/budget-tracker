@@ -21,6 +21,7 @@ import { toColumnMappingConfig } from './column-mapping-config';
 /** A fully-valid ColumnMapping with every required field set. */
 const baseMapping: ColumnMapping = {
   date: 'Date',
+  dateFieldOrder: 'month-first',
   amount: 'Amount',
   description: 'Memo',
   payee: null,
@@ -38,6 +39,11 @@ const baseMapping: ColumnMapping = {
 describe('toColumnMappingConfig — returns null when required field is missing', () => {
   it('returns null when date is null', () => {
     const result = toColumnMappingConfig({ mapping: { ...baseMapping, date: null } });
+    expect(result).toBeNull();
+  });
+
+  it('returns null when dateFieldOrder is unconfirmed', () => {
+    const result = toColumnMappingConfig({ mapping: { ...baseMapping, dateFieldOrder: null } });
     expect(result).toBeNull();
   });
 
@@ -78,6 +84,7 @@ describe('toColumnMappingConfig — full ColumnMappingConfig when all required f
     const result = toColumnMappingConfig({ mapping: baseMapping });
     expect(result).toEqual({
       date: 'Date',
+      dateFieldOrder: 'month-first',
       amount: 'Amount',
       description: 'Memo',
       category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },

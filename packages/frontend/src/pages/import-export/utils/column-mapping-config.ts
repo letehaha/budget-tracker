@@ -14,16 +14,18 @@ import type { ColumnMappingConfig } from '@bt/shared/types';
 import type { ColumnMapping } from './build-initial-mapping';
 
 export function toColumnMappingConfig({ mapping }: { mapping: ColumnMapping }): ColumnMappingConfig | null {
-  const { date, amount, category, account, currency, transactionType } = mapping;
+  const { date, dateFieldOrder, amount, category, account, currency, transactionType } = mapping;
 
   // transactionType is always set; the rest are nullable until the user (or
-  // auto-match) chooses a method, so a missing one means the mapping is incomplete.
-  if (!date || !amount || !category || !account || !currency) {
+  // auto-match) chooses a method, so a missing one means the mapping is
+  // incomplete. dateFieldOrder is a user-confirmed choice, never auto-filled.
+  if (!date || !dateFieldOrder || !amount || !category || !account || !currency) {
     return null;
   }
 
   return {
     date,
+    dateFieldOrder,
     amount,
     description: mapping.description || undefined,
     payee: mapping.payee || undefined,

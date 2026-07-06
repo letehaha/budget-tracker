@@ -21,6 +21,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -54,6 +55,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -86,6 +88,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -110,6 +113,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.createNewCategories, columnName: 'Category' },
@@ -137,6 +141,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -163,6 +168,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.existingCategory, categoryId: existingCategory.id },
@@ -187,6 +193,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Date' }, // Use Date as fake category
             currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: 'USD' },
@@ -224,6 +231,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -255,6 +263,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.existingCategory, categoryId: existingCategory.id },
@@ -282,6 +291,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -310,6 +320,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.createNewCategories, columnName: 'Category' },
@@ -340,6 +351,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -376,6 +388,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.createNewCategories, columnName: 'Category' },
@@ -408,6 +421,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.existingCategory, categoryId: existingCategory.id },
@@ -433,6 +447,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -460,6 +475,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.createNewCategories, columnName: 'Category' },
@@ -503,6 +519,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -526,6 +543,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -562,6 +580,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             description: 'Description',
             category: { option: CategoryOptionValue.createNewCategories, columnName: 'Category' },
@@ -593,6 +612,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'NonExistentColumn',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
@@ -615,6 +635,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'NonExistentColumn',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
@@ -637,6 +658,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
@@ -659,6 +681,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: {
               option: CategoryOptionValue.existingCategory,
@@ -684,6 +707,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
             currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: 'INVALID' },
@@ -706,6 +730,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'NonExistentColumn' },
@@ -728,6 +753,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
@@ -750,6 +776,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'NonExistentColumn' },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
@@ -772,6 +799,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
@@ -799,6 +827,7 @@ describe('Extract Unique Values endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.createNewCategories, columnName: 'NonExistentColumn' },
             currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
@@ -821,6 +850,7 @@ describe('Extract Unique Values endpoint', () => {
 
     const baseMapping = {
       date: 'Date',
+      dateFieldOrder: 'month-first' as const,
       amount: 'Amount',
       description: 'Description',
       category: { option: CategoryOptionValue.mapDataSourceColumn as const, columnName: 'Category' },

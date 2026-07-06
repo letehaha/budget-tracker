@@ -5,6 +5,7 @@ import { extractTags } from './extract-tags';
 
 const baseMapping: ColumnMappingConfig = {
   date: 'Date',
+  dateFieldOrder: 'month-first',
   amount: 'Amount',
   category: { option: 'map-data-source-column', columnName: 'Category' } as ColumnMappingConfig['category'],
   currency: { option: 'data-source-column', columnName: 'Currency' } as ColumnMappingConfig['currency'],
