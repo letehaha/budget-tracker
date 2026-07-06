@@ -73,6 +73,24 @@ describe('toColumnMappingConfig — returns null when required field is missing'
     });
     expect(result).toBeNull();
   });
+
+  it('returns null when account picks existing-account but no id is set', () => {
+    const account: AccountOption = { option: AccountOptionValue.existingAccount, accountId: '' };
+    const result = toColumnMappingConfig({ mapping: { ...baseMapping, account } });
+    expect(result).toBeNull();
+  });
+
+  it('returns null when category picks existing-category but no id is set', () => {
+    const category: CategoryOption = { option: CategoryOptionValue.existingCategory, categoryId: '' };
+    const result = toColumnMappingConfig({ mapping: { ...baseMapping, category } });
+    expect(result).toBeNull();
+  });
+
+  it('returns null when currency picks existing-currency but no code is set', () => {
+    const currency: CurrencyOption = { option: CurrencyOptionValue.existingCurrency, currencyCode: '' };
+    const result = toColumnMappingConfig({ mapping: { ...baseMapping, currency } });
+    expect(result).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
