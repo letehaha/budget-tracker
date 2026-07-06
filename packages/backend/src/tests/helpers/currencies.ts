@@ -3,7 +3,10 @@ import ExchangeRates from '@models/exchange-rates.model';
 import { UpdateExchangeRatePair } from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import { addUserCurrencies as apiAddUserCurrencies } from '@root/services/currencies/add-user-currency';
-import { editUserCurrency as apiEditUserCurrency } from '@root/services/user.service';
+import {
+  deleteUserCurrency as apiDeleteUserCurrency,
+  editUserCurrency as apiEditUserCurrency,
+} from '@root/services/user.service';
 
 import { makeRequest } from './common';
 
@@ -63,6 +66,21 @@ export function addUserCurrencyByCode<R extends boolean | undefined = undefined>
         },
       ],
     },
+    raw,
+  });
+}
+
+export function deleteUserCurrency<R extends boolean | undefined = undefined>({
+  currencyCode,
+  raw,
+}: {
+  currencyCode: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiDeleteUserCurrency>>, R>({
+    method: 'delete',
+    url: '/user/currency',
+    payload: { currencyCode },
     raw,
   });
 }
