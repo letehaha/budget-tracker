@@ -3,6 +3,8 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { parse } from 'csv-parse/sync';
 
+import { parseCsvRecords } from './parse-csv-records';
+
 export { MAX_CSV_ROWS };
 
 interface CSVParseResult {
@@ -79,14 +81,8 @@ export function parseCSV({
   // Auto-detect delimiter if not provided
   const detectedDelimiter = delimiter || detectDelimiter(fileContent);
 
-  // Parse the CSV
-  const records = parse(fileContent, {
-    delimiter: detectedDelimiter,
-    skipEmptyLines: true,
-    relaxColumnCount: true, // Allow rows with different column counts
-    trim: true,
-    columns: false, // Don't use first row as headers yet
-  }) as string[][];
+  // Parse the CSV. A malformed file is surfaced as a 422 rather than a raw 500.
+  const records = parseCsvRecords({ fileContent, delimiter: detectedDelimiter });
 
   if (records.length === 0) {
     throw new ValidationError({ message: t({ key: 'csvImport.csvFileEmpty' }) });

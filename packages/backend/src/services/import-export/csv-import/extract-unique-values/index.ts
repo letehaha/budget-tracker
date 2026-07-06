@@ -1,9 +1,9 @@
 import type { ColumnMappingConfig, ExtractUniqueValuesResponse } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import { parse } from 'csv-parse/sync';
 
 import { MAX_CSV_ROWS } from '../csv-parser.service';
+import { parseCsvRecords } from '../parse-csv-records';
 import { extractAccounts } from './extract-accounts';
 import { extractCategories } from './extract-categories';
 import { extractTags } from './extract-tags';
@@ -31,13 +31,7 @@ export async function extractUniqueValues({
   columnMapping,
 }: ExtractUniqueValuesParams): Promise<ExtractUniqueValuesResponse> {
   // Parse full CSV
-  const records = parse(fileContent, {
-    delimiter,
-    skipEmptyLines: true,
-    relaxColumnCount: true,
-    trim: true,
-    columns: false,
-  }) as string[][];
+  const records = parseCsvRecords({ fileContent, delimiter });
 
   if (records.length === 0) {
     throw new ValidationError({ message: t({ key: 'csvImport.csvFileEmpty' }) });

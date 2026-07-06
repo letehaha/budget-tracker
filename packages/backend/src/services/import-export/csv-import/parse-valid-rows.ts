@@ -14,9 +14,9 @@ import { anchorImportDate } from '@services/import-export/core/parse/anchor-impo
 import { parseImportDate } from '@services/import-export/core/parse/date-engine';
 import { parseAmount } from '@services/import-export/core/parse/parse-amount';
 import { splitTagCell } from '@services/import-export/core/parse/split-tag-cell';
-import { parse } from 'csv-parse/sync';
 
 import { MAX_CSV_ROWS } from './csv-parser.service';
+import { parseCsvRecords } from './parse-csv-records';
 
 interface ParseValidRowsParams {
   userId: number;
@@ -56,13 +56,7 @@ export async function parseValidRows({
   timezone,
 }: ParseValidRowsParams): Promise<ParseValidRowsResult> {
   // Parse full CSV
-  const records = parse(fileContent, {
-    delimiter,
-    skipEmptyLines: true,
-    relaxColumnCount: true,
-    trim: true,
-    columns: false,
-  }) as string[][];
+  const records = parseCsvRecords({ fileContent, delimiter });
 
   if (records.length === 0) {
     throw new ValidationError({ message: t({ key: 'csvImport.csvFileEmpty' }) });

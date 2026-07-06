@@ -256,6 +256,7 @@
     "headersCannotBeParsed": "Headers cannot be parsed",
     "csvFileEmpty": "CSV file is empty",
     "csvFileNoHeaders": "CSV file has no headers",
+    "csvFileMalformed": "The CSV file could not be parsed. Check for unmatched quotes or an unexpected delimiter, or try re-exporting the file.",
     "csvFileTooManyRows": "CSV file exceeds the maximum allowed row count of {{max}} rows.",
     "csvFileForbiddenHeader": "CSV file contains a header name that is not allowed.",
     "invalidDateFormat": "Invalid date format: \"{{dateStr}}\". Expected ISO format (YYYY-MM-DD).",

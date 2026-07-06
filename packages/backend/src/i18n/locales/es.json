@@ -256,6 +256,7 @@
     "headersCannotBeParsed": "No se pueden analizar las cabeceras",
     "csvFileEmpty": "El archivo CSV está vacío",
     "csvFileNoHeaders": "El archivo CSV no tiene cabeceras",
+    "csvFileMalformed": "No se pudo analizar el archivo CSV. Compruebe si hay comillas sin cerrar o un delimitador inesperado, o intente volver a exportar el archivo.",
     "csvFileTooManyRows": "El archivo CSV supera el número máximo de filas permitidas ({{max}} filas).",
     "csvFileForbiddenHeader": "El archivo CSV contiene un nombre de cabecera no permitido.",
     "invalidDateFormat": "Formato de fecha no válido: \"{{dateStr}}\". Se esperaba formato ISO (AAAA-MM-DD).",
