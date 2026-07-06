@@ -9,6 +9,7 @@ import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { ErrorResponse } from '@tests/helpers/common';
 
 describe('Extract Unique Values endpoint', () => {
   describe('successful extraction with data source columns', () => {
@@ -719,6 +720,30 @@ describe('Extract Unique Values endpoint', () => {
       });
 
       expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should return error for empty currencyCode', async () => {
+      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
+
+      const result = await helpers.extractUniqueValues({
+        payload: {
+          fileContent,
+          delimiter: ',',
+          columnMapping: {
+            date: 'Date',
+            dateFieldOrder: 'month-first',
+            amount: 'Amount',
+            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
+            currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: '' },
+            transactionType: { option: TransactionTypeOptionValue.amountSign },
+            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
+          },
+        },
+        raw: false,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect((result.body.response as unknown as ErrorResponse).message).toContain('currency.currencyCode');
     });
 
     it('should return error for non-existent currency column', async () => {

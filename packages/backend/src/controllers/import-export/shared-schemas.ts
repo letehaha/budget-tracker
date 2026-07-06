@@ -5,7 +5,7 @@ import {
   TagOptionValue,
   TransactionTypeOptionValue,
 } from '@bt/shared/types';
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { z } from 'zod';
 
 const categoryOptionSchema = z.discriminatedUnion('option', [
@@ -27,7 +27,7 @@ export const tagMappingValueSchema = z.discriminatedUnion('action', [
 
 const currencyOptionSchema = z.discriminatedUnion('option', [
   z.object({ option: z.literal(CurrencyOptionValue.dataSourceColumn), columnName: z.string() }),
-  z.object({ option: z.literal(CurrencyOptionValue.existingCurrency), currencyCode: z.string() }),
+  z.object({ option: z.literal(CurrencyOptionValue.existingCurrency), currencyCode: currencyCode() }),
 ]);
 
 const transactionTypeOptionSchema = z.discriminatedUnion('option', [

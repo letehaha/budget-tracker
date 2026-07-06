@@ -1275,7 +1275,10 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
   //   • USD → always priceable (it is API_LAYER_BASE_CURRENCY_CODE)
   //   • AED → always priceable (it is the user's base currency)
   //   • EUR → priceable via stored ExchangeRates row (seeded)
-  //   • ZZZ → not priceable (deliberately fake code, never seeded)
+  //   • SSP → not priceable: a real ISO-4217 code deliberately kept out of the
+  //     seeded rate set, so it passes the currencyCode() request-schema check
+  //     yet still has no stored rate — the genuine production shape. (A fake
+  //     code like ZZZ can no longer reach this layer: the schema rejects it.)
   describe('unpriceableRows classification', () => {
     // Shared column mapping for all sub-tests: single fixed currency per test,
     // so we use the existingCurrency option to avoid a Currency column.
@@ -1333,12 +1336,12 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
       expect(result.unpriceableRows).toBeUndefined();
     });
 
-    it('returns unpriceableRows for a currency with no stored rate (ZZZ)', async () => {
+    it('returns unpriceableRows for a currency with no stored rate (SSP)', async () => {
       const result = await helpers.detectDuplicates({
         payload: {
           fileContent: MINIMAL_CSV,
           delimiter: ',',
-          columnMapping: buildFixedCurrencyMapping('ZZZ'),
+          columnMapping: buildFixedCurrencyMapping('SSP'),
           accountMapping: { 'Main Account': { action: 'create-new' } },
           categoryMapping: {},
         },
@@ -1347,13 +1350,13 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
 
       expect(result.unpriceableRows).toBeDefined();
       expect(result.unpriceableRows).toHaveLength(1);
-      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 2, currencyCode: 'ZZZ' });
+      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 2, currencyCode: 'SSP' });
     });
 
-    it('returns only the ZZZ rows when a CSV mixes priceable (EUR) and unpriceable (ZZZ) currencies', async () => {
+    it('returns only the SSP rows when a CSV mixes priceable (EUR) and unpriceable (SSP) currencies', async () => {
       const mixedCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2024-01-15,100.00,EUR tx,Food,EUR,expense,Main Account
-2024-01-16,50.00,ZZZ tx,Food,ZZZ,expense,Main Account
+2024-01-16,50.00,SSP tx,Food,SSP,expense,Main Account
 2024-01-17,75.00,USD tx,Food,USD,expense,Main Account`;
 
       const result = await helpers.detectDuplicates({
@@ -1369,7 +1372,7 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
 
       expect(result.unpriceableRows).toBeDefined();
       expect(result.unpriceableRows).toHaveLength(1);
-      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 3, currencyCode: 'ZZZ' });
+      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 3, currencyCode: 'SSP' });
     });
 
     it('omits unpriceableRows when the CSV has no valid rows (all invalid)', async () => {
@@ -1380,7 +1383,9 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
         payload: {
           fileContent: allInvalidCsv,
           delimiter: ',',
-          columnMapping: buildFixedCurrencyMapping('ZZZ'),
+          // Currency is incidental here: every row is invalid, so findUnpriceableRows
+          // receives an empty array regardless of which currency is mapped.
+          columnMapping: buildFixedCurrencyMapping('USD'),
           accountMapping: { 'Main Account': { action: 'create-new' } },
           categoryMapping: {},
         },
