@@ -11,6 +11,7 @@ import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
+import { useCurrencyNotConnectedNotification } from '@/composable/use-currency-not-connected-notification';
 import { useDateLocale } from '@/composable/use-date-locale';
 import BrandLogo from '@/components/common/brand-logo.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -79,7 +80,11 @@ const percentOfIncomeColorClass = computed(() => {
   return 'text-app-income-color';
 });
 
-const { data: summary, isFetching: isSummaryFetching } = useQuery({
+const {
+  data: summary,
+  isFetching: isSummaryFetching,
+  error: summaryError,
+} = useQuery({
   queryKey: computed(() => [
     ...VUE_QUERY_CACHE_KEYS.subscriptionsSummary,
     widgetType.value ?? 'all',
@@ -89,6 +94,8 @@ const { data: summary, isFetching: isSummaryFetching } = useQuery({
   staleTime: Infinity,
   enabled: isAppInitialized,
 });
+
+useCurrencyNotConnectedNotification({ error: summaryError });
 
 const { data: upcoming, isFetching: isUpcomingFetching } = useQuery({
   queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming, widgetType.value ?? 'all']),

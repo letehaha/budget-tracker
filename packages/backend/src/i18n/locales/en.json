@@ -259,7 +259,6 @@
     "csvFileTooManyRows": "CSV file exceeds the maximum allowed row count of {{max}} rows.",
     "csvFileForbiddenHeader": "CSV file contains a header name that is not allowed.",
     "invalidDateFormat": "Invalid date format: \"{{dateStr}}\". Expected ISO format (YYYY-MM-DD).",
-    "mixedDateFormat": "The date column \"{{column}}\" mixes day-first and month-first dates, so its format can't be determined. Please fix the dates to use a single consistent format and try again.",
     "invalidAmount": "Invalid amount: \"{{amountStr}}\". Expected numeric value.",
     "accountNameEmpty": "Account name is empty",
     "currencyCodeEmpty": "Currency code is empty",
@@ -419,6 +418,7 @@
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user.",
+    "summaryCurrencyNotConnected": "Subscriptions summary can't be calculated: currency {{currencyCodes}} is not connected to your account. Connect it in Settings → Currencies.",
     "validation": {
       "autoRecord": {
         "requiresAccount": "Auto-record requires an account so the booked transaction has somewhere to land.",

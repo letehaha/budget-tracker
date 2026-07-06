@@ -9,6 +9,7 @@ import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
+import { addUserCurrencies } from '@services/currencies/add-user-currency';
 
 import {
   assertAmountCurrencyConsistent,
@@ -90,6 +91,15 @@ export const createSubscription = withTransaction(
       expectedCurrencyCode,
       matchingRules,
     });
+
+    // The subscriptions summary converts expectedAmount into the user's base
+    // currency, and that conversion requires a UsersCurrencies row for the
+    // subscription's currency. Connect it here (idempotent) so a subscription
+    // in a never-used currency doesn't fail conversion later. Lives in the
+    // service so MCP callers get the same guarantee as HTTP ones.
+    if (expectedCurrencyCode) {
+      await addUserCurrencies([{ userId, currencyCode: expectedCurrencyCode }]);
+    }
 
     // Derive the calendar day from dueDate so recurring logic can anchor
     // future periods to the same day-of-month without reparsing the date.

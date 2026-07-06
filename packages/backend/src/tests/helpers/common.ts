@@ -28,6 +28,7 @@ export type MakeRequestReturn<T, R extends boolean | undefined = false> = R exte
 export interface ErrorResponse {
   message: string;
   code: string;
+  details?: Record<string, unknown>;
 }
 
 export type UtilizeReturnType<

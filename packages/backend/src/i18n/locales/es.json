@@ -259,7 +259,6 @@
     "csvFileTooManyRows": "El archivo CSV supera el número máximo de filas permitidas ({{max}} filas).",
     "csvFileForbiddenHeader": "El archivo CSV contiene un nombre de cabecera no permitido.",
     "invalidDateFormat": "Formato de fecha no válido: \"{{dateStr}}\". Se esperaba formato ISO (AAAA-MM-DD).",
-    "mixedDateFormat": "La columna de fecha \"{{column}}\" mezcla fechas en formato día-primero y mes-primero, por lo que no se puede determinar su formato. Por favor, corrija las fechas para usar un solo formato consistente e inténtelo de nuevo.",
     "invalidAmount": "Importe no válido: \"{{amountStr}}\". Se esperaba un valor numérico.",
     "accountNameEmpty": "El nombre de la cuenta está vacío",
     "currencyCodeEmpty": "El código de moneda está vacío",
@@ -419,6 +418,7 @@
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Una o más transacciones no encontradas o no pertenecen al usuario.",
+    "summaryCurrencyNotConnected": "No se puede calcular el resumen de suscripciones: la moneda {{currencyCodes}} no está conectada a su cuenta. Conéctela en Ajustes → Monedas.",
     "validation": {
       "autoRecord": {
         "requiresAccount": "El registro automático requiere una cuenta para que la transacción registrada tenga un lugar dónde aterrizar.",

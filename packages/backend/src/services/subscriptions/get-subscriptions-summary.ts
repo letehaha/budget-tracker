@@ -1,10 +1,13 @@
 import {
+  API_ERROR_CODES,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
+import { CustomError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Subscriptions from '@models/subscriptions.model';
@@ -90,6 +93,7 @@ const getSubscriptionsSummaryImpl = async ({
   const baseCurrencyCode = userCurrency.currency.code;
 
   let totalMonthly = Money.zero();
+  const unconnectedCurrencies = new Set<string>();
 
   for (const sub of subscriptions) {
     try {
@@ -103,9 +107,29 @@ const getSubscriptionsSummaryImpl = async ({
 
       const multiplier = MONTHLY_MULTIPLIERS[sub.frequency] ?? 1;
       totalMonthly = totalMonthly.add(refAmount.multiply(multiplier));
-    } catch {
-      logger.warn(`Skipping subscription ${sub.id} in summary: currency conversion failed`);
+    } catch (e) {
+      // A currency the user never connected is user-fixable: collect every
+      // offending code and fail the request with an actionable error below,
+      // instead of silently understating the totals. Other conversion
+      // failures (e.g. provider gaps) keep the skip-and-warn behavior.
+      if (e instanceof CustomError && e.code === API_ERROR_CODES.currencyNotConnected && sub.expectedCurrencyCode) {
+        unconnectedCurrencies.add(sub.expectedCurrencyCode);
+      } else {
+        logger.warn(`Skipping subscription ${sub.id} in summary: currency conversion failed`);
+      }
     }
+  }
+
+  if (unconnectedCurrencies.size > 0) {
+    const currencyCodes = [...unconnectedCurrencies];
+    throw new ValidationError({
+      code: API_ERROR_CODES.currencyNotConnected,
+      message: t({
+        key: 'subscriptions.summaryCurrencyNotConnected',
+        variables: { currencyCodes: currencyCodes.join(', ') },
+      }),
+      details: { currencyCodes },
+    });
   }
 
   const monthlyMoney = totalMonthly.round();
