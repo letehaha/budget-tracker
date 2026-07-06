@@ -4,30 +4,39 @@ import {
   AccessibleCategoryInfo,
   getAccessibleCategoryMap,
 } from '@services/categories/get-accessible-category-map.service';
+import { withTransaction } from '@services/common/with-transaction';
 
 import { CategoryAllocations, computeCategoryAllocations } from '../category-allocation';
 import { getExpensesHistory } from '../get-expenses-history';
 
-export async function getSpendingsByCategories(params: {
-  userId: number;
-  accountId?: string;
-  from?: string;
-  to?: string;
-  categoryIds?: string[];
-  transactionType?: TRANSACTION_TYPES;
-  excludedCategoryIds?: string[];
-}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> {
-  const transactions = await getExpensesHistory(params);
+/**
+ * Wrapped in a transaction so the expenses read and the allocation/category-map
+ * fan-out below share one pinned Postgres connection instead of a pool checkout
+ * per query — checkouts from a drained pool trigger slow physical `pg.connect`
+ * mid-request.
+ */
+export const getSpendingsByCategories = withTransaction(
+  async (params: {
+    userId: number;
+    accountId?: string;
+    from?: string;
+    to?: string;
+    categoryIds?: string[];
+    transactionType?: TRANSACTION_TYPES;
+    excludedCategoryIds?: string[];
+  }): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
+    const transactions = await getExpensesHistory(params);
 
-  // Split distribution + refund netting is shared with the pivot report; this service only
-  // differs in how the resulting per-category legs are grouped (see `groupAllocations`).
-  const [allocations, { categories }] = await Promise.all([
-    computeCategoryAllocations({ transactions, applyRefunds: true }),
-    getAccessibleCategoryMap({ userId: params.userId }),
-  ]);
+    // Split distribution + refund netting is shared with the pivot report; this service only
+    // differs in how the resulting per-category legs are grouped (see `groupAllocations`).
+    const [allocations, { categories }] = await Promise.all([
+      computeCategoryAllocations({ transactions, applyRefunds: true }),
+      getAccessibleCategoryMap({ userId: params.userId }),
+    ]);
 
-  return groupAllocations({ categories, allocations, selectedCategoryIds: params.categoryIds });
-}
+    return groupAllocations({ categories, allocations, selectedCategoryIds: params.categoryIds });
+  },
+);
 
 /**
  * Rolls the flat category-allocation legs up into the shape this report returns.
