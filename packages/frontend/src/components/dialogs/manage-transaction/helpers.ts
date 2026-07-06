@@ -67,6 +67,15 @@ export const getTxTypeFromFormType = (formType: FORM_TYPES): TRANSACTION_TYPES =
   return formType === FORM_TYPES.expense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
 };
 
+/**
+ * A refund and the transaction it refunds always sit on opposite sides — an
+ * expense is refunded by income and vice versa. The backend enforces this pairing,
+ * so this mirrors it client-side: given a transaction type, return the type its
+ * refund counterpart must have.
+ */
+export const getOppositeTxType = (type: TRANSACTION_TYPES): TRANSACTION_TYPES =>
+  type === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense;
+
 export const isOutOfWalletAccount = (account: typeof OUT_OF_WALLET_ACCOUNT_MOCK) => account._isOutOfWallet;
 
 /**

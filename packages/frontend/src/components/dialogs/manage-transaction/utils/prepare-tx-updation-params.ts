@@ -9,7 +9,13 @@ import {
 } from '@bt/shared/types';
 import type { SplitInput } from '@bt/shared/types/endpoints';
 
-import { getDestinationAccount, getDestinationAmount, getTxTypeFromFormType, isOutOfWalletAccount } from '../helpers';
+import {
+  getDestinationAccount,
+  getDestinationAmount,
+  getOppositeTxType,
+  getTxTypeFromFormType,
+  isOutOfWalletAccount,
+} from '../helpers';
 import { type FormSplit, UI_FORM_STRUCT } from '../types';
 
 /**
@@ -72,16 +78,27 @@ export const prepareTxUpdationParams = ({
   };
 
   if (isOriginalRefundsOverriden) {
+    // Coerce a wrong-type link to `undefined` ("leave untouched") so a stale
+    // post-toggle selection is never emitted — the backend rejects a same-type
+    // link (422). Backstops the clearing watcher.
+    const expectedRefundType = getOppositeTxType(getTxTypeFromFormType(formTxType));
+    const refundsTx =
+      form.refundsTx && form.refundsTx.transaction.transactionType !== expectedRefundType ? undefined : form.refundsTx;
+    const refundedByTxs =
+      form.refundedByTxs && form.refundedByTxs.some((r) => r.transaction.transactionType !== expectedRefundType)
+        ? undefined
+        : form.refundedByTxs;
+
     // Make sure that only one non-nullish field is being sent to the API
-    if (form.refundsTx && form.refundedByTxs === null) {
-      editionParams.refundsTxId = form.refundsTx ? form.refundsTx.transaction.id : null;
-      editionParams.refundsSplitId = (form.refundsTx?.splitId ?? null) as RecordId | null;
-    } else if (form.refundsTx === null && form.refundedByTxs) {
-      editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.transaction.id) : null;
+    if (refundsTx && refundedByTxs === null) {
+      editionParams.refundsTxId = refundsTx ? refundsTx.transaction.id : null;
+      editionParams.refundsSplitId = (refundsTx?.splitId ?? null) as RecordId | null;
+    } else if (refundsTx === null && refundedByTxs) {
+      editionParams.refundedByTxIds = refundedByTxs ? refundedByTxs.map((i) => i.transaction.id) : null;
       // Build splitId mapping for refunded-by transactions
-      if (form.refundedByTxs) {
+      if (refundedByTxs) {
         const splitMapping: Record<string, string> = {};
-        form.refundedByTxs.forEach((r) => {
+        refundedByTxs.forEach((r) => {
           if (r.splitId) {
             splitMapping[r.transaction.id] = r.splitId;
           }
@@ -90,20 +107,20 @@ export const prepareTxUpdationParams = ({
           editionParams.refundedBySplitIds = splitMapping;
         }
       }
-    } else if (form.refundsTx === null && form.refundedByTxs === undefined) {
+    } else if (refundsTx === null && refundedByTxs === undefined) {
       editionParams.refundsTxId = null;
       editionParams.refundsSplitId = null;
-    } else if (form.refundedByTxs === null && form.refundsTx === undefined) {
+    } else if (refundedByTxs === null && refundsTx === undefined) {
       editionParams.refundedByTxIds = null;
       editionParams.refundedBySplitIds = null;
     } else {
-      editionParams.refundsTxId = form.refundsTx ? form.refundsTx.transaction.id : undefined;
-      editionParams.refundsSplitId = (form.refundsTx?.splitId ?? undefined) as RecordId | undefined;
-      editionParams.refundedByTxIds = form.refundedByTxs ? form.refundedByTxs.map((i) => i.transaction.id) : undefined;
+      editionParams.refundsTxId = refundsTx ? refundsTx.transaction.id : undefined;
+      editionParams.refundsSplitId = (refundsTx?.splitId ?? undefined) as RecordId | undefined;
+      editionParams.refundedByTxIds = refundedByTxs ? refundedByTxs.map((i) => i.transaction.id) : undefined;
       // Build splitId mapping for refunded-by transactions
-      if (form.refundedByTxs) {
+      if (refundedByTxs) {
         const splitMapping: Record<string, string> = {};
-        form.refundedByTxs.forEach((r) => {
+        refundedByTxs.forEach((r) => {
           if (r.splitId) {
             splitMapping[r.transaction.id] = r.splitId;
           }

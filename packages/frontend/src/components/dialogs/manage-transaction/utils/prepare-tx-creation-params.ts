@@ -3,7 +3,7 @@ import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
 import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type RecordId } from '@bt/shared/types';
 import type { SplitInput } from '@bt/shared/types/endpoints';
 
-import { getTxTypeFromFormType } from '../helpers';
+import { getOppositeTxType, getTxTypeFromFormType } from '../helpers';
 import { type FormSplit, UI_FORM_STRUCT } from '../types';
 
 /**
@@ -49,7 +49,11 @@ export const prepareTxCreationParams = ({
     tagIds: form.tagIds ?? [],
   };
 
-  if (form.refundsTx) {
+  // Only forward the refund link when its counterpart opposes the form's type —
+  // the backend rejects a same-type link (422), so a stale post-toggle selection
+  // must not be sent.
+  const expectedRefundType = getOppositeTxType(getTxTypeFromFormType(formTxType));
+  if (form.refundsTx && form.refundsTx.transaction.transactionType === expectedRefundType) {
     creationParams.refundForTxId = form.refundsTx.transaction.id;
     if (form.refundsTx.splitId) {
       creationParams.refundForSplitId = form.refundsTx.splitId as RecordId;
