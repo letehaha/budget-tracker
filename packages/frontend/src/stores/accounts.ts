@@ -32,10 +32,10 @@ export const useAccountsStore = defineStore('accounts', () => {
     enabled: isUserExists,
   });
 
+  // id→account map for O(1) lookups. Rebuilt (not upserted) so a deleted id is
+  // pruned rather than lingering as a ghost consumers can still resolve.
   watch(accounts, (value) => {
-    for (const acc of value ?? []) {
-      accountsRecord.value[acc.id] = acc;
-    }
+    accountsRecord.value = Object.fromEntries((value ?? []).map((acc) => [acc.id, acc]));
   });
 
   const accountsCurrencyCodes = computed(() => [...new Set(accounts.value?.map((item) => item.currencyCode) ?? [])]);
