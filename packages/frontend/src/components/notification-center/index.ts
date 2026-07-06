@@ -13,6 +13,12 @@ interface Notification {
   text: string;
   type?: NotificationType;
   visibilityTime?: number;
+  /**
+   * Persistent notifications never auto-hide — they stay until the user
+   * dismisses them via the close button. Use for actionable errors the user
+   * must not miss (e.g. "connect currency X"), not for routine toasts.
+   */
+  persistent?: boolean;
 }
 
 let idCounter = 0;
@@ -30,6 +36,9 @@ export const useNotificationCenter = (): {
 } => {
   const removeNotification = (id?: NotificationID) => {
     notifications.value = notifications.value.filter((item) => item.id !== id);
+    // Free the id on every removal path (auto-hide AND manual dismiss) so a
+    // fixed-id notification can be raised again later.
+    if (id !== undefined) delete notificationIds[id];
   };
 
   const addNotification = (notification: Notification): NotificationID | void => {
@@ -47,11 +56,11 @@ export const useNotificationCenter = (): {
       id,
     });
 
-    setTimeout(() => {
-      removeNotification(id);
-
-      delete notificationIds[id];
-    }, notification.visibilityTime ?? 4000);
+    if (!notification.persistent) {
+      setTimeout(() => {
+        removeNotification(id);
+      }, notification.visibilityTime ?? 4000);
+    }
 
     return id;
   };

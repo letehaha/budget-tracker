@@ -1,3 +1,4 @@
+import { API_ERROR_CODES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { UnexpectedError } from '@js/errors';
@@ -95,6 +96,11 @@ async function assertUserConnectedTo({
       raw: true,
     }),
     message: t({ key: 'currencies.currencyNotConnected' }),
+    // Machine-readable code + the offending currency: callers that convert on
+    // behalf of other records (e.g. subscriptions summary) surface this to the
+    // client so it can tell the user exactly which currency to connect.
+    code: API_ERROR_CODES.currencyNotConnected,
+    details: { currencyCode: code },
   });
 
   return { liveRateUpdate: userCurrency.liveRateUpdate };

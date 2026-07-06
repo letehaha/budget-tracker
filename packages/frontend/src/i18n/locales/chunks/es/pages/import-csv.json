@@ -102,7 +102,6 @@
           "currency": "Moneda",
           "skipAndImport": "Omitir e importar",
           "cancelImport": "Cancelar importación",
-          "dateColumnErrorTitle": "Error en la columna de fecha en \"{column}\"",
           "noInvalidRows": "No hay filas inválidas",
           "noDuplicates": "No hay duplicados",
           "expand": "Mostrar datos completos",
@@ -368,6 +367,17 @@
           "currency": "Moneda",
           "transactionType": "Tipo de transacción",
           "payee": "Beneficiario"
+        },
+        "dateFormat": {
+          "label": "Formato de fecha",
+          "placeholder": "Seleccione el formato de fecha",
+          "dayFirstOption": "Día primero — {example}",
+          "monthFirstOption": "Mes primero — {example}",
+          "suggestedBadge": "Sugerido",
+          "isoDetected": "Formato de fecha ISO detectado — las fechas de esta columna empiezan por el año, por lo que no es necesario elegir día/mes.",
+          "previewLabel": "Vista previa",
+          "previewUnrecognized": "no reconocido",
+          "mismatchWarning": "{count} fila no coincide con este formato y se marcará como inválida. | {count} filas no coinciden con este formato y se marcarán como inválidas."
         }
       },
       "importResults": {

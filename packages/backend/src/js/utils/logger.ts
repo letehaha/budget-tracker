@@ -1,9 +1,19 @@
 import { getCurrentRequestId } from '@common/lib/cls/logging';
 import { getCurrentSessionId } from '@common/lib/cls/session-id';
+import { CustomError } from '@js/errors';
 import winston, { format, transports } from 'winston';
 import LokiTransport from 'winston-loki';
 
 import { isSentryEnabled, Sentry } from './sentry';
+
+/**
+ * Expected client errors carry a 4xx status. Services often log-and-rethrow
+ * their errors, which would otherwise send every validation/not-found failure
+ * to Sentry as if it were an app bug. Those are still logged locally; they just
+ * don't belong in Sentry. 5xx (including upstream BadGateway/ServiceUnavailable)
+ * and any non-CustomError are real and still captured.
+ */
+const isExpectedClientError = (error: unknown): boolean => error instanceof CustomError && error.httpCode < 500;
 
 const transportsArray: winston.transport[] = [new transports.Console()];
 const { GRAFANA_LOKI_HOST, GRAFANA_LOKI_AUTH, GRAFANA_LOKI_USER_ID } = process.env;
@@ -138,6 +148,9 @@ function loggerErrorHandler(
             : null;
 
       if (errorObj) {
+        // A logged 4xx is not a Sentry-worthy bug — the local log above keeps it.
+        if (isExpectedClientError(errorObj)) return;
+
         if (typeof messageParam === 'object' && 'message' in messageParam && messageParam.message) {
           scope.setExtra('errorContext', messageParam.message);
         }

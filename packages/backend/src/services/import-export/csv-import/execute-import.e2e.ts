@@ -78,6 +78,7 @@ describe('Execute Import endpoint (async)', () => {
    */
   const buildColumnMapping = (overrides: Partial<ColumnMappingConfig> = {}): ColumnMappingConfig => ({
     date: 'Date',
+    dateFieldOrder: 'month-first',
     amount: 'Amount',
     description: 'Description',
     category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -185,6 +186,68 @@ describe('Execute Import endpoint (async)', () => {
       const createdTxs = transactions.filter((tx) => summary.newTransactionIds.includes(tx.id));
       expect(createdTxs).toHaveLength(3);
       expect(createdTxs.every((tx) => tx.accountId === account.id)).toBe(true);
+    });
+
+    // Every date cell here is ambiguous (both fields ≤ 12), so only the
+    // user-confirmed dateFieldOrder decides the calendar day: the same file
+    // must land on different days depending on the confirmed order.
+    it('applies the confirmed dateFieldOrder verbatim to an all-ambiguous date column', async () => {
+      // Both runs link to accounts in the same (base) currency so the only
+      // varying input between them is the confirmed dateFieldOrder.
+      const dayFirstAccount = await helpers.createAccount({ raw: true });
+      const monthFirstAccount = await helpers.createAccount({ raw: true });
+
+      const ambiguousRows: CsvRow[] = [
+        {
+          date: '05/06/2026',
+          amount: '10.00',
+          description: 'Ambiguous A',
+          account: 'CSV Account',
+          currency: dayFirstAccount.currencyCode,
+          type: 'expense',
+        },
+        {
+          date: '02/03/2026',
+          amount: '20.00',
+          description: 'Ambiguous B',
+          account: 'CSV Account',
+          currency: dayFirstAccount.currencyCode,
+          type: 'expense',
+        },
+      ];
+      const fileContent = buildCsv(ambiguousRows);
+
+      const txDay = (time: string | Date) => new Date(time).toISOString().split('T')[0];
+
+      // Same content, day-first: 05/06 → June 5, 02/03 → March 2.
+      // The asserts-guard narrowing doesn't survive into closures, so summary
+      // is captured into a local before the .filter() callbacks below.
+      const { progress: dayFirstProgress } = await runImport({
+        fileContent,
+        columnMapping: buildColumnMapping({ dateFieldOrder: 'day-first' }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: dayFirstAccount.id } },
+      });
+      expectCsvImportCompleted(dayFirstProgress);
+      const dayFirstSummary = dayFirstProgress.summary;
+      expect(dayFirstSummary.imported).toBe(2);
+
+      const afterDayFirst = await helpers.getTransactions({ raw: true });
+      const dayFirstTxs = afterDayFirst.filter((tx) => dayFirstSummary.newTransactionIds.includes(tx.id));
+      expect(dayFirstTxs.map((tx) => txDay(tx.time)).sort()).toEqual(['2026-03-02', '2026-06-05']);
+
+      // Same content, month-first: 05/06 → May 6, 02/03 → Feb 3.
+      const { progress: monthFirstProgress } = await runImport({
+        fileContent,
+        columnMapping: buildColumnMapping({ dateFieldOrder: 'month-first' }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: monthFirstAccount.id } },
+      });
+      expectCsvImportCompleted(monthFirstProgress);
+      const monthFirstSummary = monthFirstProgress.summary;
+      expect(monthFirstSummary.imported).toBe(2);
+
+      const afterMonthFirst = await helpers.getTransactions({ raw: true });
+      const monthFirstTxs = afterMonthFirst.filter((tx) => monthFirstSummary.newTransactionIds.includes(tx.id));
+      expect(monthFirstTxs.map((tx) => txDay(tx.time)).sort()).toEqual(['2026-02-03', '2026-05-06']);
     });
 
     it('should create new account when action is create-new', async () => {

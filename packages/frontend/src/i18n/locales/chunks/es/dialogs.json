@@ -195,7 +195,8 @@
         "amountDisabled": "están deshabilitadas.",
         "amountMayBeSmaller": "Algunas opciones pueden ser inferiores al importe de su reembolso",
         "finalValidationWarning": "La validación final utilizará importes convertidos.",
-        "mainCategoryLabel": "(principal)"
+        "mainCategoryLabel": "(principal)",
+        "linkRemovedOnTypeChange": "Se eliminó el vínculo de reembolso porque cambió el tipo de transacción."
       },
       "refundInfo": {
         "trigger": "¿Cómo funciona?",

@@ -135,7 +135,18 @@ const sequelize = new Sequelize({
       ? `${DBConfig.database}-${process.env.JEST_WORKER_ID}`
       : (DBConfig.database as string),
   models,
-  pool: process.env.NODE_ENV === 'test' ? { max: 50, min: 0, evict: 10_000 } : { max: 50, min: 5, evict: 60_000 },
+  // Prod: a single dashboard load fans out several stats requests at once, so
+  // keep enough warm connections (`min`) and let burst connections linger
+  // (`idle`) — establishing a physical Postgres connection is slow and
+  // otherwise happens in the middle of user requests.
+  pool:
+    process.env.NODE_ENV === 'test'
+      ? { max: 50, min: 0, evict: 10_000 }
+      : { max: 50, min: 10, idle: 30_000, evict: 60_000 },
+  // TCP keepalive stops idle pooled connections from being silently dropped by
+  // intermediate networking (Docker NAT/proxy) — a dead connection is only
+  // discovered at checkout, forcing a slow reconnect inside a request.
+  dialectOptions: { keepAlive: true },
   logging: process.env.DB_QUERY_LOGGING === 'true',
 });
 

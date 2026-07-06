@@ -13,6 +13,7 @@ import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { useNotificationCenter } from '@/components/notification-center';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
 import { useFormatCurrency } from '@/composable/formatters';
@@ -191,6 +192,8 @@ const transferDestinationType = ref<TransferDestinationType>('account');
 
 const { data: portfolios } = usePortfolios();
 
+const { addInfoNotification } = useNotificationCenter();
+
 const {
   isInitialRefundsDataLoaded,
   initialRefundsFormSlice,
@@ -200,6 +203,9 @@ const {
 } = getRefundInfo({
   initialTransaction: props.transaction,
   form,
+  onRefundLinkCleared: () => {
+    addInfoNotification(t('dialogs.manageTransaction.markAsRefund.linkRemovedOnTypeChange'));
+  },
 });
 
 watchOnce(

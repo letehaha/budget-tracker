@@ -21,6 +21,7 @@ import { toColumnMappingConfig } from './column-mapping-config';
 /** A fully-valid ColumnMapping with every required field set. */
 const baseMapping: ColumnMapping = {
   date: 'Date',
+  dateFieldOrder: 'month-first',
   amount: 'Amount',
   description: 'Memo',
   payee: null,
@@ -38,6 +39,11 @@ const baseMapping: ColumnMapping = {
 describe('toColumnMappingConfig — returns null when required field is missing', () => {
   it('returns null when date is null', () => {
     const result = toColumnMappingConfig({ mapping: { ...baseMapping, date: null } });
+    expect(result).toBeNull();
+  });
+
+  it('returns null when dateFieldOrder is unconfirmed', () => {
+    const result = toColumnMappingConfig({ mapping: { ...baseMapping, dateFieldOrder: null } });
     expect(result).toBeNull();
   });
 
@@ -67,6 +73,24 @@ describe('toColumnMappingConfig — returns null when required field is missing'
     });
     expect(result).toBeNull();
   });
+
+  it('returns null when account picks existing-account but no id is set', () => {
+    const account: AccountOption = { option: AccountOptionValue.existingAccount, accountId: '' };
+    const result = toColumnMappingConfig({ mapping: { ...baseMapping, account } });
+    expect(result).toBeNull();
+  });
+
+  it('returns null when category picks existing-category but no id is set', () => {
+    const category: CategoryOption = { option: CategoryOptionValue.existingCategory, categoryId: '' };
+    const result = toColumnMappingConfig({ mapping: { ...baseMapping, category } });
+    expect(result).toBeNull();
+  });
+
+  it('returns null when currency picks existing-currency but no code is set', () => {
+    const currency: CurrencyOption = { option: CurrencyOptionValue.existingCurrency, currencyCode: '' };
+    const result = toColumnMappingConfig({ mapping: { ...baseMapping, currency } });
+    expect(result).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -78,6 +102,7 @@ describe('toColumnMappingConfig — full ColumnMappingConfig when all required f
     const result = toColumnMappingConfig({ mapping: baseMapping });
     expect(result).toEqual({
       date: 'Date',
+      dateFieldOrder: 'month-first',
       amount: 'Amount',
       description: 'Memo',
       category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },

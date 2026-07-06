@@ -659,6 +659,60 @@ describe('prepareTxUpdationParams', () => {
         refundedByTxIds: [refundingTxs[0]!.id, refundingTxs[1]!.id],
       });
     });
+
+    // Defense-in-depth: a stale same-type link left over from a type toggle must never
+    // be forwarded, since the backend rejects it with a 422.
+    it('omits refundsTxId when the linked transaction has the same type as the form', () => {
+      const expenseTx = buildSystemExpenseTransaction();
+      const sameTypeRefund = buildSystemExpenseTransaction();
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(expenseTx),
+        type: FORM_TYPES.expense,
+        account: sourceAccount as AccountModel,
+        amount: 1500,
+        category: USER_CATEGORIES[0]!,
+        refundsTx: { transaction: sameTypeRefund },
+        refundedByTxs: null,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: expenseTx,
+        linkedTransaction: null,
+        isTransferTx: false,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: true,
+      });
+
+      expect(result.refundsTxId).toBeUndefined();
+    });
+
+    it('omits refundedByTxIds when a linked transaction has the same type as the form', () => {
+      const expenseTx = buildSystemExpenseTransaction();
+      const sameTypeRefund = buildSystemExpenseTransaction();
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(expenseTx),
+        type: FORM_TYPES.expense,
+        account: sourceAccount as AccountModel,
+        amount: 1500,
+        category: USER_CATEGORIES[0]!,
+        refundsTx: null,
+        refundedByTxs: [{ transaction: sameTypeRefund }],
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: expenseTx,
+        linkedTransaction: null,
+        isTransferTx: false,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: true,
+      });
+
+      expect(result.refundedByTxIds).toBeUndefined();
+    });
   });
 
   describe('linked transactions', () => {

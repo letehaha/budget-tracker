@@ -195,7 +195,8 @@
         "amountDisabled": "are disabled.",
         "amountMayBeSmaller": "Some options may be smaller than your refund amount",
         "finalValidationWarning": "Final validation will use converted amounts.",
-        "mainCategoryLabel": "(main)"
+        "mainCategoryLabel": "(main)",
+        "linkRemovedOnTypeChange": "Refund link removed because the transaction type changed."
       },
       "refundInfo": {
         "trigger": "How it works?",

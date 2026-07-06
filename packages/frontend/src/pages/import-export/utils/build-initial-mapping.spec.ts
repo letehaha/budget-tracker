@@ -58,6 +58,10 @@ describe('buildInitialColumnMapping — all columns matched', () => {
     expect(result.payee).toBe('Payee');
   });
 
+  it('never pre-fills dateFieldOrder — the user must confirm it explicitly', () => {
+    expect(result.dateFieldOrder).toBeNull();
+  });
+
   it('sets category to map-data-source-column with the matched column', () => {
     expect(result.category).toEqual({
       option: CategoryOptionValue.mapDataSourceColumn,

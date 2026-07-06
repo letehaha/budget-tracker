@@ -2,6 +2,7 @@
 import { loadSubscriptionsSummary } from '@/api/subscriptions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useFormatCurrency } from '@/composable/formatters';
+import { useCurrencyNotConnectedNotification } from '@/composable/use-currency-not-connected-notification';
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -19,6 +20,7 @@ const {
   data: summary,
   isLoading,
   isPlaceholderData,
+  error,
 } = useQuery({
   queryFn: () =>
     loadSubscriptionsSummary({
@@ -28,6 +30,8 @@ const {
   staleTime: Infinity,
   placeholderData: (previousData) => previousData,
 });
+
+useCurrencyNotConnectedNotification({ error });
 
 const activeLabel = computed(() => {
   if (!summary.value) return '';

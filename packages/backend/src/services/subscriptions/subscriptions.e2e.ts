@@ -1,6 +1,7 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { API_ERROR_CODES, SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { ErrorResponse } from '@tests/helpers/common';
 import { subMonths } from 'date-fns';
 
 describe('Subscriptions', () => {
@@ -597,6 +598,72 @@ describe('Subscriptions', () => {
         const summary = await helpers.getSubscriptionsSummary({ raw: true });
         expect(summary.averageMonthlyIncome).toBe(0);
         expect(summary.percentOfIncome).toBeNull();
+      });
+
+      it('auto-connects the subscription currency on create so the summary can convert it', async () => {
+        await helpers.createSubscription({
+          name: 'Foreign Sub',
+          expectedAmount: 100,
+          expectedCurrencyCode: 'UAH',
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        const userCurrencies = await helpers.getUserCurrencies();
+        expect(userCurrencies.map((c) => c.currencyCode)).toContain('UAH');
+
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+        expect(summary.activeCount).toBe(1);
+        expect(summary.estimatedMonthlyCost).toBeGreaterThan(0);
+      });
+
+      it('auto-connects the currency when an update changes it', async () => {
+        const sub = await helpers.createSubscription({
+          name: 'Netflix',
+          expectedAmount: 15,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        await helpers.updateSubscription({
+          id: sub.id,
+          expectedAmount: 15,
+          expectedCurrencyCode: 'EUR',
+          raw: true,
+        });
+
+        const userCurrencies = await helpers.getUserCurrencies();
+        expect(userCurrencies.map((c) => c.currencyCode)).toContain('EUR');
+      });
+
+      it('returns CURRENCY_NOT_CONNECTED with the offending codes when a subscription currency is disconnected', async () => {
+        await helpers.createSubscription({
+          name: 'Foreign Sub',
+          expectedAmount: 100,
+          expectedCurrencyCode: 'UAH',
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        // Sever the auto-created connection to reproduce pre-guard data.
+        await helpers.makeRequest({
+          method: 'delete',
+          url: '/user/currency',
+          payload: { currencyCode: 'UAH' },
+          raw: true,
+        });
+
+        const res = await helpers.getSubscriptionsSummary();
+        expect(res.statusCode).toBe(422);
+        // The typed helper promises the success shape; the error envelope needs
+        // a detour through unknown.
+        const err = res.body.response as unknown as ErrorResponse;
+        expect(err.code).toBe(API_ERROR_CODES.currencyNotConnected);
+        expect(err.details).toEqual({ currencyCodes: ['UAH'] });
       });
 
       it('returns averageMonthlyIncome and percentOfIncome based on income in last 6 months', async () => {

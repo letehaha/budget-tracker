@@ -195,7 +195,8 @@
         "amountDisabled": "вимкнені.",
         "amountMayBeSmaller": "Деякі параметри можуть бути менші за вашу суму повернення",
         "finalValidationWarning": "Остаточна валідація буде використовувати конвертовані суми.",
-        "mainCategoryLabel": "(основна)"
+        "mainCategoryLabel": "(основна)",
+        "linkRemovedOnTypeChange": "Прив'язку повернення видалено, оскільки тип транзакції змінився."
       },
       "refundInfo": {
         "trigger": "Як це працює?",

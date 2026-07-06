@@ -796,6 +796,11 @@ describe('Cross-currency pay when the billed currency is unconnected', () => {
       raw: true,
     });
 
+    // Create connects the billed currency so conversions work. Disconnect it here
+    // to reproduce a subscription whose currency the user later removed — the
+    // preview must still open (degraded amount) rather than 4xx/5xx.
+    await helpers.deleteUserCurrency({ currencyCode: uahCode, raw: true });
+
     const preview = await helpers.getSubscriptionPayPreview({ id: sub.id, raw: true });
     expect(preview.isCrossCurrency).toBe(true);
     expect(preview.subscriptionCurrencyCode).toBe(uahCode);

@@ -6,7 +6,6 @@ import {
   type CategoryMappingValue,
   CategoryOptionValue,
   type CsvImportProgress,
-  type DateColumnError,
   type DetectDuplicatesResponse,
   type DuplicateMatch,
   type InvalidRow,
@@ -77,6 +76,7 @@ const STEP_KEY_TO_NUMBER: Record<ImportStepKey, number> = {
 
 const emptyColumnMapping = (): ColumnMapping => ({
   date: null,
+  dateFieldOrder: null,
   amount: null,
   description: null,
   payee: null,
@@ -134,14 +134,12 @@ export const useImportExportStore = defineStore('importExport', () => {
   const invalidRows = ref<InvalidRow[]>([]);
   const duplicates = ref<DuplicateMatch[]>([]);
   const unmarkedDuplicateIndices = ref<Set<number>>(new Set());
-  // Present when the date column has conflicting day/month order — blocks import until user fixes the CSV.
-  const dateColumnError = ref<DateColumnError | null>(null);
   // Rows whose currency has no exchange rate; user must skip or abort before import proceeds.
   const unpriceableRows = ref<UnpriceableRow[]>([]);
 
-  // Step 5b: Duplicate-detection async state.
-  // Separate from dateColumnError (a *successful* response describing a data problem)
-  // — this fires when the API call itself fails (network, 5xx, etc.).
+  // Step 5b: Duplicate-detection async state. Fires when the API call itself
+  // fails (network, 5xx, etc.), as opposed to a successful response describing
+  // a data problem (invalid rows, unpriceable rows).
   const isDetectingDuplicates = ref<boolean>(false);
   const detectError = ref<string | null>(null);
 
@@ -328,7 +326,8 @@ export const useImportExportStore = defineStore('importExport', () => {
   });
 
   /**
-   * Map step is valid once date + amount columns are chosen and each of
+   * Map step is valid once date + amount columns are chosen, the date column's
+   * day/month order is explicitly confirmed, and each of
    * category / account / currency / transaction-type has BOTH a method and the
    * decision that method requires — a CSV column for column-based methods, an
    * entity id for single-existing, both value lists for transaction-type
@@ -341,6 +340,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     const m = columnMapping.value;
 
     if (!m.date || !m.amount) return false;
+    // The day/month order is a forced, explicit user choice (auto-detection
+    // only pre-suggests), so an unconfirmed order blocks Next.
+    if (!m.dateFieldOrder) return false;
     if (!isCategoryDecided({ category: m.category })) return false;
     if (!isAccountDecided({ account: m.account })) return false;
     if (!isCurrencyDecided({ currency: m.currency })) return false;
@@ -502,9 +504,8 @@ export const useImportExportStore = defineStore('importExport', () => {
     const { detectDuplicates: detectDuplicatesApi } = await import('@/api/import-export');
 
     // Clear prior errors and unpriceable state before a fresh run — data-level
-    // (dateColumnError, unpriceableRows) and transport-level (detectError) are
-    // reset so stale messages don't linger.
-    dateColumnError.value = null;
+    // (unpriceableRows) and transport-level (detectError) are reset so stale
+    // messages don't linger.
     unpriceableRows.value = [];
     detectError.value = null;
     isDetectingDuplicates.value = true;
@@ -534,12 +535,6 @@ export const useImportExportStore = defineStore('importExport', () => {
       duplicates.value = response.duplicates;
       unmarkedDuplicateIndices.value = new Set();
       unpriceableRows.value = response.unpriceableRows ?? [];
-
-      if (response.dateColumnError) {
-        // Date column has mixed day/month order — import is blocked; stay on mapping step.
-        dateColumnError.value = response.dateColumnError;
-        return;
-      }
 
       // Mapping (and Resolve, if it was shown) are done once detection succeeds;
       // advance the wizard to the Review step.
@@ -766,7 +761,6 @@ export const useImportExportStore = defineStore('importExport', () => {
     invalidRows.value = [];
     duplicates.value = [];
     unmarkedDuplicateIndices.value = new Set();
-    dateColumnError.value = null;
     unpriceableRows.value = [];
     isDetectingDuplicates.value = false;
     detectError.value = null;
@@ -783,6 +777,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     fileContent,
     csvHeaders,
     csvPreview,
+    csvDataRows,
     detectedDelimiter,
     totalRows,
     columnMapping,
@@ -801,7 +796,6 @@ export const useImportExportStore = defineStore('importExport', () => {
     invalidRows,
     duplicates,
     unmarkedDuplicateIndices,
-    dateColumnError,
     unpriceableRows,
     isDetectingDuplicates,
     detectError,

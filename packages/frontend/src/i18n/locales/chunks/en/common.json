@@ -56,7 +56,9 @@
     "errors": {
       "copyToClipboardFailed": "Failed to copy to clipboard"
     },
-    "notifications": {},
+    "notifications": {
+      "subscriptionCurrencyNotConnected": "Subscriptions summary can't convert {currencies} to your base currency. Connect the currency in Settings → Currencies."
+    },
     "labels": {
       "email": "Email",
       "password": "Password",
