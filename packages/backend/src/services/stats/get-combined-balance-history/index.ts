@@ -180,6 +180,7 @@ const calculatePortfolioBalanceHistory = async ({
         ['date', 'ASC'],
       ],
       attributes: ['securityId', 'date', 'priceClose'],
+      raw: true,
     }),
     UserExchangeRates.findAll({
       where: {
