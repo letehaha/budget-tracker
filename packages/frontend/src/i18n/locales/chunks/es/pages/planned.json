@@ -192,9 +192,14 @@
         "lastScanned": "Último análisis {time}",
         "emptyTitle": "No se encontraron nuevas suscripciones",
         "emptyDescription": "No pudimos encontrar nuevos patrones de pago recurrente en su historial de transacciones.",
-        "accept": "Aceptar",
+        "add": "Añadir",
         "dismiss": "Descartar",
-        "occurrences": "{count} ocurrencias",
+        "basedOnTransactions": "Basado en {count} transacciones",
+        "confidence": {
+          "likely": "Coincidencia probable",
+          "possible": "Coincidencia posible",
+          "weak": "Coincidencia débil"
+        },
         "dismissed": "Candidato descartado",
         "dismissError": "Error al descartar el candidato",
         "close": "Cerrar",

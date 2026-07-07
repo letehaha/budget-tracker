@@ -192,9 +192,14 @@
         "lastScanned": "Last scanned {time}",
         "emptyTitle": "No new subscriptions found",
         "emptyDescription": "We couldn't find any new recurring payment patterns in your transaction history.",
-        "accept": "Accept",
+        "add": "Add",
         "dismiss": "Dismiss",
-        "occurrences": "{count} occurrences",
+        "basedOnTransactions": "Based on {count} transactions",
+        "confidence": {
+          "likely": "Likely match",
+          "possible": "Possible match",
+          "weak": "Weak match"
+        },
         "dismissed": "Candidate dismissed",
         "dismissError": "Failed to dismiss candidate",
         "close": "Close",

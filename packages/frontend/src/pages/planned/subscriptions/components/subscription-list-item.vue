@@ -162,7 +162,7 @@ function dueChipClass({
 
     <!-- Linked txs + actions (top-right on mobile) -->
     <div
-      class="col-start-2 row-start-1 flex items-center justify-end gap-2 justify-self-end @[600px]:col-auto @[600px]:row-auto @[600px]:ml-auto"
+      class="xs:gap-2 col-start-2 row-start-1 flex items-center justify-end gap-1 justify-self-end @[600px]:col-auto @[600px]:row-auto @[600px]:ml-auto"
       @click.stop
     >
       <LinkedTransactionsBadge :count="subscription.linkedTransactionsCount" />

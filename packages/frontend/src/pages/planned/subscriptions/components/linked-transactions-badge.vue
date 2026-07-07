@@ -14,12 +14,12 @@ defineProps<{ count: number }>();
       :aria-label="$t('planned.subscriptions.linkedTransactions', { count }, count)"
       :class="
         cn(
-          'text-muted-foreground bg-muted/60 hover:bg-muted h-6 min-w-6 gap-1 rounded-full px-2 text-xs font-medium tabular-nums',
+          'text-muted-foreground bg-muted/60 hover:bg-muted h-8 min-w-8 gap-1.5 rounded-full px-2.5 text-sm font-medium tabular-nums',
           count === 0 && 'opacity-60',
         )
       "
     >
-      <Link2Icon class="size-3 shrink-0" />
+      <Link2Icon class="size-4 shrink-0" />
       {{ count }}
     </Button>
   </ResponsiveTooltip>
