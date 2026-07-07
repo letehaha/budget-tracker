@@ -17,6 +17,7 @@
       "typeInstallment": "Installment",
       "completed": "Completed",
       "paused": "Paused",
+      "pausedSection": "Paused ({count})",
       "edit": "Edit",
       "cancel": "Cancel",
       "pauseSubscription": "Pause subscription",
@@ -26,7 +27,7 @@
       "frequencyLabel": "Frequency",
       "nextExpected": "Next expected",
       "startDate": "Start date",
-      "linkedTransactions": "{count} linked transactions",
+      "linkedTransactions": "{count} linked transaction | {count} linked transactions",
       "linkedTransactionsTitle": "Linked Transactions",
       "noLinkedTransactions": "No linked transactions yet",
       "unlinkTransaction": "Unlink transaction",
@@ -164,6 +165,14 @@
         "title": "No recurring charges yet",
         "description": "Add your first recurring charge or bill to start tracking recurring payments"
       },
+      "sort": {
+        "label": "Sort",
+        "ariaLabel": "Sort recurring charges",
+        "dueDate": "Due date · soonest",
+        "amount": "Amount · high to low",
+        "name": "Name · A–Z",
+        "recent": "Recently added"
+      },
       "summary": {
         "filterAll": "All",
         "filterSubscriptions": "Subscriptions",
@@ -240,6 +249,9 @@
           "revertFailed": "Failed to revert period",
           "transactionLoadFailed": "Failed to load transaction"
         }
+      },
+      "actions": {
+        "more": "More actions"
       }
     }
   }

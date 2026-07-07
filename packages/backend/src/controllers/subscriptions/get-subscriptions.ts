@@ -8,6 +8,7 @@ const listSchema = z.object({
   query: z.object({
     isActive: booleanQuery().optional(),
     type: z.enum(Object.values(SUBSCRIPTION_TYPES) as [SUBSCRIPTION_TYPES, ...SUBSCRIPTION_TYPES[]]).optional(),
+    sortBy: z.enum(['dueDate', 'amount', 'name', 'recent']).optional(),
   }),
 });
 
@@ -16,6 +17,7 @@ export const getSubscriptions = createController(listSchema, async ({ user, quer
     userId: user.id,
     isActive: query.isActive,
     type: query.type,
+    sortBy: query.sortBy,
   });
 
   return { data: subscriptions };
