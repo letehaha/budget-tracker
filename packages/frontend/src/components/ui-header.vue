@@ -178,7 +178,7 @@ import { useI18n } from 'vue-i18n';
 import { RouterLink, useRoute } from 'vue-router';
 
 const accountsStore = useAccountsStore();
-const { accountsNeedingRelink } = storeToRefs(accountsStore);
+const { accountsNeedingRelink, isAccountsFetched } = storeToRefs(accountsStore);
 
 const { elementRef: headerRef } = useCssVarFromElementSize({
   cssVars: [{ cssVarName: '--header-height' }],
@@ -216,7 +216,6 @@ const openSupport = () => {
   window.open(DONATE_URL, '_blank', 'noopener,noreferrer');
 };
 
-// Use new sync status system
 const syncStatus = useSyncStatus();
 
 // AI categorization status
@@ -245,13 +244,16 @@ const syncButtonLabel = computed(() => {
   return t('header.sync.connectBank');
 });
 
-// Initialize sync status on mount only when user don't have issues with his connections
+// Auto-check sync once accounts have loaded and no connection needs re-linking.
+// Watch a derived boolean instead of the `accountsNeedingRelink` array: that
+// computed yields a fresh reference on every accounts refetch and would re-fire
+// this, whereas a boolean only fires on real transitions. Watching the combined
+// flag also re-runs the check when a re-link is later resolved (false → true).
+const canAutoSync = computed(() => isAccountsFetched.value && accountsNeedingRelink.value.length === 0);
 watch(
-  accountsNeedingRelink,
-  async (value) => {
-    if (value.length) return;
-    await syncStatus.fetchStatus();
-    // Trigger auto-sync check when app loads
+  canAutoSync,
+  async (ready) => {
+    if (!ready) return;
     await syncStatus.checkAndAutoSync();
   },
   { immediate: true },
