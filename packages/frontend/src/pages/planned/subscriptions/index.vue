@@ -11,34 +11,34 @@ import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.v
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useFormatCurrency } from '@/composable/formatters';
 import { ApiErrorResponseError } from '@/js/errors';
-import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
-import { SUBSCRIPTION_PERIOD_STATUSES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
-import { CheckIcon, CirclePauseIcon, PlusIcon, RepeatIcon, SearchIcon, Trash2Icon } from '@lucide/vue';
+import { useLocalStorage } from '@vueuse/core';
+import { PlusIcon, RepeatIcon, SearchIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import BrandLogo from '@/components/common/brand-logo.vue';
-
 import DiscoverCandidatesDialog from './components/discover-candidates-dialog.vue';
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
+import SubscriptionRow from './components/subscription-list-item.vue';
 import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
-import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
+import SubscriptionsSortSelect from './components/subscriptions-sort-select.vue';
 import SubscriptionsSummary from './components/subscriptions-summary.vue';
-import { formatFrequency } from './utils';
+import {
+  DEFAULT_SUBSCRIPTION_SORT,
+  SUBSCRIPTION_SORT_STORAGE_KEY,
+  type SubscriptionSortKey,
+  isSubscriptionSortKey,
+} from './utils';
 
 const { t } = useI18n();
 const router = useRouter();
 const queryClient = useQueryClient();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
-const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const isCreateDialogOpen = ref(false);
 const isDiscoverDialogOpen = ref(false);
@@ -46,17 +46,27 @@ const createFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(nu
 const deleteTarget = ref<SubscriptionListItem | null>(null);
 const activeFilter = ref<string>('all');
 
+const sortBy = useLocalStorage<SubscriptionSortKey>(SUBSCRIPTION_SORT_STORAGE_KEY, DEFAULT_SUBSCRIPTION_SORT);
+// Guard against a stale/invalid value persisted by an older build.
+if (!isSubscriptionSortKey(sortBy.value)) sortBy.value = DEFAULT_SUBSCRIPTION_SORT;
+
+// The server returns the list already sorted, so `sortBy` is part of the query
+// key: changing it refetches the correctly ordered list. The `subscriptionsList`
+// prefix stays constant, so prefix-based invalidations elsewhere still match.
+const subscriptionsQueryKey = computed(() => [...VUE_QUERY_CACHE_KEYS.subscriptionsList, sortBy.value]);
+
 const { data: subscriptions, isPlaceholderData } = useQuery({
-  queryFn: () => loadSubscriptions(),
-  queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList,
+  queryFn: () => loadSubscriptions({ sortBy: sortBy.value }),
+  queryKey: subscriptionsQueryKey,
   staleTime: Infinity,
   placeholderData: [],
 });
 
 const filteredSubscriptions = computed(() => {
   if (!subscriptions.value) return [];
-  if (activeFilter.value === 'all') return subscriptions.value;
-  return subscriptions.value.filter((s) => s.type === activeFilter.value);
+  return activeFilter.value === 'all'
+    ? subscriptions.value
+    : subscriptions.value.filter((s) => s.type === activeFilter.value);
 });
 
 const filterItems = computed(() => [
@@ -108,6 +118,11 @@ const confirmDelete = async () => {
   }
 };
 
+// Paused (inactive) items sink into their own section at the bottom; active
+// items keep the server-provided due-date order above.
+const activeSubscriptions = computed(() => filteredSubscriptions.value.filter((s) => s.isActive));
+const pausedSubscriptions = computed(() => filteredSubscriptions.value.filter((s) => !s.isActive));
+
 const navigateToDetail = ({ subscription }: { subscription: SubscriptionListItem }) => {
   router.push({
     name: ROUTES_NAMES.plannedSubscriptionDetails,
@@ -115,55 +130,9 @@ const navigateToDetail = ({ subscription }: { subscription: SubscriptionListItem
   });
 };
 
-const formatAmount = ({ subscription }: { subscription: SubscriptionListItem }): string | null => {
-  if (!subscription.expectedAmount || !subscription.expectedCurrencyCode) return null;
-  return formatAmountByCurrencyCode(subscription.expectedAmount, subscription.expectedCurrencyCode);
-};
-
-// A finished installment (completedAt set) reads as "Completed", distinct from a
-// manually paused subscription. Both carry isActive=false.
-const isCompleted = ({ subscription }: { subscription: SubscriptionListItem }): boolean =>
-  subscription.completedAt != null;
-
-/** Paid-vs-total progress for any capped plan (maxOccurrences set); null otherwise. */
-const installmentProgress = ({
-  subscription,
-}: {
-  subscription: SubscriptionListItem;
-}): { paid: number; total: number } | null => {
-  if (subscription.maxOccurrences == null) return null;
-  return { paid: subscription.paidPeriodsCount, total: subscription.maxOccurrences };
-};
-
 // --- Quick mark-paid from the list (scheduled subscriptions that have an open period) ---
 const markPaidRef = ref<InstanceType<typeof SubscriptionMarkPaidDialog>>();
 const isMarkingPaid = computed(() => markPaidRef.value?.isPending ?? false);
-
-type OpenPeriod = NonNullable<SubscriptionListItem['currentPeriod']>;
-
-function getDaysUntilDue({ dueDate }: { dueDate: string }): number {
-  return differenceInCalendarDays(parseISO(dueDate), startOfDay(new Date()));
-}
-
-// An `upcoming` period whose due date has already passed reads as overdue right
-// away, without waiting for the daily cron that flips the stored status — so a
-// past due date never shows "in -1 days".
-function isPeriodOverdue({ period }: { period: OpenPeriod }): boolean {
-  return period.status === SUBSCRIPTION_PERIOD_STATUSES.overdue || getDaysUntilDue({ dueDate: period.dueDate }) < 0;
-}
-
-function dueLabel({ period }: { period: OpenPeriod }): string {
-  if (isPeriodOverdue({ period })) {
-    return t('planned.subscriptions.periods.overdueBadge');
-  }
-  return t('planned.subscriptions.periods.inDays', { count: getDaysUntilDue({ dueDate: period.dueDate }) });
-}
-
-function dueChipClass({ period }: { period: OpenPeriod }): string {
-  return isPeriodOverdue({ period })
-    ? 'bg-destructive/10 text-destructive-text'
-    : 'bg-success-text/10 text-success-text';
-}
 
 function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
   if (!subscription.currentPeriod) return;
@@ -191,8 +160,11 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
       </div>
     </div>
 
-    <!-- Filter Tabs -->
-    <PillTabs v-model="activeFilter" :items="filterItems" class="mb-3 sm:mb-4" />
+    <!-- Filter Tabs + Sort -->
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-3 sm:mb-4">
+      <PillTabs v-model="activeFilter" :items="filterItems" />
+      <SubscriptionsSortSelect v-model="sortBy" />
+    </div>
 
     <SubscriptionsSummary :active-filter="activeFilter" class="mb-3 sm:mb-6" />
 
@@ -207,127 +179,40 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
     </div>
 
     <!-- Subscription List -->
-    <div
-      v-else-if="filteredSubscriptions.length"
-      class="divide-border border-border @container divide-y rounded-lg border"
-    >
-      <div
-        v-for="subscription in filteredSubscriptions"
-        :key="subscription.id"
-        :class="
-          cn(
-            'hover:bg-accent/50 grid cursor-pointer grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors @[600px]:flex',
-            !subscription.isActive && 'opacity-60',
-          )
-        "
-        @click="navigateToDetail({ subscription })"
-      >
-        <!-- Name -->
-        <div class="flex min-w-0 items-center gap-2">
-          <BrandLogo :domain="subscription.logoDomain" :name="subscription.name" class="size-5" />
-          <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
-        </div>
+    <template v-else-if="filteredSubscriptions.length">
+      <!-- Active -->
+      <div v-if="activeSubscriptions.length" class="divide-border border-border @container divide-y rounded-lg border">
+        <SubscriptionRow
+          v-for="subscription in activeSubscriptions"
+          :key="subscription.id"
+          :subscription="subscription"
+          :is-marking-paid="isMarkingPaid"
+          @select="navigateToDetail({ subscription: $event })"
+          @pay="payPeriod({ subscription: $event })"
+          @toggle-active="handleToggleActive({ subscription: $event })"
+          @delete="deleteTarget = $event"
+        />
+      </div>
 
-        <!-- Type badge -->
-        <div class="flex shrink-0 items-center justify-end gap-1.5">
-          <SubscriptionTypeBadge :type="subscription.type" />
-          <span
-            v-if="isCompleted({ subscription })"
-            class="bg-success-text/10 text-success-text inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-          >
-            <CheckIcon class="size-3" />
-            {{ $t('planned.subscriptions.completed') }}
-          </span>
-          <span
-            v-else-if="!subscription.isActive"
-            class="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-          >
-            <CirclePauseIcon class="size-3" />
-            {{ $t('planned.subscriptions.paused') }}
-          </span>
-        </div>
-
-        <!-- Amount + Frequency -->
-        <div class="text-muted-foreground flex shrink-0 items-center gap-2 text-sm">
-          <span v-if="formatAmount({ subscription })" class="text-foreground font-medium">
-            {{ formatAmount({ subscription }) }}
-          </span>
-          <span class="flex items-center gap-1">
-            <RepeatIcon class="size-3.5" />
-            {{ formatFrequency({ frequency: subscription.frequency, t }) }}
-          </span>
-          <!-- Installment / capped-plan progress -->
-          <span
-            v-if="installmentProgress({ subscription })"
-            class="text-foreground inline-flex items-center text-xs font-medium"
-          >
-            {{ $t('planned.subscriptions.progress.paidOfTotal', installmentProgress({ subscription })!) }}
-          </span>
-          <!-- Due status (scheduled subscriptions only) -->
-          <span
-            v-if="subscription.currentPeriod"
-            :class="
-              cn(
-                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                dueChipClass({ period: subscription.currentPeriod }),
-              )
-            "
-          >
-            {{ dueLabel({ period: subscription.currentPeriod }) }}
-          </span>
-        </div>
-
-        <!-- Category -->
-        <span
-          v-if="subscription.category"
-          class="text-muted-foreground hidden shrink-0 items-center gap-1 text-xs @[600px]:flex"
-        >
-          <span class="inline-block size-2.5 rounded-full" :style="{ backgroundColor: subscription.category.color }" />
-          {{ subscription.category.name }}
-        </span>
-
-        <!-- Right side: linked txs + actions -->
-        <div class="ml-auto flex shrink-0 items-center gap-2">
-          <span class="text-muted-foreground hidden text-xs @[600px]:inline">
-            {{ $t('planned.subscriptions.linkedTransactions', { count: subscription.linkedTransactionsCount }) }}
-          </span>
-
-          <div class="flex items-center gap-1" @click.stop>
-            <DesktopOnlyTooltip
-              v-if="subscription.currentPeriod"
-              :content="$t('planned.subscriptions.periods.tooltips.markAsPaid')"
-            >
-              <Button
-                variant="soft-success"
-                size="icon-sm"
-                :disabled="isMarkingPaid"
-                @click="payPeriod({ subscription })"
-              >
-                <CheckIcon class="size-4" />
-              </Button>
-            </DesktopOnlyTooltip>
-            <DesktopOnlyTooltip
-              v-if="!isCompleted({ subscription })"
-              :content="
-                subscription.isActive
-                  ? $t('planned.subscriptions.pauseSubscription')
-                  : $t('planned.subscriptions.resumeSubscription')
-              "
-            >
-              <Button variant="ghost" size="icon-sm" @click="handleToggleActive({ subscription })">
-                <CirclePauseIcon v-if="subscription.isActive" class="size-4" />
-                <RepeatIcon v-else class="size-4" />
-              </Button>
-            </DesktopOnlyTooltip>
-            <DesktopOnlyTooltip :content="$t('planned.subscriptions.deleteSubscription')">
-              <Button variant="ghost-destructive" size="icon-sm" @click="deleteTarget = subscription">
-                <Trash2Icon class="size-4" />
-              </Button>
-            </DesktopOnlyTooltip>
-          </div>
+      <!-- Paused (inactive) -->
+      <div v-if="pausedSubscriptions.length" class="mt-6">
+        <h2 class="text-muted-foreground mb-2 px-1 text-xs font-medium tracking-wide uppercase">
+          {{ $t('planned.subscriptions.pausedSection', { count: pausedSubscriptions.length }) }}
+        </h2>
+        <div class="divide-border border-border @container divide-y rounded-lg border">
+          <SubscriptionRow
+            v-for="subscription in pausedSubscriptions"
+            :key="subscription.id"
+            :subscription="subscription"
+            :is-marking-paid="isMarkingPaid"
+            @select="navigateToDetail({ subscription: $event })"
+            @pay="payPeriod({ subscription: $event })"
+            @toggle-active="handleToggleActive({ subscription: $event })"
+            @delete="deleteTarget = $event"
+          />
         </div>
       </div>
-    </div>
+    </template>
 
     <!-- Empty State -->
     <div v-else class="flex flex-col items-center justify-center py-12 text-center">
