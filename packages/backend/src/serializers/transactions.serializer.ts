@@ -71,6 +71,9 @@ export interface TransactionApiResponse {
   transactionGroups?: Array<{
     id: string;
     name: string;
+    /** Full group membership size, independent of how many members are in this fetch
+     *  window. Populated when the group include computes the correlated count. */
+    transactionCount: number;
   }>;
   /** Recipient who attached this tx to a shared budget. Present (and possibly `null`)
    *  only on budget-scoped fetches; absent on the global tx list and on detail lookups
@@ -230,6 +233,13 @@ export function serializeTransaction(
       transactionGroups: tx.transactionGroups.map((group) => ({
         id: group.id,
         name: group.name,
+        // Attached via a correlated subquery on the include, so it lives in dataValues
+        // (no model getter for aliased literals) and must be read with getDataValue.
+        // Falls back to the loaded-member count on paths that don't compute the aggregate.
+        transactionCount:
+          (group.getDataValue('transactionCount' as keyof TransactionGroups) as number | undefined) ??
+          group.transactions?.length ??
+          0,
       })),
     }),
     // `addedBy` is included whenever the upstream service attached it (budget-scoped

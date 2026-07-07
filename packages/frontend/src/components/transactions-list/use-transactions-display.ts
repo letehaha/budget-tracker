@@ -84,7 +84,8 @@ export function useTransactionsDisplay({
     const items: DisplayItem[] = [...ungrouped];
 
     for (const [groupId, groupTxs] of groupedTxs) {
-      const groupName = groupTxs[0]!.transactionGroups![0]!.name;
+      const groupInfo = groupTxs[0]!.transactionGroups![0]!;
+      const groupName = groupInfo.name;
       const timestamps = groupTxs.map((tx) => new Date(tx.time).getTime());
       const minTime = Math.min(...timestamps);
       const maxTime = Math.max(...timestamps);
@@ -95,7 +96,8 @@ export function useTransactionsDisplay({
         type: 'group',
         groupId,
         groupName,
-        transactionCount: groupTxs.length,
+        // Full group size from the server, not just the members in this fetch window.
+        transactionCount: groupInfo.transactionCount ?? groupTxs.length,
         dateFrom,
         dateTo,
       };

@@ -1005,12 +1005,27 @@ export const findWithFilters = async ({
     };
   }
 
-  // Include group membership info if requested
+  // Include group membership info if requested. transactionCount is the group's full
+  // membership size (a correlated count over TransactionGroupItems), not the number of
+  // this group's members that happen to be in the current fetch window – so callers that
+  // only load a slice of transactions (e.g. the dashboard widget) can still show the
+  // group's true size.
   if (includeGroups) {
     queryInclude.push({
       model: TransactionGroups,
       through: { attributes: [] },
-      attributes: ['id', 'name'],
+      attributes: [
+        'id',
+        'name',
+        [
+          literal(`(
+            SELECT COUNT(*)::int
+            FROM "TransactionGroupItems"
+            WHERE "TransactionGroupItems"."groupId" = "transactionGroups"."id"
+          )`),
+          'transactionCount',
+        ],
+      ],
       required: false,
     });
   }

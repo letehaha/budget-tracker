@@ -140,6 +140,40 @@ describe('Transaction Groups API', () => {
       expect(names).toContain('Group B');
     });
 
+    it('includeGroups reports the full group size even when only a slice of members is fetched', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const txs = await createTransactions({ accountId: account.id, count: 5 });
+
+      await helpers.createTransactionGroup({
+        payload: helpers.buildTransactionGroupPayload({
+          name: 'Windowed Group',
+          transactionIds: txs.map((t) => t.id),
+        }),
+        raw: true,
+      });
+
+      // Fetch a window smaller than the group so only some members are returned.
+      const windowed = await helpers.getTransactions({
+        includeGroups: true,
+        limit: 2,
+        raw: true,
+      });
+
+      // transactionCount is attached via a correlated subquery on the include, so it is not
+      // part of the TransactionGroups model type – read it through a narrowed shape.
+      const readGroups = (tx: (typeof windowed)[number]) =>
+        (tx.transactionGroups ?? []) as unknown as { name: string; transactionCount: number }[];
+
+      const grouped = windowed.filter((tx) => readGroups(tx).some((g) => g.name === 'Windowed Group'));
+      expect(grouped.length).toBeGreaterThan(0);
+      expect(grouped.length).toBeLessThan(5); // proves we only fetched a slice
+      for (const tx of grouped) {
+        const group = readGroups(tx).find((g) => g.name === 'Windowed Group')!;
+        // Full membership size, not the number of members in this fetch window.
+        expect(group.transactionCount).toBe(5);
+      }
+    });
+
     it('returns groups with computed aggregates', async () => {
       const account = await helpers.createAccount({ raw: true });
       const txs = await createTransactions({ accountId: account.id, count: 3 });
