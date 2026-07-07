@@ -222,7 +222,7 @@ const summary = computed(() => {
         <h4 class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
           {{ t('transactions.transactionGroups.groupDialog.transactionsLabel') }} ({{ transactions.length }})
         </h4>
-        <TransactionsList raw-list :transactions="transactions">
+        <TransactionsList raw-list :paginate="false" :transactions="transactions">
           <template #row-trailing="{ tx }">
             <Button
               variant="ghost-destructive"
