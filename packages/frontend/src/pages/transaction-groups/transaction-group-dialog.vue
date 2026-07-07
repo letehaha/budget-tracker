@@ -9,12 +9,15 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { invalidateTransactionGroupQueries } from '@/composable/data-queries/transaction-groups';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format } from 'date-fns';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { EllipsisVerticalIcon, PencilIcon, Trash2Icon, XIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useFormatCurrency } from '@/composable/formatters';
 import EditGroupDialog from './edit-group-dialog.vue';
 
 const { t } = useI18n();
+const { formatBaseCurrency } = useFormatCurrency();
 
 const props = defineProps<{
   open?: boolean;
@@ -114,6 +117,28 @@ const dateRange = computed(() => {
 });
 
 const transactions = computed(() => group.value?.transactions ?? []);
+
+// Group summary — amounts are aggregated in the user's base currency (refAmount),
+// since transactions in the group may live in different currencies.
+const summary = computed(() => {
+  let income = 0;
+  let expense = 0;
+  for (const tx of transactions.value) {
+    if (tx.transactionType === TRANSACTION_TYPES.income) {
+      income += tx.refAmount;
+    } else {
+      expense += tx.refAmount;
+    }
+  }
+  const hasBothTypes = income > 0 && expense > 0;
+  return {
+    count: transactions.value.length,
+    net: income - expense,
+    income,
+    expense,
+    hasBothTypes,
+  };
+});
 </script>
 
 <template>
@@ -152,6 +177,45 @@ const transactions = computed(() => group.value?.transactions ?? []);
     <div v-else-if="group" class="space-y-4 py-2">
       <div v-if="group.note" class="text-muted-foreground text-sm">
         {{ group.note }}
+      </div>
+
+      <div class="@container">
+        <div
+          class="bg-border grid grid-cols-2 gap-px overflow-hidden rounded-lg border"
+          :class="summary.hasBothTypes ? '@sm:grid-cols-4' : '@sm:grid-cols-2'"
+        >
+          <div class="bg-muted/30 px-4 py-2.5">
+            <p class="text-muted-foreground text-xs">
+              {{ t('transactions.transactionGroups.groupDialog.summary.transactions') }}
+            </p>
+            <p class="text-lg font-semibold">{{ summary.count }}</p>
+          </div>
+          <div class="bg-muted/30 px-4 py-2.5">
+            <p class="text-muted-foreground text-xs">
+              {{ t('transactions.transactionGroups.groupDialog.summary.net') }}
+            </p>
+            <p
+              class="text-lg font-semibold"
+              :class="summary.net >= 0 ? 'text-app-income-color' : 'text-app-expense-color'"
+            >
+              {{ formatBaseCurrency(summary.net) }}
+            </p>
+          </div>
+          <template v-if="summary.hasBothTypes">
+            <div class="bg-muted/30 px-4 py-2.5">
+              <p class="text-muted-foreground text-xs">
+                {{ t('transactions.transactionGroups.groupDialog.summary.moneyIn') }}
+              </p>
+              <p class="text-app-income-color text-lg font-semibold">{{ formatBaseCurrency(summary.income) }}</p>
+            </div>
+            <div class="bg-muted/30 px-4 py-2.5">
+              <p class="text-muted-foreground text-xs">
+                {{ t('transactions.transactionGroups.groupDialog.summary.moneyOut') }}
+              </p>
+              <p class="text-app-expense-color text-lg font-semibold">{{ formatBaseCurrency(summary.expense) }}</p>
+            </div>
+          </template>
+        </div>
       </div>
 
       <div class="space-y-1">
