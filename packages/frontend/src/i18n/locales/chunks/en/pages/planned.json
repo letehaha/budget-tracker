@@ -257,6 +257,14 @@
       },
       "actions": {
         "more": "More actions"
+      },
+      "periodFilter": {
+        "next7Days": "Next 7 days",
+        "next30Days": "Next 30 days",
+        "next3Months": "Next 3 months",
+        "next6Months": "Next 6 months",
+        "nextYear": "Next year",
+        "all": "All time"
       }
     }
   }

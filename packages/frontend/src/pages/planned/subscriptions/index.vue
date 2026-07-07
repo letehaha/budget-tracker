@@ -12,11 +12,13 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { useNotificationCenter } from '@/components/notification-center';
+import { type Period } from '@/composable/use-period-navigation';
 import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { useLocalStorage } from '@vueuse/core';
+import { addYears, endOfMonth, isWithinInterval, parseISO, startOfDay } from 'date-fns';
 import { PlusIcon, RepeatIcon, SearchIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -26,6 +28,7 @@ import DiscoverCandidatesDialog from './components/discover-candidates-dialog.vu
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
 import SubscriptionRow from './components/subscription-list-item.vue';
 import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
+import SubscriptionsPeriodSelector from './components/subscriptions-period-selector.vue';
 import SubscriptionsSortSelect from './components/subscriptions-sort-select.vue';
 import SubscriptionsSummary from './components/subscriptions-summary.vue';
 import {
@@ -46,6 +49,14 @@ const createFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(nu
 const deleteTarget = ref<SubscriptionListItem | null>(null);
 const activeFilter = ref<string>('all');
 
+const ALL_TIME_END = endOfMonth(addYears(startOfDay(new Date()), 10));
+const periodFilter = ref<Period>({
+  from: startOfDay(new Date()),
+  to: ALL_TIME_END,
+});
+
+const isPeriodFilterActive = computed(() => periodFilter.value.to.getTime() !== ALL_TIME_END.getTime());
+
 const sortBy = useLocalStorage<SubscriptionSortKey>(SUBSCRIPTION_SORT_STORAGE_KEY, DEFAULT_SUBSCRIPTION_SORT);
 // Guard against a stale/invalid value persisted by an older build.
 if (!isSubscriptionSortKey(sortBy.value)) sortBy.value = DEFAULT_SUBSCRIPTION_SORT;
@@ -64,9 +75,22 @@ const { data: subscriptions, isPlaceholderData } = useQuery({
 
 const filteredSubscriptions = computed(() => {
   if (!subscriptions.value) return [];
-  return activeFilter.value === 'all'
-    ? subscriptions.value
-    : subscriptions.value.filter((s) => s.type === activeFilter.value);
+
+  let result = subscriptions.value;
+
+  if (activeFilter.value !== 'all') {
+    result = result.filter((s) => s.type === activeFilter.value);
+  }
+
+  if (isPeriodFilterActive.value) {
+    const interval = { start: periodFilter.value.from, end: periodFilter.value.to };
+    result = result.filter((s) => {
+      if (!s.nextDueDate) return false;
+      return isWithinInterval(parseISO(s.nextDueDate), interval);
+    });
+  }
+
+  return result;
 });
 
 const filterItems = computed(() => [
@@ -160,10 +184,13 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
       </div>
     </div>
 
-    <!-- Filter Tabs + Sort -->
-    <div class="mb-3 flex flex-wrap items-center justify-between gap-3 sm:mb-4">
+    <!-- Filter Tabs + Period + Sort -->
+    <div class="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <PillTabs v-model="activeFilter" :items="filterItems" />
-      <SubscriptionsSortSelect v-model="sortBy" />
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <SubscriptionsPeriodSelector v-model="periodFilter" />
+        <SubscriptionsSortSelect v-model="sortBy" />
+      </div>
     </div>
 
     <SubscriptionsSummary :active-filter="activeFilter" class="mb-3 sm:mb-6" />
