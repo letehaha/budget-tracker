@@ -1,3 +1,4 @@
+import { isPerfDebugEnabled, registerPerfQueryHooks } from '@common/lib/perf/perf-debug';
 import { types as pgTypes } from 'pg';
 import { Sequelize } from 'sequelize-typescript';
 
@@ -149,6 +150,11 @@ const sequelize = new Sequelize({
   dialectOptions: { keepAlive: true },
   logging: process.env.DB_QUERY_LOGGING === 'true',
 });
+
+// Opt-in (PERF_DEBUG=true): count + time each query against the in-flight request.
+if (isPerfDebugEnabled) {
+  registerPerfQueryHooks(sequelize);
+}
 
 if (process.env.NODE_ENV === 'development') {
   console.log('DBConfig', DBConfig);
