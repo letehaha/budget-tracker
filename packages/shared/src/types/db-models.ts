@@ -291,8 +291,10 @@ export interface TransactionModel {
   splits?: TransactionSplitModel[];
   /** Optional tags associated with the transaction (loaded when includeTags=true) */
   tags?: TagModel[];
-  /** Transaction groups this transaction belongs to (loaded when includeGroups=true) */
-  transactionGroups?: Array<{ id: RecordId; name: string }>;
+  /** Transaction groups this transaction belongs to (loaded when includeGroups=true).
+   *  transactionCount is the group's full membership size, independent of how many of the
+   *  group's members are in the current fetch window. */
+  transactionGroups?: Array<{ id: RecordId; name: string; transactionCount: number }>;
   /** Recipient who attached this tx to a shared budget. Present (possibly `null`) on
    *  budget-scoped tx fetches; absent elsewhere. `null` ⇒ owner-attached, no chip in
    *  the UI. Non-null ⇒ the budget recipient who clicked Attach for this row. */

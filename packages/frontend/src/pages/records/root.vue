@@ -4,10 +4,13 @@
       ref="pageContentRef"
       :class="[
         'flex flex-col gap-4',
-        // Mobile uses min-h so the table can push past the viewport and the page
-        // becomes scrollable – lets the user swipe away the toolbar to gain a few
-        // extra rows of table.
-        isMobileMode
+        // The mobile table view uses min-h so the table can push past the
+        // viewport and the page becomes scrollable – lets the user swipe away the
+        // toolbar to gain a few extra rows of table. The list view instead scrolls
+        // internally via the virtualizer and needs a bounded height: an unbounded
+        // container leaves every virtual row mounted, so the infinite-scroll
+        // sentinel is permanently on screen and fetch-next-page loops to the end.
+        useUnboundedPageHeight
           ? 'min-h-[calc(100dvh-var(--header-height)-32px)]'
           : 'h-[calc(100dvh-var(--header-height)-32px)] min-h-0',
       ]"
@@ -440,6 +443,13 @@ useEventListener('keydown', (event: KeyboardEvent) => {
 // wrapping div otherwise stays as `contents` so the table card sits in the
 // page's flex flow.
 const showTableCard = computed(() => isFullscreenMode.value || activeView.value === 'table');
+
+// Only the mobile table view wants the page to grow past the viewport (swipe-away
+// toolbar). Every other case – desktop, and the mobile list view whose
+// virtualizer scrolls internally – needs a bounded, viewport-height container.
+const useUnboundedPageHeight = computed(
+  () => isMobileMode.value && !isFullscreenMode.value && activeView.value === 'table',
+);
 
 // Mobile non-fullscreen: pin the card to ~viewport height to force page-level
 // overflow (lets the user swipe away the toolbar). All other cases let flex-1
