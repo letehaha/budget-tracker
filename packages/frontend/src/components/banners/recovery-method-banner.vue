@@ -28,12 +28,13 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
+import { useIdleEnabled } from '@/composable/use-idle-enabled';
 import { authClient } from '@/lib/auth-client';
 import { ROUTES_NAMES } from '@/routes';
 import { useUserStore } from '@/stores/user';
 import { ShieldAlertIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const DISMISSED_KEY = 'recovery-method-banner-dismissed';
 
@@ -78,15 +79,25 @@ const checkLoginMethods = async () => {
   }
 };
 
-onMounted(() => {
-  // Skip entirely for demo users -- no need to check login methods
-  if (isDemo.value) return;
+// Defer the accounts + passkeys lookup until the browser is idle — this banner is
+// a dismissible security nudge, never above-the-fold, so it must not compete with
+// the dashboard's critical requests.
+const idleEnabled = useIdleEnabled();
+watch(
+  idleEnabled,
+  (idle) => {
+    if (!idle) return;
 
-  // Only check if not already dismissed
-  if (!isDismissed.value) {
-    checkLoginMethods();
-  } else {
-    isLoaded.value = true;
-  }
-});
+    // Skip entirely for demo users -- no need to check login methods
+    if (isDemo.value) return;
+
+    // Only check if not already dismissed
+    if (!isDismissed.value) {
+      checkLoginMethods();
+    } else {
+      isLoaded.value = true;
+    }
+  },
+  { immediate: true },
+);
 </script>
