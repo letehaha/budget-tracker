@@ -3,12 +3,12 @@ import {
   DEFAULT_INCOME_LOOKBACK_MONTHS,
   type IncomeLookbackMonths,
   type SubscriptionListItem,
-  loadSubscriptions,
   loadSubscriptionsSummary,
   loadUpcomingPayments,
 } from '@/api/subscriptions';
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { useSubscriptionsList } from '@/composable/data-queries/subscriptions';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { useCurrencyNotConnectedNotification } from '@/composable/use-currency-not-connected-notification';
@@ -105,14 +105,8 @@ const { data: upcoming, isFetching: isUpcomingFetching } = useQuery({
   enabled: isAppInitialized,
 });
 
-// Subscriptions list is fetched to get currentPeriod (id + status) for inline mark-paid.
-// It shares the same cache key as the subscriptions page, so no extra network request
-// when both are open.
-const { data: allSubscriptions, isFetching: isSubscriptionsFetching } = useQuery({
-  queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList,
-  queryFn: () => loadSubscriptions({ isActive: true }),
-  staleTime: Infinity,
-  placeholderData: [],
+const { data: allSubscriptions, isFetching: isSubscriptionsFetching } = useSubscriptionsList({
+  filter: { isActive: true },
   enabled: isAppInitialized,
 });
 
