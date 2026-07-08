@@ -28,6 +28,10 @@
         "label": "Secciones de la barra lateral",
         "description": "Elija qué secciones aparecen en la barra lateral.",
         "alwaysVisibleTooltip": "Esta sección siempre es visible."
+      },
+      "hideZeroBalances": {
+        "label": "Ocultar saldos cero",
+        "description": "Oculte cuentas y grupos con saldo cero"
       }
     },
     "accountsView": {

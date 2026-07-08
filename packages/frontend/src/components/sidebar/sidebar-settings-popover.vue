@@ -8,7 +8,10 @@ import { TOGGLEABLE_SIDEBAR_SECTIONS, useSidebarSections } from '@/composable/us
 import { ArrowLeftIcon, ChevronRightIcon, InfoIcon, LayersIcon, SettingsIcon } from '@lucide/vue';
 import { ref, watch } from 'vue';
 
+import { useHideZeroBalances } from './accounts-view/helpers/use-hide-zero-balances';
+
 const { sidebarSections, toggleSection, isUpdating } = useSidebarSections();
+const { hideZeroBalances, setHideZeroBalances, isUpdating: isUpdatingHideZeroBalances } = useHideZeroBalances();
 
 const isOpen = ref(false);
 type View = 'main' | 'sections';
@@ -45,6 +48,20 @@ const goTo = (target: View) => {
             </header>
 
             <div class="flex flex-col p-2">
+              <div class="flex items-center justify-between gap-2 rounded-md px-2 py-2">
+                <span class="flex flex-col">
+                  <span class="text-sm font-medium">{{ $t('sidebar.settings.hideZeroBalances.label') }}</span>
+                  <span class="text-muted-foreground text-xs">
+                    {{ $t('sidebar.settings.hideZeroBalances.description') }}
+                  </span>
+                </span>
+                <Switch
+                  :model-value="hideZeroBalances"
+                  :disabled="isUpdatingHideZeroBalances"
+                  @update:model-value="(v) => setHideZeroBalances(!!v)"
+                />
+              </div>
+
               <button
                 type="button"
                 class="hover:bg-accent flex items-center justify-between gap-2 rounded-md px-2 py-2 text-left transition-colors"
