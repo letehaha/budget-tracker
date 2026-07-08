@@ -53,13 +53,19 @@ export const queryClient = new QueryClient({
 // Keys are matched by PREFIX, so filtered variants (e.g. subscriptions with a
 // filter suffix) are covered by their stable base key. Each prefix is chosen to
 // avoid overlapping a volatile sibling under the same global prefix.
+//
+// INVARIANT: only persist queries kept fresh by invalidate/refetch on mutation.
+// The persister writes to IndexedDB from its own fetch path only, so a query
+// updated optimistically via `queryClient.setQueryData` (never refetched) would
+// leave a stale snapshot on disk and restore it on the next reload. `userSettings`
+// is the abolished candidate here — its mutations use setQueryData, so persisting
+// it made a reordered dashboard revert after reload; it stays off this list.
 const PERSISTED_QUERY_KEY_PREFIXES: readonly QueryKey[] = [
   // Static reference data
   VUE_QUERY_CACHE_KEYS.allCurrencies,
   VUE_QUERY_CACHE_KEYS.userCurrencies,
   VUE_QUERY_CACHE_KEYS.baseCurrency,
   VUE_QUERY_CACHE_KEYS.categoriesList,
-  VUE_QUERY_CACHE_KEYS.userSettings,
   VUE_QUERY_CACHE_KEYS.accountGroups,
   VUE_QUERY_CACHE_KEYS.exchangeRates,
   VUE_QUERY_CACHE_KEYS.earliestTransactionDate,
