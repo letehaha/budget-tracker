@@ -1,5 +1,5 @@
 import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
-import { dateString, optionalCommaSeparatedIds, recordId } from '@common/lib/zod/custom-types';
+import { booleanQuery, dateString, optionalCommaSeparatedIds, recordId } from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -12,6 +12,7 @@ import {
   serializeExpensesAmountForPeriod,
   serializePivotReport,
   serializeSpendingsByCategories,
+  serializeSpendingsByCategoriesByType,
   serializeTotalBalance,
 } from '@root/serializers';
 import * as statsService from '@services/stats';
@@ -103,14 +104,32 @@ const spendingsByCategoriesSchema = z.object({
     type: z.enum(Object.values(TRANSACTION_TYPES)).optional(),
     categoryIds: optionalCommaSeparatedIds(),
     excludedCategoryIds: optionalCommaSeparatedIds(),
+    // When true, ignores `type` and returns per-category income + expense buckets in one response.
+    groupByType: booleanQuery().optional(),
   }),
 });
 
 export const getSpendingsByCategories = createController(spendingsByCategoriesSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, accountId, type: transactionType, categoryIds, excludedCategoryIds } = query;
+  const { from, to, accountId, type: transactionType, categoryIds, excludedCategoryIds, groupByType } = query;
 
   tryBasicDateValidation({ from, to });
+
+  if (groupByType) {
+    const byType = await statsService.getSpendingsByCategoriesByType(
+      removeUndefinedKeys({
+        userId,
+        from,
+        to,
+        accountId,
+        categoryIds,
+        excludedCategoryIds,
+      }),
+    );
+
+    // Serialize: convert cents to decimal for API response
+    return { data: serializeSpendingsByCategoriesByType(byType) };
+  }
 
   const result = await statsService.getSpendingsByCategories(
     removeUndefinedKeys({

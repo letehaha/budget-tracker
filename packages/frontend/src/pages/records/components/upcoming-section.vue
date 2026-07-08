@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { loadSubscriptions, type SubscriptionListItem } from '@/api/subscriptions';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { type SubscriptionListItem } from '@/api/subscriptions';
 import BrandLogo from '@/components/common/brand-logo.vue';
 import { Button } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import { useSubscriptionsList } from '@/composable/data-queries/subscriptions';
 import SubscriptionMarkPaidDialog from '@/pages/planned/subscriptions/components/subscription-mark-paid-dialog.vue';
-import { useQuery } from '@tanstack/vue-query';
 import { addDays, isBefore, parseISO, startOfDay } from 'date-fns';
 import { AlertCircleIcon, CalendarClockIcon, EyeOffIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -22,9 +21,8 @@ const markPaidDialogRef = ref<InstanceType<typeof SubscriptionMarkPaidDialog> | 
 // Use the subscriptions list rather than the upcoming-payments endpoint because
 // SubscriptionListItem includes currentPeriod.id, which SubscriptionMarkPaidDialog
 // requires. Client-side filtering mirrors what the upcoming endpoint would return.
-const { data: allSubscriptions, isLoading } = useQuery({
-  queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList,
-  queryFn: () => loadSubscriptions({ isActive: true }),
+const { data: allSubscriptions, isLoading } = useSubscriptionsList({
+  filter: { isActive: true },
   staleTime: 60_000,
 });
 

@@ -1,11 +1,16 @@
+import { Money } from '@common/types/money';
 import SecurityPricing from '@models/investments/security-pricing.model';
 
 import { formatDateKey } from './types';
 
-type SecurityPriceRow = Pick<SecurityPricing, 'securityId' | 'date' | 'priceClose'>;
+// `index.ts` fetches these `raw: true` (no Money hydration), so priceClose is a
+// raw DECIMAL string; Money is still allowed for hydrated callers (unit tests).
+type SecurityPriceRow = Pick<SecurityPricing, 'securityId' | 'date'> & {
+  priceClose: Money | string;
+};
 
 interface PriceLookup {
-  /** Per-security ascending-date list, used for the backward walk in `createFindPriceForDate`. */
+  /** Per-security ascending-date list, binary-searched by `createFindPriceForDate`. */
   pricesBySecurity: Map<string, Array<{ date: string; price: number }>>;
   /** Direct lookup keyed `${securityId}_${dateStr}` — last write wins on intraday collisions. */
   pricesBySecurityAndDate: Map<string, number>;
@@ -15,9 +20,9 @@ interface PriceLookup {
  * Index prices by security and yyyy-MM-dd. `price.date` is TIMESTAMPTZ
  * (crypto carries intraday timestamps); formatting to `yyyy-MM-dd` collapses
  * same-day intraday rows onto a single daily bucket. Rows MUST be sorted
- * ascending by date so the per-security date list stays ordered for the
- * backward walk; last-write-wins on the exact-match map then picks the latest
- * intraday close for that day.
+ * ascending by date so the per-security date list is ordered for the
+ * binary-search fallback; last-write-wins on the exact-match map then picks the
+ * latest intraday close for that day.
  */
 export const buildPriceLookup = (rows: SecurityPriceRow[]): PriceLookup => {
   const pricesBySecurity = new Map<string, Array<{ date: string; price: number }>>();
@@ -25,7 +30,8 @@ export const buildPriceLookup = (rows: SecurityPriceRow[]): PriceLookup => {
 
   for (const price of rows) {
     const dateStr = formatDateKey(price.date);
-    const priceValue = price.priceClose.toNumber();
+    // Raw rows carry priceClose as a decimal string; hydrated callers pass Money.
+    const priceValue = Money.isMoney(price.priceClose) ? price.priceClose.toNumber() : Number(price.priceClose);
 
     if (!pricesBySecurity.has(price.securityId)) {
       pricesBySecurity.set(price.securityId, []);
@@ -50,12 +56,18 @@ export const createFindPriceForDate = ({ pricesBySecurity, pricesBySecurityAndDa
     const prices = pricesBySecurity.get(securityId);
     if (!prices || prices.length === 0) return null;
 
+    // Ascending by date: binary-search the latest entry with `date <= targetDate`
+    // (gap-day fallback for weekends/holidays/sparse coverage).
+    let lo = 0;
+    let hi = prices.length - 1;
     let lastValidPrice: number | null = null;
-    for (const p of prices) {
-      if (p.date <= targetDate) {
-        lastValidPrice = p.price;
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      if (prices[mid]!.date <= targetDate) {
+        lastValidPrice = prices[mid]!.price;
+        lo = mid + 1;
       } else {
-        break;
+        hi = mid - 1;
       }
     }
     return lastValidPrice;

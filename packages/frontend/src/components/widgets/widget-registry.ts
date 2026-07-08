@@ -98,7 +98,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
       { colSpan: 1, rowSpan: 1, label: '1×1' },
       { colSpan: 2, rowSpan: 1, label: '2×1' },
     ],
-    component: () => import('@/components/widgets/cash-flow-widget.vue'),
+    component: () => import('@/components/widgets/cash-flow-widget/index.vue'),
     needsPeriod: true,
   },
   'credit-utilization': {

@@ -63,7 +63,6 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // widget latest records
   widgetLatestRecords: [transactionChange, 'widget-latest-records'] as const,
-  widgetLatestRecordsScheduled: [transactionChange, 'widget-latest-records-scheduled'] as const,
 
   // widget category spending tracker
   widgetCategorySpendingTracker: [transactionChange, 'widget-category-spending-tracker'] as const,
@@ -135,6 +134,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   bankConnectionDetails: [bankConnectionChange, 'bank-connection-details'] as const,
   bankAvailableExternalAccounts: [bankConnectionChange, 'bank-available-external-accounts'] as const,
   bankConnections: [bankConnectionChange, 'bank-connections'] as const,
+  // Shared sync status (header spinner, sidebar reauth badges, per-account status).
+  // One cache entry so all consumers dedupe to a single request; SSE pushes updates.
+  bankSyncStatus: [bankConnectionChange, 'bank-sync-status'] as const,
 
   // notifications
   notificationsList: [notifications, 'notifications-list'] as const,

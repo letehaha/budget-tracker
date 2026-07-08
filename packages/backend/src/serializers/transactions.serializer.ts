@@ -51,7 +51,6 @@ export interface TransactionApiResponse {
   transferNature: string;
   transferId: string | null;
   originalId: string | null;
-  externalData: Record<string, unknown> | null;
   refundLinked: boolean;
   payeeId: string | null;
   payeeLocked: boolean;
@@ -207,7 +206,6 @@ export function serializeTransaction(
     transferNature: tx.transferNature,
     transferId: tx.transferId,
     originalId: tx.originalId,
-    externalData: tx.externalData,
     refundLinked: tx.refundLinked,
     payeeId: tx.payeeId ?? null,
     payeeLocked: tx.payeeLocked ?? false,

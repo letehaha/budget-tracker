@@ -75,6 +75,37 @@ export function serializeSpendingsByCategories(
   return result;
 }
 
+interface SpendingStructureByTypeApiResponse {
+  name: string;
+  color: string;
+  income: number;
+  expense: number;
+}
+
+type GetSpendingsByCategoriesByTypeApiResponse = {
+  [categoryId: string]: SpendingStructureByTypeApiResponse;
+};
+
+/**
+ * Serialize per-type spendings by categories (from getSpendingsByCategoriesByType)
+ */
+export function serializeSpendingsByCategoriesByType(
+  spendings: endpointsTypes.GetSpendingsByCategoriesByTypeReturnType,
+): GetSpendingsByCategoriesByTypeApiResponse {
+  const result: GetSpendingsByCategoriesByTypeApiResponse = {};
+
+  for (const [categoryId, spending] of Object.entries(spendings)) {
+    result[categoryId] = {
+      name: spending.name,
+      color: spending.color,
+      income: centsToApiDecimal(spending.income),
+      expense: centsToApiDecimal(spending.expense),
+    };
+  }
+
+  return result;
+}
+
 // ============================================================================
 // Cash Flow Serializers
 // ============================================================================

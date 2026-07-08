@@ -3,7 +3,6 @@ import {
   type SubscriptionListItem,
   createSubscription,
   deleteSubscription,
-  loadSubscriptions,
   toggleSubscriptionActive,
 } from '@/api/subscriptions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
@@ -12,11 +11,12 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useSubscriptionsList } from '@/composable/data-queries/subscriptions';
 import { type Period } from '@/composable/use-period-navigation';
 import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { useLocalStorage } from '@vueuse/core';
 import { addYears, endOfMonth, isWithinInterval, parseISO, startOfDay } from 'date-fns';
 import { PlusIcon, RepeatIcon, SearchIcon } from '@lucide/vue';
@@ -61,16 +61,11 @@ const sortBy = useLocalStorage<SubscriptionSortKey>(SUBSCRIPTION_SORT_STORAGE_KE
 // Guard against a stale/invalid value persisted by an older build.
 if (!isSubscriptionSortKey(sortBy.value)) sortBy.value = DEFAULT_SUBSCRIPTION_SORT;
 
-// The server returns the list already sorted, so `sortBy` is part of the query
-// key: changing it refetches the correctly ordered list. The `subscriptionsList`
-// prefix stays constant, so prefix-based invalidations elsewhere still match.
-const subscriptionsQueryKey = computed(() => [...VUE_QUERY_CACHE_KEYS.subscriptionsList, sortBy.value]);
-
-const { data: subscriptions, isPlaceholderData } = useQuery({
-  queryFn: () => loadSubscriptions({ sortBy: sortBy.value }),
-  queryKey: subscriptionsQueryKey,
-  staleTime: Infinity,
-  placeholderData: [],
+// Full list (active + inactive) — a separate cache entry from the active-only
+// widgets. The server returns it already sorted, so `sortBy` is part of the
+// cache key; type/period filtering is client-side below.
+const { data: subscriptions, isPlaceholderData } = useSubscriptionsList({
+  filter: computed(() => ({ sortBy: sortBy.value })),
 });
 
 const filteredSubscriptions = computed(() => {

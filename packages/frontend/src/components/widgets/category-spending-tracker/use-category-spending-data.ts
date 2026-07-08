@@ -1,7 +1,7 @@
-import { getSpendingsByCategories } from '@/api';
+import { getSpendingsByCategoriesByType } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useRootStore } from '@/stores';
-import { TRANSACTION_TYPES, type RecordId } from '@bt/shared/types';
+import { type RecordId } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed, type Ref } from 'vue';
@@ -29,63 +29,40 @@ export function useCategorySpendingData({
 
   const isEnabled = computed(() => isAppInitialized.value && categoryIds.value.length > 0);
 
-  const { data: expenseData, isFetching: isExpenseFetching } = useQuery({
+  const { data: spendingData, isFetching } = useQuery({
     queryKey: computed(() => [
       ...VUE_QUERY_CACHE_KEYS.widgetCategorySpendingTracker,
-      TRANSACTION_TYPES.expense,
       periodQueryKey.value,
       categoryIdsQueryKey.value,
     ]),
     queryFn: () =>
-      getSpendingsByCategories({
+      getSpendingsByCategoriesByType({
         from: selectedPeriod().from,
         to: selectedPeriod().to,
         categoryIds: categoryIds.value,
-        type: TRANSACTION_TYPES.expense,
       }),
     staleTime: Infinity,
     placeholderData: (previousData) => previousData || {},
     enabled: isEnabled,
   });
 
-  const { data: incomeData, isFetching: isIncomeFetching } = useQuery({
-    queryKey: computed(() => [
-      ...VUE_QUERY_CACHE_KEYS.widgetCategorySpendingTracker,
-      TRANSACTION_TYPES.income,
-      periodQueryKey.value,
-      categoryIdsQueryKey.value,
-    ]),
-    queryFn: () =>
-      getSpendingsByCategories({
-        from: selectedPeriod().from,
-        to: selectedPeriod().to,
-        categoryIds: categoryIds.value,
-        type: TRANSACTION_TYPES.income,
-      }),
-    staleTime: Infinity,
-    placeholderData: (previousData) => previousData || {},
-    enabled: isEnabled,
-  });
-
-  const isFetching = computed(() => isExpenseFetching.value || isIncomeFetching.value);
   const hasData = computed(() => {
-    const exp = expenseData.value;
-    const inc = incomeData.value;
-    return (exp !== undefined && Object.keys(exp).length > 0) || (inc !== undefined && Object.keys(inc).length > 0);
+    const data = spendingData.value;
+    return data !== undefined && Object.keys(data).length > 0;
   });
 
   const spendingByCategory = computed<Record<string, CategorySpendingItem>>(() => {
     const result: Record<string, CategorySpendingItem> = {};
+    const data = spendingData.value ?? {};
 
     for (const catId of categoryIds.value) {
-      const expense = expenseData.value?.[catId as RecordId];
-      const income = incomeData.value?.[catId as RecordId];
+      const bucket = data[catId as RecordId];
 
       result[catId] = {
         id: catId,
-        name: expense?.name ?? income?.name ?? t('common.labels.unknown'),
-        color: expense?.color ?? income?.color ?? '#000000',
-        netAmount: (income?.amount ?? 0) - (expense?.amount ?? 0),
+        name: bucket?.name ?? t('common.labels.unknown'),
+        color: bucket?.color ?? '#000000',
+        netAmount: (bucket?.income ?? 0) - (bucket?.expense ?? 0),
       };
     }
 

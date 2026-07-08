@@ -1,8 +1,12 @@
 import * as bankDataProvidersApi from '@/api/bank-data-providers';
 import type { SyncStatusResponse } from '@/api/bank-data-providers';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import type { AccountGroups } from '@/common/types/models';
 import { ensureChunkLoaded } from '@/i18n';
+import { useAuthStore } from '@/stores/auth';
 import type { AccountModel } from '@bt/shared/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -13,6 +17,12 @@ const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 // so the spinner doesn't run indefinitely. Long enough to cover slow Enable
 // Banking syncs but well below the backend's 20-min stale threshold.
 const DEFAULT_STUCK_SYNC_THRESHOLD_MS = 5 * 60 * 1000;
+// Consumers that mount at the same moment already share vue-query's in-flight
+// request; this staleTime additionally spares any consumer that mounts within the
+// window from its own refetch, while a remount past it still refreshes. SSE keeps
+// the cached value live in between.
+const SYNC_STATUS_STALE_TIME_MS = 60 * 1000;
+const SUCCESS_MESSAGE_TTL_MS = 3000;
 
 function getStuckSyncThresholdMs(): number {
   // Allow Playwright e2e tests to shorten the threshold without waiting 5 min.
@@ -24,32 +34,52 @@ function getStuckSyncThresholdMs(): number {
   return DEFAULT_STUCK_SYNC_THRESHOLD_MS;
 }
 
-// Global state shared across all component instances
-const syncStatusData = ref<SyncStatusResponse | null>(null);
-const isLoading = ref(false);
-const error = ref<string | null>(null);
-const justCompleted = ref(false); // Track if sync just completed
+// A status payload counts as "syncing" while any account is actively syncing or
+// queued. Shared by the query-derived flag and the SSE completion check.
+function isPayloadSyncing(status: SyncStatusResponse | null | undefined): boolean {
+  if (!status) return false;
+  return status.summary.syncing > 0 || status.summary.queued > 0;
+}
+
+// UI-only state shared across all consumers (server data lives in the vue-query
+// cache). The watchdog timer and the "just completed" flash are derived from
+// sync transitions, so they stay module-scoped.
+const justCompleted = ref(false);
 const syncStuck = ref(false);
 let stuckTimer: ReturnType<typeof setTimeout> | null = null;
 
-// SSE subscription state
+// SSE subscription state — one shared subscription regardless of how many
+// consumers mount.
 let sseUnsubscribe: (() => void) | null = null;
 let isSSESubscribed = false;
 
 export function useSyncStatus() {
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   const { connect, disconnect, on, isConnected } = useSSE();
+  const { isLoggedIn } = storeToRefs(useAuthStore());
 
   // Provider names show up in the always-visible header popover regardless of
   // which page the user is on, but live in the integrations route chunk —
   // pull it eagerly so the tooltip resolves before the user hovers.
   void ensureChunkLoaded('pages/account-integrations');
 
-  const rawIsSyncing = computed(() => {
-    if (!syncStatusData.value) return false;
-    const { summary } = syncStatusData.value;
-    return summary.syncing > 0 || summary.queued > 0;
+  // Single source of truth for sync status. Every consumer that calls
+  // useSyncStatus() subscribes to this one cache entry, so vue-query collapses
+  // their concurrent mounts into a single request. SSE and the check/trigger
+  // actions write back through the cache.
+  const statusQuery = useQuery({
+    queryKey: VUE_QUERY_CACHE_KEYS.bankSyncStatus,
+    queryFn: bankDataProvidersApi.getSyncStatus,
+    enabled: isLoggedIn,
+    staleTime: SYNC_STATUS_STALE_TIME_MS,
+    // SSE already pushes live updates, so a focus-triggered refetch is redundant.
+    refetchOnWindowFocus: false,
   });
+
+  const syncStatusData = computed<SyncStatusResponse | null>(() => statusQuery.data.value ?? null);
+
+  const rawIsSyncing = computed(() => isPayloadSyncing(syncStatusData.value));
 
   // Once the watchdog flips syncStuck, treat sync as not-in-progress in the UI
   // so the spinner stops. Backend may still be working, but we won't pretend.
@@ -151,30 +181,34 @@ export function useSyncStatus() {
   );
 
   /**
-   * Subscribe to SSE sync status events
+   * Subscribe to SSE sync status events. The handler reads and writes status
+   * through the shared query cache via the app-level `queryClient` (stable across
+   * component instances). It is registered once at module scope and outlives the
+   * component that first opened it, so it must not close over this instance's
+   * `syncStatusData` / `rawIsSyncing` computeds — those stop updating once that
+   * component unmounts, whereas the cache is always current.
    */
   const subscribeToSSE = () => {
     if (isSSESubscribed) return;
 
     sseUnsubscribe = on(SSE_EVENT_TYPES.SYNC_STATUS_CHANGED, (data) => {
-      // Track raw state (not the watchdog-masked version) so completion is
+      const snapshot = data as unknown as SyncStatusResponse;
+      // Compare against the cached (not watchdog-masked) state so completion is
       // detected even after the watchdog has already silenced the spinner.
-      const wasSyncingBefore = rawIsSyncing.value;
+      const previous = queryClient.getQueryData<SyncStatusResponse>(VUE_QUERY_CACHE_KEYS.bankSyncStatus);
+      const wasSyncingBefore = isPayloadSyncing(previous);
 
-      // Update status from SSE event (cast to SyncStatusResponse since the types are compatible)
-      syncStatusData.value = data as unknown as SyncStatusResponse;
+      // Push the SSE snapshot into the cache so every consumer updates.
+      queryClient.setQueryData(VUE_QUERY_CACHE_KEYS.bankSyncStatus, snapshot);
 
-      // Detect sync completion
-      const isNowSyncing = data.summary.syncing > 0 || data.summary.queued > 0;
-      if (wasSyncingBefore && !isNowSyncing) {
+      if (wasSyncingBefore && !isPayloadSyncing(snapshot)) {
         justCompleted.value = true;
 
-        // Clear success message after 3 seconds
         setTimeout(() => {
           justCompleted.value = false;
-        }, 3000);
+        }, SUCCESS_MESSAGE_TTL_MS);
 
-        // Disconnect SSE when sync is complete (per user requirement)
+        // Disconnect SSE when sync is complete (per user requirement).
         // TODO: Handle SSE reconnection for cron-triggered syncs. Currently SSE
         // disconnects when idle and only reconnects on manual trigger. Cron syncs
         // won't push updates until user manually triggers or refreshes the page.
@@ -197,53 +231,64 @@ export function useSyncStatus() {
     isSSESubscribed = false;
   };
 
+  // Attach the shared SSE subscription and open the connection. Idempotent —
+  // subscribeToSSE no-ops when already subscribed.
+  const ensureSSEConnected = async () => {
+    subscribeToSSE();
+    await connect();
+  };
+
+  const checkSyncMutation = useMutation({
+    mutationFn: async () => {
+      const result = await bankDataProvidersApi.checkSync();
+      // checkSync returns syncTriggered:false both when nothing needs syncing and
+      // when a sync is already running (cron / another tab), so refetch to learn
+      // the real current state before deciding whether to attach SSE.
+      await statusQuery.refetch();
+      // Attach SSE when a sync is in progress: just triggered, or already running.
+      if (result.syncTriggered || rawIsSyncing.value) {
+        await ensureSSEConnected();
+      }
+      return result;
+    },
+  });
+
+  const triggerSyncMutation = useMutation({
+    mutationFn: async () => {
+      // Connect to SSE before triggering so no early progress events are missed.
+      await ensureSSEConnected();
+      await bankDataProvidersApi.triggerSync();
+      // SSE pushes further updates, but refetch immediately for responsiveness.
+      await statusQuery.refetch();
+    },
+  });
+
+  // Loading = an initial/background status fetch or a check/trigger in flight.
+  const isLoading = computed(
+    () => statusQuery.isFetching.value || checkSyncMutation.isPending.value || triggerSyncMutation.isPending.value,
+  );
+
   /**
-   * Fetch current sync status from API
+   * Force-refresh the current sync status.
    */
   const fetchStatus = async () => {
-    try {
-      isLoading.value = true;
-      error.value = null;
-
-      const data = await bankDataProvidersApi.getSyncStatus();
-      syncStatusData.value = data;
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch sync status';
-      console.error('Error fetching sync status:', err);
-    } finally {
-      isLoading.value = false;
-    }
+    await statusQuery.refetch();
   };
 
   /**
-   * Trigger sync and connect to SSE for updates
+   * Trigger sync and connect to SSE for updates. Returns `false` without acting
+   * when confirmation is required (and not skipped) so the caller can prompt.
    */
   const triggerSync = async (skipConfirmation = false): Promise<boolean> => {
+    if (!skipConfirmation && needsConfirmation.value) {
+      return false;
+    }
     try {
-      // Check if confirmation is needed
-      if (!skipConfirmation && needsConfirmation.value) {
-        return false; // Caller should show confirmation dialog
-      }
-
-      isLoading.value = true;
-      error.value = null;
-
-      // Connect to SSE before triggering sync
-      subscribeToSSE();
-      await connect();
-
-      await bankDataProvidersApi.triggerSync();
-
-      // SSE will receive updates, but also fetch immediately for responsiveness
-      await fetchStatus();
-
+      await triggerSyncMutation.mutateAsync();
       return true;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to trigger sync';
       console.error('Error triggering sync:', err);
       return false;
-    } finally {
-      isLoading.value = false;
     }
   };
 
@@ -255,44 +300,25 @@ export function useSyncStatus() {
    */
   const watchSync = async () => {
     try {
-      subscribeToSSE();
-      await connect();
-      await fetchStatus();
+      await ensureSSEConnected();
+      await statusQuery.refetch();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to watch sync';
       console.error('Error watching sync:', err);
     }
   };
 
   /**
-   * Check if auto-sync should run and trigger if needed
+   * Check whether auto-sync should run and trigger it if needed. Bails when a
+   * check is already in flight: unlike queries, concurrent mutation calls don't
+   * dedupe, so the guard keeps a second caller from firing a duplicate request.
    */
   const checkAndAutoSync = async () => {
+    if (checkSyncMutation.isPending.value) return null;
     try {
-      isLoading.value = true;
-      error.value = null;
-
-      const result = await bankDataProvidersApi.checkSync();
-
-      // Always fetch current status
-      await fetchStatus();
-
-      // Connect to SSE if sync was triggered OR if sync is already in progress
-      // (e.g., page refresh while sync is running from another tab/session).
-      // Use rawIsSyncing so we still re-attach when the page loaded mid-sync
-      // even if the watchdog has already masked isSyncing.
-      if (result.syncTriggered || rawIsSyncing.value) {
-        subscribeToSSE();
-        await connect();
-      }
-
-      return result;
+      return await checkSyncMutation.mutateAsync();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to check sync';
       console.error('Error checking sync:', err);
       return null;
-    } finally {
-      isLoading.value = false;
     }
   };
 
@@ -303,7 +329,6 @@ export function useSyncStatus() {
     // State
     syncStatusData,
     isLoading,
-    error,
     isSyncing,
     rawIsSyncing,
     syncStuck,
