@@ -87,7 +87,9 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       const txAfterFirstSync = await helpers.getTransactions({ accountIds: [accountId], raw: true });
       expect(txAfterFirstSync.length).toBe(1);
       const initialTx = txAfterFirstSync[0]!;
-      expect(initialTx.externalData?.entryReference ?? null).toBeNull();
+      // externalData isn't exposed via the API — read it directly from the DB.
+      const initialTxRow = await Transactions.findByPk(initialTx.id, { raw: true });
+      expect((initialTxRow!.externalData as { entryReference?: string } | null)?.entryReference ?? null).toBeNull();
       const initialOriginalId = initialTx.originalId;
 
       // Sync 2: same logical tx, now WITH entry_reference (uses canonical hash)
@@ -98,8 +100,11 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       expect(txAfterSecondSync.length).toBe(1);
       // Same DB row — not a duplicate
       expect(txAfterSecondSync[0]!.id).toBe(initialTx.id);
-      // entryReference is now persisted
-      expect(txAfterSecondSync[0]!.externalData?.entryReference).toBe('ref_appeared_later_001');
+      // entryReference is now persisted — externalData isn't exposed via the API, read from the DB.
+      const secondSyncRow = await Transactions.findByPk(txAfterSecondSync[0]!.id, { raw: true });
+      expect((secondSyncRow!.externalData as { entryReference?: string } | null)?.entryReference).toBe(
+        'ref_appeared_later_001',
+      );
       // originalId is re-anchored to canonical entry_reference hash
       expect(txAfterSecondSync[0]!.originalId).not.toBe(initialOriginalId);
     });
@@ -353,7 +358,11 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       const txsAfterSync = await helpers.getTransactions({ accountIds: [accountId], raw: true });
       expect(txsAfterSync.length).toBe(1);
       const canonicalTx = txsAfterSync[0]!;
-      expect(canonicalTx.externalData?.entryReference).toBe('canonical_ref_001');
+      // externalData isn't exposed via the API — read it directly from the DB.
+      const canonicalTxRow = await Transactions.findByPk(canonicalTx.id, { raw: true });
+      expect((canonicalTxRow!.externalData as { entryReference?: string } | null)?.entryReference).toBe(
+        'canonical_ref_001',
+      );
 
       // Step 2: simulate a pre-#1 orphan — same fingerprint, no entry_reference,
       // but with the same counterparty IBAN that the canonical row stored.
