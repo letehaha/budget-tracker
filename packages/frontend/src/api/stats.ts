@@ -78,6 +78,27 @@ export const getSpendingsByCategories = async ({
   return api.get('/stats/spendings-by-categories', params);
 };
 
+export const getSpendingsByCategoriesByType = async ({
+  from,
+  to,
+  categoryIds,
+  excludedCategoryIds,
+  ...rest
+}: Params & {
+  categoryIds?: string[];
+  excludedCategoryIds?: string[];
+} = {}): Promise<endpointsTypes.GetSpendingsByCategoriesByTypeReturnType> => {
+  const params: Record<string, string | boolean> = { groupByType: true };
+
+  if (rest.accountId) params.accountId = rest.accountId;
+  if (from) params.from = formatDate(from);
+  if (to) params.to = formatDate(to);
+  if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
+
+  return api.get('/stats/spendings-by-categories', params);
+};
+
 export interface CombinedBalanceHistoryEntity {
   date: string;
   accountsBalance: number;

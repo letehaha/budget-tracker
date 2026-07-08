@@ -53,6 +53,11 @@ export type GetSpendingsByCategoriesReturnType = {
   [categoryId: RecordId]: SpendingStructure;
 };
 
+export type SpendingStructureByType = { name: string; color: string; income: number; expense: number };
+export type GetSpendingsByCategoriesByTypeReturnType = {
+  [categoryId: RecordId]: SpendingStructureByType;
+};
+
 export interface GetTransactionsQuery extends QueryPayload {
   sort?: SORT_DIRECTIONS;
   includeUser?: boolean;

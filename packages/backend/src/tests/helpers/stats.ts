@@ -1,4 +1,4 @@
-import { BalanceModel, endpointsTypes } from '@bt/shared/types';
+import { BalanceModel, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import {
   getCombinedBalanceHistory as _getCombinedBalanceHistory,
   getEarliestTransactionDate as _getEarliestTransactionDate,
@@ -35,11 +35,22 @@ export const getSpendingsByCategories = async ({
   from,
   to,
   categoryIds,
-}: { raw?: boolean; from?: string; to?: string; categoryIds?: string[] } = {}) => {
+  type,
+  groupByType,
+}: {
+  raw?: boolean;
+  from?: string;
+  to?: string;
+  categoryIds?: string[];
+  type?: TRANSACTION_TYPES;
+  groupByType?: boolean;
+} = {}) => {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
   if (to) params.append('to', to);
   if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+  if (type) params.append('type', type);
+  if (groupByType) params.append('groupByType', 'true');
 
   const result = await helpers.makeRequest({
     method: 'get',

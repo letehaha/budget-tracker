@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { getRootCategoryId as resolveRootCategoryId } from '@services/categories/category-hierarchy';
 import {
   AccessibleCategoryInfo,
@@ -37,6 +38,50 @@ export const getSpendingsByCategories = withTransaction(
     return groupAllocations({ categories, allocations, selectedCategoryIds: params.categoryIds });
   },
 );
+
+/**
+ * Same category grouping as `getSpendingsByCategories`, but split into per-category
+ * income and expense buckets in a single response. The category-spending-tracker widget
+ * needs both directions per category (to show net = income - expense); returning them
+ * together lets it issue one request instead of one per transaction type.
+ *
+ * Runs the two type-scoped computations concurrently and merges by category, so the
+ * refund/split adjustment logic stays shared and untouched.
+ */
+export async function getSpendingsByCategoriesByType(params: {
+  userId: number;
+  accountId?: string;
+  from?: string;
+  to?: string;
+  categoryIds?: string[];
+  excludedCategoryIds?: string[];
+}): Promise<endpointsTypes.GetSpendingsByCategoriesByTypeReturnType> {
+  const [expenseByCategory, incomeByCategory] = await Promise.all([
+    getSpendingsByCategories({ ...params, transactionType: TRANSACTION_TYPES.expense }),
+    getSpendingsByCategories({ ...params, transactionType: TRANSACTION_TYPES.income }),
+  ]);
+
+  const result: endpointsTypes.GetSpendingsByCategoriesByTypeReturnType = {};
+
+  for (const categoryId of new Set([
+    ...Object.keys(expenseByCategory),
+    ...Object.keys(incomeByCategory),
+  ]) as Set<RecordId>) {
+    const expenseBucket = expenseByCategory[categoryId];
+    const incomeBucket = incomeByCategory[categoryId];
+    // A category present in either map always carries name/color; prefer whichever exists.
+    const meta = expenseBucket ?? incomeBucket!;
+
+    result[categoryId] = {
+      name: meta.name,
+      color: meta.color,
+      income: incomeBucket?.amount ?? 0,
+      expense: expenseBucket?.amount ?? 0,
+    };
+  }
+
+  return result;
+}
 
 /**
  * Rolls the flat category-allocation legs up into the shape this report returns.
