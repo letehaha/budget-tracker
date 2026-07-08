@@ -1,6 +1,9 @@
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
 import { ApiErrorResponseError, AuthError, UnexpectedError } from '@/js/errors';
 import { API_ERROR_CODES } from '@bt/shared/types';
-import { QueryClient } from '@tanstack/vue-query';
+import { QueryClient, type QueryKey } from '@tanstack/vue-query';
+
+import { persistedQueryFn } from './query-persister';
 
 // Client-terminal codes: the caller cannot fix by retrying (auth/permission
 // gaps, missing resources, malformed requests). Transient codes like
@@ -41,3 +44,37 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Rarely-changing, non-financial queries that are safe to restore instantly from
+// disk on reload (stale-while-revalidate: cached data shows immediately while a
+// background refetch runs). Volatile data — transactions, balances, cash-flow,
+// stats, notifications, sync status — is intentionally excluded.
+//
+// Keys are matched by PREFIX, so filtered variants (e.g. subscriptions with a
+// filter suffix) are covered by their stable base key. Each prefix is chosen to
+// avoid overlapping a volatile sibling under the same global prefix.
+const PERSISTED_QUERY_KEY_PREFIXES: readonly QueryKey[] = [
+  // Static reference data
+  VUE_QUERY_CACHE_KEYS.allCurrencies,
+  VUE_QUERY_CACHE_KEYS.userCurrencies,
+  VUE_QUERY_CACHE_KEYS.baseCurrency,
+  VUE_QUERY_CACHE_KEYS.categoriesList,
+  VUE_QUERY_CACHE_KEYS.userSettings,
+  VUE_QUERY_CACHE_KEYS.accountGroups,
+  VUE_QUERY_CACHE_KEYS.exchangeRates,
+  VUE_QUERY_CACHE_KEYS.earliestTransactionDate,
+  // Slow-to-load list endpoints (list only, not per-item detail/summary)
+  VUE_QUERY_CACHE_KEYS.allAccounts,
+  VUE_QUERY_CACHE_KEYS.portfoliosList,
+  VUE_QUERY_CACHE_KEYS.loansList,
+  VUE_QUERY_CACHE_KEYS.subscriptionsList,
+];
+
+// Attach the persister centrally via query defaults so individual useQuery call
+// sites stay untouched. Per-call options still win over these defaults, and no
+// whitelisted call site sets its own `persister`.
+if (persistedQueryFn) {
+  for (const queryKey of PERSISTED_QUERY_KEY_PREFIXES) {
+    queryClient.setQueryDefaults(queryKey, { persister: persistedQueryFn });
+  }
+}
