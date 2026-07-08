@@ -82,6 +82,11 @@ export interface UserSettingsSchema {
   savedPivotViews?: SavedPivotView[];
   /** Header "Support" (donation) button visibility. Defaults to visible when unset. */
   showSupportButton?: boolean;
+  /**
+   * Hide zero-balance accounts (and account groups emptied by that hiding) from the sidebar
+   * Accounts panel. Defaults to visible/off when unset.
+   */
+  hideZeroBalances?: boolean;
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

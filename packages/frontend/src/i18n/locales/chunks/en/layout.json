@@ -28,6 +28,10 @@
         "label": "Sidebar sections",
         "description": "Pick which sections appear in the sidebar.",
         "alwaysVisibleTooltip": "This section is always visible."
+      },
+      "hideZeroBalances": {
+        "label": "Hide zero balances",
+        "description": "Hide accounts and groups with a zero balance"
       }
     },
     "accountsView": {

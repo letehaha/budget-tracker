@@ -221,6 +221,9 @@ export const ZodSettingsSchema = z.object({
   // Visibility of the header "Support" (donation) button. Defaults to visible
   // when unset; users opt out by turning it off in Appearance settings.
   showSupportButton: z.boolean().optional(),
+  // When true, the sidebar Accounts panel hides accounts whose display balance is
+  // zero, and hides any account group left with no non-zero account. Off by default.
+  hideZeroBalances: z.boolean().optional(),
 });
 
 // Infer the TypeScript type from the Zod schema
@@ -308,6 +311,7 @@ export const ZodSettingsPatchSchema = z.object({
   savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   payeeExtractionUsesDescription: z.boolean().optional(),
   showSupportButton: z.boolean().optional(),
+  hideZeroBalances: z.boolean().optional(),
 });
 
 export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;
