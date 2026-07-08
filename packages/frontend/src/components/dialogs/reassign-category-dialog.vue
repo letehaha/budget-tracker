@@ -97,7 +97,7 @@ const handleReassign = async () => {
       categoryId: props.category.id,
       replaceWithCategoryId: selectedCategory.value.id,
     });
-    await categoriesStore.loadCategories();
+    await categoriesStore.loadCategories({ force: true });
     addSuccessNotification(
       t('dialogs.reassignCategory.notifications.success', {
         count: props.transactionCount,

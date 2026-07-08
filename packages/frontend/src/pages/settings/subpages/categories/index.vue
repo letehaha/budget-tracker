@@ -219,7 +219,7 @@ const handleDeleteCategory = async () => {
 
   try {
     await apiDeleteCategory({ categoryId: deleteDialogState.category.id });
-    await categoriesStore.loadCategories();
+    await categoriesStore.loadCategories({ force: true });
     addSuccessNotification(t('settings.categories.notifications.deleteSuccess'));
 
     if (selectedCategoryId.value === deleteDialogState.category.id) {

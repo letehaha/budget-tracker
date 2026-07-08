@@ -14,6 +14,7 @@ import { portfolioSummaryQueryOptions } from '@/composable/data-queries/portfoli
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useVentureDeals } from '@/composable/data-queries/venture/deals';
+import { useIdleEnabled } from '@/composable/use-idle-enabled';
 import { useSidebarSections } from '@/composable/use-sidebar-sections';
 import { waitForAnimationEnd } from '@/composable/wait-for-animation-end';
 import { partitionLoans } from '@/pages/loans/utils/partition-loans';
@@ -113,14 +114,23 @@ const bankAccountsTotal = computed(() =>
   }),
 );
 
+// Non-critical sidebar batches (portfolio roll-up summaries, venture deals) are deferred until
+// the browser is idle so above-the-fold dashboard data loads first.
+const idleEnabled = useIdleEnabled();
+
 const { data: portfolios } = usePortfolios();
 const visiblePortfolios = computed(() => (portfolios.value ?? []).filter((p) => !p.deletedAt));
 
 // One summary query per portfolio via the shared factory, so these dedupe with the per-row
 // usePortfolioSummary calls (identical cache keys) instead of firing a second request each.
+// Only this eager sidebar roll-up is idle-gated; the per-row usePortfolioSummary keeps its own
+// enabled logic, so a portfolio detail page visited directly still fetches immediately.
 const portfolioSummaries = useQueries({
   queries: computed(() =>
-    visiblePortfolios.value.map((portfolio) => portfolioSummaryQueryOptions({ portfolioId: portfolio.id })),
+    visiblePortfolios.value.map((portfolio) => ({
+      ...portfolioSummaryQueryOptions({ portfolioId: portfolio.id }),
+      enabled: idleEnabled.value,
+    })),
   ),
 });
 
@@ -136,7 +146,7 @@ const portfoliosTotal = computed(() => {
 });
 const isPortfoliosTotalLoading = computed(() => portfolioSummaries.value.some((result) => result.isLoading));
 
-const { data: ventureDeals } = useVentureDeals();
+const { data: ventureDeals } = useVentureDeals({ enabled: idleEnabled });
 const venturesCount = computed(() => (ventureDeals.value?.data ?? []).length);
 
 // Cars total = vehicle accounts in base currency.

@@ -178,6 +178,12 @@ export const useImportExportStore = defineStore('importExport', () => {
       // Import can create new categories that would otherwise be missing from category pickers.
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.categoriesByAccount });
 
+      // payeesList sits outside the transactionChange prefix, so it must be invalidated
+      // explicitly. An import can create payees (mapped payee column) and always shifts
+      // the transaction-count stats carried in the payee list, so refresh it unconditionally
+      // so pickers and the payees table don't keep a pre-import snapshot.
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
+
       // The Pinia categories store is not VueQuery-backed, so invalidateQueries alone won't
       // refresh it. Call loadCategories explicitly so newly-created categories appear in
       // category pickers and lists without a full page reload.
@@ -186,7 +192,7 @@ export const useImportExportStore = defineStore('importExport', () => {
       // as an import error. Swallow and log it instead of letting it reject the handler.
       if (summary.categoriesCreated > 0) {
         try {
-          await useCategoriesStore().loadCategories();
+          await useCategoriesStore().loadCategories({ force: true });
         } catch (refreshError) {
           captureException({ error: refreshError, context: { scope: 'import-csv:post-import-refresh' } });
         }

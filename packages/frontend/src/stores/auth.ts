@@ -3,6 +3,7 @@ import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
 import { identifyUser, resetUser } from '@/lib/posthog';
+import { clearPersistedQueries } from '@/lib/query-persister';
 import { clearSentryUser, setSentryUser } from '@/lib/sentry';
 import { useCategoriesStore, useCurrenciesStore, useUserStore } from '@/stores';
 import { OAUTH_PROVIDER, USER_ROLES, UserModel } from '@bt/shared/types';
@@ -39,6 +40,10 @@ function identifyUserForTracking(user: UserModel) {
 
 const HAS_EVER_LOGGED_IN_KEY = 'has-ever-logged-in';
 const DEMO_SESSION_KEY = 'demo-session';
+// Identity of the user whose queries are currently persisted on this device.
+// Compared on every auth entry so a session swap without an explicit logout
+// (expiry, logging into a different account) can't restore the prior user's data.
+const PERSISTED_QUERIES_USER_KEY = 'persisted-queries-user-id';
 
 // Demo session expires after 4 hours (same as backend)
 export const DEMO_EXPIRY_HOURS = 4;
@@ -59,9 +64,31 @@ export const useAuthStore = defineStore('auth', () => {
   const isReturningUser = Boolean(localStorage.getItem(HAS_EVER_LOGGED_IN_KEY));
 
   /**
+   * Drop persisted (IndexedDB) and in-memory query caches when the authenticated
+   * user differs from the one whose data was last persisted on this device. Runs
+   * before any persisted query mounts so a fresh account never restores another's
+   * cached lists. No-op on first login and when the same user returns.
+   */
+  const reconcilePersistedQueriesForUser = async () => {
+    const currentUserId = userStore.user?.id;
+    if (currentUserId == null) return;
+
+    const currentUserIdStr = String(currentUserId);
+    const lastSeenUserId = localStorage.getItem(PERSISTED_QUERIES_USER_KEY);
+
+    if (lastSeenUserId !== null && lastSeenUserId !== currentUserIdStr) {
+      queryClient.clear();
+      await clearPersistedQueries();
+    }
+
+    localStorage.setItem(PERSISTED_QUERIES_USER_KEY, currentUserIdStr);
+  };
+
+  /**
    * Loads initial data after authentication (currencies, categories)
    */
   const loadPostAuthData = async () => {
+    await reconcilePersistedQueriesForUser();
     await Promise.all([currenciesStore.loadBaseCurrency(), categoriesStore.loadCategories()]);
   };
 
@@ -285,6 +312,10 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn.value = false;
     // Cancel all queries before resetting stores to prevent refetching
     queryClient.cancelQueries();
+    // Drop the in-memory cache and the on-device persisted store so no financial
+    // data survives logout on a shared device.
+    queryClient.clear();
+    await clearPersistedQueries();
     resetAllDefinedStores();
   };
 

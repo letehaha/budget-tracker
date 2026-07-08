@@ -154,6 +154,7 @@ import { useCategorizationStatus } from '@/composable/use-categorization-status'
 import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { useFeedbackAttention } from '@/composable/use-feedback-attention';
+import { useIdleEnabled } from '@/composable/use-idle-enabled';
 import { useSupportButton } from '@/composable/use-support-button';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
@@ -249,11 +250,16 @@ const syncButtonLabel = computed(() => {
 // computed yields a fresh reference on every accounts refetch and would re-fire
 // this, whereas a boolean only fires on real transitions. Watching the combined
 // flag also re-runs the check when a re-link is later resolved (false → true).
+//
+// Gated on `idleEnabled` so the auto-check POST + status refetch stay off the
+// dashboard's critical path — the manual sync button and initial status query
+// are untouched and still run eagerly.
+const idleEnabled = useIdleEnabled();
 const canAutoSync = computed(() => isAccountsFetched.value && accountsNeedingRelink.value.length === 0);
 watch(
-  canAutoSync,
-  async (ready) => {
-    if (!ready) return;
+  [canAutoSync, idleEnabled],
+  async ([ready, idle]) => {
+    if (!ready || !idle) return;
     await syncStatus.checkAndAutoSync();
   },
   { immediate: true },
