@@ -1,29 +1,16 @@
 <script lang="ts" setup>
-import { getCashFlow } from '@/api/stats';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference } from '@/js/helpers/math/calculate-percentage-difference';
-import { useRootStore } from '@/stores';
-import { useQuery } from '@tanstack/vue-query';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
-import {
-  differenceInDays,
-  endOfMonth,
-  format,
-  isSameMonth,
-  parseISO,
-  startOfMonth,
-  subDays,
-  subMonths,
-} from 'date-fns';
+import { format, isSameMonth, parseISO } from 'date-fns';
 import { ArrowDownRightIcon, ArrowUpRightIcon, InfoIcon, WalletIcon } from '@lucide/vue';
-import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 
-import EmptyState from './components/empty-state.vue';
-import LoadingState from './components/loading-state.vue';
-import WidgetWrapper from './components/widget-wrapper.vue';
+import EmptyState from '../components/empty-state.vue';
+import LoadingState from '../components/loading-state.vue';
+import WidgetWrapper from '../components/widget-wrapper.vue';
+import { useCashFlowData } from './use-cash-flow-data';
 
 defineOptions({ name: 'cash-flow-widget' });
 
@@ -31,66 +18,24 @@ const props = defineProps<{
   selectedPeriod: { from: Date; to: Date };
 }>();
 
-const { isAppInitialized } = storeToRefs(useRootStore());
 const { formatBaseCurrency } = useFormatCurrency();
 
-const periodQueryKey = computed(
-  () => `${props.selectedPeriod.from.toISOString()}-${props.selectedPeriod.to.toISOString()}`,
-);
+const {
+  currentTotals,
+  prevNetFlow,
+  trendPeriods,
+  unionPeriods,
+  hasCurrentData,
+  hasPrevData,
+  isFetching,
+  isInitialLoading,
+  isEmpty,
+} = useCashFlowData({ selectedPeriod: () => props.selectedPeriod });
 
-const { data: currentData, isFetching: isCurrentFetching } = useQuery({
-  queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetCashFlow, periodQueryKey.value]),
-  queryFn: () =>
-    getCashFlow({
-      from: props.selectedPeriod.from,
-      to: props.selectedPeriod.to,
-      granularity: 'monthly',
-    }),
-  staleTime: Infinity,
-  placeholderData: (prev) => prev,
-  enabled: isAppInitialized,
-});
-
-const isFullMonth = computed(() => {
-  const { from, to } = props.selectedPeriod;
-  return isSameMonth(from, to) && from.getDate() === 1 && to.getDate() === endOfMonth(to).getDate();
-});
-
-const prevPeriod = computed(() => {
-  const { from, to } = props.selectedPeriod;
-
-  if (isFullMonth.value) {
-    const prev = subMonths(from, 1);
-    return { from: startOfMonth(prev), to: endOfMonth(prev) };
-  }
-
-  const durationInDays = differenceInDays(to, from) + 1;
-  return { from: subDays(from, durationInDays), to: subDays(from, 1) };
-});
-
-const { data: prevData, isFetching: isPrevFetching } = useQuery({
-  queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetCashFlowPrev, periodQueryKey.value]),
-  queryFn: () =>
-    getCashFlow({
-      from: prevPeriod.value.from,
-      to: prevPeriod.value.to,
-      granularity: 'monthly',
-    }),
-  staleTime: Infinity,
-  placeholderData: (prev) => prev,
-  enabled: isAppInitialized,
-});
-
-const isFetching = computed(() => isCurrentFetching.value || isPrevFetching.value);
-const isInitialLoading = computed(() => isFetching.value && !currentData.value);
-const isEmpty = computed(
-  () => currentData.value && currentData.value.totals.income === 0 && currentData.value.totals.expenses === 0,
-);
-
-const income = computed(() => currentData.value?.totals.income ?? 0);
-const expenses = computed(() => currentData.value?.totals.expenses ?? 0);
-const netFlow = computed(() => currentData.value?.totals.netFlow ?? 0);
-const savingsRate = computed(() => currentData.value?.totals.savingsRate ?? 0);
+const income = computed(() => currentTotals.value.income);
+const expenses = computed(() => currentTotals.value.expenses);
+const netFlow = computed(() => currentTotals.value.netFlow);
+const savingsRate = computed(() => currentTotals.value.savingsRate);
 
 const { displayValue: animatedIncome } = useAnimatedNumber({ value: income });
 const { displayValue: animatedExpenses } = useAnimatedNumber({ value: expenses });
@@ -110,10 +55,7 @@ const expensePercent = computed(() => {
 });
 
 // Percentage change vs previous period
-const netFlowDiff = computed(() => {
-  const prevNet = prevData.value?.totals.netFlow ?? 0;
-  return Number(calculatePercentageDifference(netFlow.value, prevNet).toFixed(1));
-});
+const netFlowDiff = computed(() => Number(calculatePercentageDifference(netFlow.value, prevNetFlow.value).toFixed(1)));
 
 const periodLabel = computed(() => {
   const { from, to } = props.selectedPeriod;
@@ -125,63 +67,18 @@ const periodLabel = computed(() => {
 
 const isPositiveFlow = computed(() => netFlow.value >= 0);
 
-// Trend: previous 5 periods + current period
-const PREV_PERIOD_COUNT = 5;
-
-const trendPeriods = computed(() => {
-  const { from, to } = props.selectedPeriod;
-  const durationInDays = differenceInDays(to, from) + 1;
-
-  const periods: { from: Date; to: Date; isCurrent: boolean }[] = [];
-
-  for (let i = PREV_PERIOD_COUNT; i >= 1; i--) {
-    if (isFullMonth.value) {
-      const periodFrom = startOfMonth(subMonths(from, i));
-      periods.push({ from: periodFrom, to: endOfMonth(periodFrom), isCurrent: false });
-    } else {
-      const periodTo = subDays(from, (i - 1) * durationInDays + 1);
-      const periodFrom = subDays(periodTo, durationInDays - 1);
-      periods.push({ from: periodFrom, to: periodTo, isCurrent: false });
-    }
-  }
-
-  // Add current period as the last bar
-  periods.push({ from, to, isCurrent: true });
-
-  return periods;
-});
-
-const trendRange = computed(() => {
-  const pastPeriods = trendPeriods.value.filter((p) => !p.isCurrent);
-  return { from: pastPeriods[0]!.from, to: pastPeriods[pastPeriods.length - 1]!.to };
-});
-
-const { data: trendData } = useQuery({
-  queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetCashFlowTrend, periodQueryKey.value]),
-  queryFn: () =>
-    getCashFlow({
-      from: trendRange.value.from,
-      to: trendRange.value.to,
-      granularity: 'monthly',
-    }),
-  staleTime: Infinity,
-  placeholderData: (prev) => prev,
-  enabled: isAppInitialized,
-});
-
 const trendBars = computed(() => {
   const buckets = trendPeriods.value;
-  // Need trend data for past periods; current period uses currentData
-  if (!trendData.value?.periods.length && !currentData.value) return [];
+  const apiPeriods = unionPeriods.value;
 
-  const apiPeriods = trendData.value?.periods ?? [];
+  // Past periods come from the union response; the current period uses currentTotals.
+  if (!apiPeriods.length && !hasCurrentData.value) return [];
 
   const aggregated = buckets.map((bucket) => {
     let bucketNetFlow: number;
 
     if (bucket.isCurrent) {
-      // Use the main widget data for the current period
-      bucketNetFlow = currentData.value?.totals.netFlow ?? 0;
+      bucketNetFlow = netFlow.value;
     } else {
       bucketNetFlow = 0;
       for (const ap of apiPeriods) {
@@ -259,7 +156,7 @@ const trendBars = computed(() => {
             </div>
 
             <!-- Comparison badge -->
-            <div v-if="prevData" class="flex flex-col items-end gap-0.5">
+            <div v-if="hasPrevData" class="flex flex-col items-end gap-0.5">
               <span
                 class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold"
                 :class="{
