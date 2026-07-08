@@ -204,6 +204,13 @@ export function useSyncStatus() {
       if (wasSyncingBefore && !isPayloadSyncing(snapshot)) {
         justCompleted.value = true;
 
+        // A finished sync can fuzzy-create payees and always shifts the
+        // transaction-count stats carried in the payee list. payeesList sits
+        // outside the transactionChange prefix, so invalidate it explicitly here —
+        // this is the one hook that observes every completed sync regardless of
+        // which page triggered it.
+        queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
+
         setTimeout(() => {
           justCompleted.value = false;
         }, SUCCESS_MESSAGE_TTL_MS);

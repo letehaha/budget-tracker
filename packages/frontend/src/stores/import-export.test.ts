@@ -489,6 +489,18 @@ describe('useImportExportStore – import completion cache invalidation', () => 
     );
   });
 
+  it('invalidates the payees list on job completion', async () => {
+    const invalidateSpy = vi.spyOn(sharedQueryClient, 'invalidateQueries');
+
+    useImportExportStore();
+    await fireOnComplete();
+
+    // Import can create payees (mapped payee column) and always shifts the
+    // transaction-count stats on the payee list; payeesList has no shared prefix
+    // so it must be invalidated explicitly (not covered by transactionChange).
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList }));
+  });
+
   it('does not invalidate caches when enqueuing the job fails (no completion)', async () => {
     mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
     mockExecuteImportApi.mockRejectedValue(new Error('Import failed'));
