@@ -72,6 +72,12 @@ const PERSISTED_QUERY_KEY_PREFIXES: readonly QueryKey[] = [
   // the whole bankConnectionChange prefix. The full two-element key is deliberate:
   // it excludes the volatile bank-sync-status sibling living under the same prefix.
   VUE_QUERY_CACHE_KEYS.bankConnections,
+  // Payee autocomplete list. Every path that creates a payee or shifts its
+  // transaction-count stats — payee CRUD, bulk categorization, CSV import, and
+  // bank sync — invalidates payeesList, so restoring it from disk is safe. The
+  // infinite management-table variant shares this prefix but keeps a finite
+  // staleTime, so it restores instantly and still revalidates in the background.
+  VUE_QUERY_CACHE_KEYS.payeesList,
 ];
 
 // Attach the persister centrally via query defaults so individual useQuery call

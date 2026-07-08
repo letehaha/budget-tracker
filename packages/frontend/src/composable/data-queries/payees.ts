@@ -60,7 +60,11 @@ export const usePayees = ({
         sortDir: toValue(sortDir),
       }),
     enabled: computed(() => (enabled === undefined ? true : toValue(enabled))),
-    staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
+    // This list is persisted to IndexedDB and every payee-mutating path (CRUD,
+    // bulk categorization, CSV import, bank sync) invalidates payeesList, so a
+    // restored copy is trustworthy — treat it as fresh and skip the cold-load
+    // refetch. Invalidation, not a staleTime timer, is what refreshes it.
+    staleTime: Infinity,
   });
 
   const list = computed<PayeeWithStats[]>(() => query.data.value ?? []);
