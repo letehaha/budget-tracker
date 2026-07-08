@@ -114,7 +114,7 @@ const acceptMutation = useMutation({
     // Wrapped in try/catch — a refetch failure shouldn't reject the mutation after the
     // dialog has already transitioned to the accepted state.
     try {
-      await Promise.all([accountsStore.refetchAccounts(), categoriesStore.loadCategories()]);
+      await Promise.all([accountsStore.refetchAccounts(), categoriesStore.loadCategories({ force: true })]);
     } catch (refreshErr) {
       addErrorNotification(t('dialogs.shareInvitationDialog.acceptDataRefreshFailed'));
       console.error(refreshErr);

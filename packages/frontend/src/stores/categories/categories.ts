@@ -1,8 +1,10 @@
 import { loadSystemCategories } from '@/api';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { type FormattedCategory } from '@/common/types';
 import { useNotificationCenter } from '@/components/notification-center';
 import { i18n } from '@/i18n';
 import * as errors from '@/js/errors';
+import { queryClient } from '@/lib/query-client';
 import { useUserStore } from '@/stores/user';
 import { CategoryModel } from '@bt/shared/types';
 import { defineStore, storeToRefs } from 'pinia';
@@ -22,9 +24,20 @@ export const useCategoriesStore = defineStore('categories', () => {
   // someone else's tree.
   const categories = ref<CategoryModel[]>([]);
 
-  const loadCategories = async () => {
+  // Routes through the vue-query cache (staleTime Infinity) so the list dedupes on init
+  // and can be persisted/invalidated by key. `force` marks the cached entry stale first,
+  // so post-mutation reloads (category CRUD, imports, accepting a share) pull fresh data.
+  const loadCategories = async ({ force = false }: { force?: boolean } = {}) => {
     try {
-      const result = await loadSystemCategories();
+      if (force) {
+        await queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.categoriesList });
+      }
+
+      const result = await queryClient.ensureQueryData({
+        queryKey: VUE_QUERY_CACHE_KEYS.categoriesList,
+        queryFn: loadSystemCategories,
+        staleTime: Infinity,
+      });
 
       if (result?.length) categories.value = result;
     } catch (err) {

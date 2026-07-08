@@ -186,7 +186,7 @@ export const useImportExportStore = defineStore('importExport', () => {
       // as an import error. Swallow and log it instead of letting it reject the handler.
       if (summary.categoriesCreated > 0) {
         try {
-          await useCategoriesStore().loadCategories();
+          await useCategoriesStore().loadCategories({ force: true });
         } catch (refreshError) {
           captureException({ error: refreshError, context: { scope: 'import-csv:post-import-refresh' } });
         }

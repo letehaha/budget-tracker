@@ -197,7 +197,7 @@ const handleSubmit = async () => {
       });
 
       addSuccessNotification(t('dialogs.categoryForm.notifications.updated'));
-      await categoriesStore.loadCategories();
+      await categoriesStore.loadCategories({ force: true });
       emit('saved', { ...props.category, name: form.name.trim() });
     } else {
       type CreateParams = Parameters<typeof createCategory>[0];
@@ -223,7 +223,7 @@ const handleSubmit = async () => {
       const newCategory = await createCategory(params);
 
       addSuccessNotification(t('dialogs.categoryForm.notifications.created'));
-      await categoriesStore.loadCategories();
+      await categoriesStore.loadCategories({ force: true });
 
       // Mark onboarding task as complete
       const onboardingStore = useOnboardingStore();

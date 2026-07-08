@@ -187,6 +187,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   sharedWithMe: ['share', 'shared-with-me'] as const,
 
   // categories
+  // Full accessible-categories list (own + every category on an account the caller can
+  // read). Backs the categories Pinia store; kept separate from the per-account key.
+  categoriesList: ['categories-list'] as const,
   categoriesByAccount: ['categories-by-account'] as const,
 
   // payees

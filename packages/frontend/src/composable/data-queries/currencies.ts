@@ -61,7 +61,7 @@ export const useSetBaseCurrency = () => {
     mutationFn: (currencyCode: string) => setBaseUserCurrency(currencyCode),
     onSuccess: () => {
       // Update Pinia store to ensure route guards work correctly
-      currenciesStore.loadBaseCurrency();
+      currenciesStore.loadBaseCurrency({ force: true });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.baseCurrency });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.userCurrencies });
     },
@@ -78,8 +78,8 @@ export const useChangeBaseCurrency = () => {
   return useMutation({
     mutationFn: (newCurrencyCode: string) => changeBaseCurrency(newCurrencyCode),
     onSuccess: () => {
-      currenciesStore.loadCurrencies();
-      currenciesStore.loadBaseCurrency();
+      currenciesStore.loadCurrencies({ force: true });
+      currenciesStore.loadBaseCurrency({ force: true });
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.currencies] });
