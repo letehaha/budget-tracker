@@ -68,6 +68,10 @@ const PERSISTED_QUERY_KEY_PREFIXES: readonly QueryKey[] = [
   VUE_QUERY_CACHE_KEYS.portfoliosList,
   VUE_QUERY_CACHE_KEYS.loansList,
   VUE_QUERY_CACHE_KEYS.subscriptionsList,
+  // Linked-bank list — changes only on link/unlink/reauth, all of which invalidate
+  // the whole bankConnectionChange prefix. The full two-element key is deliberate:
+  // it excludes the volatile bank-sync-status sibling living under the same prefix.
+  VUE_QUERY_CACHE_KEYS.bankConnections,
 ];
 
 // Attach the persister centrally via query defaults so individual useQuery call
