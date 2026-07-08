@@ -10,6 +10,11 @@ import { QueryInterface } from 'sequelize';
  *   and is left unbounded by these queries, so time cannot serve as a range
  *   bound and Postgres walks the whole per-user index. This composite lets it
  *   bound directly on the requested [from, to] window.
+ * - Transactions(accountId, time): the account-details transaction list filters
+ *   by accountId (equality, or a small IN-list) and orders by (time, id).
+ *   accountId is a foreign key with no index, so account-scoped fetches and the
+ *   bank-sync `findAll({ where: { accountId } })` reconciliation queries walk the
+ *   whole table. This composite bounds the filter and serves the time ordering.
  * - Accounts(userId): userId is a foreign key with no index (Postgres does not
  *   auto-index foreign keys), so per-user account lookups and the
  *   Balances -> Accounts join scan every user's accounts.
@@ -24,6 +29,11 @@ module.exports = {
     try {
       await queryInterface.addIndex('Transactions', ['userId', 'time'], {
         name: 'transactions_user_id_time_idx',
+        transaction: t,
+      });
+
+      await queryInterface.addIndex('Transactions', ['accountId', 'time'], {
+        name: 'transactions_account_id_time_idx',
         transaction: t,
       });
 
@@ -48,6 +58,7 @@ module.exports = {
     const t = await queryInterface.sequelize.transaction();
     try {
       await queryInterface.removeIndex('Transactions', 'transactions_user_id_time_idx', { transaction: t });
+      await queryInterface.removeIndex('Transactions', 'transactions_account_id_time_idx', { transaction: t });
       await queryInterface.removeIndex('Accounts', 'accounts_user_id_idx', { transaction: t });
       await queryInterface.removeIndex(
         'InvestmentTransactions',
