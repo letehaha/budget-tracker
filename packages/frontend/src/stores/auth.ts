@@ -1,6 +1,6 @@
 import { startDemo as startDemoApi } from '@/api/demo';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
-import { UnexpectedError } from '@/js/errors';
+import { OAuthProviderNotConfiguredError, UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
 import { identifyUser, resetUser } from '@/lib/posthog';
 import { clearSentryUser, setSentryUser } from '@/lib/sentry';
@@ -118,6 +118,14 @@ export const useAuthStore = defineStore('auth', () => {
     });
 
     if (result.error) {
+      // better-auth removes providers whose credentials env vars aren't set from
+      // its enabled set, so a sign-in attempt for one of them answers 404 /
+      // PROVIDER_NOT_FOUND. Surface that as a distinct error so the UI can tell
+      // the user the provider isn't configured rather than "please try again".
+      const { status, code } = result.error as { status?: number; code?: string };
+      if (code === 'PROVIDER_NOT_FOUND' || status === 404) {
+        throw new OAuthProviderNotConfiguredError(provider);
+      }
       throw new UnexpectedError(result.error.message || `${provider} login failed`);
     }
   };

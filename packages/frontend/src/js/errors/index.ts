@@ -4,6 +4,7 @@ import { API_ERROR_CODES, type PayeeNameConflictDetails } from '@bt/shared/types
 export * from './network.error';
 export * from './auth.error';
 export * from './unexpected.error';
+export * from './oauth-provider-not-configured.error';
 
 export class ApiErrorResponseError extends Error {
   data: ApiBaseError;
