@@ -17,6 +17,7 @@ import PillTabs from '@/components/lib/ui/pill-tabs/pill-tabs.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
 import { useBudgetAccess } from '@/composable/use-budget-access';
+import { ApiErrorResponseError } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
 import BudgetSharingPanel from '@/pages/budgets/components/budget-sharing-panel.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
@@ -40,6 +41,7 @@ import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+import type { BudgetEditPayload } from './build-budget-edit-payload';
 import BudgetDetailSkeleton from './budget-detail-skeleton.vue';
 import CategoryBudgetEditForm from './category-budget-edit-form.vue';
 import BudgetStatsCards from './shared/budget-stats-cards.vue';
@@ -117,7 +119,7 @@ const { mutateAsync, isPending: isBudgetDataUpdating } = useMutation({
   },
 });
 
-const handleSaveFromDialog = async (payload: { name: string; limitAmount: number; categoryIds: string[] }) => {
+const handleSaveFromDialog = async (payload: BudgetEditPayload) => {
   try {
     await mutateAsync({
       budgetId: currentBudgetId.value,
@@ -126,7 +128,12 @@ const handleSaveFromDialog = async (payload: { name: string; limitAmount: number
     addSuccessNotification(t('budgets.list.updateSuccess'));
     isEditDialogOpen.value = false;
   } catch (err) {
-    captureException({ error: err, context: { source: 'categoryBudgetEdit', budgetId: currentBudgetId.value } });
+    // API validation errors are expected user-input failures — surface them via a
+    // toast but keep them out of Sentry so they don't create alert noise. Anything
+    // else is unexpected and worth reporting.
+    if (!(err instanceof ApiErrorResponseError)) {
+      captureException({ error: err, context: { source: 'categoryBudgetEdit', budgetId: currentBudgetId.value } });
+    }
     addErrorNotification(t('budgets.list.updateError'));
   }
 };
