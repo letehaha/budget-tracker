@@ -452,5 +452,8 @@
   "venture": {
     "dealNotFound": "Venture deal not found",
     "eventNotFound": "Venture event not found"
+  },
+  "vehicles": {
+    "notFound": "Vehicle not found"
   }
 }

@@ -452,5 +452,8 @@
   "venture": {
     "dealNotFound": "Trato de inversión no encontrado",
     "eventNotFound": "Evento de inversión no encontrado"
+  },
+  "vehicles": {
+    "notFound": "Vehículo no encontrado"
   }
 }

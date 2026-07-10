@@ -1,9 +1,10 @@
 import { DEPRECIATION_PRESET, VEHICLE_CLASS } from '@bt/shared/types';
-import { NotFoundError, ValidationError } from '@js/errors';
+import { ValidationError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import Vehicles from '@models/vehicles.model';
 import { withTransaction } from '@services/common/with-transaction';
 
+import { findVehicleOrThrow } from './helpers';
 import { refreshVehicleValueIfStale } from './refresh-vehicle-value.service';
 
 interface UpdateVehicleParams {
@@ -24,11 +25,7 @@ interface UpdateVehicleParams {
 const updateVehicleImpl = async (params: UpdateVehicleParams) => {
   const { userId, vehicleId, name, ...rest } = params;
 
-  const vehicle = await Vehicles.findOne({ where: { id: vehicleId, userId } });
-
-  if (!vehicle) {
-    throw new NotFoundError({ message: 'Vehicle not found' });
-  }
+  const vehicle = await findVehicleOrThrow({ vehicleId, userId });
 
   const currentCustomRate = vehicle.customAnnualRatePct ? Number(vehicle.customAnnualRatePct) : null;
   const currentSalvageFloor = Number(vehicle.salvageFloorPct);

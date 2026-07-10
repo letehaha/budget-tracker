@@ -1,7 +1,7 @@
-import { NotFoundError } from '@js/errors';
-import Vehicles from '@models/vehicles.model';
 import { deleteAccountById } from '@services/accounts.service';
 import { withTransaction } from '@services/common/with-transaction';
+
+import { findVehicleOrThrow } from './helpers';
 
 interface DeleteVehicleParams {
   userId: number;
@@ -9,14 +9,7 @@ interface DeleteVehicleParams {
 }
 
 const deleteVehicleImpl = async ({ userId, vehicleId }: DeleteVehicleParams) => {
-  const vehicle = await Vehicles.findOne({
-    where: { id: vehicleId, userId },
-    attributes: ['accountId'],
-  });
-
-  if (!vehicle) {
-    throw new NotFoundError({ message: 'Vehicle not found' });
-  }
+  const vehicle = await findVehicleOrThrow({ vehicleId, userId, attributes: ['accountId'] });
 
   // Delegate to the accounts service so share cleanup, cross-user transfer
   // conversion, and post-commit notification fan-out all run. The Vehicles row
