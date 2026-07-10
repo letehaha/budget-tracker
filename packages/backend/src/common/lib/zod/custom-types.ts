@@ -150,31 +150,64 @@ export const booleanQuery = () =>
     return z.NEVER;
   });
 
-/** Validates a YYYY-MM-DD date string. */
+/** Validates the *shape* of a YYYY-MM-DD date string. For real-date checking use `calendarDate`. */
 export const dateString = () =>
   z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format' });
 
 /**
- * Optional date range with calendar-day boundaries (YYYY-MM-DD).
- * Both ends are optional; the cross-field check rejects ranges where `from`
- * is after `to` only when both are present. String comparison is sound because
- * ISO YYYY-MM-DD sorts lexicographically the same way it sorts chronologically.
- *
- * Each endpoint additionally rejects regex-matching but non-real calendar dates
- * (e.g. `2020-13-45`) via `Date.parse` — `dateString()` alone does not.
+ * A real calendar day in `YYYY-MM-DD` form. Extends `dateString()` (which only
+ * checks the shape) by rejecting regex-matching but non-existent dates such as
+ * `2020-13-45` via `Date.parse`.
  */
-export const dateRange = () => {
-  const calendarDate = dateString().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid calendar date');
-  return z
-    .object({
-      from: calendarDate.optional(),
-      to: calendarDate.optional(),
-    })
-    .refine(({ from, to }) => !from || !to || from <= to, {
-      message: '`from` must be on or before `to`',
-      path: ['from'],
-    });
-};
+const calendarDate = () => dateString().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid calendar date');
+
+const DATE_RANGE_ORDER_MESSAGE = '`from` must be on or before `to`';
+
+// `from`/`to` are calendar-day strings, so their lexicographic order matches
+// their chronological order — a plain string compare is enough. The param is
+// typed loosely because the builders below are generic over the caller's extra
+// fields, which widens Zod's inferred output for these keys; only `from`/`to`
+// are read and both are `YYYY-MM-DD` strings (or absent) at runtime.
+const isChronologicalRange = ({ from, to }: { from?: unknown; to?: unknown }) =>
+  !from || !to || String(from) <= String(to);
+
+/**
+ * Flat calendar-day range query builder. Merges optional `from`/`to` fields
+ * (YYYY-MM-DD, real dates only) into a query object alongside `extraShape`, and
+ * attaches the cross-field guard that rejects `from` after `to`.
+ *
+ * This is the single validation source for range-filtered GET endpoints: it
+ * replaces per-handler imperative date checks so every query validates its
+ * range identically at the request boundary. Use `requiredDateRangeQuery` when
+ * the endpoint cannot run without both bounds.
+ *
+ * @example
+ * query: dateRangeQuery({ accountId: recordId().optional() }),
+ */
+export const dateRangeQuery = <Shape extends z.ZodRawShape>(extraShape: Shape) =>
+  z
+    .object({ from: calendarDate().optional(), to: calendarDate().optional(), ...extraShape })
+    .refine(isChronologicalRange, { message: DATE_RANGE_ORDER_MESSAGE, path: ['from'] });
+
+/**
+ * Like {@link dateRangeQuery} but both bounds are mandatory — the request is
+ * rejected with 422 when either is missing. Use for endpoints whose service
+ * layer requires a concrete `from`/`to` (e.g. cash-flow, cumulative, pivot).
+ *
+ * @example
+ * query: requiredDateRangeQuery({ granularity: z.enum(['monthly', 'weekly']) }),
+ */
+export const requiredDateRangeQuery = <Shape extends z.ZodRawShape>(extraShape: Shape) =>
+  z
+    .object({ from: calendarDate(), to: calendarDate(), ...extraShape })
+    .refine(isChronologicalRange, { message: DATE_RANGE_ORDER_MESSAGE, path: ['from'] });
+
+/**
+ * Optional calendar-day `{ from?, to? }` object (YYYY-MM-DD, real dates only)
+ * with the same `from <= to` guard. Use when the range is a nested field in a
+ * larger schema (e.g. a request body); for a flat GET query use `dateRangeQuery`.
+ */
+export const dateRange = () => dateRangeQuery({});
 
 /** Validates a positive decimal amount string (rejects zero and negative by default). */
 export const positiveAmountString = () =>

@@ -27,8 +27,8 @@ async function provisionRecipient() {
 
 /** Fixed date range that spans a single monthly bucket. */
 const RANGE = {
-  from: '2025-01-01T00:00:00.000Z',
-  to: '2025-01-31T23:59:59.999Z',
+  from: '2025-01-01',
+  to: '2025-01-31',
   granularity: 'monthly' as const,
 };
 
