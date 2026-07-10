@@ -2,10 +2,10 @@ import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, DEPRECIATION_PRESET, VEHICLE_CLASS }
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import Accounts, { createAccount as createAccountInDb } from '@models/accounts.model';
-import * as UsersCurrencies from '@models/users-currencies.model';
 import Vehicles from '@models/vehicles.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import { parseISO } from 'date-fns';
 
 import { computeVehicleValue } from './compute-vehicle-value';
@@ -51,7 +51,7 @@ const createVehicleImpl = async (params: CreateVehicleParams) => {
     });
   }
 
-  await UsersCurrencies.addCurrency({ userId, currencyCode });
+  await ensureUserCurrencyConnected({ userId, currencyCode });
 
   const now = new Date();
   const anchorDate = parseISO(purchaseDate);

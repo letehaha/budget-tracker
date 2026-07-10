@@ -4,10 +4,10 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import Accounts, { createAccount as createAccountInDb } from '@models/accounts.model';
 import LoanDetails from '@models/loan-details.model';
-import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { utcDayKey } from '@services/loans/anchor-day';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 
 import type { CreateLoanBody } from './zod-schemas';
 
@@ -33,7 +33,7 @@ const createLoanImpl = async (params: CreateLoanParams) => {
     accountNumber = null,
   } = params;
 
-  await UsersCurrencies.addCurrency({ userId, currencyCode });
+  await ensureUserCurrencyConnected({ userId, currencyCode });
 
   const now = new Date();
 

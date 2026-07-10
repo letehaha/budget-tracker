@@ -17,9 +17,9 @@ import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
-import * as UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import {
   cleanupAccountSharesInTx,
   notifyAccountDeleteRecipients,
@@ -198,7 +198,7 @@ export const createAccount = withTransaction(
         });
       }
 
-      await UsersCurrencies.addCurrency({ userId, currencyCode });
+      await ensureUserCurrencyConnected({ userId, currencyCode });
 
       const refCreditLimit = await calculateRefAmount({
         userId: userId,

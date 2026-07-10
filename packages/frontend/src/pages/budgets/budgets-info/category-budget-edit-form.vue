@@ -7,20 +7,22 @@ import { format } from 'date-fns';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { type BudgetEditPayload, buildBudgetEditPayload } from './build-budget-edit-payload';
+
 const props = defineProps<{
   budget: BudgetModel;
   isLoading: boolean;
 }>();
 
 const emit = defineEmits<{
-  save: [payload: { name: string; limitAmount: number; categoryIds: string[] }];
+  save: [payload: BudgetEditPayload];
 }>();
 
 const { t } = useI18n();
 
 const formData = ref({
   name: '',
-  limitAmount: 0,
+  limitAmount: null as number | null,
   categoryIds: [] as string[],
   startDate: null as Date | null,
   endDate: null as Date | null,
@@ -30,7 +32,7 @@ const formData = ref({
 const initFormData = () => {
   formData.value = {
     name: props.budget.name,
-    limitAmount: props.budget.limitAmount ?? 0,
+    limitAmount: props.budget.limitAmount ?? null,
     categoryIds: props.budget.categories?.map((c) => c.id) ?? [],
     startDate: props.budget.startDate ? new Date(props.budget.startDate) : null,
     endDate: props.budget.endDate ? new Date(props.budget.endDate) : null,
@@ -52,11 +54,14 @@ const formatDate = (date: Date | null) => {
 };
 
 const handleSave = () => {
-  emit('save', {
-    name: formData.value.name,
-    limitAmount: formData.value.limitAmount,
-    categoryIds: formData.value.categoryIds,
-  });
+  emit(
+    'save',
+    buildBudgetEditPayload({
+      name: formData.value.name,
+      limitAmount: formData.value.limitAmount,
+      categoryIds: formData.value.categoryIds,
+    }),
+  );
 };
 </script>
 
@@ -74,6 +79,7 @@ const handleSave = () => {
       :label="t('budgets.settings.limitLabel')"
       :placeholder="t('budgets.settings.limitPlaceholder')"
       type="number"
+      only-positive
       class="w-full"
       :disabled="isLoading"
     />

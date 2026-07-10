@@ -125,6 +125,23 @@ describe('Edit Budget', () => {
     expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
+  it('fails validation when limitAmount is zero and leaves the budget unchanged', async () => {
+    const budget = await helpers.createCustomBudget({ ...baseBudgetMockData, raw: true });
+
+    const params = { limitAmount: 0 };
+
+    const response = await helpers.editCustomBudget({
+      id: budget.id,
+      params,
+      raw: false,
+    });
+
+    expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
+
+    const budgetById = await helpers.getCustomBudgetById({ id: budget.id, raw: true });
+    expect(budgetById?.limitAmount).toBe(baseBudgetMockData.limitAmount);
+  });
+
   it('fails validation when date format is invalid', async () => {
     const budget = await helpers.createCustomBudget({ ...baseBudgetMockData, raw: true });
 

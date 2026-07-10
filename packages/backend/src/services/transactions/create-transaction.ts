@@ -34,6 +34,7 @@ import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-curre
 import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { v4 as uuidv4 } from 'uuid';
 
+import { runInSavepoint } from '../common/run-in-savepoint';
 import { withTransaction } from '../common/with-transaction';
 import { createSingleRefund } from '../tx-refunds/create-single-refund.service';
 import { manageSplits } from './splits';
@@ -389,11 +390,18 @@ export const createTransaction = withTransaction(
           }
         }
         if (effectiveRawMerchant) {
+          // Invariant: transaction creation succeeds even if Payee linking
+          // fails. Resolution writes (promotion, alias, backfill) can lose
+          // UNIQUE races under concurrent bank sync; the savepoint scopes such
+          // a failure so it doesn't abort the shared transaction and poison
+          // every later statement in this create.
           try {
-            const extraction = await resolvePayeeForRawMerchant({
-              userId: accountOwnerUserId,
-              rawMerchantName: effectiveRawMerchant,
-            });
+            const extraction = await runInSavepoint(() =>
+              resolvePayeeForRawMerchant({
+                userId: accountOwnerUserId,
+                rawMerchantName: effectiveRawMerchant,
+              }),
+            );
             resolvedPayeeId = extraction.payeeId;
           } catch (error) {
             logger.error({
