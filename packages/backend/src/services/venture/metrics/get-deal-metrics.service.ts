@@ -1,10 +1,9 @@
 import { VentureDealMetricsModel } from '@bt/shared/types';
-import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
-import VentureDeals from '@models/venture/venture-deals.model';
 import VentureEvents from '@models/venture/venture-events.model';
 import { withTransaction } from '@services/common/with-transaction';
 import Big from 'big.js';
 
+import { findVentureDealOrThrow } from '../helpers';
 import { computeCostBasis } from './compute-cost-basis';
 import { computeCumulativeDistributions } from './compute-cumulative-distributions';
 import { computeCurrentValue } from './compute-current-value';
@@ -22,10 +21,7 @@ const getDealMetricsImpl = async ({
   dealId,
   asOfDate = new Date(),
 }: GetDealMetricsParams): Promise<VentureDealMetricsModel> => {
-  const deal = await findOrThrowNotFound({
-    query: VentureDeals.findOne({ where: { id: dealId, userId } }),
-    message: 'Venture deal not found',
-  });
+  const deal = await findVentureDealOrThrow({ id: dealId, userId });
 
   const events = await VentureEvents.findAll({ where: { dealId } });
 

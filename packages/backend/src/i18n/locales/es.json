@@ -448,5 +448,9 @@
     "nameRequired": "El nombre del beneficiario es obligatorio",
     "notFound": "Beneficiario no encontrado",
     "renameCollision": "Otro beneficiario ya usa este nombre – fusiónelos en su lugar"
+  },
+  "venture": {
+    "dealNotFound": "Trato de inversión no encontrado",
+    "eventNotFound": "Evento de inversión no encontrado"
   }
 }

@@ -10,6 +10,8 @@ import VenturePlatforms from '@models/venture/venture-platforms.model';
 import { withTransaction } from '@services/common/with-transaction';
 import Big from 'big.js';
 
+import { findVentureDealOrThrow } from '../helpers';
+
 interface UpdateVentureDealParams {
   userId: number;
   dealId: string;
@@ -33,10 +35,7 @@ interface UpdateVentureDealParams {
 const updateVentureDealImpl = async (params: UpdateVentureDealParams) => {
   const { userId, dealId } = params;
 
-  const deal = await findOrThrowNotFound({
-    query: VentureDeals.findOne({ where: { id: dealId, userId } }),
-    message: 'Venture deal not found',
-  });
+  const deal = await findVentureDealOrThrow({ id: dealId, userId });
 
   if (params.currencyCode !== undefined) {
     await findOrThrowNotFound({

@@ -4,7 +4,6 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import * as Transactions from '@models/transactions.model';
 import VentureEventLinks from '@models/venture/venture-event-links.model';
-import VentureEvents from '@models/venture/venture-events.model';
 import {
   assertNotAlreadyLinked,
   restampForExistingTransaction,
@@ -12,6 +11,8 @@ import {
 } from '@services/common/transaction-linking';
 import { withTransaction } from '@services/common/with-transaction';
 import Big from 'big.js';
+
+import { findVentureEventOrThrow } from '../helpers';
 
 interface LinkTxsToEventParams {
   userId: number;
@@ -27,10 +28,7 @@ const linkTxsToEventImpl = async ({ userId, eventId, transactionIds }: LinkTxsTo
     throw new ValidationError({ message: 'Duplicate transaction ids in link request' });
   }
 
-  const event = await findOrThrowNotFound({
-    query: VentureEvents.findOne({ where: { id: eventId, userId } }),
-    message: 'Venture event not found',
-  });
+  const event = await findVentureEventOrThrow({ id: eventId, userId });
 
   if (event.lpNetAmount === null) {
     throw new ValidationError({

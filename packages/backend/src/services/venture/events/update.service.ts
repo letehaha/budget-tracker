@@ -1,13 +1,12 @@
 import { VENTURE_EVENT_TYPE } from '@bt/shared/types/venture';
 import { Money } from '@common/types/money';
-import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
-import VentureDeals from '@models/venture/venture-deals.model';
 import VentureEventLinks from '@models/venture/venture-event-links.model';
 import VentureEvents from '@models/venture/venture-events.model';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { syncDealFromEvents } from '../deals/sync-deal-from-events.service';
+import { findVentureDealOrThrow, findVentureEventOrThrow } from '../helpers';
 import { findInitialInvestment } from './event-helpers';
 import { prepareEventValues } from './prepare-event-values';
 
@@ -30,15 +29,9 @@ interface UpdateVentureEventParams {
 const updateVentureEventImpl = async (params: UpdateVentureEventParams) => {
   const { userId, eventId } = params;
 
-  const event = await findOrThrowNotFound({
-    query: VentureEvents.findOne({ where: { id: eventId, userId } }),
-    message: 'Venture event not found',
-  });
+  const event = await findVentureEventOrThrow({ id: eventId, userId });
 
-  const deal = await findOrThrowNotFound({
-    query: VentureDeals.findOne({ where: { id: event.dealId, userId } }),
-    message: 'Venture deal not found',
-  });
+  const deal = await findVentureDealOrThrow({ id: event.dealId, userId });
 
   const previousEventDate = event.eventDate;
 

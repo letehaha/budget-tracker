@@ -1,7 +1,6 @@
-import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
-import VentureEventLinks from '@models/venture/venture-event-links.model';
-import VentureEvents from '@models/venture/venture-events.model';
 import { withTransaction } from '@services/common/with-transaction';
+
+import { findVentureEventOrThrow } from '../helpers';
 
 interface GetVentureEventParams {
   userId: number;
@@ -9,13 +8,7 @@ interface GetVentureEventParams {
 }
 
 const getVentureEventImpl = async ({ userId, eventId }: GetVentureEventParams) => {
-  return findOrThrowNotFound({
-    query: VentureEvents.findOne({
-      where: { id: eventId, userId },
-      include: [{ model: VentureEventLinks, as: 'links' }],
-    }),
-    message: 'Venture event not found',
-  });
+  return findVentureEventOrThrow({ id: eventId, userId, includeLinks: true });
 };
 
 export const getVentureEvent = withTransaction(getVentureEventImpl);
