@@ -1,10 +1,10 @@
 import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import {
   booleanQuery,
-  dateRangeQuery,
+  dateRange,
   optionalCommaSeparatedIds,
   recordId,
-  requiredDateRangeQuery,
+  withDateOrder,
 } from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -29,9 +29,7 @@ import { z } from 'zod';
 import { createController } from './helpers/controller-factory';
 
 const balanceHistorySchema = z.object({
-  query: dateRangeQuery({
-    accountId: recordId().optional(),
-  }),
+  query: withDateOrder(z.object({ ...dateRange(), accountId: recordId().optional() })),
 });
 
 export const getBalanceHistory = createController(balanceHistorySchema, async ({ user, query }) => {
@@ -85,14 +83,17 @@ export const getTotalBalance = createController(totalBalanceSchema, async ({ use
 });
 
 const spendingsByCategoriesSchema = z.object({
-  query: dateRangeQuery({
-    accountId: z.string().optional(),
-    type: z.enum(Object.values(TRANSACTION_TYPES)).optional(),
-    categoryIds: optionalCommaSeparatedIds(),
-    excludedCategoryIds: optionalCommaSeparatedIds(),
-    // When true, ignores `type` and returns per-category income + expense buckets in one response.
-    groupByType: booleanQuery().optional(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange(),
+      accountId: z.string().optional(),
+      type: z.enum(Object.values(TRANSACTION_TYPES)).optional(),
+      categoryIds: optionalCommaSeparatedIds(),
+      excludedCategoryIds: optionalCommaSeparatedIds(),
+      // When true, ignores `type` and returns per-category income + expense buckets in one response.
+      groupByType: booleanQuery().optional(),
+    }),
+  ),
 });
 
 export const getSpendingsByCategories = createController(spendingsByCategoriesSchema, async ({ user, query }) => {
@@ -132,10 +133,13 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
 });
 
 const expensesAmountSchema = z.object({
-  query: dateRangeQuery({
-    accountId: z.string().optional(),
-    excludedCategoryIds: optionalCommaSeparatedIds(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange(),
+      accountId: z.string().optional(),
+      excludedCategoryIds: optionalCommaSeparatedIds(),
+    }),
+  ),
 });
 
 export const getExpensesAmountForPeriod = createController(expensesAmountSchema, async ({ user, query }) => {
@@ -157,7 +161,7 @@ export const getExpensesAmountForPeriod = createController(expensesAmountSchema,
 });
 
 const combinedBalanceHistorySchema = z.object({
-  query: dateRangeQuery({}),
+  query: withDateOrder(z.object({ ...dateRange() })),
 });
 
 export const getCombinedBalanceHistory = createController(combinedBalanceHistorySchema, async ({ user, query }) => {
@@ -178,11 +182,14 @@ export const getCombinedBalanceHistory = createController(combinedBalanceHistory
 });
 
 const cashFlowSchema = z.object({
-  query: requiredDateRangeQuery({
-    granularity: z.enum(['monthly', 'biweekly', 'weekly']),
-    accountId: z.string().optional(),
-    categoryIds: optionalCommaSeparatedIds(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange({ required: true }),
+      granularity: z.enum(['monthly', 'biweekly', 'weekly']),
+      accountId: z.string().optional(),
+      categoryIds: optionalCommaSeparatedIds(),
+    }),
+  ),
 });
 
 export const getCashFlow = createController(cashFlowSchema, async ({ user, query }) => {
@@ -205,14 +212,17 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
 });
 
 const pivotReportSchema = z.object({
-  query: requiredDateRangeQuery({
-    granularity: z.enum(endpointsTypes.PIVOT_GRANULARITIES),
-    rowDimension: z.enum(endpointsTypes.PIVOT_ROW_DIMENSIONS),
-    measure: z.enum(endpointsTypes.PIVOT_MEASURES),
-    accountIds: optionalCommaSeparatedIds(),
-    categoryIds: optionalCommaSeparatedIds(),
-    payeeIds: optionalCommaSeparatedIds(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange({ required: true }),
+      granularity: z.enum(endpointsTypes.PIVOT_GRANULARITIES),
+      rowDimension: z.enum(endpointsTypes.PIVOT_ROW_DIMENSIONS),
+      measure: z.enum(endpointsTypes.PIVOT_MEASURES),
+      accountIds: optionalCommaSeparatedIds(),
+      categoryIds: optionalCommaSeparatedIds(),
+      payeeIds: optionalCommaSeparatedIds(),
+    }),
+  ),
 });
 
 export const getPivotReport = createController(pivotReportSchema, async ({ user, query }) => {
@@ -243,10 +253,13 @@ export const getEarliestTransactionDate = createController(z.object({}), async (
 });
 
 const cumulativeDataSchema = z.object({
-  query: requiredDateRangeQuery({
-    metric: z.enum(['expenses', 'income', 'savings']),
-    accountId: z.string().optional(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange({ required: true }),
+      metric: z.enum(['expenses', 'income', 'savings']),
+      accountId: z.string().optional(),
+    }),
+  ),
 });
 
 export const getCumulativeData = createController(cumulativeDataSchema, async ({ user, query }) => {

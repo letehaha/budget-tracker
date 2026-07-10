@@ -1,4 +1,4 @@
-import { dateString, recordId } from '@common/lib/zod/custom-types';
+import { dateRange, recordId, withDateOrder } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { applyPaginationTransform, buildPagination, paginationFields } from '@controllers/helpers/pagination';
 import { listPortfolioTransfers } from '@services/investments/portfolios/transfers';
@@ -9,22 +9,21 @@ export default createController(
     params: z.object({
       id: recordId(),
     }),
-    query: z
-      .object({
-        dateFrom: dateString().optional(),
-        dateTo: dateString().optional(),
+    query: withDateOrder(
+      z.object({
+        ...dateRange(),
         sortBy: z.enum(['date', 'amount']).default('date'),
         sortDirection: z.enum(['ASC', 'DESC']).default('DESC'),
         ...paginationFields,
-      })
-      .transform(applyPaginationTransform),
+      }),
+    ).transform(applyPaginationTransform),
   }),
   async ({ user, params, query }) => {
     const result = await listPortfolioTransfers({
       userId: user.id,
       portfolioId: params.id,
-      dateFrom: query.dateFrom,
-      dateTo: query.dateTo,
+      from: query.from,
+      to: query.to,
       limit: query.limit,
       offset: query.offset,
       sortBy: query.sortBy,

@@ -13,8 +13,8 @@ interface GetTransactionsParams {
   portfolioId?: string;
   securityId?: string;
   category?: INVESTMENT_TRANSACTION_CATEGORY;
-  startDate?: string;
-  endDate?: string;
+  from?: string;
+  to?: string;
   limit?: number;
   offset?: number;
 }
@@ -24,8 +24,8 @@ const serviceImpl = async ({
   portfolioId,
   securityId,
   category,
-  startDate,
-  endDate,
+  from,
+  to,
   limit = 20,
   offset = 0,
 }: GetTransactionsParams) => {
@@ -62,14 +62,14 @@ const serviceImpl = async ({
   // full UTC calendar day: lower = start-of-day UTC, upper = end-of-day UTC.
   // A bare `yyyy-MM-dd` upper bound would cast to midnight UTC and exclude that
   // day's intraday (afternoon) trades.
-  if (startDate || endDate) {
+  if (from || to) {
     where.date = {};
-    if (startDate) {
-      const dayUtc = toUtcDateString(startDate);
+    if (from) {
+      const dayUtc = toUtcDateString(from);
       where.date[Op.gte] = `${dayUtc}T00:00:00.000Z`;
     }
-    if (endDate) {
-      const dayUtc = toUtcDateString(endDate);
+    if (to) {
+      const dayUtc = toUtcDateString(to);
       where.date[Op.lte] = `${dayUtc}T23:59:59.999Z`;
     }
   }

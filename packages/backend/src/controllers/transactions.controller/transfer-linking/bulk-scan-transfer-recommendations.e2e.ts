@@ -37,8 +37,8 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -74,8 +74,8 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -124,8 +124,8 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -157,8 +157,8 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -194,8 +194,8 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -241,8 +241,8 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -289,8 +289,8 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -328,8 +328,8 @@ describe('bulkScanTransferRecommendations', () => {
       }
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -340,8 +340,8 @@ describe('bulkScanTransferRecommendations', () => {
 
     it('returns empty results for date range with no expenses', async () => {
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: subDays(today, 365).toISOString(),
-        dateTo: subDays(today, 300).toISOString(),
+        from: subDays(today, 365).toISOString(),
+        to: subDays(today, 300).toISOString(),
         raw: true,
       });
 
@@ -378,8 +378,8 @@ describe('bulkScanTransferRecommendations', () => {
 
       // Get first page (limit 2)
       const page1 = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         limit: 2,
         offset: 0,
         raw: true,
@@ -390,8 +390,8 @@ describe('bulkScanTransferRecommendations', () => {
 
       // Get second page
       const page2 = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         limit: 2,
         offset: 2,
         raw: true,
@@ -434,8 +434,8 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: rangeStart.toISOString(),
-        dateTo: todayISO,
+        from: rangeStart.toISOString(),
+        to: todayISO,
         raw: true,
       });
 
@@ -473,8 +473,8 @@ describe('bulkScanTransferRecommendations', () => {
       }
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -522,8 +522,8 @@ describe('bulkScanTransferRecommendations', () => {
       });
 
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -536,10 +536,10 @@ describe('bulkScanTransferRecommendations', () => {
   });
 
   describe('error cases', () => {
-    it('returns validation error when dateFrom is after dateTo', async () => {
+    it('returns validation error when from is after to', async () => {
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: todayISO,
-        dateTo: thirtyDaysAgo,
+        from: todayISO,
+        to: thirtyDaysAgo,
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
@@ -547,8 +547,8 @@ describe('bulkScanTransferRecommendations', () => {
 
     it('returns validation error when dates are missing', async () => {
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: '',
-        dateTo: '',
+        from: '',
+        to: '',
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
@@ -556,8 +556,8 @@ describe('bulkScanTransferRecommendations', () => {
 
     it('returns validation error when limit exceeds maximum', async () => {
       const response = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         limit: 100,
       });
 

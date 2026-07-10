@@ -1,6 +1,7 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
+import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('Create Budget', () => {
@@ -85,5 +86,16 @@ describe('Create Budget', () => {
 
     const budgetById = await helpers.getCustomBudgetById({ id: budget.id, raw: true });
     expect(budgetById?.name).toBe('Budget With Transactions');
+  });
+
+  it('fails validation when start date is later than end date', async () => {
+    const response = await helpers.createCustomBudget({
+      name: 'Inverted Range Budget',
+      startDate: '2025-03-31T23:59:59Z',
+      endDate: '2025-03-01T00:00:00Z',
+      raw: false,
+    });
+
+    expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 });

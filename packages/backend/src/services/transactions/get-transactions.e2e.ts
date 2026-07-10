@@ -188,21 +188,21 @@ describe('Retrieve transactions with filters', () => {
   });
 
   describe('filtered by dates', () => {
-    it('[success] for `startDate`', async () => {
+    it('[success] for `from`', async () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        startDate: dates.income,
+        from: dates.income,
         raw: true,
       });
 
       expect(res.length).toBe(4); // income, expense, two transfers
     });
-    it('[success] for `endDate`', async () => {
+    it('[success] for `to`', async () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        endDate: dates.income,
+        to: dates.income,
         raw: true,
       });
 
@@ -212,8 +212,8 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        startDate: dates.income,
-        endDate: dates.expense,
+        from: dates.income,
+        to: dates.expense,
         raw: true,
       });
 
@@ -223,23 +223,79 @@ describe('Retrieve transactions with filters', () => {
       await createMockTransactions();
 
       const res = await helpers.getTransactions({
-        startDate: dates.income,
-        endDate: dates.income,
+        from: dates.income,
+        to: dates.income,
         raw: true,
       });
 
       expect(res.length).toBe(1); // income
     });
-    it('[success] when `startDate` bigger than `endDate`', async () => {
+    it('[fail] when `from` bigger than `to`', async () => {
       await createMockTransactions();
 
-      const res = await helpers.getTransactions({
-        startDate: new Date().toISOString(),
-        endDate: subDays(new Date(), 1).toISOString(),
-        raw: true,
+      const response = await helpers.getTransactions({
+        from: new Date().toISOString(),
+        to: subDays(new Date(), 1).toISOString(),
+        raw: false,
       });
 
-      expect(res.length).toBe(0);
+      expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('pagination (offset)', () => {
+    // Default sort is `time` descending, so pages walk newest → oldest.
+    const times = [
+      '2024-06-01T00:00:00Z',
+      '2024-06-02T00:00:00Z',
+      '2024-06-03T00:00:00Z',
+      '2024-06-04T00:00:00Z',
+      '2024-06-05T00:00:00Z',
+    ];
+
+    const seedPaginationTransactions = async () => {
+      const account = await helpers.createAccount({ raw: true });
+      for (const time of times) {
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100, time }),
+          raw: true,
+        });
+      }
+      return account;
+    };
+
+    it('[success] walks non-overlapping pages via `offset`', async () => {
+      const account = await seedPaginationTransactions();
+
+      const page1 = await helpers.getTransactions({ accountIds: [account.id], limit: 2, offset: 0, raw: true });
+      const page2 = await helpers.getTransactions({ accountIds: [account.id], limit: 2, offset: 2, raw: true });
+      const page3 = await helpers.getTransactions({ accountIds: [account.id], limit: 2, offset: 4, raw: true });
+
+      expect(page1.length).toBe(2);
+      expect(page2.length).toBe(2);
+      expect(page3.length).toBe(1);
+
+      const isoTimes = (page: typeof page1) => page.map((t) => new Date(t.time).toISOString());
+
+      // Newest-first ordering carries across pages.
+      expect(isoTimes(page1)).toEqual(['2024-06-05T00:00:00.000Z', '2024-06-04T00:00:00.000Z']);
+      expect(isoTimes(page2)).toEqual(['2024-06-03T00:00:00.000Z', '2024-06-02T00:00:00.000Z']);
+      expect(isoTimes(page3)).toEqual(['2024-06-01T00:00:00.000Z']);
+
+      // No row appears on two pages.
+      const ids = [...page1, ...page2, ...page3].map((t) => t.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('[success] omitted `offset` defaults to the first page', async () => {
+      const account = await seedPaginationTransactions();
+
+      const firstPage = await helpers.getTransactions({ accountIds: [account.id], limit: 2, raw: true });
+
+      expect(firstPage.map((t) => new Date(t.time).toISOString())).toEqual([
+        '2024-06-05T00:00:00.000Z',
+        '2024-06-04T00:00:00.000Z',
+      ]);
     });
   });
 

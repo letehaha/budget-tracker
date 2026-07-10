@@ -407,8 +407,8 @@ export type GetTransferRecommendationsResponse = TransactionModel[];
 
 // Bulk Transfer Scan
 export interface BulkTransferScanBody {
-  dateFrom: string;
-  dateTo: string;
+  from: string;
+  to: string;
   limit?: number;
   offset?: number;
   includeOutOfWallet?: boolean;

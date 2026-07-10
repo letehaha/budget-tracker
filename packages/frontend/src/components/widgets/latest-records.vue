@@ -48,7 +48,7 @@ const maxDisplay = computed(() => {
 const { data: transactions, isFetching: isTxFetching } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecords,
   queryFn: () =>
-    apiLoadTransactions({ limit: 40, from: 0, includeSplits: true, includeTags: true, includeGroups: true }), // Over-fetch to account for deduplication and grouping
+    apiLoadTransactions({ limit: 40, offset: 0, includeSplits: true, includeTags: true, includeGroups: true }), // Over-fetch to account for deduplication and grouping
   staleTime: Infinity,
   placeholderData: [],
   enabled: isAppInitialized,

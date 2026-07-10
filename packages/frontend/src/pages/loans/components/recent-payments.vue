@@ -127,7 +127,7 @@ const paymentsQuery = useQuery({
   queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.loanRecentPayments, props.loan.id] as const),
   queryFn: () =>
     loadTransactions({
-      from: 0,
+      offset: 0,
       limit: RECENT_PAYMENTS_LIMIT,
       accountIds: [props.loan.id],
     }),
@@ -153,7 +153,7 @@ const allPaymentsQuery = useInfiniteQuery({
   queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.loanAllPayments, props.loan.id] as const),
   queryFn: ({ pageParam }) =>
     loadTransactions({
-      from: pageParam * ALL_PAYMENTS_PAGE_SIZE,
+      offset: pageParam * ALL_PAYMENTS_PAGE_SIZE,
       limit: ALL_PAYMENTS_PAGE_SIZE,
       accountIds: [props.loan.id],
     }),

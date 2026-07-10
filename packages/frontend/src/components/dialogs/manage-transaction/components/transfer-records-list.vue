@@ -105,19 +105,19 @@ const recommendationIds = computed(() => new Set(recommendations.value?.map((r) 
 
 const limit = 15;
 const fetchTransactions = ({ pageParam, filter }: { pageParam: number; filter: typeof appliedFilters.value }) => {
-  const from = pageParam * limit;
+  const offset = pageParam * limit;
 
   return loadTransactions(
     omitBy(
       {
         limit,
-        from,
+        offset,
         transactionType: props.transactionType,
         excludeTransfer: true,
         excludeRefunds: true, // Exclude refund-linked transactions for transfers
         excludeAccountIds: props.originAccountId ? [props.originAccountId] : undefined,
-        endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
-        startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
+        to: isDate(filter.end) ? filter.end!.toISOString() : undefined,
+        from: isDate(filter.start) ? filter.start!.toISOString() : undefined,
         amountGte: filter.amountGte ?? undefined,
         amountLte: filter.amountLte ?? undefined,
       },

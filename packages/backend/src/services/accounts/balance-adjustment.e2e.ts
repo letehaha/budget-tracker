@@ -3,6 +3,7 @@ import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { format } from 'date-fns';
 
 describe('Balance Adjustment', () => {
   it('creates income transaction when target > current balance', async () => {
@@ -147,9 +148,11 @@ describe('Balance Adjustment', () => {
       raw: true,
     });
 
+    // The stats endpoints take date-only `YYYY-MM-DD` bounds (matching the FE, which
+    // formats with `format(date, 'yyyy-MM-dd')`).
     const today = new Date();
-    const from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-    const to = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString();
+    const from = format(new Date(today.getFullYear(), today.getMonth(), 1), 'yyyy-MM-dd');
+    const to = format(new Date(today.getFullYear(), today.getMonth() + 1, 0), 'yyyy-MM-dd');
 
     const expenses = await helpers.getExpensesAmountForPeriod({ from, to, raw: true });
 
