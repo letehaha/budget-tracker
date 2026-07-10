@@ -6,6 +6,7 @@ import Transactions from '@models/transactions.model';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { Op } from 'sequelize';
 
+import { insertOrAdopt } from '../common/run-in-savepoint';
 import { withTransaction } from '../common/with-transaction';
 import { FUZZY_MATCH_THRESHOLD, buildHaystack, fuzzyFindBestMatch } from './fuzzy-matcher';
 import { normalizePayeeName } from './normalize-name';
@@ -198,21 +199,29 @@ export const resolvePayeeForRawMerchant = withTransaction(
 
     const priorIds = await collectPriorUnmatched({ userId, normalizedQuery });
     if (priorIds.length >= 1) {
-      const created = await Payees.create({
-        userId,
-        name: trimmed,
-        normalizedName: normalizedQuery,
-        defaultCategoryId: null,
+      // Concurrent bank-sync workers can promote the same `normalizedName` at
+      // once and race on `payees_user_id_normalized_name_uniq`; `insertOrAdopt`
+      // keeps the shared transaction usable and lands both racers on one Payee.
+      const payee = await insertOrAdopt({
+        insert: () =>
+          Payees.create({
+            userId,
+            name: trimmed,
+            normalizedName: normalizedQuery,
+            defaultCategoryId: null,
+          }),
+        adopt: () => Payees.findOne({ where: { userId, normalizedName: normalizedQuery } }),
       });
-      await PayeeAliases.create({
-        payeeId: created.id,
+      // `ensureAliasExists` is savepoint-isolated too, absorbing the same race.
+      await ensureAliasExists({
+        payeeId: payee.id,
         rawName: trimmed,
         normalizedName: normalizedQuery,
       });
-      await Transactions.update({ payeeId: created.id }, { where: { id: { [Op.in]: priorIds }, userId } });
+      await Transactions.update({ payeeId: payee.id }, { where: { id: { [Op.in]: priorIds }, userId } });
       logger.info('[Payee extraction] promoted from occurrences', {
         userId,
-        payeeId: created.id,
+        payeeId: payee.id,
         normalizedQuery,
         backfilledTxCount: priorIds.length,
       });
@@ -220,8 +229,8 @@ export const resolvePayeeForRawMerchant = withTransaction(
       // transaction (this resolver is `withTransaction`-wrapped and its callers
       // are too), so the helper defers the enqueue to `afterCommit` – the
       // worker only sees the Payee once the row is committed and visible.
-      enqueueLogoResolutionAfterCommit({ entity: 'payee', id: created.id });
-      return { payeeId: created.id };
+      enqueueLogoResolutionAfterCommit({ entity: 'payee', id: payee.id });
+      return { payeeId: payee.id };
     }
 
     // Step 4: leave unmatched.

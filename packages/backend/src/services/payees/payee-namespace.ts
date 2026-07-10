@@ -3,6 +3,7 @@ import { ValidationError } from '@js/errors';
 import PayeeAliases from '@models/payee-aliases.model';
 import Payees from '@models/payees.model';
 
+import { insertOrAdopt } from '../common/run-in-savepoint';
 import { normalizePayeeName } from './normalize-name';
 
 /**
@@ -88,10 +89,13 @@ export function parsePayeeName({ raw, emptyMessageKey }: { raw: string; emptyMes
 }
 
 /**
- * Idempotent alias insert. `findOrCreate` collapses the check-then-create into
- * a single race-safe operation — UNIQUE (payeeId, normalizedName) plus
- * `findOrCreate` means a concurrent sync hitting the same merchant returns
- * the existing row instead of throwing.
+ * Idempotent alias insert. Callers run inside a shared transaction, so the
+ * insert is isolated in a savepoint via `insertOrAdopt`: a concurrent sync
+ * hitting the same merchant loses the race on UNIQUE (payeeId, normalizedName),
+ * rolls back only the savepoint, and adopts the existing row — the enclosing
+ * transaction stays usable. A plain `findOrCreate` would recover its
+ * uniqueness conflict by re-reading inside the now-aborted transaction, which
+ * fails with "current transaction is aborted".
  *
  * Deliberately does NOT consult `resolveNormalizedName`: callers (extraction
  * fuzzy-link, rename, merge) attach an alias to a Payee the name already
@@ -107,8 +111,8 @@ export async function ensureAliasExists({
   rawName: string;
   normalizedName: string;
 }): Promise<void> {
-  await PayeeAliases.findOrCreate({
-    where: { payeeId, normalizedName },
-    defaults: { payeeId, rawName, normalizedName },
+  await insertOrAdopt({
+    insert: () => PayeeAliases.create({ payeeId, rawName, normalizedName }),
+    adopt: () => PayeeAliases.findOne({ where: { payeeId, normalizedName } }),
   });
 }
