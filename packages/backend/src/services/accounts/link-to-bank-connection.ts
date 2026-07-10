@@ -11,7 +11,7 @@ import { Money } from '@common/types/money';
 import { NotFoundError, ValidationError } from '@js/errors';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
-import Accounts from '@models/accounts.model';
+import Accounts, { getAccountById } from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import { bankProviderRegistry } from '@services/bank-data-providers';
@@ -60,10 +60,10 @@ export const linkAccountToBankConnection = withTransaction(
     externalAccountId,
     userId,
   }: LinkAccountToBankConnectionPayload): Promise<LinkResult> => {
-    // 1. Fetch and validate the account
-    const account = await Accounts.findByPk(accountId);
+    // 1. Fetch and validate the account (owner-scoped: the where-clause can't match another user's row)
+    const account = await getAccountById({ id: accountId, userId });
 
-    if (!account || account.userId !== userId) {
+    if (!account) {
       throw new NotFoundError({
         message: `Account with id "${accountId}" not found.`,
         code: API_ERROR_CODES.notFound,

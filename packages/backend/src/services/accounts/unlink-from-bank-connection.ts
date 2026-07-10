@@ -1,6 +1,6 @@
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
-import Accounts from '@models/accounts.model';
+import Accounts, { getAccountById } from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -20,10 +20,10 @@ interface UnlinkAccountFromBankConnectionPayload {
  */
 export const unlinkAccountFromBankConnection = withTransaction(
   async ({ accountId, userId }: UnlinkAccountFromBankConnectionPayload) => {
-    // Fetch the account
-    const account = await Accounts.findByPk(accountId);
+    // Fetch the account (owner-scoped: the where-clause can't match another user's row)
+    const account = await getAccountById({ id: accountId, userId });
 
-    if (!account || account.userId !== userId) {
+    if (!account) {
       throw new NotFoundError({
         message: `Account with id "${accountId}" not found.`,
       });
