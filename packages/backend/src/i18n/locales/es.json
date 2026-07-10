@@ -420,6 +420,7 @@
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Una o más transacciones no encontradas o no pertenecen al usuario.",
     "summaryCurrencyNotConnected": "No se puede calcular el resumen de suscripciones: la moneda {{currencyCodes}} no está conectada a su cuenta. Conéctela en Ajustes → Monedas.",
+    "summaryBaseCurrencyNotSet": "Moneda base no configurada. Establezca una moneda predeterminada en su configuración para ver el resumen de suscripciones.",
     "validation": {
       "autoRecord": {
         "requiresAccount": "El registro automático requiere una cuenta para que la transacción registrada tenga un lugar dónde aterrizar.",

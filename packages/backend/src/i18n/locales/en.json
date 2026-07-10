@@ -420,6 +420,7 @@
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user.",
     "summaryCurrencyNotConnected": "Subscriptions summary can't be calculated: currency {{currencyCodes}} is not connected to your account. Connect it in Settings → Currencies.",
+    "summaryBaseCurrencyNotSet": "Base currency is not set. Set a default currency in your settings to view the subscriptions summary.",
     "validation": {
       "autoRecord": {
         "requiresAccount": "Auto-record requires an account so the booked transaction has somewhere to land.",

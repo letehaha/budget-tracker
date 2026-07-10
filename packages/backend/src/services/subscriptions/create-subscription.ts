@@ -9,7 +9,7 @@ import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
-import { addUserCurrencies } from '@services/currencies/add-user-currency';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 
 import {
   assertAmountCurrencyConsistent,
@@ -98,7 +98,7 @@ export const createSubscription = withTransaction(
     // in a never-used currency doesn't fail conversion later. Lives in the
     // service so MCP callers get the same guarantee as HTTP ones.
     if (expectedCurrencyCode) {
-      await addUserCurrencies([{ userId, currencyCode: expectedCurrencyCode }]);
+      await ensureUserCurrencyConnected({ userId, currencyCode: expectedCurrencyCode });
     }
 
     // Derive the calendar day from dueDate so recurring logic can anchor

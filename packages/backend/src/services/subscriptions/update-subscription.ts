@@ -9,7 +9,7 @@ import { Money } from '@common/types/money';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 import { withTransaction } from '@services/common/with-transaction';
-import { addUserCurrencies } from '@services/currencies/add-user-currency';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import { Op } from 'sequelize';
 
 import { ensureNextPeriodExists, reconcileInstallmentCompletion } from './ensure-next-period';
@@ -108,7 +108,7 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
   // connect it (idempotent) whenever the currency is set or changed. Lives in
   // the service so MCP callers get the same guarantee as HTTP ones.
   if (fields.expectedCurrencyCode) {
-    await addUserCurrencies([{ userId, currencyCode: fields.expectedCurrencyCode }]);
+    await ensureUserCurrencyConnected({ userId, currencyCode: fields.expectedCurrencyCode });
   }
 
   // The API exchanges decimals; the column stores raw cents (no Money getter).

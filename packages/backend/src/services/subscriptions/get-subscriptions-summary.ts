@@ -12,9 +12,9 @@ import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions from '@models/transactions.model';
-import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { ensureUserBaseCurrency } from '@services/currencies/ensure-base-currency.service';
 import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
 import { Op } from 'sequelize';
 
@@ -85,9 +85,13 @@ const getSubscriptionsSummaryImpl = async ({
     attributes: ['id', 'expectedAmount', 'expectedCurrencyCode', 'frequency'],
   });
 
-  const userCurrency = await UsersCurrencies.getCurrency({
+  // A user with no base currency row cannot have subscription amounts converted
+  // into a reporting currency. Resolve (and self-heal a missing) base currency,
+  // handing a subscription's own expected currency as the last-resort signal
+  // when the user has no accounts or connected currencies to adopt from.
+  const userCurrency = await ensureUserBaseCurrency({
     userId,
-    isDefaultCurrency: true,
+    fallbackCurrencyCode: subscriptions.find((sub) => sub.expectedCurrencyCode)?.expectedCurrencyCode ?? undefined,
   });
 
   const baseCurrencyCode = userCurrency.currency.code;
