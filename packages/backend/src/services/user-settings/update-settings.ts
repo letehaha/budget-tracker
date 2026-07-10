@@ -1,13 +1,11 @@
-import UserSettings, { type SettingsSchema } from '@models/user-settings.model';
+import { type SettingsSchema } from '@models/user-settings.model';
 
 import { withTransaction } from '../common/with-transaction';
+import { getOrCreateUserSettings } from './get-or-create-user-settings';
 
 export const updateUserSettings = withTransaction(
   async ({ userId, settings }: { userId: number; settings: SettingsSchema }): Promise<SettingsSchema> => {
-    const [existingSettings, created] = await UserSettings.findOrCreate({
-      where: { userId },
-      defaults: { settings },
-    });
+    const [existingSettings, created] = await getOrCreateUserSettings({ userId, defaults: settings });
 
     if (!created) {
       // Extract onboarding from incoming settings to prevent overwriting.

@@ -8,7 +8,7 @@ import {
   endpointsTypes,
 } from '@bt/shared/types';
 import { dateString } from '@common/lib/zod/custom-types';
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 
@@ -385,6 +385,9 @@ export default class UserSettings extends Model {
   declare id: RecordId;
 
   @ForeignKey(() => Users)
+  // One settings row per user; without it concurrent first-writes could insert
+  // duplicate rows and silently lose settings.
+  @Index({ name: 'user_settings_user_id_unique', unique: true })
   @Column({
     allowNull: false,
     type: DataType.INTEGER,

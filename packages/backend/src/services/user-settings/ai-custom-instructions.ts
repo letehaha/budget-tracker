@@ -2,6 +2,7 @@ import { ForbiddenError } from '@js/errors';
 import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
 
 import { withTransaction } from '../common/with-transaction';
+import { getOrCreateUserSettings } from './get-or-create-user-settings';
 
 /**
  * Get custom AI instructions for a user.
@@ -25,12 +26,7 @@ export const getCustomInstructions = withTransaction(
  */
 export const setCustomInstructions = withTransaction(
   async ({ userId, instructions }: { userId: number; instructions: string }): Promise<void> => {
-    const [userSettings] = await UserSettings.findOrCreate({
-      where: { userId },
-      defaults: {
-        settings: DEFAULT_SETTINGS,
-      },
-    });
+    const [userSettings] = await getOrCreateUserSettings({ userId });
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
     const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
