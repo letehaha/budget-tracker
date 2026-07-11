@@ -1,6 +1,6 @@
 import { RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Users from './users.model';
 
@@ -11,11 +11,7 @@ import Users from './users.model';
   freezeTableName: true,
 })
 export default class PayeeIgnoredNames extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)

@@ -1,9 +1,9 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, RecordId } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Portfolios from './portfolios.model';
 import Securities from './securities.model';
@@ -35,13 +35,7 @@ export default class InvestmentTransaction extends Model {
    * your bank account's perspective - selling securities brings money IN (income).
    */
 
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Securities)

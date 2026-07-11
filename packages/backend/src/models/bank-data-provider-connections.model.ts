@@ -1,9 +1,9 @@
 import { BANK_PROVIDER_TYPE, RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import Accounts from '@models/accounts.model';
 import Users from '@models/users.model';
 import { encryptCredentials, decryptCredentials } from '@services/bank-data-providers/utils/credential-encryption';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType, HasMany } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 /**
  * Interface for BankDataProviderConnections attributes
@@ -44,12 +44,7 @@ export default class BankDataProviderConnections extends Model<BankDataProviderC
   })
   accounts!: Accounts[];
 
-  @Column({
-    allowNull: false,
-    primaryKey: true,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)

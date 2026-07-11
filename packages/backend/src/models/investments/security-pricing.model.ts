@@ -1,8 +1,8 @@
 import { RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Securities from './securities.model';
 
@@ -26,11 +26,7 @@ import Securities from './securities.model';
   ],
 })
 export default class SecurityPricing extends Model {
-  @Column({
-    primaryKey: true,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Securities)

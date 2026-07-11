@@ -7,8 +7,8 @@ import {
   SharePermission,
   SharePolicy,
 } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Users from './users.model';
 
@@ -18,11 +18,7 @@ import Users from './users.model';
   freezeTableName: true,
 })
 export default class ShareInvitations extends Model implements ShareInvitationModel {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)

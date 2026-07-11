@@ -1,6 +1,6 @@
 import { RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, DataType } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 @Table({
   tableName: 'BrandLogos',
@@ -8,11 +8,7 @@ import { v7 as uuidv7 } from 'uuid';
   freezeTableName: true,
 })
 export default class BrandLogos extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   // Unique: one canonical domain per normalized merchant name. This is the

@@ -6,8 +6,8 @@ import {
   LogoResolutionState,
   RecordId,
 } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, HasMany, DataType } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
 import Categories from './categories.model';
@@ -22,11 +22,7 @@ import Users from './users.model';
   freezeTableName: true,
 })
 export default class Subscriptions extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)

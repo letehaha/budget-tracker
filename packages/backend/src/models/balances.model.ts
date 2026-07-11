@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES, ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
@@ -21,12 +22,7 @@ interface GetTotalBalanceHistoryPayload {
 
 @Table({ timestamps: true, tableName: 'Balances', freezeTableName: true })
 export default class Balances extends Model {
-  @Column({
-    allowNull: false,
-    primaryKey: true,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @Column({

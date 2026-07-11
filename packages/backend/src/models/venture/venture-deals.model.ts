@@ -1,9 +1,9 @@
 import { RecordId } from '@bt/shared/types';
 import { VENTURE_DEAL_STATUS, VENTURE_SPV_SUBTYPE, VENTURE_VEHICLE_TYPE } from '@bt/shared/types/venture';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
 import { BelongsTo, Column, DataType, ForeignKey, HasMany, Index, Model, Table } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Currencies from '../currencies.model';
 import Users from '../users.model';
@@ -16,13 +16,7 @@ import VenturePlatforms from './venture-platforms.model';
   tableName: 'VentureDeals',
 })
 export default class VentureDeals extends Model {
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)

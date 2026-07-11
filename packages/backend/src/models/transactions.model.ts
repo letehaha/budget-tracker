@@ -13,6 +13,7 @@ import {
   TransactionCreatorSnapshot,
   TransactionModel,
 } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
 import { t } from '@i18n/index';
@@ -51,7 +52,6 @@ import {
   BelongsToMany,
   HasMany,
 } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
   const include: Includeable[] = [];
@@ -113,7 +113,7 @@ export interface TransactionsAttributes {
   freezeTableName: true,
 })
 export default class Transactions extends Model {
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @MoneyField({ storage: 'cents' })

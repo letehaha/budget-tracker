@@ -8,8 +8,8 @@ import {
   endpointsTypes,
 } from '@bt/shared/types';
 import { dateString } from '@common/lib/zod/custom-types';
+import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 
 import Users from './users.model';
@@ -376,12 +376,7 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
   timestamps: true, // To include `createdAt` and `updatedAt`
 })
 export default class UserSettings extends Model {
-  @Column({
-    primaryKey: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)

@@ -1,10 +1,10 @@
 import { LOAN_TYPE, type LoanEvent, RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
 import Accounts from '@models/accounts.model';
 import Users from '@models/users.model';
 import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 @Table({
   tableName: 'LoanDetails',
@@ -12,11 +12,7 @@ import { v7 as uuidv7 } from 'uuid';
   freezeTableName: true,
 })
 export default class LoanDetails extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Accounts)
