@@ -2,7 +2,7 @@
  * TagReminders Serializers
  *
  * Handles conversion for the amountThreshold field in reminder settings.
- * amountThreshold is stored as cents in a JSON column (not a MoneyColumn),
+ * amountThreshold is stored as cents in a JSON column (not a @MoneyField column),
  * so explicit conversion is still needed.
  */
 import { type TagReminderFrequency, type TagReminderSettings, type TagReminderType } from '@bt/shared/types';

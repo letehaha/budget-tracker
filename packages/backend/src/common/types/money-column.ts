@@ -1,29 +1,75 @@
-import { DataType } from 'sequelize-typescript';
+import { DataType, addAttribute } from 'sequelize-typescript';
 
 import { Money } from './money';
+
+// ---------------------------------------------------------------------------
+// @MoneyField property decorator
+// ---------------------------------------------------------------------------
+
+/**
+ * Registers a monetary model attribute: column type (BIGINT cents or DECIMAL)
+ * plus attribute-level get/set closures that convert to/from `Money`. The
+ * attribute name and DECIMAL scale are derived from the decorated property, so
+ * neither can drift from the declaration.
+ *
+ * The property MUST use `declare` — it exists only at the type level, while
+ * reads/writes go through the accessor Sequelize installs on the prototype for
+ * every attribute. A real class field would shadow that accessor.
+ *
+ * Value contracts (same as the underlying setters):
+ * - cents: accepts `Money` or a raw number of CENTS
+ * - decimal: accepts `Money` or a raw decimal string/number
+ *
+ * @example
+ * // BIGINT column storing cents:
+ * @MoneyField({ storage: 'cents' })
+ * declare amount: Money;
+ *
+ * // DECIMAL column (investments), nullable:
+ * @MoneyField({ storage: 'decimal', precision: 20, scale: 10, allowNull: true })
+ * declare grossAmount: Money | null;
+ */
+export function MoneyField(opts: MoneyColumnCentsOptions): PropertyDecorator;
+export function MoneyField(opts: MoneyColumnDecimalOptions): PropertyDecorator;
+export function MoneyField(opts: MoneyColumnOptions): PropertyDecorator {
+  return (target: object, propertyKey: string | symbol) => {
+    const key = String(propertyKey);
+    const column = buildColumnConfig(opts);
+
+    const accessors =
+      opts.storage === 'cents'
+        ? {
+            get(this: ModelDataAccess): Money {
+              return moneyGetCents(this, key);
+            },
+            set(this: ModelDataAccess, val: Money | number | null): void {
+              moneySetCents(this, key, val);
+            },
+          }
+        : (() => {
+            const scale = opts.scale ?? DEFAULT_DECIMAL_SCALE;
+            return {
+              get(this: ModelDataAccess): Money {
+                return moneyGetDecimal(this, key);
+              },
+              set(this: ModelDataAccess, val: Money | string | number | null): void {
+                moneySetDecimal(this, key, val, scale);
+              },
+            };
+          })();
+
+    addAttribute(target, key, { ...column, ...accessors });
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Column config helper (type + allowNull + defaultValue only, NO get/set)
 // ---------------------------------------------------------------------------
 
-/**
- * Returns Sequelize column type configuration for money fields.
- * Use with class getter/setter pairs and the moneyGet / moneySet helpers.
- *
- * @example
- * // BIGINT column storing cents:
- * @Column(MoneyColumn({ storage: 'cents' }))
- * get amount(): Money { return moneyGetCents(this, 'amount'); }
- * set amount(val: Money | number) { moneySetCents(this, 'amount', val); }
- *
- * // DECIMAL column (investments):
- * @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
- * get quantity(): Money { return moneyGetDecimal(this, 'quantity'); }
- * set quantity(val: Money | string | number) { moneySetDecimal(this, 'quantity', val, 10); }
- */
-export function MoneyColumn(opts: MoneyColumnCentsOptions): MoneyColumnConfig;
-export function MoneyColumn(opts: MoneyColumnDecimalOptions): MoneyColumnConfig;
-export function MoneyColumn(opts: MoneyColumnOptions): MoneyColumnConfig {
+const DEFAULT_DECIMAL_PRECISION = 20;
+const DEFAULT_DECIMAL_SCALE = 10;
+
+function buildColumnConfig(opts: MoneyColumnOptions): MoneyColumnConfig {
   // When the column is nullable AND the caller did not explicitly supply a
   // defaultValue, default to `null` instead of `0`/`'0'`. Storing 0 for a
   // semantically-absent value loses the distinction between "no value set" and
@@ -41,7 +87,7 @@ export function MoneyColumn(opts: MoneyColumnOptions): MoneyColumnConfig {
   }
 
   // storage === 'decimal'
-  const { precision = 20, scale = 10 } = opts;
+  const { precision = DEFAULT_DECIMAL_PRECISION, scale = DEFAULT_DECIMAL_SCALE } = opts;
   return {
     type: DataType.DECIMAL(precision, scale),
     allowNull: opts.allowNull ?? false,
@@ -50,7 +96,7 @@ export function MoneyColumn(opts: MoneyColumnOptions): MoneyColumnConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Getter/setter helpers for use inside class getter/setter pairs
+// Value conversion helpers used by the @MoneyField accessors
 // ---------------------------------------------------------------------------
 
 interface ModelDataAccess {
@@ -59,7 +105,7 @@ interface ModelDataAccess {
 }
 
 /** Getter helper for BIGINT (cents) columns → returns Money */
-export function moneyGetCents(model: ModelDataAccess, field: string): Money {
+function moneyGetCents(model: ModelDataAccess, field: string): Money {
   const raw = model.getDataValue(field);
   if (raw === null || raw === undefined) return null as unknown as Money;
   // Pass through non-numbers (e.g. Sequelize Literals from Model.update())
@@ -68,7 +114,7 @@ export function moneyGetCents(model: ModelDataAccess, field: string): Money {
 }
 
 /** Setter helper for BIGINT (cents) columns ← accepts Money or raw number */
-export function moneySetCents(model: ModelDataAccess, field: string, val: Money | number | null): void {
+function moneySetCents(model: ModelDataAccess, field: string, val: Money | number | null): void {
   if (val === null) {
     model.setDataValue(field, null);
   } else if (Money.isMoney(val)) {
@@ -80,7 +126,7 @@ export function moneySetCents(model: ModelDataAccess, field: string, val: Money 
 }
 
 /** Getter helper for DECIMAL columns → returns Money */
-export function moneyGetDecimal(model: ModelDataAccess, field: string): Money {
+function moneyGetDecimal(model: ModelDataAccess, field: string): Money {
   const raw = model.getDataValue(field);
   if (raw === null || raw === undefined) return null as unknown as Money;
   // Pass through non-primitive values (e.g. Sequelize Literals from Model.update())
@@ -89,7 +135,7 @@ export function moneyGetDecimal(model: ModelDataAccess, field: string): Money {
 }
 
 /** Setter helper for DECIMAL columns ← accepts Money or raw value */
-export function moneySetDecimal(
+function moneySetDecimal(
   model: ModelDataAccess,
   field: string,
   val: Money | string | number | null,

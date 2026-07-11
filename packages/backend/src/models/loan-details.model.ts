@@ -1,6 +1,6 @@
 import { LOAN_TYPE, type LoanEvent, RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import Accounts from '@models/accounts.model';
 import Users from '@models/users.model';
 import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
@@ -41,21 +41,11 @@ export default class LoanDetails extends Model {
   })
   loanType!: LOAN_TYPE;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get originalPrincipal(): Money {
-    return moneyGetCents(this, 'originalPrincipal');
-  }
-  set originalPrincipal(val: Money | number) {
-    moneySetCents(this, 'originalPrincipal', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare originalPrincipal: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refOriginalPrincipal(): Money {
-    return moneyGetCents(this, 'refOriginalPrincipal');
-  }
-  set refOriginalPrincipal(val: Money | number) {
-    moneySetCents(this, 'refOriginalPrincipal', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare refOriginalPrincipal: Money;
 
   // Postgres returns DECIMAL columns as strings; parse at the model boundary
   // so every consumer sees a number and no call site needs its own `Number()`.
@@ -90,37 +80,17 @@ export default class LoanDetails extends Model {
   })
   balanceAnchorDate!: string;
 
-  @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
-  get minPayment(): Money | null {
-    return moneyGetCents(this, 'minPayment');
-  }
-  set minPayment(val: Money | number | null) {
-    moneySetCents(this, 'minPayment', val);
-  }
+  @MoneyField({ storage: 'cents', allowNull: true })
+  declare minPayment: Money | null;
 
-  @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
-  get refMinPayment(): Money | null {
-    return moneyGetCents(this, 'refMinPayment');
-  }
-  set refMinPayment(val: Money | number | null) {
-    moneySetCents(this, 'refMinPayment', val);
-  }
+  @MoneyField({ storage: 'cents', allowNull: true })
+  declare refMinPayment: Money | null;
 
-  @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
-  get plannedPayment(): Money | null {
-    return moneyGetCents(this, 'plannedPayment');
-  }
-  set plannedPayment(val: Money | number | null) {
-    moneySetCents(this, 'plannedPayment', val);
-  }
+  @MoneyField({ storage: 'cents', allowNull: true })
+  declare plannedPayment: Money | null;
 
-  @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
-  get refPlannedPayment(): Money | null {
-    return moneyGetCents(this, 'refPlannedPayment');
-  }
-  set refPlannedPayment(val: Money | number | null) {
-    moneySetCents(this, 'refPlannedPayment', val);
-  }
+  @MoneyField({ storage: 'cents', allowNull: true })
+  declare refPlannedPayment: Money | null;
 
   @Column({
     type: DataType.SMALLINT,

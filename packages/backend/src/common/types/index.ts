@@ -1,2 +1,2 @@
 export { Money } from './money';
-export { MoneyColumn } from './money-column';
+export { MoneyField } from './money-column';

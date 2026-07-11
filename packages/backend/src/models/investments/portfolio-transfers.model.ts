@@ -1,6 +1,6 @@
 import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -49,21 +49,11 @@ export default class PortfolioTransfers extends Model {
   @Column({ type: DataType.UUID, allowNull: true })
   toAccountId!: RecordId | null;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get amount(): Money {
-    return moneyGetDecimal(this, 'amount');
-  }
-  set amount(val: Money | string | number) {
-    moneySetDecimal(this, 'amount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare amount: Money;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refAmount(): Money {
-    return moneyGetDecimal(this, 'refAmount');
-  }
-  set refAmount(val: Money | string | number) {
-    moneySetDecimal(this, 'refAmount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare refAmount: Money;
 
   @ForeignKey(() => Currencies)
   @Index
@@ -107,33 +97,11 @@ export default class PortfolioTransfers extends Model {
   @Column({ type: DataType.STRING(3), allowNull: true, defaultValue: null })
   toCurrencyCode!: string | null;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get toAmount(): Money | null {
-    const raw = this.getDataValue('toAmount');
-    if (raw === null || raw === undefined) return null;
-    return moneyGetDecimal(this, 'toAmount');
-  }
-  set toAmount(val: Money | string | number | null) {
-    if (val === null) {
-      this.setDataValue('toAmount', null);
-      return;
-    }
-    moneySetDecimal(this, 'toAmount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare toAmount: Money | null;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refToAmount(): Money | null {
-    const raw = this.getDataValue('refToAmount');
-    if (raw === null || raw === undefined) return null;
-    return moneyGetDecimal(this, 'refToAmount');
-  }
-  set refToAmount(val: Money | string | number | null) {
-    if (val === null) {
-      this.setDataValue('refToAmount', null);
-      return;
-    }
-    moneySetDecimal(this, 'refToAmount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare refToAmount: Money | null;
 
   @BelongsTo(() => Currencies, 'toCurrencyCode')
   toCurrency?: Currencies;

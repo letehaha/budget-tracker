@@ -1,6 +1,6 @@
 import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType, Length } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -57,22 +57,12 @@ export default class TransactionSplits extends Model {
   categoryId!: RecordId;
 
   /** Amount in account currency (same as transaction.amount) */
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money {
-    return moneyGetCents(this, 'amount');
-  }
-  set amount(val: Money | number) {
-    moneySetCents(this, 'amount', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare amount: Money;
 
   /** Amount in base currency (same as transaction.refAmount) */
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refAmount(): Money {
-    return moneyGetCents(this, 'refAmount');
-  }
-  set refAmount(val: Money | number) {
-    moneySetCents(this, 'refAmount', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare refAmount: Money;
 
   // Optional per-split note, max 100 chars
   @Length({ max: 100 })

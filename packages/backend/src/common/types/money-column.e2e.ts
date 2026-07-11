@@ -1,5 +1,5 @@
 /**
- * E2E tests for MoneyColumn getter/setter integration with Sequelize.
+ * E2E tests for @MoneyField getter/setter integration with Sequelize.
  *
  * Verifies that Money conversion works correctly across different
  * Sequelize query patterns: normal queries, raw: true, aggregates,
@@ -14,7 +14,7 @@ import * as helpers from '@tests/helpers';
 
 import { Money } from './money';
 
-describe('MoneyColumn integration', () => {
+describe('MoneyField integration', () => {
   describe('Transactions model (INTEGER cents storage)', () => {
     it('findOne returns Money objects via getters', async () => {
       const account = await helpers.createAccount({

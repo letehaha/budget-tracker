@@ -1,6 +1,6 @@
 import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index, PrimaryKey } from 'sequelize-typescript';
 
 import Portfolios from './portfolios.model';
@@ -65,13 +65,8 @@ export default class Holdings extends Model {
    * Changes in quantity are driven by investment transactions such as buying or
    * selling shares of the security.
    */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get quantity(): Money {
-    return moneyGetDecimal(this, 'quantity');
-  }
-  set quantity(val: Money | string | number) {
-    moneySetDecimal(this, 'quantity', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare quantity: Money;
 
   /**
    * The `costBasis` field represents the original value or purchase price of an
@@ -93,20 +88,11 @@ export default class Holdings extends Model {
    * It needs to be recalculated when there are new investment transactions that
    * affect the quantity or value of holding.
    */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get costBasis(): Money {
-    return moneyGetDecimal(this, 'costBasis');
-  }
-  set costBasis(val: Money | string | number) {
-    moneySetDecimal(this, 'costBasis', val, 10);
-  }
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refCostBasis(): Money {
-    return moneyGetDecimal(this, 'refCostBasis');
-  }
-  set refCostBasis(val: Money | string | number) {
-    moneySetDecimal(this, 'refCostBasis', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare costBasis: Money;
+
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare refCostBasis: Money;
 
   @Column({ type: DataType.STRING, allowNull: false, defaultValue: 'USD' })
   currencyCode!: string;
