@@ -4,7 +4,7 @@ import {
   SUBSCRIPTION_TYPES,
   SubscriptionMatchingRules,
 } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { Money, centsToApiDecimalOrNull } from '@common/types/money';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
@@ -146,7 +146,7 @@ export const createSubscription = withTransaction(
     const plain = subscription.toJSON() as Subscriptions;
     return {
       ...plain,
-      expectedAmount: plain.expectedAmount != null ? Money.fromCents(plain.expectedAmount).toNumber() : null,
+      expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
     };
   },
 );

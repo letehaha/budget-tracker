@@ -237,5 +237,14 @@ export function centsToApiDecimal(val: Money | number): Decimal {
   return Money.fromCents(val as number).toNumber();
 }
 
+/**
+ * Nullable-field variant of `centsToApiDecimal`: null/undefined pass through as
+ * null. Use for optional money fields so serializers don't hand-roll the guard
+ * ternary.
+ */
+export function centsToApiDecimalOrNull(val: Money | number | null | undefined): Decimal | null {
+  return val == null ? null : centsToApiDecimal(val);
+}
+
 /** Decimal scale for investment DECIMAL columns (precision: 20, scale: 10). */
 export const INVESTMENT_DECIMAL_SCALE = 10;

@@ -6,7 +6,7 @@
  * Deserializers convert API decimal inputs to Money.
  */
 import { BUDGET_TYPES, ResourceShareInfo } from '@bt/shared/types';
-import { Money, centsToApiDecimal } from '@common/types/money';
+import { Money, centsToApiDecimal, centsToApiDecimalOrNull } from '@common/types/money';
 import type Budgets from '@models/budget.model';
 import type { BudgetShareContext } from '@services/sharing/get-shared-budgets.service';
 
@@ -60,7 +60,7 @@ export function serializeBudget(budget: Budgets & { _shareContext?: BudgetShareC
     startDate: budget.startDate,
     endDate: budget.endDate,
     autoInclude: budget.autoInclude,
-    limitAmount: budget.limitAmount !== null ? budget.limitAmount.toNumber() : null,
+    limitAmount: centsToApiDecimalOrNull(budget.limitAmount),
     categories,
   };
 

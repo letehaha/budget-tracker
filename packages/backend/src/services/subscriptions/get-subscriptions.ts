@@ -3,7 +3,7 @@ import {
   SUBSCRIPTION_PERIOD_STATUSES,
   type SubscriptionPeriodStatus,
 } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { centsToApiDecimalOrNull } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
@@ -180,7 +180,7 @@ export const getSubscriptions = async ({
     const plain = s.toJSON() as unknown as SubscriptionBase & { linkedTransactionsCount: number | string | null };
     return {
       ...plain,
-      expectedAmount: plain.expectedAmount !== null ? Money.fromCents(plain.expectedAmount).toNumber() : null,
+      expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
       linkedTransactionsCount: Number(plain.linkedTransactionsCount ?? 0),
     };
   });
@@ -330,7 +330,7 @@ export const getSubscriptionById = async ({
 
   return {
     ...raw,
-    expectedAmount: raw.expectedAmount !== null ? Money.fromCents(raw.expectedAmount).toNumber() : null,
+    expectedAmount: centsToApiDecimalOrNull(raw.expectedAmount),
     transactions,
     nextExpectedDate,
     periods: raw.periods ?? [],
