@@ -1,5 +1,4 @@
-import { dateBound, recordId, recordArrayIds, withDateOrder } from '@common/lib/zod/custom-types';
-import { Money } from '@common/types/money';
+import { dateBound, decimalMoney, recordId, recordArrayIds, withDateOrder } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeBudget } from '@root/serializers';
 import * as editBudgetService from '@services/budgets/edit-budget';
@@ -16,8 +15,9 @@ const schema = z.object({
       startDate: dateBound({ precision: 'datetime' }).optional(),
       endDate: dateBound({ precision: 'datetime' }).optional(),
       autoInclude: z.boolean().optional().default(false),
-      // Amount field accepts decimals - conversion to cents happens below
-      limitAmount: z.number().positive('Limit amount must be positive').optional(),
+      limitAmount: decimalMoney()
+        .refine((m) => m.isPositive(), { message: 'Limit amount must be positive' })
+        .optional(),
     }),
     ['startDate', 'endDate'],
   ),
@@ -33,7 +33,7 @@ export default createController(schema, async ({ user, params, body }) => {
     categoryIds,
     startDate,
     endDate,
-    limitAmount: limitAmount !== undefined ? Money.fromDecimal(limitAmount) : undefined,
+    limitAmount,
     autoInclude,
   });
 

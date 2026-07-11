@@ -84,6 +84,27 @@ describe('GET /stats/cash-flow', () => {
     expect(result.totals.expenses).toBe(0);
   });
 
+  it('rejects an inverted range (from later than to) with 422', async () => {
+    const response = await helpers.getCashFlow({
+      from: '2025-01-31',
+      to: '2025-01-01',
+      granularity: 'monthly',
+    });
+
+    expect(response.statusCode).toBe(422);
+  });
+
+  it('rejects a malformed / non-real date with 422', async () => {
+    const response = await helpers.getCashFlow({
+      // Month 13 / day 45 is not a real calendar date.
+      from: '2025-13-45',
+      to: '2025-01-31',
+      granularity: 'monthly',
+    });
+
+    expect(response.statusCode).toBe(422);
+  });
+
   it('shared-account regression: recipient tx using owner category resolves correctly (no "Unknown" leak)', async () => {
     // Arrange: owner creates account + category
     const ownerAccount = await helpers.createAccount({ raw: true });

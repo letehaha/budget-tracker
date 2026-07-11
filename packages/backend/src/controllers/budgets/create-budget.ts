@@ -1,6 +1,5 @@
 import { BUDGET_STATUSES, BUDGET_TYPES } from '@bt/shared/types';
-import { dateBound, recordArrayIds, withDateOrder } from '@common/lib/zod/custom-types';
-import { Money } from '@common/types/money';
+import { dateBound, decimalMoney, recordArrayIds, withDateOrder } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeBudget } from '@root/serializers';
 import * as budgetsService from '@root/services/budgets/create-budget';
@@ -16,8 +15,10 @@ const schema = z.object({
         startDate: dateBound({ precision: 'datetime' }).nullable().optional(),
         endDate: dateBound({ precision: 'datetime' }).nullable().optional(),
         autoInclude: z.boolean().optional().default(false),
-        // Amount field accepts decimals - conversion to cents happens below
-        limitAmount: z.number().positive('Limit amount must be positive').nullable().optional(),
+        limitAmount: decimalMoney()
+          .refine((m) => m.isPositive(), { message: 'Limit amount must be positive' })
+          .nullable()
+          .optional(),
       })
       .refine((data) => data.type !== BUDGET_TYPES.category || (data.categoryIds && data.categoryIds.length > 0), {
         message: 'Category budgets require at least one category',
@@ -40,7 +41,7 @@ export default createController(schema, async ({ user, body }) => {
     startDate: startDate ? new Date(startDate) : undefined,
     endDate: endDate ? new Date(endDate) : undefined,
     autoInclude,
-    limitAmount: limitAmount !== undefined && limitAmount !== null ? Money.fromDecimal(limitAmount) : limitAmount,
+    limitAmount,
   });
 
   // Serialize: convert cents to decimal for API response

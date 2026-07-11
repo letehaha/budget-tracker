@@ -58,24 +58,6 @@ export type GetSpendingsByCategoriesByTypeReturnType = {
   [categoryId: RecordId]: SpendingStructureByType;
 };
 
-export interface GetTransactionsQuery extends QueryPayload {
-  sort?: SORT_DIRECTIONS;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-  limit?: number;
-  from?: number;
-  type?: TRANSACTION_TYPES;
-  accountType?: ACCOUNT_TYPES;
-  accountId?: AccountModel['id'];
-  excludeTransfer?: boolean;
-  excludeRefunds?: boolean;
-  transferFilter?: FILTER_OPERATION;
-  refundFilter?: FILTER_OPERATION;
-}
-
 export type GetTransactionsResponse = TransactionModel[];
 
 export interface SplitInput {

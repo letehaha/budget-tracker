@@ -7,6 +7,8 @@ import {
   RecordId,
 } from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
+import { Money } from '@common/types/money';
+import { MoneyField } from '@common/types/money-column';
 import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, HasMany, DataType } from 'sequelize-typescript';
 
 import Accounts from './accounts.model';
@@ -47,11 +49,8 @@ export default class Subscriptions extends Model {
   })
   type!: SUBSCRIPTION_TYPES;
 
-  @Column({
-    type: DataType.BIGINT,
-    allowNull: true,
-  })
-  expectedAmount!: number | null;
+  @MoneyField({ storage: 'cents', allowNull: true })
+  declare expectedAmount: Money | null;
 
   @Column({
     type: DataType.STRING(3),

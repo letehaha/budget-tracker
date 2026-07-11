@@ -29,15 +29,13 @@ export async function convertSubscriptionAmountToAccountCurrency({
   const expected = subscription.expectedAmount;
   if (expected == null) return null;
 
-  const expectedMoney = Money.fromCents(expected);
-
   if (!subscription.expectedCurrencyCode || subscription.expectedCurrencyCode === accountCurrencyCode) {
-    return expectedMoney;
+    return expected;
   }
 
   return calculateRefAmount({
     userId: subscription.userId,
-    amount: expectedMoney,
+    amount: expected,
     baseCode: subscription.expectedCurrencyCode,
     quoteCode: accountCurrencyCode,
     date,

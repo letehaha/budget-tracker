@@ -105,15 +105,15 @@ export const createSubscription = withTransaction(
     // future periods to the same day-of-month without reparsing the date.
     const anchorDay = dueDate ? new Date(dueDate + 'T00:00:00Z').getUTCDate() : null;
 
-    // The API exchanges decimals; the column stores raw cents (no Money getter).
-    const expectedAmountCents = expectedAmount != null ? Money.fromDecimal(expectedAmount).toCents() : null;
+    // The API exchanges decimals; the cents-backed column takes a Money directly.
+    const expectedAmountMoney = expectedAmount != null ? Money.fromDecimal(expectedAmount) : null;
 
     const subscription = await Subscriptions.create({
       userId,
       accountId,
       categoryId,
       matchingRules,
-      expectedAmount: expectedAmountCents,
+      expectedAmount: expectedAmountMoney,
       expectedCurrencyCode,
       endDate,
       notes,

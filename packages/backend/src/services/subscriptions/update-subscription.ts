@@ -111,16 +111,6 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     await ensureUserCurrencyConnected({ userId, currencyCode: fields.expectedCurrencyCode });
   }
 
-  // The API exchanges decimals; the column stores raw cents (no Money getter).
-  // Only touch the field when the caller actually sent it, so omitting it leaves
-  // the stored amount unchanged. `null` clears the amount.
-  if (fields.expectedAmount !== undefined) {
-    fields = {
-      ...fields,
-      expectedAmount: fields.expectedAmount != null ? Money.fromDecimal(fields.expectedAmount).toCents() : null,
-    };
-  }
-
   // When a dueDate is being set (not cleared), derive anchorDay so recurring
   // logic can use the calendar day without reparsing the date string. Clearing
   // the dueDate clears the anchor with it (no schedule to anchor to).
@@ -145,7 +135,16 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
   const wasInstallment = subscription.type === SUBSCRIPTION_TYPES.installment;
   const previousDueDate = subscription.dueDate;
 
-  await subscription.update(fields);
+  // The API exchanges decimals; the cents-backed column takes a Money (or null
+  // to clear). Convert only when the caller sent the field, so an omitted
+  // expectedAmount leaves the stored amount untouched.
+  const { expectedAmount: expectedAmountInput, ...restFields } = fields;
+  await subscription.update({
+    ...restFields,
+    ...(expectedAmountInput !== undefined
+      ? { expectedAmount: expectedAmountInput != null ? Money.fromDecimal(expectedAmountInput) : null }
+      : {}),
+  });
 
   // Keep the live schedule in step with an edited due date. Realigning only fires
   // when the due date ACTUALLY changed (`fields.dueDate !== previousDueDate`). The

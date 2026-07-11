@@ -6,7 +6,7 @@
  * so explicit conversion is still needed.
  */
 import { type TagReminderFrequency, type TagReminderSettings, type TagReminderType } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { Money, centsToApiDecimal } from '@common/types/money';
 import type TagReminders from '@models/tag-reminders.model';
 
 // ============================================================================
@@ -98,7 +98,7 @@ function serializeSettings(settings: TagReminderSettings): TagReminderSettingsAp
   if (settingsObj.amountThreshold !== undefined) {
     return {
       ...settingsObj,
-      amountThreshold: Money.fromCents(settingsObj.amountThreshold).toNumber(),
+      amountThreshold: centsToApiDecimal(settingsObj.amountThreshold),
     } as TagReminderSettingsApiResponse;
   }
 

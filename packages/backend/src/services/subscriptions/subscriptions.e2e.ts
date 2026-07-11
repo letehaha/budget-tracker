@@ -124,6 +124,39 @@ describe('Subscriptions', () => {
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
+    it('rejects creating a subscription with a non-real dueDate', async () => {
+      const res = await helpers.createSubscription({
+        name: 'Bad Due Date',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        dueDate: '2020-13-45',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects updating a subscription with a non-real dueDate', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'Due Date Update',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const res = await helpers.updateSubscription({
+        id: sub.id,
+        dueDate: '2020-13-45',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
     it('rejects updating a subscription when startDate is after endDate', async () => {
       const sub = await helpers.createSubscription({
         name: 'To Update',

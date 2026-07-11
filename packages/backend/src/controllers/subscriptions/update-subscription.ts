@@ -38,11 +38,7 @@ const schema = z.object({
         matchingRules: z.object({ rules: z.array(matchingRuleSchema) }).optional(),
         isActive: z.boolean().optional(),
         notes: z.string().max(5000).nullable().optional(),
-        dueDate: z
-          .string()
-          .regex(/^\d{4}-\d{2}-\d{2}$/)
-          .nullable()
-          .optional(),
+        dueDate: dateBound().nullable().optional(),
         maxOccurrences: z.number().int().positive().nullable().optional(),
         remindBefore: z.array(z.enum(remindBeforePresetValues)).max(MAX_REMIND_BEFORE_PRESETS).optional(),
         notifyEmail: z.boolean().optional(),

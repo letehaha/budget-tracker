@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
+import UserSettings from '@models/user-settings.model';
 import * as helpers from '@tests/helpers';
 
 /**
@@ -22,6 +23,24 @@ describe('UserSettings — one row per user', () => {
 
     expect(settings.locale).toBe('uk');
     expect(onboarding.isDismissed).toBe(true);
+  });
+
+  it('keeps exactly one row per user when different create-or-fetch endpoints run sequentially', async () => {
+    // Reliable guard for the unique-index invariant that does NOT rely on true
+    // concurrency (which the CLS caveat above makes unassertable in e2e). Every
+    // one of these endpoints does its own get-or-create of the user's settings
+    // row; if the unique `userId` index were reverted, a create path could
+    // insert a second row and this count would exceed 1.
+    await helpers.patchUserSettings({ raw: true, patch: { locale: 'uk' } });
+    await helpers.updateOnboarding({ raw: true, onboardingState: { isDismissed: true } });
+    await helpers.getUserSettings({ raw: true });
+    await helpers.getOnboarding({ raw: true });
+    await helpers.patchUserSettings({ raw: true, patch: { includeCreditLimitInStats: true } });
+
+    const { id: userId } = await helpers.getUserInfo({ raw: true });
+    const rowCount = await UserSettings.count({ where: { userId } });
+
+    expect(rowCount).toBe(1);
   });
 
   it('recovers instead of crashing when a settings patch and an onboarding update race on a fresh user', async () => {

@@ -29,6 +29,8 @@ import { Money } from './money';
  * @MoneyField({ storage: 'decimal', precision: 20, scale: 10, allowNull: true })
  * declare grossAmount: Money | null;
  */
+// `storage` MUST match the real migration column type (BIGINT for 'cents', DECIMAL for 'decimal') —
+// nothing at compile time links the two, so a mismatch silently corrupts stored values.
 export function MoneyField(opts: MoneyColumnCentsOptions): PropertyDecorator;
 export function MoneyField(opts: MoneyColumnDecimalOptions): PropertyDecorator;
 export function MoneyField(opts: MoneyColumnOptions): PropertyDecorator {

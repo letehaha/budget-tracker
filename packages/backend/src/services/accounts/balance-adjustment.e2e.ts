@@ -5,6 +5,48 @@ import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { format } from 'date-fns';
 
+/** Runs `fn` with a different user's session cookies, restoring the original afterwards. */
+async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Promise<T> }): Promise<T> {
+  const original = global.APP_AUTH_COOKIES;
+  global.APP_AUTH_COOKIES = cookies;
+  try {
+    return await fn();
+  } finally {
+    global.APP_AUTH_COOKIES = original;
+  }
+}
+
+/** Registers a fresh user (with the shared base currency) and returns their session cookies. */
+async function createSecondUser(): Promise<string> {
+  const signupRes = await helpers.makeAuthRequest({
+    method: 'post',
+    url: '/auth/sign-up/email',
+    payload: {
+      email: `user2-${Date.now()}-${Math.random()}@test.local`,
+      password: 'testpassword123',
+      name: 'Second User',
+    },
+  });
+  const cookies = helpers.extractCookies(signupRes);
+  await asUser({
+    cookies,
+    fn: () =>
+      helpers.makeRequest({
+        method: 'post',
+        url: '/user/currencies/base',
+        payload: { currencyCode: global.BASE_CURRENCY.code },
+      }),
+  });
+  return cookies;
+}
+
+/** Reads the error envelope (`code` + `message`) from a failed helper response. */
+const extractError = (response: unknown) =>
+  (response as helpers.CustomResponse<unknown>).body.response as unknown as {
+    code: string;
+    message: string;
+  };
+
 describe('Balance Adjustment', () => {
   it('creates income transaction when target > current balance', async () => {
     const account = await helpers.createAccount({
@@ -158,5 +200,84 @@ describe('Balance Adjustment', () => {
 
     // Adjustment transaction should NOT appear in expense stats
     expect(expenses).toBe(0);
+  });
+
+  describe('owner-scoping of account write paths', () => {
+    it("rejects a balance adjustment on another user's account and leaves it untouched", async () => {
+      // User B owns the account.
+      const userBCookies = await createSecondUser();
+      const userBAccount = await asUser({
+        cookies: userBCookies,
+        fn: () =>
+          helpers.createAccount({
+            payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+            raw: true,
+          }),
+      });
+
+      // User A (default suite session) tries to adjust User B's real account by id.
+      // A random-UUID 404 can't catch a dropped `userId` scope in `getAccountById`;
+      // this hits a real row owned by someone else, so it only 404s if scoping holds.
+      const res = await helpers.balanceAdjustment({
+        id: userBAccount.id,
+        payload: { targetBalance: asDecimal(9999) },
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      // User B's account must be unchanged.
+      const afterAccount = await asUser({
+        cookies: userBCookies,
+        fn: () => helpers.getAccount({ id: userBAccount.id, raw: true }),
+      });
+      expect(afterAccount.currentBalance).toBe(1000);
+    });
+
+    it("rejects linking another user's account to a bank connection with a not-found account error", async () => {
+      const userBCookies = await createSecondUser();
+      const userBAccount = await asUser({
+        cookies: userBCookies,
+        fn: () =>
+          helpers.createAccount({
+            payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+            raw: true,
+          }),
+      });
+
+      // The account is fetched (owner-scoped) before the connection is validated, so
+      // a dropped `userId` scope would surface User B's account and fail later with a
+      // *connection* error instead of this *account* not-found. Assert the account error.
+      const res = await helpers.linkAccountToBankConnection({
+        id: userBAccount.id,
+        connectionId: generateRandomRecordId(),
+        externalAccountId: generateRandomRecordId(),
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+      expect(extractError(res).message).toContain(userBAccount.id);
+    });
+
+    it("rejects unlinking another user's account with a not-found account error", async () => {
+      const userBCookies = await createSecondUser();
+      const userBAccount = await asUser({
+        cookies: userBCookies,
+        fn: () =>
+          helpers.createAccount({
+            payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+            raw: true,
+          }),
+      });
+
+      // Account fetch is owner-scoped and runs first. A dropped `userId` scope would
+      // find User B's (unlinked, system) account and fail with a *validation* error
+      // ("not linked to any bank connection") instead of this account not-found.
+      const res = await helpers.unlinkAccountFromBankConnection({
+        id: userBAccount.id,
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+      expect(extractError(res).message).toContain(userBAccount.id);
+    });
   });
 });
