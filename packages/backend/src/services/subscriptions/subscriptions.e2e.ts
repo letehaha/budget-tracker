@@ -1,5 +1,6 @@
 import { API_ERROR_CODES, SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
+import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
 import { subMonths } from 'date-fns';
@@ -107,6 +108,73 @@ describe('Subscriptions', () => {
 
       expect(updated.name).toBe('Updated');
       expect(updated.frequency).toBe(SUBSCRIPTION_FREQUENCIES.quarterly);
+    });
+
+    it('rejects creating a subscription when startDate is after endDate', async () => {
+      const res = await helpers.createSubscription({
+        name: 'Inverted Range',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-02-01',
+        endDate: '2025-01-01',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects creating a subscription with a non-real dueDate', async () => {
+      const res = await helpers.createSubscription({
+        name: 'Bad Due Date',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        dueDate: '2020-13-45',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects updating a subscription with a non-real dueDate', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'Due Date Update',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const res = await helpers.updateSubscription({
+        id: sub.id,
+        dueDate: '2020-13-45',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects updating a subscription when startDate is after endDate', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'To Update',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const res = await helpers.updateSubscription({
+        id: sub.id,
+        startDate: '2025-02-01',
+        endDate: '2025-01-01',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('deletes a subscription', async () => {

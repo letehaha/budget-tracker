@@ -1,10 +1,10 @@
 import { DEPRECIATION_PRESET, RecordId, VEHICLE_CLASS } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import Accounts from '@models/accounts.model';
 import Users from '@models/users.model';
 import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 @Table({
   tableName: 'Vehicles',
@@ -12,11 +12,7 @@ import { v7 as uuidv7 } from 'uuid';
   freezeTableName: true,
 })
 export default class Vehicles extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Accounts)
@@ -65,13 +61,8 @@ export default class Vehicles extends Model {
   })
   vehicleClass!: VEHICLE_CLASS;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get purchasePrice(): Money {
-    return moneyGetCents(this, 'purchasePrice');
-  }
-  set purchasePrice(val: Money | number) {
-    moneySetCents(this, 'purchasePrice', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare purchasePrice: Money;
 
   @Column({
     type: DataType.DATEONLY,
@@ -79,13 +70,8 @@ export default class Vehicles extends Model {
   })
   purchaseDate!: string;
 
-  @Column(MoneyColumn({ storage: 'cents', allowNull: true }))
-  get valueAnchor(): Money | null {
-    return moneyGetCents(this, 'valueAnchor');
-  }
-  set valueAnchor(val: Money | number | null) {
-    moneySetCents(this, 'valueAnchor', val);
-  }
+  @MoneyField({ storage: 'cents', allowNull: true })
+  declare valueAnchor: Money | null;
 
   @Column({
     type: DataType.DATEONLY,

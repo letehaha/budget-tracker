@@ -150,31 +150,110 @@ export const booleanQuery = () =>
     return z.NEVER;
   });
 
-/** Validates a YYYY-MM-DD date string. */
+/** Validates the *shape* of a YYYY-MM-DD date string. For real-date checking use `dateBound`. */
 export const dateString = () =>
   z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format' });
 
 /**
- * Optional date range with calendar-day boundaries (YYYY-MM-DD).
- * Both ends are optional; the cross-field check rejects ranges where `from`
- * is after `to` only when both are present. String comparison is sound because
- * ISO YYYY-MM-DD sorts lexicographically the same way it sorts chronologically.
- *
- * Each endpoint additionally rejects regex-matching but non-real calendar dates
- * (e.g. `2020-13-45`) via `Date.parse` — `dateString()` alone does not.
+ * A real calendar day in `YYYY-MM-DD` form. Extends `dateString()` (which only
+ * checks the shape) by rejecting regex-matching but non-existent dates such as
+ * `2020-13-45` via `Date.parse`.
  */
-export const dateRange = () => {
-  const calendarDate = dateString().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid calendar date');
-  return z
-    .object({
-      from: calendarDate.optional(),
-      to: calendarDate.optional(),
-    })
-    .refine(({ from, to }) => !from || !to || from <= to, {
-      message: '`from` must be on or before `to`',
-      path: ['from'],
-    });
+const calendarDate = () => dateString().refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid calendar date');
+
+type DateRangePrecision = 'date' | 'datetime';
+
+/**
+ * A single date-range bound, validated to a `string`.
+ *
+ * - `precision: 'date'` (default) — strict `YYYY-MM-DD` real calendar day.
+ * - `precision: 'datetime'` — ISO 8601 datetime. `offset: true` also permits a
+ *   timezone offset (e.g. `+05:00`); otherwise only UTC (`Z`) is accepted.
+ *
+ * Use directly for a lone date field, or let {@link dateRange} pair two of these
+ * with an ordering guard.
+ */
+export const dateBound = ({
+  precision = 'date',
+  offset = false,
+}: { precision?: DateRangePrecision; offset?: boolean } = {}): z.ZodType<string> =>
+  precision === 'datetime' ? z.string().datetime({ offset }) : calendarDate();
+
+// Compares two bounds as instants, so it is correct for calendar days, UTC
+// datetimes, and offset datetimes alike (each parses to a comparable epoch).
+// A missing bound passes, so partial ranges are allowed. Bounds reaching this
+// point are already format-validated, so `new Date` never yields NaN here.
+const isOrderedPair = (from: unknown, to: unknown) =>
+  from == null || to == null || new Date(from as string).getTime() <= new Date(to as string).getTime();
+
+/**
+ * Attaches the `from <= to` ordering guard to a `z.object` whose two bound
+ * fields are named by `names` (default `['from', 'to']`). Pair it with a spread
+ * `...dateRange()` or with `dateBound()` fields:
+ *
+ *   withDateOrder(z.object({ ...dateRange(), accountId: recordId().optional() }))
+ *   withDateOrder(z.object({ startDate: dateBound(), endDate: dateBound().nullable().optional() }), ['startDate', 'endDate'])
+ *
+ * Throws at construction time if the wrapped object is missing either bound
+ * field — otherwise the guard would silently pass everything (a no-op is a worse
+ * failure than a loud one). This is why the ordering check lives in a separate
+ * wrapper: a cross-field refine can't ride the `...dateRange()` spread, so the
+ * two are joined here and validated together.
+ */
+export const withDateOrder = <T extends z.ZodTypeAny>(schema: T, names: readonly [string, string] = ['from', 'to']) => {
+  // In Zod v4 `.refine()`/`.superRefine()` keep a ZodObject a ZodObject (checks
+  // are stored inline, not wrapped), so `.shape` is still readable here.
+  const shape = (schema as { shape?: Record<string, unknown> }).shape;
+  const missing = shape ? names.filter((name) => !(name in shape)) : names;
+  if (missing.length > 0) {
+    throw new Error(
+      `withDateOrder: wrapped object is missing bound field(s) [${missing.join(', ')}]. ` +
+        `Spread \`...dateRange()\` or add \`dateBound()\` fields named [${names.join(', ')}]. ` +
+        `Got: ${shape ? Object.keys(shape).join(', ') || '(no fields)' : 'not a ZodObject'}.`,
+    );
+  }
+  return schema.refine(
+    (data) =>
+      isOrderedPair((data as Record<string, unknown>)?.[names[0]], (data as Record<string, unknown>)?.[names[1]]),
+    { message: `\`${names[0]}\` must be on or before \`${names[1]}\``, path: [names[0]] },
+  );
 };
+
+interface DateRangeFieldsConfig {
+  /** `'date'` (default) → `YYYY-MM-DD`; `'datetime'` → ISO 8601 (see {@link dateBound}). */
+  precision?: DateRangePrecision;
+  /** Datetime only: allow a timezone offset. Default `false` (UTC `Z`). */
+  offset?: boolean;
+}
+
+/**
+ * A spreadable `{ from, to }` pair of date bounds — the sugar for the common
+ * two-ended range. Spread it into a `z.object` next to your other fields, then
+ * wrap with {@link withDateOrder} to enforce `from <= to`:
+ *
+ * @example
+ * query: withDateOrder(z.object({ ...dateRange(), accountId: recordId().optional() }))          // optional YYYY-MM-DD
+ * query: withDateOrder(z.object({ ...dateRange({ required: true, precision: 'datetime' }), granularity: z.enum([...]) }))
+ * body:  z.object({ range: withDateOrder(z.object(dateRange())).optional() })                   // nested { from?, to? }
+ *
+ * Both bounds are optional by default; pass `{ required: true }` for both mandatory.
+ * This helper always names the fields `from`/`to`. For a differently-named pair
+ * (e.g. a domain entity's `startDate`/`endDate`) or asymmetric optionality (one
+ * required, one nullable), build the fields with {@link dateBound} directly.
+ */
+export function dateRange(config: DateRangeFieldsConfig & { required: true }): {
+  from: z.ZodType<string>;
+  to: z.ZodType<string>;
+};
+export function dateRange(config?: DateRangeFieldsConfig & { required?: false }): {
+  from: z.ZodOptional<z.ZodType<string>>;
+  to: z.ZodOptional<z.ZodType<string>>;
+};
+export function dateRange(config: DateRangeFieldsConfig & { required?: boolean } = {}) {
+  const { required = false, precision = 'date', offset = false } = config;
+  const bound = dateBound({ precision, offset });
+  return { from: required ? bound : bound.optional(), to: required ? bound : bound.optional() };
+}
 
 /** Validates a positive decimal amount string (rejects zero and negative by default). */
 export const positiveAmountString = () =>

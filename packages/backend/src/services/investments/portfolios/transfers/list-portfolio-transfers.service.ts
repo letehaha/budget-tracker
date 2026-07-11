@@ -9,8 +9,8 @@ import { Op } from 'sequelize';
 interface ListPortfolioTransfersParams {
   userId: number;
   portfolioId: string;
-  dateFrom?: string;
-  dateTo?: string;
+  from?: string;
+  to?: string;
   limit?: number;
   offset?: number;
   sortBy?: 'date' | 'amount';
@@ -20,8 +20,8 @@ interface ListPortfolioTransfersParams {
 export async function listPortfolioTransfers({
   userId,
   portfolioId,
-  dateFrom,
-  dateTo,
+  from,
+  to,
   limit = 20,
   offset = 0,
   sortBy = 'date',
@@ -37,13 +37,13 @@ export async function listPortfolioTransfers({
 
   // Build date filter if provided
   const dateFilter = {};
-  if (dateFrom || dateTo) {
+  if (from || to) {
     dateFilter['date'] = {};
-    if (dateFrom) {
-      dateFilter['date'][Op.gte] = dateFrom;
+    if (from) {
+      dateFilter['date'][Op.gte] = from;
     }
-    if (dateTo) {
-      dateFilter['date'][Op.lte] = dateTo;
+    if (to) {
+      dateFilter['date'][Op.lte] = to;
     }
   }
 

@@ -191,6 +191,17 @@ describe('[Stats] Spendings by categories – groupByType', () => {
 
     expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
+
+  it('rejects a malformed / non-real date', async () => {
+    const response = await helpers.getSpendingsByCategories({
+      // Month 13 / day 45 is not a real calendar date.
+      from: '2026-13-45',
+      to: '2026-07-31',
+      groupByType: true,
+    });
+
+    expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
 });
 
 describe('[Stats] Spendings by categories', () => {

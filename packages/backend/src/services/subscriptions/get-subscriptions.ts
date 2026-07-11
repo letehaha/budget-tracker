@@ -3,7 +3,7 @@ import {
   SUBSCRIPTION_PERIOD_STATUSES,
   type SubscriptionPeriodStatus,
 } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { centsToApiDecimalOrNull } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
@@ -32,8 +32,8 @@ type SubscriptionCategory = Pick<Categories, 'id' | 'name' | 'color' | 'icon'>;
 
 /**
  * Subscription scalar columns plus its trimmed account/category associations.
- * `expectedAmount` is a BIGINT (cents) on the model but is surfaced here as a
- * decimal number – the type stays `number | null`, only the value changes.
+ * `expectedAmount` is a cents-backed Money on the model but is surfaced here as a
+ * decimal number, so it is re-typed rather than picked from the model.
  */
 interface SubscriptionBase extends Pick<
   Subscriptions,
@@ -41,7 +41,6 @@ interface SubscriptionBase extends Pick<
   | 'userId'
   | 'name'
   | 'type'
-  | 'expectedAmount'
   | 'expectedCurrencyCode'
   | 'frequency'
   | 'startDate'
@@ -60,6 +59,8 @@ interface SubscriptionBase extends Pick<
   | 'createdAt'
   | 'updatedAt'
 > {
+  /** Cents-backed Money on the model, surfaced here as a decimal number. */
+  expectedAmount: number | null;
   account: SubscriptionAccount | null;
   category: SubscriptionCategory | null;
 }
@@ -180,7 +181,7 @@ export const getSubscriptions = async ({
     const plain = s.toJSON() as unknown as SubscriptionBase & { linkedTransactionsCount: number | string | null };
     return {
       ...plain,
-      expectedAmount: plain.expectedAmount !== null ? Money.fromCents(plain.expectedAmount).toNumber() : null,
+      expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
       linkedTransactionsCount: Number(plain.linkedTransactionsCount ?? 0),
     };
   });
@@ -330,7 +331,7 @@ export const getSubscriptionById = async ({
 
   return {
     ...raw,
-    expectedAmount: raw.expectedAmount !== null ? Money.fromCents(raw.expectedAmount).toNumber() : null,
+    expectedAmount: centsToApiDecimalOrNull(raw.expectedAmount),
     transactions,
     nextExpectedDate,
     periods: raw.periods ?? [],

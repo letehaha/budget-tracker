@@ -7,9 +7,9 @@ import {
   RecordId,
   endpointsTypes,
 } from '@bt/shared/types';
-import { dateString } from '@common/lib/zod/custom-types';
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
+import { dateRange, withDateOrder } from '@common/lib/zod/custom-types';
+import { IdColumn } from '@common/types/id-column';
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
 import { z } from 'zod';
 
 import Users from './users.model';
@@ -171,27 +171,23 @@ const ZodSubscriptionsSettingsSchema = z.object({
 // A saved Pivot Report "view": the full configuration a user pinned so they can reopen the
 // same cross-tab later. Persisted in the settings JSONB (no dedicated table). The period is
 // stored as an explicit range.
-const ZodSavedPivotViewConfigSchema = z
-  .object({
+// The live report rejects an inverted range; persist the same `dateRange()` + `withDateOrder()`
+// pairing so a saved view can't store a range the report will 400 on when replayed.
+const ZodSavedPivotViewConfigSchema = withDateOrder(
+  z.object({
     // Enum members come from the shared pivot tuples so a persisted view can never accept a
     // dimension/granularity the report itself rejects.
     rowDimension: z.enum(endpointsTypes.PIVOT_ROW_DIMENSIONS),
     granularity: z.enum(endpointsTypes.PIVOT_GRANULARITIES),
     measure: z.enum(endpointsTypes.PIVOT_MEASURES),
-    from: dateString(),
-    to: dateString(),
+    ...dateRange({ required: true }),
     accountIds: z.array(z.string()).optional(),
     categoryIds: z.array(z.string()).optional(),
     payeeIds: z.array(z.string()).optional(),
     heatmap: z.boolean().default(false),
     showDelta: z.boolean().default(true),
-  })
-  // The live report rejects an inverted range; persist the same invariant so a saved view can't
-  // store a range the report will 400 on when replayed.
-  .refine(({ from, to }) => from <= to, {
-    message: '`from` must be on or before `to`',
-    path: ['from'],
-  });
+  }),
+);
 
 const ZodSavedPivotViewSchema = z.object({
   id: z.string(),
@@ -376,15 +372,13 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
   timestamps: true, // To include `createdAt` and `updatedAt`
 })
 export default class UserSettings extends Model {
-  @Column({
-    primaryKey: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)
+  // One settings row per user; without it concurrent first-writes could insert
+  // duplicate rows and silently lose settings.
+  @Index({ name: 'user_settings_user_id_unique', unique: true })
   @Column({
     allowNull: false,
     type: DataType.INTEGER,

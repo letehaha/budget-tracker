@@ -11,8 +11,8 @@ export async function getSecuritiesPricesByDate<R extends boolean | undefined = 
 }: {
   params?: {
     securityId?: string;
-    startDate?: Date;
-    endDate?: Date;
+    from?: Date;
+    to?: Date;
   };
   raw?: R;
 }) {
@@ -21,11 +21,11 @@ export async function getSecuritiesPricesByDate<R extends boolean | undefined = 
   if (params.securityId) {
     queryParams.push(`securityId=${params.securityId}`);
   }
-  if (params.startDate) {
-    queryParams.push(`startDate=${params.startDate.toISOString()}`);
+  if (params.from) {
+    queryParams.push(`from=${params.from.toISOString()}`);
   }
-  if (params.endDate) {
-    queryParams.push(`endDate=${params.endDate.toISOString()}`);
+  if (params.to) {
+    queryParams.push(`to=${params.to.toISOString()}`);
   }
 
   const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';

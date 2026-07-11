@@ -1,6 +1,6 @@
 import { RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, ForeignKey, DataType } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Categories from './categories.model';
 import MerchantCategoryCodes from './merchant-category-codes.model';
@@ -12,12 +12,7 @@ import Users from './users.model';
   freezeTableName: true,
 })
 export default class UserMerchantCategoryCodes extends Model {
-  @Column({
-    allowNull: false,
-    primaryKey: true,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Categories)

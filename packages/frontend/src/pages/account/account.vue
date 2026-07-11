@@ -230,8 +230,8 @@ watch(
 const limit = 10;
 
 const fetchTransactions = ({ pageParam }: { pageParam: number }) => {
-  const from = pageParam * limit;
-  return loadTransactions({ limit, from, accountIds: [account.value!.id] });
+  const offset = pageParam * limit;
+  return loadTransactions({ limit, offset, accountIds: [account.value!.id] });
 };
 
 const {

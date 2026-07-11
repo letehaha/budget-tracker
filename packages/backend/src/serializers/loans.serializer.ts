@@ -5,7 +5,7 @@ import {
   type LoanEventApi,
   type LoanProjection,
 } from '@bt/shared/types';
-import { centsToApiDecimal } from '@common/types/money';
+import { centsToApiDecimal, centsToApiDecimalOrNull } from '@common/types/money';
 import type LoanDetails from '@models/loan-details.model';
 import { serializeAccount } from '@root/serializers/accounts.serializer';
 
@@ -17,8 +17,8 @@ function serializeLoanEvent(event: LoanEvent): LoanEventApi {
       return {
         type: event.type,
         at: event.at,
-        from: event.fromCents === null ? null : centsToApiDecimal(event.fromCents),
-        to: event.toCents === null ? null : centsToApiDecimal(event.toCents),
+        from: centsToApiDecimalOrNull(event.fromCents),
+        to: centsToApiDecimalOrNull(event.toCents),
       };
     case 'balance_correction':
       return {
@@ -52,10 +52,10 @@ function serializeLoanDetails(loanDetails: LoanDetails): LoanDetailsApiResponse 
     termMonths: loanDetails.termMonths,
     startDate: loanDetails.startDate,
     balanceAnchorDate: loanDetails.balanceAnchorDate,
-    minPayment: loanDetails.minPayment === null ? null : centsToApiDecimal(loanDetails.minPayment),
-    refMinPayment: loanDetails.refMinPayment === null ? null : centsToApiDecimal(loanDetails.refMinPayment),
-    plannedPayment: loanDetails.plannedPayment === null ? null : centsToApiDecimal(loanDetails.plannedPayment),
-    refPlannedPayment: loanDetails.refPlannedPayment === null ? null : centsToApiDecimal(loanDetails.refPlannedPayment),
+    minPayment: centsToApiDecimalOrNull(loanDetails.minPayment),
+    refMinPayment: centsToApiDecimalOrNull(loanDetails.refMinPayment),
+    plannedPayment: centsToApiDecimalOrNull(loanDetails.plannedPayment),
+    refPlannedPayment: centsToApiDecimalOrNull(loanDetails.refPlannedPayment),
     paymentDayOfMonth: loanDetails.paymentDayOfMonth,
     lenderName: loanDetails.lenderName,
     accountNumber: loanDetails.accountNumber,

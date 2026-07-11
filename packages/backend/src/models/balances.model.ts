@@ -1,6 +1,7 @@
 import { TRANSACTION_TYPES, ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils';
 import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
@@ -21,12 +22,7 @@ interface GetTotalBalanceHistoryPayload {
 
 @Table({ timestamps: true, tableName: 'Balances', freezeTableName: true })
 export default class Balances extends Model {
-  @Column({
-    allowNull: false,
-    primaryKey: true,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @Column({
@@ -42,13 +38,8 @@ export default class Balances extends Model {
    * specific date.
    * `amount` is in the BASE currency. So it represents a `refAmount` (`refBalance`)
    */
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money {
-    return moneyGetCents(this, 'amount');
-  }
-  set amount(val: Money | number) {
-    moneySetCents(this, 'amount', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare amount: Money;
 
   @ForeignKey(() => Accounts)
   @Column({ allowNull: false, type: DataType.UUID })

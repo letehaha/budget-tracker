@@ -7,7 +7,7 @@
  * Vehicles).
  */
 import { DEPRECIATION_PRESET, type RecordId, VEHICLE_CLASS } from '@bt/shared/types';
-import { centsToApiDecimal } from '@common/types/money';
+import { centsToApiDecimal, centsToApiDecimalOrNull } from '@common/types/money';
 import type Vehicles from '@models/vehicles.model';
 import { serializeAccount, type AccountApiResponse } from '@root/serializers/accounts.serializer';
 
@@ -46,7 +46,7 @@ export function serializeVehicle(vehicle: Vehicles): VehicleApiResponse {
     vehicleClass: vehicle.vehicleClass,
     purchasePrice: centsToApiDecimal(vehicle.purchasePrice),
     purchaseDate: vehicle.purchaseDate,
-    valueAnchor: vehicle.valueAnchor !== null ? centsToApiDecimal(vehicle.valueAnchor) : null,
+    valueAnchor: centsToApiDecimalOrNull(vehicle.valueAnchor),
     valueAnchorDate: vehicle.valueAnchorDate,
     depreciationPreset: vehicle.depreciationPreset,
     customAnnualRatePct: vehicle.customAnnualRatePct ? Number(vehicle.customAnnualRatePct) : null,

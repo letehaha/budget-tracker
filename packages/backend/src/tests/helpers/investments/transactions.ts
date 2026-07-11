@@ -68,8 +68,8 @@ export async function getInvestmentTransactions<R extends boolean | undefined = 
   portfolioId,
   securityId,
   category,
-  startDate,
-  endDate,
+  from,
+  to,
   limit,
   offset,
   raw,
@@ -85,11 +85,11 @@ export async function getInvestmentTransactions<R extends boolean | undefined = 
   if (category) {
     params.append('category', category);
   }
-  if (startDate) {
-    params.append('startDate', `${startDate}T00:00:00.000Z`);
+  if (from) {
+    params.append('from', `${from}T00:00:00.000Z`);
   }
-  if (endDate) {
-    params.append('endDate', `${endDate}T23:59:59.999Z`);
+  if (to) {
+    params.append('to', `${to}T23:59:59.999Z`);
   }
   if (limit) {
     params.append('limit', limit.toString());

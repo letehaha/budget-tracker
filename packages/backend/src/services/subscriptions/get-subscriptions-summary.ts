@@ -102,7 +102,7 @@ const getSubscriptionsSummaryImpl = async ({
   for (const sub of subscriptions) {
     try {
       const refAmount = await calculateRefAmount({
-        amount: Money.fromCents(sub.expectedAmount!),
+        amount: sub.expectedAmount!,
         userId,
         date: new Date(),
         baseCode: sub.expectedCurrencyCode!,

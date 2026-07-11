@@ -96,7 +96,7 @@ Other instructions:
 
 6. **Money Convention: `Money` class everywhere, decimals in API, decimals in Frontend**
    - The database stores monetary amounts as **cents** (INTEGER columns) or **decimal strings** (DECIMAL columns for investments).
-   - All Sequelize models use `MoneyColumn` getters/setters that return `Money` instances (from `@common/types/money`). **Do NOT use `raw: true`** on queries that include Money fields – it bypasses getters and returns raw integers/strings instead of `Money`.
+   - All Sequelize models declare money fields with the `@MoneyField` decorator (from `@common/types/money-column`): `@MoneyField({ storage: 'cents' }) declare amount: Money;`. It registers attribute-level getters/setters that return `Money` instances (from `@common/types/money`). **Do NOT use `raw: true`** on queries that include Money fields – it bypasses getters and returns raw integers/strings instead of `Money`.
    - Use `Money` methods for all monetary operations:
      - Construction: `Money.fromCents(n)`, `Money.fromDecimal(n)`, `Money.zero()`
      - Arithmetic: `.add()`, `.subtract()`, `.multiply()`, `.divide()`, `.abs()`, `.negate()`

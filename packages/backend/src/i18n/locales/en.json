@@ -448,5 +448,12 @@
     "nameRequired": "Payee name is required",
     "notFound": "Payee not found",
     "renameCollision": "Another payee already uses this name – merge them instead"
+  },
+  "venture": {
+    "dealNotFound": "Venture deal not found",
+    "eventNotFound": "Venture event not found"
+  },
+  "vehicles": {
+    "notFound": "Vehicle not found"
   }
 }

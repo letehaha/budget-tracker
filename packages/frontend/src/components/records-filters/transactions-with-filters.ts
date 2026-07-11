@@ -75,16 +75,16 @@ export const useTransactionsWithFilters = ({
   };
 
   const fetchTransactions = ({ pageParam, filter }: { pageParam: number; filter: FiltersStruct }) => {
-    const from = pageParam * limit;
+    const offset = pageParam * limit;
 
     return loadTransactions(
       omitBy(
         {
           limit,
-          from,
+          offset,
           transactionType: filter.transactionType ?? undefined,
-          endDate: isDate(filter.end) ? filter.end!.toISOString() : undefined,
-          startDate: isDate(filter.start) ? filter.start!.toISOString() : undefined,
+          to: isDate(filter.end) ? filter.end!.toISOString() : undefined,
+          from: isDate(filter.start) ? filter.start!.toISOString() : undefined,
           amountGte: filter.amountGte,
           amountLte: filter.amountLte,
           noteSearch: filter.noteIncludes,

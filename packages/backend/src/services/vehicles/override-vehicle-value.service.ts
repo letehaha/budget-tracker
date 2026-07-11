@@ -1,9 +1,10 @@
 import { Money } from '@common/types/money';
-import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import Vehicles from '@models/vehicles.model';
 import { adjustAccountBalance } from '@services/accounts/balance-adjustment';
 import { withTransaction } from '@services/common/with-transaction';
+
+import { findVehicleOrThrow } from './helpers';
 
 interface OverrideVehicleValueParams {
   userId: number;
@@ -24,11 +25,7 @@ interface OverrideVehicleValueParams {
  * target. No double-write needed here.
  */
 const overrideVehicleValueImpl = async ({ userId, vehicleId, targetValue, note, time }: OverrideVehicleValueParams) => {
-  const vehicle = await Vehicles.findOne({ where: { id: vehicleId, userId } });
-
-  if (!vehicle) {
-    throw new NotFoundError({ message: 'Vehicle not found' });
-  }
+  const vehicle = await findVehicleOrThrow({ vehicleId, userId });
 
   const result = await adjustAccountBalance({
     userId,

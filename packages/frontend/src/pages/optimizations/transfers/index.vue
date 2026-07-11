@@ -106,8 +106,8 @@ async function loadNextPage() {
 
   try {
     const data = await bulkScanTransferRecommendations({
-      dateFrom: period.value.from.toISOString(),
-      dateTo: period.value.to.toISOString(),
+      from: period.value.from.toISOString(),
+      to: period.value.to.toISOString(),
       includeOutOfWallet: includeOutOfWallet.value,
       offset: currentOffset.value,
       limit: PAGE_SIZE,
@@ -132,8 +132,8 @@ async function freshScan() {
 
   try {
     const data = await bulkScanTransferRecommendations({
-      dateFrom: period.value.from.toISOString(),
-      dateTo: period.value.to.toISOString(),
+      from: period.value.from.toISOString(),
+      to: period.value.to.toISOString(),
       includeOutOfWallet: includeOutOfWallet.value,
       offset: 0,
       limit: PAGE_SIZE,

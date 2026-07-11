@@ -10,6 +10,7 @@ import UserSettings, {
 import UsersCurrencies from '@models/users-currencies.model';
 
 import { withTransaction } from '../common/with-transaction';
+import { getOrCreateUserSettings } from './get-or-create-user-settings';
 
 /**
  * Get the current onboarding state for a user
@@ -36,13 +37,11 @@ export const updateOnboardingState = withTransaction(
     userId: number;
     onboardingState: Partial<OnboardingStateSchema>;
   }): Promise<OnboardingStateSchema> => {
-    const [settings, created] = await UserSettings.findOrCreate({
-      where: { userId },
+    const [settings, created] = await getOrCreateUserSettings({
+      userId,
       defaults: {
-        settings: {
-          ...DEFAULT_SETTINGS,
-          onboarding: { ...DEFAULT_ONBOARDING_STATE, ...onboardingState },
-        },
+        ...DEFAULT_SETTINGS,
+        onboarding: { ...DEFAULT_ONBOARDING_STATE, ...onboardingState },
       },
     });
 
@@ -66,15 +65,13 @@ export const updateOnboardingState = withTransaction(
  */
 export const markTaskComplete = withTransaction(
   async ({ userId, taskId }: { userId: number; taskId: string }): Promise<void> => {
-    const [settings, created] = await UserSettings.findOrCreate({
-      where: { userId },
+    const [settings, created] = await getOrCreateUserSettings({
+      userId,
       defaults: {
-        settings: {
-          ...DEFAULT_SETTINGS,
-          onboarding: {
-            ...DEFAULT_ONBOARDING_STATE,
-            completedTasks: [taskId],
-          },
+        ...DEFAULT_SETTINGS,
+        onboarding: {
+          ...DEFAULT_ONBOARDING_STATE,
+          completedTasks: [taskId],
         },
       },
     });

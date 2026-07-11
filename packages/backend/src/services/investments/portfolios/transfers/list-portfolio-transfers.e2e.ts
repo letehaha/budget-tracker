@@ -76,7 +76,7 @@ describe('List Portfolio Transfers', () => {
     // Test filtering by date
     const filteredResponse = await helpers.listPortfolioTransfers({
       portfolioId: sourcePortfolio.id,
-      dateFrom: '2023-02-01',
+      from: '2023-02-01',
       raw: true,
     });
 
@@ -166,5 +166,23 @@ describe('List Portfolio Transfers', () => {
     });
 
     expect(response.statusCode).toEqual(ERROR_CODES.NotFoundError);
+  });
+
+  it('fails validation when `from` is after `to`', async () => {
+    const portfolio = await helpers.createPortfolio({
+      payload: {
+        name: 'Inverted Range Portfolio',
+        portfolioType: PORTFOLIO_TYPE.investment,
+      },
+      raw: true,
+    });
+
+    const response = await helpers.listPortfolioTransfers({
+      portfolioId: portfolio.id,
+      from: '2023-03-01',
+      to: '2023-01-01',
+    });
+
+    expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 });

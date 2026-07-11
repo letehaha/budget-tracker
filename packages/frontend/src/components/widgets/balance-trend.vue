@@ -602,10 +602,10 @@ const { data: spikeTransactions, isLoading: isSpikeTransactionsLoading } = useQu
     const dateStart = startOfDay(new Date(selectedSpikeDate.value));
     const dateEnd = endOfDay(new Date(selectedSpikeDate.value));
     const transactions = await loadTransactions({
-      from: 0,
+      offset: 0,
       limit: 20,
-      startDate: dateStart.toISOString(),
-      endDate: dateEnd.toISOString(),
+      from: dateStart.toISOString(),
+      to: dateEnd.toISOString(),
     });
     // Sort by highest refAmount (base currency) so the biggest transactions show first
     return transactions.sort((a, b) => Math.abs(b.refAmount) - Math.abs(a.refAmount));

@@ -25,7 +25,7 @@ export const getLoanBalanceHistory = async ({ id }: { id: string }): Promise<Loa
   return api.get(`/loans/${id}/balance-history`);
 };
 
-/** Decimals in/out – backend converts to cents via MoneyColumn; never send cents. */
+/** Decimals in/out – backend converts to cents via @MoneyField columns; never send cents. */
 export interface CreateLoanPayload {
   name: string;
   currencyCode: string;

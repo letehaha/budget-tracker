@@ -46,7 +46,7 @@ const { data, isFetching } = useQuery({
   queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.payeeTransactionsDialog, props.payeeId ?? 'none'] as const),
   queryFn: () =>
     loadTransactions({
-      from: 0,
+      offset: 0,
       limit: PAGE_SIZE,
       payeeIds: [props.payeeId!],
       includeSplits: true,

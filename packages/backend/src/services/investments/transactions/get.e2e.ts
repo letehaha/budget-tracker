@@ -200,8 +200,8 @@ describe('GET /transactions (get investment transactions)', () => {
 
     // Test 4: Filter by date range
     const dateFilterResponse = await getInvestmentTransactions({
-      startDate: '2024-02-01',
-      endDate: '2024-03-31',
+      from: '2024-02-01',
+      to: '2024-03-31',
     });
     expect(dateFilterResponse.statusCode).toBe(200);
     const dateFilterData = extractResponse(dateFilterResponse);
@@ -244,13 +244,22 @@ describe('GET /transactions (get investment transactions)', () => {
     });
 
     const response = await getInvestmentTransactions({
-      startDate: '2024-04-10',
-      endDate: '2024-04-10',
+      from: '2024-04-10',
+      to: '2024-04-10',
     });
 
     expect(response.statusCode).toBe(200);
     const { transactions } = extractResponse(response);
     expect(transactions).toHaveLength(1);
     expect(transactions[0]!.portfolioId).toBe(investmentPortfolio.id);
+  });
+
+  it('rejects an inverted date range with 422', async () => {
+    const response = await getInvestmentTransactions({
+      from: '2024-04-10',
+      to: '2024-04-01',
+    });
+
+    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 });

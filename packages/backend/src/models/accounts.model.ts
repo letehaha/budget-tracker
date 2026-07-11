@@ -5,15 +5,15 @@ import {
   type AccountExternalData,
   RecordId,
 } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Currencies from '@models/currencies.model';
 import Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType, AfterCreate, HasMany } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 interface AccountsAttributes {
   id: string;
@@ -56,59 +56,29 @@ export default class Accounts extends Model {
   @HasMany(() => Transactions)
   transactions!: Transactions[];
 
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @Column({ allowNull: false, type: DataType.STRING })
   name!: string;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get initialBalance(): Money {
-    return moneyGetCents(this, 'initialBalance');
-  }
-  set initialBalance(val: Money | number) {
-    moneySetCents(this, 'initialBalance', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare initialBalance: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refInitialBalance(): Money {
-    return moneyGetCents(this, 'refInitialBalance');
-  }
-  set refInitialBalance(val: Money | number) {
-    moneySetCents(this, 'refInitialBalance', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare refInitialBalance: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get currentBalance(): Money {
-    return moneyGetCents(this, 'currentBalance');
-  }
-  set currentBalance(val: Money | number) {
-    moneySetCents(this, 'currentBalance', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare currentBalance: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refCurrentBalance(): Money {
-    return moneyGetCents(this, 'refCurrentBalance');
-  }
-  set refCurrentBalance(val: Money | number) {
-    moneySetCents(this, 'refCurrentBalance', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare refCurrentBalance: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get creditLimit(): Money {
-    return moneyGetCents(this, 'creditLimit');
-  }
-  set creditLimit(val: Money | number) {
-    moneySetCents(this, 'creditLimit', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare creditLimit: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refCreditLimit(): Money {
-    return moneyGetCents(this, 'refCreditLimit');
-  }
-  set refCreditLimit(val: Money | number) {
-    moneySetCents(this, 'refCreditLimit', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare refCreditLimit: Money;
 
   @Column({
     type: DataType.STRING,

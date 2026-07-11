@@ -1,7 +1,7 @@
 import { RecordId } from '@bt/shared/types';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, Index } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Users from '../users.model';
 import Holdings from './holdings.model';
@@ -14,13 +14,7 @@ import PortfolioBalances from './portfolio-balances.model';
   tableName: 'Portfolios',
 })
 export default class Portfolios extends Model {
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @Column({ type: DataType.STRING, allowNull: false })

@@ -13,8 +13,9 @@ import {
   TransactionCreatorSnapshot,
   TransactionModel,
 } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -51,7 +52,6 @@ import {
   BelongsToMany,
   HasMany,
 } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
   const include: Includeable[] = [];
@@ -113,25 +113,15 @@ export interface TransactionsAttributes {
   freezeTableName: true,
 })
 export default class Transactions extends Model {
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
+  @Column(IdColumn())
   declare id: RecordId;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money {
-    return moneyGetCents(this, 'amount');
-  }
-  set amount(val: Money | number) {
-    moneySetCents(this, 'amount', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare amount: Money;
 
   // Amount in curreny of account
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refAmount(): Money {
-    return moneyGetCents(this, 'refAmount');
-  }
-  set refAmount(val: Money | number) {
-    moneySetCents(this, 'refAmount', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare refAmount: Money;
 
   @Length({ max: 2000 })
   @Column({ allowNull: true, type: DataType.STRING })
@@ -244,29 +234,14 @@ export default class Transactions extends Model {
   })
   externalData!: TransactionsAttributes['externalData'];
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get commissionRate(): Money {
-    return moneyGetCents(this, 'commissionRate');
-  }
-  set commissionRate(val: Money | number) {
-    moneySetCents(this, 'commissionRate', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare commissionRate: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refCommissionRate(): Money {
-    return moneyGetCents(this, 'refCommissionRate');
-  }
-  set refCommissionRate(val: Money | number) {
-    moneySetCents(this, 'refCommissionRate', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare refCommissionRate: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get cashbackAmount(): Money {
-    return moneyGetCents(this, 'cashbackAmount');
-  }
-  set cashbackAmount(val: Money | number) {
-    moneySetCents(this, 'cashbackAmount', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare cashbackAmount: Money;
 
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
   // optimization purposes. All the related refund information is tored in the "RefundTransactions"

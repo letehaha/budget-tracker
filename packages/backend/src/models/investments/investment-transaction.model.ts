@@ -1,9 +1,9 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, RecordId } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Portfolios from './portfolios.model';
 import Securities from './securities.model';
@@ -35,13 +35,7 @@ export default class InvestmentTransaction extends Model {
    * your bank account's perspective - selling securities brings money IN (income).
    */
 
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Securities)
@@ -89,67 +83,32 @@ export default class InvestmentTransaction extends Model {
    * this could represent the cost, sale proceeds, or other financial values
    * associated with the transaction. Calculated as quantity * price + fees
    */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get amount(): Money {
-    return moneyGetDecimal(this, 'amount');
-  }
-  set amount(val: Money | string | number) {
-    moneySetDecimal(this, 'amount', val, 10);
-  }
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refAmount(): Money {
-    return moneyGetDecimal(this, 'refAmount');
-  }
-  set refAmount(val: Money | string | number) {
-    moneySetDecimal(this, 'refAmount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare amount: Money;
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare refAmount: Money;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get fees(): Money {
-    return moneyGetDecimal(this, 'fees');
-  }
-  set fees(val: Money | string | number) {
-    moneySetDecimal(this, 'fees', val, 10);
-  }
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refFees(): Money {
-    return moneyGetDecimal(this, 'refFees');
-  }
-  set refFees(val: Money | string | number) {
-    moneySetDecimal(this, 'refFees', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare fees: Money;
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare refFees: Money;
 
   /**
    * * The quantity of the security involved in the transaction. This is crucial
    * for tracking the changes in holdings as a result of the transaction.
    */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 36, scale: 18 }))
-  get quantity(): Money {
-    return moneyGetDecimal(this, 'quantity');
-  }
-  set quantity(val: Money | string | number) {
-    moneySetDecimal(this, 'quantity', val, 18);
-  }
+  @MoneyField({ storage: 'decimal', precision: 36, scale: 18 })
+  declare quantity: Money;
 
   /**
    * The price per unit of the security at the time of the transaction.
    * This is used to calculate the total transaction amount and update the cost
    * basis of the holding.
    */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get price(): Money {
-    return moneyGetDecimal(this, 'price');
-  }
-  set price(val: Money | string | number) {
-    moneySetDecimal(this, 'price', val, 10);
-  }
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refPrice(): Money {
-    return moneyGetDecimal(this, 'refPrice');
-  }
-  set refPrice(val: Money | string | number) {
-    moneySetDecimal(this, 'refPrice', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare price: Money;
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare refPrice: Money;
 
   /**
    * The ISO currency code or standard cryptocurrency code representing the currency
@@ -174,22 +133,12 @@ export default class InvestmentTransaction extends Model {
    * buy — total paid including fee; sell/dividend — received net of fee;
    * fee/tax — amount charged. Cash balance deltas are derived from this value.
    */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get settlementAmount(): Money {
-    return moneyGetDecimal(this, 'settlementAmount');
-  }
-  set settlementAmount(val: Money | string | number) {
-    moneySetDecimal(this, 'settlementAmount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare settlementAmount: Money;
 
   /** Broker fee in `settlementCurrencyCode`. `fees` is this value converted to the security currency at `settlementRate`. */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get settlementFees(): Money {
-    return moneyGetDecimal(this, 'settlementFees');
-  }
-  set settlementFees(val: Money | string | number) {
-    moneySetDecimal(this, 'settlementFees', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare settlementFees: Money;
 
   /**
    * Settlement currency units per 1 security currency unit — the broker's

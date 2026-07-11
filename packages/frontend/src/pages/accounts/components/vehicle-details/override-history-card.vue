@@ -32,7 +32,7 @@ const { data, isLoading } = useQuery({
       accountIds: [props.accountId],
       transferFilter: FILTER_OPERATION.only,
       limit: OVERRIDE_HISTORY_LIMIT,
-      from: 0,
+      offset: 0,
     }),
 });
 

@@ -1,12 +1,8 @@
 import { ValidationError } from '@js/errors';
-import UserSettings, {
-  DEFAULT_SETTINGS,
-  type SettingsPatchSchema,
-  type SettingsSchema,
-  ZodSettingsSchema,
-} from '@models/user-settings.model';
+import { type SettingsPatchSchema, type SettingsSchema, ZodSettingsSchema } from '@models/user-settings.model';
 
 import { withTransaction } from '../common/with-transaction';
+import { getOrCreateUserSettings } from './get-or-create-user-settings';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -53,12 +49,13 @@ export const patchUserSettings = withTransaction(
     // service callers the same way the full update service does.
     const { onboarding: _onboarding, ...patchWithoutOnboarding } = patch as Record<string, unknown>;
 
-    // FOR UPDATE: concurrent patches read-modify-write the same JSONB blob;
-    // without the row lock the later writer would silently drop the earlier
-    // writer's changes.
-    const existing = await UserSettings.findOne({ where: { userId }, lock: true });
+    // Ensure the row exists (race-safe), then serialize the read-modify-write:
+    // FOR UPDATE when it already existed, or exclusive-by-being-uncommitted
+    // (guarded by the unique index) when this call inserted it. A bare FOR
+    // UPDATE can't help the first write for a fresh user — no row to lock yet.
+    const [existing] = await getOrCreateUserSettings({ userId, lock: true });
 
-    const base = existing ? (existing.settings as Record<string, unknown>) : { ...DEFAULT_SETTINGS };
+    const base = existing.settings as Record<string, unknown>;
     const merged = deepMerge({ base, patch: patchWithoutOnboarding });
 
     const parsed = ZodSettingsSchema.safeParse(merged);
@@ -67,11 +64,6 @@ export const patchUserSettings = withTransaction(
         message: 'Patched settings do not match the settings schema',
         details: { issues: parsed.error.issues },
       });
-    }
-
-    if (!existing) {
-      const created = await UserSettings.create({ userId, settings: parsed.data });
-      return created.settings;
     }
 
     existing.settings = parsed.data;

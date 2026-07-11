@@ -1,5 +1,11 @@
 import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
-import { booleanQuery, dateString, optionalCommaSeparatedIds, recordId } from '@common/lib/zod/custom-types';
+import {
+  booleanQuery,
+  dateRange,
+  optionalCommaSeparatedIds,
+  recordId,
+  withDateOrder,
+} from '@common/lib/zod/custom-types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -17,38 +23,18 @@ import {
 } from '@root/serializers';
 import * as statsService from '@services/stats';
 import { getUserSettings } from '@services/user-settings/get-user-settings';
-import { isBefore, isEqual, isValid } from 'date-fns';
+import { isValid } from 'date-fns';
 import { z } from 'zod';
 
 import { createController } from './helpers/controller-factory';
 
-const tryBasicDateValidation = ({ from, to }) => {
-  if (from && !isValid(new Date(from))) {
-    throw new ValidationError({ message: t({ key: 'validation.fromDateInvalid' }) });
-  }
-  if (to && !isValid(new Date(to))) {
-    throw new ValidationError({ message: t({ key: 'validation.toDateInvalid' }) });
-  }
-  if (from && to && !isEqual(new Date(from), new Date(to)) && !isBefore(new Date(from), new Date(to))) {
-    throw new ValidationError({
-      message: t({ key: 'validation.fromGreaterThanTo' }),
-    });
-  }
-};
-
 const balanceHistorySchema = z.object({
-  query: z.object({
-    from: z.string().optional(),
-    to: z.string().optional(),
-    accountId: recordId().optional(),
-  }),
+  query: withDateOrder(z.object({ ...dateRange(), accountId: recordId().optional() })),
 });
 
 export const getBalanceHistory = createController(balanceHistorySchema, async ({ user, query }) => {
   const { id: userId } = user;
   const { from, to, accountId } = query;
-
-  tryBasicDateValidation({ from, to });
 
   let balanceHistory: Balances[];
   if (accountId) {
@@ -97,23 +83,22 @@ export const getTotalBalance = createController(totalBalanceSchema, async ({ use
 });
 
 const spendingsByCategoriesSchema = z.object({
-  query: z.object({
-    from: z.string().optional(),
-    to: z.string().optional(),
-    accountId: z.string().optional(),
-    type: z.enum(Object.values(TRANSACTION_TYPES)).optional(),
-    categoryIds: optionalCommaSeparatedIds(),
-    excludedCategoryIds: optionalCommaSeparatedIds(),
-    // When true, ignores `type` and returns per-category income + expense buckets in one response.
-    groupByType: booleanQuery().optional(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange(),
+      accountId: z.string().optional(),
+      type: z.enum(Object.values(TRANSACTION_TYPES)).optional(),
+      categoryIds: optionalCommaSeparatedIds(),
+      excludedCategoryIds: optionalCommaSeparatedIds(),
+      // When true, ignores `type` and returns per-category income + expense buckets in one response.
+      groupByType: booleanQuery().optional(),
+    }),
+  ),
 });
 
 export const getSpendingsByCategories = createController(spendingsByCategoriesSchema, async ({ user, query }) => {
   const { id: userId } = user;
   const { from, to, accountId, type: transactionType, categoryIds, excludedCategoryIds, groupByType } = query;
-
-  tryBasicDateValidation({ from, to });
 
   if (groupByType) {
     const byType = await statsService.getSpendingsByCategoriesByType(
@@ -148,19 +133,18 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
 });
 
 const expensesAmountSchema = z.object({
-  query: z.object({
-    from: z.string().optional(),
-    to: z.string().optional(),
-    accountId: z.string().optional(),
-    excludedCategoryIds: optionalCommaSeparatedIds(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange(),
+      accountId: z.string().optional(),
+      excludedCategoryIds: optionalCommaSeparatedIds(),
+    }),
+  ),
 });
 
 export const getExpensesAmountForPeriod = createController(expensesAmountSchema, async ({ user, query }) => {
   const { id: userId } = user;
   const { from, to, accountId, excludedCategoryIds } = query;
-
-  tryBasicDateValidation({ from, to });
 
   const result = await statsService.getExpensesAmountForPeriod(
     removeUndefinedKeys({
@@ -177,17 +161,12 @@ export const getExpensesAmountForPeriod = createController(expensesAmountSchema,
 });
 
 const combinedBalanceHistorySchema = z.object({
-  query: z.object({
-    from: z.string().optional(),
-    to: z.string().optional(),
-  }),
+  query: withDateOrder(z.object({ ...dateRange() })),
 });
 
 export const getCombinedBalanceHistory = createController(combinedBalanceHistorySchema, async ({ user, query }) => {
   const { id: userId } = user;
   const { from, to } = query;
-
-  tryBasicDateValidation({ from, to });
 
   const settings = await getUserSettings({ userId });
 
@@ -203,20 +182,19 @@ export const getCombinedBalanceHistory = createController(combinedBalanceHistory
 });
 
 const cashFlowSchema = z.object({
-  query: z.object({
-    from: z.string(),
-    to: z.string(),
-    granularity: z.enum(['monthly', 'biweekly', 'weekly']),
-    accountId: z.string().optional(),
-    categoryIds: optionalCommaSeparatedIds(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange({ required: true }),
+      granularity: z.enum(['monthly', 'biweekly', 'weekly']),
+      accountId: z.string().optional(),
+      categoryIds: optionalCommaSeparatedIds(),
+    }),
+  ),
 });
 
 export const getCashFlow = createController(cashFlowSchema, async ({ user, query }) => {
   const { id: userId } = user;
   const { from, to, granularity, accountId, categoryIds } = query;
-
-  tryBasicDateValidation({ from, to });
 
   const result = await statsService.getCashFlow(
     removeUndefinedKeys({
@@ -234,25 +212,22 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
 });
 
 const pivotReportSchema = z.object({
-  query: z.object({
-    // `dateString()` (not bare `z.string()`) so an empty/malformed `from`/`to` is rejected at the
-    // boundary instead of silently producing a 200 with an empty report.
-    from: dateString(),
-    to: dateString(),
-    granularity: z.enum(endpointsTypes.PIVOT_GRANULARITIES),
-    rowDimension: z.enum(endpointsTypes.PIVOT_ROW_DIMENSIONS),
-    measure: z.enum(endpointsTypes.PIVOT_MEASURES),
-    accountIds: optionalCommaSeparatedIds(),
-    categoryIds: optionalCommaSeparatedIds(),
-    payeeIds: optionalCommaSeparatedIds(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange({ required: true }),
+      granularity: z.enum(endpointsTypes.PIVOT_GRANULARITIES),
+      rowDimension: z.enum(endpointsTypes.PIVOT_ROW_DIMENSIONS),
+      measure: z.enum(endpointsTypes.PIVOT_MEASURES),
+      accountIds: optionalCommaSeparatedIds(),
+      categoryIds: optionalCommaSeparatedIds(),
+      payeeIds: optionalCommaSeparatedIds(),
+    }),
+  ),
 });
 
 export const getPivotReport = createController(pivotReportSchema, async ({ user, query }) => {
   const { id: userId } = user;
   const { from, to, granularity, rowDimension, measure, accountIds, categoryIds, payeeIds } = query;
-
-  tryBasicDateValidation({ from, to });
 
   const result = await statsService.getPivotReport(
     removeUndefinedKeys({
@@ -278,19 +253,18 @@ export const getEarliestTransactionDate = createController(z.object({}), async (
 });
 
 const cumulativeDataSchema = z.object({
-  query: z.object({
-    from: z.string(),
-    to: z.string(),
-    metric: z.enum(['expenses', 'income', 'savings']),
-    accountId: z.string().optional(),
-  }),
+  query: withDateOrder(
+    z.object({
+      ...dateRange({ required: true }),
+      metric: z.enum(['expenses', 'income', 'savings']),
+      accountId: z.string().optional(),
+    }),
+  ),
 });
 
 export const getCumulativeData = createController(cumulativeDataSchema, async ({ user, query }) => {
   const { id: userId } = user;
   const { from, to, metric, accountId } = query;
-
-  tryBasicDateValidation({ from, to });
 
   const result = await statsService.getCumulativeData(
     removeUndefinedKeys({

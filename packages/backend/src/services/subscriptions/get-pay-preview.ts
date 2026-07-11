@@ -1,4 +1,4 @@
-import { Money } from '@common/types/money';
+import { Money, centsToApiDecimalOrNull } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -33,9 +33,8 @@ export const getSubscriptionPayPreview = withTransaction(
   async ({ userId, subscriptionId }: { userId: number; subscriptionId: string }): Promise<SubscriptionPayPreview> => {
     const subscription = await findSubscriptionOrThrow({ id: subscriptionId, userId });
 
-    // expectedAmount on the model is raw cents (BIGINT); wrap in Money to get the decimal for the API.
-    const expectedAmount =
-      subscription.expectedAmount != null ? Money.fromCents(subscription.expectedAmount).toNumber() : null;
+    // expectedAmount on the model is raw cents (BIGINT).
+    const expectedAmount = centsToApiDecimalOrNull(subscription.expectedAmount);
 
     if (subscription.accountId == null) {
       return {
@@ -77,7 +76,7 @@ export const getSubscriptionPayPreview = withTransaction(
       accountCurrencyCode,
       subscriptionCurrencyCode: subscription.expectedCurrencyCode,
       expectedAmount,
-      convertedAmount: converted != null ? converted.toNumber() : null,
+      convertedAmount: centsToApiDecimalOrNull(converted),
     };
   },
 );

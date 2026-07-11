@@ -1,9 +1,9 @@
 import { RecordId } from '@bt/shared/types';
 import { VENTURE_CASH_FLOW_MODE, VENTURE_EVENT_TYPE } from '@bt/shared/types/venture';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { BelongsTo, Column, DataType, ForeignKey, HasMany, Index, Model, Table } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Currencies from '../currencies.model';
 import Users from '../users.model';
@@ -15,13 +15,7 @@ import VentureEventLinks from './venture-event-links.model';
   tableName: 'VentureEvents',
 })
 export default class VentureEvents extends Model {
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)
@@ -42,75 +36,20 @@ export default class VentureEvents extends Model {
   @Column({ type: DataType.DATEONLY, allowNull: false })
   eventDate!: string;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10, allowNull: true }))
-  get grossAmount(): Money | null {
-    const raw = this.getDataValue('grossAmount');
-    if (raw === null || raw === undefined) return null;
-    return moneyGetDecimal(this, 'grossAmount');
-  }
-  set grossAmount(val: Money | string | number | null) {
-    if (val === null) {
-      this.setDataValue('grossAmount', null);
-      return;
-    }
-    moneySetDecimal(this, 'grossAmount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10, allowNull: true })
+  declare grossAmount: Money | null;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10, allowNull: true }))
-  get gpCarryAmount(): Money | null {
-    const raw = this.getDataValue('gpCarryAmount');
-    if (raw === null || raw === undefined) return null;
-    return moneyGetDecimal(this, 'gpCarryAmount');
-  }
-  set gpCarryAmount(val: Money | string | number | null) {
-    if (val === null) {
-      this.setDataValue('gpCarryAmount', null);
-      return;
-    }
-    moneySetDecimal(this, 'gpCarryAmount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10, allowNull: true })
+  declare gpCarryAmount: Money | null;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10, allowNull: true }))
-  get lpNetAmount(): Money | null {
-    const raw = this.getDataValue('lpNetAmount');
-    if (raw === null || raw === undefined) return null;
-    return moneyGetDecimal(this, 'lpNetAmount');
-  }
-  set lpNetAmount(val: Money | string | number | null) {
-    if (val === null) {
-      this.setDataValue('lpNetAmount', null);
-      return;
-    }
-    moneySetDecimal(this, 'lpNetAmount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10, allowNull: true })
+  declare lpNetAmount: Money | null;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10, allowNull: true }))
-  get refAmount(): Money | null {
-    const raw = this.getDataValue('refAmount');
-    if (raw === null || raw === undefined) return null;
-    return moneyGetDecimal(this, 'refAmount');
-  }
-  set refAmount(val: Money | string | number | null) {
-    if (val === null) {
-      this.setDataValue('refAmount', null);
-      return;
-    }
-    moneySetDecimal(this, 'refAmount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10, allowNull: true })
+  declare refAmount: Money | null;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10, allowNull: true }))
-  get navAfter(): Money | null {
-    const raw = this.getDataValue('navAfter');
-    if (raw === null || raw === undefined) return null;
-    return moneyGetDecimal(this, 'navAfter');
-  }
-  set navAfter(val: Money | string | number | null) {
-    if (val === null) {
-      this.setDataValue('navAfter', null);
-      return;
-    }
-    moneySetDecimal(this, 'navAfter', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10, allowNull: true })
+  declare navAfter: Money | null;
 
   @Column({ type: DataType.DECIMAL(10, 6), allowNull: true })
   quantityPct!: string | null;

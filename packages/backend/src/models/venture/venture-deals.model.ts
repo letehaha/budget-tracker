@@ -1,9 +1,9 @@
 import { RecordId } from '@bt/shared/types';
 import { VENTURE_DEAL_STATUS, VENTURE_SPV_SUBTYPE, VENTURE_VEHICLE_TYPE } from '@bt/shared/types/venture';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { BelongsTo, Column, DataType, ForeignKey, HasMany, Index, Model, Table } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Currencies from '../currencies.model';
 import Users from '../users.model';
@@ -16,13 +16,7 @@ import VenturePlatforms from './venture-platforms.model';
   tableName: 'VentureDeals',
 })
 export default class VentureDeals extends Model {
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)
@@ -64,21 +58,11 @@ export default class VentureDeals extends Model {
   })
   status!: VENTURE_DEAL_STATUS;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get principal(): Money {
-    return moneyGetDecimal(this, 'principal');
-  }
-  set principal(val: Money | string | number) {
-    moneySetDecimal(this, 'principal', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare principal: Money;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get entryFee(): Money {
-    return moneyGetDecimal(this, 'entryFee');
-  }
-  set entryFee(val: Money | string | number) {
-    moneySetDecimal(this, 'entryFee', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare entryFee: Money;
 
   @Column({ type: DataType.DECIMAL(10, 6), allowNull: false, defaultValue: '0' })
   entryFeePct!: string;

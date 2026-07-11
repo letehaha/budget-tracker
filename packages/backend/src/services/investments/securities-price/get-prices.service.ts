@@ -4,8 +4,8 @@ import { Op, WhereOptions } from 'sequelize';
 
 interface PriceQueryOptions {
   securityId?: string;
-  startDate?: Date;
-  endDate?: Date;
+  from?: Date;
+  to?: Date;
 }
 
 /**
@@ -19,13 +19,13 @@ const getPricesImpl = async (options: PriceQueryOptions): Promise<SecurityPricin
     where.securityId = options.securityId;
   }
 
-  if (options.startDate || options.endDate) {
+  if (options.from || options.to) {
     where.date = {};
-    if (options.startDate) {
-      where.date[Op.gte] = options.startDate;
+    if (options.from) {
+      where.date[Op.gte] = options.from;
     }
-    if (options.endDate) {
-      where.date[Op.lte] = options.endDate;
+    if (options.to) {
+      where.date[Op.lte] = options.to;
     }
   }
 

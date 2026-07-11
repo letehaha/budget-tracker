@@ -1,4 +1,4 @@
-import { Money } from '@common/types/money';
+import { centsToApiDecimalOrNull } from '@common/types/money';
 import Subscriptions from '@models/subscriptions.model';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
@@ -27,6 +27,6 @@ export const resetSubscriptionLogo = withTransaction(async ({ id, userId }: { id
   const plain = subscription.toJSON() as Subscriptions;
   return {
     ...plain,
-    expectedAmount: plain.expectedAmount != null ? Money.fromCents(plain.expectedAmount).toNumber() : null,
+    expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
   };
 });

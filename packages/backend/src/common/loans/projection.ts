@@ -1,5 +1,5 @@
 import type { LoanProjection } from '@bt/shared/types';
-import { centsToApiDecimal } from '@common/types/money';
+import { centsToApiDecimal, centsToApiDecimalOrNull } from '@common/types/money';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 
 /**
@@ -93,7 +93,7 @@ export function computeLoanProjection(input: LoanProjectionInput): LoanProjectio
       payoffDate: null,
       monthsRemaining: 0,
       totalInterestRemaining: 0,
-      estimatedInterestPaid: estimatedInterestPaidCents === null ? null : centsToApiDecimal(estimatedInterestPaidCents),
+      estimatedInterestPaid: centsToApiDecimalOrNull(estimatedInterestPaidCents),
       paidToDate,
       paidToDatePercent,
       monthlyInterest: 0,

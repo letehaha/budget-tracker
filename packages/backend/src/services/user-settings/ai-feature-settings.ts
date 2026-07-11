@@ -3,6 +3,7 @@ import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-set
 
 import { resolveLiveModelId } from '../ai/models-config';
 import { withTransaction } from '../common/with-transaction';
+import { getOrCreateUserSettings } from './get-or-create-user-settings';
 
 // Walks each config through `resolveLiveModelId`. `changed` lets callers skip
 // the DB write when no entry was rewritten.
@@ -83,12 +84,7 @@ export const setFeatureConfig = withTransaction(
     feature: AI_FEATURE;
     modelId: string | null;
   }): Promise<AIFeatureConfig | null> => {
-    const [userSettings] = await UserSettings.findOrCreate({
-      where: { userId },
-      defaults: {
-        settings: DEFAULT_SETTINGS,
-      },
-    });
+    const [userSettings] = await getOrCreateUserSettings({ userId });
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
     const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
