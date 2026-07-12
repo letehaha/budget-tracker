@@ -44,6 +44,10 @@ import ventureRoutes from './routes/venture.route';
 import webhooksRoutes from './routes/webhooks.route';
 
 export function setupRoutes(app: Express) {
+  app.get('/health', (_req: Request, res: Response) => {
+    res.json({ status: 'ok' });
+  });
+
   // Better-auth extensions (wraps server-side only APIs like setPassword)
   // Must be mounted BEFORE better-auth handler to take precedence
   app.use(`${API_PREFIX}/auth`, betterAuthExtensionsRoutes);
