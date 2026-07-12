@@ -7,6 +7,8 @@
  * different ports, and a hardcoded port would send every stack's frontend to one backend.
  */
 
+import { config } from '@/common/config';
+
 const DEFAULT_DEV_BACKEND_PORT = '8081';
 
 export const resolveApiHttpBase = ({
@@ -35,11 +37,11 @@ export const resolveApiHttpBase = ({
 
 export const API_HTTP = resolveApiHttpBase({
   isDev: import.meta.env.DEV,
-  configuredUrl: import.meta.env.VITE_APP_API_HTTP,
+  configuredUrl: config.apiHttp,
   pageProtocol: window.location.protocol,
   pageHostname: window.location.hostname,
 });
 
 // Vitest runs without .env.development, so the env var is undefined there; better-auth
 // validates `${API_HTTP}${API_VER}/auth` at module load and rejects the malformed URL.
-export const API_VER = import.meta.env.VITE_APP_API_VER ?? '/api/v1';
+export const API_VER = config.apiVer;
