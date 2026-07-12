@@ -212,6 +212,7 @@ function aggregateBalanceTrendData(
   data: Balances.default[],
   from?: string,
   to?: string,
+  openingCentsByAccount?: Map<string, number>,
 ): AggregatedBalanceHistoryItem[] {
   if (!data || data.length === 0) {
     return [];
@@ -266,11 +267,21 @@ function aggregateBalanceTrendData(
     if (!firstEntry) continue;
 
     const firstEntryDateStr = formatDate(firstEntry.date);
+    const firstEntryCents = firstEntry.amount.toCents();
+    // An optional opening balance back-fills the dates STRICTLY BEFORE the
+    // account's earliest record. Loans pass their `initialBalance` here (the
+    // outstanding as-of the anchor date) so a payoff dated on the anchor day —
+    // which folds the anchor-day row toward zero — can't retroactively rewrite
+    // the outstanding shown on earlier days. `initialBalance` never changes on
+    // payment, so pre-anchor days stay stable. The earliest record's own date
+    // always keeps its real value.
+    const openingCents = openingCentsByAccount?.get(accountId);
     filledDataPerAccount[accountId] = {};
 
     for (const date of allDates) {
       if (date > firstEntryDateStr) break; // dates are sorted, no need to continue
-      filledDataPerAccount[accountId][date] = firstEntry.amount.toCents();
+      filledDataPerAccount[accountId][date] =
+        openingCents !== undefined && date < firstEntryDateStr ? openingCents : firstEntryCents;
     }
   }
 
@@ -333,13 +344,20 @@ export const getAggregatedBalanceHistory = async ({
   from,
   to,
   categoryFilter,
+  openingCentsByAccount,
 }: {
   userId: number;
   from: string;
   to: string;
   categoryFilter?: AccountCategoryFilter;
+  /**
+   * Per-account opening balance (cents) used to back-fill dates before an
+   * account's earliest record. Supplied for the loan partition so same-day
+   * payoffs can't retroactively move earlier days (see aggregateBalanceTrendData).
+   */
+  openingCentsByAccount?: Map<string, number>;
 }): Promise<AggregatedBalanceHistoryItem[]> => {
   const rawBalanceHistory = await getBalanceHistory({ userId, from, to, categoryFilter });
 
-  return aggregateBalanceTrendData(rawBalanceHistory, from, to);
+  return aggregateBalanceTrendData(rawBalanceHistory, from, to, openingCentsByAccount);
 };

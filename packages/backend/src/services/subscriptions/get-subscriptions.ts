@@ -3,7 +3,7 @@ import {
   SUBSCRIPTION_PERIOD_STATUSES,
   type SubscriptionPeriodStatus,
 } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { centsToApiDecimalOrNull } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
@@ -14,6 +14,7 @@ import Transactions, { type TransactionsAttributes } from '@models/transactions.
 import { applyCachedLogos, enqueueLogoResolution } from '@services/brand-logos';
 import { col, fn, literal, Op } from 'sequelize';
 
+import { computeEffectiveNextDueDate, sortSubscriptions, type SubscriptionSortBy } from './sort-subscriptions';
 import { computeNextExpectedDate } from './subscription-date.utils';
 
 export { computeNextExpectedDate };
@@ -22,6 +23,7 @@ interface GetSubscriptionsParams {
   userId: number;
   isActive?: boolean;
   type?: string;
+  sortBy?: SubscriptionSortBy;
 }
 
 // The included associations are loaded with trimmed attribute sets.
@@ -30,8 +32,8 @@ type SubscriptionCategory = Pick<Categories, 'id' | 'name' | 'color' | 'icon'>;
 
 /**
  * Subscription scalar columns plus its trimmed account/category associations.
- * `expectedAmount` is a BIGINT (cents) on the model but is surfaced here as a
- * decimal number – the type stays `number | null`, only the value changes.
+ * `expectedAmount` is a cents-backed Money on the model but is surfaced here as a
+ * decimal number, so it is re-typed rather than picked from the model.
  */
 interface SubscriptionBase extends Pick<
   Subscriptions,
@@ -39,7 +41,6 @@ interface SubscriptionBase extends Pick<
   | 'userId'
   | 'name'
   | 'type'
-  | 'expectedAmount'
   | 'expectedCurrencyCode'
   | 'frequency'
   | 'startDate'
@@ -58,6 +59,8 @@ interface SubscriptionBase extends Pick<
   | 'createdAt'
   | 'updatedAt'
 > {
+  /** Cents-backed Money on the model, surfaced here as a decimal number. */
+  expectedAmount: number | null;
   account: SubscriptionAccount | null;
   category: SubscriptionCategory | null;
 }
@@ -89,6 +92,13 @@ interface SubscriptionListItem extends SubscriptionBase {
   /** Count of periods already paid. Paired with `maxOccurrences` it renders the
    *  "N of M paid" installment progress without fetching the full periods array. */
   paidPeriodsCount: number;
+  /**
+   * Effective next-due date (YYYY-MM-DD) computed for EVERY item: the earliest
+   * open period's `dueDate` when one exists, else the derived date from
+   * `computeNextExpectedDate` anchored on the latest linked active transaction.
+   * Null only when uncomputable. Drives the "in N days" chip and dueDate sort.
+   */
+  nextDueDate: string | null;
 }
 
 /**
@@ -130,6 +140,7 @@ export const getSubscriptions = async ({
   userId,
   isActive,
   type,
+  sortBy = 'dueDate',
 }: GetSubscriptionsParams): Promise<SubscriptionListItem[]> => {
   const where: Record<string, unknown> = { userId };
   if (isActive !== undefined) where.isActive = isActive;
@@ -170,13 +181,13 @@ export const getSubscriptions = async ({
     const plain = s.toJSON() as unknown as SubscriptionBase & { linkedTransactionsCount: number | string | null };
     return {
       ...plain,
-      expectedAmount: plain.expectedAmount !== null ? Money.fromCents(plain.expectedAmount).toNumber() : null,
+      expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
       linkedTransactionsCount: Number(plain.linkedTransactionsCount ?? 0),
     };
   });
 
   if (mapped.length === 0) {
-    return mapped.map((item) => ({ ...item, currentPeriod: null, paidPeriodsCount: 0 }));
+    return [];
   }
 
   const subscriptionIds = mapped.map((item) => item.id);
@@ -218,11 +229,46 @@ export const getSubscriptions = async ({
     }
   }
 
-  return mapped.map((item) => ({
-    ...item,
-    currentPeriod: earliestBySubscriptionId.get(item.id) ?? null,
-    paidPeriodsCount: paidCountBySubscriptionId.get(item.id) ?? 0,
-  }));
+  // Latest linked ACTIVE transaction time per subscription. Feeds the derived
+  // next-due date for detection-only subs that have no open period. Selects only
+  // the DATE column (no Money columns), so raw rows are safe.
+  const latestTxRows = (await Subscriptions.findAll({
+    where: { id: { [Op.in]: subscriptionIds } },
+    attributes: ['id', [fn('MAX', col('transactions.time')), 'latestTime']],
+    include: [
+      {
+        model: Transactions,
+        attributes: [],
+        through: { attributes: [], where: { status: SUBSCRIPTION_LINK_STATUS.active } },
+        required: false,
+      },
+    ],
+    group: ['Subscriptions.id'],
+    subQuery: false,
+    raw: true,
+  })) as unknown as Array<{ id: string; latestTime: Date | string | null }>;
+
+  const latestTxTimeBySubscriptionId = new Map<string, Date | string>();
+  for (const row of latestTxRows) {
+    if (row.latestTime) latestTxTimeBySubscriptionId.set(row.id, row.latestTime);
+  }
+
+  const items: SubscriptionListItem[] = mapped.map((item) => {
+    const currentPeriod = earliestBySubscriptionId.get(item.id) ?? null;
+    return {
+      ...item,
+      currentPeriod,
+      paidPeriodsCount: paidCountBySubscriptionId.get(item.id) ?? 0,
+      nextDueDate: computeEffectiveNextDueDate({
+        earliestPeriodDueDate: currentPeriod?.dueDate ?? null,
+        startDate: item.startDate,
+        frequency: item.frequency,
+        latestTransactionTime: latestTxTimeBySubscriptionId.get(item.id) ?? null,
+      }),
+    };
+  });
+
+  return sortSubscriptions({ items, sortBy });
 };
 
 export const getSubscriptionById = async ({
@@ -285,7 +331,7 @@ export const getSubscriptionById = async ({
 
   return {
     ...raw,
-    expectedAmount: raw.expectedAmount !== null ? Money.fromCents(raw.expectedAmount).toNumber() : null,
+    expectedAmount: centsToApiDecimalOrNull(raw.expectedAmount),
     transactions,
     nextExpectedDate,
     periods: raw.periods ?? [],

@@ -49,7 +49,7 @@
         "autoHint": "The fee is derived automatically using the market exchange rate for the transaction date.",
         "previewRate": "≈ exchange rate {rate} will be recorded",
         "previewFee": "≈ fee of {fee} {currency} will be recorded (rate {rate})",
-        "previewUnavailable": "No market rate found for this date — enter the fee or the exchange rate manually.",
+        "previewUnavailable": "No market rate found for this date – enter the fee or the exchange rate manually.",
         "previewFetchFailed": "Couldn't load market rates. Check your connection or enter the rate manually.",
         "previewPlaceholder": "Preview appears here as you fill the form."
       }
@@ -243,6 +243,64 @@
         "success": "Vehicle updated",
         "error": "Failed to update vehicle"
       }
+    },
+    "loan": {
+      "nameLabel": "Loan name",
+      "namePlaceholder": "e.g. Primary mortgage",
+      "loanTypeLabel": "Loan type",
+      "loanTypePlaceholder": "Select loan type",
+      "currencyLabel": "Currency",
+      "currencyPlaceholder": "Select currency",
+      "originalPrincipalLabel": "Original principal",
+      "originalPrincipalPlaceholder": "e.g. 320000",
+      "initialBalanceLabel": "Current outstanding balance",
+      "initialBalancePlaceholder": "What you owe today",
+      "interestRateLabel": "Interest rate (APR %)",
+      "interestRatePlaceholder": "e.g. 6.25",
+      "minPaymentEstimateTooltip": "Estimated from principal, annual interest rate, and term using the standard amortization formula.",
+      "minPaymentApplyEstimateAriaLabel": "Use estimated minimum payment",
+      "termMonthsLabel": "Term (months)",
+      "termPresetsAriaLabel": "Term presets",
+      "termPresetsHeader": "Common terms",
+      "termMonthsSuffix": "mo",
+      "termPresetYears": "{count} year | {count} years",
+      "termMonthsPlaceholder": "e.g. 360 for a 30-year loan",
+      "startDateLabel": "Start date",
+      "startDatePlaceholder": "DD/MM/YYYY",
+      "startDateTooltip": "The date the loan originated — when you first took it out. It's informational only and doesn't change the current outstanding balance or the payoff projection.",
+      "plannedPaymentLabel": "Planned monthly payment",
+      "plannedPaymentPlaceholder": "What you actually pay",
+      "minPaymentLabel": "Minimum monthly payment",
+      "minPaymentPlaceholder": "Optional, from your lender",
+      "paymentDayLabel": "Payment day of month",
+      "paymentDayPlaceholder": "1–31",
+      "lenderNameLabel": "Lender",
+      "lenderNamePlaceholder": "e.g. Chase, Wells Fargo",
+      "accountNumberLabel": "Account / loan number",
+      "accountNumberPlaceholder": "Optional",
+      "currentBalanceLabel": "Current outstanding balance",
+      "balanceAsOfLabel": "Balance as of",
+      "balanceAsOfPlaceholder": "DD/MM/YYYY",
+      "saveButton": "Save changes",
+      "submitButton": "Create loan",
+      "submitButtonLoading": "Creating…",
+      "cancelButton": "Cancel",
+      "notifications": {
+        "success": "Loan created.",
+        "error": "Failed to create the loan. Please try again.",
+        "updateSuccess": "Loan updated",
+        "updateError": "Failed to update the loan"
+      },
+      "errors": {
+        "required": "This field is required.",
+        "mustBePositive": "Must be greater than 0.",
+        "mustBeNonNegative": "Must be 0 or greater.",
+        "interestRateRange": "Interest rate must be between 0 and 99.9999.",
+        "termRange": "Term must be between 1 and 1200 months.",
+        "paymentDayRange": "Day of month must be between 1 and 31.",
+        "asOfInFuture": "Date can't be in the future"
+      },
+      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
     }
   },
   "fields": {
@@ -265,14 +323,19 @@
       "allAccounts": "All accounts",
       "account": "account",
       "accountsSelected": "accounts selected",
+      "selectedOne": "1 account selected",
+      "selectedMany": "{n} accounts selected",
       "searchPlaceholder": "Search accounts...",
       "noResults": "No results found."
     },
     "comboboxCategories": {
       "searchPlaceholder": "Search categories...",
       "unselectedPlaceholder": "All categories",
-      "category": "category selected",
-      "categoriesSelected": "categories selected"
+      "selectedOne": "1 category selected",
+      "selectedMany": "{n} categories selected"
+    },
+    "accountMultiSelect": {
+      "ungrouped": "Ungrouped"
     },
     "tagSelect": {
       "placeholder": "Select tags...",
@@ -282,6 +345,14 @@
       "placeholder": "Select categories...",
       "searchPlaceholder": "Search categories...",
       "noCategoriesFound": "No categories found"
+    },
+    "payeeMultiSelect": {
+      "label": "All payees",
+      "searchPlaceholder": "Search payees",
+      "selectedMany": "{n} payees selected",
+      "noResults": "No payees found",
+      "unknownPayee": "Unknown payee",
+      "loadError": "Couldn't load payees. Please try again."
     },
     "payeeSelect": {
       "placeholder": "Select a payee",

@@ -5,9 +5,11 @@ import {
   AI_PROVIDER,
   NOTIFICATION_TYPES,
   RecordId,
+  endpointsTypes,
 } from '@bt/shared/types';
-import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
+import { dateRange, withDateOrder } from '@common/lib/zod/custom-types';
+import { IdColumn } from '@common/types/id-column';
+import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
 import { z } from 'zod';
 
 import Users from './users.model';
@@ -115,6 +117,7 @@ const ZodSidebarSectionsSchema = z.object({
   portfolios: z.boolean().default(true),
   ventures: z.boolean().default(true),
   vehicles: z.boolean().default(true),
+  loans: z.boolean().default(true),
 });
 
 // Column ids are plain strings (not an enum) on purpose: the column set is a
@@ -165,6 +168,33 @@ const ZodSubscriptionsSettingsSchema = z.object({
   defaultAutoRecord: z.boolean().optional(),
 });
 
+// A saved Pivot Report "view": the full configuration a user pinned so they can reopen the
+// same cross-tab later. Persisted in the settings JSONB (no dedicated table). The period is
+// stored as an explicit range.
+// The live report rejects an inverted range; persist the same `dateRange()` + `withDateOrder()`
+// pairing so a saved view can't store a range the report will 400 on when replayed.
+const ZodSavedPivotViewConfigSchema = withDateOrder(
+  z.object({
+    // Enum members come from the shared pivot tuples so a persisted view can never accept a
+    // dimension/granularity the report itself rejects.
+    rowDimension: z.enum(endpointsTypes.PIVOT_ROW_DIMENSIONS),
+    granularity: z.enum(endpointsTypes.PIVOT_GRANULARITIES),
+    measure: z.enum(endpointsTypes.PIVOT_MEASURES),
+    ...dateRange({ required: true }),
+    accountIds: z.array(z.string()).optional(),
+    categoryIds: z.array(z.string()).optional(),
+    payeeIds: z.array(z.string()).optional(),
+    heatmap: z.boolean().default(false),
+    showDelta: z.boolean().default(true),
+  }),
+);
+
+const ZodSavedPivotViewSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(endpointsTypes.SAVED_PIVOT_VIEW_NAME_MAX_LENGTH),
+  config: ZodSavedPivotViewConfigSchema,
+});
+
 export const ZodSettingsSchema = z.object({
   locale: z
     .enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN, SUPPORTED_LOCALES.SPANISH])
@@ -177,12 +207,19 @@ export const ZodSettingsSchema = z.object({
   sidebarSections: ZodSidebarSectionsSchema.optional(),
   ui: ZodUiSettingsSchema.optional(),
   subscriptions: ZodSubscriptionsSettingsSchema.optional(),
+  savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   // When true, both the inline sync-time Payee extraction and the post-sync
   // note fuzzy backfill fall back to the transaction description/note if the
   // provider's dedicated merchant field is empty. Off by default — Monobank's
   // `counterName` is empty for most card purchases, so users have to opt in
   // to use `description` instead.
   payeeExtractionUsesDescription: z.boolean().optional(),
+  // Visibility of the header "Support" (donation) button. Defaults to visible
+  // when unset; users opt out by turning it off in Appearance settings.
+  showSupportButton: z.boolean().optional(),
+  // When true, the sidebar Accounts panel hides accounts whose display balance is
+  // zero, and hides any account group left with no non-zero account. Off by default.
+  hideZeroBalances: z.boolean().optional(),
 });
 
 // Infer the TypeScript type from the Zod schema
@@ -233,6 +270,7 @@ export const ZodSettingsPatchSchema = z.object({
       portfolios: z.boolean().optional(),
       ventures: z.boolean().optional(),
       vehicles: z.boolean().optional(),
+      loans: z.boolean().optional(),
     })
     .optional(),
   ui: z
@@ -264,7 +302,12 @@ export const ZodSettingsPatchSchema = z.object({
       defaultAutoRecord: z.boolean().optional(),
     })
     .optional(),
+  // Arrays are replaced wholesale by the PATCH merge, so the same element schema (defaults and
+  // all) is reused here to stay in sync with `ZodSettingsSchema`.
+  savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   payeeExtractionUsesDescription: z.boolean().optional(),
+  showSupportButton: z.boolean().optional(),
+  hideZeroBalances: z.boolean().optional(),
 });
 
 export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;
@@ -296,6 +339,28 @@ export type SettingsPatchSchemaIsInSync = Expect<
   Equals<SettingsPatchSchema, DeepPartial<Omit<SettingsSchema, 'onboarding'>>>
 >;
 
+/**
+ * Compile-time drift guard: the persisted saved-pivot-view schema must infer exactly the shared
+ * `SavedPivotView` contract the frontend also builds against. If either side changes a field
+ * without the other, this line becomes a type error.
+ *
+ * @public exported only so the assertion isn't flagged as unused – nothing should import it.
+ */
+export type SavedPivotViewSchemaIsInSync = Expect<
+  Equals<z.infer<typeof ZodSavedPivotViewSchema>, endpointsTypes.SavedPivotView>
+>;
+
+/**
+ * Compile-time drift guard: the sidebar-sections schema must infer exactly the shared
+ * `SidebarSectionsConfig` contract the frontend also reads. If either side adds or renames a
+ * section without the other, this line becomes a type error.
+ *
+ * @public exported only so the assertion isn't flagged as unused – nothing should import it.
+ */
+export type SidebarSectionsSchemaIsInSync = Expect<
+  Equals<z.infer<typeof ZodSidebarSectionsSchema>, endpointsTypes.SidebarSectionsConfig>
+>;
+
 export const DEFAULT_SETTINGS: SettingsSchema = {
   locale: SUPPORTED_LOCALES.ENGLISH,
   includeCreditLimitInStats: false,
@@ -307,15 +372,13 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
   timestamps: true, // To include `createdAt` and `updatedAt`
 })
 export default class UserSettings extends Model {
-  @Column({
-    primaryKey: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)
+  // One settings row per user; without it concurrent first-writes could insert
+  // duplicate rows and silently lose settings.
+  @Index({ name: 'user_settings_user_id_unique', unique: true })
   @Column({
     allowNull: false,
     type: DataType.INTEGER,

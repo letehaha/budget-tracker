@@ -21,11 +21,18 @@ export function useAiCategorizationEvents() {
   const initialize = async () => {
     if (isInitialized) return;
 
-    // Subscribe to categorization progress events
-    // This also connects to SSE if not already connected
-    await subscribeToSSE();
-
-    isInitialized = true;
+    try {
+      // Subscribe to categorization progress events. This also opens the SSE
+      // connection, which can fail transiently (e.g. flaky mobile networks)
+      // before it is established. The underlying fetch-event-source library
+      // auto-reconnects, so such a pre-open failure is non-actionable — swallow
+      // it here so this fire-and-forget init can't surface an unhandled
+      // rejection. isInitialized stays false so a later login tick can retry.
+      await subscribeToSSE();
+      isInitialized = true;
+    } catch {
+      // no-op: reconnect is handled by the SSE library
+    }
   };
 
   const cleanup = () => {

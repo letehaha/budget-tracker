@@ -116,12 +116,57 @@ process.on('unhandledRejection', (reason) => {
   });
 });
 
+// Stops background jobs, then drains in-flight HTTP requests before the
+// process exits – letting `serverInstance.close()` finish naturally avoids
+// severing sockets for requests whose DB work already committed. A safety
+// timeout forces the exit if a connection (e.g. a stuck keep-alive) never
+// closes on its own.
+const GRACEFUL_SHUTDOWN_TIMEOUT_MS = 5000;
+
+const gracefulShutdown = ({ signal, onDone }: { signal: string; onDone: () => void }) => {
+  console.log(`Received ${signal}, stopping cron jobs...`);
+
+  const forceExitTimer = setTimeout(() => {
+    console.log(`Graceful shutdown timed out after ${GRACEFUL_SHUTDOWN_TIMEOUT_MS}ms, forcing exit`);
+    onDone();
+  }, GRACEFUL_SHUTDOWN_TIMEOUT_MS);
+  forceExitTimer.unref();
+
+  // Drain in-flight HTTP requests, then complete the shutdown. Reached whether
+  // background-job teardown resolved or rejected — a teardown failure must not
+  // skip HTTP draining and leave the process to be killed only by the unref'd
+  // force-exit timer.
+  const closeServer = () => {
+    console.log(`Closing HTTP server for ${signal}...`);
+    serverInstance.close(() => {
+      clearTimeout(forceExitTimer);
+      onDone();
+    });
+  };
+
+  shutdownBackgroundJobs()
+    .then(closeServer)
+    .catch((error) => {
+      logger.error({ message: `Failed to stop background jobs during ${signal} shutdown`, error });
+      closeServer();
+    });
+};
+
 process.on('SIGINT', () => {
-  console.log('Received SIGINT, stopping cron jobs...');
-  shutdownBackgroundJobs().then(() => process.exit(0));
+  gracefulShutdown({ signal: 'SIGINT', onDone: () => process.exit(0) });
 });
 
 process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, stopping cron jobs...');
-  shutdownBackgroundJobs().then(() => process.exit(0));
+  gracefulShutdown({ signal: 'SIGTERM', onDone: () => process.exit(0) });
+});
+
+// nodemon sends SIGUSR2 on file-watch restarts (not a real shutdown). After
+// draining in-flight requests, re-emit SIGUSR2 to ourselves so nodemon can
+// proceed with its restart, per nodemon's documented convention:
+// https://github.com/remy/nodemon#gracefully-reloading-down-your-script
+process.once('SIGUSR2', () => {
+  gracefulShutdown({
+    signal: 'SIGUSR2',
+    onDone: () => process.kill(process.pid, 'SIGUSR2'),
+  });
 });

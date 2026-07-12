@@ -1,5 +1,6 @@
 import { api } from '@/api/_api';
 import type { SupportedLocale } from '@bt/shared/i18n/locales';
+import type { endpointsTypes } from '@bt/shared/types';
 
 export interface DashboardWidgetConfig {
   widgetId: string;
@@ -8,11 +9,12 @@ export interface DashboardWidgetConfig {
   config?: Record<string, unknown>;
 }
 
-export interface SidebarSectionsConfig {
-  portfolios: boolean;
-  ventures: boolean;
-  vehicles: boolean;
-}
+/**
+ * Per-section visibility for the sidebar's Accounts panel. Re-exported from the shared contract
+ * so it stays in lockstep with the backend Zod schema (`ZodSidebarSectionsSchema`), which is
+ * compile-time asserted against it (`SidebarSectionsSchemaIsInSync`).
+ */
+export type SidebarSectionsConfig = endpointsTypes.SidebarSectionsConfig;
 
 export type TransactionsView = 'list' | 'table';
 
@@ -59,6 +61,14 @@ export interface SubscriptionsSettings {
   defaultAutoRecord?: boolean;
 }
 
+/**
+ * A saved Pivot Report view — the full configuration a user pinned so they can reload the same
+ * cross-tab later. The shape is the shared contract the backend Zod schema
+ * (`ZodSavedPivotViewConfigSchema`) is asserted against, so the two ends can't drift.
+ */
+export type SavedPivotViewConfig = endpointsTypes.SavedPivotViewConfig;
+export type SavedPivotView = endpointsTypes.SavedPivotView;
+
 export interface UserSettingsSchema {
   locale?: SupportedLocale;
   dashboard?: {
@@ -69,6 +79,14 @@ export interface UserSettingsSchema {
   payeeExtractionUsesDescription?: boolean;
   ui?: UiSettings;
   subscriptions?: SubscriptionsSettings;
+  savedPivotViews?: SavedPivotView[];
+  /** Header "Support" (donation) button visibility. Defaults to visible when unset. */
+  showSupportButton?: boolean;
+  /**
+   * Hide zero-balance accounts (and account groups emptied by that hiding) from the sidebar
+   * Accounts panel. Defaults to visible/off when unset.
+   */
+  hideZeroBalances?: boolean;
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

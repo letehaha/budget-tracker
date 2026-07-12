@@ -32,29 +32,37 @@
 
       <div class="w-full text-left">
         <template v-if="isLoadingGroupedTransfer">
-          <!-- Loading skeleton for grouped transfer -->
+          <!-- Loading skeleton: known leg renders on its side (source left, dest
+               right); the still-loading opposite leg is a placeholder. -->
           <div class="mb-1 flex items-center gap-1.5">
-            <span class="text-sm font-medium tracking-wide">
+            <div v-if="ownLegIsIncome" class="h-4 w-20 animate-pulse rounded bg-white/10"></div>
+            <span v-else class="text-sm font-medium tracking-wide">
               {{ accountFrom?.name }}
             </span>
             <ArrowRight :size="14" class="opacity-60" />
-            <div class="h-4 w-20 animate-pulse rounded bg-white/10"></div>
+            <span v-if="ownLegIsIncome" class="text-sm font-medium tracking-wide">
+              {{ accountFrom?.name }}
+            </span>
+            <div v-else class="h-4 w-20 animate-pulse rounded bg-white/10"></div>
           </div>
           <div class="flex items-center gap-3 text-sm">
-            <span class="text-amount text-app-expense-color">{{ formattedExpenseAmount }}</span>
+            <div v-if="ownLegIsIncome" class="h-4 w-16 animate-pulse rounded bg-white/10"></div>
+            <span v-else class="text-amount text-app-expense-color">{{ formattedExpenseAmount }}</span>
             <ArrowRight :size="12" class="opacity-40" />
-            <div class="h-4 w-16 animate-pulse rounded bg-white/10"></div>
+            <span v-if="ownLegIsIncome" class="text-amount text-app-income-color">{{ formattedIncomeAmount }}</span>
+            <div v-else class="h-4 w-16 animate-pulse rounded bg-white/10"></div>
           </div>
         </template>
         <template v-else-if="shouldShowGroupedTransfer">
           <!-- Grouped transfer: show account movement on top with better styling -->
           <div class="mb-1 flex items-center gap-1.5">
             <span class="line-clamp-1 min-w-17 text-sm font-medium tracking-wide">
-              {{ accountFrom?.name }}
+              {{ transferFromAccount?.name }}
             </span>
             <ArrowRight :size="14" class="opacity-60" />
+            <HandCoinsIcon v-if="isLoanDestination" :size="14" class="text-app-transfer-color shrink-0" />
             <span class="line-clamp-1 min-w-17 text-sm font-medium tracking-wide">
-              {{ accountTo?.name }}
+              {{ transferToAccount?.name }}
             </span>
           </div>
           <!-- Show both amounts on bottom with better spacing and typography -->
@@ -148,9 +156,15 @@ import type { BulkUnselectableReason } from '@/composable/transaction-selection'
 import { useTransactionPortfolioLink } from '@/composable/data-queries/portfolio-transfers';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useUserStore } from '@/stores';
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import {
+  isTwoLegTransfer,
+  ACCOUNT_CATEGORIES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  TransactionModel,
+} from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRight, BriefcaseIcon, InfoIcon, UsersIcon } from '@lucide/vue';
+import { ArrowRight, BriefcaseIcon, InfoIcon, HandCoinsIcon, UsersIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -197,10 +211,10 @@ const emit = defineEmits<{
 // after linking. A reactive(props.tx) snapshot would freeze the original object and
 // never pick up the new transferId, leaving the opposite leg unresolved.
 const transaction = computed(() => props.tx);
-const isTransferTransaction = computed(() =>
-  [TRANSACTION_TRANSFER_NATURE.common_transfer, TRANSACTION_TRANSFER_NATURE.transfer_out_wallet].includes(
-    transaction.value.transferNature,
-  ),
+const isTransferTransaction = computed(
+  () =>
+    isTwoLegTransfer(transaction.value.transferNature) ||
+    transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
 );
 
 const { data: oppositeTransferTransaction, isLoading: isLoadingOpposite } = useOppositeTxRecord(() => props.tx);
@@ -217,18 +231,13 @@ const isPortfolioDeleted = computed(() => portfolioLinkData.value?.isPortfolioDe
 const shouldShowGroupedTransfer = computed(() => {
   return (
     isTransferTransaction.value &&
-    transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
+    isTwoLegTransfer(transaction.value.transferNature) &&
     oppositeTransferTransaction.value
   );
 });
 
-// Show loading state for common transfers while fetching opposite
 const isLoadingGroupedTransfer = computed(() => {
-  return (
-    isTransferTransaction.value &&
-    transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer &&
-    isLoadingOpposite.value
-  );
+  return isTransferTransaction.value && isTwoLegTransfer(transaction.value.transferNature) && isLoadingOpposite.value;
 });
 
 const category = computed(() => categoriesMap.value[transaction.value.categoryId]);
@@ -246,6 +255,25 @@ const addedByTooltip = computed(() => {
 const accountTo = computed(() =>
   oppositeTransferTransaction.value ? accountsRecord.value[oppositeTransferTransaction.value.accountId] : undefined,
 );
+
+// A two-leg row can hold either leg — lists scoped to the destination (e.g. loan
+// payments) hand us the income leg. Resolve legs by transaction type rather than
+// assuming the row is the expense side.
+const ownLegIsIncome = computed(() => transaction.value.transactionType === TRANSACTION_TYPES.income);
+const transferSourceLeg = computed(() =>
+  ownLegIsIncome.value ? oppositeTransferTransaction.value : transaction.value,
+);
+const transferDestinationLeg = computed(() =>
+  ownLegIsIncome.value ? transaction.value : oppositeTransferTransaction.value,
+);
+const transferFromAccount = computed(() =>
+  transferSourceLeg.value ? accountsRecord.value[transferSourceLeg.value.accountId] : undefined,
+);
+const transferToAccount = computed(() =>
+  transferDestinationLeg.value ? accountsRecord.value[transferDestinationLeg.value.accountId] : undefined,
+);
+
+const isLoanDestination = computed(() => transferToAccount.value?.accountCategory === ACCOUNT_CATEGORIES.loan);
 
 const accountMovement = computed(() => {
   const separator = transaction.value.transactionType === TRANSACTION_TYPES.expense ? '=>' : '<=';
@@ -294,15 +322,18 @@ const formattedAmount = computed(() => {
 });
 
 const formattedExpenseAmount = computed(() => {
-  return formatUIAmount(-transaction.value.amount, {
-    currency: props.tx.currencyCode,
+  const leg = transferSourceLeg.value;
+  if (!leg) return '';
+  return formatUIAmount(-leg.amount, {
+    currency: leg.currencyCode,
   });
 });
 
 const formattedIncomeAmount = computed(() => {
-  if (!oppositeTransferTransaction.value) return '';
-  return formatUIAmount(oppositeTransferTransaction.value.amount, {
-    currency: oppositeTransferTransaction.value.currencyCode,
+  const leg = transferDestinationLeg.value;
+  if (!leg) return '';
+  return formatUIAmount(leg.amount, {
+    currency: leg.currencyCode,
   });
 });
 </script>

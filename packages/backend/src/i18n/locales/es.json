@@ -9,7 +9,11 @@
     "accountNoExternalId": "La cuenta no tiene ID externo",
     "accountNoExternalIdMonobank": "La cuenta no tiene ID externo de Monobank",
     "accountNoExternalIdEnableBanking": "La cuenta no tiene ID externo de Enable Banking",
-    "accountNotFoundForTransaction": "Cuenta no encontrada para esta transacción"
+    "accountNotFoundForTransaction": "Cuenta no encontrada para esta transacción",
+    "deleteBlockedByLoanPayments": "Esta cuenta tiene pagos de préstamos. Elimínelos o reasígnalos antes de eliminar la cuenta.",
+    "loanBalanceUseUpdateLoan": "Cambie el saldo pendiente de un préstamo desde su página de préstamo, no desde la configuración de la cuenta.",
+    "loanCategoryImmutable": "La categoría de una cuenta de préstamo no se puede cambiar.",
+    "dedicatedFlowCategoryNotAllowed": "Las cuentas de préstamos y vehículos deben crearse a través de sus puntos finales dedicados, no a través del punto final genérico de cuentas."
   },
   "balanceAdjustment": {
     "defaultNote": "Ajuste de saldo",
@@ -27,6 +31,7 @@
   "transactions": {
     "notFound": "Transacción no encontrada",
     "missingRequiredFields": "Falta uno de los campos requeridos: destinationAmount, destinationAccountId.",
+    "destinationAmountRequiredCrossCurrency": "destinationAmount es obligatorio al cambiar el amount de una transferencia entre divisas.",
     "refundAndTransferNotAllowed": "No está permitido crear una transacción que sea a la vez un reembolso y una transferencia",
     "notOwnTransaction": "Solo puede editar o eliminar las transacciones que usted creó en esta cuenta compartida.",
     "sharedAccountChangeNotSupported": "Mover una transacción a una cuenta diferente solo está permitido para el propietario de la cuenta.",
@@ -53,6 +58,12 @@
     "cannotEditPortfolioLinkedTransaction": "No se puede editar una transacción vinculada a un portafolio. Desvincúlela primero.",
     "refFieldsRequiredForTransferToPortfolio": "La moneda de referencia y el importe de referencia deben establecerse para las transacciones de transferencia a portafolio.",
     "vehicleAccountReadonly": "Esta cuenta registra un vehículo. Su valor solo puede modificarse desde la página del vehículo.",
+    "transferNatureChangeNotAllowed": "No se puede cambiar el tipo de transferencia de una transferencia existente. Desvincule la transferencia primero y luego marque la transacción de nuevo.",
+    "transferToLoanRequiresLoanDestination": "Un pago de préstamo requiere que el destino sea una cuenta de préstamo.",
+    "transferToLoanRelinkRequired": "El destino de esta transferencia es una cuenta de préstamo. Desvincule la transferencia primero y luego marque el gasto como pago de préstamo.",
+    "loanPaymentOverpay": "El pago supera el saldo restante del préstamo.",
+    "loanAccountReadonly": "Las cuentas de préstamo solo se pueden modificar registrando un pago. Use la página del préstamo para registrar uno.",
+    "loanPaymentMustBeExpense": "Un pago de préstamo debe ser un gasto — las transacciones de ingreso no se pueden transferir a un préstamo.",
     "splits": {
       "splitsOnTransfer": "No se pueden agregar divisiones a transacciones de transferencia",
       "splitLimitExceeded": "Se permiten como máximo {{max}} divisiones por transacción",
@@ -140,6 +151,17 @@
     "transactionAlreadyLinkedToVenture": "La transacción ya está vinculada a un acuerdo de inversión",
     "portfolioTransferNotFound": "Transferencia de portafolio no encontrada",
     "exchangeCurrenciesMustDiffer": "Las monedas de cambio deben ser diferentes"
+  },
+  "loans": {
+    "loanNotFound": "Préstamo no encontrado.",
+    "createAccountFailed": "Error al crear la cuenta del préstamo",
+    "deleteBlockedByPayments": "Este préstamo tiene pagos registrados. Elimine los pagos antes de eliminar el préstamo.",
+    "linkPaymentsInvalidSelection": "Algunas transacciones seleccionadas no se pueden vincular a este préstamo.",
+    "linkPaymentsOverpayConfirmation": "Estos pagos exceden el saldo restante. Confirmar liquidará el préstamo; el exceso no se acreditará.",
+    "unlinkPaymentNotFound": "Pago del préstamo no encontrado.",
+    "unlinkPaymentInvalidSelection": "Esta transacción no es un pago de este préstamo.",
+    "correctionAsOfBeforeStartDate": "currentBalanceAsOf no puede ser anterior a la fecha de inicio del préstamo",
+    "correctionOverpay": "El saldo corregido pagaría de más el préstamo por {{overpayAmount}}: los pagos que suman {{paymentsTotal}} tienen fecha en o posterior a {{asOfDate}}"
   },
   "errors": {
     "connectionNotFound": "Conexión no encontrada",
@@ -234,10 +256,10 @@
     "headersCannotBeParsed": "No se pueden analizar las cabeceras",
     "csvFileEmpty": "El archivo CSV está vacío",
     "csvFileNoHeaders": "El archivo CSV no tiene cabeceras",
+    "csvFileMalformed": "No se pudo analizar el archivo CSV. Compruebe si hay comillas sin cerrar o un delimitador inesperado, o intente volver a exportar el archivo.",
     "csvFileTooManyRows": "El archivo CSV supera el número máximo de filas permitidas ({{max}} filas).",
     "csvFileForbiddenHeader": "El archivo CSV contiene un nombre de cabecera no permitido.",
     "invalidDateFormat": "Formato de fecha no válido: \"{{dateStr}}\". Se esperaba formato ISO (AAAA-MM-DD).",
-    "mixedDateFormat": "La columna de fecha \"{{column}}\" mezcla fechas en formato día-primero y mes-primero, por lo que no se puede determinar su formato. Por favor, corrija las fechas para usar un solo formato consistente e inténtelo de nuevo.",
     "invalidAmount": "Importe no válido: \"{{amountStr}}\". Se esperaba un valor numérico.",
     "accountNameEmpty": "El nombre de la cuenta está vacío",
     "currencyCodeEmpty": "El código de moneda está vacío",
@@ -397,6 +419,8 @@
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Una o más transacciones no encontradas o no pertenecen al usuario.",
+    "summaryCurrencyNotConnected": "No se puede calcular el resumen de suscripciones: la moneda {{currencyCodes}} no está conectada a su cuenta. Conéctela en Ajustes → Monedas.",
+    "summaryBaseCurrencyNotSet": "Moneda base no configurada. Establezca una moneda predeterminada en su configuración para ver el resumen de suscripciones.",
     "validation": {
       "autoRecord": {
         "requiresAccount": "El registro automático requiere una cuenta para que la transacción registrada tenga un lugar dónde aterrizar.",
@@ -424,5 +448,12 @@
     "nameRequired": "El nombre del beneficiario es obligatorio",
     "notFound": "Beneficiario no encontrado",
     "renameCollision": "Otro beneficiario ya usa este nombre – fusiónelos en su lugar"
+  },
+  "venture": {
+    "dealNotFound": "Trato de inversión no encontrado",
+    "eventNotFound": "Evento de inversión no encontrado"
+  },
+  "vehicles": {
+    "notFound": "Vehículo no encontrado"
   }
 }

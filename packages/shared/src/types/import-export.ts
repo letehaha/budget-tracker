@@ -117,10 +117,20 @@ export type AccountOption =
   | { option: AccountOptionValue.existingAccount; accountId: string };
 
 /**
+ * Day/month order of the ambiguous d/d/yyyy date family (e.g. `12.01.2026`).
+ * Chosen explicitly by the user in the import wizard — auto-detection only
+ * pre-suggests, it never decides. Intrinsically ordered shapes (ISO,
+ * ISO-datetime, compact YYYYMMDD) ignore it.
+ */
+export type DateFieldOrder = 'day-first' | 'month-first';
+
+/**
  * Column mapping configuration for Step 2
  */
 export interface ColumnMappingConfig {
   date: string;
+  /** User-confirmed day/month order applied to the whole `date` column. */
+  dateFieldOrder: DateFieldOrder;
   amount: string;
   description?: string;
   /** Optional CSV column whose value becomes `rawMerchantName` on the imported
@@ -258,28 +268,12 @@ export interface DetectDuplicatesRequest {
 }
 
 /**
- * Column-level date error. Present when the mapped date column can't be parsed
- * with a single day/month order — the two interpretations contradict each other,
- * so the import is blocked rather than guessed. `validRows`/`duplicates` come
- * back empty alongside it.
- */
-export interface DateColumnError {
-  /** The mapped date column's header. */
-  column: string;
-  reason: 'mixed';
-  /** Localized, user-facing explanation. */
-  message: string;
-}
-
-/**
  * Response from duplicate detection
  */
 export interface DetectDuplicatesResponse {
   validRows: ParsedTransactionRow[];
   invalidRows: InvalidRow[];
   duplicates: DuplicateMatch[];
-  /** Set only when the date column has no single safe day/month order. */
-  dateColumnError?: DateColumnError;
   /**
    * Rows whose currency has no stored exchange rate and is neither USD nor the
    * user's base currency. The preview layer uses this to offer skip/abort.
@@ -353,6 +347,8 @@ export interface CsvImportSummary {
   accountsCreated: number;
   categoriesCreated: number;
   tagsCreated: number;
+  /** Number of Payees inserted by this import. Reused/linked Payees don't count. */
+  payeesCreated: number;
   errors: ImportError[];
   /** Ids of every transaction created by this import. */
   newTransactionIds: string[];

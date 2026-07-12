@@ -1,4 +1,5 @@
 import { SubscriptionMatchingRules } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -18,7 +19,7 @@ export const assertAmountCurrencyConsistent = ({
   expectedAmount,
   expectedCurrencyCode,
 }: {
-  expectedAmount: number | null | undefined;
+  expectedAmount: Money | number | null | undefined;
   expectedCurrencyCode: string | null | undefined;
 }): void => {
   const hasAmount = expectedAmount != null;
@@ -72,7 +73,7 @@ export const assertAutoRecordConsistent = ({
 }: {
   autoRecord: boolean;
   accountId: string | null | undefined;
-  expectedAmount: number | null | undefined;
+  expectedAmount: Money | number | null | undefined;
   expectedCurrencyCode: string | null | undefined;
   matchingRules: SubscriptionMatchingRules | null | undefined;
 }): void => {

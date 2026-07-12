@@ -26,7 +26,7 @@ import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const'
 import { QUERY_CACHE_STALE_TIME } from '@/common/const/vue-query';
 import { useNotificationCenter } from '@/components/notification-center';
 import type { CATEGORIZATION_MODE } from '@bt/shared/types';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, toValue, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -60,7 +60,11 @@ export const usePayees = ({
         sortDir: toValue(sortDir),
       }),
     enabled: computed(() => (enabled === undefined ? true : toValue(enabled))),
-    staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
+    // This list is persisted to IndexedDB and every payee-mutating path (CRUD,
+    // bulk categorization, CSV import, bank sync) invalidates payeesList, so a
+    // restored copy is trustworthy — treat it as fresh and skip the cold-load
+    // refetch. Invalidation, not a staleTime timer, is what refreshes it.
+    staleTime: Infinity,
   });
 
   const list = computed<PayeeWithStats[]>(() => query.data.value ?? []);
@@ -71,7 +75,7 @@ export const usePayees = ({
 /**
  * Paginated, sortable Payee list for the management table. Keep the simpler
  * `usePayees` around – it backs the autocomplete dropdowns (PayeeSelectField,
- * PayeeFilter) where we want a single flat list, not pages.
+ * PayeeMultiSelectField) where we want a single flat list, not pages.
  */
 export const useInfinitePayees = ({
   q,
@@ -175,6 +179,38 @@ export const useAccountPayees = ({
   const list = computed<PayeeWithStats[]>(() => query.data.value ?? []);
 
   return { ...query, list };
+};
+
+/**
+ * Resolve a set of payee ids to full records, one cached `GET /payees/:id` per id
+ * (shared with `usePayee`'s cache). Backs the multi-select trigger so a restored
+ * selection — e.g. a saved Pivot view — renders payee names/logos immediately,
+ * without waiting for the dropdown's lazy search list to be opened.
+ */
+export const usePayeesByIds = ({ ids }: { ids: MaybeRefOrGetter<string[]> }) => {
+  const queries = useQueries({
+    queries: computed(() =>
+      toValue(ids).map((id) => ({
+        queryKey: [...VUE_QUERY_CACHE_KEYS.payeeById, id] as const,
+        queryFn: () => loadPayeeById({ id }),
+        staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
+      })),
+    ),
+  });
+
+  const byId = computed<Map<string, PayeeWithStats>>(() => {
+    const map = new Map<string, PayeeWithStats>();
+    for (const result of queries.value) {
+      if (result.data) map.set(result.data.id, result.data);
+    }
+    return map;
+  });
+
+  // True when any id failed to resolve, so a consumer can distinguish a genuinely-missing payee
+  // from a failed fetch instead of silently rendering the placeholder label.
+  const isError = computed(() => queries.value.some((result) => result.isError));
+
+  return { byId, isError };
 };
 
 export const usePayee = ({

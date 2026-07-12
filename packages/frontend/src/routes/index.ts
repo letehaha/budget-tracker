@@ -66,6 +66,18 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/account-integrations'] as I18nChunkName[] },
       },
       {
+        path: '/loans',
+        name: ROUTES_NAMES.loans,
+        component: () => import('@/pages/loans/index.vue'),
+        meta: { i18nChunks: ['pages/loans'] as I18nChunkName[] },
+      },
+      {
+        path: '/loans/:id',
+        name: ROUTES_NAMES.loanDetail,
+        component: () => import('@/pages/loans/detail.vue'),
+        meta: { i18nChunks: ['pages/loans', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
         path: '/investments',
         name: ROUTES_NAMES.investments,
         component: () => import('@/pages/investments/investments.vue'),
@@ -120,6 +132,11 @@ const routes: RouteRecordRaw[] = [
             path: 'cash-flow',
             name: ROUTES_NAMES.analyticsCashFlow,
             component: () => import('@/pages/analytics/subpages/cash-flow/index.vue'),
+          },
+          {
+            path: 'pivot-report',
+            name: ROUTES_NAMES.analyticsPivotReport,
+            component: () => import('@/pages/analytics/subpages/pivot-report/index.vue'),
           },
           {
             path: 'investment-calculator',

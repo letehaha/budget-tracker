@@ -46,6 +46,7 @@ import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { QuickStartPanel, QuickStartSidebar, QuickStartTrigger } from '@/components/quick-start';
 import Sidebar from '@/components/sidebar/index.vue';
 import UiHeader from '@/components/ui-header.vue';
+import { useIdleEnabled } from '@/composable/use-idle-enabled';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useCurrenciesStore, useOnboardingStore, useRootStore } from '@/stores';
@@ -62,6 +63,7 @@ const route = useRoute();
 const rootStore = useRootStore();
 const userCurrenciesStore = useCurrenciesStore();
 const onboardingStore = useOnboardingStore();
+const idleEnabled = useIdleEnabled();
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, {
   wait: 50,
 });
@@ -80,15 +82,26 @@ watch(
 const { isAppInitialized } = storeToRefs(rootStore);
 const { isBaseCurrencyExists } = storeToRefs(userCurrenciesStore);
 
+// The base-currency guard must run the instant the app is ready — it decides
+// whether the user is even allowed on the dashboard — so it stays off the idle path.
 watch(
   isAppInitialized,
   (value) => {
     if (value && !isBaseCurrencyExists.value) {
       router.push({ name: ROUTES_NAMES.welcome });
     }
+  },
+  { immediate: true },
+);
 
-    // Fetch onboarding state when app is initialized
-    if (value) {
+// The onboarding "Quick Start" checklist is non-critical decoration, and the store
+// already tracks task completion optimistically in memory — the fetched state only
+// restores progress on a cold load. Defer it until the browser is idle so it stays
+// off the dashboard's critical request path.
+watch(
+  [isAppInitialized, idleEnabled],
+  ([initialized, idle]) => {
+    if (initialized && idle) {
       onboardingStore.fetchOnboardingState();
     }
   },

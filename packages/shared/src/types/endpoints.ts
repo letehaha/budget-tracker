@@ -53,23 +53,10 @@ export type GetSpendingsByCategoriesReturnType = {
   [categoryId: RecordId]: SpendingStructure;
 };
 
-export interface GetTransactionsQuery extends QueryPayload {
-  sort?: SORT_DIRECTIONS;
-  includeUser?: boolean;
-  includeAccount?: boolean;
-  includeCategory?: boolean;
-  includeAll?: boolean;
-  nestedInclude?: boolean;
-  limit?: number;
-  from?: number;
-  type?: TRANSACTION_TYPES;
-  accountType?: ACCOUNT_TYPES;
-  accountId?: AccountModel['id'];
-  excludeTransfer?: boolean;
-  excludeRefunds?: boolean;
-  transferFilter?: FILTER_OPERATION;
-  refundFilter?: FILTER_OPERATION;
-}
+export type SpendingStructureByType = { name: string; color: string; income: number; expense: number };
+export type GetSpendingsByCategoriesByTypeReturnType = {
+  [categoryId: RecordId]: SpendingStructureByType;
+};
 
 export type GetTransactionsResponse = TransactionModel[];
 
@@ -239,6 +226,118 @@ export interface GetCashFlowResponse {
   };
 }
 
+// Pivot Report Analytics
+// A cross-tab of a row dimension (category / category+subcategory / payee / tag)
+// against a time dimension (year / quarter / month / week), summing refAmount in
+// the user's base currency. Deltas, heatmap intensity and sorting are derived on
+// the client from the returned matrix.
+// Single source of truth for the pivot enums. The Zod validators (request query + saved-view
+// settings schema) build their `z.enum(...)` straight off these tuples, so adding a member here
+// can't silently drift out of sync with what the API accepts.
+export const PIVOT_GRANULARITIES = ['yearly', 'quarterly', 'monthly', 'weekly'] as const;
+export type PivotGranularity = (typeof PIVOT_GRANULARITIES)[number];
+export const PIVOT_ROW_DIMENSIONS = ['category', 'subcategory', 'payee', 'tag'] as const;
+export type PivotRowDimension = (typeof PIVOT_ROW_DIMENSIONS)[number];
+export const PIVOT_MEASURES = ['expense', 'income'] as const;
+export type PivotMeasure = (typeof PIVOT_MEASURES)[number];
+
+// Max length of a saved Pivot view's user-facing name. Shared by the backend Zod
+// schema and the client-side input cap so both reject the same overflow rather
+// than the client letting the user type a name the server will 400 on.
+export const SAVED_PIVOT_VIEW_NAME_MAX_LENGTH = 120;
+
+export interface GetPivotReportPayload extends QueryPayload {
+  // yyyy-mm-dd (required)
+  from: string;
+  // yyyy-mm-dd (required)
+  to: string;
+  granularity: PivotGranularity;
+  rowDimension: PivotRowDimension;
+  measure: PivotMeasure;
+  // Comma-separated filter IDs (all optional; omitted = no restriction).
+  accountIds?: string;
+  categoryIds?: string;
+  payeeIds?: string;
+}
+
+// One time bucket = one column of the pivot grid.
+export interface PivotColumn {
+  // Stable identity used to key row values, e.g. '2025' | '2025-Q1' | '2025-03' | '2025-03-03'
+  // (weekly keys are the week's Monday as yyyy-MM-dd).
+  key: string;
+  // yyyy-mm-dd (clamped to the requested range at the edges).
+  periodStart: string;
+  // yyyy-mm-dd
+  periodEnd: string;
+  // Non-localized default label ('2025', 'Q1 2025', 'Mar 2025', 'Wk of 2025-03-03').
+  // The client may reformat/localize from periodStart + granularity.
+  label: string;
+}
+
+export interface PivotRow {
+  // categoryId | payeeId | tagId, or a synthetic bucket id for the residual row
+  // ('uncategorized' | 'unassigned' | 'untagged').
+  id: string;
+  label: string;
+  // Hex color when the dimension carries one (categories), else null.
+  color: string | null;
+  // Brand domain (e.g. "netflix.com") for the payee dimension, so the client can render the
+  // payee's logo; null when the payee has no resolved logo. Absent for every other dimension.
+  logoDomain?: string | null;
+  // Subcategory child rows point at their parent row id; parents/flat rows are null.
+  parentId: string | null;
+  kind: 'flat' | 'parent' | 'child';
+  // columnKey -> amount (decimal, base currency).
+  values: Record<string, number>;
+  // Row total across all columns (decimal).
+  total: number;
+}
+
+export interface GetPivotReportResponse {
+  columns: PivotColumn[];
+  rows: PivotRow[];
+  // columnKey -> total across all top-level rows (decimal).
+  columnTotals: Record<string, number>;
+  grandTotal: number;
+  // Base/reference currency all amounts are expressed in.
+  currencyCode: string;
+}
+
+// A saved Pivot Report "view": the full configuration a user pinned so they can reopen the same
+// cross-tab later. Persisted in the user-settings JSONB (no dedicated table); the backend Zod
+// schema (`ZodSavedPivotViewConfigSchema`) is asserted to infer exactly this shape, and the
+// frontend re-exports these so both ends share one contract.
+export interface SavedPivotViewConfig {
+  rowDimension: PivotRowDimension;
+  granularity: PivotGranularity;
+  measure: PivotMeasure;
+  // Explicit period range as `yyyy-MM-dd` strings.
+  from: string;
+  to: string;
+  accountIds?: string[];
+  categoryIds?: string[];
+  payeeIds?: string[];
+  heatmap: boolean;
+  showDelta: boolean;
+}
+
+export interface SavedPivotView {
+  id: string;
+  name: string;
+  config: SavedPivotViewConfig;
+}
+
+// Per-section visibility for the sidebar's Accounts panel (Bank Accounts is always shown and
+// intentionally absent). Persisted in the user-settings JSONB; the backend Zod schema
+// (`ZodSidebarSectionsSchema`) is asserted to infer exactly this shape, and the frontend
+// re-exports it, so both ends share one contract and cannot drift.
+export interface SidebarSectionsConfig {
+  portfolios: boolean;
+  ventures: boolean;
+  vehicles: boolean;
+  loans: boolean;
+}
+
 // Cumulative Analytics (Trends Comparison)
 export type CumulativeMetric = 'expenses' | 'income' | 'savings';
 
@@ -290,8 +389,8 @@ export type GetTransferRecommendationsResponse = TransactionModel[];
 
 // Bulk Transfer Scan
 export interface BulkTransferScanBody {
-  dateFrom: string;
-  dateTo: string;
+  from: string;
+  to: string;
   limit?: number;
   offset?: number;
   includeOutOfWallet?: boolean;

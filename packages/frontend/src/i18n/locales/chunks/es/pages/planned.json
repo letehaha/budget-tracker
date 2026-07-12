@@ -17,6 +17,7 @@
       "typeInstallment": "A plazos",
       "completed": "Completado",
       "paused": "En pausa",
+      "pausedSection": "Pausadas ({count})",
       "edit": "Editar",
       "cancel": "Cancelar",
       "pauseSubscription": "Pausar suscripción",
@@ -26,7 +27,7 @@
       "frequencyLabel": "Frecuencia",
       "nextExpected": "Próximo previsto",
       "startDate": "Fecha de inicio",
-      "linkedTransactions": "{count} transacciones vinculadas",
+      "linkedTransactions": "{count} transacción vinculada | {count} transacciones vinculadas",
       "linkedTransactionsTitle": "Transacciones vinculadas",
       "noLinkedTransactions": "Aún no hay transacciones vinculadas",
       "unlinkTransaction": "Desvincular transacción",
@@ -164,6 +165,14 @@
         "title": "Aún no hay cargos recurrentes",
         "description": "Añada su primer cargo recurrente o factura para empezar a registrar pagos recurrentes"
       },
+      "sort": {
+        "label": "Ordenar",
+        "ariaLabel": "Ordenar cargos recurrentes",
+        "dueDate": "Fecha de vencimiento · más próxima",
+        "amount": "Importe · mayor a menor",
+        "name": "Nombre · A–Z",
+        "recent": "Añadido recientemente"
+      },
       "summary": {
         "filterAll": "Todas",
         "filterSubscriptions": "Suscripciones",
@@ -183,9 +192,14 @@
         "lastScanned": "Último análisis {time}",
         "emptyTitle": "No se encontraron nuevas suscripciones",
         "emptyDescription": "No pudimos encontrar nuevos patrones de pago recurrente en su historial de transacciones.",
-        "accept": "Aceptar",
+        "add": "Añadir",
         "dismiss": "Descartar",
-        "occurrences": "{count} ocurrencias",
+        "basedOnTransactions": "Basado en {count} transacciones",
+        "confidence": {
+          "likely": "Coincidencia probable",
+          "possible": "Coincidencia posible",
+          "weak": "Coincidencia débil"
+        },
         "dismissed": "Candidato descartado",
         "dismissError": "Error al descartar el candidato",
         "close": "Cerrar",
@@ -240,6 +254,17 @@
           "revertFailed": "Error al revertir el período",
           "transactionLoadFailed": "Error al cargar la transacción"
         }
+      },
+      "actions": {
+        "more": "Más acciones"
+      },
+      "periodFilter": {
+        "next7Days": "Próximos 7 días",
+        "next30Days": "Próximos 30 días",
+        "next3Months": "Próximos 3 meses",
+        "next6Months": "Próximos 6 meses",
+        "nextYear": "Próximo año",
+        "all": "Todo el tiempo"
       }
     }
   }

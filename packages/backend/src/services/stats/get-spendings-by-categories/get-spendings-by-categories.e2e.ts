@@ -7,6 +7,7 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
+import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('[Stats] Spendings by categories – categoryIds filter', () => {
@@ -105,6 +106,101 @@ describe('[Stats] Spendings by categories – categoryIds filter', () => {
 
     expect(result[rootCategory.id.toString()].amount).toBe(100);
     expect(result[childCategory.id.toString()].amount).toBe(200);
+  });
+});
+
+describe('[Stats] Spendings by categories – groupByType', () => {
+  it('returns per-category income and expense buckets in a single response', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
+    const categoriesList = await helpers.getCategoriesList();
+    const category = categoriesList.find((c) => !c.parentId)!;
+
+    await Promise.all([
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 200,
+          categoryId: category.id,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      }),
+      helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 300,
+          categoryId: category.id,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      }),
+    ]);
+
+    // Transfers must be ignored by stats, even in the per-type breakdown.
+    const transferResponse = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({ accountId: account.id, amount: 500, categoryId: category.id }),
+        transactionType: TRANSACTION_TYPES.expense,
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+        destinationAmount: 500,
+        destinationAccountId: accountB.id,
+      },
+    });
+    expect(transferResponse.statusCode).toBe(200);
+
+    const result = await helpers.getSpendingsByCategories({
+      raw: true,
+      groupByType: true,
+      categoryIds: [category.id],
+    });
+
+    expect(result[category.id.toString()]).toEqual({
+      name: category.name,
+      color: category.color,
+      income: 300,
+      expense: 200,
+    });
+  });
+
+  it('pre-initializes selected categories with zeroed income and expense when empty', async () => {
+    await helpers.createAccount({ raw: true });
+    const categoriesList = await helpers.getCategoriesList();
+    const category = categoriesList.find((c) => !c.parentId)!;
+
+    const result = await helpers.getSpendingsByCategories({
+      raw: true,
+      groupByType: true,
+      categoryIds: [category.id],
+    });
+
+    expect(result[category.id.toString()]).toEqual({
+      name: category.name,
+      color: category.color,
+      income: 0,
+      expense: 0,
+    });
+  });
+
+  it('rejects an inverted date range', async () => {
+    const response = await helpers.getSpendingsByCategories({
+      from: '2026-07-31',
+      to: '2026-07-01',
+      groupByType: true,
+    });
+
+    expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
+
+  it('rejects a malformed / non-real date', async () => {
+    const response = await helpers.getSpendingsByCategories({
+      // Month 13 / day 45 is not a real calendar date.
+      from: '2026-13-45',
+      to: '2026-07-31',
+      groupByType: true,
+    });
+
+    expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 });
 

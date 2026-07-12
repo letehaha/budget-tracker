@@ -27,6 +27,7 @@ export * from './subscriptions';
 export * from './payees';
 export * from './brand-logos';
 export * from './vehicles';
+export * from './loans';
 export * from './share';
 export * from './investments/securities';
 export * from './investments/prices';

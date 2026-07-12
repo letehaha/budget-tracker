@@ -59,6 +59,8 @@ interface ParsedLeg {
   /** Distinct label names from the row's `labels` cell (comma-separated in the export). */
   tags: string[];
   category: string | null;
+  /** Verbatim `payee` cell value, or null when empty. */
+  payeeName: string | null;
 }
 
 /**
@@ -186,6 +188,7 @@ export function parseBudgetBakersWalletCsv({ fileContent }: { fileContent: strin
     // The transfer-marker string is never a real category; store null for it
     // so downstream code never sees it as a category name.
     const category = rawCategory && !isBudgetBakersWalletTransferCategory({ raw: rawCategory }) ? rawCategory : null;
+    const payeeName = (record['payee'] ?? '').trim() || null;
 
     parsedLegs.push({
       rowIndex,
@@ -201,6 +204,7 @@ export function parseBudgetBakersWalletCsv({ fileContent }: { fileContent: strin
       isTransfer,
       tags,
       category,
+      payeeName,
     });
   });
 
@@ -238,6 +242,7 @@ export function parseBudgetBakersWalletCsv({ fileContent }: { fileContent: strin
         date: l.date,
         accountName: l.accountName,
         categoryName: l.category,
+        payeeName: l.payeeName,
         note: l.note,
         amount: l.signedAmount,
         type: l.type === 'Expense' ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
@@ -252,6 +257,7 @@ export function parseBudgetBakersWalletCsv({ fileContent }: { fileContent: strin
         date: l.date,
         accountName: l.accountName,
         categoryName: null,
+        payeeName: l.payeeName,
         note: l.note,
         amount: l.signedAmount,
         type: l.type === 'Expense' ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,

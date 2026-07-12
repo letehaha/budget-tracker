@@ -1,17 +1,20 @@
 import {
+  API_ERROR_CODES,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
+import { CustomError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Subscriptions from '@models/subscriptions.model';
 import Transactions from '@models/transactions.model';
-import * as UsersCurrencies from '@models/users-currencies.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { ensureUserBaseCurrency } from '@services/currencies/ensure-base-currency.service';
 import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
 import { Op } from 'sequelize';
 
@@ -82,19 +85,24 @@ const getSubscriptionsSummaryImpl = async ({
     attributes: ['id', 'expectedAmount', 'expectedCurrencyCode', 'frequency'],
   });
 
-  const userCurrency = await UsersCurrencies.getCurrency({
+  // A user with no base currency row cannot have subscription amounts converted
+  // into a reporting currency. Resolve (and self-heal a missing) base currency,
+  // handing a subscription's own expected currency as the last-resort signal
+  // when the user has no accounts or connected currencies to adopt from.
+  const userCurrency = await ensureUserBaseCurrency({
     userId,
-    isDefaultCurrency: true,
+    fallbackCurrencyCode: subscriptions.find((sub) => sub.expectedCurrencyCode)?.expectedCurrencyCode ?? undefined,
   });
 
   const baseCurrencyCode = userCurrency.currency.code;
 
   let totalMonthly = Money.zero();
+  const unconnectedCurrencies = new Set<string>();
 
   for (const sub of subscriptions) {
     try {
       const refAmount = await calculateRefAmount({
-        amount: Money.fromCents(sub.expectedAmount!),
+        amount: sub.expectedAmount!,
         userId,
         date: new Date(),
         baseCode: sub.expectedCurrencyCode!,
@@ -103,9 +111,29 @@ const getSubscriptionsSummaryImpl = async ({
 
       const multiplier = MONTHLY_MULTIPLIERS[sub.frequency] ?? 1;
       totalMonthly = totalMonthly.add(refAmount.multiply(multiplier));
-    } catch {
-      logger.warn(`Skipping subscription ${sub.id} in summary: currency conversion failed`);
+    } catch (e) {
+      // A currency the user never connected is user-fixable: collect every
+      // offending code and fail the request with an actionable error below,
+      // instead of silently understating the totals. Other conversion
+      // failures (e.g. provider gaps) keep the skip-and-warn behavior.
+      if (e instanceof CustomError && e.code === API_ERROR_CODES.currencyNotConnected && sub.expectedCurrencyCode) {
+        unconnectedCurrencies.add(sub.expectedCurrencyCode);
+      } else {
+        logger.warn(`Skipping subscription ${sub.id} in summary: currency conversion failed`);
+      }
     }
+  }
+
+  if (unconnectedCurrencies.size > 0) {
+    const currencyCodes = [...unconnectedCurrencies];
+    throw new ValidationError({
+      code: API_ERROR_CODES.currencyNotConnected,
+      message: t({
+        key: 'subscriptions.summaryCurrencyNotConnected',
+        variables: { currencyCodes: currencyCodes.join(', ') },
+      }),
+      details: { currencyCodes },
+    });
   }
 
   const monthlyMoney = totalMonthly.round();

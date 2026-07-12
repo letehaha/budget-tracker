@@ -1,3 +1,4 @@
+import { isPerfDebugEnabled, perfDebugMiddleware } from '@common/lib/perf/perf-debug';
 import { logger } from '@js/utils/logger';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
@@ -13,6 +14,11 @@ export function setupMiddleware(app: Express) {
   app.disable('x-powered-by');
 
   app.use(requestIdMiddleware);
+
+  // Opt-in (PERF_DEBUG=true): tag responses with per-request query count + timing.
+  if (isPerfDebugEnabled) {
+    app.use(perfDebugMiddleware);
+  }
 
   app.set('port', process.env.APPLICATION_PORT);
 
@@ -88,7 +94,7 @@ export function setupMiddleware(app: Express) {
       return callback(null, false);
     },
     credentials: true,
-    exposedHeaders: ['x-session-id', 'x-request-id'],
+    exposedHeaders: ['x-session-id', 'x-request-id', 'server-timing', 'x-query-count', 'x-db-time-ms'],
   });
 
   app.use((req, res, next) => {

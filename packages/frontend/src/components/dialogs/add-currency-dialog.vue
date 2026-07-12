@@ -41,7 +41,7 @@ const saveCurrency = async () => {
     queryClient.invalidateQueries({
       queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates,
     });
-    await currenciesStore.loadCurrencies();
+    await currenciesStore.loadCurrencies({ force: true });
     addSuccessNotification(t('dialogs.addCurrency.notifications.success'));
     formStatus.value = 'default';
     isOpen.value = false;

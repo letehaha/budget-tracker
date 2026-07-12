@@ -50,8 +50,16 @@ export class Unauthorized extends CustomError {
 }
 
 export class NotFoundError extends CustomError {
-  constructor({ code = API_ERROR_CODES.notFound, message }: { code?: API_ERROR_CODES; message: string }) {
-    super(ERROR_CODES.NotFoundError, code, message);
+  constructor({
+    code = API_ERROR_CODES.notFound,
+    message,
+    details,
+  }: {
+    code?: API_ERROR_CODES;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(ERROR_CODES.NotFoundError, code, message, details);
   }
 }
 

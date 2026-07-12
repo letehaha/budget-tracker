@@ -116,9 +116,19 @@ async function calculateMatchScore({
   transaction: Transactions.default;
   userId: number;
 }): Promise<number> {
-  if (!subscription.expectedAmount || !subscription.expectedCurrencyCode) {
+  // A zero expected amount can't anchor a deviation ratio (division by zero), so
+  // treat it like a missing amount and skip scoring.
+  if (
+    subscription.expectedAmount == null ||
+    subscription.expectedAmount.toCents() === 0 ||
+    !subscription.expectedCurrencyCode
+  ) {
     return 0;
   }
+
+  // Capture before the currency-conversion await; a property read can't stay
+  // narrowed to non-null across it.
+  const expected = subscription.expectedAmount;
 
   let txAmountInSubCurrency: Money;
 
@@ -140,7 +150,6 @@ async function calculateMatchScore({
     }
   }
 
-  const expected = Money.fromCents(subscription.expectedAmount);
   const deviation = txAmountInSubCurrency.subtract(expected).abs().toNumber() / expected.toNumber();
 
   // score = 1 - deviation, clamped to [0, 1]

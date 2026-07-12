@@ -33,14 +33,27 @@ export const computeHoldingsValueByDate = ({
 }): Map<string, number> => {
   const holdingsValueByDate = new Map<string, number>();
 
+  // Running holdings + a forward-only cursor per portfolio: dates and txs are
+  // both ascending, so each tx is folded in once and every date values the
+  // holdings accumulated so far.
+  const holdingsByPortfolio = new Map<string, Map<string, HoldingState>>();
+  const cursorByPortfolio = new Map<string, number>();
+  for (const portfolioId of portfolioIds) {
+    holdingsByPortfolio.set(portfolioId, new Map<string, HoldingState>());
+    cursorByPortfolio.set(portfolioId, 0);
+  }
+
   for (const dateStr of uniqueDates) {
     let totalValueForDate = 0;
 
     for (const portfolioId of portfolioIds) {
       const portfolioTxs = transactionsByPortfolio.get(portfolioId) ?? [];
-      const holdings = new Map<string, HoldingState>();
+      const holdings = holdingsByPortfolio.get(portfolioId)!;
+      let cursor = cursorByPortfolio.get(portfolioId)!;
 
-      for (const tx of portfolioTxs) {
+      // Fold in every transaction that settled on or before this snapshot day.
+      while (cursor < portfolioTxs.length) {
+        const tx = portfolioTxs[cursor]!;
         // `tx.date` is TIMESTAMPTZ; bucket to its UTC calendar day so the
         // comparison against the `yyyy-MM-dd` snapshot key is lexicographic.
         if (toUtcDateString(tx.date) > dateStr) break;
@@ -85,7 +98,10 @@ export const computeHoldingsValueByDate = ({
           }
           holding.quantity -= quantity;
         }
+
+        cursor += 1;
       }
+      cursorByPortfolio.set(portfolioId, cursor);
 
       for (const [securityId, holding] of holdings) {
         // Stocks cap at zero; crypto can legitimately drift negative until reconciled.

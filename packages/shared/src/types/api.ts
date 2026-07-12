@@ -30,6 +30,7 @@ export enum API_ERROR_CODES {
 
   // currencies-related
   currencyProviderUnavailable = 'CURRENCY_PROVIDER_UNAVAILABLE',
+  currencyNotConnected = 'CURRENCY_NOT_CONNECTED',
 
   // investments-related
   cryptoProviderNotConfigured = 'CRYPTO_PROVIDER_NOT_CONFIGURED',
@@ -41,6 +42,9 @@ export enum API_ERROR_CODES {
 
   // wipe-data
   wipeDataSharingAcknowledgementRequired = 'WIPE_DATA_SHARING_ACK_REQUIRED',
+
+  // loans-related
+  loanPaymentOverpayConfirmationRequired = 'LOAN_PAYMENT_OVERPAY_CONFIRMATION_REQUIRED',
 }
 
 /**
@@ -49,6 +53,26 @@ export enum API_ERROR_CODES {
  * each blocker without re-deriving the shape from the error code.
  */
 export type BaseCurrencyBlocker = { type: 'household' | 'share'; count: number };
+
+/**
+ * `details` payload of errors with code `currencyNotConnected`. Lists every
+ * currency the request needed a conversion for that the user has no
+ * UsersCurrencies row for, so the client can point the user at connecting them.
+ */
+export type CurrencyNotConnectedDetails = { currencyCodes: string[] };
+
+/**
+ * `details` payload of a ValidationError with code
+ * `loanPaymentOverpayConfirmationRequired`. Amounts are decimals in the loan's currency.
+ */
+export type LoanPaymentOverpayDetails = {
+  /** Projected loan balance after linking the batch (positive = overshoot). */
+  projectedBalance: number;
+  /** Maximum linkable total without overshooting (equals the current owed balance). */
+  maxLinkable: number;
+  /** Positive amount by which the batch exceeds the owed balance. */
+  overpayBy: number;
+};
 
 /**
  * Preflight summary returned in the `details` of a 409 with code

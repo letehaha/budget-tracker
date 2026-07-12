@@ -102,6 +102,16 @@ Available variants: `default`, `destructive`, `outline`, `secondary`, `ghost`, `
 
 Available sizes: `default`, `sm`, `lg`, `icon`, `icon-sm`
 
+`Button` is `inline-flex` with `gap-2`, so spacing between its children (icon + label, multiple icons, etc.) is handled by the button itself. Do **not** add `mr-*` / `ml-*` / `space-x-*` to icons or text inside a `Button` — it doubles the gap and looks off.
+
+```vue
+<!-- WRONG — gap-2 already spaces the icon from the label -->
+<Button><PlusIcon class="mr-2 size-4" /> Add item</Button>
+
+<!-- CORRECT -->
+<Button><PlusIcon class="size-4" /> Add item</Button>
+```
+
 ### Form fields
 
 Always use the project's field components from `@/components/fields/`. Never use raw `<input>`, `<select>`, or `<textarea>` elements.

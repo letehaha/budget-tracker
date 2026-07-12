@@ -1,5 +1,9 @@
 import { AI_PROVIDER, WipeDataSharedResources } from '@bt/shared/types';
 import { getUserSettings as apiGetUserSettings } from '@root/services/user-settings/get-user-settings';
+import {
+  getOnboardingState as apiGetOnboardingState,
+  updateOnboardingState as apiUpdateOnboardingState,
+} from '@root/services/user-settings/onboarding';
 import { patchUserSettings as apiPatchUserSettings } from '@root/services/user-settings/patch-settings';
 import { updateUserSettings as apiUpdateUserSettings } from '@root/services/user-settings/update-settings';
 
@@ -38,6 +42,29 @@ export async function patchUserSettings<R extends boolean | undefined = undefine
     method: 'patch',
     url: '/user/settings',
     payload: patch,
+    raw,
+  });
+}
+
+export async function getOnboarding<R extends boolean | undefined = undefined>({ raw }: { raw?: R }) {
+  return makeRequest<Awaited<ReturnType<typeof apiGetOnboardingState>>, R>({
+    method: 'get',
+    url: '/user/settings/onboarding',
+    raw,
+  });
+}
+
+export async function updateOnboarding<R extends boolean | undefined = undefined>({
+  raw,
+  onboardingState,
+}: {
+  onboardingState: Omit<Parameters<typeof apiUpdateOnboardingState>[0], 'userId'>['onboardingState'];
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiUpdateOnboardingState>>, R>({
+    method: 'put',
+    url: '/user/settings/onboarding',
+    payload: onboardingState,
     raw,
   });
 }

@@ -8,6 +8,7 @@ import {
   ChevronRightIcon,
   CreditCardIcon,
   GroupIcon,
+  HandCoinsIcon,
   LandmarkIcon,
   LayersIcon,
   LayoutDashboardIcon,
@@ -38,6 +39,8 @@ const isAccountsRoute = computed(
     route.name === ROUTES_NAMES.account ||
     route.name === ROUTES_NAMES.accountIntegrations ||
     route.name === ROUTES_NAMES.accountIntegrationDetails ||
+    route.name === ROUTES_NAMES.loans ||
+    route.name === ROUTES_NAMES.loanDetail ||
     route.name === ROUTES_NAMES.investments ||
     route.name === ROUTES_NAMES.portfolioDetail ||
     route.name === ROUTES_NAMES.portfolioTransactionsImport ||
@@ -146,6 +149,17 @@ watch(
           >
             <LandmarkIcon :class="[navIconBase, isActive && navIconActive]" />
             <span>{{ $t('navigation.bankIntegrations') }}</span>
+          </ui-button>
+        </router-link>
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.loans }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <HandCoinsIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t('navigation.loans') }}</span>
           </ui-button>
         </router-link>
         <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">

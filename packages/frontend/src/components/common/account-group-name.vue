@@ -3,6 +3,7 @@ import { type BankConnection, listConnections } from '@/api/bank-data-providers'
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { type AccountGroups } from '@/common/types/models';
 import { getBankInstitutionLogoUrl } from '@/common/utils/find-bank-institution';
+import { useIdleEnabled } from '@/composable/use-idle-enabled';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
@@ -14,10 +15,15 @@ const props = defineProps<{
   iconSize?: string;
 }>();
 
+// Bank logos in the sidebar group headers are non-critical decoration, so defer the
+// connections lookup until the browser is idle to keep it off the dashboard's
+// critical path.
+const idleEnabled = useIdleEnabled();
 const { data: bankConnections } = useQuery({
   queryFn: listConnections,
   queryKey: VUE_QUERY_CACHE_KEYS.bankConnections,
   staleTime: Infinity,
+  enabled: idleEnabled,
   placeholderData: [] as BankConnection[],
 });
 

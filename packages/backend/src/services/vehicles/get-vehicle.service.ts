@@ -1,8 +1,8 @@
-import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import Vehicles from '@models/vehicles.model';
 import { withTransaction } from '@services/common/with-transaction';
 
+import { findVehicleOrThrow } from './helpers';
 import { refreshVehicleValueIfStale } from './refresh-vehicle-value.service';
 
 interface GetVehicleParams {
@@ -11,11 +11,7 @@ interface GetVehicleParams {
 }
 
 const getVehicleImpl = async ({ userId, vehicleId }: GetVehicleParams) => {
-  const vehicle = await Vehicles.findOne({ where: { id: vehicleId, userId } });
-
-  if (!vehicle) {
-    throw new NotFoundError({ message: 'Vehicle not found' });
-  }
+  await findVehicleOrThrow({ vehicleId, userId });
 
   // Force-refresh on detail reads. The 7-day cache is a perf optimization for
   // the bulk account-list endpoint; the detail page is opened deliberately and

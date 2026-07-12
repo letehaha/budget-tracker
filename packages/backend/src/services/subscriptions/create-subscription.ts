@@ -4,11 +4,12 @@ import {
   SUBSCRIPTION_TYPES,
   SubscriptionMatchingRules,
 } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { Money, centsToApiDecimalOrNull } from '@common/types/money';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 
 import {
   assertAmountCurrencyConsistent,
@@ -91,19 +92,28 @@ export const createSubscription = withTransaction(
       matchingRules,
     });
 
+    // The subscriptions summary converts expectedAmount into the user's base
+    // currency, and that conversion requires a UsersCurrencies row for the
+    // subscription's currency. Connect it here (idempotent) so a subscription
+    // in a never-used currency doesn't fail conversion later. Lives in the
+    // service so MCP callers get the same guarantee as HTTP ones.
+    if (expectedCurrencyCode) {
+      await ensureUserCurrencyConnected({ userId, currencyCode: expectedCurrencyCode });
+    }
+
     // Derive the calendar day from dueDate so recurring logic can anchor
     // future periods to the same day-of-month without reparsing the date.
     const anchorDay = dueDate ? new Date(dueDate + 'T00:00:00Z').getUTCDate() : null;
 
-    // The API exchanges decimals; the column stores raw cents (no Money getter).
-    const expectedAmountCents = expectedAmount != null ? Money.fromDecimal(expectedAmount).toCents() : null;
+    // The API exchanges decimals; the cents-backed column takes a Money directly.
+    const expectedAmountMoney = expectedAmount != null ? Money.fromDecimal(expectedAmount) : null;
 
     const subscription = await Subscriptions.create({
       userId,
       accountId,
       categoryId,
       matchingRules,
-      expectedAmount: expectedAmountCents,
+      expectedAmount: expectedAmountMoney,
       expectedCurrencyCode,
       endDate,
       notes,
@@ -136,7 +146,7 @@ export const createSubscription = withTransaction(
     const plain = subscription.toJSON() as Subscriptions;
     return {
       ...plain,
-      expectedAmount: plain.expectedAmount != null ? Money.fromCents(plain.expectedAmount).toNumber() : null,
+      expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
     };
   },
 );

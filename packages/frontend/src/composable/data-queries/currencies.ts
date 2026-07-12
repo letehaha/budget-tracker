@@ -61,7 +61,7 @@ export const useSetBaseCurrency = () => {
     mutationFn: (currencyCode: string) => setBaseUserCurrency(currencyCode),
     onSuccess: () => {
       // Update Pinia store to ensure route guards work correctly
-      currenciesStore.loadBaseCurrency();
+      currenciesStore.loadBaseCurrency({ force: true });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.baseCurrency });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.userCurrencies });
     },
@@ -78,8 +78,8 @@ export const useChangeBaseCurrency = () => {
   return useMutation({
     mutationFn: (newCurrencyCode: string) => changeBaseCurrency(newCurrencyCode),
     onSuccess: () => {
-      currenciesStore.loadCurrencies();
-      currenciesStore.loadBaseCurrency();
+      currenciesStore.loadCurrencies({ force: true });
+      currenciesStore.loadBaseCurrency({ force: true });
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.currencies] });
@@ -112,9 +112,25 @@ export const useExchangeRates = (queryOptions = {}) => {
     ),
   );
 
+  /**
+   * Converts between two currencies via the shared base rate: A→B = A.rate / B.rate,
+   * rounded to 2 decimals. Returns null while loading or a rate is missing — treat as
+   * "unavailable", not zero.
+   */
+  const convert = ({ amount, from, to }: { amount: number; from: string; to: string }): number | null => {
+    if (from === to) return amount;
+    const fromRate = ratesMap.value[from]?.rate;
+    const toRate = ratesMap.value[to]?.rate;
+    if (!fromRate || !toRate) return null;
+    const converted = (amount * fromRate) / toRate;
+    if (!Number.isFinite(converted)) return null;
+    return Math.round(converted * 100) / 100;
+  };
+
   return {
     ...query,
     ratesMap,
+    convert,
     invalidate: () => queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates }),
   };
 };

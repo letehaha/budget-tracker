@@ -1,8 +1,6 @@
 import { VENTURE_CASH_FLOW_MODE, VENTURE_EVENT_TYPE } from '@bt/shared/types/venture';
 import { Money } from '@common/types/money';
-import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
-import VentureDeals from '@models/venture/venture-deals.model';
 import VentureEventLinks from '@models/venture/venture-event-links.model';
 import VentureEvents from '@models/venture/venture-events.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -10,6 +8,7 @@ import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-curre
 import Big from 'big.js';
 
 import { syncDealFromEvents } from '../deals/sync-deal-from-events.service';
+import { findVentureDealOrThrow } from '../helpers';
 import { linkTxsToEvent } from '../linking/link-txs-to-event.service';
 import { findInitialInvestment, isCashFlowModeAllowed } from './event-helpers';
 import { prepareEventValues } from './prepare-event-values';
@@ -32,10 +31,7 @@ interface CreateVentureEventParams {
 const createVentureEventImpl = async (params: CreateVentureEventParams) => {
   const { userId, dealId, type, eventDate, cashFlowMode, transactionIds = [] } = params;
 
-  const deal = await findOrThrowNotFound({
-    query: VentureDeals.findOne({ where: { id: dealId, userId } }),
-    message: 'Venture deal not found',
-  });
+  const deal = await findVentureDealOrThrow({ id: dealId, userId });
 
   // Auto-connect the deal's currency so downstream FX lookups (refAmount,
   // restamp) don't trip currencyNotConnected for users whose base currency

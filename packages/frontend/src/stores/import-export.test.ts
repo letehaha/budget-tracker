@@ -116,6 +116,7 @@ const completedPayload = (summary: Partial<CsvImportSummary> = {}) => ({
     accountsCreated: 0,
     categoriesCreated: 0,
     tagsCreated: 0,
+    payeesCreated: 0,
     errors: [],
     newTransactionIds: [],
     batchId: 'batch-1',
@@ -164,6 +165,7 @@ const BASE_RESPONSE: DetectDuplicatesResponse = {
 const seedStore = (store: ReturnType<typeof useImportExportStore>) => {
   store.fileContent = 'date,amount\n2026-01-01,100';
   store.columnMapping.date = 'date';
+  store.columnMapping.dateFieldOrder = 'month-first';
   store.columnMapping.amount = 'amount';
   store.columnMapping.currency = { option: 'existing-currency' as never, currencyCode: 'USD' };
   store.columnMapping.account = { option: 'existing-account' as never, accountId: 'acc-1' };
@@ -192,48 +194,35 @@ describe('useImportExportStore – detectDuplicates', () => {
     expect(resolvedTimezone.length).toBeGreaterThan(0);
   });
 
-  it('stores dateColumnError when the response includes one and does not advance step', async () => {
-    const errorResponse: DetectDuplicatesResponse = {
-      ...BASE_RESPONSE,
-      dateColumnError: {
-        column: 'date',
-        reason: 'mixed',
-        message: 'The date column has mixed day/month order.',
-      },
-    };
-    mockDetectDuplicatesApi.mockResolvedValue(errorResponse);
+  it('sends the confirmed dateFieldOrder in the columnMapping payload', async () => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
 
     const store = useImportExportStore();
     seedStore(store);
+
+    await store.detectDuplicates();
+
+    expect(mockDetectDuplicatesApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        columnMapping: expect.objectContaining({ dateFieldOrder: 'month-first' }),
+      }),
+    );
+  });
+
+  it('bails with detectError instead of calling the API when dateFieldOrder is unconfirmed', async () => {
+    const store = useImportExportStore();
+    seedStore(store);
+    store.columnMapping.dateFieldOrder = null;
     store.currentStep = 2;
 
     await store.detectDuplicates();
 
-    expect(store.dateColumnError).toEqual(errorResponse.dateColumnError);
-    // Step must NOT advance when date column error is present.
+    expect(mockDetectDuplicatesApi).not.toHaveBeenCalled();
+    expect(store.detectError).not.toBeNull();
     expect(store.currentStep).toBe(2);
   });
 
-  it('clears a prior dateColumnError on a successful re-run', async () => {
-    // First call: produces an error
-    mockDetectDuplicatesApi.mockResolvedValueOnce({
-      ...BASE_RESPONSE,
-      dateColumnError: { column: 'date', reason: 'mixed', message: 'Ambiguous dates.' },
-    });
-    // Second call: clean response
-    mockDetectDuplicatesApi.mockResolvedValueOnce(BASE_RESPONSE);
-
-    const store = useImportExportStore();
-    seedStore(store);
-
-    await store.detectDuplicates();
-    expect(store.dateColumnError).not.toBeNull();
-
-    await store.detectDuplicates();
-    expect(store.dateColumnError).toBeNull();
-  });
-
-  it('advances to step 3 when there is no dateColumnError', async () => {
+  it('advances to step 3 on a successful detection', async () => {
     mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
 
     const store = useImportExportStore();
@@ -242,17 +231,7 @@ describe('useImportExportStore – detectDuplicates', () => {
 
     await store.detectDuplicates();
 
-    expect(store.dateColumnError).toBeNull();
     expect(store.currentStep).toBe(3);
-  });
-
-  it('reset clears dateColumnError', () => {
-    const store = useImportExportStore();
-    store.dateColumnError = { column: 'date', reason: 'mixed', message: 'Mixed.' };
-
-    store.reset();
-
-    expect(store.dateColumnError).toBeNull();
   });
 
   // N-5: network error — loading resets, detect-error state set, step does not advance
@@ -510,6 +489,18 @@ describe('useImportExportStore – import completion cache invalidation', () => 
     );
   });
 
+  it('invalidates the payees list on job completion', async () => {
+    const invalidateSpy = vi.spyOn(sharedQueryClient, 'invalidateQueries');
+
+    useImportExportStore();
+    await fireOnComplete();
+
+    // Import can create payees (mapped payee column) and always shifts the
+    // transaction-count stats on the payee list; payeesList has no shared prefix
+    // so it must be invalidated explicitly (not covered by transactionChange).
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList }));
+  });
+
   it('does not invalidate caches when enqueuing the job fails (no completion)', async () => {
     mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
     mockExecuteImportApi.mockRejectedValue(new Error('Import failed'));
@@ -713,6 +704,19 @@ describe('useImportExportStore – isMapStepValid', () => {
     const store = useImportExportStore();
     seedStore(store);
 
+    expect(store.isMapStepValid).toBe(true);
+  });
+
+  // The wizard forces an explicit date-format confirmation: a mapped date
+  // column alone must not let Next through.
+  it('is false until the user confirms the dateFieldOrder', () => {
+    const store = useImportExportStore();
+    seedStore(store);
+
+    store.columnMapping.dateFieldOrder = null;
+    expect(store.isMapStepValid).toBe(false);
+
+    store.columnMapping.dateFieldOrder = 'day-first';
     expect(store.isMapStepValid).toBe(true);
   });
 

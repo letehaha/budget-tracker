@@ -166,7 +166,7 @@ const updateExchangeRates = async () => {
         rate: Number(form.quoteRate),
       },
     ]);
-    await currenciesStore.loadCurrencies();
+    await currenciesStore.loadCurrencies({ force: true });
 
     emit('submit');
 

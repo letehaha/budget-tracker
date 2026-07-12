@@ -18,7 +18,9 @@ import { updateAccount } from '@services/accounts.service';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 import { createAccountsIfNeeded } from '@services/import-export/core/resolve/create-accounts-if-needed';
 import { createCategoriesIfNeeded } from '@services/import-export/core/resolve/create-categories-if-needed';
+import { createPayeesIfNeeded } from '@services/import-export/core/resolve/create-payees-if-needed';
 import { createNamedTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
+import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -88,6 +90,7 @@ export async function executeBudgetBakersWalletImport({
     accountsCreated: 0,
     accountsLinked: 0,
     categoriesCreated: 0,
+    payeesCreated: 0,
     tagsCreated: 0,
     transactionsImported: 0,
     transfersImported: 0,
@@ -198,6 +201,24 @@ export async function executeBudgetBakersWalletImport({
   });
   summary.tagsCreated = tagsCreated;
 
+  // Phase 4b: resolve every distinct non-empty `payee` (ordinary rows and
+  // out-of-wallet legs) to a Payee id via the shared resolver — canonicalized
+  // through the user's payee namespace, reused by canonical name or alias, else
+  // inserted. `payeesCreated` counts genuine inserts only. Scans
+  // `transactionsToWrite` (post-skip), so a payee confined to a skipped-duplicate
+  // row creates no orphan Payee. Paired transfers carry no payee. Each id is
+  // passed explicitly to `createTransaction` in Phase 5 (raw name kept as
+  // `rawMerchantName`), so no merchant re-extraction runs there.
+  const payeeNames = Array.from(
+    new Set(
+      transactionsToWrite
+        .map((tx) => tx.payeeName)
+        .filter((name): name is string => name != null && name.trim() !== ''),
+    ),
+  );
+  const { payeeNameToId, payeesCreated } = await createPayeesIfNeeded({ userId, payeeNames });
+  summary.payeesCreated = payeesCreated;
+
   let processedCount = 0;
   const tick = async () => {
     processedCount += 1;
@@ -244,11 +265,17 @@ export async function executeBudgetBakersWalletImport({
         .map((name) => tagIdByName.get(name))
         .filter((id): id is string => id !== undefined);
       const tagIds = resolvedTagIds.length > 0 ? resolvedTagIds : undefined;
+      const hasImportedTags = tagIds !== undefined;
       const transferNature = tx.outOfWallet
         ? TRANSACTION_TRANSFER_NATURE.transfer_out_wallet
         : TRANSACTION_TRANSFER_NATURE.not_transfer;
 
-      await createTransaction({
+      // Link the Phase 4b Payee explicitly (caller id wins over createTransaction's
+      // extraction); `rawMerchantName` keeps the raw name, `payeeLocked` stays
+      // false. An empty `payee` cell resolves to undefined → imports without a Payee.
+      const payeeId = tx.payeeName ? payeeNameToId.get(tx.payeeName) : undefined;
+
+      const [transaction] = await createTransaction({
         userId,
         accountId,
         amount,
@@ -261,8 +288,25 @@ export async function executeBudgetBakersWalletImport({
         transferNature,
         categoryId,
         tagIds,
+        payeeId,
+        rawMerchantName: tx.payeeName || null,
         externalData: { importDetails },
+        // A category from the mapped Wallet column is authoritative and beats a
+        // linked Payee's enforce/hint default. Inert when the row has no mapped
+        // category, so Payee categorization still runs then.
+        categoryIdIsExplicit: categoryId != null,
       });
+
+      // Union step: explicit `tagIds` made createTransaction skip the payee's
+      // default tags, so re-apply them here on top of the imported set.
+      // `applyPayeeDefaultTags` is add-only and dedupes, so both sets coexist.
+      if (transaction && hasImportedTags && transaction.payeeId) {
+        await applyPayeeDefaultTags({
+          accountOwnerUserId: userId,
+          transactionId: transaction.id,
+          payeeId: transaction.payeeId,
+        });
+      }
 
       if (tx.outOfWallet) {
         summary.outOfWalletImported += 1;

@@ -1,4 +1,4 @@
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
@@ -77,6 +77,10 @@ async function updateAccountBalanceForChangedTxImpl({
     );
     return undefined;
   }
+
+  // Loan balances are recomputed from the anchor snapshot by recomputeLoanBalance,
+  // never deltad here — a delta would double-apply and ignore the anchor boundary.
+  if (account.accountCategory === ACCOUNT_CATEGORIES.loan) return undefined;
 
   const currentBalance = account.currentBalance;
   const refCurrentBalance = account.refCurrentBalance;

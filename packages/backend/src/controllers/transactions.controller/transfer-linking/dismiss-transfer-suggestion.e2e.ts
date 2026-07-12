@@ -106,8 +106,8 @@ describe('dismissTransferSuggestion', () => {
 
       // Verify the pair appears before dismissing
       const beforeDismiss = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 
@@ -123,8 +123,8 @@ describe('dismissTransferSuggestion', () => {
 
       // Verify the dismissed pair no longer appears
       const afterDismiss = await helpers.bulkScanTransferRecommendations({
-        dateFrom: thirtyDaysAgo,
-        dateTo: todayISO,
+        from: thirtyDaysAgo,
+        to: todayISO,
         raw: true,
       });
 

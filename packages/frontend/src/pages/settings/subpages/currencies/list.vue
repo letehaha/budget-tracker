@@ -73,7 +73,7 @@ const currenciesList = computed<CurrencyWithExchangeRate[]>(() =>
 const selectedCurrency = ref<CurrencyWithExchangeRate | null>(null);
 
 const onCurrencyEdit = async () => {
-  currenciesStore.loadCurrencies();
+  currenciesStore.loadCurrencies({ force: true });
   isEditingModalVisible.value = false;
 
   await nextTick();

@@ -31,15 +31,16 @@
         <ManageTransactionDialog>
           <Button variant="default" size="sm" class="flex items-center gap-1">
             <PlusIcon class="size-4" />
-            <span class="hidden md:block">{{ $t('header.newTransaction') }}</span>
-            <span class="md:hidden">{{ $t('header.add') }}</span>
+            <span class="hidden @[580px]/header-bar:block">{{ $t('header.newTransaction') }}</span>
+            <span class="@[580px]/header-bar:hidden">{{ $t('header.add') }}</span>
           </Button>
         </ManageTransactionDialog>
 
         <RouterLink :to="{ name: ROUTES_NAMES.settingsDataManagement }" class="hidden md:block">
           <Button variant="secondary" size="sm" class="flex items-center gap-1">
             <ImportIcon class="size-4" />
-            {{ $t('header.importData') }}
+            <span class="hidden @[580px]/header-bar:block">{{ $t('header.importData') }}</span>
+            <span class="@[580px]/header-bar:hidden">{{ $t('header.import') }}</span>
           </Button>
         </RouterLink>
       </div>
@@ -60,44 +61,39 @@
           </Button>
         </DesktopOnlyTooltip>
 
+        <DesktopOnlyTooltip
+          v-if="isSupportButtonVisible"
+          :content="$t('header.support')"
+          :disabled="!isHeaderBarCompact"
+        >
+          <Button
+            variant="secondary"
+            :size="isHeaderBarCompact ? 'icon' : 'sm'"
+            class="flex items-center gap-1.5"
+            :aria-label="$t('header.support')"
+            @click="openSupport"
+          >
+            <HeartIcon class="text-heart size-4 fill-current" />
+            <span class="hidden @[890px]/header-bar:inline">{{ $t('header.support') }}</span>
+          </Button>
+        </DesktopOnlyTooltip>
+
         <template v-if="accountsNeedingRelink.length > 0">
           <AccountsRelinkWarning />
         </template>
         <template v-else>
           <Popover.Popover v-model:open="isPopoverOpen">
             <Popover.PopoverTrigger as-child>
-              <Button variant="secondary" :size="isCompactView ? 'icon' : 'sm'">
-                <template v-if="syncStatus.isSyncing.value">
-                  <RefreshCcw class="animate-spin" :size="16" />
-                  <span class="hidden text-sm font-medium lg:inline">
-                    <span class="xs:hidden">{{ $t('header.sync.syncing') }}</span>
-                    <span class="xs:inline hidden">{{
-                      syncStatus.syncingSummaryText.value || $t('header.sync.synchronizing')
-                    }}</span>
-                  </span>
-                </template>
-                <template v-else-if="syncStatus.syncStuck.value">
-                  <AlertTriangleIcon class="text-destructive-text" :size="16" />
-                  <span class="hidden text-sm font-medium lg:inline">
-                    {{ $t('header.sync.stuck') }}
-                  </span>
-                </template>
-                <template v-else-if="categorizationStatus.isCategorizing.value">
-                  <SparklesIcon class="text-primary animate-pulse" :size="16" />
-                  <span class="hidden text-sm font-medium lg:inline">
-                    {{ $t('header.categorization.categorizing') }}
-                  </span>
-                </template>
-                <template v-else-if="hasConnections">
-                  <CloudCheckIcon class="text-success-text size-4" />
-                  <span v-if="lastSyncRelativeTime" class="hidden text-sm font-medium lg:block">
-                    {{ $t('header.sync.syncedTime', { time: lastSyncRelativeTime }) }}
-                  </span>
-                </template>
-                <template v-else>
-                  <CloudCheckIcon class="size-4" />
-                  <span class="hidden text-sm font-medium lg:block">{{ $t('header.sync.connectBank') }}</span>
-                </template>
+              <Button variant="secondary" size="icon" :aria-label="syncButtonLabel">
+                <RefreshCcw v-if="syncStatus.isSyncing.value" class="animate-spin" :size="16" />
+                <AlertTriangleIcon v-else-if="syncStatus.syncStuck.value" class="text-destructive-text" :size="16" />
+                <SparklesIcon
+                  v-else-if="categorizationStatus.isCategorizing.value"
+                  class="text-primary animate-pulse"
+                  :size="16"
+                />
+                <CloudCheckIcon v-else-if="hasConnections" class="text-success-text size-4" />
+                <CloudCheckIcon v-else class="size-4" />
               </Button>
             </Popover.PopoverTrigger>
             <Popover.PopoverContent class="w-auto p-0" align="end">
@@ -158,6 +154,8 @@ import { useCategorizationStatus } from '@/composable/use-categorization-status'
 import { useCssVarFromElementSize } from '@/composable/use-css-var-from-element-size';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { useFeedbackAttention } from '@/composable/use-feedback-attention';
+import { useIdleEnabled } from '@/composable/use-idle-enabled';
+import { useSupportButton } from '@/composable/use-support-button';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes/constants';
@@ -166,6 +164,7 @@ import {
   AlertTriangleIcon,
   CloudCheckIcon,
   ExternalLinkIcon,
+  HeartIcon,
   ImportIcon,
   MenuIcon,
   PlusIcon,
@@ -176,19 +175,19 @@ import {
 import { useResizeObserver } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { RouterLink, useRoute } from 'vue-router';
 
 const accountsStore = useAccountsStore();
-const { accountsNeedingRelink } = storeToRefs(accountsStore);
+const { accountsNeedingRelink, isAccountsFetched } = storeToRefs(accountsStore);
 
 const { elementRef: headerRef } = useCssVarFromElementSize({
   cssVars: [{ cssVarName: '--header-height' }],
 });
 
+const { t } = useI18n();
 const route = useRoute();
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
-// 1024px (lg breakpoint) - used for compact header elements
-const isCompactView = useWindowBreakpoints(1024);
 const showConfirmDialog = ref(false);
 const isPopoverOpen = ref(false);
 
@@ -210,7 +209,14 @@ const openFeedback = () => {
   window.open(FEATUREBASE_URL, '_blank', 'noopener,noreferrer');
 };
 
-// Use new sync status system
+const DONATE_URL = 'https://donatr.ee/letehaha';
+
+const { isSupportButtonVisible } = useSupportButton();
+
+const openSupport = () => {
+  window.open(DONATE_URL, '_blank', 'noopener,noreferrer');
+};
+
 const syncStatus = useSyncStatus();
 
 // AI categorization status
@@ -226,13 +232,34 @@ const lastSyncRelativeTime = computed(() => {
 
 const hasConnections = computed(() => syncStatus.accountStatuses.value.length > 0);
 
-// Initialize sync status on mount only when user don't have issues with his connections
+// Sync button is icon-only, so its meaning lives in the accessible name.
+const syncButtonLabel = computed(() => {
+  if (syncStatus.isSyncing.value) return t('header.sync.syncing');
+  if (syncStatus.syncStuck.value) return t('header.sync.stuck');
+  if (categorizationStatus.isCategorizing.value) return t('header.categorization.categorizing');
+  if (hasConnections.value) {
+    return lastSyncRelativeTime.value
+      ? t('header.sync.syncedTime', { time: lastSyncRelativeTime.value })
+      : t('header.sync.synchronizing');
+  }
+  return t('header.sync.connectBank');
+});
+
+// Auto-check sync once accounts have loaded and no connection needs re-linking.
+// Watch a derived boolean instead of the `accountsNeedingRelink` array: that
+// computed yields a fresh reference on every accounts refetch and would re-fire
+// this, whereas a boolean only fires on real transitions. Watching the combined
+// flag also re-runs the check when a re-link is later resolved (false → true).
+//
+// Gated on `idleEnabled` so the auto-check POST + status refetch stay off the
+// dashboard's critical path — the manual sync button and initial status query
+// are untouched and still run eagerly.
+const idleEnabled = useIdleEnabled();
+const canAutoSync = computed(() => isAccountsFetched.value && accountsNeedingRelink.value.length === 0);
 watch(
-  accountsNeedingRelink,
-  async (value) => {
-    if (value.length) return;
-    await syncStatus.fetchStatus();
-    // Trigger auto-sync check when app loads
+  [canAutoSync, idleEnabled],
+  async ([ready, idle]) => {
+    if (!ready || !idle) return;
     await syncStatus.checkAndAutoSync();
   },
   { immediate: true },

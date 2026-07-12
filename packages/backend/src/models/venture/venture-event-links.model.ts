@@ -1,8 +1,8 @@
 import { RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { BelongsTo, Column, DataType, ForeignKey, Index, Model, Table } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Currencies from '../currencies.model';
 import Transactions from '../transactions.model';
@@ -13,13 +13,7 @@ import VentureEvents from './venture-events.model';
   tableName: 'VentureEventLinks',
 })
 export default class VentureEventLinks extends Model {
-  @Column({
-    primaryKey: true,
-    unique: true,
-    allowNull: false,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => VentureEvents)
@@ -32,13 +26,8 @@ export default class VentureEventLinks extends Model {
   @Column({ type: DataType.UUID, allowNull: false, unique: true })
   transactionId!: RecordId;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get amount(): Money {
-    return moneyGetDecimal(this, 'amount');
-  }
-  set amount(val: Money | string | number) {
-    moneySetDecimal(this, 'amount', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare amount: Money;
 
   @ForeignKey(() => Currencies)
   @Index

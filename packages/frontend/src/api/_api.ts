@@ -233,8 +233,12 @@ class ApiCaller {
 
     if (sessionId) window.sessionStorage?.setItem(SESSION_ID_KEY, sessionId);
 
-    // Handle empty response from backend
-    if (result.headers.get('content-length') === '0' || result.status === 204) {
+    // Handle empty response from backend. Only treat an empty body as success
+    // when the response status itself is ok – a non-ok empty body (e.g. a
+    // proxy-level 503 with no payload) must fall through to the JSON parsing
+    // below, whose catch block builds a proper ApiErrorResponseError for
+    // bodies that aren't valid JSON.
+    if (result.ok && (result.headers.get('content-length') === '0' || result.status === 204)) {
       return undefined;
     }
 

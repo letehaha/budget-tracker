@@ -4,40 +4,15 @@
  * Serializes account model instances for API responses.
  * Money fields auto-convert via .toNumber().
  */
-import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE, ResourceShareInfo } from '@bt/shared/types';
+import { type AccountApiResponse, BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Accounts from '@models/accounts.model';
 import type { AccountShareContext } from '@services/sharing/get-shared-accounts.service';
 
-// ============================================================================
-// Response Types
-// ============================================================================
-
-export interface AccountApiResponse {
-  id: string;
-  name: string;
-  initialBalance: number;
-  refInitialBalance: number;
-  currentBalance: number;
-  refCurrentBalance: number;
-  creditLimit: number;
-  refCreditLimit: number;
-  type: string;
-  accountCategory: string;
-  currencyCode: string;
-  userId: number;
-  externalId: string | null;
-  status: ACCOUNT_STATUSES;
-  excludeFromStats: boolean;
-  bankDataProviderConnectionId: string | null;
-  /** Provider type denormalized from the connection so the frontend can render the
-   *  bank logo without a per-account connection-details lookup (which is owner-scoped
-   *  and unreachable for share recipients). */
-  bankProviderType: BANK_PROVIDER_TYPE | null;
-  needsRelink?: boolean;
-  /** Present on user-facing list/detail responses; absent on internal serializations. */
-  share?: ResourceShareInfo;
-}
+// The account wire shape lives in @bt/shared/types so the frontend consumes the
+// same source instead of hand-copying it. Re-exported here so existing backend
+// importers keep their `accounts.serializer` import path.
+export type { AccountApiResponse };
 
 // ============================================================================
 // Serializers (DB → API)

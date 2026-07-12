@@ -1,4 +1,4 @@
-import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, isTwoLegTransfer } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
@@ -45,26 +45,34 @@ const bodyZodSchema = z
     message: "Both 'refundedByTxIds' and 'refundsTxId' are not allowed simultaneously",
   })
   .refine(
+    // Loan payments only link via destinationAccountId, never destinationTransactionId.
+    (data) => !(data.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan && data.destinationTransactionId),
+    {
+      message: `"${TRANSACTION_TRANSFER_NATURE.transfer_to_loan}" cannot be combined with "destinationTransactionId" - loan payments are created via "destinationAccountId" only`,
+      path: ['transferNature', 'destinationTransactionId'],
+    },
+  )
+  .refine(
     (data) => {
-      if (data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && data.destinationTransactionId) {
+      if (isTwoLegTransfer(data.transferNature) && data.destinationTransactionId) {
         return !(data.destinationAccountId || data.destinationAmount);
       }
       return true;
     },
     {
-      message: `When "destinationTransactionId" is provided for ${TRANSACTION_TRANSFER_NATURE.common_transfer}, other fields should not be present`,
+      message: `When "destinationTransactionId" is provided for a two-leg transfer (${TRANSACTION_TRANSFER_NATURE.common_transfer} / ${TRANSACTION_TRANSFER_NATURE.transfer_to_loan}), other fields should not be present`,
       path: ['destinationAccountId', 'destinationAmount', 'destinationTransactionId'],
     },
   )
   .refine(
     (data) => {
-      if (data.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && !data.destinationTransactionId) {
+      if (isTwoLegTransfer(data.transferNature) && !data.destinationTransactionId) {
         return !!(data.destinationAccountId && data.destinationAmount);
       }
       return true;
     },
     {
-      message: `For ${TRANSACTION_TRANSFER_NATURE.common_transfer} without "destinationTransactionId" - "destinationAccountId", and "destinationAmount" must be provided`,
+      message: `For two-leg transfers (${TRANSACTION_TRANSFER_NATURE.common_transfer} / ${TRANSACTION_TRANSFER_NATURE.transfer_to_loan}) without "destinationTransactionId" - "destinationAccountId" and "destinationAmount" must be provided`,
       path: ['destinationAccountId', 'destinationAmount', 'destinationTransactionId'],
     },
   )

@@ -8,6 +8,7 @@ import { type endpointsTypes } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Balances from '@models/balances.model';
 import type { CombinedBalanceHistoryItem } from '@services/stats/get-combined-balance-history';
+import type { PivotReportResultCents } from '@services/stats/get-pivot';
 
 // ============================================================================
 // Balance History Serializers
@@ -74,6 +75,37 @@ export function serializeSpendingsByCategories(
   return result;
 }
 
+interface SpendingStructureByTypeApiResponse {
+  name: string;
+  color: string;
+  income: number;
+  expense: number;
+}
+
+type GetSpendingsByCategoriesByTypeApiResponse = {
+  [categoryId: string]: SpendingStructureByTypeApiResponse;
+};
+
+/**
+ * Serialize per-type spendings by categories (from getSpendingsByCategoriesByType)
+ */
+export function serializeSpendingsByCategoriesByType(
+  spendings: endpointsTypes.GetSpendingsByCategoriesByTypeReturnType,
+): GetSpendingsByCategoriesByTypeApiResponse {
+  const result: GetSpendingsByCategoriesByTypeApiResponse = {};
+
+  for (const [categoryId, spending] of Object.entries(spendings)) {
+    result[categoryId] = {
+      name: spending.name,
+      color: spending.color,
+      income: centsToApiDecimal(spending.income),
+      expense: centsToApiDecimal(spending.expense),
+    };
+  }
+
+  return result;
+}
+
 // ============================================================================
 // Cash Flow Serializers
 // ============================================================================
@@ -130,6 +162,42 @@ export function serializeCashFlow(cashFlow: endpointsTypes.GetCashFlowResponse):
       netFlow: centsToApiDecimal(cashFlow.totals.netFlow),
       savingsRate: cashFlow.totals.savingsRate,
     },
+  };
+}
+
+// ============================================================================
+// Pivot Report Serializer
+// ============================================================================
+
+const decimalizeValues = (values: Record<string, number>): Record<string, number> => {
+  const result: Record<string, number> = {};
+  for (const [columnKey, cents] of Object.entries(values)) {
+    result[columnKey] = centsToApiDecimal(cents);
+  }
+  return result;
+};
+
+/**
+ * Serialize pivot report (from getPivotReport). Converts every cents amount to an API decimal;
+ * row/column identity, labels, colors and currency pass through unchanged.
+ */
+export function serializePivotReport(result: PivotReportResultCents): endpointsTypes.GetPivotReportResponse {
+  return {
+    columns: result.columns,
+    rows: result.rows.map((row) => ({
+      id: row.id,
+      label: row.label,
+      color: row.color,
+      // Only the payee dimension sets logoDomain; keep it off every other dimension's rows.
+      ...(row.logoDomain !== undefined ? { logoDomain: row.logoDomain } : {}),
+      parentId: row.parentId,
+      kind: row.kind,
+      values: decimalizeValues(row.values),
+      total: centsToApiDecimal(row.total),
+    })),
+    columnTotals: decimalizeValues(result.columnTotals),
+    grandTotal: centsToApiDecimal(result.grandTotal),
+    currencyCode: result.currencyCode,
   };
 }
 
@@ -193,6 +261,7 @@ interface CombinedBalanceHistoryItemApiResponse {
   portfoliosBalance: number;
   venturesBalance: number;
   vehiclesBalance: number;
+  loansBalance: number;
   totalBalance: number;
 }
 
@@ -208,6 +277,7 @@ export function serializeCombinedBalanceHistory(
     portfoliosBalance: centsToApiDecimal(item.portfoliosBalance),
     venturesBalance: centsToApiDecimal(item.venturesBalance),
     vehiclesBalance: centsToApiDecimal(item.vehiclesBalance),
+    loansBalance: centsToApiDecimal(item.loansBalance),
     totalBalance: centsToApiDecimal(item.totalBalance),
   }));
 }

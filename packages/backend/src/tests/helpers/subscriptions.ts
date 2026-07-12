@@ -84,14 +84,17 @@ export async function getSubscriptions<R extends boolean | undefined = undefined
   raw,
   isActive,
   type,
+  sortBy,
 }: {
   raw?: R;
   isActive?: boolean;
   type?: string;
+  sortBy?: 'dueDate' | 'amount' | 'name' | 'recent';
 } = {}) {
   const query: Record<string, string> = {};
   if (isActive !== undefined) query.isActive = String(isActive);
   if (type) query.type = type;
+  if (sortBy) query.sortBy = sortBy;
 
   return makeRequest<Awaited<ReturnType<typeof apiGetSubscriptions>>, R>({
     method: 'get',

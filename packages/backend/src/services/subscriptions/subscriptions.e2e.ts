@@ -1,6 +1,8 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { API_ERROR_CODES, SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
+import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { ErrorResponse } from '@tests/helpers/common';
 import { subMonths } from 'date-fns';
 
 describe('Subscriptions', () => {
@@ -106,6 +108,73 @@ describe('Subscriptions', () => {
 
       expect(updated.name).toBe('Updated');
       expect(updated.frequency).toBe(SUBSCRIPTION_FREQUENCIES.quarterly);
+    });
+
+    it('rejects creating a subscription when startDate is after endDate', async () => {
+      const res = await helpers.createSubscription({
+        name: 'Inverted Range',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-02-01',
+        endDate: '2025-01-01',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects creating a subscription with a non-real dueDate', async () => {
+      const res = await helpers.createSubscription({
+        name: 'Bad Due Date',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        dueDate: '2020-13-45',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects updating a subscription with a non-real dueDate', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'Due Date Update',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const res = await helpers.updateSubscription({
+        id: sub.id,
+        dueDate: '2020-13-45',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects updating a subscription when startDate is after endDate', async () => {
+      const sub = await helpers.createSubscription({
+        name: 'To Update',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const res = await helpers.updateSubscription({
+        id: sub.id,
+        startDate: '2025-02-01',
+        endDate: '2025-01-01',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('deletes a subscription', async () => {
@@ -597,6 +666,125 @@ describe('Subscriptions', () => {
         const summary = await helpers.getSubscriptionsSummary({ raw: true });
         expect(summary.averageMonthlyIncome).toBe(0);
         expect(summary.percentOfIncome).toBeNull();
+      });
+
+      it('auto-connects the subscription currency on create so the summary can convert it', async () => {
+        await helpers.createSubscription({
+          name: 'Foreign Sub',
+          expectedAmount: 100,
+          expectedCurrencyCode: 'UAH',
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        const userCurrencies = await helpers.getUserCurrencies();
+        expect(userCurrencies.map((c) => c.currencyCode)).toContain('UAH');
+
+        const summary = await helpers.getSubscriptionsSummary({ raw: true });
+        expect(summary.activeCount).toBe(1);
+        expect(summary.estimatedMonthlyCost).toBeGreaterThan(0);
+      });
+
+      it('auto-connects the currency when an update changes it', async () => {
+        const sub = await helpers.createSubscription({
+          name: 'Netflix',
+          expectedAmount: 15,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        await helpers.updateSubscription({
+          id: sub.id,
+          expectedAmount: 15,
+          expectedCurrencyCode: 'EUR',
+          raw: true,
+        });
+
+        const userCurrencies = await helpers.getUserCurrencies();
+        expect(userCurrencies.map((c) => c.currencyCode)).toContain('EUR');
+      });
+
+      it('returns CURRENCY_NOT_CONNECTED with the offending codes when a subscription currency is disconnected', async () => {
+        await helpers.createSubscription({
+          name: 'Foreign Sub',
+          expectedAmount: 100,
+          expectedCurrencyCode: 'UAH',
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: '2025-01-01',
+          raw: true,
+        });
+
+        // Sever the auto-created connection to reproduce pre-guard data.
+        await helpers.makeRequest({
+          method: 'delete',
+          url: '/user/currency',
+          payload: { currencyCode: 'UAH' },
+          raw: true,
+        });
+
+        const res = await helpers.getSubscriptionsSummary();
+        expect(res.statusCode).toBe(422);
+        // The typed helper promises the success shape; the error envelope needs
+        // a detour through unknown.
+        const err = res.body.response as unknown as ErrorResponse;
+        expect(err.code).toBe(API_ERROR_CODES.currencyNotConnected);
+        expect(err.details).toEqual({ currencyCodes: ['UAH'] });
+      });
+
+      it('self-heals the base currency from a subscription currency and returns a summary', async () => {
+        // A freshly signed-up user has no base currency row. Creating a
+        // subscription connects its currency as a NON-default row, reproducing
+        // the legacy no-base-currency state the summary must self-heal from.
+        const secondUser = await helpers.signUpSecondUser();
+
+        const { summary, baseCurrency } = await helpers.asUser({
+          cookies: secondUser.cookies,
+          fn: async () => {
+            await helpers.createSubscription({
+              name: 'Foreign Sub',
+              expectedAmount: 15,
+              expectedCurrencyCode: 'EUR',
+              frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+              startDate: '2025-01-01',
+              raw: true,
+            });
+
+            const summaryRes = await helpers.getSubscriptionsSummary({ raw: true });
+            const currencies = await helpers.getUserCurrencies();
+            return {
+              summary: summaryRes,
+              baseCurrency: currencies.find((c) => c.isDefaultCurrency),
+            };
+          },
+        });
+
+        // The subscription currency became the user's base currency under the hood.
+        expect(baseCurrency?.currencyCode).toBe('EUR');
+
+        // With base === subscription currency, no conversion is needed and the
+        // monthly cost equals the expected amount.
+        expect(summary.activeCount).toBe(1);
+        expect(summary.estimatedMonthlyCost).toBe(15);
+        expect(summary.currencyCode).toBe('EUR');
+      });
+
+      it('returns 422 when the user has no base currency and no currency signal to heal from', async () => {
+        // A freshly signed-up user with no accounts, no connected currencies and
+        // no subscriptions offers nothing to adopt as a base currency, so the
+        // summary surfaces an actionable validation error instead of guessing.
+        const secondUser = await helpers.signUpSecondUser();
+
+        const res = await helpers.asUser({
+          cookies: secondUser.cookies,
+          fn: () => helpers.getSubscriptionsSummary(),
+        });
+
+        expect(res.statusCode).toBe(422);
+        const err = res.body.response as unknown as ErrorResponse;
+        expect(err.code).toBe(API_ERROR_CODES.validationError);
       });
 
       it('returns averageMonthlyIncome and percentOfIncome based on income in last 6 months', async () => {

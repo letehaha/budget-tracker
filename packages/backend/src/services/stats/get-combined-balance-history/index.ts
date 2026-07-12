@@ -1,6 +1,7 @@
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
+import Accounts from '@models/accounts.model';
 import ExchangeRates from '@models/exchange-rates.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
@@ -179,6 +180,7 @@ const calculatePortfolioBalanceHistory = async ({
         ['date', 'ASC'],
       ],
       attributes: ['securityId', 'date', 'priceClose'],
+      raw: true,
     }),
     UserExchangeRates.findAll({
       where: {
@@ -311,46 +313,69 @@ export const getCombinedBalanceHistory = async ({
       end: parseISO(maxDate),
     }).map((date) => format(date, 'yyyy-MM-dd'));
 
-    // Shared by every sub-calculator that converts to base currency — fetch once.
-    const userBaseCurrencyPromise = UsersCurrencies.findOne({
-      where: { userId, isDefaultCurrency: true },
-      raw: true,
-      attributes: ['currencyCode'],
-    }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
+    // One read transaction pins a single Postgres connection for the whole
+    // parallel fan-out below (cls-hooked propagates it into every branch, so
+    // the sub-calculators' queries queue on that one connection). The branches
+    // are all cheap index scans, so serializing them costs little — while one
+    // connection per branch would let a burst of dashboard loads exhaust the
+    // pool's warm connections and pay slow physical `pg.connect` + session
+    // setup in the middle of the request.
+    const [
+      accountsBalanceHistory,
+      loansBalanceHistory,
+      vehicleValuesByDate,
+      portfolioValuesByDate,
+      ventureValuesByDate,
+      creditLimitSum,
+    ] = await withTransaction(async () => {
+      // Shared by every sub-calculator that converts to base currency — fetch once.
+      const userBaseCurrencyPromise = UsersCurrencies.findOne({
+        where: { userId, isDefaultCurrency: true },
+        raw: true,
+        attributes: ['currencyCode'],
+      }) as Promise<Pick<UsersCurrencies, 'currencyCode'> | null>;
 
-    // Run the accounts/vehicles split as two filtered aggregations. Both hit
-    // the same Balances rows but with different category filters — cheaper than
-    // one big query partitioned in memory, and keeps `aggregateBalanceTrendData`'s
-    // forward-fill semantics correct per partition (otherwise vehicles' anchor
-    // dates would forward-fill into the cash-accounts series and vice versa).
-    //
-    // Each call is wrapped in its own transaction to pin one Postgres
-    // connection for the call's lifetime instead of acquiring/releasing per
-    // query — reduces pool churn under the 5-way parallel fan-out.
-    const [accountsBalanceHistory, vehicleValuesByDate, portfolioValuesByDate, ventureValuesByDate, creditLimitSum] =
-      await Promise.all([
-        withTransaction(() =>
-          getAggregatedBalanceHistory({
+      // Split accounts/vehicles/loans into separate filtered aggregations so each
+      // keeps its own forward-fill partition (otherwise vehicle/loan anchor dates
+      // would forward-fill into the cash-accounts series).
+      return Promise.all([
+        getAggregatedBalanceHistory({
+          userId,
+          from: minDate,
+          to: maxDate,
+          categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle, ACCOUNT_CATEGORIES.loan] },
+        }),
+        (async () => {
+          // Back-fill each loan's pre-anchor days from its opening balance
+          // (`refInitialBalance` — the outstanding as-of the anchor date) rather than
+          // from the anchor-day Balances row. A payment only ever writes
+          // `currentBalance`, so the opening is immutable; this stops a payoff dated
+          // on the anchor day (which folds the anchor row toward zero) from
+          // retroactively rewriting the loan balance shown on earlier days.
+          const loanAccounts = await Accounts.findAll({
+            where: { userId, accountCategory: ACCOUNT_CATEGORIES.loan, excludeFromStats: false },
+            attributes: ['id', 'refInitialBalance'],
+          });
+          const openingCentsByAccount = new Map(loanAccounts.map((a) => [a.id, a.refInitialBalance.toCents()]));
+
+          return getAggregatedBalanceHistory({
             userId,
             from: minDate,
             to: maxDate,
-            categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle] },
-          }),
-        )(),
-        withTransaction(() =>
-          calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates, userBaseCurrencyPromise }),
-        )(),
-        withTransaction(() =>
-          calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
-        )(),
-        withTransaction(() =>
-          calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
-        )(),
-        includeCreditLimit ? withTransaction(() => getCreditLimitAdjustment({ userId }))() : Promise.resolve(0),
+            categoryFilter: { only: [ACCOUNT_CATEGORIES.loan] },
+            openingCentsByAccount,
+          });
+        })(),
+        calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        calculatePortfolioBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates, userBaseCurrencyPromise }),
+        includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
       ]);
+    })();
 
     if (
       (!accountsBalanceHistory || accountsBalanceHistory.length === 0) &&
+      (!loansBalanceHistory || loansBalanceHistory.length === 0) &&
       (!vehicleValuesByDate || vehicleValuesByDate.size === 0) &&
       (!portfolioValuesByDate || portfolioValuesByDate.size === 0) &&
       (!ventureValuesByDate || ventureValuesByDate.size === 0)
@@ -364,11 +389,17 @@ export const getCombinedBalanceHistory = async ({
       accountsBalanceByDate.set(item.date, item.amount);
     }
 
+    const loansBalanceByDate = new Map<string, number>();
+    for (const item of loansBalanceHistory) {
+      loansBalanceByDate.set(item.date, item.amount);
+    }
+
     const combinedHistory: CombinedBalanceHistoryItem[] = uniqueDates.map((dateStr) => {
       const accountsBalance = (accountsBalanceByDate.get(dateStr) ?? 0) - creditLimitSum;
       const vehiclesBalance = vehicleValuesByDate?.get(dateStr) ?? 0;
       const portfoliosBalance = portfolioValuesByDate?.get(dateStr) ?? 0;
       const venturesBalance = ventureValuesByDate?.get(dateStr) ?? 0;
+      const loansBalance = loansBalanceByDate.get(dateStr) ?? 0;
 
       return {
         date: dateStr,
@@ -376,7 +407,8 @@ export const getCombinedBalanceHistory = async ({
         portfoliosBalance,
         venturesBalance,
         vehiclesBalance,
-        totalBalance: accountsBalance + portfoliosBalance + venturesBalance + vehiclesBalance,
+        loansBalance,
+        totalBalance: accountsBalance + portfoliosBalance + venturesBalance + vehiclesBalance + loansBalance,
       };
     });
 

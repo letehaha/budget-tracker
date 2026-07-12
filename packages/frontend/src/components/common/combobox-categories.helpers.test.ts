@@ -214,6 +214,28 @@ describe('computeCheckedState', () => {
       }),
     ).toBe(true);
   });
+
+  it('reflects only self in independent mode — never indeterminate from descendants', () => {
+    // Descendants selected but not the parent → unchecked (no indeterminate roll-up).
+    expect(
+      computeCheckedState({
+        item: findFlat(flat, '1'),
+        selectedIds: new Set(['2', '3']),
+        isSearching: false,
+        independent: true,
+      }),
+    ).toBe(false);
+
+    // Parent selected on its own → checked, regardless of descendant selection.
+    expect(
+      computeCheckedState({
+        item: findFlat(flat, '1'),
+        selectedIds: new Set(['1']),
+        isSearching: false,
+        independent: true,
+      }),
+    ).toBe(true);
+  });
 });
 
 describe('toggleCategorySelection', () => {

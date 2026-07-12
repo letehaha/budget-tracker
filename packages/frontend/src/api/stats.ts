@@ -1,5 +1,5 @@
 import { api } from '@/api/_api';
-import { type TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import { type RecordId, type TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { format } from 'date-fns';
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -15,6 +15,22 @@ export interface BalanceHistoryEntity {
   amount: number;
   accountId: string;
 }
+
+/** Per-account balance history — signed amounts (liabilities negative), decimals. */
+export const getAccountBalanceHistory = async ({
+  accountId,
+  from,
+  to,
+}: {
+  accountId: RecordId;
+  from?: Date;
+  to?: Date;
+}): Promise<BalanceHistoryEntity[]> => {
+  const params: endpointsTypes.GetBalanceHistoryPayload = { accountId };
+  if (from) params.from = formatDate(from);
+  if (to) params.to = formatDate(to);
+  return api.get('/stats/balance-history', params);
+};
 
 export const getExpensesAmountForPeriod = async ({
   from,
@@ -62,12 +78,34 @@ export const getSpendingsByCategories = async ({
   return api.get('/stats/spendings-by-categories', params);
 };
 
+export const getSpendingsByCategoriesByType = async ({
+  from,
+  to,
+  categoryIds,
+  excludedCategoryIds,
+  ...rest
+}: Params & {
+  categoryIds?: string[];
+  excludedCategoryIds?: string[];
+} = {}): Promise<endpointsTypes.GetSpendingsByCategoriesByTypeReturnType> => {
+  const params: Record<string, string | boolean> = { groupByType: true };
+
+  if (rest.accountId) params.accountId = rest.accountId;
+  if (from) params.from = formatDate(from);
+  if (to) params.to = formatDate(to);
+  if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
+
+  return api.get('/stats/spendings-by-categories', params);
+};
+
 export interface CombinedBalanceHistoryEntity {
   date: string;
   accountsBalance: number;
   portfoliosBalance: number;
   venturesBalance: number;
   vehiclesBalance: number;
+  loansBalance: number;
   totalBalance: number;
 }
 
@@ -113,6 +151,42 @@ export const getCashFlow = async ({
   }
 
   return api.get('/stats/cash-flow', params);
+};
+
+interface GetPivotReportParams {
+  from: Date;
+  to: Date;
+  granularity: endpointsTypes.PivotGranularity;
+  rowDimension: endpointsTypes.PivotRowDimension;
+  measure: endpointsTypes.PivotMeasure;
+  accountIds?: string[];
+  categoryIds?: string[];
+  payeeIds?: string[];
+}
+
+export const getPivotReport = async ({
+  from,
+  to,
+  granularity,
+  rowDimension,
+  measure,
+  accountIds,
+  categoryIds,
+  payeeIds,
+}: GetPivotReportParams): Promise<endpointsTypes.GetPivotReportResponse> => {
+  const params: Record<string, string> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    granularity,
+    rowDimension,
+    measure,
+  };
+
+  if (accountIds && accountIds.length > 0) params.accountIds = accountIds.join(',');
+  if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
+  if (payeeIds && payeeIds.length > 0) params.payeeIds = payeeIds.join(',');
+
+  return api.get('/stats/pivot', params);
 };
 
 interface GetCumulativeDataParams {

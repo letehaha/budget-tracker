@@ -1,4 +1,4 @@
-import type { ColumnMappingConfig, DateColumnError, InvalidRow, ParsedTransactionRow } from '@bt/shared/types';
+import type { ColumnMappingConfig, InvalidRow, ParsedTransactionRow } from '@bt/shared/types';
 import {
   AccountOptionValue,
   CategoryOptionValue,
@@ -11,13 +11,12 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import { anchorImportDate } from '@services/import-export/core/parse/anchor-import-date';
-import { detectDateColumnFormat, parseImportDate } from '@services/import-export/core/parse/date-engine';
+import { parseImportDate } from '@services/import-export/core/parse/date-engine';
 import { parseAmount } from '@services/import-export/core/parse/parse-amount';
 import { splitTagCell } from '@services/import-export/core/parse/split-tag-cell';
-import { getUserSettings } from '@services/user-settings/get-user-settings';
-import { parse } from 'csv-parse/sync';
 
 import { MAX_CSV_ROWS } from './csv-parser.service';
+import { parseCsvRecords } from './parse-csv-records';
 
 interface ParseValidRowsParams {
   userId: number;
@@ -35,9 +34,6 @@ interface ParseValidRowsParams {
 interface ParseValidRowsResult {
   validRows: ParsedTransactionRow[];
   invalidRows: InvalidRow[];
-  /** Set only when the date column has no single safe day/month order. When
-   *  present, `validRows`/`invalidRows` are empty. */
-  dateColumnError?: DateColumnError;
 }
 
 /**
@@ -60,13 +56,7 @@ export async function parseValidRows({
   timezone,
 }: ParseValidRowsParams): Promise<ParseValidRowsResult> {
   // Parse full CSV
-  const records = parse(fileContent, {
-    delimiter,
-    skipEmptyLines: true,
-    relaxColumnCount: true,
-    trim: true,
-    columns: false,
-  }) as string[][];
+  const records = parseCsvRecords({ fileContent, delimiter });
 
   if (records.length === 0) {
     throw new ValidationError({ message: t({ key: 'csvImport.csvFileEmpty' }) });
@@ -105,35 +95,15 @@ export async function parseValidRows({
   // Get default values for single-selection options
   const defaultCurrency = await getDefaultCurrency(userId, columnMapping);
 
-  // Resolve the date column's format ONCE from the whole column. The day/month
-  // order of the ambiguous d/d/yyyy family is the user's, not US-by-default:
-  // it's inferred from rows that disambiguate themselves, falling back to the
-  // user's locale convention. `getUserSettings.locale` is `'en' | 'uk'`, a
-  // subset of the engine's `SupportedLocale`.
-  const { locale } = await getUserSettings({ userId });
-  const dateColumnValues = dataRows.map((row) => row[dateIndex]?.trim() || '').filter((value) => value.length > 0);
-  const dateFormatResult = detectDateColumnFormat({ values: dateColumnValues, locale });
+  // The day/month order of the ambiguous d/d/yyyy family is the user's explicit
+  // wizard choice, applied to the whole column. Cells that don't form a valid
+  // calendar date under that order fall into the per-row invalid path below —
+  // never a whole-column block, and never a re-guess per value.
+  const dateFormat = { fieldOrder: columnMapping.dateFieldOrder };
 
   // Parse and validate each row
   const validRows: ParsedTransactionRow[] = [];
   const invalidRows: InvalidRow[] = [];
-
-  // A column with contradicting day-first and month-first signals has no single
-  // safe order. Surface it as a column-level error instead of silently splitting
-  // rows across two months — the frontend renders this and blocks the import.
-  if (!dateFormatResult.ok) {
-    return {
-      validRows,
-      invalidRows,
-      dateColumnError: {
-        column: columnMapping.date,
-        reason: dateFormatResult.reason,
-        message: t({ key: 'csvImport.mixedDateFormat', variables: { column: columnMapping.date } }),
-      },
-    };
-  }
-
-  const dateFormat = dateFormatResult.format;
 
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i]!;
@@ -142,7 +112,8 @@ export async function parseValidRows({
 
     // Parse date through the engine (timezone-agnostic), then anchor it to a
     // stored instant against the importing user's timezone. `null` means the
-    // value matched no known shape — same loud invalid-row behaviour as before.
+    // value matched no known shape or is impossible under the confirmed
+    // day/month order (e.g. `13/13/2026`) — a loud per-row invalid.
     const dateStr = row[dateIndex]?.trim() || '';
     const parsedDate = parseImportDate({ value: dateStr, format: dateFormat });
     if (!parsedDate) {

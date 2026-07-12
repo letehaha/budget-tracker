@@ -128,6 +128,10 @@
         "toPortfolioLabel": "A la cartera",
         "selectPortfolioPlaceholder": "Seleccione una cartera",
         "noPortfoliosExist": "No existe ninguna cartera",
+        "destinationTypeLoan": "Préstamo",
+        "toLoanLabel": "Al préstamo",
+        "selectLoanPlaceholder": "Seleccione un préstamo",
+        "noLoansExist": "No existen préstamos",
         "validation": {
           "required": "Este campo es obligatorio",
           "minValue": "El importe debe ser mayor que cero"
@@ -191,7 +195,8 @@
         "amountDisabled": "están deshabilitadas.",
         "amountMayBeSmaller": "Algunas opciones pueden ser inferiores al importe de su reembolso",
         "finalValidationWarning": "La validación final utilizará importes convertidos.",
-        "mainCategoryLabel": "(principal)"
+        "mainCategoryLabel": "(principal)",
+        "linkRemovedOnTypeChange": "Se eliminó el vínculo de reembolso porque cambió el tipo de transacción."
       },
       "refundInfo": {
         "trigger": "¿Cómo funciona?",

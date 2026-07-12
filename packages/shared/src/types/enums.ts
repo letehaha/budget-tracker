@@ -88,11 +88,28 @@ export enum ACCOUNT_CATEGORIES {
   insurance = 'insurance',
   investment = 'investment',
   loan = 'loan',
-  mortgage = 'mortgage',
   overdraft = 'overdraft',
   crypto = 'crypto',
   vehicle = 'vehicle',
 }
+
+/**
+ * Account categories that own a required 1:1 sidecar row (LoanDetails,
+ * Vehicles) and a dedicated creation flow (`/loans`, `/vehicles`). They must
+ * never be created through the generic `POST /accounts` path — that would
+ * produce a sidecar-less account with none of the managed-balance machinery,
+ * so the create service rejects them and the create-account UI hides them.
+ * Each is created only via its own endpoint, which writes the account and its
+ * sidecar in one transaction.
+ */
+const DEDICATED_FLOW_ACCOUNT_CATEGORIES = [ACCOUNT_CATEGORIES.loan, ACCOUNT_CATEGORIES.vehicle] as const;
+
+type DedicatedFlowAccountCategory = (typeof DEDICATED_FLOW_ACCOUNT_CATEGORIES)[number];
+
+export const isDedicatedFlowAccountCategory = (
+  category: ACCOUNT_CATEGORIES,
+): category is DedicatedFlowAccountCategory =>
+  DEDICATED_FLOW_ACCOUNT_CATEGORIES.includes(category as DedicatedFlowAccountCategory);
 
 /**
  * Vehicle body / drivetrain class used to pick the default depreciation curve.
@@ -174,7 +191,31 @@ export enum TRANSACTION_TRANSFER_NATURE {
   transfer_out_wallet = 'transfer_out_wallet',
   transfer_to_portfolio = 'transfer_to_portfolio',
   transfer_to_venture = 'transfer_to_venture',
+  transfer_to_loan = 'transfer_to_loan',
 }
+
+/**
+ * Loan sub-type on `LoanDetails.loanType` — UI grouping/badges only, no impact
+ * on amortization or balance handling. VARCHAR in the DB (no-DB-enums rule).
+ */
+export enum LOAN_TYPE {
+  mortgage = 'mortgage',
+  auto = 'auto',
+  student = 'student',
+  personal = 'personal',
+  heloc = 'heloc',
+  business = 'business',
+  medical = 'medical',
+  other = 'other',
+}
+
+/** Subset of `LOAN_TYPE` the form picker exposes; HELOC-style types need multi-disbursement support first. */
+export const SUPPORTED_LOAN_TYPES = [
+  LOAN_TYPE.mortgage,
+  LOAN_TYPE.auto,
+  LOAN_TYPE.student,
+  LOAN_TYPE.personal,
+] as const;
 
 export enum BUDGET_STATUSES {
   active = 'active',

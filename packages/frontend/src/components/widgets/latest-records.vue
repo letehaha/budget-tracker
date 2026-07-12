@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import { loadSubscriptions, type SubscriptionListItem } from '@/api/subscriptions';
+import { type SubscriptionListItem } from '@/api/subscriptions';
 import { loadTransactions as apiLoadTransactions } from '@/api/transactions';
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { useSubscriptionsList } from '@/composable/data-queries/subscriptions';
 import { useFormatCurrency } from '@/composable/formatters';
 import { buttonVariants } from '@/components/lib/ui/button';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -47,18 +48,15 @@ const maxDisplay = computed(() => {
 const { data: transactions, isFetching: isTxFetching } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecords,
   queryFn: () =>
-    apiLoadTransactions({ limit: 40, from: 0, includeSplits: true, includeTags: true, includeGroups: true }), // Over-fetch to account for deduplication and grouping
+    apiLoadTransactions({ limit: 40, offset: 0, includeSplits: true, includeTags: true, includeGroups: true }), // Over-fetch to account for deduplication and grouping
   staleTime: Infinity,
   placeholderData: [],
   enabled: isAppInitialized,
 });
 
 // Fetched in parallel with transactions; only active when the toggle is on.
-const { data: subscriptions, isFetching: isScheduledFetching } = useQuery({
-  queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecordsScheduled,
-  queryFn: () => loadSubscriptions({ isActive: true }),
-  staleTime: Infinity,
-  placeholderData: [],
+const { data: subscriptions, isFetching: isScheduledFetching } = useSubscriptionsList({
+  filter: { isActive: true },
   enabled: computed(() => isAppInitialized.value && includeScheduled.value),
 });
 

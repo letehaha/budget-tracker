@@ -1,10 +1,10 @@
 <script lang="ts" setup>
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { createReusableTemplate, useVModel } from '@vueuse/core';
 import type { HTMLAttributes } from 'vue';
-import { ref } from 'vue';
 
 const [UseTemplate, SlotContent] = createReusableTemplate();
 const [UseFooterTemplate, FooterSlotContent] = createReusableTemplate();
@@ -22,6 +22,13 @@ const props = defineProps<{
   /** When true, the footer slot is not rendered in drawer (mobile) mode.
    * Use when the footer only contains a close action — swipe-to-close is enough on mobile. */
   hideDrawerFooter?: boolean;
+  /** When true, the drawer (mobile) skips the grey grab-handle indicator.
+   * Use when the content paints its own flush element at the top edge. */
+  drawerCustomIndicator?: boolean;
+  /** When true, the title/description slots are rendered as visually-hidden (`sr-only`)
+   * accessible labels with no surrounding header spacing, instead of a styled visible header.
+   * Use when the content owns its own visible heading but Radix still needs a DialogTitle. */
+  srOnlyHeader?: boolean;
 }>();
 
 const emit = defineEmits(['update:open']);
@@ -30,24 +37,6 @@ const isOpen = useVModel(props, 'open', emit, { passive: true });
 
 const close = () => {
   isOpen.value = false;
-};
-
-const canScrollUp = ref(false);
-const canScrollDown = ref(false);
-
-const updateScrollState = ({ el }: { el: HTMLElement }) => {
-  canScrollUp.value = el.scrollTop > 0;
-  canScrollDown.value = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
-};
-
-const onScroll = (e: Event) => {
-  updateScrollState({ el: e.target as HTMLElement });
-};
-
-const onScrollAreaMounted = (el: unknown) => {
-  if (el instanceof HTMLElement) {
-    updateScrollState({ el });
-  }
 };
 </script>
 
@@ -61,15 +50,10 @@ const onScrollAreaMounted = (el: unknown) => {
   </UseFooterTemplate>
 
   <UseScrollArea>
-    <div
-      :ref="(el) => !props.noInternalScroll && onScrollAreaMounted(el)"
-      :class="[props.noInternalScroll ? 'contents' : 'scrollable-area min-h-0 flex-1 overflow-y-auto px-1 py-1']"
-      :data-can-scroll-up="!props.noInternalScroll ? canScrollUp : undefined"
-      :data-can-scroll-down="!props.noInternalScroll ? canScrollDown : undefined"
-      @scroll="!props.noInternalScroll && onScroll($event)"
-    >
+    <ScrollArea v-if="!props.noInternalScroll" class="-mx-1 min-h-0 flex-1" viewport-class="pl-1 pr-4">
       <SlotContent />
-    </div>
+    </ScrollArea>
+    <SlotContent v-else />
   </UseScrollArea>
 
   <template v-if="isMobile">
@@ -78,9 +62,25 @@ const onScrollAreaMounted = (el: unknown) => {
         <slot name="trigger" />
       </Drawer.DrawerTrigger>
 
-      <Drawer.DrawerContent :class="['px-4 pb-4', drawerContentClass]">
+      <Drawer.DrawerContent
+        :custom-indicator="props.drawerCustomIndicator"
+        :class="[
+          !props.noInternalScroll && 'grid grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden',
+          'px-4 pb-4',
+          drawerContentClass,
+        ]"
+      >
+        <template v-if="props.srOnlyHeader">
+          <Drawer.DrawerTitle class="sr-only">
+            <slot name="title" />
+          </Drawer.DrawerTitle>
+          <Drawer.DrawerDescription class="sr-only">
+            <slot name="description" />
+          </Drawer.DrawerDescription>
+        </template>
         <component
           :is="$slots.title || $slots.description ? Drawer.DrawerHeader : 'div'"
+          v-else
           class="mb-2 px-0 pt-6 pb-0 text-center"
         >
           <Drawer.DrawerTitle>
@@ -105,8 +105,22 @@ const onScrollAreaMounted = (el: unknown) => {
         <slot name="trigger" />
       </Dialog.DialogTrigger>
 
-      <Dialog.DialogContent :class="dialogContentClass" :custom-close="customClose">
-        <template v-if="$slots.title || $slots.description">
+      <Dialog.DialogContent
+        :class="[
+          !props.noInternalScroll && 'grid grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden',
+          dialogContentClass,
+        ]"
+        :custom-close="customClose"
+      >
+        <template v-if="props.srOnlyHeader">
+          <Dialog.DialogTitle class="sr-only">
+            <slot name="title" />
+          </Dialog.DialogTitle>
+          <Dialog.DialogDescription class="sr-only">
+            <slot name="description" />
+          </Dialog.DialogDescription>
+        </template>
+        <template v-else-if="$slots.title || $slots.description">
           <Dialog.DialogHeader class="mb-4 text-left">
             <Dialog.DialogTitle>
               <slot name="title" />
@@ -126,24 +140,3 @@ const onScrollAreaMounted = (el: unknown) => {
     </Dialog.Dialog>
   </template>
 </template>
-
-<style scoped>
-.scrollable-area {
-  position: relative;
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    black var(--scroll-fade-top, 0px),
-    black calc(100% - var(--scroll-fade-bottom, 0px)),
-    transparent 100%
-  );
-}
-
-.scrollable-area[data-can-scroll-up='true'] {
-  --scroll-fade-top: 16px;
-}
-
-.scrollable-area[data-can-scroll-down='true'] {
-  --scroll-fade-bottom: 16px;
-}
-</style>

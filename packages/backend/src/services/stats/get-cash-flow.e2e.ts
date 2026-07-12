@@ -27,8 +27,8 @@ async function provisionRecipient() {
 
 /** Fixed date range that spans a single monthly bucket. */
 const RANGE = {
-  from: '2025-01-01T00:00:00.000Z',
-  to: '2025-01-31T23:59:59.999Z',
+  from: '2025-01-01',
+  to: '2025-01-31',
   granularity: 'monthly' as const,
 };
 
@@ -82,6 +82,27 @@ describe('GET /stats/cash-flow', () => {
     expect(period.expenses).toBe(0);
     expect(result.totals.income).toBe(0);
     expect(result.totals.expenses).toBe(0);
+  });
+
+  it('rejects an inverted range (from later than to) with 422', async () => {
+    const response = await helpers.getCashFlow({
+      from: '2025-01-31',
+      to: '2025-01-01',
+      granularity: 'monthly',
+    });
+
+    expect(response.statusCode).toBe(422);
+  });
+
+  it('rejects a malformed / non-real date with 422', async () => {
+    const response = await helpers.getCashFlow({
+      // Month 13 / day 45 is not a real calendar date.
+      from: '2025-13-45',
+      to: '2025-01-31',
+      granularity: 'monthly',
+    });
+
+    expect(response.statusCode).toBe(422);
   });
 
   it('shared-account regression: recipient tx using owner category resolves correctly (no "Unknown" leak)', async () => {

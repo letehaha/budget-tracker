@@ -228,18 +228,123 @@ describe('Update transaction controller', () => {
       });
 
       // Change base tx account to USD, amount makes same as refAmount
-      // opposite tx amount stays as previous, but refAmount makes same as base tx
+      // opposite tx amount stays as previous, but refAmount makes same as base tx.
+      // destinationAmount is restated because the pair is cross-currency — an
+      // amount edit without it is rejected.
       const [updatedBaseTx, updatedOppositeTx] = await helpers.updateTransaction({
         id: baseTx.id,
         payload: {
           accountId: accountUSD.id,
           amount: 2500,
+          destinationAmount: Number(oppositeTx!.amount),
         },
         raw: true,
       });
 
       expect(updatedBaseTx.amount).toEqual(updatedBaseTx.refAmount);
       expect(updatedOppositeTx!.amount).toEqual(oppositeTx!.amount);
+      expect(updatedOppositeTx!.refAmount).toEqual(updatedBaseTx.refAmount);
+    });
+  });
+
+  describe('amount-only edits on transfer pairs', () => {
+    it('re-derives the opposite leg amount on a same-currency transfer and keeps refAmounts consistent', async () => {
+      const [accountA, accountB] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createAccount({ raw: true }),
+      ]);
+
+      const [baseTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: accountA.id,
+            amount: 100,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: 100,
+          destinationAccountId: accountB.id,
+        },
+        raw: true,
+      });
+
+      const [updatedBaseTx, updatedOppositeTx] = await helpers.updateTransaction({
+        id: baseTx.id,
+        payload: { amount: 250 },
+        raw: true,
+      });
+
+      expect(updatedBaseTx.amount).toBe(250);
+      expect(updatedOppositeTx!.amount).toBe(250);
+      expect(updatedOppositeTx!.refAmount).toEqual(updatedBaseTx.refAmount);
+
+      // Both persisted legs carry the new amount, not just the response payload.
+      const transactions = (await helpers.getTransactions({ raw: true }))!;
+      expect(transactions.find((tx) => tx.id === updatedBaseTx.id)!.amount).toBe(250);
+      expect(transactions.find((tx) => tx.id === updatedOppositeTx!.id)!.amount).toBe(250);
+    });
+
+    it('rejects an amount-only edit on a cross-currency transfer and leaves both legs unchanged', async () => {
+      const accountUSD = await helpers.createAccount({ raw: true });
+      const { account: accountUAH } = await helpers.createAccountWithNewCurrency({
+        currency: 'UAH',
+      });
+
+      const [baseTx, oppositeTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: accountUSD.id,
+            amount: 10,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: 400,
+          destinationAccountId: accountUAH.id,
+        },
+        raw: true,
+      });
+
+      const response = await helpers.updateTransaction({
+        id: baseTx.id,
+        payload: { amount: 15 },
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const transactions = (await helpers.getTransactions({ raw: true }))!;
+      const baseAfter = transactions.find((tx) => tx.id === baseTx.id)!;
+      const oppositeAfter = transactions.find((tx) => tx.id === oppositeTx!.id)!;
+      expect(baseAfter.amount).toBe(10);
+      expect(baseAfter.refAmount).toEqual(baseTx.refAmount);
+      expect(oppositeAfter.amount).toBe(400);
+      expect(oppositeAfter.refAmount).toEqual(oppositeTx!.refAmount);
+    });
+
+    it('accepts a cross-currency amount edit when destinationAmount is restated', async () => {
+      const accountUSD = await helpers.createAccount({ raw: true });
+      const { account: accountUAH } = await helpers.createAccountWithNewCurrency({
+        currency: 'UAH',
+      });
+
+      const [baseTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: accountUSD.id,
+            amount: 10,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: 400,
+          destinationAccountId: accountUAH.id,
+        },
+        raw: true,
+      });
+
+      const [updatedBaseTx, updatedOppositeTx] = await helpers.updateTransaction({
+        id: baseTx.id,
+        payload: { amount: 15, destinationAmount: 600 },
+        raw: true,
+      });
+
+      expect(updatedBaseTx.amount).toBe(15);
+      expect(updatedOppositeTx!.amount).toBe(600);
       expect(updatedOppositeTx!.refAmount).toEqual(updatedBaseTx.refAmount);
     });
   });

@@ -1,6 +1,6 @@
 import { SubscriptionPeriodNotificationModel, RemindBeforePreset, RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import SubscriptionPeriods from './subscription-periods.model';
 
@@ -10,11 +10,7 @@ import SubscriptionPeriods from './subscription-periods.model';
   freezeTableName: true,
 })
 export default class SubscriptionPeriodNotifications extends Model implements SubscriptionPeriodNotificationModel {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => SubscriptionPeriods)

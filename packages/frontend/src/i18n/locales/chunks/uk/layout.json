@@ -5,6 +5,7 @@
     "accountsList": "Усі рахунки",
     "bankIntegrations": "Банківські інтеграції",
     "investments": "Інвестиції",
+    "loans": "Кредити",
     "allTransactions": "Всі транзакції",
     "transactions": "Транзакції",
     "transactionGroups": "Групи",
@@ -27,6 +28,10 @@
         "label": "Розділи бічної панелі",
         "description": "Виберіть, які секції відображати в бічній панелі.",
         "alwaysVisibleTooltip": "Ця секція завжди видима."
+      },
+      "hideZeroBalances": {
+        "label": "Приховати рахунки з нульовим балансом",
+        "description": "Приховуйте рахунки та групи з нульовим балансом"
       }
     },
     "accountsView": {
@@ -39,6 +44,7 @@
       "noPortfolios": "Поки немає портфелів",
       "ventures": "Венчури",
       "cars": "Автомобілі",
+      "loans": "Кредити",
       "collapseNavigation": "Згорнути навігацію",
       "viaHousehold": "Через сім'ю {handle}",
       "sharedBy": "Поділено з {handle}",
@@ -47,11 +53,13 @@
   },
   "header": {
     "add": "Додати",
+    "import": "Імпорт",
     "importData": "Імпорт даних",
     "language": "Мова",
     "newTransaction": "Нова транзакція",
     "settings": "Налаштування",
     "feedback": "Надіслати відгук",
+    "support": "Підтримати",
     "sync": {
       "syncing": "Синхронізація",
       "synchronizing": "Синхронізація...",

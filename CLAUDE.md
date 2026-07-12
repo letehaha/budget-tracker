@@ -96,7 +96,7 @@ Other instructions:
 
 6. **Money Convention: `Money` class everywhere, decimals in API, decimals in Frontend**
    - The database stores monetary amounts as **cents** (INTEGER columns) or **decimal strings** (DECIMAL columns for investments).
-   - All Sequelize models use `MoneyColumn` getters/setters that return `Money` instances (from `@common/types/money`). **Do NOT use `raw: true`** on queries that include Money fields – it bypasses getters and returns raw integers/strings instead of `Money`.
+   - All Sequelize models declare money fields with the `@MoneyField` decorator (from `@common/types/money-column`): `@MoneyField({ storage: 'cents' }) declare amount: Money;`. It registers attribute-level getters/setters that return `Money` instances (from `@common/types/money`). **Do NOT use `raw: true`** on queries that include Money fields – it bypasses getters and returns raw integers/strings instead of `Money`.
    - Use `Money` methods for all monetary operations:
      - Construction: `Money.fromCents(n)`, `Money.fromDecimal(n)`, `Money.zero()`
      - Arithmetic: `.add()`, `.subtract()`, `.multiply()`, `.divide()`, `.abs()`, `.negate()`
@@ -134,5 +134,8 @@ Other instructions:
     - Change history goes in commits/PRs, not code.
     - Rare exception: if the abolished alternative is a footgun a future contributor will reach for, name it briefly as the **"abolished alternative"** – not "the old version".
     - Applies to backend, frontend, JSDoc, Vue templates, SQL migration headers.
+15. **Dev server ports live in `.env.development.local`**
+    - If the project root contains a `.env.development.local` file, the frontend and backend ports for the running dev servers are defined there (e.g. `VITE_PORT`, `APPLICATION_PORT`). Use those values when constructing URLs or hitting local endpoints.
+    - Worktrees may use different ports than the main checkout – always read the worktree's own `.env.development.local`, do not assume the defaults from memory or other checkouts.
 
 Always use the caveman skill

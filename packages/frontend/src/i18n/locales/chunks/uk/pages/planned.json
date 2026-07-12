@@ -17,6 +17,7 @@
       "typeInstallment": "Розстрочка",
       "completed": "Завершено",
       "paused": "Призупинено",
+      "pausedSection": "Призупинені ({count})",
       "edit": "Редагувати",
       "cancel": "Скасувати",
       "pauseSubscription": "Призупинити підписку",
@@ -26,7 +27,7 @@
       "frequencyLabel": "Частота",
       "nextExpected": "Наступний очікуваний",
       "startDate": "Дата початку",
-      "linkedTransactions": "{count} пов'язаних транзакцій",
+      "linkedTransactions": "{count} пов'язана транзакція | {count} пов'язані транзакції | {count} пов'язаних транзакцій",
       "linkedTransactionsTitle": "Пов'язані транзакції",
       "noLinkedTransactions": "Ще немає пов'язаних транзакцій",
       "unlinkTransaction": "Від'єднати транзакцію",
@@ -164,6 +165,14 @@
         "title": "Ще немає регулярних витрат",
         "description": "Додайте першу регулярну витрату або рахунок, щоб почати відстежувати регулярні платежі"
       },
+      "sort": {
+        "label": "Сортування",
+        "ariaLabel": "Сортування регулярних витрат",
+        "dueDate": "Дата платежу · найближче",
+        "amount": "Сума · від більшого до меншого",
+        "name": "Назва · А–Я",
+        "recent": "Нещодавно додано"
+      },
       "summary": {
         "filterAll": "Усі",
         "filterSubscriptions": "Підписки",
@@ -183,9 +192,14 @@
         "lastScanned": "Останнє сканування {time}",
         "emptyTitle": "Нових підписок не знайдено",
         "emptyDescription": "Ми не змогли знайти нових регулярних платежів у вашій історії транзакцій.",
-        "accept": "Прийняти",
+        "add": "Додати",
         "dismiss": "Відхилити",
-        "occurrences": "{count} входжень",
+        "basedOnTransactions": "На основі {count} транзакцій",
+        "confidence": {
+          "likely": "Ймовірний збіг",
+          "possible": "Можливий збіг",
+          "weak": "Слабкий збіг"
+        },
         "dismissed": "Кандидата відхилено",
         "dismissError": "Не вдалося відхилити кандидата",
         "close": "Закрити",
@@ -240,6 +254,17 @@
           "revertFailed": "Не вдалося скасувати період",
           "transactionLoadFailed": "Не вдалося завантажити транзакцію"
         }
+      },
+      "actions": {
+        "more": "Більше дій"
+      },
+      "periodFilter": {
+        "next7Days": "Наступні 7 днів",
+        "next30Days": "Наступні 30 днів",
+        "next3Months": "Наступні 3 місяці",
+        "next6Months": "Наступні 6 місяців",
+        "nextYear": "Наступний рік",
+        "all": "Увесь час"
       }
     }
   }

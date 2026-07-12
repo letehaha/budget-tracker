@@ -102,6 +102,32 @@ describe('parseImportDate', () => {
     // `20261340` matches COMPACT_DATE but month 13 is invalid.
     expect(parseImportDate({ value: '20261340', format: ANY_FORMAT })).toBeNull();
   });
+
+  describe('explicit fieldOrder on the ambiguous d/d/yyyy family', () => {
+    // The Sentry headline case: a German user's "12.01.2026" is January 12.
+    it('parses 12.01.2026 as January 12 under an explicit day-first order', () => {
+      const result = parseImportDate({ value: '12.01.2026', format: { fieldOrder: 'day-first' } });
+
+      expect(result).toEqual({ kind: 'dateOnly', year: 2026, month: 1, day: 12 });
+    });
+
+    it('parses 12.01.2026 as December 1 under an explicit month-first order', () => {
+      const result = parseImportDate({ value: '12.01.2026', format: { fieldOrder: 'month-first' } });
+
+      expect(result).toEqual({ kind: 'dateOnly', year: 2026, month: 12, day: 1 });
+    });
+
+    it('returns null for 13.13.2026 under both orders (13 is never a valid month)', () => {
+      expect(parseImportDate({ value: '13.13.2026', format: { fieldOrder: 'day-first' } })).toBeNull();
+      expect(parseImportDate({ value: '13.13.2026', format: { fieldOrder: 'month-first' } })).toBeNull();
+    });
+
+    it('returns null for 01/13/2026 under day-first (13 in month position is invalid)', () => {
+      // Day-first reads 01 as the day and 13 as the month — an impossible date,
+      // so it flows into the per-row invalid path rather than being re-guessed.
+      expect(parseImportDate({ value: '01/13/2026', format: { fieldOrder: 'day-first' } })).toBeNull();
+    });
+  });
 });
 
 describe('detectDateColumnFormat', () => {

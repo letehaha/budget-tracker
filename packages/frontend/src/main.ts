@@ -19,7 +19,7 @@ import App from './app.vue';
 identifyCurrentTheme();
 patchMetaViewportMaxScaleForiOS();
 if (!import.meta.env.DEV) {
-  installChunkReloadHandler();
+  installChunkReloadHandler({ router });
 }
 
 // Initialize locale from localStorage/browser

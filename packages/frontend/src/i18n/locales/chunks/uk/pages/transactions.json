@@ -180,7 +180,13 @@
         "removeTransactionDescriptionNormal": "Ви впевнені, що хочете видалити цю транзакцію з групи?",
         "removeButtonText": "Видалити",
         "removeAndDeleteButtonText": "Видалити й видалити групу",
-        "transactionCountSuffix": "транзакцій"
+        "transactionCountSuffix": "транзакцій",
+        "summary": {
+          "transactions": "Транзакції",
+          "net": "Нетто",
+          "moneyIn": "Надходження",
+          "moneyOut": "Видатки"
+        }
       },
       "transactionGroupRecord": {
         "transactionCountLabel": "транзакцій"

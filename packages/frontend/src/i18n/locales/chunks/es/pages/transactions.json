@@ -180,7 +180,13 @@
         "removeTransactionDescriptionNormal": "¿Está seguro de que desea eliminar esta transacción del grupo?",
         "removeButtonText": "Eliminar",
         "removeAndDeleteButtonText": "Eliminar y eliminar grupo",
-        "transactionCountSuffix": "transacciones"
+        "transactionCountSuffix": "transacciones",
+        "summary": {
+          "transactions": "Transacciones",
+          "net": "Neto",
+          "moneyIn": "Dinero entrante",
+          "moneyOut": "Dinero saliente"
+        }
       },
       "transactionGroupRecord": {
         "transactionCountLabel": "transacciones"

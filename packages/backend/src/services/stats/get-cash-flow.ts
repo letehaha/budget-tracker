@@ -3,27 +3,16 @@ import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
+import { expandCategoryIdsWithDescendants, getRootCategoryId } from '@services/categories/category-hierarchy';
 import {
   AccessibleCategoryInfo,
   getAccessibleCategoryMap,
 } from '@services/categories/get-accessible-category-map.service';
-import {
-  addDays,
-  addMonths,
-  addWeeks,
-  endOfDay,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isBefore,
-  max,
-  min,
-  startOfMonth,
-  startOfWeek,
-} from 'date-fns';
+import { withTransaction } from '@services/common/with-transaction';
+import { format } from 'date-fns';
 import { Op } from 'sequelize';
 
-import { getWhereConditionForTime } from './utils';
+import { findBucketIndex, generatePeriodBuckets, getWhereConditionForTime } from './utils';
 
 interface GetCashFlowParams {
   userId: number;
@@ -33,84 +22,6 @@ interface GetCashFlowParams {
   accountId?: string;
   categoryIds?: RecordId[];
 }
-
-/**
- * Generates period buckets based on granularity
- */
-const generatePeriodBuckets = ({
-  from,
-  to,
-  granularity,
-}: {
-  from: string;
-  to: string;
-  granularity: endpointsTypes.CashFlowGranularity;
-}): { periodStart: Date; periodEnd: Date }[] => {
-  const buckets: { periodStart: Date; periodEnd: Date }[] = [];
-  const startDate = new Date(from);
-  // Use endOfDay to include all transactions on the last day of the period
-  const endDate = endOfDay(new Date(to));
-
-  let currentStart: Date;
-  let currentEnd: Date;
-
-  switch (granularity) {
-    case 'monthly': {
-      currentStart = startOfMonth(startDate);
-      while (isBefore(currentStart, endDate) || currentStart.getTime() === endDate.getTime()) {
-        currentEnd = endOfMonth(currentStart);
-        buckets.push({
-          periodStart: max([currentStart, startDate]),
-          periodEnd: min([currentEnd, endDate]),
-        });
-        currentStart = addMonths(currentStart, 1);
-      }
-      break;
-    }
-    case 'biweekly': {
-      // Start from the beginning of the week containing `from`
-      currentStart = startOfWeek(startDate, { weekStartsOn: 1 });
-      while (isBefore(currentStart, endDate) || currentStart.getTime() === endDate.getTime()) {
-        // Bi-weekly: 2 weeks at a time. Use endOfDay to include all transactions on the last day.
-        currentEnd = endOfDay(addDays(addWeeks(currentStart, 2), -1));
-        buckets.push({
-          periodStart: max([currentStart, startDate]),
-          periodEnd: min([currentEnd, endDate]),
-        });
-        currentStart = addWeeks(currentStart, 2);
-      }
-      break;
-    }
-    case 'weekly': {
-      currentStart = startOfWeek(startDate, { weekStartsOn: 1 });
-      while (isBefore(currentStart, endDate) || currentStart.getTime() === endDate.getTime()) {
-        currentEnd = endOfWeek(currentStart, { weekStartsOn: 1 });
-        buckets.push({
-          periodStart: max([currentStart, startDate]),
-          periodEnd: min([currentEnd, endDate]),
-        });
-        currentStart = addWeeks(currentStart, 1);
-      }
-      break;
-    }
-  }
-
-  return buckets;
-};
-
-/**
- * Determines which bucket a transaction belongs to based on its time
- */
-const findBucketIndex = ({
-  transactionTime,
-  buckets,
-}: {
-  transactionTime: Date;
-  buckets: { periodStart: Date; periodEnd: Date }[];
-}): number => {
-  const txTime = transactionTime.getTime();
-  return buckets.findIndex((bucket) => txTime >= bucket.periodStart.getTime() && txTime <= bucket.periodEnd.getTime());
-};
 
 type CategoryInfo = AccessibleCategoryInfo;
 
@@ -124,28 +35,6 @@ interface PeriodCategoryData {
   expenses: number;
   categories: Map<string, CategoryAmounts>; // categoryId -> amounts by type (aggregated by target category)
 }
-
-/**
- * Get the root category ID for a given category
- */
-const getRootCategoryId = ({
-  categoryId,
-  categoryMap,
-}: {
-  categoryId: string;
-  categoryMap: Map<string, CategoryInfo>;
-}): string => {
-  let current = categoryMap.get(categoryId);
-  if (!current) return categoryId;
-
-  while (current.parentId !== null) {
-    const parent = categoryMap.get(current.parentId);
-    if (!parent) break;
-    current = parent;
-  }
-
-  return current.id;
-};
 
 /**
  * Get the aggregation category ID for a transaction's category.
@@ -163,7 +52,7 @@ const getAggregationCategoryId = ({
 }): string => {
   // If no target categories specified, aggregate to root
   if (!targetCategoryIds) {
-    return getRootCategoryId({ categoryId, categoryMap });
+    return getRootCategoryId({ categoryId, byId: categoryMap });
   }
 
   // If this category is itself a target, use it
@@ -189,194 +78,189 @@ const getAggregationCategoryId = ({
 /**
  * Fetches cash flow data (income vs expenses) for a specified user within a date range,
  * aggregated by the specified granularity.
+ *
+ * Wrapped in a transaction so the category-map and transaction reads share one
+ * pinned Postgres connection instead of a pool checkout per query — checkouts
+ * from a drained pool trigger slow physical `pg.connect` mid-request.
  */
-export const getCashFlow = async ({
-  userId,
-  from,
-  to,
-  granularity,
-  accountId,
-  categoryIds,
-}: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
-  // Generate period buckets
-  const buckets = generatePeriodBuckets({ from, to, granularity });
+export const getCashFlow = withTransaction(
+  async ({
+    userId,
+    from,
+    to,
+    granularity,
+    accountId,
+    categoryIds,
+  }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
+    // Generate period buckets
+    const buckets = generatePeriodBuckets({ from, to, granularity });
 
-  // Initialize period data
-  const periodDataMap: Map<number, PeriodCategoryData> = new Map();
-  buckets.forEach((_, index) => {
-    periodDataMap.set(index, { income: 0, expenses: 0, categories: new Map() });
-  });
-
-  // Fetch categories for every owner whose accounts the caller can see (own + shared) so
-  // shared-account transactions — which reference the owner's categoryId — render with
-  // their real name/color instead of falling out of the hierarchy map.
-  const { categories: allCategories, byId: categoryMap } = await getAccessibleCategoryMap({ userId });
-
-  // Get root categories (those without a parent)
-  const rootCategories = allCategories.filter((cat) => cat.parentId === null);
-
-  // Determine which category IDs to filter by in the query
-  let queryFilterCategoryIds: string[] | undefined;
-
-  if (categoryIds && categoryIds.length > 0) {
-    // User selected specific categories - expand to include all children
-    const expandedCategoryIds = new Set<string>(categoryIds);
-
-    // For each selected category, add all its descendants
-    allCategories.forEach((cat) => {
-      // Check if this category's root or any ancestor is in the selected list
-      let current: CategoryInfo | undefined = categoryMap.get(cat.id);
-      while (current) {
-        if (categoryIds.includes(current.id)) {
-          expandedCategoryIds.add(cat.id);
-          break;
-        }
-        if (current.parentId === null) break;
-        current = categoryMap.get(current.parentId);
-      }
+    // Initialize period data
+    const periodDataMap: Map<number, PeriodCategoryData> = new Map();
+    buckets.forEach((_, index) => {
+      periodDataMap.set(index, { income: 0, expenses: 0, categories: new Map() });
     });
 
-    queryFilterCategoryIds = Array.from(expandedCategoryIds);
-  }
+    // Fetch categories for every owner whose accounts the caller can see (own + shared) so
+    // shared-account transactions — which reference the owner's categoryId — render with
+    // their real name/color instead of falling out of the hierarchy map.
+    const { categories: allCategories, byId: categoryMap } = await getAccessibleCategoryMap({ userId });
 
-  // Build where clause for categories
-  const categoryWhere =
-    queryFilterCategoryIds && queryFilterCategoryIds.length > 0 ? { [Op.in]: queryFilterCategoryIds } : undefined;
+    // Get root categories (those without a parent)
+    const rootCategories = allCategories.filter((cat) => cat.parentId === null);
 
-  // Fetch all transactions (both income and expense) in the date range
-  const transactions = await Transactions.default.findAll({
-    where: removeUndefinedKeys({
-      accountId,
-      userId,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-      transactionType: {
-        [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense],
-      },
-      ...(categoryWhere ? { categoryId: categoryWhere } : {}),
-      ...getWhereConditionForTime({ from, to, columnName: 'time' }),
-    }),
-    include: [
-      {
-        model: Accounts,
-        where: { excludeFromStats: false },
-        attributes: [],
-      },
-    ],
-    attributes: ['time', 'refAmount', 'transactionType', 'categoryId'],
-  });
+    // Determine which category IDs to filter by in the query
+    let queryFilterCategoryIds: string[] | undefined;
 
-  // Determine which categories to report in the breakdown
-  // If specific categories selected, report those exact categories (not aggregated to root)
-  // Otherwise, aggregate to root categories
-  let reportCategoryIds: RecordId[];
-  // When specific categories are selected, aggregate to those categories instead of root
-  const aggregateToSelectedCategories = categoryIds && categoryIds.length > 0;
-
-  if (aggregateToSelectedCategories) {
-    // Report the exact categories the user selected
-    reportCategoryIds = categoryIds;
-  } else {
-    // Use all root categories
-    reportCategoryIds = rootCategories.map((cat) => cat.id);
-  }
-
-  // Create a set of target categories for aggregation (when specific categories are selected)
-  const targetCategoryIds = aggregateToSelectedCategories ? new Set<string>(categoryIds) : undefined;
-
-  // Aggregate transactions into buckets
-  for (const tx of transactions) {
-    const txTime = new Date(tx.time);
-    const bucketIndex = findBucketIndex({ transactionTime: txTime, buckets });
-
-    if (bucketIndex === -1) continue;
-
-    const periodData = periodDataMap.get(bucketIndex)!;
-    const amount = tx.refAmount.toCents();
-
-    if (tx.transactionType === TRANSACTION_TYPES.income) {
-      periodData.income += amount;
-    } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-      periodData.expenses += amount;
+    if (categoryIds && categoryIds.length > 0) {
+      // User selected specific categories - expand to include all descendants so selecting a
+      // parent also matches transactions filed directly under its subcategories.
+      queryFilterCategoryIds = expandCategoryIdsWithDescendants({
+        categoryIds,
+        categories: allCategories,
+        byId: categoryMap,
+      });
     }
 
-    // Track per-category amounts by type
-    // When specific categories selected: aggregate to those categories
-    // Otherwise: aggregate to root categories
-    if (tx.categoryId) {
-      const aggregationCategoryId = getAggregationCategoryId({
-        categoryId: tx.categoryId,
-        categoryMap,
-        targetCategoryIds,
-      });
-      const currentAmounts = periodData.categories.get(aggregationCategoryId) || {
-        incomeAmount: 0,
-        expenseAmount: 0,
-      };
+    // Build where clause for categories
+    const categoryWhere =
+      queryFilterCategoryIds && queryFilterCategoryIds.length > 0 ? { [Op.in]: queryFilterCategoryIds } : undefined;
+
+    // Fetch all transactions (both income and expense) in the date range
+    const transactions = await Transactions.default.findAll({
+      where: removeUndefinedKeys({
+        accountId,
+        userId,
+        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        transactionType: {
+          [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense],
+        },
+        ...(categoryWhere ? { categoryId: categoryWhere } : {}),
+        ...getWhereConditionForTime({ from, to, columnName: 'time' }),
+      }),
+      include: [
+        {
+          model: Accounts,
+          where: { excludeFromStats: false },
+          attributes: [],
+        },
+      ],
+      attributes: ['time', 'refAmount', 'transactionType', 'categoryId'],
+    });
+
+    // Determine which categories to report in the breakdown
+    // If specific categories selected, report those exact categories (not aggregated to root)
+    // Otherwise, aggregate to root categories
+    let reportCategoryIds: RecordId[];
+    // When specific categories are selected, aggregate to those categories instead of root
+    const aggregateToSelectedCategories = categoryIds && categoryIds.length > 0;
+
+    if (aggregateToSelectedCategories) {
+      // Report the exact categories the user selected
+      reportCategoryIds = categoryIds;
+    } else {
+      // Use all root categories
+      reportCategoryIds = rootCategories.map((cat) => cat.id);
+    }
+
+    // Create a set of target categories for aggregation (when specific categories are selected)
+    const targetCategoryIds = aggregateToSelectedCategories ? new Set<string>(categoryIds) : undefined;
+
+    // Aggregate transactions into buckets
+    for (const tx of transactions) {
+      const txTime = new Date(tx.time);
+      const bucketIndex = findBucketIndex({ transactionTime: txTime, buckets });
+
+      if (bucketIndex === -1) continue;
+
+      const periodData = periodDataMap.get(bucketIndex)!;
+      const amount = tx.refAmount.toCents();
 
       if (tx.transactionType === TRANSACTION_TYPES.income) {
-        currentAmounts.incomeAmount += amount;
+        periodData.income += amount;
       } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-        currentAmounts.expenseAmount += amount;
+        periodData.expenses += amount;
       }
 
-      periodData.categories.set(aggregationCategoryId, currentAmounts);
-    }
-  }
+      // Track per-category amounts by type
+      // When specific categories selected: aggregate to those categories
+      // Otherwise: aggregate to root categories
+      if (tx.categoryId) {
+        const aggregationCategoryId = getAggregationCategoryId({
+          categoryId: tx.categoryId,
+          categoryMap,
+          targetCategoryIds,
+        });
+        const currentAmounts = periodData.categories.get(aggregationCategoryId) || {
+          incomeAmount: 0,
+          expenseAmount: 0,
+        };
 
-  // Build response periods
-  const periods: endpointsTypes.CashFlowPeriodData[] = buckets.map((bucket, index) => {
-    const data = periodDataMap.get(index)!;
-
-    const period: endpointsTypes.CashFlowPeriodData = {
-      periodStart: format(bucket.periodStart, 'yyyy-MM-dd'),
-      periodEnd: format(bucket.periodEnd, 'yyyy-MM-dd'),
-      income: data.income,
-      expenses: data.expenses,
-      netFlow: data.income - data.expenses,
-    };
-
-    // Always add category breakdown (for stacked bars)
-    // Filter to only include categories that have data in at least one period
-    const categoriesWithData = reportCategoryIds.filter((catId) => {
-      // Check if this category has any data across all periods
-      for (const [, periodData] of periodDataMap) {
-        const amounts = periodData.categories.get(catId);
-        if (amounts && (amounts.incomeAmount !== 0 || amounts.expenseAmount !== 0)) {
-          return true;
+        if (tx.transactionType === TRANSACTION_TYPES.income) {
+          currentAmounts.incomeAmount += amount;
+        } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
+          currentAmounts.expenseAmount += amount;
         }
+
+        periodData.categories.set(aggregationCategoryId, currentAmounts);
       }
-      return false;
-    });
+    }
 
-    period.categories = categoriesWithData.map((catId) => {
-      const catInfo = categoryMap.get(catId) || { name: 'Unknown', color: '#888888' };
-      const amounts = data.categories.get(catId) || { incomeAmount: 0, expenseAmount: 0 };
-      return {
-        categoryId: catId,
-        name: catInfo.name,
-        color: catInfo.color,
-        incomeAmount: amounts.incomeAmount,
-        expenseAmount: amounts.expenseAmount,
+    // Build response periods
+    const periods: endpointsTypes.CashFlowPeriodData[] = buckets.map((bucket, index) => {
+      const data = periodDataMap.get(index)!;
+
+      const period: endpointsTypes.CashFlowPeriodData = {
+        periodStart: format(bucket.periodStart, 'yyyy-MM-dd'),
+        periodEnd: format(bucket.periodEnd, 'yyyy-MM-dd'),
+        income: data.income,
+        expenses: data.expenses,
+        netFlow: data.income - data.expenses,
       };
+
+      // Always add category breakdown (for stacked bars)
+      // Filter to only include categories that have data in at least one period
+      const categoriesWithData = reportCategoryIds.filter((catId) => {
+        // Check if this category has any data across all periods
+        for (const [, periodData] of periodDataMap) {
+          const amounts = periodData.categories.get(catId);
+          if (amounts && (amounts.incomeAmount !== 0 || amounts.expenseAmount !== 0)) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      period.categories = categoriesWithData.map((catId) => {
+        const catInfo = categoryMap.get(catId) || { name: 'Unknown', color: '#888888' };
+        const amounts = data.categories.get(catId) || { incomeAmount: 0, expenseAmount: 0 };
+        return {
+          categoryId: catId,
+          name: catInfo.name,
+          color: catInfo.color,
+          incomeAmount: amounts.incomeAmount,
+          expenseAmount: amounts.expenseAmount,
+        };
+      });
+
+      return period;
     });
 
-    return period;
-  });
+    // Calculate totals
+    const totals = periods.reduce(
+      (acc, period) => {
+        acc.income += period.income;
+        acc.expenses += period.expenses;
+        acc.netFlow += period.netFlow;
+        return acc;
+      },
+      { income: 0, expenses: 0, netFlow: 0, savingsRate: 0 },
+    );
 
-  // Calculate totals
-  const totals = periods.reduce(
-    (acc, period) => {
-      acc.income += period.income;
-      acc.expenses += period.expenses;
-      acc.netFlow += period.netFlow;
-      return acc;
-    },
-    { income: 0, expenses: 0, netFlow: 0, savingsRate: 0 },
-  );
+    // Calculate savings rate (percentage of income saved)
+    // If no income, savings rate is 0 (or could be negative infinity, but we'll use 0)
+    totals.savingsRate = totals.income > 0 ? Math.round((totals.netFlow / totals.income) * 100) : 0;
 
-  // Calculate savings rate (percentage of income saved)
-  // If no income, savings rate is 0 (or could be negative infinity, but we'll use 0)
-  totals.savingsRate = totals.income > 0 ? Math.round((totals.netFlow / totals.income) * 100) : 0;
-
-  return { periods, totals };
-};
+    return { periods, totals };
+  },
+);

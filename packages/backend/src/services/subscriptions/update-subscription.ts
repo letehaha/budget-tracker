@@ -5,10 +5,11 @@ import {
   SUBSCRIPTION_TYPES,
   SubscriptionMatchingRules,
 } from '@bt/shared/types';
-import { Money } from '@common/types/money';
+import { Money, centsToApiDecimalOrNull } from '@common/types/money';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import { Op } from 'sequelize';
 
 import { ensureNextPeriodExists, reconcileInstallmentCompletion } from './ensure-next-period';
@@ -102,14 +103,12 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     maxOccurrences: fields.maxOccurrences !== undefined ? fields.maxOccurrences : subscription.maxOccurrences,
   });
 
-  // The API exchanges decimals; the column stores raw cents (no Money getter).
-  // Only touch the field when the caller actually sent it, so omitting it leaves
-  // the stored amount unchanged. `null` clears the amount.
-  if (fields.expectedAmount !== undefined) {
-    fields = {
-      ...fields,
-      expectedAmount: fields.expectedAmount != null ? Money.fromDecimal(fields.expectedAmount).toCents() : null,
-    };
+  // The summary endpoint converts expectedAmount into the user's base currency,
+  // which requires a UsersCurrencies row for the subscription's currency —
+  // connect it (idempotent) whenever the currency is set or changed. Lives in
+  // the service so MCP callers get the same guarantee as HTTP ones.
+  if (fields.expectedCurrencyCode) {
+    await ensureUserCurrencyConnected({ userId, currencyCode: fields.expectedCurrencyCode });
   }
 
   // When a dueDate is being set (not cleared), derive anchorDay so recurring
@@ -136,7 +135,16 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
   const wasInstallment = subscription.type === SUBSCRIPTION_TYPES.installment;
   const previousDueDate = subscription.dueDate;
 
-  await subscription.update(fields);
+  // The API exchanges decimals; the cents-backed column takes a Money (or null
+  // to clear). Convert only when the caller sent the field, so an omitted
+  // expectedAmount leaves the stored amount untouched.
+  const { expectedAmount: expectedAmountInput, ...restFields } = fields;
+  await subscription.update({
+    ...restFields,
+    ...(expectedAmountInput !== undefined
+      ? { expectedAmount: expectedAmountInput != null ? Money.fromDecimal(expectedAmountInput) : null }
+      : {}),
+  });
 
   // Keep the live schedule in step with an edited due date. Realigning only fires
   // when the due date ACTUALLY changed (`fields.dueDate !== previousDueDate`). The
@@ -215,6 +223,6 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
   const plain = subscription.toJSON() as Subscriptions;
   return {
     ...plain,
-    expectedAmount: plain.expectedAmount != null ? Money.fromCents(plain.expectedAmount).toNumber() : null,
+    expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
   };
 });

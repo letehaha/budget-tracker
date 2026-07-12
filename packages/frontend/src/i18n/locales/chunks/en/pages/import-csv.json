@@ -102,7 +102,6 @@
           "currency": "Currency",
           "skipAndImport": "Skip & import",
           "cancelImport": "Cancel import",
-          "dateColumnErrorTitle": "Date column error in \"{column}\"",
           "noInvalidRows": "No invalid rows",
           "noDuplicates": "No duplicates",
           "expand": "Show full data",
@@ -118,6 +117,7 @@
           "accountsCreated": "Accounts Created",
           "categoriesCreated": "Categories Created",
           "tagsCreated": "Tags Created",
+          "payeesCreated": "Payees Created",
           "importErrors": "Import Errors",
           "rowNumber": "Row #",
           "error": "Error",
@@ -365,7 +365,19 @@
           "category": "Category",
           "account": "Account",
           "currency": "Currency",
-          "transactionType": "Transaction type"
+          "transactionType": "Transaction type",
+          "payee": "Payee"
+        },
+        "dateFormat": {
+          "label": "Date format",
+          "placeholder": "Select date format",
+          "dayFirstOption": "Day first — {example}",
+          "monthFirstOption": "Month first — {example}",
+          "suggestedBadge": "Suggested",
+          "isoDetected": "ISO date format detected — dates in this column are year-first, so no day/month choice is needed.",
+          "previewLabel": "Preview",
+          "previewUnrecognized": "unrecognized",
+          "mismatchWarning": "{count} row doesn't match this format and will be flagged as invalid. | {count} rows don't match this format and will be flagged as invalid."
         }
       },
       "importResults": {

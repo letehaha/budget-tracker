@@ -52,7 +52,6 @@ const fullTransaction: TransactionApiResponse = {
   transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
   transferId: null,
   originalId: 'orig-1',
-  externalData: { raw: 'BANK BLOB' },
   refundLinked: false,
   payeeId: null,
   payeeLocked: false,
@@ -61,7 +60,7 @@ const fullTransaction: TransactionApiResponse = {
   updatedAt: new Date('2026-01-02T10:00:00.000Z'),
   tags: [{ id: 'tag-1', name: 'food', color: '#fff', icon: 'cup' }],
   splits: [{ id: 'split-1', categoryId: 'cat-2', amount: 12.34, refAmount: 11.5, note: 'half' }],
-  transactionGroups: [{ id: 'grp-1', name: 'Trip' }],
+  transactionGroups: [{ id: 'grp-1', name: 'Trip', transactionCount: 2 }],
 };
 
 describe('MCP serializers', () => {
@@ -133,7 +132,6 @@ describe('MCP serializers', () => {
         'refCurrencyCode',
         'transferId',
         'originalId',
-        'externalData',
         'commissionRate',
         'refCommissionRate',
         'cashbackAmount',

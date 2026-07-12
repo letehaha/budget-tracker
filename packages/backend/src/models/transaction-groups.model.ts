@@ -1,8 +1,8 @@
 import { RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import TransactionGroupItems from './transaction-group-items.model';
 
@@ -11,7 +11,7 @@ import TransactionGroupItems from './transaction-group-items.model';
   timestamps: true,
 })
 export default class TransactionGroups extends Model {
-  @Column({ primaryKey: true, allowNull: false, type: DataType.UUID, defaultValue: () => uuidv7() })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)

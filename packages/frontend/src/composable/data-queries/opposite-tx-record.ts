@@ -1,6 +1,6 @@
 import { loadTransactionsByTransferId } from '@/api/transactions';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { isTwoLegTransfer, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 
@@ -17,11 +17,10 @@ interface OppositeTxSource {
 // transfer_out_wallet (no transferId) to common_transfer after being linked.
 // A plain object is still accepted via toValue for non-reactive callers.
 export function useOppositeTxRecord(transaction: MaybeRefOrGetter<OppositeTxSource>) {
-  const isTransferTransaction = computed(() =>
-    [TRANSACTION_TRANSFER_NATURE.common_transfer, TRANSACTION_TRANSFER_NATURE.transfer_out_wallet].includes(
-      toValue(transaction).transferNature,
-    ),
-  );
+  const isTransferTransaction = computed(() => {
+    const nature = toValue(transaction).transferNature;
+    return isTwoLegTransfer(nature) || nature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet;
+  });
 
   return useQuery({
     queryKey: computed(() => {

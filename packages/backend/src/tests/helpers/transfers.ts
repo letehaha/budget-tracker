@@ -24,8 +24,8 @@ export function getTransferRecommendations<R extends boolean | undefined = undef
 }
 
 interface BulkScanTransferRecommendationsParams {
-  dateFrom: string;
-  dateTo: string;
+  from: string;
+  to: string;
   limit?: number;
   offset?: number;
   includeOutOfWallet?: boolean;

@@ -8,7 +8,7 @@ import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useOnboardingStore } from '@/stores/onboarding';
-import type { TransactionModel } from '@bt/shared/types';
+import { type TransactionModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 import type { UI_FORM_STRUCT } from '../types';
@@ -127,6 +127,10 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
       if (params.isTransferTx && params.form.toPortfolio) {
         invalidateTransferRelatedQueries(queryClient);
       }
+
+      // Loan caches need no extra handling: their keys are prefixed with
+      // transactionChange, so the blanket invalidation above already covers
+      // both the new destination and any previous loan the payment moved off.
 
       if (params.transaction?.id) {
         queryClient.invalidateQueries({

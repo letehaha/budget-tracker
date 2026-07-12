@@ -1,6 +1,6 @@
 import { SUBSCRIPTION_CANDIDATE_STATUS, SUBSCRIPTION_FREQUENCIES, RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
 import Subscriptions from './subscriptions.model';
@@ -12,11 +12,7 @@ import Users from './users.model';
   freezeTableName: true,
 })
 export default class SubscriptionCandidates extends Model {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Users)

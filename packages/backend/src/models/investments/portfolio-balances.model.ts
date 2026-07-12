@@ -1,6 +1,6 @@
 import { RecordId } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo, Index, PrimaryKey } from 'sequelize-typescript';
 
 import Currencies from '../currencies.model';
@@ -23,37 +23,17 @@ export default class PortfolioBalances extends Model {
   @Column({ type: DataType.STRING(3), allowNull: false })
   currencyCode!: string;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get availableCash(): Money {
-    return moneyGetDecimal(this, 'availableCash');
-  }
-  set availableCash(val: Money | string | number) {
-    moneySetDecimal(this, 'availableCash', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare availableCash: Money;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get totalCash(): Money {
-    return moneyGetDecimal(this, 'totalCash');
-  }
-  set totalCash(val: Money | string | number) {
-    moneySetDecimal(this, 'totalCash', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare totalCash: Money;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refAvailableCash(): Money {
-    return moneyGetDecimal(this, 'refAvailableCash');
-  }
-  set refAvailableCash(val: Money | string | number) {
-    moneySetDecimal(this, 'refAvailableCash', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare refAvailableCash: Money;
 
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get refTotalCash(): Money {
-    return moneyGetDecimal(this, 'refTotalCash');
-  }
-  set refTotalCash(val: Money | string | number) {
-    moneySetDecimal(this, 'refTotalCash', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare refTotalCash: Money;
 
   @Column({ type: DataType.DATE, allowNull: false })
   declare createdAt: Date;

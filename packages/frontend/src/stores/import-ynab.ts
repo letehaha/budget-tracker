@@ -69,9 +69,9 @@ export const useImportYnabStore = defineStore('importYnab', () => {
       // pickers don't keep their pre-import snapshot.
       await Promise.allSettled([
         useAccountsStore().refetchAccounts(),
-        useCategoriesStore().loadCategories(),
+        useCategoriesStore().loadCategories({ force: true }),
         useTagsStore().loadTags(),
-        useCurrenciesStore().loadCurrencies(),
+        useCurrenciesStore().loadCurrencies({ force: true }),
       ]);
     },
     // On failure the wizard stays on the execute step, where the failed status

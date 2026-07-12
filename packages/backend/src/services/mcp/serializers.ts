@@ -2,10 +2,9 @@
  * MCP-specific slimming over the REST serializer output.
  *
  * The REST serializers (`serializeAccounts`, `serializeTransactions`) carry
- * fields the frontend needs — bank-sync metadata, ACL/share context, UI hints,
- * audit timestamps, near-always-zero fee fields. For an AI client over MCP those
- * are wasted context tokens (and `externalData` can be kilobytes per row). These
- * helpers take the already-serialized, already-decimal output and keep only the
+ * fields the frontend needs — ACL/share context, UI hints, audit timestamps,
+ * near-always-zero fee fields. For an AI client over MCP those are wasted context
+ * tokens. These helpers take the already-serialized, already-decimal output and keep only the
  * fields an assistant reasons about. The shared serializers stay untouched.
  */
 import type Accounts from '@models/accounts.model';

@@ -4,8 +4,8 @@ import {
   SubscriptionPeriodStatus,
   RecordId,
 } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Subscriptions from './subscriptions.model';
 import Transactions from './transactions.model';
@@ -16,11 +16,7 @@ import Transactions from './transactions.model';
   freezeTableName: true,
 })
 export default class SubscriptionPeriods extends Model implements SubscriptionPeriodModel {
-  @Column({
-    type: DataType.UUID,
-    primaryKey: true,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Subscriptions)

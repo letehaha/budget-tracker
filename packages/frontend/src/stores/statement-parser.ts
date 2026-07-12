@@ -297,11 +297,11 @@ export const useStatementParserStore = defineStore('statementParser', () => {
       const dateRange = extractedDateRange.value;
       const existingPromise = dateRange
         ? loadTransactions({
-            from: 0,
+            offset: 0,
             limit: 1000, // Reasonable limit for a statement period
             accountIds: [selectedAccount.value.id],
-            startDate: dateRange.startDate,
-            endDate: dateRange.endDate,
+            from: dateRange.startDate,
+            to: dateRange.endDate,
           })
         : Promise.resolve([]);
 

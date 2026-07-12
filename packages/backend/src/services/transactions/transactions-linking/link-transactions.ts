@@ -1,7 +1,8 @@
-import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { t } from '@i18n/index';
-import { ValidationError } from '@js/errors';
+import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
+import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { assertTxWriteAccess } from '@services/sharing/auth/authorize-account-write.service';
@@ -9,10 +10,11 @@ import { Op } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
 // Natures that indicate a transaction is already linked as a transfer.
-// transfer_out_wallet is intentionally excluded — it can be re-linked (upgraded to common_transfer).
+// transfer_out_wallet is intentionally excluded – it can be re-linked (upgraded to common_transfer).
 // NOTE: if new TRANSACTION_TRANSFER_NATURE values are added, review whether they belong here.
 const ALREADY_LINKED_NATURES = [
   TRANSACTION_TRANSFER_NATURE.common_transfer,
+  TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
   TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
   TRANSACTION_TRANSFER_NATURE.transfer_to_venture,
 ];
@@ -67,7 +69,7 @@ export const linkTransactions = withTransaction(
       const result: ResultStruct[] = [];
 
       for (const [baseTxId, oppositeTxId] of ids) {
-        // Fetch both rows without a userId filter — sharing means the pair can live on
+        // Fetch both rows without a userId filter – sharing means the pair can live on
         // accounts owned by different users. The auth gate below verifies the caller has
         // `write` on each side's parent account before we mutate anything.
         const transactions = await Transactions.default.findAll({
@@ -106,6 +108,22 @@ export const linkTransactions = withTransaction(
           opposite,
           ignoreBaseTxTypeValidation,
         });
+
+        // `validateTransactionLinking` already rejects `transfer_to_loan` legs as
+        // already-linked, so a link can never legitimately land on a loan account.
+        // Guard the impossible case loudly — stamping either nature here would
+        // desync the loan's payment list or skip the balance recompute.
+        const incomeLeg = base.transactionType === TRANSACTION_TYPES.income ? base : opposite;
+        const incomeLegAccount = await Accounts.findOne({
+          where: { id: incomeLeg.accountId },
+          attributes: ['accountCategory'],
+        });
+        if (!incomeLegAccount) {
+          throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
+        }
+        if (incomeLegAccount.accountCategory === ACCOUNT_CATEGORIES.loan) {
+          throw new ValidationError({ message: t({ key: 'transactions.loanAccountReadonly' }) });
+        }
 
         const [, results] = await Transactions.default.update(
           {

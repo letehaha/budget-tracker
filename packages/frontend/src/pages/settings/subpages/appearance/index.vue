@@ -67,6 +67,28 @@
           </div>
         </div>
       </div>
+
+      <Separator />
+
+      <!-- Header -->
+      <div>
+        <h3 class="mb-2 text-lg font-medium">{{ $t('settings.appearance.header.title') }}</h3>
+        <p class="mb-4 text-sm leading-relaxed">
+          {{ $t('settings.appearance.header.description') }}
+        </p>
+
+        <div class="flex items-center justify-between gap-4">
+          <span class="flex items-center gap-2 text-sm">
+            <HeartIcon class="text-heart size-4 shrink-0 fill-current" />
+            {{ $t('settings.appearance.header.supportButton') }}
+          </span>
+          <Switch
+            :model-value="isSupportButtonVisible"
+            :disabled="isSupportButtonUpdating"
+            @update:model-value="(v) => setSupportButtonVisible(!!v)"
+          />
+        </div>
+      </div>
     </CardContent>
   </Card>
 </template>
@@ -79,10 +101,12 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import { Switch } from '@/components/lib/ui/switch';
 import { TOGGLEABLE_SIDEBAR_SECTIONS, useSidebarSections } from '@/composable/use-sidebar-sections';
-import { InfoIcon, LayersIcon, MonitorIcon, MoonStarIcon, SunIcon } from '@lucide/vue';
+import { useSupportButton } from '@/composable/use-support-button';
+import { HeartIcon, InfoIcon, LayersIcon, MonitorIcon, MoonStarIcon, SunIcon } from '@lucide/vue';
 import { type Component } from 'vue';
 
 const { sidebarSections, toggleSection, isUpdating } = useSidebarSections();
+const { isSupportButtonVisible, setSupportButtonVisible, isUpdating: isSupportButtonUpdating } = useSupportButton();
 
 interface ThemeOption {
   value: ThemePreference;

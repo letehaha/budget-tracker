@@ -13,8 +13,9 @@ import {
   TransactionCreatorSnapshot,
   TransactionModel,
 } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetCents, moneySetCents } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -24,6 +25,7 @@ import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import Currencies from '@models/currencies.model';
+import LoanDetails from '@models/loan-details.model';
 import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import TransactionGroupItems from '@models/transaction-group-items.model';
@@ -50,7 +52,6 @@ import {
   BelongsToMany,
   HasMany,
 } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
   const include: Includeable[] = [];
@@ -112,25 +113,15 @@ export interface TransactionsAttributes {
   freezeTableName: true,
 })
 export default class Transactions extends Model {
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
+  @Column(IdColumn())
   declare id: RecordId;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get amount(): Money {
-    return moneyGetCents(this, 'amount');
-  }
-  set amount(val: Money | number) {
-    moneySetCents(this, 'amount', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare amount: Money;
 
   // Amount in curreny of account
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refAmount(): Money {
-    return moneyGetCents(this, 'refAmount');
-  }
-  set refAmount(val: Money | number) {
-    moneySetCents(this, 'refAmount', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare refAmount: Money;
 
   @Length({ max: 2000 })
   @Column({ allowNull: true, type: DataType.STRING })
@@ -218,9 +209,10 @@ export default class Transactions extends Model {
   refCurrencyCode!: string;
 
   @Column({
-    type: DataType.ENUM(...Object.values(TRANSACTION_TRANSFER_NATURE)),
+    type: DataType.STRING(50),
     allowNull: false,
     defaultValue: TRANSACTION_TRANSFER_NATURE.not_transfer,
+    validate: { isIn: [Object.values(TRANSACTION_TRANSFER_NATURE)] },
   })
   transferNature!: TRANSACTION_TRANSFER_NATURE;
 
@@ -242,29 +234,14 @@ export default class Transactions extends Model {
   })
   externalData!: TransactionsAttributes['externalData'];
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get commissionRate(): Money {
-    return moneyGetCents(this, 'commissionRate');
-  }
-  set commissionRate(val: Money | number) {
-    moneySetCents(this, 'commissionRate', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare commissionRate: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get refCommissionRate(): Money {
-    return moneyGetCents(this, 'refCommissionRate');
-  }
-  set refCommissionRate(val: Money | number) {
-    moneySetCents(this, 'refCommissionRate', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare refCommissionRate: Money;
 
-  @Column(MoneyColumn({ storage: 'cents' }))
-  get cashbackAmount(): Money {
-    return moneyGetCents(this, 'cashbackAmount');
-  }
-  set cashbackAmount(val: Money | number) {
-    moneySetCents(this, 'cashbackAmount', val);
-  }
+  @MoneyField({ storage: 'cents' })
+  declare cashbackAmount: Money;
 
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
   // optimization purposes. All the related refund information is tored in the "RefundTransactions"
@@ -310,7 +287,11 @@ export default class Transactions extends Model {
     const { transferNature, transferId, refAmount, refCurrencyCode } = instance;
 
     switch (transferNature) {
-      case TRANSACTION_TRANSFER_NATURE.common_transfer: {
+      case TRANSACTION_TRANSFER_NATURE.common_transfer:
+      case TRANSACTION_TRANSFER_NATURE.transfer_to_loan: {
+        // Loan payments are two-leg transfers between user-owned Accounts, so they
+        // need the same paired-row fields as common_transfer; the distinct nature
+        // exists only so reporting can isolate loan payments without an account join.
         const requiredFields = [transferId, refCurrencyCode, refAmount];
         if (requiredFields.some((item) => item === undefined)) {
           throw new ValidationError({
@@ -383,6 +364,56 @@ export default class Transactions extends Model {
     });
   }
 
+  /**
+   * Loan-account write invariant. A managed loan (accountCategory 'loan' with a
+   * `LoanDetails` sidecar) accepts exactly one write: the INCOME leg of a
+   * `transfer_to_loan` payment, already overpay-checked by
+   * `assertLoanPaymentAllowed`. Anything else would move the balance while
+   * staying invisible to `recomputeLoanBalance` (which sums only income legs),
+   * corrupting the payoff projection. Loan-category accounts WITHOUT a sidecar
+   * stay unrestricted. Enforced at the model so every write path (UI, MCP,
+   * bank sync, CSV import, direct API) funnels through it.
+   */
+  @BeforeCreate
+  @BeforeUpdate
+  static async enforceLoanAccountInvariant(instance: Transactions) {
+    // Only the income leg short-circuits. The expense-side leg of the same pair
+    // must NOT: it belongs on the cash account, and landing on the loan account
+    // would move the balance invisibly to the recompute (income legs only).
+    if (
+      instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan &&
+      instance.transactionType === TRANSACTION_TYPES.income
+    ) {
+      return;
+    }
+
+    const account = await Accounts.findByPk(instance.accountId, {
+      attributes: ['accountCategory'],
+    });
+    // Orphan accountIds are rejected by FK validation; only loans are locked down here.
+    if (account?.accountCategory !== ACCOUNT_CATEGORIES.loan) return;
+
+    // Enforcement applies only to managed loans; the sidecar lookup runs solely
+    // for loan-category accounts, keeping it off the hot path of ordinary writes.
+    const loanDetails = await LoanDetails.findOne({
+      where: { accountId: instance.accountId },
+      attributes: ['id'],
+    });
+    if (!loanDetails) return;
+
+    throw new ValidationError({
+      message: t({ key: 'transactions.loanAccountReadonly' }),
+    });
+  }
+
+  // Lazy-imported to avoid a model→service import cycle (same approach as the
+  // vehicle anchor reconcile hook). recomputeLoanBalance no-ops for non-loan
+  // accounts, so callers only need the cheap transfer-nature gate.
+  private static async triggerLoanBalanceRecompute(accountId: string): Promise<void> {
+    const { recomputeLoanBalance } = await import('@services/loans/recompute-loan-balance.service');
+    await recomputeLoanBalance({ loanAccountId: accountId });
+  }
+
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
     const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
@@ -398,6 +429,10 @@ export default class Transactions extends Model {
     }
 
     await Balances.handleTransactionChange({ data: instance });
+    // Gate on the nature to keep the recompute off the non-loan hot path.
+    if (instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
+      await Transactions.triggerLoanBalanceRecompute(instance.accountId);
+    }
   }
 
   @AfterUpdate
@@ -466,6 +501,18 @@ export default class Transactions extends Model {
       data: newData,
       prevData: originalData,
     });
+
+    // Either side of the edit may be a loan-transfer leg (amount/date edits, or
+    // a leg moving onto/off a loan account). Non-loan edits skip entirely.
+    if (
+      newData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan ||
+      prevData.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan
+    ) {
+      await Transactions.triggerLoanBalanceRecompute(newData.accountId);
+      if (newData.accountId !== prevData.accountId) {
+        await Transactions.triggerLoanBalanceRecompute(prevData.accountId);
+      }
+    }
   }
 
   @BeforeDestroy
@@ -534,6 +581,14 @@ export default class Transactions extends Model {
     // reflects today's curve-derived value, not the BeforeDestroy intermediate.
     const { refreshVehicleValueIfStale } = await import('@services/vehicles/refresh-vehicle-value.service');
     await refreshVehicleValueIfStale({ vehicleId: vehicle.id, force: true });
+  }
+
+  @AfterDestroy
+  static async recomputeLoanBalanceAfterDestroy(instance: Transactions) {
+    // Runs after the row is gone so the deleted leg is excluded from the
+    // post-anchor sum. Gated on the nature so non-loan deletes skip the lookup.
+    if (instance.transferNature !== TRANSACTION_TRANSFER_NATURE.transfer_to_loan) return;
+    await Transactions.triggerLoanBalanceRecompute(instance.accountId);
   }
 
   @AfterDestroy
@@ -925,12 +980,27 @@ export const findWithFilters = async ({
     };
   }
 
-  // Include group membership info if requested
+  // Include group membership info if requested. transactionCount is the group's full
+  // membership size (a correlated count over TransactionGroupItems), not the number of
+  // this group's members that happen to be in the current fetch window – so callers that
+  // only load a slice of transactions (e.g. the dashboard widget) can still show the
+  // group's true size.
   if (includeGroups) {
     queryInclude.push({
       model: TransactionGroups,
       through: { attributes: [] },
-      attributes: ['id', 'name'],
+      attributes: [
+        'id',
+        'name',
+        [
+          literal(`(
+            SELECT COUNT(*)::int
+            FROM "TransactionGroupItems"
+            WHERE "TransactionGroupItems"."groupId" = "transactionGroups"."id"
+          )`),
+          'transactionCount',
+        ],
+      ],
       required: false,
     });
   }

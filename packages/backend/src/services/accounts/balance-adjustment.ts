@@ -8,7 +8,7 @@ import {
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
-import Accounts from '@models/accounts.model';
+import { getAccountById } from '@models/accounts.model';
 import type Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
 import Vehicles from '@models/vehicles.model';
@@ -50,9 +50,9 @@ export const adjustAccountBalance = withTransaction(
     time,
     allowVehicle,
   }: AdjustAccountBalanceParams): Promise<AdjustAccountBalanceResult> => {
-    const account = await Accounts.findByPk(accountId);
+    const account = await getAccountById({ id: accountId, userId });
 
-    if (!account || account.userId !== userId) {
+    if (!account) {
       throw new NotFoundError({
         message: t({ key: 'balanceAdjustment.accountNotFound', variables: { accountId } }),
       });

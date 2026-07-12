@@ -156,7 +156,7 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
             captureException({ error, context: { scope: 'import-budget-bakers-wallet:post-import-accounts' } }),
           ),
         useCategoriesStore()
-          .loadCategories()
+          .loadCategories({ force: true })
           .catch((error) =>
             captureException({ error, context: { scope: 'import-budget-bakers-wallet:post-import-categories' } }),
           ),
@@ -166,7 +166,7 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
             captureException({ error, context: { scope: 'import-budget-bakers-wallet:post-import-tags' } }),
           ),
         useCurrenciesStore()
-          .loadCurrencies()
+          .loadCurrencies({ force: true })
           .catch((error) =>
             captureException({ error, context: { scope: 'import-budget-bakers-wallet:post-import-currencies' } }),
           ),

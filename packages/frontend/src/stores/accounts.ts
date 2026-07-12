@@ -32,10 +32,10 @@ export const useAccountsStore = defineStore('accounts', () => {
     enabled: isUserExists,
   });
 
+  // id→account map for O(1) lookups. Rebuilt (not upserted) so a deleted id is
+  // pruned rather than lingering as a ghost consumers can still resolve.
   watch(accounts, (value) => {
-    for (const acc of value ?? []) {
-      accountsRecord.value[acc.id] = acc;
-    }
+    accountsRecord.value = Object.fromEntries((value ?? []).map((acc) => [acc.id, acc]));
   });
 
   const accountsCurrencyCodes = computed(() => [...new Set(accounts.value?.map((item) => item.currencyCode) ?? [])]);
@@ -61,6 +61,12 @@ export const useAccountsStore = defineStore('accounts', () => {
   // account that would 422 on submit. Their value is edited from the vehicle page.
   const txTargetableAccountsActiveFirst = computed(() =>
     systemAccountsActiveFirst.value.filter((item) => item.accountCategory !== ACCOUNT_CATEGORIES.vehicle),
+  );
+
+  // Loans are liabilities — money only flows in via transfer_to_loan, never out.
+  // Hide them from source pickers; they stay in txTargetableAccountsActiveFirst for transfer destinations.
+  const txTargetableSourceAccountsActiveFirst = computed(() =>
+    txTargetableAccountsActiveFirst.value.filter((item) => item.accountCategory !== ACCOUNT_CATEGORIES.loan),
   );
 
   /**
@@ -127,6 +133,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     activeSystemAccounts,
     systemAccountsActiveFirst,
     txTargetableAccountsActiveFirst,
+    txTargetableSourceAccountsActiveFirst,
     accountsCurrencyCodes,
     accountsNeedingRelink,
     isAccountsFetched,

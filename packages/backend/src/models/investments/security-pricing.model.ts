@@ -1,8 +1,8 @@
 import { RecordId } from '@bt/shared/types';
+import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
-import { MoneyColumn, moneyGetDecimal, moneySetDecimal } from '@common/types/money-column';
+import { MoneyField } from '@common/types/money-column';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
 
 import Securities from './securities.model';
 
@@ -26,11 +26,7 @@ import Securities from './securities.model';
   ],
 })
 export default class SecurityPricing extends Model {
-  @Column({
-    primaryKey: true,
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
+  @Column(IdColumn())
   declare id: RecordId;
 
   @ForeignKey(() => Securities)
@@ -57,13 +53,8 @@ export default class SecurityPricing extends Model {
    * financial analysis and reporting as they represent the final price at which the security was traded
    * during the trading session.
    */
-  @Column(MoneyColumn({ storage: 'decimal', precision: 20, scale: 10 }))
-  get priceClose(): Money {
-    return moneyGetDecimal(this, 'priceClose');
-  }
-  set priceClose(val: Money | string | number) {
-    moneySetDecimal(this, 'priceClose', val, 10);
-  }
+  @MoneyField({ storage: 'decimal', precision: 20, scale: 10 })
+  declare priceClose: Money;
 
   /**
    * (Optional) The timestamp indicating the specific time the priceClose was recorded. This is particularly

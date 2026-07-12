@@ -84,7 +84,7 @@ const acceptMutation = useMutation({
     // doesn't reject the mutation (which would re-fire onError after we already showed
     // the accepted state and the success toast).
     try {
-      await Promise.all([accountsStore.refetchAccounts(), categoriesStore.loadCategories()]);
+      await Promise.all([accountsStore.refetchAccounts(), categoriesStore.loadCategories({ force: true })]);
     } catch (refreshErr) {
       addErrorNotification(t('dialogs.shareInvitationDialog.acceptDataRefreshFailed'));
       captureException({ error: refreshErr, context: { source: 'shareInvitationAcceptDataRefresh' } });

@@ -58,8 +58,8 @@ export async function listPortfolioTransfers<R extends boolean | undefined = fal
   ...payload
 }: {
   portfolioId: string;
-  dateFrom?: string;
-  dateTo?: string;
+  from?: string;
+  to?: string;
   limit?: number;
   offset?: number;
   page?: number;

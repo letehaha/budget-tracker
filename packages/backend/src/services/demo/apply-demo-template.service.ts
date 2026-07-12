@@ -18,6 +18,7 @@ import {
   setupCurrencies,
   setupDashboardSettings,
   setupInvestments,
+  setupLoans,
   setupVehicles,
   setupVentures,
 } from './seed-demo-data.service';
@@ -112,6 +113,7 @@ export async function applyDemoTemplate({ userId }: { userId: number }): Promise
   await setupDashboardSettings({ userId, categoryMap });
   await setupInvestments({ userId, referenceDate: template.generatedAt });
   await setupVehicles({ userId, referenceDate: template.generatedAt });
+  await setupLoans({ userId, referenceDate: template.generatedAt });
   await setupVentures({ userId, referenceDate: template.generatedAt });
 
   const duration = Date.now() - startTime;

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { connection as dbConnection } from '@models/index';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import {
   FixedTransaction,
@@ -1801,9 +1802,12 @@ describe('Enable Banking Data Provider E2E', () => {
       const initialTxDate = new Date(initialTx.time).toISOString().split('T')[0];
       expect(initialTxDate).toBe(valueDate);
 
-      // Verify externalData has only value_date, no booking_date
-      expect(initialTx.externalData.valueDate).toBe(valueDate);
-      expect(initialTx.externalData.bookingDate).toBeUndefined();
+      // Verify externalData has only value_date, no booking_date — externalData isn't
+      // exposed via the API, so read it directly from the DB.
+      const initialTxRow = await Transactions.findByPk(initialTx.id, { raw: true });
+      const initialExternalData = initialTxRow!.externalData as { valueDate?: string; bookingDate?: string } | null;
+      expect(initialExternalData?.valueDate).toBe(valueDate);
+      expect(initialExternalData?.bookingDate).toBeUndefined();
 
       // Step 4: Update mock to return same transaction with booking_date added
       const updatedTransactions: FixedTransaction[] = [
@@ -1843,9 +1847,11 @@ describe('Enable Banking Data Provider E2E', () => {
       // Verify it's the same transaction (same ID)
       expect(updatedTx.id).toBe(initialTx.id);
 
-      // Verify externalData now has both dates
-      expect(updatedTx.externalData.valueDate).toBe(valueDate);
-      expect(updatedTx.externalData.bookingDate).toBe(bookingDate);
+      // Verify externalData now has both dates — read from the DB (not exposed via API).
+      const updatedTxRow = await Transactions.findByPk(updatedTx.id, { raw: true });
+      const updatedExternalData = updatedTxRow!.externalData as { valueDate?: string; bookingDate?: string } | null;
+      expect(updatedExternalData?.valueDate).toBe(valueDate);
+      expect(updatedExternalData?.bookingDate).toBe(bookingDate);
     });
 
     it('should not create duplicates when syncing transactions with same entry_reference', async () => {

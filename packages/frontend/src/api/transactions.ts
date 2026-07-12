@@ -16,7 +16,7 @@ const formatTransactionPayload = <
   transaction: T,
 ): T => {
   const params = { ...transaction } as Record<string, unknown>;
-  const timeFieldsToPatch = ['time', 'startDate', 'endDate'];
+  const timeFieldsToPatch = ['time'];
 
   timeFieldsToPatch.forEach((field) => {
     if (params[field]) params[field] = new Date(params[field] as string).toISOString();
@@ -25,8 +25,13 @@ const formatTransactionPayload = <
   return params as T;
 };
 
-export const loadTransactions = async (params: {
-  from: number;
+export const loadTransactions = async ({
+  from,
+  to,
+  ...params
+}: {
+  /** Pagination row offset. */
+  offset?: number;
   limit?: number;
   budgetIds?: string[];
   excludedBudgetIds?: string[];
@@ -47,15 +52,21 @@ export const loadTransactions = async (params: {
   refundFilter?: FILTER_OPERATION;
   /** Exact set of transferNature values to include. Supersedes transferFilter backend-side. */
   transferNatures?: TRANSACTION_TRANSFER_NATURE[];
-  startDate?: string;
-  endDate?: string;
+  /** Date-range lower bound (inclusive). */
+  from?: string;
+  /** Date-range upper bound (inclusive). */
+  to?: string;
   amountLte?: number;
   amountGte?: number;
   includeSplits?: boolean;
   includeTags?: boolean;
   includeGroups?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
-  return api.get('/transactions', formatTransactionPayload(params));
+  return api.get('/transactions', {
+    ...params,
+    from: from ? new Date(from).toISOString() : undefined,
+    to: to ? new Date(to).toISOString() : undefined,
+  });
 };
 
 export const loadTransactionsByTransferId = async (transferId: string): Promise<TransactionModel[]> => {

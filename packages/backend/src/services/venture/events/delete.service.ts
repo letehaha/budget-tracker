@@ -1,14 +1,12 @@
 import { VENTURE_EVENT_TYPE } from '@bt/shared/types/venture';
-import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
 import * as Transactions from '@models/transactions.model';
-import VentureDeals from '@models/venture/venture-deals.model';
-import VentureEventLinks from '@models/venture/venture-event-links.model';
 import VentureEvents from '@models/venture/venture-events.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 import { syncDealFromEvents } from '../deals/sync-deal-from-events.service';
+import { findVentureDealOrThrow, findVentureEventOrThrow } from '../helpers';
 import { unlinkTxFromEvent } from '../linking/unlink-tx-from-event.service';
 
 interface DeleteVentureEventParams {
@@ -23,18 +21,9 @@ const deleteVentureEventImpl = async ({
   eventId,
   deleteLinkedTransactions = false,
 }: DeleteVentureEventParams) => {
-  const event = await findOrThrowNotFound({
-    query: VentureEvents.findOne({
-      where: { id: eventId, userId },
-      include: [{ model: VentureEventLinks, as: 'links' }],
-    }),
-    message: 'Venture event not found',
-  });
+  const event = await findVentureEventOrThrow({ id: eventId, userId, includeLinks: true });
 
-  const deal = await findOrThrowNotFound({
-    query: VentureDeals.findOne({ where: { id: event.dealId, userId } }),
-    message: 'Venture deal not found',
-  });
+  const deal = await findVentureDealOrThrow({ id: event.dealId, userId });
 
   // The initial_investment is the anchor for every other event's cost-basis +
   // chronology check. Removing it while later events still exist would leave

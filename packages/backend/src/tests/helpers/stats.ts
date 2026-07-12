@@ -1,4 +1,4 @@
-import { BalanceModel, endpointsTypes } from '@bt/shared/types';
+import { BalanceModel, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import {
   getCombinedBalanceHistory as _getCombinedBalanceHistory,
   getEarliestTransactionDate as _getEarliestTransactionDate,
@@ -35,11 +35,22 @@ export const getSpendingsByCategories = async ({
   from,
   to,
   categoryIds,
-}: { raw?: boolean; from?: string; to?: string; categoryIds?: string[] } = {}) => {
+  type,
+  groupByType,
+}: {
+  raw?: boolean;
+  from?: string;
+  to?: string;
+  categoryIds?: string[];
+  type?: TRANSACTION_TYPES;
+  groupByType?: boolean;
+} = {}) => {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
   if (to) params.append('to', to);
   if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+  if (type) params.append('type', type);
+  if (groupByType) params.append('groupByType', 'true');
 
   const result = await helpers.makeRequest({
     method: 'get',
@@ -107,6 +118,46 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   const result = await helpers.makeRequest<endpointsTypes.GetCashFlowResponse, R>({
     method: 'get',
     url: `/stats/cash-flow?${params.toString()}`,
+    raw,
+  });
+
+  return result;
+}
+
+export async function getPivotReport<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  granularity,
+  rowDimension,
+  measure,
+  accountIds,
+  categoryIds,
+  payeeIds,
+  raw,
+}: {
+  from: string;
+  to: string;
+  granularity: endpointsTypes.PivotGranularity;
+  rowDimension: endpointsTypes.PivotRowDimension;
+  measure: endpointsTypes.PivotMeasure;
+  accountIds?: string[];
+  categoryIds?: string[];
+  payeeIds?: string[];
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', to);
+  params.append('granularity', granularity);
+  params.append('rowDimension', rowDimension);
+  params.append('measure', measure);
+  if (accountIds && accountIds.length > 0) params.append('accountIds', accountIds.join(','));
+  if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+  if (payeeIds && payeeIds.length > 0) params.append('payeeIds', payeeIds.join(','));
+
+  const result = await helpers.makeRequest<endpointsTypes.GetPivotReportResponse, R>({
+    method: 'get',
+    url: `/stats/pivot?${params.toString()}`,
     raw,
   });
 

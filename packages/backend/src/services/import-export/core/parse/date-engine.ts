@@ -1,4 +1,5 @@
 import { type SupportedLocale } from '@bt/shared/i18n/locales';
+import { type DateFieldOrder } from '@bt/shared/types';
 
 /**
  * Timezone-agnostic normalized result of parsing a single raw date cell.
@@ -34,7 +35,7 @@ interface ParseImportDateParams {
  * ignore it.
  */
 export interface DateColumnFormat {
-  fieldOrder: 'day-first' | 'month-first';
+  fieldOrder: DateFieldOrder;
 }
 
 interface DetectDateColumnFormatParams {
@@ -43,12 +44,11 @@ interface DetectDateColumnFormatParams {
 }
 
 /**
- * Outcome of resolving a whole date column to one format.
+ * Outcome of inferring a whole date column's likely format.
  *
  * `mixed` means the column contains contradicting signals (one row is only
- * valid day-first, another only valid month-first) — there is no single safe
- * order, so the engine refuses to guess and the caller surfaces it as an
- * import error instead of silently splitting rows across two months.
+ * valid day-first, another only valid month-first) — there is no single order
+ * the detector can suggest.
  */
 type DetectDateColumnFormatResult = { ok: true; format: DateColumnFormat } | { ok: false; reason: 'mixed' };
 
@@ -139,6 +139,13 @@ export function parseImportDate({ value, format }: ParseImportDateParams): Parse
   return null;
 }
 
+/**
+ * Suggests a day/month order for a whole date column. This is a SUGGESTION
+ * algorithm, not the authority: the CSV import path parses with the
+ * `dateFieldOrder` the user explicitly confirmed in the wizard (the frontend
+ * mirrors this detection to pre-suggest an option there). Kept canonical here
+ * so client and server infer signals identically.
+ */
 export function detectDateColumnFormat({ values, locale }: DetectDateColumnFormatParams): DetectDateColumnFormatResult {
   let sawDayFirstSignal = false;
   let sawMonthFirstSignal = false;
@@ -166,9 +173,9 @@ export function detectDateColumnFormat({ values, locale }: DetectDateColumnForma
     return { ok: true, format: { fieldOrder: 'month-first' } };
   }
 
-  // No row disambiguates (every field ≤ 12). Fall back to the locale's
-  // conventional order: English writes month-first (MM/DD); every other shipped
-  // locale writes day-first (DD/MM).
+  // No row disambiguates (every field ≤ 12). Suggest the locale's conventional
+  // order: English writes month-first (MM/DD); every other shipped locale
+  // writes day-first (DD/MM). Only a suggestion — the user still confirms.
   const fieldOrder = locale === 'en' ? 'month-first' : 'day-first';
   return { ok: true, format: { fieldOrder } };
 }

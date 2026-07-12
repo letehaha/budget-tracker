@@ -102,7 +102,6 @@
           "currency": "Валюта",
           "skipAndImport": "Пропустити та імпортувати",
           "cancelImport": "Скасувати імпорт",
-          "dateColumnErrorTitle": "Помилка стовпця дати в \"{column}\"",
           "noInvalidRows": "Немає недійсних рядків",
           "noDuplicates": "Немає дублікатів",
           "expand": "Показати повні дані",
@@ -118,6 +117,7 @@
           "accountsCreated": "Створено рахунків",
           "categoriesCreated": "Створено категорій",
           "tagsCreated": "Створено тегів",
+          "payeesCreated": "Створено одержувачів",
           "importErrors": "Помилки імпорту",
           "rowNumber": "Рядок #",
           "error": "Помилка",
@@ -365,7 +365,19 @@
           "category": "Категорія",
           "account": "Рахунок",
           "currency": "Валюта",
-          "transactionType": "Тип транзакції"
+          "transactionType": "Тип транзакції",
+          "payee": "Одержувач"
+        },
+        "dateFormat": {
+          "label": "Формат дати",
+          "placeholder": "Виберіть формат дати",
+          "dayFirstOption": "Спочатку день — {example}",
+          "monthFirstOption": "Спочатку місяць — {example}",
+          "suggestedBadge": "Рекомендовано",
+          "isoDetected": "Виявлено формат дати ISO — дати в цьому стовпці починаються з року, тому вибір дня/місяця не потрібен.",
+          "previewLabel": "Попередній перегляд",
+          "previewUnrecognized": "не розпізнано",
+          "mismatchWarning": "{count} рядок не відповідає цьому формату та буде позначений як недійсний. | {count} рядки не відповідають цьому формату та будуть позначені як недійсні. | {count} рядків не відповідають цьому формату та будуть позначені як недійсні."
         }
       },
       "importResults": {

@@ -44,8 +44,8 @@ export function registerGetInvestmentTransactions(server: McpServer) {
         portfolioId: args.portfolioId,
         securityId: args.securityId,
         category: args.category as INVESTMENT_TRANSACTION_CATEGORY | undefined,
-        startDate: args.startDate,
-        endDate: args.endDate,
+        from: args.startDate,
+        to: args.endDate,
         limit: args.limit,
         offset: args.offset,
       });

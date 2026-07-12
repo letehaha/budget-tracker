@@ -204,17 +204,24 @@ const handleCreateDialogClose = (open: boolean) => {
 
       <!-- Loading skeleton -->
       <div v-if="isLoading || isFetching" class="space-y-3">
-        <div v-for="i in 3" :key="i" class="border-border animate-pulse rounded-lg border p-4">
-          <div class="mb-2 flex items-start justify-between">
-            <div class="space-y-2">
-              <div class="bg-muted h-5 w-40 rounded" />
-              <div class="bg-muted h-4 w-56 rounded" />
+        <div v-for="i in 3" :key="i" class="border-border bg-card animate-pulse rounded-xl border p-4">
+          <div class="flex items-start gap-3">
+            <div class="bg-muted size-10 rounded-lg" />
+            <div class="flex-1 space-y-2">
+              <div class="bg-muted h-4 w-40 rounded" />
+              <div class="bg-muted h-3 w-24 rounded" />
             </div>
-            <div class="bg-muted h-5 w-12 rounded-full" />
+            <div class="flex flex-col items-end space-y-2">
+              <div class="bg-muted h-4 w-20 rounded" />
+              <div class="bg-muted h-3 w-14 rounded" />
+            </div>
           </div>
-          <div class="mt-3 flex gap-2">
-            <div class="bg-muted h-8 flex-1 rounded" />
-            <div class="bg-muted h-8 flex-1 rounded" />
+          <div class="border-border mt-3 flex items-center justify-between border-t pt-3">
+            <div class="bg-muted h-3 w-32 rounded" />
+            <div class="flex gap-1.5">
+              <div class="bg-muted h-8 w-16 rounded-md" />
+              <div class="bg-muted h-8 w-16 rounded-md" />
+            </div>
           </div>
         </div>
       </div>

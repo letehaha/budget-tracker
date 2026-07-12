@@ -63,7 +63,6 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // widget latest records
   widgetLatestRecords: [transactionChange, 'widget-latest-records'] as const,
-  widgetLatestRecordsScheduled: [transactionChange, 'widget-latest-records-scheduled'] as const,
 
   // widget category spending tracker
   widgetCategorySpendingTracker: [transactionChange, 'widget-category-spending-tracker'] as const,
@@ -81,6 +80,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
     'analytics-balance-history-trend',
   ] as const,
   analyticsCashFlow: [transactionChange, 'analytics-cash-flow'] as const,
+  analyticsPivotReport: [transactionChange, 'analytics-pivot-report'] as const,
   analyticsCumulative: [transactionChange, 'analytics-cumulative'] as const,
   analyticsSpendingsByCategories: [transactionChange, 'analytics-spendings-by-categories'] as const,
   earliestTransactionDate: [transactionChange, 'earliest-transaction-date'] as const,
@@ -134,6 +134,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   bankConnectionDetails: [bankConnectionChange, 'bank-connection-details'] as const,
   bankAvailableExternalAccounts: [bankConnectionChange, 'bank-available-external-accounts'] as const,
   bankConnections: [bankConnectionChange, 'bank-connections'] as const,
+  // Shared sync status (header spinner, sidebar reauth badges, per-account status).
+  // One cache entry so all consumers dedupe to a single request; SSE pushes updates.
+  bankSyncStatus: [bankConnectionChange, 'bank-sync-status'] as const,
 
   // notifications
   notificationsList: [notifications, 'notifications-list'] as const,
@@ -159,6 +162,13 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   vehicleDetail: [transactionChange, 'vehicle-detail'] as const,
   vehicleOverrideHistory: [transactionChange, 'vehicle-override-history'] as const,
 
+  // loans
+  loansList: [transactionChange, 'loans-list'] as const,
+  loanDetail: [transactionChange, 'loan-detail'] as const,
+  loanRecentPayments: [transactionChange, 'loan-recent-payments'] as const,
+  loanAllPayments: [transactionChange, 'loan-all-payments'] as const,
+  loanBalanceHistory: [transactionChange, 'loan-balance-history'] as const,
+
   // user settings
   userSettings: ['user-settings'] as const,
 
@@ -177,6 +187,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   sharedWithMe: ['share', 'shared-with-me'] as const,
 
   // categories
+  // Full accessible-categories list (own + every category on an account the caller can
+  // read). Backs the categories Pinia store; kept separate from the per-account key.
+  categoriesList: ['categories-list'] as const,
   categoriesByAccount: ['categories-by-account'] as const,
 
   // payees

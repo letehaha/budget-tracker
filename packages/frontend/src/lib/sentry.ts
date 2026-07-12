@@ -95,6 +95,16 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
       // the thrown AuthError is just a caller signal, not an actionable bug.
       // Fixes MONEY-MATTER-CLIENT-R
       'AuthError',
+      // Stale-chunk-after-deploy: chunk-reload-handler recovers by navigating
+      // to the fresh bundle, so these are noise; unrecoverable incidents
+      // re-report as "chunk-reload: retry cap exhausted" which none of these
+      // patterns can match.
+      // Fixes MONEY-MATTER-CLIENT-Q + MONEY-MATTER-CLIENT-F
+      /Failed to fetch dynamically imported module/,
+      /Importing a module script failed/,
+      /error loading dynamically imported module/,
+      /Unable to preload CSS/,
+      /Couldn't resolve component/,
     ],
     // Before sending error, add extra context
     beforeSend(event, hint) {

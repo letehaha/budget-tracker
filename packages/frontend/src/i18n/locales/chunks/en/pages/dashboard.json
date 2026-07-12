@@ -13,14 +13,16 @@
           "accounts": "Accounts",
           "portfolios": "Portfolios",
           "ventures": "Ventures",
-          "vehicles": "Vehicles"
+          "vehicles": "Vehicles",
+          "loans": "Loans"
         },
         "tooltip": {
           "accounts": "Accounts:",
           "portfolios": "Portfolios:",
           "total": "Total:",
           "ventures": "Ventures:",
-          "vehicles": "Vehicles:"
+          "vehicles": "Vehicles:",
+          "loans": "Loans:"
         },
         "today": "Today",
         "vsPreviousPeriod": "vs previous period",
@@ -60,6 +62,8 @@
           "description": "Choose which components count toward the Total balance line.",
           "vehicles": "Vehicles",
           "ventures": "Ventures",
+          "loans": "Loans",
+          "loansTooltip": "When on, your outstanding loan balances are subtracted from the total (true net worth). When off, loans are ignored so the total shows assets only.",
           "allIncluded": "All components",
           "excluding": "Excluding {items}"
         }

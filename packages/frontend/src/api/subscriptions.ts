@@ -17,6 +17,12 @@ export interface SubscriptionListItem extends SubscriptionModel {
   linkedTransactionsCount: number;
   /** Earliest open (upcoming or overdue) period, or null for detection-only subscriptions. */
   currentPeriod: SubscriptionListCurrentPeriod | null;
+  /**
+   * Effective next occurrence (YYYY-MM-DD): the open period's dueDate when one exists,
+   * otherwise a derived future date. Present even when `currentPeriod` is null, so the
+   * "in N days" chip renders for every item. Null only when no date can be derived.
+   */
+  nextDueDate: string | null;
   /** Count of paid periods. With `maxOccurrences` it renders "N of M paid" progress on the card. */
   paidPeriodsCount: number;
   account?: { id: string; name: string; currencyCode: string } | null;
@@ -41,13 +47,16 @@ interface SubscriptionDetail extends SubscriptionModel {
 export const loadSubscriptions = async ({
   isActive,
   type,
+  sortBy,
 }: {
   isActive?: boolean;
   type?: string;
+  sortBy?: string;
 } = {}): Promise<SubscriptionListItem[]> => {
   const query: Record<string, string> = {};
   if (isActive !== undefined) query.isActive = String(isActive);
   if (type) query.type = type;
+  if (sortBy) query.sortBy = sortBy;
 
   return api.get('/subscriptions', query);
 };

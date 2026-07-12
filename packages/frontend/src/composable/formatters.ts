@@ -61,18 +61,23 @@ export const useFormatCurrency = () => {
     });
 
   /**
-   * Get the currency symbol for the base currency (e.g., "$", "€", "UAH")
+   * Currency symbol for a code (e.g. "$", "€"). Defaults to base currency for
+   * existing no-arg callers; falls back to the code itself if unresolvable.
    */
-  const getCurrencySymbol = () => {
-    const code = baseCurrency.value?.currency?.code || 'USD';
-    // Format a zero amount and extract just the symbol
-    const formatted = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: code,
-      currencyDisplay: 'narrowSymbol',
-    }).format(0);
-    // Remove the number part to get just the symbol
-    return formatted.replace(/[\d.,\s]/g, '').trim();
+  const getCurrencySymbol = (currencyCode?: string) => {
+    const code = currencyCode || baseCurrency.value?.currency?.code || 'USD';
+    try {
+      // Format a zero amount and extract just the symbol
+      const formatted = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: code,
+        currencyDisplay: 'narrowSymbol',
+      }).format(0);
+      // Remove the number part to get just the symbol
+      return formatted.replace(/[\d.,\s]/g, '').trim();
+    } catch {
+      return code;
+    }
   };
 
   /**

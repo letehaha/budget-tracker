@@ -1,6 +1,6 @@
 import { getRefundsForTransaction } from '@/api/refunds';
 import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
-import { Ref, computed, onMounted, ref } from 'vue';
+import { Ref, computed, onMounted, ref, watch } from 'vue';
 
 import { FORM_TYPES, UI_FORM_STRUCT } from '../types';
 import { areSlicesEqual } from './refund-form-comparer';
@@ -10,9 +10,12 @@ type RefundStatus = 'refunds' | 'refunded' | null;
 export const getRefundInfo = ({
   form,
   initialTransaction,
+  onRefundLinkCleared,
 }: {
   initialTransaction: TransactionModel | undefined;
   form: Ref<UI_FORM_STRUCT>;
+  /** Fired when a stale refund link is dropped because the form's type flipped. */
+  onRefundLinkCleared?: () => void;
 }) => {
   const isInitialRefundsDataLoaded = ref(false);
   const initialRefundStatus = ref<RefundStatus>(null);
@@ -38,6 +41,30 @@ export const getRefundInfo = ({
 
     // Compare by transaction id and splitId
     return !areSlicesEqual(original, overriden, ['transaction.id', 'splitId']);
+  });
+
+  // A refund's counterpart must be the opposite type; the backend rejects a
+  // same-type link. Drop a link left stale by a type toggle, using the same
+  // empty value as manual unlink: `null` when the row had refunds (edit path
+  // clears them server-side), `undefined` otherwise.
+  watch(refundTransactionsTypeBasedOnFormType, (expectedType) => {
+    const emptyValue = originalRefunds.value.length > 0 ? null : undefined;
+    let cleared = false;
+
+    if (form.value.refundsTx && form.value.refundsTx.transaction.transactionType !== expectedType) {
+      form.value.refundsTx = emptyValue;
+      cleared = true;
+    }
+
+    if (
+      form.value.refundedByTxs &&
+      form.value.refundedByTxs.some((refund) => refund.transaction.transactionType !== expectedType)
+    ) {
+      form.value.refundedByTxs = emptyValue;
+      cleared = true;
+    }
+
+    if (cleared) onRefundLinkCleared?.();
   });
 
   onMounted(async () => {

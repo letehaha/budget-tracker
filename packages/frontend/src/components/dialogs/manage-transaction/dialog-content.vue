@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
+import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import { captureException } from '@/lib/sentry';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
@@ -12,11 +13,15 @@ import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { useNotificationCenter } from '@/components/notification-center';
+import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
+import { useFormatCurrency } from '@/composable/formatters';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore, useUserStore } from '@/stores';
 import {
+  isTwoLegTransfer,
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   PAYMENT_TYPES,
@@ -24,7 +29,7 @@ import {
   TRANSACTION_TYPES,
   type TransactionModel,
 } from '@bt/shared/types';
-import { minValue, required } from '@vuelidate/validators';
+import { helpers, minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
@@ -44,6 +49,7 @@ import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
 import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountCategories } from '@/composable/data-queries/categories';
+import { useLoans } from '@/composable/data-queries/loans';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 
 import {
@@ -98,7 +104,8 @@ const { t } = useI18n();
 watch(() => route.path, closeModal);
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
-const { accountsRecord, txTargetableAccountsActiveFirst } = storeToRefs(useAccountsStore());
+const { accountsRecord, txTargetableAccountsActiveFirst, txTargetableSourceAccountsActiveFirst } =
+  storeToRefs(useAccountsStore());
 
 // Vehicle balance-adjustments are reused `transfer_out_wallet` rows on a
 // vehicle-category account. Editing them in this generic dialog would let the
@@ -185,6 +192,8 @@ const transferDestinationType = ref<TransferDestinationType>('account');
 
 const { data: portfolios } = usePortfolios();
 
+const { addInfoNotification } = useNotificationCenter();
+
 const {
   isInitialRefundsDataLoaded,
   initialRefundsFormSlice,
@@ -194,6 +203,9 @@ const {
 } = getRefundInfo({
   initialTransaction: props.transaction,
   form,
+  onRefundLinkCleared: () => {
+    addInfoNotification(t('dialogs.manageTransaction.markAsRefund.linkRemovedOnTypeChange'));
+  },
 });
 
 watchOnce(
@@ -231,13 +243,13 @@ const isOppositeTxExternal = computed(() => {
 });
 // If record is external (and not a transfer), the account field will be disabled,
 // so we need to preselect the account. For transfer cases, prepopulateForm fills
-// form.account based on which side is the source — bypassing this preselection.
+// form.account based on which side is the source – bypassing this preselection.
 watch(
   () => isRecordExternal.value,
   (value) => {
     if (!value) return;
     if (transaction.value?.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) return;
-    if (transaction.value?.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer) return;
+    if (isTwoLegTransfer(transaction.value?.transferNature)) return;
 
     nextTick(() => {
       if (transaction.value && accountsRecord.value[transaction.value.accountId]) {
@@ -348,6 +360,17 @@ const isFormFieldsDisabled = computed(() => isLoading.value || !isInitialRefunds
 const currentTxType = computed(() => form.value.type);
 const isTransferTx = computed(() => currentTxType.value === FORM_TYPES.transfer);
 
+// The Loan pill only narrows the picker to loan accounts; the backend stamps transfer_to_loan from the destination's accountCategory.
+const isLoanDestination = computed(() => isTransferTx.value && transferDestinationType.value === 'loan');
+
+const loanDestinationAccounts = computed(() =>
+  txTargetableAccountsActiveFirst.value.filter((item) => item.accountCategory === ACCOUNT_CATEGORIES.loan),
+);
+
+// Transfer kind is frozen on a live pair (backend rejects relabeling) – switching
+// the pill mid-edit would 422. Lock it; unlink the transfer first to change destination type.
+const isDestinationTypeLocked = computed(() => isTwoLegTransfer(transaction.value?.transferNature));
+
 const {
   isTargetFieldVisible,
   isTargetAmountFieldDisabled,
@@ -401,11 +424,98 @@ const currencyCode = computed(() => {
   return undefined;
 });
 
-watch(transferDestinationType, (type) => {
+const { formatAmountByCurrencyCode } = useFormatCurrency();
+const { convert: convertCurrency, data: exchangeRates } = useExchangeRates();
+
+// --- Transfer → Loan payment guards ---
+
+// Credit already reflected in the loan's balance for THIS specific payment –
+// mirrors the backend's `currentLegAmount`/`isSameDestination` pair in
+// `updateTransaction`: a leg only counts when it already landed as an income
+// row on the currently-selected loan account. Re-pointing to a different loan,
+// or promoting a plain (never-transferred) transaction into a loan payment,
+// starts from zero credit, since no prior write touched that account's
+// balance. Naturally 0 in creation mode too (`transaction`/`oppositeTransaction`
+// are both undefined there).
+const existingLoanLegAmount = computed(() => {
+  const loanAccountId = form.value.toAccount?.id;
+  if (!loanAccountId) return 0;
+  const existingLeg = [transaction.value, oppositeTransaction.value].find(
+    (tx) => tx?.transactionType === TRANSACTION_TYPES.income && tx.accountId === loanAccountId,
+  );
+  return existingLeg?.amount ?? 0;
+});
+
+// Largest payment that keeps the destination loan at or above zero.
+const loanOverpayMax = computed(() =>
+  getMaxLoanPayment({
+    loanCurrentBalance: form.value.toAccount?.currentBalance ?? 0,
+    existingLegAmount: existingLoanLegAmount.value,
+  }),
+);
+
+// Inline overpay guard, mirroring the dedicated payment dialog so the user
+// sees the exact remaining balance inline instead of a figureless toast after
+// submit. Active for both creation and edits (e.g. promoting an existing
+// transaction into a loan payment via the type/destination pickers) –
+// `existingLoanLegAmount` above keeps the threshold aligned with the
+// backend's row-locked guard in either case.
+const isLoanOverpayCheckActive = computed(() => isLoanDestination.value && !!form.value.toAccount);
+
+// Soft warning when a loan payment would overdraw the source. Only flags a positive
+// balance going negative – credit lines already in the red overdraw by design. Non-blocking.
+const wouldOverdrawLoanSource = computed(() => {
+  if (!isLoanDestination.value) return false;
+  const account = form.value.account;
+  if (!account) return false;
+  const amount = Number(form.value.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return false;
+  return account.currentBalance >= 0 && amount > account.currentBalance;
+});
+
+// Reuses the Loans page's TanStack Query cache – no extra request fires when the dialog opens.
+const { data: loansData } = useLoans();
+
+// Hint: tx date is before the loan's balance anchor date, so this payment is already
+// baked into the opening snapshot and won't adjust the outstanding balance.
+const isPreAnchorLoanPayment = computed(() => {
+  if (!isLoanDestination.value) return false;
+  const toAccountId = form.value.toAccount?.id;
+  if (!toAccountId) return false;
+  const loan = loansData.value?.find((l) => l.id === toAccountId);
+  return isLoanPaymentPreAnchor({
+    paymentDate: form.value.time,
+    balanceAnchorDate: loan?.loanDetails.balanceAnchorDate,
+  });
+});
+
+// Pre-fills the loan-currency target from the live rate so cross-currency payments
+// default to the converted amount. Reruns on each Amount blur; a hand-typed value survives.
+const prefillLoanTargetAmount = () => {
+  if (!isLoanDestination.value || !isCurrenciesDifferent.value) return;
+  if (form.value.amount == null) return;
+  const sourceCode = form.value.account?.currencyCode;
+  const loanCode = form.value.toAccount?.currencyCode;
+  if (!sourceCode || !loanCode) return;
+  const converted = convertCurrency({ amount: Number(form.value.amount), from: sourceCode, to: loanCode });
+  if (converted == null) return;
+  form.value.targetAmount = converted;
+};
+
+watch(transferDestinationType, (type, prev) => {
   if (type === 'portfolio') {
     form.value.toAccount = null;
-  } else {
-    form.value.toPortfolio = null;
+    return;
+  }
+  // Auto-pick first loan on switch to 'loan' unless already selected (edit prepop runs first).
+  // Clear toAccount on exit so a loan selection doesn't leak into the account picker.
+  form.value.toPortfolio = null;
+  if (type === 'loan' && prev !== 'loan') {
+    if (form.value.toAccount?.accountCategory !== ACCOUNT_CATEGORIES.loan) {
+      form.value.toAccount = loanDestinationAccounts.value[0] ?? null;
+    }
+  } else if (prev === 'loan' && type !== 'loan') {
+    form.value.toAccount = null;
   }
 });
 
@@ -488,12 +598,37 @@ const isTargetAmountRequired = computed(
 // `getFieldErrorMessage` (which uses lodash get on the original rules object)
 // resolves through `rules.value.form.amount` instead of failing on a nested
 // ComputedRef and silently dropping the error message.
-const validationRules = computed(() => ({
-  form: {
-    amount: isAmountRequired.value ? { required, minValue: minValue(0.01) } : {},
-    targetAmount: isTargetAmountRequired.value ? { required, minValue: minValue(0.01) } : {},
-  },
-}));
+const validationRules = computed(() => {
+  // Cross-currency loan payments validate targetAmount; same-currency ones validate Amount directly.
+  const loanOverpayRule = helpers.withMessage(
+    () =>
+      t('loans.detail.payment.overpayError', {
+        max: formatAmountByCurrencyCode(loanOverpayMax.value, form.value.toAccount?.currencyCode ?? ''),
+      }),
+    (value: unknown) => {
+      if (value == null || value === '') return true;
+      return !isLoanOverpayment({ amount: Number(value), maxPayment: loanOverpayMax.value });
+    },
+  );
+  // A pre-anchor payment is exempt from the overpay guard on the backend (it never
+  // enters the post-anchor balance sum), so mirror that and skip the rule here too.
+  const overpayActive = isLoanOverpayCheckActive.value && !isPreAnchorLoanPayment.value;
+  const overpayOnAmount = overpayActive && !isCurrenciesDifferent.value;
+  const overpayOnTarget = overpayActive && isCurrenciesDifferent.value;
+
+  return {
+    form: {
+      amount: {
+        ...(isAmountRequired.value ? { required, minValue: minValue(0.01) } : {}),
+        ...(overpayOnAmount ? { notOverpay: loanOverpayRule } : {}),
+      },
+      targetAmount: {
+        ...(isTargetAmountRequired.value ? { required, minValue: minValue(0.01) } : {}),
+        ...(overpayOnTarget ? { notOverpay: loanOverpayRule } : {}),
+      },
+    },
+  };
+});
 
 const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
   { form },
@@ -509,6 +644,17 @@ const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
 
 const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
 const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
+
+const onAmountBlur = () => {
+  touchField('form.amount');
+  prefillLoanTargetAmount();
+};
+
+// Rates load async – fill the loan target once they arrive, but only if still empty so a manual entry isn't clobbered.
+watch(exchangeRates, () => {
+  if (form.value.targetAmount != null) return;
+  prefillLoanTargetAmount();
+});
 
 const submit = () => {
   touchField('form.amount');
@@ -566,12 +712,12 @@ const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
 // Tx prepopulation has to wait for the right category map. For owner-side / unshared txs
 // the global Pinia map is loaded synchronously on app boot; for shared-with-caller txs
-// we route through `useAccountCategories`, which fires after mount — populate then.
+// we route through `useAccountCategories`, which fires after mount – populate then.
 const hasPrepopulated = ref(false);
 const prepopulateIfReady = () => {
   if (hasPrepopulated.value) return;
   if (!transaction.value) {
-    form.value.account = txTargetableAccountsActiveFirst.value[0] ?? null;
+    form.value.account = txTargetableSourceAccountsActiveFirst.value[0] ?? null;
     hasPrepopulated.value = true;
     return;
   }
@@ -584,15 +730,19 @@ const prepopulateIfReady = () => {
     formattedCategories: effectiveFormattedCategories.value,
   });
   if (data) form.value = data;
+  // Edit fallback: when the resolved opposite leg is a loan account, switch the picker to the Loan pill so it matches the row.
+  if (data?.toAccount?.accountCategory === ACCOUNT_CATEGORIES.loan) {
+    transferDestinationType.value = 'loan';
+  }
   hasPrepopulated.value = true;
 };
 
 onMounted(prepopulateIfReady);
 watch(isCategoriesReady, prepopulateIfReady);
 
-// In create mode, switching between own and shared accounts swaps the category set —
+// In create mode, switching between own and shared accounts swaps the category set –
 // drop a stale selection so the user doesn't submit a categoryId that no longer exists
-// in the active list. Skip while the new list is still loading (empty) — we'd otherwise
+// in the active list. Skip while the new list is still loading (empty) – we'd otherwise
 // blank the field momentarily.
 watch(effectiveFormattedCategories, (categories) => {
   if (!isFormCreation.value) return;
@@ -611,7 +761,7 @@ onUnmounted(() => {
 <template>
   <!-- Define reusable template for "More Options" section (payment type, note, refund) -->
   <DefineMoreOptions>
-    <FormRow>
+    <FormRow v-if="!isLoanDestination">
       <SelectField
         v-model="form.paymentType"
         :label="$t('dialogs.manageTransaction.form.paymentTypeLabel')"
@@ -629,7 +779,7 @@ onUnmounted(() => {
         :label="$t('dialogs.manageTransaction.form.noteLabel')"
       />
     </FormRow>
-    <FormRow>
+    <FormRow v-if="!isLoanDestination">
       <TagSelectField
         v-model="form.tagIds"
         :label="$t('dialogs.manageTransaction.form.tagsLabel')"
@@ -710,13 +860,17 @@ onUnmounted(() => {
               :placeholder="$t('dialogs.manageTransaction.form.amountPlaceholder')"
               :error-message="amountErrorMessage"
               autofocus
-              @blur="touchField('form.amount')"
+              @blur="onAmountBlur"
             >
               <template #iconTrailing>
                 <span>{{ currencyCode }}</span>
               </template>
             </input-field>
           </form-row>
+
+          <p v-if="wouldOverdrawLoanSource" class="text-warning-text -mt-1 px-1 text-xs">
+            {{ $t('loans.detail.payment.overdrawWarning', { account: form.account?.name ?? '' }) }}
+          </p>
 
           <account-field
             v-model:account="form.account"
@@ -727,14 +881,16 @@ onUnmounted(() => {
             :is-transfer-transaction="isTransferTx"
             :is-transaction-linking="!!linkedTransaction"
             :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
-            :accounts="isTransferTx ? transferSourceAccounts : txTargetableAccountsActiveFirst"
+            :accounts="isTransferTx ? transferSourceAccounts : txTargetableSourceAccountsActiveFirst"
             :from-account-disabled="fromAccountFieldDisabled"
             :to-account-disabled="toAccountFieldDisabled"
+            :destination-type-disabled="isDestinationTypeLocked"
             :filtered-accounts="transferDestinationAccounts"
             :portfolios="portfolios ?? []"
+            :loan-accounts="loanDestinationAccounts"
           />
 
-          <template v-if="currentTxType !== FORM_TYPES.transfer">
+          <template v-if="!isTransferTx">
             <form-row>
               <category-select-field
                 v-model="form.category"
@@ -821,8 +977,9 @@ onUnmounted(() => {
           </template>
 
           <!-- Transfer linking on accounts shared *with* the caller isn't supported by
-               the backend yet — hide the linker for recipients rather than letting
-               them trigger a confusing server error. -->
+               the backend yet – hide the linker for recipients rather than letting
+               them trigger a confusing server error. Loan payments never link two
+               pre-existing legs (single source → one loan), so it's irrelevant here. -->
           <LinkTransactionSection
             v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
             v-model:linked-transaction="linkedTransaction"
@@ -847,6 +1004,10 @@ onUnmounted(() => {
               }"
             />
           </form-row>
+
+          <p v-if="isPreAnchorLoanPayment" class="text-muted-foreground -mt-1 px-1 text-xs">
+            {{ $t('loans.detail.payment.preAnchorHint') }}
+          </p>
 
           <template v-if="currentTxType !== FORM_TYPES.transfer">
             <form-row>

@@ -103,9 +103,16 @@ export function deleteTransaction({ id }: { id?: string } = {}): Promise<Respons
 export function getTransactions<R extends boolean | undefined = undefined>({
   raw,
   ...rest
-}: Partial<Omit<Parameters<typeof apiGetTransactions>[0], 'userId' | 'noteSearch'>> & {
+}: Partial<
+  Omit<Parameters<typeof apiGetTransactions>[0], 'userId' | 'noteSearch' | 'from' | 'startDate' | 'endDate'>
+> & {
   raw?: R;
   noteSearch?: string; // comma-separated string
+  // API query vocabulary (the service uses `from`/`startDate`/`endDate` internally;
+  // the HTTP endpoint exposes `offset` + `from`/`to`).
+  offset?: number;
+  from?: string;
+  to?: string;
 } = {}) {
   return makeRequest<Awaited<ReturnType<typeof apiGetTransactions>>, R>({
     method: 'get',

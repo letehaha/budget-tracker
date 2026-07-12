@@ -1,6 +1,7 @@
 import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
 import type { FormattedCategory } from '@/common/types';
 import {
+  ACCOUNT_CATEGORIES,
   type AccountModel,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
@@ -145,6 +146,47 @@ describe('prepareTxCreationParams', () => {
         transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       });
     });
+
+    it('stamps transfer_to_loan when the destination is a loan-category account', () => {
+      const form = createBaseForm({
+        type: FORM_TYPES.transfer,
+        toAccount: createMockAccount({
+          id: '00000000-0000-0000-0000-000000000002' as RecordId,
+          name: 'Loan Account',
+          accountCategory: ACCOUNT_CATEGORIES.loan,
+        }),
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: true,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result).toMatchObject({
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+        destinationAccountId: '00000000-0000-0000-0000-000000000002',
+        destinationAmount: 100,
+      });
+    });
+
+    it('stamps common_transfer when the destination is not a loan-category account', () => {
+      const form = createBaseForm({
+        type: FORM_TYPES.transfer,
+        toAccount: createMockAccount({
+          id: '00000000-0000-0000-0000-000000000002' as RecordId,
+          accountCategory: ACCOUNT_CATEGORIES.general,
+        }),
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: true,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    });
   });
 
   describe('out of wallet transfers', () => {
@@ -198,9 +240,15 @@ describe('prepareTxCreationParams', () => {
   });
 
   describe('refund transactions', () => {
-    it('includes refundForTxId when refundsTx is set', () => {
-      const refundedTransaction = createMockTransaction({ id: '00000000-0000-0000-0000-000000000050' as RecordId });
+    // An expense form refunds an income original (opposite type), which is the only
+    // shape the backend accepts.
+    it('includes refundForTxId when refundsTx is an opposite-type link', () => {
+      const refundedTransaction = createMockTransaction({
+        id: '00000000-0000-0000-0000-000000000050' as RecordId,
+        transactionType: TRANSACTION_TYPES.income,
+      });
       const form = createBaseForm({
+        type: FORM_TYPES.expense,
         refundsTx: { transaction: refundedTransaction },
       });
 
@@ -214,8 +262,12 @@ describe('prepareTxCreationParams', () => {
     });
 
     it('includes refundForSplitId when refundsTx has splitId', () => {
-      const refundedTransaction = createMockTransaction({ id: '00000000-0000-0000-0000-000000000050' as RecordId });
+      const refundedTransaction = createMockTransaction({
+        id: '00000000-0000-0000-0000-000000000050' as RecordId,
+        transactionType: TRANSACTION_TYPES.income,
+      });
       const form = createBaseForm({
+        type: FORM_TYPES.expense,
         refundsTx: {
           transaction: refundedTransaction,
           splitId: 'split-uuid-123',
@@ -233,8 +285,12 @@ describe('prepareTxCreationParams', () => {
     });
 
     it('does not include refundForSplitId when refundsTx has no splitId', () => {
-      const refundedTransaction = createMockTransaction({ id: '00000000-0000-0000-0000-000000000050' as RecordId });
+      const refundedTransaction = createMockTransaction({
+        id: '00000000-0000-0000-0000-000000000050' as RecordId,
+        transactionType: TRANSACTION_TYPES.income,
+      });
       const form = createBaseForm({
+        type: FORM_TYPES.expense,
         refundsTx: { transaction: refundedTransaction },
       });
 
@@ -245,6 +301,47 @@ describe('prepareTxCreationParams', () => {
       });
 
       expect(result.refundForTxId).toBe('00000000-0000-0000-0000-000000000050');
+      expect(result.refundForSplitId).toBeUndefined();
+    });
+
+    it('includes refundForTxId for an income form refunding an expense original', () => {
+      const refundedTransaction = createMockTransaction({
+        id: '00000000-0000-0000-0000-000000000050' as RecordId,
+        transactionType: TRANSACTION_TYPES.expense,
+      });
+      const form = createBaseForm({
+        type: FORM_TYPES.income,
+        refundsTx: { transaction: refundedTransaction },
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result.refundForTxId).toBe('00000000-0000-0000-0000-000000000050');
+    });
+
+    // Defense-in-depth: a stale same-type link left over from a type toggle must never
+    // reach the API, since the backend rejects it with a 422.
+    it('omits refundForTxId when the linked transaction has the same type as the form', () => {
+      const refundedTransaction = createMockTransaction({
+        id: '00000000-0000-0000-0000-000000000050' as RecordId,
+        transactionType: TRANSACTION_TYPES.expense,
+      });
+      const form = createBaseForm({
+        type: FORM_TYPES.expense,
+        refundsTx: { transaction: refundedTransaction },
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result.refundForTxId).toBeUndefined();
       expect(result.refundForSplitId).toBeUndefined();
     });
 

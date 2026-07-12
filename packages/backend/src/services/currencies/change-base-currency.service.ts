@@ -1,4 +1,5 @@
 import {
+  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   API_ERROR_CODES,
   type BaseCurrencyBlocker,
@@ -17,6 +18,7 @@ import InvestmentTransaction from '@models/investments/investment-transaction.mo
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
+import LoanDetails from '@models/loan-details.model';
 import ResourceShares from '@models/resource-shares.model';
 import Transactions from '@models/transactions.model';
 import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.model';
@@ -31,6 +33,10 @@ import { Op, QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
  * Accounts.refIniaitlBalance
  * Accounts.refCurrentBalance
  * Accounts.refCreditLimit
+ * 1b. LoanDetails
+ * LoanDetails.refOriginalPrincipal
+ * LoanDetails.refMinPayment
+ * LoanDetails.refPlannedPayment
  * 2. Transactions
  * Transactions.refAmount
  * Transactions.refCurrencyCode
@@ -86,6 +92,7 @@ interface ChangeBaseCurrencyParams {
 interface RecalculateResult {
   transactionsUpdated: number;
   accountsUpdated: number;
+  loanDetailsUpdated: number;
   balancesRebuilt: number;
   investmentTransactionsUpdated: number;
   portfolioTransfersUpdated: number;
@@ -186,6 +193,17 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       transaction: dbTransaction,
     });
 
+    // Step 2b: Recalculate loan-detail ref amounts. The loan's Account row is
+    // handled by recalculateAccounts above, but LoanDetails carries its own
+    // ref* copies (refOriginalPrincipal, refMinPayment, refPlannedPayment) that
+    // the list-page aggregates read in base currency — recompute them here so a
+    // base switch doesn't leave the monthly-obligation total in the old base.
+    const loanDetailsUpdated = await recalculateLoanDetails({
+      userId,
+      newCurrencyCode,
+      transaction: dbTransaction,
+    });
+
     // Step 3: Rebuild balance history
     const balancesRebuilt = await rebuildBalances({
       userId,
@@ -255,6 +273,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
     return {
       transactionsUpdated,
       accountsUpdated,
+      loanDetailsUpdated,
       balancesRebuilt,
       investmentTransactionsUpdated,
       portfolioTransfersUpdated,
@@ -431,12 +450,22 @@ async function recalculateAccounts(params: {
 
     let newRefCurrentBalance: Money;
 
-    if (account.type === ACCOUNT_TYPES.system) {
-      // For system accounts: use pre-aggregated SQL sum (already recalculated in step 1)
+    // Transaction-backed system accounts (cash, loans) define currentBalance as
+    // initialBalance + Σ tx refAmounts, so derive it from the SQL sum already
+    // recalculated in step 1 — this keeps refCurrentBalance consistent with the
+    // per-transaction historical rates rather than today's single rate.
+    //
+    // Vehicles are the exception: their balance is a directly-maintained depreciating
+    // value with no backing transactions, so the sum is 0 and deriving would snap the
+    // value back to the creation-time figure, dropping accrued depreciation. Convert
+    // their currentBalance directly, the same way bank accounts do.
+    const isTxBackedSystemAccount =
+      account.type === ACCOUNT_TYPES.system && account.accountCategory !== ACCOUNT_CATEGORIES.vehicle;
+
+    if (isTxBackedSystemAccount) {
       const txSum = refAmountSums.get(account.id) ?? 0;
       newRefCurrentBalance = newRefInitialBalance.add(Money.fromCents(txSum));
     } else {
-      // For bank accounts: convert using today's rate
       newRefCurrentBalance = await localCalculateRefAmount({
         amount: account.currentBalance,
         userId,
@@ -453,6 +482,69 @@ async function recalculateAccounts(params: {
   }
 
   return accounts.length;
+}
+
+/**
+ * Recalculates the ref* copies stored on LoanDetails (refOriginalPrincipal,
+ * refMinPayment, refPlannedPayment) into the new base currency.
+ *
+ * Each amount is a loan-currency figure, so it converts from the loan's own
+ * Account.currencyCode to the new base at today's rate — matching how create-loan
+ * stamps these fields. Nullable payment fields stay null. The nominal (own-currency)
+ * columns are left untouched; only the ref* copies move.
+ */
+async function recalculateLoanDetails(params: {
+  userId: number;
+  newCurrencyCode: string;
+  transaction: SequelizeTransaction;
+}): Promise<number> {
+  const { userId, newCurrencyCode, transaction } = params;
+
+  const loans = await LoanDetails.findAll({
+    where: { userId },
+    include: [{ model: Accounts, as: 'account' }],
+    transaction,
+  });
+
+  logger.info(`Recalculating ${loans.length} loan-detail rows for user ${userId}`);
+
+  const today = new Date();
+
+  for (const loan of loans) {
+    const currencyCode = loan.account.currencyCode;
+
+    loan.refOriginalPrincipal = await localCalculateRefAmount({
+      amount: loan.originalPrincipal,
+      userId,
+      baseCode: currencyCode,
+      quoteCode: newCurrencyCode,
+      date: today,
+    });
+
+    if (loan.minPayment !== null) {
+      loan.refMinPayment = await localCalculateRefAmount({
+        amount: loan.minPayment,
+        userId,
+        baseCode: currencyCode,
+        quoteCode: newCurrencyCode,
+        date: today,
+      });
+    }
+
+    if (loan.plannedPayment !== null) {
+      loan.refPlannedPayment = await localCalculateRefAmount({
+        amount: loan.plannedPayment,
+        userId,
+        baseCode: currencyCode,
+        quoteCode: newCurrencyCode,
+        date: today,
+      });
+    }
+
+    await loan.save({ transaction, hooks: false });
+  }
+
+  return loans.length;
 }
 
 /**

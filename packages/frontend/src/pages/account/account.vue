@@ -125,6 +125,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import Header from './components/header.vue';
+import { isGenuineVehicleOrphan } from './is-vehicle-orphan';
 import BankConnectionView from './types/bank-connection/index.vue';
 import SystemAccount from './types/system/system.vue';
 
@@ -132,7 +133,7 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const accountsStore = useAccountsStore();
-const { accountsRecord, isAccountsFetched } = storeToRefs(accountsStore);
+const { accounts, accountsRecord, isAccountsFetched } = storeToRefs(accountsStore);
 const account = computed(() => accountsRecord.value[route.params.id as string] ?? null);
 
 // The accounts store's query has staleTime: Infinity and is only refetched on
@@ -189,20 +190,48 @@ watch(
   { immediate: true },
 );
 
-// Log unexpected "query succeeded but no matching vehicle" so it reaches Sentry.
+// Report a genuine orphan only. A ghost account (deleted, gone from the live
+// list) has no vehicle record legitimately and renders the not-found view, so
+// capturing it would be noise.
 watch(isVehicleNotFound, (notFound) => {
   if (!notFound) return;
+  if (
+    !isGenuineVehicleOrphan({
+      accountId: account.value?.id,
+      liveAccounts: accounts.value ?? [],
+      vehicles: vehicles.value ?? [],
+    })
+  ) {
+    return;
+  }
   captureException({
     error: new Error('Vehicle account has no matching vehicle record'),
     context: { accountId: account.value?.id, source: 'accountPage' },
   });
 });
 
+// A loan is a regular `system` account, so its id can land on this page; the
+// balance/category edits here are rejected for loans, so redirect to the loan page
+// (id IS the account id). Loans shared with the user stay here — the loans page is owner-scoped only.
+const isOwnLoanAccount = computed(
+  () => account.value?.accountCategory === ACCOUNT_CATEGORIES.loan && account.value?.share?.isOwner !== false,
+);
+
+watch(
+  isOwnLoanAccount,
+  (isOwnLoan) => {
+    if (isOwnLoan && account.value?.id) {
+      router.replace({ name: ROUTES_NAMES.loanDetail, params: { id: account.value.id } });
+    }
+  },
+  { immediate: true },
+);
+
 const limit = 10;
 
 const fetchTransactions = ({ pageParam }: { pageParam: number }) => {
-  const from = pageParam * limit;
-  return loadTransactions({ limit, from, accountIds: [account.value!.id] });
+  const offset = pageParam * limit;
+  return loadTransactions({ limit, offset, accountIds: [account.value!.id] });
 };
 
 const {

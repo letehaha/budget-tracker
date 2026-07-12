@@ -25,6 +25,7 @@ import {
 } from '@services/subscriptions/reminder-email-queue';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
+import { startOfDay } from 'date-fns';
 
 import { resetSessionCounter } from './mocks/enablebanking/mock-api';
 import { setupMswServer } from './mocks/setup-mock-server';
@@ -344,6 +345,17 @@ beforeEach(async () => {
     // Schema comes from template database (created in setup-e2e-tests.sh).
     // We just need to truncate data between tests.
     await truncateAllTables();
+
+    // ExchangeRates is preserved across tests (it's in SEED_DATA_TABLES) so the
+    // historical seed survives, but that also means today-dated rows written by
+    // an earlier test's on-demand provider fetch linger in the shared worker DB.
+    // A later test that expects to fetch today's rate fresh from the mocked
+    // provider would instead read that stale row (or fall back to the 10-day-old
+    // seed), making its conversion non-deterministic. Drop today+future rows so
+    // every test starts from only the historical seed and re-fetches today.
+    await connection.sequelize.query(`DELETE FROM "ExchangeRates" WHERE date >= :today`, {
+      replacements: { today: startOfDay(new Date()) },
+    });
 
     // Set up test user for authentication
     // The better-auth mock returns a user with id 'test-user-id', so we need

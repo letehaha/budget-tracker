@@ -56,7 +56,9 @@
     "errors": {
       "copyToClipboardFailed": "Не вдалося скопіювати до буфера обміну"
     },
-    "notifications": {},
+    "notifications": {
+      "subscriptionCurrencyNotConnected": "Підсумок підписок не може конвертувати {currencies} у вашу базову валюту. Підключіть валюту в Налаштування → Валюти."
+    },
     "labels": {
       "email": "Електронна пошта",
       "password": "Пароль",

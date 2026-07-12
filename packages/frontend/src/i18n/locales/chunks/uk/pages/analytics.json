@@ -6,6 +6,7 @@
       "cashFlow": "Грошовий потік",
       "trendsComparison": "Порівняння трендів",
       "investmentCalculator": "Інвестиційний калькулятор",
+      "pivotReport": "Зведення",
       "collapse": "Згорнути"
     },
     "cashFlow": {
@@ -118,6 +119,83 @@
       "hideInputs": "Сховати",
       "portfolioReturnOption": "{name} (ваш ~{rate}%/рік)",
       "portfolioNoHistoryOption": "{name} — недостатньо історії"
+    }
+  },
+  "pivotReport": {
+    "title": "Звіт зведення",
+    "subtitle": "Розбийте витрати за будь-яким вимірюванням, виложіть по часу та порівняйте.",
+    "controls": {
+      "rows": "Рядки",
+      "columns": "Стовпці",
+      "measure": "Метрика",
+      "settings": "Налаштування"
+    },
+    "dimensions": {
+      "category": "Категорія",
+      "subcategory": "+ Підкатегорія",
+      "payee": "Контрагент",
+      "tag": "Тег"
+    },
+    "granularity": {
+      "yearly": "Роки",
+      "quarterly": "Квартали",
+      "monthly": "Місяці",
+      "weekly": "Тижні"
+    },
+    "measure": {
+      "expense": "Витрати",
+      "income": "Дохід"
+    },
+    "display": {
+      "trigger": "Відображення",
+      "title": "Параметри відображення"
+    },
+    "toggles": {
+      "heatmap": "Теплова карта",
+      "percentChange": "% зміни"
+    },
+    "filters": {
+      "period": "Період",
+      "categories": "Категорії",
+      "allCategories": "Усі",
+      "payees": "Контрагенти",
+      "accounts": "Рахунки",
+      "reset": "Скинути",
+      "resetTooltip": "Скинути на замовчення"
+    },
+    "periods": {
+      "last6Months": "Останні 6 місяців",
+      "last12Months": "Останні 12 місяців",
+      "thisYear": "Цього року",
+      "previousYear": "Минулого року",
+      "last3Years": "Останні 3 років",
+      "last5Years": "Останні 5 років"
+    },
+    "savedViews": {
+      "trigger": "Подання",
+      "empty": "Немає збережених поглядів",
+      "saveCurrent": "Зберегти поточний вигляд",
+      "customView": "Користувальницький вигляд",
+      "dialogTitle": "Зберегти вигляд",
+      "dialogDescription": "Збережіть поточний макет та фільтри як можливо повторно використовуваний вигляд.",
+      "nameLabel": "Назва виду",
+      "namePlaceholder": "наприклад Спостереження за продуктами",
+      "savedToast": "Вигляд збережено",
+      "deletedToast": "Вигляд видалено",
+      "saveError": "Не вдалося зберегти вигляд"
+    },
+    "table": {
+      "total": "Всього",
+      "collapseAll": "Згорнути все",
+      "expandAll": "Розширити все",
+      "expandRow": "Розгорнути",
+      "collapseRow": "Згорнути"
+    },
+    "states": {
+      "emptyTitle": "Немає даних для цього вибору",
+      "emptyHint": "Спробуйте ширший період або інші фільтри.",
+      "errorTitle": "Не вдалося завантажити звіт",
+      "errorHint": "Щось пішло не так. Будь ласка, спробуйте ще раз."
     }
   }
 }

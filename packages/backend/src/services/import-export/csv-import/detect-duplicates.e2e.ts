@@ -15,6 +15,7 @@ describe('Detect Duplicates endpoint', () => {
   // Helper to build common column mapping
   const buildColumnMapping = (overrides: Partial<ColumnMappingConfig> = {}): ColumnMappingConfig => ({
     date: 'Date',
+    dateFieldOrder: 'month-first',
     amount: 'Amount',
     description: 'Description',
     category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
@@ -149,6 +150,7 @@ describe('Detect Duplicates endpoint', () => {
           delimiter: ',',
           columnMapping: {
             date: 'Date',
+            dateFieldOrder: 'month-first',
             amount: 'Amount',
             category: { option: CategoryOptionValue.existingCategory, categoryId: firstCategoryId },
             currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: 'EUR' },
@@ -1072,9 +1074,8 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
       expect(firstRow?.date).toBe('2026-06-16T18:17:19.587Z');
     });
 
-    // Bug B: the day/month order is resolved from the whole column, not a US
-    // tiebreak. A disambiguating day-first row (15/06) locks the column to
-    // day-first, so 08/06 is June 8 — never Aug 6.
+    // The user-confirmed day-first order applies to every row uniformly, so
+    // 08/06 is June 8 — never Aug 6 via a per-row US tiebreak.
     it('reads a day-first date-only column as day-first (08/06 = June 8, not Aug 6)', async () => {
       const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
 08/06/2026,100.50,Ambiguous day,Food,USD,expense,Main Account
@@ -1084,7 +1085,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         payload: {
           fileContent: csvContent,
           delimiter: ',',
-          columnMapping: buildColumnMapping(),
+          columnMapping: buildColumnMapping({ dateFieldOrder: 'day-first' }),
           accountMapping: {
             'Main Account': { action: 'create-new' },
           },
@@ -1139,10 +1140,10 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
       expect(dayForUser).toBe('2026-06-01');
     });
 
-    // A column with contradicting signals (08/25 can only be month-first, 25/08
-    // can only be day-first) has no safe order — surface a column-level error and
-    // refuse to guess, rather than silently splitting rows across two months.
-    it('reports a mixed date column as a column-level error instead of guessing', async () => {
+    // The confirmed dateFieldOrder is applied to the whole column: a cell that
+    // is impossible under it (08/25 read day-first would be month 25) lands in
+    // invalidRows while the rest of the column parses under the chosen order.
+    it('marks rows impossible under the confirmed day/month order as invalid, never re-guessing', async () => {
       const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
 25/08/2026,100.50,Day first row,Food,USD,expense,Main Account
 08/25/2026,50.00,Month first row,Food,USD,expense,Main Account`;
@@ -1151,7 +1152,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         payload: {
           fileContent: csvContent,
           delimiter: ',',
-          columnMapping: buildColumnMapping(),
+          columnMapping: buildColumnMapping({ dateFieldOrder: 'day-first' }),
           accountMapping: {
             'Main Account': { action: 'create-new' },
           },
@@ -1161,14 +1162,14 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         raw: true,
       });
 
-      expect(result.dateColumnError).toBeDefined();
-      expect(result.dateColumnError?.reason).toBe('mixed');
-      expect(result.dateColumnError?.column).toBe('Date');
-      expect(result.dateColumnError?.message.length).toBeGreaterThan(0);
+      // 25/08/2026 day-first is Aug 25; 08/25/2026 day-first would be month 25.
+      expect(result.validRows).toHaveLength(1);
+      expect(result.validRows[0]?.description).toBe('Day first row');
+      expect(result.validRows[0]?.date.split('T')[0]).toBe('2026-08-25');
 
-      // No rows are returned alongside a blocking column error.
-      expect(result.validRows).toHaveLength(0);
-      expect(result.duplicates).toHaveLength(0);
+      expect(result.invalidRows).toHaveLength(1);
+      expect(result.invalidRows[0]?.rawData['Description']).toBe('Month first row');
+      expect(result.invalidRows[0]?.errors.some((e) => e.toLowerCase().includes('date'))).toBe(true);
     });
 
     // Loud failure preserved: a value matching no known date shape still lands in
@@ -1193,7 +1194,6 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
         raw: true,
       });
 
-      expect(result.dateColumnError).toBeUndefined();
       expect(result.validRows).toHaveLength(1);
       expect(result.validRows[0]?.description).toBe('Good row');
 
@@ -1275,7 +1275,10 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
   //   • USD → always priceable (it is API_LAYER_BASE_CURRENCY_CODE)
   //   • AED → always priceable (it is the user's base currency)
   //   • EUR → priceable via stored ExchangeRates row (seeded)
-  //   • ZZZ → not priceable (deliberately fake code, never seeded)
+  //   • SSP → not priceable: a real ISO-4217 code deliberately kept out of the
+  //     seeded rate set, so it passes the currencyCode() request-schema check
+  //     yet still has no stored rate — the genuine production shape. (A fake
+  //     code like ZZZ can no longer reach this layer: the schema rejects it.)
   describe('unpriceableRows classification', () => {
     // Shared column mapping for all sub-tests: single fixed currency per test,
     // so we use the existingCurrency option to avoid a Currency column.
@@ -1333,12 +1336,12 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
       expect(result.unpriceableRows).toBeUndefined();
     });
 
-    it('returns unpriceableRows for a currency with no stored rate (ZZZ)', async () => {
+    it('returns unpriceableRows for a currency with no stored rate (SSP)', async () => {
       const result = await helpers.detectDuplicates({
         payload: {
           fileContent: MINIMAL_CSV,
           delimiter: ',',
-          columnMapping: buildFixedCurrencyMapping('ZZZ'),
+          columnMapping: buildFixedCurrencyMapping('SSP'),
           accountMapping: { 'Main Account': { action: 'create-new' } },
           categoryMapping: {},
         },
@@ -1347,13 +1350,13 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
 
       expect(result.unpriceableRows).toBeDefined();
       expect(result.unpriceableRows).toHaveLength(1);
-      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 2, currencyCode: 'ZZZ' });
+      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 2, currencyCode: 'SSP' });
     });
 
-    it('returns only the ZZZ rows when a CSV mixes priceable (EUR) and unpriceable (ZZZ) currencies', async () => {
+    it('returns only the SSP rows when a CSV mixes priceable (EUR) and unpriceable (SSP) currencies', async () => {
       const mixedCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2024-01-15,100.00,EUR tx,Food,EUR,expense,Main Account
-2024-01-16,50.00,ZZZ tx,Food,ZZZ,expense,Main Account
+2024-01-16,50.00,SSP tx,Food,SSP,expense,Main Account
 2024-01-17,75.00,USD tx,Food,USD,expense,Main Account`;
 
       const result = await helpers.detectDuplicates({
@@ -1369,7 +1372,7 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
 
       expect(result.unpriceableRows).toBeDefined();
       expect(result.unpriceableRows).toHaveLength(1);
-      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 3, currencyCode: 'ZZZ' });
+      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 3, currencyCode: 'SSP' });
     });
 
     it('omits unpriceableRows when the CSV has no valid rows (all invalid)', async () => {
@@ -1380,7 +1383,9 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
         payload: {
           fileContent: allInvalidCsv,
           delimiter: ',',
-          columnMapping: buildFixedCurrencyMapping('ZZZ'),
+          // Currency is incidental here: every row is invalid, so findUnpriceableRows
+          // receives an empty array regardless of which currency is mapped.
+          columnMapping: buildFixedCurrencyMapping('USD'),
           accountMapping: { 'Main Account': { action: 'create-new' } },
           categoryMapping: {},
         },

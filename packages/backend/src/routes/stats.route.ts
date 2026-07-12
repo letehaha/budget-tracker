@@ -42,6 +42,12 @@ router.get(
   statsController.getCashFlow.handler,
 );
 router.get(
+  '/pivot',
+  authenticateSession,
+  validateEndpoint(statsController.getPivotReport.schema),
+  statsController.getPivotReport.handler,
+);
+router.get(
   '/cumulative',
   authenticateSession,
   validateEndpoint(statsController.getCumulativeData.schema),

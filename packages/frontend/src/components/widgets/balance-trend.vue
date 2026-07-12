@@ -67,42 +67,25 @@
             :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
           >
             <div class="mb-1 font-medium">{{ tooltip.date }}</div>
-            <div>
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.accounts') }}
-              {{ formatLargeNumber(tooltip.accountsBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
-            </div>
-            <div>
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.portfolios') }}
-              {{
-                formatLargeNumber(tooltip.portfoliosBalance, { isFiat: true, currency: baseCurrency?.currency?.code })
-              }}
-            </div>
-            <div v-if="showVenturesRow">
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.ventures') }}
-              {{ formatLargeNumber(tooltip.venturesBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
-            </div>
-            <div v-if="showVehiclesRow">
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.vehicles') }}
-              {{ formatLargeNumber(tooltip.vehiclesBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
+            <div v-for="row in tooltipComponentRows" :key="row.key">
+              {{ row.label }} {{ formatTooltipMoney(row.value)
+              }}<span
+                v-if="shouldDisplayBalanceDelta({ delta: row.delta })"
+                class="ml-1"
+                :class="deltaColorClass(row.delta)"
+                >({{ formatBalanceDelta({ delta: row.delta, currency: tooltipCurrency }) }})</span
+              >
             </div>
             <div class="font-medium">
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }}
-              {{ formatLargeNumber(tooltip.totalBalance, { isFiat: true, currency: baseCurrency?.currency?.code }) }}
+              {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }} {{ formatTooltipMoney(tooltip.totalBalance) }}
             </div>
             <div
               v-if="tooltip.hasDelta"
               class="mt-1 border-t pt-1 text-xs font-medium"
-              :class="{
-                'text-success-text': tooltip.deltaAbsolute > 0,
-                'text-app-expense-color': tooltip.deltaAbsolute < 0,
-                'text-muted-foreground': tooltip.deltaAbsolute === 0,
-              }"
+              :class="deltaColorClass(tooltip.deltaAbsolute)"
             >
-              {{ tooltip.deltaAbsolute > 0 ? '+' : ''
-              }}{{
-                formatLargeNumber(tooltip.deltaAbsolute, { isFiat: true, currency: baseCurrency?.currency?.code })
-              }}
-              ({{ tooltip.deltaPercent > 0 ? '+' : '' }}{{ tooltip.deltaPercent.toFixed(1) }}%)
+              {{ formatBalanceDelta({ delta: tooltip.deltaAbsolute, currency: tooltipCurrency }) }}
+              ({{ formatBalanceDeltaPercent({ percent: tooltip.deltaPercent }) }})
             </div>
           </div>
 
@@ -164,6 +147,7 @@ import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from '
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import { formatBalanceDelta, formatBalanceDeltaPercent, shouldDisplayBalanceDelta } from './balance-trend-delta';
 import BalanceTrendSettingsPopover from './components/balance-trend-settings-popover.vue';
 import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
@@ -205,7 +189,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-type BalanceTypeValue = 'total' | 'accounts' | 'portfolios' | 'ventures' | 'vehicles';
+type BalanceTypeValue = 'total' | 'accounts' | 'portfolios' | 'ventures' | 'vehicles' | 'loans';
 type BalanceTypeOption = { value: BalanceTypeValue; label: string };
 
 const selectedBalanceType = ref<BalanceTypeOption>({
@@ -238,7 +222,7 @@ const fitToLatestData = computed<boolean>(() => {
 // User-controlled toggles for what counts toward the "Total" balance line.
 // Default true so behavior matches pre-toggle releases (no migration needed).
 // Affects the "total" chart line + tooltip total + headline number only; the
-// per-component balance types (vehicles, ventures) in the dropdown stay
+// per-component balance types (vehicles, ventures, loans) in the dropdown stay
 // unaffected so users can still drill into them directly.
 const includeVehiclesInTotal = computed<boolean>(() => {
   const cfg = widgetConfigRef?.value?.config;
@@ -248,21 +232,31 @@ const includeVenturesInTotal = computed<boolean>(() => {
   const cfg = widgetConfigRef?.value?.config;
   return (cfg?.includeVenturesInTotal as boolean | undefined) ?? true;
 });
+const includeLoansInTotal = computed<boolean>(() => {
+  const cfg = widgetConfigRef?.value?.config;
+  return (cfg?.includeLoansInTotal as boolean | undefined) ?? true;
+});
 
 type BalancePoint = {
   accountsBalance: number;
   portfoliosBalance: number;
   venturesBalance: number;
   vehiclesBalance: number;
+  loansBalance: number;
   totalBalance: number;
 };
 
 const getEffectiveTotal = (point: BalancePoint): number => {
   // Fast path: nothing excluded → use the server-computed total verbatim.
-  if (includeVehiclesInTotal.value && includeVenturesInTotal.value) return point.totalBalance;
+  if (includeVehiclesInTotal.value && includeVenturesInTotal.value && includeLoansInTotal.value) {
+    return point.totalBalance;
+  }
   let total = point.accountsBalance + point.portfoliosBalance;
   if (includeVenturesInTotal.value) total += point.venturesBalance;
   if (includeVehiclesInTotal.value) total += point.vehiclesBalance;
+  // Loans are stored as negatives — excluding them raises net worth (ignoring debt);
+  // including them subtracts liabilities as usual.
+  if (includeLoansInTotal.value) total += point.loansBalance;
   return total;
 };
 
@@ -279,7 +273,16 @@ const tooltip = reactive({
   portfoliosBalance: 0,
   venturesBalance: 0,
   vehiclesBalance: 0,
+  loansBalance: 0,
   totalBalance: 0,
+  // Point-over-point change of each component, so the tooltip can show which
+  // portion of net worth actually moved between the hovered day and the prior one.
+  accountsDelta: 0,
+  portfoliosDelta: 0,
+  venturesDelta: 0,
+  vehiclesDelta: 0,
+  loansDelta: 0,
+  // Change of the currently-charted line (matches the selected balance type).
   deltaAbsolute: 0,
   deltaPercent: 0,
   hasDelta: false,
@@ -378,8 +381,11 @@ const hasVehicleData = computed(
   () => !!balanceHistory.value && balanceHistory.value.some((i) => i.vehiclesBalance !== 0),
 );
 
-// Tooltip rows for vehicles/ventures show when the component contributes to
-// what the user is currently viewing — either it's flowing into the Total
+// Same gating for loans; balances are negative, so check `!== 0` (not `> 0`) to detect any active loan.
+const hasLoanData = computed(() => !!balanceHistory.value && balanceHistory.value.some((i) => i.loansBalance !== 0));
+
+// Tooltip rows for vehicles/ventures/loans show when the component contributes
+// to what the user is currently viewing — either it's flowing into the Total
 // (and Total is the selected line), or the user explicitly picked that
 // component's line from the dropdown. Hidden when toggled out of Total to
 // avoid showing a value that doesn't add up to the displayed Total.
@@ -393,6 +399,62 @@ const showVenturesRow = computed(() => {
   if (selectedBalanceType.value.value === 'ventures') return true;
   return includeVenturesInTotal.value;
 });
+const showLoansRow = computed(() => {
+  if (!hasLoanData.value) return false;
+  if (selectedBalanceType.value.value === 'loans') return true;
+  return includeLoansInTotal.value;
+});
+
+const tooltipCurrency = computed(() => baseCurrency.value?.currency?.code);
+const formatTooltipMoney = (value: number) =>
+  formatLargeNumber(value, { isFiat: true, currency: tooltipCurrency.value });
+const deltaColorClass = (delta: number) => ({
+  'text-success-text': delta > 0,
+  'text-app-expense-color': delta < 0,
+  'text-muted-foreground': delta === 0,
+});
+
+// Component breakdown shown in the tooltip, gated the same way as the standalone
+// row flags so the visible deltas always sum to the displayed Total.
+const tooltipComponentRows = computed(() =>
+  [
+    {
+      key: 'accounts',
+      label: t('dashboard.widgets.balanceTrend.tooltip.accounts'),
+      value: tooltip.accountsBalance,
+      delta: tooltip.accountsDelta,
+      show: true,
+    },
+    {
+      key: 'portfolios',
+      label: t('dashboard.widgets.balanceTrend.tooltip.portfolios'),
+      value: tooltip.portfoliosBalance,
+      delta: tooltip.portfoliosDelta,
+      show: true,
+    },
+    {
+      key: 'ventures',
+      label: t('dashboard.widgets.balanceTrend.tooltip.ventures'),
+      value: tooltip.venturesBalance,
+      delta: tooltip.venturesDelta,
+      show: showVenturesRow.value,
+    },
+    {
+      key: 'vehicles',
+      label: t('dashboard.widgets.balanceTrend.tooltip.vehicles'),
+      value: tooltip.vehiclesBalance,
+      delta: tooltip.vehiclesDelta,
+      show: showVehiclesRow.value,
+    },
+    {
+      key: 'loans',
+      label: t('dashboard.widgets.balanceTrend.tooltip.loans'),
+      value: tooltip.loansBalance,
+      delta: tooltip.loansDelta,
+      show: showLoansRow.value,
+    },
+  ].filter((row) => row.show),
+);
 
 const balanceTypeOptions = computed<BalanceTypeOption[]>(() => {
   const options: BalanceTypeOption[] = [
@@ -406,12 +468,15 @@ const balanceTypeOptions = computed<BalanceTypeOption[]>(() => {
   if (hasVehicleData.value) {
     options.push({ value: 'vehicles', label: t('dashboard.widgets.balanceTrend.balanceTypes.vehicles') });
   }
+  if (hasLoanData.value) {
+    options.push({ value: 'loans', label: t('dashboard.widgets.balanceTrend.balanceTypes.loans') });
+  }
   return options;
 });
 
-// Roll the user off the ventures/vehicles views if the underlying data
-// disappears (last deal/vehicle deleted while widget mounted) — otherwise the
-// select would display a stale label after the option vanishes from the list.
+// Roll the user off the ventures/vehicles/loans views if the underlying data
+// disappears (last deal/vehicle/loan deleted while widget mounted) — otherwise
+// the select would display a stale label after the option vanishes from the list.
 watch(hasVentureData, (val) => {
   if (!val && selectedBalanceType.value.value === 'ventures') {
     selectedBalanceType.value = balanceTypeOptions.value[0]!;
@@ -419,6 +484,11 @@ watch(hasVentureData, (val) => {
 });
 watch(hasVehicleData, (val) => {
   if (!val && selectedBalanceType.value.value === 'vehicles') {
+    selectedBalanceType.value = balanceTypeOptions.value[0]!;
+  }
+});
+watch(hasLoanData, (val) => {
+  if (!val && selectedBalanceType.value.value === 'loans') {
     selectedBalanceType.value = balanceTypeOptions.value[0]!;
   }
 });
@@ -481,6 +551,9 @@ const chartData = computed(() => {
       case 'vehicles':
         value = point.vehiclesBalance;
         break;
+      case 'loans':
+        value = point.loansBalance;
+        break;
       default:
         value = effectiveTotal;
     }
@@ -492,6 +565,7 @@ const chartData = computed(() => {
       portfoliosBalance: point.portfoliosBalance,
       venturesBalance: point.venturesBalance,
       vehiclesBalance: point.vehiclesBalance,
+      loansBalance: point.loansBalance,
       totalBalance: effectiveTotal,
     };
   });
@@ -528,10 +602,10 @@ const { data: spikeTransactions, isLoading: isSpikeTransactionsLoading } = useQu
     const dateStart = startOfDay(new Date(selectedSpikeDate.value));
     const dateEnd = endOfDay(new Date(selectedSpikeDate.value));
     const transactions = await loadTransactions({
-      from: 0,
+      offset: 0,
       limit: 20,
-      startDate: dateStart.toISOString(),
-      endDate: dateEnd.toISOString(),
+      from: dateStart.toISOString(),
+      to: dateEnd.toISOString(),
     });
     // Sort by highest refAmount (base currency) so the biggest transactions show first
     return transactions.sort((a, b) => Math.abs(b.refAmount) - Math.abs(a.refAmount));
@@ -842,18 +916,29 @@ const renderChart = () => {
       tooltip.portfoliosBalance = d.portfoliosBalance;
       tooltip.venturesBalance = d.venturesBalance;
       tooltip.vehiclesBalance = d.vehiclesBalance;
+      tooltip.loansBalance = d.loansBalance;
       tooltip.totalBalance = d.totalBalance;
 
-      // Compute day-over-day delta
+      // Compute point-over-point deltas (charted line + each component)
       if (currentIndex > 0) {
         const prevPoint = chartData.value[currentIndex - 1]!;
         tooltip.deltaAbsolute = d.value - prevPoint.value;
         tooltip.deltaPercent =
           prevPoint.value !== 0 ? ((d.value - prevPoint.value) / Math.abs(prevPoint.value)) * 100 : 0;
+        tooltip.accountsDelta = d.accountsBalance - prevPoint.accountsBalance;
+        tooltip.portfoliosDelta = d.portfoliosBalance - prevPoint.portfoliosBalance;
+        tooltip.venturesDelta = d.venturesBalance - prevPoint.venturesBalance;
+        tooltip.vehiclesDelta = d.vehiclesBalance - prevPoint.vehiclesBalance;
+        tooltip.loansDelta = d.loansBalance - prevPoint.loansBalance;
         tooltip.hasDelta = true;
       } else {
         tooltip.deltaAbsolute = 0;
         tooltip.deltaPercent = 0;
+        tooltip.accountsDelta = 0;
+        tooltip.portfoliosDelta = 0;
+        tooltip.venturesDelta = 0;
+        tooltip.vehiclesDelta = 0;
+        tooltip.loansDelta = 0;
         tooltip.hasDelta = false;
       }
 
@@ -937,6 +1022,11 @@ const displayBalance = computed(() => {
       return {
         current: latestEntry.vehiclesBalance || 0,
         previous: prevPeriodLastEntry?.vehiclesBalance || 0,
+      };
+    case 'loans':
+      return {
+        current: latestEntry.loansBalance || 0,
+        previous: prevPeriodLastEntry?.loansBalance || 0,
       };
     case 'total':
     default:

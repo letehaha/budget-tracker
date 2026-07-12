@@ -1,4 +1,5 @@
 import { SORT_DIRECTIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { dateRange, withDateOrder } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import Transactions from '@models/transactions.model';
 import { getDismissalsForUser } from '@models/transfer-suggestion-dismissals.model';
@@ -79,25 +80,22 @@ function calculateConfidence({
 }
 
 const schema = z.object({
-  body: z
-    .object({
-      dateFrom: z.string().datetime({ offset: true }),
-      dateTo: z.string().datetime({ offset: true }),
+  body: withDateOrder(
+    z.object({
+      ...dateRange({ required: true, precision: 'datetime', offset: true }),
       limit: z.number().int().positive().max(MAX_LIMIT).optional().default(DEFAULT_LIMIT),
       offset: z.number().int().min(0).optional().default(0),
       includeOutOfWallet: z.boolean().optional().default(false),
-    })
-    .refine((data) => new Date(data.dateFrom) <= new Date(data.dateTo), {
-      message: 'dateFrom must be before or equal to dateTo',
     }),
+  ),
 });
 
 export default createController(schema, async ({ user, body }) => {
   const { id: userId } = user;
-  const { dateFrom, dateTo, limit, offset, includeOutOfWallet } = body;
+  const { from, to, limit, offset, includeOutOfWallet } = body;
 
-  const dateFromParsed = startOfDay(new Date(dateFrom));
-  const dateToParsed = endOfDay(new Date(dateTo));
+  const dateFromParsed = startOfDay(new Date(from));
+  const dateToParsed = endOfDay(new Date(to));
 
   // Transfer natures to include in the scan
   const allowedTransferNatures = [TRANSACTION_TRANSFER_NATURE.not_transfer];
