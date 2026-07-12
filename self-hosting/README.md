@@ -32,13 +32,13 @@ Open `http://<host>:8080`. Full walkthrough:
 
 ## What's in this folder
 
-| Path                         | Purpose                                               |
-| ---------------------------- | ----------------------------------------------------- |
-| `docker-compose.yml`         | Base stack – pulls published images, one host port    |
-| `docker-compose.traefik.yml` | Optional overlay: bundled Traefik + Let's Encrypt TLS |
-| `docker-compose.build.yml`   | Optional overlay: build the images from source        |
-| `.env.example`               | Configuration template – copy to `.env` and fill in   |
-| `backend/`, `frontend/`      | Dockerfiles + entrypoints for the published images    |
+| Path                         | Purpose                                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| `docker-compose.yml`         | Base stack – pulls published images, one host port      |
+| `docker-compose.traefik.yml` | Optional overlay: bundled Traefik + Let's Encrypt TLS   |
+| `docker-compose.build.yml`   | Optional overlay: build the images from source          |
+| `.env.example`               | Configuration template – copy to `.env` and fill in     |
+| `backend/`, `frontend/`      | Dockerfiles + entrypoints for the published images      |
 | `docs/`                      | Setup guide, proxy docs, env reference, troubleshooting |
 
 ## Where to get help

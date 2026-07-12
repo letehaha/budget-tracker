@@ -79,7 +79,6 @@ Used with `docker-compose.build.yml` (`--build`).
 | --------------------------------------------------- | -------------------------------------- |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry source-map upload at build time |
 
-
 ---
 
 Setup guide: [setup-guide.md](setup-guide.md) · Troubleshooting:

@@ -2,7 +2,7 @@ name: Update images on VPS
 
 on:
   workflow_run:
-    workflows: ["Lint, Test and Build"]
+    workflows: ['Lint, Test and Build']
     types:
       - completed
     branches: [main]
@@ -14,7 +14,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     uses: ./.github/workflows/database-backup.yml
     with:
-      backup_reason: "pre-deployment"
+      backup_reason: 'pre-deployment'
     secrets: inherit
 
   build:
@@ -60,7 +60,7 @@ jobs:
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           image-tag: latest,sha-${{ steps.vars.outputs.sha_short }}
           platforms: linux/amd64,linux/arm64
-          push: "true"
+          push: 'true'
 
       - id: backend-docker-build
         uses: ./.github/actions/backend-docker-build
@@ -70,7 +70,7 @@ jobs:
           sentry-release: ${{ github.sha }}
           image-tag: latest,sha-${{ steps.vars.outputs.sha_short }}
           platforms: linux/amd64,linux/arm64
-          push: "true"
+          push: 'true'
 
       - name: Trigger Dokploy deployment
         run: |

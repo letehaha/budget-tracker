@@ -236,4 +236,3 @@ Let's Encrypt problems, and more – are covered in
   its config from env at container start (writing `window.__APP_CONFIG__` and
   rendering the CSP), so analytics keys, API target, and CSP hosts change with
   a restart – no rebuild. Build-time `VITE_*` values are only baked fallbacks.
-
