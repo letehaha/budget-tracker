@@ -2,7 +2,7 @@ name: Update images on VPS
 
 on:
   workflow_run:
-    workflows: ['Lint, Test and Build']
+    workflows: ["Lint, Test and Build"]
     types:
       - completed
     branches: [main]
@@ -14,7 +14,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     uses: ./.github/workflows/database-backup.yml
     with:
-      backup_reason: 'pre-deployment'
+      backup_reason: "pre-deployment"
     secrets: inherit
 
   build:
@@ -37,27 +37,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Immutable per-build tag pushed alongside :latest so self-hosters can
+      # pin an exact image (github.sha short form).
+      - name: Compute short SHA
+        id: vars
+        run: echo "sha_short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # This image is the self-host image: letehaha/budget-tracker-fe is what
+      # self-hosters pull. Deployment-specific values (API origin, analytics
+      # keys, CSP hosts) belong to whoever runs the container, not to this
+      # build — they enter at container start via the entrypoint's runtime
+      # env, so only build-identity and source-map-upload inputs go here.
       - id: frontend-docker-build
         uses: ./.github/actions/frontend-docker-build
         with:
-          api-base-url: ${{ secrets.API_BASE_URL }}
-          vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
-          mcp-base-url: ${{ secrets.MCP_BASE_URL }}
-          logo-dev-token: ${{ secrets.VITE_LOGO_DEV_TOKEN }}
-          posthog-key: ${{ secrets.VITE_POSTHOG_KEY }}
-          posthog-host: ${{ secrets.VITE_POSTHOG_HOST }}
-          sentry-dsn: ${{ secrets.VITE_SENTRY_DSN }}
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           sentry-org: ${{ secrets.SENTRY_ORG }}
           sentry-project: ${{ secrets.SENTRY_PROJECT }}
           sentry-release: ${{ github.sha }}
           app-commit-hash: ${{ github.sha }}
-          csp-extra-connect: ${{ secrets.CSP_EXTRA_CONNECT }}
-          csp-extra-form-action: ${{ secrets.CSP_EXTRA_FORM_ACTION }}
-          csp-extra-analytics: ${{ secrets.CSP_EXTRA_ANALYTICS }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-          push: 'true'
+          image-tag: latest,sha-${{ steps.vars.outputs.sha_short }}
+          platforms: linux/amd64,linux/arm64
+          push: "true"
 
       - id: backend-docker-build
         uses: ./.github/actions/backend-docker-build
@@ -65,7 +68,9 @@ jobs:
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           sentry-release: ${{ github.sha }}
-          push: 'true'
+          image-tag: latest,sha-${{ steps.vars.outputs.sha_short }}
+          platforms: linux/amd64,linux/arm64
+          push: "true"
 
       - name: Trigger Dokploy deployment
         run: |
