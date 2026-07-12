@@ -70,8 +70,11 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
     replaysOnErrorSampleRate: 1.0,
     // Environment
     environment: import.meta.env.MODE,
-    // Only send errors from production domains
-    allowUrls: [/https?:\/\/(www\.)?gamanets\.money/, /https?:\/\/(www\.)?moneymatter\.app/],
+    // Only accept errors whose stack frames come from the app's own bundle.
+    // The bundle is always served from the page origin (no CDN), so this one
+    // entry covers cloud and any self-hosted domain, while still filtering
+    // browser-extension and injected third-party scripts.
+    allowUrls: [window.location.origin],
     // Ignore common non-actionable errors
     ignoreErrors: [
       // Network errors
