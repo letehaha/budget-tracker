@@ -1,4 +1,5 @@
 import { api, API_HTTP } from '@/api/_api';
+import { config } from '@/common/config';
 
 interface ConnectedApp {
   clientId: string;
@@ -22,8 +23,8 @@ export const getOAuthClientName = async ({ clientId }: { clientId: string }): Pr
 };
 
 export function getMcpServerUrl(): string {
-  if (import.meta.env.VITE_MCP_BASE_URL) {
-    return `${import.meta.env.VITE_MCP_BASE_URL}/mcp`;
+  if (config.mcpBaseUrl) {
+    return `${config.mcpBaseUrl}/mcp`;
   }
   return `${API_HTTP}/mcp`;
 }

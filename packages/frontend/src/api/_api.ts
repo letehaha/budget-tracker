@@ -53,22 +53,11 @@ const isCloudDeployment = (): boolean => {
   return hostname === CLOUD_HOSTNAME || hostname.endsWith(`.${CLOUD_HOSTNAME}`);
 };
 
-// eslint-disable-next-line no-console
-console.log('API_HTTP', API_HTTP);
-// eslint-disable-next-line no-console
-console.log('API_VER', API_VER);
-
 /**
  * API client for making requests to the backend.
  * Authentication is handled via session cookies (managed by better-auth).
  */
 class ApiCaller {
-  _baseURL: string;
-
-  constructor() {
-    this._baseURL = import.meta.env.API_HTTP;
-  }
-
   get<T = Record<string, unknown>>(
     endpoint: ApiCall['endpoint'],
     query: T = {} as T,

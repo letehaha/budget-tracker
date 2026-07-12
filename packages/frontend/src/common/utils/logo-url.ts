@@ -1,3 +1,5 @@
+import { config } from '@/common/config';
+
 /**
  * Builds a logo.dev CDN URL for a brand domain. Shared by every feature that
  * renders brand logos (subscriptions, bank institutions, payees), so it lives
@@ -8,7 +10,7 @@
  * every visible logo.
  */
 export function getServiceLogoUrl({ domain }: { domain: string }): string | null {
-  const token = import.meta.env.VITE_LOGO_DEV_TOKEN;
+  const token = config.logoDevToken;
   if (!token) return null;
   return `https://img.logo.dev/${domain}?token=${token}&format=png&size=64`;
 }
