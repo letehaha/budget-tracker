@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "subscriptions": {
+      "title": "Pembayaran terjadwal",
+      "defaultAutoRecord": {
+        "label": "Catat otomatis default pada pembayaran terjadwal baru",
+        "help": "Saat diaktifkan, toggle catat otomatis pada formulir pembuatan langganan akan AKTIF secara default. Anda selalu dapat menimpanya per langganan.",
+        "successNotification": "Pengaturan disimpan",
+        "errorNotification": "Gagal menyimpan pengaturan"
+      }
+    }
+  }
+}

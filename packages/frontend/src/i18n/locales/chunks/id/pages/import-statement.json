@@ -1,0 +1,24 @@
+{
+  "title": "Impor Laporan Bank",
+  "description": "Unggah laporan bank (PDF) untuk mengekstrak transaksi secara otomatis",
+  "upload": "Unggah Laporan",
+  "uploading": "Mengunggah...",
+  "processing": "Memproses laporan...",
+  "preview": "Pratinjau Transaksi",
+  "noTransactionsFound": "Tidak ditemukan transaksi dalam laporan ini",
+  "selectAccount": "Pilih Akun",
+  "ignoreExisting": "Abaikan transaksi yang sudah ada",
+  "import": "Impor {{count}} Transaksi",
+  "importing": "Mengimpor...",
+  "success": "Berhasil mengimpor {{count}} transaksi",
+  "howToGetStatement": "Cara mendapatkan laporan bank: login ke internet banking Anda → cari 'Laporan' atau 'Mutasi Rekening' → unduh sebagai PDF untuk periode yang diinginkan",
+  "fileRequirements": "Laporan bank dalam format PDF. Mendukung format dari mayoritas bank Indonesia.",
+  "supportedBanks": "Bank yang Didukung",
+  "errors": {
+    "noFile": "Pilih file PDF terlebih dahulu",
+    "invalidFile": "File tidak valid. Unggah file PDF.",
+    "parseError": "Gagal mengekstrak teks dari PDF. Pastikan file bukan hasil scan.",
+    "importFailed": "Gagal mengimpor transaksi",
+    "accountRequired": "Pilih akun tujuan untuk mengimpor transaksi"
+  }
+}

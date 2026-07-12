@@ -1,0 +1,27 @@
+{
+  "title": "Impor Investasi",
+  "subtitle": "Impor data investasi dari file",
+  "description": "Unggah file CSV berisi data investasi Anda untuk diimpor ke portofolio yang dipilih",
+  "portfolio": "Portofolio",
+  "selectPortfolio": "Pilih portofolio...",
+  "upload": "Unggah File",
+  "uploading": "Mengunggah...",
+  "parsing": "Memproses data investasi...",
+  "preview": "Pratinjau Data",
+  "columnMapping": "Pemetaan Kolom",
+  "dateColumn": "Kolom Tanggal",
+  "typeColumn": "Kolom Tipe",
+  "securityColumn": "Kolom Efek",
+  "sharesColumn": "Kolom Jumlah Lembar",
+  "priceColumn": "Kolom Harga",
+  "feeColumn": "Kolom Biaya (opsional)",
+  "import": "Impor",
+  "importing": "Mengimpor...",
+  "success": "Berhasil mengimpor {{count}} transaksi investasi",
+  "errors": {
+    "noPortfolio": "Pilih portofolio tujuan terlebih dahulu",
+    "invalidFile": "File tidak valid",
+    "parseError": "Gagal memproses file",
+    "importFailed": "Gagal mengimpor data investasi"
+  }
+}

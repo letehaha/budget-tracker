@@ -1,0 +1,17 @@
+{
+  "auth": {
+    "verifyEmail": {
+      "title": "Periksa email Anda",
+      "description": "Kami telah mengirim tautan verifikasi ke",
+      "descriptionYourEmail": "alamat email Anda",
+      "descriptionContinued": ". Silakan klik tautan untuk memverifikasi akun Anda.",
+      "didntReceive": "Tidak menerima email? Periksa folder spam Anda atau",
+      "resend": "klik di sini untuk kirim ulang",
+      "sending": "Mengirim...",
+      "resendIn": "Kirim ulang dalam {count}d",
+      "backToSignIn": "Kembali ke Masuk",
+      "resendSuccess": "Email verifikasi terkirim! Silakan periksa kotak masuk Anda.",
+      "resendError": "Gagal mengirim ulang email verifikasi. Silakan coba lagi."
+    }
+  }
+}

@@ -1,0 +1,263 @@
+{
+  "loans": {
+    "title": "Pinjaman",
+    "loadError": "Gagal memuat pinjaman.",
+    "tryAgain": "Coba lagi",
+    "addButton": {
+      "label": "Tambah pinjaman"
+    },
+    "actions": {
+      "more": "Lainnya",
+      "moreAriaLabel": "Tindakan lainnya",
+      "excludeFromStats": "Keluarkan dari statistik",
+      "linkPayments": "Hubungkan pembayaran sebelumnya"
+    },
+    "linkPayments": {
+      "title": "Hubungkan pembayaran sebelumnya",
+      "description": "Pilih transaksi yang telah Anda bayarkan untuk pinjaman ini untuk dicatat sebagai pembayaran.",
+      "emptyTitle": "Tidak ada transaksi yang cocok",
+      "emptyDescription": "Tidak ada transaksi yang sesuai dengan filter ini. Coba perluas rentang tanggal atau hapus filter.",
+      "selectedCount": "{count} dipilih",
+      "clearSelection": "Hapus",
+      "linkSelected": "Hubungkan {count}",
+      "success": "Berhasil menghubungkan {count} pembayaran ke pinjaman.",
+      "error": "Tidak dapat menghubungkan pembayaran yang dipilih. Silakan coba lagi.",
+      "overpayTitle": "Pembayaran melebihi saldo",
+      "overpayDescription": "Pembayaran yang dipilih berjumlah {amount} lebih dari sisa saldo pinjaman. Tetap hubungkan?",
+      "overpayConfirmButton": "Tetap hubungkan"
+    },
+    "dialog": {
+      "createTitle": "Tambah pinjaman",
+      "createDescription": "Lacak hipotek, pinjaman mobil, pinjaman mahasiswa, atau kewajiban lainnya. Anda dapat mengeditnya nanti.",
+      "editTitle": "Edit pinjaman",
+      "editDescription": "Perbarui ketentuan pinjaman. Perubahan pada suku bunga, jangka waktu, atau pembayaran yang direncanakan dicatat dalam linimasa peristiwa."
+    },
+    "settings": {
+      "title": "Pengaturan",
+      "editTitle": "Edit detail pinjaman",
+      "editDescription": "Perbarui nama, saldo, suku bunga, jangka waktu, bidang pembayaran, atau info pemberi pinjaman.",
+      "editButton": "Edit",
+      "excludeFromStatsTitle": "Keluarkan dari statistik",
+      "excludeFromStatsDescription": "Sembunyikan pinjaman ini dari kekayaan bersih, grafik, dan laporan tanpa mengarsipkannya.",
+      "archiveTitle": "Arsipkan pinjaman",
+      "archiveDescription": "Menyembunyikan pinjaman dari sidebar dan daftar akun. Anda dapat memulihkannya kapan saja.",
+      "archiveButton": "Arsipkan",
+      "archivedTitle": "Pinjaman ini diarsipkan",
+      "archivedDescription": "Tersembunyi dari sidebar dan pemilih akun dan terdaftar di bawah Diarsipkan di halaman pinjaman. Pulihkan untuk melanjutkan pelacakan.",
+      "unarchiveButton": "Pulihkan",
+      "archiveConfirmTitle": "Arsipkan pinjaman ini?",
+      "archiveConfirmDescription": "{name} akan dipindahkan ke bagian Diarsipkan di halaman ini dan disembunyikan dari sidebar dan pemilih akun.",
+      "archiveAlsoExclude": "Juga keluarkan dari statistik",
+      "deleteTitle": "Hapus pinjaman",
+      "deleteDescription": "Menghapus pinjaman dan riwayatnya secara permanen. Ini tidak dapat dibatalkan.",
+      "deleteButton": "Hapus",
+      "deleteConfirmTitle": "Hapus pinjaman ini secara permanen?",
+      "deleteConfirmDescription": "{name} dan semua peristiwanya akan dihapus secara permanen. Ini tidak dapat dibatalkan.",
+      "toggleSuccess": "Pengaturan diperbarui",
+      "toggleError": "Tidak dapat memperbarui pengaturan",
+      "archiveSuccess": "Pinjaman diarsipkan",
+      "archiveError": "Tidak dapat mengarsipkan pinjaman",
+      "unarchiveSuccess": "Pinjaman dipulihkan",
+      "deleteSuccess": "Pinjaman dihapus",
+      "deleteError": "Tidak dapat menghapus pinjaman",
+      "deleteBlockedByPayments": "Pinjaman ini memiliki pembayaran yang tercatat. Hapus pembayaran terlebih dahulu, baru Anda dapat menghapus pinjaman."
+    },
+    "empty": {
+      "title": "Belum ada pinjaman",
+      "description": "Lacak hipotek, pinjaman mobil, pinjaman mahasiswa, dan kewajiban lainnya di sini.",
+      "createFirstButton": "Tambah pinjaman pertama"
+    },
+    "paidOff": {
+      "sectionTitle": "Lunas",
+      "repaid": "Dilunasi",
+      "opened": "Dibuka",
+      "closed": "Ditutup",
+      "interestPaid": "Bunga dibayar (est.)"
+    },
+    "archivedList": {
+      "sectionTitle": "Diarsipkan",
+      "badge": "Diarsipkan",
+      "outstanding": "Tertunggak"
+    },
+    "page": {
+      "overline": "Kewajiban"
+    },
+    "aggregate": {
+      "overline": "Portofolio Kewajiban",
+      "activePill": "Aktif",
+      "avgApr": "Rata-rata APR",
+      "monthlyObligation": "Kewajiban bulanan",
+      "interestProjected": "Proyeksi bunga",
+      "title": "Ikhtisar kewajiban",
+      "totalOutstanding": "Total tertunggak",
+      "principalRepaid": "{percent}% dari {amount} pokok dilunasi",
+      "debtFree": "Bebas utang"
+    },
+    "list": {
+      "columns": {
+        "loan": "Pinjaman",
+        "progress": "Progres",
+        "balance": "Saldo",
+        "apr": "APR",
+        "monthly": "Bulanan",
+        "payoff": "Pelunasan",
+        "interestLeft": "Sisa bunga"
+      },
+      "paidPercent": "{value}% dibayar",
+      "monthsLeft": "Sisa {count} bln",
+      "ofPrincipal": "dari {amount}"
+    },
+    "types": {
+      "mortgage": "Hipotek",
+      "auto": "Kendaraan",
+      "student": "Mahasiswa",
+      "personal": "Pribadi",
+      "heloc": "HELOC",
+      "business": "Bisnis",
+      "medical": "Medis",
+      "other": "Lainnya"
+    },
+    "warnings": {
+      "no_planned_payment": "Tidak ada pembayaran terencana – proyeksi pelunasan tidak tersedia.",
+      "payment_below_interest": "Pembayaran terencana tidak menutupi bunga bulanan – pinjaman akan bertambah."
+    },
+    "detail": {
+      "backToList": "Kembali ke pinjaman",
+      "loadError": "Gagal memuat pinjaman ini.",
+      "paidOffBadge": "Lunas",
+      "summary": {
+        "outstanding": "Saldo saat ini",
+        "principalOnlyTooltip": "Saldo mencerminkan pembayaran pokok saja. Bunga tidak bertambah secara otomatis – pernyataan pemberi pinjaman Anda adalah sumber kebenaran.",
+        "apr": "APR",
+        "originalPrincipal": "Pokok awal",
+        "term": "Jangka waktu",
+        "termMonths": "{count} bulan",
+        "startDate": "Tanggal mulai",
+        "paymentDay": "Hari pembayaran",
+        "dayOfMonth": "Tanggal {day} setiap bulan",
+        "accountNumber": "Nomor akun",
+        "balanceAnchor": "Saldo per",
+        "balanceAnchorTooltip": "Saldo terutang ditetapkan pada tanggal ini. Pembayaran sebelum tanggal ini disimpan untuk riwayat tetapi tidak mengubah progres Pembayaran.",
+        "actualDuration": "Durasi aktual"
+      },
+      "paidOff": {
+        "bannerTitle": "{name} — lunas penuh",
+        "bannerSubline": "{type} · Dibuka {opened} · Ditutup {closed}",
+        "took": "Berlangsung",
+        "monthsEarly": "{count} bln lebih awal",
+        "duration": {
+          "full": "{years} thn {months} bln",
+          "years": "{years} thn",
+          "months": "{months} bln"
+        },
+        "cost": {
+          "title": "Biaya pinjaman ini",
+          "totalLabel": "Total biaya",
+          "principal": "Pokok",
+          "interest": "Bunga (est.)",
+          "estimateFootnote": "Bunga adalah estimasi jadwal amortisasi — pembayaran dicatat sebagai pokok, sehingga tidak ada pemisahan bunga yang tepat.",
+          "effectiveCost": "Biaya efektif: {cents}¢ bunga per $1 dipinjam"
+        },
+        "chart": {
+          "title": "Perjalanan saldo",
+          "titleHint": "Saldo pinjaman aktual Anda dari waktu ke waktu, dibandingkan dengan jadwal amortisasi asli.",
+          "noData": "Riwayat tidak mencukupi untuk membuat grafik perjalanan saldo pinjaman ini."
+        }
+      },
+      "projection": {
+        "title": "Proyeksi",
+        "paidLabel": "Dibayar",
+        "paidOfOriginal": "{paid} dari {original} dibayar",
+        "payoffDate": "Tanggal pelunasan",
+        "monthsRemaining": "Sisa bulan",
+        "totalInterestRemaining": "Total sisa bunga",
+        "nextMonthInterest": "Bunga bulan depan",
+        "nextMonthPrincipal": "Pokok bulan depan",
+        "plannedPayment": "Pembayaran terencana"
+      },
+      "events": {
+        "title": "Linimasa",
+        "empty": "Belum ada riwayat – perubahan suku bunga, koreksi saldo, dan catatan akan muncul di sini.",
+        "rateChange": "Suku bunga berubah dari {from}% menjadi {to}%",
+        "termChange": "Jangka waktu berubah dari {from} menjadi {to} bulan",
+        "plannedPaymentChange": "Pembayaran terencana berubah dari {from} menjadi {to}",
+        "paidOff": "Pinjaman lunas",
+        "balanceCorrection": "Saldo terutang dikoreksi dari {from} menjadi {to}"
+      },
+      "payments": {
+        "title": "Pembayaran terbaru",
+        "empty": "Belum ada pembayaran yang dicatat untuk pinjaman ini.",
+        "loadError": "Gagal memuat pembayaran terbaru.",
+        "seeAll": "Lihat semua",
+        "allTitle": "Semua pembayaran",
+        "loadMore": "Muat lebih banyak"
+      },
+      "recordPayment": "Catat pembayaran",
+      "payment": {
+        "title": "Pembayaran pinjaman",
+        "description": "Catat atau edit pembayaran untuk pinjaman ini.",
+        "createTitle": "Catat Pembayaran",
+        "editTitle": "Edit Pembayaran Pinjaman",
+        "payingTo": "Membayar ke",
+        "fromAccountLabel": "Dari akun",
+        "fromAccountPlaceholder": "Pilih akun",
+        "amountLabel": "Jumlah",
+        "amountPlaceholder": "0.00",
+        "targetAmountLabel": "Jumlah yang diterapkan ke pinjaman",
+        "targetAmountPlaceholder": "0.00",
+        "targetAmountTooltip": "Akun sumber dalam {source}, pinjaman dalam {loan}. Kami mengisi jumlah yang dikonversi menggunakan kurs saat ini – sesuaikan jika bank Anda menerapkan kurs yang berbeda.",
+        "saveButton": "Simpan",
+        "recordButton": "Catat",
+        "overdrawWarning": "Ini melebihi saldo {account} dan akan membuat akun menjadi negatif.",
+        "overpayError": "Pembayaran melebihi sisa saldo pinjaman ({max}).",
+        "deleteConfirmTitle": "Hapus pembayaran ini?",
+        "deleteConfirmDescription": "Kedua sisi transfer akan dihapus dan saldo pinjaman akan dipulihkan. Ini tidak dapat dibatalkan.",
+        "preAnchorHint": "Tanggal ini sebelum jepretan saldo pinjaman, sehingga pembayaran ini tidak akan mengubah saldo terutang – sudah termasuk dalam saldo pembukaan.",
+        "unlinkButton": "Lepaskan",
+        "unlinkConfirmTitle": "Lepaskan pembayaran ini?",
+        "unlinkConfirmDescription": "Transaksi akan tetap disimpan sebagai pengeluaran biasa tetapi dihapus dari pinjaman ini. Saldo pinjaman akan dihitung ulang.",
+        "unlinkSuccess": "Pembayaran dilepaskan",
+        "unlinkError": "Tidak dapat melepaskan pembayaran. Silakan coba lagi.",
+        "syncedAccountHint": "Membayar dari akun yang tersinkronisasi? Gunakan Hubungkan pembayaran untuk melampirkan pengeluaran yang diimpor.",
+        "sourceInfo": {
+          "trigger": "Detail lebih lanjut",
+          "title": "Mengapa hanya akun ini?",
+          "manualOnly": "Pemilih ini hanya menampilkan akun yang dikelola secara manual.",
+          "whySynced": "Transaksi di akun yang tersinkronisasi bank diimpor langsung dari bank Anda. Mencatat pembayaran pinjaman dari sini akan membuat duplikat transaksi yang akan dikirim bank Anda.",
+          "howToLink": "Sebagai gantinya, setelah transaksi bank muncul, buka dan pilih Hubungkan pembayaran untuk melampirkannya ke pinjaman ini. Itu menjaga satu sumber kebenaran dan memperbarui saldo pinjaman dengan benar."
+        }
+      },
+      "payoffChart": {
+        "title": "Proyeksi pelunasan",
+        "titleHint": "Memprediksi kapan pinjaman Anda akan dilunasi sepenuhnya dengan pembayaran minimum, terencana, dan kustom bulanan, dengan tanggal pelunasan dan total bunga setiap skenario. Ketik jumlah berapa pun di bidang pembayaran kustom untuk bermain dengan angka dan langsung melihat bagaimana perubahan tanggal pelunasan dan total bunga.",
+        "customPaymentLabel": "Pembayaran kustom",
+        "applyAsPlanned": "Terapkan sebagai pembayaran terencana",
+        "applyAsPlannedShort": "Terapkan sebagai terencana",
+        "applyConfirmTitle": "Terapkan sebagai pembayaran terencana?",
+        "applyConfirmDescription": "Ini menetapkan pembayaran bulanan terencana pinjaman menjadi {amount}.",
+        "applySuccess": "Pembayaran terencana diperbarui.",
+        "applyError": "Tidak dapat memperbarui pembayaran terencana. Silakan coba lagi.",
+        "belowInterest": "Pembayaran ini tidak menutupi bunga bulanan, sehingga saldo tidak pernah berkurang.",
+        "paidOff": "Pinjaman ini sudah lunas – tidak ada yang perlu diproyeksikan.",
+        "enterPaymentPrompt": "Masukkan jumlah pembayaran di atas untuk memproyeksikan pelunasan.",
+        "paidOffShort": "Lunas",
+        "neverPaysOff": "Tidak pernah",
+        "interestVsPlanned": "Bunga vs terencana",
+        "payoffVsPlanned": "Pelunasan vs terencana",
+        "sameAsPlanned": "Sama dengan terencana",
+        "earlierBy": "{time} lebih awal",
+        "laterBy": "{time} lebih lambat",
+        "monthsLabel": "{n} bln",
+        "yearsLabel": "{n} thn",
+        "yearsMonthsLabel": "{y} thn {m} bln",
+        "legend": {
+          "minimum": "Pembayaran minimum",
+          "planned": "Pembayaran terencana",
+          "custom": "Pembayaran kustom",
+          "actual": "Saldo aktual",
+          "schedule": "Jadwal asli"
+        }
+      }
+    }
+  }
+}

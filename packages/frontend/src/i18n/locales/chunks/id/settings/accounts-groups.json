@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "accountGroups": {
+      "title": "Kelola grup akun",
+      "addButton": "Tambah grup baru",
+      "table": {
+        "placeholder": "Nama akun",
+        "saveButton": "Simpan",
+        "editButton": "Edit",
+        "deleteButton": "Hapus",
+        "deleteDisabledTooltip": "Grup ini terhubung ke koneksi bank dan tidak dapat dihapus manual. Putuskan koneksi bank untuk menghapusnya otomatis.",
+        "unlinkButton": "Lepaskan",
+        "noData": "Tidak ada data grup akun",
+        "deleteDialog": {
+          "title": "Hapus grup akun ini?",
+          "unlinkWarning": "Sebelum dihapus, lepaskan akun-akun di bawah ini terlebih dahulu"
+        },
+        "notifications": {
+          "unlinked": "Akun telah dilepaskan",
+          "deleted": "Grup telah dihapus"
+        }
+      }
+    }
+  }
+}

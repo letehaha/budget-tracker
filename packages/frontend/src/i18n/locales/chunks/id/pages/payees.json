@@ -1,0 +1,156 @@
+{
+  "payees": {
+    "title": "Penerima",
+    "subtitle": "Daftar induk pedagang yang Anda bertransaksi dengan",
+    "newPayeeButton": "Penerima Baru",
+    "searchPlaceholder": "Cari penerima…",
+    "columns": {
+      "name": "Nama",
+      "transactionCount": "# tx",
+      "netFlow": "Arus bersih",
+      "category": "Kategori",
+      "categoryHint": "Kategori efektif untuk penerima ini. Menampilkan default jika Anda telah menetapkannya — jika tidak, kategori yang paling sering digunakan dalam transaksi sebelumnya. Diisi otomatis saat membuat transaksi baru.",
+      "topCategory": "Kategori teratas",
+      "defaultCategory": "Kategori default"
+    },
+    "sort": {
+      "label": "Urutkan berdasarkan",
+      "transactionCount": "Jumlah tx",
+      "netFlow": "Arus bersih",
+      "name": "Nama",
+      "lastSeen": "Aktivitas terbaru"
+    },
+    "actions": {
+      "menu": "Tindakan",
+      "rename": "Ubah nama",
+      "merge": "Gabungkan ke…",
+      "delete": "Hapus",
+      "deleteAndIgnore": "Hapus & abaikan"
+    },
+    "emptyState": {
+      "title": "Belum ada penerima",
+      "description": "Hubungkan bank untuk mendeteksi penerima secara otomatis, atau buat secara manual."
+    },
+    "form": {
+      "namePlaceholder": "Masukkan nama penerima",
+      "categoryPlaceholder": "Pilih kategori",
+      "categorizationMode": {
+        "label": "Kategorisasi AI",
+        "enforce": {
+          "label": "Selalu gunakan kategori penerima",
+          "hint": "Kategori default penerima selalu digunakan. Kategorisasi AI dilewati untuk penerima ini."
+        },
+        "hint": {
+          "label": "Gunakan sebagai petunjuk",
+          "hint": "Menetapkan kategori default penerima, tetapi AI masih dapat menggantinya berdasarkan detail transaksi."
+        },
+        "off": {
+          "label": "Nonaktif",
+          "hint": "Kategori default penerima diabaikan. Kategorisasi ditangani oleh AI atau aturan Anda yang lain."
+        }
+      }
+    },
+    "detail": {
+      "categorizationSection": "Kategorisasi",
+      "aliasesHeading": "Alias",
+      "aliasesEmpty": "Belum ada alias. Varian baru akan muncul di sini ketika Penerima ini cocok dengan nama pedagang lain.",
+      "cannotDeleteCanonicalAlias": "Tidak dapat menghapus alias yang cocok dengan nama Penerima. Ubah nama Penerima sebagai gantinya.",
+      "deleteAliasConfirm": "Hapus alias ini?",
+      "addAlias": "Tambah",
+      "addAliasTitle": "Tambah alias",
+      "addAliasDescription": "Transaksi masa depan yang teks pedagangnya dinormalisasi menjadi alias ini akan secara otomatis terhubung ke Penerima ini. Transaksi masa lalu tidak berubah.",
+      "addAliasInputLabel": "Nama pedagang",
+      "addAliasPlaceholder": "mis. TOKO ACME #1234",
+      "aliasDuplicate": "Alias ini sudah terpasang ke Penerima ini.",
+      "aliasUsedByOtherPayee": "Alias ini sudah digunakan oleh \"{name}\".",
+      "deletePayeeTitle": "Hapus penerima?",
+      "deletePayeeDescription": "Transaksi yang terhubung tetap memiliki kategorinya tetapi kehilangan tautan penerima. Ini tidak dapat dibatalkan.",
+      "deleteAndIgnoreTitle": "Hapus Penerima ini dan abaikan kecocokan di masa depan?",
+      "deleteAndIgnoreDescription": "Menghapus Penerima ini DAN menambahkan namanya (kanonik + semua alias) ke daftar blokir nama yang diabaikan. Sinkronisasi masa depan tidak akan membuatnya ulang dari teks pedagang mentah. Transaksi yang terhubung tetap ada tetapi kehilangan tautan penerima.",
+      "mergeTitle": "Gabungkan ke penerima lain",
+      "mergeDescription": "Pilih penerima target. Semua transaksi dan alias dipindahkan ke target; penerima ini dihapus.",
+      "mergeButton": "Gabungkan",
+      "confirmMerge": "Gabungkan",
+      "noTransactions": "Belum ada transaksi",
+      "topCategoryHint": "Kategori yang paling sering digunakan dalam transaksi yang terhubung ke penerima ini. Digunakan sebagai cadangan ketika tidak ada kategori default yang ditetapkan.",
+      "defaultCategoryPlaceholder": "Pilih kategori",
+      "defaultTagsLabel": "Terapkan tag otomatis",
+      "defaultTagsPlaceholder": "Pilih tag untuk diterapkan otomatis",
+      "defaultTagsHint": "Tag ini secara otomatis ditambahkan ke transaksi baru yang terhubung ke penerima ini (sinkronisasi bank dan impor).",
+      "applyTagsToExisting": "Terapkan ke transaksi yang ada"
+    },
+    "logo": {
+      "change": "Ubah logo",
+      "dialogTitle": "Ubah Logo",
+      "dialogDescription": "Cari logo merek untuk mewakili penerima ini.",
+      "searchPlaceholder": "Nama merek atau domain",
+      "noResults": "Tidak ada merek yang cocok ditemukan.",
+      "resetToAuto": "Kembalikan ke otomatis",
+      "updatedToast": "Logo diperbarui.",
+      "resetToast": "Logo dikembalikan ke otomatis.",
+      "fieldLabel": "Logo",
+      "domainHint": "Untuk menemukan merek yang tepat, ketik domain situs web perusahaan (mis. amazon.com) — itu selalu mencocokkan logo yang tepat.",
+      "useDomainDirectly": "Gunakan {domain}",
+      "searchHint": "Ketik nama merek, atau domain seperti amazon.com",
+      "autoLabel": "Otomatis (dari nama)"
+    },
+    "transactionsDialog": {
+      "title": "{name} — transaksi",
+      "empty": "Tidak ada transaksi yang terhubung ke penerima ini."
+    },
+    "toasts": {
+      "created": "Penerima dibuat",
+      "updated": "Penerima diperbarui",
+      "deleted": "Penerima dihapus",
+      "merged": "Penerima digabungkan",
+      "aliasDeleted": "Alias dihapus",
+      "aliasAdded": "Alias ditambahkan",
+      "deletedAndIgnored": "Penerima dihapus dan ditambahkan ke daftar nama yang diabaikan",
+      "tagsAppliedToExisting": "Tag diterapkan ke {count} transaksi"
+    },
+    "errors": {
+      "collision": "Penerima dengan nama ini sudah ada. Gabungkan saja.",
+      "generic": "Terjadi kesalahan, silakan coba lagi."
+    },
+    "tabs": {
+      "manage": "Kelola",
+      "settings": "Pengaturan"
+    },
+    "settings": {
+      "title": "Pengaturan deteksi penerima",
+      "description": "Kontrol bagaimana aplikasi mendeteksi Penerima secara otomatis dari transaksi yang disinkronkan.",
+      "payeeFromDescription": {
+        "label": "Deteksi penerima dari deskripsi transaksi",
+        "description": "Ketika bank Anda tidak menyediakan bidang pedagang khusus, gunakan deskripsi transaksi (catatan) untuk mendeteksi Penerima secara otomatis. Berguna untuk koneksi bank yang memiliki bidang pedagang kosong atau tidak ada. Mungkin menghasilkan nama Penerima yang lebih berisik (mis. prefiks pembayaran cicilan) yang dapat Anda ubah nama atau gabungkan setelahnya.",
+        "successNotification": "Preferensi diperbarui",
+        "errorNotification": "Gagal memperbarui preferensi"
+      },
+      "bulkCategorizationMode": {
+        "label": "Terapkan mode kategorisasi ke semua penerima",
+        "description": "Pilih bagaimana kategorisasi harus berperilaku untuk setiap penerima yang ada. Ini menggantikan pengaturan individu setiap penerima.",
+        "applyButton": "Terapkan ke semua",
+        "confirmTitle": "Terapkan ke semua penerima?",
+        "confirmDescription": "Semua penerima akan dialihkan ke {mode}. Anda masih dapat mengubah setiap penerima secara individu nanti.",
+        "successNotification": "Memperbarui {count} penerima.",
+        "errorNotification": "Gagal memperbarui penerima. Silakan coba lagi."
+      }
+    },
+    "ignoredNames": {
+      "title": "Nama pedagang yang diabaikan",
+      "description": "String pedagang mentah yang tidak boleh secara otomatis membuat Penerima. Berguna untuk noise seperti 'Transfer kartu', 'Dari: <nama>', atau prefiks pengembalian dana. Anda masih dapat menghubungkan nama-nama ini ke Penerima secara manual — hanya pencocokan otomatis yang diblokir.",
+      "addPlaceholder": "mis. Spotify",
+      "addButton": "Tambah",
+      "addedToast": "Ditambahkan ke nama yang diabaikan",
+      "addError": "Gagal menambahkan ke nama yang diabaikan",
+      "removeTooltip": "Hapus dari daftar yang diabaikan",
+      "removedToast": "Dihapus dari nama yang diabaikan",
+      "removeError": "Gagal menghapus",
+      "empty": "Belum ada nama yang diabaikan.",
+      "normalizedLabel": "Dinormalisasi",
+      "conflictTitle": "Penerima yang ada cocok",
+      "conflictDescription": "Penerima dengan nama yang dinormalisasi sama dengan \"{name}\" sudah ada. Melanjutkan akan menghapus Penerima itu (transaksi tetap, kehilangan tautan).",
+      "forceConfirm": "Hapus Penerima dan abaikan"
+    },
+    "loadingMore": "Memuat lebih banyak…"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "accounts": {
+    "noNameSet": "Belum ada nama...",
+    "title": "Akun",
+    "createAccount": "Buat akun",
+    "createVehicle": "Tambah kendaraan",
+    "bankIntegrations": "Integrasi Bank",
+    "sections": {
+      "archived": "Diarsipkan",
+      "manual": "Akun manual",
+      "connected": "Akun Terhubung",
+      "sharedWithMe": "Dibagikan dengan saya",
+      "vehicles": "Kendaraan"
+    },
+    "empty": {
+      "title": "Belum Ada Akun",
+      "description": "Hubungkan bank Anda atau buat akun manual untuk mulai melacak keuangan, saldo, dan transaksi Anda.",
+      "connectBank": "Hubungkan Akun Bank",
+      "createManual": "Buat Akun Manual"
+    },
+    "sharedBy": "Dibagikan oleh {handle}",
+    "viaHousehold": "Dibagikan melalui rumah tangga {handle}"
+  }
+}

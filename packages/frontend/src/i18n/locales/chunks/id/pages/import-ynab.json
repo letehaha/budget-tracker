@@ -1,0 +1,17 @@
+{
+  "title": "Impor dari YNAB",
+  "description": "Impor data dari You Need A Budget (YNAB). Ekspor data Anda dari YNAB sebagai file CSV, lalu unggah di sini.",
+  "howToExport": "Cara mengekspor dari YNAB: Buka YNAB → pilih budget → klik menu (⋮) → Export Budget → pilih format CSV",
+  "upload": "Unggah File CSV",
+  "uploading": "Mengunggah...",
+  "parsing": "Memproses data YNAB...",
+  "preview": "Pratinjau",
+  "import": "Impor",
+  "importing": "Mengimpor...",
+  "success": "Berhasil mengimpor {{count}} transaksi",
+  "errors": {
+    "invalidFile": "File tidak valid. Pastikan file berformat CSV YNAB.",
+    "parseError": "Gagal memproses file CSV YNAB",
+    "importFailed": "Gagal mengimpor transaksi"
+  }
+}

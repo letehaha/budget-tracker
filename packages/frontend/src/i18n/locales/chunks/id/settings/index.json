@@ -1,0 +1,24 @@
+{
+  "settings": {
+    "navigation": {
+      "currencies": "Mata Uang",
+      "categories": "Kategori",
+      "tags": "Tag",
+      "accountsGroups": "Grup akun",
+      "importData": "Impor/Ekspor",
+      "ai": "AI",
+      "security": "Keamanan",
+      "admin": "Admin",
+      "sharedWithMe": "Dibagikan dengan saya",
+      "household": "Rumah Tangga",
+      "personalGroup": "Pribadi",
+      "workspaceGroup": "Ruang Kerja",
+      "appearance": "Tampilan",
+      "language": "Bahasa",
+      "statistics": "Statistik",
+      "payees": "Penerima Pembayaran",
+      "subscriptions": "Pembayaran terjadwal"
+    },
+    "backToSettings": "Kembali ke Pengaturan"
+  }
+}

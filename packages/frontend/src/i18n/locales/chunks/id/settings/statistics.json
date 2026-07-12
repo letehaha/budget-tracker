@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "statistics": {
+      "title": "Statistik",
+      "description": "Kontrol bagaimana data keuangan Anda dihitung dan ditampilkan di seluruh aplikasi.",
+      "creditLimit": {
+        "label": "Sertakan batas kredit dalam saldo",
+        "description": "Saat diaktifkan, batas kredit dikurangkan dari saldo akun dalam statistik dan grafik tren saldo. Ini menunjukkan posisi keuangan aktual Anda, bukan kredit yang tersedia.",
+        "successNotification": "Pengaturan berhasil diperbarui",
+        "errorNotification": "Gagal memperbarui pengaturan"
+      }
+    }
+  }
+}

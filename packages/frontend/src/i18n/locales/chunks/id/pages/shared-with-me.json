@@ -1,0 +1,36 @@
+{
+  "pages": {
+    "sharedWithMe": {
+      "title": "Dibagikan dengan saya",
+      "loadError": "Gagal memuat sumber daya yang dibagikan.",
+      "empty": {
+        "title": "Belum ada yang dibagikan dengan Anda",
+        "description": "Ketika seseorang membagikan akun dengan Anda, akan muncul di sini."
+      },
+      "sections": {
+        "account": "Akun",
+        "household": "Rumah Tangga",
+        "budget": "Anggaran yang dibagikan dengan Anda"
+      },
+      "sharedBy": "Dibagikan oleh {handle}",
+      "viaHousehold": "Melalui rumah tangga {handle}",
+      "unnamedResource": "Tanpa Judul",
+      "permissions": {
+        "read": "Baca",
+        "write": "Tulis",
+        "manage": "Kelola"
+      },
+      "leave": "Keluar",
+      "leaveTitle": "Keluar dari berbagi?",
+      "leaveDescription": "Anda akan kehilangan akses ke {resource} milik {owner}. Pemilik tidak akan diberitahu.",
+      "leaveConfirm": "Keluar",
+      "leaveSuccess": "Anda telah keluar dari berbagi.",
+      "leaveError": "Tidak dapat keluar dari berbagi.",
+      "pending": {
+        "heading": "Undangan tertunda",
+        "review": "Tinjau",
+        "empty": "Tidak ada undangan tertunda."
+      }
+    }
+  }
+}

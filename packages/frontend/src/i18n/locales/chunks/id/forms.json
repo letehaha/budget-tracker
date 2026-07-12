@@ -1,0 +1,366 @@
+{
+  "forms": {
+    "investmentTransaction": {
+      "typeLabel": "Jenis Transaksi",
+      "types": {
+        "buy": "Beli",
+        "sell": "Jual",
+        "dividend": "Dividen",
+        "fee": "Biaya",
+        "tax": "Pajak"
+      },
+      "securityLabel": "Sekuritas",
+      "securityPlaceholder": "Pilih sekuritas",
+      "quantityLabel": "Kuantitas",
+      "quantityPlaceholder": "0.00",
+      "priceLabel": "Harga per Lembar",
+      "pricePlaceholder": "0.00",
+      "priceHelp": "Gunakan 0 untuk hadiah staking, airdrop, atau penyesuaian saldo.",
+      "feesLabel": "Biaya (opsional)",
+      "feesPlaceholder": "0.00",
+      "dateLabel": "Tanggal Transaksi",
+      "noteLabel": "Catatan",
+      "notePlaceholder": "Opsional. Tambahkan catatan tentang transaksi ini",
+      "cancelButton": "Batal",
+      "submitButton": "Buat Transaksi",
+      "submitButtonLoading": "Membuat...",
+      "notifications": {
+        "success": "Transaksi berhasil dibuat.",
+        "error": "Gagal membuat transaksi."
+      },
+      "settlement": {
+        "toggleLabel": "Tentukan jumlah kas aktual",
+        "toggleHint": "Gunakan ketika perdagangan diselesaikan dalam mata uang berbeda, atau Anda hanya tahu totalnya dan ingin biaya diturunkan secara otomatis",
+        "currencyLabel": "Mata uang pembayaran",
+        "currencyPlaceholder": "Pilih mata uang",
+        "totalPaidLabel": "Total dibayar",
+        "totalReceivedLabel": "Total diterima",
+        "totalPlaceholder": "mis. 1700",
+        "feeLabel": "Biaya (dalam mata uang pembayaran)",
+        "feePlaceholder": "0",
+        "sameCurrencyFeeHint": "Biaya dicatat sebagai selisih antara total dan kuantitas × harga.",
+        "crossCurrencyFeeHint": "Biaya eksplisit broker. Selisih kurs ditangkap dalam nilai tukar perdagangan.",
+        "modeFee": "Saya tahu biayanya",
+        "modeAuto": "Otomatis",
+        "modeRate": "Saya tahu nilainya",
+        "rateLabel": "Nilai tukar",
+        "ratePlaceholder": "mis. 3.66",
+        "rateHint": "Satuan mata uang penyelesaian per 1 satuan mata uang sekuritas. Biaya dicatat sebagai selisih antara total dan kuantitas × harga × nilai tukar.",
+        "autoHint": "Biaya diturunkan secara otomatis menggunakan nilai tukar pasar untuk tanggal transaksi.",
+        "previewRate": "≈ nilai tukar {rate} akan dicatat",
+        "previewFee": "≈ biaya {fee} {currency} akan dicatat (nilai tukar {rate})",
+        "previewUnavailable": "Tidak ada nilai tukar pasar untuk tanggal ini – masukkan biaya atau nilai tukar secara manual.",
+        "previewFetchFailed": "Tidak dapat memuat nilai tukar pasar. Periksa koneksi Anda atau masukkan nilai tukar secara manual.",
+        "previewPlaceholder": "Pratinjau muncul di sini saat Anda mengisi formulir."
+      }
+    },
+    "portfolioSettings": {
+      "nameLabel": "Nama Portofolio",
+      "namePlaceholder": "Portofolio Investasi Saya",
+      "nameRequired": "Nama wajib diisi",
+      "typeLabel": "Jenis Portofolio",
+      "typePlaceholder": "Pilih jenis portofolio",
+      "descriptionLabel": "Deskripsi (opsional)",
+      "descriptionPlaceholder": "Deskripsi singkat tentang portofolio ini...",
+      "displayCurrencyLabel": "Mata uang tampilan",
+      "displayCurrencyPlaceholder": "Pilih mata uang tampilan",
+      "displayCurrencyBaseOption": "Mata uang dasar ({code})",
+      "displayCurrencyDescription": "Nilai dan statistik portofolio dikonversi ke mata uang ini dengan nilai tukar saat ini.",
+      "cancelButton": "Batal",
+      "submitButton": "Simpan Perubahan",
+      "submitButtonLoading": "Menyimpan...",
+      "notifications": {
+        "success": "Portofolio berhasil diperbarui.",
+        "error": "Gagal memperbarui portofolio. Silakan coba lagi."
+      }
+    },
+    "portfolioTransfer": {
+      "transferTypeLabel": "Jenis Transfer",
+      "transferTypes": {
+        "portfolioToPortfolio": "Ke Portofolio Lain",
+        "portfolioToAccount": "Ke Akun",
+        "accountToPortfolio": "Ke Portofolio"
+      },
+      "comingSoonNotice": "💡 Transfer akun-ke-portofolio akan hadir di pembaruan mendatang!",
+      "fromPortfolioLabel": "Dari Portofolio",
+      "fromPortfolioPlaceholder": "Pilih portofolio sumber",
+      "fromAccountLabel": "Dari Akun",
+      "fromAccountPlaceholder": "Pilih akun sumber",
+      "toPortfolioLabel": "Ke Portofolio",
+      "toPortfolioPlaceholder": "Pilih portofolio tujuan",
+      "toAccountLabel": "Ke Akun",
+      "toAccountPlaceholder": "Pilih akun tujuan",
+      "currencyLabel": "Mata Uang",
+      "currencyPlaceholder": "Pilih mata uang",
+      "amountLabel": "Jumlah",
+      "amountLabelWithCurrency": "Jumlah ({currency})",
+      "amountPlaceholder": "0.00",
+      "dateLabel": "Tanggal",
+      "descriptionLabel": "Deskripsi (opsional)",
+      "descriptionPlaceholder": "Tambahkan catatan tentang transfer ini...",
+      "cancelButton": "Batal",
+      "submitButton": "Transfer",
+      "submitButtonLoading": "Memproses...",
+      "confirmDialog": {
+        "title": "Konfirmasi Transfer",
+        "description": "{amount} {action} akan dibuat dari {from} ke {to}",
+        "actionTransfer": "transfer",
+        "actionWithdrawal": "penarikan",
+        "actionDeposit": "deposit",
+        "warning": "Tindakan ini tidak dapat dibatalkan.",
+        "cancelButton": "Batal",
+        "confirmButton": "Konfirmasi Transfer"
+      },
+      "validation": {
+        "required": "Bidang ini wajib diisi",
+        "minValue": "Jumlah harus lebih besar dari 0"
+      },
+      "notifications": {
+        "comingSoon": "Transfer akun-ke-portofolio akan hadir di pembaruan mendatang!",
+        "success": "Transfer berhasil diselesaikan.",
+        "error": "Transfer gagal. Silakan coba lagi."
+      },
+      "linkExistingTransaction": "Tautkan transaksi yang ada",
+      "linkedTransactionLabel": "Transaksi",
+      "noPortfoliosAvailable": "Tidak ada portofolio lain yang tersedia"
+    },
+    "createAccount": {
+      "nameLabel": "Nama akun",
+      "namePlaceholder": "Nama akun",
+      "currencyLabel": "Mata Uang",
+      "currencyPlaceholder": "Pilih mata uang",
+      "addCurrencyButton": "Tambah mata uang baru +",
+      "initialBalanceLabel": "Saldo awal",
+      "initialBalancePlaceholder": "Saldo awal",
+      "accountCategoryLabel": "Kategori Akun",
+      "accountCategoryPlaceholder": "Pilih kategori akun",
+      "creditLimitLabel": "Batas kredit",
+      "creditLimitPlaceholder": "Batas kredit",
+      "submitButton": "Buat",
+      "submitButtonLoading": "Membuat...",
+      "notifications": {
+        "success": "Berhasil dibuat.",
+        "error": "Kesalahan tak terduga."
+      }
+    },
+    "directCashTransaction": {
+      "methodTypes": {
+        "direct": "Langsung",
+        "transfer": "Transfer"
+      },
+      "operationTypes": {
+        "deposit": "Deposit",
+        "withdrawal": "Penarikan"
+      },
+      "fromAccountLabel": "Dari Akun",
+      "toAccountLabel": "Ke Akun",
+      "accountPlaceholder": "Pilih akun",
+      "orSeparator": "atau",
+      "linkExistingTransaction": "Tautkan transaksi yang ada",
+      "linkedTransactionLabel": "Transaksi tertaut",
+      "amountLabel": "Jumlah",
+      "amountPlaceholder": "Masukkan jumlah",
+      "currencyLabel": "Mata Uang",
+      "currencyPlaceholder": "Pilih mata uang",
+      "dateLabel": "Tanggal",
+      "descriptionLabel": "Deskripsi",
+      "descriptionPlaceholder": "Deskripsi opsional",
+      "cancelButton": "Batal",
+      "submitButton": "Kirim",
+      "submitButtonLoading": "Mengirim...",
+      "confirmDialog": {
+        "title": "Konfirmasi Transfer",
+        "description": "{amount} {action} akan dibuat dari {from} ke {to}",
+        "cancelButton": "Batal",
+        "confirmButton": "Konfirmasi",
+        "actionDeposit": "deposit",
+        "actionWithdrawal": "penarikan"
+      },
+      "validation": {
+        "required": "Bidang ini wajib diisi",
+        "minValue": "Jumlah harus lebih besar dari 0"
+      },
+      "notifications": {
+        "success": "Transaksi tunai berhasil dibuat",
+        "error": "Gagal membuat transaksi tunai"
+      }
+    },
+    "validators": {
+      "invalidCurrencyDecimal": "Masukkan jumlah yang valid (hingga 2 desimal)",
+      "mustBePositive": "Jumlah harus positif"
+    },
+    "exchangeCurrency": {
+      "fromCurrencyLabel": "Dari Mata Uang",
+      "toCurrencyLabel": "Ke Mata Uang",
+      "currencyPlaceholder": "Pilih mata uang",
+      "fromAmountLabel": "Jumlah Asal",
+      "toAmountLabel": "Jumlah Tujuan",
+      "amountPlaceholder": "0.00",
+      "maxButton": "Maks: {amount}",
+      "dateLabel": "Tanggal Penukaran",
+      "descriptionLabel": "Deskripsi (opsional)",
+      "descriptionPlaceholder": "Tambahkan catatan tentang penukaran ini...",
+      "cancelButton": "Batal",
+      "submitButton": "Tukar",
+      "submitButtonLoading": "Memproses...",
+      "validation": {
+        "required": "Bidang ini wajib diisi",
+        "minValue": "Jumlah harus lebih besar dari 0",
+        "sameCurrency": "Mata uang asal dan tujuan harus berbeda"
+      },
+      "notifications": {
+        "success": "Mata uang berhasil ditukar",
+        "error": "Gagal menukar mata uang"
+      }
+    },
+    "createVehicle": {
+      "nameLabel": "Nama kendaraan",
+      "namePlaceholder": "mis. Camry Saya",
+      "currencyLabel": "Mata Uang",
+      "makeLabel": "Merek",
+      "modelLabel": "Model",
+      "trimLabel": "Varian (opsional)",
+      "yearLabel": "Tahun",
+      "vehicleClassLabel": "Kelas kendaraan",
+      "purchasePriceLabel": "Harga beli",
+      "purchaseDateLabel": "Tanggal beli",
+      "depreciationPresetLabel": "Pola depresiasi",
+      "customAnnualRatePctLabel": "Tingkat depresiasi tahunan khusus (%)",
+      "salvageFloorPctLabel": "Batas sisa (% dari harga beli)",
+      "currentMileageLabel": "Kilometer saat ini (opsional)",
+      "currentMileagePlaceholder": "mis. 45000",
+      "submitButton": "Tambah kendaraan",
+      "submitButtonLoading": "Menambahkan...",
+      "notifications": {
+        "success": "Kendaraan ditambahkan",
+        "error": "Gagal menambahkan kendaraan"
+      }
+    },
+    "editVehicle": {
+      "submitButton": "Simpan perubahan",
+      "submitButtonLoading": "Menyimpan...",
+      "notifications": {
+        "success": "Kendaraan diperbarui",
+        "error": "Gagal memperbarui kendaraan"
+      }
+    },
+    "loan": {
+      "nameLabel": "Nama pinjaman",
+      "namePlaceholder": "mis. KPR utama",
+      "loanTypeLabel": "Jenis pinjaman",
+      "loanTypePlaceholder": "Pilih jenis pinjaman",
+      "currencyLabel": "Mata Uang",
+      "currencyPlaceholder": "Pilih mata uang",
+      "originalPrincipalLabel": "Pokok awal",
+      "originalPrincipalPlaceholder": "mis. 320000",
+      "initialBalanceLabel": "Saldo terutang saat ini",
+      "initialBalancePlaceholder": "Yang Anda hutangi hari ini",
+      "interestRateLabel": "Suku bunga (APR %)",
+      "interestRatePlaceholder": "mis. 6.25",
+      "minPaymentEstimateTooltip": "Diperkirakan dari pokok, suku bunga tahunan, dan jangka waktu menggunakan rumus amortisasi standar.",
+      "minPaymentApplyEstimateAriaLabel": "Gunakan perkiraan pembayaran minimum",
+      "termMonthsLabel": "Jangka waktu (bulan)",
+      "termPresetsAriaLabel": "Prasetel jangka waktu",
+      "termPresetsHeader": "Jangka waktu umum",
+      "termMonthsSuffix": "bln",
+      "termPresetYears": "{count} tahun | {count} tahun",
+      "termMonthsPlaceholder": "mis. 360 untuk pinjaman 30 tahun",
+      "startDateLabel": "Tanggal mulai",
+      "startDatePlaceholder": "DD/MM/YYYY",
+      "startDateTooltip": "Tanggal pinjaman berasal — saat pertama kali Anda mengambilnya. Ini hanya informasional dan tidak mengubah saldo terutang saat ini atau proyeksi pelunasan.",
+      "plannedPaymentLabel": "Pembayaran bulanan yang direncanakan",
+      "plannedPaymentPlaceholder": "Yang sebenarnya Anda bayar",
+      "minPaymentLabel": "Pembayaran bulanan minimum",
+      "minPaymentPlaceholder": "Opsional, dari pemberi pinjaman Anda",
+      "paymentDayLabel": "Hari pembayaran dalam bulan",
+      "paymentDayPlaceholder": "1–31",
+      "lenderNameLabel": "Pemberi pinjaman",
+      "lenderNamePlaceholder": "mis. Chase, Wells Fargo",
+      "accountNumberLabel": "Nomor akun / pinjaman",
+      "accountNumberPlaceholder": "Opsional",
+      "currentBalanceLabel": "Saldo terutang saat ini",
+      "balanceAsOfLabel": "Saldo per",
+      "balanceAsOfPlaceholder": "DD/MM/YYYY",
+      "saveButton": "Simpan perubahan",
+      "submitButton": "Buat pinjaman",
+      "submitButtonLoading": "Membuat…",
+      "cancelButton": "Batal",
+      "notifications": {
+        "success": "Pinjaman dibuat.",
+        "error": "Gagal membuat pinjaman. Silakan coba lagi.",
+        "updateSuccess": "Pinjaman diperbarui",
+        "updateError": "Gagal memperbarui pinjaman"
+      },
+      "errors": {
+        "required": "Bidang ini wajib diisi.",
+        "mustBePositive": "Harus lebih besar dari 0.",
+        "mustBeNonNegative": "Harus 0 atau lebih besar.",
+        "interestRateRange": "Suku bunga harus antara 0 dan 99.9999.",
+        "termRange": "Jangka waktu harus antara 1 dan 1200 bulan.",
+        "paymentDayRange": "Hari dalam bulan harus antara 1 dan 31.",
+        "asOfInFuture": "Tanggal tidak boleh di masa depan"
+      },
+      "balanceExceedsPrincipalWarning": "Saldo terutang lebih tinggi dari pokok awal – periksa kembali jumlah ini."
+    }
+  },
+  "fields": {
+    "categorySelect": {
+      "noCategoriesFound": "Tidak ada kategori ditemukan",
+      "selectCategoryLabel": "Pilih kategori",
+      "searchCategoryLabel": "Cari kategori",
+      "clearSearchLabel": "Bersihkan pencarian",
+      "clearSelectionLabel": "Hapus pilihan",
+      "searchPlaceholder": "Cari...",
+      "sharedOwnerNotice": "Menampilkan kategori {owner}",
+      "sharedOwnerNoticeTooltip": "Transaksi di akun bersama selalu menggunakan kategori pemilik. Apa pun yang Anda simpan di sini akan diajukan di bawah set {owner} sehingga Anda berdua melihat total yang konsisten.",
+      "sharedOwnerCategoriesLoadError": "Tidak dapat memuat kategori untuk akun bersama. Silakan coba lagi."
+    },
+    "select": {
+      "selectOption": "Pilih opsi",
+      "searchPlaceholder": "Cari..."
+    },
+    "comboboxAccounts": {
+      "allAccounts": "Semua akun",
+      "account": "akun",
+      "accountsSelected": "akun dipilih",
+      "selectedOne": "1 akun dipilih",
+      "selectedMany": "{n} akun dipilih",
+      "searchPlaceholder": "Cari akun...",
+      "noResults": "Tidak ada hasil ditemukan."
+    },
+    "comboboxCategories": {
+      "searchPlaceholder": "Cari kategori...",
+      "unselectedPlaceholder": "Semua kategori",
+      "selectedOne": "1 kategori dipilih",
+      "selectedMany": "{n} kategori dipilih"
+    },
+    "accountMultiSelect": {
+      "ungrouped": "Tidak dikelompokkan"
+    },
+    "tagSelect": {
+      "placeholder": "Pilih tag...",
+      "noTagsAvailable": "Tidak ada tag tersedia"
+    },
+    "categoryMultiSelect": {
+      "placeholder": "Pilih kategori...",
+      "searchPlaceholder": "Cari kategori...",
+      "noCategoriesFound": "Tidak ada kategori ditemukan"
+    },
+    "payeeMultiSelect": {
+      "label": "Semua penerima",
+      "searchPlaceholder": "Cari penerima",
+      "selectedMany": "{n} penerima dipilih",
+      "noResults": "Tidak ada penerima ditemukan",
+      "unknownPayee": "Penerima tidak diketahui",
+      "loadError": "Tidak dapat memuat penerima. Silakan coba lagi."
+    },
+    "payeeSelect": {
+      "placeholder": "Pilih penerima",
+      "searchPlaceholder": "Cari penerima…",
+      "empty": "Belum ada penerima",
+      "createAffordance": "Buat penerima \"{name}\"",
+      "createNew": "Buat penerima baru",
+      "sharedOwnerPayeesLoadError": "Tidak dapat memuat penerima untuk akun bersama. Silakan coba lagi."
+    }
+  }
+}

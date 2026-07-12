@@ -1,0 +1,179 @@
+{
+  "settings": {
+    "security": {
+      "title": "Pengaturan Keamanan",
+      "description": "Kelola metode masuk, sesi aktif, dan kata sandi Anda",
+      "tabs": {
+        "loginMethods": "Metode Masuk",
+        "activeSessions": "Sesi Aktif",
+        "password": "Kata Sandi",
+        "dangerZone": "Zona Berbahaya"
+      },
+      "loginMethods": {
+        "title": "Metode Masuk",
+        "description": "Kelola cara Anda masuk ke akun",
+        "oauth": {
+          "connectedAs": "Terhubung sebagai {email}",
+          "accountName": "Akun {provider}",
+          "notConnected": "Tidak terhubung",
+          "disconnect": "Putuskan",
+          "connect": "Hubungkan"
+        },
+        "password": {
+          "title": "Kata Sandi",
+          "passwordSet": "Kata sandi telah diatur",
+          "noPassword": "Tidak ada kata sandi",
+          "manageInTab": "Kelola di tab Kata Sandi",
+          "setupInTab": "Atur di tab Kata Sandi"
+        },
+        "passkeys": {
+          "title": "Kunci Passkey",
+          "noPasskeys": "Tidak ada passkey yang terdaftar",
+          "passkeyCount": "{count} passkey terdaftar",
+          "addButton": "Tambah Passkey",
+          "passkeyName": "Passkey",
+          "added": "Ditambahkan {date}"
+        },
+        "warningOneMethod": "Tambahkan metode masuk lain sebelum memutuskan akun OAuth Anda.",
+        "notifications": {
+          "oauthConnectFailed": "Gagal menghubungkan akun {provider}",
+          "oauthDisconnectSuccess": "Akun {provider} diputuskan",
+          "oauthDisconnectFailed": "Gagal memutuskan akun {provider}",
+          "passkeyAddSuccess": "Passkey berhasil ditambahkan",
+          "passkeyAddFailed": "Gagal menambahkan passkey. Pastikan perangkat Anda mendukung passkey.",
+          "passkeyRemoveSuccess": "Passkey dihapus",
+          "passkeyRemoveFailed": "Gagal menghapus passkey"
+        }
+      },
+      "activeSessions": {
+        "title": "Sesi Aktif",
+        "description": "Kelola perangkat tempat Anda saat ini masuk",
+        "currentBadge": "Saat Ini",
+        "unknownLocation": "Lokasi tidak diketahui",
+        "lastActive": "Terakhir aktif: {date}",
+        "noSessions": "Tidak ada sesi aktif ditemukan",
+        "revokeAllButton": "Keluar dari semua sesi lainnya",
+        "deviceTypes": {
+          "unknownDevice": "Perangkat Tidak Diketahui",
+          "unknownBrowser": "Browser Tidak Diketahui"
+        },
+        "timeAgo": {
+          "justNow": "Baru saja",
+          "minutesAgo": "{count} menit yang lalu | {count} menit yang lalu",
+          "hoursAgo": "{count} jam yang lalu | {count} jam yang lalu",
+          "daysAgo": "{count} hari yang lalu | {count} hari yang lalu"
+        },
+        "notifications": {
+          "loadFailed": "Gagal memuat sesi",
+          "revokeSuccess": "Sesi dicabut",
+          "revokeFailed": "Gagal mencabut sesi",
+          "revokeAllSuccess": "Semua sesi lainnya telah keluar",
+          "revokeAllFailed": "Gagal mencabut sesi"
+        }
+      },
+      "passwordSection": {
+        "title": "Kata Sandi",
+        "descriptionChange": "Ubah kata sandi Anda",
+        "descriptionSet": "Atur kata sandi untuk akun Anda",
+        "labels": {
+          "currentPassword": "Kata Sandi Saat Ini",
+          "newPassword": "Kata Sandi Baru",
+          "password": "Kata Sandi",
+          "confirmPassword": "Konfirmasi Kata Sandi"
+        },
+        "placeholders": {
+          "currentPassword": "Masukkan kata sandi saat ini",
+          "newPassword": "Masukkan kata sandi baru",
+          "confirmPassword": "Konfirmasi kata sandi baru"
+        },
+        "buttons": {
+          "change": "Ubah Kata Sandi",
+          "set": "Atur Kata Sandi"
+        },
+        "strength": {
+          "veryWeak": "Sangat lemah",
+          "weak": "Lemah",
+          "fair": "Cukup",
+          "strong": "Kuat",
+          "veryStrong": "Sangat kuat"
+        },
+        "requirements": {
+          "title": "Persyaratan kata sandi",
+          "minLength": "Minimal 8 karakter",
+          "mixedCase": "Kombinasi huruf besar dan kecil disarankan",
+          "specialChars": "Sertakan angka dan karakter khusus untuk keamanan yang lebih kuat"
+        },
+        "validation": {
+          "minLength": "Kata sandi minimal 8 karakter",
+          "passwordsNoMatch": "Kata sandi tidak cocok"
+        },
+        "notifications": {
+          "changeSuccess": "Kata sandi berhasil diubah",
+          "changeFailed": "Gagal mengubah kata sandi",
+          "setSuccess": "Kata sandi berhasil diatur",
+          "setFailed": "Gagal mengatur kata sandi",
+          "unexpectedError": "Terjadi kesalahan yang tidak terduga",
+          "updateFailed": "Gagal memperbarui kata sandi"
+        }
+      },
+      "dangerZone": "Zona berbahaya",
+      "wipeData": {
+        "title": "Hapus semua data",
+        "warningFull": "{strong} Tindakan ini menghapus semua yang ada di ruang kerja Anda. Login Anda tetap ada sehingga Anda bisa memulai kembali.",
+        "warningStrong": "Peringatan:",
+        "button": "Hapus data",
+        "dialog": {
+          "title": "Hapus semua data Anda?",
+          "description": "Ini akan menghapus secara permanen semua yang ada di ruang kerja Anda, termasuk:",
+          "list": {
+            "accounts": "Akun dan saldo",
+            "transactions": "Transaksi, pengembalian dana, dan transfer",
+            "budgets": "Anggaran, tag, dan kategori",
+            "portfolios": "Investasi, portofolio, dan kepemilikan",
+            "settings": "Pengaturan pengguna, kunci AI, dan status orientasi",
+            "baseCurrency": "Mata uang dasar dan nilai tukar"
+          },
+          "kept": "Login dan profil Anda tetap ada. Anda akan memulai kembali dari alur orientasi.",
+          "typeConfirm": "Untuk konfirmasi, ketik {phrase} di bawah:",
+          "confirmLabel": "Hapus data",
+          "confirmLoading": "Menghapus…"
+        },
+        "sharingDialog": {
+          "title": "Anda berbagi data dengan pengguna lain",
+          "warning": "Orang lain akan kehilangan akses segera",
+          "description": "Menghapus data Anda akan mencabut akses ke sumber daya bersama berikut:",
+          "householdsCount": "Dan {count} anggota rumah tangga akan kehilangan akses. | Dan {count} anggota rumah tangga akan kehilangan akses.",
+          "confirmLabel": "Tetap hapus"
+        },
+        "notifications": {
+          "success": "Semua data terhapus. Memulai dari awal.",
+          "failed": "Tidak dapat menghapus data. Silakan coba lagi."
+        }
+      },
+      "deleteAccount": {
+        "title": "Hapus akun Anda",
+        "warningFull": "Setelah Anda menghapus akun, tidak ada jalan kembali. {strong} Harap pastikan.",
+        "warningStrong": "Semua data Anda akan dihapus secara permanen.",
+        "button": "Hapus akun saya",
+        "dialog": {
+          "title": "Apakah Anda benar-benar yakin?",
+          "description": "Tindakan ini tidak dapat dibatalkan. Ini akan menghapus akun Anda secara permanen dan menghapus semua data Anda termasuk:",
+          "dataList": {
+            "accounts": "Semua akun dan transaksi",
+            "categories": "Semua kategori dan anggaran",
+            "portfolios": "Semua portofolio investasi",
+            "settings": "Semua pengaturan dan preferensi"
+          },
+          "confirmFull": "Harap ketik {email} untuk konfirmasi",
+          "placeholder": "Masukkan email Anda",
+          "acceptButton": "Hapus akun saya",
+          "acceptButtonLoading": "Menghapus..."
+        },
+        "notifications": {
+          "success": "Akun Anda berhasil dihapus",
+          "failed": "Terjadi kesalahan saat mencoba menghapus akun Anda"
+        }
+      }
+    }
+  }
+}

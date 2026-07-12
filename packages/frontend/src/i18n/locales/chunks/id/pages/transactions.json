@@ -1,0 +1,267 @@
+{
+  "transactions": {
+    "filters": {
+      "filtersLabel": "Filter",
+      "selectFilters": "Pilih filter",
+      "reset": "Atur Ulang",
+      "apply": "Terapkan",
+      "dateRange": {
+        "tabs": {
+          "range": "Rentang",
+          "single": "Tunggal"
+        },
+        "placeholder": "Tanggal atau rentang",
+        "fromDate": "Dari tanggal",
+        "toDate": "Sampai tanggal",
+        "clear": "Hapus",
+        "presets": {
+          "thisMonth": "Bulan ini",
+          "last3Months": "3 bulan terakhir",
+          "last6Months": "6 bulan terakhir",
+          "last12Months": "12 bulan terakhir"
+        }
+      },
+      "transactionType": {
+        "label": "Jenis transaksi:",
+        "both": "Keduanya",
+        "income": "Pemasukan",
+        "expense": "Pengeluaran",
+        "allTypes": "Semua jenis"
+      },
+      "amountRange": {
+        "from": "Jumlah dari (gte)",
+        "to": "Sampai (lte)",
+        "placeholderFrom": ">= dari",
+        "placeholderTo": "<= dari",
+        "compactFrom": "Min jumlah",
+        "compactTo": "Maks jumlah"
+      },
+      "refundsFilter": {
+        "label": "Pengembalian Dana"
+      },
+      "transferFilter": {
+        "label": "Transfer"
+      },
+      "filterOperation": {
+        "all": "Semua",
+        "exclude": "Keluarkan",
+        "only": "Hanya"
+      },
+      "noteIncludes": {
+        "label": "Catatan berisi (dipisah koma):",
+        "placeholder": "Amazon,nike",
+        "compactPlaceholder": "Cari di catatan"
+      },
+      "tags": {
+        "allTags": "Semua tag",
+        "tagSingular": "tag",
+        "tagPlural": "tag",
+        "selected": "dipilih",
+        "searchPlaceholder": "Cari tag..."
+      },
+      "payeeChip": "Penerima",
+      "payees": {
+        "label": "Penerima",
+        "searchPlaceholder": "Cari penerima",
+        "selectedOne": "1 Penerima dipilih",
+        "selectedMany": "{n} Penerima dipilih"
+      },
+      "removeFilter": "Hapus filter",
+      "menu": {
+        "type": "Jenis",
+        "tags": "Tag",
+        "amount": "Rentang jumlah",
+        "note": "Catatan"
+      },
+      "transferNature": {
+        "label": "Jenis transfer",
+        "disabledTooltip": "Transfer dikecualikan oleh filter di atas, sehingga jenis transfer tidak berpengaruh.",
+        "commonTransfer": "Antar akun",
+        "outOfWallet": "Di luar dompet",
+        "toPortfolio": "Ke portofolio",
+        "toVenture": "Ke venture",
+        "selectedCount": "{n} dipilih"
+      }
+    },
+    "list": {
+      "noMoreData": "Tidak ada lagi transaksi",
+      "loadingMore": "Memuat lebih banyak...",
+      "detailsTitle": "Detail transaksi",
+      "detailsDescription": "Lihat dan edit transaksi"
+    },
+    "bulkEdit": {
+      "selectAll": "Pilih semua",
+      "cancelSelection": "Batalkan pilihan",
+      "editButton": "Edit",
+      "selectedCount": "{count} dipilih",
+      "dialogTitle": "Edit {count} transaksi",
+      "dialogDescription": "Perubahan akan diterapkan ke semua transaksi yang dipilih. Hanya bidang yang diisi yang akan diperbarui.",
+      "categoryLabel": "Kategori",
+      "categoryPlaceholder": "Pilih kategori...",
+      "payeeLabel": "Penerima",
+      "payeePlaceholder": "Pilih penerima...",
+      "tagsLabel": "Tag",
+      "tagsPlaceholder": "Pilih tag...",
+      "noteLabel": "Catatan",
+      "notePlaceholder": "Masukkan catatan...",
+      "applyButton": "Terapkan perubahan",
+      "applyingButton": "Menerapkan...",
+      "confirmTitle": "Konfirmasi perubahan",
+      "confirmDescription": "Anda akan memperbarui {count} transaksi:",
+      "confirmCategoryLabel": "Kategori",
+      "confirmPayeeLabel": "Penerima",
+      "confirmTagsLabel": "Tag",
+      "confirmNoteLabel": "Catatan",
+      "cancelButton": "Batal",
+      "confirmApplyButton": "Terapkan",
+      "successMessage": "Berhasil memperbarui {count} transaksi",
+      "unexpectedError": "Terjadi kesalahan tak terduga",
+      "tagModeLabel": "Tindakan tag",
+      "tagModeAdd": "Tambahkan ke tag yang ada",
+      "tagModeReplace": "Ganti semua tag",
+      "tagModeRemove": "Hapus tag ini",
+      "unselectableReasons": {
+        "split": "Tidak dapat dipilih: transaksi split tidak mendukung pengeditan massal. Edit secara individual.",
+        "sharedAccount": "Tidak dapat dipilih: transaksi ini berada di akun yang dibagikan dengan Anda, dan hanya pemiliknya yang dapat mengeditnya."
+      }
+    },
+    "transactionGroups": {
+      "bulkActions": {
+        "createNewGroup": "Buat grup baru",
+        "addToExistingGroup": "Tambahkan ke grup yang ada",
+        "groupButton": "Grup"
+      },
+      "addToGroupDialog": {
+        "title": "Tambahkan ke grup yang ada",
+        "searchPlaceholder": "Cari grup...",
+        "noGroupsMessage": "Belum ada grup. Buat satu terlebih dahulu.",
+        "noSearchResultsMessage": "Tidak ada grup yang cocok dengan pencarian Anda.",
+        "loadingText": "Memuat grup...",
+        "addingText": "Menambahkan...",
+        "buttonLabel": "Tambahkan ke Grup",
+        "cancelButton": "Batal",
+        "transactionCountLabel": "transaksi"
+      },
+      "createGroupDialog": {
+        "title": "Buat Grup Transaksi",
+        "descriptionPrefix": "Grup",
+        "groupNameLabel": "Nama",
+        "groupNamePlaceholder": "mis. Transfer gaji Mei",
+        "noteLabel": "Catatan (opsional)",
+        "notePlaceholder": "Deskripsi opsional...",
+        "creatingText": "Membuat...",
+        "buttonLabel": "Buat Grup",
+        "cancelButton": "Batal"
+      },
+      "groupsPage": {
+        "title": "Grup Transaksi",
+        "searchPlaceholder": "Cari grup...",
+        "noGroupsMessage": "Belum ada grup transaksi.",
+        "emptyStateHint": "Pilih transaksi di halaman Transaksi dan klik \"Buat Grup\" untuk memulai.",
+        "transactionCountLabel": "transaksi"
+      },
+      "groupDialog": {
+        "editTitle": "Edit Grup",
+        "nameLabel": "Nama",
+        "noteLabel": "Catatan (opsional)",
+        "notePlaceholder": "Catatan opsional...",
+        "loadingText": "Memuat...",
+        "savingText": "Menyimpan...",
+        "savingAction": "Simpan",
+        "cancelButton": "Batal",
+        "deletingText": "Menghapus...",
+        "editAction": "Edit",
+        "deleteAction": "Hapus Grup",
+        "transactionsLabel": "Transaksi",
+        "deleteGroupTitle": "Hapus grup",
+        "deleteGroupDescription": "Apakah Anda yakin ingin menghapus \"{groupName}\"? Transaksi tidak akan dihapus.",
+        "removeTransactionTitle": "Hapus transaksi dari grup",
+        "removeTransactionDescription": "Ini akan menyisakan kurang dari 2 transaksi dalam grup, sehingga grup akan dihapus. Lanjutkan?",
+        "removeTransactionDescriptionNormal": "Apakah Anda yakin ingin menghapus transaksi ini dari grup?",
+        "removeButtonText": "Hapus",
+        "removeAndDeleteButtonText": "Hapus & Hapus Grup",
+        "transactionCountSuffix": "transaksi",
+        "summary": {
+          "transactions": "Transaksi",
+          "net": "Bersih",
+          "moneyIn": "Uang masuk",
+          "moneyOut": "Uang keluar"
+        }
+      },
+      "transactionGroupRecord": {
+        "transactionCountLabel": "transaksi"
+      },
+      "errors": {
+        "nameRequired": "Nama grup wajib diisi",
+        "minTransactions": "Pilih setidaknya {min} transaksi",
+        "alreadyInGroup": "Beberapa transaksi yang dipilih sudah termasuk dalam grup",
+        "createFailed": "Gagal membuat grup",
+        "addFailed": "Gagal menambahkan transaksi ke grup"
+      }
+    },
+    "transfer": {
+      "hiddenAccount": "Akun tersembunyi"
+    },
+    "addedByTooltip": "Transaksi ini dilampirkan ke anggaran oleh {handle}",
+    "table": {
+      "columns": {
+        "date": "Tanggal",
+        "account": "Akun",
+        "category": "Kategori",
+        "payee": "Penerima",
+        "amount": "Jumlah",
+        "refAmount": "Jumlah dasar",
+        "note": "Catatan",
+        "tags": "Tag",
+        "categorizationSource": "Dikategorikan oleh",
+        "group": "Grup",
+        "refund": "Pengembalian Dana",
+        "split": "Split"
+      },
+      "outOfWallet": "Di luar dompet",
+      "hint": "Klik baris untuk melihat detail. Pilih baris untuk mengedit massal.",
+      "emptyTitle": "Tidak ada transaksi yang cocok dengan filter ini",
+      "emptyDescription": "Coba sesuaikan atau atur ulang filter.",
+      "columnConfig": {
+        "title": "Pengaturan tabel",
+        "columns": "Kolom",
+        "visibleCount": "{count} terlihat",
+        "resetDefaults": "Kembalikan ke default"
+      },
+      "categorizationSourceValues": {
+        "manual": "Manual",
+        "ai": "AI",
+        "mcc_rule": "Aturan MCC",
+        "user_rule": "Aturan pengguna",
+        "subscription_rule": "Aturan langganan",
+        "payee_rule": "Aturan penerima"
+      },
+      "viewToggle": {
+        "list": "Tampilan daftar",
+        "table": "Tampilan tabel"
+      },
+      "fullscreen": {
+        "enter": "Mode fokus",
+        "exit": "Keluar mode fokus"
+      }
+    },
+    "bulkDelete": {
+      "button": "Hapus",
+      "externalTooltip": "Pilihan berisi transaksi yang disinkronkan bank, yang tidak dapat dihapus.",
+      "confirmButton": "Hapus",
+      "confirmTitle": "Hapus {count} transaksi?",
+      "confirmDescription": "Tindakan ini tidak dapat dibatalkan. Transfer akan memiliki kedua sisi dihapus.",
+      "successMessage": "{count} transaksi dihapus",
+      "unexpectedError": "Gagal menghapus transaksi. Silakan coba lagi."
+    }
+  },
+  "records": {
+    "upcomingSection": {
+      "title": "Akan Datang",
+      "overdueBadge": "Terlambat",
+      "scheduledBadge": "Terjadwal",
+      "payAction": "Tandai dibayar",
+      "hideToggle": "Sembunyikan pembayaran mendatang"
+    }
+  }
+}

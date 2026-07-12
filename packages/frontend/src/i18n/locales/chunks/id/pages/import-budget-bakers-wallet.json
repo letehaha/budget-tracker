@@ -1,0 +1,19 @@
+{
+  "title": "Impor dari Budget Bakers / Wallet",
+  "description": "Impor data dari aplikasi Wallet by Budget Bakers. Ekspor data Anda dari aplikasi Wallet sebagai file CSV, lalu unggah di sini.",
+  "howToExport": "Cara mengekspor dari Wallet: Buka aplikasi Wallet → Pengaturan → Kelola Data → Ekspor Data → Pilih format CSV",
+  "fileRequirements": "File CSV harus berisi kolom: Date, Description, Category, Amount, Account, Note (opsional)",
+  "upload": "Unggah File CSV",
+  "uploading": "Mengunggah...",
+  "parsing": "Memproses data...",
+  "preview": "Pratinjau",
+  "mapping": "Pemetaan Kolom",
+  "import": "Impor",
+  "importing": "Mengimpor...",
+  "success": "Berhasil mengimpor {{count}} transaksi",
+  "errors": {
+    "invalidFile": "File tidak valid. Pastikan file berformat CSV.",
+    "parseError": "Gagal memproses file CSV. Periksa format file.",
+    "importFailed": "Gagal mengimpor transaksi"
+  }
+}

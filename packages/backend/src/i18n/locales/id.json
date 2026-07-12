@@ -1,0 +1,459 @@
+{
+  "common": {
+    "processAlreadyLocked": "Proses sinkronisasi untuk \"{{lockKey}}\" sudah terkunci."
+  },
+  "accounts": {
+    "groupNotFound": "Grup atau akun tidak ditemukan",
+    "accountNotFound": "Akun tidak ditemukan!",
+    "accountUpdateFailed": "Pembaruan akun tidak berhasil",
+    "accountNoExternalId": "Akun tidak memiliki ID eksternal",
+    "accountNoExternalIdMonobank": "Akun tidak memiliki ID eksternal dari Monobank",
+    "accountNoExternalIdEnableBanking": "Akun tidak memiliki ID eksternal dari Enable Banking",
+    "accountNotFoundForTransaction": "Akun tidak ditemukan untuk transaksi ini",
+    "deleteBlockedByLoanPayments": "Akun ini memiliki pembayaran pinjaman. Hapus atau alihkan pembayaran tersebut sebelum menghapus akun.",
+    "loanBalanceUseUpdateLoan": "Ubah saldo pinjaman dari halaman pinjaman, bukan dari pengaturan akun.",
+    "loanCategoryImmutable": "Kategori akun pinjaman tidak dapat diubah.",
+    "dedicatedFlowCategoryNotAllowed": "Akun pinjaman dan kendaraan harus dibuat melalui endpoint khusus, bukan endpoint akun umum."
+  },
+  "balanceAdjustment": {
+    "defaultNote": "Penyesuaian saldo",
+    "accountNotFound": "Akun dengan id \"{{accountId}}\" tidak ditemukan.",
+    "vehicleUseOverride": "Nilai kendaraan hanya dapat diubah dari halaman kendaraan."
+  },
+  "accountGroups": {
+    "groupNotFound": "Grup tidak ditemukan",
+    "parentGroupNotExist": "Induk dengan id tersebut tidak ada.",
+    "parentGroupDoesNotExist": "Grup induk tidak ada.",
+    "operationNotAllowed": "Operasi tidak diizinkan",
+    "accountNotFound": "Akun dengan id tersebut tidak ditemukan.",
+    "accountGroupNotFound": "Grup akun dengan id tersebut tidak ditemukan."
+  },
+  "transactions": {
+    "notFound": "Transaksi tidak ditemukan",
+    "missingRequiredFields": "Salah satu field wajib hilang: destinationAmount, destinationAccountId.",
+    "destinationAmountRequiredCrossCurrency": "destinationAmount wajib diisi saat mengubah jumlah transfer lintas mata uang.",
+    "refundAndTransferNotAllowed": "Tidak diizinkan membuat transaksi yang sekaligus merupakan refund dan transfer",
+    "notOwnTransaction": "Anda hanya dapat mengedit atau menghapus transaksi yang Anda buat di akun bersama ini.",
+    "sharedAccountChangeNotSupported": "Memindahkan transaksi ke akun lain hanya diizinkan untuk pemilik akun.",
+    "sharedTransfersNotSupported": "Transfer di akun bersama belum didukung.",
+    "sharedRefundsNotSupported": "Pautan refund di akun bersama belum didukung.",
+    "cannotCreateWithParams": "Tidak dapat membuat transaksi dengan parameter yang diberikan",
+    "idCannotBeChanged": "id tidak dapat diubah",
+    "editReadonlyFields": "Percobaan mengedit field read-only dari akun eksternal",
+    "changeTypeNotAllowed": "Tidak diizinkan mengubah \"transactionType\" dari akun non-sistem",
+    "bothRefundFieldsNotAllowed": "Anda tidak dapat menggunakan \"refundedByTxIds\" dan \"refundsTxId\" secara bersamaan. Pilih salah satu.",
+    "refundExceedsOriginal": "Jumlah total refund tidak boleh lebih besar dari jumlah transaksi asli",
+    "oppositeTransactionNotFound": "Tidak dapat menemukan transaksi lawan untuk melakukan pembaruan",
+    "transactionIdNotExist": "Transaksi dengan `id` yang diberikan tidak ada!",
+    "notAuthorizedToEdit": "Anda tidak memiliki wewenang untuk mengedit transaksi ini.",
+    "cannotDeleteExternal": "Tidak diizinkan menghapus transaksi eksternal secara manual",
+    "unexpectedDeleteIssue": "Masalah tak terduga saat mencoba menghapus transaksi",
+    "linkSelfNotAllowed": "Mencoba menautkan transaksi ke dirinya sendiri.",
+    "linkSameTypeNotAllowed": "Mencoba menautkan dengan transaksi yang memiliki \"transactionType\" yang sama.",
+    "linkSameAccountNotAllowed": "Mencoba menautkan dengan transaksi dalam akun yang sama. Hanya diizinkan menautkan antar akun yang berbeda.",
+    "linkAlreadyTransferNotAllowed": "Mencoba menautkan transaksi yang sudah merupakan transfer.",
+    "linkUnexpectedError": "Kesalahan tak terduga. Tidak dapat menautkan transaksi yang diminta.",
+    "linkCannotFind": "Tidak dapat menemukan transaksi dasar atau transaksi lawan",
+    "invalidTagIds": "Satu atau lebih ID tag tidak valid atau bukan milik pengguna ini",
+    "cannotEditPortfolioLinkedTransaction": "Tidak dapat mengedit transaksi yang terhubung ke portofolio. Lepaskan tautannya terlebih dahulu.",
+    "refFieldsRequiredForTransferToPortfolio": "Mata uang referensi dan jumlah referensi harus diisi untuk transaksi transfer ke portofolio.",
+    "vehicleAccountReadonly": "Akun ini melacak kendaraan. Nilainya hanya dapat diubah dari halaman kendaraan.",
+    "transferNatureChangeNotAllowed": "Tidak dapat mengubah jenis transfer yang sudah ada. Lepaskan tautan transfer terlebih dahulu, lalu tandai transaksi lagi.",
+    "transferToLoanRequiresLoanDestination": "Pembayaran pinjaman memerlukan tujuan berupa akun pinjaman.",
+    "transferToLoanRelinkRequired": "Tujuan transfer ini adalah akun pinjaman. Lepaskan tautan transfer terlebih dahulu, lalu tandai pengeluaran sebagai pembayaran pinjaman.",
+    "loanPaymentOverpay": "Pembayaran melebihi sisa saldo pinjaman.",
+    "loanAccountReadonly": "Akun pinjaman hanya dapat diubah dengan mencatat pembayaran. Gunakan halaman pinjaman untuk mencatatnya.",
+    "loanPaymentMustBeExpense": "Pembayaran pinjaman harus berupa pengeluaran — transaksi pemasukan tidak dapat ditransfer ke pinjaman.",
+    "splits": {
+      "splitsOnTransfer": "Tidak dapat menambahkan split ke transaksi transfer",
+      "splitLimitExceeded": "Maksimal {{max}} split per transaksi",
+      "missingCategory": "Kategori wajib diisi untuk setiap split",
+      "missingAmount": "Jumlah wajib diisi untuk setiap split",
+      "amountNegative": "Jumlah split tidak boleh negatif",
+      "amountTooSmall": "Jumlah split minimal {{min}} (minimum sistem)",
+      "noteTooLong": "Catatan split tidak boleh melebihi {{max}} karakter",
+      "invalidCategory": "Kategori dengan id {{categoryId}} tidak ditemukan atau bukan milik pengguna",
+      "exceedTotal": "Total jumlah split ({{total}}) melebihi jumlah transaksi ({{transactionAmount}})",
+      "invalidData": "Data split tidak valid",
+      "splitNotFound": "Split tidak ditemukan",
+      "cannotDeleteWithRefunds": "Tidak dapat menghapus split yang memiliki refund yang menargetkannya",
+      "cannotReduceBelowRefunded": "Split ini memiliki refund sebesar {{refundsText}}. Anda tidak dapat menguranginya di bawah jumlah yang sudah direfund. Untuk mengurangi lebih lanjut, lepaskan tautan refund terlebih dahulu."
+    }
+  },
+  "budgets": {
+    "budgetNotFound": "Anggaran tidak ditemukan",
+    "someTransactionIdsInvalid": "Beberapa ID transaksi tidak valid",
+    "transactionsAddedSuccessfully": "Transaksi berhasil ditambahkan",
+    "cannotManuallyLinkToCategoryBudget": "Tidak dapat menautkan transaksi secara manual ke anggaran berbasis kategori. Transaksi dilacak secara otomatis berdasarkan kategori.",
+    "someCategoryIdsInvalid": "Beberapa ID kategori tidak valid atau tidak ada",
+    "notCategoryBudget": "Endpoint ini hanya tersedia untuk anggaran berbasis kategori"
+  },
+  "tags": {
+    "tagNotFound": "Tag tidak ditemukan",
+    "tagNameAlreadyExists": "Tag dengan nama ini sudah ada",
+    "someTransactionIdsInvalid": "Beberapa ID transaksi tidak valid",
+    "transactionsAddedSuccessfully": "Transaksi berhasil ditambahkan ke tag",
+    "transactionsRemovedSuccessfully": "Transaksi berhasil dihapus dari tag"
+  },
+  "tagReminders": {
+    "reminderNotFound": "Pengingat tag tidak ditemukan",
+    "reminderAlreadyExists": "Pengingat yang identik sudah ada untuk tag ini",
+    "amountThresholdRequired": "Ambang batas jumlah diperlukan untuk pengingat ambang batas jumlah",
+    "maxRemindersReached": "Jumlah maksimal pengingat (50) telah tercapai",
+    "repeatScheduleIncomplete": "repeatEvery dan repeatPeriod harus diisi bersamaan atau keduanya dikosongkan",
+    "notifications": {
+      "thresholdExceeded": {
+        "title": "Peringatan Pengeluaran Tag",
+        "message": "Pengeluaran Anda untuk \"{{tagName}}\" ({{actualAmount}}) melebihi ambang batas {{thresholdAmount}}"
+      },
+      "existenceCheck": {
+        "title": "Ringkasan Aktivitas Tag",
+        "message": "Anda memiliki {{count}} transaksi yang ditandai dengan \"{{tagName}}\""
+      }
+    }
+  },
+  "defaultTags": {
+    "want": {
+      "name": "Keinginan",
+      "description": "Pembelian yang bersifat nice-to-have dan pengeluaran diskresioner"
+    },
+    "need": {
+      "name": "Kebutuhan",
+      "description": "Pengeluaran penting namun tidak mendesak"
+    },
+    "must": {
+      "name": "Prioritas",
+      "description": "Pengeluaran esensial yang tidak dapat dihindari"
+    }
+  },
+  "investments": {
+    "portfolioNotFound": "Portofolio tidak ditemukan",
+    "portfolioIdRequired": "ID Portofolio diperlukan.",
+    "holdingNotFound": "Holding tidak ditemukan",
+    "holdingNotFoundAddSecurity": "Holding tidak ditemukan. Silakan tambahkan security ke portofolio terlebih dahulu.",
+    "holdingNotFoundForRecalculation": "Holding tidak ditemukan untuk perhitungan ulang.",
+    "securityAlreadyInPortfolio": "Security ini sudah ada di dalam portofolio.",
+    "securityNotFound": "Security tidak ditemukan.",
+    "currencyForSecurityNotFound": "Mata uang untuk security tidak ditemukan.",
+    "currencyNotFound": "Mata uang tidak ditemukan",
+    "transactionNotFound": "Transaksi investasi tidak ditemukan",
+    "userBaseCurrencyNotFound": "Mata uang dasar pengguna tidak ditemukan",
+    "insufficientSharesToSell": "Jumlah saham tidak mencukupi untuk dijual. Setelah pembaruan ini, Anda akan memiliki {{adjustedQuantity}} saham tetapi mencoba menjual {{sellQuantity}} saham.",
+    "sourceAndDestinationMustDiffer": "Portofolio asal dan tujuan harus berbeda",
+    "transferAmountMustBePositive": "Jumlah transfer harus lebih besar dari nol",
+    "sourcePortfolioNotFound": "Portofolio asal tidak ditemukan",
+    "destinationPortfolioNotFound": "Portofolio tujuan tidak ditemukan",
+    "sourceAccountNotFound": "Akun asal tidak ditemukan",
+    "destinationAccountNotFound": "Akun tujuan tidak ditemukan",
+    "cannotDeleteHoldingWithActivePosition": "Tidak dapat menghapus holding dengan posisi aktif. Silakan jual atau transfer semua saham terlebih dahulu.",
+    "transactionAlreadyTransfer": "Transaksi sudah ditandai sebagai transfer dan tidak dapat ditautkan ke portofolio.",
+    "transactionAlreadyLinkedToPortfolio": "Transaksi sudah ditautkan ke transfer portofolio.",
+    "transactionAlreadyLinkedToVenture": "Transaksi sudah ditautkan ke deal venture",
+    "portfolioTransferNotFound": "Transfer portofolio tidak ditemukan",
+    "exchangeCurrenciesMustDiffer": "Mata uang pertukaran harus berbeda"
+  },
+  "loans": {
+    "loanNotFound": "Pinjaman tidak ditemukan.",
+    "createAccountFailed": "Gagal membuat akun pinjaman",
+    "deleteBlockedByPayments": "Pinjaman ini memiliki pembayaran yang tercatat. Hapus pembayaran tersebut sebelum menghapus pinjaman.",
+    "linkPaymentsInvalidSelection": "Beberapa transaksi yang dipilih tidak dapat ditautkan ke pinjaman ini.",
+    "linkPaymentsOverpayConfirmation": "Pembayaran ini melebihi sisa saldo. Mengonfirmasi akan melunasi pinjaman; kelebihannya tidak akan dikembalikan.",
+    "unlinkPaymentNotFound": "Pembayaran pinjaman tidak ditemukan.",
+    "unlinkPaymentInvalidSelection": "Transaksi ini bukan pembayaran untuk pinjaman ini.",
+    "correctionAsOfBeforeStartDate": "currentBalanceAsOf tidak boleh lebih awal dari tanggal mulai pinjaman",
+    "correctionOverpay": "Saldo yang dikoreksi akan membayar lebih pinjaman sebesar {{overpayAmount}}: pembayaran sebesar {{paymentsTotal}} yang tercatat pada/setelah {{asOfDate}}"
+  },
+  "errors": {
+    "connectionNotFound": "Koneksi tidak ditemukan",
+    "connectionNotFoundOrNotYours": "Koneksi tidak ditemukan atau bukan milik Anda",
+    "providerNoReauthorization": "Provider {{providerType}} tidak mendukung reotorisasi",
+    "providerNotFoundInRegistry": "Provider {{providerType}} tidak ditemukan di registry",
+    "connectionIdNotFound": "Koneksi penyedia data bank {{connectionId}} tidak ditemukan",
+    "accountIdNotFound": "Akun {{accountId}} tidak ditemukan",
+    "providerTypeMismatch": "Koneksi {{connectionId}} adalah untuk provider {{actualType}}, bukan {{expectedType}}",
+    "providerAlreadyRegistered": "Provider {{providerType}} sudah terdaftar. Tidak dapat mendaftarkan provider duplikat.",
+    "providerNotRegistered": "Provider {{providerType}} belum terdaftar. Provider yang tersedia: {{available}}",
+    "missingRequiredProviders": "Provider data bank yang diperlukan tidak ada: {{missing}}. Pastikan provider ini terdaftar saat aplikasi dimulai."
+  },
+  "validation": {
+    "fromDateInvalid": "\"from\" adalah tanggal tidak valid.",
+    "toDateInvalid": "\"to\" adalah tanggal tidak valid.",
+    "fromGreaterThanTo": "\"from\" tidak boleh lebih besar dari tanggal \"to\".",
+    "dateInvalid": "\"date\" adalah tanggal tidak valid."
+  },
+  "bankDataProviders": {
+    "reauthorizationStarted": "Reotorisasi dimulai. Silakan selesaikan alur OAuth.",
+    "connectionEstablished": "Koneksi berhasil dibuat",
+    "failedToFetchBanks": "Gagal mengambil data bank. Periksa kredensial dan kode negara Anda.",
+    "failedToFetchCountries": "Gagal mengambil data negara. Periksa kredensial Anda.",
+    "accountNotLinkedToConnection": "Akun tidak ditemukan atau tidak terhubung ke koneksi ini",
+    "cannotLoadBeforeLinkDate": "Tidak dapat memuat transaksi sebelum tanggal tautan akun ({{linkedAt}}). Akun ini ditautkan menggunakan strategi \"forward-only\" untuk mencegah duplikasi data.",
+    "dateRangeExceedsLimit": "Rentang tanggal tidak boleh melebihi 1 tahun.",
+    "fromAfterTo": "Tanggal \"from\" harus sebelum tanggal \"to\"",
+    "fromMustBeValidDate": "\"from\" harus berupa string tanggal yang valid",
+    "toMustBeValidDate": "\"to\" harus berupa string tanggal yang valid",
+    "onlySupportedForMonobank": "Memuat transaksi untuk periode tertentu hanya didukung untuk Monobank",
+    "reconciliationOnlyForEnableBanking": "Rekonsiliasi hanya tersedia untuk koneksi Enable Banking",
+    "transactionLoadingQueued": "Proses pemuatan transaksi diantrekan. Estimasi waktu: {{minutes}} menit",
+    "noValidAccountIds": "Tidak ada ID akun yang dipilih yang valid",
+    "accountCurrencyNotSupported": "Mata uang akun \"{{currency}}\" tidak didukung oleh sistem ini.",
+    "periodLoadNotSupported": "Memuat transaksi untuk periode kustom tidak didukung oleh provider ini.",
+    "transactionsLoadedCount": "{{count}} transaksi dimuat.",
+    "apiError": "Kesalahan API {{provider}}: {{message}}",
+    "monobank": {
+      "invalidCredentialsFormat": "Format kredensial tidak valid untuk Monobank",
+      "invalidApiToken": "Token API Monobank tidak valid",
+      "rateLimitExceeded": "Batas kecepatan API Monobank terlampaui. Silakan coba lagi dalam satu menit.",
+      "accountNotFound": "Akun {{accountExternalId}} tidak ditemukan di Monobank",
+      "webhookNotImplemented": "handleWebhook belum diimplementasikan untuk Monobank",
+      "unknownCurrencyCode": "Kode mata uang tidak dikenal: {{numericCode}}",
+      "geoBlocked": "Monobank memblokir permintaan dari IP server ini. Nonaktifkan VPN atau gunakan alamat IP Ukraina.",
+      "geoBlockedProduction": "Sinkronisasi Monobank untuk sementara tidak tersedia. Kami telah diberitahu dan sedang menanganinya. Hubungi dukungan jika ini mendesak."
+    },
+    "enableBanking": {
+      "invalidCredentialsFormat": "Format kredensial tidak valid untuk Enable Banking",
+      "invalidRsaKey": "Format kunci privat RSA tidak valid",
+      "invalidCredentials": "Kredensial Enable Banking tidak valid",
+      "authUrlNotFound": "URL otorisasi tidak ditemukan untuk koneksi ini",
+      "invalidOAuthState": "Parameter state OAuth tidak valid",
+      "oAuthStateExpired": "State OAuth kedaluwarsa atau tidak valid",
+      "oAuthAuthorizationFailed": "Otorisasi OAuth gagal: {{error}}",
+      "invalidStoredCredentials": "Kredensial tersimpan tidak valid",
+      "bankInfoNotFound": "Informasi bank tidak ditemukan di metadata koneksi",
+      "noActiveSession": "Tidak ada sesi aktif. Silakan selesaikan alur OAuth terlebih dahulu.",
+      "noActiveSessionGeneric": "Tidak ada sesi aktif",
+      "noBalanceInfo": "Tidak ada informasi saldo yang tersedia",
+      "authenticationFailed": "Autentikasi Enable Banking gagal: {{message}}",
+      "sessionExpiredReconnect": "Sesi bank kedaluwarsa. Silakan hubungkan kembali akun bank Anda untuk melanjutkan sinkronisasi.",
+      "apiBadRequestError": "Kesalahan API Enable Banking: {{message}}",
+      "apiGeneralError": "Kesalahan API Enable Banking: {{message}}",
+      "redirectUriNotAllowed": "Aplikasi Enable Banking Anda tidak memiliki URL redirect yang diperlukan. Silakan masuk ke dashboard Enable Banking, edit aplikasi Anda, dan tambahkan URL ini ke URL redirect yang diizinkan: {{redirectUrl}}"
+    },
+    "lunchflow": {
+      "invalidCredentialsFormat": "Format kredensial LunchFlow tidak valid. Berikan kunci API yang valid.",
+      "invalidApiKey": "Kunci API LunchFlow tidak valid. Periksa kredensial Anda.",
+      "accountNoExternalId": "Akun tidak memiliki ID eksternal untuk sinkronisasi LunchFlow.",
+      "accountNotFound": "Akun LunchFlow tidak ditemukan."
+    },
+    "simplefin": {
+      "invalidCredentialsFormat": "Format kredensial SimpleFIN tidak valid.",
+      "invalidSetupToken": "Token pengaturan SimpleFIN tidak valid atau sudah digunakan. Buat token baru dari SimpleFIN Bridge dan coba lagi.",
+      "invalidAccessUrl": "URL akses SimpleFIN tidak valid atau tidak sah.",
+      "claimFailed": "Tidak dapat mengklaim URL akses SimpleFIN dari token pengaturan.",
+      "accountNotFound": "Akun SimpleFIN tidak ditemukan.",
+      "accountNoExternalId": "Akun ini tidak terhubung ke akun SimpleFIN.",
+      "accountAbsentFromResponse": "SimpleFIN tidak mengembalikan data untuk akun ini dalam sinkronisasi terbaru. Akun mungkin telah dinonaktifkan di bank — coba sinkronisasi lagi, atau hubungkan kembali jika masalah berlanjut.",
+      "rateLimited": "SimpleFIN menerima terlalu banyak permintaan saat ini. Harap tunggu sebentar dan coba lagi."
+    },
+    "walutomat": {
+      "invalidCredentialsFormat": "Format kredensial Walutomat tidak valid. Kunci API dan kunci privat diperlukan.",
+      "invalidApiKey": "Kunci API atau kunci privat Walutomat tidak valid.",
+      "accountNoExternalId": "Akun Walutomat tidak memiliki ID eksternal.",
+      "walletNotFound": "Dompet Walutomat tidak ditemukan untuk mata uang: {{currency}}"
+    }
+  },
+  "csvImport": {
+    "headersCannotBeParsed": "Header tidak dapat diuraikan",
+    "csvFileEmpty": "File CSV kosong",
+    "csvFileNoHeaders": "File CSV tidak memiliki header",
+    "csvFileMalformed": "File CSV tidak dapat diuraikan. Periksa tanda kutip yang tidak cocok atau pembatas yang tidak sesuai, atau coba ekspor ulang file.",
+    "csvFileTooManyRows": "File CSV melebihi jumlah baris maksimum {{max}} baris.",
+    "csvFileForbiddenHeader": "File CSV berisi nama header yang tidak diizinkan.",
+    "invalidDateFormat": "Format tanggal tidak valid: \"{{dateStr}}\". Format ISO yang diharapkan (YYYY-MM-DD).",
+    "invalidAmount": "Jumlah tidak valid: \"{{amountStr}}\". Nilai numerik yang diharapkan.",
+    "accountNameEmpty": "Nama akun kosong",
+    "currencyCodeEmpty": "Kode mata uang kosong",
+    "unknownTransactionType": "Nilai tipe transaksi tidak dikenal: \"{{typeValue}}\"",
+    "dateColumnNotFound": "Kolom tanggal \"{{columnName}}\" tidak ditemukan dalam CSV",
+    "amountColumnNotFound": "Kolom jumlah \"{{columnName}}\" tidak ditemukan dalam CSV",
+    "invalidDefaultCurrency": "Kode mata uang default tidak valid: \"{{defaultCurrency}}\"",
+    "payeeColumnNotFound": "Kolom penerima \"{{column}}\" tidak ditemukan di header CSV"
+  },
+  "statementParser": {
+    "invalidFile": "File tidak valid",
+    "textExtractionFailed": "Ekstraksi teks gagal. PDF mungkin merupakan dokumen hasil pindaian. Ekstraksi berbasis gambar belum diimplementasikan.",
+    "failedToExtractText": "Gagal mengekstrak teks dari file.",
+    "failedToExtractTextPdf": "Gagal mengekstrak teks dari PDF. Mungkin merupakan dokumen hasil pindaian.",
+    "fileContentRequired": "Konten file diperlukan"
+  },
+  "currencies": {
+    "notSupportedForBaseCurrency": "Mengubah mata uang dasar menjadi {{currency}} tidak didukung. Hanya mata uang ini yang didukung: {{supportedCurrencies}}.",
+    "listIsEmpty": "Daftar mata uang kosong",
+    "noBaseCurrency": "Pengguna belum memiliki mata uang dasar",
+    "alreadyBaseCurrency": "Mata uang yang dipilih sudah menjadi mata uang dasar",
+    "baseCurrencyLockedByShares": "Tidak dapat mengubah mata uang dasar saat Anda memiliki sumber daya bersama yang aktif. Cabut atau tinggalkan terlebih dahulu.",
+    "baseCurrencyLockedByHousehold": "Tidak dapat mengubah mata uang dasar saat Anda masih menjadi bagian dari rumah tangga aktif. Cabut atau tinggalkan keanggotaan rumah tangga Anda terlebih dahulu.",
+    "cannotFindForRefAmount": "Tidak dapat menemukan mata uang untuk menghitung jumlah referensi!",
+    "cannotCalculateRefAmount": "Tidak dapat menghitung jumlah referensi",
+    "currencyNotConnected": "Mata uang yang diminta tidak terhubung",
+    "exchangeRateNotAvailable": "Nilai tukar tidak tersedia untuk {{baseCode}}/{{quoteCode}} pada {{date}}"
+  },
+  "userSettings": {
+    "excludedCategoriesNotFound": "Satu atau lebih kategori yang dikecualikan tidak ditemukan",
+    "userSettingsNotFound": "Pengaturan pengguna tidak ditemukan"
+  },
+  "users": {
+    "usernameAlreadyTaken": "Nama pengguna \"{{username}}\" sudah digunakan"
+  },
+  "userCurrencies": {
+    "baseCurrencyExists": "Mata uang dasar sudah ada!",
+    "currencyCodeNotExist": "Mata uang dengan kode yang diberikan tidak ada.",
+    "currencyNotExist": "Mata uang dengan kode \"{{currencyCode}}\" tidak ada.",
+    "cannotDeleteDefaultCurrency": "Tidak diizinkan menghapus mata uang default. Jadikan bukan default terlebih dahulu.",
+    "cannotDeleteCurrencyWithAccounts": "Tidak diizinkan menghapus mata uang yang terkait dengan akun mana pun. Hapus akun terlebih dahulu. Nama akun: \"{{accountNames}}\".",
+    "cannotDeleteCurrencyWithInvestments": "Tidak diizinkan menghapus mata uang \"{{currencyCode}}\" yang masih digunakan oleh holding investasi. Hapus holding tersebut terlebih dahulu.",
+    "defaultCurrencyNotPresent": "Tidak dapat menghapus mata uang. Mata uang default tidak ada dalam sistem"
+  },
+  "ai": {
+    "apiKeyValidationFailed": "Validasi kunci API gagal",
+    "noApiKeyForProvider": "Tidak ada kunci API yang dikonfigurasi untuk provider: {{provider}}"
+  },
+  "middleware": {
+    "tooManyRequests": "Terlalu banyak permintaan. Silakan coba lagi nanti."
+  },
+  "defaultCategories": {
+    "main": {
+      "food": "Makanan & Minuman",
+      "shopping": "Belanja",
+      "housing": "Perumahan",
+      "transportation": "Transportasi",
+      "vehicle": "Kendaraan",
+      "life": "Hidup & Hiburan",
+      "communication": "Komunikasi, PC",
+      "financial-expenses": "Biaya keuangan",
+      "investments": "Investasi",
+      "income": "Pemasukan",
+      "other": "Lainnya"
+    },
+    "subcategories": {
+      "food": {
+        "groceries": "Sembako",
+        "restaurant": "Restoran, fast-food",
+        "bar-cafe": "Bar, kafe"
+      },
+      "shopping": {
+        "clothes-shoes": "Pakaian & sepatu",
+        "jewels-accessories": "Perhiasan, aksesori",
+        "health-beauty": "Kesehatan dan kecantikan",
+        "kids": "Anak-anak",
+        "home-garden": "Rumah, taman",
+        "pets-animals": "Hewan peliharaan",
+        "electronics-accessories": "Elektronik, aksesori",
+        "gifts-joy": "Hadiah, hiburan",
+        "stationery-tools": "Alat tulis, perkakas",
+        "free-time": "Waktu luang",
+        "drugstore-chemist": "Apotik, toko obat"
+      },
+      "housing": {
+        "rent": "Sewa",
+        "mortgage": "KPR",
+        "energy-utilities": "Energi, utilitas",
+        "services": "Layanan",
+        "maintenance-repairs": "Perawatan, perbaikan",
+        "property-insurance": "Asuransi properti"
+      },
+      "transportation": {
+        "public-transport": "Transportasi umum",
+        "taxi": "Taksi",
+        "long-distance": "Jarak jauh",
+        "business-trips": "Perjalanan bisnis"
+      },
+      "vehicle": {
+        "fuel": "Bahan bakar",
+        "parking": "Parkir",
+        "vehicle-maintenance": "Perawatan kendaraan",
+        "rentals": "Sewa kendaraan",
+        "vehicle-insurance": "Asuransi kendaraan",
+        "leasing": "Leasing"
+      },
+      "life": {
+        "health-care-doctor": "Kesehatan, dokter",
+        "wellness-beauty": "Kebugaran, kecantikan",
+        "active-sport-fitness": "Olahraga aktif, fitnes",
+        "culture-sport-events": "Acara budaya, olahraga",
+        "hobbies": "Hobi",
+        "education-development": "Pendidikan, pengembangan diri",
+        "books-audio-subscriptions": "Buku, audio, langganan",
+        "tv-streaming": "TV, Streaming",
+        "holiday-trips-hotels": "Liburan, perjalanan, hotel",
+        "charity-gifts": "Amal, hadiah",
+        "alcohol-tobacco": "Alkohol, tembakau",
+        "lottery-gambling": "Lotere, perjudian"
+      },
+      "communication": {
+        "phone-cell-phone": "Telepon, ponsel",
+        "internet": "Internet",
+        "software-apps-games": "Perangkat lunak, aplikasi, game",
+        "postal-services": "Layanan pos"
+      },
+      "financial-expenses": {
+        "taxes": "Pajak",
+        "insurances": "Asuransi",
+        "loan-interests": "Pinjaman, bunga",
+        "fines": "Denda",
+        "advisory": "Konsultasi",
+        "charges-fees": "Biaya, retribusi",
+        "child-support": "Tunjangan Anak"
+      },
+      "investments": {
+        "realty": "Properti",
+        "vehicles-chattels": "Kendaraan, barang bergerak",
+        "financial-investments": "Investasi keuangan",
+        "savings": "Tabungan",
+        "collections": "Koleksi"
+      },
+      "income": {
+        "wage-invoices": "Gaji, invoice",
+        "interests-dividends": "Bunga, dividen",
+        "sale": "Penjualan",
+        "rental-income": "Pendapatan sewa",
+        "dues-grants": "Iuran & hibah",
+        "lending-renting": "Pinjaman, persewaan",
+        "checks-coupons": "Cek, kupon",
+        "lottery-gambling": "Lotere, perjudian",
+        "refunds": "Refund (pajak, pembelian)",
+        "freelance": "Freelance",
+        "gifts": "Hadiah"
+      }
+    }
+  },
+  "subscriptions": {
+    "transactionsNotFoundOrNotBelongToUser": "Satu atau lebih transaksi tidak ditemukan atau bukan milik pengguna.",
+    "summaryCurrencyNotConnected": "Ringkasan langganan tidak dapat dihitung: mata uang {{currencyCodes}} tidak terhubung ke akun Anda. Hubungkan di Pengaturan → Mata Uang.",
+    "summaryBaseCurrencyNotSet": "Mata uang dasar belum diatur. Atur mata uang default di pengaturan Anda untuk melihat ringkasan langganan.",
+    "validation": {
+      "autoRecord": {
+        "requiresAccount": "Perekaman otomatis memerlukan akun agar transaksi yang dicatat memiliki tempat tujuan.",
+        "requiresAmount": "Perekaman otomatis memerlukan expectedAmount dan expectedCurrencyCode agar transaksi yang dicatat memiliki nilai.",
+        "excludesMatching": "Perekaman otomatis dan aturan pencocokan tidak dapat digunakan bersamaan — keduanya akan menyelesaikan periode yang sama.",
+        "requiresAccountField": "Perekaman otomatis memerlukan akun untuk mencatat transaksi.",
+        "requiresAmountField": "Perekaman otomatis memerlukan expectedAmount dan expectedCurrencyCode.",
+        "excludesMatchingField": "Perekaman otomatis dan aturan pencocokan bersifat mutually exclusive."
+      }
+    }
+  },
+  "payees": {
+    "aliasNameRequired": "Nama alias wajib diisi",
+    "aliasNotFound": "Alias tidak ditemukan",
+    "aliasUsedByOtherPayee": "Alias ini sudah digunakan oleh \"{{name}}\"",
+    "nameUsedByAliasOfOtherPayee": "Nama ini sudah digunakan sebagai alias dari \"{{name}}\"",
+    "cannotDeleteCanonicalAlias": "Tidak dapat menghapus alias yang cocok dengan nama kanonis penerima. Ubah nama penerima jika Anda ingin mengubah nama utamanya.",
+    "defaultCategoryNotOwned": "Kategori default yang dipilih bukan milik akun Anda",
+    "defaultTagsNotOwned": "Satu atau lebih tag bukan milik pengguna",
+    "duplicateAlias": "Alias ini sudah terpasang ke penerima ini",
+    "duplicateName": "Penerima dengan nama ini sudah ada",
+    "ignoredNameCollidesWithPayee": "Penerima yang sudah ada cocok dengan nama ini. Hapus penerima terlebih dahulu, atau gunakan `force: true` untuk menghapusnya sebagai bagian dari operasi ini.",
+    "ignoredNameNotFound": "Nama yang diabaikan tidak ditemukan.",
+    "mergeSelf": "Tidak dapat menggabungkan penerima dengan dirinya sendiri",
+    "nameRequired": "Nama penerima wajib diisi",
+    "notFound": "Penerima tidak ditemukan",
+    "renameCollision": "Penerima lain sudah menggunakan nama ini — gabungkan saja"
+  },
+  "venture": {
+    "dealNotFound": "Deal venture tidak ditemukan",
+    "eventNotFound": "Event venture tidak ditemukan"
+  },
+  "vehicles": {
+    "notFound": "Kendaraan tidak ditemukan"
+  }
+}
