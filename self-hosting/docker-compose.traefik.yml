@@ -1,0 +1,76 @@
+# Optional overlay: bundle Traefik as the reverse proxy with automatic
+# Let's Encrypt TLS. Use this only if you do NOT already run a reverse proxy.
+#
+# Usage (merge on top of the base file, from this folder):
+#   docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+#
+# Single-domain by default: the whole app is served on SELFHOST_FRONTEND_DOMAIN
+# and the API is reached same-origin through the frontend container's internal
+# /api proxy — so the backend needs no Traefik labels or its own domain.
+#
+# Requires Docker Compose v2.24+ for the `!reset` merge tag used below to drop
+# the base file's frontend host port (Traefik reaches the container over the
+# `selfhost` network instead).
+
+services:
+  traefik:
+    image: traefik:v3.2
+    restart: unless-stopped
+    networks: [selfhost]
+    ports:
+      # Defaults are 80/443. Override only if you front Traefik with another
+      # proxy or already use those ports – Let's Encrypt TLS-ALPN-01 still
+      # needs port 443 reachable on the public IP.
+      - '${TRAEFIK_HTTP_PORT:-80}:80'
+      - '${TRAEFIK_HTTPS_PORT:-443}:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=selfhost
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # `:?` syntax: compose-up FAILS if LETSENCRYPT_EMAIL is unset/empty.
+      # Without this, Traefik would boot fine but ACME registration would
+      # silently fail at first HTTPS request.
+      - --certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL is required for Let\'s Encrypt}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  frontend:
+    # `!reset` drops the base file's `ports:` so nothing binds the host port —
+    # Traefik terminates TLS and routes to this container internally.
+    ports: !reset []
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.frontend.rule=Host(`${SELFHOST_FRONTEND_DOMAIN}`)'
+      - 'traefik.http.routers.frontend.entrypoints=websecure'
+      - 'traefik.http.routers.frontend.tls=true'
+      - 'traefik.http.routers.frontend.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.frontend.loadbalancer.server.port=80'
+
+  # Split-domain mode (optional): to serve the API on its own SELFHOST_API_DOMAIN
+  # instead of same-origin through the frontend, expose the backend directly and
+  # uncomment this block (also set API_HTTP=https://<api domain> in the frontend
+  # environment so the SPA targets it):
+  #
+  # backend:
+  #   labels:
+  #     - 'traefik.enable=true'
+  #     - 'traefik.http.routers.backend.rule=Host(`${SELFHOST_API_DOMAIN}`)'
+  #     - 'traefik.http.routers.backend.entrypoints=websecure'
+  #     - 'traefik.http.routers.backend.tls=true'
+  #     - 'traefik.http.routers.backend.tls.certresolver=letsencrypt'
+  #     - 'traefik.http.services.backend.loadbalancer.server.port=${APPLICATION_PORT:-8081}'
+
+volumes:
+  traefik_letsencrypt:

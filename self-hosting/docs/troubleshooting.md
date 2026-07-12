@@ -1,0 +1,116 @@
+# Troubleshooting
+
+Common issues when running the self-hosting stack. Setup guide:
+[setup-guide.md](setup-guide.md).
+
+## `502` from `/api`
+
+The frontend proxies `/api/` to the backend; a 502 means the backend isn't
+answering yet. On first boot the backend runs migrations before binding its
+HTTP port (its healthcheck stays red for up to ~60s). If it persists, check the
+backend:
+
+```bash
+docker compose logs backend
+```
+
+A crash-looping backend is usually a bad `.env` – see the two
+entries below.
+
+## Backend exits immediately: `__REPLACE_ME__` secret
+
+The backend refuses to start while `APPLICATION_JWT_SECRET`,
+`APP_SESSION_ID_SECRET`, `BETTER_AUTH_SECRET`, or `APPLICATION_DB_PASSWORD` is
+still `__REPLACE_ME__`. Fill all four with `openssl rand -base64 32` output.
+
+## "AUTH_ORIGIN must be set in production"
+
+The backend hard-throws on this on boot. Set `AUTH_ORIGIN` in `.env` to the
+URL you open the app at (e.g. `http://localhost:8080`, or your domain) and
+restart the backend.
+
+## Login succeeds but immediately logs out / login loops
+
+Typically seen when opening the app via a LAN IP or a custom host. Two causes:
+
+- **`AUTH_ORIGIN` / `BETTER_AUTH_URL` don't match the address bar.** Both must
+  carry the _exact_ URL you open the app at (scheme, host, and port – e.g.
+  `http://192.168.1.20:8080`). Anything else is an origin mismatch and auth
+  requests get rejected. Update both in `.env`, then `up -d`.
+- **Proxy serves https but `BETTER_AUTH_URL` still says `http://`.** The
+  session cookie's security level follows the scheme of `BETTER_AUTH_URL`, and
+  the http value is also an origin mismatch. Set both vars to the public
+  `https://` URL, then `up -d`.
+
+## Backend logs "ECONNREFUSED" to db
+
+Postgres can take 10–30s on first boot to initialise its data files. The
+backend's `depends_on: db: { condition: service_healthy }` normally handles
+this – if you've customised the compose file, make sure that clause is intact.
+
+## "CSP blocked: connect-src" in the browser console
+
+In the default same-origin setup the CSP is derived automatically and needs no
+tuning. If you serve the API from a separate origin (`API_HTTP` set) or add a
+third-party host, list it in `CSP_EXTRA_CONNECT` / `CSP_EXTRA_ANALYTICS`, then
+`up -d`. No rebuild – the CSP is rendered from env at container start.
+
+## Stale config after changing env vars
+
+The frontend's runtime config (`/config.js`, which carries `API_HTTP`,
+analytics keys, etc.) is served with `no-store`, so a plain reload picks up the
+new values after `up -d`. If the UI still looks stale, hard-refresh
+(Ctrl/Cmd-Shift-R) to bust the cached SPA bundle.
+
+## Healthcheck / liveness
+
+The backend exposes `GET /health` (used by the compose healthcheck). Check it
+from inside the network:
+
+```bash
+docker compose exec backend \
+  wget -qO - http://localhost:8081/health
+```
+
+## Exchange rates missing / `currency-rates-api` logs DNS errors
+
+`currency-rates-api` fetches live rates from external sources (ECB, NBU), so it
+needs **outbound internet access**. If you customized the compose network,
+don't mark it `internal: true` – the rates container will log resolution
+errors continuously and rate syncing stalls. The shipped `selfhost` network is
+a regular bridge and works as-is.
+
+## Frontend build OOMs (build-from-source overlay only)
+
+The frontend build is memory-heavy. Add 2 GB of swap:
+
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+## Traefik overlay: Let's Encrypt "unable to generate a certificate"
+
+ACME TLS-ALPN-01 needs **port 443 reachable** from the internet, and your
+domain's A record must resolve to the host. Verify:
+
+```bash
+sudo ss -tlnp | grep ':443'   # traefik should be listed
+dig +short budget.example.com # should print the host's public IP
+```
+
+If your provider has a separate firewall panel, allow 80/443 inbound there too.
+
+## Traefik overlay: resetting Let's Encrypt state (rate-limit recovery)
+
+ACME has a 5-failures-per-hour cap. If you tripped it (usually bad DNS), wait an
+hour, then clear the cert volume and re-up:
+
+```bash
+docker compose -f docker-compose.yml \
+  -f docker-compose.traefik.yml down
+docker volume rm budget-tracker-prod_traefik_letsencrypt
+docker compose -f docker-compose.yml \
+  -f docker-compose.traefik.yml up -d
+```
