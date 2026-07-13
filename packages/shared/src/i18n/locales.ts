@@ -27,7 +27,7 @@ export const LOCALE_NAMES: Record<SupportedLocale, { native: string; english: st
     english: 'Spanish',
   },
   [SUPPORTED_LOCALES.INDONESIAN]: {
-    native: 'Bahasa Indonesia',
+    native: 'Bahasa',
     english: 'Indonesian',
   },
 };
