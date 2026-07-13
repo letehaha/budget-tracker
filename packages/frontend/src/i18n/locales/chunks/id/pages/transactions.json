@@ -226,7 +226,7 @@
         "title": "Pengaturan tabel",
         "columns": "Kolom",
         "visibleCount": "{count} terlihat",
-        "resetDefaults": "Kembalikan ke default"
+        "resetDefaults": "Kembalikan ke bawaan"
       },
       "categorizationSourceValues": {
         "manual": "Manual",

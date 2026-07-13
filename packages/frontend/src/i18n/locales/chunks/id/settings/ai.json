@@ -12,7 +12,7 @@
         "title": "Kunci API",
         "description": "Tambahkan kunci API Anda sendiri untuk menggunakan penyedia tertentu",
         "badges": {
-          "default": "Default",
+          "default": "Bawaan",
           "invalid": "Tidak Valid"
         },
         "status": {
@@ -64,8 +64,8 @@
         "notifications": {
           "saveSuccess": "Kunci API berhasil disimpan dan divalidasi",
           "saveFailed": "Kunci API tidak berfungsi. Harap verifikasi kunci sudah benar, memiliki kredit yang cukup, dan memiliki izin yang diperlukan.",
-          "setDefaultSuccess": "{provider} ditetapkan sebagai default",
-          "setDefaultFailed": "Gagal menetapkan penyedia default",
+          "setDefaultSuccess": "{provider} ditetapkan sebagai bawaan",
+          "setDefaultFailed": "Gagal menetapkan penyedia bawaan",
           "removeSuccess": "Kunci API {provider} dihapus",
           "removeFailed": "Gagal menghapus kunci API"
         }
@@ -88,7 +88,7 @@
             "override": "Anda selalu dapat mengganti kategori yang disarankan AI secara manual."
           }
         },
-        "payeeTip": "Tip: mengatur kategori default pada penerima pembayaran akan melewati AI untuk transaksi tersebut sepenuhnya.",
+        "payeeTip": "Tip: mengatur kategori bawaan pada penerima pembayaran akan melewati AI untuk transaksi tersebut sepenuhnya.",
         "loading": "Memuat model..."
       },
       "statementParsing": {
@@ -148,7 +148,7 @@
         "notifications": {
           "updateSuccess": "Model berhasil diperbarui",
           "updateFailed": "Gagal memperbarui model",
-          "resetSuccess": "Kembali ke model default",
+          "resetSuccess": "Kembali ke model bawaan",
           "resetFailed": "Gagal mengembalikan model"
         },
         "addKeyHint": "Tambahkan kunci API Anda sendiri untuk memilih dari semua model yang tersedia.",

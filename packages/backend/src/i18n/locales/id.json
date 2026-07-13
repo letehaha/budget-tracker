@@ -266,7 +266,7 @@
     "unknownTransactionType": "Nilai tipe transaksi tidak dikenal: \"{{typeValue}}\"",
     "dateColumnNotFound": "Kolom tanggal \"{{columnName}}\" tidak ditemukan dalam CSV",
     "amountColumnNotFound": "Kolom jumlah \"{{columnName}}\" tidak ditemukan dalam CSV",
-    "invalidDefaultCurrency": "Kode mata uang default tidak valid: \"{{defaultCurrency}}\"",
+    "invalidDefaultCurrency": "Kode mata uang bawaan tidak valid: \"{{defaultCurrency}}\"",
     "payeeColumnNotFound": "Kolom penerima \"{{column}}\" tidak ditemukan di header CSV"
   },
   "statementParser": {
@@ -299,10 +299,10 @@
     "baseCurrencyExists": "Mata uang dasar sudah ada!",
     "currencyCodeNotExist": "Mata uang dengan kode yang diberikan tidak ada.",
     "currencyNotExist": "Mata uang dengan kode \"{{currencyCode}}\" tidak ada.",
-    "cannotDeleteDefaultCurrency": "Tidak diizinkan menghapus mata uang default. Jadikan bukan default terlebih dahulu.",
+    "cannotDeleteDefaultCurrency": "Tidak diizinkan menghapus mata uang bawaan. Jadikan bukan bawaan terlebih dahulu.",
     "cannotDeleteCurrencyWithAccounts": "Tidak diizinkan menghapus mata uang yang terkait dengan akun mana pun. Hapus akun terlebih dahulu. Nama akun: \"{{accountNames}}\".",
     "cannotDeleteCurrencyWithInvestments": "Tidak diizinkan menghapus mata uang \"{{currencyCode}}\" yang masih digunakan oleh holding investasi. Hapus holding tersebut terlebih dahulu.",
-    "defaultCurrencyNotPresent": "Tidak dapat menghapus mata uang. Mata uang default tidak ada dalam sistem"
+    "defaultCurrencyNotPresent": "Tidak dapat menghapus mata uang. Mata uang bawaan tidak ada dalam sistem"
   },
   "ai": {
     "apiKeyValidationFailed": "Validasi kunci API gagal",
@@ -420,7 +420,7 @@
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Satu atau lebih transaksi tidak ditemukan atau bukan milik pengguna.",
     "summaryCurrencyNotConnected": "Ringkasan langganan tidak dapat dihitung: mata uang {{currencyCodes}} tidak terhubung ke akun Anda. Hubungkan di Pengaturan → Mata Uang.",
-    "summaryBaseCurrencyNotSet": "Mata uang dasar belum diatur. Atur mata uang default di pengaturan Anda untuk melihat ringkasan langganan.",
+    "summaryBaseCurrencyNotSet": "Mata uang dasar belum diatur. Atur mata uang bawaan di pengaturan Anda untuk melihat ringkasan langganan.",
     "validation": {
       "autoRecord": {
         "requiresAccount": "Perekaman otomatis memerlukan akun agar transaksi yang dicatat memiliki tempat tujuan.",
@@ -438,7 +438,7 @@
     "aliasUsedByOtherPayee": "Alias ini sudah digunakan oleh \"{{name}}\"",
     "nameUsedByAliasOfOtherPayee": "Nama ini sudah digunakan sebagai alias dari \"{{name}}\"",
     "cannotDeleteCanonicalAlias": "Tidak dapat menghapus alias yang cocok dengan nama kanonis penerima. Ubah nama penerima jika Anda ingin mengubah nama utamanya.",
-    "defaultCategoryNotOwned": "Kategori default yang dipilih bukan milik akun Anda",
+    "defaultCategoryNotOwned": "Kategori bawaan yang dipilih bukan milik akun Anda",
     "defaultTagsNotOwned": "Satu atau lebih tag bukan milik pengguna",
     "duplicateAlias": "Alias ini sudah terpasang ke penerima ini",
     "duplicateName": "Penerima dengan nama ini sudah ada",

@@ -1,17 +1,87 @@
 {
-  "title": "Impor dari YNAB",
-  "description": "Impor data dari You Need A Budget (YNAB). Ekspor data Anda dari YNAB sebagai file CSV, lalu unggah di sini.",
-  "howToExport": "Cara mengekspor dari YNAB: Buka YNAB → pilih budget → klik menu (⋮) → Export Budget → pilih format CSV",
-  "upload": "Unggah File CSV",
-  "uploading": "Mengunggah...",
-  "parsing": "Memproses data YNAB...",
-  "preview": "Pratinjau",
-  "import": "Impor",
-  "importing": "Mengimpor...",
-  "success": "Berhasil mengimpor {{count}} transaksi",
-  "errors": {
-    "invalidFile": "File tidak valid. Pastikan file berformat CSV YNAB.",
-    "parseError": "Gagal memproses file CSV YNAB",
-    "importFailed": "Gagal mengimpor transaksi"
+  "pages": {
+    "importExport": {
+      "ynabImport": {
+        "pageTitle": "Impor dari YNAB",
+        "pageDescription": "Upload ekspor Register.csv YNAB Anda untuk membawa akun, transaksi, kategori, penerima pembayaran, dan tag ke MoneyMatter.",
+        "stepper": {
+          "steps": {
+            "upload": "Upload",
+            "preview": "Tinjau",
+            "results": "Selesai"
+          }
+        },
+        "steps": {
+          "uploadTitle": "Upload file",
+          "uploadDescription": "Pilih Register.csv dari ekspor YNAB Anda.",
+          "previewTitle": "Tinjau apa yang akan diimpor",
+          "previewDescription": "Periksa akun, mata uang, dan peringatan sebelum memproses.",
+          "executeTitle": "Mengimpor",
+          "executeDescription": "Kami akan menulis data Anda ke MoneyMatter.",
+          "doneTitle": "Selesai",
+          "doneDescription": "Lihat hasilnya."
+        },
+        "fileUpload": {
+          "stepTitle": "Letakkan Register.csv Anda di sini",
+          "description": "YNAB → Budget → Export budget → unzip → gunakan file Register.csv.",
+          "maxSize": "Hingga 10 MB.",
+          "parsing": "Mengurai...",
+          "continueToPreview": "Lanjutkan",
+          "errors": {
+            "invalidFormat": "Harap upload file .csv."
+          }
+        },
+        "preview": {
+          "emptyList": "Tidak ada yang diimpor di sini.",
+          "accounts": "Akun",
+          "categories": "Kategori",
+          "payees": "Penerima Pembayaran",
+          "transactions": "Transaksi",
+          "transfers": "Transfer",
+          "tags": "Tag",
+          "dateRange": "Rentang: {from} → {to}",
+          "accountsHelper": "Untuk setiap akun YNAB, konfirmasi mata uangnya.",
+          "warningsTitle": "Peringatan",
+          "rowPrefix": "Baris {rowIndex}:",
+          "startOver": "Mulai ulang",
+          "continueToImport": "Mulai impor"
+        },
+        "accountRow": {
+          "transactionsCount": "{count} transaksi",
+          "startingBalance": "Saldo awal",
+          "currencyPlaceholder": "USD",
+          "currencyLabel": "Mata Uang",
+          "currencyInvalid": "Masukkan kode mata uang 3 huruf (mis: USD)",
+          "autoDetected": "terdeteksi otomatis: {code}"
+        },
+        "execute": {
+          "starting": "Memulai impor...",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "Antrean",
+          "statusRunning": "Mengimpor...",
+          "statusCompleted": "Selesai",
+          "statusFailed": "Gagal",
+          "failed": "Impor tidak dapat diselesaikan."
+        },
+        "done": {
+          "successTitle": "Impor selesai",
+          "successDescription": "Data YNAB Anda sekarang ada di MoneyMatter.",
+          "accountsCreated": "Akun dibuat",
+          "categoriesCreated": "Kategori dibuat",
+          "payeesCreated": "Penerima Pembayaran dibuat",
+          "tagsCreated": "Tag dibuat",
+          "transactionsImported": "Transaksi diimpor",
+          "transfersImported": "Transfer diimpor",
+          "splitsDetected": "Grup split terdeteksi",
+          "errorsTitle": "{count} baris gagal diimpor",
+          "viewTransactions": "Lihat transaksi",
+          "importAnother": "Impor file lain"
+        }
+      },
+      "progress": {
+        "jobExpired": "Tugas impor kedaluwarsa atau tidak dapat ditemukan.",
+        "lostContact": "Kehilangan kontak dengan tugas impor."
+      }
+    }
   }
 }

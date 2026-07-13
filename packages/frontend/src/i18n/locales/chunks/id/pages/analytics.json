@@ -161,7 +161,7 @@
       "payees": "Penerima",
       "accounts": "Akun",
       "reset": "Atur Ulang",
-      "resetTooltip": "Kembalikan ke default"
+      "resetTooltip": "Kembalikan ke bawaan"
     },
     "periods": {
       "last6Months": "6 bulan terakhir",

@@ -28,7 +28,7 @@
       },
       "profile_read": {
         "label": "Lihat profil Anda",
-        "desc": "Lihat nama, email, dan mata uang default Anda."
+        "desc": "Lihat nama, email, dan mata uang bawaan Anda."
       },
       "offline_access": {
         "label": "Tetap terhubung di latar belakang",

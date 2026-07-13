@@ -9,9 +9,9 @@
       "transactionCount": "# tx",
       "netFlow": "Arus bersih",
       "category": "Kategori",
-      "categoryHint": "Kategori efektif untuk penerima ini. Menampilkan default jika Anda telah menetapkannya — jika tidak, kategori yang paling sering digunakan dalam transaksi sebelumnya. Diisi otomatis saat membuat transaksi baru.",
+      "categoryHint": "Kategori efektif untuk penerima ini. Menampilkan bawaan jika Anda telah menetapkannya — jika tidak, kategori yang paling sering digunakan dalam transaksi sebelumnya. Diisi otomatis saat membuat transaksi baru.",
       "topCategory": "Kategori teratas",
-      "defaultCategory": "Kategori default"
+      "defaultCategory": "Kategori bawaan"
     },
     "sort": {
       "label": "Urutkan berdasarkan",
@@ -38,15 +38,15 @@
         "label": "Kategorisasi AI",
         "enforce": {
           "label": "Selalu gunakan kategori penerima",
-          "hint": "Kategori default penerima selalu digunakan. Kategorisasi AI dilewati untuk penerima ini."
+          "hint": "Kategori bawaan penerima selalu digunakan. Kategorisasi AI dilewati untuk penerima ini."
         },
         "hint": {
           "label": "Gunakan sebagai petunjuk",
-          "hint": "Menetapkan kategori default penerima, tetapi AI masih dapat menggantinya berdasarkan detail transaksi."
+          "hint": "Menetapkan kategori bawaan penerima, tetapi AI masih dapat menggantinya berdasarkan detail transaksi."
         },
         "off": {
           "label": "Nonaktif",
-          "hint": "Kategori default penerima diabaikan. Kategorisasi ditangani oleh AI atau aturan Anda yang lain."
+          "hint": "Kategori bawaan penerima diabaikan. Kategorisasi ditangani oleh AI atau aturan Anda yang lain."
         }
       }
     },
@@ -72,7 +72,7 @@
       "mergeButton": "Gabungkan",
       "confirmMerge": "Gabungkan",
       "noTransactions": "Belum ada transaksi",
-      "topCategoryHint": "Kategori yang paling sering digunakan dalam transaksi yang terhubung ke penerima ini. Digunakan sebagai cadangan ketika tidak ada kategori default yang ditetapkan.",
+      "topCategoryHint": "Kategori yang paling sering digunakan dalam transaksi yang terhubung ke penerima ini. Digunakan sebagai cadangan ketika tidak ada kategori bawaan yang ditetapkan.",
       "defaultCategoryPlaceholder": "Pilih kategori",
       "defaultTagsLabel": "Terapkan tag otomatis",
       "defaultTagsPlaceholder": "Pilih tag untuk diterapkan otomatis",
