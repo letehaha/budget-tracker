@@ -16,6 +16,7 @@ jobs:
     # Tear down when PR with 'preview' label is closed, OR when 'preview' label is removed
     if: >-
       github.event.pull_request.base.ref == 'main'
+      && github.event.pull_request.head.repo.full_name == github.repository
       && (
         (github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'preview'))
         || (github.event.action == 'unlabeled' && github.event.label.name == 'preview')
