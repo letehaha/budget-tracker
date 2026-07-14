@@ -1,0 +1,207 @@
+{
+  "dashboard": {
+    "editMode": {
+      "customize": "Sesuaikan",
+      "addWidgets": "Tambah widget",
+      "emptyState": "Klik Sesuaikan untuk menambah widget"
+    },
+    "widgets": {
+      "balanceTrend": {
+        "title": "Tren saldo",
+        "balanceTypes": {
+          "total": "Total",
+          "accounts": "Akun",
+          "portfolios": "Portofolio",
+          "ventures": "Ventura",
+          "vehicles": "Kendaraan",
+          "loans": "Pinjaman"
+        },
+        "tooltip": {
+          "accounts": "Akun:",
+          "portfolios": "Portofolio:",
+          "total": "Total:",
+          "ventures": "Ventura:",
+          "vehicles": "Kendaraan:",
+          "loans": "Pinjaman:"
+        },
+        "today": "Hari ini",
+        "vsPreviousPeriod": "vs periode sebelumnya",
+        "spikePanel": {
+          "accounts": "Akun",
+          "portfolios": "Portofolio",
+          "priceDrivenChange": "Perubahan didorong harga — detail transaksi segera hadir",
+          "noSignificantTransactions": "Tidak ada transaksi signifikan untuk tanggal ini.",
+          "seeAllTransactions": "Lihat semua transaksi"
+        },
+        "spikeSettings": {
+          "showMarkers": "Tampilkan penanda lonjakan",
+          "showMarkersTooltip": "Aktifkan penanda berwarna pada grafik yang menyoroti perubahan saldo signifikan.",
+          "percentThreshold": "Min perubahan %",
+          "percentThresholdTooltip": "Persentase perubahan minimum saldo antara dua hari berturut-turut untuk ditandai sebagai lonjakan. Nilai ini atau batas absolut harus terlampaui. Nilai rendah menampilkan lebih banyak penanda.",
+          "absoluteThreshold": "Min perubahan Rp",
+          "absoluteThresholdTooltip": "Perubahan saldo absolut minimum (dalam mata uang dasar Anda) untuk memenuhi syarat sebagai lonjakan. Nilai ini atau batas % harus terlampaui.",
+          "maxMarkers": "Maks penanda",
+          "maxMarkersTooltip": "Jumlah maksimum penanda lonjakan yang ditampilkan pada grafik. Ketika lonjakan melebihi batas ini, hanya yang paling signifikan yang ditampilkan.",
+          "resetDefaults": "Kembalikan bawaan",
+          "accept": "Terima",
+          "validation": {
+            "outOfRange": "Nilai di luar rentang yang diizinkan",
+            "integer": "Harus bilangan bulat"
+          }
+        },
+        "settings": {
+          "title": "Pengaturan",
+          "spikeMarkers": "Penanda lonjakan",
+          "fitToLatestData": "Sesuaikan dengan data terbaru",
+          "fitToLatestDataTooltip": "Saat aktif, grafik hanya mencakup hingga titik data terbaru Anda. Saat nonaktif, sumbu-x mencakup seluruh periode yang dipilih, menyisakan ruang kosong untuk tanggal mendatang.",
+          "on": "Aktif",
+          "off": "Nonaktif",
+          "includeInTotal": "Sertakan dalam total"
+        },
+        "componentsSettings": {
+          "description": "Pilih komponen mana yang dihitung dalam garis Total saldo.",
+          "vehicles": "Kendaraan",
+          "ventures": "Ventura",
+          "loans": "Pinjaman",
+          "loansTooltip": "Saat aktif, saldo pinjaman Anda dikurangkan dari total (kekayaan bersih sebenarnya). Saat nonaktif, pinjaman diabaikan sehingga total hanya menunjukkan aset.",
+          "allIncluded": "Semua komponen",
+          "excluding": "Tidak termasuk {items}"
+        }
+      },
+      "expensesStructure": {
+        "title": "Struktur Pengeluaran",
+        "excludedCategories": {
+          "message": "Beberapa kategori dikecualikan dari widget ini"
+        },
+        "excludeSettings": {
+          "title": "Pengaturan",
+          "excludeCategories": "Kecualikan kategori",
+          "dialogTitle": "Kecualikan kategori",
+          "dialogDescription": "Pilih kategori untuk dikecualikan dari grafik dan total widget ini",
+          "save": "Simpan"
+        },
+        "today": "Hari ini",
+        "vsPreviousPeriod": "vs periode sebelumnya",
+        "viewButton": "Lihat"
+      },
+      "latestTransactions": {
+        "title": "Transaksi Terbaru",
+        "showAll": "Lihat semua"
+      },
+      "subscriptions": {
+        "title": "Langganan & Tagihan",
+        "titleSubscriptions": "Langganan",
+        "titleBills": "Tagihan",
+        "titleAll": "Biaya Berulang",
+        "titleInstallments": "Cicilan",
+        "configTypeAll": "Semua",
+        "configTypeSubscriptions": "Langganan",
+        "configTypeBills": "Tagihan",
+        "configTypeInstallments": "Cicilan",
+        "activeSummary": "{count} aktif",
+        "perYear": " per tahun",
+        "percentOfIncome": "{percent}% dari rata-rata pendapatan",
+        "settings": {
+          "title": "Pengaturan",
+          "show": "Tampilkan",
+          "incomeWindow": "Jendela pendapatan",
+          "incomeWindowTooltip": "Kami rata-rata transaksi masuk Anda selama periode ini untuk menghitung % pendapatan yang dihabiskan untuk pembayaran berulang.",
+          "lookbackOption": {
+            "1": "Bulan lalu",
+            "3": "3 bulan terakhir",
+            "6": "6 bulan terakhir",
+            "12": "12 bulan terakhir"
+          }
+        }
+      },
+      "categoryTracker": {
+        "title": "Pantauan Kategori",
+        "addCategory": "Tambah kategori",
+        "addCategories": "Tambah kategori untuk dipantau",
+        "selectCategories": "Pilih Kategori"
+      },
+      "cashFlow": {
+        "title": "Arus Kas",
+        "description": "Menunjukkan tabungan bersih Anda: pendapatan dikurangi pengeluaran untuk periode yang dipilih, dengan tren periode sebelumnya",
+        "vsPrevious": "vs sebelumnya",
+        "income": "Pendapatan",
+        "expenses": "Pengeluaran",
+        "saved": "Ditabung",
+        "previousPeriodsTrend": "Tren periode sebelumnya"
+      },
+      "creditUtilization": {
+        "title": "Penggunaan Kredit",
+        "description": "Menunjukkan berapa banyak batas kredit Anda yang saat ini digunakan di semua akun",
+        "utilized": "digunakan",
+        "noAccounts": "Tidak ada akun dengan batas kredit"
+      },
+      "emptyState": "Tidak ada data dalam interval waktu yang dipilih.",
+      "registry": {
+        "balanceTrend": {
+          "name": "Tren Saldo",
+          "description": "Lacak saldo Anda dari waktu ke waktu"
+        },
+        "categoryTracker": {
+          "name": "Pantauan Kategori",
+          "description": "Pantau pengeluaran dan pendapatan untuk kategori yang dipilih"
+        },
+        "spendingCategories": {
+          "name": "Pengeluaran per Kategori",
+          "description": "Lihat ke mana uang Anda pergi"
+        },
+        "latestRecords": {
+          "name": "Catatan Terbaru",
+          "description": "Transaksi terbaru Anda"
+        },
+        "subscriptions": {
+          "name": "Langganan & Tagihan",
+          "description": "Ikhtisar pembayaran berulang"
+        },
+        "cashFlow": {
+          "name": "Arus Kas",
+          "description": "Pendapatan vs pengeluaran dengan tingkat tabungan"
+        },
+        "creditUtilization": {
+          "name": "Penggunaan Kredit",
+          "description": "Penggunaan batas kredit di semua akun Anda"
+        }
+      }
+    },
+    "periodSelector": {
+      "quickSelect": "Pilih Cepat",
+      "year": "{year}",
+      "presets": {
+        "currentMonth": "Bulan Ini",
+        "last3Months": "3 Bulan Terakhir",
+        "last6Months": "6 Bulan Terakhir",
+        "lastYear": "12 Bulan Terakhir",
+        "thisYear": "Tahun Ini",
+        "previousYear": "Tahun Sebelumnya"
+      }
+    }
+  },
+  "widgets": {
+    "subscriptionsOverview": {
+      "upcoming": {
+        "collapsed": "{count} pembayaran mendatang",
+        "collapsedAction": "Buka"
+      },
+      "empty": "Semua beres — tidak ada yang jatuh tempo dalam 3 hari ke depan.",
+      "overdueBadge": "Terlambat",
+      "payAction": "Tandai dibayar"
+    },
+    "latestRecords": {
+      "config": {
+        "includeScheduled": {
+          "label": "Sertakan pembayaran terjadwal",
+          "description": "Tampilkan pengingat pembayaran mendatang dan terlambat di atas transaksi terbaru Anda",
+          "on": "Aktif",
+          "off": "Nonaktif"
+        }
+      },
+      "overdueBadge": "Terlambat",
+      "scheduledBadge": "Terjadwal",
+      "payAction": "Tandai dibayar"
+    }
+  }
+}

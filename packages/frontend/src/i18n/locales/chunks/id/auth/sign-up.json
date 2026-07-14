@@ -1,0 +1,39 @@
+{
+  "auth": {
+    "signup": {
+      "title": "Buat akun",
+      "divider": "Atau lanjutkan dengan email",
+      "submitButton": "Daftar",
+      "alreadyHaveAccount": "Sudah punya akun?",
+      "signInLink": "Masuk",
+      "labels": {
+        "displayName": "Nama Tampilan",
+        "verifyPassword": "Verifikasi Kata Sandi"
+      },
+      "placeholders": {
+        "displayName": "mis. John Snow",
+        "verifyPassword": "Verifikasi kata sandi"
+      },
+      "errors": {
+        "invalidEmail": "Silakan masukkan alamat email yang valid.",
+        "passwordTooShort": "Kata sandi terlalu pendek.",
+        "passwordTooLong": "Kata sandi terlalu panjang.",
+        "invalidPassword": "Kata sandi tidak valid.",
+        "userExists": "Pengguna dengan email tersebut sudah ada.",
+        "genericErrorRetry": "Terjadi kesalahan. Silakan coba lagi.",
+        "oauthFailed": "Gagal mendaftar dengan {provider}. Silakan coba lagi."
+      }
+    },
+    "shared": {
+      "divider": "Atau lanjutkan dengan",
+      "passkeyButton": {
+        "signIn": "Masuk dengan Passkey",
+        "register": "Tambah Passkey"
+      },
+      "oauthButton": {
+        "signIn": "Masuk dengan {provider}",
+        "signUp": "Daftar dengan {provider}"
+      }
+    }
+  }
+}

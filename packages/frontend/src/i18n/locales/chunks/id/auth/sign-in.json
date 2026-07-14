@@ -1,0 +1,34 @@
+{
+  "auth": {
+    "login": {
+      "title": "Masuk ke akun",
+      "divider": "Atau lanjutkan dengan email",
+      "submitButton": "Masuk",
+      "noAccount": "Belum punya akun?",
+      "errors": {
+        "incorrectEmailOrPassword": "Email atau kata sandi salah.",
+        "incorrectPassword": "Kata sandi salah.",
+        "userNotFound": "Pengguna tidak ditemukan.",
+        "emailNotVerified": "Harap verifikasi email Anda sebelum masuk.",
+        "sessionExpired": "Sesi Anda telah kedaluwarsa. Silakan masuk lagi.",
+        "noPasswordSet": "Tidak ada kata sandi untuk akun ini. Coba masuk dengan Google.",
+        "passwordInvalid": "Kata sandi tidak valid.",
+        "genericError": "Terjadi kesalahan.",
+        "genericErrorRetry": "Terjadi kesalahan. Silakan coba lagi.",
+        "oauthFailed": "Gagal masuk dengan {provider}. Silakan coba lagi.",
+        "passkeyFailed": "Gagal masuk dengan passkey. Silakan coba lagi."
+      }
+    },
+    "shared": {
+      "divider": "Atau lanjutkan dengan",
+      "passkeyButton": {
+        "signIn": "Masuk dengan Passkey",
+        "register": "Tambah Passkey"
+      },
+      "oauthButton": {
+        "signIn": "Masuk dengan {provider}",
+        "signUp": "Daftar dengan {provider}"
+      }
+    }
+  }
+}

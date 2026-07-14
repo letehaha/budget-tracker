@@ -1,0 +1,47 @@
+{
+  "auth": {
+    "welcome": {
+      "title": "Pilih Mata Uang Dasar",
+      "description": "Mata uang dasar Anda idealnya adalah mata uang yang paling sering Anda gunakan. Semua transaksi dalam mata uang lain akan dihitung berdasarkan mata uang ini.",
+      "submitButton": "Konfirmasi Mata Uang",
+      "logout": "Keluar",
+      "labels": {
+        "baseCurrency": "Mata Uang Dasar"
+      },
+      "placeholders": {
+        "loading": "Memuat..."
+      },
+      "errors": {
+        "unableToLoadCurrencies": "Tidak dapat memuat daftar mata uang. Coba lagi nanti",
+        "unableToSetCurrency": "Kesalahan tak terduga. Tidak dapat mengatur mata uang dasar. Silakan coba lagi atau hubungi dukungan."
+      }
+    },
+    "oauthCallback": {
+      "completingSignIn": "Menyelesaikan masuk...",
+      "errors": {
+        "accessDenied": {
+          "signIn": "Masuk dibatalkan atau akses ditolak",
+          "signUp": "Pendaftaran dibatalkan atau akses ditolak",
+          "link": "Penautan dibatalkan atau akses ditolak"
+        },
+        "userAlreadyExists": {
+          "signIn": "Akun dengan email ini sudah ada",
+          "signUp": "Akun dengan email ini sudah ada",
+          "link": "Akun ini sudah ditautkan ke pengguna lain"
+        },
+        "accountNotLinked": {
+          "signIn": "Tidak ada akun dengan email ini. Silakan daftar terlebih dahulu.",
+          "signUp": "Gagal membuat akun. Silakan coba lagi.",
+          "link": "Gagal menautkan akun. Silakan coba lagi."
+        },
+        "genericError": {
+          "signIn": "Gagal masuk. Silakan coba lagi.",
+          "signUp": "Gagal mendaftar. Silakan coba lagi.",
+          "link": "Gagal menautkan akun. Silakan coba lagi."
+        },
+        "unauthorizedClient": "Aplikasi ini tidak diizinkan menggunakan metode autentikasi ini",
+        "temporarilyUnavailable": "Layanan autentikasi untuk sementara tidak tersedia. Silakan coba lagi nanti."
+      }
+    }
+  }
+}

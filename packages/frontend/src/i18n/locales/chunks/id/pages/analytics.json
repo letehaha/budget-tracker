@@ -1,0 +1,201 @@
+{
+  "analytics": {
+    "backToAnalytics": "Kembali ke Analitik",
+    "timePeriods": {},
+    "navigation": {
+      "cashFlow": "Arus Kas",
+      "trendsComparison": "Perbandingan Tren",
+      "investmentCalculator": "Kalkulator Investasi",
+      "pivotReport": "Pivot",
+      "collapse": "Tutup"
+    },
+    "cashFlow": {
+      "income": "Pemasukan",
+      "expenses": "Pengeluaran",
+      "netSavings": "Tabungan Bersih",
+      "netFlow": "Arus Bersih",
+      "savingsRate": "Rasio Tabungan",
+      "loadError": "Gagal memuat data arus kas",
+      "noData": "Tidak ada transaksi ditemukan",
+      "noDataHint": "Coba pilih periode yang berbeda atau periksa apakah Anda memiliki transaksi",
+      "excludeCategories": "Terapkan pengecualian kategori",
+      "excludeCategoriesHint": "Menggunakan pengecualian dari Pengaturan → Statistik",
+      "showTrendLine": "Tampilkan garis tren",
+      "showTrendLineHint": "Rata-rata halus dari arus kas bersih",
+      "trendLine": "Garis Tren",
+      "vsPreviousPeriod": "vs periode sebelumnya",
+      "chartTypes": {
+        "stacked": "Bertumpuk",
+        "mirrored": "Tercermin",
+        "grouped": "Berkelompok"
+      },
+      "granularity": {
+        "monthly": "Bulanan",
+        "biweekly": "Dua Mingguan",
+        "weekly": "Mingguan"
+      },
+      "periods": {
+        "last3Months": "3 bulan terakhir",
+        "last6Months": "6 bulan terakhir",
+        "last12Months": "12 bulan terakhir",
+        "thisYear": "Tahun ini",
+        "previousYear": "Tahun sebelumnya"
+      },
+      "periodSelector": {
+        "quickSelect": "Pilih Cepat",
+        "year": "Tahun {year}"
+      }
+    },
+    "trends": {
+      "metrics": {
+        "expenses": "Pengeluaran",
+        "income": "Pemasukan",
+        "savings": "Tabungan"
+      },
+      "chart": {
+        "selectedPeriod": "Periode dipilih",
+        "comparisonPeriod": "Periode sebelumnya",
+        "cumulativeNote": "Total kumulatif hingga titik ini"
+      },
+      "categoryBreakdown": {
+        "title": "Rincian Kategori",
+        "noData": "Tidak ada data untuk periode ini",
+        "viewAll": "Lihat semua kategori",
+        "moreCount": "{count} lainnya"
+      },
+      "monthlyComparison": {
+        "title": "Perbandingan Bulanan",
+        "allCategories": "Semua Kategori",
+        "categorySelected": "{count} kategori",
+        "categoriesSelected": "{count} kategori",
+        "searchCategories": "Cari kategori...",
+        "average": "Rata-rata",
+        "total": "Total",
+        "vsLastMonth": "vs bulan sebelumnya",
+        "viewTransactions": "Lihat transaksi"
+      },
+      "cumulativeProgress": {
+        "title": "Progres Kumulatif"
+      },
+      "vsPreviousPeriod": "vs periode sebelumnya",
+      "loadError": "Gagal memuat data",
+      "noData": "Tidak ada data tersedia",
+      "noDataHint": "Tidak ada transaksi yang dicatat untuk periode ini"
+    },
+    "investmentCalculator": {
+      "initialBalance": "Saldo awal",
+      "useCurrentBalance": "Gunakan saldo saat ini",
+      "monthlyContribution": "Kontribusi bulanan",
+      "useAvgNetIncome": "Gunakan rata-rata pemasukan bersih →",
+      "timeHorizon": "Cakrawala waktu (tahun)",
+      "years": "Tahun",
+      "annualReturn": "Pengembalian tahunan (%)",
+      "annualInflation": "Inflasi tahunan (%)",
+      "perMonth": "per bulan",
+      "totalInvested": "Total diinvestasikan",
+      "nominalFinalValue": "Nilai akhir nominal",
+      "growth": "pertumbuhan",
+      "realFinalValue": "Nilai akhir riil",
+      "realGrowth": "pertumbuhan riil",
+      "realMultiplier": "Pengganda riil",
+      "realMultiplierTooltip": "Seberapa besar total investasi Anda tumbuh setelah memperhitungkan inflasi. Berbeda dengan pengembalian nominal, ini menunjukkan daya beli riil. 1,5x berarti setiap $1 yang diinvestasikan menjadi $1,50 dalam nilai uang hari ini.",
+      "ofMoneyInvested": "dari uang yang diinvestasikan",
+      "customIndicator": "Kustom",
+      "customReturnRate": "Masukkan tingkat (%)",
+      "customInflationRate": "Masukkan tingkat (%)",
+      "inflationPresets": {
+        "low": "Rendah — Target bank sentral (Fed, ECB)",
+        "moderate": "Sedang — Rata-rata jangka panjang AS/UE",
+        "elevated": "Tinggi — Level pasca-2020, pasar berkembang",
+        "high": "Sangat Tinggi — Ekonomi dengan inflasi tinggi"
+      },
+      "inflationAdjustedSuffix": "(Disesuaikan dengan Inflasi)",
+      "yearN": "Tahun {n}",
+      "disclaimer": "Berdasarkan pengembalian konstan {rate}%/tahun. Rata-rata historis S&P 500 adalah ~10%/tahun. Tidak memperhitungkan pajak atau biaya.",
+      "useAvgNetIncomeTooltip": "Rata-rata pemasukan bersih bulanan Anda (pemasukan dikurangi pengeluaran) selama periode yang dipilih, berdasarkan riwayat transaksi Anda",
+      "inflationTooltip": "Seberapa cepat harga naik setiap tahun, mengurangi nilai riil uang Anda.\n\n~1–2% — sangat rendah, ekonomi stabil\n~2–3% — normal (target tipikal)\n~4–6% — di atas rata-rata\n~7%+ — inflasi level krisis",
+      "totalInvestedBreakdown": "{initial} awal + {contributions} kontribusi",
+      "configure": "Konfigurasi",
+      "hideInputs": "Sembunyikan",
+      "portfolioReturnOption": "{name} (~{rate}%/tahun Anda)",
+      "portfolioNoHistoryOption": "{name} — riwayat tidak mencukupi"
+    }
+  },
+  "pivotReport": {
+    "title": "Laporan Pivot",
+    "subtitle": "Uraikan pengeluaran berdasarkan dimensi apa pun, bentangkan sepanjang waktu, dan bandingkan.",
+    "controls": {
+      "rows": "Baris",
+      "columns": "Kolom",
+      "measure": "Ukuran",
+      "settings": "Pengaturan"
+    },
+    "dimensions": {
+      "category": "Kategori",
+      "subcategory": "+ Subkategori",
+      "payee": "Penerima",
+      "tag": "Tag"
+    },
+    "granularity": {
+      "yearly": "Tahunan",
+      "quarterly": "Triwulan",
+      "monthly": "Bulanan",
+      "weekly": "Mingguan"
+    },
+    "measure": {
+      "expense": "Pengeluaran",
+      "income": "Pemasukan"
+    },
+    "display": {
+      "trigger": "Tampilan",
+      "title": "Opsi tampilan"
+    },
+    "toggles": {
+      "heatmap": "Peta Panas",
+      "percentChange": "% perubahan"
+    },
+    "filters": {
+      "period": "Periode",
+      "categories": "Kategori",
+      "allCategories": "Semua",
+      "payees": "Penerima",
+      "accounts": "Akun",
+      "reset": "Atur Ulang",
+      "resetTooltip": "Kembalikan ke bawaan"
+    },
+    "periods": {
+      "last6Months": "6 bulan terakhir",
+      "last12Months": "12 bulan terakhir",
+      "thisYear": "Tahun ini",
+      "previousYear": "Tahun sebelumnya",
+      "last3Years": "3 tahun terakhir",
+      "last5Years": "5 tahun terakhir"
+    },
+    "savedViews": {
+      "trigger": "Tampilan",
+      "empty": "Belum ada tampilan tersimpan",
+      "saveCurrent": "Simpan tampilan saat ini",
+      "customView": "Tampilan kustom",
+      "dialogTitle": "Simpan tampilan",
+      "dialogDescription": "Simpan tata letak dan filter saat ini sebagai tampilan yang dapat digunakan kembali.",
+      "nameLabel": "Nama tampilan",
+      "namePlaceholder": "mis. Pantauan Belanja",
+      "savedToast": "Tampilan disimpan",
+      "deletedToast": "Tampilan dihapus",
+      "saveError": "Tidak dapat menyimpan tampilan"
+    },
+    "table": {
+      "total": "Total",
+      "collapseAll": "Tutup semua",
+      "expandAll": "Buka semua",
+      "expandRow": "Buka",
+      "collapseRow": "Tutup"
+    },
+    "states": {
+      "emptyTitle": "Tidak ada data untuk pilihan ini",
+      "emptyHint": "Coba periode yang lebih luas atau filter yang berbeda.",
+      "errorTitle": "Tidak dapat memuat laporan",
+      "errorHint": "Terjadi kesalahan. Silakan coba lagi."
+    }
+  }
+}

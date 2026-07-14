@@ -1,0 +1,167 @@
+{
+  "pages": {
+    "importExport": {
+      "budgetBakersWalletImport": {
+        "pageTitle": "Impor dari Wallet (BudgetBakers)",
+        "pageDescription": "Impor transaksi Anda yang diekspor dari aplikasi Wallet oleh BudgetBakers.",
+        "steps": {
+          "uploadTitle": "Upload file",
+          "uploadDescription": "Pilih file ekspor CSV Wallet Anda.",
+          "previewTitle": "Pratinjau & petakan akun",
+          "previewDescription": "Tinjau data yang terdeteksi dan konfigurasikan pemetaan akun.",
+          "duplicatesTitle": "Tinjau duplikat",
+          "duplicatesDescription": "Selesaikan potensi transaksi duplikat.",
+          "executeTitle": "Impor",
+          "executeDescription": "Mengimpor transaksi Anda.",
+          "doneTitle": "Selesai",
+          "doneDescription": "Impor selesai."
+        },
+        "fileUpload": {
+          "stepTitle": "Upload file CSV Wallet Anda",
+          "description": "Upload satu atau lebih file CSV ekspor Wallet untuk mengimpor transaksi. Semua file harus memiliki kolom yang sama.",
+          "maxSize": "Ukuran file maksimum: 10 MB",
+          "parsing": "Mengurai...",
+          "continueToPreview": "Lanjut ke pratinjau",
+          "errors": {
+            "invalidFormatNamed": "\"{name}\" bukan file CSV.",
+            "parseFailed": "Gagal mengurai file. Periksa format dan coba lagi.",
+            "merge": {
+              "emptySelection": "Pilih setidaknya satu file CSV",
+              "fileReadFailed": "Tidak dapat membaca \"{file}\"",
+              "fileEmpty": "\"{file}\" kosong",
+              "fileNoDataRows": "\"{file}\" tidak memiliki baris data",
+              "headerMismatch": "Kolom di \"{file}\" tidak cocok dengan file pertama. Semua file harus memiliki kolom yang sama dalam urutan yang sama.",
+              "forbiddenHeader": "\"{file}\" menggunakan nama kolom yang dilarang",
+              "tooManyRows": "Total file yang dipilih melebihi {max} baris. Hapus beberapa file atau baris dan coba lagi.",
+              "parseError": "Tidak dapat mengurai \"{file}\". Pastikan itu CSV yang valid."
+            }
+          },
+          "continue": "Lanjutkan"
+        },
+        "preview": {
+          "dateRange": "Transaksi dari {from} hingga {to}",
+          "accountsHelper": "Konfigurasikan bagaimana setiap akun yang terdeteksi akan ditangani selama impor.",
+          "emptyList": "Tidak ada yang ditampilkan.",
+          "accounts": "Akun",
+          "categories": "Kategori",
+          "tags": "Tag",
+          "transactions": "Transaksi",
+          "transfers": "Transfer",
+          "outOfWalletBadge": "Di luar dompet",
+          "warningsTitle": "Peringatan",
+          "rowPrefix": "Baris {rowIndex}: ",
+          "startOver": "Mulai ulang",
+          "detecting": "Mendeteksi duplikat...",
+          "continueToImport": "Lanjutkan"
+        },
+        "accountRow": {
+          "transactionsCount": "{count} transaksi | {count} transaksi | {count} transaksi",
+          "modeLabel": "Tindakan",
+          "modePlaceholder": "Pilih tindakan",
+          "modeCreateNew": "Buat akun baru",
+          "modeLinkExisting": "Tautkan ke akun yang ada",
+          "currentBalanceLabel": "Saldo saat ini (opsional)",
+          "currentBalancePlaceholder": "Mis: 1234.56",
+          "currentBalanceHint": "Kosongkan untuk memulai dari jumlah total transaksi yang diimpor.",
+          "linkTargetLabel": "Akun yang ada",
+          "linkTargetPlaceholder": "Pilih akun",
+          "keepBalanceNote": "Saldo saat ini dari akun yang ada akan dipertahankan. Riwayat akan diisi mundur."
+        },
+        "duplicates": {
+          "title": "{count} potensi duplikat terdeteksi | {count} potensi duplikat terdeteksi | {count} potensi duplikat terdeteksi",
+          "hint": "Baris yang diimpor ini sangat mirip dengan transaksi yang ada. Baris yang tidak dicentang akan dilewati.",
+          "willBeImported": "akan diimpor",
+          "duplicatesWillBeSkipped": "duplikat akan dilewati",
+          "back": "Kembali",
+          "importing": "Mengimpor...",
+          "continueButton": "Impor"
+        },
+        "execute": {
+          "starting": "Memulai impor...",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "Antrean",
+          "statusRunning": "Mengimpor...",
+          "statusCompleted": "Selesai",
+          "statusFailed": "Gagal",
+          "failed": "Impor gagal.",
+          "partialImportNote": "Beberapa baris mungkin sudah diimpor sebelum kegagalan ini. Mengimpor ulang dapat membuat duplikat."
+        },
+        "done": {
+          "successTitle": "Impor selesai",
+          "successDescription": "Data Wallet Anda berhasil diimpor.",
+          "partialTitle": "Diimpor dengan {count} error",
+          "partialDescription": "Beberapa baris berhasil diimpor, tetapi lainnya mengalami error.",
+          "allFailedTitle": "Impor gagal",
+          "allFailedDescription": "Tidak ada baris yang diimpor. Tinjau error di bawah dan coba lagi.",
+          "accountsCreated": "Akun dibuat",
+          "accountsLinked": "Akun ditautkan",
+          "categoriesCreated": "Kategori dibuat",
+          "tagsCreated": "Tag dibuat",
+          "transactionsImported": "Transaksi diimpor",
+          "transfersImported": "Transfer diimpor",
+          "outOfWalletImported": "Di luar dompet diimpor",
+          "duplicatesSkipped": "Duplikat dilewati",
+          "errorsTitle": "{count} baris gagal | {count} baris gagal | {count} baris gagal",
+          "errorsOverflow": "+{count} lagi",
+          "balanceWarningTitle": "Beberapa saldo akun mungkin tidak akurat",
+          "balanceWarningBody": "Kami tidak dapat mengatur ulang saldo pada satu atau lebih akun yang ada setelah impor. Tinjau akun yang terpengaruh.",
+          "viewTransactions": "Lihat transaksi",
+          "importAnother": "Impor file lain"
+        },
+        "stepper": {
+          "steps": {
+            "upload": "Upload",
+            "resolve": "Selesaikan",
+            "review": "Tinjau",
+            "results": "Selesai"
+          }
+        },
+        "resolve": {
+          "resolvedCounterWord": "terselesaikan",
+          "accounts": {
+            "sectionTitle": "Akun",
+            "currentBalanceLabel": "Saldo saat ini (opsional)",
+            "currentBalancePlaceholder": "Kosongkan untuk menggunakan total impor",
+            "willCreateHint": "Akan membuat akun {currency} baru"
+          },
+          "categories": {
+            "sectionTitle": "Kategori"
+          },
+          "quickActions": {
+            "mapExactMatches": "Petakan kecocokan persis",
+            "createNewForUnmatched": "Buat baru untuk yang tidak cocok",
+            "reset": "Reset",
+            "tooltips": {
+              "mapExactMatchesAccounts": "Tautkan setiap akun yang namanya persis cocok dengan akun yang ada",
+              "mapExactMatchesCategories": "Tautkan setiap kategori yang namanya persis cocok dengan kategori yang ada",
+              "createNewForUnmatched": "Atur semua baris yang belum terselesaikan untuk membuat entri baru",
+              "reset": "Hapus semua pilihan dan cocokkan ulang berdasarkan nama"
+            }
+          },
+          "footer": {
+            "back": "Kembali",
+            "continue": "Lanjutkan"
+          }
+        },
+        "review": {
+          "transactions": "Transaksi",
+          "transfersDetected": "Transfer terdeteksi",
+          "outOfWallet": "Di luar dompet",
+          "duplicatesSkipped": "Duplikat dilewati",
+          "willImport": "Akan diimpor",
+          "warningsTitle": "{count} peringatan",
+          "rowPrefix": "Baris {rowIndex}:",
+          "duplicatesTitle": "{count} kemungkinan duplikat",
+          "duplicatesHint": "Baris yang dicentang akan tetap diimpor; duplikat yang tidak dicentang dilewati.",
+          "back": "Kembali",
+          "importButton": "Impor {count} transaksi",
+          "importing": "Mengimpor..."
+        }
+      },
+      "progress": {
+        "jobExpired": "Tugas impor kedaluwarsa atau tidak dapat ditemukan.",
+        "lostContact": "Kehilangan kontak dengan tugas impor."
+      }
+    }
+  }
+}

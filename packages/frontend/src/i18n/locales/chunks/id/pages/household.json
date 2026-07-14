@@ -1,0 +1,76 @@
+{
+  "pages": {
+    "household": {
+      "title": "Rumah Tangga",
+      "description": "Undang orang terpercaya untuk berbagi akses ke semua akun yang Anda miliki. Anggota melihat akun Anda dan (dengan akses tulis) dapat mencatat transaksi di dalamnya.",
+      "myHousehold": {
+        "title": "Rumah tangga saya",
+        "description": "Orang di sini mendapatkan akses ke setiap akun yang Anda miliki. Berbagi per-akun selalu menggantikan akses rumah tangga."
+      },
+      "youOwner": "Anda — pemilik",
+      "noMembers": "Belum ada yang bergabung dengan rumah tangga Anda.",
+      "loadMembersError": "Tidak dapat memuat anggota rumah tangga. Coba segarkan.",
+      "permissions": {
+        "read": "Baca",
+        "write": "Tulis",
+        "manage": "Kelola"
+      },
+      "writeScope": {
+        "all": "Dapat mengedit transaksi apa pun",
+        "own": "Hanya dapat mengedit transaksi sendiri"
+      },
+      "invite": {
+        "emailLabel": "Email",
+        "emailPlaceholder": "orang@contoh.com",
+        "permissionLabel": "Izin",
+        "writeScopeLabel": "Lingkup tulis",
+        "submit": "Kirim undangan rumah tangga",
+        "sent": "Undangan terkirim.",
+        "error": "Tidak dapat mengirim undangan.",
+        "emailDeliveryFailed": "Undangan dibuat, tetapi email tidak dapat dikirim. Anda dapat mengirim ulang dari panel undangan."
+      },
+      "revoke": {
+        "action": "Hapus",
+        "title": "Hapus anggota rumah tangga?",
+        "description": "{handle} akan kehilangan akses ke setiap akun di rumah tangga Anda. Berbagi per-akun (jika ada) tidak terpengaruh.",
+        "confirm": "Hapus",
+        "success": "Anggota dihapus.",
+        "error": "Tidak dapat menghapus anggota ini."
+      },
+      "permissionChange": {
+        "setRead": "Jadikan hanya baca",
+        "setWrite": "Izinkan menulis",
+        "success": "Izin diperbarui.",
+        "error": "Tidak dapat memperbarui izin."
+      },
+      "imIn": {
+        "title": "Rumah Tangga yang Saya Ikuti",
+        "description": "Rumah tangga orang lain yang Anda ikuti. Keluar akan menghilangkan akses Anda ke setiap akun yang mereka bagikan dengan cara ini.",
+        "empty": "Anda belum bergabung dengan rumah tangga siapa pun.",
+        "unnamedHousehold": "Rumah tangga {'@'}{handle}",
+        "loadError": "Tidak dapat memuat rumah tangga yang Anda ikuti. Coba lagi nanti."
+      },
+      "leave": {
+        "action": "Keluar",
+        "title": "Keluar dari rumah tangga ini?",
+        "description": "Anda akan kehilangan akses ke setiap akun yang dibagikan {owner} melalui rumah tangga mereka. Berbagi per-akun (jika ada) tidak terpengaruh.",
+        "confirm": "Keluar",
+        "success": "Anda keluar dari rumah tangga.",
+        "error": "Tidak dapat keluar dari rumah tangga."
+      },
+      "pending": {
+        "badge": "Tertunda",
+        "resend": "Kirim ulang",
+        "cancel": "Batal",
+        "cancelTitle": "Batalkan undangan?",
+        "cancelDescription": "Batalkan undangan tertunda yang dikirim ke {email}? Mereka tidak akan dapat menerimanya lagi.",
+        "cancelConfirm": "Batalkan undangan",
+        "cancelSuccess": "Undangan dibatalkan.",
+        "cancelError": "Gagal membatalkan undangan.",
+        "resendSuccess": "Undangan dikirim ulang.",
+        "resendError": "Gagal mengirim ulang undangan.",
+        "resendDeliveryFailed": "Undangan diperbarui, tetapi email tidak dapat dikirim. Coba lagi nanti."
+      }
+    }
+  }
+}

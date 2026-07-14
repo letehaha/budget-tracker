@@ -1,0 +1,94 @@
+{
+  "settings": {
+    "dataManagement": {
+      "title": "Impor Data",
+      "description": "Impor data keuangan Anda dari berbagai sumber",
+      "tabs": {
+        "import": "Impor",
+        "export": "Ekspor"
+      },
+      "textSource": {
+        "title": "Impor dari Sumber Teks Apa Pun",
+        "description": "Parsing dan impor transaksi dari laporan bank, email, atau sumber teks apa pun. Menggunakan AI untuk mengekstrak data transaksi secara otomatis.",
+        "button": "Impor dari Teks (PDF, CSV, TXT, dll)",
+        "aiBadge": "Ditenagai AI",
+        "cta": "Impor dari teks",
+        "listDescription": "Laporan bank, email, atau sumber teks apa pun"
+      },
+      "csv": {
+        "title": "Impor CSV",
+        "description": "Impor transaksi dari file CSV. Anda dapat memetakan kolom, menangani duplikat, dan membuat akun atau kategori baru sesuai kebutuhan.",
+        "button": "Impor File CSV",
+        "cta": "Impor file CSV",
+        "listDescription": "Petakan kolom dan tangani duplikat"
+      },
+      "ynab": {
+        "title": "Impor dari YNAB",
+        "description": "Upload Register.csv YNAB Anda untuk memigrasikan akun, transaksi, kategori, penerima pembayaran, dan flag.",
+        "cta": "Impor dari YNAB",
+        "listDescription": "Akun, transaksi, kategori, dan penerima pembayaran"
+      },
+      "budget-bakers-wallet": {
+        "title": "Wallet (BudgetBakers)",
+        "description": "Impor transaksi yang diekspor dari aplikasi Wallet oleh BudgetBakers. Mendukung akun multi-mata uang dan pemasangan transfer otomatis.",
+        "cta": "Impor dari Wallet",
+        "listDescription": "Multi-mata uang dengan pemasangan transfer otomatis"
+      },
+      "import": {
+        "back": "Kembali ke Impor",
+        "groups": {
+          "filesAndText": "File & teks",
+          "fromOtherApps": "Dari aplikasi lain"
+        },
+        "requestMore": {
+          "title": "Ingin opsi lain? Minta di sini"
+        }
+      },
+      "export": {
+        "cardTitle": "Ekspor data Anda",
+        "cardDescription": "Unduh zip berisi transaksi, akun, anggaran, dan data lainnya. Berguna untuk analisis spreadsheet, persiapan pajak, atau migrasi ke aplikasi anggaran lain.",
+        "cta": "Konfigurasi ekspor",
+        "form": {
+          "title": "Ekspor data Anda",
+          "description": "Pilih format dan bagian data yang Anda inginkan. Unduhan dimulai setelah Anda mengonfirmasi.",
+          "confirmLabel": "Unduh",
+          "confirmLoading": "Menyiapkan…",
+          "back": "Kembali ke Ekspor"
+        },
+        "format": {
+          "label": "Format",
+          "json": "JSON",
+          "csv": "CSV",
+          "xlsx": "Excel"
+        },
+        "groups": {
+          "label": "Apa yang ingin disertakan",
+          "selectAll": "Pilih semua",
+          "deselectAll": "Batalkan semua",
+          "transactions": "Transaksi & akun",
+          "transactionsDescription": "Transaksi, akun, riwayat saldo, kategori, tag, kendaraan",
+          "budgets": "Anggaran",
+          "budgetsDescription": "Anggaran kustom dengan kategori terkait dan total pengeluaran",
+          "subscriptions": "Langganan & pengingat",
+          "subscriptionsDescription": "Langganan berulang dan pengingat tagihan",
+          "investments": "Investasi",
+          "investmentsDescription": "Portofolio, kepemilikan, transaksi investasi, transfer"
+        },
+        "notifications": {
+          "success": "Ekspor siap – unduhan akan dimulai sebentar lagi.",
+          "successWithCount": "Ekspor siap – {count} baris diekspor.",
+          "failed": "Tidak dapat mengekspor data Anda. Silakan coba lagi.",
+          "downloadBlocked": "Ekspor siap, tetapi browser Anda memblokir unduhan. Periksa bilah alamat untuk prompt unduhan.",
+          "tooLarge": "Data Anda terlalu besar untuk ekspor tunggal. Silakan hubungi dukungan."
+        },
+        "dateRange": {
+          "label": "Rentang tanggal (opsional)",
+          "helper": "Hanya tabel peristiwa (transaksi, riwayat saldo, aktivitas investasi) yang difilter. Akun, kategori, dan tabel referensi lainnya tetap lengkap.",
+          "placeholder": "Sepanjang waktu",
+          "clear": "Hapus rentang tanggal"
+        },
+        "listDescription": "Unduh zip untuk spreadsheet, pajak, atau migrasi"
+      }
+    }
+  }
+}

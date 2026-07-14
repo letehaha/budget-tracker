@@ -1,0 +1,23 @@
+{
+  "settings": {
+    "categories": {
+      "title": "Kategori",
+      "addButton": "Tambah Kategori",
+      "empty": "Belum ada kategori. Buat kategori pertama Anda untuk memulai.",
+      "delete": {
+        "title": "Hapus kategori?",
+        "description": "Ini akan menghapus \"{name}\" secara permanen. Tindakan ini tidak dapat dibatalkan.",
+        "deleteButton": "Hapus",
+        "cancelButton": "Batal"
+      },
+      "errors": {
+        "cannotLoad": "Tidak dapat memuat kategori"
+      },
+      "notifications": {
+        "deleteSuccess": "Kategori dihapus",
+        "deleteFailed": "Gagal menghapus kategori",
+        "checkFailed": "Gagal memeriksa kategori"
+      }
+    }
+  }
+}

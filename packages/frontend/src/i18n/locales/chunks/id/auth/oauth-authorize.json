@@ -1,0 +1,43 @@
+{
+  "oauth": {
+    "authorize": {
+      "title": "{name} ingin mengakses data MoneyMatter Anda",
+      "description": "Aplikasi ini meminta izin berikut:",
+      "approve": "Setujui",
+      "deny": "Tolak",
+      "footer": "Anda dapat mencabut akses kapan saja dari Pengaturan > Integrasi AI.",
+      "error": "Gagal memproses permintaan. Silakan coba lagi.",
+      "unexpected_response": "Respons tak terduga dari server. Silakan coba lagi.",
+      "always_granted": "Selalu diberikan",
+      "optional": "Opsional",
+      "delete_warning": "Berikan hanya ke aplikasi yang Anda percayai sepenuhnya",
+      "unknown_app": "Sebuah aplikasi"
+    },
+    "scopes": {
+      "finance_read": {
+        "label": "Lihat data keuangan Anda",
+        "desc": "Baca akun, transaksi, anggaran, kategori, tag, portofolio, dan statistik pengeluaran."
+      },
+      "finance_write": {
+        "label": "Buat dan sunting data keuangan Anda",
+        "desc": "Tambah dan perbarui transaksi, anggaran, langganan, posisi investasi, dan lainnya."
+      },
+      "finance_delete": {
+        "label": "Hapus data keuangan Anda",
+        "desc": "Hapus secara permanen transaksi, akun, anggaran, dan catatan lainnya."
+      },
+      "profile_read": {
+        "label": "Lihat profil Anda",
+        "desc": "Lihat nama, email, dan mata uang bawaan Anda."
+      },
+      "offline_access": {
+        "label": "Tetap terhubung di latar belakang",
+        "desc": "Jaga akses tetap aktif tanpa meminta Anda lagi setiap sesi."
+      },
+      "unknown": {
+        "label": "Izin tambahan",
+        "desc": "Aplikasi meminta izin yang tidak dikenali oleh MoneyMatter."
+      }
+    }
+  }
+}
