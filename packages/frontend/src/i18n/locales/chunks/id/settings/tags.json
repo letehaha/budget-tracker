@@ -1,0 +1,98 @@
+{
+  "settings": {
+    "tags": {
+      "title": "Tag",
+      "addButton": "Tambah Tag",
+      "empty": "Belum ada tag. Buat tag pertama Anda untuk mengatur transaksi.",
+      "tabs": {
+        "details": "Detail",
+        "reminders": "Pengingat"
+      },
+      "form": {
+        "createTitle": "Buat Tag",
+        "editTitle": "Edit Tag",
+        "name": "Nama",
+        "namePlaceholder": "Nama tag",
+        "color": "Warna",
+        "icon": "Ikon",
+        "iconPlaceholder": "Pilih ikon",
+        "iconSearchPlaceholder": "Cari ikon...",
+        "clearIcon": "Hapus ikon",
+        "description": "Deskripsi",
+        "descriptionPlaceholder": "Deskripsi opsional",
+        "saveButton": "Simpan",
+        "previewPlaceholder": "Nama tag"
+      },
+      "delete": {
+        "title": "Hapus tag?",
+        "description": "Ini akan menghapus \"{name}\" secara permanen dan menghapusnya dari semua transaksi. Tindakan ini tidak dapat dibatalkan.",
+        "deleteButton": "Hapus",
+        "cancelButton": "Batal"
+      },
+      "notifications": {
+        "createSuccess": "Tag dibuat",
+        "createFailed": "Gagal membuat tag",
+        "updateSuccess": "Tag diperbarui",
+        "updateFailed": "Gagal memperbarui tag",
+        "deleteSuccess": "Tag dihapus",
+        "deleteFailed": "Gagal menghapus tag"
+      },
+      "reminders": {
+        "addButton": "Tambah Pengingat",
+        "empty": "Belum ada pengingat. Buat pengingat untuk mendapatkan notifikasi tentang aktivitas tag ini.",
+        "enabled": "Aktif",
+        "disabled": "Nonaktif",
+        "form": {
+          "createTitle": "Buat Pengingat",
+          "editTitle": "Edit Pengingat",
+          "type": "Jenis Pengingat",
+          "typePlaceholder": "Pilih jenis",
+          "amountThreshold": "Batas Jumlah",
+          "amountThresholdPlaceholder": "Masukkan jumlah batas",
+          "amountThresholdHint": "Dapatkan notifikasi saat pengeluaran pada tag ini melebihi jumlah ini",
+          "frequency": "Frekuensi",
+          "frequencyPlaceholder": "Pilih frekuensi",
+          "dayOfMonth": "Hari dalam bulan",
+          "dayOfMonthPlaceholder": "Pilih hari",
+          "dayOfMonthHint": "Untuk bulan dengan hari lebih sedikit, hari terakhir akan digunakan",
+          "isEnabled": "Aktif",
+          "saveButton": "Simpan"
+        },
+        "types": {
+          "amountThreshold": "Batas Jumlah",
+          "amountThresholdDescription": "Diberitahu saat pengeluaran melebihi jumlah tertentu",
+          "existenceCheck": "Pemeriksaan Aktivitas",
+          "existenceCheckDescription": "Diberitahu saat ada transaksi dengan tag ini"
+        },
+        "frequencies": {
+          "immediate": "Segera",
+          "immediateDescription": "Dipicu saat transaksi diberi tag (cooldown 24 jam)",
+          "daily": "Harian",
+          "dailyDescription": "Periksa setiap hari",
+          "weekly": "Mingguan",
+          "weeklyDescription": "Periksa setiap Senin",
+          "monthly": "Bulanan",
+          "monthlyDescription": "Periksa pada hari tertentu setiap bulan",
+          "quarterly": "Triwulanan",
+          "quarterlyDescription": "Periksa setiap 3 bulan (Jan, Apr, Jul, Okt)",
+          "yearly": "Tahunan",
+          "yearlyDescription": "Periksa setahun sekali di bulan Januari"
+        },
+        "delete": {
+          "title": "Hapus pengingat?",
+          "description": "Ini akan menghapus pengingat ini secara permanen. Tindakan ini tidak dapat dibatalkan.",
+          "deleteButton": "Hapus",
+          "cancelButton": "Batal"
+        },
+        "notifications": {
+          "createSuccess": "Pengingat dibuat",
+          "createFailed": "Gagal membuat pengingat",
+          "updateSuccess": "Pengingat diperbarui",
+          "updateFailed": "Gagal memperbarui pengingat",
+          "deleteSuccess": "Pengingat dihapus",
+          "deleteFailed": "Gagal menghapus pengingat"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,454 @@
+{
+  "pages": {
+    "integrations": {
+      "title": "Integrasi Bank",
+      "addButton": "Tambah",
+      "addButtonFull": "Integrasi",
+      "loading": "Memuat...",
+      "empty": {
+        "title": "Belum Ada Integrasi Bank",
+        "description": "Hubungkan akun bank Anda untuk mengimpor transaksi secara otomatis dan menjaga keuangan Anda tetap terkini.",
+        "addFirstButton": "Tambah Integrasi Pertama Anda"
+      },
+      "card": {
+        "connectedAccounts": "Akun terhubung:",
+        "lastSync": "Sinkronisasi terakhir: {date}",
+        "disconnectButton": "Putuskan"
+      },
+      "addDialog": {
+        "titleSelect": "Tambah Integrasi",
+        "titleConnect": "Hubungkan {provider}",
+        "selectProviderHint": "Pilih penyedia data bank untuk terhubung",
+        "betaBadge": "Beta"
+      },
+      "providers": {
+        "monobank": {
+          "name": "Monobank",
+          "description": "Bank digital Ukraina"
+        },
+        "enableBanking": {
+          "name": "Enable Banking",
+          "description": "Akses 6000+ bank Eropa melalui PSD2 open banking"
+        },
+        "lunchflow": {
+          "name": "Lunch Flow",
+          "description": "Sinkronkan transaksi dari 20.000+ bank di seluruh dunia via LunchFlow"
+        },
+        "simplefin": {
+          "name": "SimpleFIN",
+          "description": "Sinkronkan transaksi dari bank AS & Kanada via SimpleFIN Bridge"
+        },
+        "walutomat": {
+          "name": "Walutomat",
+          "description": "Platform penukaran mata uang Polandia dengan 23 mata uang"
+        }
+      },
+      "monobank": {
+        "apiTokenLabel": "Token API",
+        "connectionNameLabel": "Nama Koneksi (opsional)",
+        "tokenPlaceholder": "Masukkan token API Monobank Anda",
+        "accountNamePlaceholder": "Mis: Akun Pribadi",
+        "tokenHint": "Anda bisa mendapatkan token API dari aplikasi Monobank",
+        "tokenInstructions": "Untuk mendapatkan token penggunaan pribadi, kunjungi {link} dan ikuti petunjuknya. Setelah token dibuat, simpan dan masukkan ke kolom.",
+        "tokenReadOnlyNote": "Catatan:",
+        "tokenReadOnlyText": "Jangan khawatir, token API bersifat read-only.",
+        "backButton": "Kembali",
+        "connectingButton": "Menghubungkan...",
+        "connectButton": "Hubungkan",
+        "loadingAccounts": "Memuat akun...",
+        "selectAccountsHint": "Pilih akun yang ingin disinkronkan dengan MoneyMatter",
+        "syncingButton": "Menyinkronkan...",
+        "syncButton": "Sinkronkan {count} akun",
+        "syncSuccess": "Berhasil menyinkronkan {count} akun",
+        "errors": {
+          "connectFailed": "Gagal menghubungkan penyedia",
+          "syncFailed": "Gagal menyinkronkan akun"
+        }
+      },
+      "enableBankingConnector": {
+        "beta": {
+          "title": "Fitur Beta - Berorientasi Pengembang",
+          "description": "Integrasi ini memerlukan pengetahuan teknis untuk pengaturannya. Anda perlu mendaftarkan aplikasi Enable Banking sendiri dan memberikan kredensial API. Proses pengaturan dan API dapat berubah di pembaruan mendatang."
+        },
+        "credentials": {
+          "helpText": "Tidak memiliki kredensial Enable Banking?",
+          "helpLink": "Pelajari cara mendapatkannya",
+          "appIdLabel": "Application ID",
+          "appIdHint": "Dapatkan dari portal Enable Banking setelah mengupload sertifikat Anda",
+          "privateKeyLabel": "Private Key",
+          "privateKeyHint": "Kunci pribadi RSA berkode PEM Anda (disimpan terenkripsi)",
+          "bicLabel": "BIC:"
+        },
+        "steps": {
+          "loadingCountries": "Memuat negara...",
+          "selectCountryHint": "Pilih negara bank Anda",
+          "countryLabel": "Negara",
+          "loadingBanks": "Memuat bank...",
+          "selectBankHint": "Pilih bank Anda di {country}",
+          "bankLabel": "Bank",
+          "connectingToBank": "Menghubungkan ke {bank}...",
+          "authDescription": "Klik tombol di bawah untuk mengotorisasi akses ke akun {bank} Anda.",
+          "authWarning": "Anda akan diarahkan ke situs web {bank} untuk login dan menyetujui koneksi.",
+          "authorizeButton": "Otorisasi dengan {bank}",
+          "loadingAccounts": "Memuat akun...",
+          "selectAccountsHint": "Pilih akun yang ingin disinkronkan dengan MoneyMatter"
+        },
+        "buttons": {
+          "back": "Kembali",
+          "loading": "Memuat...",
+          "next": "Lanjut",
+          "syncing": "Menyinkronkan...",
+          "sync": "Sinkronkan {count} akun"
+        },
+        "errors": {
+          "loadCountriesFailed": "Gagal memuat negara. Periksa kredensial Anda.",
+          "loadAccountsFailed": "Gagal memuat akun",
+          "syncFailed": "Gagal menyinkronkan akun"
+        },
+        "syncSuccess": "Berhasil menyinkronkan {count} akun"
+      },
+      "instructionsDialog": {
+        "title": "Cara Mendapatkan Kredensial Enable Banking",
+        "description": "Petunjuk langkah demi langkah untuk mendaftar dan mengonfigurasi kredensial Enable Banking",
+        "overview": {
+          "title": "Ringkasan",
+          "text": "Enable Banking mengharuskan Anda mendaftarkan aplikasi dan menghasilkan kredensial keamanan untuk mengakses data perbankan. Ikuti langkah-langkah ini untuk mendapatkan Application ID dan Private Key."
+        },
+        "step1": {
+          "title": "Daftar & Buat Aplikasi",
+          "intro": "Kunjungi {link} dan buat akun jika Anda belum memilikinya.",
+          "createApp": "Kemudian buat aplikasi:",
+          "steps": {
+            "login": "Login ke portal Enable Banking",
+            "navigate": "Navigasi ke {link}",
+            "lookForm": "Lihat formulir \"Create Application\"",
+            "selectEnv": "Pilih lingkungan {strong}",
+            "selectEnvStrong": "\"Production\"",
+            "generateKey": "Centang kotak {strong}. Setelah aplikasi dibuat, kunci .pem akan disimpan secara otomatis ke komputer Anda sebagai file. {warning} karena alasan apa pun — Anda perlu membuat ulang aplikasi",
+            "generateKeyStrong": "\"Generate private RSA key in the browser\"",
+            "generateKeyWarning": "Jika file tidak tersimpan",
+            "fillForm": "Isi formulir dengan nilai berikut:",
+            "appName": "Nama aplikasi:",
+            "redirectUrls": "URL redirect yang diizinkan:",
+            "appDescription": "Deskripsi aplikasi:",
+            "emailProtection": "Email untuk masalah perlindungan data:",
+            "privacyUrl": "URL Privasi:",
+            "termsUrl": "URL Persyaratan:",
+            "clickRegister": "Klik \"Register\"",
+            "downloadKey": "Anda akan diminta mengunduh file. Itu adalah kunci RSA Anda yang harus disimpan karena ini bagian dari kredensial Anda"
+          }
+        },
+        "step2": {
+          "title": "Hubungkan Akun Bank Anda",
+          "intro": "Sebelum menggunakan aplikasi dengan MoneyMatter, Anda harus menghubungkan akun bank melalui portal Enable Banking. Cari tombol \"Link accounts\" di dalam tile aplikasi yang dibuat dan ikuti semua langkah yang diperlukan.",
+          "breakdown": "Berikut rinciannya:",
+          "steps": {
+            "clickLink": "Klik \"Link accounts\", tunggu spinner selesai",
+            "newFields": "Field baru akan muncul di tempat yang sama: \"Country\", \"ASPSP\", \"Usage type\"",
+            "country": "Country:",
+            "countryValue": "Negara bank Anda",
+            "aspsp": "ASPSP:",
+            "aspspValue": "Nama bank Anda",
+            "usageType": "Usage type:",
+            "usageTypeValue": "Private",
+            "clickSave": "Klik \"Save\"",
+            "redirect": "Anda akan diarahkan ke halaman otorisasi bank. Login, dan pilih semua akun yang ingin dihubungkan",
+            "finishAuth": "Setelah menyelesaikan alur otorisasi, Anda akan diarahkan kembali ke EnableBanking",
+            "waitAccounts": "Tunggu hingga akun yang dipilih ditampilkan di kartu Aplikasi di bawah field \"Linked accounts\""
+          },
+          "warningNotLinked": "<<ccr:e9e22b57c201,string,272B>>",
+          "infoAddMore": "<<ccr:e924407f5d29,string,271B>>",
+          "infoAddMoreStrong": "Perlu diingat"
+        },
+        "step3": {
+          "title": "Dapatkan Kredensial Anda",
+          "intro": "Dari portal Enable Banking:",
+          "appId": "{strong} Salin {code} dari detail aplikasi Anda",
+          "appIdStrong": "Application ID:",
+          "appIdCode": "app_id",
+          "appIdExample": "Contoh:",
+          "privateKey": "{strong} Buka file {code} yang disimpan melalui editor teks (TextEdit di MacOS atau Notepad di Windows) dan salin seluruh kontennya (termasuk baris BEGIN dan END)",
+          "privateKeyStrong": "Private Key:",
+          "privateKeyCode": "private.pem"
+        },
+        "securityNote": {
+          "title": "Catatan Keamanan",
+          "text": "Kunci pribadi Anda disimpan terenkripsi di database kami dan hanya digunakan untuk mengautentikasi dengan Enable Banking atas nama Anda. Token terbatas pada data read-only. Namun, jangan pernah membagikan kunci pribadi Anda dengan siapa pun."
+        },
+        "gotItButton": "Mengerti"
+      },
+      "enableBanking": {
+        "instructions": {},
+        "placeholders": {
+          "appId": "Masukkan app_id Enable Banking Anda",
+          "privateKey": "[REDACTED PRIVATE KEY]",
+          "searchCountries": "Cari negara...",
+          "searchBanks": "Cari bank..."
+        },
+        "errors": {
+          "noAuthUrl": "Tidak ada URL otorisasi yang diterima dari server",
+          "failedToLoadBanks": "Gagal memuat bank",
+          "failedToConnectProvider": "Gagal menghubungkan penyedia"
+        }
+      },
+      "lunchflow": {
+        "apiKeyLabel": "Kunci API",
+        "apiKeyPlaceholder": "Masukkan kunci API LunchFlow Anda",
+        "apiKeyHint": "Di mana saya menemukan kunci API saya?",
+        "apiKeyInstructions": "Buka {link} → Settings → API Destinations untuk menemukan kunci API Anda",
+        "backButton": "Kembali",
+        "connectingButton": "Menghubungkan...",
+        "connectButton": "Hubungkan",
+        "loadingAccounts": "Memuat akun...",
+        "accountsPreviewHint": "Ditemukan {count} akun. Semua akun akan diimpor.",
+        "importingButton": "Mengimpor...",
+        "importButton": "Impor {count} akun",
+        "importSuccess": "Berhasil mengimpor {count} akun",
+        "skipButton": "Lewati",
+        "skipTooltip": "Lewati impor untuk menghubungkan akun tertentu nanti, atau untuk menautkan ulang akun yang ada dari pengaturannya.",
+        "errors": {
+          "connectFailed": "Gagal terhubung ke LunchFlow",
+          "importFailed": "Gagal mengimpor akun"
+        }
+      },
+      "common": {
+        "selectAll": "Pilih semua"
+      },
+      "simplefin": {
+        "setupTokenLabel": "Token pengaturan",
+        "setupTokenPlaceholder": "Tempel token pengaturan SimpleFIN Anda",
+        "setupTokenHint": "Di mana saya mendapatkan token pengaturan?",
+        "setupTokenInstructions": "Buat akun SimpleFIN Bridge di {link}, hubungkan bank Anda, lalu buat token pengaturan dan tempel di sini.",
+        "connectButton": "Hubungkan",
+        "connectingButton": "Menghubungkan...",
+        "backButton": "Kembali",
+        "loadingAccounts": "Memuat akun...",
+        "accountsPreviewHint": "Ditemukan {count} akun. Pilih mana yang akan diimpor.",
+        "backfillNote": "Kami akan memuat 6 bulan terakhir transaksi sekarang. Anda dapat memuat riwayat yang lebih lama kapan saja dari halaman akun menggunakan pemilih rentang tanggal.",
+        "importButton": "Impor {count} akun",
+        "importingButton": "Mengimpor...",
+        "importSuccess": "Berhasil mengimpor {count} akun",
+        "errors": {
+          "connectFailed": "Gagal terhubung ke SimpleFIN. Periksa token pengaturan Anda dan coba lagi.",
+          "importFailed": "Gagal mengimpor akun. Silakan coba lagi."
+        }
+      },
+      "walutomat": {
+        "helpText": "Butuh bantuan mengatur akses API Walutomat?",
+        "viewInstructions": "Lihat petunjuk pengaturan",
+        "apiKeyLabel": "Kunci API",
+        "apiKeyPlaceholder": "Masukkan kunci API Walutomat Anda",
+        "apiKeyHint": "Ditemukan di dashboard Walutomat Anda di Settings → API",
+        "privateKeyLabel": "Private Key (PEM)",
+        "privateKeyPlaceholder": "[REDACTED PRIVATE KEY]",
+        "privateKeyHint": "Tempel konten file private.key Anda (format RSA 4096-bit PEM)",
+        "backButton": "Kembali",
+        "connectButton": "Hubungkan",
+        "connectingButton": "Menghubungkan...",
+        "loadingWallets": "Memuat dompet...",
+        "selectWalletsHint": "Pilih dompet mata uang mana yang akan disinkronkan ({count} tersedia)",
+        "selectAll": "Pilih semua",
+        "importButton": "Impor {count} dompet",
+        "importingButton": "Mengimpor...",
+        "importSuccess": "Berhasil mengimpor {count} dompet Walutomat",
+        "errors": {
+          "connectFailed": "Gagal terhubung ke Walutomat. Periksa kredensial Anda.",
+          "importFailed": "Gagal mengimpor dompet."
+        },
+        "instructions": {
+          "title": "Petunjuk Pengaturan API Walutomat",
+          "description": "Panduan langkah demi langkah untuk mengatur akses API Walutomat",
+          "overviewTitle": "Ringkasan",
+          "overviewText": "Untuk menghubungkan Walutomat, Anda memerlukan kunci API dan kunci pribadi RSA. Kunci API mengautentikasi akun Anda, sementara kunci pribadi menandatangani setiap permintaan untuk keamanan.",
+          "step1Title": "Hasilkan Pasangan Kunci RSA",
+          "step1Intro": "Buka terminal dan jalankan perintah ini:",
+          "step1FilesCreated": "Ini membuat dua file: {privateKey} (jaga kerahasiaannya!) dan {publicKey} (upload ke Walutomat).",
+          "step2Title": "Upload Kunci Publik ke Walutomat",
+          "step2Login": "1. Login ke",
+          "step2GoToSettings": "2. Buka {settings} → {api}",
+          "step2Upload": "3. Upload file {publicKey} Anda",
+          "step2ApiKeyGenerated": "4. Walutomat akan menghasilkan kunci API untuk Anda",
+          "step3Title": "Masukkan Kredensial di Sini",
+          "step3Intro": "Anda memerlukan dua hal:",
+          "step3ApiKeyDesc": "{apiKey} — Salin dari halaman pengaturan API Walutomat",
+          "step3PrivateKeyDesc": "{privateKey} — Buka {filename} di editor teks dan salin seluruh konten (termasuk baris BEGIN/END)",
+          "securityNoteTitle": "Catatan Keamanan",
+          "securityNoteText": "Kunci pribadi Anda dienkripsi sebelum penyimpanan dan hanya digunakan untuk menandatangani permintaan API. Tidak pernah diekspos atau dikirimkan ke siapa pun selain Walutomat.",
+          "closeButton": "Mengerti"
+        }
+      },
+      "notifications": {
+        "disconnectSuccess": "Integrasi berhasil diputuskan",
+        "disconnectFailed": "Gagal memutuskan integrasi",
+        "connectAccountsSuccess": "Akun berhasil dihubungkan",
+        "connectAccountsFailed": "Gagal menghubungkan akun",
+        "updateNameSuccess": "Nama koneksi berhasil diperbarui",
+        "updateNameFailed": "Gagal memperbarui nama koneksi",
+        "connectionEstablished": "Koneksi bank berhasil dibuat!"
+      },
+      "details": {
+        "loading": "Memuat...",
+        "error": {
+          "loadFailed": "Gagal memuat detail integrasi. Silakan coba lagi.",
+          "notFoundTitle": "Integrasi tidak ditemukan",
+          "notFoundDescription": "Integrasi ini mungkin telah dihapus atau tautannya salah. Periksa daftar integrasi Anda untuk menemukan yang Anda cari.",
+          "unexpectedTitle": "Terjadi kesalahan",
+          "unexpectedDescription": "Kami tidak dapat memuat koneksi ini. Silakan coba lagi nanti.",
+          "backButton": "Kembali ke Integrasi"
+        },
+        "connectionDetails": {
+          "title": "Detail Koneksi",
+          "type": "Tipe",
+          "status": "Status",
+          "statusActive": "Aktif",
+          "statusInactive": "Nonaktif",
+          "autoSync": "Sinkronisasi Otomatis",
+          "autoSyncTooltip": "Sinkronisasi otomatis dipicu setiap kali Anda login, jika lebih dari 12 jam telah berlalu sejak sinkronisasi terakhir. Anda juga dapat memicu sinkronisasi secara manual dari header kapan saja.",
+          "every12Hours": "Setiap 12 jam",
+          "lastSync": "(terakhir {time})",
+          "connectedAccounts": "Akun Terhubung"
+        },
+        "connectionValidity": {
+          "title": "Validitas Koneksi",
+          "statusExpired": "Kedaluwarsa",
+          "statusExpiringSoon": "Segera Kedaluwarsa",
+          "statusActive": "Aktif",
+          "expiredTitle": "Koneksi Kedaluwarsa",
+          "expiredDescription": "Koneksi bank Anda telah kedaluwarsa. Harap hubungkan kembali untuk melanjutkan sinkronisasi transaksi.",
+          "expiringSoonTitle": "⚠️ Segera Kedaluwarsa",
+          "expiringSoonDescription": "Koneksi bank Anda akan kedaluwarsa dalam {days} hari. Harap hubungkan kembali segera untuk menghindari gangguan.",
+          "validFrom": "Berlaku Dari",
+          "validUntil": "Berlaku Hingga",
+          "daysRemaining": "Sisa Hari",
+          "daysCount": "{count} hari | {count} hari",
+          "notAvailable": "N/A",
+          "validConnectionHint": "Koneksi valid. Anda masih dapat menghubungkan kembali untuk menyegarkan akun yang tersedia atau memperpanjang validitas koneksi.",
+          "reconnectButton": "Hubungkan Kembali Sekarang"
+        },
+        "connectedAccounts": {
+          "title": "Akun Terhubung",
+          "connectRemainingButton": "Hubungkan Sisa Akun",
+          "empty": "Belum ada akun yang terhubung.",
+          "connectButton": "Hubungkan Akun",
+          "externalId": "ID Eksternal: {id}"
+        },
+        "actions": {
+          "title": "Tindakan",
+          "disconnectButton": "Putuskan Integrasi"
+        },
+        "fetchAccountsDialog": {
+          "title": "Hubungkan Sisa Akun",
+          "description": "Pilih akun yang tersedia dari {providerName} yang belum terhubung.",
+          "missingAccountsQuestion": "Tidak melihat akun Anda?",
+          "missingAccountsHint": "Jika Anda tidak dapat melihat beberapa akun, coba hubungkan kembali koneksi bank Anda dari bagian {section} dengan mengklik {button}.",
+          "missingAccountsSectionName": "Validitas Koneksi",
+          "missingAccountsButtonName": "Hubungkan Kembali Sekarang",
+          "missingAccountsPersist": "Jika masalah berlanjut, harap laporkan untuk investigasi lebih lanjut.",
+          "loadingAccounts": "Memuat akun yang tersedia...",
+          "sessionExpired": "Sesi Anda telah kedaluwarsa. Harap hubungkan kembali koneksi bank Anda untuk melanjutkan.",
+          "loadFailed": "Gagal memuat akun yang tersedia. Silakan coba lagi.",
+          "noAdditionalAccounts": "Tidak ada akun tambahan yang tersedia untuk dihubungkan.",
+          "connectedBadge": "Terhubung",
+          "connectSelectedButton": "Hubungkan Akun Terpilih ({count})",
+          "selectAccountsButton": "Pilih Akun"
+        },
+        "relativeTime": {
+          "never": "tidak pernah",
+          "justNow": "baru saja",
+          "minutesAgo": "{count} menit yang lalu",
+          "hoursAgo": "{count} jam yang lalu | {count} jam yang lalu",
+          "daysAgo": "{count} hari yang lalu | {count} hari yang lalu"
+        },
+        "errors": {
+          "reauthorizationFailed": "Gagal memulai otorisasi ulang"
+        }
+      },
+      "dialogs": {
+        "disconnect": {
+          "title": "Putuskan Integrasi",
+          "description": "Yakin ingin memutuskan integrasi ini? Tindakan ini tidak dapat dibatalkan.",
+          "removeAccounts": "Juga hapus akun terkait",
+          "removeAccountsHint": "Ini akan menghapus secara permanen semua akun yang tertaut ke integrasi ini",
+          "disconnecting": "Memutuskan...",
+          "disconnect": "Putuskan"
+        },
+        "editName": {
+          "title": "Edit Nama Koneksi",
+          "description": "Beri nama khusus untuk koneksi Anda agar mudah diidentifikasi.",
+          "label": "Nama Koneksi",
+          "saving": "Menyimpan...",
+          "save": "Simpan"
+        },
+        "reconnect": {
+          "title": "Hubungkan Kembali Integrasi",
+          "description": "Dengan memulai alur koneksi ulang, {warning}. Anda harus menyelesaikan alur untuk membuat koneksi aktif kembali.",
+          "warning": "koneksi Anda saat ini akan segera menjadi tidak valid",
+          "preparing": "Menyiapkan...",
+          "continue": "Lanjutkan"
+        }
+      },
+      "authFailure": {
+        "title": "Otentikasi Gagal",
+        "description": "Kredensial Anda telah kedaluwarsa. Harap perbarui untuk melanjutkan sinkronisasi transaksi.",
+        "updateButton": "Perbarui Kredensial"
+      },
+      "updateCredentials": {
+        "title": "Perbarui Kredensial",
+        "apiKeyLabel": "Kunci API",
+        "apiKeyPlaceholder": "Masukkan kunci API Anda",
+        "updatingButton": "Memperbarui...",
+        "updateButton": "Perbarui",
+        "success": "Kredensial berhasil diperbarui",
+        "failed": "Gagal memperbarui kredensial"
+      },
+      "labels": {
+        "free": "Gratis",
+        "paid": "Berbayar",
+        "easySetup": "Mudah diatur",
+        "mediumSetup": "Pengaturan sedang",
+        "veryDifficultSetup": "Sangat sulit diatur"
+      },
+      "regions": {
+        "ukraine": "Ukraina",
+        "eu": "UE",
+        "uk": "UK",
+        "usa": "AS",
+        "poland": "Polandia",
+        "canada": "Kanada",
+        "australia": "Australia",
+        "newZealand": "Selandia Baru"
+      },
+      "tooltips": {
+        "monobank": "Memerlukan penyalinan token API secara manual dari aplikasi Monobank",
+        "enableBanking": "<<ccr:08d9ab98e4ce,string,310B>>",
+        "lunchflow": "Hubungkan bank Anda di sisi LunchFlow, lalu buat dan tempel kunci API LunchFlow Anda",
+        "simplefin": "SimpleFIN Bridge adalah layanan berbayar. Buat akun bridge, hubungkan bank, dan tempel token pengaturan — tidak diperlukan pengaturan pengembang.",
+        "walutomat": "Memerlukan pembuatan pasangan kunci RSA dan upload kunci publik ke dashboard Walutomat"
+      }
+    },
+    "connectionName": {
+      "placeholder": "Mis: Akun Pribadi"
+    },
+    "bankCallback": {
+      "processing": {
+        "title": "Menyelesaikan Otorisasi...",
+        "description": "Harap tunggu sementara kami memverifikasi koneksi bank Anda"
+      },
+      "error": {
+        "title": "Otorisasi Gagal",
+        "backToIntegrations": "Kembali ke Integrasi"
+      },
+      "success": {
+        "title": "Koneksi Berhasil!",
+        "description": "Akun bank Anda telah berhasil dihubungkan.",
+        "viewAccounts": "Lihat Akun"
+      },
+      "errors": {
+        "authorizationDenied": "Otorisasi ditolak atau gagal",
+        "missingParameters": "Parameter yang diperlukan tidak ada (code atau state)",
+        "connectionIdNotFound": "ID Koneksi tidak ditemukan. Silakan mulai proses koneksi lagi.",
+        "failedToComplete": "Gagal menyelesaikan otorisasi"
+      }
+    }
+  }
+}

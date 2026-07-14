@@ -1,0 +1,105 @@
+{
+  "pages": {
+    "budgets": {
+      "transactionsList": {
+        "selectionModeWarning": "Mode pemilihan — pilih transaksi untuk dilepaskan",
+        "selectAll": "Pilih semua",
+        "selected": "{count} dipilih",
+        "unlink": "Lepaskan",
+        "cancel": "Batal",
+        "unlinkSelected": "Lepaskan yang Dipilih",
+        "noMatchingTransactions": "Tidak ada transaksi yang cocok",
+        "noTransactionsLinked": "Tidak ada transaksi yang terhubung",
+        "filterAdjustmentHint": "Coba sesuaikan filter Anda untuk melihat lebih banyak transaksi.",
+        "addTransactionsHint": "Tambahkan transaksi ke anggaran ini untuk mulai melacak pengeluaran Anda.",
+        "resetFilters": "Atur Ulang Filter",
+        "addTransactions": "Tambah Transaksi",
+        "add": "Tambah",
+        "loadingMore": "Memuat lebih banyak..."
+      }
+    },
+    "budgetDetails": {
+      "notSet": "Belum diatur",
+      "saving": "Menyimpan...",
+      "saveChanges": "Simpan Perubahan",
+      "loading": "Memuat...",
+      "uncategorized": "Tidak Terkategori",
+      "stats": {
+        "income": "Pemasukan",
+        "expenses": "Pengeluaran",
+        "netBalance": "Saldo Bersih"
+      },
+      "utilization": {
+        "title": "Penggunaan Anggaran",
+        "summary": "{spent} dari batas {limit}",
+        "na": "N/A"
+      },
+      "backToBudgets": "Kembali ke Anggaran",
+      "noTransactionsYet": "Belum ada transaksi",
+      "transactions": "Transaksi",
+      "transactionsLinked": "{count} transaksi terhubung ke anggaran ini",
+      "tabs": {
+        "statistics": "Statistik",
+        "transactions": "Transaksi",
+        "sharing": "Berbagi"
+      },
+      "statistics": {
+        "tabs": {
+          "categories": "Kategori",
+          "timeline": "Garis Waktu"
+        },
+        "errorTitle": "Gagal memuat statistik",
+        "errorDescription": "Terjadi kesalahan saat memuat data. Silakan coba lagi nanti.",
+        "noDataTitle": "Tidak ada data pengeluaran",
+        "noDataDescription": "Belum ada data pengeluaran untuk anggaran ini.",
+        "noCategoryData": "Tidak ada data pengeluaran per kategori.",
+        "noTimelineData": "Tidak ada data garis waktu.",
+        "total": "Total",
+        "income": "Pemasukan",
+        "expenses": "Pengeluaran",
+        "incomeLabel": "Pemasukan:",
+        "expensesLabel": "Pengeluaran:"
+      },
+      "sharing": {
+        "title": "Berbagi",
+        "description": "Kelola siapa yang dapat melihat dan berkontribusi ke anggaran ini.",
+        "inviteAnother": "Undang seseorang",
+        "membersHeading": "Anggota",
+        "pendingHeading": "Undangan tertunda",
+        "loadError": "Tidak dapat memuat anggota.",
+        "permissions": {
+          "read": "Hanya lihat",
+          "write": "Lampirkan transaksi sendiri",
+          "manage": "Kelola"
+        },
+        "member": {
+          "you": "Anda",
+          "roleOwner": "Pemilik",
+          "roleRecipient": "Anggota",
+          "ownerHint": "Kontrol penuh atas anggaran ini",
+          "updateSuccess": "Izin diperbarui.",
+          "updateError": "Tidak dapat memperbarui izin.",
+          "revoke": "Cabut akses",
+          "revokeConfirm": "Cabut",
+          "revokeTitle": "Cabut akses?",
+          "revokeDescription": "{user} akan kehilangan akses ke {budget}.",
+          "revokeSuccess": "Akses dicabut.",
+          "revokeError": "Tidak dapat mencabut akses."
+        },
+        "pending": {
+          "empty": "Tidak ada undangan tertunda.",
+          "resend": "Kirim ulang",
+          "resendSuccess": "Undangan dikirim ulang.",
+          "resendError": "Tidak dapat mengirim ulang undangan.",
+          "resendDeliveryFailed": "Telah dikirim ulang, tetapi email tidak dapat dikirim.",
+          "cancel": "Batal",
+          "cancelConfirm": "Batalkan undangan",
+          "cancelTitle": "Batalkan undangan?",
+          "cancelDescription": "Undangan ke {email} akan dibatalkan.",
+          "cancelSuccess": "Undangan dibatalkan.",
+          "cancelError": "Tidak dapat membatalkan undangan."
+        }
+      }
+    }
+  }
+}

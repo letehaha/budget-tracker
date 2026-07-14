@@ -1,0 +1,115 @@
+{
+  "budgets": {
+    "title": "Anggaran",
+    "description": "Lacak pengeluaran dan pantau peristiwa keuangan",
+    "notFound": "Anggaran tidak ditemukan",
+    "notFoundDescription": "Kami tidak dapat menemukan anggaran ini. Mungkin telah dihapus atau Anda mungkin tidak memiliki akses ke sana.",
+    "backToList": "Kembali ke anggaran",
+    "newBudget": "Anggaran Baru",
+    "createBudget": "Buat anggaran",
+    "creation": {
+      "success": "Anggaran dibuat",
+      "error": "Kesalahan tak terduga!",
+      "nameLabel": "Nama anggaran",
+      "namePlaceholder": "Masukkan nama",
+      "typeLabel": "Jenis anggaran",
+      "typeManual": "Manual",
+      "typeManualDescription": "Tambahkan transaksi secara manual ke anggaran ini",
+      "typeCategory": "Berdasarkan kategori",
+      "typeCategoryDescription": "Lacak pengeluaran secara otomatis berdasarkan kategori",
+      "categoriesLabel": "Kategori yang dilacak",
+      "categoriesRequired": "Pilih setidaknya satu kategori",
+      "fromDateLabel": "Dari tanggal",
+      "toDateLabel": "Sampai tanggal",
+      "autoIncludeLabel": "Sertakan transaksi secara otomatis",
+      "limitLabel": "Batas anggaran",
+      "limitPlaceholder": "Masukkan batas",
+      "submitButton": "Tambah anggaran"
+    },
+    "list": {
+      "tabCategory": "Anggaran Kategori",
+      "tabManual": "Anggaran Manual",
+      "edit": "Edit",
+      "delete": "Hapus",
+      "deleteSuccess": "Anggaran berhasil dihapus!",
+      "deleteError": "Kesalahan tak terduga!",
+      "updateSuccess": "Anggaran berhasil diperbarui!",
+      "updateError": "Gagal memperbarui anggaran",
+      "unlinkTransactionsSuccess": "Transaksi berhasil dilepaskan!",
+      "deleteDialog": {
+        "title": "Apakah Anda ingin menghapus anggaran ini?",
+        "description": "Dengan mengklik \"Terima\", semua transaksi terkait akan dilepaskan dari anggaran tetapi tetap ada di sistem."
+      },
+      "limitLabel": "Batas: {amount}",
+      "transactionsCount": "{count} transaksi",
+      "categoriesCount": "{count} kategori",
+      "noTransactions": "Belum ada transaksi",
+      "noTimePeriod": "Tidak ada periode waktu",
+      "autoTracked": "Dilacak otomatis",
+      "status": {
+        "ended": "Berakhir",
+        "lastDay": "Hari terakhir",
+        "oneDayLeft": "Sisa 1 hari",
+        "daysLeft": "Sisa {count} hari",
+        "startsToday": "Mulai hari ini",
+        "startsTomorrow": "Mulai besok",
+        "startsInDays": "Mulai dalam {count} hari"
+      },
+      "income": "Pemasukan",
+      "expenses": "Pengeluaran",
+      "net": "Bersih",
+      "used": "Terpakai",
+      "archive": "Arsipkan",
+      "unarchive": "Keluarkan dari arsip",
+      "archivedLabel": "Diarsipkan",
+      "archiveError": "Gagal memperbarui status arsip",
+      "showArchived": "Tampilkan yang diarsipkan",
+      "hideArchived": "Sembunyikan yang diarsipkan",
+      "emptyState": {
+        "title": "Belum ada anggaran",
+        "description": "Buat anggaran untuk mulai melacak pengeluaran atau memantau peristiwa tertentu."
+      }
+    },
+    "settings": {
+      "nameLabel": "Nama anggaran",
+      "namePlaceholder": "Masukkan nama anggaran",
+      "limitLabel": "Batas anggaran",
+      "limitPlaceholder": "Masukkan jumlah batas (opsional)",
+      "startDateLabel": "Tanggal mulai",
+      "endDateLabel": "Tanggal akhir",
+      "notSet": "Belum diatur"
+    },
+    "addTransactionsDialog": {
+      "title": "Tambahkan Transaksi ke Anggaran",
+      "addSelected": "Tambahkan yang Dipilih",
+      "clearSelection": "Hapus pilihan"
+    },
+    "categoryBudget": {
+      "backToBudgets": "Kembali ke Anggaran",
+      "trackedCategories": "Kategori yang Dilacak",
+      "categoriesCount": "{count} kategori dilacak",
+      "autoTrackedInfo": "Transaksi dilacak secara otomatis berdasarkan kategori",
+      "transactionsTitle": "Transaksi",
+      "transactionsCount": "{count} transaksi",
+      "noTransactions": "Belum ada transaksi",
+      "noTransactionsDescription": "Transaksi yang sesuai dengan kategori yang dilacak akan muncul di sini secara otomatis.",
+      "transactionsLoadError": "Gagal memuat transaksi",
+      "categoryBreakdown": "Rincian Kategori",
+      "edit": "Edit",
+      "editTitle": "Edit Anggaran",
+      "showMore": "Tampilkan lebih banyak",
+      "showLess": "Tampilkan lebih sedikit",
+      "loadMore": "Muat lebih banyak",
+      "settings": {
+        "categoriesLabel": "Kategori yang Dilacak"
+      }
+    },
+    "manualBudget": {
+      "edit": "Edit",
+      "editTitle": "Edit Anggaran"
+    },
+    "share": {
+      "sharedByBadge": "Dibagikan oleh {handle}"
+    }
+  }
+}

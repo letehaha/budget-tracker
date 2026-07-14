@@ -1,0 +1,163 @@
+{
+  "pages": {
+    "statementParser": {
+      "pageTitle": "Parser Laporan",
+      "pageDescription": "Upload laporan bank (PDF, CSV, atau TXT) untuk mengekstrak transaksi menggunakan AI. Memerlukan kunci API AI yang dikonfigurasi di pengaturan.",
+      "stepper": {
+        "steps": {
+          "upload": "Upload",
+          "account": "Akun",
+          "review": "Tinjau",
+          "results": "Impor"
+        }
+      },
+      "steps": {
+        "uploadTitle": "Upload & Ekstrak",
+        "uploadDescription": "Upload laporan dan ekstrak transaksi dengan AI",
+        "accountTitle": "Pilih Akun",
+        "accountDescription": "Pilih atau buat akun untuk transaksi",
+        "reviewTitle": "Tinjau Transaksi",
+        "reviewDescription": "Tinjau dan tangani transaksi duplikat",
+        "importTitle": "Impor",
+        "importDescription": "Jalankan impor dan lihat hasil"
+      },
+      "selectCurrency": "Pilih mata uang",
+      "selectExistingAccount": "Pilih akun yang ada",
+      "accountNamePlaceholder": "Mis: Akun Bank Utama",
+      "selectAccount": "Pilih akun",
+      "searchAccounts": "Cari akun...",
+      "uploadExtract": {
+        "dragDropText": "Seret dan lepas file laporan Anda di sini, atau",
+        "browseButton": "Cari File",
+        "supportedFormats": "Format yang didukung: PDF, CSV, TXT (maks 10MB)",
+        "removeButton": "Hapus",
+        "analyzeButton": "Analisis File",
+        "tryAgain": "Coba Lagi",
+        "modelLabel": "Model",
+        "estimatedCostLabel": "Perkiraan Biaya",
+        "yourApiKey": "(kunci API Anda)",
+        "estimatedTokensLabel": "Perkiraan Token",
+        "extractButton": "Ekstrak Transaksi",
+        "progressMessage": "Ini mungkin memakan waktu 30-60 detik tergantung ukuran dokumen",
+        "foundLabel": "Ditemukan:",
+        "transactions": "transaksi",
+        "fromLabel": "dari",
+        "inLabel": "dalam",
+        "continueMessage": "Lanjutkan untuk memilih akun untuk transaksi ini.",
+        "tokenWarning": {
+          "medium": {
+            "title": "File besar terdeteksi",
+            "description": "Pemrosesan mungkin memakan waktu 1-2 menit. Harap bersabar."
+          },
+          "high": {
+            "title": "File sangat besar terdeteksi",
+            "description": "Pemrosesan mungkin memakan waktu beberapa menit karena ukuran file."
+          },
+          "extreme": {
+            "title": "File sangat besar",
+            "description": "Pemrosesan mungkin memakan waktu 5+ menit. Pertimbangkan untuk membagi file menjadi bagian yang lebih kecil untuk pemrosesan yang lebih cepat."
+          }
+        },
+        "freeApiWarning": "Anda menggunakan akses AI gratis yang memiliki batas harian. Untuk layanan cepat dan tanpa gangguan, tambahkan kunci API Anda sendiri.",
+        "addApiKeyLink": "Tambah kunci API Anda di pengaturan →",
+        "status": {
+          "sendingFile": "Mengirim file ke AI...",
+          "readingDocument": "AI sedang membaca dokumen...",
+          "analyzingStructure": "Menganalisis struktur laporan...",
+          "extractingData": "Mengekstrak data transaksi...",
+          "processingTransactions": "Memproses transaksi...",
+          "finalizing": "Menyelesaikan ekstraksi...",
+          "almostDone": "Hampir selesai..."
+        },
+        "tokenFormat": "{inputTokens}K input, ~{outputTokens}K output",
+        "fileSize": "{size} KB"
+      },
+      "accountSelect": {
+        "newlyCreated": "(baru dibuat)",
+        "differentCurrency": "Mata Uang Berbeda",
+        "linkedToBanks": "Tertaut ke Bank",
+        "linkedToBanksTooltip": "Untuk saat ini, impor laporan terbatas pada akun sistem saja.",
+        "noAccountsFound": "Tidak ada akun ditemukan",
+        "currencyAccounts": "Akun {currency}"
+      },
+      "accountSelection": {
+        "transactions": "Transaksi:",
+        "bank": "Bank:",
+        "currency": "Mata Uang:",
+        "currencyNotDetected": "Tidak dapat mendeteksi mata uang laporan. Harap pilih mata uang secara manual:",
+        "currencyMismatch": "Mata uang laporan ({statementCurrency}) berbeda dengan mata uang akun ({accountCurrency}). Transaksi akan diimpor menggunakan mata uang akun.",
+        "createNew": "Buat Baru",
+        "back": "Kembali",
+        "importTransactions": "Impor Transaksi",
+        "checkForDuplicates": "Periksa Duplikat"
+      },
+      "createAccountDialog": {
+        "title": "Buat Akun untuk Impor",
+        "description": "Buat akun baru untuk mengimpor transaksi laporan Anda.",
+        "accountNameLabel": "Nama akun",
+        "currencyLabel": "Mata Uang",
+        "fromStatement": "(dari laporan)",
+        "currencyLocked": "Mata uang terkunci untuk mencocokkan laporan ({currency}).",
+        "currencyWillBeAdded": "Catatan: {currency} akan ditambahkan ke mata uang Anda.",
+        "cancel": "Batal",
+        "creating": "Membuat...",
+        "createAccount": "Buat Akun",
+        "validation": {
+          "nameRequired": "Nama akun wajib diisi",
+          "currencyRequired": "Harap pilih mata uang"
+        },
+        "success": "Akun berhasil dibuat",
+        "error": "Gagal membuat akun"
+      },
+      "transactionReview": {
+        "checkingDuplicates": "Memeriksa duplikat...",
+        "extractedLabel": "Diekstrak:",
+        "duplicatesLabel": "Potensi Duplikat:",
+        "willImportLabel": "Akan Diimpor:",
+        "alreadyInAccountLabel": "Sudah di Akun:",
+        "timelineTitle": "Linimasa Transaksi",
+        "legendNew": "Baru",
+        "legendDuplicate": "Duplikat",
+        "legendExisting": "Ada",
+        "statusDup": "Dup",
+        "statusImport": "Impor",
+        "statusExists": "Ada",
+        "duplicateInfoSkipped": "{count} transaksi akan dilewati sebagai duplikat.",
+        "duplicateInfoOverridden": "{count} duplikat telah ditimpa dan akan diimpor.",
+        "toggleInfo": "Klik baris untuk mengalihkan:",
+        "toggleWillImport": "akan diimpor,",
+        "toggleWillSkip": "akan dilewati.",
+        "backButton": "Kembali",
+        "continueButton": "Lanjut ke Impor",
+        "transactionCount": "({count} transaksi)"
+      },
+      "importResults": {
+        "readyTitle": "Siap Diimpor",
+        "readyDescription": "Tinjau ringkasan di bawah dan klik \"Impor Transaksi\" untuk melanjutkan.",
+        "accountLabel": "Akun:",
+        "toImportLabel": "Transaksi untuk diimpor:",
+        "toSkipLabel": "Transaksi untuk dilewati:",
+        "backButton": "Kembali",
+        "importButton": "Impor {count} Transaksi",
+        "importingTitle": "Mengimpor Transaksi",
+        "importingDescription": "Harap tunggu sementara kami mengimpor transaksi Anda...",
+        "failedTitle": "Impor Gagal",
+        "startOverButton": "Mulai Ulang",
+        "tryAgainButton": "Coba Lagi",
+        "completeTitle": "Impor Selesai!",
+        "completeWithIssuesTitle": "Impor Selesai dengan Masalah",
+        "successDescription": "Transaksi Anda berhasil diimpor.",
+        "partialDescription": "Beberapa transaksi tidak dapat diimpor.",
+        "importedLabel": "Diimpor:",
+        "skippedLabel": "Dilewati:",
+        "errorsTitle": "Error Impor",
+        "transactionNumberHeader": "Transaksi #",
+        "errorHeader": "Error",
+        "batchIdLabel": "ID Batch Impor:",
+        "batchIdDescription": "Anda dapat menggunakan ID ini untuk menemukan dan mengelola semua transaksi yang diimpor.",
+        "viewTransactionsButton": "Lihat Transaksi",
+        "startNewImportButton": "Mulai Impor Baru"
+      }
+    }
+  }
+}

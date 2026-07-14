@@ -1,0 +1,168 @@
+{
+  "settings": {
+    "ai": {
+      "title": "Pengaturan AI",
+      "description": "Konfigurasikan fitur berbasis AI seperti kategorisasi transaksi otomatis",
+      "tabs": {
+        "features": "Fitur AI",
+        "apiKeys": "Kunci API",
+        "invalidKeysTooltip": "Satu atau lebih kunci API tidak valid"
+      },
+      "apiKeyManager": {
+        "title": "Kunci API",
+        "description": "Tambahkan kunci API Anda sendiri untuk menggunakan penyedia tertentu",
+        "badges": {
+          "default": "Bawaan",
+          "invalid": "Tidak Valid"
+        },
+        "status": {
+          "failed": "Gagal {timeAgo}",
+          "validated": "Tervalidasi {timeAgo}"
+        },
+        "buttons": {
+          "setDefault": "Jadikan Default"
+        },
+        "invalidKeyHelp": "Tambahkan kunci baru di bawah untuk mengganti yang ini, atau hapus jika tidak diperlukan lagi.",
+        "deleteDialog": {
+          "title": "Hapus kunci API?",
+          "description": "Yakin ingin menghapus kunci API {provider}?",
+          "descriptionMultiple": "Fitur AI yang saat ini menggunakan {provider} akan beralih ke penyedia lain yang tersedia.",
+          "cancel": "Batal",
+          "remove": "Hapus"
+        },
+        "allConfigured": "Semua penyedia telah diatur",
+        "form": {
+          "titleAdd": "Tambah Kunci API",
+          "titleAddAnother": "Tambah Penyedia Lain",
+          "providerLabel": "Penyedia",
+          "apiKeyLabel": "Kunci API",
+          "buttonSaving": "Memvalidasi...",
+          "buttonSave": "Simpan Kunci"
+        },
+        "providers": {
+          "anthropic": {
+            "label": "Anthropic (Claude)",
+            "placeholder": "sk-ant-...",
+            "description": "Dapatkan kunci API dari"
+          },
+          "openai": {
+            "label": "OpenAI (GPT)",
+            "placeholder": "sk-...",
+            "description": "Dapatkan kunci API dari"
+          },
+          "google": {
+            "label": "Google (Gemini)",
+            "placeholder": "AIza...",
+            "description": "Dapatkan kunci API dari"
+          },
+          "groq": {
+            "label": "Groq (Llama, Mixtral)",
+            "placeholder": "gsk_...",
+            "description": "Dapatkan kunci API dari"
+          }
+        },
+        "notifications": {
+          "saveSuccess": "Kunci API berhasil disimpan dan divalidasi",
+          "saveFailed": "Kunci API tidak berfungsi. Harap verifikasi kunci sudah benar, memiliki kredit yang cukup, dan memiliki izin yang diperlukan.",
+          "setDefaultSuccess": "{provider} ditetapkan sebagai bawaan",
+          "setDefaultFailed": "Gagal menetapkan penyedia bawaan",
+          "removeSuccess": "Kunci API {provider} dihapus",
+          "removeFailed": "Gagal menghapus kunci API"
+        }
+      },
+      "features": {
+        "title": "Fitur AI",
+        "description": "Konfigurasikan model mana yang digunakan untuk setiap fitur berbasis AI",
+        "loading": "Memuat fitur..."
+      },
+      "categorization": {
+        "modelHint": {
+          "trigger": "Model apa yang harus saya pilih?",
+          "text": "Model yang lebih besar (lebih mahal) umumnya lebih akurat untuk transaksi dalam bahasa yang jarang digunakan atau dengan deskripsi yang tidak jelas. Model yang lebih kecil dan lebih cepat sudah cukup untuk sebagian besar kasus dalam bahasa Inggris."
+        },
+        "howItWorks": {
+          "title": "Cara kerjanya",
+          "points": {
+            "autoSync": "Saat Anda menyinkronkan transaksi dari bank, transasi yang tidak terkategorikan otomatis dikirim ke AI untuk dikategorikan.",
+            "analysis": "AI menganalisis deskripsi transaksi dan nama merchant untuk menyarankan kategori yang sesuai dari daftar kategori Anda.",
+            "override": "Anda selalu dapat mengganti kategori yang disarankan AI secara manual."
+          }
+        },
+        "payeeTip": "Tip: mengatur kategori bawaan pada penerima pembayaran akan melewati AI untuk transaksi tersebut sepenuhnya.",
+        "loading": "Memuat model..."
+      },
+      "statementParsing": {
+        "modelHint": {
+          "trigger": "Model apa yang harus saya pilih?",
+          "text": "Model dengan konteks besar dan kemampuan visi (jika PDF) sangat membantu untuk penguraian pernyataan. Model yang lebih murah mungkin gagal pada tata letak yang kompleks."
+        },
+        "howItWorks": {
+          "title": "Cara kerjanya",
+          "points": {
+            "upload": "Upload laporan bank (PDF, CSV, atau TXT) dan AI akan mengekstrak semua transaksi secara otomatis.",
+            "analysis": "AI menganalisis struktur dokumen untuk mengidentifikasi tanggal, deskripsi, jumlah, dan jenis transaksi.",
+            "review": "Anda dapat meninjau dan mengoreksi data yang diekstrak sebelum mengimpor ke akun Anda.",
+            "cost": "Biaya diperkirakan sebelum diproses, namun hanya mencerminkan perkiraan biaya."
+          }
+        },
+        "loading": "Memuat model..."
+      },
+      "modelSelector": {
+        "badges": {
+          "yourKey": "Kunci Anda",
+          "yourKeyTooltip": "Fitur ini menggunakan kunci API pribadi Anda. Anda memiliki kendali penuh atas penggunaan dan biaya, tanpa batasan jumlah dari server kami.",
+          "server": "Server",
+          "serverTooltip": "Fitur ini menggunakan kunci API bersama server kami. Gratis tetapi mungkin memiliki batasan jumlah saat permintaan tinggi. Tambahkan kunci API Anda sendiri untuk akses tak terbatas."
+        },
+        "modelLabel": "Model",
+        "resetButton": "Kembalikan ke Default",
+        "noApiKey": "(Tidak ada kunci API)",
+        "modelInfo": {
+          "context": "Konteks:",
+          "capabilities": "Kemampuan:",
+          "estimatedCost": "Perkiraan biaya:",
+          "per100Transactions": "per 100 transaksi"
+        },
+        "rateLimitWarning": "Menggunakan AI yang disediakan server dengan batasan jumlah gratis. Ketersediaan fitur tergantung pada permintaan pengguna lain. Untuk akses yang andal, tambahkan kunci API Anda sendiri di tab Kunci API.",
+        "groupLabels": {
+          "recommended": "⭐ Direkomendasikan",
+          "openai": "OpenAI",
+          "anthropic": "Anthropic",
+          "google": "Google",
+          "groq": "Groq"
+        },
+        "costLabels": {
+          "free": "Gratis",
+          "low": "Biaya rendah",
+          "medium": "Biaya sedang",
+          "high": "Biaya tinggi"
+        },
+        "capabilities": {
+          "textGeneration": "Teks",
+          "structuredOutput": "Terstruktur",
+          "functionCalling": "Fungsi",
+          "vision": "Visi",
+          "fastInference": "Cepat",
+          "agents": "Agen"
+        },
+        "notifications": {
+          "updateSuccess": "Model berhasil diperbarui",
+          "updateFailed": "Gagal memperbarui model",
+          "resetSuccess": "Kembali ke model bawaan",
+          "resetFailed": "Gagal mengembalikan model"
+        },
+        "addKeyHint": "Tambahkan kunci API Anda sendiri untuk memilih dari semua model yang tersedia.",
+        "addKeyHintLink": "Tambah Kunci API →"
+      },
+      "customInstructions": {
+        "title": "Instruksi Kustom",
+        "description": "Berikan konteks untuk membantu AI mengkategorikan transaksi Anda. Instruksi ini disertakan saat mengkategorikan transaksi selama sinkronisasi bank dan impor manual.",
+        "placeholder": "Mis: Transaksi dari 'Starbucks' harus 'Kopi'. Pendapatan lepas saya berasal dari 'Acme Corp'.",
+        "requiresApiKey": "Tambahkan kunci API pribadi untuk menggunakan instruksi kustom.",
+        "save": "Simpan",
+        "saved": "Tersimpan!",
+        "saveFailed": "Gagal menyimpan instruksi kustom. Silakan coba lagi."
+      }
+    }
+  }
+}

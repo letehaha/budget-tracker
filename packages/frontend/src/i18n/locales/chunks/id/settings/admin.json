@@ -1,0 +1,119 @@
+{
+  "settings": {
+    "admin": {
+      "title": "Panel Admin",
+      "description": "Alat administratif dan manajemen sistem",
+      "priceSync": {
+        "title": "Sinkronisasi Harga Efek",
+        "description": "Picu sinkronisasi harga secara manual untuk semua efek yang dimiliki",
+        "button": "Mulai Sinkronisasi Harga",
+        "buttonLoading": "Menyinkronkan...",
+        "notifications": {
+          "success": "Sinkronisasi harga efek berhasil",
+          "failed": "Gagal memicu sinkronisasi harga",
+          "rateLimited": "Tidak diizinkan. Coba lagi dalam {time}.",
+          "adminRequired": "Hak akses admin diperlukan untuk tindakan ini"
+        }
+      },
+      "priceUpload": {
+        "title": "Upload Harga Efek Manual",
+        "description": "Upload data harga historis efek melalui file CSV atau JSON",
+        "button": "Upload Harga Efek",
+        "dialogTitle": "Upload Harga Efek",
+        "selectSecurity": {
+          "searchLabel": "Cari simbol atau nama",
+          "searchPlaceholder": "AAPL",
+          "searching": "Mencari…",
+          "failed": "Gagal mencari efek.",
+          "noResults": "Tidak ada hasil.",
+          "changeButton": "Ganti"
+        },
+        "dateRangeInfo": {
+          "loading": "Memuat informasi rentang tanggal...",
+          "title": "Rentang Tanggal Kurs Tersedia ({currency}):",
+          "tooltipText": "Anda hanya dapat mengupload harga efek untuk tanggal yang memiliki kurs tersedia. Jika tidak, harga efek tidak dapat dikonversi ke mata uang lain. Jika membutuhkan data lama, upload kurs terlebih dahulu. Tergantung opsi yang dipilih, data akan difilter otomatis (dilewati) atau upload akan gagal."
+        },
+        "fileUpload": {
+          "title": "Upload File",
+          "dragText": "Klik untuk upload atau seret dan lepas",
+          "supportedFormats": "File CSV atau JSON didukung",
+          "errors": {
+            "unsupportedFormat": "Format file tidak didukung. Upload file CSV atau JSON.",
+            "parseFailed": "Gagal memproses file {fileType}: {error}"
+          }
+        },
+        "fieldMapper": {
+          "title": "Petakan Field",
+          "description": "Cocokkan field dari file Anda ke field yang diperlukan di bawah.",
+          "selectField": "Pilih field...",
+          "dateFormatLabel": "Format Tanggal",
+          "dateFormatDescription": "Pilih format tanggal yang digunakan di file Anda",
+          "dateFormats": {
+            "ddMMyyyySlash": "DD/MM/YYYY (contoh: 31/12/2024)",
+            "MMddyyyySlash": "MM/DD/YYYY (contoh: 12/31/2024)",
+            "yyyyMMddDash": "YYYY-MM-DD (contoh: 2024-12-31)",
+            "ddMMyyyyDash": "DD-MM-YYYY (contoh: 31-12-2024)",
+            "MMddyyyyDash": "MM-DD-YYYY (contoh: 12-31-2024)"
+          },
+          "mappingComplete": "Semua field wajib sudah dipetakan",
+          "mappingIncomplete": "Petakan semua field wajib untuk melanjutkan",
+          "fileInfo": "File:",
+          "records": "{count} catatan",
+          "changeFileButton": "Ganti File",
+          "continueButton": "Lanjut ke Pratinjau"
+        },
+        "preview": {
+          "title": "Pratinjau Data",
+          "recordsCount": "{count} catatan akan diupload",
+          "recordsPeriod": "untuk periode antara {oldest} dan {newest}",
+          "loadingExisting": "Memuat harga yang sudah ada untuk perbandingan...",
+          "warnings": {
+            "significantDifferences": "Perbedaan harga signifikan terdeteksi",
+            "differencesDetails": "{count} catatan memiliki perbedaan harga lebih dari 4% dibanding data yang ada. Tinjau dengan hati-hati."
+          },
+          "filterCheckbox": "Tampilkan hanya catatan dengan perbedaan signifikan (>4%)",
+          "tableHeaders": {
+            "date": "Tanggal",
+            "newPrice": "Harga Baru",
+            "existingPrice": "Harga Lama",
+            "difference": "Selisih (%)"
+          },
+          "noExistingPrice": "N/A",
+          "scrollForMore": "Gulir untuk lainnya...",
+          "noDifferences": "Tidak ditemukan catatan dengan perbedaan signifikan.",
+          "backButton": "Kembali ke Pemetaan",
+          "continueButton": "Lanjut ke Opsi"
+        },
+        "options": {
+          "title": "Opsi Upload",
+          "autoFilter": {
+            "title": "Filter otomatis tanggal di luar rentang yang tersedia",
+            "description": "Hapus otomatis tanggal yang berada di luar rentang kurs yang tersedia"
+          },
+          "override": {
+            "title": "Timpa catatan yang sudah ada",
+            "description": "Perbarui catatan harga yang sudah ada alih-alih melewati duplikat"
+          },
+          "backButton": "Kembali",
+          "uploadButton": "Upload Harga",
+          "uploadingButton": "Mengupload..."
+        },
+        "result": {
+          "title": "Upload Selesai!",
+          "inserted": "✓ {count} catatan baru ditambahkan",
+          "duplicates": "• {count} duplikat {action}",
+          "duplicatesUpdated": "diperbarui",
+          "duplicatesSkipped": "dilewati",
+          "filtered": "• {count} tanggal difilter (di luar rentang)",
+          "closeButton": "Tutup",
+          "uploadMoreButton": "Upload Lagi"
+        },
+        "notifications": {
+          "dateInfoLoadFailed": "Gagal memuat info tanggal: {error}",
+          "uploadSuccess": "Berhasil mengupload {count} catatan harga",
+          "uploadFailed": "Upload gagal: {error}"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,314 @@
+{
+  "common": {
+    "loading": "Memuat...",
+    "from": "Dari",
+    "to": "Ke",
+    "new": "Baru",
+    "actions": {
+      "loading": "Memuat...",
+      "signUp": "Daftar",
+      "save": "Simpan",
+      "cancel": "Batal",
+      "back": "Kembali",
+      "accept": "Terima",
+      "delete": "Hapus",
+      "edit": "Sunting",
+      "create": "Buat",
+      "addSubcategory": "Tambah subkategori",
+      "settings": "Pengaturan",
+      "confirm": "Konfirmasi",
+      "viewTransactions": "Lihat transaksi",
+      "viewAnalytics": "Lihat analitik",
+      "saving": "Menyimpan...",
+      "saveChanges": "Simpan Perubahan",
+      "scrollToTop": "Atas",
+      "done": "Selesai",
+      "failed": "Gagal",
+      "viewAll": "Lihat semua",
+      "scan": "Pindai",
+      "link": "Tautkan",
+      "loadMore": "Muat lebih banyak",
+      "clear": "Bersihkan",
+      "apply": "Terapkan"
+    },
+    "ui": {
+      "close": "Tutup",
+      "actions": "Tindakan",
+      "chooseAction": "Pilih tindakan",
+      "other": "Lainnya",
+      "refund": "Pengembalian dana",
+      "split": "Bagi"
+    },
+    "components": {
+      "statusIndicator": {
+        "autoMatched": "Tercocokkan otomatis",
+        "suggested": "Disarankan",
+        "willCreate": "Akan dibuat",
+        "needsAttention": "Perlu perhatian",
+        "invalid": "Tidak valid",
+        "optional": "Opsional",
+        "skipped": "Dilewati"
+      },
+      "selectField": {
+        "clearSelection": "Hapus pilihan"
+      }
+    },
+    "errors": {
+      "copyToClipboardFailed": "Gagal menyalin ke papan klip"
+    },
+    "notifications": {
+      "subscriptionCurrencyNotConnected": "Ringkasan langganan tidak dapat mengonversi {currencies} ke mata uang dasar Anda. Hubungkan mata uang tersebut di Pengaturan → Mata Uang."
+    },
+    "labels": {
+      "email": "Email",
+      "password": "Kata Sandi",
+      "username": "Nama Pengguna",
+      "system": "sistem",
+      "unknown": "Tidak Diketahui",
+      "total": "Total"
+    },
+    "placeholders": {
+      "email": "email{'@'}anda.com",
+      "password": "Kata sandi Anda"
+    },
+    "dialogs": {
+      "createAccount": "Buat akun",
+      "createVehicle": "Tambah kendaraan",
+      "editVehicle": "Sunting kendaraan"
+    },
+    "accountCategories": {
+      "general": "Umum",
+      "cash": "Tunai",
+      "currentAccount": "Rekening giro",
+      "creditCard": "Kartu kredit",
+      "saving": "Rekening tabungan",
+      "bonus": "Bonus",
+      "insurance": "Asuransi",
+      "investment": "Investasi",
+      "loan": "Pinjaman",
+      "mortgage": "KPR",
+      "overdraft": "Cerukan",
+      "crypto": "Kripto",
+      "vehicle": "Kendaraan"
+    },
+    "paymentTypes": {
+      "creditCard": "Kartu Kredit",
+      "bankTransfer": "Transfer Bank",
+      "cash": "Tunai",
+      "debitCard": "Kartu Debit",
+      "mobilePayment": "Pembayaran Seluler",
+      "voucher": "Voucher",
+      "webPayment": "Pembayaran Web"
+    },
+    "vehicleClasses": {
+      "sedan": "Sedan",
+      "suv": "SUV",
+      "truck": "Truk",
+      "luxury": "Mewah",
+      "ev": "Kendaraan listrik",
+      "motorcycle": "Motor",
+      "other": "Lainnya"
+    },
+    "depreciationPresets": {
+      "classDefault": "Default kelas",
+      "slow": "Lambat",
+      "average": "Rata-rata",
+      "fast": "Cepat",
+      "custom": "Tarif khusus"
+    },
+    "aiFeatures": {
+      "categorization": {
+        "name": "Kategorisasi Transaksi",
+        "description": "Kategorisasikan transaksi secara otomatis berdasarkan deskripsi dan pedagangnya"
+      },
+      "statementParsing": {
+        "name": "Parser Laporan Bank",
+        "description": "Ekstrak transaksi dari laporan bank (PDF, CSV, TXT) menggunakan AI"
+      },
+      "investmentTransactionsParsing": {
+        "name": "Impor transaksi investasi",
+        "description": "Transaksi beli/jual yang diekstrak AI dari ekspor bursa, laporan broker, atau teks yang ditempel."
+      }
+    },
+    "transactions": {
+      "delete": {
+        "success": "Berhasil dihapus",
+        "error": "Gagal menghapus transaksi!"
+      },
+      "submit": {
+        "unexpectedError": "Kesalahan tak terduga!"
+      },
+      "unlink": {
+        "error": "Gagal melepas tautan transaksi!"
+      }
+    },
+    "outOfWallet": "Di Luar Dompet",
+    "dateSelector": {
+      "dialogTitle": "Rentang tanggal",
+      "dueDate": "Tanggal jatuh tempo",
+      "quickSelect": "Pilih cepat",
+      "apply": "Terapkan",
+      "periodTypes": {
+        "day": "Hari",
+        "month": "Bulan",
+        "quarter": "Kuartal",
+        "halfYear": "Semester",
+        "year": "Tahun"
+      },
+      "filterModes": {
+        "is": "adalah",
+        "before": "sebelum",
+        "after": "setelah",
+        "between": "antara"
+      },
+      "currentMonth": "Bulan ini",
+      "placeholders": {
+        "day": "Coba: 2025-03-15, 15/03/2025",
+        "month": "Coba: Jan 2025, 03/2025",
+        "quarter": "Coba: Q1, Q4 2025",
+        "halfYear": "Coba: H1, H2 2025",
+        "year": "Coba: 2025, 2024",
+        "default": "Coba: 2025, Q4, Jan 2025"
+      }
+    },
+    "appUpdate": {
+      "title": "Pembaruan tersedia",
+      "description": "Versi baru sudah siap. Muat ulang untuk mendapatkan perbaikan terbaru.",
+      "reload": "Muat Ulang"
+    },
+    "logo": {
+      "searchPlaceholder": "Nama merek atau domain",
+      "searchHint": "Ketik nama merek, atau domain seperti amazon.com",
+      "noResults": "Tidak ada merek yang cocok ditemukan.",
+      "useDomainDirectly": "Gunakan {domain}",
+      "autoLabel": "Otomatis (dari nama)",
+      "domainHint": "Untuk menemukan merek yang tepat, ketik domain situs web perusahaan (mis. amazon.com) — itu selalu mencocokkan logo yang benar.",
+      "searchError": "Tidak dapat memuat logo — coba lagi",
+      "editAriaLabel": "Sunting logo",
+      "dialogTitle": "Ganti logo",
+      "resetToAuto": "Kembalikan ke otomatis"
+    }
+  },
+  "validation": {
+    "minLength": "Panjang minimal adalah {length}.",
+    "emailInvalid": "Silakan masukkan alamat email yang valid.",
+    "passwordsNoMatch": "Kata sandi tidak cocok"
+  },
+  "notifications": {
+    "title": "Notifikasi",
+    "markAllAsRead": "Tandai semua sudah dibaca",
+    "empty": "Belum ada notifikasi",
+    "viewOnGitHub": "Lihat di GitHub",
+    "newVersion": "Versi baru {version}",
+    "newRelease": "Rilis baru",
+    "tagReminder": {
+      "thresholdMessage": "menghabiskan {amount} (batas: {threshold})",
+      "existenceMessage": "{count} transaksi | {count} transaksi"
+    },
+    "share": {
+      "sendFailedHint": "Buka panel berbagi untuk mengirim ulang."
+    }
+  },
+  "currencyNames": {
+    "UAH": "Hryvnia Ukraina",
+    "USD": "Dolar AS",
+    "EUR": "Euro",
+    "GBP": "Pound Sterling Inggris",
+    "JPY": "Yen Jepang",
+    "CHF": "Franc Swiss",
+    "CAD": "Dolar Kanada",
+    "AUD": "Dolar Australia",
+    "NZD": "Dolar Selandia Baru",
+    "CNY": "Yuan Tiongkok",
+    "HKD": "Dolar Hong Kong",
+    "SGD": "Dolar Singapura",
+    "SEK": "Krona Swedia",
+    "NOK": "Krone Norwegia",
+    "DKK": "Krone Denmark",
+    "PLN": "Zloty Polandia",
+    "CZK": "Koruna Ceko",
+    "HUF": "Forint Hungaria",
+    "RON": "Leu Rumania",
+    "BGN": "Lev Bulgaria",
+    "HRK": "Kuna Kroasia",
+    "RSD": "Dinar Serbia",
+    "TRY": "Lira Turki",
+    "RUB": "Rubel Rusia",
+    "BYN": "Rubel Belarusia",
+    "KZT": "Tenge Kazakhstan",
+    "INR": "Rupee India",
+    "IDR": "Rupiah Indonesia",
+    "MYR": "Ringgit Malaysia",
+    "PHP": "Peso Filipina",
+    "THB": "Baht Thailand",
+    "VND": "Dong Vietnam",
+    "KRW": "Won Korea Selatan",
+    "TWD": "Dolar Taiwan Baru",
+    "BRL": "Real Brasil",
+    "MXN": "Peso Meksiko",
+    "ARS": "Peso Argentina",
+    "CLP": "Peso Chili",
+    "COP": "Peso Kolombia",
+    "PEN": "Sol Peru",
+    "ZAR": "Rand Afrika Selatan",
+    "EGP": "Pound Mesir",
+    "AED": "Dirham UEA",
+    "SAR": "Riyal Saudi",
+    "ILS": "Shekel Baru Israel",
+    "QAR": "Riyal Qatar",
+    "KWD": "Dinar Kuwait",
+    "BHD": "Dinar Bahrain",
+    "OMR": "Rial Oman",
+    "JOD": "Dinar Yordania",
+    "MAD": "Dirham Maroko",
+    "NGN": "Naira Nigeria",
+    "KES": "Shilling Kenya",
+    "GHS": "Cedi Ghana",
+    "XOF": "Franc CFA BCEAO",
+    "XAF": "Franc CFA BEAC",
+    "BTC": "Bitcoin",
+    "ETH": "Ethereum"
+  },
+  "fileDropzone": {
+    "clickOrDrag": "Klik atau seret file ke sini",
+    "clickOrDragMultiple": "Klik atau seret file CSV ke sini",
+    "dropHere": "Letakkan file untuk mengunggah",
+    "dropHereMultiple": "Letakkan file di sini",
+    "removeFile": "Hapus file",
+    "fileTooLarge": "File terlalu besar. Ukuran maksimal adalah {max}.",
+    "fileTooLargeNamed": "{name} lebih besar dari {max}",
+    "filesSelected": "{count} file dipilih | {count} file dipilih",
+    "clearAll": "Bersihkan semua",
+    "onlyFirstFileTaken": "Beberapa file dijatuhkan — hanya file pertama yang digunakan."
+  },
+  "demo": {
+    "loadingOverlay": {
+      "messages": [
+        "Menghitung angka khusus untuk Anda...",
+        "Menyiapkan akun pribadi Anda...",
+        "Menambahkan transaksi realistis...",
+        "Menyempurnakan dasbor Anda...",
+        "Hampir selesai, sentuhan akhir..."
+      ]
+    },
+    "featureNotAvailable": "Fitur ini tidak tersedia dalam mode demo",
+    "bankConnectionsRestricted": {
+      "title": "Koneksi Bank"
+    },
+    "signUpToUnlock": "Daftar untuk membuka fitur ini",
+    "passwordChangeRestricted": "Perubahan kata sandi tidak tersedia dalam mode demo",
+    "investmentsRestricted": {
+      "title": "Investasi Tidak Tersedia di Demo",
+      "description": "Fitur investasi tidak tersedia dalam mode demo. Silakan daftar untuk akun penuh guna mengakses pelacakan investasi."
+    },
+    "banner": {
+      "message": "Anda sedang menjelajahi demo{time}. {signUpLink} untuk menyimpan data Anda secara permanen.",
+      "resets": "reset dalam {time}",
+      "signUp": "Daftar",
+      "timeFormat": {
+        "hoursMinutes": "{hours}j {minutes}m",
+        "minutes": "{minutes}m"
+      }
+    }
+  }
+}

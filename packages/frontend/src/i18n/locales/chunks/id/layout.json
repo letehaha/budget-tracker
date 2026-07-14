@@ -1,0 +1,301 @@
+{
+  "navigation": {
+    "dashboard": "Dasbor",
+    "accounts": "Akun",
+    "accountsList": "Semua Akun",
+    "bankIntegrations": "Integrasi Bank",
+    "investments": "Investasi",
+    "loans": "Pinjaman",
+    "allTransactions": "Semua Transaksi",
+    "transactions": "Transaksi",
+    "transactionGroups": "Grup",
+    "analytics": "Analitik",
+    "optimizations": "Optimasi",
+    "accountDetails": "Detail akun",
+    "logout": "Keluar",
+    "settings": "Pengaturan",
+    "planned": {
+      "planned": "Terencana",
+      "subscriptions": "Biaya Berulang",
+      "budgets": "Anggaran"
+    },
+    "venture": "Venture"
+  },
+  "sidebar": {
+    "settings": {
+      "title": "Pengaturan",
+      "sections": {
+        "label": "Bagian sidebar",
+        "description": "Pilih bagian mana yang muncul di sidebar.",
+        "alwaysVisibleTooltip": "Bagian ini selalu terlihat."
+      },
+      "hideZeroBalances": {
+        "label": "Sembunyikan saldo nol",
+        "description": "Sembunyikan akun dan grup dengan saldo nol"
+      }
+    },
+    "accountsView": {
+      "title": "Akun",
+      "bankAccounts": "Rekening Bank",
+      "newAccount": "Akun baru",
+      "newAccountsGroup": "Grup akun baru",
+      "portfolios": "Portofolio",
+      "newPortfolio": "Portofolio baru",
+      "noPortfolios": "Belum ada portofolio",
+      "ventures": "Ventura",
+      "cars": "Mobil",
+      "loans": "Pinjaman",
+      "collapseNavigation": "Ciutkan navigasi",
+      "viaHousehold": "Dibagikan melalui rumah tangga {handle}",
+      "sharedBy": "Dibagikan oleh {handle}",
+      "needsReauthTooltip": "Koneksi kedaluwarsa. Sambungkan ulang untuk melanjutkan sinkronisasi."
+    }
+  },
+  "header": {
+    "add": "Tambah",
+    "import": "Impor",
+    "importData": "Impor data",
+    "language": "Bahasa",
+    "newTransaction": "Transaksi Baru",
+    "settings": "Pengaturan",
+    "feedback": "Kirim masukan",
+    "support": "Dukungan",
+    "sync": {
+      "syncing": "Menyinkronkan",
+      "synchronizing": "Menyinkronkan...",
+      "syncedTime": "Disinkronkan {time}",
+      "connectBank": "Hubungkan bank",
+      "syncingAccounts": "Menyinkronkan {count} akun",
+      "stuck": "Sinkronisasi macet"
+    },
+    "categorization": {
+      "title": "Kategorisasi AI",
+      "categorizing": "Mengkategorisasi...",
+      "completed": "AI mengkategorisasi {count} transaksi | AI mengkategorisasi {count} transaksi",
+      "completedShort": "Kategorisasi selesai",
+      "failed": "Kategorisasi gagal",
+      "failedShort": "Gagal",
+      "queued": "Menunggu untuk mulai...",
+      "transactions": "transaksi"
+    }
+  },
+  "themeSelector": {
+    "toggle": "Ganti tema",
+    "light": "Terang",
+    "dark": "Gelap",
+    "system": "Sistem"
+  },
+  "syncStatusTooltip": {
+    "title": "Status sinkronisasi koneksi bank",
+    "syncedSuccessfully": "Berhasil disinkronkan",
+    "syncCompletedWithErrors": "Beberapa akun gagal disinkronkan",
+    "syncStuckTitle": "Sinkronisasi tampaknya macet",
+    "syncStuckDescription": "Beberapa koneksi bank tidak merespons tepat waktu. Coba lagi, atau sambungkan ulang dari halaman integrasi.",
+    "progress": "{current} dari {total} tersinkronkan",
+    "progressPercentage": "{percentage}%",
+    "statuses": {
+      "syncing": "Menyinkronkan",
+      "queued": "Dalam antrean",
+      "synced": "Tersinkronkan",
+      "failed": "Gagal",
+      "idle": "Menganggur"
+    },
+    "lastSynced": "Terakhir disinkronkan:",
+    "neverSynced": "Belum pernah disinkronkan",
+    "syncNowButton": "Sinkronkan Sekarang",
+    "noBankAccounts": "Tidak ada rekening bank yang terhubung",
+    "connectButton": "Hubungkan",
+    "retrySyncButton": "Ulangi sinkronisasi",
+    "manageConnectionsButton": "Kelola koneksi",
+    "needsReauthTitle": "Koneksi perlu disambungkan ulang",
+    "needsReauthDescription": "Sesi bank ini telah kedaluwarsa. Sambungkan ulang untuk melanjutkan sinkronisasi.",
+    "reconnectButton": "Sambungkan Ulang",
+    "affectedAccounts": "1 akun | {count} akun",
+    "timeAgo": {
+      "justNow": "Baru saja",
+      "secondsAgo": "{count} detik lalu | {count} detik lalu",
+      "minutesAgo": "{count} menit lalu | {count} menit lalu",
+      "hoursAgo": "{count} jam lalu | {count} jam lalu",
+      "daysAgo": "{count} hari lalu | {count} hari lalu",
+      "weeksAgo": "{count} minggu lalu | {count} minggu lalu",
+      "monthsAgo": "{count} bulan lalu | {count} bulan lalu",
+      "yearsAgo": "{count} tahun lalu | {count} tahun lalu"
+    }
+  },
+  "banners": {
+    "recoveryMethod": {
+      "title": "Tambahkan metode masuk cadangan",
+      "description": "Lindungi akun Anda dengan menambahkan masuk Google atau passkey. Ini memastikan Anda selalu dapat mengakses akun Anda.",
+      "actionButton": "Buka Pengaturan Keamanan"
+    }
+  },
+  "relinkWarning": {
+    "buttonLabel": "{count} akun perlu perhatian | {count} akun perlu perhatian",
+    "title": "Aktifkan Perbankan: Tindakan Diperlukan",
+    "description": "Akun Enable Banking ini perlu diperbarui karena perubahan skema data. Ini adalah tindakan satu kali untuk meningkatkan keandalan sinkronisasi.",
+    "step1Full": "Untuk menghemat waktu Anda, pertama-tama coba sambungkan ulang seluruh koneksi bank. Anda dapat menemukan tombol {reconnect} di bawah bagian {connectionValidity} di setiap halaman koneksi:",
+    "reconnectButton": "Sambungkan Ulang",
+    "connectionValiditySection": "Validitas Koneksi",
+    "connectionLabel": "Koneksi #{id}",
+    "step2Full": "Jika masih ada akun yang tercantum di bawah setelah penyambungan ulang, buka setiap akun dan {unlink} lalu {link} lagi secara manual.",
+    "unlinkAction": "Lepas Tautan",
+    "linkAction": "Tautkan"
+  },
+  "pages": {
+    "integrations": {
+      "providers": {
+        "monobank": {
+          "name": "Monobank"
+        },
+        "enableBanking": {
+          "name": "Enable Banking"
+        },
+        "lunchflow": {
+          "name": "Lunch Flow"
+        }
+      }
+    }
+  },
+  "dashboard": {
+    "onboarding": {
+      "title": "Selamat Datang di MoneyMatter",
+      "subtitle": "Mulai dengan menyiapkan akun pertama Anda",
+      "createManualAccount": {
+        "title": "Buat Akun Manual",
+        "description": "Lacak uang tunai, tabungan, atau akun apa pun secara manual"
+      },
+      "connectBank": {
+        "title": "Hubungkan Bank Anda",
+        "description": "Sinkronkan transaksi secara otomatis dari bank Anda"
+      },
+      "divider": "atau impor data yang ada",
+      "importFile": {
+        "title": "Impor dari File",
+        "description": "Impor transaksi dari laporan bank (PDF) atau file CSV"
+      },
+      "quickStart": {
+        "categories": {
+          "getting-started": {
+            "title": "Memulai"
+          },
+          "advanced-transactions": {
+            "title": "Transaksi Lanjutan"
+          },
+          "organization": {
+            "title": "Atur Keuangan Anda"
+          },
+          "bank-import": {
+            "title": "Hubungkan & Impor"
+          },
+          "analytics": {
+            "title": "Jelajahi Analitik"
+          },
+          "ai-settings": {
+            "title": "Fitur AI"
+          },
+          "sharing": {
+            "title": "Berbagi & Rumah Tangga"
+          }
+        },
+        "tasks": {
+          "create-account": {
+            "title": "Buat akun pertama Anda",
+            "description": "Tambahkan rekening bank atau dompet untuk dilacak"
+          },
+          "add-transaction": {
+            "title": "Tambahkan transaksi pertama Anda",
+            "description": "Catat pemasukan atau pengeluaran"
+          },
+          "create-transfer": {
+            "title": "Buat transfer",
+            "description": "Pindahkan uang antar akun Anda"
+          },
+          "link-refund": {
+            "title": "Tautkan pengembalian dana",
+            "description": "Hubungkan pengembalian dana ke pembelian asli"
+          },
+          "link-transactions": {
+            "title": "Tautkan transaksi yang ada",
+            "description": "Hubungkan transaksi terkait bersama"
+          },
+          "split-transaction": {
+            "title": "Bagi transaksi",
+            "description": "Bagikan pengeluaran ke beberapa kategori"
+          },
+          "mark-transfer-out": {
+            "title": "Tandai transfer keluar dompet",
+            "description": "Lacak uang yang meninggalkan akun Anda"
+          },
+          "create-category": {
+            "title": "Buat kategori khusus",
+            "description": "Atur transaksi Anda berdasarkan jenis"
+          },
+          "create-tag": {
+            "title": "Buat tag",
+            "description": "Tambahkan tag untuk mengelompokkan transaksi terkait"
+          },
+          "create-budget": {
+            "title": "Siapkan anggaran",
+            "description": "Buat batas pengeluaran untuk kategori"
+          },
+          "create-subscription": {
+            "title": "Buat langganan",
+            "description": "Siapkan pembayaran berulang untuk melacak langganan Anda"
+          },
+          "create-account-group": {
+            "title": "Buat grup akun",
+            "description": "Atur akun berdasarkan jenis atau tujuan"
+          },
+          "setup-tag-reminder": {
+            "title": "Siapkan pengingat tag",
+            "description": "Dapatkan pemberitahuan tentang pengeluaran berulang"
+          },
+          "connect-bank": {
+            "title": "Hubungkan rekening bank",
+            "description": "Sinkronkan transaksi secara otomatis"
+          },
+          "import-csv": {
+            "title": "Impor dari sumber teks apa pun",
+            "description": "Impor dari CSV, PDF, atau laporan bank"
+          },
+          "view-annual-overview": {
+            "title": "Lihat ringkasan tahunan",
+            "description": "Lihat tren dan pola tahunan"
+          },
+          "view-cash-flow": {
+            "title": "Lihat analitik arus kas",
+            "description": "Pahami pemasukan vs pengeluaran Anda"
+          },
+          "review-ai-features": {
+            "title": "Tinjau fitur AI",
+            "description": "Jelajahi kemampuan AI yang tersedia"
+          },
+          "configure-ai": {
+            "title": "Atur kunci API Anda sendiri",
+            "description": "Gunakan kunci API AI Anda untuk akses tanpa batas dan tanpa gangguan"
+          },
+          "invite-household-member": {
+            "title": "Undang anggota rumah tangga",
+            "description": "Bagikan seluruh kehidupan finansial Anda dengan seseorang — mereka mendapatkan akses ke setiap akun yang Anda miliki sekarang dan nanti."
+          },
+          "share-account": {
+            "title": "Bagikan akun",
+            "description": "Buka akun apa pun dan gunakan tindakan Bagikan untuk memberikan akses baca atau tulis kepada satu pengguna."
+          }
+        },
+        "ui": {
+          "title": "Mulai Cepat",
+          "subtitle": "Gunakan panduan Mulai Cepat kami untuk mempelajari semua yang bisa dilakukan MoneyMatter untuk Anda.",
+          "dismissButton": "Tutup secara permanen",
+          "dismissConfirmTitle": "Tutup Mulai Cepat?",
+          "dismissConfirmDescription": "Anda selalu dapat membuka kembali panduan Mulai Cepat dari pengaturan jika berubah pikiran.",
+          "dismissConfirmButton": "Tutup",
+          "triggerTooltip": "Mulai Cepat - {count} tugas tersisa",
+          "srDescription": "Selesaikan tugas-tugas ini untuk mulai menggunakan aplikasi",
+          "progressText": "{completed} dari {total} selesai",
+          "categoryProgress": "{completed} dari {total} selesai"
+        }
+      }
+    }
+  }
+}

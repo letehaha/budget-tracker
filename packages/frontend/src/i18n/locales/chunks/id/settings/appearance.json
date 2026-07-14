@@ -1,0 +1,22 @@
+{
+  "settings": {
+    "appearance": {
+      "title": "Tampilan",
+      "description": "Sesuaikan tampilan aplikasi dan bagian mana yang muncul di sidebar.",
+      "theme": {
+        "title": "Tema",
+        "description": "Pilih tampilan aplikasi. Sistem mengikuti pengaturan perangkat Anda."
+      },
+      "sidebar": {
+        "title": "Bagian sidebar",
+        "description": "Pilih bagian mana yang muncul di sidebar.",
+        "alwaysVisibleTooltip": "Bagian ini selalu terlihat."
+      },
+      "header": {
+        "title": "Header",
+        "description": "Pilih tindakan header mana yang terlihat.",
+        "supportButton": "Tombol dukungan"
+      }
+    }
+  }
+}

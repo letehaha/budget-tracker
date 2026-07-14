@@ -1,0 +1,144 @@
+{
+  "portfolioDetail": {
+    "loading": "Memuat...",
+    "loadingDetails": "Memuat detail portofolio...",
+    "loadError": "Gagal memuat detail portofolio.",
+    "tryAgain": "Coba Lagi",
+    "notFoundTitle": "Portofolio tidak ditemukan",
+    "notFoundDescription": "Kami tidak dapat menemukan portofolio ini. Mungkin telah dihapus atau Anda mungkin tidak memiliki akses ke sana.",
+    "backToInvestments": "Kembali ke Investasi",
+    "subtitle": "Ikhtisar Portofolio",
+    "actions": {
+      "transfer": "Transfer",
+      "edit": "Edit",
+      "delete": "Hapus",
+      "exchangeCurrency": "Tukar Mata Uang"
+    },
+    "balance": {
+      "totalValue": "Total Nilai",
+      "baseCurrencyEquivalent": "≈ {value} dalam {code}",
+      "loadError": "Gagal memuat ringkasan portofolio.",
+      "metrics": {
+        "costBasis": "Dasar Biaya",
+        "unrealized": "Belum Terealisasi",
+        "realized": "Terealisasi",
+        "totalReturn": "Total Pengembalian"
+      }
+    },
+    "cashBalances": {
+      "title": "Saldo Kas",
+      "subtitle": "{count} mata uang",
+      "emptyState": "Tidak ada saldo kas",
+      "tabs": {
+        "overview": "Ikhtisar",
+        "balances": "Saldo",
+        "cashTransactions": "Transaksi",
+        "buysSells": "Beli & Jual"
+      },
+      "cashTransactions": {
+        "addButton": "Tambah Transaksi Kas",
+        "emptyState": "Belum ada transaksi kas",
+        "deposit": "Setoran",
+        "withdrawal": "Penarikan",
+        "transferIn": "Transfer Masuk",
+        "transferOut": "Transfer Keluar",
+        "exchange": "Tukar Mata Uang",
+        "deleteConfirm": "Hapus transaksi kas ini?",
+        "linkedTransactionNote": "Transfer ini memiliki transaksi akun terkait. Apa yang ingin Anda lakukan?",
+        "keepLinkedTransaction": "Pertahankan transaksi akun. Detail transaksi asli akan dipulihkan.",
+        "deleteLinkedTransaction": "Juga hapus transaksi akun terkait"
+      },
+      "buysSells": {
+        "emptyState": "Tidak ada transaksi beli/jual",
+        "shares": "saham"
+      }
+    },
+    "holdings": {
+      "title": "Kepemilikan",
+      "subtitle": "{count} simbol",
+      "filterPlaceholder": "Filter berdasarkan simbol atau nama...",
+      "addButton": "Tambah Simbol",
+      "importButton": "Impor transaksi",
+      "importButtonShort": "Impor"
+    },
+    "holdingsTable": {
+      "loadError": "Tidak dapat memuat kepemilikan",
+      "empty": "Belum ada kepemilikan",
+      "noFilterResults": "Tidak ada kepemilikan yang cocok",
+      "noFilterResultsDescription": "Tidak ada kepemilikan yang sesuai dengan pencarian Anda. Coba simbol atau nama lain.",
+      "clearFilterButton": "Hapus pencarian",
+      "headers": {
+        "symbol": "Simbol",
+        "name": "Nama",
+        "shares": "Saham",
+        "price": "Harga",
+        "avgCostPerShare": "BP/Saham",
+        "totalCost": "Total Biaya",
+        "marketValue": "Nilai Pasar",
+        "unrealizedGain": "Keuntungan Belum Terealisasi",
+        "realizedGain": "Keuntungan Terealisasi"
+      },
+      "transactions": {
+        "loading": "Memuat transaksi…",
+        "empty": "Tidak ada transaksi ditemukan.",
+        "addFirstButton": "Tambah Transaksi Pertama"
+      },
+      "closedPositions": "Posisi ditutup ({count})",
+      "deleteHolding": {
+        "ariaLabel": "Hapus kepemilikan",
+        "title": "Hapus kepemilikan",
+        "description": "Ini akan menghapus permanen kepemilikan {symbol} dan semua transaksinya. Tindakan ini tidak dapat dibatalkan.",
+        "confirmLabel": "Hapus kepemilikan",
+        "success": "Kepemilikan dihapus.",
+        "error": "Gagal menghapus kepemilikan."
+      },
+      "addTransactionDialog": {
+        "title": "Tambah Transaksi",
+        "description": "Tambahkan transaksi baru ke portofolio Anda."
+      },
+      "tryAgainLater": "Silakan coba lagi nanti",
+      "emptyDescription": "Tambahkan transaksi pertama Anda untuk mulai melacak investasi Anda",
+      "addFirstHolding": "Tambah kepemilikan pertama",
+      "importTransactions": "Atau impor dari file"
+    },
+    "transactionsList": {
+      "title": "Transaksi",
+      "addButton": "Tambah transaksi",
+      "loadingMore": "Memuat lebih banyak transaksi…",
+      "headers": {
+        "date": "Tanggal",
+        "type": "Jenis",
+        "note": "Catatan",
+        "quantity": "Jumlah",
+        "price": "Harga",
+        "fees": "Biaya",
+        "amount": "Jumlah",
+        "refAmount": "Jumlah dasar",
+        "refFees": "Biaya dasar",
+        "settlementAmount": "Tunai",
+        "settlementCurrency": "Mata uang tunai",
+        "settlementFees": "Biaya tunai",
+        "settlementRate": "Nilai tukar",
+        "createdAt": "Ditambahkan pada"
+      },
+      "categories": {
+        "buy": "Beli",
+        "sell": "Jual",
+        "dividend": "Dividen",
+        "transfer": "Transfer",
+        "tax": "Pajak",
+        "fee": "Biaya",
+        "cancel": "Batal",
+        "other": "Lainnya"
+      },
+      "headerTooltips": {
+        "amount": "Total transaksi dalam mata uang perdagangan sekuritas.",
+        "refAmount": "Total transaksi dikonversi ke mata uang dasar Anda.",
+        "settlementAmount": "Tunai yang sebenarnya dibayar atau diterima di akun Anda, dalam mata uang penyelesaiannya."
+      },
+      "deleteTransaction": {
+        "tooltip": "Hapus transaksi"
+      }
+    }
+  }
+}
