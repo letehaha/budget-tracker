@@ -1,0 +1,53 @@
+{
+  "optimizations": {
+    "title": "Optimasi",
+    "landingDescription": "Alat untuk membantu Anda mengatur dan membersihkan data keuangan.",
+    "cards": {
+      "transfers": {
+        "title": "Pencocokan transfer",
+        "description": "Temukan pasangan pengeluaran-pemasukan yang mungkin merupakan transfer antar akun Anda dan hubungkan secara otomatis."
+      }
+    },
+    "transferSuggestions": {
+      "description": "Temukan transaksi yang harus dihubungkan sebagai transfer antar akun Anda",
+      "suggestionsFor": "Saran untuk",
+      "selectExpense": "Pilih transaksi untuk melihat saran",
+      "potentialTransfersFound": "potensi transfer ditemukan",
+      "empty": {
+        "title": "Tidak ada saran transfer ditemukan",
+        "description": "Coba sesuaikan rentang tanggal"
+      },
+      "initial": {
+        "title": "Temukan saran transfer",
+        "description": "Pindai transaksi Anda untuk menemukan pasangan pemasukan dan pengeluaran yang harus dihubungkan sebagai transfer antar akun"
+      },
+      "scanning": "Memindai transaksi...",
+      "confirmLink": {
+        "title": "Hubungkan sebagai transfer?",
+        "description": "Kedua transaksi akan dihubungkan sebagai transfer antar akun. Ini akan memperbaiki statistik dan analitik Anda dengan mengecualikannya dari total pemasukan dan pengeluaran."
+      },
+      "presets": {
+        "last3Months": "3 bulan terakhir",
+        "last6Months": "6 bulan terakhir",
+        "lastYear": "Tahun lalu",
+        "thisYear": "Tahun ini",
+        "previousYear": "Tahun sebelumnya"
+      },
+      "includeOutOfWallet": "Sertakan transfer di luar dompet",
+      "skip": {
+        "action": "Lewati",
+        "title": "Lewati saran ini?",
+        "description": "Pasangan ini akan disembunyikan dari hasil pemindaian di masa depan. Transaksi itu sendiri tidak akan diubah.",
+        "dontShowAgain": "Jangan tampilkan konfirmasi ini lagi"
+      },
+      "notifications": {
+        "loadError": "Gagal memuat lebih banyak saran",
+        "scanError": "Gagal memindai saran transfer",
+        "linkSuccess": "Transaksi dihubungkan sebagai transfer",
+        "linkError": "Gagal menghubungkan transaksi",
+        "skipSuccess": "Saran diabaikan",
+        "skipError": "Gagal mengabaikan saran"
+      }
+    }
+  }
+}

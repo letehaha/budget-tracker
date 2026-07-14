@@ -1,0 +1,50 @@
+{
+  "importShared": {
+    "action": {
+      "createNew": "Buat baru",
+      "linkExisting": "Hubungkan ke yang sudah ada"
+    },
+    "selectAction": "Pilih tindakan",
+    "columns": {
+      "sourceName": "Nama sumber",
+      "currency": "Mata Uang",
+      "action": "Tindakan",
+      "target": "Target"
+    },
+    "account": {
+      "selectTarget": "Pilih akun",
+      "noMatchingCurrency": "Tidak ada akun dengan mata uang {currency}",
+      "willCreate": "Akan membuat {name} ({currency})",
+      "empty": "Tidak ada akun untuk dipetakan"
+    },
+    "category": {
+      "selectTarget": "Pilih kategori",
+      "willCreate": "Akan membuat {name}",
+      "empty": "Tidak ada kategori untuk dipetakan"
+    },
+    "duplicatesTable": {
+      "columnHeaders": {
+        "row": "Baris",
+        "problem": "Masalah",
+        "data": "Data",
+        "match": "Cocok",
+        "csvTransaction": "Transaksi CSV",
+        "existingTransaction": "Transaksi yang Ada",
+        "csvShort": "CSV",
+        "existingShort": "Ada"
+      },
+      "matchTypeLabels": {
+        "exact": "Tepat",
+        "idMatch": "Cocok ID",
+        "fuzzy": "Samar"
+      },
+      "fieldLabels": {
+        "amount": "Jumlah",
+        "date": "Tanggal",
+        "note": "Catatan",
+        "category": "Kategori"
+      },
+      "importAnywayAriaLabel": "Tetap impor baris {row}"
+    }
+  }
+}

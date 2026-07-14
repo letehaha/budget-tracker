@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "api": {
+      "failedToFetch": "Gagal mengambil data dari server.",
+      "failedToFetchSelfHost": "Tidak dapat menjangkau server. Backend mungkin masih memulai (~30 detik setelah startup), atau variabel env ALLOWED_ORIGINS Anda tidak menyertakan URL ini.",
+      "unexpectedError": "Kesalahan tak terduga.",
+      "sessionExpired": "Sesi Anda telah kedaluwarsa. Silakan masuk lagi",
+      "payloadTooLarge": "Permintaan terlalu besar. Coba impor lebih sedikit item sekaligus"
+    },
+    "notFound": {
+      "title": "Halaman ini tidak ditemukan",
+      "description": "Kami tidak dapat menemukan yang Anda cari. Tautan mungkin rusak, atau halaman mungkin telah dipindahkan.",
+      "attemptedLabel": "Anda mencoba mengunjungi: ",
+      "goBack": "Kembali",
+      "goHome": "Bawa saya ke beranda"
+    }
+  }
+}

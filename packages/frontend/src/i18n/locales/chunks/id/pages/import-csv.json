@@ -1,0 +1,391 @@
+{
+  "pages": {
+    "importExport": {
+      "csvImport": {
+        "pageTitle": "Impor Transaksi dari CSV",
+        "pageDescription": "Upload ekspor CSV bank atau file riwayat transaksi Anda untuk mengimpor transaksi ke akun Anda.",
+        "stepper": {
+          "stepOf": "Langkah {current} dari {total}",
+          "steps": {
+            "upload": "Upload",
+            "map": "Petakan Kolom",
+            "resolve": "Selesaikan Nilai",
+            "review": "Tinjau",
+            "results": "Selesai"
+          }
+        },
+        "steps": {
+          "uploadTitle": "Upload File CSV",
+          "uploadDescription": "Pilih file CSV Anda untuk memulai",
+          "mappingTitle": "Petakan Kolom",
+          "mappingDescription": "Cocokkan kolom CSV dengan field transaksi",
+          "reviewTitle": "Tinjau Duplikat",
+          "reviewDescription": "Periksa transaksi duplikat",
+          "completeTitle": "Impor Selesai",
+          "completeDescription": "Tinjau hasil impor"
+        },
+        "fileUpload": {
+          "stepTitle": "Upload File CSV",
+          "description": "Upload satu atau lebih file CSV untuk mengimpor transaksi. Semua file harus memiliki kolom yang sama.",
+          "dragDrop": "Seret dan lepas file CSV Anda di sini",
+          "orBrowse": "atau klik untuk mencari",
+          "maxSize": "Ukuran file maksimum: 50MB",
+          "removeFile": "Hapus file",
+          "parsing": "Mengurai...",
+          "continueToMapping": "Lanjut ke Pemetaan",
+          "errors": {
+            "invalidFormat": "Format file tidak valid. Harap upload file CSV.",
+            "invalidFormatNamed": "{name} bukan file CSV",
+            "fileTooLarge": "Ukuran file ({size}) melebihi batas maksimum (50MB)",
+            "parseFailed": "Gagal mengurai file. Periksa format dan coba lagi.",
+            "merge": {
+              "emptySelection": "Pilih setidaknya satu file CSV",
+              "fileReadFailed": "Tidak dapat membaca \"{file}\"",
+              "fileEmpty": "\"{file}\" kosong",
+              "fileNoDataRows": "\"{file}\" tidak memiliki baris data",
+              "headerMismatch": "Kolom di \"{file}\" tidak cocok dengan file pertama. Semua file harus memiliki kolom yang sama dalam urutan yang sama.",
+              "forbiddenHeader": "\"{file}\" menggunakan nama kolom yang dilarang",
+              "tooManyRows": "Total file yang dipilih melebihi {max} baris. Hapus beberapa file atau baris dan coba lagi.",
+              "parseError": "Tidak dapat mengurai \"{file}\". Pastikan itu CSV yang valid."
+            }
+          }
+        },
+        "columnMapping": {
+          "stepTitle": "Petakan Kolom",
+          "description": "Petakan kolom CSV Anda ke field yang diperlukan",
+          "file": "File",
+          "filesCount": "{count} file | {count} file",
+          "totalRows": "Total baris",
+          "delimiter": "Pemisah",
+          "extracting": "Mengekstrak...",
+          "detecting": "Mendeteksi duplikat...",
+          "nextExtract": "Berikutnya: Ekstrak Nilai",
+          "continueToDuplicates": "Lanjut ke Pemeriksaan Duplikat"
+        },
+        "execute": {
+          "starting": "Memulai impor...",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "Antrean",
+          "statusRunning": "Mengimpor...",
+          "statusCompleted": "Selesai",
+          "statusFailed": "Gagal",
+          "failed": "Impor gagal.",
+          "partialImportNote": "Beberapa baris mungkin sudah diimpor sebelum kegagalan ini. Mengimpor ulang dapat membuat duplikat."
+        },
+        "review": {
+          "stepTitle": "Tinjau Impor",
+          "description": "Tinjau data sebelum mengimpor",
+          "totalRows": "Total Baris",
+          "validRows": "Baris Valid",
+          "invalidRows": "Baris Tidak Valid",
+          "duplicates": "Duplikat",
+          "invalidRowsTitle": "Baris Tidak Valid",
+          "rowNumber": "Baris #",
+          "errors": "Error",
+          "rawData": "Data Mentah",
+          "duplicatesTitle": "{count} potensi duplikat ditemukan",
+          "duplicatesHint": "Hapus centang pada baris yang ingin tetap diimpor",
+          "skip": "Lewati",
+          "match": "Cocok",
+          "csvTransaction": "Transaksi CSV",
+          "existingTransaction": "Transaksi yang Ada",
+          "importSummary": "Ringkasan Impor",
+          "willBeImported": "transaksi akan diimpor.",
+          "invalidWillBeSkipped": "baris tidak valid akan dilewati.",
+          "duplicatesWillBeSkipped": "duplikat akan dilewati.",
+          "backToMapping": "Kembali ke Pemetaan",
+          "importing": "Mengimpor...",
+          "importButton": "Impor {count} Transaksi",
+          "unpriceableTitle": "{count} baris tidak dapat diberi harga — tidak ada nilai tukar ditemukan",
+          "unpriceableDescription": "Baris ini menggunakan mata uang yang tidak memiliki nilai tukar tersimpan dan tidak dapat dikonversi ke mata uang dasar Anda. Anda harus melewatinya atau membatalkan impor.",
+          "unpriceableWillBeSkipped": "tidak dapat diberi harga akan dilewati",
+          "currency": "Mata Uang",
+          "skipAndImport": "Lewati & impor",
+          "cancelImport": "Batalkan impor",
+          "noInvalidRows": "Tidak ada baris tidak valid",
+          "noDuplicates": "Tidak ada duplikat",
+          "expand": "Tampilkan data lengkap",
+          "collapse": "Sembunyikan data lengkap"
+        },
+        "results": {
+          "completeTitle": "Impor Selesai!",
+          "completeWithIssuesTitle": "Impor Selesai dengan Masalah",
+          "successDescription": "Semua transaksi berhasil diimpor.",
+          "partialDescription": "Beberapa transaksi tidak dapat diimpor.",
+          "imported": "Diimpor",
+          "skippedDuplicates": "Dilewati (Duplikat)",
+          "accountsCreated": "Akun Dibuat",
+          "categoriesCreated": "Kategori Dibuat",
+          "tagsCreated": "Tag Dibuat",
+          "payeesCreated": "Penerima Pembayaran Dibuat",
+          "importErrors": "Error Impor",
+          "rowNumber": "Baris #",
+          "error": "Error",
+          "batchIdLabel": "ID Batch",
+          "batchIdDescription": "Gunakan ID ini untuk menemukan semua transaksi dari impor ini.",
+          "viewTransactions": "Lihat Transaksi",
+          "startNewImport": "Mulai Impor Baru",
+          "skippedUnpriceable": "Dilewati (tidak ada harga)",
+          "importFailed": "Gagal mengimpor transaksi. Silakan coba lagi.",
+          "successCallout": "{count} transaksi berhasil diimpor",
+          "failed": "Gagal",
+          "noErrors": "Tidak ada error"
+        }
+      },
+      "columnMapping": {
+        "stepTitle": "Petakan Kolom",
+        "description": "Petakan kolom CSV Anda ke field yang diperlukan",
+        "file": "File",
+        "totalRows": "Total baris",
+        "delimiter": "Pemisah",
+        "detecting": "Mendeteksi duplikat..."
+      },
+      "common": {
+        "selectOption": "Pilih opsi...",
+        "selectColumn": "Pilih kolom...",
+        "noneOptional": "Tidak ada (opsional)",
+        "selectAction": "Pilih tindakan..."
+      },
+      "transactionTypeMapping": {
+        "title": "Penentuan Tipe Transaksi",
+        "methodLabel": "Metode",
+        "methodDescription": "Pilih bagaimana tipe transaksi (pendapatan/pengeluaran) harus ditentukan",
+        "columnLabel": "Kolom Tipe Transaksi",
+        "columnDescription": "Pilih kolom CSV yang berisi informasi tipe transaksi",
+        "incomeValuesLabel": "Nilai Pendapatan",
+        "expenseValuesLabel": "Nilai Pengeluaran",
+        "commaSeparatedHint": "Nilai dipisahkan koma",
+        "uncoveredValues": "Nilai-nilai ini di kolom tipe belum ditetapkan ke Pendapatan atau Pengeluaran: {values}. Tambahkan masing-masing ke daftar di atas untuk melanjutkan.",
+        "selectMethod": "Pilih metode...",
+        "selectColumn": "Pilih kolom...",
+        "incomeValuesPlaceholder": "Mis: Credit, Deposit, Income",
+        "expenseValuesPlaceholder": "Mis: Debit, Withdrawal, Expense",
+        "methodOptions": {
+          "amountSign": "Dari Tanda Jumlah (negatif = pengeluaran, positif = pendapatan)",
+          "dataSourceColumn": "Dari Kolom (tentukan nilai)"
+        },
+        "amountSignInfo": "ℹ️ Tipe transaksi akan ditentukan secara otomatis: jumlah negatif = pengeluaran, jumlah positif = pendapatan"
+      },
+      "currencyMapping": {
+        "title": "Penetapan Mata Uang",
+        "optionLabel": "Bagaimana Anda ingin menetapkan mata uang?",
+        "optionDescription": "Pilih bagaimana mata uang ditetapkan ke transaksi yang diimpor",
+        "columnLabel": "Kolom Mata Uang",
+        "columnDescription": "Pilih kolom CSV yang berisi kode mata uang",
+        "currencyLabel": "Mata Uang",
+        "currencyDescription": "Semua transaksi yang diimpor akan menggunakan mata uang ini",
+        "selectCurrency": "Pilih mata uang...",
+        "methodOptions": {
+          "dataSourceColumn": "Petakan dari kolom CSV",
+          "existingCurrency": "Gunakan mata uang yang sama untuk semua transaksi"
+        },
+        "dataSourceColumnInfo": "ℹ️ Setiap transaksi akan menggunakan mata uang yang ditentukan dalam kolom CSV yang dipilih"
+      },
+      "categoryMapping": {
+        "selectCategory": "Pilih kategori..."
+      },
+      "accountMapping": {
+        "selectAccount": "Pilih akun..."
+      },
+      "accountAssignment": {
+        "title": "Penetapan Akun",
+        "howToAssign": "Bagaimana Anda ingin menetapkan akun?",
+        "description": "Pilih bagaimana akun ditetapkan ke transaksi yang diimpor",
+        "accountColumn": "Kolom Akun",
+        "columnDescription": "Pilih kolom CSV yang berisi nama akun",
+        "accountLabel": "Akun",
+        "singleAccountDescription": "Semua transaksi yang diimpor akan ditetapkan ke akun ini",
+        "mapOnNextStep": "Anda akan memetakan setiap akun CSV ke akun yang ada pada langkah berikutnya",
+        "options": {
+          "mapToExisting": "Petakan setiap akun CSV ke akun yang ada (pada langkah berikutnya)",
+          "assignToSingle": "Tetapkan semua ke satu akun yang ada"
+        }
+      },
+      "accountMappingTable": {
+        "title": "Pemetaan Akun",
+        "description": "Petakan nama akun CSV ke akun yang ada atau buat yang baru. Hanya akun dengan mata uang yang cocok yang akan ditampilkan.",
+        "csvAccountName": "Nama Akun CSV",
+        "currency": "Mata Uang",
+        "action": "Tindakan",
+        "targetAccount": "Akun Target",
+        "actions": {
+          "createNew": "Buat Akun Baru",
+          "mapToExisting": "Petakan ke Akun yang Ada"
+        },
+        "noMatchingCurrency": "Tidak ada akun yang tersedia dengan mata uang yang cocok ({currency})",
+        "willBeCreated": "Akun baru \"{name}\" akan dibuat dengan mata uang {currency}",
+        "defaultCurrency": "bawaan",
+        "mappedTo": "dipetakan ke \"{name}\"",
+        "selectAccount": "Pilih akun..."
+      },
+      "categoryMappingTable": {
+        "title": "Pemetaan Kategori",
+        "description": "Petakan nama kategori CSV ke kategori yang ada atau buat yang baru.",
+        "csvCategoryName": "Nama Kategori CSV",
+        "action": "Tindakan",
+        "targetCategory": "Kategori Target",
+        "actions": {
+          "createNew": "Buat Kategori Baru",
+          "mapToExisting": "Petakan ke Kategori yang Ada"
+        },
+        "willBeCreatedOrMerged": "{name} akan {action} dengan kategori yang ada dengan nama yang sama",
+        "createdOrMergedAction": "dibuat, atau digabungkan",
+        "mappedTo": "dipetakan ke \"{name}\"",
+        "selectCategory": "Pilih kategori..."
+      },
+      "categoryAssignment": {
+        "title": "Penetapan Kategori",
+        "howToAssign": "Bagaimana Anda ingin menetapkan kategori?",
+        "description": "Pilih bagaimana kategori ditetapkan ke transaksi yang diimpor",
+        "categoryColumn": "Kolom Kategori",
+        "columnDescription": "Pilih kolom CSV yang berisi nama kategori",
+        "categoryLabel": "Kategori",
+        "singleCategoryDescription": "Semua transaksi yang diimpor akan ditetapkan ke kategori ini",
+        "mapOnNextStep": "Anda akan memetakan setiap kategori CSV ke kategori yang ada pada langkah berikutnya",
+        "createFromCSV": "Kategori tingkat tinggi baru akan dibuat secara otomatis dari nilai unik di file CSV Anda",
+        "options": {
+          "mapToExisting": "Petakan setiap kategori CSV ke kategori yang ada (pada langkah berikutnya)",
+          "createNew": "Buat kategori baru dari nilai CSV",
+          "assignToSingle": "Tetapkan semua ke satu kategori yang ada"
+        }
+      },
+      "tagAssignment": {
+        "title": "Penetapan Tag",
+        "howToAssign": "Cara menetapkan tag",
+        "description": "Tag memungkinkan Anda mengkategorikan transaksi dengan beberapa label.",
+        "noTagsOption": "Jangan impor tag",
+        "tagColumn": "Kolom Tag",
+        "columnDescription": "Pilih kolom CSV yang nilainya akan digunakan sebagai tag untuk setiap transaksi.",
+        "mapOnNextStep": "Setiap nilai tag berbeda yang ditemukan di kolom ini akan muncul di bawah untuk dipetakan atau dibuat.",
+        "options": {
+          "mapToColumn": "Petakan dari kolom CSV"
+        }
+      },
+      "tagMappingTable": {
+        "title": "Pemetaan Tag",
+        "description": "Untuk setiap nilai tag yang ditemukan di CSV Anda, pilih apakah akan membuat tag baru, menautkan ke yang ada, atau melewatinya.",
+        "csvTagName": "Nilai Tag CSV",
+        "action": "Tindakan",
+        "targetTag": "Tag Target",
+        "selectTag": "Pilih tag",
+        "willBeCreated": "Akan membuat tag baru \"{name}\"",
+        "willBeSkipped": "Akan dilewati",
+        "actions": {
+          "createNew": "Buat baru",
+          "mapToExisting": "Tautkan ke yang ada",
+          "skip": "Lewati"
+        },
+        "tagsLoadFailed": "Tidak dapat memuat tag Anda. Coba lagi nanti.",
+        "noExistingTags": "Anda belum memiliki tag."
+      },
+      "resolveValues": {
+        "selectAction": "Pilih tindakan",
+        "actions": {
+          "createNew": "Buat baru",
+          "linkExisting": "Tautkan ke yang ada",
+          "skip": "Lewati"
+        },
+        "quickActions": {
+          "mapExactMatches": "Petakan kecocokan persis",
+          "createNewForUnmatched": "Buat baru untuk yang tidak cocok",
+          "skipAll": "Lewati semua",
+          "reset": "Reset",
+          "menuLabel": "Tindakan cepat",
+          "tooltips": {
+            "mapExactMatchesAccounts": "Menautkan setiap akun CSV ke akun yang ada dengan nama dan mata uang yang sama. Akun tanpa kecocokan persis tetap tidak berubah.",
+            "mapExactMatchesCategories": "Menautkan setiap kategori CSV ke kategori yang ada dengan nama yang sama. Kategori tanpa kecocokan persis tetap tidak berubah.",
+            "mapExactMatchesTags": "Menautkan setiap tag CSV ke tag yang ada dengan nama yang sama. Tag tanpa kecocokan persis tetap tidak berubah.",
+            "createNewForUnmatched": "Mengatur setiap baris yang tidak tertaut ke entri yang ada menjadi \"Buat baru\". Baris yang sudah tertaut tetap tidak berubah.",
+            "skipAll": "Melewatkan setiap tag — tidak ada yang diimpor atau dibuat.",
+            "reset": "Menghapus semua pilihan dan menjalankan ulang pencocokan otomatis."
+          }
+        },
+        "accounts": {
+          "sectionTitle": "Pemetaan Akun",
+          "resolvedCount": "{resolved} dari {total} terselesaikan",
+          "csvName": "Akun CSV",
+          "currency": "Mata Uang",
+          "action": "Tindakan",
+          "target": "Akun Target",
+          "selectTarget": "Pilih akun",
+          "noMatchingCurrency": "Tidak ada akun yang cocok dengan mata uang {currency}",
+          "willCreate": "Akan membuat \"{name}\" ({currency})",
+          "empty": "Tidak ada akun ditemukan di CSV"
+        },
+        "categories": {
+          "sectionTitle": "Pemetaan Kategori",
+          "resolvedCount": "{resolved} dari {total} terselesaikan",
+          "csvName": "Kategori CSV",
+          "action": "Tindakan",
+          "target": "Kategori Target",
+          "selectTarget": "Pilih kategori",
+          "willCreate": "Akan membuat atau menggabungkan \"{name}\"",
+          "empty": "Tidak ada kategori ditemukan di CSV"
+        },
+        "tags": {
+          "sectionTitle": "Pemetaan Tag",
+          "resolvedCount": "{resolved} dari {total} terselesaikan",
+          "csvName": "Tag CSV",
+          "action": "Tindakan",
+          "target": "Tag Target",
+          "selectTarget": "Pilih tag",
+          "willCreate": "Akan membuat \"{name}\"",
+          "willSkip": "Akan dilewati",
+          "noExistingTags": "Tidak ada tag yang ada untuk ditautkan",
+          "loadFailed": "Gagal memuat tag",
+          "empty": "Tidak ada tag ditemukan di CSV"
+        },
+        "detectError": "Gagal melanjutkan. Silakan coba lagi.",
+        "extractFailed": "Tidak dapat memuat nilai untuk diselesaikan. Silakan kembali dan coba lagi.",
+        "retry": "Coba lagi",
+        "footer": {
+          "back": "Kembali",
+          "next": "Berikutnya"
+        }
+      },
+      "mapColumns": {
+        "columnsTitle": "Kolom",
+        "assignmentsTitle": "Penetapan",
+        "fieldHeader": "Field",
+        "csvColumnHeader": "Kolom CSV",
+        "exampleHeader": "Contoh data",
+        "howToAssignHeader": "Cara menetapkan",
+        "usingHeader": "Menggunakan",
+        "optionalSuffix": "(opsional)",
+        "choosePlaceholder": "Pilih...",
+        "alreadyMatchedSuffix": "(sudah cocok)",
+        "amountSignNote": "Ditentukan dari tanda jumlah",
+        "back": "Kembali",
+        "next": "Berikutnya",
+        "missingHint": "Masih diperlukan: {fields}",
+        "fields": {
+          "date": "Tanggal",
+          "amount": "Jumlah",
+          "description": "Deskripsi",
+          "category": "Kategori",
+          "account": "Akun",
+          "currency": "Mata Uang",
+          "transactionType": "Tipe transaksi",
+          "payee": "Penerima Pembayaran"
+        },
+        "dateFormat": {
+          "label": "Format tanggal",
+          "placeholder": "Pilih format tanggal",
+          "dayFirstOption": "Hari pertama — {example}",
+          "monthFirstOption": "Bulan pertama — {example}",
+          "suggestedBadge": "Disarankan",
+          "isoDetected": "Format tanggal ISO terdeteksi — tanggal di kolom ini tahun-pertama, jadi tidak perlu pilihan hari/bulan.",
+          "previewLabel": "Pratinjau",
+          "previewUnrecognized": "tidak dikenal",
+          "mismatchWarning": "{count} baris tidak cocok dengan format ini dan akan ditandai sebagai tidak valid. | {count} baris tidak cocok dengan format ini dan akan ditandai sebagai tidak valid."
+        }
+      },
+      "importResults": {
+        "errorColumns": {
+          "row": "Baris",
+          "error": "Error"
+        }
+      }
+    }
+  }
+}

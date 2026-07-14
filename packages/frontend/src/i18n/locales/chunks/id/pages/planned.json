@@ -1,0 +1,271 @@
+{
+  "planned": {
+    "budgets": {
+      "backToList": "Kembali ke Anggaran"
+    },
+    "subscriptions": {
+      "notFound": "Langganan tidak ditemukan",
+      "notFoundDescription": "Kami tidak dapat menemukan langganan ini. Mungkin telah dihapus atau Anda mungkin tidak memiliki akses ke sana.",
+      "title": "Biaya Berulang",
+      "description": "Lacak biaya dan tagihan berulang",
+      "addSubscription": "Tambah Biaya Berulang",
+      "backToList": "Kembali ke biaya berulang",
+      "createTitle": "Buat Biaya Berulang",
+      "editTitle": "Edit Biaya Berulang",
+      "typeSubscription": "Langganan",
+      "typeBill": "Tagihan",
+      "typeInstallment": "Cicilan",
+      "completed": "Selesai",
+      "paused": "Dijeda",
+      "pausedSection": "Dijeda ({count})",
+      "edit": "Edit",
+      "cancel": "Batal",
+      "pauseSubscription": "Jeda langganan",
+      "resumeSubscription": "Lanjutkan langganan",
+      "deleteSubscription": "Hapus langganan",
+      "amount": "Jumlah",
+      "frequencyLabel": "Frekuensi",
+      "nextExpected": "Berikutnya diharapkan",
+      "startDate": "Tanggal mulai",
+      "linkedTransactions": "{count} transaksi terhubung",
+      "linkedTransactionsTitle": "Transaksi Terhubung",
+      "noLinkedTransactions": "Belum ada transaksi terhubung",
+      "unlinkTransaction": "Lepaskan transaksi",
+      "suggestMatches": "Sarankan Kecocokan",
+      "suggestMatchesTitle": "Kecocokan yang Disarankan",
+      "suggestMatchesDescription": "Transaksi yang sesuai dengan aturan langganan Anda",
+      "noSuggestedMatches": "Tidak ada transaksi yang cocok ditemukan",
+      "linkSelected": "Hubungkan {count} dipilih",
+      "matchingRulesTitle": "Aturan Pencocokan",
+      "addMatchingRules": "Tambah aturan pencocokan",
+      "updateMatchingRules": "Perbarui aturan pencocokan",
+      "frequency": {
+        "weekly": "Mingguan",
+        "biweekly": "Dua Mingguan",
+        "monthly": "Bulanan",
+        "quarterly": "Triwulan",
+        "semiAnnual": "Setengah Tahun",
+        "annual": "Tahunan"
+      },
+      "matchSource": {
+        "manual": "Manual",
+        "rule": "Aturan",
+        "ai": "AI"
+      },
+      "form": {
+        "nameLabel": "Nama",
+        "namePlaceholder": "mis. Netflix, Tagihan Listrik",
+        "logoLabel": "Logo",
+        "typeLabel": "Jenis",
+        "typeSubscriptionDesc": "Pembayaran layanan berulang",
+        "typeBillDesc": "Tagihan atau utilitas berulang",
+        "amountLabel": "Jumlah yang diharapkan",
+        "amountPlaceholder": "0.00",
+        "currencyLabel": "Mata Uang",
+        "frequencyLabel": "Frekuensi",
+        "startDateLabel": "Tanggal mulai",
+        "endDateLabel": "Tanggal akhir",
+        "accountLabel": "Akun",
+        "noAccount": "Tidak ada akun khusus",
+        "categoryLabel": "Kategori",
+        "categoryPlaceholder": "Pilih kategori",
+        "matchingRulesLabel": "Aturan Pencocokan",
+        "matchingRulesDescription": "Tentukan aturan untuk secara otomatis mencocokkan transaksi dengan langganan ini",
+        "notesLabel": "Catatan",
+        "notesPlaceholder": "Catatan opsional tentang langganan ini",
+        "update": "Perbarui",
+        "create": "Buat",
+        "rulesCount": "{count} aturan pencocokan dikonfigurasi",
+        "editRules": "Edit Aturan",
+        "addRules": "Tambah Aturan",
+        "saveRules": "Simpan Aturan",
+        "extraOptions": "Opsi tambahan",
+        "validationAmountCurrency": "Jumlah dan mata uang harus diberikan bersama.",
+        "validationSubscriptionRequiresAmount": "Langganan memerlukan jumlah dan mata uang.",
+        "typeInstallmentDesc": "Pembelian yang dibiayai dibayar dalam jumlah pembayaran tetap",
+        "installmentScheduleHint": "Atur tanggal pembayaran pertama dan jumlah pembayaran untuk melacak rencana ini.",
+        "installmentTotalCommitment": "Total komitmen: {total}",
+        "validationInstallmentRequiresSchedule": "Cicilan memerlukan tanggal jadwal pembayaran.",
+        "validationInstallmentRequiresCount": "Cicilan memerlukan jumlah pembayaran.",
+        "dueDateLabel": "Tanggal jadwal pembayaran",
+        "dueDateDescription": "Jika diatur, langganan ini mendapatkan jadwal pembayaran yang dapat Anda tandai dibayar setiap siklus penagihan.",
+        "maxOccurrencesLabel": "Jumlah cicilan",
+        "maxOccurrencesPlaceholder": "Kosongkan untuk tidak terbatas",
+        "remindBeforeLabel": "Ingatkan saya sebelum tanggal jatuh tempo",
+        "remindBeforeHelper": "Pengingat muncul di aplikasi. Aktifkan email di bawah untuk juga menerimanya melalui email. Pilih maksimal 3.",
+        "notifyEmailLabel": "Juga kirim email",
+        "remindPresets": {
+          "0_days": "Pada tanggal jatuh tempo",
+          "1_day": "1 hari sebelumnya",
+          "2_days": "2 hari sebelumnya",
+          "3_days": "3 hari sebelumnya",
+          "5_days": "5 hari sebelumnya",
+          "1_week": "1 minggu sebelumnya",
+          "2_weeks": "2 minggu sebelumnya",
+          "1_month": "1 bulan sebelumnya"
+        },
+        "scheduleSectionLabel": "Jadwal pembayaran",
+        "scheduleSectionHint": "Lacak tanggal jatuh tempo, buat periode, kirim pengingat",
+        "autoRecord": {
+          "label": "Catat otomatis pada tanggal jatuh tempo",
+          "help": "Mencatat transaksi secara otomatis pada pukul 00:00 UTC tanggal jatuh tempo.",
+          "requiresAccount": "Pencatatan otomatis memerlukan akun.",
+          "requiresAmount": "Pencatatan otomatis memerlukan jumlah dan mata uang.",
+          "conflictsMatching": "Aturan pencocokan yang ada telah dihapus — pencatatan otomatis dan aturan pencocokan tidak dapat digunakan bersama."
+        }
+      },
+      "progress": {
+        "title": "Progres cicilan",
+        "titleGeneric": "Progres pembayaran",
+        "paidOfTotal": "{paid} dari {total} dibayar",
+        "remaining": "Sisa {count} pembayaran",
+        "remainingTotal": "Sisa {amount}",
+        "completedNote": "Rencana selesai"
+      },
+      "rules": {
+        "ruleLabel": "Aturan {number}",
+        "fieldLabel": "Bidang",
+        "selectField": "Pilih bidang",
+        "noteDescription": "Transaksi akan cocok jika catatannya mengandung salah satu dari kata kunci ini",
+        "keywordPlaceholder": "Masukkan kata kunci",
+        "addKeyword": "Tambah kata kunci",
+        "minAmount": "Jumlah min",
+        "maxAmount": "Jumlah maks",
+        "currencyCode": "Kode mata uang",
+        "transactionType": "Jenis transaksi",
+        "account": "Akun",
+        "addRule": "Tambah Aturan",
+        "fieldOptions": {
+          "note": "Catatan",
+          "amount": "Jumlah",
+          "transactionType": "Jenis Transaksi",
+          "account": "Akun"
+        },
+        "transactionTypeOptions": {
+          "income": "Pemasukan",
+          "expense": "Pengeluaran"
+        }
+      },
+      "createSuccess": "Langganan berhasil dibuat",
+      "createError": "Gagal membuat langganan",
+      "updateSuccess": "Langganan berhasil diperbarui",
+      "updateError": "Gagal memperbarui langganan",
+      "deleteSuccess": "Langganan berhasil dihapus",
+      "deleteError": "Gagal menghapus langganan",
+      "deleteConfirmTitle": "Hapus langganan",
+      "deleteConfirmDescription": "Apakah Anda yakin ingin menghapus langganan ini? Tindakan ini tidak dapat dibatalkan.",
+      "deleteConfirm": "Hapus",
+      "toggleError": "Gagal memperbarui status langganan",
+      "unlinkSuccess": "Transaksi berhasil dilepaskan",
+      "unlinkError": "Gagal melepaskan transaksi",
+      "suggestError": "Gagal memuat kecocokan yang disarankan",
+      "linkSuccess": "Transaksi berhasil dihubungkan",
+      "linkError": "Gagal menghubungkan transaksi",
+      "emptyState": {
+        "title": "Belum ada biaya berulang",
+        "description": "Tambah biaya berulang atau tagihan pertama Anda untuk mulai melacak pembayaran berulang"
+      },
+      "sort": {
+        "label": "Urutkan",
+        "ariaLabel": "Urutkan biaya berulang",
+        "dueDate": "Tanggal jatuh tempo · terdekat",
+        "amount": "Jumlah · tertinggi ke terendah",
+        "name": "Nama · A–Z",
+        "recent": "Baru ditambahkan"
+      },
+      "summary": {
+        "filterAll": "Semua",
+        "filterSubscriptions": "Langganan",
+        "filterBills": "Tagihan",
+        "filterInstallments": "Cicilan",
+        "monthlyCost": "~{amount}/bln",
+        "yearlyProjected": "{amount} diproyeksikan",
+        "perYear": "{amount}/thn",
+        "acrossSubscriptions": "di {count} langganan aktif",
+        "acrossBills": "di {count} tagihan aktif",
+        "acrossAll": "di {count} langganan & tagihan aktif"
+      },
+      "candidates": {
+        "discover": "Temukan",
+        "title": "Temukan Langganan",
+        "description": "Kami menganalisis riwayat transaksi Anda untuk menemukan pembayaran berulang yang mungkin merupakan langganan.",
+        "lastScanned": "Terakhir dipindai {time}",
+        "emptyTitle": "Tidak ada langganan baru ditemukan",
+        "emptyDescription": "Kami tidak dapat menemukan pola pembayaran berulang baru dalam riwayat transaksi Anda.",
+        "add": "Tambah",
+        "dismiss": "Abaikan",
+        "basedOnTransactions": "Berdasarkan {count} transaksi",
+        "confidence": {
+          "likely": "Kemungkinan cocok",
+          "possible": "Mungkin cocok",
+          "weak": "Kecocokan lemah"
+        },
+        "dismissed": "Kandidat diabaikan",
+        "dismissError": "Gagal mengabaikan kandidat",
+        "close": "Tutup",
+        "possibleMatch": "Mirip dengan yang ada: {name}",
+        "linkToExisting": "Hubungkan ke yang ada",
+        "linkSuccess": "Kandidat dihubungkan ke langganan yang ada",
+        "linkError": "Gagal menghubungkan kandidat",
+        "outdatedWarning": "Langganan ini tidak aktif selama 2+ siklus penagihan dan mungkin tidak lagi berulang.",
+        "viewTransactions": "Lihat transaksi",
+        "sampleTransactionsTitle": "Contoh transaksi",
+        "sampleTransactionsDescription": "Ini adalah contoh transaksi yang memicu deteksi langganan ini.",
+        "noTransactionsFound": "Tidak ada transaksi ditemukan"
+      },
+      "periods": {
+        "status": {
+          "paid": "Dibayar",
+          "overdue": "Terlambat",
+          "skipped": "Dilewati",
+          "upcoming": "Akan Datang"
+        },
+        "nextDue": "Jatuh Tempo Berikutnya",
+        "overdueBadge": "Terlambat",
+        "inDays": "dalam {count} hari",
+        "paymentHistory": "Riwayat Pembayaran",
+        "noPaymentPeriods": "Belum ada periode pembayaran.",
+        "dueOn": "Jatuh tempo {date}",
+        "paidAt": "Dibayar {date}",
+        "viewTransaction": "Lihat transaksi",
+        "actions": {
+          "markPaid": "Tandai Dibayar",
+          "skip": "Lewati"
+        },
+        "tooltips": {
+          "markAsPaid": "Tandai sebagai dibayar",
+          "skip": "Lewati",
+          "unlinkTransaction": "Lepaskan transaksi",
+          "revert": "Kembalikan"
+        },
+        "dialogs": {
+          "revertTitle": "Kembalikan Periode",
+          "revertConfirm": "Kembalikan",
+          "revertDescription": "Periode ini akan ditandai sebagai belum dibayar lagi.",
+          "revertDescriptionUnlinksTransaction": "Transaksi terkait akan dilepaskan, dan periode ini akan ditandai sebagai belum dibayar.",
+          "revertDescriptionDeletesTransaction": "Transaksi yang dihasilkan akan dihapus, dan periode ini akan ditandai sebagai belum dibayar."
+        },
+        "notifications": {
+          "periodSkipped": "Periode dilewati",
+          "skipFailed": "Gagal melewati periode",
+          "transactionUnlinked": "Transaksi dilepaskan",
+          "unlinkFailed": "Gagal melepaskan transaksi",
+          "periodReverted": "Periode dikembalikan",
+          "revertFailed": "Gagal mengembalikan periode",
+          "transactionLoadFailed": "Gagal memuat transaksi"
+        }
+      },
+      "actions": {
+        "more": "Tindakan lainnya"
+      },
+      "periodFilter": {
+        "next7Days": "7 hari ke depan",
+        "next30Days": "30 hari ke depan",
+        "next3Months": "3 bulan ke depan",
+        "next6Months": "6 bulan ke depan",
+        "nextYear": "Tahun depan",
+        "all": "Sepanjang waktu"
+      }
+    }
+  }
+}

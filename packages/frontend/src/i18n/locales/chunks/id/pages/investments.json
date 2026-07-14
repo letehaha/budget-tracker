@@ -1,0 +1,43 @@
+{
+  "investments": {
+    "title": "Investasi",
+    "createButton": "Buat Portofolio",
+    "loadError": "Gagal memuat portofolio",
+    "tryAgain": "Coba Lagi",
+    "menu": {
+      "view": "Lihat",
+      "delete": "Hapus"
+    },
+    "card": {
+      "hidden": "Tersembunyi",
+      "portfolioType": "Portofolio {type}",
+      "costBasis": "Dasar biaya"
+    },
+    "empty": {
+      "title": "Belum Ada Portofolio",
+      "description": "Buat portofolio investasi pertama Anda untuk mulai melacak kepemilikan, transaksi, dan kinerja.",
+      "createFirstButton": "Buat Portofolio Pertama Anda"
+    },
+    "trash": {
+      "title": "Tempat Sampah",
+      "retentionHint": "Item di sini akan dihapus secara permanen setelah {days} hari",
+      "loading": "Memuat tempat sampah…",
+      "loadError": "Tidak dapat memuat portofolio yang dihapus.",
+      "deletedAgo": "Dihapus {time}",
+      "restoreButton": "Pulihkan",
+      "restoringButton": "Memulihkan…",
+      "purgeButton": "Hapus sekarang",
+      "purgingButton": "Menghapus…",
+      "deletedBadge": "Dihapus",
+      "confirmPurgeTitle": "Hapus portofolio secara permanen?",
+      "confirmPurge": "Hapus permanen \"{name}\"? Ini tidak dapat dibatalkan.",
+      "tryAgain": "Coba lagi",
+      "notifications": {
+        "restored": "Portofolio dipulihkan",
+        "restoreError": "Gagal memulihkan portofolio",
+        "purged": "Portofolio dihapus secara permanen",
+        "purgeError": "Gagal menghapus portofolio"
+      }
+    }
+  }
+}

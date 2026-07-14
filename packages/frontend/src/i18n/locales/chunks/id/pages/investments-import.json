@@ -1,0 +1,135 @@
+{
+  "investmentsImport": {
+    "title": "Impor transaksi",
+    "description": "Upload CSV bursa, PDF broker, atau tempel riwayat transaksi Anda. AI akan mengekstrak pembelian dan penjualan. Anda akan meninjau sebelum apa pun diimpor.",
+    "backToPortfolio": "Kembali ke portofolio",
+    "upload": {
+      "fileTab": "File",
+      "pasteTab": "Tempel teks",
+      "fileHintFormats": "CSV, TXT, atau PDF",
+      "pastePlaceholder": "Tempel daftar transaksi Anda di sini...",
+      "estimatedCost": "Perkiraan biaya",
+      "model": "Model",
+      "estimateButton": "Perkirakan biaya",
+      "extractButton": "Ekstrak",
+      "extracting": "Mengekstrak...",
+      "modeAi": "Impor AI",
+      "modeCsv": "Impor CSV",
+      "modeAiHint": "Upload file apa pun — AI mengekstrak transaksi Anda secara otomatis. Memerlukan token.",
+      "modeCsvHint": "Upload CSV dari broker Anda dan petakan kolom secara manual. Tanpa AI.",
+      "csvHintFormats": "Hanya file CSV.",
+      "parsingCsv": "Mengurai...",
+      "continueToMapping": "Lanjut ke pemetaan"
+    },
+    "review": {
+      "warningsTitle": "Peringatan",
+      "empty": "AI tidak menemukan transaksi dalam file ini.",
+      "pickSecurity": "Pilih sekuritas...",
+      "pickCurrency": "Mata Uang...",
+      "searchPlaceholder": "Cari berdasarkan simbol...",
+      "searching": "Mencari...",
+      "parsedSymbolHint": "Kami tidak dapat mencocokkan otomatis {symbol} — pilih sekuritas yang tepat di bawah.",
+      "startTyping": "Mulai mengetik untuk mencari",
+      "noResults": "Tidak ada hasil",
+      "alreadyPicked": "sudah dipilih",
+      "duplicateSecurity": "Sekuritas yang sama dipilih di baris lain",
+      "willMerge": "Akan digabung ke kepemilikan yang ada",
+      "txns": "{count} transaksi | {count} transaksi",
+      "expand": "Perluas",
+      "collapse": "Ciutkan",
+      "deleteHolding": "Hapus kepemilikan",
+      "deleteTransaction": "Hapus transaksi",
+      "buy": "Beli",
+      "sell": "Jual",
+      "possibleDup": "Kemungkinan duplikat",
+      "skipping": "Melewatkan",
+      "duplicateBadgeTooltip": "Ini terlihat seperti kemungkinan duplikat dari transaksi yang ada. Klik untuk melewatkannya — jika tidak, transaksi baru akan dibuat di samping yang sudah ada (tanpa penggabungan atau penimpaan).",
+      "back": "Kembali",
+      "commit": "Impor",
+      "cols": {
+        "date": "Tanggal",
+        "side": "Tipe",
+        "qty": "Kuantitas",
+        "price": "Harga",
+        "fees": "Biaya",
+        "amount": "Jumlah",
+        "security": "Sekuritas",
+        "currency": "Mata Uang",
+        "txCount": "Transaksi"
+      },
+      "tooltips": {
+        "security": "Kami memilih sekuritas secara otomatis berdasarkan ticker yang diekstrak AI. Klik field untuk mengganti kecocokan jika salah.",
+        "currency": "Mata uang tempat sisi tunai perdagangan diselesaikan (mis: USD, EUR). Tidak mengubah cara penyimpanan kepemilikan — jumlah dinormalisasi ke mata uang dasar Anda menggunakan nilai tukar historis pada tanggal perdagangan.",
+        "parentRowDuplicates": "{count} kemungkinan duplikat di kepemilikan ini akan diimpor sebagai transaksi baru kecuali dilewati. | {count} kemungkinan duplikat di kepemilikan ini akan diimpor sebagai transaksi baru kecuali dilewati."
+      }
+    },
+    "done": {
+      "title": "Impor selesai",
+      "transactions": "Transaksi ditambahkan",
+      "holdingsCreated": "Kepemilikan dibuat",
+      "holdingsMerged": "Kepemilikan diperbarui",
+      "skipped": "Duplikat dilewati",
+      "close": "Tutup"
+    },
+    "notifications": {
+      "imported": "Mengimpor {count} transaksi",
+      "extractFailed": "Tidak dapat mengekstrak transaksi dari file.",
+      "importFailed": "Tidak dapat mengimpor transaksi.",
+      "skippedHoldings": "Kepemilikan dilewati: {count}",
+      "failedTransactions": "Transaksi gagal: {count}",
+      "estimateFailed": "Gagal memperkirakan biaya impor",
+      "csvParseFailed": "Tidak dapat mengurai CSV. Periksa format file dan coba lagi."
+    },
+    "columnMapping": {
+      "rowsAndDelimiter": "{rows} baris · pemisah '{delimiter}'",
+      "backToUpload": "Kembali",
+      "previewTitle": "Pratinjau",
+      "requiredTitle": "Kolom wajib",
+      "optionalTitle": "Kolom opsional",
+      "defaultsTitle": "Bawaan",
+      "sideValueMappingTitle": "Pemetaan nilai sisi",
+      "sideValueMappingHint": "Beri tahu kami arti setiap nilai di kolom sisi.",
+      "sideValueMappingEmpty": "Belum ada nilai yang ditemukan di kolom ini.",
+      "selectColumn": "Pilih kolom...",
+      "notMapped": "Tidak dipetakan",
+      "pickCategory": "Pilih kategori...",
+      "cashMovementsNote": "Setoran dan penarikan tunai belum didukung. Pilih 'Lewati baris ini' untuk nilai sisi tersebut agar tidak diimpor.",
+      "extractButton": "Lanjut ke tinjauan",
+      "extracting": "Mengekstrak...",
+      "fields": {
+        "symbol": "Simbol",
+        "date": "Tanggal",
+        "side": "Sisi / Tindakan",
+        "quantity": "Kuantitas",
+        "price": "Harga",
+        "fees": "Biaya",
+        "currency": "Mata Uang",
+        "name": "Nama",
+        "defaultCurrency": "Mata uang bawaan",
+        "defaultAssetClass": "Kelas aset bawaan"
+      },
+      "tooltips": {
+        "fees": "Kolom dengan komisi/biaya per transaksi. Jika tidak dipetakan, biaya bawaan 0.",
+        "currency": "Kolom mata uang kuotasi (mis: USD, EUR, USDT). Menentukan sisi tunai setiap perdagangan. Jatuh ke Mata uang bawaan di bawah saat kosong atau tidak dipetakan.",
+        "name": "Nama tampilan sekuritas opsional (mis: 'Apple Inc.'). Digunakan untuk tampilan di langkah tinjauan saja — ticker tetap pengidentifikasi resmi.",
+        "defaultCurrency": "Digunakan saat kolom Mata Uang di atas kosong atau tidak dipetakan.",
+        "defaultAssetClass": "Petunjuk untuk mencocokkan simbol Anda dengan sekuritas. Pilih kelas yang cocok dengan sebagian besar baris di file Anda — Anda dapat menimpanya per sekuritas di langkah tinjauan."
+      }
+    },
+    "categories": {
+      "buy": "Beli",
+      "sell": "Jual",
+      "dividend": "Dividen",
+      "transfer": "Transfer",
+      "tax": "Pajak",
+      "fee": "Biaya",
+      "cancel": "Batal",
+      "other": "Lainnya",
+      "skip": "Lewati baris ini"
+    },
+    "assetClasses": {
+      "stocks": "Saham",
+      "crypto": "Kripto"
+    }
+  }
+}

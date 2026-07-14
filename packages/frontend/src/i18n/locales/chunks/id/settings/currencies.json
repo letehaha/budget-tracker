@@ -1,0 +1,71 @@
+{
+  "settings": {
+    "currencies": {
+      "addNew": {
+        "loading": "Memuat...",
+        "selectCurrency": "Pilih mata uang",
+        "addButton": "Tambah",
+        "howItWorks": "Bagaimana cara kerjanya?",
+        "tooltip": "Dengan menambahkan mata uang kustom, Anda dapat membuat dan mengelola akun serta transaksi dalam mata uang tersebut. Anda juga dapat menyesuaikan dan memperbarui nilai tukarnya terhadap mata uang dasar Anda. Akun yang ditautkan akan secara otomatis membuat mata uang yang diperlukan.",
+        "errors": {
+          "addFailed": "Kesalahan tak terduga. Mata uang tidak ditambahkan."
+        }
+      },
+      "list": {
+        "editCurrency": "Edit mata uang",
+        "baseCurrencyBadge": "Mata uang dasar",
+        "baseCurrencyTooltip": "Mata uang dasar Anda. Semua informasi di dashboard ditampilkan dalam mata uang ini"
+      },
+      "exchangeRate": {
+        "disableLiveUpdate": "Nonaktifkan pembaruan langsung untuk dapat mengatur nilai tukar kustom.",
+        "liveUpdateInfo": "Saat diaktifkan, nilai kustom diabaikan.",
+        "liveUpdateLabel": "Pembaruan langsung",
+        "saveButton": "Simpan",
+        "successfullyUpdated": "Berhasil diperbarui.",
+        "errors": {
+          "unexpectedError": "Kesalahan tak terduga",
+          "updateFailed": "Kesalahan tak terduga. Mata uang tidak diperbarui."
+        }
+      },
+      "delete": {
+        "description": "Mata uang hanya dapat dihapus/diputuskan jika tidak ada akun dan/atau transaksi yang terkait dengannya.",
+        "button": "Hapus mata uang",
+        "disabledTooltip": "Anda tidak dapat menghapus mata uang ini karena masih terhubung dengan akun.",
+        "successfullyDeleted": "Berhasil dihapus.",
+        "errors": {
+          "deleteFailed": "Kesalahan tak terduga. Mata uang tidak dihapus."
+        }
+      },
+      "setBase": {
+        "label": "Jadikan mata uang dasar",
+        "button": "Jadikan mata uang dasar",
+        "processing": "Memproses...",
+        "tooltip": "Tandai sebagai mata uang dasar. Semua statistik dan informasi dashboard akan ditampilkan dalam mata uang ini.\n\nTransaksi akan dihitung ulang menggunakan nilai tukar pada tanggal transaksi dicatat.",
+        "dialog": {
+          "title": "Ubah Mata Uang Dasar?",
+          "warningTitle": "Peringatan:",
+          "warningText": "Mengubah mata uang dasar adalah keputusan yang harus dipertimbangkan dengan matang. Idealnya, tindakan ini hanya dilakukan sekali, meskipun tidak ada batasan aktual.",
+          "descriptionText": "Setiap kali Anda mengubah mata uang dasar, semua transaksi akan dihitung ulang menggunakan nilai tukar historis. Karena aritmetika floating-point dan variasi normal antara nilai tukar mata uang dasar dan kuotasi, perhitungan ulang berulang dapat menyebabkan sedikit perbedaan dalam jumlah referensi Anda seiring waktu. Jumlah referensi digunakan untuk menampilkan statistik dan menetapkan batas anggaran.",
+          "roundingTitle": "Bagaimana tepatnya pembulatan dihitung?",
+          "roundingIntro": "Konversi mata uang menggunakan Pembulatan Bankir (standar IEEE 754), juga dikenal sebagai \"bulatkan setengah ke genap\". Ini meminimalkan kesalahan pembulatan kumulatif pada banyak perhitungan.",
+          "roundingHow": "Cara kerjanya:",
+          "roundingRule1": "Ketika nilai tepat setengah (misal: 0,5), dibulatkan ke angka genap terdekat",
+          "roundingRule2": "Contoh: 0,5 → 0, 1,5 → 2, 2,5 → 2, 3,5 → 4",
+          "roundingStandard": "Metode ini direkomendasikan oleh standar akuntansi IFRS/GAAP dan digunakan oleh sistem keuangan utama untuk mencegah bias sistematis dalam konversi mata uang.",
+          "untouchedWarning": "Jumlah transaksi asli akan selalu tidak tersentuh!",
+          "processingTimeInfo": "Ini mungkin memakan waktu jika mata uang Anda tidak umum digunakan.",
+          "restrictionWarning": "Anda tidak akan dapat membuat akun, transaksi, atau apa pun yang terkait dengan \"jumlah\" selama proses berlangsung.",
+          "confirmation": "Apakah Anda yakin ingin melanjutkan?",
+          "changeButton": "Ubah Mata Uang Dasar",
+          "cancelButton": "Batal"
+        },
+        "successMessage": "Mata uang dasar berhasil diubah.",
+        "errors": {
+          "changeFailed": "Kesalahan tak terduga. Gagal mengubah mata uang dasar.",
+          "lockedHousehold": "Anda berada di {count} keanggotaan rumah tangga aktif. Keluar dari Pengaturan → Rumah Tangga terlebih dahulu. | Anda berada di {count} keanggotaan rumah tangga aktif. Keluar dari Pengaturan → Rumah Tangga terlebih dahulu.",
+          "lockedShares": "Anda memiliki {count} pembagian akun aktif. Cabut dari akun terlebih dahulu. | Anda memiliki {count} pembagian akun aktif. Cabut dari masing-masing akun terlebih dahulu."
+        }
+      }
+    }
+  }
+}

@@ -3,7 +3,7 @@ import Backend from 'i18next-fs-backend';
 import path from 'path';
 
 // Supported locales
-export const SUPPORTED_LOCALES = ['en', 'uk', 'es'];
+export const SUPPORTED_LOCALES = ['en', 'uk', 'es', 'id'];
 const DEFAULT_LOCALE = 'en';
 
 // Initialize i18next - store the promise to allow awaiting initialization
