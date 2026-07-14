@@ -50,14 +50,20 @@ vi.mock('@tanstack/vue-query', async (importOriginal) => {
 
 // Existing app accounts + categories are the auto-match link targets. `categories`
 // is non-empty and accounts report as already fetched, so `prepareResolveStep`
-// runs the auto-match immediately without firing a load.
-vi.mock('@/stores/accounts', () => ({
-  useAccountsStore: vi.fn(() => ({
-    accounts: [{ id: 1, name: 'Cash', currencyCode: 'USD' }],
-    isAccountsFetched: true,
-    refetchAccounts: vi.fn(),
-  })),
-}));
+// runs the auto-match immediately without firing a load. The fixture holds no
+// vehicle/loan accounts, so `importLinkableAccounts` (the getter the resolve
+// engine reads its link targets from) exposes the same list as `accounts`.
+vi.mock('@/stores/accounts', () => {
+  const mockAccounts = [{ id: 1, name: 'Cash', currencyCode: 'USD' }];
+  return {
+    useAccountsStore: vi.fn(() => ({
+      accounts: mockAccounts,
+      importLinkableAccounts: mockAccounts,
+      isAccountsFetched: true,
+      refetchAccounts: vi.fn(),
+    })),
+  };
+});
 
 vi.mock('@/stores/categories/categories', () => ({
   useCategoriesStore: vi.fn(() => ({
@@ -71,6 +77,19 @@ vi.mock('@/stores/categories/categories', () => ({
 // real modules aren't pulled in.
 vi.mock('@/stores/currencies', () => ({ useCurrenciesStore: vi.fn(() => ({ loadCurrencies: vi.fn() })) }));
 vi.mock('@/stores/tags', () => ({ useTagsStore: vi.fn(() => ({ loadTags: vi.fn() })) }));
+
+// The store reads the persisted recalculate-balance default from user settings at
+// construction and PATCHes the chosen value back after a successful execute. Mocked
+// so no real settings query fires; tests drive `data` and assert on `patchAsync`.
+let mockUserSettingsData: Ref<{ import?: { recalculateAccountBalance?: boolean } } | undefined>;
+let mockPatchUserSettingsAsync: ReturnType<typeof vi.fn>;
+
+vi.mock('@/composable/data-queries/user-settings', () => ({
+  useUserSettings: vi.fn(() => ({
+    data: mockUserSettingsData,
+    patchAsync: mockPatchUserSettingsAsync,
+  })),
+}));
 
 // ----- helpers -----
 
@@ -101,6 +120,8 @@ const mountWithPlugins = () => {
   sharedQueryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   mockJobProgress = ref(null);
   mockJobExecuteError = ref<string | null>(null);
+  mockUserSettingsData = ref(undefined);
+  mockPatchUserSettingsAsync = vi.fn(() => Promise.resolve({}));
 
   const pinia = createPinia();
   setActivePinia(pinia);
@@ -138,5 +159,41 @@ describe('useImportBudgetBakersWalletStore – resolve seeding', () => {
     await store.parseFiles({ files: [aFile()] });
 
     expect(store.categoryMapping['Brand New Category']).toEqual({ action: 'create-new' });
+  });
+});
+
+// Integration wiring only — the toggle's behavior matrix (persisted default,
+// override precedence, only-when-changed persistence) is covered by the
+// composable's own tests in use-recalculate-balance-toggle.test.ts.
+describe('useImportBudgetBakersWalletStore – recalculate-balance toggle wiring', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  const mockExecute = vi.mocked(walletApi.executeBudgetBakersWalletImport);
+
+  it('sends the toggle value in the execute payload and persists it once the job is accepted', async () => {
+    mockParse.mockResolvedValue({ result: PARSE_RESULT });
+    mockExecute.mockResolvedValue({ jobId: 'job-1' });
+    const store = useImportBudgetBakersWalletStore();
+    await store.parseFiles({ files: [aFile()] });
+
+    store.recalculateBalance = true;
+    await store.execute();
+
+    expect(mockExecute).toHaveBeenCalledWith(expect.objectContaining({ recalculateBalance: true }));
+    expect(mockPatchUserSettingsAsync).toHaveBeenCalledTimes(1);
+    expect(mockPatchUserSettingsAsync).toHaveBeenCalledWith({ import: { recalculateAccountBalance: true } });
+  });
+
+  it('reset() clears the override back to the persisted value', () => {
+    mockUserSettingsData.value = { import: { recalculateAccountBalance: true } };
+    const store = useImportBudgetBakersWalletStore();
+
+    store.recalculateBalance = false;
+    store.reset();
+
+    expect(store.recalculateBalance).toBe(true);
   });
 });

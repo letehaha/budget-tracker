@@ -58,18 +58,15 @@
       />
     </div>
 
+    <!-- Per-account balance changes (only present when the import touched balances) -->
+    <AccountBalanceChangesTable :changes="summary.accountBalanceChanges ?? []" />
+
     <!-- Balance-desync callout: account balances could not be restored after import -->
-    <Callout
-      v-if="balanceDesyncErrors.length > 0"
-      variant="destructive"
-      role="alert"
+    <BalanceDesyncCallout
+      :errors="summary.errors"
       :title="$t('pages.importExport.budgetBakersWalletImport.done.balanceWarningTitle')"
-    >
-      <p class="text-sm opacity-80">{{ $t('pages.importExport.budgetBakersWalletImport.done.balanceWarningBody') }}</p>
-      <ul class="mt-2 list-disc space-y-0.5 pl-5 text-xs">
-        <li v-for="(e, i) in balanceDesyncErrors" :key="i">{{ e.error }}</li>
-      </ul>
-    </Callout>
+      :body="$t('pages.importExport.budgetBakersWalletImport.done.balanceWarningBody')"
+    />
 
     <Callout v-if="summary.errors.length > 0" variant="warning">
       <p class="text-sm font-medium">
@@ -114,6 +111,8 @@
 import { Button as UiButton } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { StatCard } from '@/components/lib/ui/stat-card';
+import AccountBalanceChangesTable from '@/pages/import-export/components/account-balance-changes-table.vue';
+import BalanceDesyncCallout from '@/pages/import-export/components/balance-desync-callout.vue';
 import { ROUTES_NAMES } from '@/routes';
 import { useImportBudgetBakersWalletStore } from '@/stores/import-budget-bakers-wallet';
 import { storeToRefs } from 'pinia';

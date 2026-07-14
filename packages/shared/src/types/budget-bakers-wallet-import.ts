@@ -10,7 +10,15 @@
 
 import { TRANSACTION_TYPES } from './enums';
 import { IMPORT_JOB_STATUSES } from './import-export';
-import type { CategoryMappingConfig, DuplicateMatch, ImportJobStatus } from './import-export';
+import type {
+  CategoryMappingConfig,
+  DuplicateMatch,
+  ImportError,
+  ImportErrorCode,
+  ImportExecuteRequestBase,
+  ImportJobStatus,
+  ImportSummaryBase,
+} from './import-export';
 
 /** Hard cap on rows the parser will accept. Mirrors the YNAB importer limit so
  *  a single rogue upload can't OOM the parse step. */
@@ -223,7 +231,7 @@ export interface DetectBudgetBakersWalletDuplicatesResponse {
 // Execute
 // ---------------------------------------------------------------------------
 
-export interface ExecuteBudgetBakersWalletRequest {
+export interface ExecuteBudgetBakersWalletRequest extends ImportExecuteRequestBase {
   fileContent: string;
   accountMapping: BudgetBakersWalletAccountMapping;
   /** Per-category decision keyed by the verbatim Wallet `category` value
@@ -253,13 +261,24 @@ export interface ExecuteBudgetBakersWalletResponse {
 export const BUDGET_BAKERS_WALLET_IMPORT_JOB_STATUSES = IMPORT_JOB_STATUSES;
 export type BudgetBakersWalletImportJobStatus = ImportJobStatus;
 
-/** Machine-recognizable BudgetBakers Wallet import failure codes the UI special-cases.
- *  `account-balance-desync`: a linked account's pre-import balance could not be
- *  restored after the rows landed, so its balance may now be wrong. */
-export type BudgetBakersWalletImportErrorCode = 'account-balance-desync';
+/** Aliases the shared `ImportErrorCode` so the Wallet and CSV importers cannot
+ *  drift apart. Kept under the Wallet-specific name because external consumers
+ *  (wizard UI, status handlers) reference it by that name.
+ *  `account-balance-desync`: an account's target balance (a linked account's
+ *  reconcile, or a created account's entered balance) could not be applied
+ *  after the rows landed, so its balance may now be wrong. */
+export type BudgetBakersWalletImportErrorCode = ImportErrorCode;
+
+/**
+ * Aliases the shared `ImportError` so the Wallet and CSV importers cannot drift
+ * apart. Kept under the Wallet-specific name because external consumers rely on
+ * it. Row-level errors (`rowIndex: number`, the human-visible CSV line) carry
+ * no code; account-level failures (`rowIndex: null`) always do.
+ */
+export type BudgetBakersWalletImportError = ImportError;
 
 /** Cumulative numbers reported once the worker finishes. */
-export interface BudgetBakersWalletImportSummary {
+export interface BudgetBakersWalletImportSummary extends ImportSummaryBase {
   accountsCreated: number;
   accountsLinked: number;
   categoriesCreated: number;
@@ -270,11 +289,7 @@ export interface BudgetBakersWalletImportSummary {
   /** Unpaired transfer legs imported as `transfer_out_wallet` transactions. */
   outOfWalletImported: number;
   duplicatesSkipped: number;
-  /** `rowIndex` is the human-visible CSV line for a per-row failure, or `null`
-   *  for an account-level failure that maps to no single row (e.g. a balance
-   *  restore that did not apply). `code` tags machine-recognizable failures so
-   *  the UI can exhaustively special-case them. */
-  errors: { rowIndex: number | null; error: string; code?: BudgetBakersWalletImportErrorCode }[];
+  errors: BudgetBakersWalletImportError[];
 }
 
 /** Common counters every progress event carries. */

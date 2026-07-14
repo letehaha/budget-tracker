@@ -23,6 +23,7 @@ type UnpriceableRow = NonNullable<DetectDuplicatesResponse['unpriceableRows']>[n
 import { executeImport as executeImportApi, getCsvImportStatus } from '@/api/import-export';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
 import { useImportJobProgress } from '@/composable/use-import-job-progress';
+import { useRecalculateBalanceToggle } from '@/composable/use-recalculate-balance-toggle';
 import { useResolveMapping } from '@/composable/use-resolve-mapping';
 import { useWizardSteps } from '@/composable/use-wizard-steps';
 import { i18n } from '@/i18n';
@@ -223,6 +224,18 @@ export const useImportExportStore = defineStore('importExport', () => {
   // show a busy state immediately on click.
   const isEnqueuing = ref<boolean>(false);
 
+  // ---- Balance recalculation toggle ----
+
+  // Review-step checkbox backed by the persisted `import.recalculateAccountBalance`
+  // user setting; the chosen value is PATCHed back after execute accepts the job.
+  const {
+    recalculateBalance,
+    settingsLoading: recalculateBalanceSettingLoading,
+    settingsLoadFailed: recalculateBalanceSettingLoadFailed,
+    persistRecalculateBalanceSetting,
+    resetOverride: resetRecalculateBalanceOverride,
+  } = useRecalculateBalanceToggle({ sentryScope: 'import-csv:persist-recalculate-balance' });
+
   /** True while the import job is enqueuing or in flight (queued/running). Drives
    *  the review-step button's busy state. */
   const isExecuting = computed(
@@ -393,14 +406,17 @@ export const useImportExportStore = defineStore('importExport', () => {
           currencyCode: account.currency || undefined,
         })),
       getTargets: () =>
-        (useAccountsStore().accounts ?? []).map((account) => ({
+        useAccountsStore().importLinkableAccounts.map((account) => ({
           id: String(account.id),
           name: account.name,
           currencyCode: account.currencyCode,
         })),
       mapping: accountMapping,
       toLink: (id) => ({ action: 'link-existing', accountId: id }),
-      toCreate: () => ({ action: 'create-new' }),
+      // `currentBalance: null` = leave the created account at the imported rows'
+      // net sum; the Resolve step's balance input overwrites it when the user
+      // enters a value.
+      toCreate: () => ({ action: 'create-new', currentBalance: null }),
       isResolved: isAccountResolved,
     },
     categories: {
@@ -609,6 +625,7 @@ export const useImportExportStore = defineStore('importExport', () => {
         tagMapping: tagMappingPayload,
         skipDuplicateIndices,
         skipUnpriceableIndices,
+        recalculateBalance: recalculateBalance.value,
         // Must match the timezone the detect-duplicates step sent — the worker
         // re-parses server-side and the user's skip indices are only valid if the
         // parse anchors dates to the same instants.
@@ -624,7 +641,9 @@ export const useImportExportStore = defineStore('importExport', () => {
       isEnqueuing.value = false;
     }
 
-    // Job accepted: only now advance the wizard and arm the progress watchdog.
+    // Job accepted: remember the balance-recalculation choice for the next
+    // import (fire-and-forget), then advance the wizard and arm the watchdog.
+    persistRecalculateBalanceSetting();
     markStepCompleted('review');
     goToStep('results');
     jobProgress.start({
@@ -771,6 +790,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     isDetectingDuplicates.value = false;
     detectError.value = null;
     isEnqueuing.value = false;
+    resetRecalculateBalanceOverride();
     jobProgress.stop();
     jobProgress.setExecuteError(null);
     progress.value = null;
@@ -808,6 +828,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     progress,
     executeError,
     isExecuting,
+    recalculateBalance,
+    recalculateBalanceSettingLoading,
+    recalculateBalanceSettingLoadFailed,
     currentStepKey,
     completedStepKeys,
     currentStep,

@@ -5,6 +5,7 @@
       "linkExisting": "Vincular a existente"
     },
     "selectAction": "Seleccionar acción",
+    "resolvedCounterWord": "resuelto",
     "columns": {
       "sourceName": "Nombre de fuente",
       "currency": "Moneda",
@@ -21,6 +22,23 @@
       "selectTarget": "Seleccionar categoría",
       "willCreate": "Se creará {name}",
       "empty": "Sin categorías para asignar"
+    },
+    "recalculateBalance": {
+      "label": "Actualizar los saldos de las cuentas a partir de las transacciones importadas",
+      "hint": "Las transacciones anteriores a la última transacción existente de una cuenta se consideran carga retroactiva y no modifican su saldo actual.",
+      "loadFailedHint": "No se pudo cargar tu preferencia guardada — se desactiva de forma predeterminada."
+    },
+    "balanceChanges": {
+      "title": "Cambios en los saldos de cuentas",
+      "columns": {
+        "account": "Cuenta",
+        "before": "Antes",
+        "after": "Después",
+        "delta": "Cambio",
+        "newRows": "Filas nuevas",
+        "backfillRows": "Filas retroactivas"
+      },
+      "newAccount": "Cuenta nueva"
     },
     "duplicatesTable": {
       "columnHeaders": {

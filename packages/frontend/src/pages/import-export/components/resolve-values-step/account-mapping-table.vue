@@ -35,8 +35,8 @@ interface SourceItem {
 /**
  * Read-only view of a single account mapping decision. Both CSV's
  * `AccountMappingValue` and BudgetBakers Wallet's `BudgetBakersWalletAccountMappingValue` are
- * structurally assignable to this — extra fields on BudgetBakers Wallet's `create-new`
- * variant (currencyCode/currentBalance) are tolerated.
+ * structurally assignable to this — extra fields on the `create-new` variants
+ * (`currentBalance` on both, BudgetBakers Wallet's `currencyCode`) are tolerated.
  */
 type AccountMappingView = { action: 'create-new' | 'link-existing'; accountId?: string };
 

@@ -5,6 +5,7 @@ import {
   parseBudgetBakersWallet,
 } from '@/api/import-budget-bakers-wallet';
 import { useImportJobProgress } from '@/composable/use-import-job-progress';
+import { useRecalculateBalanceToggle } from '@/composable/use-recalculate-balance-toggle';
 import { useResolveMapping } from '@/composable/use-resolve-mapping';
 import { useWizardSteps } from '@/composable/use-wizard-steps';
 import { captureException } from '@/lib/sentry';
@@ -179,6 +180,18 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
   });
   const progress = jobProgress.progress;
 
+  // ---- Balance recalculation toggle ----
+
+  // Review-step checkbox backed by the persisted `import.recalculateAccountBalance`
+  // user setting; the chosen value is PATCHed back after execute accepts the job.
+  const {
+    recalculateBalance,
+    settingsLoading: recalculateBalanceSettingLoading,
+    settingsLoadFailed: recalculateBalanceSettingLoadFailed,
+    persistRecalculateBalanceSetting,
+    resetOverride: resetRecalculateBalanceOverride,
+  } = useRecalculateBalanceToggle({ sentryScope: 'import-budget-bakers-wallet:persist-recalculate-balance' });
+
   // ---- Loading / error flags ----
 
   const parseError = ref<string | null>(null);
@@ -251,7 +264,7 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
           currencyCode: account.currency || undefined,
         })),
       getTargets: () =>
-        (useAccountsStore().accounts ?? []).map((account) => ({
+        useAccountsStore().importLinkableAccounts.map((account) => ({
           id: String(account.id),
           name: account.name,
           currencyCode: account.currencyCode,
@@ -499,6 +512,7 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
         accountMapping: toWireAccountMapping(),
         categoryMapping: categoryMapping.value,
         skipDuplicateIndices: skipDuplicateIndices.value,
+        recalculateBalance: recalculateBalance.value,
       });
     } catch (err) {
       // The call never started the job — keep the user on `review` (not marked
@@ -507,7 +521,9 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
       return;
     }
 
-    // Job accepted: only now advance the wizard and arm the progress watchdog.
+    // Job accepted: remember the balance-recalculation choice for the next
+    // import (fire-and-forget), then advance the wizard and arm the watchdog.
+    persistRecalculateBalanceSetting();
     markStepCompleted('review');
     goToStep('results');
     jobProgress.start({
@@ -527,6 +543,7 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     categoryMapping.value = {};
     duplicates.value = [];
     unmarkedDuplicateIndices.value = new Set();
+    resetRecalculateBalanceOverride();
     progress.value = null;
     resetSteps();
     parseError.value = null;
@@ -561,6 +578,9 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     isResolveStepValid,
     hasAnyLinkExisting,
     skipDuplicateIndices,
+    recalculateBalance,
+    recalculateBalanceSettingLoading,
+    recalculateBalanceSettingLoadFailed,
 
     // Step navigation
     goToStep,

@@ -149,7 +149,7 @@
         <SelectField
           v-else-if="item.id === 'account' && accountUsesExisting"
           :model-value="selectedAccount"
-          :values="activeAccounts"
+          :values="activeImportLinkableAccounts"
           label-key="name"
           value-key="id"
           class="w-full"
@@ -280,7 +280,7 @@ const { t } = useI18n();
 const importStore = useImportExportStore();
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
-const { activeAccounts } = storeToRefs(accountsStore);
+const { activeAccounts, activeImportLinkableAccounts } = storeToRefs(accountsStore);
 const { categories, formattedCategories, categoriesMap } = storeToRefs(categoriesStore);
 
 /** Single file → its name; several files → a "N files" count (they were merged into one). */

@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
 import { StatusIndicator } from '@/components/lib/ui/status-indicator';
 import { cn } from '@/lib/utils';
+import RecalculateBalanceToggle from '@/pages/import-export/components/recalculate-balance-toggle.vue';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { useImportExportStore } from '@/stores/import-export';
 import { useTagsStore } from '@/stores/tags';
@@ -27,7 +29,7 @@ const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
 const tagsStore = useTagsStore();
 
-const { accounts } = storeToRefs(accountsStore);
+const { importLinkableAccounts } = storeToRefs(accountsStore);
 const { formattedCategories } = storeToRefs(categoriesStore);
 const { tags } = storeToRefs(tagsStore);
 
@@ -48,7 +50,9 @@ const tagActionOptions = computed<OptionItem<TagMappingValue['action']>[]>(() =>
 
 function onAccountSetAction({ name, action }: { name: string; action: 'create-new' | 'link-existing' }) {
   if (action === 'create-new') {
-    importStore.accountMapping[name] = { action: 'create-new' };
+    // `currentBalance: null` = leave the created account at the imported rows'
+    // net sum; the balance input below overwrites it when the user enters a value.
+    importStore.accountMapping[name] = { action: 'create-new', currentBalance: null };
   } else {
     importStore.accountMapping[name] = { action: 'link-existing', accountId: '' };
   }
@@ -56,6 +60,26 @@ function onAccountSetAction({ name, action }: { name: string; action: 'create-ne
 
 function onAccountSetTarget({ name, accountId }: { name: string; accountId: string }) {
   importStore.accountMapping[name] = { action: 'link-existing', accountId };
+}
+
+// ---- Current-balance input bridge (create-new accounts only) ----
+
+/** Stored decimal current balance for a create-new account, or null when unset. */
+function balanceInputValue(name: string): number | null {
+  const mapping = importStore.accountMapping[name];
+  if (mapping?.action !== 'create-new') return null;
+  return mapping.currentBalance ?? null;
+}
+
+/**
+ * Number InputField emits `number | null` (null = cleared). Pass it straight
+ * through: null leaves the created account's balance equal to the sum of
+ * imported transactions.
+ */
+function onBalanceInput({ name, value }: { name: string; value: string | number | null }): void {
+  const mapping = importStore.accountMapping[name];
+  if (mapping?.action !== 'create-new') return;
+  mapping.currentBalance = typeof value === 'number' ? value : null;
 }
 
 // ---- Category mapping (shared table) emit handlers ----
@@ -276,13 +300,31 @@ async function handleNext() {
         v-if="importStore.needsAccountResolution && importStore.uniqueAccountsInCSV.length > 0"
         :items="importStore.uniqueAccountsInCSV"
         :mapping="importStore.accountMapping"
-        :available-accounts="accounts ?? []"
+        :available-accounts="importLinkableAccounts"
         :title="t('pages.importExport.resolveValues.accounts.sectionTitle')"
         :resolved-label="t('importShared.resolvedCounterWord')"
         :quick-actions="accountQuickActions"
         @set-action="onAccountSetAction"
         @set-target="onAccountSetTarget"
-      />
+      >
+        <!-- Optional current balance for create-new accounts: the balance the account
+             holds right now — the import forces it as the final value (blank = sum of
+             imported transactions). -->
+        <template #create-new-cell="{ item }">
+          <div class="flex flex-col gap-1">
+            <InputField
+              type="number"
+              :model-value="balanceInputValue(item.name)"
+              :label="$t('pages.importExport.resolveValues.accounts.currentBalanceLabel')"
+              :placeholder="$t('pages.importExport.resolveValues.accounts.currentBalancePlaceholder')"
+              @update:model-value="(value) => onBalanceInput({ name: item.name, value })"
+            />
+            <span class="text-muted-foreground text-xs">
+              {{ $t('pages.importExport.resolveValues.accounts.currentBalanceHint') }}
+            </span>
+          </div>
+        </template>
+      </AccountMappingTable>
 
       <!-- ==================== CATEGORIES SECTION ==================== -->
       <CategoryMappingTable
@@ -385,6 +427,13 @@ async function handleNext() {
           </template>
         </MappingTable>
       </section>
+
+      <!-- ==================== BALANCE RECALCULATION ==================== -->
+      <RecalculateBalanceToggle
+        v-model="importStore.recalculateBalance"
+        :settings-loading="importStore.recalculateBalanceSettingLoading"
+        :settings-load-failed="importStore.recalculateBalanceSettingLoadFailed"
+      />
 
       <!-- Nav error -->
       <Callout v-if="navError" variant="destructive" role="alert">

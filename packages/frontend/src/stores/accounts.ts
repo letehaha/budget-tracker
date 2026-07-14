@@ -7,7 +7,13 @@ import {
   unlinkAccountFromBankConnection as apiUnlinkAccountFromBankConnection,
 } from '@/api';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES, AccountWithRelinkStatus } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  AccountWithRelinkStatus,
+  isDedicatedFlowAccountCategory,
+} from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { defineStore, storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -67,6 +73,22 @@ export const useAccountsStore = defineStore('accounts', () => {
   // Hide them from source pickers; they stay in txTargetableAccountsActiveFirst for transfer destinations.
   const txTargetableSourceAccountsActiveFirst = computed(() =>
     txTargetableAccountsActiveFirst.value.filter((item) => item.accountCategory !== ACCOUNT_CATEGORIES.loan),
+  );
+
+  // Vehicle and loan balances are derived (depreciation model / loan anchor), so
+  // data imports must never link imported rows to them or shift their balance.
+  // Import wizards offer only the remaining accounts as link targets; the backend
+  // rejects a vehicle/loan link target as well.
+  const importLinkableAccounts = computed(() =>
+    (accounts.value ?? []).filter((item) => !isDedicatedFlowAccountCategory(item.accountCategory)),
+  );
+
+  // Vehicle/loan accounts are excluded from imports entirely (derived balances, the
+  // backend rejects them as link targets), so import pickers that assign rows to one
+  // existing account must not offer them — nor archived accounts. Active slice of
+  // importLinkableAccounts.
+  const activeImportLinkableAccounts = computed(() =>
+    importLinkableAccounts.value.filter((item) => item.status === ACCOUNT_STATUSES.active),
   );
 
   /**
@@ -134,6 +156,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     systemAccountsActiveFirst,
     txTargetableAccountsActiveFirst,
     txTargetableSourceAccountsActiveFirst,
+    importLinkableAccounts,
+    activeImportLinkableAccounts,
     accountsCurrencyCodes,
     accountsNeedingRelink,
     isAccountsFetched,

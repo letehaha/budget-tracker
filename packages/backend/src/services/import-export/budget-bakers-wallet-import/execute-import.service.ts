@@ -1,5 +1,6 @@
 import {
   ACCOUNT_TYPES,
+  type AccountBalanceChange,
   type BudgetBakersWalletAccountMapping,
   type BudgetBakersWalletImportSummary,
   type CategoryMappingConfig,
@@ -14,12 +15,14 @@ import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
-import { updateAccount } from '@services/accounts.service';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
+import { partitionReconcileAccounts } from '@services/import-export/core/partition-reconcile-accounts';
+import { startBalanceReconciliation } from '@services/import-export/core/reconcile-account-balances';
 import { createAccountsIfNeeded } from '@services/import-export/core/resolve/create-accounts-if-needed';
 import { createCategoriesIfNeeded } from '@services/import-export/core/resolve/create-categories-if-needed';
 import { createPayeesIfNeeded } from '@services/import-export/core/resolve/create-payees-if-needed';
 import { createNamedTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
+import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
@@ -39,6 +42,13 @@ interface ExecuteBudgetBakersWalletImportParams {
   /** Row indices the user confirmed as duplicates against linked accounts. Those
    *  transactions are counted as `duplicatesSkipped` and never written. */
   skipDuplicateIndices: number[];
+  /** When true, rows dated on/after a linked account's pre-import boundary (day
+   *  of its latest existing transaction) move that account's current balance;
+   *  older rows are absorbed into `initialBalance`. When false/absent, every
+   *  linked account keeps its pre-import balance. Applies only to link-existing
+   *  accounts — created accounts derive their balance from the entered
+   *  `currentBalance` target / imported rows. */
+  recalculateBalance?: boolean;
   /** Called with cumulative `processedCount` after each committed row so the
    *  BullMQ worker can fan progress out over SSE. Optional — safe to omit in
    *  tests or one-shot callers. */
@@ -54,13 +64,14 @@ interface ExecuteBudgetBakersWalletImportParams {
  *
  * Balance model: `currentBalance = initialBalance + Σ(transactions)`. New
  * accounts are created with a zero initial balance and every imported row is
- * applied; linked accounts already carry their real balance. After all rows are
- * written, each account that has a target balance is back-adjusted via
- * `updateAccount` (which moves `initialBalance`/`refInitialBalance` without
- * spawning an adjustment transaction). The result: a new account shows exactly
- * the balance the user entered, and a linked account keeps its pre-import
- * balance regardless of how many rows landed (skipped duplicates fall out for
- * free).
+ * applied; an entered `currentBalance` target is then forced (moving
+ * `initialBalance`/`refInitialBalance` without spawning an adjustment
+ * transaction). Linked accounts already carry their real balance: their
+ * pre-import balance and boundary day are captured before any row lands, and
+ * after all rows are written the balance-reconciliation session back-adjusts
+ * each one — preserving the balance (recalc OFF) or moving it by the rows dated
+ * on/after the boundary (recalc ON, backfill absorbed into `initialBalance`).
+ * Skipped duplicates are never written, so they fall out of both paths for free.
  */
 export async function executeBudgetBakersWalletImport({
   userId,
@@ -68,6 +79,7 @@ export async function executeBudgetBakersWalletImport({
   accountMapping,
   categoryMapping,
   skipDuplicateIndices,
+  recalculateBalance = false,
   onProgress,
 }: ExecuteBudgetBakersWalletImportParams): Promise<BudgetBakersWalletImportSummary> {
   const parsed = parseBudgetBakersWalletCsv({ fileContent });
@@ -86,7 +98,10 @@ export async function executeBudgetBakersWalletImport({
     source: ImportSource.budgetBakersWallet,
   };
 
-  const summary: BudgetBakersWalletImportSummary = {
+  // The wire type marks `accountBalanceChanges` optional only for retained job
+  // results produced before the field existed; this executor always emits it,
+  // so the local type re-requires it to keep the pushes below well-typed.
+  const summary: BudgetBakersWalletImportSummary & { accountBalanceChanges: AccountBalanceChange[] } = {
     accountsCreated: 0,
     accountsLinked: 0,
     categoriesCreated: 0,
@@ -97,6 +112,7 @@ export async function executeBudgetBakersWalletImport({
     outOfWalletImported: 0,
     duplicatesSkipped: 0,
     errors: [],
+    accountBalanceChanges: [],
   };
 
   const skipSet = new Set(skipDuplicateIndices);
@@ -128,39 +144,29 @@ export async function executeBudgetBakersWalletImport({
     await addUserCurrencies(Array.from(currencyCodes).map((currencyCode) => ({ userId, currencyCode })));
   }
 
-  // Phase 2: accounts. Two concerns the shared resolver does not cover are
+  // Phase 2: accounts. One concern the shared resolver does not cover is
   // handled here first, before any rows are written: Wallet's link-existing
-  // currency match (a UAH CSV account cannot post to a USD app account) and the
-  // per-account target current balance restored in Phase 7. This loop validates
-  // every link-existing mapping (ownership + currency) with Wallet-specific
-  // messages, captures each account's balance target, and tallies
-  // `accountsLinked`; the actual id resolution and new-account creation is then
-  // delegated to `createAccountsIfNeeded`.
-  const targetCurrentBalanceByName = new Map<string, number>();
+  // currency match (a UAH CSV account cannot post to a USD app account). This
+  // loop validates every link-existing mapping (ownership + currency) with
+  // Wallet-specific messages and tallies `accountsLinked`; the actual id
+  // resolution and new-account creation is then delegated to
+  // `createAccountsIfNeeded`.
   for (const account of parsed.accounts) {
     const mapping = accountMapping[account.originalName]!;
+    if (mapping.action !== 'link-existing') continue;
 
-    if (mapping.action === 'create-new') {
-      if (mapping.currentBalance != null) {
-        targetCurrentBalanceByName.set(account.originalName, mapping.currentBalance);
-      }
-    } else {
-      const existing = await Accounts.getAccountById({ userId, id: mapping.accountId });
-      if (!existing) {
-        throw new ValidationError({
-          message: `Account "${account.originalName}" is linked to an account that does not exist or is not yours.`,
-        });
-      }
-      if (existing.currencyCode !== account.currency) {
-        throw new ValidationError({
-          message: `Account "${account.originalName}" (${account.currency}) cannot be linked to "${existing.name}" (${existing.currencyCode}) — currencies must match.`,
-        });
-      }
-      // Preserve the account's balance as it stands today: capture it now and
-      // restore it in Phase 7 after the imported rows have moved it.
-      targetCurrentBalanceByName.set(account.originalName, existing.currentBalance.toNumber());
-      summary.accountsLinked += 1;
+    const existing = await Accounts.getAccountById({ userId, id: mapping.accountId });
+    if (!existing) {
+      throw new ValidationError({
+        message: `Account "${account.originalName}" is linked to an account that does not exist or is not yours.`,
+      });
     }
+    if (existing.currencyCode !== account.currency) {
+      throw new ValidationError({
+        message: `Account "${account.originalName}" (${account.currency}) cannot be linked to "${existing.name}" (${existing.currencyCode}) — currencies must match.`,
+      });
+    }
+    summary.accountsLinked += 1;
   }
 
   // Resolve every parsed account to an app account id, creating new ones with a
@@ -180,6 +186,16 @@ export async function executeBudgetBakersWalletImport({
     resolveFxDate: () => initialBalanceFxDate,
   });
   summary.accountsCreated = accountsCreated;
+
+  // Snapshot every linked account BEFORE any row is written: balance-before +
+  // boundary day (day of its latest existing transaction). Phase 7 reconciles
+  // each linked account against this snapshot. Created accounts are excluded —
+  // they have no history to protect and follow the Phase-7 target-balance path.
+  const { capturedAccountIds, createdAccounts } = partitionReconcileAccounts({
+    accountNameToId: accountIdByName,
+    accountMapping,
+  });
+  const reconciler = await startBalanceReconciliation({ userId, accountIds: capturedAccountIds });
 
   // Phase 3: categories. Resolve each mapped category to an id via the shared
   // CSV resolver: link-existing verifies ownership, create-new finds-or-creates
@@ -297,21 +313,53 @@ export async function executeBudgetBakersWalletImport({
         categoryIdIsExplicit: categoryId != null,
       });
 
-      // Union step: explicit `tagIds` made createTransaction skip the payee's
-      // default tags, so re-apply them here on top of the imported set.
-      // `applyPayeeDefaultTags` is add-only and dedupes, so both sets coexist.
-      if (transaction && hasImportedTags && transaction.payeeId) {
-        await applyPayeeDefaultTags({
-          accountOwnerUserId: userId,
-          transactionId: transaction.id,
-          payeeId: transaction.payeeId,
-        });
-      }
+      // Fold this committed row into the per-account balance tally IMMEDIATELY
+      // after the commit, before any post-commit side-effect that can throw
+      // (`applyPayeeDefaultTags` below): the balance hook has already moved
+      // `currentBalance`, so a row missing from the tally would make the
+      // Phase-7 reconcile adjustment too large with no desync error. Both
+      // amounts signed the way the hook applied them (income adds, expense
+      // subtracts); `refAmount` comes from the written row so the ref tally
+      // carries the row-date FX rate the hook used.
+      reconciler.recordRow({
+        accountId,
+        rowIso: tx.date,
+        ...signedRowContribution({
+          isIncome: transactionType === TRANSACTION_TYPES.income,
+          amount,
+          refAmount: transaction.refAmount,
+        }),
+      });
 
       if (tx.outOfWallet) {
         summary.outOfWalletImported += 1;
       } else {
         summary.transactionsImported += 1;
+      }
+
+      // Union step: explicit `tagIds` made createTransaction skip the payee's
+      // default tags, so re-apply them here on top of the imported set.
+      // `applyPayeeDefaultTags` is add-only and dedupes, so both sets coexist.
+      // The transaction is already committed, so a failure here loses only the
+      // default tags and is reported as its own error — reporting it as a
+      // failed row would invite a re-import that duplicates the transaction.
+      if (transaction && hasImportedTags && transaction.payeeId) {
+        try {
+          await applyPayeeDefaultTags({
+            accountOwnerUserId: userId,
+            transactionId: transaction.id,
+            payeeId: transaction.payeeId,
+          });
+        } catch (err) {
+          logger.error({
+            message: `[Budget Bakers Wallet import] Failed to apply default payee tags (row ${tx.rowIndex}, account "${tx.accountName}")`,
+            error: err as Error,
+          });
+          summary.errors.push({
+            rowIndex: tx.rowIndex,
+            error: 'Transaction was imported, but the payee default tags could not be applied',
+          });
+        }
       }
     } catch (err) {
       logger.error({
@@ -345,7 +393,7 @@ export async function executeBudgetBakersWalletImport({
         });
       }
 
-      await createTransaction({
+      const [sourceLeg, destinationLeg] = await createTransaction({
         userId,
         accountId: sourceAccountId,
         amount: Money.fromDecimal(xfer.sourceAmount),
@@ -359,6 +407,42 @@ export async function executeBudgetBakersWalletImport({
         destinationAccountId,
         destinationAmount: Money.fromDecimal(xfer.destinationAmount),
         externalData: { importDetails },
+      });
+
+      // `createTransaction` types the destination leg optional for non-transfer
+      // calls; a `common_transfer` always writes and returns both legs. Assert
+      // it explicitly rather than falling back to the source leg: folding the
+      // source leg's refAmount into the destination account's base-currency
+      // tally would silently corrupt it for a cross-currency transfer, where the
+      // two legs carry genuinely different refAmounts.
+      if (!destinationLeg) {
+        throw new ValidationError({
+          message: `Transfer destination leg missing for "${xfer.sourceAccountName}" → "${xfer.destinationAccountName}"; account balances may be incorrect.`,
+        });
+      }
+
+      // Each transfer leg lands on its own account, so each is recorded against
+      // that account's own boundary: source loses `sourceAmount` (expense),
+      // destination gains `destinationAmount` (income). Ref amounts come from the
+      // written legs (row-date FX) — for a cross-currency transfer the two legs
+      // carry genuinely different refAmounts, so neither can stand in for the other.
+      reconciler.recordRow({
+        accountId: sourceAccountId,
+        rowIso: xfer.date,
+        ...signedRowContribution({
+          isIncome: false,
+          amount: Money.fromDecimal(xfer.sourceAmount),
+          refAmount: sourceLeg.refAmount,
+        }),
+      });
+      reconciler.recordRow({
+        accountId: destinationAccountId,
+        rowIso: xfer.date,
+        ...signedRowContribution({
+          isIncome: true,
+          amount: Money.fromDecimal(xfer.destinationAmount),
+          refAmount: destinationLeg.refAmount,
+        }),
       });
 
       summary.transfersImported += 1;
@@ -382,42 +466,22 @@ export async function executeBudgetBakersWalletImport({
 
   // Phase 7: balance targeting. Must run AFTER all rows are written so the
   // back-adjustment is computed against the current balance the imported
-  // transactions produced. Setting `currentBalance` makes `updateAccount`
-  // move `initialBalance`/`refInitialBalance` by the diff (no adjustment
-  // transaction), so new accounts show the entered balance and linked accounts
-  // are restored to their pre-import balance.
-  for (const [accountName, target] of targetCurrentBalanceByName) {
-    const accountId = accountIdByName.get(accountName)!;
-    const isLinkExisting = accountMapping[accountName]?.action === 'link-existing';
-    try {
-      await updateAccount({ id: accountId, userId, currentBalance: Money.fromDecimal(target) });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      if (isLinkExisting) {
-        // The imported rows shifted a pre-existing account's balance and the reset
-        // back to its captured pre-import value failed. The transactions are
-        // committed, so this is a data-correctness problem the user must see and
-        // fix manually, not a routine row error — surface it with a distinct code
-        // the done step renders as a destructive callout.
-        logger.error({
-          message: `[Budget Bakers Wallet import] Failed to reset balance for linked account "${accountName}" after import — balance may be incorrect`,
-          error: err as Error,
-        });
-        summary.errors.push({
-          rowIndex: null,
-          code: 'account-balance-desync',
-          error: `${accountName}: balance could not be reset after import; this account balance may be incorrect`,
-        });
-      } else {
-        logger.error({
-          message: `[Budget Bakers Wallet import] Failed to set balance for account "${accountName}"`,
-          error: err as Error,
-        });
-        // Account-level failure — no single CSV row maps to it, so rowIndex is null.
-        summary.errors.push({ rowIndex: null, error: `Failed to set balance for "${accountName}": ${message}` });
-      }
-    }
-  }
+  // transactions produced. `finalize` owns the whole pass: created accounts
+  // (partitioned alongside the captured set in Phase 2) get their entered
+  // `currentBalance` (when non-null) forced as the final value (a null target
+  // leaves the balance at Σ(imported rows)) plus a summary entry read back
+  // afterwards; linked accounts are back-adjusted against their pre-import
+  // snapshot — preserved (recalc OFF) or moved by the rows dated on/after the
+  // boundary (recalc ON). A failed balance write surfaces as
+  // `account-balance-desync`: the rows are committed, so the user must see and
+  // fix the balance manually.
+  const { accountBalanceChanges, errors: balanceErrors } = await reconciler.finalize({
+    recalculateBalance,
+    createdAccounts,
+    logLabel: 'Budget Bakers Wallet import',
+  });
+  summary.accountBalanceChanges.push(...accountBalanceChanges);
+  summary.errors.push(...balanceErrors);
 
   return summary;
 }
