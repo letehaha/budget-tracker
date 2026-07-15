@@ -76,6 +76,19 @@ vi.mock('./tags', () => ({
   useTagsStore: vi.fn(() => ({ loadTags: vi.fn() })),
 }));
 
+// The store reads the persisted recalculate-balance default from user settings at
+// construction and PATCHes the chosen value back after a successful execute. Mocked
+// so no real settings query fires; tests drive `data` and assert on `patchAsync`.
+let mockUserSettingsData: Ref<{ import?: { recalculateAccountBalance?: boolean } } | undefined>;
+let mockPatchUserSettingsAsync: ReturnType<typeof vi.fn>;
+
+vi.mock('@/composable/data-queries/user-settings', () => ({
+  useUserSettings: vi.fn(() => ({
+    data: mockUserSettingsData,
+    patchAsync: mockPatchUserSettingsAsync,
+  })),
+}));
+
 // ----- helpers -----
 
 import * as apiModule from '@/api/import-export';
@@ -120,6 +133,7 @@ const completedPayload = (summary: Partial<CsvImportSummary> = {}) => ({
     errors: [],
     newTransactionIds: [],
     batchId: 'batch-1',
+    accountBalanceChanges: [],
     ...summary,
   } satisfies CsvImportSummary,
 });
@@ -145,6 +159,8 @@ const mountWithPlugins = () => {
   });
   mockJobProgress = ref(null);
   mockJobExecuteError = ref<string | null>(null);
+  mockUserSettingsData = ref(undefined);
+  mockPatchUserSettingsAsync = vi.fn(() => Promise.resolve({}));
 
   const pinia = createPinia();
   setActivePinia(pinia);
@@ -786,14 +802,14 @@ describe('useImportExportStore – isResolveStepValid', () => {
 
     store.accountMapping = {
       Checking: { action: 'link-existing', accountId: 'acc-1' },
-      Savings: { action: 'create-new' },
+      Savings: { action: 'create-new', currentBalance: null },
     };
     expect(store.isResolveStepValid).toBe(true);
 
     // A link-existing row with an empty target id is not fully resolved.
     store.accountMapping = {
       Checking: { action: 'link-existing', accountId: '' },
-      Savings: { action: 'create-new' },
+      Savings: { action: 'create-new', currentBalance: null },
     };
     expect(store.isResolveStepValid).toBe(false);
   });
@@ -1024,5 +1040,38 @@ describe('useImportExportStore – parseFiles', () => {
 
     expect(store.uncoveredTransactionTypeValues).toEqual(['ZZZ', 'QQQ']);
     expect(store.isMapStepValid).toBe(false);
+  });
+});
+
+// Integration wiring only — the toggle's behavior matrix (persisted default,
+// override precedence, only-when-changed persistence) is covered by the
+// composable's own tests in use-recalculate-balance-toggle.test.ts.
+describe('useImportExportStore – recalculate-balance toggle wiring', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('sends the toggle value in the execute payload and persists it once the job is accepted', async () => {
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+    const store = useImportExportStore();
+    seedStore(store);
+
+    store.recalculateBalance = true;
+    await store.executeImport();
+
+    expect(mockExecuteImportApi).toHaveBeenCalledWith(expect.objectContaining({ recalculateBalance: true }));
+    expect(mockPatchUserSettingsAsync).toHaveBeenCalledTimes(1);
+    expect(mockPatchUserSettingsAsync).toHaveBeenCalledWith({ import: { recalculateAccountBalance: true } });
+  });
+
+  it('reset() clears the override back to the persisted value', () => {
+    mockUserSettingsData.value = { import: { recalculateAccountBalance: true } };
+    const store = useImportExportStore();
+
+    store.recalculateBalance = false;
+    store.reset();
+
+    expect(store.recalculateBalance).toBe(true);
   });
 });

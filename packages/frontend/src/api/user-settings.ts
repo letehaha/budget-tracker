@@ -74,6 +74,15 @@ export interface UserSettingsSchema {
   dashboard?: {
     widgets: DashboardWidgetConfig[];
   };
+  /** Data-import preferences shared by the CSV and Budget Bakers Wallet wizards. */
+  import?: {
+    /**
+     * Seeds the "update account balances from imported transactions" checkbox
+     * on the import wizards' resolve steps. Each import execute writes the
+     * chosen value back, so the next import remembers it. Off when unset.
+     */
+    recalculateAccountBalance?: boolean;
+  };
   includeCreditLimitInStats?: boolean;
   sidebarSections?: SidebarSectionsConfig;
   payeeExtractionUsesDescription?: boolean;

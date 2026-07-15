@@ -31,6 +31,9 @@ interface CsvImportJobData extends SentryTraceData {
   /** IANA timezone forwarded to `parseValidRows` so the worker anchors dates to
    *  the same instants the interactive preview computed. */
   timezone?: string;
+  /** When true, rows dated on/after a linked account's pre-import boundary move
+   *  its current balance; when false/absent the pre-import balance is preserved. */
+  recalculateBalance?: boolean;
 }
 
 const {
@@ -56,6 +59,7 @@ const {
       defaultAccountId,
       defaultCategoryId,
       timezone,
+      recalculateBalance,
     } = job.data;
 
     // Re-parse server-side rather than shipping `validRows` through Redis.
@@ -88,6 +92,7 @@ const {
       skipUnpriceableIndices,
       defaultAccountId: resolvedDefaultAccountId,
       defaultCategoryId: resolvedDefaultCategoryId,
+      recalculateBalance,
       onProgress,
     });
   },
@@ -109,6 +114,7 @@ export async function queueCsvImport({
   defaultAccountId,
   defaultCategoryId,
   timezone,
+  recalculateBalance,
 }: {
   userId: number;
   fileContent: string;
@@ -122,6 +128,7 @@ export async function queueCsvImport({
   defaultAccountId?: string;
   defaultCategoryId?: string;
   timezone?: string;
+  recalculateBalance?: boolean;
 }): Promise<string> {
   // Random suffix (not a timestamp): two imports the same user fires within the
   // same millisecond would otherwise collide on one id, and BullMQ silently drops
@@ -140,6 +147,7 @@ export async function queueCsvImport({
     defaultAccountId,
     defaultCategoryId,
     timezone,
+    recalculateBalance,
   };
 
   await enqueue({ userId, jobId, data });

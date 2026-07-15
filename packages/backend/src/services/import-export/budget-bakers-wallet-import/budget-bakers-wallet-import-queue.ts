@@ -17,6 +17,9 @@ interface BudgetBakersWalletImportJobData extends SentryTraceData {
   accountMapping: BudgetBakersWalletAccountMapping;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
+  /** When true, rows dated on/after a linked account's pre-import boundary move
+   *  its current balance; when false/absent the pre-import balance is preserved. */
+  recalculateBalance?: boolean;
 }
 
 const {
@@ -33,13 +36,14 @@ const {
   sseEventType: SSE_EVENT_TYPES.BUDGET_BAKERS_WALLET_IMPORT_PROGRESS,
   logLabel: 'Budget Bakers Wallet Import',
   processJob: async ({ job, onProgress }) => {
-    const { userId, fileContent, accountMapping, categoryMapping, skipDuplicateIndices } = job.data;
+    const { userId, fileContent, accountMapping, categoryMapping, skipDuplicateIndices, recalculateBalance } = job.data;
     return executeBudgetBakersWalletImport({
       userId,
       fileContent,
       accountMapping,
       categoryMapping,
       skipDuplicateIndices,
+      recalculateBalance,
       onProgress,
     });
   },
@@ -54,12 +58,14 @@ export async function queueBudgetBakersWalletImport({
   accountMapping,
   categoryMapping,
   skipDuplicateIndices,
+  recalculateBalance,
 }: {
   userId: number;
   fileContent: string;
   accountMapping: BudgetBakersWalletAccountMapping;
   categoryMapping: CategoryMappingConfig;
   skipDuplicateIndices: number[];
+  recalculateBalance?: boolean;
 }): Promise<string> {
   // Random suffix (not a timestamp): two imports the same user fires within the
   // same millisecond would otherwise collide on one id, and BullMQ silently drops
@@ -71,6 +77,7 @@ export async function queueBudgetBakersWalletImport({
     accountMapping,
     categoryMapping,
     skipDuplicateIndices,
+    recalculateBalance,
   };
 
   await enqueue({ userId, jobId, data });

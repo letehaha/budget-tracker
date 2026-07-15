@@ -5,15 +5,17 @@ import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
+import { resetQueryCaches } from '@/lib/query-persister';
 import { captureException } from '@/lib/sentry';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { Trash2Icon, TriangleAlertIcon } from '@lucide/vue';
-import { useMutation } from '@tanstack/vue-query';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const queryClient = useQueryClient();
 
 const WIPE_CONFIRMATION = 'WIPE MY DATA';
 
@@ -29,8 +31,13 @@ const POST_WIPE_RELOAD_DELAY_MS = 1200;
 
 const { isPending: isWiping, mutate: wipe } = useMutation({
   mutationFn: ({ acknowledgeSharing }: { acknowledgeSharing: boolean }) => wipeUserData({ acknowledgeSharing }),
-  onSuccess: () => {
+  onSuccess: async () => {
     addSuccessNotification(t('settings.security.wipeData.notifications.success'));
+    // The reload below rehydrates whitelisted queries from the persisted IndexedDB
+    // store, so without purging it first the post-wipe app would restore pre-wipe
+    // currencies/accounts/etc. that no longer exist server-side. Same teardown
+    // logout performs.
+    await resetQueryCaches(queryClient);
     // Fresh start — reload so onboarding picks up the empty state and the user re-picks
     // a base currency without any stale cached data lingering in stores or query cache.
     setTimeout(() => window.location.reload(), POST_WIPE_RELOAD_DELAY_MS);

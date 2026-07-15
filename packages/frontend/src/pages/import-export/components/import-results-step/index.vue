@@ -101,15 +101,29 @@
       </div>
     </div>
 
+    <!-- Per-account balance changes (only present when the import touched balances) -->
+    <AccountBalanceChangesTable v-if="summary" :changes="summary.accountBalanceChanges ?? []" />
+
+    <!-- Balance-desync callout: an account's balance could not be reconciled after import -->
+    <BalanceDesyncCallout
+      :errors="summary?.errors ?? []"
+      :title="$t('pages.importExport.csvImport.results.balanceWarningTitle')"
+      :body="$t('pages.importExport.csvImport.results.balanceWarningBody')"
+    />
+
     <!-- Per-row errors table -->
     <section v-if="summary?.errors.length" aria-labelledby="result-errors-heading">
       <h3 id="result-errors-heading" class="text-destructive-text mb-3 text-sm font-semibold">
         {{ $t('pages.importExport.csvImport.results.importErrors') }}
       </h3>
 
-      <MappingTable :columns="errorColumns" :items="summary.errors" :row-key="(err) => err.rowIndex">
+      <!-- rowIndex can repeat (null for account-level errors), so the row key is the list index. -->
+      <MappingTable :columns="errorColumns" :items="summary.errors" :row-key="(_err, index) => index">
         <template #cell:row="{ item }">
-          <span class="text-muted-foreground font-mono text-xs">#{{ item.rowIndex }}</span>
+          <!-- rowIndex is null for account-level errors (e.g. balance reconcile
+               failures) that map to no single row. -->
+          <span v-if="item.rowIndex != null" class="text-muted-foreground font-mono text-xs">#{{ item.rowIndex }}</span>
+          <span v-else class="text-muted-foreground font-mono text-xs">—</span>
         </template>
 
         <template #cell:problem="{ item }">
@@ -155,6 +169,8 @@ import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mappi
 import { StatCard } from '@/components/lib/ui/stat-card';
 import { StatusIndicator } from '@/components/lib/ui/status-indicator';
 import { cn } from '@/lib/utils';
+import AccountBalanceChangesTable from '@/pages/import-export/components/account-balance-changes-table.vue';
+import BalanceDesyncCallout from '@/pages/import-export/components/balance-desync-callout.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useImportExportStore } from '@/stores/import-export';
 import { CircleAlertIcon, CircleCheckIcon } from '@lucide/vue';

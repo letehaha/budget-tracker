@@ -12,6 +12,7 @@
 import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
+import RecalculateBalanceToggle from '@/pages/import-export/components/recalculate-balance-toggle.vue';
 import AccountMappingTable from '@/pages/import-export/components/resolve-values-step/account-mapping-table.vue';
 import CategoryMappingTable from '@/pages/import-export/components/resolve-values-step/category-mapping-table.vue';
 import { type QuickAction } from '@/pages/import-export/components/resolve-values-step/quick-action-toolbar.vue';
@@ -29,7 +30,7 @@ const store = useImportBudgetBakersWalletStore();
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
 
-const { accounts } = storeToRefs(accountsStore);
+const { importLinkableAccounts } = storeToRefs(accountsStore);
 const { formattedCategories } = storeToRefs(categoriesStore);
 
 // ---- Table items ----
@@ -144,7 +145,7 @@ async function handleContinue() {
     <AccountMappingTable
       :items="accountItems"
       :mapping="store.accountMapping"
-      :available-accounts="accounts ?? []"
+      :available-accounts="importLinkableAccounts"
       :title="$t('pages.importExport.budgetBakersWalletImport.resolve.accounts.sectionTitle')"
       :resolved-label="$t('pages.importExport.budgetBakersWalletImport.resolve.resolvedCounterWord')"
       :quick-actions="accountQuickActions"
@@ -182,6 +183,13 @@ async function handleContinue() {
       :quick-actions="categoryQuickActions"
       @set-action="store.setCategoryAction"
       @set-target="store.setCategoryTarget"
+    />
+
+    <!-- ==================== BALANCE RECALCULATION ==================== -->
+    <RecalculateBalanceToggle
+      v-model="store.recalculateBalance"
+      :settings-loading="store.recalculateBalanceSettingLoading"
+      :settings-load-failed="store.recalculateBalanceSettingLoadFailed"
     />
 
     <!-- Detect error from store (e.g. network failure during detectDuplicates) -->

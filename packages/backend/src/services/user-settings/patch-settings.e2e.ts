@@ -159,4 +159,29 @@ describe('Patch user settings', () => {
     });
     expect(overLongName.statusCode).toBe(ERROR_CODES.ValidationError);
   });
+
+  it('persists the import.recalculateAccountBalance setting and reads it back', async () => {
+    const patched = await helpers.patchUserSettings({
+      raw: true,
+      patch: { import: { recalculateAccountBalance: true } },
+    });
+    expect(patched.import?.recalculateAccountBalance).toBe(true);
+
+    const fetched = await helpers.getUserSettings({ raw: true });
+    expect(fetched.import?.recalculateAccountBalance).toBe(true);
+
+    // Toggling back off persists too.
+    const toggledOff = await helpers.patchUserSettings({
+      raw: true,
+      patch: { import: { recalculateAccountBalance: false } },
+    });
+    expect(toggledOff.import?.recalculateAccountBalance).toBe(false);
+  });
+
+  it('rejects a non-boolean import.recalculateAccountBalance value', async () => {
+    const response = await helpers.patchUserSettings({
+      patch: { import: { recalculateAccountBalance: 'yes' } },
+    });
+    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+  });
 });

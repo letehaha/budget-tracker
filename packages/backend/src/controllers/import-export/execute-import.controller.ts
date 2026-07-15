@@ -7,6 +7,7 @@ import {
   accountMappingValueSchema,
   categoryMappingValueSchema,
   columnMappingConfigSchema,
+  importExecuteRequestBaseSchema,
   tagMappingValueSchema,
 } from './shared-schemas';
 
@@ -24,6 +25,9 @@ export const executeImportController = createController(
       defaultAccountId: recordId().optional(),
       defaultCategoryId: recordId().optional(),
       timezone: z.string().optional(),
+      // Shared balance-recalculation fields (`recalculateBalance`), tied to
+      // `ImportExecuteRequestBase` by a drift guard in `./shared-schemas`.
+      ...importExecuteRequestBaseSchema.shape,
     }),
   }),
   async ({ user, body }) => {
@@ -39,6 +43,7 @@ export const executeImportController = createController(
       defaultAccountId,
       defaultCategoryId,
       timezone,
+      recalculateBalance,
     } = body;
 
     const jobId = await queueCsvImport({
@@ -54,6 +59,7 @@ export const executeImportController = createController(
       defaultAccountId,
       defaultCategoryId,
       timezone,
+      recalculateBalance,
     });
 
     return {

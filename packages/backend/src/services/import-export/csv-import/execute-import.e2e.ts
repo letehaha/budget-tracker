@@ -255,7 +255,7 @@ describe('Execute Import endpoint (async)', () => {
 
       const { progress } = await runImport({
         fileContent: buildCsv(defaultRows({ account: 'New Import Account', currency: 'USD' })),
-        accountMapping: { 'New Import Account': { action: 'create-new' } },
+        accountMapping: { 'New Import Account': { action: 'create-new', currentBalance: null } },
       });
       expectCsvImportCompleted(progress);
 
@@ -380,8 +380,8 @@ describe('Execute Import endpoint (async)', () => {
       const { progress } = await runImport({
         fileContent,
         accountMapping: {
-          'Account A': { action: 'create-new' },
-          'Account B': { action: 'create-new' },
+          'Account A': { action: 'create-new', currentBalance: null },
+          'Account B': { action: 'create-new', currentBalance: null },
         },
       });
       expectCsvImportCompleted(progress);
@@ -501,6 +501,47 @@ describe('Execute Import endpoint (async)', () => {
       expect(created.every((tx) => tx.accountId === account.id)).toBe(true);
     });
 
+    it('still imports mismatched-currency rows in the single-existing-account flow (warned coercion)', async () => {
+      // The single-existing-account flow deliberately allows a currency
+      // mismatch: the wizard warns "all transactions will be imported using
+      // <account currency>" at the mapping step. Only per-name link-existing
+      // mappings are guarded — this flow must keep completing, with every row
+      // booked in the account's own currency.
+      const account = await helpers.createAccount({ raw: true });
+      const mismatchedCurrency = account.currencyCode === 'USD' ? 'EUR' : 'USD';
+
+      const fileContent = buildCsv([
+        {
+          date: '2024-01-15',
+          amount: '100.50',
+          description: 'Groceries',
+          currency: mismatchedCurrency,
+          type: 'expense',
+        },
+        { date: '2024-01-17', amount: '2500.00', description: 'Salary', currency: mismatchedCurrency, type: 'income' },
+      ]);
+
+      const { progress } = await runImport({
+        fileContent,
+        columnMapping: buildColumnMapping({
+          account: { option: AccountOptionValue.existingAccount, accountId: account.id },
+          currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
+        }),
+        accountMapping: {},
+      });
+      expectCsvImportCompleted(progress);
+
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.summary.errors).toHaveLength(0);
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      const created = transactions.filter((tx) => progress.summary.newTransactionIds.includes(tx.id));
+      expect(created).toHaveLength(2);
+      expect(created.every((tx) => tx.accountId === account.id)).toBe(true);
+      // Coercion contract: rows land in the account's currency, numbers verbatim.
+      expect(created.every((tx) => tx.currencyCode === account.currencyCode)).toBe(true);
+    });
+
     // When the user picks "assign all rows to a single existing category", the
     // rows carry no category and defaultCategoryId fills it in. Without the
     // fallback the transactions would import with no category at all.
@@ -595,9 +636,9 @@ describe('Execute Import endpoint (async)', () => {
       const { progress } = await runImport({
         fileContent,
         accountMapping: {
-          'New Account A': { action: 'create-new' },
+          'New Account A': { action: 'create-new', currentBalance: null },
           'CSV Existing Account': { action: 'link-existing', accountId: existingAccount.id },
-          'New Account B': { action: 'create-new' },
+          'New Account B': { action: 'create-new', currentBalance: null },
         },
       });
       expectCsvImportCompleted(progress);
@@ -734,8 +775,8 @@ describe('Execute Import endpoint (async)', () => {
       const { progress } = await runImport({
         fileContent,
         accountMapping: {
-          'Account A': { action: 'create-new' },
-          'Account B': { action: 'create-new' },
+          'Account A': { action: 'create-new', currentBalance: null },
+          'Account B': { action: 'create-new', currentBalance: null },
         },
         categoryMapping: { Food: { action: 'create-new' } },
       });
@@ -886,6 +927,32 @@ describe('Execute Import endpoint (async)', () => {
       expect(progress.status).toBe('failed');
       if (progress.status !== 'failed') throw new Error('unreachable');
       expect(progress.error).toMatch(/not found/i);
+    });
+
+    it('fails the job when link-existing rows carry a different currency than the linked account', async () => {
+      // A transaction's currency always comes from the account it lands on, so
+      // a mismatched row would keep its number and silently change meaning
+      // (100 USD booked as 100 <account currency>). The guard fails the job
+      // BEFORE any side effect, so the account must stay completely untouched.
+      const account = await helpers.createAccount({ raw: true });
+      const mismatchedCurrency = account.currencyCode === 'USD' ? 'EUR' : 'USD';
+
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: mismatchedCurrency })),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+      });
+
+      expect(progress.status).toBe('failed');
+      if (progress.status !== 'failed') throw new Error('unreachable');
+      expect(progress.error).toMatch(/currencies must match/i);
+      expect(progress.error).toContain(mismatchedCurrency);
+      expect(progress.error).toContain(account.currencyCode);
+
+      // Zero state: no rows were written and the balance never moved.
+      const after = await helpers.getAccount({ id: account.id, raw: true });
+      expect(after.currentBalance).toStrictEqual(account.currentBalance);
+      const transactions = await helpers.getTransactions({ raw: true });
+      expect(transactions.filter((tx) => tx.accountId === account.id)).toHaveLength(0);
     });
 
     it('fails the job when the linked category does not exist', async () => {
@@ -1049,7 +1116,7 @@ describe('Execute Import endpoint (async)', () => {
 
       const { progress } = await runImport({
         fileContent,
-        accountMapping: { 'EUR Account': { action: 'create-new' } },
+        accountMapping: { 'EUR Account': { action: 'create-new', currentBalance: null } },
       });
       expectCsvImportCompleted(progress);
 
@@ -1080,8 +1147,8 @@ describe('Execute Import endpoint (async)', () => {
       const { progress } = await runImport({
         fileContent,
         accountMapping: {
-          'USD Account': { action: 'create-new' },
-          'GBP Account': { action: 'create-new' },
+          'USD Account': { action: 'create-new', currentBalance: null },
+          'GBP Account': { action: 'create-new', currentBalance: null },
         },
       });
       expectCsvImportCompleted(progress);
@@ -1430,9 +1497,9 @@ describe('Execute Import endpoint (async)', () => {
     // The worker re-parses the file with `parseValidRows`, which rejects an
     // unparseable date or blank account as an INVALID row before `executeImport`
     // ever runs – so those never become per-row `summary.errors`. A genuine
-    // per-row Phase-5 DB failure requires a `createTransaction` error that no
-    // HTTP-reachable input can force here. What this test pins down is the
-    // best-effort contract that IS observable over HTTP: good rows import, the
+    // per-row DB failure (an amount overflowing the BIGINT cents column) is
+    // exercised in balance-recalculation.e2e.ts; what this test pins down is the
+    // best-effort contract for a clean run: good rows import, the
     // claimed-imported ids are actually persisted, and `summary.errors` is always
     // a well-shaped array on a completed job.
     it('imports the good rows and always returns a well-shaped errors array', async () => {

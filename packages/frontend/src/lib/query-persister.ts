@@ -3,6 +3,7 @@ import {
   type PersistedQuery,
   experimental_createQueryPersister,
 } from '@tanstack/query-persist-client-core';
+import type { QueryClient } from '@tanstack/vue-query';
 import { type UseStore, clear, createStore, del, get, set } from 'idb-keyval';
 
 // Discard restored entries older than a day so a user who returns after a long
@@ -70,4 +71,17 @@ export const persistedQueryFn = persister?.persisterFn;
 export const clearPersistedQueries = async (): Promise<void> => {
   if (!persistedQueryStore) return;
   await clear(persistedQueryStore);
+};
+
+/**
+ * Full on-device query-cache teardown: cancel in-flight queries (so nothing
+ * refetches and re-persists mid-teardown), drop the in-memory cache, then wipe
+ * the persisted IndexedDB store. Shared by every "no cached data may survive"
+ * flow — logout, user-switch, and the destructive data wipe — so none of them
+ * can forget the persisted store and leave one state restoring another's data.
+ */
+export const resetQueryCaches = async (queryClient: QueryClient): Promise<void> => {
+  queryClient.cancelQueries();
+  queryClient.clear();
+  await clearPersistedQueries();
 };
