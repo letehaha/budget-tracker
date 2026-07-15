@@ -108,9 +108,6 @@
       },
       "existenceCheck": {
         "title": "Підсумок активності тегу",
-        "message_one": "У вас {{count}} транзакція з тегом \"{{tagName}}\"",
-        "message_few": "У вас {{count}} транзакції з тегом \"{{tagName}}\"",
-        "message_many": "У вас {{count}} транзакцій з тегом \"{{tagName}}\"",
         "message": "У вас {{count}} транзакцій з тегом \"{{tagName}}\""
       }
     }
