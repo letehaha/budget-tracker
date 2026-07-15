@@ -1,0 +1,37 @@
+name: Crowdin Download Translations
+
+# Opens a PR with translations done in Crowdin. Runs on its own schedule rather
+# than on push, so merging to main doesn't open a translation PR every time.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: crowdin/github-action@v2
+        with:
+          upload_sources: false
+          upload_translations: false
+          download_translations: true
+          # Untranslated strings are omitted rather than filled with English:
+          # both runtimes already fall back to en (vue-i18n `fallbackLocale`,
+          # i18next `fallbackLng`).
+          skip_untranslated_strings: true
+          localization_branch_name: l10n_crowdin
+          create_pull_request: true
+          pull_request_title: 'chore(i18n): new Crowdin translations'
+          pull_request_base_branch_name: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
