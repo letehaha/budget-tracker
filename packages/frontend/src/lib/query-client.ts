@@ -3,7 +3,7 @@ import { ApiErrorResponseError, AuthError, UnexpectedError } from '@/js/errors';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { QueryClient, type QueryKey } from '@tanstack/vue-query';
 
-import { persistedQueryFn } from './query-persister';
+import { persistedImmutableQueryFn, persistedQueryFn } from './query-persister';
 
 // Client-terminal codes: the caller cannot fix by retrying (auth/permission
 // gaps, missing resources, malformed requests). Transient codes like
@@ -45,24 +45,18 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Rarely-changing, non-financial queries that are safe to restore instantly from
-// disk on reload (stale-while-revalidate: cached data shows immediately while a
-// background refetch runs). Volatile data — transactions, balances, cash-flow,
-// stats, notifications, sync status — is intentionally excluded.
+// Data worth painting from disk before the network answers. Volatile data
+// (transactions, balances history, cash-flow, stats, notifications, sync status)
+// stays off this list – restoring it would flash figures wrong more often than right.
 //
-// Keys are matched by PREFIX, so filtered variants (e.g. subscriptions with a
-// filter suffix) are covered by their stable base key. Each prefix is chosen to
-// avoid overlapping a volatile sibling under the same global prefix.
+// Matched by PREFIX, so every variant of a key (a filtered subscriptions list, a
+// payee search term) persists as its own entry, and each prefix must avoid
+// overlapping a volatile sibling under the same global prefix.
 //
-// INVARIANT: only persist queries kept fresh by invalidate/refetch on mutation.
-// The persister writes to IndexedDB from its own fetch path only, so a query
-// updated optimistically via `queryClient.setQueryData` (never refetched) would
-// leave a stale snapshot on disk and restore it on the next reload. `userSettings`
-// is the abolished candidate here — its mutations use setQueryData, so persisting
-// it made a reordered dashboard revert after reload; it stays off this list.
+// A restored snapshot is always confirmed by one background refetch on idle (see
+// `persistedQueryFn`), so a key needs no mutation-time freshness guarantee to belong
+// here – whatever wrote to it is picked up on the next load.
 const PERSISTED_QUERY_KEY_PREFIXES: readonly QueryKey[] = [
-  // Static reference data
-  VUE_QUERY_CACHE_KEYS.allCurrencies,
   VUE_QUERY_CACHE_KEYS.userCurrencies,
   VUE_QUERY_CACHE_KEYS.baseCurrency,
   VUE_QUERY_CACHE_KEYS.categoriesList,
@@ -74,17 +68,15 @@ const PERSISTED_QUERY_KEY_PREFIXES: readonly QueryKey[] = [
   VUE_QUERY_CACHE_KEYS.portfoliosList,
   VUE_QUERY_CACHE_KEYS.loansList,
   VUE_QUERY_CACHE_KEYS.subscriptionsList,
-  // Linked-bank list — changes only on link/unlink/reauth, all of which invalidate
-  // the whole bankConnectionChange prefix. The full two-element key is deliberate:
-  // it excludes the volatile bank-sync-status sibling living under the same prefix.
+  // The full two-element key is deliberate: it excludes the volatile
+  // bank-sync-status sibling living under the same prefix.
   VUE_QUERY_CACHE_KEYS.bankConnections,
-  // Payee autocomplete list. Every path that creates a payee or shifts its
-  // transaction-count stats — payee CRUD, bulk categorization, CSV import, and
-  // bank sync — invalidates payeesList, so restoring it from disk is safe. The
-  // infinite management-table variant shares this prefix but keeps a finite
-  // staleTime, so it restores instantly and still revalidates in the background.
   VUE_QUERY_CACHE_KEYS.payeesList,
 ];
+
+// The ISO currency table can't change while a build is live – restore-and-trust,
+// no confirming request (see `persistedImmutableQueryFn`).
+const IMMUTABLE_PERSISTED_QUERY_KEY_PREFIXES: readonly QueryKey[] = [VUE_QUERY_CACHE_KEYS.allCurrencies];
 
 // Attach the persister centrally via query defaults so individual useQuery call
 // sites stay untouched. Per-call options still win over these defaults, and no
@@ -92,5 +84,11 @@ const PERSISTED_QUERY_KEY_PREFIXES: readonly QueryKey[] = [
 if (persistedQueryFn) {
   for (const queryKey of PERSISTED_QUERY_KEY_PREFIXES) {
     queryClient.setQueryDefaults(queryKey, { persister: persistedQueryFn });
+  }
+}
+
+if (persistedImmutableQueryFn) {
+  for (const queryKey of IMMUTABLE_PERSISTED_QUERY_KEY_PREFIXES) {
+    queryClient.setQueryDefaults(queryKey, { persister: persistedImmutableQueryFn });
   }
 }
