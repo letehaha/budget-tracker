@@ -27,13 +27,16 @@ export const useCategoriesStore = defineStore('categories', () => {
   // Routes through the vue-query cache (staleTime Infinity) so the list dedupes on init
   // and can be persisted/invalidated by key. `force` marks the cached entry stale first,
   // so post-mutation reloads (category CRUD, imports, accepting a share) pull fresh data.
+  //
+  // `fetchQuery`, not `ensureQueryData` – the latter short-circuits on present data
+  // and would hand back the entry `force` just invalidated, making the flag inert.
   const loadCategories = async ({ force = false }: { force?: boolean } = {}) => {
     try {
       if (force) {
         await queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.categoriesList });
       }
 
-      const result = await queryClient.ensureQueryData({
+      const result = await queryClient.fetchQuery({
         queryKey: VUE_QUERY_CACHE_KEYS.categoriesList,
         queryFn: loadSystemCategories,
         staleTime: Infinity,

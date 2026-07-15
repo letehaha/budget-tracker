@@ -3,7 +3,7 @@ import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
 import { identifyUser, resetUser } from '@/lib/posthog';
-import { resetQueryCaches } from '@/lib/query-persister';
+import { collectPersistedQueryGarbage, resetQueryCaches } from '@/lib/query-persister';
 import { clearSentryUser, setSentryUser } from '@/lib/sentry';
 import { useCategoriesStore, useCurrenciesStore, useUserStore } from '@/stores';
 import { OAUTH_PROVIDER, USER_ROLES, UserModel } from '@bt/shared/types';
@@ -88,6 +88,9 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const loadPostAuthData = async () => {
     await reconcilePersistedQueriesForUser();
+    // Sweep abandoned persisted-query rows (see `collectPersistedQueryGarbage`);
+    // not awaited – nothing below depends on it.
+    void collectPersistedQueryGarbage();
     await Promise.all([currenciesStore.loadBaseCurrency(), categoriesStore.loadCategories()]);
   };
 
