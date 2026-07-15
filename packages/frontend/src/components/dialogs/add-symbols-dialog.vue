@@ -11,6 +11,7 @@ import { NotificationType, useNotificationCenter } from '@/components/notificati
 import { useCreateHolding } from '@/composable/data-queries/holdings';
 import { isApiErrorWithCode } from '@/js/errors';
 import { cn } from '@/lib/utils';
+import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { ASSET_CLASS, type SecuritySearchResult } from '@bt/shared/types/investments';
 import { useQuery } from '@tanstack/vue-query';
@@ -126,7 +127,7 @@ async function addSymbol(sec: SecuritySearchResult) {
             <i18n-t keypath="dialogs.createPortfolio.assetSupportNotice" tag="p">
               <template #roadmapLink>
                 <a
-                  href="https://moneymatter.featurebase.app/dashboard/roadmap"
+                  :href="EXTERNAL_URLS.featurebaseRoadmap"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="font-medium underline underline-offset-2 hover:no-underline"
@@ -136,7 +137,7 @@ async function addSymbol(sec: SecuritySearchResult) {
               </template>
               <template #feedbackLink>
                 <a
-                  href="https://moneymatter.featurebase.app/dashboard/posts"
+                  :href="EXTERNAL_URLS.featurebaseBoard"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="font-medium underline underline-offset-2 hover:no-underline"
