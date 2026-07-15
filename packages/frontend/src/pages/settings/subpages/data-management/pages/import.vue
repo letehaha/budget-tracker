@@ -22,7 +22,7 @@
           v-if="group.id === 'fromOtherApps'"
           :icon="PlusIcon"
           :title="$t('settings.dataManagement.import.requestMore.title')"
-          :href="FEATUREBASE_ROADMAP_URL"
+          :href="EXTERNAL_URLS.featurebaseRoadmap"
           dashed
         />
       </div>
@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { ROUTES_NAMES } from '@/routes';
+import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
 import { FileSpreadsheetIcon, PlusIcon, SparklesIcon } from '@lucide/vue';
 import { type Component } from 'vue';
 import { type RouteLocationRaw } from 'vue-router';
@@ -41,9 +42,6 @@ import DataSourceRow from '../components/data-source-row.vue';
 defineOptions({
   name: 'settings-data-management-import',
 });
-
-// Roadmap board where users vote on / request new direct-import integrations.
-const FEATUREBASE_ROADMAP_URL = 'https://moneymatter.featurebase.app/dashboard/roadmap';
 
 // Brand logos served statically from `public/`.
 const YNAB_LOGO = '/img/logos/ynab.png';
