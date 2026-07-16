@@ -107,7 +107,7 @@ Other instructions:
 7. **i18n Files - use the `i18n-editor` subagent**
    - i18n locale files are BLOCKED from reading by the main agent (hook saves tokens) – always delegate to the `i18n-editor` subagent.
    - When a feature genuinely needs new translation keys (i.e. you just added a `$t('...')` reference that doesn't exist yet), proactively trigger the `i18n-editor` subagent to add them – do NOT ask for permission first. Briefly summarize what keys were added in your final response.
-   - **`en` only.** Every other locale is translated in Crowdin and lands back via a Crowdin download – the non-`en` files in this repo are generated artifacts, and hand-editing them is pointless because the next download overwrites the file. Shipping a feature with `en` alone is correct and expected: other locales are filled in one bulk pass at release time. See `docs/crowdin-integration.md`.
+   - **`en` only.** Every other locale is translated in Crowdin and lands back via a Crowdin download – the non-`en` files in this repo are generated artifacts, and hand-editing them is pointless because the next download overwrites the file. Shipping a feature with `en` alone is correct and expected: other locales are filled in one bulk pass at release time.
    - Do NOT touch i18n files for unrelated work (don't "improve" existing translations, don't reorganize keys, don't bulk-translate English-only strings you encounter) – only add/update keys that the current task requires.
    - If a string's wording is non-obvious (e.g., domain terminology, formal vs. casual tone), ask the user for the copy before delegating to the subagent.
 8. For Chrome extenstion use Brave browser, not Chrome

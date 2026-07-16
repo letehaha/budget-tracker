@@ -4,7 +4,7 @@ name: Crowdin Download Translations
 # than on push, so merging to dev doesn't open a translation PR every time.
 #
 # This harvests work done by translators in the Crowdin editor. Bulk-translating a
-# release is a separate, manual step: see docs/crowdin-integration.md
+# release is a separate, manual step the release author runs locally.
 
 on:
   schedule:
