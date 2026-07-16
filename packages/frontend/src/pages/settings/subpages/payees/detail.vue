@@ -39,7 +39,7 @@
         </h2>
       </div>
 
-      <dl
+      <div
         v-if="payeeData?.stats"
         class="divide-border border-border bg-muted/30 mx-5 mt-5 flex flex-col divide-y overflow-hidden rounded-lg border sm:mx-6 @[650px]/detail:grid @[650px]/detail:grid-cols-3 @[650px]/detail:divide-x @[650px]/detail:divide-y-0"
       >
@@ -49,49 +49,49 @@
           class="enabled:hover:bg-muted/40 focus-visible:ring-ring flex flex-row items-center justify-between gap-3 px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none enabled:cursor-pointer disabled:cursor-default @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
           @click="openTransactionsDialog"
         >
-          <dt class="text-muted-foreground text-[11px] font-semibold tracking-[0.07em] uppercase">
+          <span class="text-muted-foreground text-[11px] font-semibold tracking-[0.07em] uppercase">
             {{ $t('payees.columns.transactionCount') }}
-          </dt>
-          <dd class="text-lg font-semibold tabular-nums @[650px]/detail:text-2xl">
+          </span>
+          <span class="text-lg font-semibold tabular-nums @[650px]/detail:text-2xl">
             {{ payeeData.stats.transactionCount }}
-          </dd>
+          </span>
         </button>
 
         <div
           class="flex flex-row items-center justify-between gap-3 px-4 py-3 @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
         >
-          <dt class="text-muted-foreground text-[11px] font-semibold tracking-[0.07em] uppercase">
+          <span class="text-muted-foreground text-[11px] font-semibold tracking-[0.07em] uppercase">
             {{ $t('payees.columns.netFlow') }}
-          </dt>
-          <dd
+          </span>
+          <span
             class="text-lg font-semibold tabular-nums @[650px]/detail:text-2xl"
             :class="netFlowToneClass(payeeData.stats.netFlowRef)"
           >
             {{ formatNetFlow(payeeData.stats.netFlowRef) }}
-          </dd>
+          </span>
         </div>
 
         <div
           class="flex flex-row items-center justify-between gap-3 px-4 py-3 @[650px]/detail:flex-col @[650px]/detail:items-start @[650px]/detail:gap-1.5"
         >
-          <dt
+          <span
             class="text-muted-foreground flex shrink-0 items-center gap-1.5 text-[11px] font-semibold tracking-[0.07em] uppercase"
           >
             {{ $t('payees.columns.topCategory') }}
             <ResponsiveTooltip :delay-duration="100" :content="$t('payees.detail.topCategoryHint')">
               <InfoIcon class="size-3.5 cursor-help" @click.prevent.stop />
             </ResponsiveTooltip>
-          </dt>
-          <dd class="flex min-w-0 items-center gap-2 text-base font-semibold @[650px]/detail:text-lg">
+          </span>
+          <span class="flex min-w-0 items-center gap-2 text-base font-semibold @[650px]/detail:text-lg">
             <CategoryCircle
               v-if="payeeData.stats.topCategoryId"
               :category-id="payeeData.stats.topCategoryId"
               class="size-5 shrink-0"
             />
             <span class="truncate">{{ categoryName(payeeData.stats.topCategoryId) || '–' }}</span>
-          </dd>
+          </span>
         </div>
-      </dl>
+      </div>
 
       <div v-if="payeeData" class="border-border mt-6 border-t px-5 pt-5 pb-5 sm:px-6 sm:pt-6 sm:pb-6">
         <h3 class="mb-4 text-sm font-semibold">
