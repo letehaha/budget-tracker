@@ -9,6 +9,7 @@ import { Callout } from '@/components/lib/ui/callout';
 import * as Select from '@/components/lib/ui/select';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useCreatePortfolio } from '@/composable/data-queries/portfolios';
+import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
 import { CheckIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
@@ -93,7 +94,7 @@ const createPortfolio = async () => {
         <i18n-t keypath="dialogs.createPortfolio.assetSupportNotice" tag="p">
           <template #roadmapLink>
             <a
-              href="https://moneymatter.featurebase.app/dashboard/roadmap"
+              :href="EXTERNAL_URLS.featurebaseRoadmap"
               target="_blank"
               rel="noopener noreferrer"
               class="font-medium underline underline-offset-2 hover:no-underline"
@@ -103,7 +104,7 @@ const createPortfolio = async () => {
           </template>
           <template #feedbackLink>
             <a
-              href="https://moneymatter.featurebase.app/dashboard/posts"
+              :href="EXTERNAL_URLS.featurebaseBoard"
               target="_blank"
               rel="noopener noreferrer"
               class="font-medium underline underline-offset-2 hover:no-underline"

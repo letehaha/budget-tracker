@@ -15,14 +15,19 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { trackImportCompleted } from '@js/utils/posthog';
+import * as Accounts from '@models/accounts.model';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
+import { partitionReconcileAccounts } from '@services/import-export/core/partition-reconcile-accounts';
+import { startBalanceReconciliation } from '@services/import-export/core/reconcile-account-balances';
 import { createAccountsIfNeeded } from '@services/import-export/core/resolve/create-accounts-if-needed';
 import { createCategoriesIfNeeded } from '@services/import-export/core/resolve/create-categories-if-needed';
 import { createPayeesIfNeeded } from '@services/import-export/core/resolve/create-payees-if-needed';
 import { createTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
 import { resolveRowTagIds } from '@services/import-export/core/resolve/resolve-row-tag-ids';
+import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
@@ -45,6 +50,15 @@ interface ExecuteImportParams {
   skipUnpriceableIndices?: number[];
   defaultAccountId?: string;
   defaultCategoryId?: string;
+  /**
+   * When true, rows dated on/after a linked account's pre-import boundary (day
+   * of its latest existing transaction) move that account's current balance;
+   * older rows are absorbed into `initialBalance`. When false/absent, every
+   * linked account keeps its pre-import balance. Applies only to link-existing
+   * accounts — created accounts derive their balance from the entered
+   * `currentBalance` target / imported rows.
+   */
+  recalculateBalance?: boolean;
   /**
    * Called with the cumulative `processedCount` after each successfully created
    * transaction so the BullMQ worker can fan progress out over SSE. `totalCount`
@@ -73,6 +87,7 @@ async function executeImportImpl({
   skipUnpriceableIndices,
   defaultAccountId,
   defaultCategoryId,
+  recalculateBalance = false,
   onProgress,
 }: ExecuteImportParams): Promise<CsvImportSummary> {
   const batchId = uuidv4();
@@ -108,7 +123,42 @@ async function executeImportImpl({
       errors: [],
       newTransactionIds: [],
       batchId,
+      accountBalanceChanges: [],
     };
+  }
+
+  // Link-existing mappings must match the linked account's currency, checked
+  // BEFORE any side effect (currency bootstrap, account creation, row writes)
+  // so a failed import leaves zero state. A transaction's currency always
+  // comes from the account it lands on, so a USD row posted to a EUR account
+  // would keep its number and silently change meaning (100 USD booked as
+  // 100 EUR) — and balance reconciliation would then stamp that wrong amount
+  // into the account balance. Mirrors the Wallet importer's identical guard.
+  // The `defaultAccountId` fallback (rows with no per-name mapping) is
+  // deliberately exempt: the wizard's single-existing-account flow warns about
+  // the currency coercion up front and imports in the account's currency.
+  const currencyMismatches: string[] = [];
+  for (const accountName of new Set(rowsToImport.map((r) => r.accountName))) {
+    const mapping = accountMapping[accountName];
+    if (mapping?.action !== 'link-existing') continue;
+
+    // A missing/foreign account id fails later in `createAccountsIfNeeded`
+    // with its own actionable error; this guard only owns the currency check.
+    const account = await Accounts.getAccountById({ userId, id: mapping.accountId });
+    if (!account) continue;
+
+    const rowCurrencies = new Set(rowsToImport.filter((r) => r.accountName === accountName).map((r) => r.currencyCode));
+    const mismatched = Array.from(rowCurrencies).filter((code) => code !== account.currencyCode);
+    if (mismatched.length > 0) {
+      currencyMismatches.push(
+        `"${accountName}" (${mismatched.join(', ')}) cannot be linked to "${account.name}" (${account.currencyCode})`,
+      );
+    }
+  }
+  if (currencyMismatches.length > 0) {
+    throw new ValidationError({
+      message: `Currencies must match to link an existing account: ${currencyMismatches.join('; ')}. Link an account with the same currency or create a new one.`,
+    });
   }
 
   // Collect unique currencies from rows to import
@@ -119,9 +169,11 @@ async function executeImportImpl({
 
   // Create accounts that need to be created. Currency for a new account comes
   // from the first row that uses it; the fx reference date is "now" to preserve
-  // the prior behavior.
+  // the prior behavior. A created account starts at a zero initial balance —
+  // the imported rows build its balance up, and the user-entered
+  // `currentBalance` target (when present) is forced in `finalize` afterwards.
   const uniqueAccountNames = Array.from(new Set(rowsToImport.map((r) => r.accountName)));
-  const { accountNameToId } = await createAccountsIfNeeded({
+  const { accountNameToId, accountsCreated } = await createAccountsIfNeeded({
     userId,
     accountNames: uniqueAccountNames,
     accountMapping,
@@ -129,6 +181,14 @@ async function executeImportImpl({
     resolveFxDate: () => new Date(),
     defaultAccountId,
   });
+
+  // Snapshot every pre-existing account the rows will land on (link-existing
+  // mappings AND the defaultAccountId fallback) BEFORE any row is written:
+  // balance-before + boundary day. Accounts created above are excluded — they
+  // have no history to protect, so the recalculate flag does not apply to them
+  // (they are handed to `finalize` for their summary entries instead).
+  const { capturedAccountIds, createdAccounts } = partitionReconcileAccounts({ accountNameToId, accountMapping });
+  const reconciler = await startBalanceReconciliation({ userId, accountIds: capturedAccountIds });
 
   // Resolve categories that need to be created or linked. `categoriesCreated`
   // counts only genuine inserts — create-new entries that matched an existing
@@ -156,13 +216,6 @@ async function executeImportImpl({
     userId,
     payeeNames: uniquePayeeNames,
   });
-
-  // Count created accounts
-  let accountsCreated = 0;
-
-  for (const [, mapping] of Object.entries(accountMapping)) {
-    if (mapping.action === 'create-new') accountsCreated++;
-  }
 
   // Create transactions
   const errors: ImportError[] = [];
@@ -219,6 +272,8 @@ async function executeImportImpl({
       const rowTagIds = resolveRowTagIds({ tagNames: row.tagNames, tagNameToId });
       const hasImportedTags = rowTagIds.length > 0;
 
+      const rowAmount = Money.fromCents(row.amount);
+
       // Service-layer createTransaction handles refAmount + currency from the
       // account, plus Payee extraction + payee_rule via `rawMerchantName` when
       // the user mapped a Payee column. Without this path the imported row
@@ -233,7 +288,7 @@ async function executeImportImpl({
       // createTransaction's built-in payee-default application runs unchanged.
       const [transaction] = await createTransaction({
         userId,
-        amount: Money.fromCents(row.amount),
+        amount: rowAmount,
         commissionRate: Money.zero(),
         note: row.description,
         time: new Date(row.date),
@@ -253,6 +308,23 @@ async function executeImportImpl({
       });
 
       if (transaction) {
+        // Fold this committed row into the per-account balance tally IMMEDIATELY
+        // after the commit, before any post-commit step that can throw: the
+        // balance hook has already moved `currentBalance`, so a row missing from
+        // the tally would make the reconcile adjustment too large with no desync
+        // error. Both amounts signed the way the hook applied them (income adds,
+        // expense subtracts); `refAmount` comes from the written row so the ref
+        // tally carries the row-date FX rate the hook used.
+        reconciler.recordRow({
+          accountId,
+          rowIso: row.date,
+          ...signedRowContribution({
+            isIncome: row.transactionType === 'income',
+            amount: rowAmount,
+            refAmount: transaction.refAmount,
+          }),
+        });
+
         newTransactionIds.push(transaction.id);
 
         // Union step: when the row supplied its own tags, createTransaction did
@@ -260,20 +332,48 @@ async function executeImportImpl({
         // that). Add them here on top of the imported set — `applyPayeeDefaultTags`
         // is add-only and skips duplicates, so imported tags and payee defaults
         // coexist. The payeeId was resolved by createTransaction (caller-supplied
-        // or extracted from `rawMerchantName`).
+        // or extracted from `rawMerchantName`). The transaction is already
+        // committed, so a failure here loses only the default tags and is
+        // reported as its own error — reporting it as a failed row would invite
+        // a re-import that duplicates the transaction.
         if (hasImportedTags && transaction.payeeId) {
-          await applyPayeeDefaultTags({
-            accountOwnerUserId: userId,
-            transactionId: transaction.id,
-            payeeId: transaction.payeeId,
-          });
+          try {
+            await applyPayeeDefaultTags({
+              accountOwnerUserId: userId,
+              transactionId: transaction.id,
+              payeeId: transaction.payeeId,
+            });
+          } catch (err) {
+            logger.error({
+              message: `[CSV import] Failed to apply default payee tags (row ${row.rowIndex})`,
+              error: err as Error,
+            });
+            errors.push({
+              rowIndex: row.rowIndex,
+              error: 'Transaction was imported, but the payee default tags could not be applied',
+            });
+          }
         }
-
-        // Tick once per committed row, OUTSIDE the correctness path above: a
-        // progress/SSE error must not be recorded as a fake per-row import
-        // error against a row that did commit, nor abort the run.
-        await tick();
+      } else {
+        // createTransaction's read-back is typed non-nullable, so this branch is
+        // unreachable through the current types. If it ever fires, the insert
+        // committed (a throw would have hit the catch below) while the row
+        // escaped `newTransactionIds` AND the balance tally (its `refAmount` is
+        // unknowable without the read-back) — surface it loudly instead of
+        // letting the row silently vanish from the imported count.
+        logger.error({
+          message: `[CSV import] createTransaction returned no transaction for committed row ${row.rowIndex}`,
+        });
+        errors.push({
+          rowIndex: row.rowIndex,
+          error: 'Transaction was created but could not be read back; it is missing from the imported count',
+        });
       }
+
+      // Tick once per committed row, OUTSIDE the correctness path above: a
+      // progress/SSE error must not be recorded as a fake per-row import
+      // error against a row that did commit, nor abort the run.
+      await tick();
     } catch (error) {
       errors.push({
         rowIndex: row.rowIndex,
@@ -281,6 +381,22 @@ async function executeImportImpl({
       });
     }
   }
+
+  // Back-adjust each pre-existing account (the hook moved `currentBalance` by
+  // every written row; `finalize` removes what must not stay applied — backfill
+  // with recalc ON, everything with it OFF). For accounts this import created,
+  // the user-entered `currentBalance` (when present) is forced as the final
+  // balance — the difference from the imported rows' net is absorbed into
+  // `initialBalance`; a null/absent value leaves the balance at Σ(imported
+  // rows). Either way `finalize` emits their summary entries. A failed balance
+  // write surfaces as an `account-balance-desync` error instead of failing the
+  // import — the rows are already committed.
+  const { accountBalanceChanges, errors: balanceErrors } = await reconciler.finalize({
+    recalculateBalance,
+    createdAccounts,
+    logLabel: 'CSV import',
+  });
+  errors.push(...balanceErrors);
 
   // Track analytics event
   if (newTransactionIds.length > 0) {
@@ -302,6 +418,7 @@ async function executeImportImpl({
     errors,
     newTransactionIds,
     batchId,
+    accountBalanceChanges,
   };
 }
 

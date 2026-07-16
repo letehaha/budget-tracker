@@ -165,9 +165,18 @@ export interface ExtractUniqueValuesResponse {
 }
 
 /**
- * Account mapping for import - maps CSV account name to action
+ * Account mapping for import - maps CSV account name to action.
+ * `currentBalance` (decimal, account currency) is the balance the created
+ * account must hold AFTER the import — the execute step forces it as the
+ * final `currentBalance`, absorbing the difference from the imported rows'
+ * net into `initialBalance`. `null` leaves the balance at whatever the
+ * imported rows sum to. Required-but-nullable (not optional) so every
+ * create-new mapping states the balance explicitly, matching the Wallet
+ * importer's `BudgetBakersWalletAccountMappingValue.currentBalance`.
  */
-export type AccountMappingValue = { action: 'create-new' } | { action: 'link-existing'; accountId: string };
+export type AccountMappingValue =
+  | { action: 'create-new'; currentBalance: number | null }
+  | { action: 'link-existing'; accountId: string };
 
 export type AccountMappingConfig = Record<string, AccountMappingValue>;
 
@@ -290,7 +299,7 @@ export interface DetectDuplicatesResponse {
  * `parseValidRows` is deterministic, so the skip indices the user picked against
  * the preview stay valid against the worker's fresh re-parse.
  */
-export interface ExecuteImportRequest {
+export interface ExecuteImportRequest extends ImportExecuteRequestBase {
   fileContent: string;
   delimiter: string;
   columnMapping: ColumnMappingConfig;
@@ -326,11 +335,83 @@ export interface ExecuteImportResponse {
 }
 
 /**
- * Import error for a specific row
+ * Machine-recognizable import failure codes the UI special-cases.
+ * `account-balance-desync`: an account's target balance could not be applied
+ * after the rows landed, so its balance may now be wrong. Every coded failure
+ * is account-level. Shared so each provider's importer (CSV, Wallet, …) draws
+ * from one code set instead of redeclaring the literal.
  */
-export interface ImportError {
-  rowIndex: number;
-  error: string;
+export type ImportErrorCode = 'account-balance-desync';
+
+/**
+ * Import error for a specific row (`rowIndex: number`) or an account-level
+ * failure that maps to no single row (`rowIndex: null`). Discriminated so the
+ * code implies the level: `account-balance-desync` — an account's target
+ * balance could not be applied after the rows landed, so its balance may now
+ * be wrong — is always account-level, and row-level errors never carry a code.
+ */
+export type ImportError =
+  | { rowIndex: number; error: string; code?: undefined }
+  | { rowIndex: null; error: string; code: ImportErrorCode };
+
+/**
+ * Per-account balance summary of an executed import, rendered in the done step.
+ * All monetary values are decimals in the account's own currency. Accounts
+ * created by the import (`isNewAccount: true`) have no pre-import balance to
+ * compare against, so they carry no `balanceBefore`/`delta`.
+ */
+export type AccountBalanceChange = {
+  accountId: string;
+  accountName: string;
+  /** Current balance after the import finished (including reconciliation). */
+  balanceAfter: number;
+  /** Rows classified as new (on/after the account's pre-import boundary day). */
+  movedCount: number;
+  /** Rows classified as backfill (older than the boundary day). */
+  historicalCount: number;
+} & (
+  | { isNewAccount: true }
+  | {
+      isNewAccount: false;
+      /** Current balance before the import wrote any rows. */
+      balanceBefore: number;
+      /** balanceAfter - balanceBefore. */
+      delta: number;
+    }
+);
+
+/**
+ * Fields shared by every importer's execute request. Providers extend this so
+ * the balance-recalculation contract stays identical across import pipelines.
+ */
+export interface ImportExecuteRequestBase {
+  /**
+   * When true, imported rows dated on/after a linked account's pre-import
+   * boundary (day of its latest existing transaction) move that account's
+   * current balance; older rows are absorbed into `initialBalance` (backfill).
+   * When false/absent, every linked account keeps its pre-import balance.
+   * Accounts created by the import always build their balance from their
+   * starting balance + imported rows.
+   *
+   * Per-request override of the persisted default seeded from the
+   * `import.recalculateAccountBalance` user setting
+   * (`ZodImportSettingsSchema` in `user-settings.model.ts`); the wizard sends
+   * the chosen value here and PATCHes the setting after the job is accepted.
+   */
+  recalculateBalance?: boolean;
+}
+
+/**
+ * Fields shared by every importer's completion summary. Providers extend this
+ * so the done-step balance section reads the same shape from each pipeline.
+ */
+export interface ImportSummaryBase {
+  /**
+   * How each touched account's current balance changed, per account. Optional
+   * because completed job results are retained and replayed verbatim to /status
+   * pollers — summaries produced before this field existed do not carry it.
+   */
+  accountBalanceChanges?: AccountBalanceChange[];
 }
 
 /**
@@ -338,7 +419,7 @@ export interface ImportError {
  * the `completed` SSE event and the status endpoint's `completed` payload, so
  * `newTransactionIds`/`batchId` survive to the client without a separate fetch.
  */
-export interface CsvImportSummary {
+export interface CsvImportSummary extends ImportSummaryBase {
   imported: number;
   /** Number of duplicate rows skipped (from skipDuplicateIndices) */
   skipped: number;

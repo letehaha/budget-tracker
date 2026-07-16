@@ -13,9 +13,11 @@ env:
 jobs:
   teardown:
     runs-on: ubuntu-latest
-    # Tear down when PR with 'preview' label is closed, OR when 'preview' label is removed
+    # Tear down when PR with 'preview' label is closed, OR when 'preview' label is removed.
+    # Keep the base.ref list in sync with preview-deploy.yml, or previews for the
+    # missing branch deploy and never tear down.
     if: >-
-      github.event.pull_request.base.ref == 'main'
+      contains(fromJSON('["main", "dev"]'), github.event.pull_request.base.ref)
       && github.event.pull_request.head.repo.full_name == github.repository
       && (
         (github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'preview'))

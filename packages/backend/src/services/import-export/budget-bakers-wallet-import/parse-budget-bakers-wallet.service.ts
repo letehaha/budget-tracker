@@ -1,3 +1,4 @@
+import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
 import {
   TRANSACTION_TYPES,
   BUDGET_BAKERS_WALLET_CSV_DELIMITER,
@@ -18,9 +19,6 @@ import { interpretBudgetBakersWalletType, isBudgetBakersWalletTransferCategory }
 import { parseBudgetBakersWalletAmount } from './parse-amount';
 import { parseBudgetBakersWalletDate } from './parse-date';
 import { parseBudgetBakersWalletLabels } from './parse-labels';
-
-/** Roadmap board where users request importer support for more Wallet export languages. */
-const BUDGET_BAKERS_WALLET_ROADMAP_URL = 'https://moneymatter.featurebase.app/dashboard/roadmap';
 
 /** Headers the Wallet CSV must contain (case-sensitive — Wallet's export is stable). */
 const REQUIRED_HEADERS = [
@@ -218,7 +216,7 @@ export function parseBudgetBakersWalletCsv({ fileContent }: { fileContent: strin
         message:
           'Could not recognize the transaction type (income/expense) values in this Wallet export. ' +
           'Only English and Spanish exports are supported for now. ' +
-          `Request another language on the roadmap: ${BUDGET_BAKERS_WALLET_ROADMAP_URL}`,
+          `Request another language on the roadmap: ${EXTERNAL_URLS.featurebaseRoadmap}`,
       });
     }
     throw new ValidationError({

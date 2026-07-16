@@ -160,6 +160,7 @@ interface ExecuteImportParams {
   defaultAccountId?: string;
   defaultCategoryId?: string;
   timezone?: string;
+  recalculateBalance?: boolean;
 }
 
 /**
@@ -418,6 +419,7 @@ interface ExecuteBudgetBakersWalletParams {
    *  import without a category rather than being silently created). */
   categoryMapping?: CategoryMappingConfig;
   skipDuplicateIndices?: number[];
+  recalculateBalance?: boolean;
 }
 
 export function executeBudgetBakersWallet<R extends boolean | undefined = false>({

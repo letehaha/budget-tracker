@@ -40,7 +40,7 @@ describe('Detect Duplicates endpoint', () => {
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -73,7 +73,7 @@ describe('Detect Duplicates endpoint', () => {
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -105,7 +105,7 @@ describe('Detect Duplicates endpoint', () => {
             transactionType: { option: TransactionTypeOptionValue.amountSign },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -158,9 +158,9 @@ describe('Detect Duplicates endpoint', () => {
             account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Date' },
           },
           accountMapping: {
-            '2024-01-15': { action: 'create-new' },
-            '2024-01-16': { action: 'create-new' },
-            '2024-01-17': { action: 'create-new' },
+            '2024-01-15': { action: 'create-new', currentBalance: null },
+            '2024-01-16': { action: 'create-new', currentBalance: null },
+            '2024-01-17': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -184,7 +184,7 @@ describe('Detect Duplicates endpoint', () => {
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -291,7 +291,7 @@ describe('Detect Duplicates endpoint', () => {
           columnMapping: buildColumnMapping(),
           accountMapping: {
             'Checking Account': { action: 'link-existing', accountId: account1.id },
-            'Savings Account': { action: 'create-new' },
+            'Savings Account': { action: 'create-new', currentBalance: null },
             'Credit Card': { action: 'link-existing', accountId: account2.id },
           },
           categoryMapping: {},
@@ -397,8 +397,8 @@ describe('Detect Duplicates endpoint', () => {
           columnMapping: buildColumnMapping(),
           accountMapping: {
             'Checking Account': { action: 'link-existing', accountId: existingAccount.id },
-            'Savings Account': { action: 'create-new' }, // New account - no duplicates possible
-            'Credit Card': { action: 'create-new' }, // New account - no duplicates possible
+            'Savings Account': { action: 'create-new', currentBalance: null }, // New account - no duplicates possible
+            'Credit Card': { action: 'create-new', currentBalance: null }, // New account - no duplicates possible
           },
           categoryMapping: {},
         },
@@ -454,7 +454,7 @@ describe('Detect Duplicates endpoint', () => {
           accountMapping: {
             'Checking Account': { action: 'link-existing', accountId: account1.id },
             'Savings Account': { action: 'link-existing', accountId: account2.id },
-            'Credit Card': { action: 'create-new' },
+            'Credit Card': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -734,7 +734,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
             },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -771,7 +771,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
             },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -814,7 +814,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
             },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -850,7 +850,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
             },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -889,7 +889,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
             },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -918,7 +918,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
             transactionType: { option: TransactionTypeOptionValue.amountSign },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -957,7 +957,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
             },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -995,7 +995,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
             },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -1023,7 +1023,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
             transactionType: { option: TransactionTypeOptionValue.amountSign },
           }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -1058,7 +1058,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
           timezone: 'America/Montevideo',
@@ -1087,7 +1087,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
           delimiter: ',',
           columnMapping: buildColumnMapping({ dateFieldOrder: 'day-first' }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
           timezone: 'America/Montevideo',
@@ -1116,7 +1116,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
           timezone: 'America/Montevideo',
@@ -1154,7 +1154,7 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
           delimiter: ',',
           columnMapping: buildColumnMapping({ dateFieldOrder: 'day-first' }),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
           timezone: 'America/Montevideo',
@@ -1186,7 +1186,7 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
           timezone: 'America/Montevideo',
@@ -1215,7 +1215,7 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
-            'Main Account': { action: 'create-new' },
+            'Main Account': { action: 'create-new', currentBalance: null },
           },
           categoryMapping: {},
         },
@@ -1297,7 +1297,7 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
           fileContent: MINIMAL_CSV,
           delimiter: ',',
           columnMapping: buildFixedCurrencyMapping('USD'),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,
@@ -1312,7 +1312,7 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
           fileContent: MINIMAL_CSV,
           delimiter: ',',
           columnMapping: buildFixedCurrencyMapping('AED'),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,
@@ -1327,7 +1327,7 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
           fileContent: MINIMAL_CSV,
           delimiter: ',',
           columnMapping: buildFixedCurrencyMapping('EUR'),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,
@@ -1342,7 +1342,7 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
           fileContent: MINIMAL_CSV,
           delimiter: ',',
           columnMapping: buildFixedCurrencyMapping('SSP'),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,
@@ -1364,7 +1364,7 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
           fileContent: mixedCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping(),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,
@@ -1386,7 +1386,7 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
           // Currency is incidental here: every row is invalid, so findUnpriceableRows
           // receives an empty array regardless of which currency is mapped.
           columnMapping: buildFixedCurrencyMapping('USD'),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,
@@ -1412,7 +1412,7 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
           columnMapping: buildColumnMapping({
             tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
           }),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,
@@ -1430,7 +1430,7 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
           columnMapping: buildColumnMapping({
             tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
           }),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,
@@ -1447,7 +1447,7 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
           columnMapping: buildColumnMapping({
             tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
           }),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,
@@ -1462,7 +1462,7 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
           fileContent: csvWithTags,
           delimiter: ',',
           columnMapping: buildColumnMapping(),
-          accountMapping: { 'Main Account': { action: 'create-new' } },
+          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
         raw: true,

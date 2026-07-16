@@ -1,6 +1,7 @@
 # Budget Tracker (MoneyMatter)
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Crowdin](https://badges.crowdin.net/moneymatter/localized.svg)](https://crowdin.com/project/moneymatter)
 
 A personal budget tracking application. Track your balances and transactions with bank connections or manual entry, categorize and analyze expenses and income, and many more.
 
@@ -11,6 +12,10 @@ To set up the application locally, please refer to the [instructions here](./doc
 ## Self-hosting
 
 Run Budget Tracker (MoneyMatter) on your own server: the stack pulls published multi-arch Docker images and exposes the whole app on a single port, so you front it with whatever reverse proxy you already run (Nginx Proxy Manager, Caddy, Traefik, …) – or use the optional bundled Traefik + Let's Encrypt overlay. See the [self-hosting guide](./self-hosting/README.md).
+
+## Translations
+
+The app ships in English, Ukrainian, Spanish and Indonesian. Corrections and new languages are welcome via [Crowdin](https://crowdin.com/project/moneymatter).
 
 ## License
 

@@ -1,6 +1,6 @@
 import * as bankDataProvidersApi from '@/api/bank-data-providers';
 import type { SyncStatusResponse } from '@/api/bank-data-providers';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import type { AccountGroups } from '@/common/types/models';
 import { ensureChunkLoaded } from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
@@ -48,7 +48,7 @@ const justCompleted = ref(false);
 const syncStuck = ref(false);
 let stuckTimer: ReturnType<typeof setTimeout> | null = null;
 
-// SSE subscription state — one shared subscription regardless of how many
+// SSE subscription state – one shared subscription regardless of how many
 // consumers mount.
 let sseUnsubscribe: (() => void) | null = null;
 let isSSESubscribed = false;
@@ -60,7 +60,7 @@ export function useSyncStatus() {
   const { isLoggedIn } = storeToRefs(useAuthStore());
 
   // Provider names show up in the always-visible header popover regardless of
-  // which page the user is on, but live in the integrations route chunk —
+  // which page the user is on, but live in the integrations route chunk –
   // pull it eagerly so the tooltip resolves before the user hovers.
   void ensureChunkLoaded('pages/account-integrations');
 
@@ -119,7 +119,7 @@ export function useSyncStatus() {
   });
 
   // Built once per reactivity tick so per-account / per-group lookups stay O(1)
-  // — three different sidebar/details components query this for every render.
+  // – three different sidebar/details components query this for every render.
   const reauthConnectionIdsSet = computed(() => new Set(connectionsNeedingReauth.value.map((c) => c.connectionId)));
 
   function isAccountNeedingReauth(account: Pick<AccountModel, 'bankDataProviderConnectionId'>): boolean {
@@ -133,7 +133,7 @@ export function useSyncStatus() {
 
   // Walk the group tree (direct accounts + nested child groups) so a mixed-
   // content group still surfaces a warning when any descendant account is on
-  // an expired connection — important because groups can hold both bank-linked
+  // an expired connection – important because groups can hold both bank-linked
   // and manual accounts side by side. Tolerant of undefined arrays so a
   // partial cache payload doesn't crash the sidebar.
   function groupHasReauthAccount(group: AccountGroups): boolean {
@@ -185,7 +185,7 @@ export function useSyncStatus() {
    * through the shared query cache via the app-level `queryClient` (stable across
    * component instances). It is registered once at module scope and outlives the
    * component that first opened it, so it must not close over this instance's
-   * `syncStatusData` / `rawIsSyncing` computeds — those stop updating once that
+   * `syncStatusData` / `rawIsSyncing` computeds – those stop updating once that
    * component unmounts, whereas the cache is always current.
    */
   const subscribeToSSE = () => {
@@ -204,11 +204,12 @@ export function useSyncStatus() {
       if (wasSyncingBefore && !isPayloadSyncing(snapshot)) {
         justCompleted.value = true;
 
-        // A finished sync can fuzzy-create payees and always shifts the
-        // transaction-count stats carried in the payee list. payeesList sits
-        // outside the transactionChange prefix, so invalidate it explicitly here —
-        // this is the one hook that observes every completed sync regardless of
-        // which page triggered it.
+        // This is the one hook that observes every completed sync, so it owns
+        // invalidating everything a sync touches. payeesList is named explicitly
+        // because a sync fuzzy-creates payees and shifts their transaction-count
+        // stats, yet sits outside both prefixes above.
+        queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+        queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange] });
         queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
 
         setTimeout(() => {
@@ -238,7 +239,7 @@ export function useSyncStatus() {
     isSSESubscribed = false;
   };
 
-  // Attach the shared SSE subscription and open the connection. Idempotent —
+  // Attach the shared SSE subscription and open the connection. Idempotent –
   // subscribeToSSE no-ops when already subscribed.
   const ensureSSEConnected = async () => {
     subscribeToSSE();

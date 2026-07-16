@@ -129,7 +129,9 @@
           "importFailed": "Error al importar transacciones. Por favor, inténtelo de nuevo.",
           "successCallout": "{count} transacciones importadas correctamente",
           "failed": "Fallido",
-          "noErrors": "Sin errores"
+          "noErrors": "Sin errores",
+          "balanceWarningTitle": "Los saldos de las cuentas pueden estar desincronizados",
+          "balanceWarningBody": "Las transacciones se importaron, pero no se pudieron actualizar los saldos de algunas cuentas después. Revise estas cuentas y ajuste sus saldos manualmente si es necesario."
         }
       },
       "columnMapping": {
@@ -310,7 +312,10 @@
           "selectTarget": "Seleccionar una cuenta",
           "noMatchingCurrency": "No hay cuentas con la moneda {currency}",
           "willCreate": "Se creará \"{name}\" ({currency})",
-          "empty": "No se encontraron cuentas en el CSV"
+          "empty": "No se encontraron cuentas en el CSV",
+          "currentBalanceLabel": "Saldo actual",
+          "currentBalancePlaceholder": "0.00",
+          "currentBalanceHint": "El saldo que esta cuenta tiene en este momento — la importación establecerá la cuenta exactamente con este valor. Déjelo en blanco para usar la suma de las transacciones importadas."
         },
         "categories": {
           "sectionTitle": "Mapeo de categorías",

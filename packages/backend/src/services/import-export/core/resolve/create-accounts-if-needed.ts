@@ -4,6 +4,7 @@ import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { assertNotDedicatedFlowAccount } from '@services/import-export/core/dedicated-flow-guard';
 
 interface CreateAccountsIfNeededParams {
   userId: number;
@@ -115,6 +116,20 @@ export async function createAccountsIfNeeded({
     accountsCreated += 1;
   };
 
+  // Verify an existing account id belongs to the user and is an eligible import
+  // target, returning it or throwing. Shared by the `defaultAccountId` fallback
+  // and the `link-existing` branch, which resolve the same way off a different id.
+  const resolveExistingAccount = async (id: string) => {
+    const account = await Accounts.getAccountById({ userId, id });
+    if (!account) {
+      throw new ValidationError({
+        message: `Account with ID ${id} not found`,
+      });
+    }
+    assertNotDedicatedFlowAccount({ account, actionPhrase: 'be an import target' });
+    return account;
+  };
+
   for (const accountName of uniqueAccountNames) {
     if (alwaysCreate) {
       await createNewAccount(accountName);
@@ -127,12 +142,7 @@ export async function createAccountsIfNeeded({
       // Fallback: when the user picked "single existing account" for the whole import,
       // accountName is empty for every row and per-name mapping is empty. Use defaultAccountId.
       if (defaultAccountId !== undefined) {
-        const account = await Accounts.getAccountById({ userId, id: defaultAccountId });
-        if (!account) {
-          throw new ValidationError({
-            message: `Account with ID ${defaultAccountId} not found`,
-          });
-        }
+        const account = await resolveExistingAccount(defaultAccountId);
         accountNameToId.set(accountName, account.id);
         continue;
       }
@@ -143,13 +153,7 @@ export async function createAccountsIfNeeded({
     }
 
     if (mapping.action === 'link-existing') {
-      // Verify account exists
-      const account = await Accounts.getAccountById({ userId, id: mapping.accountId });
-      if (!account) {
-        throw new ValidationError({
-          message: `Account with ID ${mapping.accountId} not found`,
-        });
-      }
+      const account = await resolveExistingAccount(mapping.accountId);
       accountNameToId.set(accountName, account.id);
     } else if (mapping.action === 'create-new') {
       await createNewAccount(accountName);

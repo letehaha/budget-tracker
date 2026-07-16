@@ -129,7 +129,9 @@
           "importFailed": "Failed to import transactions. Please try again.",
           "successCallout": "{count} transactions imported successfully",
           "failed": "Failed",
-          "noErrors": "No errors"
+          "noErrors": "No errors",
+          "balanceWarningTitle": "Account balances may be out of sync",
+          "balanceWarningBody": "The transactions were imported, but some account balances could not be updated afterwards. Review these accounts and adjust their balances manually if needed."
         }
       },
       "columnMapping": {
@@ -310,7 +312,10 @@
           "selectTarget": "Select an account",
           "noMatchingCurrency": "No accounts match currency {currency}",
           "willCreate": "Will create \"{name}\" ({currency})",
-          "empty": "No accounts found in CSV"
+          "empty": "No accounts found in CSV",
+          "currentBalanceLabel": "Current balance",
+          "currentBalancePlaceholder": "0.00",
+          "currentBalanceHint": "The balance this account holds right now — the import will set the account to exactly this value. Leave blank to use the sum of imported transactions."
         },
         "categories": {
           "sectionTitle": "Category Mapping",

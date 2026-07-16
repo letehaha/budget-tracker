@@ -160,6 +160,7 @@ import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
+import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
 import {
   AlertTriangleIcon,
   CloudCheckIcon,
@@ -202,11 +203,9 @@ useResizeObserver(headerBarRef, ([entry]) => {
   isHeaderBarCompact.value = entry.contentRect.width < 890;
 });
 
-const FEATUREBASE_URL = 'https://moneymatter.featurebase.app/dashboard/posts';
-
 const openFeedback = () => {
   onFeedbackClick();
-  window.open(FEATUREBASE_URL, '_blank', 'noopener,noreferrer');
+  window.open(EXTERNAL_URLS.featurebaseBoard, '_blank', 'noopener,noreferrer');
 };
 
 const DONATE_URL = 'https://donatr.ee/letehaha';

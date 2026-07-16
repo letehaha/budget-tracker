@@ -7,6 +7,7 @@ import {
   RecordId,
   endpointsTypes,
 } from '@bt/shared/types';
+import type { Equals, Expect } from '@bt/shared/types';
 import { dateRange, withDateOrder } from '@common/lib/zod/custom-types';
 import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
@@ -168,6 +169,15 @@ const ZodSubscriptionsSettingsSchema = z.object({
   defaultAutoRecord: z.boolean().optional(),
 });
 
+// Data-import defaults. `recalculateAccountBalance` seeds the "update account
+// balances from imported transactions" checkbox in the CSV / Wallet import
+// wizards; the execute request still carries the chosen value explicitly as
+// `recalculateBalance` on `ImportExecuteRequestBase` (shared import-export
+// types) — this persisted key is the default, that wire field is the override.
+const ZodImportSettingsSchema = z.object({
+  recalculateAccountBalance: z.boolean().optional(),
+});
+
 // A saved Pivot Report "view": the full configuration a user pinned so they can reopen the
 // same cross-tab later. Persisted in the settings JSONB (no dedicated table). The period is
 // stored as an explicit range.
@@ -207,6 +217,7 @@ export const ZodSettingsSchema = z.object({
   sidebarSections: ZodSidebarSectionsSchema.optional(),
   ui: ZodUiSettingsSchema.optional(),
   subscriptions: ZodSubscriptionsSettingsSchema.optional(),
+  import: ZodImportSettingsSchema.optional(),
   savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   // When true, both the inline sync-time Payee extraction and the post-sync
   // note fuzzy backfill fall back to the transaction description/note if the
@@ -302,6 +313,11 @@ export const ZodSettingsPatchSchema = z.object({
       defaultAutoRecord: z.boolean().optional(),
     })
     .optional(),
+  import: z
+    .object({
+      recalculateAccountBalance: z.boolean().optional(),
+    })
+    .optional(),
   // Arrays are replaced wholesale by the PATCH merge, so the same element schema (defaults and
   // all) is reused here to stay in sync with `ZodSettingsSchema`.
   savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
@@ -321,9 +337,6 @@ type DeepPartial<T> = {
       ? DeepPartial<NonNullable<T[K]>>
       : T[K];
 };
-
-type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
-type Expect<T extends true> = T;
 
 /**
  * Compile-time drift guard: `ZodSettingsPatchSchema` must infer exactly the
