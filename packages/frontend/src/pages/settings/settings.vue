@@ -215,7 +215,7 @@ const workspaceTabs = computed<Tab[]>(() => {
     },
     {
       name: 'ai-integrations',
-      label: 'AI Integrations', // TODO: replace with t('settings.navigation.aiIntegrations') when i18n key is added
+      label: t('settings.navigation.aiIntegrations'),
       to: { name: ROUTES_NAMES.settingsAiIntegrations },
       icon: PlugIcon,
       badgeSince: '2026-04-01',

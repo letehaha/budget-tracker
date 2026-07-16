@@ -1,0 +1,64 @@
+{
+  "settings": {
+    "aiIntegrations": {
+      "title": "Інтеграції ШІ",
+      "description": "Підключіть помічники ШІ, такі як Claude або ChatGPT, щоб аналізувати ваші фінансові дані безпосередньо з чату.",
+      "mcpServer": {
+        "title": "Сервер MCP",
+        "description": "Використовуйте цю URL-адресу для підключення помічників ШІ до свого облікового запису MoneyMatter. Ваші дані мають доступ лише для читання.",
+        "copyTooltip": "Скопіювати URL",
+        "copiedNotification": "URL сервера MCP скопійовано до буфера обміну"
+      },
+      "quickConnect": {
+        "title": "Швидке підключення",
+        "description": "Виберіть помічника ШІ нижче. Натисніть кнопку, щоб відкрити його налаштування, потім виконайте кроки.",
+        "openSettings": "Відкрити налаштування",
+        "claude": {
+          "steps": {
+            "createConnector": "Натисніть значок {icon} поруч із \"Connectors\", щоб створити нове з'єднання",
+            "selectCustom": "Виберіть {action}",
+            "enterName": "Для поля \"Name\" введіть {value}",
+            "pasteUrl": "Для поля \"Remote MCP server URL\" вставте {value}",
+            "finish": "Залиште \"Advanced settings\" пустим і натисніть {action}",
+            "authorize": "Вас буде перенаправлено в MoneyMatter для авторизації доступу"
+          }
+        },
+        "chatgpt": {
+          "steps": {
+            "addConnector": "Натисніть {action}",
+            "pasteUrl": "Для поля \"URL\" вставте {value}",
+            "clickAdd": "Натисніть {action}",
+            "authorize": "Вас буде перенаправлено в MoneyMatter для авторизації доступу"
+          }
+        }
+      },
+      "actions": {
+        "addCustomConnector": "Add custom connector",
+        "addConnector": "Add connector",
+        "add": "Add"
+      },
+      "connectedApps": {
+        "title": "Підключені додатки",
+        "description": "Додатки, які мають доступ до ваших фінансових даних. Ви можете відкликати доступ у будь-який час.",
+        "emptyTitle": "Поки що немає підключених додатків.",
+        "emptyDescription": "Використовуйте кнопки вище, щоб підключити помічника ШІ.",
+        "connectedAt": "Підключено: {date}",
+        "lastUsed": "Останнє використання: {time}",
+        "scope": "Область доступу: {scopes}",
+        "revoke": "Відкликати"
+      },
+      "revokeDialog": {
+        "title": "Відкликати доступ?",
+        "description": "Це негайно відключить додаток і зробить недійсними всі його токени. Ви можете повторно підключитися пізніше.",
+        "confirm": "Відкликати доступ",
+        "successNotification": "Доступ до додатка успішно відкликано",
+        "errorNotification": "Не вдалося відкликати доступ до додатка"
+      },
+      "scopes": {
+        "financeRead": "Читання фінансових даних",
+        "profileRead": "Читання профілю",
+        "offlineAccess": "Автономний доступ"
+      }
+    }
+  }
+}
