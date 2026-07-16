@@ -44,8 +44,12 @@ git log <latest-tag>..HEAD --oneline
 git log <latest-tag>..HEAD --oneline --no-merges
 
 # Merged PRs with URLs (needed for the Code Changes section)
-gh pr list --state merged --base main --limit 30 --json number,title,url | jq -r '.[] | "#\(.number) \(.title) \(.url)"'
+gh pr list --state merged --base dev --limit 30 --json number,title,url | jq -r '.[] | "#\(.number) \(.title) \(.url)"'
 ```
+
+Feature and fix PRs are merged into `dev`; the only PR with `--base main` is the
+`Release vX.Y.Z` PR itself, which is the release being written up rather than a
+change within it.
 
 Filter PRs to only those merged AFTER the latest tag date.
 
@@ -73,6 +77,8 @@ Categorize by commit prefix:
 - `feat:` commits = new user-facing functionality
 - `fix:` commits = bug fixes
 - `refactor:` / `chore:` commits = internal improvements
+
+For `fix:` commits, the priority chain above is **not enough** — it tells you what was changed, not who the bug hit. Before writing the fix line, also check the linked issue (`gh issue view <n>`, often referenced as "Closes #N" in the PR body) and, when the condition is still unclear, read the actual call site to see when the broken path was taken. See the bug-fix scope rule under Format rules — a fix line that can't name the affected flow and condition isn't ready to ship.
 
 Group changes into these categories (skip empty ones):
 
@@ -122,6 +128,27 @@ Follow the **exact format** observed from recent releases. The format is:
 - **Add a relevant emoji before each `###` section title** to visually separate features. Pick emojis that match the feature's purpose (e.g., 🔔 for notifications, 🔗 for linking, 👀 for monitoring, ✨ for improvements, 📝 for code changes).
 - Feature descriptions should be user-facing (what changed for the user, not code details)
 - **Product name**: Always refer to the product as **MoneyMatter**, never "Budget Tracker" or "budget-tracker". The first mention in the release notes must be a markdown link: `[MoneyMatter](https://moneymatter.app)`. Subsequent mentions can be plain "MoneyMatter".
+- **Write for a non-technical reader. Describe the outcome, not the implementation.** The audience includes developers, but it is not written for them — someone who just uses the app to track money must understand every sentence without knowing how it was built. Describe what the user now experiences or can do; never how it was achieved.
+  - Do NOT name technologies, storage layers, or mechanisms: no "IndexedDB", "cached locally", "request", "round trip", "endpoint", "query", "index", "payload", "SSE", "chunk", "bundle", "zod", "schema", "migration", "DB connections", "client-side", "server-side".
+  - Do NOT quantify internals: no "loads from a single request instead of many", "reduced from N calls to 1", "deferred to idle".
+  - Say the felt effect instead. Examples of the rewrite:
+    - ❌ "Dashboard widgets that used to fan out into many requests now load from a single one and slice the data in the browser, and lists are cached locally so returning to a page is instant instead of a fresh round trip."
+    - ✅ "The dashboard loads faster, and pages you visit often now open instantly."
+    - ❌ "Fixed stale asset errors after a new version deploys by hardening frontend chunk preload."
+    - ✅ "The app no longer breaks after a new version ships — it picks it up cleanly."
+    - ❌ "Coerce resourceId string to number in the zod schema."
+    - ✅ "Household invitations no longer fail with an error."
+  - Performance work in particular: state that the affected screens are faster and leave it there. A list of what was optimized under the hood is implementation detail, however impressive.
+  - Rule of thumb: if a sentence would only make sense to someone who has seen the code, rewrite it or drop it.
+- **Bug-fix lines must state the real scope of the bug — never a bare "X no longer fails".** Plain language (rule above) means dropping the _mechanism_, not the _facts_. A line like "Household invitations no longer fail with an error" is useless: it doesn't say who was affected, under what conditions, or whether the reader hit it — and it implies the whole feature was broken when usually only one path was.
+  - Before writing any fix line, establish from the issue, PR body, or the code itself: **which flow broke**, **under what condition** (always for that flow? only cross-currency? only on mobile? only after a specific action?), and **what was _not_ affected**. Do not guess this from the commit subject — read the call site.
+  - Then write the line so a user can tell whether it applied to them:
+    - ❌ "Household invitations no longer fail with an error." — vague; implies all sharing was broken
+    - ✅ "Inviting someone to your household no longer gets rejected as invalid input. Sharing individual accounts and budgets was never affected."
+    - ❌ "Fixed transaction list loading." — which list, when?
+    - ✅ "The transactions list on mobile no longer gets stuck loading when you scroll past the first page."
+  - Precision about **when** something broke matters as much as what: if it only happened in a specific situation, say the situation. If it happened every time for that flow, it's fine to say so plainly — but verify that's true rather than assuming.
+  - Naming the user-visible error text ("rejected as invalid input", "stuck loading") is good — that's what the user saw. Naming the cause ("zod schema", "string vs number coercion") is not — that's implementation.
 - **NEVER mention baseline / table-stakes work in release notes.** These are expected and invisible to users — calling them out as features is noise. Do NOT write things like:
   - "translations for both languages are in place" / "i18n added" / "localization shipped"
   - "tests added" / "test coverage" / "e2e tests updated"
