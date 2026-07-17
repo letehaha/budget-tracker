@@ -7,12 +7,12 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
  * Re-anchors the base-currency (`ref*`) side of account balances to the latest
  * exchange rate.
  *
- * `refCurrentBalance` and `refCreditLimit` are spot measures — "what is this
+ * `refCurrentBalance` and `refCreditLimit` are spot measures – "what is this
  * account's native value worth in the owner's base currency right now". They are
  * NOT accumulators of per-transaction conversions: transaction `refAmount`s keep
  * their historical tx-date rates (flows), while account-level ref balances are
  * stocks that must track the current rate. Without this re-anchoring, a rate move
- * leaves every stored ref balance at a blend of historical rates — most visibly,
+ * leaves every stored ref balance at a blend of historical rates – most visibly,
  * an account whose native balance returns to zero keeps a nonzero base-currency
  * residue.
  *
@@ -67,7 +67,7 @@ export async function remeasureRefBalances({ userId }: { userId?: number } = {})
       updated += 1;
     } catch (e) {
       // A single account with an unavailable rate (exotic currency, provider gap)
-      // must not block remeasuring the rest — its previous ref values stay in
+      // must not block remeasuring the rest – its previous ref values stay in
       // place until a later run finds a rate.
       failed += 1;
       logger.error(

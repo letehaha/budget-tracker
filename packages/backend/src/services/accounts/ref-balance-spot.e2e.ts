@@ -47,7 +47,7 @@ const createEurAccount = async () => {
 describe('Account ref balances are spot measures', () => {
   afterEach(async () => {
     // ExchangeRates is a seed table (not truncated between tests) and the global
-    // beforeEach only clears today+future rows — drop this file's historical
+    // beforeEach only clears today+future rows – drop this file's historical
     // fixture rows so they can't leak into other tests on the same worker.
     await connection.sequelize.query(`DELETE FROM "ExchangeRates" WHERE date = :date`, {
       replacements: { date: HISTORICAL_DATE },
@@ -100,7 +100,7 @@ describe('Account ref balances are spot measures', () => {
       raw: true,
     });
 
-    // Money in at 7.0, out at ~3.87 — an accumulator would keep a large base-currency
+    // Money in at 7.0, out at ~3.87 – an accumulator would keep a large base-currency
     // residue here; the spot measure of a zero balance is exactly zero.
     const updated = await helpers.getAccount({ id: account.id, raw: true });
     expect(Number(updated.currentBalance)).toBe(0);
@@ -123,7 +123,7 @@ describe('Account ref balances are spot measures', () => {
     expect(decimalToCents(beforeSync.refCurrentBalance)).toEqualRefValue(10000 * SPOT_EUR_TO_AED);
 
     // Overnight rate move: EUR weakens against USD in the stored basket. The
-    // stored balance must NOT react on its own — only the sync's remeasure pass
+    // stored balance must NOT react on its own – only the sync's remeasure pass
     // re-anchors it.
     const newEurPerUsd = 0.75;
     await connection.sequelize.query(
@@ -167,6 +167,40 @@ describe('Account ref balances are spot measures', () => {
 
     const remeasured = await helpers.getAccount({ id: account.id, raw: true });
     expect(Number(remeasured.refCurrentBalance)).toBe(500);
+  });
+
+  it('restamps refInitialBalance at the earliest-transaction date rate when backdated transactions land', async () => {
+    // Account created with a nonzero opening balance: stamped at today's rate.
+    await helpers.addUserCurrencies({ currencyCodes: ['EUR'] });
+    const account = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ currencyCode: 'EUR', initialBalance: 200 }),
+      raw: true,
+    });
+    expect(decimalToCents(account.refInitialBalance)).toEqualRefValue(20000 * SPOT_EUR_TO_AED);
+
+    await seedHistoricalRates();
+
+    // A backdated transaction moves the ledger boundary into the past – the
+    // opening balance now semantically exists before that date, so its ref stamp
+    // must use the boundary date's rate.
+    const [tx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 50,
+        transactionType: TRANSACTION_TYPES.expense,
+        time: HISTORICAL_DATE.toISOString(),
+      }),
+      raw: true,
+    });
+
+    const restamped = await helpers.getAccount({ id: account.id, raw: true });
+    expect(decimalToCents(restamped.refInitialBalance)).toEqualRefValue(20000 * HISTORICAL_EUR_TO_AED);
+
+    // Deleting the earliest transaction moves the boundary back to the account's
+    // creation date – the stamp returns to (approximately) today's rate.
+    await helpers.deleteTransaction({ id: tx.id });
+    const reverted = await helpers.getAccount({ id: account.id, raw: true });
+    expect(decimalToCents(reverted.refInitialBalance)).toEqualRefValue(20000 * SPOT_EUR_TO_AED);
   });
 
   it('keeps ref balances identical to native balances for base-currency accounts', async () => {

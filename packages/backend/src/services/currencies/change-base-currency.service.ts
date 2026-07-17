@@ -1,4 +1,10 @@
-import { API_ERROR_CODES, type BaseCurrencyBlocker, RESOURCE_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_TYPES,
+  API_ERROR_CODES,
+  type BaseCurrencyBlocker,
+  RESOURCE_TYPES,
+} from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ConflictError, ValidationError } from '@js/errors';
@@ -18,7 +24,7 @@ import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.mode
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withLock } from '@services/common/lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
-import { Op, Transaction as SequelizeTransaction } from 'sequelize';
+import { Op, QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
 
 /**
  * What is covered:
@@ -370,8 +376,9 @@ async function rebuildTransactions(params: {
 }
 
 /**
- * Recalculates refInitialBalance, refCurrentBalance, and refCreditLimit for all user accounts
- * at today's exchange rate.
+ * Recalculates refInitialBalance, refCurrentBalance, and refCreditLimit for all user accounts.
+ * Current balances and credit limits convert at today's rate (spot measures);
+ * tx-backed opening balances convert at their ledger-boundary date.
  */
 async function recalculateAccounts(params: {
   userId: number;
@@ -387,16 +394,34 @@ async function recalculateAccounts(params: {
 
   logger.info(`Recalculating ${accounts.length} accounts for user ${userId}`);
 
+  // Ledger boundary (earliest tx date) per account, one grouped query. A
+  // tx-backed opening balance is the balance immediately BEFORE the earliest
+  // transaction, so its ref stamp uses that date's rate — same rule as
+  // `restampRefInitialBalance`.
+  const boundaryRows = await Transactions.sequelize!.query<{ accountId: string; earliestTime: Date }>(
+    `SELECT "accountId", MIN("time") AS "earliestTime" FROM "Transactions" WHERE "userId" = :userId GROUP BY "accountId"`,
+    { replacements: { userId }, type: QueryTypes.SELECT, transaction },
+  );
+  const boundaryByAccountId = new Map(boundaryRows.map((row) => [row.accountId, new Date(row.earliestTime)]));
+
   const today = new Date();
 
   for (const account of accounts) {
-    // Recalculate initial balance (use today's rate - creation date unknown)
+    // System non-loan accounts stamp the opening balance at the boundary rate;
+    // provider-owned openings (bank), loan anchors, and vehicles keep the
+    // today-rate stamp their own flows use.
+    const isBoundaryStamped =
+      account.type === ACCOUNT_TYPES.system &&
+      account.accountCategory !== ACCOUNT_CATEGORIES.loan &&
+      account.accountCategory !== ACCOUNT_CATEGORIES.vehicle;
+    const initialBalanceDate = isBoundaryStamped ? (boundaryByAccountId.get(account.id) ?? today) : today;
+
     const newRefInitialBalance = await localCalculateRefAmount({
       amount: account.initialBalance,
       userId,
       baseCode: account.currencyCode,
       quoteCode: newCurrencyCode,
-      date: today,
+      date: initialBalanceDate,
     });
 
     // Recalculate credit limit (use today's rate)

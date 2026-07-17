@@ -515,6 +515,7 @@ export default class Transactions extends Model {
         accountId,
         prevAmount: amount,
         transactionType,
+        removedTransactionId: instance.id,
       });
     }
 
@@ -527,6 +528,7 @@ export default class Transactions extends Model {
       attributes: ['groupId'],
       raw: true,
     });
+    // oxlint-disable-next-line no-underscore-dangle
     (instance as unknown as Record<string, unknown>)._affectedGroupIds = groupItems.map((item) => item.groupId);
   }
 
@@ -583,6 +585,7 @@ export default class Transactions extends Model {
   @AfterDestroy
   static async autoDissolveEmptyGroups(instance: Transactions) {
     // After CASCADE removes the join row, check only the groups this transaction belonged to.
+    // oxlint-disable-next-line no-underscore-dangle
     const affectedGroupIds = (instance as unknown as Record<string, unknown>)._affectedGroupIds as string[] | undefined;
 
     if (!affectedGroupIds || affectedGroupIds.length === 0) return;

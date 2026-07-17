@@ -35,6 +35,7 @@ import { convertCrossUserTransfersForAccountIds } from '@services/sharing/househ
 import { Op } from 'sequelize';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
+import { restampRefInitialBalance } from './accounts/restamp-ref-initial-balance';
 import { withTransaction } from './common/with-transaction';
 
 type AccountWithRelinkStatus = Accounts.default & {
@@ -126,7 +127,7 @@ export const getAccounts = withTransaction(
 
     const ownerUser = ownedWithRelink.length ? await Users.findByPk(payload.userId) : null;
     if (ownedWithRelink.length && !ownerUser) {
-      // Authenticated caller owns accounts but has no Users row — should never happen
+      // Authenticated caller owns accounts but has no Users row – should never happen
       // (auth middleware guarantees it). Without the row we can't stamp _shareContext and
       // the serializer silently omits the `share` block, which the frontend uses to
       // distinguish owner vs recipient UI. Surface so this doesn't degrade silently.
@@ -163,7 +164,7 @@ export const getAccountById = withTransaction(
       if (ownerUser) {
         enriched._shareContext = await buildOwnerShareContext({ ownerUser });
       } else {
-        // Same integrity-violation signal as `getAccounts` — caller owns this account
+        // Same integrity-violation signal as `getAccounts` – caller owns this account
         // but has no Users row. Without _shareContext the recipient-vs-owner serializer
         // branch breaks; log so silent UI degradation is visible to ops.
         logger.error(
@@ -207,6 +208,10 @@ export const createAccount = withTransaction(
         date: new Date(),
       });
 
+      // At creation the opening balance exists "as of now", so today's rate is the
+      // correct stamp. Once transactions older than the account appear (imports,
+      // backdated entries), `restampRefInitialBalance` re-derives this at the
+      // ledger-boundary date's rate.
       const refInitialBalance = await calculateRefAmount({
         userId,
         amount: initialBalance,
@@ -238,7 +243,7 @@ export const updateAccount = withTransaction(
   }: Accounts.UpdateAccountByIdPayload &
     (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>) & {
       /**
-       * Authorises a loan `currentBalance` write — set only by `updateLoan`.
+       * Authorises a loan `currentBalance` write – set only by `updateLoan`.
        * Destructured out so it never reaches `Accounts.updateAccountById`; the
        * controller's field allowlist keeps clients from setting it.
        */
@@ -252,7 +257,7 @@ export const updateAccount = withTransaction(
     // A vehicle's value is owned by the depreciation model + override flow.
     // Setting `currentBalance` here (directly, no adjustment transaction) would
     // leave `Vehicle.valueAnchor` stale, so the next lazy refresh would silently
-    // overwrite the edit. Enforced in the service — not just the controller — so
+    // overwrite the edit. Enforced in the service – not just the controller – so
     // non-HTTP callers (MCP tools, internal services) can't bypass it; value
     // changes must go through the override flow (`POST /vehicles/:id/value`).
     if (accountData.accountCategory === ACCOUNT_CATEGORIES.vehicle && payload.currentBalance !== undefined) {
@@ -263,7 +268,7 @@ export const updateAccount = withTransaction(
 
     // A loan's balance must go through `updateLoan` (PATCH /loans/:id), which
     // negates to the liability convention, appends the balance_correction event,
-    // and re-anchors — a raw currentBalance write here would skip all of that.
+    // and re-anchors – a raw currentBalance write here would skip all of that.
     // Enforced in the service so non-HTTP callers (MCP, internal) can't bypass it.
     if (accountData.accountCategory === ACCOUNT_CATEGORIES.loan) {
       if (payload.currentBalance !== undefined && !loanBalanceCorrection) {
@@ -271,7 +276,7 @@ export const updateAccount = withTransaction(
           message: t({ key: 'accounts.loanBalanceUseUpdateLoan' }),
         });
       }
-      // Changing the category would orphan the LoanDetails sidecar — loans are
+      // Changing the category would orphan the LoanDetails sidecar – loans are
       // created/destroyed only via the /loans endpoints.
       if (payload.accountCategory !== undefined && payload.accountCategory !== ACCOUNT_CATEGORIES.loan) {
         throw new ValidationError({
@@ -290,7 +295,7 @@ export const updateAccount = withTransaction(
     const currentBalanceIsChanging =
       payload.currentBalance !== undefined && !payload.currentBalance.equals(accountData.currentBalance);
     let initialBalance: Money = accountData.initialBalance;
-    let refInitialBalance: Money = accountData.refInitialBalance;
+    const refInitialBalance: Money = accountData.refInitialBalance;
     let refCurrentBalance: Money = accountData.refCurrentBalance;
 
     /**
@@ -302,20 +307,15 @@ export const updateAccount = withTransaction(
       const diff = payload.currentBalance!.subtract(accountData.currentBalance);
 
       // System accounts absorb the diff into the opening balance so
-      // `currentBalance = initialBalance + Σ(tx)` keeps holding.
+      // `currentBalance = initialBalance + Σ(tx)` keeps holding. The ref side of
+      // the opening balance is restamped from the new value after the write (see
+      // below) – it is a boundary-date measure, not an accumulated delta.
       if (accountData.type === ACCOUNT_TYPES.system) {
-        const refDiff = await calculateRefAmount({
-          userId: accountData.userId,
-          amount: diff,
-          baseCode: accountData.currencyCode,
-          date: new Date(),
-        });
         initialBalance = initialBalance.add(diff);
-        refInitialBalance = refInitialBalance.add(refDiff);
       }
 
-      // `refCurrentBalance` is a spot measure — the new native balance converted at
-      // the latest rate — not the stored ref value plus a delta: the stored value
+      // `refCurrentBalance` is a spot measure – the new native balance converted at
+      // the latest rate – not the stored ref value plus a delta: the stored value
       // blends historical rates, and adding a today-rate delta on top would keep
       // that blend alive. Cache bypassed so a rate edited moments ago is observed.
       refCurrentBalance = await calculateRefAmount({
@@ -328,7 +328,7 @@ export const updateAccount = withTransaction(
     }
 
     // When credit limit changes, recalculate refCreditLimit for the new value.
-    // Credit limit is separate from balance — it doesn't affect currentBalance
+    // Credit limit is separate from balance – it doesn't affect currentBalance
     // or refCurrentBalance. The display layer handles the visual impact via
     // `displayBalance = currentBalance - creditLimit`.
     const creditLimitIsChanging =
@@ -362,6 +362,13 @@ export const updateAccount = withTransaction(
       account: result,
       prevAccount: accountData,
     });
+
+    // The opening balance changed → its base-currency stamp must be re-derived at
+    // the ledger-boundary rate (and cascaded into Balances history by the restamp).
+    if (currentBalanceIsChanging && accountData.type === ACCOUNT_TYPES.system) {
+      await restampRefInitialBalance({ accountId: accountData.id });
+      return (await Accounts.getAccountById({ id: accountData.id, userId: accountData.userId })) ?? result;
+    }
 
     return result;
   },
@@ -425,7 +432,7 @@ export const deleteAccountById = async ({ id, userId }: { id: string; userId: nu
 
   // Post-commit fan-out: the durable changes (share rows deleted, invitations revoked,
   // account row destroyed) committed in the transaction above. Notifications are
-  // best-effort — a transient notify failure must not re-open the deleted account.
+  // best-effort – a transient notify failure must not re-open the deleted account.
   if (result.cleanup.recipients.length > 0 || result.cleanup.householdRecipients.length > 0) {
     const owner = await Users.findByPk(userId);
     await notifyAccountDeleteRecipients({

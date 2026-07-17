@@ -7,32 +7,32 @@ import { ValidationError } from '@js/errors';
 // ── Mocks (hoisted before importing the module under test) ──────────────────
 
 // The service reads/writes the account through the accounts model (default
-// export `findOne`, named `updateAccountById`) and cascades opening-balance
-// changes through the balances model. Stubbing all three keeps this unit run
-// free of the DB/queue connections their real import graph opens.
+// export `findOne`, named `updateAccountById`). Stubbing keeps this unit run
+// free of the DB/queue connections the real import graph opens.
 jest.mock('@models/accounts.model', () => ({
   __esModule: true,
   default: { findOne: jest.fn() },
   updateAccountById: jest.fn(),
 }));
-jest.mock('@models/balances.model', () => ({
-  __esModule: true,
-  default: { handleAccountChange: jest.fn() },
-}));
 // The service re-derives `refCurrentBalance` as a spot conversion of the shifted
-// native balance. Stubbed so the unit run stays DB-free; the default
-// implementation (set in beforeEach) converts 1:1, making ref assertions read as
-// plain native numbers.
+// native balance. The default implementation (set in beforeEach) converts 1:1,
+// making ref assertions read as plain native numbers.
 jest.mock('@services/calculate-ref-amount.service', () => ({
   __esModule: true,
   calculateRefAmount: jest.fn(),
+}));
+// Opening-balance restamps (boundary-rate `refInitialBalance` + Balances
+// cascade) are the restamp service's job – here only the delegation is asserted.
+jest.mock('./restamp-ref-initial-balance', () => ({
+  __esModule: true,
+  restampRefInitialBalance: jest.fn(),
 }));
 
 // `withTransaction` (imported by the service via ../common/with-transaction)
 // reads the ambient CLS transaction from this namespace and, finding none,
 // runs the body inside `connection.sequelize.transaction`. The stub runs the
-// callback straight through — exactly what a real COMMIT looks like to the
-// caller — and reports no ambient transaction so the service's row-lock read
+// callback straight through – exactly what a real COMMIT looks like to the
+// caller – and reports no ambient transaction so the service's row-lock read
 // passes `transaction: undefined`.
 jest.mock('@models/connection', () => ({
   __esModule: true,
@@ -46,16 +46,16 @@ jest.mock('@models/connection', () => ({
 
 /* eslint-disable import/first */
 import Accounts, * as AccountsModel from '@models/accounts.model';
-import Balances from '@models/balances.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { absorbBalanceAdjustment } from './absorb-balance-adjustment';
+import { restampRefInitialBalance } from './restamp-ref-initial-balance';
 /* eslint-enable import/first */
 
 const findOneMock = jest.mocked(Accounts.findOne);
 const updateAccountByIdMock = jest.mocked(AccountsModel.updateAccountById);
-const handleAccountChangeMock = jest.mocked(Balances.handleAccountChange);
 const calculateRefAmountMock = jest.mocked(calculateRefAmount);
+const restampMock = jest.mocked(restampRefInitialBalance);
 
 type AccountRow = InstanceType<typeof Accounts>;
 
@@ -63,7 +63,7 @@ const USER_ID = 42;
 
 /**
  * Minimal account shape the service touches: identity, type/category (drive the
- * system + dedicated-flow branches), and the four Money balances it shifts.
+ * system + dedicated-flow branches), currency, and the Money balances it shifts.
  */
 function buildAccount({
   id = generateRandomRecordId(),
@@ -106,7 +106,6 @@ type UpdatePayload = {
   currentBalance: Money;
   refCurrentBalance: Money;
   initialBalance?: Money;
-  refInitialBalance?: Money;
 };
 
 const lastUpdatePayload = (): UpdatePayload => updateAccountByIdMock.mock.calls[0]![0] as unknown as UpdatePayload;
@@ -117,13 +116,13 @@ beforeEach(() => {
   // Default: the update succeeds and echoes a distinct sentinel so tests can
   // assert the service returns the written row (not the pre-update read).
   updateAccountByIdMock.mockResolvedValue({ id: 'updated-sentinel' } as never);
-  handleAccountChangeMock.mockResolvedValue(undefined as never);
-  // 1:1 spot conversion — ref assertions read as plain native numbers.
+  // 1:1 spot conversion – ref assertions read as plain native numbers.
   calculateRefAmountMock.mockImplementation(async ({ amount }) => amount);
+  restampMock.mockResolvedValue(undefined as never);
 });
 
 describe('absorbBalanceAdjustment', () => {
-  it('non-system account: shifts only the current balances, never the opening balance, and skips the balances cascade', async () => {
+  it('non-system account: shifts the current balance, remeasures the ref balance, never touches the opening balance', async () => {
     const accountId = generateRandomRecordId();
     const account = buildAccount({
       id: accountId,
@@ -140,7 +139,6 @@ describe('absorbBalanceAdjustment', () => {
       userId: USER_ID,
       accountId,
       amountDelta: Money.fromDecimal(50),
-      refAmountDelta: Money.fromDecimal(60),
     });
 
     expect(updateAccountByIdMock).toHaveBeenCalledTimes(1);
@@ -150,20 +148,20 @@ describe('absorbBalanceAdjustment', () => {
     // currentBalance = original + amountDelta.
     expect(payload.currentBalance.toCents()).toBe(Money.fromDecimal(150).toCents());
     // refCurrentBalance is a spot remeasure of the NEW native balance (1:1 mock),
-    // never `stored ref + refAmountDelta` — the delta only serves the opening side.
+    // never `stored ref + a delta`.
     expect(payload.refCurrentBalance.toCents()).toBe(Money.fromDecimal(150).toCents());
     expect(calculateRefAmountMock).toHaveBeenCalledWith(
       expect.objectContaining({ userId: USER_ID, baseCode: 'USD', bypassCache: true }),
     );
     expect(calculateRefAmountMock.mock.calls[0]![0].amount.toCents()).toBe(Money.fromDecimal(150).toCents());
-    // The provider-owned opening balance must NOT move — this is the regression guard.
+    // The provider-owned opening balance must NOT move – this is the regression guard.
     expect(payload).not.toHaveProperty('initialBalance');
     expect(payload).not.toHaveProperty('refInitialBalance');
 
-    expect(handleAccountChangeMock).not.toHaveBeenCalled();
+    expect(restampMock).not.toHaveBeenCalled();
   });
 
-  it('system account with non-zero ref delta: also shifts the opening balances and cascades through Balances', async () => {
+  it('system account: also shifts the native opening balance and delegates its ref stamp to the restamp service', async () => {
     const accountId = generateRandomRecordId();
     const account = buildAccount({
       id: accountId,
@@ -174,34 +172,33 @@ describe('absorbBalanceAdjustment', () => {
       initialBalance: Money.fromDecimal(50),
       refInitialBalance: Money.fromDecimal(50),
     });
-    findOneMock.mockResolvedValue(account as never);
-    const updatedRow = { id: 'updated-system' } as unknown as AccountRow;
-    updateAccountByIdMock.mockResolvedValue(updatedRow as never);
+    const refreshedRow = { id: 'refreshed-after-restamp' } as unknown as AccountRow;
+    findOneMock.mockResolvedValueOnce(account as never).mockResolvedValueOnce(refreshedRow as never);
 
     const result = await absorbBalanceAdjustment({
       userId: USER_ID,
       accountId,
       amountDelta: Money.fromDecimal(30),
-      refAmountDelta: Money.fromDecimal(30),
     });
 
     expect(updateAccountByIdMock).toHaveBeenCalledTimes(1);
     const payload = lastUpdatePayload();
     expect(payload.currentBalance.toCents()).toBe(Money.fromDecimal(230).toCents());
     expect(payload.refCurrentBalance.toCents()).toBe(Money.fromDecimal(230).toCents());
-    // System accounts absorb the same deltas into the opening balances.
+    // System accounts absorb the same native delta into the opening balance; its
+    // ref stamp is NOT written here – the restamp service derives it.
     expect(payload.initialBalance!.toCents()).toBe(Money.fromDecimal(80).toCents());
-    expect(payload.refInitialBalance!.toCents()).toBe(Money.fromDecimal(80).toCents());
+    expect(payload).not.toHaveProperty('refInitialBalance');
 
-    // Cascade runs once with the written row + the pre-update read.
-    expect(handleAccountChangeMock).toHaveBeenCalledTimes(1);
-    expect(handleAccountChangeMock).toHaveBeenCalledWith({ account: updatedRow, prevAccount: account });
+    expect(restampMock).toHaveBeenCalledTimes(1);
+    expect(restampMock).toHaveBeenCalledWith({ accountId });
 
-    // The service returns the written row, not the pre-update read.
-    expect(result).toBe(updatedRow);
+    // The service returns the row re-read AFTER the restamp so callers see the
+    // final ref fields.
+    expect(result).toBe(refreshedRow);
   });
 
-  it('system account with a zero ref delta: still shifts the opening balances but skips the cascade', async () => {
+  it('system account with a zero delta: writes the (unchanged) balances but skips the restamp', async () => {
     const accountId = generateRandomRecordId();
     const account = buildAccount({
       id: accountId,
@@ -217,18 +214,15 @@ describe('absorbBalanceAdjustment', () => {
     await absorbBalanceAdjustment({
       userId: USER_ID,
       accountId,
-      amountDelta: Money.fromDecimal(10),
-      refAmountDelta: Money.zero(),
+      amountDelta: Money.zero(),
     });
 
     expect(updateAccountByIdMock).toHaveBeenCalledTimes(1);
     const payload = lastUpdatePayload();
-    // System branch still writes the opening balances even with a zero ref delta.
-    expect(payload.initialBalance!.toCents()).toBe(Money.fromDecimal(15).toCents());
-    expect(payload.refInitialBalance!.toCents()).toBe(Money.fromDecimal(5).toCents());
+    expect(payload.initialBalance!.toCents()).toBe(Money.fromDecimal(5).toCents());
 
-    // The `!refAmountDelta.isZero()` guard blocks the cascade even for a system account.
-    expect(handleAccountChangeMock).not.toHaveBeenCalled();
+    // A zero delta cannot move the opening balance – no restamp, no cascade.
+    expect(restampMock).not.toHaveBeenCalled();
   });
 
   it('throws ValidationError and never writes when the account is not found', async () => {
@@ -239,16 +233,15 @@ describe('absorbBalanceAdjustment', () => {
         userId: USER_ID,
         accountId: generateRandomRecordId(),
         amountDelta: Money.fromDecimal(10),
-        refAmountDelta: Money.fromDecimal(10),
       }),
     ).rejects.toThrow(ValidationError);
 
     expect(updateAccountByIdMock).not.toHaveBeenCalled();
-    expect(handleAccountChangeMock).not.toHaveBeenCalled();
+    expect(restampMock).not.toHaveBeenCalled();
   });
 
   it.each([ACCOUNT_CATEGORIES.vehicle, ACCOUNT_CATEGORIES.loan])(
-    'throws ValidationError for a dedicated-flow account (%s) without writing or cascading',
+    'throws ValidationError for a dedicated-flow account (%s) without writing or restamping',
     async (accountCategory) => {
       const accountId = generateRandomRecordId();
       findOneMock.mockResolvedValue(
@@ -260,12 +253,11 @@ describe('absorbBalanceAdjustment', () => {
           userId: USER_ID,
           accountId,
           amountDelta: Money.fromDecimal(10),
-          refAmountDelta: Money.fromDecimal(10),
         }),
       ).rejects.toThrow(ValidationError);
 
       expect(updateAccountByIdMock).not.toHaveBeenCalled();
-      expect(handleAccountChangeMock).not.toHaveBeenCalled();
+      expect(restampMock).not.toHaveBeenCalled();
     },
   );
 
@@ -285,10 +277,9 @@ describe('absorbBalanceAdjustment', () => {
         userId: USER_ID,
         accountId,
         amountDelta: Money.fromDecimal(10),
-        refAmountDelta: Money.fromDecimal(10),
       }),
     ).rejects.toThrow(ValidationError);
 
-    expect(handleAccountChangeMock).not.toHaveBeenCalled();
+    expect(restampMock).not.toHaveBeenCalled();
   });
 });

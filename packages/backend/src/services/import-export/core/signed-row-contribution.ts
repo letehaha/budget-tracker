@@ -3,21 +3,13 @@ import { Money } from '@common/types/money';
 /**
  * Fold a written transaction row into its signed balance contribution, matching
  * the sign the balance hook applied when the row was created: income adds,
- * expense subtracts. The SAME sign is applied to both the account-currency
- * `amount` and the base-currency `refAmount`, so the ref tally carries the
- * row-date FX rate the hook used — never a today-rate reconversion of `amount`,
- * which would leave `refCurrentBalance` off by the FX drift.
+ * expense subtracts. Only the account-currency amount is tallied — the ref
+ * balances are derived measures (spot for the current balance, boundary-rate for
+ * the opening balance), maintained by the balance hooks themselves rather than
+ * reconstructed from per-row sums.
  */
-export function signedRowContribution({
-  isIncome,
-  amount,
-  refAmount,
-}: {
-  isIncome: boolean;
-  amount: Money;
-  refAmount: Money;
-}): { signedAmount: Money; signedRefAmount: Money } {
-  return isIncome
-    ? { signedAmount: amount, signedRefAmount: refAmount }
-    : { signedAmount: amount.negate(), signedRefAmount: refAmount.negate() };
+export function signedRowContribution({ isIncome, amount }: { isIncome: boolean; amount: Money }): {
+  signedAmount: Money;
+} {
+  return isIncome ? { signedAmount: amount } : { signedAmount: amount.negate() };
 }

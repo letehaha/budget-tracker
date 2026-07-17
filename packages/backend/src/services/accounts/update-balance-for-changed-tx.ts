@@ -43,12 +43,18 @@ async function updateAccountBalanceForChangedTxImpl({
   amount = Money.zero(),
   prevAmount = Money.zero(),
   prevTransactionType = transactionType,
+  removedTransactionId,
 }: {
   accountId: string;
   transactionType: TRANSACTION_TYPES;
   amount?: Money;
   prevAmount?: Money;
   prevTransactionType?: TRANSACTION_TYPES;
+  /**
+   * Set by the BeforeDestroy hook: the row being removed still exists at that
+   * point, so the ledger-boundary lookup must exclude it explicitly.
+   */
+  removedTransactionId?: string;
 }): Promise<void> {
   // Lookup is account-scoped, not user-scoped: post-S4 the service layer has already
   // authorized the write (owner or recipient with `write`/`manage`), so balance updates
@@ -107,6 +113,11 @@ async function updateAccountBalanceForChangedTxImpl({
   });
 
   await Accounts.update({ currentBalance: newCurrentBalance, refCurrentBalance }, { where: { id: accountId } });
+
+  // A changed transaction can move the account's ledger boundary (its earliest
+  // transaction date), and `refInitialBalance` is stamped at the boundary's rate.
+  const { restampRefInitialBalance } = await import('./restamp-ref-initial-balance');
+  await restampRefInitialBalance({ accountId, excludeTransactionId: removedTransactionId });
 }
 
 export const updateAccountBalanceForChangedTx = withTransaction(updateAccountBalanceForChangedTxImpl);
