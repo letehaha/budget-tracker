@@ -44,6 +44,7 @@ export async function getExchangeRate({
   date,
   baseCode,
   quoteCode,
+  bypassCache = false,
 }: ExchangeRateParams): Promise<ExchangeRateReturnType> {
   const pair = {
     baseCode: baseCode.toUpperCase(),
@@ -64,9 +65,11 @@ export async function getExchangeRate({
   if (customRate) return customRate;
 
   const cacheKey = buildCacheKey({ date, baseCode: pair.baseCode, quoteCode: pair.quoteCode });
-  const cached = await crossRateCache.read(cacheKey);
-  if (cached) {
-    return { ...pair, rate: cached.rate, date: new Date(cached.dateISO) };
+  if (!bypassCache) {
+    const cached = await crossRateCache.read(cacheKey);
+    if (cached) {
+      return { ...pair, rate: cached.rate, date: new Date(cached.dateISO) };
+    }
   }
 
   const { result, cacheable } = await computeCrossRate({ pair, date });
@@ -201,6 +204,12 @@ type ExchangeRateParams = {
   date: Date;
   baseCode: string;
   quoteCode: string;
+  /**
+   * Skip the global cross-rate cache READ (the fresh result is still written back).
+   * For remeasure flows that run right after new rates land (rate sync, custom-rate
+   * edits) — a cached pre-change rate would silently re-anchor balances to stale FX.
+   */
+  bypassCache?: boolean;
 };
 
 type ExchangeRateReturnType = {

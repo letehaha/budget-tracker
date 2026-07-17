@@ -35,17 +35,19 @@ const refAmountCache = new CacheClient<string>({
  * const refAmountForDefaultUserCurrency = await calculateRefAmount({ amount: 100, userId: 42, baseCode: 'USD' });
  */
 async function calculateRefAmountImpl(params: Params): Promise<Money> {
-  const { baseCode, quoteCode, userId, amount } = params;
+  const { baseCode, quoteCode, userId, amount, bypassCache = false } = params;
 
   // **REDIS CACHE CHECK** - Cache the final converted amount (stored as cents)
   const dateStr = new Date(params.date).toISOString().split('T')[0];
   const amountCents = amount.toCents();
   const cacheKey = `ref_amount:${userId}:${amountCents}:${baseCode}:${quoteCode || 'default'}:${dateStr}`;
 
-  const cachedAmount = await refAmountCache.read(cacheKey);
+  if (!bypassCache) {
+    const cachedAmount = await refAmountCache.read(cacheKey);
 
-  if (cachedAmount !== null) {
-    return Money.fromCents(parseInt(cachedAmount, 10));
+    if (cachedAmount !== null) {
+      return Money.fromCents(parseInt(cachedAmount, 10));
+    }
   }
 
   try {
@@ -83,6 +85,7 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
       date: new Date(params.date),
       baseCode,
       quoteCode: quoteCode || defaultUserCurrency!.code,
+      bypassCache,
     });
 
     const finalAmount = calculateRefAmountFromParams({ amount, rate: result.rate });
@@ -107,6 +110,13 @@ type Params = {
   date: Date | string;
   baseCode: string;
   quoteCode?: string;
+  /**
+   * Skip redis cache READS (both the ref-amount layer here and the cross-rate layer
+   * inside `getExchangeRate`); fresh results are still written back. Required for
+   * balance remeasure flows that must observe a rate that changed within the cache
+   * TTL (rate sync, custom-rate edits).
+   */
+  bypassCache?: boolean;
 };
 
 export const calculateRefAmount = withTransaction(calculateRefAmountImpl);

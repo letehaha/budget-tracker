@@ -42,18 +42,13 @@ async function updateAccountBalanceForChangedTxImpl({
   transactionType,
   amount = Money.zero(),
   prevAmount = Money.zero(),
-  refAmount = Money.zero(),
-  prevRefAmount = Money.zero(),
   prevTransactionType = transactionType,
 }: {
   accountId: string;
   transactionType: TRANSACTION_TYPES;
   amount?: Money;
   prevAmount?: Money;
-  refAmount?: Money;
-  prevRefAmount?: Money;
   prevTransactionType?: TRANSACTION_TYPES;
-  currencyCode?: string;
 }): Promise<void> {
   // Lookup is account-scoped, not user-scoped: post-S4 the service layer has already
   // authorized the write (owner or recipient with `write`/`manage`), so balance updates
@@ -82,25 +77,36 @@ async function updateAccountBalanceForChangedTxImpl({
   // never deltad here — a delta would double-apply and ignore the anchor boundary.
   if (account.accountCategory === ACCOUNT_CATEGORIES.loan) return undefined;
 
-  const currentBalance = account.currentBalance;
-  const refCurrentBalance = account.refCurrentBalance;
-
   const newAmount = defineCorrectAmountFromTxType({ amount, transactionType });
   const oldAmount = defineCorrectAmountFromTxType({ amount: prevAmount, transactionType: prevTransactionType });
-  const newRefAmount = defineCorrectAmountFromTxType({ amount: refAmount, transactionType });
-  const oldRefAmount = defineCorrectAmountFromTxType({ amount: prevRefAmount, transactionType: prevTransactionType });
 
-  await Accounts.update(
-    {
-      currentBalance: calculateNewBalance({ amount: newAmount, previousAmount: oldAmount, currentBalance }),
-      refCurrentBalance: calculateNewBalance({
-        amount: newRefAmount,
-        previousAmount: oldRefAmount,
-        currentBalance: refCurrentBalance,
-      }),
-    },
-    { where: { id: accountId } },
-  );
+  const newCurrentBalance = calculateNewBalance({
+    amount: newAmount,
+    previousAmount: oldAmount,
+    currentBalance: account.currentBalance,
+  });
+
+  // `refCurrentBalance` is a spot measure (native balance × latest rate), never a
+  // running sum of per-transaction `refAmount`s: those carry historical tx-date
+  // rates, and accumulating them leaves the base-currency balance at a blend of
+  // old rates — an account drained back to zero would keep a nonzero ref residue.
+  //
+  // Dynamic import for the same reason this file exists at all (see the module
+  // comment): `calculate-ref-amount.service` transitively loads other models and
+  // the exchange-rate provider stack, which must not be required while
+  // `transactions.model.ts` is still inside the model loader.
+  const { calculateRefAmount } = await import('@services/calculate-ref-amount.service');
+  const refCurrentBalance = await calculateRefAmount({
+    // Owner of the account, not the transaction author — ref balances are stored
+    // in the owner's base currency (shared accounts can be written by recipients).
+    userId: account.userId,
+    amount: newCurrentBalance,
+    baseCode: account.currencyCode,
+    date: new Date(),
+    bypassCache: true,
+  });
+
+  await Accounts.update({ currentBalance: newCurrentBalance, refCurrentBalance }, { where: { id: accountId } });
 }
 
 export const updateAccountBalanceForChangedTx = withTransaction(updateAccountBalanceForChangedTxImpl);

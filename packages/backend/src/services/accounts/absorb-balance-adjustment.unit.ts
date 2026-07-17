@@ -19,6 +19,14 @@ jest.mock('@models/balances.model', () => ({
   __esModule: true,
   default: { handleAccountChange: jest.fn() },
 }));
+// The service re-derives `refCurrentBalance` as a spot conversion of the shifted
+// native balance. Stubbed so the unit run stays DB-free; the default
+// implementation (set in beforeEach) converts 1:1, making ref assertions read as
+// plain native numbers.
+jest.mock('@services/calculate-ref-amount.service', () => ({
+  __esModule: true,
+  calculateRefAmount: jest.fn(),
+}));
 
 // `withTransaction` (imported by the service via ../common/with-transaction)
 // reads the ambient CLS transaction from this namespace and, finding none,
@@ -39,6 +47,7 @@ jest.mock('@models/connection', () => ({
 /* eslint-disable import/first */
 import Accounts, * as AccountsModel from '@models/accounts.model';
 import Balances from '@models/balances.model';
+import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { absorbBalanceAdjustment } from './absorb-balance-adjustment';
 /* eslint-enable import/first */
@@ -46,6 +55,7 @@ import { absorbBalanceAdjustment } from './absorb-balance-adjustment';
 const findOneMock = jest.mocked(Accounts.findOne);
 const updateAccountByIdMock = jest.mocked(AccountsModel.updateAccountById);
 const handleAccountChangeMock = jest.mocked(Balances.handleAccountChange);
+const calculateRefAmountMock = jest.mocked(calculateRefAmount);
 
 type AccountRow = InstanceType<typeof Accounts>;
 
@@ -60,6 +70,7 @@ function buildAccount({
   name = 'Account',
   type = ACCOUNT_TYPES.monobank,
   accountCategory = ACCOUNT_CATEGORIES.general,
+  currencyCode = 'USD',
   currentBalance = Money.zero(),
   refCurrentBalance = Money.zero(),
   initialBalance = Money.zero(),
@@ -69,6 +80,7 @@ function buildAccount({
   name?: string;
   type?: ACCOUNT_TYPES;
   accountCategory?: ACCOUNT_CATEGORIES;
+  currencyCode?: string;
   currentBalance?: Money;
   refCurrentBalance?: Money;
   initialBalance?: Money;
@@ -79,6 +91,7 @@ function buildAccount({
     name,
     type,
     accountCategory,
+    currencyCode,
     currentBalance,
     refCurrentBalance,
     initialBalance,
@@ -105,6 +118,8 @@ beforeEach(() => {
   // assert the service returns the written row (not the pre-update read).
   updateAccountByIdMock.mockResolvedValue({ id: 'updated-sentinel' } as never);
   handleAccountChangeMock.mockResolvedValue(undefined as never);
+  // 1:1 spot conversion — ref assertions read as plain native numbers.
+  calculateRefAmountMock.mockImplementation(async ({ amount }) => amount);
 });
 
 describe('absorbBalanceAdjustment', () => {
@@ -132,9 +147,15 @@ describe('absorbBalanceAdjustment', () => {
     const payload = lastUpdatePayload();
     expect(payload.id).toBe(accountId);
     expect(payload.userId).toBe(USER_ID);
-    // currentBalance = original + amountDelta; refCurrentBalance = original + refAmountDelta.
+    // currentBalance = original + amountDelta.
     expect(payload.currentBalance.toCents()).toBe(Money.fromDecimal(150).toCents());
-    expect(payload.refCurrentBalance.toCents()).toBe(Money.fromDecimal(180).toCents());
+    // refCurrentBalance is a spot remeasure of the NEW native balance (1:1 mock),
+    // never `stored ref + refAmountDelta` — the delta only serves the opening side.
+    expect(payload.refCurrentBalance.toCents()).toBe(Money.fromDecimal(150).toCents());
+    expect(calculateRefAmountMock).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID, baseCode: 'USD', bypassCache: true }),
+    );
+    expect(calculateRefAmountMock.mock.calls[0]![0].amount.toCents()).toBe(Money.fromDecimal(150).toCents());
     // The provider-owned opening balance must NOT move — this is the regression guard.
     expect(payload).not.toHaveProperty('initialBalance');
     expect(payload).not.toHaveProperty('refInitialBalance');

@@ -1,11 +1,4 @@
-import {
-  ACCOUNT_CATEGORIES,
-  ACCOUNT_TYPES,
-  API_ERROR_CODES,
-  type BaseCurrencyBlocker,
-  RESOURCE_TYPES,
-  TRANSACTION_TYPES,
-} from '@bt/shared/types';
+import { API_ERROR_CODES, type BaseCurrencyBlocker, RESOURCE_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { ConflictError, ValidationError } from '@js/errors';
@@ -25,7 +18,7 @@ import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.mode
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
 import { withLock } from '@services/common/lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
-import { Op, QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
+import { Op, Transaction as SequelizeTransaction } from 'sequelize';
 
 /**
  * What is covered:
@@ -377,9 +370,8 @@ async function rebuildTransactions(params: {
 }
 
 /**
- * Recalculates refInitialBalance, refCurrentBalance, and refCreditLimit for all user accounts.
- * System accounts use a SQL SUM aggregation over already-recalculated transaction refAmounts.
- * Bank accounts use today's exchange rate for currentBalance.
+ * Recalculates refInitialBalance, refCurrentBalance, and refCreditLimit for all user accounts
+ * at today's exchange rate.
  */
 async function recalculateAccounts(params: {
   userId: number;
@@ -394,38 +386,6 @@ async function recalculateAccounts(params: {
   });
 
   logger.info(`Recalculating ${accounts.length} accounts for user ${userId}`);
-
-  // Pre-aggregate refAmount sums per account using SQL instead of loading all
-  // transactions into memory. The refAmounts were already recalculated in step 1,
-  // and we read our own writes within the same DB transaction.
-  const systemAccountIds = accounts.filter((a) => a.type === ACCOUNT_TYPES.system).map((a) => a.id);
-
-  const refAmountSums = new Map<string, number>();
-
-  if (systemAccountIds.length > 0) {
-    const rows = await Transactions.sequelize!.query<{ accountId: string; refBalanceSum: string }>(
-      `SELECT
-        "accountId",
-        COALESCE(SUM(
-          CASE WHEN "transactionType" = :income THEN "refAmount" ELSE -"refAmount" END
-        ), 0) AS "refBalanceSum"
-      FROM "Transactions"
-      WHERE "accountId" IN (:accountIds)
-      GROUP BY "accountId"`,
-      {
-        replacements: {
-          income: TRANSACTION_TYPES.income,
-          accountIds: systemAccountIds,
-        },
-        type: QueryTypes.SELECT,
-        transaction,
-      },
-    );
-
-    for (const row of rows) {
-      refAmountSums.set(row.accountId, Number(row.refBalanceSum));
-    }
-  }
 
   const today = new Date();
 
@@ -448,32 +408,17 @@ async function recalculateAccounts(params: {
       date: today,
     });
 
-    let newRefCurrentBalance: Money;
-
-    // Transaction-backed system accounts (cash, loans) define currentBalance as
-    // initialBalance + Σ tx refAmounts, so derive it from the SQL sum already
-    // recalculated in step 1 — this keeps refCurrentBalance consistent with the
-    // per-transaction historical rates rather than today's single rate.
-    //
-    // Vehicles are the exception: their balance is a directly-maintained depreciating
-    // value with no backing transactions, so the sum is 0 and deriving would snap the
-    // value back to the creation-time figure, dropping accrued depreciation. Convert
-    // their currentBalance directly, the same way bank accounts do.
-    const isTxBackedSystemAccount =
-      account.type === ACCOUNT_TYPES.system && account.accountCategory !== ACCOUNT_CATEGORIES.vehicle;
-
-    if (isTxBackedSystemAccount) {
-      const txSum = refAmountSums.get(account.id) ?? 0;
-      newRefCurrentBalance = newRefInitialBalance.add(Money.fromCents(txSum));
-    } else {
-      newRefCurrentBalance = await localCalculateRefAmount({
-        amount: account.currentBalance,
-        userId,
-        baseCode: account.currencyCode,
-        quoteCode: newCurrencyCode,
-        date: today,
-      });
-    }
+    // `refCurrentBalance` is a spot measure for every account type: the native
+    // balance converted at today's rate into the new base currency. Reconstructing
+    // it from recalculated tx refAmounts would re-derive a blend of historical
+    // rates — exactly the value the spot semantics exists to avoid.
+    const newRefCurrentBalance = await localCalculateRefAmount({
+      amount: account.currentBalance,
+      userId,
+      baseCode: account.currencyCode,
+      quoteCode: newCurrencyCode,
+      date: today,
+    });
 
     account.refInitialBalance = newRefInitialBalance;
     account.refCurrentBalance = newRefCurrentBalance;

@@ -6,6 +6,7 @@ import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
 import LoanDetails from '@models/loan-details.model';
 import type Transactions from '@models/transactions.model';
+import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
 import { replayLoanOutstanding } from '@services/loans/replay-loan-outstanding';
@@ -98,10 +99,8 @@ const recomputeLoanBalanceImpl = async ({
 
   // Income legs move a negative liability balance toward zero, so they add.
   let sumCents = 0;
-  let sumRefCents = 0;
   for (const leg of legs) {
     sumCents += leg.amount.toCents();
-    sumRefCents += leg.refAmount.toCents();
   }
 
   // Loan balances are stored negative (liability); income legs add toward zero.
@@ -109,9 +108,21 @@ const recomputeLoanBalanceImpl = async ({
   // (credit), but a loan never carries credit — the outstanding balance is
   // floored at zero and the excess stays only on the cash-account expense legs.
   const rawCurrentBalance = account.initialBalance.add(Money.fromCents(sumCents));
-  const rawRefCurrentBalance = account.refInitialBalance.add(Money.fromCents(sumRefCents));
   const newCurrentBalance = rawCurrentBalance.isPositive() ? Money.zero() : rawCurrentBalance;
-  const newRefCurrentBalance = rawRefCurrentBalance.isPositive() ? Money.zero() : rawRefCurrentBalance;
+
+  // The base-currency outstanding is a spot measure of the native outstanding —
+  // what the remaining liability is worth at the latest rate — not the ref
+  // anchor plus historical-rate payment legs (that blend leaves a base-currency
+  // residue after the native balance settles). Deriving from the already-floored
+  // native balance also keeps the two fields settling in lockstep instead of
+  // flooring independently.
+  const newRefCurrentBalance = await calculateRefAmount({
+    userId: account.userId,
+    amount: newCurrentBalance,
+    baseCode: account.currencyCode,
+    date: new Date(),
+    bypassCache: true,
+  });
 
   if (!newCurrentBalance.equals(account.currentBalance) || !newRefCurrentBalance.equals(account.refCurrentBalance)) {
     await Accounts.update(

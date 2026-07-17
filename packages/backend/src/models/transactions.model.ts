@@ -416,15 +416,13 @@ export default class Transactions extends Model {
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
-    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
         accountId,
         amount,
-        refAmount,
         transactionType,
-        currencyCode,
       });
     }
 
@@ -461,29 +459,22 @@ export default class Transactions extends Model {
         await updateAccountBalanceForChangedTx({
           accountId: prevData.accountId,
           prevAmount: prevData.amount,
-          prevRefAmount: prevData.refAmount,
           transactionType: prevData.transactionType,
-          currencyCode: prevData.currencyCode,
         });
 
         // Update new tx
         await updateAccountBalanceForChangedTx({
           accountId: newData.accountId,
           amount: newData.amount,
-          refAmount: newData.refAmount,
           transactionType: newData.transactionType,
-          currencyCode: newData.currencyCode,
         });
       } else {
         await updateAccountBalanceForChangedTx({
           accountId: newData.accountId,
           amount: newData.amount,
           prevAmount: prevData.amount,
-          refAmount: newData.refAmount,
-          prevRefAmount: prevData.refAmount,
           transactionType: newData.transactionType,
           prevTransactionType: prevData.transactionType,
-          currencyCode: newData.currencyCode,
         });
       }
     }
@@ -517,15 +508,13 @@ export default class Transactions extends Model {
 
   @BeforeDestroy
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
-    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
         accountId,
         prevAmount: amount,
-        prevRefAmount: refAmount,
         transactionType,
-        currencyCode,
       });
     }
 

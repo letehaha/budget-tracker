@@ -300,23 +300,31 @@ export const updateAccount = withTransaction(
      */
     if (currentBalanceIsChanging) {
       const diff = payload.currentBalance!.subtract(accountData.currentBalance);
-      const refDiff = await calculateRefAmount({
-        userId: accountData.userId,
-        amount: diff,
-        baseCode: accountData.currencyCode,
-        date: new Date(),
-      });
 
-      // --- for system accounts
-      // change currentBalance => change initialBalance
-      // change currentBalance => recalculate refInitialBalance
-      // --- for all accounts
-      // change currentBalance => recalculate refCurrentBalance
+      // System accounts absorb the diff into the opening balance so
+      // `currentBalance = initialBalance + Σ(tx)` keeps holding.
       if (accountData.type === ACCOUNT_TYPES.system) {
+        const refDiff = await calculateRefAmount({
+          userId: accountData.userId,
+          amount: diff,
+          baseCode: accountData.currencyCode,
+          date: new Date(),
+        });
         initialBalance = initialBalance.add(diff);
         refInitialBalance = refInitialBalance.add(refDiff);
       }
-      refCurrentBalance = refCurrentBalance.add(refDiff);
+
+      // `refCurrentBalance` is a spot measure — the new native balance converted at
+      // the latest rate — not the stored ref value plus a delta: the stored value
+      // blends historical rates, and adding a today-rate delta on top would keep
+      // that blend alive. Cache bypassed so a rate edited moments ago is observed.
+      refCurrentBalance = await calculateRefAmount({
+        userId: accountData.userId,
+        amount: payload.currentBalance!,
+        baseCode: accountData.currencyCode,
+        date: new Date(),
+        bypassCache: true,
+      });
     }
 
     // When credit limit changes, recalculate refCreditLimit for the new value.
