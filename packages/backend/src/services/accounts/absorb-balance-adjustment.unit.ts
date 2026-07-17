@@ -247,6 +247,73 @@ describe('absorbBalanceAdjustment', () => {
     expect(setTodayRowToSpotMock).toHaveBeenCalledTimes(1);
   });
 
+  it('non-system account: keeps the stored ref balance by omitting the ref column when the spot remeasure fails', async () => {
+    const accountId = generateRandomRecordId();
+    const account = buildAccount({
+      id: accountId,
+      type: ACCOUNT_TYPES.monobank,
+      accountCategory: ACCOUNT_CATEGORIES.general,
+      currentBalance: Money.fromDecimal(100),
+      refCurrentBalance: Money.fromDecimal(120),
+    });
+    findOneMock.mockResolvedValue(account as never);
+    // No rate reaches the pair → the shared spot helper swallows the throw and
+    // signals "kept" so absorb leaves the ref column out of the update.
+    calculateRefAmountMock.mockRejectedValue(new Error('exchange rate unavailable'));
+
+    const result = await absorbBalanceAdjustment({
+      userId: USER_ID,
+      accountId,
+      amountDelta: Money.fromDecimal(50),
+    });
+
+    expect(updateAccountByIdMock).toHaveBeenCalledTimes(1);
+    const payload = lastUpdatePayload();
+    // The native write still lands…
+    expect(payload.currentBalance.toCents()).toBe(Money.fromDecimal(150).toCents());
+    // …but the ref column is omitted entirely, so the stored value survives.
+    expect(payload).not.toHaveProperty('refCurrentBalance');
+    // Non-system: opening balance untouched, no restamp.
+    expect(payload).not.toHaveProperty('initialBalance');
+    expect(restampMock).not.toHaveBeenCalled();
+    // Today's row is still pinned to the (unchanged) stored spot ref balance.
+    expect(setTodayRowToSpotMock).toHaveBeenCalledTimes(1);
+    expect(setTodayRowToSpotMock).toHaveBeenCalledWith({ account: result });
+  });
+
+  it('system account: still shifts the opening balance and restamps when the spot remeasure fails, omitting only the ref column', async () => {
+    const accountId = generateRandomRecordId();
+    const account = buildAccount({
+      id: accountId,
+      type: ACCOUNT_TYPES.system,
+      accountCategory: ACCOUNT_CATEGORIES.general,
+      currentBalance: Money.fromDecimal(200),
+      refCurrentBalance: Money.fromDecimal(200),
+      initialBalance: Money.fromDecimal(50),
+      refInitialBalance: Money.fromDecimal(50),
+    });
+    const refreshedRow = { id: 'refreshed-after-restamp' } as unknown as AccountRow;
+    findOneMock.mockResolvedValueOnce(account as never).mockResolvedValueOnce(refreshedRow as never);
+    calculateRefAmountMock.mockRejectedValue(new Error('exchange rate unavailable'));
+
+    await absorbBalanceAdjustment({
+      userId: USER_ID,
+      accountId,
+      amountDelta: Money.fromDecimal(30),
+    });
+
+    const payload = lastUpdatePayload();
+    expect(payload.currentBalance.toCents()).toBe(Money.fromDecimal(230).toCents());
+    // System accounts still absorb the same native delta into the opening balance…
+    expect(payload.initialBalance!.toCents()).toBe(Money.fromDecimal(80).toCents());
+    // …only the ref current balance is omitted (kept at its stored value).
+    expect(payload).not.toHaveProperty('refCurrentBalance');
+    // The opening-balance restamp still runs (it has its own missing-rate catch).
+    expect(restampMock).toHaveBeenCalledTimes(1);
+    expect(setTodayRowToSpotMock).toHaveBeenCalledTimes(1);
+    expect(setTodayRowToSpotMock).toHaveBeenCalledWith({ account: refreshedRow });
+  });
+
   it('throws ValidationError and never writes when the account is not found', async () => {
     findOneMock.mockResolvedValue(null as never);
 

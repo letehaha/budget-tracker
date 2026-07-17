@@ -1,6 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE, type RecordId } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { AED_PER_USD } from '@tests/mocks/exchange-rates/data';
 import { addDays, format, subDays } from 'date-fns';
 
 /** Yesterday as a yyyy-MM-dd string. */
@@ -226,9 +227,14 @@ describe('Loan balance anchor', () => {
   });
 
   describe('cross-currency (FX) recompute', () => {
-    it('pins refCurrentBalance: a post-anchor payment reduces both currentBalance and refCurrentBalance by the payment amounts', async () => {
-      // The recompute path writes BOTH currentBalance and refCurrentBalance; base currency
-      // is AED, so USD forces a separate ref-currency balance to exist.
+    // getExchangeRate truncates USD-pivot rates to 5 decimals (formatRate), so the
+    // spot expectation applies the same truncation the recompute path does.
+    const USD_TO_AED = Math.trunc(AED_PER_USD * 100_000) / 100_000;
+
+    it('pins refCurrentBalance to the spot value (native outstanding × latest rate) after a post-anchor payment', async () => {
+      // The recompute path measures refCurrentBalance as a SPOT conversion of the
+      // floored native outstanding — not the ref anchor plus historical-rate payment
+      // legs. Base currency is AED, so a USD loan forces a distinct ref balance.
       await helpers.addUserCurrencies({ currencyCodes: ['USD'] });
 
       const loan = await helpers.createLoan({
@@ -241,18 +247,14 @@ describe('Loan balance anchor', () => {
       });
 
       expect(loan.refCurrentBalance).toBeDefined();
-      expect(loan.refCurrentBalance).not.toBe(0);
-      // Outstanding is negative (liability convention).
+      // Outstanding is negative (liability convention), and the ref side is negative too.
       expect(loan.currentBalance).toBe(-8_000);
       expect(loan.refCurrentBalance).toBeLessThan(0);
 
-      const balanceBefore = loan.currentBalance;
-      const refBalanceBefore = loan.refCurrentBalance;
-
       const sourceAccount = await helpers.createAccount({ raw: true });
 
-      // Post-anchor payment (today) — should reduce both balances.
-      const [base] = await helpers.createTransaction({
+      // Post-anchor payment (today) of 1000 USD → outstanding moves to -7000.
+      await helpers.createTransaction({
         payload: {
           ...helpers.buildTransactionPayload({
             accountId: sourceAccount.id,
@@ -265,18 +267,50 @@ describe('Loan balance anchor', () => {
         raw: true,
       });
 
-      // Fetch the serialized transaction to read decimal amount/refAmount.
-      const paidTx = await helpers.getTransactionById({ id: base.id, raw: true });
-      expect(paidTx).not.toBeNull();
-      const paymentAmount = paidTx!.amount;
-      const paymentRefAmount = paidTx!.refAmount;
-
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
 
-      // currentBalance moved toward zero by exactly the payment's amount.
-      expect(reloaded.currentBalance).toBeCloseTo(balanceBefore + paymentAmount, 2);
-      // refCurrentBalance moved toward zero by exactly the payment's refAmount.
-      expect(reloaded.refCurrentBalance).toBeCloseTo(refBalanceBefore + paymentRefAmount, 2);
+      // Native outstanding dropped by the payment amount…
+      expect(reloaded.currentBalance).toBe(-7_000);
+      // …and refCurrentBalance is the spot measure of that native outstanding, NOT
+      // the pre-payment ref plus the payment's historical-rate refAmount.
+      expect(reloaded.refCurrentBalance).toBeCloseTo(reloaded.currentBalance * USD_TO_AED, 2);
+    });
+
+    it('settles refCurrentBalance to exactly zero when a cross-currency loan is paid down to zero native outstanding', async () => {
+      // The spot rewrite eliminates the accumulator residue this branch replaces: a
+      // zero native outstanding must leave no base-currency remainder.
+      await helpers.addUserCurrencies({ currencyCodes: ['USD'] });
+
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: 'USD',
+          originalPrincipal: 10_000,
+          initialBalance: 8_000,
+        }),
+        raw: true,
+      });
+      expect(loan.currentBalance).toBe(-8_000);
+
+      const sourceAccount = await helpers.createAccount({ raw: true });
+
+      // Post-anchor payment of the full 8000 USD outstanding → native settles to 0.
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 8_000,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 8_000,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
+
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.currentBalance).toBe(0);
+      // Spot of a zero native balance is exactly zero — no historical-rate residue.
+      expect(reloaded.refCurrentBalance).toBe(0);
     });
   });
 

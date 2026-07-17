@@ -6,7 +6,7 @@ import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
 import LoanDetails from '@models/loan-details.model';
 import type Transactions from '@models/transactions.model';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
+import { measureSpotRefBalance } from '@services/accounts/measure-spot-ref-balance';
 import { withTransaction } from '@services/common/with-transaction';
 import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
 import { replayLoanOutstanding } from '@services/loans/replay-loan-outstanding';
@@ -116,13 +116,17 @@ const recomputeLoanBalanceImpl = async ({
   // residue after the native balance settles). Deriving from the already-floored
   // native balance also keeps the two fields settling in lockstep instead of
   // flooring independently.
-  const newRefCurrentBalance = await calculateRefAmount({
-    userId: account.userId,
-    amount: newCurrentBalance,
-    baseCode: account.currencyCode,
-    date: new Date(),
-    bypassCache: true,
-  });
+  //
+  // A missing rate must not abort the recompute (a payment delete has to succeed):
+  // keep the stored ref outstanding so the equals-guard below skips the ref side,
+  // and let the daily remeasure self-heal it once a rate exists.
+  const newRefCurrentBalance =
+    (await measureSpotRefBalance({
+      userId: account.userId,
+      amount: newCurrentBalance,
+      baseCode: account.currencyCode,
+      site: 'recomputeLoanBalance',
+    })) ?? account.refCurrentBalance;
 
   if (!newCurrentBalance.equals(account.currentBalance) || !newRefCurrentBalance.equals(account.refCurrentBalance)) {
     await Accounts.update(

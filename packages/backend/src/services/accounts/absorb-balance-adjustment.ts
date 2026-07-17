@@ -4,10 +4,10 @@ import { ValidationError } from '@js/errors';
 import Accounts, * as AccountsModel from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { assertNotDedicatedFlowAccount } from '@services/import-export/core/dedicated-flow-guard';
 
 import { withTransaction } from '../common/with-transaction';
+import { measureSpotRefBalance } from './measure-spot-ref-balance';
 import { restampRefInitialBalance } from './restamp-ref-initial-balance';
 
 /**
@@ -61,18 +61,19 @@ export const absorbBalanceAdjustment = withTransaction(
 
     const isSystem = account.type === ACCOUNT_TYPES.system;
     const newCurrentBalance = account.currentBalance.add(amountDelta);
-    const refCurrentBalance = await calculateRefAmount({
+    const refCurrentBalance = await measureSpotRefBalance({
       userId,
       amount: newCurrentBalance,
       baseCode: account.currencyCode,
-      date: new Date(),
-      bypassCache: true,
+      site: 'absorbBalanceAdjustment',
     });
     const updated = await AccountsModel.updateAccountById({
       id: accountId,
       userId,
       currentBalance: newCurrentBalance,
-      refCurrentBalance,
+      // A missing rate must not abort an import/bank-sync absorb: omit the ref
+      // column (the stored value stays) and let the daily remeasure self-heal it.
+      ...(refCurrentBalance ? { refCurrentBalance } : {}),
       ...(isSystem ? { initialBalance: account.initialBalance.add(amountDelta) } : {}),
     });
     if (!updated) {

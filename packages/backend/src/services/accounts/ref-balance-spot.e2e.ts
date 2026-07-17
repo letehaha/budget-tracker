@@ -292,4 +292,55 @@ describe('Account ref balances are spot measures', () => {
     expect(Number(updated.currentBalance)).toBe(123.45);
     expect(Number(updated.refCurrentBalance)).toBe(123.45);
   });
+
+  it('deletes a transaction even when no exchange rate is available (native write succeeds, ref kept stale)', async () => {
+    const account = await createEurAccount();
+
+    // Rates exist here → the income tx stamps refCurrentBalance at the spot rate.
+    const [tx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 100,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
+      raw: true,
+    });
+
+    const beforeDelete = await helpers.getAccount({ id: account.id, raw: true });
+    expect(Number(beforeDelete.currentBalance)).toBe(100);
+    expect(decimalToCents(beforeDelete.refCurrentBalance)).toEqualRefValue(10000 * SPOT_EUR_TO_AED);
+
+    // Simulate a total FX-data gap for EUR: drop every stored USD-pivot row that
+    // could convert EUR, on any date (the global beforeEach only clears
+    // today+future). ExchangeRates is a seed table shared across tests on this
+    // worker, so snapshot the rows first and re-insert them in `finally`.
+    const [eurRates] = (await connection.sequelize.query(
+      `SELECT "baseCode", "quoteCode", "date", "rate", "source"
+       FROM "ExchangeRates" WHERE "quoteCode" = 'EUR' OR "baseCode" = 'EUR'`,
+    )) as [Array<Record<string, unknown>>, unknown];
+
+    try {
+      await connection.sequelize.query(`DELETE FROM "ExchangeRates" WHERE "quoteCode" = 'EUR' OR "baseCode" = 'EUR'`);
+
+      // Deleting the tx fires the balance hook, whose spot remeasure now throws.
+      // The native write must still succeed; the ref side keeps its stale value.
+      const deleteResponse = await helpers.deleteTransaction({ id: tx.id });
+      expect(deleteResponse.statusCode).toBe(200);
+
+      const afterDelete = await helpers.getAccount({ id: account.id, raw: true });
+      // Native balance returned to zero…
+      expect(Number(afterDelete.currentBalance)).toBe(0);
+      // …while refCurrentBalance is kept at its pre-delete (now stale) value, not
+      // recomputed — the daily rate sync re-anchors it once a rate exists.
+      expect(Number(afterDelete.refCurrentBalance)).toBe(Number(beforeDelete.refCurrentBalance));
+    } finally {
+      for (const row of eurRates) {
+        await connection.sequelize.query(
+          `INSERT INTO "ExchangeRates" ("baseCode", "quoteCode", "date", "rate", "source")
+           VALUES (:baseCode, :quoteCode, :date, :rate, :source)`,
+          { replacements: row },
+        );
+      }
+    }
+  });
 });

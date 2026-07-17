@@ -97,20 +97,27 @@ async function updateAccountBalanceForChangedTxImpl({
   // rates, and accumulating them leaves the base-currency balance at a blend of
   // old rates — an account drained back to zero would keep a nonzero ref residue.
   //
+  // The spot conversion throws when no rate reaches the pair (exotic currency,
+  // provider gap). This hook runs on every tx create/update/delete, and a delete
+  // must never fail — so a failed measure keeps the account's stored ref balance
+  // (the daily rate-sync remeasure self-heals it) while the native write below
+  // still lands.
+  //
   // Dynamic import for the same reason this file exists at all (see the module
-  // comment): `calculate-ref-amount.service` transitively loads other models and
-  // the exchange-rate provider stack, which must not be required while
-  // `transactions.model.ts` is still inside the model loader.
-  const { calculateRefAmount } = await import('@services/calculate-ref-amount.service');
-  const refCurrentBalance = await calculateRefAmount({
-    // Owner of the account, not the transaction author — ref balances are stored
-    // in the owner's base currency (shared accounts can be written by recipients).
-    userId: account.userId,
-    amount: newCurrentBalance,
-    baseCode: account.currencyCode,
-    date: new Date(),
-    bypassCache: true,
-  });
+  // comment): the helper statically pulls in `calculate-ref-amount.service`, which
+  // transitively loads other models and the exchange-rate provider stack — that
+  // must not be required while `transactions.model.ts` is still inside the model
+  // loader.
+  const { measureSpotRefBalance } = await import('./measure-spot-ref-balance');
+  const refCurrentBalance =
+    (await measureSpotRefBalance({
+      // Owner of the account, not the transaction author — ref balances are stored
+      // in the owner's base currency (shared accounts can be written by recipients).
+      userId: account.userId,
+      amount: newCurrentBalance,
+      baseCode: account.currencyCode,
+      site: 'updateAccountBalanceForChangedTx',
+    })) ?? account.refCurrentBalance;
 
   await Accounts.update({ currentBalance: newCurrentBalance, refCurrentBalance }, { where: { id: accountId } });
 
