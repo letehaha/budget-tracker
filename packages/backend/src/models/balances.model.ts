@@ -1,4 +1,10 @@
-import { TRANSACTION_TYPES, ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, RecordId } from '@bt/shared/types';
+import {
+  TRANSACTION_TYPES,
+  ACCOUNT_TYPES,
+  ACCOUNT_CATEGORIES,
+  TRANSACTION_TRANSFER_NATURE,
+  RecordId,
+} from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
@@ -164,6 +170,37 @@ export default class Balances extends Model {
           date,
           amount,
         });
+
+        // The incremental cascade above folds this transaction's historical-rate
+        // `refAmount` into today's row, but today's row is a STOCK: it must equal
+        // the account card's spot `refCurrentBalance` (native balance × latest
+        // rate). Re-pin it to each affected account's spot value — already written
+        // by the account-balance hook that runs before this method on the create,
+        // update, and delete paths. A moved transaction touches both its old and
+        // new account, so both are re-pinned.
+        const clampAccountIds = new Set<string>([accountId]);
+        if (prevData && prevData.accountId !== accountId) {
+          clampAccountIds.add(prevData.accountId);
+        }
+        for (const clampAccountId of clampAccountIds) {
+          const clampAccount = await Accounts.findOne({ where: { id: clampAccountId } });
+          if (
+            clampAccount &&
+            // Loans own their whole Balances history via `recomputeLoanBalance`
+            // (destroy + rebuild), so pinning a loan's today row here would fight
+            // that writer; leave loan accounts to it.
+            clampAccount.accountCategory !== ACCOUNT_CATEGORIES.loan &&
+            // Base-currency accounts need no re-pin: there `refAmount` already
+            // equals the spot value (rate 1), so the cascade left today's row at
+            // exactly the spot balance. Skipping them also preserves that row's
+            // race-safe atomic accumulation instead of overwriting it with a value
+            // read from the (unlocked) account row — the divergence the re-pin
+            // exists to fix only arises on cross-currency accounts.
+            clampAccount.currencyCode !== data.refCurrencyCode
+          ) {
+            await this.setTodayRowToSpot({ account: clampAccount });
+          }
+        }
         break;
       }
 
@@ -513,5 +550,27 @@ export default class Balances extends Model {
         },
       },
     );
+  }
+
+  /**
+   * Pin TODAY's net-worth history row for an account to its spot
+   * `refCurrentBalance` (native balance × latest rate). Today's row is a STOCK: it
+   * must equal the account card's base-currency balance, not the running sum of
+   * per-transaction historical-rate `refAmount`s that the incremental cascade
+   * folds into it — an account drained back to zero would otherwise keep a nonzero
+   * base-currency residue on the chart. Absolute upsert on `(accountId, today)` —
+   * never an increment — so it overwrites whatever the cascade left there. Past
+   * rows are untouched: they are historical measurements at their own days' rates.
+   *
+   * Callers pass an account row read AFTER the spot `refCurrentBalance` write so
+   * this observes the fresh value; the upsert joins the ambient CLS transaction
+   * exactly like `updateAccountBalance`, which it reuses for the race-safe write.
+   */
+  static async setTodayRowToSpot({ account }: { account: Accounts }): Promise<void> {
+    await this.updateAccountBalance({
+      accountId: account.id,
+      date: startOfDay(new Date()),
+      refBalance: account.refCurrentBalance,
+    });
   }
 }

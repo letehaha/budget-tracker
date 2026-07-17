@@ -27,6 +27,13 @@ jest.mock('./restamp-ref-initial-balance', () => ({
   __esModule: true,
   restampRefInitialBalance: jest.fn(),
 }));
+// Pinning today's net-worth history row to the account's spot ref balance is the
+// Balances model's job – here only the delegation (called with the final row) is
+// asserted.
+jest.mock('@models/balances.model', () => ({
+  __esModule: true,
+  default: { setTodayRowToSpot: jest.fn() },
+}));
 
 // `withTransaction` (imported by the service via ../common/with-transaction)
 // reads the ambient CLS transaction from this namespace and, finding none,
@@ -46,6 +53,7 @@ jest.mock('@models/connection', () => ({
 
 /* eslint-disable import/first */
 import Accounts, * as AccountsModel from '@models/accounts.model';
+import Balances from '@models/balances.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 import { absorbBalanceAdjustment } from './absorb-balance-adjustment';
@@ -56,6 +64,7 @@ const findOneMock = jest.mocked(Accounts.findOne);
 const updateAccountByIdMock = jest.mocked(AccountsModel.updateAccountById);
 const calculateRefAmountMock = jest.mocked(calculateRefAmount);
 const restampMock = jest.mocked(restampRefInitialBalance);
+const setTodayRowToSpotMock = jest.mocked(Balances.setTodayRowToSpot);
 
 type AccountRow = InstanceType<typeof Accounts>;
 
@@ -119,6 +128,7 @@ beforeEach(() => {
   // 1:1 spot conversion – ref assertions read as plain native numbers.
   calculateRefAmountMock.mockImplementation(async ({ amount }) => amount);
   restampMock.mockResolvedValue(undefined as never);
+  setTodayRowToSpotMock.mockResolvedValue(undefined as never);
 });
 
 describe('absorbBalanceAdjustment', () => {
@@ -135,7 +145,7 @@ describe('absorbBalanceAdjustment', () => {
     });
     findOneMock.mockResolvedValue(account as never);
 
-    await absorbBalanceAdjustment({
+    const result = await absorbBalanceAdjustment({
       userId: USER_ID,
       accountId,
       amountDelta: Money.fromDecimal(50),
@@ -159,6 +169,10 @@ describe('absorbBalanceAdjustment', () => {
     expect(payload).not.toHaveProperty('refInitialBalance');
 
     expect(restampMock).not.toHaveBeenCalled();
+
+    // Today's net-worth row is pinned to the written row's spot ref balance.
+    expect(setTodayRowToSpotMock).toHaveBeenCalledTimes(1);
+    expect(setTodayRowToSpotMock).toHaveBeenCalledWith({ account: result });
   });
 
   it('system account: also shifts the native opening balance and delegates its ref stamp to the restamp service', async () => {
@@ -196,6 +210,11 @@ describe('absorbBalanceAdjustment', () => {
     // The service returns the row re-read AFTER the restamp so callers see the
     // final ref fields.
     expect(result).toBe(refreshedRow);
+
+    // Today's net-worth row is pinned last, to that same refreshed row's spot ref
+    // balance (after the restamp cascade).
+    expect(setTodayRowToSpotMock).toHaveBeenCalledTimes(1);
+    expect(setTodayRowToSpotMock).toHaveBeenCalledWith({ account: refreshedRow });
   });
 
   it('system account with a zero delta: writes the (unchanged) balances but skips the restamp', async () => {
@@ -223,6 +242,9 @@ describe('absorbBalanceAdjustment', () => {
 
     // A zero delta cannot move the opening balance – no restamp, no cascade.
     expect(restampMock).not.toHaveBeenCalled();
+
+    // Today's row is still pinned to the (unchanged) spot ref balance.
+    expect(setTodayRowToSpotMock).toHaveBeenCalledTimes(1);
   });
 
   it('throws ValidationError and never writes when the account is not found', async () => {
@@ -238,6 +260,7 @@ describe('absorbBalanceAdjustment', () => {
 
     expect(updateAccountByIdMock).not.toHaveBeenCalled();
     expect(restampMock).not.toHaveBeenCalled();
+    expect(setTodayRowToSpotMock).not.toHaveBeenCalled();
   });
 
   it.each([ACCOUNT_CATEGORIES.vehicle, ACCOUNT_CATEGORIES.loan])(
@@ -258,6 +281,7 @@ describe('absorbBalanceAdjustment', () => {
 
       expect(updateAccountByIdMock).not.toHaveBeenCalled();
       expect(restampMock).not.toHaveBeenCalled();
+      expect(setTodayRowToSpotMock).not.toHaveBeenCalled();
     },
   );
 
@@ -281,5 +305,6 @@ describe('absorbBalanceAdjustment', () => {
     ).rejects.toThrow(ValidationError);
 
     expect(restampMock).not.toHaveBeenCalled();
+    expect(setTodayRowToSpotMock).not.toHaveBeenCalled();
   });
 });

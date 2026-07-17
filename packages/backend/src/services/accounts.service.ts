@@ -363,14 +363,22 @@ export const updateAccount = withTransaction(
       prevAccount: accountData,
     });
 
+    let finalAccount = result;
     // The opening balance changed → its base-currency stamp must be re-derived at
     // the ledger-boundary rate (and cascaded into Balances history by the restamp).
     if (currentBalanceIsChanging && accountData.type === ACCOUNT_TYPES.system) {
       await restampRefInitialBalance({ accountId: accountData.id });
-      return (await Accounts.getAccountById({ id: accountData.id, userId: accountData.userId })) ?? result;
+      finalAccount = (await Accounts.getAccountById({ id: accountData.id, userId: accountData.userId })) ?? result;
     }
 
-    return result;
+    // Today's net-worth row is a stock equal to the spot `refCurrentBalance`. When
+    // the balance changed, pin today's row to it – last, so it wins over the
+    // restamp's history cascade above.
+    if (currentBalanceIsChanging) {
+      await Balances.setTodayRowToSpot({ account: finalAccount });
+    }
+
+    return finalAccount;
   },
 );
 

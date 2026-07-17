@@ -2,6 +2,7 @@ import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import Accounts, * as AccountsModel from '@models/accounts.model';
+import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { assertNotDedicatedFlowAccount } from '@services/import-export/core/dedicated-flow-guard';
@@ -78,6 +79,7 @@ export const absorbBalanceAdjustment = withTransaction(
       throw new ValidationError({ message: `Account with ID ${accountId} could not be updated` });
     }
 
+    let result = updated;
     if (isSystem && !amountDelta.isZero()) {
       // The opening balance moved → re-derive its boundary-rate ref stamp; the
       // restamp cascades the resulting diff into the Balances history rows.
@@ -86,9 +88,14 @@ export const absorbBalanceAdjustment = withTransaction(
         where: { id: accountId, userId },
         transaction: sequelizeTx,
       });
-      if (refreshed) return refreshed;
+      if (refreshed) result = refreshed;
     }
 
-    return updated;
+    // Today's net-worth row is a stock equal to the spot `refCurrentBalance` just
+    // written. Pin it last — after the restamp cascade above, which shifts today's
+    // row by the opening-balance diff — so the spot value is what survives.
+    await Balances.setTodayRowToSpot({ account: result });
+
+    return result;
   },
 );

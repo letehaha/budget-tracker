@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from '@jest/globals';
 import { connection } from '@models/index';
 import * as helpers from '@tests/helpers';
 import { AED_PER_USD, EUR_PER_USD } from '@tests/mocks/exchange-rates/data';
-import { startOfDay, subDays } from 'date-fns';
+import { format, startOfDay, subDays } from 'date-fns';
 
 /**
  * `refCurrentBalance` is a SPOT measure: the account's native balance converted
@@ -201,6 +201,79 @@ describe('Account ref balances are spot measures', () => {
     await helpers.deleteTransaction({ id: tx.id });
     const reverted = await helpers.getAccount({ id: account.id, raw: true });
     expect(decimalToCents(reverted.refInitialBalance)).toEqualRefValue(20000 * SPOT_EUR_TO_AED);
+  });
+
+  it("pins today's net-worth history point to zero when the native balance nets to zero (chart matches the card)", async () => {
+    const account = await createEurAccount();
+    await seedHistoricalRates();
+
+    await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 100,
+        transactionType: TRANSACTION_TYPES.income,
+        time: HISTORICAL_DATE.toISOString(),
+      }),
+      raw: true,
+    });
+    await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 100,
+        transactionType: TRANSACTION_TYPES.expense,
+        time: startOfDay(new Date()).toISOString(),
+      }),
+      raw: true,
+    });
+
+    // The account card reads zero (spot of a zero native balance).
+    const updated = await helpers.getAccount({ id: account.id, raw: true });
+    expect(Number(updated.refCurrentBalance)).toBe(0);
+
+    // The net-worth chart's latest point must agree: today's Balances row is a
+    // stock pinned to that same spot value, not the historical-rate accumulator
+    // (money in at 7.0, out at ~3.87) that would leave a ~313 AED residue.
+    const history = await helpers.getBalanceHistory({ accountId: account.id, raw: true });
+    const todayKey = format(startOfDay(new Date()), 'yyyy-MM-dd');
+    const todayRow = history.find((row) => format(new Date(row.date), 'yyyy-MM-dd') === todayKey);
+    expect(todayRow).toBeDefined();
+    expect(Number(todayRow!.amount)).toBe(0);
+  });
+
+  it("pins today's net-worth history point to the remeasured spot value after a custom rate edit", async () => {
+    const account = await createEurAccount();
+
+    await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 100,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
+      raw: true,
+    });
+
+    await helpers.updateUserCurrency({
+      currency: { currencyCode: 'EUR', liveRateUpdate: false },
+      raw: true,
+    });
+    const res = await helpers.editCurrencyExchangeRate({
+      pairs: [
+        { baseCode: 'EUR', quoteCode: 'AED', rate: 5 },
+        { baseCode: 'AED', quoteCode: 'EUR', rate: 0.2 },
+      ],
+    });
+    expect(res.statusCode).toBe(200);
+
+    // The remeasure re-anchors the card to 100 EUR × 5 = 500 AED…
+    const remeasured = await helpers.getAccount({ id: account.id, raw: true });
+    expect(Number(remeasured.refCurrentBalance)).toBe(500);
+
+    // …and the chart's today point must move with it.
+    const history = await helpers.getBalanceHistory({ accountId: account.id, raw: true });
+    const todayKey = format(startOfDay(new Date()), 'yyyy-MM-dd');
+    const todayRow = history.find((row) => format(new Date(row.date), 'yyyy-MM-dd') === todayKey);
+    expect(todayRow).toBeDefined();
+    expect(Number(todayRow!.amount)).toBe(500);
   });
 
   it('keeps ref balances identical to native balances for base-currency accounts', async () => {

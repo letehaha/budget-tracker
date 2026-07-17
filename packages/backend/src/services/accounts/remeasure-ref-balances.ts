@@ -1,6 +1,7 @@
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
+import Balances from '@models/balances.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 /**
@@ -64,6 +65,11 @@ export async function remeasureRefBalances({ userId }: { userId?: number } = {})
       }
 
       await Accounts.update({ refCurrentBalance, refCreditLimit }, { where: { id: account.id } });
+
+      // The chart's today point is a stock too: re-anchor it alongside the account
+      // card by pinning today's net-worth row to the freshly measured spot value.
+      account.refCurrentBalance = refCurrentBalance;
+      await Balances.setTodayRowToSpot({ account });
       updated += 1;
     } catch (e) {
       // A single account with an unavailable rate (exotic currency, provider gap)
