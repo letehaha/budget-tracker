@@ -64,6 +64,7 @@ rate-data sidecar are reachable only from the `selfhost` network.
 3. [Behind your own reverse proxy](#3-behind-your-own-reverse-proxy)
 4. [Optional: build from source](#4-optional-build-from-source)
 5. [Backups](#5-backups)
+6. [Updating](#6-updating)
 
 Reference docs: [reverse proxies](reverse-proxies.md) ·
 [Traefik overlay](traefik-overlay.md) ·
@@ -201,10 +202,14 @@ The two stateful volumes are `db_data` (Postgres) and `redis_data` (Redis).
 Redis is queue-only – its data is regenerated on the fly, so back up Postgres
 only.
 
+The single-quoted `$POSTGRES_USER` / `$POSTGRES_DB` below expand **inside the
+db container** (compose sets them there from your `.env`), so the commands work
+from any host shell without exporting anything.
+
 ```bash
 # Daily dump
 docker compose exec -T db \
-  pg_dump -U "$APPLICATION_DB_USERNAME" "$APPLICATION_DB_DATABASE" \
+  sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
   | gzip > "backup-$(date +%F).sql.gz"
 ```
 
@@ -213,8 +218,26 @@ Restore:
 ```bash
 gunzip -c backup-2026-05-01.sql.gz | \
   docker compose exec -T db \
-  psql -U "$APPLICATION_DB_USERNAME" "$APPLICATION_DB_DATABASE"
+  sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
 ```
+
+## 6. Updating
+
+The stack tracks the `latest` image tag, and `up -d` alone never re-pulls a
+tag Docker has already cached — so updating is a two-step:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Compose recreates only the containers whose image changed. The backend runs
+any new database migrations on boot, so its healthcheck stays red for a
+minute, same as on first start. Take a [backup](#5-backups) before updating.
+
+To pin the stack to an exact build instead of following `latest`, set
+`IMAGE_TAG=sha-<commit>` in `.env` (every published image is also tagged with
+its commit SHA). A pinned stack only updates when you change the pin.
 
 ---
 
