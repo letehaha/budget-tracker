@@ -276,6 +276,112 @@ describe('Account ref balances are spot measures', () => {
     expect(Number(todayRow!.amount)).toBe(500);
   });
 
+  it("does not pin a loan's today Balances row when the rate sync remeasures, while a normal cross-currency account IS re-pinned", async () => {
+    await helpers.addUserCurrencies({ currencyCodes: ['EUR'] });
+
+    // Control: a normal cross-currency (EUR) system account. Creating it with an
+    // income tx at the market rate comprehensively fetches today's basket, so the
+    // sync below remeasures against our manually-moved rate rather than re-fetching.
+    const control = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ currencyCode: 'EUR' }),
+      raw: true,
+    });
+    await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: control.id,
+        amount: 100,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
+      raw: true,
+    });
+
+    // Cross-currency loan. Its Balances history is owned by `recomputeLoanBalance`'s
+    // destroy+rebuild replay (historical-rate legs), never a spot pin — the remeasure
+    // must leave its rows alone.
+    const loan = await helpers.createLoan({
+      payload: helpers.buildCreateLoanPayload({
+        currencyCode: 'EUR',
+        originalPrincipal: 10_000,
+        initialBalance: 8_000,
+      }),
+      raw: true,
+    });
+
+    const todayKey = format(startOfDay(new Date()), 'yyyy-MM-dd');
+    const findToday = (rows: Array<{ date: string | Date; amount: unknown }>) =>
+      rows.find((row) => format(new Date(row.date), 'yyyy-MM-dd') === todayKey);
+
+    const loanTodayBefore = findToday(await helpers.getBalanceHistory({ accountId: loan.id, raw: true }));
+    expect(loanTodayBefore).toBeDefined();
+
+    // Overnight EUR move in the stored basket.
+    const newEurPerUsd = 0.75;
+    await connection.sequelize.query(
+      `UPDATE "ExchangeRates" SET rate = :rate WHERE "baseCode" = 'USD' AND "quoteCode" = 'EUR' AND date >= :today`,
+      { replacements: { rate: newEurPerUsd, today: startOfDay(new Date()) } },
+    );
+
+    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toBe(200);
+
+    const loanTodayAfter = findToday(await helpers.getBalanceHistory({ accountId: loan.id, raw: true }));
+    const controlTodayAfter = findToday(await helpers.getBalanceHistory({ accountId: control.id, raw: true }));
+
+    // The loan's today row is untouched by the remeasure — its replay value stands…
+    expect(Number(loanTodayAfter!.amount)).toBe(Number(loanTodayBefore!.amount));
+    // …while the normal cross-currency account's today row IS re-pinned to the new spot.
+    expect(decimalToCents(controlTodayAfter!.amount)).toEqualRefValue(10000 * (AED_PER_USD / newEurPerUsd));
+  });
+
+  it('re-measures refCurrentBalance, refInitialBalance, and today’s row to spot when the balance is PATCHed after the rate diverged', async () => {
+    // Non-base (EUR) system account opened at the market rate with a nonzero opening.
+    await helpers.addUserCurrencies({ currencyCodes: ['EUR'] });
+    const account = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ currencyCode: 'EUR', initialBalance: 200 }),
+      raw: true,
+    });
+
+    await seedHistoricalRates();
+
+    // Backdated income pushes the ledger boundary into the past, so refInitialBalance
+    // restamps at the historical (7.0) rate. currentBalance: 200 opening + 100 = 300.
+    await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 100,
+        transactionType: TRANSACTION_TYPES.income,
+        time: HISTORICAL_DATE.toISOString(),
+      }),
+      raw: true,
+    });
+
+    // Today's EUR rate diverges after the account already exists.
+    const newEurPerUsd = 0.75;
+    const SPOT_B = AED_PER_USD / newEurPerUsd;
+    await connection.sequelize.query(
+      `UPDATE "ExchangeRates" SET rate = :rate WHERE "baseCode" = 'USD' AND "quoteCode" = 'EUR' AND date >= :today`,
+      { replacements: { rate: newEurPerUsd, today: startOfDay(new Date()) } },
+    );
+
+    // PATCH currentBalance 300 -> 500 (no adjustment tx): the diff absorbs into the
+    // opening balance (200 -> 400) and every ref side re-derives, none delta-shifts.
+    await helpers.updateAccount({ id: account.id, payload: { currentBalance: 500 }, raw: true });
+
+    const patched = await helpers.getAccount({ id: account.id, raw: true });
+    expect(Number(patched.currentBalance)).toBe(500);
+    // refCurrentBalance is the SPOT of the new native balance at rate B (500 * B),
+    // not the pre-PATCH ref (300 at the market rate) plus a delta.
+    expect(decimalToCents(patched.refCurrentBalance)).toEqualRefValue(50000 * SPOT_B);
+    // refInitialBalance is the new opening (400) restamped at the boundary (7.0) rate.
+    expect(decimalToCents(patched.refInitialBalance)).toEqualRefValue(40000 * HISTORICAL_EUR_TO_AED);
+
+    // Today's net-worth row must equal the new spot too.
+    const history = await helpers.getBalanceHistory({ accountId: account.id, raw: true });
+    const todayKey = format(startOfDay(new Date()), 'yyyy-MM-dd');
+    const todayRow = history.find((row) => format(new Date(row.date), 'yyyy-MM-dd') === todayKey);
+    expect(todayRow).toBeDefined();
+    expect(decimalToCents(todayRow!.amount)).toEqualRefValue(50000 * SPOT_B);
+  });
+
   it('keeps ref balances identical to native balances for base-currency accounts', async () => {
     const account = await helpers.createAccount({ raw: true });
 

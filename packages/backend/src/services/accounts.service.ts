@@ -295,7 +295,6 @@ export const updateAccount = withTransaction(
     const currentBalanceIsChanging =
       payload.currentBalance !== undefined && !payload.currentBalance.equals(accountData.currentBalance);
     let initialBalance: Money = accountData.initialBalance;
-    const refInitialBalance: Money = accountData.refInitialBalance;
     let refCurrentBalance: Money = accountData.refCurrentBalance;
 
     /**
@@ -344,12 +343,14 @@ export const updateAccount = withTransaction(
       });
     }
 
+    // `refInitialBalance` is intentionally NOT written here: the ref side of the
+    // opening balance is owned by `restampRefInitialBalance` (boundary-date rate),
+    // which runs below and cascades its diff into the Balances history.
     const result = await Accounts.updateAccountById({
       id,
       externalId,
       ...payload,
       initialBalance,
-      refInitialBalance,
       refCurrentBalance,
       ...(adjustedRefCreditLimit !== undefined ? { refCreditLimit: adjustedRefCreditLimit } : {}),
     });
@@ -368,7 +369,21 @@ export const updateAccount = withTransaction(
     // the ledger-boundary rate (and cascaded into Balances history by the restamp).
     if (currentBalanceIsChanging && accountData.type === ACCOUNT_TYPES.system) {
       await restampRefInitialBalance({ accountId: accountData.id });
-      finalAccount = (await Accounts.getAccountById({ id: accountData.id, userId: accountData.userId })) ?? result;
+      const refetched = await Accounts.getAccountById({ id: accountData.id, userId: accountData.userId });
+      if (!refetched) {
+        // The account was updated moments ago in this same request, so a miss here
+        // is an impossible-state (concurrent delete / id drift). Fall back to the
+        // pre-restamp `result` row so the request still returns, but flag that its
+        // `refInitialBalance` may be the stale pre-restamp value.
+        logger.error(
+          {
+            message:
+              'updateAccount: re-fetch after restampRefInitialBalance missed; returning pre-restamp account row, refInitialBalance may be stale',
+          },
+          { code: 'ACCOUNT_REFETCH_AFTER_RESTAMP_MISSED', accountId: accountData.id, userId: accountData.userId },
+        );
+      }
+      finalAccount = refetched ?? result;
     }
 
     // Today's net-worth row is a stock equal to the spot `refCurrentBalance`. When

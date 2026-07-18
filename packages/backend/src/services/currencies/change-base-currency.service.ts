@@ -396,12 +396,22 @@ async function recalculateAccounts(params: {
 
   // Ledger boundary (earliest tx date) per account, one grouped query. A
   // tx-backed opening balance is the balance immediately BEFORE the earliest
-  // transaction, so its ref stamp uses that date's rate — same rule as
-  // `restampRefInitialBalance`.
-  const boundaryRows = await Transactions.sequelize!.query<{ accountId: string; earliestTime: Date }>(
-    `SELECT "accountId", MIN("time") AS "earliestTime" FROM "Transactions" WHERE "userId" = :userId GROUP BY "accountId"`,
-    { replacements: { userId }, type: QueryTypes.SELECT, transaction },
-  );
+  // transaction, so its ref stamp uses that date's rate.
+  //
+  // Scoped by `accountId`, NOT by `Transactions.userId` (the row AUTHOR): on a
+  // shared account a recipient with write permission creates rows under their own
+  // userId, so an author filter would drop a recipient-authored earliest row and
+  // pick a later boundary. This must match `restampRefInitialBalance`, which
+  // computes the boundary by accountId only (author-blind) — otherwise the next
+  // transaction write restamps a different value and re-baselines the whole
+  // Balances history.
+  const accountIds = accounts.map((a) => a.id);
+  const boundaryRows = accountIds.length
+    ? await Transactions.sequelize!.query<{ accountId: string; earliestTime: Date }>(
+        `SELECT "accountId", MIN("time") AS "earliestTime" FROM "Transactions" WHERE "accountId" IN (:accountIds) GROUP BY "accountId"`,
+        { replacements: { accountIds }, type: QueryTypes.SELECT, transaction },
+      )
+    : [];
   const boundaryByAccountId = new Map(boundaryRows.map((row) => [row.accountId, new Date(row.earliestTime)]));
 
   const today = new Date();

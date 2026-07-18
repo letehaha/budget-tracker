@@ -19,6 +19,7 @@ import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
 import Transactions, { TransactionsAttributes } from './transactions.model';
+import { getBaseCurrency } from './users-currencies.model';
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -184,20 +185,35 @@ export default class Balances extends Model {
         }
         for (const clampAccountId of clampAccountIds) {
           const clampAccount = await Accounts.findOne({ where: { id: clampAccountId } });
-          if (
-            clampAccount &&
-            // Loans own their whole Balances history via `recomputeLoanBalance`
-            // (destroy + rebuild), so pinning a loan's today row here would fight
-            // that writer; leave loan accounts to it.
-            clampAccount.accountCategory !== ACCOUNT_CATEGORIES.loan &&
-            // Base-currency accounts need no re-pin: there `refAmount` already
-            // equals the spot value (rate 1), so the cascade left today's row at
-            // exactly the spot balance. Skipping them also preserves that row's
-            // race-safe atomic accumulation instead of overwriting it with a value
-            // read from the (unlocked) account row — the divergence the re-pin
-            // exists to fix only arises on cross-currency accounts.
-            clampAccount.currencyCode !== data.refCurrencyCode
-          ) {
+          if (!clampAccount) continue;
+
+          // Whether today's row still needs re-pinning to the spot balance. The
+          // one case that does NOT is a genuine identity-rate cascade in the
+          // OWNER's base currency: the account is denominated in the owner's base
+          // AND this cascade folded a same-base `refAmount` (rate 1), so it already
+          // left today's row at exactly the spot balance. Skipping that case also
+          // preserves the row's race-safe atomic accumulation instead of
+          // overwriting it with a value read from the (unlocked) account row.
+          //
+          // The row's stamped `refCurrencyCode` alone can't decide this: on a
+          // shared account a recipient authors rows under their own userId, so
+          // `data.refCurrencyCode` carries the AUTHOR's base currency, not the
+          // owner's. Trusting it would skip the re-pin on a cross-currency account
+          // a recipient (whose base happens to equal the account currency) wrote
+          // to — exactly where the divergence is worst — and would pollute an
+          // owner-base account when a recipient row's ref currency differs from the
+          // owner's base. So the skip requires the account currency, the row's ref
+          // currency, AND the owner's actual base to all agree. Loans are handled
+          // inside `setTodayRowToSpot` (it no-ops for them).
+          let shouldPin = true;
+          if (clampAccount.currencyCode === data.refCurrencyCode) {
+            const ownerBaseCurrency = await getBaseCurrency({ userId: clampAccount.userId });
+            if (clampAccount.currencyCode === ownerBaseCurrency?.currencyCode) {
+              shouldPin = false;
+            }
+          }
+
+          if (shouldPin) {
             await this.setTodayRowToSpot({ account: clampAccount });
           }
         }
@@ -565,8 +581,18 @@ export default class Balances extends Model {
    * Callers pass an account row read AFTER the spot `refCurrentBalance` write so
    * this observes the fresh value; the upsert joins the ambient CLS transaction
    * exactly like `updateAccountBalance`, which it reuses for the race-safe write.
+   *
+   * Loans are excluded here for every caller: a loan owns its whole Balances
+   * history through `recomputeLoanBalance`'s destroy + rebuild replay (which
+   * re-derives every row from historical-rate payment legs), so a spot pin — or
+   * worse, a today row this replay never creates — would fight that writer, the
+   * two oscillating on each payment recompute. Centralising the skip here means no
+   * caller (daily remeasure, the transaction-change clamp, absorb, account update)
+   * can accidentally pin a loan's today row.
    */
   static async setTodayRowToSpot({ account }: { account: Accounts }): Promise<void> {
+    if (account.accountCategory === ACCOUNT_CATEGORIES.loan) return;
+
     await this.updateAccountBalance({
       accountId: account.id,
       date: startOfDay(new Date()),

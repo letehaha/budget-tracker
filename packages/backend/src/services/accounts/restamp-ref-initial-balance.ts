@@ -94,6 +94,18 @@ async function restampRefInitialBalanceImpl({
   const updated = await Accounts.findOne({ where: { id: accountId } });
   if (updated) {
     await Balances.handleAccountChange({ account: updated, prevAccount: account });
+  } else {
+    // The row was just updated above, so a miss is an impossible-state (concurrent
+    // delete / id drift). `refInitialBalance` is now persisted but the Balances
+    // history cascade that re-baselines every row off it is skipped — the net-worth
+    // chart will diverge from the new opening stamp until the next full rebuild.
+    logger.error(
+      {
+        message:
+          'restampRefInitialBalance: refInitialBalance written but account re-read missed; Balances history cascade skipped',
+      },
+      { code: 'ACCOUNT_REF_INITIAL_RESTAMP_REREAD_MISSED', accountId, userId: account.userId },
+    );
   }
 }
 

@@ -73,7 +73,10 @@ export async function getExchangeRate({
   }
 
   const { result, cacheable } = await computeCrossRate({ pair, date });
-  if (cacheable) {
+  // `bypassCache` also suppresses the write-back: these callers run inside the
+  // uncommitted rate-write transaction, so caching a freshly computed rate now
+  // would poison the 4h-TTL cache with a value that may still roll back.
+  if (cacheable && !bypassCache) {
     await crossRateCache.write({ key: cacheKey, value: { rate: result.rate, dateISO: result.date.toISOString() } });
   }
 
@@ -205,9 +208,12 @@ type ExchangeRateParams = {
   baseCode: string;
   quoteCode: string;
   /**
-   * Skip the global cross-rate cache READ (the fresh result is still written back).
+   * Do not touch the global cross-rate cache at all — neither read nor write-back.
    * For remeasure flows that run right after new rates land (rate sync, custom-rate
-   * edits) — a cached pre-change rate would silently re-anchor balances to stale FX.
+   * edits): a cached pre-change rate would silently re-anchor balances to stale FX
+   * (so reads are skipped), and because these callers run inside the uncommitted
+   * rate-write transaction, writing the fresh rate back would poison the cache with
+   * a value that may still roll back.
    */
   bypassCache?: boolean;
 };

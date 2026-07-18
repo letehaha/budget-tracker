@@ -37,20 +37,16 @@ const refAmountCache = new CacheClient<string>({
 async function calculateRefAmountImpl(params: Params): Promise<Money> {
   const { baseCode, quoteCode, userId, amount, bypassCache = false } = params;
 
-  // **REDIS CACHE CHECK** - Cache the final converted amount (stored as cents)
   const dateStr = new Date(params.date).toISOString().split('T')[0];
   const amountCents = amount.toCents();
-  const cacheKey = `ref_amount:${userId}:${amountCents}:${baseCode}:${quoteCode || 'default'}:${dateStr}`;
-
-  if (!bypassCache) {
-    const cachedAmount = await refAmountCache.read(cacheKey);
-
-    if (cachedAmount !== null) {
-      return Money.fromCents(parseInt(cachedAmount, 10));
-    }
-  }
 
   try {
+    // Resolve the quote currency BEFORE building the cache key. When `quoteCode` is
+    // omitted the result depends on the user's CURRENT default currency, so the key
+    // must encode that resolved code — not a literal "default" placeholder. Keying
+    // on "default" made an entry computed under the user's OLD base currency satisfy
+    // a lookup after they changed base (both collapse to the same key), re-serving a
+    // stale cross-base value. Old-format entries simply miss the new key and recompute.
     let defaultUserCurrency: Currencies.default | undefined = undefined;
 
     if (!quoteCode) {
@@ -67,31 +63,49 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
       defaultUserCurrency = result.currency;
     }
 
-    // If baseCode same as default currency code no need to calculate anything
-    if (defaultUserCurrency?.code === baseCode || quoteCode === baseCode) {
-      await refAmountCache.write({ key: cacheKey, value: amountCents.toString() });
-      return amount;
-    }
+    const resolvedQuoteCode = quoteCode ?? defaultUserCurrency?.code;
 
-    if (!baseCode || (quoteCode === undefined && defaultUserCurrency === undefined)) {
+    if (!baseCode || !resolvedQuoteCode) {
       throw new ValidationError({
         message: t({ key: 'currencies.cannotCalculateRefAmount' }),
         details: { baseCode, defaultUserCurrency },
       });
     }
 
+    const cacheKey = `ref_amount:${userId}:${amountCents}:${baseCode}:${resolvedQuoteCode}:${dateStr}`;
+
+    if (!bypassCache) {
+      const cachedAmount = await refAmountCache.read(cacheKey);
+
+      if (cachedAmount !== null) {
+        return Money.fromCents(parseInt(cachedAmount, 10));
+      }
+    }
+
+    // If baseCode equals the resolved quote currency, no conversion is needed.
+    if (resolvedQuoteCode === baseCode) {
+      if (!bypassCache) {
+        await refAmountCache.write({ key: cacheKey, value: amountCents.toString() });
+      }
+      return amount;
+    }
+
     const result = await userExchangeRateService.getExchangeRate({
       userId,
       date: new Date(params.date),
       baseCode,
-      quoteCode: quoteCode || defaultUserCurrency!.code,
+      quoteCode: resolvedQuoteCode,
       bypassCache,
     });
 
     const finalAmount = calculateRefAmountFromParams({ amount, rate: result.rate });
 
-    // **CACHE THE FINAL RESULT** (store as cents for cache consistency)
-    await refAmountCache.write({ key: cacheKey, value: finalAmount.toCents().toString() });
+    // **CACHE THE FINAL RESULT** (store as cents for cache consistency). Skipped
+    // under `bypassCache`: see the `bypassCache` doc below — write-back inside an
+    // uncommitted rate-write transaction would poison the cache on rollback.
+    if (!bypassCache) {
+      await refAmountCache.write({ key: cacheKey, value: finalAmount.toCents().toString() });
+    }
 
     return finalAmount;
   } catch (e) {
@@ -111,10 +125,13 @@ type Params = {
   baseCode: string;
   quoteCode?: string;
   /**
-   * Skip redis cache READS (both the ref-amount layer here and the cross-rate layer
-   * inside `getExchangeRate`); fresh results are still written back. Required for
-   * balance remeasure flows that must observe a rate that changed within the cache
-   * TTL (rate sync, custom-rate edits).
+   * Do not touch the redis cache at all — neither read from it nor write results
+   * back — on both the ref-amount layer here and the cross-rate layer inside
+   * `getExchangeRate`. Required for balance remeasure flows that run inside the
+   * custom-rate edit/remove `withTransaction`: they must observe a rate that changed
+   * within the cache TTL (so reads are skipped), and writing the freshly computed
+   * amount back before that rate write commits would poison the 1h-TTL cache with a
+   * value derived from a rate that may still roll back.
    */
   bypassCache?: boolean;
 };

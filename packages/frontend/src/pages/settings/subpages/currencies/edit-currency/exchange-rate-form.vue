@@ -153,7 +153,10 @@ const deleteExchangeRates = async () => {
     emit('submit');
 
     addSuccessNotification(t('settings.currencies.exchangeRate.successfullyUpdated'));
-    notifyIfBalancesNotRefreshed(remeasure.failed);
+    // Tolerate deploy skew: an older backend that predates the `remeasure` field
+    // returns a response without it, so guard the access instead of throwing inside
+    // the success path (the rate write itself already committed).
+    notifyIfBalancesNotRefreshed(remeasure?.failed ?? 0);
   } catch (e: unknown) {
     if ((e as any)?.data?.code === API_ERROR_CODES.validationError) {
       addErrorNotification((e as any).data.message);
@@ -182,7 +185,10 @@ const updateExchangeRates = async () => {
     emit('submit');
 
     addSuccessNotification(t('settings.currencies.exchangeRate.successfullyUpdated'));
-    notifyIfBalancesNotRefreshed(remeasure.failed);
+    // Tolerate deploy skew: an older backend that predates the `remeasure` field
+    // returns a response without it, so guard the access instead of throwing inside
+    // the success path (the rate write itself already committed).
+    notifyIfBalancesNotRefreshed(remeasure?.failed ?? 0);
   } catch (e: unknown) {
     if ((e as any)?.data?.code === API_ERROR_CODES.validationError) {
       addErrorNotification((e as any).data.message);

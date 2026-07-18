@@ -1,6 +1,7 @@
 import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import Accounts, * as AccountsModel from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
@@ -89,7 +90,21 @@ export const absorbBalanceAdjustment = withTransaction(
         where: { id: accountId, userId },
         transaction: sequelizeTx,
       });
-      if (refreshed) result = refreshed;
+      if (refreshed) {
+        result = refreshed;
+      } else {
+        // The row was just updated above, so a miss is an impossible-state
+        // (concurrent delete / id drift). Fall back to the pre-restamp `result`
+        // row so the absorb still returns, but flag that its `refInitialBalance`
+        // may be the stale pre-restamp value.
+        logger.error(
+          {
+            message:
+              'absorbBalanceAdjustment: account re-read after restampRefInitialBalance missed; returning pre-restamp row, refInitialBalance may be stale',
+          },
+          { code: 'ACCOUNT_ABSORB_REREAD_AFTER_RESTAMP_MISSED', accountId, userId },
+        );
+      }
     }
 
     // Today's net-worth row is a stock equal to the spot `refCurrentBalance` just
