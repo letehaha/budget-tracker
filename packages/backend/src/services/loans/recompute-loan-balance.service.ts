@@ -166,12 +166,37 @@ const recomputeLoanBalanceImpl = async ({
   // Balances rows are unique per (accountId, date). Loans opt out of the
   // per-transaction Balances cascade, so this rebuild is the loan's only history
   // writer; pre-anchor rows stay untouched. Balances.amount stores the ref balance.
+  //
+  // A parallel native replay over the same legs/anchor gives the outstanding in
+  // the loan's own currency per day; both walks emit the same dates in the same
+  // order because the day grouping and anchor-row logic depend only on the legs
+  // and anchor, not on which amount each leg contributes.
+  const nativeOutstandingByDate = new Map(
+    replayLoanOutstanding({
+      legs,
+      anchorDate,
+      openingBalance: account.initialBalance,
+      pickCents: ({ leg }) => leg.amount.toCents(),
+    }).map((row) => [row.date, row.balance]),
+  );
+
   const rebuiltRows = replayLoanOutstanding({
     legs,
     anchorDate,
     openingBalance: account.refInitialBalance,
     pickCents: ({ leg }) => leg.refAmount.toCents(),
-  }).map((row) => ({ date: new Date(row.date), refBalance: row.balance }));
+  }).map((row) => {
+    // A day whose native outstanding is floored to zero is settled — nothing is
+    // owed, so its base-currency row is zero too. The ref accumulator
+    // (refInitialBalance stamped at the anchor rate plus each payment's refAmount
+    // at its own historical rate) otherwise carries an FX residue once the native
+    // balance reaches zero, splitting the net-worth chart from the spot account
+    // card. `replayLoanOutstanding` already floors each row at zero, so a
+    // non-negative native outstanding means the loan is settled on that day.
+    const nativeOutstanding = nativeOutstandingByDate.get(row.date);
+    const settled = nativeOutstanding !== undefined && !nativeOutstanding.isNegative();
+    return { date: new Date(row.date), refBalance: settled ? Money.zero() : row.balance };
+  });
 
   // Clear the range first so removed/moved payments leave no ghost rows; the
   // account-creation row falls inside it and is re-written by the anchor row.
