@@ -20,8 +20,8 @@
         "own": "Може редагувати тільки свої операції"
       },
       "invite": {
-        "emailLabel": "Email",
-        "emailPlaceholder": "person{'@'}example.com",
+        "emailLabel": "Електронна пошта",
+        "emailPlaceholder": "особа{'@'}приклад.com",
         "permissionLabel": "Дозвіл",
         "writeScopeLabel": "Область запису",
         "submit": "Відправити запрошення в сім'ю",

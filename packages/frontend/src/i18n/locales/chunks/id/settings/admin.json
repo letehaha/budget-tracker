@@ -34,7 +34,7 @@
           "tooltipText": "Anda hanya dapat mengupload harga efek untuk tanggal yang memiliki kurs tersedia. Jika tidak, harga efek tidak dapat dikonversi ke mata uang lain. Jika membutuhkan data lama, upload kurs terlebih dahulu. Tergantung opsi yang dipilih, data akan difilter otomatis (dilewati) atau upload akan gagal."
         },
         "fileUpload": {
-          "title": "Upload File",
+          "title": "Unggah File",
           "dragText": "Klik untuk upload atau seret dan lepas",
           "supportedFormats": "File CSV atau JSON didukung",
           "errors": {

@@ -68,7 +68,7 @@
       "total": "Взагалом"
     },
     "placeholders": {
-      "email": "your{'@'}email.com",
+      "email": "ваша{'@'}пошта.com",
       "password": "Ваш пароль"
     },
     "dialogs": {

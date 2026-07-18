@@ -300,7 +300,7 @@
         "paymentDayRange": "День місяця має бути від 1 до 31.",
         "asOfInFuture": "Дата не може бути в майбутньому"
       },
-      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
+      "balanceExceedsPrincipalWarning": "Залишок боргу перевищує початкову суму боргу – перевірте ці суми ще раз."
     }
   },
   "fields": {

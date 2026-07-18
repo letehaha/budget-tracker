@@ -300,7 +300,7 @@
         "paymentDayRange": "El día del mes debe estar entre 1 y 31.",
         "asOfInFuture": "La fecha no puede ser futura"
       },
-      "balanceExceedsPrincipalWarning": "Outstanding balance is higher than the original principal – double-check these amounts."
+      "balanceExceedsPrincipalWarning": "El saldo pendiente es mayor que el principal original: compruebe estos importes."
     }
   },
   "fields": {
