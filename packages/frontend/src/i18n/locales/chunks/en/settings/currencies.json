@@ -22,6 +22,7 @@
         "liveUpdateLabel": "Live update",
         "saveButton": "Save",
         "successfullyUpdated": "Successfully updated.",
+        "balancesNotRefreshed": "{count} account balance(s) could not be refreshed with the new rate yet — they'll update automatically once a rate is available.",
         "errors": {
           "unexpectedError": "Unexpected error",
           "updateFailed": "Unexpected error. Currency is not updated."

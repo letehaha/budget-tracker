@@ -2,9 +2,11 @@ name: Lint, Test and Build
 
 on:
   push:
-    # Covers the post-merge run on both long-lived branches. PRs are already
-    # covered by the unfiltered pull_request trigger below, whatever their base.
-    branches: [main, dev]
+    # Post-merge run on main only. dev is intentionally excluded: it is a PR head
+    # branch (dev -> main release PRs), so listing it here would fire push AND
+    # pull_request on the same head SHA, double-running every check on the PR.
+    # Commits reaching dev already passed the unfiltered pull_request trigger below.
+    branches: [main]
   pull_request:
   # enable manual triggers
   workflow_dispatch:

@@ -312,16 +312,14 @@ async function executeImportImpl({
         // after the commit, before any post-commit step that can throw: the
         // balance hook has already moved `currentBalance`, so a row missing from
         // the tally would make the reconcile adjustment too large with no desync
-        // error. Both amounts signed the way the hook applied them (income adds,
-        // expense subtracts); `refAmount` comes from the written row so the ref
-        // tally carries the row-date FX rate the hook used.
+        // error. Signed the way the hook applied it (income adds, expense
+        // subtracts).
         reconciler.recordRow({
           accountId,
           rowIso: row.date,
           ...signedRowContribution({
             isIncome: row.transactionType === 'income',
             amount: rowAmount,
-            refAmount: transaction.refAmount,
           }),
         });
 

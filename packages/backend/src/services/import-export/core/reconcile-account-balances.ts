@@ -37,12 +37,8 @@ interface AccountBalanceCapture {
 interface ImportRowTally {
   /** Σ signed(amount) of rows classified `new` (income +, expense −). */
   deltaNew: Money;
-  /** Σ signed(refAmount) of rows classified `new`, at each row's own FX rate. */
-  refDeltaNew: Money;
   /** Σ signed(amount) of rows classified `historical` (backfill). */
   deltaHistorical: Money;
-  /** Σ signed(refAmount) of rows classified `historical`, at each row's own FX rate. */
-  refDeltaHistorical: Money;
   movedCount: number;
   historicalCount: number;
 }
@@ -50,9 +46,7 @@ interface ImportRowTally {
 function emptyTally(): ImportRowTally {
   return {
     deltaNew: Money.zero(),
-    refDeltaNew: Money.zero(),
     deltaHistorical: Money.zero(),
-    refDeltaHistorical: Money.zero(),
     movedCount: 0,
     historicalCount: 0,
   };
@@ -113,13 +107,6 @@ interface BalanceReconciliationSession {
     rowIso: string;
     /** Income positive, expense negative, in the account's own currency. */
     signedAmount: Money;
-    /**
-     * The written row's `refAmount` with the same sign as `signedAmount` — the
-     * exact base-currency amount the balance hook applied (row-date FX rate).
-     * Undoing rows with anything else (e.g. a today-rate conversion of
-     * `signedAmount`) leaves `refCurrentBalance` off by the FX drift.
-     */
-    signedRefAmount: Money;
   }): void;
 
   /**
@@ -167,17 +154,7 @@ class BalanceReconciliationSessionImpl implements BalanceReconciliationSession {
     this.captures = captures;
   }
 
-  recordRow({
-    accountId,
-    rowIso,
-    signedAmount,
-    signedRefAmount,
-  }: {
-    accountId: string;
-    rowIso: string;
-    signedAmount: Money;
-    signedRefAmount: Money;
-  }): void {
+  recordRow({ accountId, rowIso, signedAmount }: { accountId: string; rowIso: string; signedAmount: Money }): void {
     const boundaryDayKey = this.captures.get(accountId)?.boundaryDayKey;
     // YYYY-MM-DD keys compare correctly as strings; no boundary means `new`.
     const classification =
@@ -186,11 +163,9 @@ class BalanceReconciliationSessionImpl implements BalanceReconciliationSession {
     const tally = this.tallyByAccountId.get(accountId) ?? emptyTally();
     if (classification === 'new') {
       tally.deltaNew = tally.deltaNew.add(signedAmount);
-      tally.refDeltaNew = tally.refDeltaNew.add(signedRefAmount);
       tally.movedCount += 1;
     } else {
       tally.deltaHistorical = tally.deltaHistorical.add(signedAmount);
-      tally.refDeltaHistorical = tally.refDeltaHistorical.add(signedRefAmount);
       tally.historicalCount += 1;
     }
     this.tallyByAccountId.set(accountId, tally);
@@ -279,17 +254,15 @@ class BalanceReconciliationSessionImpl implements BalanceReconciliationSession {
       const amountDelta = recalculateBalance
         ? tally.deltaHistorical.negate()
         : tally.deltaHistorical.add(tally.deltaNew).negate();
-      const refAmountDelta = recalculateBalance
-        ? tally.refDeltaHistorical.negate()
-        : tally.refDeltaHistorical.add(tally.refDeltaNew).negate();
       // What the user sees as this import's effect on the balance: rows kept
       // applied. Backfill (and, with the flag OFF, everything) nets to zero.
       const semanticDelta = recalculateBalance ? tally.deltaNew : Money.zero();
 
       let balanceAfter: Money;
-      if (amountDelta.isZero() && refAmountDelta.isZero()) {
+      if (amountDelta.isZero()) {
         // Nothing to remove — the balance hook already left the account at its
-        // target. Skipping the write also skips a pointless row lock.
+        // target, and ref balances derive from the native balance, so a zero native
+        // delta leaves nothing to fix. Skipping the write also skips a row lock.
         balanceAfter = capture.balanceBefore.add(semanticDelta);
       } else {
         try {
@@ -297,7 +270,6 @@ class BalanceReconciliationSessionImpl implements BalanceReconciliationSession {
             userId: this.userId,
             accountId: capture.accountId,
             amountDelta,
-            refAmountDelta,
           });
           balanceAfter = updated.currentBalance;
         } catch (err) {

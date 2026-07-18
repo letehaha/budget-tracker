@@ -84,9 +84,9 @@ function mockAbsorbApplyingDelta(accounts: { account: AccountRow }[]) {
   }) as unknown as typeof absorbBalanceAdjustment);
 }
 
-/** recordRow helper defaulting the ref amount to the native amount (1:1 FX). */
-function row({ signedAmount, signedRefAmount }: { signedAmount: Money; signedRefAmount?: Money }) {
-  return { signedAmount, signedRefAmount: signedRefAmount ?? signedAmount };
+/** recordRow payload builder — tallies are native-only (ref sides are derived). */
+function row({ signedAmount }: { signedAmount: Money }) {
+  return { signedAmount };
 }
 
 beforeEach(() => {
@@ -186,7 +186,6 @@ describe('recordRow classification against the pre-import boundary', () => {
     const call = absorbMock.mock.calls[0]![0];
     expect(call.accountId).toBe(accountId);
     expect(call.amountDelta.toNumber()).toBe(100.5);
-    expect(call.refAmountDelta.toNumber()).toBe(100.5);
 
     // deltaNew = −50 + 2500 = 2450; the −100.50 backfill is absorbed.
     expect(accountBalanceChanges[0]).toMatchObject({
@@ -334,7 +333,6 @@ describe('finalize — captured (linked) accounts', () => {
     // concurrent writer's contribution between capture and finalize survives.
     expect(absorbMock).toHaveBeenCalledTimes(1);
     expect(absorbMock.mock.calls[0]![0].amountDelta.toNumber()).toBe(-75);
-    expect(absorbMock.mock.calls[0]![0].refAmountDelta.toNumber()).toBe(-75);
     expect(accountBalanceChanges[0]).toMatchObject({
       balanceBefore: 300,
       balanceAfter: 300,
@@ -344,7 +342,7 @@ describe('finalize — captured (linked) accounts', () => {
     });
   });
 
-  it('undoes the ref side with the recorded row refAmounts, not a conversion of the native delta', async () => {
+  it('passes only the native delta to absorb — ref balances are derived, never delta-shifted', async () => {
     const accountId = generateRandomRecordId();
     const accounts = [
       { account: buildAccount({ id: accountId, name: 'Foreign', currentBalance: Money.fromDecimal(100) }) },
@@ -353,18 +351,19 @@ describe('finalize — captured (linked) accounts', () => {
     mockAbsorbApplyingDelta(accounts);
 
     const reconciler = await startBalanceReconciliation({ userId: USER_ID, accountIds: [accountId] });
-    // EUR account, USD base: the row moved the ref balance by its own
-    // historical-rate refAmount (−110), not by the native −100.
     reconciler.recordRow({
       accountId,
       rowIso: '2024-01-17',
-      ...row({ signedAmount: Money.fromDecimal(-100), signedRefAmount: Money.fromDecimal(-110) }),
+      ...row({ signedAmount: Money.fromDecimal(-100) }),
     });
     await reconciler.finalize({ recalculateBalance: false, logLabel: 'test import' });
 
     const call = absorbMock.mock.calls[0]![0];
     expect(call.amountDelta.toNumber()).toBe(100);
-    expect(call.refAmountDelta.toNumber()).toBe(110);
+    // absorb takes only the native `amountDelta`: it derives refCurrentBalance from
+    // the shifted native balance at the latest rate and restamps refInitialBalance at
+    // the boundary rate itself, so no `refAmountDelta` is passed.
+    expect(call).not.toHaveProperty('refAmountDelta');
   });
 
   it('reports a failed linked write as account-balance-desync and continues with the rest', async () => {

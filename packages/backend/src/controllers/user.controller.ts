@@ -197,11 +197,11 @@ export const removeUserCurrencyExchangeRate = createController(
       }
     });
 
-    await userExchangeRates.removeUserExchangeRates({
+    const data = await userExchangeRates.removeUserExchangeRates({
       userId: user.id,
       pairs: pairs as ExchangeRatePair[],
     });
 
-    return {};
+    return { data };
   },
 );

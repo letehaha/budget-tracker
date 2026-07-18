@@ -231,7 +231,7 @@ export const usePayee = ({
   });
 };
 
-const invalidatePayeesScope = (queryClient: ReturnType<typeof useQueryClient>) => {
+export const invalidatePayeesScope = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesByAccount });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeeById });

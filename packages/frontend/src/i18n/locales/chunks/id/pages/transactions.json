@@ -92,7 +92,7 @@
     "bulkEdit": {
       "selectAll": "Pilih semua",
       "cancelSelection": "Batalkan pilihan",
-      "editButton": "Edit",
+      "editButton": "Sunting",
       "selectedCount": "{count} dipilih",
       "dialogTitle": "Edit {count} transaksi",
       "dialogDescription": "Perubahan akan diterapkan ke semua transaksi yang dipilih. Hanya bidang yang diisi yang akan diperbarui.",
@@ -170,7 +170,7 @@
         "savingAction": "Simpan",
         "cancelButton": "Batal",
         "deletingText": "Menghapus...",
-        "editAction": "Edit",
+        "editAction": "Sunting",
         "deleteAction": "Hapus Grup",
         "transactionsLabel": "Transaksi",
         "deleteGroupTitle": "Hapus grup",
@@ -216,7 +216,7 @@
         "categorizationSource": "Dikategorikan oleh",
         "group": "Grup",
         "refund": "Pengembalian Dana",
-        "split": "Split"
+        "split": "Bagi"
       },
       "outOfWallet": "Di luar dompet",
       "hint": "Klik baris untuk melihat detail. Pilih baris untuk mengedit massal.",

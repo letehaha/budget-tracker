@@ -96,7 +96,12 @@
     },
     "transactionsDialog": {
       "title": "{name} — transactions",
-      "empty": "No transactions linked to this payee."
+      "empty": "No transactions linked to this payee.",
+      "unlink": "Unlink from payee",
+      "unlinked": "Transaction unlinked from payee",
+      "unlinkConfirmTitle": "Unlink transaction?",
+      "unlinkConfirmDescription": "This transaction will no longer be linked to {name}. Future bank syncs won't re-link it automatically.",
+      "unlinkConfirmLabel": "Unlink"
     },
     "toasts": {
       "created": "Payee created",

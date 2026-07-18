@@ -1,12 +1,22 @@
 import * as UserExchangeRates from '@models/user-exchange-rates.model';
+import { remeasureRefBalances } from '@services/accounts/remeasure-ref-balances';
 
 import { withTransaction } from '../common/with-transaction';
 
 export const editUserExchangeRates = withTransaction(
   async ({ userId, pairs }: { userId: number; pairs: UserExchangeRates.UpdateExchangeRatePair[] }) => {
-    return UserExchangeRates.updateRates({
+    const rates = await UserExchangeRates.updateRates({
       userId,
       pairs,
     });
+
+    // A custom rate changes what this user's balances are worth in base currency —
+    // the stored spot measures must observe it immediately. A per-account remeasure
+    // failure (no market rate for the pair yet) must NOT throw: the rate write above
+    // committed and throwing would roll it back. Return the counts so the caller can
+    // warn the user; the daily sync re-anchors the lagging ones later.
+    const remeasure = await remeasureRefBalances({ userId });
+
+    return { rates, remeasure };
   },
 );

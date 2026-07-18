@@ -1,5 +1,11 @@
 import { api } from '@/api/_api';
-import { CurrencyModel, ExchangeRatesModel, UserCurrencyModel, UserExchangeRatesModel } from '@bt/shared/types';
+import {
+  CurrencyModel,
+  ExchangeRatesModel,
+  RefBalanceRemeasureResult,
+  UserCurrencyModel,
+  UserExchangeRatesModel,
+} from '@bt/shared/types';
 
 export const getAllCurrencies = async (): Promise<CurrencyModel[]> => api.get('/models/currencies');
 
@@ -10,7 +16,7 @@ export const deleteCustomRate = (
     baseCode: string;
     quoteCode: string;
   }[],
-) => api.delete('/user/currency/rates', { data: { pairs } });
+): Promise<{ remeasure: RefBalanceRemeasureResult }> => api.delete('/user/currency/rates', { data: { pairs } });
 
 export const loadUserCurrenciesExchangeRates = async (): Promise<UserExchangeRatesModel[]> =>
   api.get('/user/currencies/rates');
@@ -29,7 +35,8 @@ export const editUserCurrenciesExchangeRates = async (
     quoteCode: string;
     rate: number;
   }[],
-): Promise<UserExchangeRatesModel[]> => api.put('/user/currency/rates', { pairs });
+): Promise<{ rates: UserExchangeRatesModel[]; remeasure: RefBalanceRemeasureResult }> =>
+  api.put('/user/currency/rates', { pairs });
 
 export const deleteUserCurrency = (currencyCode: string) => api.delete('/user/currency', { data: { currencyCode } });
 
