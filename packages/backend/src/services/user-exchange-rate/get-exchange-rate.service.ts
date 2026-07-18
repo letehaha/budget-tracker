@@ -208,12 +208,11 @@ type ExchangeRateParams = {
   baseCode: string;
   quoteCode: string;
   /**
-   * Do not touch the global cross-rate cache at all — neither read nor write-back.
-   * For remeasure flows that run right after new rates land (rate sync, custom-rate
-   * edits): a cached pre-change rate would silently re-anchor balances to stale FX
-   * (so reads are skipped), and because these callers run inside the uncommitted
-   * rate-write transaction, writing the fresh rate back would poison the cache with
-   * a value that may still roll back.
+   * Skip the global cross-rate cache entirely — no read, no write-back. For
+   * remeasure flows that run right after new rates land (rate sync, custom-rate
+   * edits): a cached pre-change rate would re-anchor balances to stale FX, and
+   * because these callers run inside the uncommitted rate-write transaction, writing
+   * the fresh rate back would poison the cache with a value that may still roll back.
    */
   bypassCache?: boolean;
 };

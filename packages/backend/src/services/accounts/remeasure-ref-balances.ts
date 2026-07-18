@@ -9,31 +9,22 @@ import { withTransaction } from '@services/common/with-transaction';
 import { DatabaseError } from 'sequelize';
 
 /**
- * Re-measures a single account's spot `ref*` balances at the latest rate and pins
- * today's net-worth row to match. Returns `'updated'` when the values moved (and
- * were written), `'skipped'` when they were already current.
+ * Re-measures one account's spot `ref*` balances at the latest rate and pins
+ * today's net-worth row to match. Returns `'updated'` when the values moved,
+ * `'skipped'` when already current.
  *
- * Wrapped in `withTransaction` so its two writes (the account row and the today
- * `Balances` row) commit together:
- *  - On the daily cron there is no ambient transaction, so this opens its OWN
- *    per-account transaction. The two writes are then atomic — a throw after the
- *    account write rolls both back, so the caller's "previous values kept" log is
- *    truthful instead of leaving a half-applied write the equals-guard would treat
- *    as up-to-date forever. Scoping the transaction to one account (rather than
- *    wrapping the whole cron sweep) keeps a single failed conversion from holding
- *    locks across every account or rolling back the rest.
- *  - Inside the custom-rate edit/remove flow there IS an ambient transaction, so
- *    this reuses it (no nesting). The custom rate was written earlier in that same
- *    transaction and is still uncommitted, so the reads below must run in it to
- *    observe it — a nested transaction here would read the pre-edit committed rate
- *    and re-anchor balances to stale FX.
+ * `withTransaction` commits the account row and today's `Balances` row together.
+ * On the cron there is no ambient transaction, so it opens its own per-account
+ * one — a failed conversion rolls back both writes without holding locks across
+ * other accounts. Inside the custom-rate edit/remove flow it reuses the ambient
+ * transaction so the reads observe that flow's still-uncommitted rate write.
  */
 const remeasureAccountRefBalances = withTransaction(
   async ({ account }: { account: Accounts }): Promise<'skipped' | 'updated'> => {
     const refCurrentBalance = await calculateRefAmount({
-      // Account owner, not the caller: ref balances are stored in the OWNER's
-      // base currency, and rate resolution (connected-currency check, custom
-      // rates) must run against the owner.
+      // Account owner, not the caller: ref balances live in the OWNER's base
+      // currency and rate resolution (connected-currency, custom rates) runs
+      // against the owner.
       userId: account.userId,
       amount: account.currentBalance,
       baseCode: account.currencyCode,
@@ -56,8 +47,8 @@ const remeasureAccountRefBalances = withTransaction(
 
     await Accounts.update({ refCurrentBalance, refCreditLimit }, { where: { id: account.id } });
 
-    // The chart's today point is a stock too: re-anchor it alongside the account
-    // card by pinning today's net-worth row to the freshly measured spot value.
+    // The chart's today point is a stock too: pin today's net-worth row to the
+    // freshly measured spot value.
     account.refCurrentBalance = refCurrentBalance;
     await Balances.setTodayRowToSpot({ account });
     return 'updated';
@@ -66,48 +57,29 @@ const remeasureAccountRefBalances = withTransaction(
 
 /**
  * Re-anchors the base-currency (`ref*`) side of account balances to the latest
- * exchange rate.
+ * exchange rate. `refCurrentBalance` and `refCreditLimit` are spot measures (the
+ * native value at the current rate), not accumulators of per-transaction
+ * conversions — without re-anchoring, a rate move leaves them at a blend of
+ * historical rates (an account drained to zero would keep a nonzero ref residue).
  *
- * `refCurrentBalance` and `refCreditLimit` are spot measures – "what is this
- * account's native value worth in the owner's base currency right now". They are
- * NOT accumulators of per-transaction conversions: transaction `refAmount`s keep
- * their historical tx-date rates (flows), while account-level ref balances are
- * stocks that must track the current rate. Without this re-anchoring, a rate move
- * leaves every stored ref balance at a blend of historical rates – most visibly,
- * an account whose native balance returns to zero keeps a nonzero base-currency
- * residue.
+ * Runs after every rate sync (all accounts) and after a user edits/removes a
+ * custom rate (their accounts only). Each account is re-measured independently;
+ * a per-account failure is counted and logged so the rest still proceed.
  *
- * Runs after every exchange-rate sync (all accounts) and after a user edits or
- * removes a custom rate (that user's accounts only). There is no single long
- * transaction spanning all accounts — each account is re-measured independently
- * via `remeasureAccountRefBalances` (see its per-account transaction semantics),
- * and a per-account failure is counted and logged so the rest still proceed.
- *
- * The per-account catch is ASYMMETRIC by path, because a swallowed error means
- * different things depending on whether an ambient transaction is present:
- *  - Custom-rate edit/remove path (ambient transaction present): a DB statement
- *    error aborts the whole ambient Postgres transaction ("current transaction is
- *    aborted", 25P02) — every later per-account query then fails the same way, and
- *    the wrapping `withTransaction`'s COMMIT silently becomes a ROLLBACK. Swallowing
- *    it would let the endpoint return 200 for a request whose rate write never
- *    persisted. So a `sequelize.DatabaseError` on this path is RE-THROWN: it
- *    propagates to `withTransaction` → rollback → the endpoint fails honestly and
- *    the user retries. (A savepoint would scope the abort instead, but it can't be
- *    used here — see `remeasureAccountRefBalances`.)
- *  - Cron path (no ambient transaction): each account has its own transaction that
- *    already rolled back cleanly on failure, so there is nothing to poison — count
- *    it and continue.
- * The designed missing-rate failure (exotic currency, provider gap) is a custom app
- * error, NOT a `DatabaseError`, so it always counts-and-continues on both paths.
+ * The per-account catch is asymmetric: on the custom-rate path a `DatabaseError`
+ * has aborted the ambient transaction, so it's re-thrown to roll the request back
+ * rather than let the endpoint's COMMIT-turned-ROLLBACK drop the rate write
+ * silently. On the cron each account owns an already-rolled-back transaction, so
+ * it counts-and-continues. The designed missing-rate error is not a
+ * `DatabaseError`, so it always counts-and-continues.
  */
 export async function remeasureRefBalances({ userId }: { userId?: number } = {}): Promise<RefBalanceRemeasureResult> {
   const accounts = await Accounts.findAll({
     where: userId === undefined ? {} : { userId },
   });
 
-  // Captured once at entry: an ambient transaction here means the caller
-  // (custom-rate edit/remove) wraps this whole sweep, so a DB abort below poisons
-  // that shared transaction. On the cron there is none.
+  // Ambient transaction here means the caller (custom-rate edit/remove) wraps the
+  // whole sweep, so a DB abort below would poison it. On the cron there is none.
   const ambientTransaction = namespace.get('transaction');
   const hasAmbientTransaction = !!ambientTransaction && !ambientTransaction.finished;
 
@@ -119,17 +91,15 @@ export async function remeasureRefBalances({ userId }: { userId?: number } = {})
       const status = await remeasureAccountRefBalances({ account });
       if (status === 'updated') updated += 1;
     } catch (e) {
-      // A DB statement error inside the caller's ambient transaction has already
-      // aborted it — continuing would count phantom "current transaction is aborted"
-      // failures and let the endpoint COMMIT-turned-ROLLBACK drop the rate write
-      // silently. Re-throw so the whole request rolls back and fails honestly.
+      // A DB error inside the caller's ambient transaction has already aborted it;
+      // re-throw so the whole request rolls back instead of counting phantom
+      // "transaction is aborted" failures and dropping the rate write silently.
       if (hasAmbientTransaction && e instanceof DatabaseError) {
         throw e;
       }
 
       // A single account with an unavailable rate (exotic currency, provider gap)
-      // must not block remeasuring the rest – its previous ref values stay in
-      // place until a later run finds a rate.
+      // must not block the rest — its previous ref values stay until a later run.
       failed += 1;
       logger.error(
         {

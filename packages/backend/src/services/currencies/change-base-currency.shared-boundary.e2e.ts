@@ -115,17 +115,15 @@ describe('Change base currency — shared-account ledger boundary is author-blin
     expect(changeRes.statusCode).toBe(200);
 
     // refInitialBalance = opening 200 EUR × EUR→USD at the recipient tx's boundary
-    // date (2.0) = 400 USD. An author-scoped boundary would have found no owner row,
-    // fallen back to today's rate (~1.05), and stamped ~210 instead. This is the same
-    // account-scoped boundary `restampRefInitialBalance` uses, so the two agree.
+    // date (2.0) = 400 USD. The boundary is account-scoped (not author-scoped),
+    // matching `restampRefInitialBalance`, so a recipient-authored earliest tx sets it.
     const afterChange = await helpers.getAccount({ id: account.id, raw: true });
     expect(decimalToCents(afterChange.refInitialBalance)).toEqualRefValue(20000 * HISTORICAL_EUR_TO_USD);
 
     // A subsequent owner-authored write triggers the account-scoped restamp. Because
-    // change-base already used the same (account-scoped) boundary, refInitialBalance
-    // must NOT move — it stays the boundary-rate value in the NEW base (400 USD).
-    // (This also guards the ref-amount cache: keyed on the resolved quote currency,
-    // the pre-change AED entry can't be re-served now that the base is USD.)
+    // change-base used the same boundary, refInitialBalance must NOT move — it stays
+    // the boundary-rate value in the new base (400 USD), and the ref-amount cache
+    // (keyed on the resolved quote currency) can't re-serve the pre-change AED entry.
     await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
         accountId: account.id,

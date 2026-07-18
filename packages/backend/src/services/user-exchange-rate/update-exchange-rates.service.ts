@@ -10,14 +10,11 @@ export const editUserExchangeRates = withTransaction(
       pairs,
     });
 
-    // A custom rate changes what this user's balances are worth in their base
-    // currency — the stored spot measures must observe it immediately, not at the
-    // next daily rate sync.
-    //
-    // A per-account remeasure failure (no market rate for the pair yet) is NOT a
-    // reason to throw: the rate write above committed correctly and throwing here
-    // would roll it back. Only the refresh lagged, and the daily sync re-anchors it.
-    // Return the counts so the caller can warn the user that some balances are stale.
+    // A custom rate changes what this user's balances are worth in base currency —
+    // the stored spot measures must observe it immediately. A per-account remeasure
+    // failure (no market rate for the pair yet) must NOT throw: the rate write above
+    // committed and throwing would roll it back. Return the counts so the caller can
+    // warn the user; the daily sync re-anchors the lagging ones later.
     const remeasure = await remeasureRefBalances({ userId });
 
     return { rates, remeasure };

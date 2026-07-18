@@ -172,13 +172,12 @@ export default class Balances extends Model {
           amount,
         });
 
-        // The incremental cascade above folds this transaction's historical-rate
+        // The incremental cascade folded this transaction's historical-rate
         // `refAmount` into today's row, but today's row is a STOCK: it must equal
-        // the account card's spot `refCurrentBalance` (native balance × latest
-        // rate). Re-pin it to each affected account's spot value — already written
-        // by the account-balance hook that runs before this method on the create,
-        // update, and delete paths. A moved transaction touches both its old and
-        // new account, so both are re-pinned.
+        // the account card's spot `refCurrentBalance` (native × latest rate). Re-pin
+        // each affected account to the spot value already written by the
+        // account-balance hook. A moved transaction touches its old and new account,
+        // so both are re-pinned.
         const clampAccountIds = new Set<string>([accountId]);
         if (prevData && prevData.accountId !== accountId) {
           clampAccountIds.add(prevData.accountId);
@@ -187,24 +186,16 @@ export default class Balances extends Model {
           const clampAccount = await Accounts.findOne({ where: { id: clampAccountId } });
           if (!clampAccount) continue;
 
-          // Whether today's row still needs re-pinning to the spot balance. The
-          // one case that does NOT is a genuine identity-rate cascade in the
-          // OWNER's base currency: the account is denominated in the owner's base
-          // AND this cascade folded a same-base `refAmount` (rate 1), so it already
-          // left today's row at exactly the spot balance. Skipping that case also
-          // preserves the row's race-safe atomic accumulation instead of
-          // overwriting it with a value read from the (unlocked) account row.
-          //
-          // The row's stamped `refCurrencyCode` alone can't decide this: on a
-          // shared account a recipient authors rows under their own userId, so
-          // `data.refCurrencyCode` carries the AUTHOR's base currency, not the
-          // owner's. Trusting it would skip the re-pin on a cross-currency account
-          // a recipient (whose base happens to equal the account currency) wrote
-          // to — exactly where the divergence is worst — and would pollute an
-          // owner-base account when a recipient row's ref currency differs from the
-          // owner's base. So the skip requires the account currency, the row's ref
-          // currency, AND the owner's actual base to all agree. Loans are handled
-          // inside `setTodayRowToSpot` (it no-ops for them).
+          // Whether today's row still needs re-pinning. The one case that does NOT
+          // is an identity-rate cascade in the OWNER's base currency: the account is
+          // in the owner's base AND this cascade folded a same-base `refAmount`
+          // (rate 1), so the row already sits at the spot balance — and skipping it
+          // preserves the row's race-safe atomic accumulation. The row's stamped
+          // `refCurrencyCode` alone can't decide this: on a shared account a
+          // recipient authors rows under their own base, so it carries the AUTHOR's
+          // base, not the owner's. The skip therefore requires the account currency,
+          // the row's ref currency, AND the owner's actual base to all agree. Loans
+          // no-op inside `setTodayRowToSpot`.
           let shouldPin = true;
           if (clampAccount.currencyCode === data.refCurrencyCode) {
             const ownerBaseCurrency = await getBaseCurrency({ userId: clampAccount.userId });
@@ -569,26 +560,21 @@ export default class Balances extends Model {
   }
 
   /**
-   * Pin TODAY's net-worth history row for an account to its spot
-   * `refCurrentBalance` (native balance × latest rate). Today's row is a STOCK: it
-   * must equal the account card's base-currency balance, not the running sum of
-   * per-transaction historical-rate `refAmount`s that the incremental cascade
-   * folds into it — an account drained back to zero would otherwise keep a nonzero
-   * base-currency residue on the chart. Absolute upsert on `(accountId, today)` —
-   * never an increment — so it overwrites whatever the cascade left there. Past
-   * rows are untouched: they are historical measurements at their own days' rates.
+   * Pin TODAY's net-worth history row for an account to its spot `refCurrentBalance`
+   * (native balance × latest rate). Today's row is a STOCK: it must equal the
+   * account card's base-currency balance, not the running sum of historical-rate
+   * `refAmount`s the cascade folds in (an account drained to zero would otherwise
+   * keep a nonzero residue). Absolute upsert on `(accountId, today)`, never an
+   * increment. Past rows are untouched — historical measurements at their own rates.
    *
-   * Callers pass an account row read AFTER the spot `refCurrentBalance` write so
-   * this observes the fresh value; the upsert joins the ambient CLS transaction
-   * exactly like `updateAccountBalance`, which it reuses for the race-safe write.
+   * Callers pass an account row read AFTER the spot `refCurrentBalance` write so this
+   * observes the fresh value; the upsert joins the ambient CLS transaction via
+   * `updateAccountBalance`.
    *
-   * Loans are excluded here for every caller: a loan owns its whole Balances
-   * history through `recomputeLoanBalance`'s destroy + rebuild replay (which
-   * re-derives every row from historical-rate payment legs), so a spot pin — or
-   * worse, a today row this replay never creates — would fight that writer, the
-   * two oscillating on each payment recompute. Centralising the skip here means no
-   * caller (daily remeasure, the transaction-change clamp, absorb, account update)
-   * can accidentally pin a loan's today row.
+   * Loans are excluded for every caller: a loan owns its whole Balances history
+   * through `recomputeLoanBalance`'s destroy + rebuild replay, so a spot pin would
+   * fight that writer. Centralising the skip here keeps any caller from pinning a
+   * loan's today row.
    */
   static async setTodayRowToSpot({ account }: { account: Accounts }): Promise<void> {
     if (account.accountCategory === ACCOUNT_CATEGORIES.loan) return;

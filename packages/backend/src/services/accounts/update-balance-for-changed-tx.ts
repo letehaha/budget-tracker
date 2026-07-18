@@ -6,13 +6,13 @@ import Accounts from '@models/accounts.model';
 import { withTransaction } from '../common/with-transaction';
 
 /**
- * Account balance recalculation triggered by Sequelize hooks on `Transactions`. Lives
- * in its own file (not in `services/accounts.service.ts`) deliberately: the broader
- * accounts service imports the share-aware account lookup helpers, which transitively
- * import models. Pulling that in from `transactions.model.ts` would create a circular
- * import cycle that ts-node hits at startup (`models.map(m => m.prototype)` crashes on
- * an undefined entry). This file imports only the `Accounts` model and shared utilities,
- * so transactions.model can require it without re-entering the model loader.
+ * Account balance recalculation triggered by Sequelize hooks on `Transactions`.
+ * Kept out of `services/accounts.service.ts`: that service imports the share-aware
+ * account lookups, which transitively import models, and pulling those in from
+ * `transactions.model.ts` forms a circular import cycle ts-node hits at startup
+ * (`models.map(m => m.prototype)` crashes on an undefined entry). This file imports
+ * only the `Accounts` model and shared utilities, so transactions.model can require
+ * it without re-entering the model loader.
  */
 
 const calculateNewBalance = ({
@@ -51,21 +51,20 @@ async function updateAccountBalanceForChangedTxImpl({
   prevAmount?: Money;
   prevTransactionType?: TRANSACTION_TYPES;
   /**
-   * Set by the BeforeDestroy hook: the row being removed still exists at that
-   * point, so the ledger-boundary lookup must exclude it explicitly.
+   * Set by the BeforeDestroy hook: the row being removed still exists then, so the
+   * ledger-boundary lookup must exclude it explicitly.
    */
   removedTransactionId?: string;
 }): Promise<void> {
-  // Lookup is account-scoped, not user-scoped: post-S4 the service layer has already
-  // authorized the write (owner or recipient with `write`/`manage`), so balance updates
-  // must run against the account regardless of who created the transaction. Filtering
-  // by `userId` here silently dropped recipient-authored balance updates and let
-  // `Accounts.currentBalance` drift out of sync with the underlying tx ledger.
+  // Account-scoped, not user-scoped: the service layer has already authorized the
+  // write (owner or recipient with `write`/`manage`), so the balance update runs
+  // against the account regardless of who authored the transaction. A `userId`
+  // filter would drop recipient-authored updates and drift `currentBalance`.
   const account = await Accounts.findOne({ where: { id: accountId } });
 
   if (!account) {
-    // Hook runs after the tx row already committed. A missing account here means the
-    // balance silently drifts — fire-and-forget no-op would hide it, so report instead.
+    // Hook runs after the tx row committed. A missing account means the balance
+    // silently drifts, so report it instead of a fire-and-forget no-op.
     logger.error(
       {
         message: 'Account missing when applying balance update for changed transaction',
@@ -92,27 +91,20 @@ async function updateAccountBalanceForChangedTxImpl({
     currentBalance: account.currentBalance,
   });
 
-  // `refCurrentBalance` is a spot measure (native balance × latest rate), never a
-  // running sum of per-transaction `refAmount`s: those carry historical tx-date
-  // rates, and accumulating them leaves the base-currency balance at a blend of
-  // old rates — an account drained back to zero would keep a nonzero ref residue.
+  // `refCurrentBalance` is a spot measure (native balance × latest rate), not a
+  // running sum of per-transaction `refAmount`s — those carry historical rates and
+  // would leave a ref residue on an account drained back to zero.
   //
-  // The spot conversion throws when no rate reaches the pair (exotic currency,
-  // provider gap). This hook runs on every tx create/update/delete, and a delete
-  // must never fail — so a failed measure keeps the account's stored ref balance
-  // (the daily rate-sync remeasure self-heals it) while the native write below
-  // still lands.
-  //
-  // Dynamic import for the same reason this file exists at all (see the module
-  // comment): the helper statically pulls in `calculate-ref-amount.service`, which
-  // transitively loads other models and the exchange-rate provider stack — that
-  // must not be required while `transactions.model.ts` is still inside the model
-  // loader.
+  // `measureSpotRefBalance` returns null when no rate reaches the pair; the stored
+  // ref balance is kept (the daily remeasure self-heals it) so a delete never
+  // fails. Dynamic import for the module-comment reason: it statically pulls in the
+  // exchange-rate stack, which must not load while transactions.model is still in
+  // the model loader.
   const { measureSpotRefBalance } = await import('./measure-spot-ref-balance');
   const refCurrentBalance =
     (await measureSpotRefBalance({
-      // Owner of the account, not the transaction author — ref balances are stored
-      // in the owner's base currency (shared accounts can be written by recipients).
+      // Owner of the account, not the tx author — ref balances live in the owner's
+      // base currency (shared accounts can be written by recipients).
       userId: account.userId,
       amount: newCurrentBalance,
       baseCode: account.currencyCode,

@@ -9,13 +9,12 @@ import { v7 as uuidv7 } from 'uuid';
  * × latest rate) and `refInitialBalance` (opening balance × ledger-boundary
  * rate, for tx-backed system accounts).
  *
- * Rows written before the change carry accumulator values: refInitialBalance +
- * Σ(per-transaction refAmounts at each row's historical rate), i.e. a blend of
- * old rates. Most visibly, accounts whose native balance returned to zero kept a
- * nonzero base-currency residue. This backfill recomputes every account's ref
- * fields from its native values with the same rate-resolution rules the live
- * code now uses (per-user custom rate override when live rates are off,
- * USD-pivoted market rate otherwise, 5-dp truncated rate, banker's rounding).
+ * Rows written before the change carry accumulator values (refInitialBalance +
+ * Σ per-transaction refAmounts at each row's historical rate), so an account
+ * drained to zero kept a nonzero base-currency residue. This backfill recomputes
+ * every account's ref fields from its native values with the rate-resolution rules
+ * the live code now uses (custom-rate override when live rates are off, USD-pivoted
+ * market rate otherwise, 5-dp truncated rate, banker's rounding).
  *
  * When `refInitialBalance` moves, the diff is cascaded into every `Balances`
  * history row of that account — the history table is seeded from the opening ref
@@ -120,17 +119,13 @@ module.exports = {
     );
 
     /**
-     * Historical USD-pivot leg, mirroring `loadRate` in resolve-usd-rates.ts —
-     * the resolver every live boundary restamp goes through. The exact-day row
-     * wins, matched over the same `startOfDay`…`endOfDay` window `loadRate` uses.
-     * With no exact row, the globally most-recent row is returned regardless of
-     * date (`loadRate`'s `ORDER BY date DESC LIMIT 1` fallback, with NO date
-     * filter). Resolving the fallback exactly as the live code does keeps this
-     * one-time backfill and any later live re-restamp of the same boundary in
-     * agreement; a different fallback rule would stamp a different
-     * `refInitialBalance` on the next transaction write and the account balance
-     * would jump for no visible reason. No stored row on any date throws (caught
-     * by the per-account catch below).
+     * Historical USD-pivot leg, mirroring `loadRate` in resolve-usd-rates.ts. The
+     * exact-day row wins (matched over the same startOfDay…endOfDay window); with no
+     * exact row, the globally most-recent row is returned regardless of date
+     * (`loadRate`'s `ORDER BY date DESC LIMIT 1` fallback). Resolving the fallback
+     * exactly as the live code does keeps this backfill and any later live re-restamp
+     * of the same boundary in agreement. No stored row on any date throws (caught by
+     * the per-account catch below).
      */
     const usdRateAt = async ({ code, date }: { code: string; date: Date }): Promise<number> => {
       if (code === USD) return 1;
@@ -252,12 +247,11 @@ module.exports = {
           continue;
         }
 
-        // One transaction per account: the Accounts restamp, its Balances
-        // re-baseline cascade, and today's spot pin must all land or none of
-        // them. A partial write would move `refInitialBalance` without
-        // re-baselining the history it seeds (or vice versa), diverging the card
-        // from its chart. The per-account try/catch stays OUTSIDE this so a single
-        // failed account still only increments `failedAccounts`.
+        // One transaction per account: the Accounts restamp, its Balances re-baseline
+        // cascade, and today's spot pin all land or none. A partial write would move
+        // `refInitialBalance` without re-baselining the history it seeds. The
+        // per-account try/catch stays OUTSIDE this so a failed account only increments
+        // `failedAccounts`.
         await sequelize.transaction(async (t) => {
           await sequelize.query(
             `UPDATE "Accounts"
@@ -293,14 +287,12 @@ module.exports = {
           }
 
           // Today's net-worth row is a STOCK: it must equal the repaired spot
-          // `refCurrentBalance`, not the accumulator residue the cascade folds
-          // into it. Pin it absolutely on `(accountId, today)` — mirror of
-          // `Balances.setTodayRowToSpot` → `updateAccountBalance` — so every
-          // chart's latest point agrees with the repaired card immediately,
-          // without waiting for a later live write (which, for custom-rate or
-          // dormant accounts, may never come). Loans are skipped: they own their
-          // whole Balances history via replay (`recomputeLoanBalance`), so pinning
-          // here would fight that writer — the same skip the live clamp applies.
+          // `refCurrentBalance`, not the accumulator residue the cascade folds in.
+          // Pin it absolutely on `(accountId, today)` (mirror of `setTodayRowToSpot`)
+          // so every chart's latest point agrees with the repaired card immediately,
+          // without waiting for a live write that may never come for a dormant
+          // account. Loans are skipped: they own their Balances history via replay,
+          // same as the live clamp.
           if (account.accountCategory !== 'loan') {
             await sequelize.query(
               `INSERT INTO "Balances" ("id", "accountId", "date", "amount", "createdAt", "updatedAt")
@@ -332,16 +324,13 @@ module.exports = {
 
     if (process.env.NODE_ENV !== 'test') {
       if (failedAccounts.length > 0) {
-        // Loud + greppable single block: the migration is marked applied
-        // regardless, so these accounts need manual retargeting. Partial
-        // self-heal only — do NOT assume time fixes them:
-        //   - refCurrentBalance / refCreditLimit: self-heal on the next daily
-        //     rate-sync `remeasureRefBalances` once a rate for the pair exists.
-        //   - refInitialBalance + the ENTIRE Balances history: do NOT self-heal.
-        //     `remeasureRefBalances` never touches them; only a transaction write
-        //     on the account triggers `restampRefInitialBalance`. A dormant
-        //     account's opening stamp and chart stay on accumulator-era values
-        //     indefinitely until these ids are re-run manually.
+        // Loud + greppable: the migration is marked applied regardless, so these
+        // accounts need manual retargeting. Partial self-heal only:
+        //   - refCurrentBalance / refCreditLimit self-heal on the next daily
+        //     rate-sync `remeasureRefBalances` once a rate exists.
+        //   - refInitialBalance + the ENTIRE Balances history do NOT self-heal:
+        //     only a transaction write triggers `restampRefInitialBalance`, so a
+        //     dormant account stays on accumulator-era values until re-run manually.
         console.error(
           `Ref balance remeasure: ${updated} updated, ${unchanged} unchanged, ${failedAccounts.length} FAILED. ` +
             `Manual retargeting required for account ids: ${failedAccounts.join(', ')}`,

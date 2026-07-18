@@ -277,8 +277,8 @@ describe('Loan balance anchor', () => {
     });
 
     it('settles refCurrentBalance to exactly zero when a cross-currency loan is paid down to zero native outstanding', async () => {
-      // The spot rewrite eliminates the accumulator residue this branch replaces: a
-      // zero native outstanding must leave no base-currency remainder.
+      // A zero native outstanding must leave no base-currency remainder — the spot
+      // measure of zero is exactly zero.
       await helpers.addUserCurrencies({ currencyCodes: ['USD'] });
 
       const loan = await helpers.createLoan({

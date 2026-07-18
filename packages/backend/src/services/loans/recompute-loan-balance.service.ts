@@ -110,16 +110,15 @@ const recomputeLoanBalanceImpl = async ({
   const rawCurrentBalance = account.initialBalance.add(Money.fromCents(sumCents));
   const newCurrentBalance = rawCurrentBalance.isPositive() ? Money.zero() : rawCurrentBalance;
 
-  // The base-currency outstanding is a spot measure of the native outstanding —
-  // what the remaining liability is worth at the latest rate — not the ref
-  // anchor plus historical-rate payment legs (that blend leaves a base-currency
-  // residue after the native balance settles). Deriving from the already-floored
-  // native balance also keeps the two fields settling in lockstep instead of
-  // flooring independently.
+  // The base-currency outstanding is a spot measure of the native outstanding — the
+  // remaining liability at the latest rate — not the ref anchor plus historical-rate
+  // payment legs (that blend leaves a residue after the native settles). Deriving
+  // from the already-floored native balance keeps the two fields settling in
+  // lockstep.
   //
   // A missing rate must not abort the recompute (a payment delete has to succeed):
-  // keep the stored ref outstanding so the equals-guard below skips the ref side,
-  // and let the daily remeasure self-heal it once a rate exists.
+  // keep the stored ref outstanding so the equals-guard skips the ref side, and let
+  // the daily remeasure self-heal it once a rate exists.
   const newRefCurrentBalance =
     (await measureSpotRefBalance({
       userId: account.userId,

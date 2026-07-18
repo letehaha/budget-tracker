@@ -394,17 +394,13 @@ async function recalculateAccounts(params: {
 
   logger.info(`Recalculating ${accounts.length} accounts for user ${userId}`);
 
-  // Ledger boundary (earliest tx date) per account, one grouped query. A
-  // tx-backed opening balance is the balance immediately BEFORE the earliest
-  // transaction, so its ref stamp uses that date's rate.
-  //
-  // Scoped by `accountId`, NOT by `Transactions.userId` (the row AUTHOR): on a
-  // shared account a recipient with write permission creates rows under their own
-  // userId, so an author filter would drop a recipient-authored earliest row and
-  // pick a later boundary. This must match `restampRefInitialBalance`, which
-  // computes the boundary by accountId only (author-blind) — otherwise the next
-  // transaction write restamps a different value and re-baselines the whole
-  // Balances history.
+  // Ledger boundary (earliest tx date) per account, one grouped query. A tx-backed
+  // opening balance is the balance immediately BEFORE the earliest transaction, so
+  // its ref stamp uses that date's rate. Scoped by `accountId`, NOT by
+  // `Transactions.userId`: on a shared account a recipient authors rows under their
+  // own userId, so an author filter would pick a later boundary. Must match
+  // `restampRefInitialBalance` (also account-scoped), or the next tx write restamps
+  // a different value and re-baselines the whole Balances history.
   const accountIds = accounts.map((a) => a.id);
   const boundaryRows = accountIds.length
     ? await Transactions.sequelize!.query<{ accountId: string; earliestTime: Date }>(
@@ -444,9 +440,8 @@ async function recalculateAccounts(params: {
     });
 
     // `refCurrentBalance` is a spot measure for every account type: the native
-    // balance converted at today's rate into the new base currency. Reconstructing
-    // it from recalculated tx refAmounts would re-derive a blend of historical
-    // rates — exactly the value the spot semantics exists to avoid.
+    // balance at today's rate in the new base currency. Reconstructing it from
+    // recalculated tx refAmounts would re-derive a blend of historical rates.
     const newRefCurrentBalance = await localCalculateRefAmount({
       amount: account.currentBalance,
       userId,

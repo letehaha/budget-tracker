@@ -3,23 +3,13 @@ import { logger } from '@js/utils/logger';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 /**
- * Spot-measure an account balance in the owner's base currency: the native
- * `amount` converted at the latest rate (`calculateRefAmount` dated today, cache
- * bypassed).
+ * Spot-measure an account balance in the owner's base currency: native `amount`
+ * converted at the latest rate (`calculateRefAmount` dated today, cache bypassed).
  *
- * `calculateRefAmount` throws when no exchange rate reaches the pair — an exotic
- * currency, a provider data gap, or a currency the owner isn't connected to. The
- * account-balance write paths that call this (the per-transaction balance hook on
- * create/update/delete, the import/bank-sync absorb, the loan recompute) must
- * never abort their NATIVE write over a missing rate; a transaction delete in
- * particular has to always succeed. On failure this returns `null` and logs once
- * under the single greppable code `ACCOUNT_REF_REMEASURE_FAILED` — the same code
- * the daily rate-sync remeasure uses, which re-anchors the kept-stale ref balance
- * as soon as a rate exists.
- *
- * `null` (rather than a fixed fallback) lets each caller decide how to keep the
- * ref side: reuse the account's stored `refCurrentBalance`, or omit the ref
- * column from its update entirely.
+ * Returns `null` when no rate reaches the pair (exotic currency, provider gap,
+ * owner not connected). Callers keep their stored ref value and let the daily
+ * rate-sync remeasure re-anchor it, so a native write never aborts on a missing
+ * rate. Logs once under `ACCOUNT_REF_REMEASURE_FAILED`.
  */
 export async function measureSpotRefBalance({
   userId,

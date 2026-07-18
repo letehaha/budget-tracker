@@ -128,9 +128,9 @@ export const getAccounts = withTransaction(
     const ownerUser = ownedWithRelink.length ? await Users.findByPk(payload.userId) : null;
     if (ownedWithRelink.length && !ownerUser) {
       // Authenticated caller owns accounts but has no Users row – should never happen
-      // (auth middleware guarantees it). Without the row we can't stamp _shareContext and
-      // the serializer silently omits the `share` block, which the frontend uses to
-      // distinguish owner vs recipient UI. Surface so this doesn't degrade silently.
+      // (auth middleware guarantees it). Without it _shareContext can't be stamped and
+      // the serializer omits the `share` block the frontend needs to distinguish owner
+      // vs recipient UI. Log so it doesn't degrade silently.
       logger.error(
         {
           message: 'Authenticated user not found when building owner share context',
@@ -165,8 +165,8 @@ export const getAccountById = withTransaction(
         enriched._shareContext = await buildOwnerShareContext({ ownerUser });
       } else {
         // Same integrity-violation signal as `getAccounts` – caller owns this account
-        // but has no Users row. Without _shareContext the recipient-vs-owner serializer
-        // branch breaks; log so silent UI degradation is visible to ops.
+        // but has no Users row. Without _shareContext the owner-vs-recipient serializer
+        // branch breaks; log so silent UI degradation is visible.
         logger.error(
           {
             message: 'Authenticated user not found when building owner share context for account by id',
@@ -254,22 +254,19 @@ export const updateAccount = withTransaction(
       message: t({ key: 'accounts.accountNotFound' }),
     });
 
-    // A vehicle's value is owned by the depreciation model + override flow.
-    // Setting `currentBalance` here (directly, no adjustment transaction) would
-    // leave `Vehicle.valueAnchor` stale, so the next lazy refresh would silently
-    // overwrite the edit. Enforced in the service – not just the controller – so
-    // non-HTTP callers (MCP tools, internal services) can't bypass it; value
-    // changes must go through the override flow (`POST /vehicles/:id/value`).
+    // A vehicle's value is owned by the depreciation model + override flow. A direct
+    // `currentBalance` write here would leave `Vehicle.valueAnchor` stale and the next
+    // refresh would overwrite the edit. Enforced in the service so non-HTTP callers
+    // (MCP, internal) must go through the override flow (`POST /vehicles/:id/value`).
     if (accountData.accountCategory === ACCOUNT_CATEGORIES.vehicle && payload.currentBalance !== undefined) {
       throw new ValidationError({
         message: t({ key: 'balanceAdjustment.vehicleUseOverride' }),
       });
     }
 
-    // A loan's balance must go through `updateLoan` (PATCH /loans/:id), which
-    // negates to the liability convention, appends the balance_correction event,
-    // and re-anchors – a raw currentBalance write here would skip all of that.
-    // Enforced in the service so non-HTTP callers (MCP, internal) can't bypass it.
+    // A loan's balance must go through `updateLoan` (PATCH /loans/:id), which negates
+    // to the liability convention, appends the balance_correction event, and
+    // re-anchors. Enforced in the service so non-HTTP callers can't bypass it.
     if (accountData.accountCategory === ACCOUNT_CATEGORIES.loan) {
       if (payload.currentBalance !== undefined && !loanBalanceCorrection) {
         throw new ValidationError({
@@ -306,17 +303,15 @@ export const updateAccount = withTransaction(
       const diff = payload.currentBalance!.subtract(accountData.currentBalance);
 
       // System accounts absorb the diff into the opening balance so
-      // `currentBalance = initialBalance + Σ(tx)` keeps holding. The ref side of
-      // the opening balance is restamped from the new value after the write (see
-      // below) – it is a boundary-date measure, not an accumulated delta.
+      // `currentBalance = initialBalance + Σ(tx)` keeps holding. Its ref side is
+      // restamped below at the boundary-date rate, not delta-shifted.
       if (accountData.type === ACCOUNT_TYPES.system) {
         initialBalance = initialBalance.add(diff);
       }
 
-      // `refCurrentBalance` is a spot measure – the new native balance converted at
-      // the latest rate – not the stored ref value plus a delta: the stored value
-      // blends historical rates, and adding a today-rate delta on top would keep
-      // that blend alive. Cache bypassed so a rate edited moments ago is observed.
+      // `refCurrentBalance` is a spot measure – the new native balance at the latest
+      // rate – not the stored ref plus a delta (that would keep the stored blend of
+      // historical rates alive). Cache bypassed so a just-edited rate is observed.
       refCurrentBalance = await calculateRefAmount({
         userId: accountData.userId,
         amount: payload.currentBalance!,
@@ -326,10 +321,9 @@ export const updateAccount = withTransaction(
       });
     }
 
-    // When credit limit changes, recalculate refCreditLimit for the new value.
-    // Credit limit is separate from balance – it doesn't affect currentBalance
-    // or refCurrentBalance. The display layer handles the visual impact via
-    // `displayBalance = currentBalance - creditLimit`.
+    // Credit limit changes recalculate refCreditLimit. It's separate from balance –
+    // it doesn't affect currentBalance/refCurrentBalance; the display layer applies
+    // it via `displayBalance = currentBalance - creditLimit`.
     const creditLimitIsChanging =
       payload.creditLimit !== undefined && !payload.creditLimit.equals(accountData.creditLimit);
     let adjustedRefCreditLimit: Money | undefined;
@@ -371,10 +365,9 @@ export const updateAccount = withTransaction(
       await restampRefInitialBalance({ accountId: accountData.id });
       const refetched = await Accounts.getAccountById({ id: accountData.id, userId: accountData.userId });
       if (!refetched) {
-        // The account was updated moments ago in this same request, so a miss here
-        // is an impossible-state (concurrent delete / id drift). Fall back to the
-        // pre-restamp `result` row so the request still returns, but flag that its
-        // `refInitialBalance` may be the stale pre-restamp value.
+        // The account was updated moments ago in this same request, so a miss is an
+        // impossible-state (concurrent delete / id drift). Fall back to the pre-restamp
+        // `result` row; its `refInitialBalance` may be stale.
         logger.error(
           {
             message:
@@ -386,9 +379,8 @@ export const updateAccount = withTransaction(
       finalAccount = refetched ?? result;
     }
 
-    // Today's net-worth row is a stock equal to the spot `refCurrentBalance`. When
-    // the balance changed, pin today's row to it – last, so it wins over the
-    // restamp's history cascade above.
+    // Today's net-worth row is a stock equal to the spot `refCurrentBalance`. Pin it
+    // last, after the restamp's history cascade, so the spot value wins.
     if (currentBalanceIsChanging) {
       await Balances.setTodayRowToSpot({ account: finalAccount });
     }

@@ -48,12 +48,10 @@ export enum API_ERROR_CODES {
 }
 
 /**
- * Counts returned when re-anchoring account `ref*` balances to a new rate after a
- * user edits or removes a custom exchange rate. `failed > 0` means some accounts
- * kept a stale base-currency value because no market rate was available for their
- * currency yet — the daily rate sync re-anchors them on its next run. Surfaced so
- * the client can warn the user that the refresh lagged, while the rate write itself
- * still committed.
+ * Counts returned when re-anchoring account `ref*` balances after a user edits or
+ * removes a custom exchange rate. `failed > 0` means some accounts kept a stale
+ * base-currency value (no market rate available yet); the daily rate sync
+ * re-anchors them later. Surfaced so the client can warn that the refresh lagged.
  */
 export interface RefBalanceRemeasureResult {
   updated: number;

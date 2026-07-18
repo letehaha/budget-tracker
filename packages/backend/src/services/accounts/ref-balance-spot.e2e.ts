@@ -100,8 +100,8 @@ describe('Account ref balances are spot measures', () => {
       raw: true,
     });
 
-    // Money in at 7.0, out at ~3.87 – an accumulator would keep a large base-currency
-    // residue here; the spot measure of a zero balance is exactly zero.
+    // Money in at 7.0, out at ~3.87: the spot measure of a zero native balance is
+    // exactly zero, with no historical-rate residue.
     const updated = await helpers.getAccount({ id: account.id, raw: true });
     expect(Number(updated.currentBalance)).toBe(0);
     expect(Number(updated.refCurrentBalance)).toBe(0);

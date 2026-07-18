@@ -313,12 +313,12 @@ export async function executeBudgetBakersWalletImport({
         categoryIdIsExplicit: categoryId != null,
       });
 
-      // Fold this committed row into the per-account balance tally IMMEDIATELY
-      // after the commit, before any post-commit side-effect that can throw
+      // Fold this committed row into the per-account balance tally IMMEDIATELY after
+      // the commit, before any post-commit side-effect that can throw
       // (`applyPayeeDefaultTags` below): the balance hook has already moved
-      // `currentBalance`, so a row missing from the tally would make the
-      // Phase-7 reconcile adjustment too large with no desync error. Signed the
-      // way the hook applied it (income adds, expense subtracts).
+      // `currentBalance`, so a row missing from the tally would make the reconcile
+      // adjustment too large with no desync error. Signed the way the hook applied it
+      // (income adds, expense subtracts).
       reconciler.recordRow({
         accountId,
         rowIso: tx.date,

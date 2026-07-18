@@ -41,12 +41,10 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
   const amountCents = amount.toCents();
 
   try {
-    // Resolve the quote currency BEFORE building the cache key. When `quoteCode` is
+    // Resolve the quote currency BEFORE building the cache key: when `quoteCode` is
     // omitted the result depends on the user's CURRENT default currency, so the key
-    // must encode that resolved code — not a literal "default" placeholder. Keying
-    // on "default" made an entry computed under the user's OLD base currency satisfy
-    // a lookup after they changed base (both collapse to the same key), re-serving a
-    // stale cross-base value. Old-format entries simply miss the new key and recompute.
+    // must encode that resolved code. A literal "default" placeholder would collide
+    // across a base-currency change and re-serve a stale cross-base value.
     let defaultUserCurrency: Currencies.default | undefined = undefined;
 
     if (!quoteCode) {
@@ -100,9 +98,9 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
 
     const finalAmount = calculateRefAmountFromParams({ amount, rate: result.rate });
 
-    // **CACHE THE FINAL RESULT** (store as cents for cache consistency). Skipped
-    // under `bypassCache`: see the `bypassCache` doc below — write-back inside an
-    // uncommitted rate-write transaction would poison the cache on rollback.
+    // Cache the final result as cents. Skipped under `bypassCache` (see its doc):
+    // a write-back inside an uncommitted rate-write transaction would poison the
+    // cache on rollback.
     if (!bypassCache) {
       await refAmountCache.write({ key: cacheKey, value: finalAmount.toCents().toString() });
     }
@@ -125,13 +123,11 @@ type Params = {
   baseCode: string;
   quoteCode?: string;
   /**
-   * Do not touch the redis cache at all — neither read from it nor write results
-   * back — on both the ref-amount layer here and the cross-rate layer inside
-   * `getExchangeRate`. Required for balance remeasure flows that run inside the
-   * custom-rate edit/remove `withTransaction`: they must observe a rate that changed
-   * within the cache TTL (so reads are skipped), and writing the freshly computed
-   * amount back before that rate write commits would poison the 1h-TTL cache with a
-   * value derived from a rate that may still roll back.
+   * Skip the redis cache entirely — no read, no write-back — on both this layer and
+   * the cross-rate layer inside `getExchangeRate`. Required for balance remeasure
+   * inside the custom-rate edit/remove `withTransaction`: it must observe a rate that
+   * changed within the cache TTL, and writing the computed amount back before that
+   * rate write commits would poison the 1h-TTL cache with a value that may roll back.
    */
   bypassCache?: boolean;
 };

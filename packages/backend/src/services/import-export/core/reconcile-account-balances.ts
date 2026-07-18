@@ -261,9 +261,8 @@ class BalanceReconciliationSessionImpl implements BalanceReconciliationSession {
       let balanceAfter: Money;
       if (amountDelta.isZero()) {
         // Nothing to remove — the balance hook already left the account at its
-        // target (ref balances are derived from the native balance, so a zero
-        // native delta means nothing to fix on the ref side either). Skipping
-        // the write also skips a pointless row lock.
+        // target, and ref balances derive from the native balance, so a zero native
+        // delta leaves nothing to fix. Skipping the write also skips a row lock.
         balanceAfter = capture.balanceBefore.add(semanticDelta);
       } else {
         try {

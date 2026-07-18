@@ -12,26 +12,21 @@ import { withTransaction } from '../common/with-transaction';
  * Re-stamps `refInitialBalance` at the exchange rate of the account's ledger
  * boundary — the date the opening balance actually existed.
  *
- * For a tx-backed system account, `initialBalance` is by definition the balance
- * immediately BEFORE the earliest transaction, so its base-currency value must
- * use the rate at that earliest-transaction date. Converting it at whatever day
- * the account row happened to be created (e.g. the day of an import of years-old
- * history) mixes an import-day rate into a ledger whose every transaction uses
- * its own historical rate.
+ * For a tx-backed system account, `initialBalance` is the balance immediately
+ * BEFORE the earliest transaction, so its base-currency value uses that date's
+ * rate. Converting at the account's creation date instead (e.g. an import of
+ * years-old history) mixes an import-day rate into a ledger whose transactions
+ * each carry their own historical rate.
  *
- * The boundary moves whenever a transaction older than all existing ones is
- * added, or the earliest transaction is deleted/re-dated — so this runs from the
- * same per-transaction balance hook that maintains `currentBalance`. With no
- * transactions there is no ledger boundary: the opening balance is treated as
- * current-dated and stamped at the latest rate — the same rule account creation
- * applies (`Accounts` has no timestamps, so a creation date does not exist to
- * anchor on).
+ * The boundary moves whenever a transaction older than all existing ones is added
+ * or the earliest is deleted/re-dated, so this runs from the per-transaction
+ * balance hook. With no transactions there is no boundary: the opening balance is
+ * stamped at the latest rate, matching account creation.
  *
  * Scope: system accounts, excluding loans and vehicles. Bank-provider accounts
- * keep their provider-owned opening snapshot (stamped when the connection was
- * made); a loan's `refInitialBalance` is its balance-anchor value, deliberately
- * stamped at re-anchor time by `updateLoan`; a vehicle's opening is its purchase
- * value with no backing transactions to define a ledger boundary.
+ * keep their provider-owned opening snapshot, a loan's `refInitialBalance` is its
+ * balance-anchor value stamped by `updateLoan`, and a vehicle's opening is its
+ * purchase value with no transactions to define a boundary.
  */
 async function restampRefInitialBalanceImpl({
   accountId,
@@ -39,8 +34,8 @@ async function restampRefInitialBalanceImpl({
 }: {
   accountId: string;
   /**
-   * A transaction row that must not count toward the boundary — the row being
-   * removed when this runs from a BeforeDestroy hook, where it still exists.
+   * A row excluded from the boundary — the tx being removed when this runs from a
+   * BeforeDestroy hook, where it still exists.
    */
   excludeTransactionId?: string;
 }): Promise<void> {
@@ -88,17 +83,15 @@ async function restampRefInitialBalanceImpl({
 
   await Accounts.update({ refInitialBalance }, { where: { id: accountId } });
 
-  // The Balances history is seeded from `refInitialBalance` and every row builds
-  // on that seed — an opening re-stamp re-baselines the whole history, which
-  // `handleAccountChange` does by cascading the diff into every row.
+  // The Balances history is seeded from `refInitialBalance`; a moved opening
+  // stamp re-baselines every row, which `handleAccountChange` cascades.
   const updated = await Accounts.findOne({ where: { id: accountId } });
   if (updated) {
     await Balances.handleAccountChange({ account: updated, prevAccount: account });
   } else {
     // The row was just updated above, so a miss is an impossible-state (concurrent
-    // delete / id drift). `refInitialBalance` is now persisted but the Balances
-    // history cascade that re-baselines every row off it is skipped — the net-worth
-    // chart will diverge from the new opening stamp until the next full rebuild.
+    // delete / id drift). `refInitialBalance` persisted but the history cascade is
+    // skipped — the chart diverges from the new stamp until the next full rebuild.
     logger.error(
       {
         message:

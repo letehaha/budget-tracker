@@ -16,27 +16,22 @@ import { restampRefInitialBalance } from './restamp-ref-initial-balance';
  * into its opening balance, so `currentBalance = initialBalance + Σ(tx)` keeps
  * holding without spawning an adjustment transaction.
  *
- * Only the NATIVE delta is supplied. The ref side is derived, not delta-shifted:
- * `refCurrentBalance` is a spot measure of the shifted native balance at the
- * latest rate, and `refInitialBalance` is restamped at the ledger-boundary rate
- * (which also cascades the change into the Balances history). The abolished
- * alternative – a caller-supplied `refAmountDelta` summed from historical
- * per-row `refAmount`s – kept the opening ref balance a blend of historical
- * rates, exactly what the derived semantics replaces.
+ * Only the NATIVE delta is supplied; the ref side is derived, not delta-shifted:
+ * `refCurrentBalance` is a spot measure of the shifted native balance at the latest
+ * rate, and `refInitialBalance` is restamped at the ledger-boundary rate (which
+ * cascades the change into the Balances history). Summing a caller-supplied
+ * `refAmountDelta` from historical per-row `refAmount`s instead would keep the
+ * opening ref balance a blend of historical rates.
  *
  * Deltas compose: the account row is read under SELECT ... FOR UPDATE, so
- * concurrent absorbs (e.g. two imports finalizing into the same account, or an
- * import racing a bank sync that also absorbs) serialize and each applies its
- * own delta on top of the other's committed result. Writing an absolute target
- * computed from a pre-work snapshot would silently discard whatever a concurrent
- * writer added between snapshot and write.
+ * concurrent absorbs (two imports finalizing into one account, or an import racing
+ * a bank sync) serialize and each applies its delta on top of the other's result.
+ * An absolute target from a pre-work snapshot would discard a concurrent writer's
+ * change.
  *
- * Non-system accounts keep their provider-owned `initialBalance`
- * / `refInitialBalance` untouched (same rule as `updateAccount`); only the
- * current balances move.
- *
- * The returned row is re-read after all derived writes, so its ref fields are
- * current.
+ * Non-system accounts keep their provider-owned `initialBalance` /
+ * `refInitialBalance` untouched; only the current balances move. The returned row
+ * is re-read after all derived writes, so its ref fields are current.
  */
 export const absorbBalanceAdjustment = withTransaction(
   async ({
@@ -95,8 +90,7 @@ export const absorbBalanceAdjustment = withTransaction(
       } else {
         // The row was just updated above, so a miss is an impossible-state
         // (concurrent delete / id drift). Fall back to the pre-restamp `result`
-        // row so the absorb still returns, but flag that its `refInitialBalance`
-        // may be the stale pre-restamp value.
+        // row; its `refInitialBalance` may be stale.
         logger.error(
           {
             message:
@@ -107,9 +101,9 @@ export const absorbBalanceAdjustment = withTransaction(
       }
     }
 
-    // Today's net-worth row is a stock equal to the spot `refCurrentBalance` just
-    // written. Pin it last — after the restamp cascade above, which shifts today's
-    // row by the opening-balance diff — so the spot value is what survives.
+    // Today's net-worth row is a stock equal to the spot `refCurrentBalance`. Pin
+    // it last — after the restamp cascade shifts today's row by the opening-balance
+    // diff — so the spot value survives.
     await Balances.setTodayRowToSpot({ account: result });
 
     return result;

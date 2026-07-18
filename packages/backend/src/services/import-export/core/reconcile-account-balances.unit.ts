@@ -360,9 +360,9 @@ describe('finalize — captured (linked) accounts', () => {
 
     const call = absorbMock.mock.calls[0]![0];
     expect(call.amountDelta.toNumber()).toBe(100);
-    // The abolished refAmountDelta contract must not resurface: absorb derives
-    // refCurrentBalance from the shifted native balance at the latest rate and
-    // restamps refInitialBalance at the boundary rate itself.
+    // absorb takes only the native `amountDelta`: it derives refCurrentBalance from
+    // the shifted native balance at the latest rate and restamps refInitialBalance at
+    // the boundary rate itself, so no `refAmountDelta` is passed.
     expect(call).not.toHaveProperty('refAmountDelta');
   });
 

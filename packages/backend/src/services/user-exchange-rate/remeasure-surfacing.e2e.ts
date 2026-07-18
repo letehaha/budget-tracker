@@ -48,11 +48,10 @@ describe('Custom-rate endpoints surface the ref-balance remeasure result', () =>
   it('reports remeasure.failed when removing a custom rate leaves an account with no market rate', async () => {
     await helpers.addUserCurrencies({ currencyCodes: ['EUR'] });
 
-    // Create the account+income at the MARKET rate first. This runs a real market
-    // conversion for today, which marks today's rate basket as comprehensively
-    // fetched — so the post-delete remeasure below can't silently re-fetch and heal
-    // the currency we're about to strip. (Setting the custom rate first would route
-    // the conversion through the custom rate and skip that market fetch entirely.)
+    // Create the account+income at the MARKET rate first: this runs a real market
+    // conversion for today, marking today's rate basket as comprehensively fetched,
+    // so the post-delete remeasure can't silently re-fetch and heal the currency we
+    // strip.
     await createEurAccountWithIncome();
 
     // Now turn off live rates and pin a custom EUR ⇄ base rate.
