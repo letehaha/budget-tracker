@@ -1,5 +1,5 @@
 import { getExchangeRatesForDate } from '@root/services/exchange-rates';
-import { editUserExchangeRates } from '@root/services/user-exchange-rate';
+import { editUserExchangeRates, removeUserExchangeRates } from '@root/services/user-exchange-rate';
 
 import { makeRequest } from './common';
 
@@ -18,6 +18,23 @@ export async function editCurrencyExchangeRate<R extends boolean | undefined = u
 }) {
   const result = await makeRequest<Awaited<ReturnType<typeof editUserExchangeRates>>, R>({
     method: 'put',
+    url: '/user/currency/rates',
+    payload: { pairs },
+    raw,
+  });
+
+  return result;
+}
+
+export async function removeCurrencyExchangeRate<R extends boolean | undefined = undefined>({
+  pairs,
+  raw,
+}: {
+  pairs: Omit<ExchangeRatePair, 'rate'>[];
+  raw?: R;
+}) {
+  const result = await makeRequest<Awaited<ReturnType<typeof removeUserExchangeRates>>, R>({
+    method: 'delete',
     url: '/user/currency/rates',
     payload: { pairs },
     raw,

@@ -313,21 +313,18 @@ export async function executeBudgetBakersWalletImport({
         categoryIdIsExplicit: categoryId != null,
       });
 
-      // Fold this committed row into the per-account balance tally IMMEDIATELY
-      // after the commit, before any post-commit side-effect that can throw
+      // Fold this committed row into the per-account balance tally IMMEDIATELY after
+      // the commit, before any post-commit side-effect that can throw
       // (`applyPayeeDefaultTags` below): the balance hook has already moved
-      // `currentBalance`, so a row missing from the tally would make the
-      // Phase-7 reconcile adjustment too large with no desync error. Both
-      // amounts signed the way the hook applied them (income adds, expense
-      // subtracts); `refAmount` comes from the written row so the ref tally
-      // carries the row-date FX rate the hook used.
+      // `currentBalance`, so a row missing from the tally would make the reconcile
+      // adjustment too large with no desync error. Signed the way the hook applied it
+      // (income adds, expense subtracts).
       reconciler.recordRow({
         accountId,
         rowIso: tx.date,
         ...signedRowContribution({
           isIncome: transactionType === TRANSACTION_TYPES.income,
           amount,
-          refAmount: transaction.refAmount,
         }),
       });
 
@@ -393,7 +390,7 @@ export async function executeBudgetBakersWalletImport({
         });
       }
 
-      const [sourceLeg, destinationLeg] = await createTransaction({
+      const [, destinationLeg] = await createTransaction({
         userId,
         accountId: sourceAccountId,
         amount: Money.fromDecimal(xfer.sourceAmount),
@@ -410,11 +407,9 @@ export async function executeBudgetBakersWalletImport({
       });
 
       // `createTransaction` types the destination leg optional for non-transfer
-      // calls; a `common_transfer` always writes and returns both legs. Assert
-      // it explicitly rather than falling back to the source leg: folding the
-      // source leg's refAmount into the destination account's base-currency
-      // tally would silently corrupt it for a cross-currency transfer, where the
-      // two legs carry genuinely different refAmounts.
+      // calls; a `common_transfer` always writes and returns both legs. A missing
+      // destination leg means the destination account's balance moved without a
+      // matching tally entry — surface it instead of silently desyncing.
       if (!destinationLeg) {
         throw new ValidationError({
           message: `Transfer destination leg missing for "${xfer.sourceAccountName}" → "${xfer.destinationAccountName}"; account balances may be incorrect.`,
@@ -423,16 +418,13 @@ export async function executeBudgetBakersWalletImport({
 
       // Each transfer leg lands on its own account, so each is recorded against
       // that account's own boundary: source loses `sourceAmount` (expense),
-      // destination gains `destinationAmount` (income). Ref amounts come from the
-      // written legs (row-date FX) — for a cross-currency transfer the two legs
-      // carry genuinely different refAmounts, so neither can stand in for the other.
+      // destination gains `destinationAmount` (income).
       reconciler.recordRow({
         accountId: sourceAccountId,
         rowIso: xfer.date,
         ...signedRowContribution({
           isIncome: false,
           amount: Money.fromDecimal(xfer.sourceAmount),
-          refAmount: sourceLeg.refAmount,
         }),
       });
       reconciler.recordRow({
@@ -441,7 +433,6 @@ export async function executeBudgetBakersWalletImport({
         ...signedRowContribution({
           isIncome: true,
           amount: Money.fromDecimal(xfer.destinationAmount),
-          refAmount: destinationLeg.refAmount,
         }),
       });
 

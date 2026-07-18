@@ -416,15 +416,13 @@ export default class Transactions extends Model {
 
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
-    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
         accountId,
         amount,
-        refAmount,
         transactionType,
-        currencyCode,
       });
     }
 
@@ -461,29 +459,22 @@ export default class Transactions extends Model {
         await updateAccountBalanceForChangedTx({
           accountId: prevData.accountId,
           prevAmount: prevData.amount,
-          prevRefAmount: prevData.refAmount,
           transactionType: prevData.transactionType,
-          currencyCode: prevData.currencyCode,
         });
 
         // Update new tx
         await updateAccountBalanceForChangedTx({
           accountId: newData.accountId,
           amount: newData.amount,
-          refAmount: newData.refAmount,
           transactionType: newData.transactionType,
-          currencyCode: newData.currencyCode,
         });
       } else {
         await updateAccountBalanceForChangedTx({
           accountId: newData.accountId,
           amount: newData.amount,
           prevAmount: prevData.amount,
-          refAmount: newData.refAmount,
-          prevRefAmount: prevData.refAmount,
           transactionType: newData.transactionType,
           prevTransactionType: prevData.transactionType,
-          currencyCode: newData.currencyCode,
         });
       }
     }
@@ -517,15 +508,14 @@ export default class Transactions extends Model {
 
   @BeforeDestroy
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
-    const { accountType, accountId, currencyCode, refAmount, amount, transactionType } = instance;
+    const { accountType, accountId, amount, transactionType } = instance;
 
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
         accountId,
         prevAmount: amount,
-        prevRefAmount: refAmount,
         transactionType,
-        currencyCode,
+        removedTransactionId: instance.id,
       });
     }
 
@@ -538,6 +528,7 @@ export default class Transactions extends Model {
       attributes: ['groupId'],
       raw: true,
     });
+    // oxlint-disable-next-line no-underscore-dangle
     (instance as unknown as Record<string, unknown>)._affectedGroupIds = groupItems.map((item) => item.groupId);
   }
 
@@ -594,6 +585,7 @@ export default class Transactions extends Model {
   @AfterDestroy
   static async autoDissolveEmptyGroups(instance: Transactions) {
     // After CASCADE removes the join row, check only the groups this transaction belonged to.
+    // oxlint-disable-next-line no-underscore-dangle
     const affectedGroupIds = (instance as unknown as Record<string, unknown>)._affectedGroupIds as string[] | undefined;
 
     if (!affectedGroupIds || affectedGroupIds.length === 0) return;

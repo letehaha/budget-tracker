@@ -35,20 +35,16 @@ const refAmountCache = new CacheClient<string>({
  * const refAmountForDefaultUserCurrency = await calculateRefAmount({ amount: 100, userId: 42, baseCode: 'USD' });
  */
 async function calculateRefAmountImpl(params: Params): Promise<Money> {
-  const { baseCode, quoteCode, userId, amount } = params;
+  const { baseCode, quoteCode, userId, amount, bypassCache = false } = params;
 
-  // **REDIS CACHE CHECK** - Cache the final converted amount (stored as cents)
   const dateStr = new Date(params.date).toISOString().split('T')[0];
   const amountCents = amount.toCents();
-  const cacheKey = `ref_amount:${userId}:${amountCents}:${baseCode}:${quoteCode || 'default'}:${dateStr}`;
-
-  const cachedAmount = await refAmountCache.read(cacheKey);
-
-  if (cachedAmount !== null) {
-    return Money.fromCents(parseInt(cachedAmount, 10));
-  }
 
   try {
+    // Resolve the quote currency BEFORE building the cache key: when `quoteCode` is
+    // omitted the result depends on the user's CURRENT default currency, so the key
+    // must encode that resolved code. A literal "default" placeholder would collide
+    // across a base-currency change and re-serve a stale cross-base value.
     let defaultUserCurrency: Currencies.default | undefined = undefined;
 
     if (!quoteCode) {
@@ -65,30 +61,49 @@ async function calculateRefAmountImpl(params: Params): Promise<Money> {
       defaultUserCurrency = result.currency;
     }
 
-    // If baseCode same as default currency code no need to calculate anything
-    if (defaultUserCurrency?.code === baseCode || quoteCode === baseCode) {
-      await refAmountCache.write({ key: cacheKey, value: amountCents.toString() });
-      return amount;
-    }
+    const resolvedQuoteCode = quoteCode ?? defaultUserCurrency?.code;
 
-    if (!baseCode || (quoteCode === undefined && defaultUserCurrency === undefined)) {
+    if (!baseCode || !resolvedQuoteCode) {
       throw new ValidationError({
         message: t({ key: 'currencies.cannotCalculateRefAmount' }),
         details: { baseCode, defaultUserCurrency },
       });
     }
 
+    const cacheKey = `ref_amount:${userId}:${amountCents}:${baseCode}:${resolvedQuoteCode}:${dateStr}`;
+
+    if (!bypassCache) {
+      const cachedAmount = await refAmountCache.read(cacheKey);
+
+      if (cachedAmount !== null) {
+        return Money.fromCents(parseInt(cachedAmount, 10));
+      }
+    }
+
+    // If baseCode equals the resolved quote currency, no conversion is needed.
+    if (resolvedQuoteCode === baseCode) {
+      if (!bypassCache) {
+        await refAmountCache.write({ key: cacheKey, value: amountCents.toString() });
+      }
+      return amount;
+    }
+
     const result = await userExchangeRateService.getExchangeRate({
       userId,
       date: new Date(params.date),
       baseCode,
-      quoteCode: quoteCode || defaultUserCurrency!.code,
+      quoteCode: resolvedQuoteCode,
+      bypassCache,
     });
 
     const finalAmount = calculateRefAmountFromParams({ amount, rate: result.rate });
 
-    // **CACHE THE FINAL RESULT** (store as cents for cache consistency)
-    await refAmountCache.write({ key: cacheKey, value: finalAmount.toCents().toString() });
+    // Cache the final result as cents. Skipped under `bypassCache` (see its doc):
+    // a write-back inside an uncommitted rate-write transaction would poison the
+    // cache on rollback.
+    if (!bypassCache) {
+      await refAmountCache.write({ key: cacheKey, value: finalAmount.toCents().toString() });
+    }
 
     return finalAmount;
   } catch (e) {
@@ -107,6 +122,14 @@ type Params = {
   date: Date | string;
   baseCode: string;
   quoteCode?: string;
+  /**
+   * Skip the redis cache entirely — no read, no write-back — on both this layer and
+   * the cross-rate layer inside `getExchangeRate`. Required for balance remeasure
+   * inside the custom-rate edit/remove `withTransaction`: it must observe a rate that
+   * changed within the cache TTL, and writing the computed amount back before that
+   * rate write commits would poison the 1h-TTL cache with a value that may roll back.
+   */
+  bypassCache?: boolean;
 };
 
 export const calculateRefAmount = withTransaction(calculateRefAmountImpl);
