@@ -8,7 +8,7 @@ The frontend uses a **two-stage Docker build** to create an optimized production
 
 ## Architecture
 
-````
+```
 User Request
     ↓
 Reverse Proxy (handles SSL, domain routing)
@@ -18,6 +18,7 @@ Frontend Docker Container (port 80)
 Nginx Web Server
     ↓
 Static Files (built application)
+```
 
 ## Docker Build Process
 
@@ -41,6 +42,7 @@ Static Files (built application)
 6. **Result:** Minimal production image (~50MB vs ~1GB with Node.js)
 
 **Why two stages?**
+
 - **Smaller image size:** Only nginx + static files, no Node.js or build tools
 - **Better security:** No development dependencies in production
 - **Faster deployments:** Less data to transfer and start
@@ -93,7 +95,7 @@ server {
     try_files $uri $uri/ /index.html;  # SPA routing support
   }
 }
-````
+```
 
 **Key points:**
 
