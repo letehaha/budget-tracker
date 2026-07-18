@@ -6,6 +6,7 @@ import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
 import LoanDetails from '@models/loan-details.model';
 import type Transactions from '@models/transactions.model';
+import { measureSpotRefBalance } from '@services/accounts/measure-spot-ref-balance';
 import { withTransaction } from '@services/common/with-transaction';
 import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
 import { replayLoanOutstanding } from '@services/loans/replay-loan-outstanding';
@@ -98,10 +99,8 @@ const recomputeLoanBalanceImpl = async ({
 
   // Income legs move a negative liability balance toward zero, so they add.
   let sumCents = 0;
-  let sumRefCents = 0;
   for (const leg of legs) {
     sumCents += leg.amount.toCents();
-    sumRefCents += leg.refAmount.toCents();
   }
 
   // Loan balances are stored negative (liability); income legs add toward zero.
@@ -109,9 +108,24 @@ const recomputeLoanBalanceImpl = async ({
   // (credit), but a loan never carries credit — the outstanding balance is
   // floored at zero and the excess stays only on the cash-account expense legs.
   const rawCurrentBalance = account.initialBalance.add(Money.fromCents(sumCents));
-  const rawRefCurrentBalance = account.refInitialBalance.add(Money.fromCents(sumRefCents));
   const newCurrentBalance = rawCurrentBalance.isPositive() ? Money.zero() : rawCurrentBalance;
-  const newRefCurrentBalance = rawRefCurrentBalance.isPositive() ? Money.zero() : rawRefCurrentBalance;
+
+  // The base-currency outstanding is a spot measure of the native outstanding — the
+  // remaining liability at the latest rate — not the ref anchor plus historical-rate
+  // payment legs (that blend leaves a residue after the native settles). Deriving
+  // from the already-floored native balance keeps the two fields settling in
+  // lockstep.
+  //
+  // A missing rate must not abort the recompute (a payment delete has to succeed):
+  // keep the stored ref outstanding so the equals-guard skips the ref side, and let
+  // the daily remeasure self-heal it once a rate exists.
+  const newRefCurrentBalance =
+    (await measureSpotRefBalance({
+      userId: account.userId,
+      amount: newCurrentBalance,
+      baseCode: account.currencyCode,
+      site: 'recomputeLoanBalance',
+    })) ?? account.refCurrentBalance;
 
   if (!newCurrentBalance.equals(account.currentBalance) || !newRefCurrentBalance.equals(account.refCurrentBalance)) {
     await Accounts.update(
@@ -152,12 +166,37 @@ const recomputeLoanBalanceImpl = async ({
   // Balances rows are unique per (accountId, date). Loans opt out of the
   // per-transaction Balances cascade, so this rebuild is the loan's only history
   // writer; pre-anchor rows stay untouched. Balances.amount stores the ref balance.
+  //
+  // A parallel native replay over the same legs/anchor gives the outstanding in
+  // the loan's own currency per day; both walks emit the same dates in the same
+  // order because the day grouping and anchor-row logic depend only on the legs
+  // and anchor, not on which amount each leg contributes.
+  const nativeOutstandingByDate = new Map(
+    replayLoanOutstanding({
+      legs,
+      anchorDate,
+      openingBalance: account.initialBalance,
+      pickCents: ({ leg }) => leg.amount.toCents(),
+    }).map((row) => [row.date, row.balance]),
+  );
+
   const rebuiltRows = replayLoanOutstanding({
     legs,
     anchorDate,
     openingBalance: account.refInitialBalance,
     pickCents: ({ leg }) => leg.refAmount.toCents(),
-  }).map((row) => ({ date: new Date(row.date), refBalance: row.balance }));
+  }).map((row) => {
+    // A day whose native outstanding is floored to zero is settled — nothing is
+    // owed, so its base-currency row is zero too. The ref accumulator
+    // (refInitialBalance stamped at the anchor rate plus each payment's refAmount
+    // at its own historical rate) otherwise carries an FX residue once the native
+    // balance reaches zero, splitting the net-worth chart from the spot account
+    // card. `replayLoanOutstanding` already floors each row at zero, so a
+    // non-negative native outstanding means the loan is settled on that day.
+    const nativeOutstanding = nativeOutstandingByDate.get(row.date);
+    const settled = nativeOutstanding !== undefined && !nativeOutstanding.isNegative();
+    return { date: new Date(row.date), refBalance: settled ? Money.zero() : row.balance };
+  });
 
   // Clear the range first so removed/moved payments leave no ghost rows; the
   // account-creation row falls inside it and is re-written by the anchor row.

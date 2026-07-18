@@ -6,7 +6,7 @@
       "table": {
         "placeholder": "Nama akun",
         "saveButton": "Simpan",
-        "editButton": "Edit",
+        "editButton": "Sunting",
         "deleteButton": "Hapus",
         "deleteDisabledTooltip": "Grup ini terhubung ke koneksi bank dan tidak dapat dihapus manual. Putuskan koneksi bank untuk menghapusnya otomatis.",
         "unlinkButton": "Lepaskan",

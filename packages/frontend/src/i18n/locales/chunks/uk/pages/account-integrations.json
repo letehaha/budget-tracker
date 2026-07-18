@@ -40,7 +40,7 @@
         },
         "walutomat": {
           "name": "Walutomat",
-          "description": "Polish currency exchange platform with 23 currencies"
+          "description": "Польська платформа для обміну валют із 23 валютами"
         }
       },
       "monobank": {
@@ -73,7 +73,7 @@
         "credentials": {
           "helpText": "Немає облікових даних Enable Banking?",
           "helpLink": "Дізнайтеся, як їх отримати",
-          "appIdLabel": "Application ID",
+          "appIdLabel": "ID застосунку",
           "appIdHint": "Отримайте з порталу Enable Banking після завантаження сертифіката",
           "privateKeyLabel": "Приватний ключ",
           "privateKeyHint": "Ваш PEM-кодований RSA приватний ключ (зберігається зашифрованим)",
@@ -234,47 +234,47 @@
         }
       },
       "walutomat": {
-        "helpText": "Need help setting up Walutomat API access?",
-        "viewInstructions": "View setup instructions",
-        "apiKeyLabel": "API Key",
-        "apiKeyPlaceholder": "Enter your Walutomat API key",
-        "apiKeyHint": "Found in your Walutomat dashboard under Settings → API",
-        "privateKeyLabel": "Private Key (PEM)",
+        "helpText": "Потрібна допомога з налаштуванням доступу до API Walutomat?",
+        "viewInstructions": "Переглянути інструкцію з налаштування",
+        "apiKeyLabel": "API-ключ",
+        "apiKeyPlaceholder": "Введіть ваш API-ключ Walutomat",
+        "apiKeyHint": "Знаходиться на панелі Walutomat у розділі Налаштування → API",
+        "privateKeyLabel": "Приватний ключ (PEM)",
         "privateKeyPlaceholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
-        "privateKeyHint": "Paste the contents of your private.key file (RSA 4096-bit PEM format)",
-        "backButton": "Back",
-        "connectButton": "Connect",
-        "connectingButton": "Connecting...",
-        "loadingWallets": "Loading wallets...",
-        "selectWalletsHint": "Select which currency wallets to sync ({count} available)",
-        "selectAll": "Select all",
-        "importButton": "Import {count} wallet(s)",
-        "importingButton": "Importing...",
-        "importSuccess": "Successfully imported {count} Walutomat wallet(s)",
+        "privateKeyHint": "Вставте вміст вашого файлу private.key (формат RSA 4096-біт PEM)",
+        "backButton": "Назад",
+        "connectButton": "Підключити",
+        "connectingButton": "Підключення...",
+        "loadingWallets": "Завантаження гаманців...",
+        "selectWalletsHint": "Оберіть, які валютні гаманці синхронізувати ({count} доступно)",
+        "selectAll": "Вибрати всі",
+        "importButton": "Імпортувати {count} гаманець(ів)",
+        "importingButton": "Імпортування...",
+        "importSuccess": "Успішно імпортовано {count} гаманець(ів) Walutomat",
         "errors": {
-          "connectFailed": "Failed to connect to Walutomat. Check your credentials.",
-          "importFailed": "Failed to import wallets."
+          "connectFailed": "Не вдалося підключитися до Walutomat. Перевірте свої облікові дані.",
+          "importFailed": "Не вдалося імпортувати гаманці."
         },
         "instructions": {
-          "title": "Walutomat API Setup Instructions",
-          "description": "Step-by-step guide to set up Walutomat API access",
-          "overviewTitle": "Overview",
-          "overviewText": "To connect Walutomat, you need an API key and an RSA private key. The API key authenticates your account, while the private key signs each request for security.",
-          "step1Title": "Generate RSA Key Pair",
-          "step1Intro": "Open a terminal and run these commands:",
-          "step1FilesCreated": "This creates two files: {privateKey} (keep secret!) and {publicKey} (upload to Walutomat).",
-          "step2Title": "Upload Public Key to Walutomat",
-          "step2Login": "1. Log in to",
-          "step2GoToSettings": "2. Go to {settings} → {api}",
-          "step2Upload": "3. Upload your {publicKey} file",
-          "step2ApiKeyGenerated": "4. Walutomat will generate an API key for you",
-          "step3Title": "Enter Credentials Here",
-          "step3Intro": "You need two things:",
-          "step3ApiKeyDesc": "{apiKey} — Copy it from the Walutomat API settings page",
-          "step3PrivateKeyDesc": "{privateKey} — Open {filename} in a text editor and copy the entire contents (including the BEGIN/END lines)",
-          "securityNoteTitle": "Security Note",
-          "securityNoteText": "Your private key is encrypted before storage and is only used to sign API requests. It is never exposed or transmitted to anyone other than Walutomat.",
-          "closeButton": "Got it"
+          "title": "Інструкція з налаштування API Walutomat",
+          "description": "Покрокова інструкція з налаштування доступу до API Walutomat",
+          "overviewTitle": "Огляд",
+          "overviewText": "Щоб підключити Walutomat, вам знадобляться API-ключ та приватний ключ RSA. API-ключ автентифікує ваш обліковий запис, а приватний ключ підписує кожен запит для безпеки.",
+          "step1Title": "Згенеруйте пару ключів RSA",
+          "step1Intro": "Відкрийте термінал і виконайте такі команди:",
+          "step1FilesCreated": "Це створить два файли: {privateKey} (тримайте в секреті!) та {publicKey} (завантажте до Walutomat).",
+          "step2Title": "Завантажте публічний ключ до Walutomat",
+          "step2Login": "1. Увійдіть до",
+          "step2GoToSettings": "2. Перейдіть до {settings} → {api}",
+          "step2Upload": "3. Завантажте файл {publicKey}",
+          "step2ApiKeyGenerated": "4. Walutomat згенерує для вас API-ключ",
+          "step3Title": "Введіть облікові дані тут",
+          "step3Intro": "Вам знадобляться дві речі:",
+          "step3ApiKeyDesc": "{apiKey} — скопіюйте його зі сторінки налаштувань API Walutomat",
+          "step3PrivateKeyDesc": "{privateKey} — відкрийте {filename} у текстовому редакторі та скопіюйте весь вміст (включно з рядками BEGIN/END)",
+          "securityNoteTitle": "Примітка щодо безпеки",
+          "securityNoteText": "Ваш приватний ключ шифрується перед збереженням і використовується лише для підписання API-запитів. Він ніколи не розкривається і не передається нікому, крім Walutomat.",
+          "closeButton": "Зрозуміло"
         }
       },
       "notifications": {
@@ -405,7 +405,7 @@
         "free": "Безкоштовно",
         "paid": "Платно",
         "easySetup": "Легко налаштувати",
-        "mediumSetup": "Medium setup",
+        "mediumSetup": "Середньо складно налаштувати",
         "veryDifficultSetup": "Дуже складно налаштувати"
       },
       "regions": {
@@ -423,7 +423,7 @@
         "enableBanking": "Оскільки повноцінна інтеграція коштує кілька тисяч на місяць, підключитися можна лише створивши власний EnableBanking dev-акаунт та налаштувавши \"тестовий\" додаток з реальним підключенням до своїх банків, зберігаючи сертифікати та ключі й завантажуючи їх сюди. Потребуються середні техічні знання",
         "lunchflow": "Просто підключіть свої банки на стороні LunchFlow, потім створіть та вставте свій LunchFlow API ключ",
         "simplefin": "SimpleFIN Bridge — платний сервіс. Ви створюєте акаунт моста, підключаєте банк і вставляєте setup token — налаштування розробника не потрібне.",
-        "walutomat": "Requires generating an RSA key pair and uploading the public key to Walutomat dashboard"
+        "walutomat": "Потребує генерації пари ключів RSA та завантаження публічного ключа до панелі Walutomat"
       }
     },
     "connectionName": {

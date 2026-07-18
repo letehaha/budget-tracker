@@ -44,6 +44,7 @@ export async function getExchangeRate({
   date,
   baseCode,
   quoteCode,
+  bypassCache = false,
 }: ExchangeRateParams): Promise<ExchangeRateReturnType> {
   const pair = {
     baseCode: baseCode.toUpperCase(),
@@ -64,13 +65,18 @@ export async function getExchangeRate({
   if (customRate) return customRate;
 
   const cacheKey = buildCacheKey({ date, baseCode: pair.baseCode, quoteCode: pair.quoteCode });
-  const cached = await crossRateCache.read(cacheKey);
-  if (cached) {
-    return { ...pair, rate: cached.rate, date: new Date(cached.dateISO) };
+  if (!bypassCache) {
+    const cached = await crossRateCache.read(cacheKey);
+    if (cached) {
+      return { ...pair, rate: cached.rate, date: new Date(cached.dateISO) };
+    }
   }
 
   const { result, cacheable } = await computeCrossRate({ pair, date });
-  if (cacheable) {
+  // `bypassCache` also suppresses the write-back: these callers run inside the
+  // uncommitted rate-write transaction, so caching a freshly computed rate now
+  // would poison the 4h-TTL cache with a value that may still roll back.
+  if (cacheable && !bypassCache) {
     await crossRateCache.write({ key: cacheKey, value: { rate: result.rate, dateISO: result.date.toISOString() } });
   }
 
@@ -201,6 +207,14 @@ type ExchangeRateParams = {
   date: Date;
   baseCode: string;
   quoteCode: string;
+  /**
+   * Skip the global cross-rate cache entirely — no read, no write-back. For
+   * remeasure flows that run right after new rates land (rate sync, custom-rate
+   * edits): a cached pre-change rate would re-anchor balances to stale FX, and
+   * because these callers run inside the uncommitted rate-write transaction, writing
+   * the fresh rate back would poison the cache with a value that may still roll back.
+   */
+  bypassCache?: boolean;
 };
 
 type ExchangeRateReturnType = {

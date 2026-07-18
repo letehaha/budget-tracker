@@ -5,7 +5,9 @@ name: Crowdin Upload Sources
 
 on:
   push:
-    branches: [main]
+    # dev is where features land, so sources reach Crowdin as they're written.
+    # main covers strings introduced by a hotfix that never passed through dev.
+    branches: [main, dev]
     paths:
       - 'packages/frontend/src/i18n/locales/chunks/en/**'
       - 'packages/backend/src/i18n/locales/en.json'
@@ -23,7 +25,10 @@ jobs:
           upload_sources: true
           # Keeps the sync one-way. Enabling this would push in-repo translations
           # back to Crowdin on every source change, overwriting newer work done in
-          # the Crowdin editor.
+          # the Crowdin editor. It would also corrupt Crowdin's coverage stats and
+          # translation memory: in-repo locale files carry English source text for
+          # every untranslated key, which would upload as if English were the
+          # approved Ukrainian/Spanish/Indonesian translation.
           upload_translations: false
           download_translations: false
         env:

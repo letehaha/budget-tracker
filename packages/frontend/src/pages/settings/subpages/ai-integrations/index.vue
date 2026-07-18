@@ -1,23 +1,23 @@
 <template>
   <Card class="max-w-4xl">
     <CardHeader class="border-b">
-      <h2 class="mb-2 text-2xl font-semibold">AI Integrations</h2>
+      <h2 class="mb-2 text-2xl font-semibold">{{ $t('settings.aiIntegrations.title') }}</h2>
       <p class="text-muted-foreground text-sm">
-        Connect AI assistants like Claude or ChatGPT to analyze your financial data directly from chat.
+        {{ $t('settings.aiIntegrations.description') }}
       </p>
     </CardHeader>
 
     <CardContent class="mt-6 flex flex-col gap-6">
       <!-- MCP Server Info -->
       <div>
-        <h3 class="mb-2 text-lg font-medium">MCP Server</h3>
+        <h3 class="mb-2 text-lg font-medium">{{ $t('settings.aiIntegrations.mcpServer.title') }}</h3>
         <p class="text-muted-foreground mb-4 text-sm leading-relaxed">
-          Use this URL to connect AI assistants to your MoneyMatter account. Your data is shared read-only.
+          {{ $t('settings.aiIntegrations.mcpServer.description') }}
         </p>
 
         <div class="bg-muted flex items-center gap-2 rounded-lg p-3">
           <code class="flex-1 truncate text-sm">{{ mcpServerUrl }}</code>
-          <DesktopOnlyTooltip content="Copy URL">
+          <DesktopOnlyTooltip :content="$t('settings.aiIntegrations.mcpServer.copyTooltip')">
             <UiButton variant="outline" size="icon-sm" @click="copyUrl">
               <CopyIcon v-if="!copied" class="size-4" />
               <CheckIcon v-else class="size-4" />
@@ -30,9 +30,9 @@
 
       <!-- Quick Connect Buttons -->
       <div>
-        <h3 class="mb-2 text-lg font-medium">Quick Connect</h3>
+        <h3 class="mb-2 text-lg font-medium">{{ $t('settings.aiIntegrations.quickConnect.title') }}</h3>
         <p class="text-muted-foreground mb-4 text-sm leading-relaxed">
-          Choose an AI assistant below. Click the button to open its settings, then follow the steps.
+          {{ $t('settings.aiIntegrations.quickConnect.description') }}
         </p>
 
         <div class="flex flex-col gap-4">
@@ -46,8 +46,8 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <UiButton variant="outline" size="sm" @click="openClaudeSettings">
-                    Open Settings
-                    <ExternalLinkIcon class="ml-1 size-3" />
+                    {{ $t('settings.aiIntegrations.quickConnect.openSettings') }}
+                    <ExternalLinkIcon class="size-3" />
                   </UiButton>
                   <CollapsibleTrigger as-child>
                     <UiButton variant="ghost" size="icon-sm">
@@ -59,28 +59,34 @@
               <CollapsibleContent>
                 <div class="border-border border-t px-4 pt-3 pb-4">
                   <ol class="text-muted-foreground list-inside list-decimal space-y-2 text-sm">
-                    <li>
-                      Click the
-                      <strong class="text-foreground">+</strong>
-                      icon next to "Connectors" to create a new connector
-                    </li>
-                    <li>
-                      Select
-                      <strong class="text-foreground">Add custom connector</strong>
-                    </li>
-                    <li>
-                      For "Name" enter
-                      <ClickToCopy value="MoneyMatter" />
-                    </li>
-                    <li>
-                      For "Remote MCP server URL" paste
-                      <ClickToCopy :value="mcpServerUrl" />
-                    </li>
-                    <li>
-                      Leave Advanced settings empty and click
-                      <strong class="text-foreground">Add</strong>
-                    </li>
-                    <li>You will be redirected to MoneyMatter to authorize access</li>
+                    <i18n-t keypath="settings.aiIntegrations.quickConnect.claude.steps.createConnector" tag="li">
+                      <template #icon>
+                        <strong class="text-foreground">+</strong>
+                      </template>
+                    </i18n-t>
+                    <i18n-t keypath="settings.aiIntegrations.quickConnect.claude.steps.selectCustom" tag="li">
+                      <template #action>
+                        <strong class="text-foreground">
+                          {{ $t('settings.aiIntegrations.actions.addCustomConnector') }}
+                        </strong>
+                      </template>
+                    </i18n-t>
+                    <i18n-t keypath="settings.aiIntegrations.quickConnect.claude.steps.enterName" tag="li">
+                      <template #value>
+                        <ClickToCopy value="MoneyMatter" />
+                      </template>
+                    </i18n-t>
+                    <i18n-t keypath="settings.aiIntegrations.quickConnect.claude.steps.pasteUrl" tag="li">
+                      <template #value>
+                        <ClickToCopy :value="mcpServerUrl" />
+                      </template>
+                    </i18n-t>
+                    <i18n-t keypath="settings.aiIntegrations.quickConnect.claude.steps.finish" tag="li">
+                      <template #action>
+                        <strong class="text-foreground">{{ $t('settings.aiIntegrations.actions.add') }}</strong>
+                      </template>
+                    </i18n-t>
+                    <li>{{ $t('settings.aiIntegrations.quickConnect.claude.steps.authorize') }}</li>
                   </ol>
                 </div>
               </CollapsibleContent>
@@ -97,8 +103,8 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <UiButton variant="outline" size="sm" @click="openChatGptSettings">
-                    Open Settings
-                    <ExternalLinkIcon class="ml-1 size-3" />
+                    {{ $t('settings.aiIntegrations.quickConnect.openSettings') }}
+                    <ExternalLinkIcon class="size-3" />
                   </UiButton>
                   <CollapsibleTrigger as-child>
                     <UiButton variant="ghost" size="icon-sm">
@@ -110,19 +116,24 @@
               <CollapsibleContent>
                 <div class="border-border border-t px-4 pt-3 pb-4">
                   <ol class="text-muted-foreground list-inside list-decimal space-y-2 text-sm">
-                    <li>
-                      Click
-                      <strong class="text-foreground">Add connector</strong>
-                    </li>
-                    <li>
-                      For "URL" paste
-                      <ClickToCopy :value="mcpServerUrl" />
-                    </li>
-                    <li>
-                      Click
-                      <strong class="text-foreground">Add</strong>
-                    </li>
-                    <li>You will be redirected to MoneyMatter to authorize access</li>
+                    <i18n-t keypath="settings.aiIntegrations.quickConnect.chatgpt.steps.addConnector" tag="li">
+                      <template #action>
+                        <strong class="text-foreground">
+                          {{ $t('settings.aiIntegrations.actions.addConnector') }}
+                        </strong>
+                      </template>
+                    </i18n-t>
+                    <i18n-t keypath="settings.aiIntegrations.quickConnect.chatgpt.steps.pasteUrl" tag="li">
+                      <template #value>
+                        <ClickToCopy :value="mcpServerUrl" />
+                      </template>
+                    </i18n-t>
+                    <i18n-t keypath="settings.aiIntegrations.quickConnect.chatgpt.steps.clickAdd" tag="li">
+                      <template #action>
+                        <strong class="text-foreground">{{ $t('settings.aiIntegrations.actions.add') }}</strong>
+                      </template>
+                    </i18n-t>
+                    <li>{{ $t('settings.aiIntegrations.quickConnect.chatgpt.steps.authorize') }}</li>
                   </ol>
                 </div>
               </CollapsibleContent>
@@ -135,9 +146,9 @@
 
       <!-- Connected Apps -->
       <div>
-        <h3 class="mb-2 text-lg font-medium">Connected Apps</h3>
+        <h3 class="mb-2 text-lg font-medium">{{ $t('settings.aiIntegrations.connectedApps.title') }}</h3>
         <p class="text-muted-foreground mb-4 text-sm leading-relaxed">
-          Apps that have access to your financial data. You can revoke access at any time.
+          {{ $t('settings.aiIntegrations.connectedApps.description') }}
         </p>
 
         <div v-if="isLoading" class="flex flex-col gap-3">
@@ -153,8 +164,8 @@
 
         <div v-else-if="!connectedApps?.length" class="text-muted-foreground py-8 text-center text-sm">
           <PlugIcon class="text-muted-foreground mx-auto mb-2 size-8" />
-          <p>No apps connected yet.</p>
-          <p class="mt-1">Use the buttons above to connect an AI assistant.</p>
+          <p>{{ $t('settings.aiIntegrations.connectedApps.emptyTitle') }}</p>
+          <p class="mt-1">{{ $t('settings.aiIntegrations.connectedApps.emptyDescription') }}</p>
         </div>
 
         <div v-else class="flex flex-col gap-3">
@@ -166,14 +177,19 @@
             <div class="min-w-0 flex-1">
               <div class="font-medium">{{ app.name || app.clientId }}</div>
               <div class="text-muted-foreground mt-1 text-xs">
-                Connected: {{ formatDate(app.connectedAt) }}
-                <span v-if="app.lastUsedAt"> &middot; Last used: {{ formatRelative(app.lastUsedAt) }}</span>
+                {{ $t('settings.aiIntegrations.connectedApps.connectedAt', { date: formatDate(app.connectedAt) }) }}
+                <span v-if="app.lastUsedAt">
+                  &middot;
+                  {{ $t('settings.aiIntegrations.connectedApps.lastUsed', { time: formatRelative(app.lastUsedAt) }) }}
+                </span>
               </div>
-              <div class="text-muted-foreground mt-1 text-xs">Scope: {{ formatScopes(app.scopes) }}</div>
+              <div class="text-muted-foreground mt-1 text-xs">
+                {{ $t('settings.aiIntegrations.connectedApps.scope', { scopes: formatScopes(app.scopes) }) }}
+              </div>
             </div>
 
             <UiButton variant="soft-destructive" size="sm" :disabled="isRevoking" @click="handleRevoke(app.clientId)">
-              Revoke
+              {{ $t('settings.aiIntegrations.connectedApps.revoke') }}
             </UiButton>
           </div>
         </div>
@@ -183,13 +199,13 @@
 
   <ResponsiveAlertDialog
     v-model:open="isRevokeDialogOpen"
-    confirm-label="Revoke Access"
+    :confirm-label="$t('settings.aiIntegrations.revokeDialog.confirm')"
     confirm-variant="destructive"
     @confirm="confirmRevoke"
   >
-    <template #title>Revoke access?</template>
+    <template #title>{{ $t('settings.aiIntegrations.revokeDialog.title') }}</template>
     <template #description>
-      This will immediately disconnect the app and invalidate all its tokens. You can reconnect later.
+      {{ $t('settings.aiIntegrations.revokeDialog.description') }}
     </template>
   </ResponsiveAlertDialog>
 </template>
@@ -209,8 +225,10 @@ import { useClipboard } from '@vueuse/core';
 import { format, formatDistanceToNow } from 'date-fns';
 import { BotIcon, CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, PlugIcon, SparklesIcon } from '@lucide/vue';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 
+const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 
@@ -233,10 +251,10 @@ const { mutate: revokeMutation, isPending: isRevoking } = useMutation({
   mutationFn: ({ clientId }: { clientId: string }) => revokeConnectedApp({ clientId }),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.mcpConnectedApps });
-    addSuccessNotification('App access revoked successfully');
+    addSuccessNotification(t('settings.aiIntegrations.revokeDialog.successNotification'));
   },
   onError: () => {
-    addErrorNotification('Failed to revoke app access');
+    addErrorNotification(t('settings.aiIntegrations.revokeDialog.errorNotification'));
   },
   onSettled: () => {
     isRevokeDialogOpen.value = false;
@@ -246,7 +264,7 @@ const { mutate: revokeMutation, isPending: isRevoking } = useMutation({
 
 function copyUrl() {
   copy(mcpServerUrl);
-  addSuccessNotification('MCP server URL copied to clipboard');
+  addSuccessNotification(t('settings.aiIntegrations.mcpServer.copiedNotification'));
 }
 
 function openClaudeSettings() {
@@ -267,9 +285,9 @@ function formatRelative(dateStr: string) {
 
 function formatScopes(scopes: string[]) {
   const labels: Record<string, string> = {
-    'finance:read': 'Read financial data',
-    'profile:read': 'Read profile',
-    offline_access: 'Offline access',
+    'finance:read': t('settings.aiIntegrations.scopes.financeRead'),
+    'profile:read': t('settings.aiIntegrations.scopes.profileRead'),
+    offline_access: t('settings.aiIntegrations.scopes.offlineAccess'),
   };
   return scopes.map((s) => labels[s] || s).join(', ');
 }

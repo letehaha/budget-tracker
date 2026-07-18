@@ -78,8 +78,18 @@ const emit = defineEmits<{
 }>();
 
 const currenciesStore = useCurrenciesStore();
-const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { addSuccessNotification, addWarningNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
+
+// A custom-rate change re-anchors this user's account balances to the new rate.
+// When no market rate is available for an account's currency yet, the backend
+// keeps that account's stale base-currency value and reports it as `failed`; warn
+// the user so the unchanged balance isn't mistaken for the rate not saving.
+const notifyIfBalancesNotRefreshed = (failed: number) => {
+  if (failed > 0) {
+    addWarningNotification(t('settings.currencies.exchangeRate.balancesNotRefreshed', { count: failed }));
+  }
+};
 
 const form = reactive({
   baseRate: props.currency.rate,
@@ -129,7 +139,7 @@ watch(
 
 const deleteExchangeRates = async () => {
   try {
-    await deleteCustomRate([
+    const { remeasure } = await deleteCustomRate([
       {
         baseCode: props.currency.currency!.code,
         quoteCode: props.currency.quoteCode,
@@ -143,6 +153,9 @@ const deleteExchangeRates = async () => {
     emit('submit');
 
     addSuccessNotification(t('settings.currencies.exchangeRate.successfullyUpdated'));
+    // Tolerate deploy skew: an older backend without the `remeasure` field returns a
+    // response without it, so guard the access rather than throw in the success path.
+    notifyIfBalancesNotRefreshed(remeasure?.failed ?? 0);
   } catch (e: unknown) {
     if ((e as any)?.data?.code === API_ERROR_CODES.validationError) {
       addErrorNotification((e as any).data.message);
@@ -154,7 +167,7 @@ const deleteExchangeRates = async () => {
 
 const updateExchangeRates = async () => {
   try {
-    await editUserCurrenciesExchangeRates([
+    const { remeasure } = await editUserCurrenciesExchangeRates([
       {
         baseCode: props.currency.currency!.code,
         quoteCode: props.currency.quoteCode,
@@ -171,6 +184,9 @@ const updateExchangeRates = async () => {
     emit('submit');
 
     addSuccessNotification(t('settings.currencies.exchangeRate.successfullyUpdated'));
+    // Tolerate deploy skew: an older backend without the `remeasure` field returns a
+    // response without it, so guard the access rather than throw in the success path.
+    notifyIfBalancesNotRefreshed(remeasure?.failed ?? 0);
   } catch (e: unknown) {
     if ((e as any)?.data?.code === API_ERROR_CODES.validationError) {
       addErrorNotification((e as any).data.message);

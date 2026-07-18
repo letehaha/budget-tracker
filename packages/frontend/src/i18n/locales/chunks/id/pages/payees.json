@@ -96,7 +96,12 @@
     },
     "transactionsDialog": {
       "title": "{name} — transaksi",
-      "empty": "Tidak ada transaksi yang terhubung ke penerima ini."
+      "empty": "Tidak ada transaksi yang terhubung ke penerima ini.",
+      "unlink": "Lepas tautan dari penerima",
+      "unlinked": "Transaksi dilepas tautan dari penerima",
+      "unlinkConfirmTitle": "Lepas tautan transaksi?",
+      "unlinkConfirmDescription": "Transaksi ini tidak akan lagi ditautkan ke {name}. Sinkronisasi bank berikutnya tidak akan menautkannya kembali secara otomatis.",
+      "unlinkConfirmLabel": "Lepas tautan"
     },
     "toasts": {
       "created": "Penerima dibuat",

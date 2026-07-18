@@ -58,9 +58,9 @@
       "Read(**/config/credentials.json)",
       "Read(**/.npmrc)",
       "Read(**/.pypirc)",
-      "Write(**/.env*)",
-      "Write(**/secrets/**)",
-      "Write(**/.ssh/**)"
+      "Edit(**/.env*)",
+      "Edit(**/secrets/**)",
+      "Edit(**/.ssh/**)"
     ]
   }
 }

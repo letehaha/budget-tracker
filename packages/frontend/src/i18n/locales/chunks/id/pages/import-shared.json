@@ -5,6 +5,7 @@
       "linkExisting": "Hubungkan ke yang sudah ada"
     },
     "selectAction": "Pilih tindakan",
+    "resolvedCounterWord": "terselesaikan",
     "columns": {
       "sourceName": "Nama sumber",
       "currency": "Mata Uang",
@@ -21,6 +22,23 @@
       "selectTarget": "Pilih kategori",
       "willCreate": "Akan membuat {name}",
       "empty": "Tidak ada kategori untuk dipetakan"
+    },
+    "recalculateBalance": {
+      "label": "Perbarui saldo akun dari transaksi yang diimpor",
+      "hint": "Transaksi yang lebih lama dari transaksi terbaru akun yang sudah ada dianggap sebagai backfill dan tidak mengubah saldo terkininya.",
+      "loadFailedHint": "Tidak dapat memuat preferensi tersimpan Anda — kembali ke nonaktif secara default."
+    },
+    "balanceChanges": {
+      "title": "Perubahan saldo akun",
+      "columns": {
+        "account": "Akun",
+        "before": "Sebelum",
+        "after": "Sesudah",
+        "delta": "Perubahan",
+        "newRows": "Baris baru",
+        "backfillRows": "Baris backfill"
+      },
+      "newAccount": "Akun baru"
     },
     "duplicatesTable": {
       "columnHeaders": {
