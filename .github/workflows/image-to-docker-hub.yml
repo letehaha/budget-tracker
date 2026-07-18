@@ -36,6 +36,10 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # workflow_run events resolve github.sha to the DEFAULT branch head (dev),
+          # so pin everything to the commit the triggering CI run actually validated
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - id: frontend-docker-build
         uses: ./.github/actions/frontend-docker-build
@@ -50,8 +54,8 @@ jobs:
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           sentry-org: ${{ secrets.SENTRY_ORG }}
           sentry-project: ${{ secrets.SENTRY_PROJECT }}
-          sentry-release: ${{ github.sha }}
-          app-commit-hash: ${{ github.sha }}
+          sentry-release: ${{ github.event.workflow_run.head_sha || github.sha }}
+          app-commit-hash: ${{ github.event.workflow_run.head_sha || github.sha }}
           csp-extra-connect: ${{ secrets.CSP_EXTRA_CONNECT }}
           csp-extra-form-action: ${{ secrets.CSP_EXTRA_FORM_ACTION }}
           csp-extra-analytics: ${{ secrets.CSP_EXTRA_ANALYTICS }}
@@ -64,7 +68,7 @@ jobs:
         with:
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-          sentry-release: ${{ github.sha }}
+          sentry-release: ${{ github.event.workflow_run.head_sha || github.sha }}
           push: 'true'
 
       - name: Trigger Dokploy deployment
