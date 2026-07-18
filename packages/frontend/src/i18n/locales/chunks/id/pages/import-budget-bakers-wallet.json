@@ -5,7 +5,7 @@
         "pageTitle": "Impor dari Wallet (BudgetBakers)",
         "pageDescription": "Impor transaksi Anda yang diekspor dari aplikasi Wallet oleh BudgetBakers.",
         "steps": {
-          "uploadTitle": "Upload file",
+          "uploadTitle": "Unggah file",
           "uploadDescription": "Pilih file ekspor CSV Wallet Anda.",
           "previewTitle": "Pratinjau & petakan akun",
           "previewDescription": "Tinjau data yang terdeteksi dan konfigurasikan pemetaan akun.",
@@ -110,7 +110,7 @@
         },
         "stepper": {
           "steps": {
-            "upload": "Upload",
+            "upload": "Unggah",
             "resolve": "Selesaikan",
             "review": "Tinjau",
             "results": "Selesai"
@@ -130,7 +130,7 @@
           "quickActions": {
             "mapExactMatches": "Petakan kecocokan persis",
             "createNewForUnmatched": "Buat baru untuk yang tidak cocok",
-            "reset": "Reset",
+            "reset": "Setel ulang",
             "tooltips": {
               "mapExactMatchesAccounts": "Tautkan setiap akun yang namanya persis cocok dengan akun yang ada",
               "mapExactMatchesCategories": "Tautkan setiap kategori yang namanya persis cocok dengan kategori yang ada",

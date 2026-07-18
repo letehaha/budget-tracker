@@ -36,7 +36,7 @@
       "title": "Pengaturan",
       "editTitle": "Edit detail pinjaman",
       "editDescription": "Perbarui nama, saldo, suku bunga, jangka waktu, bidang pembayaran, atau info pemberi pinjaman.",
-      "editButton": "Edit",
+      "editButton": "Sunting",
       "excludeFromStatsTitle": "Keluarkan dari statistik",
       "excludeFromStatsDescription": "Sembunyikan pinjaman ini dari kekayaan bersih, grafik, dan laporan tanpa mengarsipkannya.",
       "archiveTitle": "Arsipkan pinjaman",

@@ -22,6 +22,7 @@
         "liveUpdateLabel": "Actualización en tiempo real",
         "saveButton": "Guardar",
         "successfullyUpdated": "Actualizado correctamente.",
+        "balancesNotRefreshed": "{count} saldo(s) de cuenta aún no se han podido actualizar con el nuevo tipo — se actualizarán automáticamente en cuanto haya un tipo de cambio disponible.",
         "errors": {
           "unexpectedError": "Error inesperado",
           "updateFailed": "Error inesperado. La moneda no ha sido actualizada."

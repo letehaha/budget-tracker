@@ -106,7 +106,7 @@
         "description": "{amount} {action} akan dibuat dari {from} ke {to}",
         "actionTransfer": "transfer",
         "actionWithdrawal": "penarikan",
-        "actionDeposit": "deposit",
+        "actionDeposit": "setoran",
         "warning": "Tindakan ini tidak dapat dibatalkan.",
         "cancelButton": "Batal",
         "confirmButton": "Konfirmasi Transfer"
@@ -149,7 +149,7 @@
         "transfer": "Transfer"
       },
       "operationTypes": {
-        "deposit": "Deposit",
+        "deposit": "Setoran",
         "withdrawal": "Penarikan"
       },
       "fromAccountLabel": "Dari Akun",
@@ -173,7 +173,7 @@
         "description": "{amount} {action} akan dibuat dari {from} ke {to}",
         "cancelButton": "Batal",
         "confirmButton": "Konfirmasi",
-        "actionDeposit": "deposit",
+        "actionDeposit": "setoran",
         "actionWithdrawal": "penarikan"
       },
       "validation": {

@@ -60,7 +60,7 @@
       "unarchiveSuccess": "Préstamo restaurado",
       "deleteSuccess": "Préstamo eliminado",
       "deleteError": "No se pudo eliminar el préstamo",
-      "deleteBlockedByPayments": "This loan has recorded payments. Delete them first, then you can delete the loan."
+      "deleteBlockedByPayments": "Este préstamo tiene pagos registrados. Elimínelos primero para poder eliminar el préstamo."
     },
     "empty": {
       "title": "Aún no hay préstamos",
@@ -177,7 +177,7 @@
       },
       "events": {
         "title": "Historial",
-        "empty": "No history yet – rate changes, balance corrections, and notes will appear here.",
+        "empty": "Aún no hay historial – aquí aparecerán los cambios de tasa, correcciones de saldo y notas.",
         "rateChange": "Tasa cambiada de {from}% a {to}%",
         "termChange": "Plazo cambiado de {from} a {to} meses",
         "plannedPaymentChange": "Pago planificado cambiado de {from} a {to}",
@@ -208,7 +208,7 @@
         "targetAmountTooltip": "La cuenta de origen está en {source}, el préstamo en {loan}. Rellenamos automáticamente la cantidad convertida usando el tipo de cambio actual – ajuste si su banco aplicó un tipo diferente.",
         "saveButton": "Guardar",
         "recordButton": "Registrar",
-        "overdrawWarning": "This is more than {account}'s balance and will overdraw the account.",
+        "overdrawWarning": "Esto supera el saldo de {account} y dejará la cuenta en descubierto.",
         "overpayError": "El pago excede el saldo restante del préstamo ({max}).",
         "deleteConfirmTitle": "¿Eliminar este pago?",
         "deleteConfirmDescription": "Se eliminarán ambos lados de la transferencia y el saldo del préstamo será restaurado. Esta acción no se puede deshacer.",

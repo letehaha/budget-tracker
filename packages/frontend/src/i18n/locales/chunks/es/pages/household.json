@@ -47,7 +47,7 @@
         "title": "Hogares a los que pertenezco",
         "description": "Hogares de otras personas a los que se ha unido. Al salir, perderá el acceso a todas las cuentas que compartieron de esta manera.",
         "empty": "No se ha unido al hogar de ninguna otra persona.",
-        "unnamedHousehold": "{'@'}{handle}'s household",
+        "unnamedHousehold": "Hogar de {'@'}{handle}",
         "loadError": "No se pudieron cargar los hogares a los que pertenece. Inténtelo de nuevo más tarde."
       },
       "leave": {

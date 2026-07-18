@@ -246,10 +246,10 @@
       "rateLimited": "SimpleFIN зараз отримує забагато запитів. Зачекайте трохи і спробуйте ще раз."
     },
     "walutomat": {
-      "invalidCredentialsFormat": "Invalid Walutomat credentials format. API key and private key are required.",
-      "invalidApiKey": "Invalid Walutomat API key or private key.",
-      "accountNoExternalId": "Walutomat account has no external ID.",
-      "walletNotFound": "Walutomat wallet not found for currency: {{currency}}"
+      "invalidCredentialsFormat": "Невірний формат облікових даних Walutomat. Необхідні API-ключ та приватний ключ.",
+      "invalidApiKey": "Невірний API-ключ або приватний ключ Walutomat.",
+      "accountNoExternalId": "Обліковий запис Walutomat не має зовнішнього ID.",
+      "walletNotFound": "Гаманець Walutomat не знайдено для валюти: {{currency}}"
     }
   },
   "csvImport": {

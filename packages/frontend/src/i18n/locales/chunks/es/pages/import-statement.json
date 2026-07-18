@@ -119,7 +119,7 @@
         "legendNew": "Nueva",
         "legendDuplicate": "Duplicado",
         "legendExisting": "Existente",
-        "statusDup": "Dup",
+        "statusDup": "Dup.",
         "statusImport": "Importar",
         "statusExists": "Existe",
         "duplicateInfoSkipped": "{count} transacciones serán omitidas como duplicados.",

@@ -96,7 +96,12 @@
     },
     "transactionsDialog": {
       "title": "{name} — transacciones",
-      "empty": "No hay transacciones vinculadas a este beneficiario."
+      "empty": "No hay transacciones vinculadas a este beneficiario.",
+      "unlink": "Desvincular del beneficiario",
+      "unlinked": "Transacción desvinculada del beneficiario",
+      "unlinkConfirmTitle": "¿Desvincular transacción?",
+      "unlinkConfirmDescription": "Esta transacción dejará de estar vinculada a {name}. Las futuras sincronizaciones bancarias no la volverán a vincular automáticamente.",
+      "unlinkConfirmLabel": "Desvincular"
     },
     "toasts": {
       "created": "Beneficiario creado",

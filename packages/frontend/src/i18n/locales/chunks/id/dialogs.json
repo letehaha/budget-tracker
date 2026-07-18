@@ -248,7 +248,7 @@
       "portfolioLinked": {
         "title": "Transaksi Tertaut Portofolio",
         "linkedAs": "Transaksi ini ditautkan sebagai {type} ke",
-        "deposit": "deposit",
+        "deposit": "setoran",
         "withdrawal": "penarikan",
         "unlinkButton": "Lepas dari Portofolio",
         "unlinkWarning": "Melepas tautan akan mengurangi saldo kas portofolio {portfolio}.",
