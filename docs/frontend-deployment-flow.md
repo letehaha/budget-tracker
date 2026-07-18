@@ -51,23 +51,33 @@ The image is configured **at container start**, not only at build time, so one
 published image can be deployed with different settings without a rebuild.
 `self-hosting/frontend/docker-entrypoint.sh` runs before nginx and:
 
-1. **Writes `/config.js` (and `/landing/config.js`)** exposing
-   `window.__APP_CONFIG__` — `API_HTTP`, `API_VER`, `MCP_BASE_URL`, PostHog,
-   logo.dev, and Sentry values read from the container's env. The SPA reads
-   these at runtime. An empty `API_HTTP` selects **same-origin** mode (relative
-   `/api/v1`). `config.js` is served `no-store`, so a reload picks up changes.
+1. **Writes `/app/config.js`** exposing `window.__APP_CONFIG__` — `API_HTTP`,
+   `API_VER`, `MCP_BASE_URL`, PostHog, logo.dev, and Sentry values read from the
+   container's env. Both bundles read it at runtime: nginx serves it from an
+   exact-match `/config.js` location rooted at `/app`, which resolves from the
+   landing routes too, so the SPA and the Astro landing share one config. An
+   empty `API_HTTP` selects **same-origin** mode (relative `/api/v1`).
+   `config.js` is served `no-store`, so a reload picks up changes.
 2. **Renders the CSP into `nginx.conf`** via `envsubst`, filling
-   `CSP_EXTRA_CONNECT` / `CSP_EXTRA_FORM_ACTION` / `CSP_EXTRA_ANALYTICS`
-   (defaults derived from the API and analytics hosts when unset).
+   `CSP_EXTRA_CONNECT` / `CSP_EXTRA_FORM_ACTION` / `CSP_EXTRA_ANALYTICS`.
+   The first two default to `API_HTTP`, which is the only cross-origin host the
+   SPA fetches (`MCP_BASE_URL` is displayed for copy-paste, never requested), so
+   most deployments can leave them unset. `CSP_EXTRA_ANALYTICS` defaults to
+   `POSTHOG_HOST` alone — **a deployment using Sentry must set it explicitly**
+   to a value covering the Sentry ingest host, or `connect-src` blocks every
+   error report.
 3. **Emits a conditional `/api` reverse-proxy block** when `BACKEND_URL` is set,
    so nginx proxies `/api/` to the backend on the internal network (same-origin
    deployments). SSE is passed through unbuffered.
 
-Each runtime value falls back to a **baked build-time default** when its env var
-is unset: the Dockerfile's `VITE_*` build args become `DEFAULT_*` env vars that
-the entrypoint reads as fallbacks. A set-but-empty env var wins over the baked
-default (an empty `API_HTTP` is meaningful). So `VITE_*` build args are now only
-defaults — the source of truth in production is the container's runtime env.
+The container's runtime env is the **only** source of deployment configuration
+— nothing deployment-specific is baked into the image, so `docker run` without
+env produces a neutral same-origin setup. The single exception is
+`SENTRY_RELEASE`: it defaults to the value baked at build time
+(`DEFAULT_SENTRY_RELEASE`) because the release must match the source maps CI
+uploaded for that exact bundle. Build args are limited to build identity
+(`VITE_SENTRY_RELEASE`, `VITE_APP_COMMIT_HASH`) and Sentry source-map upload
+credentials.
 
 ## Nginx Configuration
 

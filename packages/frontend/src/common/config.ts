@@ -2,15 +2,17 @@
  * Runtime-configurable app settings.
  *
  * The production Docker image serves `/config.js` (written by the container
- * entrypoint) which assigns `window.__APP_CONFIG__`. That lets a self-hoster
- * override values at container start without rebuilding the bundle. Each key
- * falls back to the build-time `import.meta.env.VITE_*` value baked into the
- * bundle, and finally to a hardcoded default where one exists.
+ * entrypoint) which assigns `window.__APP_CONFIG__`. That is the only source of
+ * deployment config in the image: the entrypoint writes every key, so the
+ * `import.meta.env` fallback below is unreachable there.
+ *
+ * That fallback exists for `npm run dev`, where there is no entrypoint —
+ * `public/config.js` ships an empty `window.__APP_CONFIG__` and the
+ * `.env.development` values supply the config instead.
  *
  * Precedence per key: `window.__APP_CONFIG__` (runtime) → `import.meta.env`
- * (build-time) → code default. `??` is used so a runtime **empty string**
- * still wins over the baked value – an empty `apiHttp` selects same-origin
- * (relative `/api/v1`) mode.
+ * (dev only) → code default. `??` is used so a runtime **empty string** still
+ * wins – an empty `apiHttp` selects same-origin (relative `/api/v1`) mode.
  *
  * Reads are lazy getters, not values snapshotted at module load, so a
  * `config.x` read at point of use observes `vi.stubEnv` changes made after

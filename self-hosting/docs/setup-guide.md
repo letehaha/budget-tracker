@@ -235,4 +235,6 @@ Let's Encrypt problems, and more – are covered in
 - **Runtime-configurable frontend image.** The published frontend image reads
   its config from env at container start (writing `window.__APP_CONFIG__` and
   rendering the CSP), so analytics keys, API target, and CSP hosts change with
-  a restart – no rebuild. Build-time `VITE_*` values are only baked fallbacks.
+  a restart – no rebuild. `VITE_SENTRY_RELEASE` is the one deployment value
+  baked in, because it names the source maps uploaded for that exact bundle;
+  changing it meaningfully requires a rebuild.

@@ -65,19 +65,37 @@ Interpolated into the frontend container's `environment:` block. Change and
 | Variable                                                            | Purpose                                                              |
 | ------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`                             | Product analytics (PostHog)                                          |
-| `VITE_SENTRY_DSN`, `VITE_SENTRY_RELEASE`                            | Frontend error tracking (Sentry)                                     |
+| `VITE_SENTRY_DSN`                                                   | Frontend error tracking (Sentry)                                     |
+| `VITE_SENTRY_RELEASE`                                               | Release tag Sentry events report — also a build arg, see below       |
 | `VITE_LOGO_DEV_TOKEN`                                               | Brand logos for subs, banks, tickers (logo.dev)                      |
 | `MCP_BASE_URL`                                                      | MCP base URL advertised to clients (default same-origin)             |
 | `API_HTTP`, `API_VER`                                               | Point the SPA at a separate API origin (leave unset for same-origin) |
-| `CSP_EXTRA_CONNECT`, `CSP_EXTRA_FORM_ACTION`, `CSP_EXTRA_ANALYTICS` | Extra CSP allow-list hosts (auto-derived if unset)                   |
+| `CSP_EXTRA_CONNECT`, `CSP_EXTRA_FORM_ACTION`                        | Extra CSP allow-list hosts (default to `API_HTTP`)                   |
+| `CSP_EXTRA_ANALYTICS`                                               | CSP allow-list for analytics — **set this if you use Sentry**        |
+
+`CSP_EXTRA_ANALYTICS` defaults to `VITE_POSTHOG_HOST` only. Sentry's ingest host
+is not derivable from the DSN by the entrypoint, so a Sentry deployment that
+leaves this unset gets a `connect-src` that blocks every error report.
+
+The `VITE_` prefix on the frontend keys above is historical: these are read from
+the container's env at start, not inlined at build time. `docker-compose.yml`
+maps them onto the unprefixed names the image expects (`VITE_POSTHOG_KEY` →
+`POSTHOG_KEY`, and so on).
 
 ## Build-from-source only
 
 Used with `docker-compose.build.yml` (`--build`).
 
-| Variable                                            | Purpose                                |
-| --------------------------------------------------- | -------------------------------------- |
-| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry source-map upload at build time |
+| Variable                                            | Purpose                                                        |
+| --------------------------------------------------- | -------------------------------------------------------------- |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry source-map upload at build time                         |
+| `VITE_SENTRY_RELEASE`                               | Names the uploaded source maps; baked in as the release default |
+
+`VITE_SENTRY_RELEASE` is the one value that is both a build arg and runtime env.
+The build stamps it into the image as the release the SDK reports by default, so
+that events match the source maps uploaded alongside them. Setting it in `.env`
+after an image already exists only changes the runtime value — rebuild
+(`--build`) to move the source maps with it.
 
 ---
 
