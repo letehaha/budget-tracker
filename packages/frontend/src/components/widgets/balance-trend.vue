@@ -39,16 +39,28 @@
 
         <!-- Right: Comparison -->
         <div class="flex flex-col items-end gap-1">
-          <span
-            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
-            :class="{
-              'bg-app-expense-color/15 text-app-expense-color': balancesDiff < 0,
-              'bg-success-text/15 text-success-text': balancesDiff > 0,
-              'bg-muted text-muted-foreground': balancesDiff === 0,
-            }"
-          >
-            {{ balancesDiff > 0 ? '+' : '' }}{{ balancesDiff }}%
-          </span>
+          <div class="flex items-center gap-1.5">
+            <span
+              class="text-sm font-semibold tracking-tight"
+              :class="{
+                'text-app-expense-color': balancesDiff < 0,
+                'text-success-text': balancesDiff > 0,
+                'text-muted-foreground': balancesDiff === 0,
+              }"
+            >
+              {{ balancesDiffAbsolute > 0 ? '+' : '' }}{{ formatBaseCurrency(balancesDiffAbsolute) }}
+            </span>
+            <span
+              class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+              :class="{
+                'bg-app-expense-color/15 text-app-expense-color': balancesDiff < 0,
+                'bg-success-text/15 text-success-text': balancesDiff > 0,
+                'bg-muted text-muted-foreground': balancesDiff === 0,
+              }"
+            >
+              {{ balancesDiff > 0 ? '+' : '' }}{{ balancesDiff }}%
+            </span>
+          </div>
           <div class="text-muted-foreground text-xs tracking-tight">
             {{ $t('dashboard.widgets.balanceTrend.vsPreviousPeriod') }}
           </div>
@@ -1048,6 +1060,15 @@ const balancesDiff = computed<number>(() => {
     calculatePercentageDifference(displayBalance.value.current, displayBalance.value.previous),
   ).toFixed(2);
   return Number(percentage);
+});
+
+// Absolute change vs the previous period, shown next to the percentage so the
+// headline conveys how much money moved, not just the ratio. Guarded the same
+// way as balancesDiff so the amount and the percentage always agree on whether
+// a comparison is available.
+const balancesDiffAbsolute = computed<number>(() => {
+  if (!displayBalance.value.current || !displayBalance.value.previous) return 0;
+  return displayBalance.value.current - displayBalance.value.previous;
 });
 
 useResizeObserver(containerRef, renderChart);
