@@ -16,7 +16,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
 import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
-import { toLocalNumber } from '@/js/helpers';
+import { toLocalCurrencyNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { ACCOUNT_TYPES, AccountModel, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
@@ -213,23 +213,23 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
           @click="adjustmentDialogOpen = true"
         >
           <span class="text-amount text-3xl">
-            {{ toLocalNumber(displayBalance) }}
+            {{ toLocalCurrencyNumber(displayBalance, { currency: account.currencyCode }) }}
             {{ currenciesMap[account.currencyCode]?.currency?.code }}
           </span>
           <span v-if="baseCurrency && account.currencyCode !== baseCurrency.currencyCode" class="text-white opacity-50">
             ~
-            {{ toLocalNumber(displayRefBalance) }}
+            {{ toLocalCurrencyNumber(displayRefBalance, { currency: baseCurrency.currencyCode }) }}
             {{ baseCurrency.currency?.code }}
           </span>
         </button>
         <div v-else class="flex flex-wrap items-end justify-start gap-2">
           <span class="text-amount text-3xl">
-            {{ toLocalNumber(displayBalance) }}
+            {{ toLocalCurrencyNumber(displayBalance, { currency: account.currencyCode }) }}
             {{ currenciesMap[account.currencyCode]?.currency?.code }}
           </span>
           <span v-if="baseCurrency && account.currencyCode !== baseCurrency.currencyCode" class="text-white opacity-50">
             ~
-            {{ toLocalNumber(displayRefBalance) }}
+            {{ toLocalCurrencyNumber(displayRefBalance, { currency: baseCurrency.currencyCode }) }}
             {{ baseCurrency.currency?.code }}
           </span>
         </div>

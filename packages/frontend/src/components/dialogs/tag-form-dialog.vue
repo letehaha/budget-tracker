@@ -80,7 +80,7 @@
                 <p class="text-muted-foreground text-xs">
                   {{ getReminderScheduleLabel(reminder) }}
                   <template v-if="getAmountThreshold(reminder)">
-                    &middot; {{ formatCurrency(getAmountThreshold(reminder)!) }}
+                    &middot; {{ formatBaseCurrency(getAmountThreshold(reminder)!) }}
                   </template>
                 </p>
               </div>
@@ -130,8 +130,9 @@ import TagReminderForm from '@/components/dialogs/tag-reminder-form.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useFormatCurrency } from '@/composable';
 import { ApiErrorResponseError } from '@/js/errors';
-import { useCurrenciesStore, useTagsStore } from '@/stores';
+import { useTagsStore } from '@/stores';
 import {
   TAG_REMINDER_FREQUENCIES,
   TAG_REMINDER_TYPES,
@@ -177,8 +178,8 @@ const closeReminderDialog = () => {
 
 const { t } = useI18n();
 const tagsStore = useTagsStore();
-const currenciesStore = useCurrenciesStore();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
+const { formatBaseCurrency } = useFormatCurrency();
 
 const isEditMode = computed(() => !!props.tag);
 
@@ -255,17 +256,6 @@ const getFrequencyLabel = (frequency: TagReminderFrequency) => {
 const getAmountThreshold = (reminder: TagReminderModel): number | undefined => {
   const settings = reminder.settings as { amountThreshold?: number } | undefined;
   return settings?.amountThreshold;
-};
-
-const formatCurrency = (amount: number) => {
-  const baseCurrency = currenciesStore.baseCurrency;
-  const currencyCode = baseCurrency?.currency?.code || 'USD';
-  // Amount is already in display format (API layer converts from system amount)
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: currencyCode,
-    maximumFractionDigits: 2,
-  }).format(amount);
 };
 
 const DEFAULT_TAG_COLOR = '#3b82f6';

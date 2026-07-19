@@ -4,7 +4,7 @@ import * as Collapsible from '@/components/lib/ui/collapsible';
 import { Separator } from '@/components/lib/ui/separator';
 import * as Tabs from '@/components/lib/ui/tabs';
 import { useAccountCurrencyCode } from '@/composable/use-account-currency-code';
-import { toLocalNumber } from '@/js/helpers';
+import { toLocalCurrencyNumber } from '@/js/helpers';
 import { useCurrenciesStore } from '@/stores';
 import { ACCOUNT_TYPES, AccountModel } from '@bt/shared/types';
 import { ChevronDownIcon, ChevronUpIcon } from '@lucide/vue';
@@ -35,7 +35,7 @@ const currencyCode = useAccountCurrencyCode({ account: toRef(() => props.account
         <span>{{ t('pages.account.details.creditLimit') }}</span>
 
         <div class="flex items-center gap-1.5">
-          <span>{{ toLocalNumber(account.creditLimit) }} {{ currencyCode }}</span>
+          <span>{{ toLocalCurrencyNumber(account.creditLimit, { currency: currencyCode }) }} {{ currencyCode }}</span>
 
           <CreditLimitEditPopover v-if="isSystemAccount" :account="account" :currency-code="currencyCode" />
         </div>
@@ -45,7 +45,7 @@ const currencyCode = useAccountCurrencyCode({ account: toRef(() => props.account
       <div class="flex items-center justify-between gap-2">
         <span>{{ t('pages.account.details.initialBalance') }}</span>
 
-        {{ toLocalNumber(account.initialBalance) }} {{ currencyCode }}
+        {{ toLocalCurrencyNumber(account.initialBalance, { currency: currencyCode }) }} {{ currencyCode }}
       </div>
       <Separator />
       <div class="flex items-center justify-between gap-2">
