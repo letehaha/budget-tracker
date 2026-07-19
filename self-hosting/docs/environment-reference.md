@@ -62,20 +62,26 @@ Ignored unless you use the [Traefik overlay](traefik-overlay.md)
 Interpolated into the frontend container's `environment:` block. Change and
 `up -d` – **no image rebuild** needed.
 
-| Variable                                     | Purpose                                                              |
-| -------------------------------------------- | -------------------------------------------------------------------- |
-| `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`      | Product analytics (PostHog)                                          |
-| `VITE_SENTRY_DSN`                            | Frontend error tracking (Sentry)                                     |
-| `VITE_SENTRY_RELEASE`                        | Release tag Sentry events report — also a build arg, see below       |
-| `VITE_LOGO_DEV_TOKEN`                        | Brand logos for subs, banks, tickers (logo.dev)                      |
-| `MCP_BASE_URL`                               | MCP base URL advertised to clients (default same-origin)             |
-| `API_HTTP`, `API_VER`                        | Point the SPA at a separate API origin (leave unset for same-origin) |
-| `CSP_EXTRA_CONNECT`, `CSP_EXTRA_FORM_ACTION` | Extra CSP allow-list hosts (default to `API_HTTP`)                   |
-| `CSP_EXTRA_ANALYTICS`                        | CSP allow-list for analytics — **set this if you use Sentry**        |
+| Variable                                     | Purpose                                                                |
+| -------------------------------------------- | ---------------------------------------------------------------------- |
+| `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`      | Product analytics (PostHog)                                            |
+| `VITE_SENTRY_DSN`                            | Frontend error tracking (Sentry)                                       |
+| `VITE_SENTRY_RELEASE`                        | Release tag Sentry events report — also a build arg, see below         |
+| `VITE_LOGO_DEV_TOKEN`                        | Brand logos for subs, banks, tickers (logo.dev)                        |
+| `MCP_BASE_URL`                               | Backend origin advertised to MCP clients — required for MCP, see below |
+| `API_HTTP`, `API_VER`                        | Point the SPA at a separate API origin (leave unset for same-origin)   |
+| `CSP_EXTRA_CONNECT`, `CSP_EXTRA_FORM_ACTION` | Extra CSP allow-list hosts (default to `API_HTTP`)                     |
+| `CSP_EXTRA_ANALYTICS`                        | CSP allow-list for analytics — **set this if you use Sentry**          |
 
 `CSP_EXTRA_ANALYTICS` defaults to `VITE_POSTHOG_HOST` only. Sentry's ingest host
 is not derivable from the DSN by the entrypoint, so a Sentry deployment that
 leaves this unset gets a `connect-src` that blocks every error report.
+
+`MCP_BASE_URL` is the URL the app advertises to external MCP clients (Claude
+Desktop, ChatGPT). In same-origin mode the frontend reverse-proxies only `/api`,
+**not** `/mcp`, so the advertised `<origin>/mcp` would 404. To use MCP, publish
+the backend on a reachable origin (e.g. split-domain mode, or a subdomain) and
+set `MCP_BASE_URL` to it. Leave it unset if you do not use MCP.
 
 The `VITE_` prefix on the frontend keys above is historical: these are read from
 the container's env at start, not inlined at build time. `docker-compose.yml`

@@ -21,6 +21,16 @@ SELFHOST_FRONTEND_DOMAIN=budget.example.com
 LETSENCRYPT_EMAIL=you@example.com
 ```
 
+Also update the auth URLs in `.env` to the HTTPS domain Traefik serves —
+otherwise the backend's auth origin stays at the `.env.example` default
+(`http://localhost:8080`) and, once you open the app over HTTPS, sessions bind
+to the wrong origin/scheme and you cannot stay signed in:
+
+```bash
+BETTER_AUTH_URL=https://budget.example.com
+AUTH_ORIGIN=https://budget.example.com
+```
+
 Start with both files (compose merges left-to-right):
 
 ```bash

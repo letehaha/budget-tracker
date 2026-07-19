@@ -66,7 +66,9 @@ jobs:
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           image-tag: latest,sha-${{ steps.vars.outputs.sha_short }}
-          platforms: linux/amd64,linux/arm64
+          # Prod VPS is amd64, so build single-arch (fast, native, no QEMU). The
+          # actions still accept a `platforms` input — add linux/arm64 here to
+          # publish multi-arch images for ARM self-hosters when that's wanted.
           push: 'true'
 
       - id: backend-docker-build
@@ -76,7 +78,9 @@ jobs:
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           sentry-release: ${{ github.event.workflow_run.head_sha || github.sha }}
           image-tag: latest,sha-${{ steps.vars.outputs.sha_short }}
-          platforms: linux/amd64,linux/arm64
+          # Prod VPS is amd64, so build single-arch (fast, native, no QEMU). The
+          # actions still accept a `platforms` input — add linux/arm64 here to
+          # publish multi-arch images for ARM self-hosters when that's wanted.
           push: 'true'
 
       - name: Trigger Dokploy deployment
