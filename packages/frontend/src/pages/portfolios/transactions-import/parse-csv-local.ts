@@ -60,16 +60,21 @@ export async function parseCsvLocally({ fileText }: { fileText: string }): Promi
           return;
         }
 
-        const headers = (data[0] ?? []).map((h) => h.trim());
-        if (headers.length === 0 || headers.every((h) => !h)) {
+        const rawHeaders = (data[0] ?? []).map((h) => h.trim());
+        if (rawHeaders.length === 0 || rawHeaders.every((h) => !h)) {
           reject(new CsvParseLocalError('CSV file has no header row.', 'NO_HEADERS'));
           return;
         }
 
-        if (headers.some((h) => FORBIDDEN_HEADERS.has(h))) {
+        if (rawHeaders.some((h) => FORBIDDEN_HEADERS.has(h))) {
           reject(new CsvParseLocalError('CSV header uses a forbidden name (e.g. __proto__).', 'FORBIDDEN_HEADER'));
           return;
         }
+
+        // Name blank header cells by position. An empty header becomes an empty
+        // Select option value in the mapping step, which reka-ui rejects and
+        // crashes on — this keeps the column visible and pickable instead.
+        const headers = rawHeaders.map((h, idx) => h || `Column ${idx + 1}`);
 
         const dataRows = data.slice(1) as string[][];
         if (dataRows.length > MAX_CSV_ROWS) {
