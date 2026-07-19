@@ -32,6 +32,12 @@ Add a **Proxy Host**: forward to `http://<host>:8080`, and enable
 **Websockets Support** in the details tab. Request a Let's Encrypt cert on the
 SSL tab. Nothing else to configure – the app and API share the origin.
 
+Nginx Proxy Manager is almost always run as a container itself. If yours is,
+don't forward to `http://<host>:8080` – reach the app over the Docker network
+instead. See
+[Proxy running in Docker on the same server](#proxy-running-in-docker-on-the-same-server)
+for the exact field values.
+
 ## Caddy
 
 ```caddy
@@ -42,6 +48,100 @@ budget.example.com {
 
 Caddy needs nothing else – it gets the HTTPS certificate automatically and
 its defaults handle streaming and headers correctly.
+
+## Proxy running in Docker on the same server
+
+Most people run their reverse proxy as a container too – Nginx Proxy Manager
+almost always, and often a dockerized Caddy or Traefik. That changes just one
+thing: how the proxy reaches the app. The rest (HTTPS, your domain) is the same.
+
+Containers can only find each other by name if they share the same Docker
+network. Think of a Docker network as a small private LAN – a virtual switch
+that a group of containers are plugged into. The app's containers all sit on a
+network named `budget-tracker`. Your proxy container starts on its own separate
+network, so out of the box it can't see the app at all.
+
+**Don't point the proxy at `http://<server-ip>:8080` from inside the container.**
+It looks like it should work, but it's the wrong path: inside a container,
+`127.0.0.1` means the container itself (not the host), so `http://127.0.0.1:8080`
+never reaches the app. The server's LAN IP can sometimes work but is fragile –
+it breaks the moment the IP or the open port changes. The reliable route is the
+Docker network below.
+
+**Forward to `http://budget-tracker:80`.** Once your proxy is plugged into the
+`budget-tracker` network, it can reach the app's frontend container by its name –
+`budget-tracker` – on port `80`. That is the container's own internal port, not the
+published `8080`. So the address you forward to is simply `http://budget-tracker:80`:
+no host, no IP, no `8080`.
+
+### Plugging the proxy into the network
+
+There are two ways to attach your proxy container to the `budget-tracker` network.
+
+**Quick test (temporary).** If the proxy is already running and you just want to
+try it right now:
+
+```bash
+docker network connect budget-tracker <proxy-container-name>
+```
+
+Replace `<proxy-container-name>` with your proxy's container name (`docker ps`
+lists it). This takes effect immediately. The catch: the attachment is dropped
+whenever that container is **recreated** – for example the next time you run
+`docker compose up` on the proxy after updating its image. Fine for a
+five-minute test, not for a permanent setup.
+
+**Permanent (recommended).** If your proxy has its own `docker-compose.yml`,
+declare the `budget-tracker` network in that file and attach the proxy service to it.
+This survives image updates and restarts. Example for Nginx Proxy Manager
+(match the service name to your own file):
+
+```yaml
+services:
+  npm:
+    # ...your existing config...
+    networks:
+      - default
+      - budget-tracker
+
+networks:
+  budget-tracker:
+    external: true
+```
+
+`external: true` means "this network already exists – reuse the app's one
+instead of creating a new network". Keep `default` in the list as well, or the
+proxy loses the network it was already using. Then run `docker compose up -d` on
+the proxy stack.
+
+**Start order matters.** The app stack has to be up first, because it is the one
+that creates the `budget-tracker` network. If the proxy starts first, it fails with
+`network budget-tracker declared as external, but could not be found`. Fix: start the
+app first (`docker compose up -d` from `self-hosting/`), then start the proxy.
+
+### Nginx Proxy Manager field values
+
+With Nginx Proxy Manager attached to the `budget-tracker` network, open your Proxy
+Host and set the **Details** tab like this:
+
+| Field              | Value            |
+| ------------------ | ---------------- |
+| Scheme             | `http`           |
+| Forward Hostname   | `budget-tracker` |
+| Forward Port       | `80`             |
+| Websockets Support | enabled          |
+
+Request the Let's Encrypt certificate on the **SSL** tab as usual. Nothing else
+to configure – the app and API share the origin.
+
+### After switching to the network route
+
+Your proxy now reaches the app over the Docker network, so it no longer needs
+the published host port at all. Close port `8080` to the internet by setting
+`HTTP_PORT=127.0.0.1:8080` in `.env` and running `docker compose up -d` again –
+see [setup-guide.md](setup-guide.md#3-behind-your-own-reverse-proxy), step 3.
+That `127.0.0.1` setting is safe to keep here precisely because your proxy isn't
+using the host port anymore.
 
 No reverse proxy yet? The stack can handle HTTPS itself with a bundled
 Traefik – see [traefik-overlay.md](traefik-overlay.md).

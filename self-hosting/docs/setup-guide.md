@@ -26,7 +26,7 @@ flowchart LR
     Proxy["Your reverse proxy<br/>(optional – TLS, domain)"]
 
     subgraph host["Docker host"]
-        subgraph net["Docker network: selfhost"]
+        subgraph net["Docker network: budget-tracker"]
             FE["Frontend<br/>nginx: SPA + /api proxy<br/>:HTTP_PORT → :80"]
             BE["Backend<br/>Node + Express :8081"]
             CR["currency-rates-api<br/>USD-base rates"]
@@ -45,11 +45,11 @@ flowchart LR
 ```
 
 The frontend container is the single public entrypoint. It serves the SPA and
-proxies `/api/` to the backend over the internal `selfhost` network, so the
+proxies `/api/` to the backend over the internal `budget-tracker` network, so the
 browser only ever talks to **one origin** – app and API are same-origin, and
 there is no CORS to configure. Only the frontend's host port
 (`${HTTP_PORT:-8080}`) is published; Postgres, Redis, the backend, and the
-rate-data sidecar are reachable only from the `selfhost` network.
+rate-data sidecar are reachable only from the `budget-tracker` network.
 
 > **Architecture**: the frontend, backend, postgres, and redis images are
 > multi-arch and run natively on both `amd64` and `arm64` hosts (Hetzner ARM,
@@ -207,6 +207,14 @@ confusing login loop. How to close it depends on where your proxy runs:
   and run `docker compose up -d` again. The `127.0.0.1:` prefix means "only
   reachable from this machine": your proxy still reaches the app at
   `http://127.0.0.1:8080`, but from the internet the port looks closed.
+
+- **Proxy runs in Docker on the same server** (Nginx Proxy Manager, a
+  dockerized Caddy or Traefik): the `127.0.0.1:8080` change alone breaks the
+  proxy – inside the proxy container, `127.0.0.1` is the container itself, not
+  the host, so it can't reach the app there. First switch the proxy to reach the
+  app over the Docker network, then the `127.0.0.1:8080` setting above is safe to
+  apply. Full steps:
+  [reverse-proxies.md](reverse-proxies.md#proxy-running-in-docker-on-the-same-server).
 
 - **Proxy on a different machine:** the `127.0.0.1:` trick won't work (the
   proxy needs to reach the app over the network), so block port 8080 in your

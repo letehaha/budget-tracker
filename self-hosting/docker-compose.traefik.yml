@@ -10,13 +10,13 @@
 #
 # Requires Docker Compose v2.24+ for the `!reset` merge tag used below to drop
 # the base file's frontend host port (Traefik reaches the container over the
-# `selfhost` network instead).
+# `budget-tracker` network instead).
 
 services:
   traefik:
     image: traefik:v3.2
     restart: unless-stopped
-    networks: [selfhost]
+    networks: [budget-tracker]
     ports:
       # Defaults are 80/443. Override only if you front Traefik with another
       # proxy or already use those ports – Let's Encrypt TLS-ALPN-01 still
@@ -29,7 +29,7 @@ services:
     command:
       - --providers.docker=true
       - --providers.docker.exposedByDefault=false
-      - --providers.docker.network=selfhost
+      - --providers.docker.network=budget-tracker
       - --entrypoints.web.address=:80
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https

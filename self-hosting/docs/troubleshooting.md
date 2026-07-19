@@ -17,6 +17,16 @@ docker compose logs backend
 A crash-looping backend is usually a bad `.env` – see the two
 entries below.
 
+## Reverse proxy in Docker: `502` / `Bad Gateway`
+
+If your reverse proxy runs as a container (Nginx Proxy Manager, a dockerized
+Caddy or Traefik) and shows `502` or `Bad Gateway`, it usually can't reach the
+app: a proxy container can't get to `http://<server-ip>:8080` or
+`http://127.0.0.1:8080` (inside a container, `127.0.0.1` is the container
+itself). Put the proxy on the app's `budget-tracker` Docker network and forward to
+`http://budget-tracker:80` instead – see
+[reverse-proxies.md](reverse-proxies.md#proxy-running-in-docker-on-the-same-server).
+
 ## Backend exits immediately: `__REPLACE_ME__` secret
 
 The backend refuses to start while `APPLICATION_JWT_SECRET`,
@@ -77,7 +87,7 @@ docker compose exec backend \
 `currency-rates-api` fetches live rates from external sources (ECB, NBU), so it
 needs **outbound internet access**. If you customized the compose network,
 don't mark it `internal: true` – the rates container will log resolution
-errors continuously and rate syncing stalls. The shipped `selfhost` network is
+errors continuously and rate syncing stalls. The shipped `budget-tracker` network is
 a regular bridge and works as-is.
 
 ## Frontend build OOMs (build-from-source overlay only)
