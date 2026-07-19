@@ -8,7 +8,7 @@ import { useFormValidation } from '@/composable';
 import { useAdjustAccountBalance } from '@/composable/data-queries/accounts';
 import { useAccountCurrencyCode } from '@/composable/use-account-currency-code';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
-import { toLocalNumber } from '@/js/helpers';
+import { toLocalCurrencyNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { captureException } from '@/lib/sentry';
 import { cn } from '@/lib/utils';
@@ -229,9 +229,11 @@ watch(mode, () => {
         </template>
         <template v-else>
           <p class="text-muted-foreground mb-1 text-sm">
-            {{ toLocalNumber(displayBalance) }} {{ currencyCode }}
+            {{ toLocalCurrencyNumber(displayBalance, { currency: currencyCode }) }} {{ currencyCode }}
             →
-            <span class="text-foreground font-medium">{{ toLocalNumber(displayTarget!) }} {{ currencyCode }}</span>
+            <span class="text-foreground font-medium"
+              >{{ toLocalCurrencyNumber(displayTarget!, { currency: currencyCode }) }} {{ currencyCode }}</span
+            >
           </p>
           <p
             class="text-sm font-medium"
@@ -240,11 +242,11 @@ watch(mode, () => {
             {{
               previewType === 'income'
                 ? label('incomeWillBeCreated', {
-                    amount: toLocalNumber(Math.abs(diff)),
+                    amount: toLocalCurrencyNumber(Math.abs(diff), { currency: currencyCode }),
                     currency: currencyCode,
                   })
                 : label('expenseWillBeCreated', {
-                    amount: toLocalNumber(Math.abs(diff)),
+                    amount: toLocalCurrencyNumber(Math.abs(diff), { currency: currencyCode }),
                     currency: currencyCode,
                   })
             }}
