@@ -62,6 +62,9 @@ services:
     networks: [selfhost]
     # The single public entrypoint. Front it with your reverse proxy for TLS,
     # or (behind the Traefik overlay) this host port is dropped entirely.
+    # HTTP_PORT also accepts HTTP_PORT=127.0.0.1:8080 — then the port is only
+    # reachable from this machine itself. Use that when a reverse proxy on the
+    # same host fronts the app, so the plain-HTTP port isn't open to the world.
     ports: ['${HTTP_PORT:-8080}:80']
     depends_on:
       backend: { condition: service_healthy }

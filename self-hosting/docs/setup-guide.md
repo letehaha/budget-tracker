@@ -167,16 +167,55 @@ section).
 
 ## 3. Behind your own reverse proxy
 
-Point your existing reverse proxy at the published frontend port
-(`http://<host>:8080` by default) and terminate TLS there. Proxy-side
-requirements and per-proxy recipes (Nginx Proxy Manager, Caddy) are in
-[reverse-proxies.md](reverse-proxies.md).
+This is for when you have a domain (say `budget.example.com`) and already run
+a reverse proxy – Nginx Proxy Manager, Caddy, Traefik, plain nginx – that
+handles HTTPS for your services. Three steps:
 
-On the app side, set `BETTER_AUTH_URL` and `AUTH_ORIGIN` to the public HTTPS
-origin your proxy serves (e.g. `https://budget.example.com`), then `up -d`
-again.
+**Step 1 – point the proxy at the app.** In your proxy, forward
+`budget.example.com` to `http://<server>:8080` (or whatever `HTTP_PORT` you
+chose). Per-proxy instructions are in [reverse-proxies.md](reverse-proxies.md).
 
-No reverse proxy yet? The stack can terminate TLS itself with the bundled
+**Step 2 – tell the app its public address.** In `.env`, set both values to
+the URL people will actually type in the browser:
+
+```bash
+BETTER_AUTH_URL=https://budget.example.com
+AUTH_ORIGIN=https://budget.example.com
+```
+
+Then run `docker compose up -d` again. Skipping this step is the #1 cause of
+"login doesn't work" – the app only accepts logins coming from this exact URL.
+
+**Step 3 – close the direct port.** Setting up the proxy doesn't switch off
+the original port: the app is still reachable by anyone at
+`http://<server-ip>:8080`. You don't want that – traffic there is unencrypted,
+and logins there fail anyway (wrong URL, see step 2), which looks like a
+confusing login loop. How to close it depends on where your proxy runs:
+
+- **Proxy on the same server as the app** (the usual case): in `.env`, change
+
+  ```bash
+  HTTP_PORT=8080
+  ```
+
+  to
+
+  ```bash
+  HTTP_PORT=127.0.0.1:8080
+  ```
+
+  and run `docker compose up -d` again. The `127.0.0.1:` prefix means "only
+  reachable from this machine": your proxy still reaches the app at
+  `http://127.0.0.1:8080`, but from the internet the port looks closed.
+
+- **Proxy on a different machine:** the `127.0.0.1:` trick won't work (the
+  proxy needs to reach the app over the network), so block port 8080 in your
+  hosting provider's firewall instead – the firewall panel at Hetzner /
+  DigitalOcean / AWS / etc. – allowing only your proxy machine's IP. Careful:
+  a firewall running on the server itself (like `ufw`) will **not** block
+  this port – Docker opens published ports underneath it.
+
+No reverse proxy yet? The stack can handle HTTPS itself with the bundled
 Traefik overlay – see [traefik-overlay.md](traefik-overlay.md).
 
 ## 4. Optional: build from source
