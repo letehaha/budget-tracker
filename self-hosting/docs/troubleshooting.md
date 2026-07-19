@@ -27,6 +27,24 @@ itself). Put the proxy on the app's `budget-tracker` Docker network and forward 
 `http://budget-tracker:80` instead – see
 [reverse-proxies.md](reverse-proxies.md#proxy-running-in-docker-on-the-same-server).
 
+## Imports fail on large files (`413` / "Request Entity Too Large")
+
+Importing a bank statement sends the whole file in one upload – up to about
+15 MB. Many reverse proxies reject anything over 1 MB by default, so a big
+import fails with a `413` or "Request Entity Too Large" error (sometimes it just
+looks like the upload silently did nothing). The fix is to raise your proxy's
+upload size limit to at least 15 MB.
+
+Plain nginx – add this inside your `server` (or `location`) block, then reload
+nginx (`nginx -s reload`):
+
+```nginx
+client_max_body_size 15m;
+```
+
+Nginx Proxy Manager: add the same line in the Proxy Host's **Advanced** tab.
+Caddy needs no change – it has no upload size limit.
+
 ## Backend exits immediately: `__REPLACE_ME__` secret
 
 The backend refuses to start while `APPLICATION_JWT_SECRET`,

@@ -17,6 +17,11 @@ no second port to configure.
 - **Pass the standard forwarding headers** (`Host`, `X-Forwarded-Proto`).
   Nearly every proxy does this out of the box; only check this if you built a
   config by hand.
+- **Allow bigger uploads.** Importing a bank statement sends the whole file in
+  one request – up to about 15 MB. Some proxies reject anything over 1 MB by
+  default, which makes large imports fail with a "413" or "Request Entity Too
+  Large" error. If your proxy has an upload size (or request size) limit, raise
+  it to at least 15 MB.
 - **Close the direct port.** Your proxy serves the app over HTTPS, but the
   plain-HTTP port `8080` is still open to anyone until you close it –
   see [setup-guide.md](setup-guide.md#3-behind-your-own-reverse-proxy), step 3.
@@ -30,7 +35,14 @@ step 2.
 
 Add a **Proxy Host**: forward to `http://<host>:8080`, and enable
 **Websockets Support** in the details tab. Request a Let's Encrypt cert on the
-SSL tab. Nothing else to configure – the app and API share the origin.
+SSL tab. The app and API share the origin, so there's nothing else to route.
+
+If a large import ever fails with a **413** / "Request Entity Too Large" error,
+open the Proxy Host's **Advanced** tab, add the line below, and save:
+
+```
+client_max_body_size 15m;
+```
 
 Nginx Proxy Manager is almost always run as a container itself. If yours is,
 don't forward to `http://<host>:8080` – reach the app over the Docker network
@@ -47,7 +59,8 @@ budget.example.com {
 ```
 
 Caddy needs nothing else – it gets the HTTPS certificate automatically and
-its defaults handle streaming and headers correctly.
+its defaults handle streaming, headers, and large uploads correctly (Caddy has
+no upload size limit).
 
 ## Proxy running in Docker on the same server
 
