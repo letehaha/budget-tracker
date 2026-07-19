@@ -1,4 +1,5 @@
 import { API_HTTP } from '@/api/_api';
+import { config } from '@/common/config';
 import { ApiBaseError } from '@/common/types';
 import { ApiErrorResponseError } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
@@ -10,7 +11,7 @@ import {
   type ExportGroup,
 } from '@bt/shared/types';
 
-const API_VER = import.meta.env.VITE_APP_API_VER;
+const API_VER = config.apiVer;
 const SESSION_ID_KEY = 'session-id';
 
 export interface ExportDataPayload {

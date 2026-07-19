@@ -33,7 +33,7 @@ export function setupMiddleware(app: Express) {
   }
 
   // AUTH_ORIGIN is the frontend host – the primary CORS origin. ALLOWED_ORIGINS
-  // is documented as "extra origins beyond AUTH_ORIGIN" (.env.production.example),
+  // is documented as "extra origins beyond AUTH_ORIGIN" (self-hosting/.env.example),
   // so seed AUTH_ORIGIN first. Without this, a self-host that sets only the
   // documented AUTH_ORIGIN gets an empty CORS allow-list and every preflight
   // returns 404 – auth POSTs silently fail in the browser.

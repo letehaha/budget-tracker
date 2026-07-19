@@ -70,13 +70,21 @@
 
 <script lang="ts" setup>
 import { getOAuthAuthorizeUrl } from '@/api/mcp';
-import { AuthDivider, GithubIcon, GoogleIcon, OAuthButton, PasskeyButton } from '@/components/auth';
+import {
+  AuthDivider,
+  GithubIcon,
+  GoogleIcon,
+  OAUTH_PROVIDER_NAMES,
+  OAuthButton,
+  PasskeyButton,
+} from '@/components/auth';
 import { InputField } from '@/components/fields';
 import FormWrapper from '@/components/fields/form-wrapper.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/lib/ui/card';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
+import { OAuthProviderNotConfiguredError } from '@/js/errors';
 import { email, minLength, required } from '@/js/helpers/validators';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
@@ -193,8 +201,12 @@ const handleOAuthLogin = async ({ provider }: { provider: OAUTH_PROVIDER }) => {
   try {
     isOAuthLoading.value = true;
     await loginWithOAuth({ provider, from: 'signin' });
-  } catch {
-    addErrorNotification(t('auth.login.errors.oauthFailed', { provider }));
+  } catch (error) {
+    addErrorNotification(
+      error instanceof OAuthProviderNotConfiguredError
+        ? t('auth.login.errors.oauthNotConfigured', { provider: OAUTH_PROVIDER_NAMES[provider] })
+        : t('auth.login.errors.oauthFailed', { provider }),
+    );
   } finally {
     isOAuthLoading.value = false;
   }

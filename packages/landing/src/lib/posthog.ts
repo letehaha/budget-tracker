@@ -1,7 +1,6 @@
 import posthog from 'posthog-js';
 
-const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
-const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST;
+import { config } from './config';
 
 type LandingAnalyticsEvent =
   | {
@@ -15,14 +14,14 @@ type LandingAnalyticsEvent =
   | { event: 'demo_started'; properties: { location: 'hero' } };
 
 function isPostHogEnabled(): boolean {
-  return import.meta.env.PROD && Boolean(POSTHOG_KEY);
+  return import.meta.env.PROD && Boolean(config.posthogKey);
 }
 
 export function initPostHog(): void {
   if (!isPostHogEnabled()) return;
 
-  posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST || '/helper',
+  posthog.init(config.posthogKey!, {
+    api_host: config.posthogHost || '/helper',
     ui_host: 'https://eu.posthog.com',
     capture_pageview: false,
     capture_pageleave: false,

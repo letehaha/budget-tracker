@@ -22,8 +22,14 @@ Thumbs.db
 .gitignore
 
 # Environment
+# Keep secret env files out of the build context. The self-hosting kit's
+# .env sits next to the compose file inside self-hosting/, which the backend
+# Dockerfile copies wholesale — so it must never be baked into an image layer.
+.env
 .env.local
 .env.*.local
+.env.production
+self-hosting/.env
 
 # Logs
 *.log

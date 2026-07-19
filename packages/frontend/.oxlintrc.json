@@ -9,7 +9,7 @@
     "typescript/no-empty-object-type": "off",
     "no-unused-vars": "warn",
     "unicorn/prefer-optional-catch-binding": "warn",
-    "no-underscore-dangle": ["warn", { "allow": ["_call", "_baseURL"] }]
+    "no-underscore-dangle": ["warn", { "allow": ["_call", "__APP_CONFIG__"] }]
   },
   "ignorePatterns": ["*.d.ts", "**/coverage", "**/dist", "**/landing/**", "**/legal/**", "vite.config.js", "scripts/**"]
 }

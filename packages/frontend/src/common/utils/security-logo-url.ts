@@ -1,3 +1,4 @@
+import { config } from '@/common/config';
 import { ASSET_CLASS } from '@bt/shared/types/investments';
 
 /**
@@ -15,7 +16,7 @@ const LOGO_DEV_BASE = 'https://img.logo.dev';
 const LOGO_DEV_DEFAULT_SIZE = 64;
 
 const buildLogoDevUrl = ({ path, symbol }: { path: 'ticker' | 'crypto'; symbol: string }): string | null => {
-  const token = import.meta.env.VITE_LOGO_DEV_TOKEN;
+  const token = config.logoDevToken;
   // Without a token logo.dev returns 403 — better to skip the request entirely
   // than serve a broken <img> that silently hides via the error fallback.
   if (!token) return null;

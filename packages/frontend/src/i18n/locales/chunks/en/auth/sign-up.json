@@ -21,7 +21,8 @@
         "invalidPassword": "Invalid password.",
         "userExists": "User with that email already exists.",
         "genericErrorRetry": "An error occurred. Please try again.",
-        "oauthFailed": "Failed to sign up with {provider}. Please try again."
+        "oauthFailed": "Failed to sign up with {provider}. Please try again.",
+        "oauthNotConfigured": "{provider} sign-in is not configured on this server."
       }
     },
     "shared": {
