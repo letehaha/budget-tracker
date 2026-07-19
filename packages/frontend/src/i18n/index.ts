@@ -1,4 +1,5 @@
-import { type I18n, createI18n } from 'vue-i18n';
+import { compile } from '@intlify/core-base';
+import { type I18n, type MessageCompiler, type MessageFunction, createI18n } from 'vue-i18n';
 import type { RouteLocationNormalized } from 'vue-router';
 
 // Import common chunk synchronously for initial load (en only)
@@ -231,6 +232,26 @@ const chunkRegistry: ChunkRegistry = {
   },
 };
 
+// A broken translation string (e.g. an unescaped "@", which vue-i18n reads as
+// special syntax) throws while rendering and takes the whole page down. Catch
+// that and show the raw text instead, so one bad string can't crash the app.
+export const resilientMessageCompiler: MessageCompiler = (message, context) => {
+  try {
+    return compile(message, context);
+  } catch (error) {
+    const fallbackText = typeof message === 'string' ? message : context.key;
+
+    console.warn(
+      `[i18n] Failed to compile translation for key "${context.key}" (locale "${context.locale}"). ` +
+        `Rendering its raw text as a fallback.`,
+      error,
+    );
+
+    const renderRawText: MessageFunction = () => fallbackText;
+    return renderRawText;
+  }
+};
+
 // Create i18n instance with common chunk pre-loaded
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const i18n: I18n<any, {}, {}, string, false> = createI18n<{}, string, false>({
@@ -240,6 +261,7 @@ export const i18n: I18n<any, {}, {}, string, false> = createI18n<{}, string, fal
   messages: {
     en: enCommon,
   },
+  messageCompiler: resilientMessageCompiler,
   globalInjection: true,
   missingWarn: process.env.NODE_ENV === 'development',
   fallbackWarn: process.env.NODE_ENV === 'development',

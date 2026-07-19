@@ -1,5 +1,7 @@
 import type { ASSET_CLASS, SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/investments';
 import { logger } from '@js/utils';
+import { isAxiosError } from 'axios';
+import { inspect } from 'node:util';
 
 /**
  * Branded type for provider-native security identifiers (Yahoo/Polygon/FMP/
@@ -171,8 +173,42 @@ export abstract class BaseSecurityDataProvider {
    * exception and double/triple-reported the genuine ones.
    */
   protected formatProviderError({ operation, error }: { operation: string; error: unknown }): Error {
-    const message = `${operation}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    const message = `${operation} via ${this.providerName}: ${this.describeProviderFailure(error)}`;
     logger.info(message);
     return new Error(message, { cause: error });
+  }
+
+  // Turn whatever a provider SDK threw into readable text. They don't agree on
+  // shape: axios throws AxiosError (status + body), alphavantage throws a plain
+  // string, some throw an object — flattening all to "Unknown error" hid the
+  // real cause (not-found vs rate-limited vs network).
+  private describeProviderFailure(error: unknown): string {
+    if (isAxiosError(error)) {
+      const status = error.response?.status;
+      const body = error.response?.data;
+      const bodyMessage =
+        typeof body === 'string' && body
+          ? body
+          : body && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string'
+            ? (body as { message: string }).message
+            : undefined;
+      return `HTTP ${status ?? 'unknown'} - ${bodyMessage ?? error.message}`;
+    }
+
+    if (error instanceof Error) {
+      return error.message || error.constructor.name;
+    }
+
+    if (typeof error === 'string') {
+      return error || '(empty string thrown)';
+    }
+
+    if (error === null || error === undefined) {
+      return String(error);
+    }
+
+    // Plain object / unknown throwable: inspect() shows real key/values (and
+    // handles circular refs) instead of a useless "[object Object]".
+    return inspect(error, { depth: 2, breakLength: 200 });
   }
 }
