@@ -6,7 +6,7 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
-import { useCurrencyName } from '@/composable';
+import { useCurrencyName, useFormatCurrency } from '@/composable';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrenciesStore } from '@/stores';
 import { type CurrencyModel, LOAN_TYPE, SUPPORTED_LOAN_TYPES } from '@bt/shared/types';
@@ -46,6 +46,7 @@ const isEdit = computed(() => props.mode === 'edit');
 const { t } = useI18n();
 const currenciesStore = useCurrenciesStore();
 const { formatCurrencyLabel } = useCurrencyName();
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { baseCurrency, systemCurrenciesVerbose } = storeToRefs(currenciesStore);
 
 const defaultCurrency = computed(
@@ -130,16 +131,6 @@ const selectedCurrency = computed(
 const currencyLabel = (item: CurrencyModel): string =>
   formatCurrencyLabel({ code: item.code, fallbackName: item.currency });
 
-const currencyFormatter = computed(
-  () =>
-    new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: form.currencyCode || 'USD',
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 2,
-    }),
-);
-
 // Amortization over what's left: M = B·r·(1+r)^m / ((1+r)^m − 1), where B is the outstanding
 // balance and m the months remaining in the term. Interest accrues on the current balance, so for
 // an off-schedule loan (extra payments, missed payments, mid-life creation) this yields the payment
@@ -169,7 +160,7 @@ const estimatedMinPayment = computed<number | null>(() => {
 
 const estimatedMinPaymentLabel = computed(() => {
   if (estimatedMinPayment.value === null) return null;
-  return currencyFormatter.value.format(estimatedMinPayment.value);
+  return formatAmountByCurrencyCode(estimatedMinPayment.value, form.currencyCode || 'USD');
 });
 
 const applyEstimatedMinPayment = () => {
