@@ -48,6 +48,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 
     <link rel="icon" type="image/svg+xml" href="/img/logo.svg" />
+
+    <!-- Runtime config shim, assigning window.__APP_CONFIG__. In production the
+         container entrypoint writes it and nginx serves it from an exact-match
+         `/config.js` location shared with the SPA; a public/ placeholder covers
+         `astro dev`. `is:inline` keeps Astro from bundling it into a hashed
+         module, which would defer it past island hydration and lose the
+         per-container rewrite. -->
+    <script is:inline src="/config.js"></script>
   </head>
   <body>
     <slot />

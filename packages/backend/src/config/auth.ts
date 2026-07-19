@@ -3,6 +3,7 @@ import { passkey } from '@better-auth/passkey';
 import { OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import { EnvVar, isEnvConfigured } from '@common/utils/env';
 import { createSessionHooks } from '@config/auth-hooks/session-hooks';
+import { shouldUseSecureCookies } from '@config/should-use-secure-cookies';
 import { logger } from '@js/utils/logger';
 import { identifyUser, trackSignup } from '@js/utils/posthog';
 import { captureException } from '@js/utils/sentry';
@@ -229,7 +230,14 @@ export const auth = betterAuth({
     // cookie. Each worktree sets a distinct prefix (see scripts/docker-dev.sh) so
     // their session cookies coexist.
     cookiePrefix: process.env.BETTER_AUTH_COOKIE_PREFIX || 'bt_auth',
-    useSecureCookies: process.env.NODE_ENV === 'production',
+    // Secure cookies only when the app is actually served over https – a
+    // production build served over plain http (self-host trial on a LAN IP)
+    // would otherwise have its session cookie silently dropped by the
+    // browser. Rationale in shouldUseSecureCookies.
+    useSecureCookies: shouldUseSecureCookies({
+      nodeEnv: process.env.NODE_ENV,
+      betterAuthUrl: process.env.BETTER_AUTH_URL,
+    }),
   },
 
   // Error handling - redirect OAuth errors to frontend callback page

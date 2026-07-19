@@ -21,7 +21,8 @@
         "invalidPassword": "Contraseña no válida.",
         "userExists": "Ya existe un usuario con ese correo electrónico.",
         "genericErrorRetry": "Se ha producido un error. Por favor, inténtelo de nuevo.",
-        "oauthFailed": "No se pudo registrar con {provider}. Por favor, inténtelo de nuevo."
+        "oauthFailed": "No se pudo registrar con {provider}. Por favor, inténtelo de nuevo.",
+        "oauthNotConfigured": "El inicio de sesión con {provider} no está configurado en este servidor."
       }
     },
     "shared": {

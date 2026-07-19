@@ -41,26 +41,34 @@ jobs:
           # so pin everything to the commit the triggering CI run actually validated
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
+      # Immutable per-build tag pushed alongside :latest so self-hosters can
+      # pin an exact image (short form of the commit being built — on
+      # workflow_run triggers that is head_sha, not github.sha).
+      - name: Compute short SHA
+        id: vars
+        run: echo "sha_short=${BUILD_SHA::7}" >> "$GITHUB_OUTPUT"
+        env:
+          BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # This image is the self-host image: letehaha/budget-tracker-fe is what
+      # self-hosters pull. Deployment-specific values (API origin, analytics
+      # keys, CSP hosts) belong to whoever runs the container, not to this
+      # build — they enter at container start via the entrypoint's runtime
+      # env, so only build-identity and source-map-upload inputs go here.
       - id: frontend-docker-build
         uses: ./.github/actions/frontend-docker-build
         with:
-          api-base-url: ${{ secrets.API_BASE_URL }}
-          vue-app-api-ver: ${{ secrets.VUE_APP_API_VER }}
-          mcp-base-url: ${{ secrets.MCP_BASE_URL }}
-          logo-dev-token: ${{ secrets.VITE_LOGO_DEV_TOKEN }}
-          posthog-key: ${{ secrets.VITE_POSTHOG_KEY }}
-          posthog-host: ${{ secrets.VITE_POSTHOG_HOST }}
-          sentry-dsn: ${{ secrets.VITE_SENTRY_DSN }}
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           sentry-org: ${{ secrets.SENTRY_ORG }}
           sentry-project: ${{ secrets.SENTRY_PROJECT }}
           sentry-release: ${{ github.event.workflow_run.head_sha || github.sha }}
           app-commit-hash: ${{ github.event.workflow_run.head_sha || github.sha }}
-          csp-extra-connect: ${{ secrets.CSP_EXTRA_CONNECT }}
-          csp-extra-form-action: ${{ secrets.CSP_EXTRA_FORM_ACTION }}
-          csp-extra-analytics: ${{ secrets.CSP_EXTRA_ANALYTICS }}
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          image-tag: latest,sha-${{ steps.vars.outputs.sha_short }}
+          # Prod VPS is amd64, so build single-arch (fast, native, no QEMU). The
+          # actions still accept a `platforms` input — add linux/arm64 here to
+          # publish multi-arch images for ARM self-hosters when that's wanted.
           push: 'true'
 
       - id: backend-docker-build
@@ -69,6 +77,10 @@ jobs:
           docker-hub-username: ${{ secrets.DOCKER_HUB_USERNAME }}
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           sentry-release: ${{ github.event.workflow_run.head_sha || github.sha }}
+          image-tag: latest,sha-${{ steps.vars.outputs.sha_short }}
+          # Prod VPS is amd64, so build single-arch (fast, native, no QEMU). The
+          # actions still accept a `platforms` input — add linux/arm64 here to
+          # publish multi-arch images for ARM self-hosters when that's wanted.
           push: 'true'
 
       - name: Trigger Dokploy deployment

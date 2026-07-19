@@ -85,13 +85,13 @@
 </template>
 
 <script lang="ts" setup>
-import { AuthDivider, GithubIcon, GoogleIcon, OAuthButton } from '@/components/auth';
+import { AuthDivider, GithubIcon, GoogleIcon, OAUTH_PROVIDER_NAMES, OAuthButton } from '@/components/auth';
 import { InputField } from '@/components/fields';
 import FormWrapper from '@/components/fields/form-wrapper.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/lib/ui/card';
 import { useFormValidation } from '@/composable';
-import { ApiErrorResponseError } from '@/js/errors';
+import { ApiErrorResponseError, OAuthProviderNotConfiguredError } from '@/js/errors';
 import { email, minLength, required, sameAs } from '@/js/helpers/validators';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
@@ -198,8 +198,11 @@ const handleOAuthSignup = async ({ provider }: { provider: OAUTH_PROVIDER }) => 
   try {
     isOAuthLoading.value = true;
     await authStore.loginWithOAuth({ provider, from: 'signup' });
-  } catch {
-    formError.value = t('auth.signup.errors.oauthFailed', { provider });
+  } catch (error) {
+    formError.value =
+      error instanceof OAuthProviderNotConfiguredError
+        ? t('auth.signup.errors.oauthNotConfigured', { provider: OAUTH_PROVIDER_NAMES[provider] })
+        : t('auth.signup.errors.oauthFailed', { provider });
   } finally {
     isOAuthLoading.value = false;
   }

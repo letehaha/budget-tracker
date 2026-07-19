@@ -52,6 +52,10 @@
       </strong>
     </noscript>
     <div id="app"></div>
+    <!-- Runtime config shim. Served by the Docker entrypoint in production
+         (window.__APP_CONFIG__); a public/ placeholder covers dev. Must load
+         before the app module so config reads see it. -->
+    <script src="/config.js"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

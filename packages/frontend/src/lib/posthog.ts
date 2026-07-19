@@ -1,8 +1,6 @@
+import { config } from '@/common/config';
 import posthog from 'posthog-js';
 import type { Router } from 'vue-router';
-
-const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
-const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST;
 
 // ============================================
 // Event Types
@@ -75,7 +73,7 @@ type AnalyticsEvent =
  */
 function isPostHogEnabled(): boolean {
   const isProduction = import.meta.env.PROD;
-  const hasKey = Boolean(POSTHOG_KEY);
+  const hasKey = Boolean(config.posthogKey);
 
   return isProduction && hasKey;
 }
@@ -85,13 +83,14 @@ function isPostHogEnabled(): boolean {
  * Should be called early in app initialization.
  */
 export function initPostHog(): void {
-  if (!isPostHogEnabled()) {
+  const posthogKey = config.posthogKey;
+  if (!isPostHogEnabled() || !posthogKey) {
     return;
   }
 
-  posthog.init(POSTHOG_KEY, {
+  posthog.init(posthogKey, {
     // Use reverse proxy to bypass ad blockers (nginx proxies /helper to PostHog)
-    api_host: POSTHOG_HOST || '/helper',
+    api_host: config.posthogHost || '/helper',
     // Required when using proxy - keeps dashboard links working
     ui_host: 'https://eu.posthog.com',
     // Disable automatic pageview capture - we track specific events instead

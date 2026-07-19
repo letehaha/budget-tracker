@@ -16,6 +16,7 @@
         "genericError": "Se ha producido un error.",
         "genericErrorRetry": "Se ha producido un error. Por favor, inténtelo de nuevo.",
         "oauthFailed": "No se pudo iniciar sesión con {provider}. Por favor, inténtelo de nuevo.",
+        "oauthNotConfigured": "El inicio de sesión con {provider} no está configurado en este servidor.",
         "passkeyFailed": "No se pudo iniciar sesión con la clave de acceso. Por favor, inténtelo de nuevo."
       }
     },

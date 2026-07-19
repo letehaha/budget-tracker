@@ -21,7 +21,7 @@ RUN npm ci
 COPY tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY packages/backend ./packages/backend
-COPY docker/prod ./docker/prod
+COPY self-hosting ./self-hosting
 
 # Build the backend
 WORKDIR /app/packages/backend
@@ -65,7 +65,7 @@ COPY --from=build-stage --chown=nodejs:nodejs /app/packages/backend/src/migratio
 COPY --from=build-stage --chown=nodejs:nodejs /app/packages/backend/src/resources ./packages/backend/src/resources
 
 # Copy and prepare entrypoint script
-COPY docker/prod/backend/docker-entrypoint.sh /
+COPY self-hosting/backend/docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
 
 # Set working directory to backend
