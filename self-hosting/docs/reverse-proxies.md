@@ -62,6 +62,113 @@ Caddy needs nothing else – it gets the HTTPS certificate automatically and
 its defaults handle streaming, headers, and large uploads correctly (Caddy has
 no upload size limit).
 
+## Traefik (your own)
+
+This is for when you already run your own Traefik. (No Traefik yet? The stack
+ships a preconfigured one instead – see [traefik-overlay.md](traefik-overlay.md).)
+
+Traefik usually discovers services through Docker labels, but the app's
+compose file ships without any – so tell Traefik about the app with a small
+config file instead. Save this as a new file (e.g. `budget-tracker.yml`) in
+the folder your Traefik reads dynamic config from:
+
+```yaml
+http:
+  routers:
+    budget-tracker:
+      rule: Host(`budget.example.com`)
+      entryPoints: [websecure]
+      service: budget-tracker
+      tls:
+        certResolver: letsencrypt
+  services:
+    budget-tracker:
+      loadBalancer:
+        servers:
+          - url: 'http://<host>:8080'
+```
+
+Swap in your own domain, and match `entryPoints` and `certResolver` to the
+names your Traefik already uses (`websecure` and `letsencrypt` are the common
+ones – yours are in your `traefik.yml`).
+
+Never set up such a folder? It's called the _file provider_: two lines in your
+static config (`traefik.yml`) turn it on, and Traefik picks up every `.yml`
+you drop into the folder:
+
+```yaml
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+```
+
+If Traefik runs in Docker, that folder must also be mounted into the container
+(a `volumes:` line in its compose file) – and don't forward to `<host>:8080`:
+plug Traefik into the app's network and set the server `url` to
+`http://budget-tracker:80` instead. See
+[Proxy running in Docker on the same server](#proxy-running-in-docker-on-the-same-server).
+
+Nothing else to tune: Traefik has no upload size limit and passes the app's
+live updates (streaming) through with default settings.
+
+## Plain nginx
+
+For an nginx you installed yourself (apt install, certbot, etc.). Add a new
+site file (e.g. `/etc/nginx/sites-enabled/budget-tracker.conf`):
+
+```nginx
+server {
+    listen 80;
+    server_name budget.example.com;
+
+    # Importing a bank statement sends the whole file in one request.
+    # Without this line nginx caps requests at 1 MB and big imports fail
+    # with a 413 error.
+    client_max_body_size 15m;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Reload nginx (`sudo systemctl reload nginx`), then add HTTPS the way you
+usually do – e.g. `sudo certbot --nginx -d budget.example.com` (certbot edits
+the block above for you).
+
+### nginx running in Docker
+
+Same idea, two changes. The address becomes `http://budget-tracker:80` – after
+plugging the nginx container into the app's network, see
+[Proxy running in Docker on the same server](#proxy-running-in-docker-on-the-same-server).
+And the `location` block needs two extra lines so nginx re-finds the app after
+updates:
+
+```nginx
+server {
+    listen 80;
+    server_name budget.example.com;
+
+    client_max_body_size 15m;
+
+    location / {
+        # Ask Docker's DNS for the app's current address instead of
+        # remembering the one from nginx's own start. Without these two
+        # lines, an app update that recreates the containers can leave
+        # nginx pointing at the old address – every request answers 502
+        # until nginx is restarted.
+        resolver 127.0.0.11 valid=30s;
+        set $app http://budget-tracker:80;
+
+        proxy_pass $app;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
 ## Proxy running in Docker on the same server
 
 Most people run their reverse proxy as a container too – Nginx Proxy Manager

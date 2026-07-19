@@ -27,6 +27,19 @@ itself). Put the proxy on the app's `budget-tracker` Docker network and forward 
 `http://budget-tracker:80` instead – see
 [reverse-proxies.md](reverse-proxies.md#proxy-running-in-docker-on-the-same-server).
 
+## Worked before, `502` right after updating the app (nginx in Docker)
+
+Plain nginx looks up the app's address once, at its own start. When an update
+(`docker compose pull` + `up -d`) recreates the app's containers, the app can
+come back on a new internal address – nginx keeps talking to the old one and
+serves `502` until it is restarted.
+
+Quick fix: restart the proxy container (`docker restart <nginx-container>`).
+Permanent fix: the `resolver` lines in the
+[nginx-in-Docker snippet](reverse-proxies.md#nginx-running-in-docker) make
+nginx re-look-up the address by itself. Nginx Proxy Manager, Caddy, and
+Traefik do this out of the box and don't have this problem.
+
 ## Imports fail on large files (`413` / "Request Entity Too Large")
 
 Importing a bank statement sends the whole file in one upload – up to about
