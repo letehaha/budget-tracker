@@ -182,7 +182,6 @@
     "dateInvalid": "\"date\" es una fecha no válida."
   },
   "bankDataProviders": {
-    "apiError": "Error de API de {{provider}}: {{message}}",
     "reauthorizationStarted": "Reautorización iniciada. Por favor, complete el flujo de OAuth.",
     "connectionEstablished": "Conexión establecida correctamente",
     "failedToFetchBanks": "No se pudieron obtener los bancos. Por favor, verifique sus credenciales y el código de país.",
@@ -200,6 +199,7 @@
     "accountCurrencyNotSupported": "La moneda de la cuenta \"{{currency}}\" no está soportada por este sistema.",
     "periodLoadNotSupported": "La carga de transacciones para un período personalizado no está soportada por este proveedor.",
     "transactionsLoadedCount": "Se cargaron {{count}} transacciones.",
+    "apiError": "Error de API de {{provider}}: {{message}}",
     "monobank": {
       "invalidCredentialsFormat": "Formato de credenciales no válido para Monobank",
       "invalidApiToken": "Token de API de Monobank no válido",
