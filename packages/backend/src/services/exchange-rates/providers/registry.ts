@@ -141,9 +141,13 @@ class ExchangeRateProviderRegistry {
    * Each provider is queried and its rates are merged into the result, but a
    * lower-priority provider only fills currencies the higher-priority ones did
    * NOT supply. This is a gap-filling merge, not first-success-wins: the primary
-   * provider (currency-rates-api) covers ~38 currencies, so the chain MUST
-   * continue to the comprehensive fallback (ApiLayer) to refresh the long tail
-   * of exotic currencies — otherwise those rates go permanently stale.
+   * (currency-rates-api) covers ~38 currencies, so the chain continues to the
+   * free fawazahmed0 provider to refresh the exotic long tail — otherwise those
+   * rates go permanently stale.
+   *
+   * The chain early-stops once every enabled currency is covered, so the paid
+   * last-resort (ApiLayer) is only queried when the free providers leave a gap
+   * (mostly pre-2024 exotic dates, which fawazahmed0 can't serve).
    *
    * @param params - Fetch parameters
    * @returns Merged exchange rates with per-currency attribution, or null if
@@ -170,11 +174,55 @@ class ExchangeRateProviderRegistry {
     }
 
     const baseCurrency = params.baseCurrency ?? DEFAULT_BASE_CURRENCY;
+
+    // Fetch the enabled currency set once, tolerating a DB failure. Reused for the
+    // per-provider early-stop check, the fawazahmed0-gap alert, and the degraded-sync
+    // coverage report — so it is never queried more than once per run.
+    let enabledCodes: string[] | null = null;
+    try {
+      enabledCodes = (await getAllCurrencies()).map((c) => c.code);
+    } catch (error) {
+      // Without the enabled set, the ApiLayer early-stop and both coverage
+      // alerts are disabled for this run — must stay visible in logs.
+      logger.error('[exchange-rates] Could not load enabled currencies; coverage checks disabled for this run', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    const requestedDate = params.date.toISOString().slice(0, 10);
     const providerRates: ProviderRatesInput[] = [];
     const failed: ProviderFailure[] = [];
     let resultDate: string | undefined;
 
     for (const provider of available) {
+      // Early-stop: once the higher-priority (free) providers already cover every
+      // enabled currency, skip the remaining lower-priority ones. This keeps the
+      // paid ApiLayer fetch from firing when there is nothing left to fill.
+      if (enabledCodes && enabledCodes.length > 0 && providerRates.length > 0) {
+        const { rates: coveredSoFar } = mergeProviderRates({ providerRates, baseCurrency });
+        const stillMissing = findMissingCurrencies({
+          expected: enabledCodes,
+          covered: Object.keys(coveredSoFar),
+          baseCurrency,
+        });
+        if (stillMissing.length === 0) {
+          logger.info(
+            `[exchange-rates] All enabled currencies covered before ${provider.metadata.name}; skipping remaining lower-priority providers`,
+          );
+          break;
+        }
+      }
+
+      // A provider whose data floor is above the requested date has nothing to
+      // serve by design (e.g. fawazahmed0 starts 2024-03-02). Skip it without
+      // recording a failure so the degraded-sync alert only reports real problems.
+      if (provider.metadata.minHistoricalDate && requestedDate < provider.metadata.minHistoricalDate) {
+        logger.info(
+          `[exchange-rates] ${provider.metadata.name} skipped: ${requestedDate} predates its data floor ${provider.metadata.minHistoricalDate}`,
+        );
+        continue;
+      }
+
       try {
         logger.info(`Attempting to fetch rates from ${provider.metadata.name}`);
         const result = await provider.fetchRatesForDate(params);
@@ -211,7 +259,33 @@ class ExchangeRateProviderRegistry {
       rates,
     };
 
-    await this.reportDegradedSync({ failed, unavailable, providersUsed, merged });
+    // fawazahmed0 MUST have data for any date >= its floor, so an enabled currency
+    // ApiLayer had to fill on such a date is a data anomaly worth a Sentry signal.
+    // Deliberately narrow: a fawaz fetch FAILURE is already reported by the
+    // degraded-sync alert, and a currency missing entirely by the coverage alert —
+    // this one only flags "fawaz ran but lacked a rate the paid fallback had".
+    // The floor compares the REQUESTED date, not merged.date (a provider's own
+    // stale-date fallback must not shift the check). Runs on BOTH the daily and
+    // the on-demand paths since both route through here.
+    const fawaz = available.find((p) => p.metadata.type === EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API);
+    const fawazFailed = failed.some((p) => p.type === EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API);
+    if (
+      fawaz &&
+      !fawazFailed &&
+      enabledCodes &&
+      fawaz.metadata.minHistoricalDate &&
+      requestedDate >= fawaz.metadata.minHistoricalDate
+    ) {
+      const gap = enabledCodes.filter((code) => merged.rates[code]?.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER);
+      if (gap.length > 0) {
+        logger.error('[ALERT:FAWAZ_CURRENCY_API_GAP] fawazahmed0 missing post-2024 rate(s); filled by ApiLayer', {
+          gapCurrencies: gap,
+          date: requestedDate,
+        });
+      }
+    }
+
+    await this.reportDegradedSync({ failed, unavailable, providersUsed, merged, enabledCodes });
 
     return { merged, providersUsed };
   }
@@ -230,11 +304,13 @@ class ExchangeRateProviderRegistry {
     unavailable,
     providersUsed,
     merged,
+    enabledCodes,
   }: {
     failed: ProviderFailure[];
     unavailable: ProviderFailure[];
     providersUsed: ProviderContribution[];
     merged: MergedRatesForDate;
+    enabledCodes: string[] | null;
   }): Promise<void> {
     const degradedProviders = [...failed, ...unavailable];
 
@@ -252,24 +328,22 @@ class ExchangeRateProviderRegistry {
       });
     }
 
-    // Compare against the currencies users can actually select.
-    try {
-      const enabled = (await getAllCurrencies()).map((c) => c.code);
-      const missingCurrencies = findMissingCurrencies({
-        expected: enabled,
-        covered: Object.keys(merged.rates),
-        baseCurrency: merged.baseCurrency,
-      });
-      if (missingCurrencies.length > 0) {
-        logger.error('[exchange-rates] Enabled currencies missing from sync result', {
-          missingCurrencies,
-          missingCount: missingCurrencies.length,
-          date: merged.date,
-        });
-      }
-    } catch (error) {
-      logger.warn('Could not check currency coverage for sync result', {
-        error: error instanceof Error ? error.message : String(error),
+    // Compare against the currencies users can actually select. `enabledCodes` is
+    // pre-fetched by the caller (one query per run); if it couldn't be loaded, skip
+    // the coverage check.
+    if (!enabledCodes) {
+      return;
+    }
+    const missingCurrencies = findMissingCurrencies({
+      expected: enabledCodes,
+      covered: Object.keys(merged.rates),
+      baseCurrency: merged.baseCurrency,
+    });
+    if (missingCurrencies.length > 0) {
+      logger.error('[exchange-rates] Enabled currencies missing from sync result', {
+        missingCurrencies,
+        missingCount: missingCurrencies.length,
+        date: merged.date,
       });
     }
   }

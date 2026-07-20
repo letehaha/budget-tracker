@@ -3,7 +3,8 @@
  *
  * Providers are registered in priority order:
  * 1. Currency Rates API (custom service) - Priority 1
- * 2. ApiLayer (comprehensive, paid) - Priority 2
+ * 2. fawazahmed0 Currency API (free CDN) - Priority 2
+ * 3. ApiLayer (comprehensive, paid) - Priority 3
  *
  * To disable a provider, simply comment out its registration line.
  */
@@ -11,6 +12,7 @@ import { logger } from '@js/utils';
 
 import { ApiLayerProvider } from './api-layer';
 import { CurrencyRatesApiProvider } from './currency-rates-api';
+import { FawazCurrencyApiProvider } from './fawaz-currency-api';
 import { exchangeRateProviderRegistry } from './registry';
 
 /**
@@ -23,7 +25,10 @@ export function initializeExchangeRateProviders(): void {
   // Priority 1: Custom Currency Rates API (try first)
   exchangeRateProviderRegistry.register(new CurrencyRatesApiProvider());
 
-  // Priority 2: ApiLayer (comprehensive, paid fallback for the exotic long tail)
+  // Priority 2: fawazahmed0 Currency API (free CDN, fills the exotic long tail on fresh dates)
+  exchangeRateProviderRegistry.register(new FawazCurrencyApiProvider());
+
+  // Priority 3: ApiLayer (comprehensive, paid last-resort fallback)
   exchangeRateProviderRegistry.register(new ApiLayerProvider());
 
   logger.info(`Initialized ${exchangeRateProviderRegistry.getCount()} exchange rate providers`);

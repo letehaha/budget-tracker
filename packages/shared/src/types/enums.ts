@@ -57,14 +57,13 @@ export type DeactivationReason = (typeof DEACTIVATION_REASON)[keyof typeof DEACT
 
 /**
  * Identifies the exchange rate provider that supplied a given rate.
- * Persisted as the `source` column on the `ExchangeRates` table.
- *
- * NOTE: keep in sync with the CHECK constraint maintained by migrations under
- * `packages/backend/src/migrations/` (currently the
- * `20260608000000-drop-frankfurter-provider.ts` migration owns the latest set).
+ * Persisted as the free-form `VARCHAR` `source` column on the `ExchangeRates`
+ * table. This enum is the SOLE source of truth for valid values — so adding a
+ * provider is a code-only change with no migration.
  */
 export enum EXCHANGE_RATE_PROVIDER_TYPE {
   CURRENCY_RATES_API = 'currency-rates-api',
+  FAWAZ_CURRENCY_API = 'fawaz-currency-api',
   API_LAYER = 'api-layer',
   /**
    * Catch-all for rows whose origin cannot be determined.
