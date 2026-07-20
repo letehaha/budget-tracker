@@ -152,7 +152,7 @@
         "skippedLabel": "Dilewati:",
         "errorsTitle": "Error Impor",
         "transactionNumberHeader": "Transaksi #",
-        "errorHeader": "Error",
+        "errorHeader": "Kesalahan",
         "batchIdLabel": "ID Batch Impor:",
         "batchIdDescription": "Anda dapat menggunakan ID ini untuk menemukan dan mengelola semua transaksi yang diimpor.",
         "viewTransactionsButton": "Lihat Transaksi",

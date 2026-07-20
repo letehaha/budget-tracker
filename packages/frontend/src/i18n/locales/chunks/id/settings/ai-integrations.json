@@ -33,9 +33,9 @@
         }
       },
       "actions": {
-        "addCustomConnector": "Add custom connector",
-        "addConnector": "Add connector",
-        "add": "Add"
+        "addCustomConnector": "Tambah konektor khusus",
+        "addConnector": "Tambah konektor",
+        "add": "Tambah"
       },
       "connectedApps": {
         "title": "Aplikasi Terhubung",

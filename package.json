@@ -14,6 +14,7 @@
     "landing:build": "npm -w packages/landing run build",
     "test": "cross-env NODE_ENV=test npm -w packages/backend run test && npm -w packages/frontend run test",
     "generate-ssl-certs": "chmod +x ./scripts/generate-ssl-certs.sh && ./scripts/generate-ssl-certs.sh",
+    "i18n:crowdin:upload": "bash ./scripts/crowdin-upload-translations.sh",
     "docker:dev": "bash ./scripts/docker-dev.sh up",
     "docker:dev:build": "bash ./scripts/docker-dev.sh up --build",
     "docker:dev:offline": "cross-env DOCKER_OFFLINE_MODE=true bash ./scripts/docker-dev.sh up",
