@@ -36,7 +36,10 @@ jobs:
           branch: 'cla-signatures'
           # The maintainer owns 100% of the code and does not sign their own CLA.
           # Bots that open PRs (e.g. Dependabot) never author copyrightable work.
-          allowlist: 'letehaha,dependabot[bot],*[bot]'
+          # crowdin-bot authors the auto-generated translation PRs; it's a plain
+          # GitHub account (no `[bot]` suffix), so the `*[bot]` glob misses it and
+          # it must be listed by name.
+          allowlist: 'letehaha,dependabot[bot],crowdin-bot,*[bot]'
           custom-notsigned-prcomment: 'Thank you for your pull request. Before it can be merged we need you to sign our [Contributor License Agreement](https://github.com/letehaha/budget-tracker/blob/main/CLA.md). It takes one comment and you keep the copyright to your work — see [CONTRIBUTING.md](https://github.com/letehaha/budget-tracker/blob/main/CONTRIBUTING.md) for the plain-language summary.'
           custom-pr-sign-comment: 'I have read the CLA Document and I hereby sign the CLA'
           custom-allsigned-prcomment: 'All contributors have signed the CLA. Thank you!'
