@@ -16,7 +16,7 @@
         "genericError": "Terjadi kesalahan.",
         "genericErrorRetry": "Terjadi kesalahan. Silakan coba lagi.",
         "oauthFailed": "Gagal masuk dengan {provider}. Silakan coba lagi.",
-        "oauthNotConfigured": "{provider} sign-in is not configured on this server.",
+        "oauthNotConfigured": "{provider} sign-in tidak dikonfigurasi di server ini.",
         "passkeyFailed": "Gagal masuk dengan passkey. Silakan coba lagi."
       }
     },

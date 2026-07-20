@@ -81,7 +81,7 @@
           "duplicates": "Duplikat",
           "invalidRowsTitle": "Baris Tidak Valid",
           "rowNumber": "Baris #",
-          "errors": "Error",
+          "errors": "Kesalahan",
           "rawData": "Data Mentah",
           "duplicatesTitle": "{count} potensi duplikat ditemukan",
           "duplicatesHint": "Hapus centang pada baris yang ingin tetap diimpor",
@@ -120,7 +120,7 @@
           "payeesCreated": "Penerima Pembayaran Dibuat",
           "importErrors": "Error Impor",
           "rowNumber": "Baris #",
-          "error": "Error",
+          "error": "Kesalahan",
           "batchIdLabel": "ID Batch",
           "batchIdDescription": "Gunakan ID ini untuk menemukan semua transaksi dari impor ini.",
           "viewTransactions": "Lihat Transaksi",
@@ -388,7 +388,7 @@
       "importResults": {
         "errorColumns": {
           "row": "Baris",
-          "error": "Error"
+          "error": "Kesalahan"
         }
       }
     }
