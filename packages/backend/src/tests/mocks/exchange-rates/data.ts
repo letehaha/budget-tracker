@@ -227,6 +227,19 @@ export const getApiLayerResposeMock = (date: string) => ({
   customMock: true,
 });
 
+// fawazahmed0 response shape: { date, usd: { <lowercased-code>: rate } }.
+// Built from the ApiLayer basket with lowercased keys and identical values, so
+// this provider covers the exact same full set — which is what lets it fill the
+// exotic tail and keep ApiLayer skipped on a happy-path sync.
+export const getFawazCurrencyApiResponseMock = (date: string) => {
+  const { rates } = getApiLayerResposeMock(date);
+  const usd: Record<string, number> = {};
+  for (const [code, rate] of Object.entries(rates)) {
+    usd[code.toLowerCase()] = rate;
+  }
+  return { date, usd };
+};
+
 export const getCurrencyRatesApiResponseMock = (date: string) => ({
   amount: 1,
   base: 'USD',
