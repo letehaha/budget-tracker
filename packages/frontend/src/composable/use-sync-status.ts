@@ -205,12 +205,13 @@ export function useSyncStatus() {
         justCompleted.value = true;
 
         // This is the one hook that observes every completed sync, so it owns
-        // invalidating everything a sync touches. payeesList is named explicitly
-        // because a sync fuzzy-creates payees and shifts their transaction-count
-        // stats, yet sits outside both prefixes above.
+        // invalidating everything a sync touches. payeesList/payeesLookup are named
+        // explicitly because a sync fuzzy-creates payees and shifts their
+        // transaction-count stats, yet sit outside both prefixes above.
         queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
         queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange] });
         queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
+        queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesLookup });
 
         setTimeout(() => {
           justCompleted.value = false;

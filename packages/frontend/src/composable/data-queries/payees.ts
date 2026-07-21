@@ -15,6 +15,7 @@ import {
   deletePayeeAndIgnore,
   listIgnoredNames,
   loadPayeeById,
+  loadPayeeLookup,
   loadPayees,
   loadPayeesByAccount,
   mergePayees,
@@ -25,7 +26,7 @@ import {
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { QUERY_CACHE_STALE_TIME } from '@/common/const/vue-query';
 import { useNotificationCenter } from '@/components/notification-center';
-import type { CATEGORIZATION_MODE } from '@bt/shared/types';
+import type { CATEGORIZATION_MODE, PayeeLookupItem } from '@bt/shared/types';
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, toValue, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -70,6 +71,36 @@ export const usePayees = ({
   const list = computed<PayeeWithStats[]>(() => query.data.value ?? []);
 
   return { ...query, list };
+};
+
+/**
+ * Full id → name/logo lookup for every payee (no stats, no pagination). Backs
+ * beneficiary-column resolution in transaction tables, where `usePayees` would
+ * miss payees past its top-50 cutoff.
+ */
+export const usePayeeLookup = () => {
+  const query = useQuery({
+    queryKey: VUE_QUERY_CACHE_KEYS.payeesLookup,
+    queryFn: loadPayeeLookup,
+    // Persisted to IndexedDB and refreshed by invalidation on every payee-mutating
+    // path, so a restored copy is trustworthy — treat it as fresh, skip the cold-load
+    // refetch. Invalidation, not a staleTime timer, is what refreshes it.
+    staleTime: Infinity,
+  });
+
+  const list = computed<PayeeLookupItem[]>(() => query.data.value ?? []);
+
+  const byId = computed<Map<string, PayeeLookupItem>>(() => {
+    const map = new Map<string, PayeeLookupItem>();
+    for (const payee of list.value) map.set(payee.id, payee);
+    return map;
+  });
+
+  const nameById = computed<Record<string, string>>(() =>
+    Object.fromEntries(list.value.map((payee) => [payee.id, payee.name])),
+  );
+
+  return { ...query, list, byId, nameById };
 };
 
 /**
@@ -233,6 +264,7 @@ export const usePayee = ({
 
 export const invalidatePayeesScope = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
+  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesLookup });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesByAccount });
   queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeeById });
 };

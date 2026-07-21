@@ -63,7 +63,12 @@
 
       <!-- Payee -->
       <template v-else-if="column.id === TABLE_COLUMN.payee">
-        <span v-if="payeeName" class="max-w-32 truncate">{{ payeeName }}</span>
+        <div v-if="payee" class="flex items-center gap-2">
+          <BrandLogo :domain="payee.logoDomain" :name="payee.name" class="size-5 shrink-0" />
+          <DesktopOnlyTooltip :content="payee.name" only-when-truncated>
+            <span class="max-w-32 truncate">{{ payee.name }}</span>
+          </DesktopOnlyTooltip>
+        </div>
         <span v-else class="text-muted-foreground">—</span>
       </template>
 
@@ -139,6 +144,7 @@
 </template>
 
 <script lang="ts" setup>
+import BrandLogo from '@/components/common/brand-logo.vue';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
@@ -154,6 +160,7 @@ import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore } from '@/stores';
 import {
   CATEGORIZATION_SOURCE,
+  PayeeLookupItem,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionModel,
@@ -176,7 +183,8 @@ const props = defineProps<{
   isSelectable: boolean;
   /** Shown as an explainer tooltip in place of the checkbox when not selectable. */
   unselectableReason?: BulkUnselectableReason | null;
-  payeeName: string | undefined;
+  /** Resolved payee (name + logo domain) for the beneficiary cell; undefined for transfers/unassigned. */
+  payee: PayeeLookupItem | undefined;
 }>();
 
 const emit = defineEmits<{

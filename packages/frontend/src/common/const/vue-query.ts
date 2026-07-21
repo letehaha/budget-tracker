@@ -201,6 +201,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // payees
   payeesList: ['payees-list'] as const,
+  payeesLookup: ['payees-lookup'] as const,
   payeesByAccount: ['payees-by-account'] as const,
   payeeById: ['payee-by-id'] as const,
   payeesIgnoredNames: ['payees-ignored-names'] as const,

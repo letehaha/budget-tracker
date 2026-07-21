@@ -72,6 +72,7 @@ const PERSISTED_QUERY_KEY_PREFIXES: readonly QueryKey[] = [
   // bank-sync-status sibling living under the same prefix.
   VUE_QUERY_CACHE_KEYS.bankConnections,
   VUE_QUERY_CACHE_KEYS.payeesList,
+  VUE_QUERY_CACHE_KEYS.payeesLookup,
 ];
 
 // The ISO currency table can't change while a build is live – restore-and-trust,

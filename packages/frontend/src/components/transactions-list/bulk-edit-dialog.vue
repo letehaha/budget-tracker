@@ -7,7 +7,7 @@ import CategorySelectField from '@/components/fields/category-select-field.vue';
 import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
-import { usePayees } from '@/composable/data-queries/payees';
+import { usePayeeLookup } from '@/composable/data-queries/payees';
 import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
 import { Button } from '@/components/lib/ui/button';
 import { Label } from '@/components/lib/ui/label';
@@ -90,12 +90,12 @@ const hasPayee = computed(() => form.payeeId !== null);
 
 const hasAnyChanges = computed(() => hasCategory.value || hasTags.value || hasNote.value || hasPayee.value);
 
-// Need the Payee name in the confirm dialog summary; pull from the same list
-// the picker uses so the cache is shared.
-const { list: payeesList } = usePayees();
+// Need the Payee name in the confirm dialog summary; resolve from the full payee
+// lookup so a payee past the picker's top-50 list still shows its name.
+const { byId: payeesById } = usePayeeLookup();
 const selectedPayeeName = computed(() => {
   if (!form.payeeId) return '';
-  return payeesList.value.find((p) => p.id === form.payeeId)?.name ?? '';
+  return payeesById.value.get(form.payeeId)?.name ?? '';
 });
 
 const isApplyDisabled = computed(() => {
