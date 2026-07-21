@@ -9,6 +9,13 @@ const props = defineProps<{
   contentClassName?: string;
   disabled?: boolean;
   side?: 'top' | 'right' | 'bottom' | 'left';
+  /**
+   * Only show the tooltip when the trigger's text is actually clipped. The
+   * trigger must be the overflowing element itself (e.g. a `truncate` span);
+   * on each hover it is measured and the tooltip is skipped when the text fits.
+   * One read per hover – no eager measurement
+   */
+  onlyWhenTruncated?: boolean;
 }>();
 
 const hasHover = ref(false);
@@ -29,15 +36,28 @@ onMounted(() => {
 onUnmounted(() => {
   mediaQuery?.removeEventListener('change', updateHoverCapability);
 });
+
+// Starts armed so the first hover, which lands before the open delay, decides.
+// Only consulted when `onlyWhenTruncated` is set.
+const isTriggerTruncated = ref(true);
+const measureTruncation = (event: MouseEvent) => {
+  if (!props.onlyWhenTruncated) return;
+  const el = event.currentTarget as HTMLElement;
+  isTriggerTruncated.value = el.scrollWidth > el.clientWidth;
+};
 </script>
 
 <template>
   <TooltipProvider v-if="hasHover && !props.disabled" :delay-duration="100">
     <Tooltip>
-      <TooltipTrigger as-child>
+      <TooltipTrigger as-child @mouseenter="measureTruncation">
         <slot />
       </TooltipTrigger>
-      <TooltipContent :class="contentClassName" :side="props.side">
+      <TooltipContent
+        v-if="!props.onlyWhenTruncated || isTriggerTruncated"
+        :class="contentClassName"
+        :side="props.side"
+      >
         <slot name="content">{{ content }}</slot>
       </TooltipContent>
     </Tooltip>

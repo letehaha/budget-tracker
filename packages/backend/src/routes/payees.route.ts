@@ -9,6 +9,7 @@ import {
   getPayee,
   listIgnoredNames,
   listPayees,
+  lookupPayees,
   mergePayees,
   removeIgnoredName,
   resetLogo,
@@ -22,6 +23,10 @@ const router = Router({});
 
 router.get('/', authenticateSession, validateEndpoint(listPayees.schema), listPayees.handler);
 router.post('/', authenticateSession, validateEndpoint(createPayee.schema), createPayee.handler);
+
+// Full minimal payee set for id→name/logo resolution. Must precede `/:id` so
+// Express doesn't capture the literal `lookup` segment as a Payee id.
+router.get('/lookup', authenticateSession, validateEndpoint(lookupPayees.schema), lookupPayees.handler);
 
 // Bulk-update sub-resource. Precedes `/:id` patterns for the same reason as
 // `/ignored-names` below – Express's path matcher would otherwise treat the

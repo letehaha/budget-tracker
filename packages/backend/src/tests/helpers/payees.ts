@@ -1,4 +1,4 @@
-import { CATEGORIZATION_MODE, PayeeModel, PayeeStats } from '@bt/shared/types';
+import { CATEGORIZATION_MODE, PayeeLookupItem, PayeeModel, PayeeStats } from '@bt/shared/types';
 
 import { makeRequest } from './common';
 
@@ -47,6 +47,14 @@ export async function listPayees<R extends boolean | undefined = undefined>({
   return makeRequest<PayeeWithStats[], R>({
     method: 'get',
     url: `/payees${qs ? `?${qs}` : ''}`,
+    raw,
+  });
+}
+
+export async function lookupPayees<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
+  return makeRequest<PayeeLookupItem[], R>({
+    method: 'get',
+    url: '/payees/lookup',
     raw,
   });
 }

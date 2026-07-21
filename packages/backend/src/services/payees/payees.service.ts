@@ -1,4 +1,10 @@
-import { CATEGORIZATION_MODE, RESOURCE_TYPES, SHARE_PERMISSIONS, type RecordId } from '@bt/shared/types';
+import {
+  CATEGORIZATION_MODE,
+  type PayeeLookupItem,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  type RecordId,
+} from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import Categories from '@models/categories.model';
@@ -223,6 +229,25 @@ export const listPayees = withTransaction(
       .filter((row): row is PayeeListRow => row !== null);
   },
 );
+
+/**
+ * All of the user's payees as a minimal {id, name, logoDomain} projection,
+ * ordered by name. No stats and no limit, so the transaction table's
+ * beneficiary column can resolve any payee id regardless of how many the
+ * user has.
+ */
+export const getPayeesLookup = async ({ userId }: { userId: number }): Promise<PayeeLookupItem[]> => {
+  const payees = await Payees.findAll({
+    where: { userId },
+    attributes: ['id', 'name', 'logoDomain'],
+    order: [['name', 'ASC']],
+  });
+  return payees.map((payee) => ({
+    id: payee.id,
+    name: payee.name,
+    logoDomain: payee.logoDomain,
+  }));
+};
 
 /**
  * Add-only attach of default tags to a Payee's rule – never removes existing

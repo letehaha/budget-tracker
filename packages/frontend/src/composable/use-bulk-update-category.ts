@@ -31,6 +31,7 @@ export function useBulkUpdateCategory({ onSuccess }: { onSuccess?: () => void } 
       // topCategoryId), so refresh the Payee caches on every bulk update —
       // cheap and keeps autocomplete ordering accurate.
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesLookup });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesByAccount });
       queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeeById });
 
