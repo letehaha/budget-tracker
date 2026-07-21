@@ -153,7 +153,7 @@
         "cost": {
           "title": "Costo de este préstamo",
           "totalLabel": "Costo total",
-          "principal": "Principal",
+          "principal": "Capital",
           "interest": "Interés (est.)",
           "estimateFootnote": "El interés es una estimación del calendario de amortización — los pagos se registran como principal, por lo que no se almacena ninguna división de interés exacta.",
           "effectiveCost": "Costo efectivo: {cents}¢ de interés por cada $1 prestado"

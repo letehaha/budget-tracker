@@ -7,7 +7,12 @@
       "trendsComparison": "Comparación de tendencias",
       "investmentCalculator": "Calculadora de inversiones",
       "pivotReport": "Tabla dinámica",
-      "collapse": "Contraer"
+      "collapse": "Contraer",
+      "netWorthDrivers": "Impulsores del patrimonio neto",
+      "investmentContributions": "Aportaciones",
+      "sections": {
+        "investments": "Inversiones"
+      }
     },
     "cashFlow": {
       "income": "Ingresos",
@@ -118,7 +123,15 @@
       "configure": "Configurar",
       "hideInputs": "Ocultar",
       "portfolioReturnOption": "{name} (su ~{rate}%/año)",
-      "portfolioNoHistoryOption": "{name} — historial insuficiente"
+      "portfolioNoHistoryOption": "{name} — historial insuficiente",
+      "annualReturnPlaceholder": "Seleccionar preajuste"
+    },
+    "portfolioFilter": {
+      "all": "Todas las carteras",
+      "selectedOne": "1 cartera",
+      "selectedMany": "{n} carteras",
+      "searchPlaceholder": "Buscar carteras",
+      "noResults": "Ninguna cartera coincide con su búsqueda"
     }
   },
   "pivotReport": {
@@ -196,6 +209,108 @@
       "emptyHint": "Pruebe con un período más amplio o filtros diferentes.",
       "errorTitle": "No se pudo cargar el informe",
       "errorHint": "Algo salió mal. Por favor, inténtelo de nuevo."
+    }
+  },
+  "netWorthDrivers": {
+    "title": "Impulsores del patrimonio neto",
+    "subtitle": "Cuánto de su crecimiento ahorró y cuánto rindió el mercado. Las transferencias entre sus propias cuentas no cuentan como ninguno de los dos.",
+    "portfolioFilter": {
+      "scopeHint": "Filtra solo las posiciones de inversión y su crecimiento. Los importes ahorrados y el efectivo de las cuentas no se ven afectados."
+    },
+    "calcInfo": {
+      "trigger": "Cómo se calcula esto",
+      "title": "Cómo se calcula esto",
+      "savedHeading": "Ahorro",
+      "savedBody": "El dinero que aparta — ingresos menos gastos. Mover dinero entre sus propias cuentas, o hacia una cartera de inversión, no cuenta como ahorro.",
+      "grownHeading": "Crecimiento",
+      "grownBody": "Lo que el mercado hizo con sus posiciones — cambios de precio, más dividendos, menos comisiones. El dinero que usted aporta nunca cuenta como crecimiento.",
+      "exampleHeading": "Ejemplo",
+      "exampleBody": "Gana $10,000, los invierte, y crecen hasta $12,000. Eso son $10,000 de Ahorro y $2,000 de Crecimiento — los $10,000 se cuentan una vez, como Ahorro, y solo los $2,000 cuentan como Crecimiento.",
+      "noteBody": "El crecimiento se contabiliza a medida que los precios varían en cada período, no solo cuando usted vende. Vender algo que ya subió no se suma de nuevo al Crecimiento."
+    },
+    "granularity": {
+      "monthly": "Mensual",
+      "quarterly": "Trimestral",
+      "yearly": "Anual"
+    },
+    "chart": {
+      "title": "Ahorro frente a crecimiento",
+      "subtitle": "Totales acumulados durante el período seleccionado.",
+      "saved": "Ahorro",
+      "grown": "Crecimiento",
+      "totalGained": "Total ganado",
+      "thisPeriod": "Este período",
+      "periodSavings": "Ahorros",
+      "periodGrowth": "Crecimiento",
+      "allocationContext": "El {share}% de su patrimonio neto está en inversiones (era el {reference}% en {date})",
+      "allocationContextNoReference": "El {share}% de su patrimonio neto está en inversiones"
+    },
+    "degraded": {
+      "title": "Algunos valores son estimados",
+      "unpricedSecurities": "No hay datos de precio recientes para {securities}, por lo que su crecimiento se estima a partir del coste.",
+      "unpricedSecuritiesTruncated": "No hay datos de precio recientes para {securities} y otros ({count} valores en total); su crecimiento se estima a partir del coste.",
+      "fxFallback": "Faltan tipos de cambio para {currencies}; esos importes usan un tipo 1:1."
+    },
+    "states": {
+      "loadError": "No se pudo cargar el informe",
+      "noData": "Nada que mostrar para este período",
+      "noDataHint": "En cuanto tenga ingresos, gastos o inversiones en este rango, aparecerán aquí.",
+      "noPortfoliosHint": "El crecimiento de la inversión aparece en cuanto añada una cartera con posiciones valoradas.",
+      "noPortfoliosTitle": "Todavía no hay inversiones",
+      "noPortfoliosPlaceholder": "Este informe divide el cambio en su patrimonio neto entre lo que ahorró y lo que crecieron sus inversiones. Añada una cartera para empezar a seguir el crecimiento.",
+      "noPortfoliosAction": "Añadir una cartera"
+    },
+    "target": {
+      "title": "Punto de cruce del crecimiento",
+      "subtitle": "El tamaño de cartera en el que el crecimiento del mercado — no su ahorro — hace la mayor parte del trabajo.",
+      "targetShareLabel": "Parte del crecimiento en su ganancia mensual",
+      "savingsLabel": "Ahorro mensual esperado",
+      "savingsPlaceholder": "p.ej. 1000",
+      "savingsResetToAverage": "Usar mi promedio ({amount})",
+      "currentShareLine": "Hoy el crecimiento cubre ~{current}% de su ganancia mensual — su objetivo es {target}%.",
+      "valueNeeded": "Valor de cartera necesario",
+      "progressLine": "Ha recorrido el {pct}% del camino — {current} de {needed}.",
+      "progressReached": "Objetivo alcanzado — su cartera ya lo ha logrado.",
+      "gapLabel": "Diferencia",
+      "gapValue": "Faltan {amount}",
+      "reached": "Objetivo alcanzado",
+      "timeLabel": "Tiempo hasta el objetivo",
+      "etaValue": "~{years} años",
+      "etaReached": "Alcanzado",
+      "etaHint": "Si sigue ahorrando y el rendimiento se mantiene.",
+      "noReturn": "Elija una rentabilidad esperada positiva para ver un valor objetivo.",
+      "assumptionsLabel": "Supuestos",
+      "disclaimer": "Una proyección lineal a partir de los valores actuales y sus supuestos — no es asesoramiento financiero."
+    }
+  },
+  "investmentContributions": {
+    "title": "Aportaciones de inversión",
+    "subtitle": "Cuánto efectivo ha movido hacia sus carteras a lo largo del tiempo, y adónde fue.",
+    "average": "Media",
+    "portfolioFilter": {
+      "scopeHint": "Filtra qué carteras cuentan para las aportaciones."
+    },
+    "granularity": {
+      "monthly": "Mensual",
+      "quarterly": "Trimestral",
+      "yearly": "Anual"
+    },
+    "cards": {
+      "totalContributed": "Total aportado",
+      "shareOfSavings": "Parte del ahorro",
+      "averagePerPeriod": "Media por período"
+    },
+    "chart": {
+      "total": "Total",
+      "vsPrevious": "vs anterior"
+    },
+    "states": {
+      "noData": "Sin aportaciones en este rango",
+      "noDataHint": "Mueva dinero a una cartera durante este período para verlo aquí.",
+      "noPortfoliosTitle": "Todavía no hay carteras",
+      "noPortfoliosPlaceholder": "Cree una cartera y empiece a invertir para hacer seguimiento de sus aportaciones aquí.",
+      "noPortfoliosAction": "Añadir una cartera",
+      "loadError": "No se pudieron cargar las aportaciones"
     }
   }
 }

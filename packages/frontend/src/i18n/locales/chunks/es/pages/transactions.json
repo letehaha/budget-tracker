@@ -225,7 +225,7 @@
       "columnConfig": {
         "title": "Configuración de tabla",
         "columns": "Columnas",
-        "visibleCount": "{count} visible",
+        "visibleCount": "{count} visibles",
         "resetDefaults": "Restablecer valores por defecto"
       },
       "categorizationSourceValues": {
