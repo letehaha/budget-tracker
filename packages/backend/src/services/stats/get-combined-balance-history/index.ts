@@ -25,7 +25,8 @@ import { resolveOldestEventDate } from './date-range';
 import { buildUserRatesMap, createFindLatestUsdRate, createGetExchangeRate } from './exchange-rate-lookup';
 import { computeHoldingsValueByDate } from './holdings-replay';
 import { accumulateCashDeltas, computePortfolioCashByDate } from './portfolio-cash-replay';
-import { buildPriceLookup, createFindPriceForDate } from './security-price-lookup';
+import { buildPriceLookupWithPreWindowAnchors } from './security-price-anchors';
+import { createFindPriceForDate } from './security-price-lookup';
 import type { CombinedBalanceHistoryItem, CurrentBalanceRow, SecurityRow, TransactionRow, TransferRow } from './types';
 
 export type { CombinedBalanceHistoryItem } from './types';
@@ -210,8 +211,16 @@ const calculatePortfolioBalanceHistory = async ({
     }),
   ]);
 
-  const priceLookup = buildPriceLookup(securityPrices);
-  const findPriceForDate = createFindPriceForDate(priceLookup);
+  // Seed the lookup with one pre-window anchor per security so a holding whose last stored
+  // price predates the fetched window still values at that price instead of collapsing to
+  // cost basis and fabricating a price move.
+  const findPriceForDate = createFindPriceForDate(
+    await buildPriceLookupWithPreWindowAnchors({
+      windowPrices: securityPrices,
+      securityIds,
+      windowStart: dataFetchMinDate,
+    }),
+  );
 
   const userRatesMap = buildUserRatesMap(userCustomExchangeRates);
 
@@ -255,6 +264,11 @@ const calculatePortfolioBalanceHistory = async ({
     todayKey,
   });
 
+  // A holding with no price on a day is carried at cost basis by the replay, understating
+  // its price movement; collect which securities and which days so the fallback is logged.
+  const unpricedSecurityIds = new Set<string>();
+  const unpricedDates = new Set<string>();
+
   const holdingsValueByDate = computeHoldingsValueByDate({
     uniqueDates,
     portfolioIds,
@@ -262,6 +276,10 @@ const calculatePortfolioBalanceHistory = async ({
     securitiesById,
     findPriceForDate,
     getExchangeRate,
+    onMissingPrice: ({ securityId, dateStr }) => {
+      unpricedSecurityIds.add(securityId);
+      unpricedDates.add(dateStr);
+    },
   });
 
   const portfolioValuesByDate = new Map<string, number>();
@@ -280,6 +298,18 @@ const calculatePortfolioBalanceHistory = async ({
       baseCurrency: userBaseCurrency.currencyCode,
       currencies: Array.from(missingRateCurrencies),
       dateRange: { from: minDate, to: maxDate },
+    });
+  }
+
+  // Holdings carried at cost basis for lack of a price silently understate market value on
+  // those days; log which securities and days so the degraded valuation is visible.
+  if (unpricedSecurityIds.size > 0) {
+    logger.error('Combined balance history valued holdings at cost basis for unpriced days', {
+      userId,
+      baseCurrency: userBaseCurrency.currencyCode,
+      dateRange: { from: minDate, to: maxDate },
+      unpricedSecurityIds: Array.from(unpricedSecurityIds),
+      unpricedDates: Array.from(unpricedDates).toSorted(),
     });
   }
 

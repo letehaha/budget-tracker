@@ -405,3 +405,44 @@
   display: none;
   -webkit-appearance: none;
 }
+
+/*
+  Paint focus rings inset (inside the border box) instead of outside it.
+  Tailwind's ring/ring-offset draws the glow beyond the element, so a focused
+  control near a ScrollArea edge gets its ring clipped ("sliced" look). Inset
+  keeps the whole ring within the element's box, so it's never clipped.
+  Checkbox/radio/switch stay outward — an inset ring crowds their ~16px glyph.
+*/
+:focus-visible:not([role='checkbox']):not([role='radio']):not([role='switch']),
+:focus:not([role='checkbox']):not([role='radio']):not([role='switch']) {
+  --tw-ring-inset: inset;
+}
+
+/*
+  Form fields highlight their border on focus rather than showing a separate
+  inner outline. The ring sits flush against the border (no offset gap) and the
+  border takes the ring color, so the two merge into one solid highlighted edge.
+  `bg-input-background` is the shared marker for every field surface — native
+  inputs plus the custom select / combobox / multi-select triggers (reka
+  buttons) — so this covers them all without per-component edits.
+*/
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.bg-input-background:focus-visible,
+.bg-input-background:focus {
+  border-color: var(--ring);
+  --tw-ring-inset: inset;
+  --tw-ring-offset-width: 0px;
+}
+
+/*
+  reka's ScrollArea viewport is a keyboard-focusable scroll region (it hardcodes
+  tabindex=0), so tabbing lands on it and the browser paints a full-box outline
+  around whatever it wraps. It carries no interactive content of its own, so the
+  outline is just noise — drop it while keeping the region keyboard-scrollable.
+*/
+[data-reka-scroll-area-viewport]:focus-visible,
+[data-reka-scroll-area-viewport]:focus {
+  outline: none;
+}

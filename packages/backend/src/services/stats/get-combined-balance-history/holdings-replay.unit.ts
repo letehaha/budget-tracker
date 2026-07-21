@@ -54,9 +54,9 @@ const groupByPortfolio = (transactions: TransactionRow[]): Map<string, Transacti
 
 const securityMap = (...rows: SecurityRow[]): Map<string, SecurityRow> => new Map(rows.map((s) => [s.id, s]));
 
-describe('computeHoldingsValueByDate', () => {
-  const noopRate = () => 1;
+const noopRate = () => 1;
 
+describe('computeHoldingsValueByDate', () => {
   it('returns an empty map when uniqueDates is empty', () => {
     const result = computeHoldingsValueByDate({
       uniqueDates: [],
@@ -123,6 +123,47 @@ describe('computeHoldingsValueByDate', () => {
       getExchangeRate: noopRate,
     });
     expect(result.get('2024-05-10')).toBe(500);
+  });
+
+  it('reports each unpriced holding-day through onMissingPrice', () => {
+    // A held position with no price on the snapshot day falls back to cost basis and
+    // must announce the gap so the report can flag the day as partly unpriced. It
+    // fires once per (security, day), not once per security.
+    const transactions = [
+      tx({ category: INVESTMENT_TRANSACTION_CATEGORY.buy, date: '2024-05-09', quantity: 5, refAmount: 500 }),
+    ];
+    const missing: { securityId: string; dateStr: string }[] = [];
+    const result = computeHoldingsValueByDate({
+      uniqueDates: ['2024-05-10', '2024-05-11'],
+      portfolioIds: ['p1'],
+      transactionsByPortfolio: groupByPortfolio(transactions),
+      securitiesById: securityMap(stockSecurity('sec-1')),
+      findPriceForDate: () => null,
+      getExchangeRate: noopRate,
+      onMissingPrice: (info) => missing.push(info),
+    });
+    expect(result.get('2024-05-10')).toBe(500);
+    expect(missing).toEqual([
+      { securityId: 'sec-1', dateStr: '2024-05-10' },
+      { securityId: 'sec-1', dateStr: '2024-05-11' },
+    ]);
+  });
+
+  it('does not call onMissingPrice when every holding-day is priced', () => {
+    const transactions = [
+      tx({ category: INVESTMENT_TRANSACTION_CATEGORY.buy, date: '2024-05-09', quantity: 5, refAmount: 500 }),
+    ];
+    const missing: { securityId: string; dateStr: string }[] = [];
+    computeHoldingsValueByDate({
+      uniqueDates: ['2024-05-10'],
+      portfolioIds: ['p1'],
+      transactionsByPortfolio: groupByPortfolio(transactions),
+      securitiesById: securityMap(stockSecurity('sec-1')),
+      findPriceForDate: () => 110,
+      getExchangeRate: noopRate,
+      onMissingPrice: (info) => missing.push(info),
+    });
+    expect(missing).toEqual([]);
   });
 
   it('skips transactions dated after the snapshot day', () => {
@@ -251,14 +292,17 @@ describe('computeHoldingsValueByDate', () => {
     expect(result.get('2024-05-10')).toBe(0);
   });
 
-  it('treats refFees as part of the buy cost basis (price + fees)', () => {
-    // Buy 10 @ refAmount 1000 + refFees 50 → costBasis 1050.
+  it('falls back to refAmount alone, not refAmount + refFees, when refAmount already includes the fee', () => {
+    // `resolveSettlement` composes refAmount as quantity * price *including*
+    // fees, so a 1000 principal + 50 fee buy carries refAmount 1050 — refFees
+    // is metadata only. Cost basis must be the 1050 refAmount alone; adding
+    // refFees on top would double-count the fee and inflate it to 1100.
     const transactions = [
       tx({
         category: INVESTMENT_TRANSACTION_CATEGORY.buy,
         date: '2024-05-09',
         quantity: 10,
-        refAmount: 1000,
+        refAmount: 1050,
         refFees: 50,
       }),
     ];

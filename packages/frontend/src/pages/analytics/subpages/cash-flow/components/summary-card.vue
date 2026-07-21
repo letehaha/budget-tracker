@@ -39,11 +39,16 @@ const props = defineProps<{
   comparisonPeriodLabel?: string;
   /** When true, positive change is bad (red) and negative is good (green). Use for expenses. */
   invertColors?: boolean;
+  /** Literal text shown in place of the formatted value, e.g. "—" when the metric is undefined for the range. */
+  valueLabel?: string;
 }>();
 
 const { formatBaseCurrency } = useFormatCurrency();
 
 const formattedValue = computed(() => {
+  if (props.valueLabel !== undefined) {
+    return props.valueLabel;
+  }
   if (props.suffix) {
     return `${props.value}${props.suffix}`;
   }
@@ -60,7 +65,7 @@ const changeInfo = computed(() => {
   const isGood = props.invertColors ? !isPositive : isPositive;
 
   return {
-    class: isGood ? 'text-green-500' : 'text-red-500',
+    class: isGood ? 'text-app-income-color' : 'text-app-expense-color',
     icon: isPositive ? ArrowUpIcon : ArrowDownIcon,
   };
 });

@@ -1503,4 +1503,69 @@ describe('[Stats] Combined balance history', () => {
       expect(today!.portfoliosBalance).toBe(1000);
     });
   });
+
+  describe('Portfolio pre-window price anchor', () => {
+    it('values a holding priced only before the range at that price, not cost basis', async () => {
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Pre-window anchor portfolio' }),
+        raw: true,
+      });
+
+      const aedSecurity = await Securities.create({
+        symbol: 'DEWA',
+        providerSymbol: 'DEWA.AE',
+        currencyCode: global.BASE_CURRENCY_CODE,
+        providerName: SECURITY_PROVIDER.yahoo,
+        assetClass: ASSET_CLASS.stocks,
+        name: 'Dubai Electricity and Water',
+      });
+
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: aedSecurity.id } });
+      // Drain the background sync then clear its rows so the only stored price is
+      // the pre-window anchor seeded below.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await SecurityPricing.destroy({ where: { securityId: aedSecurity.id } });
+
+      // Fund then buy 10 @ 100 so the buy's -1,000 cash leg nets against the
+      // deposit: portfolio cash is 0 and portfoliosBalance is the holding alone.
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: { type: 'deposit', amount: '1000', currencyCode: global.BASE_CURRENCY_CODE, date: '2025-11-01' },
+        raw: true,
+      });
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: aedSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          date: '2025-11-02',
+          quantity: '10',
+          price: '100',
+          fees: '0',
+        },
+        raw: true,
+      });
+
+      // The only stored price predates the requested range by months, with none
+      // inside it. Replay carries that last close (150) forward as an anchor
+      // rather than valuing the 10 shares at their 1,000 cost basis.
+      await SecurityPricing.create({
+        securityId: aedSecurity.id,
+        date: new Date('2025-11-15T00:00:00.000Z'),
+        priceClose: '150',
+        source: SECURITY_PROVIDER.yahoo,
+      });
+
+      const data = (await helpers.getCombinedBalanceHistory({
+        from: '2026-01-10',
+        to: '2026-01-20',
+        raw: true,
+      })) as CombinedBalanceHistoryItem[];
+
+      const entry = data.find((e) => e.date === '2026-01-20');
+      expect(entry).toBeDefined();
+      // 10 x 150 anchor + 0 cash, not the 10 x 100 = 1,000 cost basis.
+      expect(entry!.portfoliosBalance).toBe(1500);
+    });
+  });
 });

@@ -42,6 +42,18 @@ router.get(
   statsController.getCashFlow.handler,
 );
 router.get(
+  '/net-worth-drivers',
+  authenticateSession,
+  validateEndpoint(statsController.getNetWorthDrivers.schema),
+  statsController.getNetWorthDrivers.handler,
+);
+router.get(
+  '/investment-contributions',
+  authenticateSession,
+  validateEndpoint(statsController.getInvestmentContributions.schema),
+  statsController.getInvestmentContributions.handler,
+);
+router.get(
   '/pivot',
   authenticateSession,
   validateEndpoint(statsController.getPivotReport.schema),

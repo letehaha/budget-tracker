@@ -5,9 +5,14 @@
     "navigation": {
       "cashFlow": "Cash Flow",
       "trendsComparison": "Trends Comparison",
-      "investmentCalculator": "Investment Calculator",
+      "investmentCalculator": "Investment Projection",
       "pivotReport": "Pivot",
-      "collapse": "Collapse"
+      "netWorthDrivers": "Net Worth Drivers",
+      "investmentContributions": "Contributions",
+      "collapse": "Collapse",
+      "sections": {
+        "investments": "Investments"
+      }
     },
     "cashFlow": {
       "income": "Income",
@@ -90,6 +95,7 @@
       "timeHorizon": "Time horizon (years)",
       "years": "Years",
       "annualReturn": "Annual return (%)",
+      "annualReturnPlaceholder": "Select preset",
       "annualInflation": "Annual inflation (%)",
       "perMonth": "per month",
       "totalInvested": "Total invested",
@@ -119,6 +125,13 @@
       "hideInputs": "Hide",
       "portfolioReturnOption": "{name} (your ~{rate}%/yr)",
       "portfolioNoHistoryOption": "{name} — not enough history"
+    },
+    "portfolioFilter": {
+      "all": "All portfolios",
+      "selectedOne": "1 portfolio",
+      "selectedMany": "{n} portfolios",
+      "searchPlaceholder": "Search portfolios",
+      "noResults": "No portfolios match your search"
     }
   },
   "pivotReport": {
@@ -196,6 +209,108 @@
       "emptyHint": "Try a wider period or different filters.",
       "errorTitle": "Couldn't load the report",
       "errorHint": "Something went wrong. Please try again."
+    }
+  },
+  "netWorthDrivers": {
+    "title": "Net Worth Drivers",
+    "subtitle": "How much of your growth you saved, and how much the market returned. Transfers between your own accounts count as neither.",
+    "portfolioFilter": {
+      "scopeHint": "Filters investment holdings and growth only. Saved amounts and account cash are not affected."
+    },
+    "calcInfo": {
+      "trigger": "How this is calculated",
+      "title": "How this is calculated",
+      "savedHeading": "Saved",
+      "savedBody": "Money you set aside — income minus spending. Moving money between your own accounts, or into an investment portfolio, doesn't count as saving.",
+      "grownHeading": "Grown",
+      "grownBody": "What the market did to your holdings — price changes, plus dividends, minus fees. Money you put in is never counted as growth.",
+      "exampleHeading": "Example",
+      "exampleBody": "You earn $10,000, invest it, and it grows to $12,000. That's $10,000 Saved and $2,000 Grown — the $10,000 is counted once, as Saved, and only the $2,000 counts as Grown.",
+      "noteBody": "Growth is counted as prices move each period, not only when you sell. Selling something that already rose doesn't add to Grown a second time."
+    },
+    "granularity": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "chart": {
+      "title": "Saved vs. grown",
+      "subtitle": "Cumulative totals over the selected period.",
+      "saved": "Saved",
+      "grown": "Grown",
+      "totalGained": "Total gained",
+      "thisPeriod": "This period",
+      "periodSavings": "Savings",
+      "periodGrowth": "Growth",
+      "allocationContext": "{share}% of your net worth sits in investments (was {reference}% in {date})",
+      "allocationContextNoReference": "{share}% of your net worth sits in investments"
+    },
+    "degraded": {
+      "title": "Some values are estimated",
+      "unpricedSecurities": "No recent price data for {securities}, so their growth is estimated from cost.",
+      "unpricedSecuritiesTruncated": "No recent price data for {securities} and others ({count} securities total); their growth is estimated from cost.",
+      "fxFallback": "Missing exchange rates for {currencies}; those amounts use a 1:1 rate."
+    },
+    "states": {
+      "loadError": "Couldn't load the report",
+      "noData": "Nothing to show for this period",
+      "noDataHint": "Once you have income, expenses, or investments in this range, they'll appear here.",
+      "noPortfoliosHint": "Investment growth appears once you add a portfolio with priced holdings.",
+      "noPortfoliosTitle": "No investments yet",
+      "noPortfoliosPlaceholder": "This report splits your net-worth change into what you saved and what your investments grew. Add a portfolio to start tracking growth.",
+      "noPortfoliosAction": "Add a portfolio"
+    },
+    "target": {
+      "title": "Growth crossover",
+      "subtitle": "The portfolio size where market growth — not your saving — does most of the work.",
+      "targetShareLabel": "Growth's share of your monthly gain",
+      "savingsLabel": "Expected monthly saving",
+      "savingsPlaceholder": "e.g. 1,000",
+      "savingsResetToAverage": "Use my average ({amount})",
+      "currentShareLine": "Today growth covers ~{current}% of your monthly gain — you're aiming for {target}%.",
+      "valueNeeded": "Portfolio value needed",
+      "progressLine": "You're {pct}% of the way — {current} of {needed}.",
+      "progressReached": "Target reached — your portfolio is already there.",
+      "gapLabel": "Gap",
+      "gapValue": "{amount} more needed",
+      "reached": "Target reached",
+      "timeLabel": "Time to target",
+      "etaValue": "~{years} yr",
+      "etaReached": "Reached",
+      "etaHint": "If you keep saving and the return holds.",
+      "noReturn": "Pick a positive expected return to see a target value.",
+      "assumptionsLabel": "Assumptions",
+      "disclaimer": "A straight projection from today's values and your assumptions — not financial advice."
+    }
+  },
+  "investmentContributions": {
+    "title": "Investment Contributions",
+    "subtitle": "How much cash you've moved into your portfolios over time, and where it went.",
+    "average": "Average",
+    "portfolioFilter": {
+      "scopeHint": "Filters which portfolios count toward contributions."
+    },
+    "granularity": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "cards": {
+      "totalContributed": "Total contributed",
+      "shareOfSavings": "Share of savings",
+      "averagePerPeriod": "Average per period"
+    },
+    "chart": {
+      "total": "Total",
+      "vsPrevious": "vs previous"
+    },
+    "states": {
+      "noData": "No contributions in this range",
+      "noDataHint": "Move money into a portfolio during this period to see it here.",
+      "noPortfoliosTitle": "No portfolios yet",
+      "noPortfoliosPlaceholder": "Create a portfolio and start investing to track your contributions here.",
+      "noPortfoliosAction": "Add a portfolio",
+      "loadError": "Couldn't load contributions"
     }
   }
 }

@@ -124,6 +124,62 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   return result;
 }
 
+export async function getNetWorthDrivers<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  granularity,
+  portfolioIds,
+  raw,
+}: {
+  from: string;
+  to: string;
+  granularity: endpointsTypes.NetWorthDriversGranularity;
+  portfolioIds?: string[];
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', to);
+  params.append('granularity', granularity);
+  if (portfolioIds && portfolioIds.length > 0) params.append('portfolioIds', portfolioIds.join(','));
+
+  const result = await helpers.makeRequest<endpointsTypes.GetNetWorthDriversResponse, R>({
+    method: 'get',
+    url: `/stats/net-worth-drivers?${params.toString()}`,
+    raw,
+  });
+
+  return result;
+}
+
+export async function getInvestmentContributions<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  granularity,
+  portfolioIds,
+  raw,
+}: {
+  from: string;
+  to: string;
+  granularity: endpointsTypes.InvestmentContributionsGranularity;
+  portfolioIds?: string[];
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', to);
+  params.append('granularity', granularity);
+  if (portfolioIds && portfolioIds.length > 0) params.append('portfolioIds', portfolioIds.join(','));
+
+  const result = await helpers.makeRequest<endpointsTypes.GetInvestmentContributionsResponse, R>({
+    method: 'get',
+    url: `/stats/investment-contributions?${params.toString()}`,
+    raw,
+  });
+
+  return result;
+}
+
 export async function getPivotReport<R extends boolean | undefined = undefined>({
   from,
   to,

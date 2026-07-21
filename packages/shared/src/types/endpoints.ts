@@ -338,6 +338,156 @@ export interface SidebarSectionsConfig {
   loans: boolean;
 }
 
+// Net Worth Drivers Analytics
+// Splits net-worth growth per period into what the user saved (income - expenses,
+// transfers excluded) versus what the market returned on their holdings, plus the
+// holdings/cash composition at each period end. Cumulative running totals, the
+// holdings share and the goal projection are all derived on the client from these
+// per-bucket values.
+// Single source of truth for the granularity enum — the backend Zod validator builds
+// its `z.enum(...)` straight off this tuple, so it can't drift from what the API accepts.
+export const NET_WORTH_DRIVERS_GRANULARITIES = ['monthly', 'quarterly', 'yearly'] as const;
+export type NetWorthDriversGranularity = (typeof NET_WORTH_DRIVERS_GRANULARITIES)[number];
+
+export interface GetNetWorthDriversPayload extends QueryPayload {
+  // yyyy-mm-dd (required)
+  from: string;
+  // yyyy-mm-dd (required)
+  to: string;
+  granularity: NetWorthDriversGranularity;
+  // Comma-separated portfolio IDs to scope the investment slice to (holdings,
+  // portfolio cash, flows, growth). Optional; omitted/empty = every enabled
+  // portfolio. Savings and account-level cash are user-wide and unaffected.
+  portfolioIds?: string;
+}
+
+// Every amount below is a decimal in the user's base currency.
+export interface NetWorthDriversBucket {
+  // yyyy-mm-dd — clamped to the requested range, so the first and last bucket can
+  // cover a partial period.
+  periodStart: string;
+  // yyyy-mm-dd
+  periodEnd: string;
+  savings: {
+    income: number;
+    // Positive number — the amount spent, not a negative signed value.
+    expenses: number;
+    net: number;
+  };
+  investments: {
+    // priceEffect + dividends - feesAndTaxes. Signed: negative in a losing period.
+    growth: number;
+    // Market value moved by prices alone, with purchases and sales taken out.
+    priceEffect: number;
+    // Gross, before the dividend's own fee (which is counted in feesAndTaxes).
+    dividends: number;
+    // Trade-embedded fees plus standalone fee/tax rows. Positive number — a cost.
+    feesAndTaxes: number;
+  };
+  // Levels at periodEnd (not flows), used for the holdings-share cards.
+  composition: {
+    holdingsValue: number;
+    // Cash accounts (credit-card negatives included) plus uninvested portfolio cash.
+    cashValue: number;
+  };
+}
+
+// One security whose holdings the report could not price.
+export interface NetWorthDriversUnpricedSecurity {
+  securityId: RecordId;
+  // Label the security by `symbol ?? name ?? securityId` — both columns are
+  // nullable, and an id shown to a user identifies nothing.
+  symbol: string | null;
+  name: string | null;
+}
+
+// What the report could not value truthfully. Two independent failures: a holding
+// with no price is carried at cost, a currency with no rate converts at 1:1 — they
+// distort different amounts and neither implies the other, so they stay apart.
+export interface NetWorthDriversDegraded {
+  // Tell the user these holdings had no price data in the range, so they are carried
+  // at cost: `priceEffect` and `growth` for them are approximate — a bucket that also
+  // holds a buy of one reads that trade's fee as a small gain — and
+  // `composition.holdingsValue` may not reflect current value. Name them so the user
+  // can fill in the prices that matter. Omitted when every holding priced.
+  unpricedSecurities?: NetWorthDriversUnpricedSecurity[];
+  // ISO codes that converted at a 1:1 placeholder. Warn that every amount touching
+  // them is wrong by the true rate rather than presenting the totals as final.
+  // Omitted when every currency resolved.
+  fxFallbackCurrencies?: string[];
+}
+
+export interface GetNetWorthDriversResponse {
+  buckets: NetWorthDriversBucket[];
+  // Absent whenever the range valued cleanly, so a truthiness check on `degraded`
+  // alone decides whether to render a data-quality warning. Present only when at
+  // least one field inside it is non-empty — an empty object is never sent.
+  degraded?: NetWorthDriversDegraded;
+}
+
+// Investment Contributions Analytics
+// Per-period bars of the external cash a user moved into their portfolios, split by
+// portfolio for a stacked chart. "Contribution" is money that crossed a portfolio's
+// outer boundary — a deposit or an account→portfolio funding counts positive, a
+// withdrawal counts negative. Market growth, dividends, buys/sells (cash↔holdings
+// inside a portfolio) and portfolio↔portfolio moves are all excluded by construction,
+// so the number is "money you added", never "money that grew".
+// Single source of truth for the granularity enum — the backend Zod validator builds
+// its `z.enum(...)` straight off this tuple, so it can't drift from what the API accepts.
+export const INVESTMENT_CONTRIBUTIONS_GRANULARITIES = ['monthly', 'quarterly', 'yearly'] as const;
+export type InvestmentContributionsGranularity = (typeof INVESTMENT_CONTRIBUTIONS_GRANULARITIES)[number];
+
+export interface GetInvestmentContributionsPayload extends QueryPayload {
+  // yyyy-mm-dd (required)
+  from: string;
+  // yyyy-mm-dd (required)
+  to: string;
+  granularity: InvestmentContributionsGranularity;
+  // Comma-separated portfolio IDs to scope the contributions to. Optional; omitted or
+  // empty = every enabled portfolio. Savings (below) is user-wide and unaffected.
+  portfolioIds?: string;
+}
+
+// One portfolio's contribution within a single bucket. Decimal, user base currency.
+export interface InvestmentContributionsPortfolioSlice {
+  portfolioId: string;
+  // Net external cash into this portfolio this bucket. Signed: negative when the
+  // user withdrew more than they contributed in the period.
+  amount: number;
+}
+
+export interface InvestmentContributionsBucket {
+  // yyyy-mm-dd — clamped to the requested range, so the first and last bucket can
+  // cover a partial period.
+  periodStart: string;
+  // yyyy-mm-dd
+  periodEnd: string;
+  // Sum of `byPortfolio` amounts — net contributions across the in-scope portfolios
+  // this bucket. Signed.
+  total: number;
+  // Only portfolios with a non-zero net this bucket (sparse). Read the top-level
+  // `portfolios` list for the full, ordered legend the stacked bars are built from.
+  byPortfolio: InvestmentContributionsPortfolioSlice[];
+  // User-wide income minus expenses this bucket (transfers excluded), for the
+  // "share of savings" card. Not scoped by `portfolioIds`, so filtering to one
+  // portfolio still compares its contributions against all money saved.
+  savingsNet: number;
+}
+
+// Legend entry for the stacked chart: every portfolio that had contribution activity
+// somewhere in the window.
+export interface InvestmentContributionsPortfolioMeta {
+  portfolioId: string;
+  name: string;
+}
+
+export interface GetInvestmentContributionsResponse {
+  buckets: InvestmentContributionsBucket[];
+  // Portfolios that contributed anywhere in the window, ordered largest mover first —
+  // a stable order so the client can assign each a consistent colour across renders.
+  portfolios: InvestmentContributionsPortfolioMeta[];
+}
+
 // Cumulative Analytics (Trends Comparison)
 export type CumulativeMetric = 'expenses' | 'income' | 'savings';
 

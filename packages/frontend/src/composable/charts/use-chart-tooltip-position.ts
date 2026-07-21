@@ -1,4 +1,4 @@
-import type { Ref } from 'vue';
+import { nextTick, type Ref } from 'vue';
 
 interface TooltipPosition {
   x: number;
@@ -24,10 +24,24 @@ export function useChartTooltipPosition({
   tooltip: TooltipPosition;
   strategy?: 'absolute' | 'fixed';
 }) {
-  function updateTooltipPosition(event: MouseEvent | { clientX: number; clientY: number }) {
+  function updateTooltipPosition(
+    event: MouseEvent | { clientX: number; clientY: number },
+    { allowRetry = true }: { allowRetry?: boolean } = {},
+  ) {
     if (!containerRef.value || !tooltipRef.value) return;
 
     const tooltipRect = tooltipRef.value.getBoundingClientRect();
+
+    // On the first show `tooltip.visible` has only just flipped to true, so
+    // Vue hasn't re-run `v-show` yet and the element is still `display:none`,
+    // which measures 0×0. Positioning against a zero-width box skips the
+    // edge-flip and drops the tooltip off-screen on the first tap. Wait one
+    // tick for layout, then measure for real.
+    if (allowRetry && tooltipRect.width === 0 && tooltipRect.height === 0) {
+      nextTick(() => updateTooltipPosition(event, { allowRetry: false }));
+      return;
+    }
+
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
