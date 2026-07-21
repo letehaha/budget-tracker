@@ -1,9 +1,8 @@
+import { config } from '@/common/config';
 import * as Sentry from '@sentry/vue';
 import { makeFetchTransport } from '@sentry/vue';
 import type { App } from 'vue';
 import type { Router } from 'vue-router';
-
-const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 
 /**
  * Check if Sentry should be enabled.
@@ -11,7 +10,7 @@ const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
  */
 function isSentryEnabled(): boolean {
   const isProduction = import.meta.env.PROD;
-  const hasDsn = Boolean(SENTRY_DSN);
+  const hasDsn = Boolean(config.sentryDsn);
 
   return isProduction && hasDsn;
 }
@@ -47,8 +46,8 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
 
   Sentry.init({
     app,
-    dsn: SENTRY_DSN,
-    release: import.meta.env.VITE_SENTRY_RELEASE,
+    dsn: config.sentryDsn,
+    release: config.sentryRelease,
     // Use custom transport that silently handles blocked requests
     transport: makeSilentFetchTransport,
     integrations: [
@@ -71,8 +70,11 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
     replaysOnErrorSampleRate: 1.0,
     // Environment
     environment: import.meta.env.MODE,
-    // Only send errors from production domains
-    allowUrls: [/https?:\/\/(www\.)?gamanets\.money/, /https?:\/\/(www\.)?moneymatter\.app/],
+    // Only accept errors whose stack frames come from the app's own bundle.
+    // The bundle is always served from the page origin (no CDN), so this one
+    // entry covers cloud and any self-hosted domain, while still filtering
+    // browser-extension and injected third-party scripts.
+    allowUrls: [window.location.origin],
     // Ignore common non-actionable errors
     ignoreErrors: [
       // Network errors

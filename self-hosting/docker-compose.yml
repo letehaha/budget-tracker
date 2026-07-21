@@ -1,0 +1,165 @@
+# Self-host base stack for Budget Tracker — pull-based and reverse-proxy-agnostic.
+#
+# Pulls the published images and exposes the whole app on ONE host port
+# (${HTTP_PORT:-8080}). The frontend container serves the SPA and reverse-proxies
+# /api to the backend on the internal network, so the browser talks to a single
+# origin. Point whatever reverse proxy you already run (Nginx Proxy Manager,
+# npmplus, Caddy, Traefik, or none) at http://HOST:${HTTP_PORT:-8080}.
+#
+# Quickstart (from this folder):
+#   1. cd self-hosting
+#   2. cp .env.example .env   # then fill the REQUIRED section
+#   3. docker compose up -d
+#   4. open http://HOST:${HTTP_PORT:-8080}
+#
+# Optional overlays (compose merges them left-to-right):
+#   • Bundled Traefik + Let's Encrypt TLS:
+#       docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+#   • Build the images from source instead of pulling:
+#       docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+
+# Pin the compose project name so resources are namespaced consistently
+# regardless of which directory `docker compose` is invoked from. Kept as
+# `budget-tracker-prod` so existing volumes/networks carry over on upgrade.
+name: budget-tracker-prod
+
+x-logging: &default-logging
+  driver: 'json-file'
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+services:
+  backend:
+    image: letehaha/budget-tracker-be:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    networks: [budget-tracker]
+    # Internal-only: the frontend container reaches it over the `budget-tracker`
+    # network. To expose the API directly on the host (e.g. for a separate
+    # api.* vhost), uncomment the ports block below.
+    expose: ['${APPLICATION_PORT:-8081}']
+    # ports: ['127.0.0.1:${API_HOST_PORT:-8081}:${APPLICATION_PORT:-8081}']
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      currency-rates-api: { condition: service_healthy }
+    env_file: .env
+    healthcheck:
+      # BusyBox wget ships in the node:alpine image. `--spider` returns non-zero
+      # on any non-2xx status, so this flips healthy only once /health answers.
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:${APPLICATION_PORT:-8081}/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # Generous start window: the entrypoint runs DB migrations before the
+      # HTTP server binds, so /health is unreachable until they finish.
+      start_period: 60s
+    logging: *default-logging
+
+  frontend:
+    image: letehaha/budget-tracker-fe:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    networks:
+      budget-tracker:
+        # The name reverse-proxy containers on this network reach the app by
+        # (http://budget-tracker:80). The bare service name `frontend` also
+        # resolves, but it is too generic for a proxy that sits on several
+        # networks at once.
+        aliases: [budget-tracker]
+    # The single public entrypoint. Front it with your reverse proxy for TLS,
+    # or (behind the Traefik overlay) this host port is dropped entirely.
+    # HTTP_PORT also accepts HTTP_PORT=127.0.0.1:8080 — then the port is only
+    # reachable from this machine itself. Use that when a reverse proxy on the
+    # same host fronts the app, so the plain-HTTP port isn't open to the world.
+    ports: ['${HTTP_PORT:-8080}:80']
+    depends_on:
+      backend: { condition: service_healthy }
+    environment:
+      # Empty API_HTTP => same-origin mode: the SPA calls relative /api/v1 and
+      # nginx inside this container proxies /api/ to BACKEND_URL. Set it to an
+      # absolute API URL only if you serve the API from a separate origin.
+      API_HTTP: ${API_HTTP-}
+      BACKEND_URL: http://backend:${APPLICATION_PORT:-8081}
+      API_VER: ${API_VER:-/api/v1}
+      MCP_BASE_URL: ${MCP_BASE_URL:-}
+      # Optional frontend runtime config. Set the corresponding keys in
+      # .env to enable; left empty they are no-ops.
+      POSTHOG_KEY: ${VITE_POSTHOG_KEY:-}
+      POSTHOG_HOST: ${VITE_POSTHOG_HOST:-}
+      LOGO_DEV_TOKEN: ${VITE_LOGO_DEV_TOKEN:-}
+      SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+      SENTRY_RELEASE: ${VITE_SENTRY_RELEASE:-}
+      CSP_EXTRA_CONNECT: ${CSP_EXTRA_CONNECT:-}
+      CSP_EXTRA_FORM_ACTION: ${CSP_EXTRA_FORM_ACTION:-}
+      CSP_EXTRA_ANALYTICS: ${CSP_EXTRA_ANALYTICS:-}
+    logging: *default-logging
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    networks: [budget-tracker]
+    volumes: ['db_data:/var/lib/postgresql/data']
+    # Internal-only: nothing on the host needs Postgres. For admin access
+    # (psql, backups) uncomment the ports line below — it binds to localhost
+    # only, so it is never reachable from outside the machine.
+    # ports: ['127.0.0.1:${DB_HOST_PORT:-5432}:5432']
+    environment:
+      - POSTGRES_USER=${APPLICATION_DB_USERNAME}
+      - POSTGRES_PASSWORD=${APPLICATION_DB_PASSWORD}
+      - POSTGRES_DB=${APPLICATION_DB_DATABASE}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    networks: [budget-tracker]
+    volumes: ['redis_data:/data']
+    # Internal-only: nothing on the host needs Redis. For admin access
+    # (redis-cli) uncomment the ports line below — it binds to localhost
+    # only, so it is never reachable from outside the machine.
+    # ports: ['127.0.0.1:${REDIS_HOST_PORT:-6379}:6379']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  currency-rates-api:
+    image: letehaha/currency-rates-api:latest
+    restart: unless-stopped
+    networks: [budget-tracker]
+    volumes: ['currency_rates_data:/app/data']
+    environment:
+      - DATABASE_URL=sqlite:/app/data/currency_rates.db?mode=rwc
+      - HOST=0.0.0.0
+      - PORT=8080
+      - DEFAULT_API_BASE=USD
+      - SEED_ON_STARTUP=true
+      - SYNC_ON_STARTUP=true
+      - 'SYNC_CRON=0 0 8,12,16,20 * * *'
+      - RUST_LOG=currency_rates=info,tower_http=info
+    healthcheck:
+      # `--spider` makes a HEAD request; modern wget (incl. BusyBox) returns
+      # non-zero on HTTP errors. Verified against the upstream image.
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:8080/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+networks:
+  budget-tracker:
+    # Fixed name (instead of the compose-project-prefixed default) so external
+    # reverse-proxy containers can join it by a stable, unambiguous name.
+    name: budget-tracker
+    driver: bridge
+
+volumes:
+  db_data:
+  redis_data:
+  currency_rates_data:

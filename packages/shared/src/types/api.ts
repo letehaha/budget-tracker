@@ -48,6 +48,17 @@ export enum API_ERROR_CODES {
 }
 
 /**
+ * Counts returned when re-anchoring account `ref*` balances after a user edits or
+ * removes a custom exchange rate. `failed > 0` means some accounts kept a stale
+ * base-currency value (no market rate available yet); the daily rate sync
+ * re-anchors them later. Surfaced so the client can warn that the refresh lagged.
+ */
+export interface RefBalanceRemeasureResult {
+  updated: number;
+  failed: number;
+}
+
+/**
  * Per-relationship-kind blocker entry surfaced in `change-base-currency`'s `details`
  * payload. Discriminated by `type` so the frontend renders the right copy and routing for
  * each blocker without re-deriving the shape from the error code.

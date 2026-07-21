@@ -22,6 +22,7 @@
         "liveUpdateLabel": "Pembaruan langsung",
         "saveButton": "Simpan",
         "successfullyUpdated": "Berhasil diperbarui.",
+        "balancesNotRefreshed": "{count} saldo akun belum dapat disegarkan dengan nilai tukar baru — akan diperbarui secara otomatis setelah nilai tukar tersedia.",
         "errors": {
           "unexpectedError": "Kesalahan tak terduga",
           "updateFailed": "Kesalahan tak terduga. Mata uang tidak diperbarui."

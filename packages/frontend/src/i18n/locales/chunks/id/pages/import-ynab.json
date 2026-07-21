@@ -6,13 +6,13 @@
         "pageDescription": "Upload ekspor Register.csv YNAB Anda untuk membawa akun, transaksi, kategori, penerima pembayaran, dan tag ke MoneyMatter.",
         "stepper": {
           "steps": {
-            "upload": "Upload",
+            "upload": "Unggah",
             "preview": "Tinjau",
             "results": "Selesai"
           }
         },
         "steps": {
-          "uploadTitle": "Upload file",
+          "uploadTitle": "Unggah file",
           "uploadDescription": "Pilih Register.csv dari ekspor YNAB Anda.",
           "previewTitle": "Tinjau apa yang akan diimpor",
           "previewDescription": "Periksa akun, mata uang, dan peringatan sebelum memproses.",

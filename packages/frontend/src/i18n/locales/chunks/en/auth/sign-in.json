@@ -16,6 +16,7 @@
         "genericError": "An error occurred.",
         "genericErrorRetry": "An error occurred. Please try again.",
         "oauthFailed": "Failed to sign in with {provider}. Please try again.",
+        "oauthNotConfigured": "{provider} sign-in is not configured on this server.",
         "passkeyFailed": "Failed to sign in with passkey. Please try again."
       }
     },

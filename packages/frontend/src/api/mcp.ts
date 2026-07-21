@@ -1,4 +1,5 @@
 import { api, API_HTTP } from '@/api/_api';
+import { config } from '@/common/config';
 
 interface ConnectedApp {
   clientId: string;
@@ -22,10 +23,16 @@ export const getOAuthClientName = async ({ clientId }: { clientId: string }): Pr
 };
 
 export function getMcpServerUrl(): string {
-  if (import.meta.env.VITE_MCP_BASE_URL) {
-    return `${import.meta.env.VITE_MCP_BASE_URL}/mcp`;
+  if (config.mcpBaseUrl) {
+    return `${config.mcpBaseUrl}/mcp`;
   }
-  return `${API_HTTP}/mcp`;
+  // This URL is displayed and copied into external MCP clients, so it must be
+  // absolute. API_HTTP is '' in same-origin mode, so fall back to the page
+  // origin (better-auth's getBaseURL does the same for the same reason).
+  // NOTE: in a same-origin self-host the frontend nginx only reverse-proxies
+  // /api/, not /mcp — so this origin URL resolves but 404s to the SPA unless
+  // MCP_BASE_URL points at a publicly reachable backend origin.
+  return `${API_HTTP || window.location.origin}/mcp`;
 }
 
 /**

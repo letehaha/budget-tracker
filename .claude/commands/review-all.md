@@ -4,9 +4,16 @@ Run a comprehensive review of the current branch changes by spawning multiple re
 
 ### 1. Gather context
 
-**Base branch:** default to `dev` (the integration/main-line branch). If the user specified a different base branch in their invocation, use that instead. Everywhere below, `<base>` refers to this resolved branch.
+**Base branch:** default to `dev` (the integration branch), never `main`. If the user specified a different base branch in their invocation, use that instead. Everywhere below, `<base>` refers to this resolved branch.
 
-Run `git diff <base>...HEAD --name-only` to get the list of changed files. Determine:
+Get the list of changed files on the current branch, covering **both committed and uncommitted** work:
+
+- Committed changes since the branch diverged: `git diff <base>...HEAD --name-only`
+- Uncommitted work (staged + unstaged + untracked): `git status --short`
+
+When the branch sits on the current `<base>` tip, `git diff <base> --name-only` captures committed + staged + unstaged in one diff; add untracked new files from `git status`. But if `<base>` has advanced past the branch's merge-base, that two-dot diff pulls in unrelated base-only changes — diff against the merge-base instead: `git diff $(git merge-base <base> HEAD) --name-only`. Build the review diff from this combined set.
+
+Determine:
 
 - Whether frontend files (`packages/frontend/`) are affected
 - Whether backend files (`packages/backend/`) are affected

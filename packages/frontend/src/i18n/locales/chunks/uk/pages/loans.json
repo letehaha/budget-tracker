@@ -60,7 +60,7 @@
       "unarchiveSuccess": "Кредит відновлено",
       "deleteSuccess": "Кредит видалено",
       "deleteError": "Не вдалося видалити кредит",
-      "deleteBlockedByPayments": "This loan has recorded payments. Delete them first, then you can delete the loan."
+      "deleteBlockedByPayments": "Цей кредит має записані платежі. Спочатку видаліть їх, а потім зможете видалити кредит."
     },
     "empty": {
       "title": "Поки немає кредитів",
@@ -177,7 +177,7 @@
       },
       "events": {
         "title": "Хронологія",
-        "empty": "No history yet – rate changes, balance corrections, and notes will appear here.",
+        "empty": "Історії ще немає – тут з'являться зміни ставки, коригування балансу та нотатки.",
         "rateChange": "Ставку змінено з {from}% на {to}%",
         "termChange": "Термін змінено з {from} на {to} місяців",
         "plannedPaymentChange": "Планований платіж змінено з {from} на {to}",
@@ -208,7 +208,7 @@
         "targetAmountTooltip": "Рахунок джерела в {source}, кредит у {loan}. Ми автоматично заповнюємо конвертовану суму за поточним валютним курсом – змініть, якщо ваш банк застосував інший курс.",
         "saveButton": "Зберегти",
         "recordButton": "Записати",
-        "overdrawWarning": "This is more than {account}'s balance and will overdraw the account.",
+        "overdrawWarning": "Це більше, ніж баланс рахунку {account}, тож рахунок піде в мінус.",
         "overpayError": "Платіж перевищує залишок за кредитом ({max}).",
         "deleteConfirmTitle": "Видалити цей платіж?",
         "deleteConfirmDescription": "Обидві сторони переказу буде видалено, а залишок за кредитом відновлено. Цю дію неможливо скасувати.",

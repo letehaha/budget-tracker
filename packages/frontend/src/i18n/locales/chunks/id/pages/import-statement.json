@@ -5,7 +5,7 @@
       "pageDescription": "Upload laporan bank (PDF, CSV, atau TXT) untuk mengekstrak transaksi menggunakan AI. Memerlukan kunci API AI yang dikonfigurasi di pengaturan.",
       "stepper": {
         "steps": {
-          "upload": "Upload",
+          "upload": "Unggah",
           "account": "Akun",
           "review": "Tinjau",
           "results": "Impor"
@@ -152,7 +152,7 @@
         "skippedLabel": "Dilewati:",
         "errorsTitle": "Error Impor",
         "transactionNumberHeader": "Transaksi #",
-        "errorHeader": "Error",
+        "errorHeader": "Kesalahan",
         "batchIdLabel": "ID Batch Impor:",
         "batchIdDescription": "Anda dapat menggunakan ID ini untuk menemukan dan mengelola semua transaksi yang diimpor.",
         "viewTransactionsButton": "Lihat Transaksi",

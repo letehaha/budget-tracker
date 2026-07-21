@@ -1,35 +1,10 @@
 name: Build frontend Docker image
 description: Build and optionally push the frontend Docker image
 
+# Deployment configuration (API origin, analytics keys, CSP hosts) is NOT a
+# build input: the image reads it from runtime env at container start. Inputs
+# here cover only build identity and the Sentry source-map upload.
 inputs:
-  api-base-url:
-    description: 'API_BASE_URL'
-    required: false
-    default: 'http://localhost:8080'
-  vue-app-api-ver:
-    description: 'VUE_APP_API_VER'
-    required: false
-    default: 'v1'
-  posthog-key:
-    description: 'VITE_POSTHOG_KEY - PostHog API key for analytics'
-    required: false
-    default: ''
-  posthog-host:
-    description: 'VITE_POSTHOG_HOST - PostHog host URL'
-    required: false
-    default: ''
-  sentry-dsn:
-    description: 'VITE_SENTRY_DSN - Sentry DSN for error tracking'
-    required: false
-    default: ''
-  mcp-base-url:
-    description: 'VITE_MCP_BASE_URL - Base URL for the MCP subdomain (e.g. https://mcp.moneymatter.app)'
-    required: false
-    default: ''
-  logo-dev-token:
-    description: 'VITE_LOGO_DEV_TOKEN - Logo.dev CDN publishable token for subscription logos'
-    required: false
-    default: ''
   sentry-auth-token:
     description: 'SENTRY_AUTH_TOKEN - Sentry auth token for source map upload'
     required: false
@@ -50,18 +25,6 @@ inputs:
     description: 'VITE_APP_COMMIT_HASH - Git SHA baked into the bundle for stale-version detection (polled against /version.json)'
     required: false
     default: ''
-  csp-extra-connect:
-    description: 'CSP_EXTRA_CONNECT - Extra hosts for CSP connect-src (defaults to api-base-url at build time)'
-    required: false
-    default: ''
-  csp-extra-form-action:
-    description: 'CSP_EXTRA_FORM_ACTION - Extra hosts for CSP form-action (defaults to api-base-url at build time)'
-    required: false
-    default: ''
-  csp-extra-analytics:
-    description: 'CSP_EXTRA_ANALYTICS - PostHog/Sentry hosts for CSP connect-src (e.g. https://*.i.posthog.com https://*.sentry.io)'
-    required: false
-    default: ''
   docker-hub-username:
     description: 'DOCKER_HUB_USERNAME'
     required: false
@@ -70,9 +33,13 @@ inputs:
     description: 'DOCKER_HUB_ACCESS_TOKEN'
     required: false
   image-tag:
-    description: 'Docker image tag (e.g. latest, pr-123)'
+    description: 'Docker image tag(s). Comma/space-separated for multiple (e.g. "latest,sha-abc1234"); each becomes a full ref on the fe repo.'
     required: false
     default: 'latest'
+  platforms:
+    description: 'Target platforms for the build (e.g. "linux/amd64" or "linux/amd64,linux/arm64"). Multi-arch requires push=true.'
+    required: false
+    default: 'linux/amd64'
   push:
     description: Specifies if docker result should be pushed
     required: false
@@ -91,31 +58,47 @@ runs:
         username: ${{ inputs.docker-hub-username }}
         password: ${{ inputs.docker-hub-access-token }}
 
+    # QEMU registers binfmt handlers so buildx can emulate foreign
+    # architectures. Only needed when building for an arch other than the
+    # amd64 runner (i.e. multi-arch pushes).
+    - name: Set up QEMU
+      if: inputs.platforms != 'linux/amd64'
+      uses: docker/setup-qemu-action@v3
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+
+    # Expand the comma/space-separated image-tag list into one full ref per
+    # line for build-push-action's multiline tags input.
+    - name: Compose image tags
+      id: tags
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.docker-hub-username }}/budget-tracker-fe
+        TAG_LIST: ${{ inputs.image-tag }}
+      run: |
+        {
+          echo "refs<<EOF"
+          IFS=', ' read -ra parts <<< "$TAG_LIST"
+          for tag in "${parts[@]}"; do
+            [ -n "$tag" ] && echo "${IMAGE}:${tag}"
+          done
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Build
       id: docker-build
       uses: docker/build-push-action@v6
       with:
         context: ./
-        file: ./docker/prod/frontend/Dockerfile
+        file: ./self-hosting/frontend/Dockerfile
         push: ${{ inputs.push == 'true' }}
         load: ${{ inputs.push != 'true' }}
-        tags: ${{ inputs.docker-hub-username }}/budget-tracker-fe:${{ inputs.image-tag }}
+        platforms: ${{ inputs.platforms }}
+        tags: ${{ steps.tags.outputs.refs }}
         build-args: |
-          VITE_APP_API_HTTP=${{ inputs.api-base-url }}
-          VITE_APP_API_VER=${{ inputs.vue-app-api-ver }}
-          VITE_MCP_BASE_URL=${{ inputs.mcp-base-url }}
-          VITE_POSTHOG_KEY=${{ inputs.posthog-key }}
-          VITE_POSTHOG_HOST=${{ inputs.posthog-host }}
-          VITE_LOGO_DEV_TOKEN=${{ inputs.logo-dev-token }}
-          VITE_SENTRY_DSN=${{ inputs.sentry-dsn }}
           VITE_SENTRY_RELEASE=${{ inputs.sentry-release }}
           VITE_APP_COMMIT_HASH=${{ inputs.app-commit-hash }}
           SENTRY_AUTH_TOKEN=${{ inputs.sentry-auth-token }}
           SENTRY_ORG=${{ inputs.sentry-org }}
           SENTRY_PROJECT=${{ inputs.sentry-project }}
-          CSP_EXTRA_CONNECT=${{ inputs.csp-extra-connect }}
-          CSP_EXTRA_FORM_ACTION=${{ inputs.csp-extra-form-action }}
-          CSP_EXTRA_ANALYTICS=${{ inputs.csp-extra-analytics }}

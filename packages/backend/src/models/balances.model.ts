@@ -1,4 +1,10 @@
-import { TRANSACTION_TYPES, ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, RecordId } from '@bt/shared/types';
+import {
+  TRANSACTION_TYPES,
+  ACCOUNT_TYPES,
+  ACCOUNT_CATEGORIES,
+  TRANSACTION_TRANSFER_NATURE,
+  RecordId,
+} from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
 import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
@@ -13,6 +19,7 @@ import { v7 as uuidv7 } from 'uuid';
 
 import Accounts from './accounts.model';
 import Transactions, { TransactionsAttributes } from './transactions.model';
+import { getBaseCurrency } from './users-currencies.model';
 
 interface GetTotalBalanceHistoryPayload {
   startDate: Date;
@@ -164,6 +171,43 @@ export default class Balances extends Model {
           date,
           amount,
         });
+
+        // The incremental cascade folded this transaction's historical-rate
+        // `refAmount` into today's row, but today's row is a STOCK: it must equal
+        // the account card's spot `refCurrentBalance` (native × latest rate). Re-pin
+        // each affected account to the spot value already written by the
+        // account-balance hook. A moved transaction touches its old and new account,
+        // so both are re-pinned.
+        const clampAccountIds = new Set<string>([accountId]);
+        if (prevData && prevData.accountId !== accountId) {
+          clampAccountIds.add(prevData.accountId);
+        }
+        for (const clampAccountId of clampAccountIds) {
+          const clampAccount = await Accounts.findOne({ where: { id: clampAccountId } });
+          if (!clampAccount) continue;
+
+          // Whether today's row still needs re-pinning. The one case that does NOT
+          // is an identity-rate cascade in the OWNER's base currency: the account is
+          // in the owner's base AND this cascade folded a same-base `refAmount`
+          // (rate 1), so the row already sits at the spot balance — and skipping it
+          // preserves the row's race-safe atomic accumulation. The row's stamped
+          // `refCurrencyCode` alone can't decide this: on a shared account a
+          // recipient authors rows under their own base, so it carries the AUTHOR's
+          // base, not the owner's. The skip therefore requires the account currency,
+          // the row's ref currency, AND the owner's actual base to all agree. Loans
+          // no-op inside `setTodayRowToSpot`.
+          let shouldPin = true;
+          if (clampAccount.currencyCode === data.refCurrencyCode) {
+            const ownerBaseCurrency = await getBaseCurrency({ userId: clampAccount.userId });
+            if (clampAccount.currencyCode === ownerBaseCurrency?.currencyCode) {
+              shouldPin = false;
+            }
+          }
+
+          if (shouldPin) {
+            await this.setTodayRowToSpot({ account: clampAccount });
+          }
+        }
         break;
       }
 
@@ -513,5 +557,32 @@ export default class Balances extends Model {
         },
       },
     );
+  }
+
+  /**
+   * Pin TODAY's net-worth history row for an account to its spot `refCurrentBalance`
+   * (native balance × latest rate). Today's row is a STOCK: it must equal the
+   * account card's base-currency balance, not the running sum of historical-rate
+   * `refAmount`s the cascade folds in (an account drained to zero would otherwise
+   * keep a nonzero residue). Absolute upsert on `(accountId, today)`, never an
+   * increment. Past rows are untouched — historical measurements at their own rates.
+   *
+   * Callers pass an account row read AFTER the spot `refCurrentBalance` write so this
+   * observes the fresh value; the upsert joins the ambient CLS transaction via
+   * `updateAccountBalance`.
+   *
+   * Loans are excluded for every caller: a loan owns its whole Balances history
+   * through `recomputeLoanBalance`'s destroy + rebuild replay, so a spot pin would
+   * fight that writer. Centralising the skip here keeps any caller from pinning a
+   * loan's today row.
+   */
+  static async setTodayRowToSpot({ account }: { account: Accounts }): Promise<void> {
+    if (account.accountCategory === ACCOUNT_CATEGORIES.loan) return;
+
+    await this.updateAccountBalance({
+      accountId: account.id,
+      date: startOfDay(new Date()),
+      refBalance: account.refCurrentBalance,
+    });
   }
 }

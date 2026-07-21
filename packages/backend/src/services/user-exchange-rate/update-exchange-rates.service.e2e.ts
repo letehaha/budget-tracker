@@ -40,8 +40,9 @@ describe('Edit currency exchange rate controller', () => {
 
       expect(res.statusCode).toEqual(200);
 
-      // Verify that edition request returned edited currencies
-      const returnedValues = helpers.extractResponse(res);
+      // Verify that edition request returned edited currencies. The response is an
+      // object: the edited rates plus the ref-balance remeasure counts.
+      const { rates: returnedValues } = helpers.extractResponse(res);
       expect(['USD', 'EUR'].every((code) => returnedValues.map((r) => r.baseCode === code))).toBe(true);
 
       const usdEurRate = returnedValues.find((rate) => rate.baseCode === 'USD' && rate.quoteCode === 'EUR')!;

@@ -2,10 +2,12 @@ import { ASSET_CLASS, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import { restClient } from '@polygon.io/client-js';
+import { dataProviderFactory } from '@services/investments/data-providers/provider-factory';
 import * as helpers from '@tests/helpers';
 import { makeRequest } from '@tests/helpers/common';
 import alpha from 'alphavantage';
@@ -367,6 +369,71 @@ describe('POST /holdings (create holding)', () => {
         where: { portfolioId: investmentPortfolio.id, securityId: vooSecurity.id },
       });
       expect(holdings).toHaveLength(1);
+    });
+  });
+
+  describe('background historical price sync error surfacing (MONEY-MATTER-BACKEND-6M)', () => {
+    it('surfaces the real provider cause instead of "Unknown error" when every price provider fails', async () => {
+      const symbol = 'IE00BLCHJB90.SG';
+
+      // This symbol shape matches no US/European suffix, so it routes to Yahoo
+      // (primary) with Alpha Vantage as the only fallback.
+      const security = await Securities.create({
+        symbol,
+        providerSymbol: symbol,
+        name: 'Test Global ETF',
+        currencyCode: 'EUR',
+        providerName: SECURITY_PROVIDER.yahoo,
+        assetClass: ASSET_CLASS.stocks,
+      });
+
+      mockedYahooFinance.mockImplementation(
+        () =>
+          ({
+            search: jest.fn<any>().mockRejectedValue(new Error('not configured')),
+            quote: jest.fn<any>().mockRejectedValue(new Error('not configured')),
+            chart: jest.fn<any>().mockRejectedValue(new Error('Yahoo: no data for symbol')),
+          }) as any,
+      );
+
+      // The real `alphavantage` package rejects with a bare string (not an
+      // Error) on API errors — the exact shape that used to become "Unknown
+      // error".
+      mockedAlphaDaily.mockRejectedValue(
+        'An AlphaVantage error occurred. Invalid API call. Please retry or visit the documentation (https://www.alphavantage.co/documentation/) for TIME_SERIES_DAILY.',
+      );
+
+      // dataProviderFactory caches the composite/Yahoo client on first
+      // getProvider(); an earlier test may have baked in a stale Yahoo mock, so
+      // clear it to force a fresh client for this test's background sync.
+      dataProviderFactory.clearCache();
+
+      const errorSpy = jest.spyOn(logger, 'error');
+
+      const response = await helpers.createHolding({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: security.id,
+        },
+      });
+
+      // Price sync runs fire-and-forget after the transaction commits, so a
+      // single bad ticker never fails holding creation itself.
+      expect(response.statusCode).toBe(201);
+
+      await helpers.sleep(300); // let the background sync's rejection land
+
+      const calls = errorSpy.mock.calls as unknown as Array<[{ message?: string; error?: Error }]>;
+      const syncFailureCall = calls.find(([arg]) => arg?.message?.includes(`securityId: ${security.id}`));
+      expect(syncFailureCall).toBeTruthy();
+
+      const surfacedMessage = syncFailureCall?.[0].error?.message ?? '';
+      expect(surfacedMessage).toContain(symbol);
+      expect(surfacedMessage).toContain('alphavantage');
+      expect(surfacedMessage).toContain('Invalid API call');
+      expect(surfacedMessage).not.toContain('Unknown error');
+
+      errorSpy.mockRestore();
     });
   });
 });

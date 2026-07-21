@@ -3,3 +3,4 @@ export { default as GithubIcon } from './github-icon.vue';
 export { default as GoogleIcon } from './google-icon.vue';
 export { default as OAuthButton } from './oauth-button.vue';
 export { default as PasskeyButton } from './passkey-button.vue';
+export { OAUTH_PROVIDER_NAMES } from './oauth-providers';

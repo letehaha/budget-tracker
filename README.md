@@ -11,7 +11,7 @@ To set up the application locally, please refer to the [instructions here](./doc
 
 ## Self-hosting
 
-To run Budget Tracker (MoneyMatter) on your own server (Docker + Traefik + Let's Encrypt, single VPS, split subdomains for app and API), follow the [self-hosting guide](./docs/self-hosting.md).
+Run Budget Tracker (MoneyMatter) on your own server: the stack pulls published multi-arch Docker images and exposes the whole app on a single port, so you front it with whatever reverse proxy you already run (Nginx Proxy Manager, Caddy, Traefik, …) – or use the optional bundled Traefik + Let's Encrypt overlay. See the [self-hosting guide](./self-hosting/README.md).
 
 ## Translations
 

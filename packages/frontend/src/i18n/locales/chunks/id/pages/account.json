@@ -261,7 +261,7 @@
     "vehicleDetails": {
       "notFound": "Kendaraan tidak ditemukan",
       "backToAccounts": "Kembali ke akun",
-      "editButton": "Edit",
+      "editButton": "Sunting",
       "overrideValueButton": "Timpa nilai",
       "overrideValueNote": "Revaluasi kendaraan",
       "currentValue": "Nilai saat ini",

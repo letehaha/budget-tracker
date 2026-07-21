@@ -3,6 +3,17 @@ services:
     image: letehaha/budget-tracker-fe:pr-${PR_NUMBER}
     container_name: preview-pr-${PR_NUMBER}-frontend
     restart: unless-stopped
+    # Deployment config enters here at container start (read by the image's
+    # entrypoint), not at image build time. Values interpolate from variables
+    # exported by the deploy script in preview-deploy.yml — deliberately not
+    # from the generated .env, which is written on first deploy only and would
+    # go stale for long-lived previews.
+    environment:
+      API_HTTP: https://api-pr-${PR_NUMBER}.preview.moneymatter.app
+      MCP_BASE_URL: https://mcp-pr-${PR_NUMBER}.preview.moneymatter.app
+      CSP_EXTRA_CONNECT: https://*.preview.moneymatter.app
+      CSP_EXTRA_FORM_ACTION: https://*.preview.moneymatter.app
+      LOGO_DEV_TOKEN: ${LOGO_DEV_TOKEN:-}
     networks:
       - dokploy-network
     labels:

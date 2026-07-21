@@ -47,9 +47,13 @@ export default class Currencies extends Model {
 }
 
 /**
- * ISO 4217 codes that are not actual currencies (precious metals, testing codes, supranational currencies).
- * These are excluded from the currency selection UI and rejected on bank-account import — none of them
- * have an exchange rate, so trying to compute a ref-amount against the user's base currency throws.
+ * ISO 4217 codes that are not actual currencies (precious metals, testing codes, supranational
+ * currencies, accounting fund codes). These are excluded from the currency selection UI and rejected
+ * on bank-account import — none of them have an exchange rate, so trying to compute a ref-amount
+ * against the user's base currency throws. They are also excluded from `getAllCurrencies`, which
+ * feeds the exchange-rate sync's coverage checks: treating them as expected would make full coverage
+ * permanently unreachable (no provider quotes them), defeating the ApiLayer early-stop and making
+ * the coverage alerts fire on every sync.
  */
 export const NON_CURRENCY_CODES = [
   'XAU', // Gold
@@ -65,6 +69,14 @@ export const NON_CURRENCY_CODES = [
   'XUA', // ADB Unit of Account
   'XXX', // No currency
   'XTS', // Testing code
+  'BOV', // Bolivian Mvdol (funds code)
+  'CHE', // WIR euro (complementary currency)
+  'CHW', // WIR franc (complementary currency)
+  'COU', // Colombian unidad de valor real (funds code)
+  'MXV', // Mexican unidad de inversión (funds code)
+  'USN', // US dollar next-day (funds code)
+  'UYI', // Uruguay peso en unidades indexadas (funds code)
+  'UYW', // Uruguayan unidad previsional (funds code)
 ];
 
 export const getAllCurrencies = async () => {
