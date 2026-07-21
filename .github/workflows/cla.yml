@@ -40,6 +40,10 @@ jobs:
           # GitHub account (no `[bot]` suffix), so the `*[bot]` glob misses it and
           # it must be listed by name.
           allowlist: 'letehaha,dependabot[bot],crowdin-bot,*[bot]'
+          # Signatures are the JSON file on the cla-signatures branch, not the PR
+          # thread, so locking merged PRs guards nothing. Leaving them unlocked lets
+          # the Preview Teardown workflow post its "torn down" comment after merge.
+          lock-pullrequest-aftermerge: false
           custom-notsigned-prcomment: 'Thank you for your pull request. Before it can be merged we need you to sign our [Contributor License Agreement](https://github.com/letehaha/budget-tracker/blob/main/CLA.md). It takes one comment and you keep the copyright to your work — see [CONTRIBUTING.md](https://github.com/letehaha/budget-tracker/blob/main/CONTRIBUTING.md) for the plain-language summary.'
           custom-pr-sign-comment: 'I have read the CLA Document and I hereby sign the CLA'
           custom-allsigned-prcomment: 'All contributors have signed the CLA. Thank you!'
