@@ -4,7 +4,9 @@ Run a comprehensive review of the current branch changes by spawning multiple re
 
 ### 1. Gather context
 
-Run `git diff main...HEAD --name-only` to get the list of changed files. Determine:
+**Base branch:** default to `dev` (the integration/main-line branch). If the user specified a different base branch in their invocation, use that instead. Everywhere below, `<base>` refers to this resolved branch.
+
+Run `git diff <base>...HEAD --name-only` to get the list of changed files. Determine:
 
 - Whether frontend files (`packages/frontend/`) are affected
 - Whether backend files (`packages/backend/`) are affected
