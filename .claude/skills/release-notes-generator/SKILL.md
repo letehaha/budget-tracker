@@ -89,9 +89,9 @@ Group changes into these categories (skip empty ones):
 ### Step 4: Determine Release Version
 
 - Look at the latest tag (e.g., `v0.10.6`)
-- Increment patch for bug fixes and minor improvements (e.g., `v0.10.7`)
-- Increment minor for significant new features (e.g., `v0.11.0`)
-- Use your judgment based on the scope of changes
+- **Default: always increment the patch version** (e.g., `v0.10.6` → `v0.10.7`), regardless of the scope of changes.
+- **Only bump minor or major when the user explicitly asks for it** in their request (e.g., "minor bump", "make it a minor release", "major release"). Do NOT decide this on your own.
+- **Exception — strong candidate for a bigger bump**: if the release is a clear, strong candidate for more than a patch (e.g., a major new user-facing feature or a breaking change), still generate the notes with the patch version by default, but add a short note to the user suggesting it might warrant a minor/major bump and letting them decide. Do not apply the bigger bump unless they confirm.
 
 ### Step 5: Generate Release Text
 
