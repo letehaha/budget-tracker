@@ -20,6 +20,9 @@ import {
 } from 'date-fns';
 import { Op } from 'sequelize';
 
+export { getScopedEnabledPortfolios } from './scoped-portfolios';
+export { fetchSavingsTransactions } from './savings-transactions';
+
 type ColumnName = 'time' | 'date';
 interface DateQuery {
   // yyyy-mm-dd

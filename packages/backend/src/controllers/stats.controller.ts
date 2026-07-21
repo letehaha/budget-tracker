@@ -16,6 +16,8 @@ import {
   serializeCombinedBalanceHistory,
   serializeCumulativeData,
   serializeExpensesAmountForPeriod,
+  serializeInvestmentContributions,
+  serializeNetWorthDrivers,
   serializePivotReport,
   serializeSpendingsByCategories,
   serializeSpendingsByCategoriesByType,
@@ -209,6 +211,54 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
 
   // Serialize: convert cents to decimal for API response
   return { data: serializeCashFlow(result) };
+});
+
+const netWorthDriversSchema = z.object({
+  query: withDateOrder(
+    z.object({
+      ...dateRange({ required: true }),
+      granularity: z.enum(endpointsTypes.NET_WORTH_DRIVERS_GRANULARITIES),
+      // Scopes only the investment slice; ownership + enabled are re-enforced in the
+      // service against the user's portfolios, so an unknown id is silently dropped.
+      portfolioIds: optionalCommaSeparatedIds(),
+    }),
+  ),
+});
+
+export const getNetWorthDrivers = createController(netWorthDriversSchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, granularity, portfolioIds } = query;
+
+  const result = await statsService.getNetWorthDrivers(
+    removeUndefinedKeys({ userId, from, to, granularity, portfolioIds }),
+  );
+
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeNetWorthDrivers(result) };
+});
+
+const investmentContributionsSchema = z.object({
+  query: withDateOrder(
+    z.object({
+      ...dateRange({ required: true }),
+      granularity: z.enum(endpointsTypes.INVESTMENT_CONTRIBUTIONS_GRANULARITIES),
+      // Scopes only the contributions; ownership + enabled are re-enforced in the
+      // service against the user's portfolios, so an unknown id is silently dropped.
+      portfolioIds: optionalCommaSeparatedIds(),
+    }),
+  ),
+});
+
+export const getInvestmentContributions = createController(investmentContributionsSchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, granularity, portfolioIds } = query;
+
+  const result = await statsService.getInvestmentContributions(
+    removeUndefinedKeys({ userId, from, to, granularity, portfolioIds }),
+  );
+
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeInvestmentContributions(result) };
 });
 
 const pivotReportSchema = z.object({

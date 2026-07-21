@@ -153,6 +153,56 @@ export const getCashFlow = async ({
   return api.get('/stats/cash-flow', params);
 };
 
+interface GetNetWorthDriversParams {
+  from: Date;
+  to: Date;
+  granularity: endpointsTypes.NetWorthDriversGranularity;
+  /** Subset of enabled portfolios to scope the investment slice to. Omitted/empty = all. */
+  portfolioIds?: string[];
+}
+
+export const getNetWorthDrivers = async ({
+  from,
+  to,
+  granularity,
+  portfolioIds,
+}: GetNetWorthDriversParams): Promise<endpointsTypes.GetNetWorthDriversResponse> => {
+  const params: Record<string, string> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    granularity,
+  };
+
+  if (portfolioIds && portfolioIds.length > 0) params.portfolioIds = portfolioIds.join(',');
+
+  return api.get('/stats/net-worth-drivers', params);
+};
+
+interface GetInvestmentContributionsParams {
+  from: Date;
+  to: Date;
+  granularity: endpointsTypes.InvestmentContributionsGranularity;
+  /** Subset of enabled portfolios to scope the contributions to. Omitted/empty = all. */
+  portfolioIds?: string[];
+}
+
+export const getInvestmentContributions = async ({
+  from,
+  to,
+  granularity,
+  portfolioIds,
+}: GetInvestmentContributionsParams): Promise<endpointsTypes.GetInvestmentContributionsResponse> => {
+  const params: Record<string, string> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    granularity,
+  };
+
+  if (portfolioIds && portfolioIds.length > 0) params.portfolioIds = portfolioIds.join(',');
+
+  return api.get('/stats/investment-contributions', params);
+};
+
 interface GetPivotReportParams {
   from: Date;
   to: Date;

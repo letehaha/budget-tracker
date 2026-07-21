@@ -51,7 +51,10 @@
             <!-- Average line tooltip -->
             <template v-if="tooltip.isAverage">
               <div class="flex items-center gap-2">
-                <span class="inline-block h-0.5 w-4" style="background: rgb(234, 179, 8); border-style: dashed"></span>
+                <span
+                  class="inline-block h-0.5 w-4"
+                  :style="{ background: AVERAGE_LINE_COLOR, borderStyle: 'dashed' }"
+                ></span>
                 <span>{{ t('analytics.trends.monthlyComparison.average') }}:</span>
                 <span class="font-medium">{{ formatBaseCurrency(tooltip.value) }}</span>
               </div>
@@ -116,7 +119,10 @@
             </div>
           </template>
           <div v-if="showAverageLine" class="flex items-center gap-2">
-            <span class="inline-block h-0.5 w-4" style="background: rgb(234, 179, 8); border-style: dashed"></span>
+            <span
+              class="inline-block h-0.5 w-4"
+              :style="{ background: AVERAGE_LINE_COLOR, borderStyle: 'dashed' }"
+            ></span>
             <span class="text-muted-foreground">{{ t('analytics.trends.monthlyComparison.average') }}</span>
           </div>
         </div>
@@ -133,6 +139,7 @@ import ComboboxCategories from '@/components/common/combobox-categories.vue';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
+import { AVERAGE_LINE_COLOR, renderAverageLine } from '@/composable/charts/render-average-line';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
@@ -413,8 +420,6 @@ const getColors = () => {
     grid,
     text,
     bar: singleBarColor.value,
-    // Average line uses a prominent color for visibility across themes
-    averageLine: 'rgb(234, 179, 8)', // amber-500
     averageLabelBg: card,
     positive: 'rgb(34, 197, 94)', // green-500
     negative: 'rgb(239, 68, 68)', // red-500
@@ -560,78 +565,20 @@ const renderChart = () => {
       axis.selectAll('.tick line').attr('stroke', colors.grid);
     });
 
-  // Average line - rendered BEFORE bars so it appears below them
-  // This prevents interference with bar hover events
+  // Average line - rendered BEFORE bars so it appears below them.
+  // This prevents interference with bar hover events.
   if (showAverageLine.value && averageValue.value !== null) {
-    const avgY = yScale(averageValue.value);
-
-    // Shadow line for better visibility on any background
-    g.append('line')
-      .attr('class', 'average-line-shadow')
-      .attr('x1', 0)
-      .attr('x2', innerWidth)
-      .attr('y1', avgY)
-      .attr('y2', avgY)
-      .attr('stroke', 'rgba(0, 0, 0, 0.5)')
-      .attr('stroke-width', 5)
-      .attr('stroke-dasharray', '8,4');
-
-    // Main average line
-    g.append('line')
-      .attr('class', 'average-line')
-      .attr('x1', 0)
-      .attr('x2', innerWidth)
-      .attr('y1', avgY)
-      .attr('y2', avgY)
-      .attr('stroke', colors.averageLine)
-      .attr('stroke-width', 2.5)
-      .attr('stroke-dasharray', '8,4');
-
-    // Average label with background for better visibility
-    const labelText = `${t('analytics.trends.monthlyComparison.average')}: ${formatBaseCurrency(averageValue.value)}`;
-    const labelFontSize = 11;
-    const avgValueForTooltip = averageValue.value;
-
-    // Add text first to measure it
-    const tempText = g
-      .append('text')
-      .attr('font-size', `${labelFontSize}px`)
-      .attr('font-weight', '500')
-      .text(labelText);
-    const textBBox = (tempText.node() as SVGTextElement).getBBox();
-    tempText.remove();
-
-    // Create a group for the label (for hover handling)
-    const labelGroup = g.append('g').attr('class', 'average-label-group').style('cursor', 'pointer');
-
-    // Background rectangle for label
-    labelGroup
-      .append('rect')
-      .attr('class', 'average-label-bg')
-      .attr('x', innerWidth - textBBox.width - 12)
-      .attr('y', avgY - textBBox.height - 4)
-      .attr('width', textBBox.width + 8)
-      .attr('height', textBBox.height + 4)
-      .attr('fill', colors.averageLabelBg)
-      .attr('rx', 3);
-
-    // Average label text
-    labelGroup
-      .append('text')
-      .attr('class', 'average-label')
-      .attr('x', innerWidth - 8)
-      .attr('y', avgY - 6)
-      .attr('text-anchor', 'end')
-      .attr('font-size', `${labelFontSize}px`)
-      .attr('font-weight', '500')
-      .attr('fill', colors.averageLine)
-      .text(labelText);
-
-    // Add hover events to the label group
-    labelGroup
-      .on('mouseenter', (event: MouseEvent) => handleAverageLabelMouseEnter(event, avgValueForTooltip))
-      .on('mousemove', handleMouseMove)
-      .on('mouseleave', handleMouseLeave);
+    const avgValue = averageValue.value;
+    renderAverageLine({
+      g,
+      innerWidth,
+      y: yScale(avgValue),
+      label: `${t('analytics.trends.monthlyComparison.average')}: ${formatBaseCurrency(avgValue)}`,
+      labelBackground: colors.averageLabelBg,
+      onEnter: (event: MouseEvent) => handleAverageLabelMouseEnter(event, avgValue),
+      onMove: handleMouseMove,
+      onLeave: handleMouseLeave,
+    });
   }
 
   // Bars
