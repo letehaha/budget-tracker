@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAccountPayees, usePayees } from '@/composable/data-queries/payees';
+import { useAccountPayees, usePayeeLookup, usePayees } from '@/composable/data-queries/payees';
 import * as Popover from '@/components/lib/ui/popover';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { Button } from '@/components/lib/ui/button';
@@ -112,9 +112,16 @@ const createLabel = computed(() => {
   return t('fields.payeeSelect.createAffordance', { name: debouncedQuery.value });
 });
 
+// Resolve the selected payee's name+logo from the full lookup, not the dropdown
+// list: the assigned payee is often absent from the search/lastSeen-limited list
+// (e.g. editing a transaction whose payee is rarely used). On a shared account the
+// payee lives in the owner's namespace, which the caller's lookup doesn't hold, so
+// resolve from the owner-scoped list there.
+const { byId: payeeLookupById } = usePayeeLookup();
 const selectedPayee = computed(() => {
   if (!props.modelValue) return null;
-  return allPayees.value.find((p) => p.id === props.modelValue) ?? null;
+  if (props.ownerScoped) return ownerFetch.list.value.find((p) => p.id === props.modelValue) ?? null;
+  return payeeLookupById.value.get(props.modelValue) ?? null;
 });
 
 const selectedLabel = computed(() => selectedPayee.value?.name ?? '');

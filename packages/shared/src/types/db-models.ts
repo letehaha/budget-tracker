@@ -776,6 +776,18 @@ export interface PayeeModel {
 }
 
 /**
+ * Minimal Payee projection for client-side id→name/logo resolution (e.g. the
+ * transaction table's beneficiary column). Returned by GET /payees/lookup for
+ * the full payee set with no stats and no pagination, so any payee resolves
+ * regardless of how many the user has.
+ */
+export interface PayeeLookupItem {
+  id: RecordId;
+  name: string;
+  logoDomain: string | null;
+}
+
+/**
  * Stats aggregated at query time from `Transactions` for a Payee. Not stored –
  * computed from the `(userId, payeeId, time DESC)` index. Signed `netFlowRef`
  * works naturally for both income and expense Payees (income positive, expense

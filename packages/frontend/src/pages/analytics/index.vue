@@ -45,32 +45,45 @@
           </button>
         </li>
 
-        <li v-for="tab in tabs" :key="tab.name">
-          <DesktopOnlyTooltip :content="tab.label" :disabled="!isCollapsed || isCompactLayout" side="right">
-            <router-link
-              :to="tab.to"
-              :class="
-                cn(
-                  'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
-                  'hover:bg-accent hover:text-foreground',
-                  '[&.router-link-exact-active]:bg-accent [&.router-link-exact-active]:text-foreground',
-                  isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
-                )
-              "
-            >
-              <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
-              <span
-                :class="[
-                  'transition-opacity duration-200',
-                  isCollapsed && !isCompactLayout ? 'opacity-0' : 'opacity-100',
-                ]"
-              >
-                {{ tab.label }}
+        <template v-for="section in sections" :key="section.key">
+          <!-- Section header: uppercase label on the expanded/compact layouts, a bare
+               divider when collapsed to icons so the grouping still reads. -->
+          <li v-if="section.title" class="mt-2">
+            <div v-if="isCollapsed && !isCompactLayout" class="border-border mx-1 border-t" />
+            <div v-else class="border-border border-t pt-3">
+              <span class="text-muted-foreground px-3 text-xs font-medium tracking-wider uppercase">
+                {{ section.title }}
               </span>
-              <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
-            </router-link>
-          </DesktopOnlyTooltip>
-        </li>
+            </div>
+          </li>
+
+          <li v-for="tab in section.tabs" :key="tab.name">
+            <DesktopOnlyTooltip :content="tab.label" :disabled="!isCollapsed || isCompactLayout" side="right">
+              <router-link
+                :to="tab.to"
+                :class="
+                  cn(
+                    'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
+                    'hover:bg-accent hover:text-foreground',
+                    '[&.router-link-exact-active]:bg-accent [&.router-link-exact-active]:text-foreground',
+                    isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
+                  )
+                "
+              >
+                <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
+                <span
+                  :class="[
+                    'transition-opacity duration-200',
+                    isCollapsed && !isCompactLayout ? 'opacity-0' : 'opacity-100',
+                  ]"
+                >
+                  {{ tab.label }}
+                </span>
+                <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
+              </router-link>
+            </DesktopOnlyTooltip>
+          </li>
+        </template>
       </ul>
     </nav>
 
@@ -96,10 +109,12 @@ import { ROUTES_NAMES } from '@/routes';
 import { useElementSize, useLocalStorage } from '@vueuse/core';
 import {
   CalculatorIcon,
+  ChartAreaIcon,
   ChevronRightIcon,
   DollarSignIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
+  PiggyBankIcon,
   TableIcon,
   TrendingUpIcon,
 } from '@lucide/vue';
@@ -112,6 +127,13 @@ interface Tab {
   label: string;
   to: RouteLocationRaw;
   icon: Component;
+}
+
+interface NavSection {
+  key: string;
+  // Absent on the first, general-analytics group: it needs no heading.
+  title?: string;
+  tabs: Tab[];
 }
 
 const route = useRoute();
@@ -143,30 +165,53 @@ watch(
   { immediate: true },
 );
 
-const tabs = computed<Tab[]>(() => [
+const sections = computed<NavSection[]>(() => [
   {
-    name: 'trends-comparison',
-    label: t('analytics.navigation.trendsComparison'),
-    to: { name: ROUTES_NAMES.analyticsTrendsComparison },
-    icon: TrendingUpIcon,
+    key: 'general',
+    tabs: [
+      {
+        name: 'trends-comparison',
+        label: t('analytics.navigation.trendsComparison'),
+        to: { name: ROUTES_NAMES.analyticsTrendsComparison },
+        icon: TrendingUpIcon,
+      },
+      {
+        name: 'cash-flow',
+        label: t('analytics.navigation.cashFlow'),
+        to: { name: ROUTES_NAMES.analyticsCashFlow },
+        icon: DollarSignIcon,
+      },
+      {
+        name: 'pivot-report',
+        label: t('analytics.navigation.pivotReport'),
+        to: { name: ROUTES_NAMES.analyticsPivotReport },
+        icon: TableIcon,
+      },
+    ],
   },
   {
-    name: 'cash-flow',
-    label: t('analytics.navigation.cashFlow'),
-    to: { name: ROUTES_NAMES.analyticsCashFlow },
-    icon: DollarSignIcon,
-  },
-  {
-    name: 'pivot-report',
-    label: t('analytics.navigation.pivotReport'),
-    to: { name: ROUTES_NAMES.analyticsPivotReport },
-    icon: TableIcon,
-  },
-  {
-    name: 'investment-calculator',
-    label: t('analytics.navigation.investmentCalculator'),
-    to: { name: ROUTES_NAMES.analyticsInvestmentCalculator },
-    icon: CalculatorIcon,
+    key: 'investments',
+    title: t('analytics.navigation.sections.investments'),
+    tabs: [
+      {
+        name: 'net-worth-drivers',
+        label: t('analytics.navigation.netWorthDrivers'),
+        to: { name: ROUTES_NAMES.analyticsNetWorthDrivers },
+        icon: ChartAreaIcon,
+      },
+      {
+        name: 'investment-contributions',
+        label: t('analytics.navigation.investmentContributions'),
+        to: { name: ROUTES_NAMES.analyticsInvestmentContributions },
+        icon: PiggyBankIcon,
+      },
+      {
+        name: 'investment-calculator',
+        label: t('analytics.navigation.investmentCalculator'),
+        to: { name: ROUTES_NAMES.analyticsInvestmentCalculator },
+        icon: CalculatorIcon,
+      },
+    ],
   },
 ]);
 </script>

@@ -80,6 +80,13 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
     'analytics-balance-history-trend',
   ] as const,
   analyticsCashFlow: [transactionChange, 'analytics-cash-flow'] as const,
+  // Depends on security prices as well as transactions: a price move changes the
+  // report's growth series without any transaction being touched.
+  analyticsNetWorthDrivers: [transactionChange, securityPriceChange, 'analytics-net-worth-drivers'] as const,
+  // Depends on portfolio transfers (which portfolio cash moved in) and on savings
+  // transactions — both invalidated through the transaction-change prefix. Security
+  // prices never enter this report, so it carries no price prefix.
+  analyticsInvestmentContributions: [transactionChange, 'analytics-investment-contributions'] as const,
   analyticsPivotReport: [transactionChange, 'analytics-pivot-report'] as const,
   analyticsCumulative: [transactionChange, 'analytics-cumulative'] as const,
   analyticsSpendingsByCategories: [transactionChange, 'analytics-spendings-by-categories'] as const,
@@ -194,6 +201,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   // payees
   payeesList: ['payees-list'] as const,
+  payeesLookup: ['payees-lookup'] as const,
   payeesByAccount: ['payees-by-account'] as const,
   payeeById: ['payee-by-id'] as const,
   payeesIgnoredNames: ['payees-ignored-names'] as const,

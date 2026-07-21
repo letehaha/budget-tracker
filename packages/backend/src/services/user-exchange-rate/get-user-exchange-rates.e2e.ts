@@ -3,7 +3,11 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@j
 import { logger } from '@js/utils';
 import { connection } from '@models/index';
 import * as helpers from '@tests/helpers';
-import { API_LAYER_ENDPOINT_REGEX, CURRENCY_RATES_API_ENDPOINT_REGEX } from '@tests/mocks/exchange-rates/endpoints';
+import {
+  API_LAYER_ENDPOINT_REGEX,
+  CURRENCY_RATES_API_ENDPOINT_REGEX,
+  FAWAZ_CURRENCY_API_ENDPOINT_REGEX,
+} from '@tests/mocks/exchange-rates/endpoints';
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
 import { startOfDay, subYears } from 'date-fns';
 
@@ -59,16 +63,20 @@ const deleteRatesFor = async (quoteCode: string) => {
 
 describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
   let currencyRatesApiOverride: ReturnType<typeof createOverride>;
+  let fawazOverride: ReturnType<typeof createOverride>;
   let apiLayerOverride: ReturnType<typeof createOverride>;
 
   let currencyRatesApiCounter: ReturnType<typeof createCallsCounter>;
+  let fawazCounter: ReturnType<typeof createCallsCounter>;
   let apiLayerCounter: ReturnType<typeof createCallsCounter>;
 
   beforeAll(() => {
     currencyRatesApiOverride = createOverride(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
+    fawazOverride = createOverride(global.mswMockServer, FAWAZ_CURRENCY_API_ENDPOINT_REGEX);
     apiLayerOverride = createOverride(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
 
     currencyRatesApiCounter = createCallsCounter(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
+    fawazCounter = createCallsCounter(global.mswMockServer, FAWAZ_CURRENCY_API_ENDPOINT_REGEX);
     apiLayerCounter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
   });
 
@@ -82,6 +90,7 @@ describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
   afterEach(async () => {
     global.mswMockServer.resetHandlers();
     currencyRatesApiCounter.reset();
+    fawazCounter.reset();
     apiLayerCounter.reset();
     jest.restoreAllMocks();
     await deleteRatesFor(EXOTIC);
@@ -94,6 +103,9 @@ describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
 
   const failAllProviders = () => {
     currencyRatesApiOverride.setOverride({ status: 500 });
+    // fawazahmed0 covers XAF for today, so it must go down too or the "providers
+    // down" tests would get a live rate for EXOTIC and never hit the fallback path.
+    fawazOverride.setOverride({ status: 500 });
     apiLayerOverride.setOverride({ status: 500 });
   };
 
@@ -177,12 +189,14 @@ describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
     });
 
     currencyRatesApiCounter.reset();
+    fawazCounter.reset();
     apiLayerCounter.reset();
 
     const rate = await readExoticRate();
 
     expect(rate).toBeGreaterThan(0);
     expect(currencyRatesApiCounter.count).toBe(0);
+    expect(fawazCounter.count).toBe(0);
     expect(apiLayerCounter.count).toBe(0);
   });
 });

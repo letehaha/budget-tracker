@@ -15,6 +15,10 @@ import type { HoldingState, SecurityRow, TransactionRow } from './types';
  *
  * Transactions within each portfolio MUST be sorted ascending by date — the
  * inner loop breaks at the first transaction past the snapshot.
+ *
+ * Invokes `onMissingPrice({ securityId, dateStr })` whenever a held security has
+ * no price for a snapshot day and is valued at cost basis instead, so callers
+ * that report valuation quality can name the affected securities.
  */
 export const computeHoldingsValueByDate = ({
   uniqueDates,
@@ -23,6 +27,7 @@ export const computeHoldingsValueByDate = ({
   securitiesById,
   findPriceForDate,
   getExchangeRate,
+  onMissingPrice,
 }: {
   uniqueDates: string[];
   portfolioIds: string[];
@@ -30,6 +35,7 @@ export const computeHoldingsValueByDate = ({
   securitiesById: Map<string, SecurityRow>;
   findPriceForDate: (securityId: string, targetDate: string) => number | null;
   getExchangeRate: (currencyCode: string, dateStr: string) => number;
+  onMissingPrice?: ({ securityId, dateStr }: { securityId: string; dateStr: string }) => void;
 }): Map<string, number> => {
   const holdingsValueByDate = new Map<string, number>();
 
@@ -60,7 +66,11 @@ export const computeHoldingsValueByDate = ({
 
         const securityId = tx.securityId;
         const quantity = tx.quantity.toNumber();
-        const totalAmount = tx.refAmount.toNumber() + tx.refFees.toNumber();
+        // `refAmount` is the leg's full cost in base currency — quantity × price
+        // *including* fees, as `resolveSettlement` composes it. That is exactly
+        // what `computeHoldingTotals` folds into the basis, so `refFees` must not
+        // be added on top of it: the fee is already in there and would count twice.
+        const totalAmount = tx.refAmount.toNumber();
 
         if (!holdings.has(securityId)) {
           const security = securitiesById.get(securityId);
@@ -117,8 +127,12 @@ export const computeHoldingsValueByDate = ({
           const marketValueInBaseCurrency = Math.floor(marketValueInSecurityCurrency * exchangeRate);
           totalValueForDate += marketValueInBaseCurrency;
         } else {
-          // Missing price on this day — fall back to cost basis so the line
-          // stays continuous instead of collapsing to zero.
+          // No price for this day — value the holding at cost basis so the line
+          // stays continuous instead of collapsing to zero. It is only an
+          // approximation: it carries the purchase cost forward and shows none of
+          // the gain/loss since, so callers presenting the number are told via
+          // `onMissingPrice` and can disclose that the day is partly unpriced.
+          onMissingPrice?.({ securityId, dateStr });
           totalValueForDate += holding.costBasis;
         }
       }

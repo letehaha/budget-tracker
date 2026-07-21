@@ -1,4 +1,5 @@
 export { default as listPayees } from './list-payees';
+export { default as lookupPayees } from './lookup-payees';
 export { default as createPayee } from './create-payee';
 export { default as getPayee } from './get-payee';
 export { default as updatePayee } from './update-payee';

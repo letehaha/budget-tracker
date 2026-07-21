@@ -12,4 +12,5 @@ export * from './initialize-providers';
 
 // Individual providers
 export * from './currency-rates-api';
+export * from './fawaz-currency-api';
 export * from './api-layer';

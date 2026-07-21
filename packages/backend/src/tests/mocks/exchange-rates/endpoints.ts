@@ -5,3 +5,6 @@
  */
 export const API_LAYER_ENDPOINT_REGEX = /https:\/\/api.apilayer.com\/fixer/;
 export const CURRENCY_RATES_API_ENDPOINT_REGEX = /http:\/\/currency-rates-api:8080/;
+// fawazahmed0 CDN: jsDelivr primary + Cloudflare Pages mirror.
+export const FAWAZ_CURRENCY_API_ENDPOINT_REGEX =
+  /(cdn\.jsdelivr\.net\/npm\/@fawazahmed0\/currency-api|currency-api\.pages\.dev)/;

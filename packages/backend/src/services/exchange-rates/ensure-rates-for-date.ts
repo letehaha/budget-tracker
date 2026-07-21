@@ -4,6 +4,7 @@ import { logger } from '@js/utils';
 import ExchangeRates from '@models/exchange-rates.model';
 import { withDeduplication } from '@services/common/with-deduplication';
 import { format, startOfDay } from 'date-fns';
+import { Op } from 'sequelize';
 
 import { API_LAYER_BASE_CURRENCY_CODE, API_LAYER_DATE_FORMAT } from './constants';
 import { exchangeRateProviderRegistry } from './providers';
@@ -81,7 +82,7 @@ export const fetchAndStoreRatesForDate = withDeduplication(
 
 /**
  * Daily full-sync entry point (the cron). Fetches the whole basket for `date`
- * unless the comprehensive provider (ApiLayer) has already covered it – making a
+ * unless it's already been fetched as comprehensively as it can be – making a
  * same-day re-run a no-op.
  */
 export async function ensureRatesForDate(date: Date): Promise<void> {
@@ -89,7 +90,7 @@ export async function ensureRatesForDate(date: Date): Promise<void> {
 
   if (await isDateComprehensivelyFetched(normalizedDate)) {
     logger.info(
-      `[Exchange Rates] ${format(normalizedDate, API_LAYER_DATE_FORMAT)} already covered by ApiLayer, skipping provider fetch`,
+      `[Exchange Rates] ${format(normalizedDate, API_LAYER_DATE_FORMAT)} already comprehensively fetched, skipping provider fetch`,
     );
     return;
   }
@@ -98,15 +99,31 @@ export async function ensureRatesForDate(date: Date): Promise<void> {
 }
 
 /**
- * Has the comprehensive provider (ApiLayer) already supplied data for this date?
- * Detected via the presence of any ApiLayer-sourced row. ApiLayer answers
- * per-DATE (its whole ~150-currency basket), so a single such row proves the
- * date was comprehensively fetched – any currency still absent is genuinely
- * unavailable for the date, and re-fetching is futile.
+ * Has this date already been fetched as comprehensively as it can be? True when
+ * a row from a WHOLE-BASKET provider – fawazahmed0 or ApiLayer – exists for the
+ * date. Both answer per-DATE with their entire basket, so once either has run
+ * any currency still absent (e.g. one neither provider quotes) is genuinely
+ * unavailable for that date, and re-fetching is futile.
+ *
+ * currency-rates-api is deliberately NOT a signal here: it only ever supplies
+ * its ~38 currencies, so its rows never prove the exotic tail was attempted.
+ * Below fawazahmed0's 2024-03-02 floor it never runs, so ApiLayer is the sole
+ * comprehensiveness signal there – which is correct, as ApiLayer is the only
+ * source for old exotic dates.
+ *
+ * Accepted imprecision: if fawazahmed0 left a gap AND the ApiLayer attempt to
+ * fill it failed in the same run, the fawazahmed0 rows still mark the date
+ * "done" and the gap is never retried for that date. Requires two coincident
+ * failures, damages one currency for one date (readers fall back to the
+ * nearest-date rate), and the degraded-sync alert reports the ApiLayer failure
+ * – so this stays a simple row-existence check rather than a coverage audit.
  */
 export async function isDateComprehensivelyFetched(date: Date): Promise<boolean> {
   const count = await ExchangeRates.count({
-    where: { date, source: EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER },
+    where: {
+      date,
+      source: { [Op.in]: [EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API, EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER] },
+    },
   });
   return count > 0;
 }

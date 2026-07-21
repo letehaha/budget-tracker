@@ -2,8 +2,12 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@j
 import { logger } from '@js/utils';
 import { connection } from '@models/index';
 import * as helpers from '@tests/helpers';
-import { getApiLayerResposeMock, getCurrencyRatesApiResponseMock } from '@tests/mocks/exchange-rates/data';
-import { API_LAYER_ENDPOINT_REGEX, CURRENCY_RATES_API_ENDPOINT_REGEX } from '@tests/mocks/exchange-rates/endpoints';
+import { getCurrencyRatesApiResponseMock, getFawazCurrencyApiResponseMock } from '@tests/mocks/exchange-rates/data';
+import {
+  API_LAYER_ENDPOINT_REGEX,
+  CURRENCY_RATES_API_ENDPOINT_REGEX,
+  FAWAZ_CURRENCY_API_ENDPOINT_REGEX,
+} from '@tests/mocks/exchange-rates/endpoints';
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
 import { format, startOfDay } from 'date-fns';
 
@@ -20,16 +24,20 @@ const loggerErrorCalledWith = (errorSpy: ReturnType<typeof jest.spyOn>, substrin
 
 describe('Exchange Rates Functionality', () => {
   let currencyRatesApiOverride: ReturnType<typeof createOverride>;
+  let fawazOverride: ReturnType<typeof createOverride>;
   let apiLayerOverride: ReturnType<typeof createOverride>;
 
   let currencyRatesApiCounter: ReturnType<typeof createCallsCounter>;
+  let fawazCounter: ReturnType<typeof createCallsCounter>;
   let apiLayerCounter: ReturnType<typeof createCallsCounter>;
 
   beforeAll(() => {
     currencyRatesApiOverride = createOverride(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
+    fawazOverride = createOverride(global.mswMockServer, FAWAZ_CURRENCY_API_ENDPOINT_REGEX);
     apiLayerOverride = createOverride(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
 
     currencyRatesApiCounter = createCallsCounter(global.mswMockServer, CURRENCY_RATES_API_ENDPOINT_REGEX);
+    fawazCounter = createCallsCounter(global.mswMockServer, FAWAZ_CURRENCY_API_ENDPOINT_REGEX);
     apiLayerCounter = createCallsCounter(global.mswMockServer, API_LAYER_ENDPOINT_REGEX);
   });
 
@@ -45,6 +53,7 @@ describe('Exchange Rates Functionality', () => {
     global.mswMockServer.resetHandlers();
     // Reset call counters
     currencyRatesApiCounter.reset();
+    fawazCounter.reset();
     apiLayerCounter.reset();
     // Drop any logger spies installed by degradation-signal tests
     jest.restoreAllMocks();
@@ -72,12 +81,12 @@ describe('Exchange Rates Functionality', () => {
   });
 
   it('should fill currencies missing from the primary provider using lower-priority fallbacks', async () => {
-    // Real-world bug: Currency Rates API (priority 1) only covers ~38 currencies
-    // and succeeds every day, so the chain used to stop there and never reach
-    // ApiLayer. Exotic currencies (ETB, HNL, PEN, RSD, TZS, XAF) that ONLY
-    // ApiLayer provides were therefore never refreshed. The fallback must MERGE
-    // providers – filling gaps left by higher-priority ones – instead of
-    // returning on first success.
+    // Currency Rates API (priority 1) only covers ~38 currencies but succeeds
+    // every day, so the chain must MERGE lower-priority providers to fill the
+    // gaps instead of returning on first success. fawazahmed0 (priority 2) now
+    // covers the exotic long tail (ETB, HNL, PEN, RSD, TZS, XAF), so those
+    // currencies come from it – and because it covers everything the enabled set
+    // needs, ApiLayer (priority 3) is never reached.
     const date = format(new Date(), 'yyyy-MM-dd');
 
     // All providers available with their default mocks (no overrides).
@@ -86,11 +95,11 @@ describe('Exchange Rates Functionality', () => {
     const response = (await helpers.getExchangeRates({ date, raw: true }))!;
     const byQuote = new Map(response.map((row) => [row.quoteCode, row]));
 
-    // Present in ApiLayer's mock but absent from Currency Rates API's mock.
+    // Absent from Currency Rates API's mock → filled by fawazahmed0's tail.
     for (const exotic of ['ETB', 'HNL', 'PEN', 'RSD', 'TZS', 'XAF']) {
       const row = byQuote.get(exotic);
       expect(row).toBeTruthy();
-      expect(row!.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER);
+      expect(row!.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API);
     }
 
     // Currencies the primary provider covers must keep its (higher-priority) source.
@@ -102,11 +111,11 @@ describe('Exchange Rates Functionality', () => {
     const date = format(new Date(), 'yyyy-MM-dd');
     const primaryEur = getCurrencyRatesApiResponseMock(date).rates.EUR;
 
-    // ApiLayer (priority 2) returns a DIFFERENT EUR value. The primary must win on
-    // the VALUE, not just the source label – guards the dedup precedence path.
-    apiLayerOverride.setOverride({
-      body: { ...getApiLayerResposeMock(date), rates: { ...getApiLayerResposeMock(date).rates, EUR: 0.123456 } },
-    });
+    // fawazahmed0 (priority 2) returns a DIFFERENT EUR value. The primary must win
+    // on the VALUE, not just the source label – guards the dedup precedence path.
+    // ApiLayer stays skipped here because fawazahmed0 already covers the enabled set.
+    const fawazMock = getFawazCurrencyApiResponseMock(date);
+    fawazOverride.setOverride({ body: { ...fawazMock, usd: { ...fawazMock.usd, eur: 0.123456 } } });
 
     await helpers.syncExchangeRates();
 
@@ -114,6 +123,45 @@ describe('Exchange Rates Functionality', () => {
     const eur = response.find((r) => r.quoteCode === 'EUR')!;
     expect(eur.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API);
     expect(eur.rate).toBeCloseTo(primaryEur, 6);
+  });
+
+  it('early-stop skips ApiLayer when free providers cover every enabled currency', async () => {
+    const date = format(new Date(), 'yyyy-MM-dd');
+
+    // The default mock basket lacks SSP and STN, so the enabled set is never fully
+    // covered and ApiLayer would still be queried. Extend fawazahmed0 with both →
+    // full coverage after priority 2, so the paid ApiLayer call must be skipped.
+    const fawazMock = getFawazCurrencyApiResponseMock(date);
+    fawazOverride.setOverride({ body: { ...fawazMock, usd: { ...fawazMock.usd, ssp: 130.26, stn: 22.72 } } });
+
+    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
+
+    expect(apiLayerCounter.count).toBe(0);
+
+    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
+    expect(response.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER)).toBe(false);
+    // The extended tail actually landed – proves coverage came from fawazahmed0.
+    expect(response.find((r) => r.quoteCode === 'SSP')?.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API);
+  });
+
+  it('gap alert fires when ApiLayer fills a currency fawazahmed0 lacks', async () => {
+    const date = format(new Date(), 'yyyy-MM-dd');
+    const errorSpy = jest.spyOn(logger, 'error');
+
+    // fawazahmed0 succeeds but its basket lacks ETB (a currency the primary never
+    // supplies), so only the paid ApiLayer can fill it. A post-2024 date where
+    // fawazahmed0 ran yet left a hole is a data anomaly the alert must surface.
+    const fawazMock = getFawazCurrencyApiResponseMock(date);
+    const usd = { ...fawazMock.usd };
+    delete usd.etb;
+    fawazOverride.setOverride({ body: { ...fawazMock, usd } });
+
+    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
+
+    expect(loggerErrorCalledWith(errorSpy, '[ALERT:FAWAZ_CURRENCY_API_GAP]')).toBe(true);
+
+    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
+    expect(response.find((r) => r.quoteCode === 'ETB')?.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER);
   });
 
   it('never stores the base currency as a quote (no USD->USD self-rate)', async () => {
@@ -138,11 +186,12 @@ describe('Exchange Rates Functionality', () => {
 
   it('reports a Sentry event (logger.error) when a fallback provider is degraded', async () => {
     const errorSpy = jest.spyOn(logger, 'error');
-    // Primary stays healthy; the comprehensive fallback fails its health check
-    // (500), so it is skipped by isAvailable(). The exotic long tail is then
-    // uncovered – surfaced as a degraded-sync alert independent of the
-    // primary-degraded path.
-    apiLayerOverride.setOverride({ status: 500 });
+    // Primary stays healthy; the comprehensive fallback (fawazahmed0) fails, so
+    // its fetch yields nothing and the exotic long tail lands in `failed` –
+    // surfaced as a degraded-sync alert independent of the primary-degraded path.
+    // Degrading ApiLayer alone would do nothing now: it is skipped whenever
+    // fawazahmed0 covers the enabled set, so fawazahmed0 is what must go down.
+    fawazOverride.setOverride({ status: 500 });
 
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
@@ -152,7 +201,9 @@ describe('Exchange Rates Functionality', () => {
   it('reports a Sentry event (logger.error) listing enabled currencies missing from the result', async () => {
     const date = format(new Date(), 'yyyy-MM-dd');
     const errorSpy = jest.spyOn(logger, 'error');
-    // Starve the comprehensive provider so the exotic long tail is uncovered.
+    // Starve BOTH fallbacks so the exotic long tail is uncovered: fawazahmed0 down,
+    // ApiLayer trimmed to a single currency. Only the primary's ~38 currencies land.
+    fawazOverride.setOverride({ status: 500 });
     apiLayerOverride.setOverride({ body: { base: 'USD', date, success: true, timestamp: 1, rates: { EUR: 0.9 } } });
 
     await helpers.syncExchangeRates();
@@ -161,43 +212,50 @@ describe('Exchange Rates Functionality', () => {
       ([arg]) => typeof arg === 'string' && arg.includes('Enabled currencies missing'),
     );
     expect(coverageCall).toBeTruthy();
-    // Starving the comprehensive provider leaves the whole exotic long tail
-    // uncovered – far more than a healthy run would ever miss.
+    // Starving both fallbacks leaves the whole exotic long tail uncovered –
+    // far more than a healthy run would ever miss.
     const { missingCurrencies } = (coverageCall![1] ?? {}) as { missingCurrencies?: string[] };
     expect(Array.isArray(missingCurrencies)).toBe(true);
     expect(missingCurrencies!.length).toBeGreaterThan(50);
   });
 
-  it('skips the provider fetch on a re-sync once ApiLayer has covered the date', async () => {
+  it('skips the provider fetch on a re-sync once a comprehensive provider has covered the date', async () => {
     const date = format(new Date(), 'yyyy-MM-dd');
 
     await expect(helpers.getExchangeRates({ date, raw: true })).resolves.toBe(null);
 
-    // First sync populates the date, including ApiLayer-sourced rows.
+    // First sync: currency-rates-api + fawazahmed0 populate the date. fawazahmed0 is
+    // a whole-basket provider, so its rows mark the date comprehensively fetched,
+    // and it fills the exotic tail — leaving ApiLayer nothing to add.
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
-    // Confirm ApiLayer actually contributed – otherwise the gate below is vacuous.
     const seeded = (await helpers.getExchangeRates({ date, raw: true }))!;
-    expect(seeded.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER)).toBe(true);
+    // fawazahmed0 ran (its rows exist) → the comprehensiveness gate is satisfied,
+    // and ApiLayer contributed nothing, so no paid-provider row was written.
+    expect(seeded.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API)).toBe(true);
+    expect(seeded.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER)).toBe(false);
 
-    // The comprehensiveness gate keys off an ApiLayer-sourced row existing for the
-    // date, so a second sync must short-circuit BEFORE hitting any provider.
+    // The comprehensiveness gate (a whole-basket provider ran) must short-circuit
+    // the second sync BEFORE hitting any provider.
     currencyRatesApiCounter.reset();
+    fawazCounter.reset();
     apiLayerCounter.reset();
 
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
     expect(currencyRatesApiCounter.count).toBe(0);
+    expect(fawazCounter.count).toBe(0);
     expect(apiLayerCounter.count).toBe(0);
   });
 
-  it('re-fetches a date that has rates but none sourced from ApiLayer', async () => {
+  it('re-fetches a date whose rows come from no whole-basket provider', async () => {
     const date = format(new Date(), 'yyyy-MM-dd');
     const today = startOfDay(new Date());
 
-    // Seed a NON-comprehensive date: one Currency Rates API-sourced row, no
-    // ApiLayer. Mirrors a historical-init date (only the ECB-based provider ran),
-    // where an on-demand lookup should still reach ApiLayer for the exotic tail.
+    // Seed a NON-comprehensive date: one Currency Rates API-sourced row, nothing
+    // else. No whole-basket provider (fawazahmed0 / api-layer) has a row for the
+    // date, so the gate is false and the sync must still run the providers to fill
+    // the tail.
     await connection.sequelize.query(
       `INSERT INTO "ExchangeRates" ("baseCode", "quoteCode", "date", "rate", "source")
        VALUES ('USD', 'EUR', :today, 0.9, :source)`,
@@ -205,25 +263,27 @@ describe('Exchange Rates Functionality', () => {
     );
 
     currencyRatesApiCounter.reset();
+    fawazCounter.reset();
     apiLayerCounter.reset();
 
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
-    // No ApiLayer-sourced row exists → the gate must NOT skip; providers run.
+    // Gate is not comprehensive → the gate must NOT skip; providers run.
     expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(1);
 
-    // And ApiLayer now contributes, making the date comprehensive going forward.
+    // fawazahmed0 now fills the exotic tail that Currency Rates API leaves out.
     const after = (await helpers.getExchangeRates({ date, raw: true }))!;
-    expect(after.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER)).toBe(true);
+    expect(after.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API)).toBe(true);
   });
 
   it('re-fetches a date where ApiLayer returned nothing (no api-layer row was written)', async () => {
     const date = format(new Date(), 'yyyy-MM-dd');
 
-    // ApiLayer down but the primary succeeds: the date gets rows, yet NONE are
-    // api-layer-sourced. The comprehensiveness gate keys off an api-layer row
-    // existing, so a date ApiLayer skipped (down / rate-limited / no key) must
-    // NOT be treated as covered – the next sync has to run again.
+    // Both fallbacks down: only Currency Rates API succeeds (its ~38 currencies), so
+    // no whole-basket provider (fawazahmed0 / api-layer) wrote a row. Neither
+    // comprehensiveness signal holds, so a date the fallbacks skipped (down /
+    // rate-limited / no key) must NOT be treated as covered – the next sync re-runs.
+    fawazOverride.setOverride({ status: 500 });
     apiLayerOverride.setOverride({ status: 500 });
 
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
@@ -233,16 +293,44 @@ describe('Exchange Rates Functionality', () => {
     expect(seeded.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER)).toBe(false);
 
     currencyRatesApiCounter.reset();
+    fawazCounter.reset();
     apiLayerCounter.reset();
 
-    // No api-layer row → gate is not comprehensive → providers must run again
-    // (the opposite of the "ApiLayer already covered the date" skip above).
+    // Neither fully covered nor api-layer-marked → gate stays non-comprehensive →
+    // providers must run again (the opposite of the "date fully covered" skip above).
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
 
     expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(1);
   });
 
-  it('should fallback to ApiLayer when Currency Rates API fails', async () => {
+  it('skips the re-sync when only api-layer rows mark the date comprehensively fetched', async () => {
+    const date = format(new Date(), 'yyyy-MM-dd');
+
+    // fawazahmed0 down for the first sync → ApiLayer fills the exotic tail, so the
+    // only whole-basket rows for the date are api-layer-sourced. Those alone must
+    // satisfy the comprehensiveness gate: an outage day must not cause re-fetch loops.
+    fawazOverride.setOverride({ status: 500 });
+
+    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
+
+    const seeded = (await helpers.getExchangeRates({ date, raw: true }))!;
+    expect(seeded.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER)).toBe(true);
+    expect(seeded.some((r) => r.source === EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API)).toBe(false);
+
+    // fawazahmed0 recovers, but the gate must short-circuit before any provider call.
+    global.mswMockServer.resetHandlers();
+    currencyRatesApiCounter.reset();
+    fawazCounter.reset();
+    apiLayerCounter.reset();
+
+    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
+
+    expect(currencyRatesApiCounter.count).toBe(0);
+    expect(fawazCounter.count).toBe(0);
+    expect(apiLayerCounter.count).toBe(0);
+  });
+
+  it('falls back to fawazahmed0 when Currency Rates API fails', async () => {
     // Simulate Currency Rates API failure
     currencyRatesApiOverride.setOverride({ status: 500 });
 
@@ -253,8 +341,33 @@ describe('Exchange Rates Functionality', () => {
     expect(response).toBeInstanceOf(Array);
     expect(response.length).toBeGreaterThan(0);
 
-    // Verify fallback occurred: Currency Rates API was unavailable, ApiLayer was used.
+    // Primary down → fawazahmed0 (priority 2) supplies every stored rate, so the
+    // paid ApiLayer (priority 3) contributes nothing and no api-layer-sourced row
+    // is written. ApiLayer is still queried here: a permanently-unpriceable
+    // enabled currency (e.g. SSP, absent from every mock) keeps the coverage
+    // check from short-circuiting. In production, where fawazahmed0 covers the
+    // full enabled set, the paid call is skipped entirely.
     expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(1);
+    expect(fawazCounter.count).toBeGreaterThanOrEqual(1);
+    expect(response.some((item) => item.source === EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER)).toBe(false);
+    response.forEach((item) => {
+      expect(item.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API);
+    });
+  });
+
+  it('falls back to ApiLayer when both Currency Rates API and fawazahmed0 fail', async () => {
+    // Both free providers down → the chain must reach the paid last-resort.
+    currencyRatesApiOverride.setOverride({ status: 500 });
+    fawazOverride.setOverride({ status: 500 });
+
+    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
+
+    const date = format(new Date(), 'yyyy-MM-dd');
+    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
+    expect(response).toBeInstanceOf(Array);
+    expect(response.length).toBeGreaterThan(0);
+
+    // ApiLayer (priority 3) is the only provider left to cover the date.
     expect(apiLayerCounter.count).toBeGreaterThanOrEqual(1);
     response.forEach((item) => {
       expect(item.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.API_LAYER);
@@ -274,7 +387,7 @@ describe('Exchange Rates Functionality', () => {
     expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(2);
   });
 
-  it('should fallback to ApiLayer when Currency Rates API returns an invalid base currency', async () => {
+  it('falls back to fawazahmed0 when Currency Rates API returns an invalid base currency', async () => {
     currencyRatesApiOverride.setOneTimeOverride({
       body: {
         ...getCurrencyRatesApiResponseMock('2024-11-17'),
@@ -282,20 +395,22 @@ describe('Exchange Rates Functionality', () => {
       },
     });
     // With the merging registry, an invalid response from a provider drops it
-    // from contribution and the chain continues to the next one.
+    // from contribution and the chain continues – fawazahmed0 then fills the set.
     await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
   });
 
   it('should return 502 when all providers fail', async () => {
     currencyRatesApiOverride.setOverride({ status: 500 });
+    fawazOverride.setOverride({ status: 500 });
     apiLayerOverride.setOverride({ status: 500 });
 
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(502);
   });
 
   it('should handle ApiLayer 429 by trying next available key', async () => {
-    // Make primary provider fail so the chain reaches ApiLayer.
+    // Make both free providers fail so the chain reaches ApiLayer.
     currencyRatesApiOverride.setOverride({ status: 500 });
+    fawazOverride.setOverride({ status: 500 });
 
     // ApiLayer returns 429 for first key, should try next key
     apiLayerOverride.setOneTimeOverride({ status: 429 });

@@ -1,5 +1,5 @@
 import { api } from '@/api/_api';
-import { CATEGORIZATION_MODE, PayeeModel, PayeeStats } from '@bt/shared/types';
+import { CATEGORIZATION_MODE, PayeeLookupItem, PayeeModel, PayeeStats } from '@bt/shared/types';
 
 export type PayeeWithStats = PayeeModel & { stats: PayeeStats | null };
 
@@ -62,6 +62,15 @@ export const loadPayeesByAccount = async ({
 
 export const loadPayeeById = async ({ id }: { id: string }): Promise<PayeeWithStats> => {
   return api.get(`/payees/${id}`);
+};
+
+/**
+ * Lightweight id → name/logo map for ALL payees (no stats, no pagination). Backs
+ * beneficiary-column resolution where the truncated top-50 `loadPayees` list would
+ * leave payees past the cutoff unresolved.
+ */
+export const loadPayeeLookup = async (): Promise<PayeeLookupItem[]> => {
+  return api.get('/payees/lookup');
 };
 
 export const createPayee = async (payload: CreatePayeePayload): Promise<PayeeModel> => {

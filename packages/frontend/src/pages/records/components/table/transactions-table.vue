@@ -192,7 +192,7 @@
               :is-selected="isTransactionSelected(displayTransactions[virtualRow.index]!.id)"
               :is-selectable="isTransactionSelectable(displayTransactions[virtualRow.index]!)"
               :unselectable-reason="getUnselectableReason(displayTransactions[virtualRow.index]!)"
-              :payee-name="payeeNameById[displayTransactions[virtualRow.index]!.payeeId ?? '']"
+              :payee="payeeById.get(displayTransactions[virtualRow.index]!.payeeId ?? '')"
               @record-click="handleRecordClick"
               @selection-change="toggleTransaction"
             />
@@ -241,7 +241,7 @@ import BulkActionDialogs from '@/components/transactions-list/bulk-action-dialog
 import TransactionDetailsModal from '@/components/transactions-list/transaction-details-modal.vue';
 import { useManageTransactionDialog } from '@/components/transactions-list/use-manage-transaction-dialog';
 import { useTransactionsDisplay } from '@/components/transactions-list/use-transactions-display';
-import { usePayees } from '@/composable/data-queries/payees';
+import { usePayeeLookup } from '@/composable/data-queries/payees';
 import { useBulkTransactionActions } from '@/composable/use-bulk-transaction-actions';
 import { SORT_DIRECTIONS, TRANSACTION_SORT_FIELD, TransactionModel } from '@bt/shared/types';
 import { useVirtualizer } from '@tanstack/vue-virtual';
@@ -300,11 +300,9 @@ const { displayTransactions } = useTransactionsDisplay({
   contentFiltersActive: () => true,
 }) as { displayTransactions: ComputedRef<TransactionModel[]> };
 
-// Payee names: transactions carry only payeeId; resolve names from the payees list.
-const { list: payeesList } = usePayees();
-const payeeNameById = computed<Record<string, string>>(() =>
-  Object.fromEntries((payeesList.value ?? []).map((payee) => [payee.id, payee.name])),
-);
+// Payee name + logo: transactions carry only payeeId; resolve from the full
+// payee lookup so any payee resolves, not just the truncated top-50 dropdown list.
+const { byId: payeeById } = usePayeeLookup();
 
 // Transaction detail dialog
 const { isDialogVisible, dialogProps, isCompactDialog, handleRecordClick, closeDialog } = useManageTransactionDialog();

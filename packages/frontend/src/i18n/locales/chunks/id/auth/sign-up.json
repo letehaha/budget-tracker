@@ -22,7 +22,7 @@
         "userExists": "Pengguna dengan email tersebut sudah ada.",
         "genericErrorRetry": "Terjadi kesalahan. Silakan coba lagi.",
         "oauthFailed": "Gagal mendaftar dengan {provider}. Silakan coba lagi.",
-        "oauthNotConfigured": "{provider} sign-in is not configured on this server."
+        "oauthNotConfigured": "{provider} sign-in tidak dikonfigurasi di server ini."
       }
     },
     "shared": {

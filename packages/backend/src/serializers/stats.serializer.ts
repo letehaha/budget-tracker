@@ -8,6 +8,8 @@ import { type endpointsTypes } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Balances from '@models/balances.model';
 import type { CombinedBalanceHistoryItem } from '@services/stats/get-combined-balance-history';
+import type { InvestmentContributionsResultCents } from '@services/stats/get-investment-contributions';
+import type { NetWorthDriversResultCents } from '@services/stats/get-net-worth-drivers';
 import type { PivotReportResultCents } from '@services/stats/get-pivot';
 
 // ============================================================================
@@ -291,4 +293,71 @@ export function serializeCombinedBalanceHistory(
  */
 export function serializeExpensesAmountForPeriod(amountCents: number): number {
   return centsToApiDecimal(amountCents);
+}
+
+// ============================================================================
+// Net Worth Drivers Serializer
+// ============================================================================
+
+/**
+ * Serialize net worth drivers (from getNetWorthDrivers). Every amount is money,
+ * so every amount is decimalized; the period bounds pass through as dates, and
+ * `degraded` (securities and currency codes, no money) forwards untouched.
+ */
+export function serializeNetWorthDrivers(
+  result: NetWorthDriversResultCents,
+): endpointsTypes.GetNetWorthDriversResponse {
+  return {
+    buckets: result.buckets.map((bucket) => ({
+      periodStart: bucket.periodStart,
+      periodEnd: bucket.periodEnd,
+      savings: {
+        income: centsToApiDecimal(bucket.savings.income),
+        expenses: centsToApiDecimal(bucket.savings.expenses),
+        net: centsToApiDecimal(bucket.savings.net),
+      },
+      investments: {
+        growth: centsToApiDecimal(bucket.investments.growth),
+        priceEffect: centsToApiDecimal(bucket.investments.priceEffect),
+        dividends: centsToApiDecimal(bucket.investments.dividends),
+        feesAndTaxes: centsToApiDecimal(bucket.investments.feesAndTaxes),
+      },
+      composition: {
+        holdingsValue: centsToApiDecimal(bucket.composition.holdingsValue),
+        cashValue: centsToApiDecimal(bucket.composition.cashValue),
+      },
+    })),
+    // Kept off the response entirely when the service reports nothing degraded: the
+    // contract lets a client decide on `degraded` alone whether to warn, and a
+    // present-but-empty key would trip that check on a cleanly valued range.
+    ...(result.degraded ? { degraded: result.degraded } : {}),
+  };
+}
+
+// ============================================================================
+// Investment Contributions Serializer
+// ============================================================================
+
+/**
+ * Serialize investment contributions (from getInvestmentContributions). Every
+ * bucket amount is money, so `total`, `savingsNet` and each `byPortfolio.amount`
+ * are decimalized; period bounds pass through as dates and the `portfolios` legend
+ * (ids and names, no money) forwards untouched.
+ */
+export function serializeInvestmentContributions(
+  result: InvestmentContributionsResultCents,
+): endpointsTypes.GetInvestmentContributionsResponse {
+  return {
+    buckets: result.buckets.map((bucket) => ({
+      periodStart: bucket.periodStart,
+      periodEnd: bucket.periodEnd,
+      total: centsToApiDecimal(bucket.total),
+      byPortfolio: bucket.byPortfolio.map((slice) => ({
+        portfolioId: slice.portfolioId,
+        amount: centsToApiDecimal(slice.amount),
+      })),
+      savingsNet: centsToApiDecimal(bucket.savingsNet),
+    })),
+    portfolios: result.portfolios,
+  };
 }

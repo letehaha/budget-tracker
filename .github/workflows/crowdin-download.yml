@@ -37,6 +37,7 @@ jobs:
           pull_request_title: 'chore(i18n): new Crowdin translations'
           pull_request_base_branch_name: dev
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PAT. Scoped separately for the exact needs of Crowdin
+          GITHUB_TOKEN: ${{ secrets.CROWDIN_GH_TOKEN }}
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
