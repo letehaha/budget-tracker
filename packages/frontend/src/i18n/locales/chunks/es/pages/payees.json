@@ -6,7 +6,7 @@
     "searchPlaceholder": "Buscar beneficiarios…",
     "columns": {
       "name": "Nombre",
-      "transactionCount": "# tx",
+      "transactionCount": "N.º tx",
       "netFlow": "Flujo neto",
       "category": "Categoría",
       "categoryHint": "Categoría efectiva de este beneficiario. Muestra la predeterminada si ha configurado una — de lo contrario, la categoría utilizada con más frecuencia en transacciones anteriores. Se rellena automáticamente al crear una nueva transacción.",

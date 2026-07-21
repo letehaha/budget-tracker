@@ -156,8 +156,8 @@
             "finishAuth": "Setelah menyelesaikan alur otorisasi, Anda akan diarahkan kembali ke EnableBanking",
             "waitAccounts": "Tunggu hingga akun yang dipilih ditampilkan di kartu Aplikasi di bawah field \"Linked accounts\""
           },
-          "warningNotLinked": "<<ccr:e9e22b57c201,string,272B>>",
-          "infoAddMore": "<<ccr:e924407f5d29,string,271B>>",
+          "warningNotLinked": "Mungkin saja beberapa akun yang dipilih tidak tertaut. Ini adalah masalah di sisi bank Anda yang tidak dapat Anda selesaikan sendiri. Anda hanya dapat menunggu beberapa jam/hari hingga masalah terselesaikan. Jika masalah tidak terselesaikan, satu-satunya cara adalah melaporkan ke EnableBanking.",
+          "infoAddMore": "Jika di masa depan Anda ingin menghubungkan lebih banyak akun, Anda perlu mengulangi alur penghubungan akun lagi. {strong} bahwa saat menambahkan akun BARU, Anda tetap perlu memilih akun LAMA – pada dasarnya Anda perlu memilih SEMUA akun yang ingin dihubungkan.",
           "infoAddMoreStrong": "Perlu diingat"
         },
         "step3": {

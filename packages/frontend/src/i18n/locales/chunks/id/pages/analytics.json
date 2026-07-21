@@ -7,7 +7,12 @@
       "trendsComparison": "Perbandingan Tren",
       "investmentCalculator": "Kalkulator Investasi",
       "pivotReport": "Pivot",
-      "collapse": "Tutup"
+      "collapse": "Tutup",
+      "netWorthDrivers": "Pendorong Kekayaan Bersih",
+      "investmentContributions": "Kontribusi",
+      "sections": {
+        "investments": "Investasi"
+      }
     },
     "cashFlow": {
       "income": "Pemasukan",
@@ -118,7 +123,15 @@
       "configure": "Konfigurasi",
       "hideInputs": "Sembunyikan",
       "portfolioReturnOption": "{name} (~{rate}%/tahun Anda)",
-      "portfolioNoHistoryOption": "{name} — riwayat tidak mencukupi"
+      "portfolioNoHistoryOption": "{name} — riwayat tidak mencukupi",
+      "annualReturnPlaceholder": "Pilih prasetel"
+    },
+    "portfolioFilter": {
+      "all": "Semua portofolio",
+      "selectedOne": "1 portofolio",
+      "selectedMany": "{n} portofolio",
+      "searchPlaceholder": "Cari portofolio",
+      "noResults": "Tidak ada portofolio yang cocok dengan pencarian Anda"
     }
   },
   "pivotReport": {
@@ -196,6 +209,108 @@
       "emptyHint": "Coba periode yang lebih luas atau filter yang berbeda.",
       "errorTitle": "Tidak dapat memuat laporan",
       "errorHint": "Terjadi kesalahan. Silakan coba lagi."
+    }
+  },
+  "netWorthDrivers": {
+    "title": "Pendorong Kekayaan Bersih",
+    "subtitle": "Seberapa besar pertumbuhan Anda berasal dari uang yang Anda tabung, dan seberapa besar dari hasil pasar. Transfer antar akun Anda sendiri tidak dihitung sebagai keduanya.",
+    "portfolioFilter": {
+      "scopeHint": "Hanya memfilter kepemilikan investasi dan pertumbuhannya. Jumlah yang ditabung dan saldo kas akun tidak terpengaruh."
+    },
+    "calcInfo": {
+      "trigger": "Bagaimana ini dihitung",
+      "title": "Bagaimana ini dihitung",
+      "savedHeading": "Ditabung",
+      "savedBody": "Uang yang Anda sisihkan — pemasukan dikurangi pengeluaran. Memindahkan uang antar akun Anda sendiri, atau ke portofolio investasi, tidak dihitung sebagai tabungan.",
+      "grownHeading": "Bertumbuh",
+      "grownBody": "Apa yang pasar lakukan terhadap kepemilikan Anda — perubahan harga, ditambah dividen, dikurangi biaya. Uang yang Anda setorkan tidak pernah dihitung sebagai pertumbuhan.",
+      "exampleHeading": "Contoh",
+      "exampleBody": "Anda mendapatkan $10.000, menginvestasikannya, dan tumbuh menjadi $12.000. Itu berarti $10.000 Ditabung dan $2.000 Bertumbuh — $10.000 dihitung satu kali sebagai Ditabung, dan hanya $2.000 yang dihitung sebagai Bertumbuh.",
+      "noteBody": "Pertumbuhan dihitung saat harga berubah setiap periode, tidak hanya saat Anda menjual. Menjual sesuatu yang harganya sudah naik tidak menambah Bertumbuh untuk kedua kalinya."
+    },
+    "granularity": {
+      "monthly": "Bulanan",
+      "quarterly": "Triwulan",
+      "yearly": "Tahunan"
+    },
+    "chart": {
+      "title": "Ditabung vs. bertumbuh",
+      "subtitle": "Total kumulatif selama periode yang dipilih.",
+      "saved": "Ditabung",
+      "grown": "Bertumbuh",
+      "totalGained": "Total diperoleh",
+      "thisPeriod": "Periode ini",
+      "periodSavings": "Tabungan",
+      "periodGrowth": "Pertumbuhan",
+      "allocationContext": "{share}% dari kekayaan bersih Anda berada dalam investasi (sebelumnya {reference}% pada {date})",
+      "allocationContextNoReference": "{share}% dari kekayaan bersih Anda berada dalam investasi"
+    },
+    "degraded": {
+      "title": "Beberapa nilai diperkirakan",
+      "unpricedSecurities": "Tidak ada data harga terbaru untuk {securities}, sehingga pertumbuhannya diperkirakan dari biaya perolehan.",
+      "unpricedSecuritiesTruncated": "Tidak ada data harga terbaru untuk {securities} dan lainnya (total {count} sekuritas); pertumbuhannya diperkirakan dari biaya perolehan.",
+      "fxFallback": "Nilai tukar tidak tersedia untuk {currencies}; jumlah tersebut menggunakan rasio 1:1."
+    },
+    "states": {
+      "loadError": "Laporan gagal dimuat",
+      "noData": "Tidak ada yang bisa ditampilkan untuk periode ini",
+      "noDataHint": "Setelah Anda memiliki pemasukan, pengeluaran, atau investasi dalam rentang ini, semuanya akan muncul di sini.",
+      "noPortfoliosHint": "Pertumbuhan investasi akan muncul setelah Anda menambahkan portofolio dengan kepemilikan yang memiliki harga.",
+      "noPortfoliosTitle": "Belum ada investasi",
+      "noPortfoliosPlaceholder": "Laporan ini memisahkan perubahan kekayaan bersih Anda menjadi apa yang Anda tabung dan seberapa besar investasi Anda bertumbuh. Tambahkan portofolio untuk mulai melacak pertumbuhan.",
+      "noPortfoliosAction": "Tambahkan portofolio"
+    },
+    "target": {
+      "title": "Titik silang pertumbuhan",
+      "subtitle": "Ukuran portofolio di mana pertumbuhan pasar — bukan tabungan Anda — melakukan sebagian besar pekerjaan.",
+      "targetShareLabel": "Porsi pertumbuhan dari keuntungan bulanan Anda",
+      "savingsLabel": "Perkiraan tabungan bulanan",
+      "savingsPlaceholder": "mis. 1.000",
+      "savingsResetToAverage": "Gunakan rata-rata saya ({amount})",
+      "currentShareLine": "Saat ini pertumbuhan mencakup ~{current}% dari keuntungan bulanan Anda — Anda menargetkan {target}%.",
+      "valueNeeded": "Nilai portofolio yang dibutuhkan",
+      "progressLine": "Anda sudah {pct}% dari target — {current} dari {needed}.",
+      "progressReached": "Target tercapai — portofolio Anda sudah sampai di sana.",
+      "gapLabel": "Selisih",
+      "gapValue": "{amount} lagi dibutuhkan",
+      "reached": "Target tercapai",
+      "timeLabel": "Waktu menuju target",
+      "etaValue": "~{years} thn",
+      "etaReached": "Tercapai",
+      "etaHint": "Jika Anda terus menabung dan imbal hasil tetap stabil.",
+      "noReturn": "Pilih perkiraan imbal hasil positif untuk melihat nilai target.",
+      "assumptionsLabel": "Asumsi",
+      "disclaimer": "Proyeksi langsung dari nilai saat ini dan asumsi Anda — bukan nasihat keuangan."
+    }
+  },
+  "investmentContributions": {
+    "title": "Kontribusi Investasi",
+    "subtitle": "Berapa banyak uang tunai yang telah Anda pindahkan ke portofolio Anda dari waktu ke waktu, dan ke mana perginya.",
+    "average": "Rata-rata",
+    "portfolioFilter": {
+      "scopeHint": "Memfilter portofolio mana yang dihitung dalam kontribusi."
+    },
+    "granularity": {
+      "monthly": "Bulanan",
+      "quarterly": "Triwulan",
+      "yearly": "Tahunan"
+    },
+    "cards": {
+      "totalContributed": "Total kontribusi",
+      "shareOfSavings": "Porsi dari tabungan",
+      "averagePerPeriod": "Rata-rata per periode"
+    },
+    "chart": {
+      "total": "Total",
+      "vsPrevious": "vs sebelumnya"
+    },
+    "states": {
+      "noData": "Tidak ada kontribusi dalam rentang ini",
+      "noDataHint": "Pindahkan uang ke portofolio selama periode ini untuk melihatnya di sini.",
+      "noPortfoliosTitle": "Belum ada portofolio",
+      "noPortfoliosPlaceholder": "Buat portofolio dan mulai berinvestasi untuk melacak kontribusi Anda di sini.",
+      "noPortfoliosAction": "Tambahkan portofolio",
+      "loadError": "Kontribusi gagal dimuat"
     }
   }
 }

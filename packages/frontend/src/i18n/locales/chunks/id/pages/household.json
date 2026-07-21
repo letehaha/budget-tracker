@@ -21,7 +21,7 @@
       },
       "invite": {
         "emailLabel": "Email",
-        "emailPlaceholder": "orang@contoh.com",
+        "emailPlaceholder": "orang{'@'}contoh.com",
         "permissionLabel": "Izin",
         "writeScopeLabel": "Lingkup tulis",
         "submit": "Kirim undangan rumah tangga",
