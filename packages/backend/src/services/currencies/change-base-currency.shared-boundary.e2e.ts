@@ -107,12 +107,8 @@ describe('Change base currency — shared-account ledger boundary is author-blin
     });
 
     // Owner switches base AED → USD.
-    const changeRes = await helpers.makeRequest({
-      method: 'post',
-      url: '/user/currencies/change-base',
-      payload: { newCurrencyCode: 'USD' },
-    });
-    expect(changeRes.statusCode).toBe(200);
+    const changeStatus = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+    helpers.expectBaseCurrencyChangeCompleted(changeStatus);
 
     // refInitialBalance = opening 200 EUR × EUR→USD at the recipient tx's boundary
     // date (2.0) = 400 USD. The boundary is account-scoped (not author-scoped),

@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, API_RESPONSE_STATUS, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { Money } from '@common/types/money';
 import { faker } from '@faker-js/faker';
@@ -13,7 +13,7 @@ import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Transactions from '@models/transactions.model';
 import { redisClient } from '@root/redis-client';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
-import { buildLockKey } from '@services/currencies/change-base-currency.service';
+import { buildLockKey } from '@services/currencies/base-currency-lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import * as helpers from '@tests/helpers';
 
@@ -30,6 +30,18 @@ describe('Change Base Currency', () => {
     await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
   });
   describe('POST /user/currencies/change-base', () => {
+    it('rejects an unknown currency code and takes no lock', async () => {
+      const { id: userId } = await helpers.getUserInfo({ raw: true });
+      const res = await helpers.changeBaseCurrency({ newCurrencyCode: 'ZZZ' });
+      expect(res.statusCode).toBeGreaterThanOrEqual(400);
+      expect(res.statusCode).toBeLessThan(500);
+
+      // Validation runs before the enqueue that acquires the lock, so no lock key
+      // may be left behind — otherwise the user would be blocked by a phantom change.
+      const lock = await redisClient.get(buildLockKey(userId));
+      expect(lock).toBeNull();
+    });
+
     it('should successfully change base currency and recalculate all amounts', async () => {
       // Create an account in EUR (base currency)
       const account = await helpers.createAccount({
@@ -70,18 +82,10 @@ describe('Change Base Currency', () => {
       const originalTx2RefAmount = tx2[0].refAmount;
 
       // Change base currency from EUR to USD
-      const response = await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'USD',
-        },
-      });
-
-      expect(response.statusCode).toEqual(200);
-      expect(response.body.status).toEqual(API_RESPONSE_STATUS.success);
-      expect(response.body.response.transactionsUpdated).toBeGreaterThan(0);
-      expect(response.body.response.accountsUpdated).toBeGreaterThan(0);
+      const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(status);
+      expect(status.result.transactionsUpdated).toBeGreaterThan(0);
+      expect(status.result.accountsUpdated).toBeGreaterThan(0);
 
       // Verify base currency was changed
       const newBaseCurrency = (await helpers.getUserCurrencies()).find((i) => i.isDefaultCurrency)!;
@@ -117,13 +121,7 @@ describe('Change Base Currency', () => {
     it('should return error when trying to change to the same currency', async () => {
       const baseCurrency = (await helpers.getUserCurrencies()).find((i) => i.isDefaultCurrency)!;
 
-      const response = await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: baseCurrency.currencyCode,
-        },
-      });
+      const response = await helpers.changeBaseCurrency({ newCurrencyCode: baseCurrency.currencyCode });
 
       expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
     });
@@ -179,16 +177,9 @@ describe('Change Base Currency', () => {
       ]);
 
       // Change base currency to USD
-      const response = await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'USD',
-        },
-      });
-
-      expect(response.statusCode).toEqual(200);
-      expect(response.body.response.accountsUpdated).toEqual(2);
+      const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(status);
+      expect(status.result.accountsUpdated).toEqual(2);
 
       // Verify all accounts were recalculated
       const [updatedUahAccount, updatedEurAccount] = await Promise.all([
@@ -228,13 +219,8 @@ describe('Change Base Currency', () => {
       const originalCurrencyCode = originalTx!.currencyCode;
 
       // Change base currency
-      await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'USD',
-        },
-      });
+      const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(status);
 
       // Verify original amount and currency are preserved
       const updatedTx = await Transactions.findByPk(tx[0].id);
@@ -264,13 +250,8 @@ describe('Change Base Currency', () => {
       const originalRefCreditLimit = originalAccount!.refCreditLimit;
 
       // Change base currency
-      await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'USD',
-        },
-      });
+      const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(status);
 
       // Verify credit limit was recalculated
       const updatedAccount = await Accounts.findByPk(account.id);
@@ -309,13 +290,8 @@ describe('Change Base Currency', () => {
       const originalRefCommission = originalTx!.refCommissionRate;
 
       // Change base currency
-      await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'USD',
-        },
-      });
+      const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(status);
 
       // Verify commission was recalculated
       const updatedTx = await Transactions.findByPk(baseTx.id, { raw: true });
@@ -368,13 +344,8 @@ describe('Change Base Currency', () => {
       ]);
 
       // Change base currency
-      await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'USD',
-        },
-      });
+      const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(status);
 
       // Verify balances were rebuilt
       const balancesAfter = await Balances.findAll({
@@ -406,15 +377,8 @@ describe('Change Base Currency', () => {
       });
 
       // Change base currency
-      const response = await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'USD',
-        },
-      });
-
-      expect(response.statusCode).toEqual(200);
+      const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(status);
 
       // Verify account was still updated
       const updatedAccount = await Accounts.findByPk(account.id);
@@ -576,19 +540,11 @@ describe('Change Base Currency', () => {
 
       // ========== STEP 5: Change base currency to USD ==========
 
-      const response = await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'USD',
-        },
-      });
-
-      expect(response.statusCode).toEqual(200);
-      expect(response.body.status).toEqual(API_RESPONSE_STATUS.success);
+      const changeStatus = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(changeStatus);
 
       // Verify response statistics
-      const result = response.body.response;
+      const result = changeStatus.result;
       expect(result.transactionsUpdated).toBeGreaterThanOrEqual(30); // 30 transactions created
       expect(result.accountsUpdated).toEqual(3); // Our 3 accounts
       expect(result.investmentTransactionsUpdated).toBeGreaterThanOrEqual(1);
@@ -844,11 +800,8 @@ describe('Change Base Currency', () => {
       expect(balancesBeforeData[0].amount).toEqual(accountWithInitialBalance.refInitialBalance);
 
       // Change base currency to USD
-      await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: { newCurrencyCode: 'USD' },
-      });
+      const changeStatus = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(changeStatus);
 
       // Fetch the balance row plus per-account and combined balance-history snapshots in parallel
       const [balanceAfterChange, balanceHistoryAfter, combinedBalanceHistory] = await Promise.all([
@@ -881,120 +834,64 @@ describe('Change Base Currency', () => {
       expect(accountBalances.length).toBeGreaterThan(0);
     });
 
-    it('should prevent concurrent base currency change requests using Redis lock', async () => {
+    it('should prevent concurrent base currency change requests using the enqueue lock', async () => {
       // Add USD currency to change to
       await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
 
-      // Start first request and immediately start second before first completes
-      // We'll use Promise.race to detect which one fails
+      // Fire two enqueues concurrently: the NX lock lets exactly one through (202),
+      // the other loses the race and is rejected as locked (423).
       const requests = await Promise.allSettled([
-        helpers.makeRequest({
-          method: 'post',
-          url: '/user/currencies/change-base',
-          payload: { newCurrencyCode: 'USD' },
-        }),
-        helpers.makeRequest({
-          method: 'post',
-          url: '/user/currencies/change-base',
-          payload: { newCurrencyCode: 'USD' },
-        }),
+        helpers.changeBaseCurrency({ newCurrencyCode: 'USD' }),
+        helpers.changeBaseCurrency({ newCurrencyCode: 'USD' }),
       ]);
 
-      // One should succeed (200) and one should be locked (423)
       const statuses = requests.map((r) => (r.status === 'fulfilled' ? r.value.statusCode : null));
 
-      // Should have one success and one locked error
-      expect(statuses).toContain(200);
+      expect(statuses).toContain(202);
       expect(statuses).toContain(ERROR_CODES.Locked);
+
+      // Let the winning job finish (poll — don't re-enqueue) so it doesn't run
+      // against the next test's truncated DB.
+      await helpers.waitForBaseCurrencyChangeSettled();
     });
 
     it('should automatically release lock after successful operation', async () => {
       // Add USD currency to change to
       await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
 
-      // First request should succeed
-      const firstResponse = await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'USD',
-        },
-      });
+      // First change succeeds and releases the lock on completion.
+      const first = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      helpers.expectBaseCurrencyChangeCompleted(first);
 
-      expect(firstResponse.statusCode).toEqual(200);
-
-      // Second request to change back should also succeed (lock was released)
-      const secondResponse = await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'GBP',
-        },
-      });
-
-      expect(secondResponse.statusCode).toEqual(200);
+      // Second change back also succeeds — the lock was released, so the enqueue
+      // isn't rejected as locked.
+      const second = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'GBP' });
+      helpers.expectBaseCurrencyChangeCompleted(second);
     });
 
-    it('should release lock even if operation fails', async () => {
+    it('rejects a trivially-invalid change before taking the lock, leaving later changes unblocked', async () => {
       // Get current base currency
       const baseCurrency = (await helpers.getUserCurrencies()).find((i) => i.isDefaultCurrency)!;
 
-      // Try to change to the same currency (will fail with ValidationError)
-      const response = await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: baseCurrency.currencyCode,
-        },
-      });
-
-      // Should fail with validation error
+      // Same-currency is rejected synchronously at enqueue, before the lock is taken.
+      const response = await helpers.changeBaseCurrency({ newCurrencyCode: baseCurrency.currencyCode });
       expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
 
-      // Subsequent request should work (lock was released)
+      // A subsequent valid change still works (no lock was ever held).
       await helpers.addUserCurrencies({ currencyCodes: ['EUR'], raw: true });
-      const retryResponse = await helpers.makeRequest({
-        method: 'post',
-        url: '/user/currencies/change-base',
-        payload: {
-          newCurrencyCode: 'EUR',
-        },
-      });
-
-      expect(retryResponse.statusCode).toEqual(200);
+      const retry = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'EUR' });
+      helpers.expectBaseCurrencyChangeCompleted(retry);
     });
 
-    // TODO: find a way how to test it. It's in fact applies the lock, yet it's difficult to catch it in the test
-    it.skip('should block creating accounts/transactions/investments during base currency change', async () => {
-      // Add EUR currency to test with
-      await helpers.addUserCurrencies({ currencyCodes: ['EUR'], raw: true });
-
-      // Create some test data first to make the operation take longer
-      const account = await helpers.createAccount({
-        payload: {
-          name: 'Test Account',
-          currencyCode: 'GBP',
-          initialBalance: 10000,
-          creditLimit: 0,
-          accountCategory: ACCOUNT_CATEGORIES.general,
-        },
-        raw: true,
-      });
-
-      // Get userId from the account to build lock key
-      const userId = account.userId;
+    // Deterministic version of the 423 window: SET the lock key directly instead of
+    // racing the real change-base job, which commits too fast to observe mid-flight.
+    it('blocks a guarded mutating route while the base-currency lock is held', async () => {
+      const userId = (await helpers.getUserCurrencies())[0]!.userId;
       const lockKey = buildLockKey(userId);
 
-      // Start the base currency change but don't await it
-      const [changeCurrencyResponse, createAccountResponse] = await Promise.all([
-        helpers.makeRequest({
-          method: 'post',
-          url: '/user/currencies/change-base',
-          payload: {
-            newCurrencyCode: 'EUR',
-          },
-        }),
-        helpers.makeRequest({
+      await redisClient.set(lockKey, 'test-lock');
+      try {
+        const createAccountResponse = await helpers.makeRequest({
           method: 'post',
           url: '/accounts',
           payload: {
@@ -1004,21 +901,15 @@ describe('Change Base Currency', () => {
             creditLimit: 0,
             accountCategory: ACCOUNT_CATEGORIES.general,
           },
-        }),
-      ]);
+        });
 
-      // Should be blocked with the specific error code
-      expect(createAccountResponse.statusCode).toEqual(ERROR_CODES.Locked);
-      expect(createAccountResponse.body.response.code).toEqual('BASE_CURRENCY_CHANGE_IN_PROGRESS');
+        expect(createAccountResponse.statusCode).toEqual(ERROR_CODES.Locked);
+        expect(createAccountResponse.body.response.code).toEqual('BASE_CURRENCY_CHANGE_IN_PROGRESS');
+      } finally {
+        await redisClient.del(lockKey);
+      }
 
-      // Wait for currency change to complete
-      expect(changeCurrencyResponse.statusCode).toEqual(200);
-
-      // Verify lock was released
-      const lockAfter = await redisClient.get(lockKey);
-      expect(lockAfter).toBeNull();
-
-      // Now creating an account should work
+      // Lock cleared → the same request now succeeds.
       const createAccountRetryResponse = await helpers.makeRequest({
         method: 'post',
         url: '/accounts',

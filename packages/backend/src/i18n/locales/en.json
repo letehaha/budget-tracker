@@ -1,6 +1,7 @@
 {
   "common": {
-    "processAlreadyLocked": "Sync process for \"{{lockKey}}\" is already locked."
+    "processAlreadyLocked": "Sync process for \"{{lockKey}}\" is already locked.",
+    "serviceTemporarilyUnavailable": "Service temporarily unavailable. Please try again."
   },
   "accounts": {
     "groupNotFound": "Group or account not found",
@@ -283,6 +284,10 @@
     "alreadyBaseCurrency": "The selected currency is already a base currency",
     "baseCurrencyLockedByShares": "Cannot change base currency while you have active shared resources. Revoke or leave them first.",
     "baseCurrencyLockedByHousehold": "Cannot change base currency while you are part of an active household. Revoke or leave your household membership first.",
+    "baseCurrencyChangeInProgress": "Base currency change is in progress. Please wait until it completes.",
+    "baseCurrencyChangeSyncInProgress": "A bank sync is still finishing. Please try changing your base currency again in a few minutes.",
+    "baseCurrencyChangeDrainCheckFailed": "Could not verify bank syncs are idle. Please try again.",
+    "baseCurrencyChangeInProgressOtherUser": "The other participant is currently changing their base currency. Please try again once their migration finishes.",
     "cannotFindForRefAmount": "Cannot find currency to calculate ref amount!",
     "cannotCalculateRefAmount": "Cannot calculate ref amount",
     "currencyNotConnected": "Asked currency is not connected",

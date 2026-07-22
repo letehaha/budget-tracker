@@ -3,6 +3,8 @@ import {
   ACCOUNT_TYPES,
   API_ERROR_CODES,
   type BaseCurrencyBlocker,
+  type BaseCurrencyChangeStep,
+  type RecalculateResult,
   RESOURCE_TYPES,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
@@ -10,6 +12,7 @@ import { t } from '@i18n/index';
 import { ConflictError, ValidationError } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
+import { captureException } from '@js/utils/sentry';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import Holdings from '@models/investments/holdings.model';
@@ -22,7 +25,6 @@ import ResourceShares from '@models/resource-shares.model';
 import Transactions from '@models/transactions.model';
 import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.model';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
-import { withLock } from '@services/common/lock';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import { Op, QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
 
@@ -88,36 +90,29 @@ interface ChangeBaseCurrencyParams {
   newCurrencyCode: string;
 }
 
-interface RecalculateResult {
-  transactionsUpdated: number;
-  accountsUpdated: number;
-  loanDetailsUpdated: number;
-  balancesRebuilt: number;
-  investmentTransactionsUpdated: number;
-  portfolioTransfersUpdated: number;
-  holdingsUpdated: number;
-  portfolioBalancesUpdated: number;
-}
+/** Called before each table sweep so the worker can persist the step on the job
+ *  and fan it out over SSE. Awaited so a slow progress write can't let the next
+ *  step start reporting before the current one is recorded. */
+type BaseCurrencyChangeProgress = (params: { step: BaseCurrencyChangeStep }) => void | Promise<void>;
 
 /**
- * Internal implementation of changeBaseCurrency.
- * This is wrapped by the exported function with a distributed lock.
+ * Transaction-free pre-checks that gate a base-currency change: no active
+ * share/household (both ends of a share must agree on one base currency, or the
+ * recipient's aggregated stats silently mix `refAmount`s under different
+ * ref-currency assumptions), a base currency already exists, and the target
+ * differs from the current base.
+ *
+ * Runs at enqueue time — before the lock is taken, so a trivial rejection never
+ * holds the 4h lock — and again inside the job, since shares may have changed
+ * between enqueue and pickup. Returns the current base so callers skip re-querying.
  */
-async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise<RecalculateResult> {
-  const { userId, newCurrencyCode } = params;
-
-  // Refuse the change while the user has any active share — both ends of an
-  // accepted share must agree on a base currency, otherwise the recipient's
-  // aggregated stats mix the owner's `refAmount` with their own under different
-  // ref-currency assumptions and the totals diverge silently. Pending invitations
-  // don't lock; they're handled by the accept-time currency-match check, which
-  // surfaces a clean error instead.
-  //
+export async function validateBaseCurrencyChange({ userId, newCurrencyCode }: ChangeBaseCurrencyParams) {
   // Two parallel counts so the response can tell the user precisely which kind
   // of relationship is blocking — household memberships are user-scoped (one
   // revoke covers many accounts), per-resource shares are resource-scoped (each
   // must be revoked individually). The frontend renders multi-step guidance off
-  // the `blockers` array.
+  // the `blockers` array. Pending invitations don't lock; they're handled by the
+  // accept-time currency-match check, which surfaces a clean error instead.
   const [householdBlockingCount, perResourceBlockingCount] = await Promise.all([
     ResourceShares.count({
       where: {
@@ -157,7 +152,6 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
     });
   }
 
-  // Get current base currency
   const oldBaseCurrency = await getBaseCurrency({ userId });
 
   if (!oldBaseCurrency) {
@@ -172,38 +166,60 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
     });
   }
 
+  return { oldBaseCurrency };
+}
+
+/**
+ * Rewrites every `ref*` amount the user owns into the new base currency inside one
+ * atomic DB transaction, flips the `UsersCurrencies` default, and clears the
+ * `ref_amount:{userId}:*` cache. Re-runs {@link validateBaseCurrencyChange} first
+ * (in-job re-check), then sweeps the eight tables in order, invoking `onProgress`
+ * before each so the running job reports its current step.
+ *
+ * Runs in the base-currency-change worker with the lock already held — it does NOT
+ * acquire one itself. Progress reporting is best-effort and must never throw here,
+ * or a Redis hiccup would roll back the whole recalculation.
+ */
+export async function changeBaseCurrencyImpl({
+  userId,
+  newCurrencyCode,
+  onProgress,
+}: ChangeBaseCurrencyParams & { onProgress?: BaseCurrencyChangeProgress }): Promise<RecalculateResult> {
+  const { oldBaseCurrency } = await validateBaseCurrencyChange({ userId, newCurrencyCode });
+
   // Start database transaction for atomicity
   const result = await Transactions.sequelize!.transaction(async (dbTransaction: SequelizeTransaction) => {
     logger.info(
       `Starting base currency change for user ${userId} from ${oldBaseCurrency.currencyCode} to ${newCurrencyCode}`,
     );
 
-    // Step 1: Recalculate all transactions
+    await onProgress?.({ step: 'transactions' });
     const transactionsUpdated = await rebuildTransactions({
       userId,
       newCurrencyCode,
       transaction: dbTransaction,
     });
 
-    // Step 2: Recalculate all accounts
+    await onProgress?.({ step: 'accounts' });
     const accountsUpdated = await recalculateAccounts({
       userId,
       newCurrencyCode,
       transaction: dbTransaction,
     });
 
-    // Step 2b: Recalculate loan-detail ref amounts. The loan's Account row is
-    // handled by recalculateAccounts above, but LoanDetails carries its own
-    // ref* copies (refOriginalPrincipal, refMinPayment, refPlannedPayment) that
-    // the list-page aggregates read in base currency — recompute them here so a
-    // base switch doesn't leave the monthly-obligation total in the old base.
+    // The loan's Account row is handled by recalculateAccounts above, but
+    // LoanDetails carries its own ref* copies (refOriginalPrincipal, refMinPayment,
+    // refPlannedPayment) that the list-page aggregates read in base currency —
+    // recompute them here so a base switch doesn't leave the monthly-obligation
+    // total in the old base.
+    await onProgress?.({ step: 'loanDetails' });
     const loanDetailsUpdated = await recalculateLoanDetails({
       userId,
       newCurrencyCode,
       transaction: dbTransaction,
     });
 
-    // Step 3: Rebuild balance history
+    await onProgress?.({ step: 'balances' });
     const balancesRebuilt = await rebuildBalances({
       userId,
       oldCurrencyCode: oldBaseCurrency.currencyCode,
@@ -211,9 +227,9 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       transaction: dbTransaction,
     });
 
-    // Pre-fetch portfolios once for steps 4, 6, 7. Include soft-deleted ones
-    // (paranoid:false) so refAmounts stay consistent if the user later
-    // restores a portfolio that was in the trash during a base-currency switch.
+    // Pre-fetch portfolios once for the investment steps. Include soft-deleted ones
+    // (paranoid:false) so refAmounts stay consistent if the user later restores a
+    // portfolio that was in the trash during a base-currency switch.
     const portfolios = await Portfolios.findAll({
       where: { userId },
       paranoid: false,
@@ -221,7 +237,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
     });
     const portfolioIds = portfolios.map((p) => p.id);
 
-    // Step 4: Recalculate investment transactions
+    await onProgress?.({ step: 'investmentTransactions' });
     const investmentTransactionsUpdated = await recalculateInvestmentTransactions({
       userId,
       newCurrencyCode,
@@ -229,14 +245,14 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       transaction: dbTransaction,
     });
 
-    // Step 5: Recalculate portfolio transfers
+    await onProgress?.({ step: 'portfolioTransfers' });
     const portfolioTransfersUpdated = await recalculatePortfolioTransfers({
       userId,
       newCurrencyCode,
       transaction: dbTransaction,
     });
 
-    // Step 6: Recalculate holdings
+    await onProgress?.({ step: 'holdings' });
     const holdingsUpdated = await recalculateHoldings({
       userId,
       newCurrencyCode,
@@ -244,7 +260,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       transaction: dbTransaction,
     });
 
-    // Step 7: Recalculate portfolio balances
+    await onProgress?.({ step: 'portfolioBalances' });
     const portfolioBalancesUpdated = await recalculatePortfolioBalances({
       userId,
       newCurrencyCode,
@@ -252,7 +268,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       transaction: dbTransaction,
     });
 
-    // Step 8: Update the base currency flag
+    // Flip the base currency flag onto the new currency.
     await updateCurrencies({
       userId,
       isDefaultCurrency: false,
@@ -264,7 +280,7 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
       isDefaultCurrency: true,
     });
 
-    // Step 9: Clear Redis cache for this user
+    // Cached ref_amount values were computed against the OLD base — drop them.
     await clearUserCache(userId);
 
     logger.info(`Base currency change completed for user ${userId}`);
@@ -283,25 +299,6 @@ async function changeBaseCurrencyImpl(params: ChangeBaseCurrencyParams): Promise
 
   return result;
 }
-
-export const buildLockKey = (userId: number) => `change-base-currency:user:${userId}`;
-
-/**
- * Changes the user's base currency and recalculates all ref- amounts using historical exchange rates.
- * This operation is atomic - either all changes succeed or all are rolled back.
- *
- * Protected by a distributed Redis lock to prevent concurrent executions for the same user.
- * The lock has a TTL of 4 hour to handle long-running operations.
- *
- * @param params - Object containing userId and newCurrencyCode
- * @returns Promise<RecalculateResult> - Statistics about the recalculation
- * @throws ValidationError if the currency is already the base currency
- * @throws LockedError if another base currency change operation is already in progress for this user
- */
-export const changeBaseCurrency = (params: ChangeBaseCurrencyParams): Promise<RecalculateResult> => {
-  const lockedFn = withLock(buildLockKey(params.userId), changeBaseCurrencyImpl, { ttl: 60 * 60 * 4 }); // 4 hour TTL
-  return lockedFn(params);
-};
 
 const localCalculateRefAmount = async ({
   amount,
@@ -786,7 +783,10 @@ async function clearUserCache(userId: number): Promise<void> {
 
     logger.info(`Successfully cleared ref_amount cache for user ${userId}`);
   } catch (error) {
+    // Stale ref_amount cache after a base change silently serves old-base values
+    // until each key's TTL. Never throws (the recalc already committed), but the
+    // failure must be visible, so it goes to Sentry as well as the logs.
     logger.error({ message: `Error clearing cache for user ${userId}`, error: error as Error });
-    // Don't throw - cache clearing failure shouldn't break the main operation
+    captureException({ error, context: { scope: 'change-base-currency:clearUserCache', userId } });
   }
 }

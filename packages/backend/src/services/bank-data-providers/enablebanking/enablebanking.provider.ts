@@ -733,8 +733,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // Process each transaction and collect created/updated transaction IDs
           const createdTransactionIds: string[] = [];
           let updatedCount = 0;
+          const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
 
           for (const tx of providerTransactions) {
+            await checkpoint();
+
             // Match an existing tx using a tiered strategy that survives hash drift:
             //   1. by entry_reference (ASPSP-promised stable id, may appear later)
             //   2. by current originalId (the legacy hash)

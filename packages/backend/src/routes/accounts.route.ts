@@ -41,18 +41,21 @@ router.delete(
 router.post(
   '/:id/unlink',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(unlinkAccountFromBankConnection.schema),
   unlinkAccountFromBankConnection.handler,
 );
 router.post(
   '/:id/link',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(linkAccountToBankConnection.schema),
   linkAccountToBankConnection.handler,
 );
 router.post(
   '/:id/balance-adjustment',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(balanceAdjustment.schema),
   balanceAdjustment.handler,
 );

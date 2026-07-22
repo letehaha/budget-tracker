@@ -1,3 +1,4 @@
+import type { BaseCurrencyChangeStatus } from '@bt/shared/types';
 import Currencies from '@models/currencies.model';
 import ExchangeRates from '@models/exchange-rates.model';
 import { UpdateExchangeRatePair } from '@models/user-exchange-rates.model';
@@ -134,4 +135,102 @@ export async function updateUserCurrency<R extends boolean | undefined = undefin
     payload: { ...currency },
     raw,
   });
+}
+
+/**
+ * POST /user/currencies/change-base. Enqueues the recalculation and resolves to
+ * `{ jobId, state: 'queued' }` (HTTP 202). Share-blocker / same-currency rejections
+ * still surface synchronously. Poll the result via {@link changeBaseCurrencyAndWait}.
+ */
+export function changeBaseCurrency<R extends boolean | undefined = undefined>({
+  newCurrencyCode,
+  raw,
+}: {
+  newCurrencyCode: string;
+  raw?: R;
+}) {
+  return makeRequest<{ jobId: string; state: 'queued' }, R>({
+    method: 'post',
+    url: '/user/currencies/change-base',
+    payload: { newCurrencyCode },
+    raw,
+  });
+}
+
+export function getBaseCurrencyChangeStatus<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
+  return makeRequest<BaseCurrencyChangeStatus, R>({
+    method: 'get',
+    url: '/user/currencies/change-base/status',
+    raw,
+  });
+}
+
+/**
+ * Enqueue a base-currency change and poll the status endpoint every 100ms until it
+ * settles. The recalculation runs in a BullMQ worker, so the POST only returns
+ * `{ jobId }` — callers must poll for the terminal state. Mirrors
+ * `waitForCsvImportCompletion`.
+ */
+export async function changeBaseCurrencyAndWait({
+  newCurrencyCode,
+  timeoutMs = 30_000,
+}: {
+  newCurrencyCode: string;
+  timeoutMs?: number;
+}): Promise<BaseCurrencyChangeStatus> {
+  const enqueueRes = await changeBaseCurrency({ newCurrencyCode });
+  if (enqueueRes.statusCode !== 202) {
+    throw new Error(
+      `Expected 202 from change-base enqueue, got ${enqueueRes.statusCode}: ${JSON.stringify(enqueueRes.body)}`,
+    );
+  }
+
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const status = await getBaseCurrencyChangeStatus({ raw: true });
+    if (status.state === 'completed' || status.state === 'failed') {
+      return status;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Base-currency change did not finish within ${timeoutMs}ms`);
+}
+
+/**
+ * Poll the status endpoint (without enqueueing) until the change settles to a
+ * terminal state (`completed`, `failed`, or `idle`). Used to drain a job that was
+ * enqueued out-of-band so it doesn't run against the next test's truncated DB.
+ */
+export async function waitForBaseCurrencyChangeSettled({
+  timeoutMs = 30_000,
+}: { timeoutMs?: number } = {}): Promise<BaseCurrencyChangeStatus> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const status = await getBaseCurrencyChangeStatus({ raw: true });
+    if (status.state === 'completed' || status.state === 'failed' || status.state === 'idle') {
+      return status;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Base-currency change did not settle within ${timeoutMs}ms`);
+}
+
+/** Narrow a terminal status to `completed` so tests can read `result` directly.
+ *  Throws (failing the calling test) when the worker finished with `failed`. */
+export function expectBaseCurrencyChangeCompleted(
+  status: BaseCurrencyChangeStatus,
+): asserts status is Extract<BaseCurrencyChangeStatus, { state: 'completed' }> {
+  if (status.state !== 'completed') {
+    const detail = status.state === 'failed' ? ` Error: ${status.error}` : '';
+    throw new Error(`Expected completed base-currency change, got state="${status.state}".${detail}`);
+  }
+}
+
+/** Narrow a terminal status to `failed` so tests can read `error` directly. */
+export function expectBaseCurrencyChangeFailed(
+  status: BaseCurrencyChangeStatus,
+): asserts status is Extract<BaseCurrencyChangeStatus, { state: 'failed' }> {
+  if (status.state !== 'failed') {
+    throw new Error(`Expected failed base-currency change, got state="${status.state}".`);
+  }
 }

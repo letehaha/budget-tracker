@@ -1,8 +1,9 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { ERROR_CODES } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import Users from '@models/users.model';
-import { redisClient } from '@root/redis-client';
-import { buildLockKey } from '@root/services/currencies/change-base-currency.service';
+import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import type { NextFunction, Request, Response } from 'express';
 
 /**
@@ -31,14 +32,31 @@ export const checkBaseCurrencyLock = async (
     });
   }
 
-  // Check if base currency change is in progress for this user
-  const lockExists = await redisClient.get(buildLockKey(userId));
+  // Fail closed on a Redis hiccup. Express 4 doesn't catch async rejections, so an
+  // unhandled throw here would hang the request forever with no response — respond
+  // 503 and let the client retry instead.
+  let lockExists: boolean;
+  try {
+    lockExists = await isBaseCurrencyChangeLocked({ userId });
+  } catch (error) {
+    logger.error({
+      message: 'Base currency lock check failed',
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
+    return res.status(ERROR_CODES.ServiceUnavailable).json({
+      status: API_RESPONSE_STATUS.error,
+      response: {
+        message: t({ key: 'common.serviceTemporarilyUnavailable' }),
+        code: API_ERROR_CODES.serviceUnavailable,
+      },
+    });
+  }
 
   if (lockExists) {
     return res.status(ERROR_CODES.Locked).json({
       status: API_RESPONSE_STATUS.error,
       response: {
-        message: 'Base currency change is in progress. Please wait until it completes.',
+        message: t({ key: 'currencies.baseCurrencyChangeInProgress' }),
         code: API_ERROR_CODES.baseCurrencyChangeInProgress,
       },
     });

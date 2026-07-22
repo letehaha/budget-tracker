@@ -20,6 +20,7 @@ import unlinkPeriodTransaction from '@controllers/subscriptions/unlink-transacti
 import unlinkTransactions from '@controllers/subscriptions/unlink-transactions';
 import updateSubscription from '@controllers/subscriptions/update-subscription';
 import { authenticateSession } from '@middlewares/better-auth';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -45,34 +46,68 @@ router.get('/candidates', authenticateSession, validateEndpoint(getCandidates.sc
 router.post(
   '/candidates/:id/accept',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(acceptCandidate.schema),
   acceptCandidate.handler,
 );
 router.post(
   '/candidates/:id/dismiss',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(dismissCandidate.schema),
   dismissCandidate.handler,
 );
 router.get('/:id', authenticateSession, validateEndpoint(getSubscriptionById.schema), getSubscriptionById.handler);
 
-router.post('/', authenticateSession, validateEndpoint(createSubscription.schema), createSubscription.handler);
-router.put('/:id', authenticateSession, validateEndpoint(updateSubscription.schema), updateSubscription.handler);
-router.delete('/:id', authenticateSession, validateEndpoint(deleteSubscription.schema), deleteSubscription.handler);
+router.post(
+  '/',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(createSubscription.schema),
+  createSubscription.handler,
+);
+router.put(
+  '/:id',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(updateSubscription.schema),
+  updateSubscription.handler,
+);
+router.delete(
+  '/:id',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(deleteSubscription.schema),
+  deleteSubscription.handler,
+);
 
-router.patch('/:id/toggle-active', authenticateSession, validateEndpoint(toggleActive.schema), toggleActive.handler);
+router.patch(
+  '/:id/toggle-active',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(toggleActive.schema),
+  toggleActive.handler,
+);
 
-router.post('/:id/reset-logo', authenticateSession, validateEndpoint(resetLogo.schema), resetLogo.handler);
+router.post(
+  '/:id/reset-logo',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(resetLogo.schema),
+  resetLogo.handler,
+);
 
 router.post(
   '/:id/transactions',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(linkTransactions.schema),
   linkTransactions.handler,
 );
 router.delete(
   '/:id/transactions',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(unlinkTransactions.schema),
   unlinkTransactions.handler,
 );
@@ -90,24 +125,28 @@ router.get('/:id/periods', authenticateSession, validateEndpoint(getPeriods.sche
 router.post(
   '/:id/periods/:periodId/pay',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(markPeriodPaid.schema),
   markPeriodPaid.handler,
 );
 router.post(
   '/:id/periods/:periodId/skip',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(skipPeriod.schema),
   skipPeriod.handler,
 );
 router.post(
   '/:id/periods/:periodId/unlink',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(unlinkPeriodTransaction.schema),
   unlinkPeriodTransaction.handler,
 );
 router.post(
   '/:id/periods/:periodId/revert',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(revertPeriod.schema),
   revertPeriod.handler,
 );

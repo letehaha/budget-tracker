@@ -16,13 +16,14 @@ import {
   updatePayee,
 } from '@controllers/payees';
 import { authenticateSession } from '@middlewares/better-auth';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
 const router = Router({});
 
 router.get('/', authenticateSession, validateEndpoint(listPayees.schema), listPayees.handler);
-router.post('/', authenticateSession, validateEndpoint(createPayee.schema), createPayee.handler);
+router.post('/', authenticateSession, checkBaseCurrencyLock, validateEndpoint(createPayee.schema), createPayee.handler);
 
 // Full minimal payee set for id→name/logo resolution. Must precede `/:id` so
 // Express doesn't capture the literal `lookup` segment as a Payee id.
@@ -34,6 +35,7 @@ router.get('/lookup', authenticateSession, validateEndpoint(lookupPayees.schema)
 router.patch(
   '/bulk-categorization-mode',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(bulkUpdateCategorizationMode.schema),
   bulkUpdateCategorizationMode.handler,
 );
@@ -41,31 +43,70 @@ router.patch(
 // Ignored-names sub-resource. Routes precede `/:id` patterns so Express's
 // path matcher doesn't capture the literal segment as a Payee id.
 router.get('/ignored-names', authenticateSession, validateEndpoint(listIgnoredNames.schema), listIgnoredNames.handler);
-router.post('/ignored-names', authenticateSession, validateEndpoint(addIgnoredName.schema), addIgnoredName.handler);
+router.post(
+  '/ignored-names',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(addIgnoredName.schema),
+  addIgnoredName.handler,
+);
 router.delete(
   '/ignored-names/:id',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(removeIgnoredName.schema),
   removeIgnoredName.handler,
 );
 
 router.get('/:id', authenticateSession, validateEndpoint(getPayee.schema), getPayee.handler);
-router.patch('/:id', authenticateSession, validateEndpoint(updatePayee.schema), updatePayee.handler);
-router.delete('/:id', authenticateSession, validateEndpoint(deletePayee.schema), deletePayee.handler);
-router.post('/:id/merge', authenticateSession, validateEndpoint(mergePayees.schema), mergePayees.handler);
+router.patch(
+  '/:id',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(updatePayee.schema),
+  updatePayee.handler,
+);
+router.delete(
+  '/:id',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(deletePayee.schema),
+  deletePayee.handler,
+);
+router.post(
+  '/:id/merge',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(mergePayees.schema),
+  mergePayees.handler,
+);
 router.post(
   '/:id/apply-tags',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(applyTagsToExisting.schema),
   applyTagsToExisting.handler,
 );
-router.post('/:id/aliases', authenticateSession, validateEndpoint(createPayeeAlias.schema), createPayeeAlias.handler);
+router.post(
+  '/:id/aliases',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(createPayeeAlias.schema),
+  createPayeeAlias.handler,
+);
 router.delete(
   '/:id/aliases/:aliasId',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(deletePayeeAlias.schema),
   deletePayeeAlias.handler,
 );
-router.post('/:id/reset-logo', authenticateSession, validateEndpoint(resetLogo.schema), resetLogo.handler);
+router.post(
+  '/:id/reset-logo',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(resetLogo.schema),
+  resetLogo.handler,
+);
 
 export default router;

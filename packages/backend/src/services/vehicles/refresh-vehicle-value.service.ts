@@ -6,6 +6,7 @@ import Balances from '@models/balances.model';
 import Vehicles from '@models/vehicles.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import { parseISO } from 'date-fns';
 
 import { computeVehicleValue } from './compute-vehicle-value';
@@ -46,6 +47,19 @@ const refreshVehicleValueIfStaleImpl = async ({
 
   const account = vehicle.account;
   const now = asOf ?? new Date();
+
+  // While a base-currency recalculation holds the user's lock it is rewriting
+  // every ref* amount; recomputing and persisting a fresh refValue here (this
+  // fires from GET /vehicles/:id and GET /accounts, including the force-refresh
+  // detail read) would race that migration. Serve the stored value untouched,
+  // exactly like a cache hit — the next lazy read after the lock clears refreshes.
+  if (await isBaseCurrencyChangeLocked({ userId: vehicle.userId })) {
+    return {
+      value: account.currentBalance,
+      refValue: account.refCurrentBalance,
+      refreshed: false,
+    };
+  }
 
   const cacheValid =
     !force &&
@@ -120,6 +134,13 @@ export const refreshStaleVehicleValuesForUser = async ({
   force = false,
   asOf,
 }: RefreshBulkParams): Promise<{ refreshedCount: number }> => {
+  // Skip the whole bulk refresh while a base-currency recalculation holds the
+  // user's lock; the accounts list serves the stored values and the next read
+  // after the lock clears refreshes them.
+  if (await isBaseCurrencyChangeLocked({ userId })) {
+    return { refreshedCount: 0 };
+  }
+
   const vehicles = await Vehicles.findAll({
     where: { userId },
     attributes: ['id', 'valueLastComputedAt'],

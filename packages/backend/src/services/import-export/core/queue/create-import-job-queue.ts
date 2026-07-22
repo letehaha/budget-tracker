@@ -1,7 +1,9 @@
 import { SSEEventPayload, SSEEventType } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import { sseManager } from '@services/common/sse';
+import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import { Job, Queue, Worker } from 'bullmq';
 
 /**
@@ -219,6 +221,16 @@ export function createImportJobQueue<
         job,
         fn: async () => {
           const { userId } = job.data;
+
+          // A base-currency recalculation holds this user's lock: it drains
+          // in-flight writers before snapshotting rows, so an import committing
+          // transactions now would land amounts against the wrong base. Fail the
+          // job (attempts: 1, no retry) with a message the import UI surfaces. The
+          // enqueue route is already lock-guarded; this only catches jobs queued
+          // in the brief window before the lock landed.
+          if (await isBaseCurrencyChangeLocked({ userId })) {
+            throw new Error(t({ key: 'currencies.baseCurrencyChangeInProgress' }));
+          }
 
           sendProgress({
             userId,

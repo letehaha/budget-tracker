@@ -1,10 +1,12 @@
 import { API_HTTP, API_VER } from '@/api/api-base-url';
 import { ApiBaseError } from '@/common/types';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { useBaseCurrencyChangeStatus } from '@/composable/use-base-currency-change-status';
 import { getCurrentLocale, i18n } from '@/i18n';
 import * as errors from '@/js/errors';
 import { router } from '@/routes';
 import { useAuthStore } from '@/stores';
+import type { BaseCurrencyChangeStatus } from '@bt/shared/types';
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types/api';
 
 type HTTP_METHOD = 'PATCH' | 'POST' | 'PUT' | 'GET' | 'DELETE';
@@ -276,6 +278,10 @@ class ApiCaller {
 
     if (status === API_RESPONSE_STATUS.error) {
       if (response.code === API_ERROR_CODES.unauthorized) {
+        // Tear down the base-currency watchdog first: without a session its 2s
+        // status poll would 401 on every tick and re-enter this same branch.
+        useBaseCurrencyChangeStatus().stop();
+
         useAuthStore().logout();
 
         router.push('/sign-in');
@@ -287,6 +293,23 @@ class ApiCaller {
         });
 
         throw new errors.AuthError(response, url);
+      }
+
+      if (response.code === API_ERROR_CODES.baseCurrencyChangeInProgress) {
+        // A change is running server-side and rejected this mutation. Bring up the
+        // blocking overlay on this device (only if not already watching, so a burst
+        // of 423s doesn't reset the visible step), then still reject so callers unwind.
+        const watch = useBaseCurrencyChangeStatus();
+        if (!watch.isBlocking.value) {
+          // The LockedError carries the live status in `details.status`; seeding it
+          // skips the one-tick flash of a fabricated "queued" placeholder.
+          const seed = response.details?.status;
+          if (typeof seed?.state === 'string') {
+            watch.start({ initialStatus: seed as BaseCurrencyChangeStatus });
+          } else {
+            watch.start();
+          }
+        }
       }
 
       if (response.code === API_ERROR_CODES.unexpected) {
