@@ -5,6 +5,7 @@ import {
   extractController,
 } from '@controllers/statement-parser';
 import { authenticateSession } from '@middlewares/better-auth';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -21,6 +22,7 @@ const router = Router({});
 router.post(
   '/text-source/estimate-cost',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(estimateCostController.schema),
   estimateCostController.handler,
 );
@@ -36,6 +38,7 @@ router.post(
 router.post(
   '/text-source/extract',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(extractController.schema),
   extractController.handler,
 );
@@ -51,6 +54,7 @@ router.post(
 router.post(
   '/text-source/detect-duplicates',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(detectDuplicatesController.schema),
   detectDuplicatesController.handler,
 );
@@ -66,6 +70,7 @@ router.post(
 router.post(
   '/text-source/execute',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(executeImportController.schema),
   executeImportController.handler,
 );

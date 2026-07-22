@@ -101,6 +101,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import * as Collapsible from '@/components/lib/ui/collapsible';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useChangeBaseCurrency } from '@/composable/data-queries/currencies';
+import { useBaseCurrencyChangeStatus } from '@/composable/use-base-currency-change-status';
 import { ApiErrorResponseError } from '@/js/errors';
 import { API_ERROR_CODES, type BaseCurrencyBlocker } from '@bt/shared/types';
 import { ChevronDownIcon, InfoIcon, TriangleAlertIcon } from '@lucide/vue';
@@ -127,8 +128,9 @@ const emit = defineEmits<{
   'trigger-disabled': [value: boolean];
 }>();
 
-const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { addErrorNotification } = useNotificationCenter();
 const changeBaseCurrencyMutation = useChangeBaseCurrency();
+const baseCurrencyChangeStatus = useBaseCurrencyChangeStatus();
 const { t } = useI18n();
 
 const form = reactive({
@@ -169,14 +171,21 @@ const buildLockedMessage = ({ blockers }: { blockers: BaseCurrencyBlocker[] }) =
 const makeBaseCurrency = async () => {
   try {
     emit('trigger-disabled', true);
-    await changeBaseCurrencyMutation.mutateAsync(props.currency.currency!.code);
+    const { jobId } = await changeBaseCurrencyMutation.mutateAsync(props.currency.currency!.code);
 
-    addSuccessNotification(t('settings.currencies.setBase.successMessage'));
+    // The recalculation runs as a background job; the blocking overlay takes over
+    // from here and reloads the app once the change completes.
+    baseCurrencyChangeStatus.start({ initialStatus: { state: 'queued', jobId } });
 
     emit('submit');
   } catch (e: unknown) {
     if (e instanceof ApiErrorResponseError) {
       const { code, details, message } = e.data ?? {};
+      // A change is already running (another device won the race): the global 423
+      // handler already raised the blocking overlay, so no error toast is warranted.
+      if (code === API_ERROR_CODES.baseCurrencyChangeInProgress) {
+        return;
+      }
       if (
         code === API_ERROR_CODES.baseCurrencyLockedByHousehold ||
         code === API_ERROR_CODES.baseCurrencyLockedByShares

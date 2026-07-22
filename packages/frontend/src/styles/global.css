@@ -97,6 +97,8 @@
   --z-dialog: 50;
   --z-over-dialog: 51;
   --z-notifications: 51;
+  /* App-lock overlay must sit above dialogs and notifications — nothing may render over it. */
+  --z-app-lock: 100;
 
   /* Keyframes and animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;

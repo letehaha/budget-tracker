@@ -1,3 +1,4 @@
+import { useBaseCurrencyChangeStatus } from '@/composable/use-base-currency-change-status';
 import { useAuthStore } from '@/stores/auth';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { useCurrenciesStore } from '@/stores/currencies';
@@ -30,6 +31,8 @@ export const useRootStore = defineStore('root', () => {
         ...(categories.value.length ? [] : [categoriesStore.loadCategories()]),
         currenciesStore.loadCurrencies(),
         ...(isBaseCurrencyExists.value ? [] : [currenciesStore.loadBaseCurrency()]),
+        // Attaches the blocking overlay if a base-currency change is already in flight.
+        useBaseCurrencyChangeStatus().checkOnBoot(),
       ]);
 
       isAppInitialized.value = true;

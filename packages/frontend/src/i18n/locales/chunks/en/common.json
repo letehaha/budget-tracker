@@ -310,5 +310,33 @@
         "minutes": "{minutes}m"
       }
     }
+  },
+  "settings": {
+    "currencies": {
+      "setBase": {
+        "overlay": {
+          "title": "Changing your base currency",
+          "description": "We're recalculating every amount into your new base currency. This can take a few minutes — please keep this tab open.",
+          "takingLong": "This is taking longer than usual. Your data is safe — we're still working on it.",
+          "failedTitle": "Base currency change failed",
+          "unreachableTitle": "Can't verify the change status",
+          "unreachableDescription": "The server is not responding. You can dismiss this screen — if the change is still running, the app will lock again on your next action.",
+          "dismiss": "Dismiss",
+          "preparing": "Getting things ready…",
+          "finishing": "Finishing up…",
+          "stepCounter": "Step {current} of {total}",
+          "steps": {
+            "transactions": "Updating transactions",
+            "accounts": "Updating accounts",
+            "loanDetails": "Updating loans",
+            "balances": "Rebuilding balance history",
+            "investmentTransactions": "Updating investment transactions",
+            "portfolioTransfers": "Updating portfolio transfers",
+            "holdings": "Updating holdings",
+            "portfolioBalances": "Rebuilding portfolio balances"
+          }
+        }
+      }
+    }
   }
 }

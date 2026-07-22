@@ -333,8 +333,11 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
         const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
         const createdTransactionIds: string[] = [];
+        const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
 
         for (const item of historyItems) {
+          await checkpoint();
+
           // Primary dedup: check by originalId
           const existingTx = await Transactions.findOne({
             where: {

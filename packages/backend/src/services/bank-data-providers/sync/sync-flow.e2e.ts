@@ -1,6 +1,7 @@
 import { ACCOUNT_STATUSES, BANK_PROVIDER_TYPE, DEACTIVATION_REASON } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { redisClient } from '@root/redis-client';
+import { buildLockKey } from '@services/currencies/base-currency-lock';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
 
@@ -120,6 +121,44 @@ describe('Sync Flow E2E', () => {
       expect(response.body.response.syncTriggered).toBe(true);
       expect(response.body.response).toHaveProperty('totalAccounts');
       expect(response.body.response.totalAccounts).toBeGreaterThan(0);
+    });
+
+    it('does not trigger auto-sync while a base-currency change holds the lock', async () => {
+      const { id: userId } = await helpers.getUserInfo({ raw: true });
+      const connectionResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId: connectionResult.connectionId,
+        raw: true,
+      });
+
+      await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionResult.connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+
+      // No prior sync — a lock-free /check would trigger. The lock must suppress it.
+      await redisClient.del(REDIS_KEYS.userLastAutoSync(userId));
+
+      await redisClient.set(buildLockKey(userId), 'test-lock');
+      let lockedResponse;
+      try {
+        lockedResponse = await helpers.makeRequest({ method: 'get', url: '/bank-data-providers/sync/check' });
+      } finally {
+        await redisClient.del(buildLockKey(userId));
+      }
+
+      expect(lockedResponse.status).toBe(200);
+      expect(lockedResponse.body.response.syncTriggered).toBe(false);
+
+      // Once the lock clears, the same setup triggers — proving the lock was the only blocker.
+      const afterUnlock = await helpers.makeRequest({ method: 'get', url: '/bank-data-providers/sync/check' });
+      expect(afterUnlock.body.response.syncTriggered).toBe(true);
     });
 
     it.skip('should not trigger sync when last sync was within 4 hours', async () => {

@@ -13,6 +13,7 @@ import { categorizationQueue, categorizationWorker } from '@services/ai-categori
 import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
 import { closeAllMonobankQueueBundles } from '@services/bank-data-providers/monobank/transaction-sync-queue';
 import { logoResolutionQueue, logoResolutionWorker } from '@services/brand-logos';
+import { baseCurrencyChangeQueue, baseCurrencyChangeWorker } from '@services/currencies/base-currency-change-queue';
 import {
   budgetBakersWalletImportQueue,
   budgetBakersWalletImportWorker,
@@ -471,6 +472,8 @@ afterAll(async () => {
     await logoResolutionQueue.close();
     await subscriptionReminderEmailWorker.close();
     await subscriptionReminderEmailQueue.close();
+    await baseCurrencyChangeWorker.close();
+    await baseCurrencyChangeQueue.close();
 
     // Now safe to close Redis client
     await redisClient.quit();

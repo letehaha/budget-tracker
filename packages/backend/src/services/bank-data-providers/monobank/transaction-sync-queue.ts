@@ -17,6 +17,7 @@ import Transactions from '@models/transactions.model';
 import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
 import * as Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
+import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import * as transactionsService from '@services/transactions';
 import { Job, Queue, UnrecoverableError, Worker } from 'bullmq';
 import crypto from 'crypto';
@@ -118,6 +119,20 @@ function buildJobProcessor(queueName: string) {
         logger.info(
           `[WORKER] Processing Monobank transaction sync batch ${batchIndex + 1}/${totalBatches} for account ${accountId} (externalId: ${externalAccountId})`,
         );
+
+        // A base-currency recalculation is draining in-flight writers before it
+        // snapshots rows; committing more old-base transactions now would corrupt
+        // the migration. Abort this batch before any write and mark the account
+        // COMPLETED so the recalc's drain — which blocks while any of the user's
+        // accounts sit QUEUED/SYNCING — stops waiting on it. The skipped, deduped
+        // date range is re-fetched by the next auto-sync.
+        if (await isBaseCurrencyChangeLocked({ userId })) {
+          await setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId });
+          logger.info(
+            `[WORKER] Skipping Monobank batch ${batchIndex + 1}/${totalBatches} for account ${accountId}: base currency change in progress`,
+          );
+          return { success: false, batchIndex, totalBatches, transactionCount: 0 };
+        }
 
         // Set status to SYNCING when worker starts (only for first batch)
         if (batchIndex === 0) {
@@ -837,21 +852,56 @@ export async function getActiveJobsForUser(userId: number): Promise<
  * tables of a user that no longer exists. 'active' jobs are locked by their
  * worker and intentionally skipped — they finish on their own.
  */
-export async function removePendingJobsForUser({ userId }: { userId: number }): Promise<void> {
+/**
+ * Force a fresh recovery scan, bypassing the memoized `ensureMonobankQueueRecovery`,
+ * so per-token bundles created since boot — including by another process — are
+ * discovered. The base-currency drain calls this before counting a user's
+ * in-flight sync jobs.
+ */
+export async function refreshMonobankBundleDiscovery(): Promise<void> {
+  await recoverExistingQueues();
+}
+
+/**
+ * Count a user's not-yet-finished sync jobs (active + waiting + delayed) across
+ * every per-token queue. `delayed` is included because jobs sit delayed between
+ * 60s rate-limited batches — an active-only count would report "clear" while a
+ * batch is still pending. Reads the currently-known bundles; call
+ * {@link refreshMonobankBundleDiscovery} first to pick up bundles from other processes.
+ */
+export async function countUnfinishedMonobankJobsForUser({ userId }: { userId: number }): Promise<number> {
+  const allBundles = getAllMonobankQueueBundles();
+  const jobsPerBundle = await Promise.all(allBundles.map((b) => b.queue.getJobs(['active', 'waiting', 'delayed'])));
+  return jobsPerBundle.flat().filter((job) => job.data.userId === userId).length;
+}
+
+export async function removePendingJobsForUser({
+  userId,
+}: {
+  userId: number;
+}): Promise<{ removedAccountIds: string[] }> {
   await ensureMonobankQueueRecovery();
 
   const allBundles = getAllMonobankQueueBundles();
   const jobsPerBundle = await Promise.all(allBundles.map((b) => b.queue.getJobs(['waiting', 'delayed'])));
   const userJobs = jobsPerBundle.flat().filter((job) => job.data.userId === userId);
 
+  const removedAccountIds = new Set<string>();
   await Promise.all(
     userJobs.map((job) =>
-      job.remove().catch((error) => {
-        // Job may have become active between getJobs and remove - ignore lock errors,
-        // but log the actual error so we can spot non-lock failures (Redis disconnect,
-        // etc.) instead of misattributing every miss to a transient lock race.
-        logger.warn(`Could not remove job during user deletion. jobId: ${job.id}`, { error: error as Error });
-      }),
+      job
+        .remove()
+        .then(() => {
+          removedAccountIds.add(String(job.data.accountId));
+        })
+        .catch((error) => {
+          // Job may have become active between getJobs and remove - ignore lock errors,
+          // but log the actual error so we can spot non-lock failures (Redis disconnect,
+          // etc.) instead of misattributing every miss to a transient lock race.
+          logger.warn(`Could not remove job during user deletion. jobId: ${job.id}`, { error: error as Error });
+        }),
     ),
   );
+
+  return { removedAccountIds: [...removedAccountIds] };
 }

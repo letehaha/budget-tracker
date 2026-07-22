@@ -260,11 +260,13 @@ router.put(
  */
 router.post(
   '/transactions-import/estimate-cost',
+  checkBaseCurrencyLock,
   validateEndpoint(importEstimateCostController.schema),
   importEstimateCostController.handler,
 );
 router.post(
   '/transactions-import/extract',
+  checkBaseCurrencyLock,
   validateEndpoint(importExtractController.schema),
   importExtractController.handler,
 );

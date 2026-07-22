@@ -315,8 +315,11 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
         const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
         const createdTransactionIds: string[] = [];
+        const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
 
         for (const tx of postedTransactions) {
+          await checkpoint();
+
           // Primary dedup: check by originalId (covers normal re-sync)
           const existingTx = await Transactions.findOne({
             where: {

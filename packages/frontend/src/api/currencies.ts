@@ -1,5 +1,6 @@
 import { api } from '@/api/_api';
 import {
+  type BaseCurrencyChangeStatus,
   CurrencyModel,
   ExchangeRatesModel,
   RefBalanceRemeasureResult,
@@ -42,8 +43,19 @@ export const deleteUserCurrency = (currencyCode: string) => api.delete('/user/cu
 
 export const setBaseUserCurrency = (currencyCode: string) => api.post('/user/currencies/base', { currencyCode });
 
-export const changeBaseCurrency = (newCurrencyCode: string) =>
+/**
+ * Enqueues the base-currency recalculation as a background job. Resolves as soon
+ * as the job is queued — progress is tracked via `getBaseCurrencyChangeStatus`.
+ */
+export const changeBaseCurrency = (newCurrencyCode: string): Promise<{ jobId: string; state: 'queued' }> =>
   api.post('/user/currencies/change-base', { newCurrencyCode });
+
+/**
+ * Current state of the user's base-currency change job. Returns `idle` when no
+ * change is in flight, so it is safe to call on every app boot.
+ */
+export const getBaseCurrencyChangeStatus = (): Promise<BaseCurrencyChangeStatus> =>
+  api.get('/user/currencies/change-base/status');
 
 export const addUserCurrencies = async (
   currencies: {

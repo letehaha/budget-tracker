@@ -1,5 +1,6 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
+import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import Bottleneck from 'bottleneck';
 
 import { syncTransactionsForAccount } from '../connection/sync-transactions-for-account';
@@ -121,6 +122,13 @@ export async function syncAllUserAccounts(userId: number): Promise<SyncResult> {
  * Returns sync result if sync was triggered, null if skipped
  */
 export async function checkAndTriggerAutoSync(userId: number): Promise<SyncResult | null> {
+  // A base-currency recalculation is rewriting this user's ref* amounts; kicking
+  // a fresh sync now would race the migration and commit old-base rows. Skip —
+  // the next /sync/check tick after the lock clears triggers it.
+  if (await isBaseCurrencyChangeLocked({ userId })) {
+    return null;
+  }
+
   const shouldSync = await shouldTriggerAutoSync(userId);
 
   if (!shouldSync) {

@@ -1,15 +1,10 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_RESPONSE_STATUS, VEHICLE_CLASS } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, VEHICLE_CLASS } from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import * as helpers from '@tests/helpers';
 import { format, subYears } from 'date-fns';
 
-const changeBaseTo = (newCurrencyCode: string) =>
-  helpers.makeRequest({
-    method: 'post',
-    url: '/user/currencies/change-base',
-    payload: { newCurrencyCode },
-  });
+const changeBaseTo = (newCurrencyCode: string) => helpers.changeBaseCurrencyAndWait({ newCurrencyCode });
 
 const pastDate = ({ yearsAgo }: { yearsAgo: number }) => format(subYears(new Date(), yearsAgo), 'yyyy-MM-dd');
 
@@ -48,9 +43,8 @@ describe('Change Base Currency — vehicles', () => {
     const currentBefore = accountBefore!.currentBalance.toNumber();
     const refCurrentBefore = accountBefore!.refCurrentBalance.toNumber();
 
-    const response = await changeBaseTo('USD');
-    expect(response.statusCode).toEqual(200);
-    expect(response.body.status).toEqual(API_RESPONSE_STATUS.success);
+    const status = await changeBaseTo('USD');
+    helpers.expectBaseCurrencyChangeCompleted(status);
 
     const accountAfter = await Accounts.findByPk(vehicle.accountId);
     // Currency untouched; still a vehicle system account.
@@ -89,8 +83,8 @@ describe('Change Base Currency — vehicles', () => {
     expect(currentBefore).toBeLessThan(initialBefore);
     expect(accountBefore!.refCurrentBalance.toNumber()).toBeLessThan(accountBefore!.refInitialBalance.toNumber());
 
-    const response = await changeBaseTo('USD');
-    expect(response.statusCode).toEqual(200);
+    const status = await changeBaseTo('USD');
+    helpers.expectBaseCurrencyChangeCompleted(status);
 
     const accountAfter = await Accounts.findByPk(vehicle.accountId);
 

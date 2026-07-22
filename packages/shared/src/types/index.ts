@@ -10,6 +10,7 @@ export * from './investments';
 export * from './venture';
 export * from './vehicles';
 export * from './loans';
+export * from './currencies';
 export * from './api';
 export * from './import-export';
 export * from './ynab-import';
