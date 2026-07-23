@@ -1,47 +1,54 @@
 <template>
   <div>
-    <div class="grid w-full grid-cols-2 gap-4">
+    <div class="flex flex-col gap-3 @[26rem]/currencies:flex-row @[26rem]/currencies:items-end">
       <input-field
         v-model="form.baseRate"
+        class="min-w-0 @[26rem]/currencies:flex-1"
         :label="`1 ${currency.currency?.code} =`"
+        :placeholder="$t('settings.currencies.exchangeRate.ratePlaceholder')"
         :disabled="isLiveRateEnabled"
         @focus="onBaseFocus"
       />
       <input-field
         v-model="form.quoteRate"
+        class="min-w-0 @[26rem]/currencies:flex-1"
         :label="`1 ${currency.quoteCode} =`"
+        :placeholder="$t('settings.currencies.exchangeRate.ratePlaceholder')"
         :disabled="isLiveRateEnabled"
         @focus="onQuoteFocus"
       />
+      <Button
+        v-if="shouldShowSaveButton"
+        class="min-w-24 shrink-0"
+        :disabled="!canSubmit || isFormDisabled"
+        :loading="isFormDisabled"
+        @click="onSubmitHandler"
+      >
+        {{ $t('settings.currencies.exchangeRate.saveButton') }}
+      </Button>
     </div>
 
-    <div class="my-4 h-px w-full bg-white/20" />
-
-    <div class="flex items-center justify-between gap-4">
-      <p class="text-sm opacity-90">
+    <label
+      class="mt-4 flex cursor-pointer items-start justify-between gap-4 aria-disabled:cursor-default"
+      :aria-disabled="isFormDisabled"
+    >
+      <span class="text-muted-foreground min-w-0 text-xs leading-5">
         {{ $t('settings.currencies.exchangeRate.disableLiveUpdate') }}
-        <br />
-        <span class="inline-flex items-center gap-1">
-          <InfoIcon class="text-primary inline size-4" /> {{ $t('settings.currencies.exchangeRate.liveUpdateInfo') }}
+        <span class="mt-0.5 flex items-center gap-1">
+          <InfoIcon class="text-primary size-3.5 shrink-0" />
+          {{ $t('settings.currencies.exchangeRate.liveUpdateInfo') }}
         </span>
-      </p>
+      </span>
 
-      <label
-        class="flex w-max cursor-pointer items-center aria-disabled:cursor-default"
-        :aria-disabled="isFormDisabled"
-      >
-        <span class="mr-2.5 w-max">{{ $t('settings.currencies.exchangeRate.liveUpdateLabel') }}</span>
+      <span class="flex shrink-0 items-center gap-2">
+        <span class="text-sm">{{ $t('settings.currencies.exchangeRate.liveUpdateLabel') }}</span>
         <Checkbox
           :model-value="isLiveRateEnabled"
           :disabled="isFormDisabled"
           @update:model-value="toggleChange(Boolean($event))"
         />
-      </label>
-    </div>
-
-    <Button v-if="shouldShowSaveButton" class="mt-8 w-full" @click="onSubmitHandler" :disabled="isFormDisabled">
-      {{ $t('settings.currencies.exchangeRate.saveButton') }}
-    </Button>
+      </span>
+    </label>
   </div>
 </template>
 
@@ -51,7 +58,6 @@ import InputField from '@/components/fields/input-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import Checkbox from '@/components/lib/ui/checkbox/Checkbox.vue';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useCurrenciesStore } from '@/stores';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { InfoIcon } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
@@ -77,7 +83,6 @@ const emit = defineEmits<{
   'trigger-disabled': [value: boolean];
 }>();
 
-const currenciesStore = useCurrenciesStore();
 const { addSuccessNotification, addWarningNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 
@@ -103,9 +108,14 @@ const isRateChanged = computed(
   () => +props.currency.rate !== +form.baseRate || +props.currency.quoteRate !== +form.quoteRate,
 );
 
+// Disabling live update reveals Save immediately (even before an edit) so the row shows
+// the intended next action. Re-enabling live update also needs Save to drop the custom rate.
 const shouldShowSaveButton = computed(() => {
-  return (!isLiveRateEnabled.value && isRateChanged.value) || (isLiveRateEnabled.value && props.currency.custom);
+  return !isLiveRateEnabled.value || props.currency.custom;
 });
+
+// Live off: only actionable once the rate actually changed. Live on: Save drops the custom rate.
+const canSubmit = computed(() => (isLiveRateEnabled.value ? true : isRateChanged.value));
 
 const onBaseFocus = () => {
   isBaseEditing.value = true;
@@ -179,7 +189,6 @@ const updateExchangeRates = async () => {
         rate: Number(form.quoteRate),
       },
     ]);
-    await currenciesStore.loadCurrencies({ force: true });
 
     emit('submit');
 
