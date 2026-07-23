@@ -14,8 +14,10 @@ vi.mock('@/lib/query-persister', () => ({ resetQueryCaches: resetQueryCachesMock
 vi.mock('@/lib/query-client', () => ({ queryClient: {} }));
 vi.mock('@/lib/sentry', () => ({ captureException: captureExceptionMock }));
 vi.mock('@/composable/use-sse', () => ({ useSSE: () => ({ on: sseOnMock }) }));
+// Stable, prefix-tagged `t` so the failed-fallback assertion is deterministic.
+vi.mock('@/i18n', () => ({ i18n: { global: { t: (key: string) => `t:${key}` } } }));
 
-import { useRestoreJobStatus } from './use-restore-job-status';
+import { sseToStatus, useRestoreJobStatus } from './use-restore-job-status';
 
 const idle = (): BackupRestoreActiveStatus => ({ state: 'idle' });
 const running = (jobId = 'r-1'): BackupRestoreActiveStatus => ({
@@ -47,6 +49,60 @@ let storageMock: ReturnType<typeof makeStorageMock>;
 /** Latest SSE callback the watchdog registered — receives the raw SSE payload. */
 const latestSseCallback = (): ((payload: BackupRestoreSseProgress) => void) =>
   sseOnMock.mock.calls[sseOnMock.mock.calls.length - 1]![1];
+
+describe('sseToStatus', () => {
+  const base = { jobId: 'r-1', processedCount: 5, totalCount: 10 } as const;
+
+  it('maps a queued push to the queued state', () => {
+    expect(sseToStatus({ ...base, status: 'queued' })).toEqual({ state: 'queued', jobId: 'r-1' });
+  });
+
+  it('maps a running push, carrying phase and processedCount as insertedRows', () => {
+    expect(sseToStatus({ ...base, status: 'running', phase: 'restoring' })).toEqual({
+      state: 'running',
+      jobId: 'r-1',
+      phase: 'restoring',
+      insertedRows: 5,
+    });
+  });
+
+  it('maps a completed push with a summary to the completed state', () => {
+    const summary = { insertedByTable: { transactions: 3 }, warnings: [] };
+    expect(sseToStatus({ ...base, status: 'completed', summary })).toEqual({
+      state: 'completed',
+      jobId: 'r-1',
+      summary,
+    });
+  });
+
+  it('downgrades a completed push with no summary yet to running (waits for the poll)', () => {
+    expect(sseToStatus({ ...base, status: 'completed', phase: 'finalizing' })).toEqual({
+      state: 'running',
+      jobId: 'r-1',
+      phase: 'finalizing',
+    });
+  });
+
+  it('maps a failed push and preserves the server-provided reason', () => {
+    expect(sseToStatus({ ...base, status: 'failed', error: 'disk full' })).toEqual({
+      state: 'failed',
+      jobId: 'r-1',
+      error: 'disk full',
+    });
+  });
+
+  it('falls back to the localized generic message when a failed push carries no reason', () => {
+    expect(sseToStatus({ ...base, status: 'failed' })).toEqual({
+      state: 'failed',
+      jobId: 'r-1',
+      error: 't:settings.security.backup.restore.failedGeneric',
+    });
+  });
+
+  it('returns null for an unrecognized status', () => {
+    expect(sseToStatus({ ...base, status: 'bogus' as never })).toBeNull();
+  });
+});
 
 describe('useRestoreJobStatus', () => {
   beforeEach(() => {

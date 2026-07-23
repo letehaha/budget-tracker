@@ -46,6 +46,14 @@ export function getModelAttributeInfos({ model }: { model: AnyModel }): Attribut
  * decimals all round-trip correctly instead of being coerced to `[object Object]`.
  */
 export function getFieldMappedAttributes({ model }: { model: AnyModel }): Record<string, ModelAttributeColumnOptions> {
-  return (model as unknown as { fieldRawAttributesMap: Record<string, ModelAttributeColumnOptions> })
+  const map = (model as unknown as { fieldRawAttributesMap?: Record<string, ModelAttributeColumnOptions> })
     .fieldRawAttributesMap;
+  // A Sequelize upgrade renaming this internal would return undefined and silently
+  // mis-serialize JSONB/array/decimal columns on insert. Fail loudly instead.
+  if (map == null) {
+    throw new Error(
+      `getFieldMappedAttributes: Sequelize model "${model.name}" exposes no fieldRawAttributesMap — the internal Sequelize shape restore relies on has changed.`,
+    );
+  }
+  return map;
 }

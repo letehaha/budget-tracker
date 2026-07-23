@@ -64,6 +64,7 @@
 
 <script setup lang="ts">
 import BlockingJobOverlay from '@/components/common/blocking-job-overlay.vue';
+import { RESTORE_PHASE_LABEL_KEYS } from '@/components/common/restore-phase-labels';
 import { useRestoreJobStatus } from '@/composable/use-restore-job-status';
 import { ensureChunkLoaded } from '@/i18n';
 import type { BackupRestorePhase } from '@bt/shared/types';
@@ -72,18 +73,7 @@ import { computed, watch } from 'vue';
 
 const { status, isBlocking, isTakingLong, liveFailure, statusUnreachable, stop } = useRestoreJobStatus();
 
-// Declared in the backend's restore order (see BackupRestorePhase) so the key order
-// is the source for phase numbering, and `satisfies` breaks the build if a backend
-// phase is added or renamed instead of silently rendering a raw i18n key.
-const PHASE_LABEL_KEYS = {
-  validating: 'settings.security.backup.restore.progress.phases.validating',
-  'preparing-securities': 'settings.security.backup.restore.progress.phases.preparingSecurities',
-  wiping: 'settings.security.backup.restore.progress.phases.wiping',
-  restoring: 'settings.security.backup.restore.progress.phases.restoring',
-  finalizing: 'settings.security.backup.restore.progress.phases.finalizing',
-} satisfies Record<BackupRestorePhase, string>;
-
-const PHASE_ORDER = Object.keys(PHASE_LABEL_KEYS) as BackupRestorePhase[];
+const PHASE_ORDER = Object.keys(RESTORE_PHASE_LABEL_KEYS) as BackupRestorePhase[];
 const totalPhases = PHASE_ORDER.length;
 
 // Keep the progress card up through the brief `completed` window: the watchdog is
@@ -140,7 +130,7 @@ const currentPhaseNumber = computed(() => (progress.value.kind === 'running' ? p
 
 const currentLabelKey = computed(() => {
   const p = progress.value;
-  if (p.kind === 'running') return PHASE_LABEL_KEYS[p.phase];
+  if (p.kind === 'running') return RESTORE_PHASE_LABEL_KEYS[p.phase];
   if (p.kind === 'finishing') return 'settings.security.backup.restore.overlay.finishing';
   return 'settings.security.backup.restore.overlay.preparing';
 });

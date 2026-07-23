@@ -12,6 +12,8 @@ interface SecuritiesRestoreResult {
   /** Backup securityId → resolved/created securityId, only where they differ. */
   remap: Map<string, string>;
   insertedByTable: Record<string, number>;
+  /** Final target id for every backup security (matched, kept, or remapped), deduped. */
+  resolvedSecurityIds: string[];
 }
 
 function symbolKey({ symbol, currencyCode, providerName }: Row): string {
@@ -44,8 +46,9 @@ export async function resolveSecurities({
 }): Promise<SecuritiesRestoreResult> {
   const remap = new Map<string, string>();
   const insertedByTable: Record<string, number> = {};
+  const resolvedSecurityIds = new Set<string>();
   const backupSecurities = archive.reference.securities;
-  if (backupSecurities.length === 0) return { remap, insertedByTable };
+  if (backupSecurities.length === 0) return { remap, insertedByTable, resolvedSecurityIds: [] };
 
   const isins = [...new Set(backupSecurities.map((s) => s.isin).filter((v): v is string => typeof v === 'string'))];
   const cusips = [...new Set(backupSecurities.map((s) => s.cusip).filter((v): v is string => typeof v === 'string'))];
@@ -114,6 +117,7 @@ export async function resolveSecurities({
     if (match) {
       const resolvedId = String((match as Row).id);
       if (resolvedId !== backupId) remap.set(backupId, resolvedId);
+      resolvedSecurityIds.add(resolvedId);
       continue;
     }
 
@@ -126,6 +130,7 @@ export async function resolveSecurities({
       remap.set(backupId, targetId);
     }
     takenIds.add(targetId);
+    resolvedSecurityIds.add(targetId);
 
     if (securitiesPlan) {
       toInsert.push(buildInsertRecord({ row: sec, plan: securitiesPlan, overrides: { id: targetId } }));
@@ -136,5 +141,5 @@ export async function resolveSecurities({
     insertedByTable.securities = await runBulkInsert({ model: Securities, records: toInsert });
   }
 
-  return { remap, insertedByTable };
+  return { remap, insertedByTable, resolvedSecurityIds: [...resolvedSecurityIds] };
 }

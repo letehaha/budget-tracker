@@ -1,7 +1,7 @@
 import Users from '@models/users.model';
 import JSZip from 'jszip';
 
-import { dumpBackupFiles } from './dump-tables.service';
+import { dumpBackupFiles, toBuffer } from './dump-tables.service';
 import { buildBackupManifest } from './manifest';
 
 interface BackupExportResult {
@@ -44,7 +44,7 @@ export async function exportUserBackup({ userId }: { userId: number }): Promise<
     exportedAt,
     user: { username: user?.username ?? '', email: user?.email ?? null },
   });
-  const manifestBuffer = Buffer.from(JSON.stringify(manifest, null, 2), 'utf8');
+  const manifestBuffer = toBuffer({ value: manifest });
 
   const zip = new JSZip();
   for (const file of files) {

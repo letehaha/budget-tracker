@@ -112,6 +112,8 @@ export interface BackupTableDef {
   stripSecret?: 'bankCredentials' | 'aiApiKeys';
   /** Attach the MCC's natural `code` so restore can remap the integer `mccId`. */
   enrichMccCode?: boolean;
+  /** Drop a row on restore whose `currencyCode` isn't seeded on the target instance. */
+  requireSeededCurrency?: boolean;
 }
 
 /**
@@ -146,6 +148,7 @@ export const BACKUP_TABLES: readonly BackupTableDef[] = [
     tier: 2,
     scope: { strategy: 'userColumn', column: 'userId' },
     restoreMode: 'insert',
+    requireSeededCurrency: true,
   },
   {
     fileName: 'categories',

@@ -7,7 +7,9 @@ import {
 } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
 import JSZip from 'jszip';
-import { createHash } from 'node:crypto';
+import isPlainObject from 'lodash/isPlainObject';
+
+import { sha256Hex } from '../sha256';
 
 type Row = Record<string, unknown>;
 
@@ -17,16 +19,24 @@ type Row = Record<string, unknown>;
  * DEFLATE archive (a ~48MB body can inflate to tens of GB) would OOM the shared
  * instance. 1 GiB is generous for a heavy real backup (JSON of every user-owned
  * table) while still bounding a zip bomb well short of memory exhaustion.
+ *
+ * Default for `loadBackupArchive`'s `maxUncompressedBytes`, which a unit test
+ * lowers to drive the guards without materializing a gigabyte-scale archive.
  */
 const MAX_TOTAL_UNCOMPRESSED_BYTES = 1024 * 1024 * 1024;
+
+const OVER_BUDGET_MESSAGE = 'Backup archive is too large to restore: its uncompressed contents exceed the size limit.';
+
+const CORRUPT_ENTRY_MESSAGE = 'Backup archive is corrupt or has been tampered with.';
 
 /**
  * Reject up front when the archive's declared uncompressed size blows the budget,
  * before a single file is decompressed. Reads JSZip's per-entry `uncompressedSize`
  * from the central directory; a malicious archive can understate it, which the
- * running byte tally during decompression then catches.
+ * running byte tally during decompression (see {@link createBudgetedEntryReader})
+ * then catches. `maxUncompressedBytes` is threaded down from `loadBackupArchive`.
  */
-function assertUncompressedBudget({ zip }: { zip: JSZip }): void {
+function assertUncompressedBudget({ zip, maxUncompressedBytes }: { zip: JSZip; maxUncompressedBytes: number }): void {
   let declaredTotal = 0;
   for (const name of Object.keys(zip.files)) {
     const entry = zip.files[name];
@@ -34,11 +44,40 @@ function assertUncompressedBudget({ zip }: { zip: JSZip }): void {
     const size = (entry as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
     if (typeof size === 'number') declaredTotal += size;
   }
-  if (declaredTotal > MAX_TOTAL_UNCOMPRESSED_BYTES) {
-    throw new ValidationError({
-      message: 'Backup archive is too large to restore: its uncompressed contents exceed the size limit.',
-    });
+  if (declaredTotal > maxUncompressedBytes) {
+    throw new ValidationError({ message: OVER_BUDGET_MESSAGE });
   }
+}
+
+/**
+ * Reader that decompresses zip entries and keeps a running tally of the bytes it
+ * has actually produced, so an archive that understated its central-directory
+ * sizes (fooling {@link assertUncompressedBudget}) still can't inflate past the
+ * budget in memory. `maxUncompressedBytes` is threaded down from `loadBackupArchive`.
+ */
+function createBudgetedEntryReader({
+  maxUncompressedBytes,
+}: {
+  maxUncompressedBytes: number;
+}): ({ file }: { file: JSZip.JSZipObject }) => Promise<Buffer> {
+  let decompressedBytes = 0;
+  return async ({ file }) => {
+    let bytes: Buffer;
+    try {
+      bytes = await file.async('nodebuffer');
+    } catch {
+      // JSZip runs its own integrity probe here (declared vs actual uncompressed
+      // size, CRC). A forged entry — e.g. a zip bomb that understated its
+      // central-directory size to slip past assertUncompressedBudget — trips it and
+      // throws a raw error. Surface it as a 422 instead of letting it escape as a 500.
+      throw new ValidationError({ message: CORRUPT_ENTRY_MESSAGE });
+    }
+    decompressedBytes += bytes.length;
+    if (decompressedBytes > maxUncompressedBytes) {
+      throw new ValidationError({ message: OVER_BUDGET_MESSAGE });
+    }
+    return bytes;
+  };
 }
 
 /**
@@ -57,17 +96,6 @@ export interface ParsedArchive {
   unknownFileNames: string[];
 }
 
-function sha256Hex({ buffer }: { buffer: Buffer }): string {
-  return createHash('sha256').update(buffer).digest('hex');
-}
-
-/** True only for a non-null, non-array object. Manifest fields are dereferenced
- *  blindly downstream, so a `null`/array/scalar manifest must be rejected as a
- *  422 here rather than throwing a raw TypeError that maps to a generic 500. */
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function parseJson({ buffer, path }: { buffer: Buffer; path: string }): unknown {
   try {
     return JSON.parse(buffer.toString('utf8'));
@@ -84,7 +112,13 @@ function parseJson({ buffer, path }: { buffer: Buffer; path: string }): unknown 
  * malformed JSON) — the whole restore is rejected before it can touch the user's
  * data.
  */
-export async function loadBackupArchive({ fileContent }: { fileContent: string }): Promise<ParsedArchive> {
+export async function loadBackupArchive({
+  fileContent,
+  maxUncompressedBytes = MAX_TOTAL_UNCOMPRESSED_BYTES,
+}: {
+  fileContent: string;
+  maxUncompressedBytes?: number;
+}): Promise<ParsedArchive> {
   // `Buffer.from(str, 'base64')` never throws — it silently drops non-base64 chars
   // — so garbage input decodes to a (possibly empty) buffer and is caught by the
   // zip-load failure below rather than by a base64 guard here.
@@ -97,21 +131,11 @@ export async function loadBackupArchive({ fileContent }: { fileContent: string }
     throw new ValidationError({ message: 'Backup upload is not a readable zip archive.' });
   }
 
-  assertUncompressedBudget({ zip });
+  assertUncompressedBudget({ zip, maxUncompressedBytes });
 
-  // Running tally of bytes actually decompressed, so an archive that understated
-  // its central-directory sizes still can't inflate past the budget in memory.
-  let decompressedBytes = 0;
-  const readEntry = async ({ file }: { file: JSZip.JSZipObject }): Promise<Buffer> => {
-    const bytes = await file.async('nodebuffer');
-    decompressedBytes += bytes.length;
-    if (decompressedBytes > MAX_TOTAL_UNCOMPRESSED_BYTES) {
-      throw new ValidationError({
-        message: 'Backup archive is too large to restore: its uncompressed contents exceed the size limit.',
-      });
-    }
-    return bytes;
-  };
+  // Running tally guards against an archive that understated its central-directory
+  // sizes, so it still can't inflate past the budget in memory.
+  const readEntry = createBudgetedEntryReader({ maxUncompressedBytes });
 
   const manifestFile = zip.file('manifest.json');
   if (!manifestFile) {
@@ -126,9 +150,18 @@ export async function loadBackupArchive({ fileContent }: { fileContent: string }
   }
   const manifest = rawManifest as unknown as BackupManifest;
 
-  if (typeof manifest.formatVersion !== 'number' || manifest.formatVersion > BACKUP_FORMAT_VERSION) {
+  const { formatVersion } = manifest;
+  // A checksum-clean archive can still carry a nonsense version (0, negative,
+  // fractional, NaN). Require a positive integer inside the supported range so a
+  // corrupt/forged manifest fails as a 422 rather than sliding through as v1.
+  if (typeof formatVersion !== 'number' || !Number.isInteger(formatVersion) || formatVersion < 1) {
     throw new ValidationError({
-      message: `Backup format version ${manifest.formatVersion} is newer than this app supports (max ${BACKUP_FORMAT_VERSION}). Update the app to restore it.`,
+      message: `Backup manifest declares an invalid format version (${String(formatVersion)}).`,
+    });
+  }
+  if (formatVersion > BACKUP_FORMAT_VERSION) {
+    throw new ValidationError({
+      message: `Backup format version ${formatVersion} is newer than this app supports (max ${BACKUP_FORMAT_VERSION}). Update the app to restore it.`,
     });
   }
 
@@ -140,14 +173,24 @@ export async function loadBackupArchive({ fileContent }: { fileContent: string }
     });
   }
   const parsedByPath = new Map<string, unknown>();
-  for (const [path, entry] of Object.entries(manifest.files ?? {})) {
+  const manifestFiles = (manifest.files ?? {}) as Record<string, unknown>;
+  for (const [path, entry] of Object.entries(manifestFiles)) {
+    // The manifest is a blind cast, so a forged `files` map can carry a null or
+    // non-object entry. Validate the shape before reading its checksum, else a
+    // raw TypeError escapes the 422-on-corrupt path as a generic 500.
+    const expectedSha = isPlainObject(entry) ? (entry as Record<string, unknown>).sha256 : undefined;
+    if (typeof expectedSha !== 'string') {
+      throw new ValidationError({
+        message: `Backup archive has a malformed manifest entry for ${path}.`,
+      });
+    }
     const file = zip.file(path);
     if (!file) {
       throw new ValidationError({ message: `Backup archive is missing ${path} listed in its manifest.` });
     }
     const bytes = await readEntry({ file });
     const digest = sha256Hex({ buffer: bytes });
-    if (digest !== entry.sha256) {
+    if (digest !== expectedSha) {
       throw new ValidationError({ message: `Backup file ${path} failed its integrity check (checksum mismatch).` });
     }
     parsedByPath.set(path, parseJson({ buffer: bytes, path }));
@@ -160,10 +203,19 @@ export async function loadBackupArchive({ fileContent }: { fileContent: string }
     if (!parsedByPath.has(path)) continue;
     const value = parsedByPath.get(path);
     if (name === 'user') {
-      user = value && typeof value === 'object' && !Array.isArray(value) ? (value as Row) : null;
+      user = isPlainObject(value) ? (value as Row) : null;
       continue;
     }
-    data.set(name, Array.isArray(value) ? (value as Row[]) : []);
+    // The SHA-256 gate only proves the bytes match the manifest, not their shape.
+    // A checksum-clean file that parses to a non-array (e.g. `{}` or a scalar)
+    // would otherwise coerce to `[]` and restore zero rows for the table while
+    // reporting success — silent data loss. Reject it as a 422 instead.
+    if (!Array.isArray(value)) {
+      throw new ValidationError({
+        message: `Backup file ${path} is corrupt: expected a JSON array of rows.`,
+      });
+    }
+    data.set(name, value as Row[]);
   }
 
   const referenceByName = new Map<string, Row[]>();

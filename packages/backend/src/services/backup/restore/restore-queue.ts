@@ -153,6 +153,62 @@ export async function queueBackupRestore({
   return jobId;
 }
 
+/**
+ * Normalized snapshot of a restore job's BullMQ state, independent of the two
+ * response shapes the public functions expose. Both `getBackupRestoreStatus` and
+ * `getUserActiveRestoreStatus` project from this, so the two BullMQ read races —
+ * "completed but the returnvalue summary isn't visible yet" and "failed but the
+ * failedReason snapshot is still empty" — are handled here, in exactly one place.
+ */
+type RestoreJobStateSnapshot =
+  | { kind: 'missing' }
+  | { kind: 'completed'; summary: BackupRestoreSummary; progress?: BackupRestoreProgress }
+  | { kind: 'failed'; failedReason?: string; progress?: BackupRestoreProgress }
+  | { kind: 'queued'; progress?: BackupRestoreProgress }
+  | { kind: 'running'; progress?: BackupRestoreProgress };
+
+/**
+ * Read a restore job's current state, scoped to its owner. Resolves `missing`
+ * when the job is gone or belongs to another user. The failed branch carries the
+ * raw `failedReason` (possibly empty) so each caller applies its own fallback
+ * message; every other branch is fully normalized.
+ */
+async function readRestoreJobState({
+  userId,
+  jobId,
+}: {
+  userId: number;
+  jobId: string;
+}): Promise<RestoreJobStateSnapshot> {
+  const job = await backupRestoreQueue.getJob(jobId);
+  if (!job) return { kind: 'missing' };
+  // Defense-in-depth: a job id / pointer must only ever resolve its own user's job.
+  if (job.data.userId !== userId) return { kind: 'missing' };
+
+  const state = await job.getState();
+  const progress = (job.progress || undefined) as unknown as BackupRestoreProgress | undefined;
+
+  if (state === 'completed') {
+    const summary = job.returnvalue?.summary;
+    // BullMQ flipped the job to completed but the returnvalue blob isn't visible
+    // yet (write-vs-read race right after the handler resolves). Report it as still
+    // running so a caller never hands the client an undefined summary — which would
+    // read as "0 records restored", and for the watchdog would fire its wipe+reload.
+    if (!summary) return { kind: 'running', progress };
+    return { kind: 'completed', summary, progress };
+  }
+  if (state === 'failed') {
+    // Re-fetch once: a job that flips active → failed between getJob and getState
+    // can report `failed` while the first snapshot's failedReason is still empty.
+    const settled = (await backupRestoreQueue.getJob(jobId)) ?? job;
+    return { kind: 'failed', failedReason: settled.failedReason, progress };
+  }
+  if (state === 'waiting' || state === 'delayed') {
+    return { kind: 'queued', progress };
+  }
+  return { kind: 'running', progress };
+}
+
 /** Fallback polling path: current restore state for a job, scoped to its owner. */
 export async function getBackupRestoreStatus({
   userId,
@@ -161,34 +217,19 @@ export async function getBackupRestoreStatus({
   userId: number;
   jobId: string;
 }): Promise<BackupRestoreStatusResponse | null> {
-  const job = await backupRestoreQueue.getJob(jobId);
-  if (!job) return null;
-  if (job.data.userId !== userId) return null;
-
-  const state = await job.getState();
-  const progress = (job.progress || undefined) as unknown as BackupRestoreProgress | undefined;
-
-  if (state === 'completed') {
-    const summary = job.returnvalue?.summary;
-    // BullMQ flipped the job to completed but the returnvalue blob isn't visible
-    // yet (write-vs-read race right after the handler resolves). Reporting
-    // `completed` now would hand the client an undefined summary and it would show
-    // "0 records restored" forever. Treat as processing so the next poll gets it.
-    if (!summary) {
-      return { jobId, status: 'processing', progress };
-    }
-    return { jobId, status: 'completed', progress, summary };
+  const snapshot = await readRestoreJobState({ userId, jobId });
+  switch (snapshot.kind) {
+    case 'missing':
+      return null;
+    case 'completed':
+      return { jobId, status: 'completed', progress: snapshot.progress, summary: snapshot.summary };
+    case 'failed':
+      return { jobId, status: 'failed', progress: snapshot.progress, error: snapshot.failedReason || 'Unknown error' };
+    case 'queued':
+      return { jobId, status: 'pending', progress: snapshot.progress };
+    case 'running':
+      return { jobId, status: 'processing', progress: snapshot.progress };
   }
-  if (state === 'failed') {
-    // Re-fetch once: a job that flips active → failed between getJob and getState
-    // can report `failed` while the first snapshot's failedReason is still empty.
-    const settled = (await backupRestoreQueue.getJob(jobId)) ?? job;
-    return { jobId, status: 'failed', progress, error: settled.failedReason || 'Unknown error' };
-  }
-  if (state === 'waiting' || state === 'delayed') {
-    return { jobId, status: 'pending', progress };
-  }
-  return { jobId, status: 'processing', progress };
 }
 
 /**
@@ -204,36 +245,24 @@ export async function getUserActiveRestoreStatus({ userId }: { userId: number })
   // No pointer → never restored (or the pointer was cleared) → idle.
   if (!jobId) return { state: 'idle' };
 
-  const job = await backupRestoreQueue.getJob(jobId);
-  // Pointer lingered but the job aged out of retention → idle.
-  if (!job) return { state: 'idle' };
-  // Defense-in-depth: a pointer must only ever resolve its own user's job.
-  if (job.data.userId !== userId) return { state: 'idle' };
-
-  const state = await job.getState();
-  const progress = (job.progress || undefined) as unknown as BackupRestoreProgress | undefined;
-
-  if (state === 'completed') {
-    const summary = job.returnvalue?.summary;
-    // BullMQ flipped the job to completed but the returnvalue blob isn't visible
-    // yet (write-vs-read race right after the handler resolves). Report running so
-    // the client doesn't fire its wipe+reload with an undefined summary; the next
-    // poll gets it.
-    if (!summary) {
-      return { state: 'running', jobId, phase: progress?.phase, insertedRows: progress?.insertedRows };
-    }
-    return { state: 'completed', jobId, summary };
+  const snapshot = await readRestoreJobState({ userId, jobId });
+  switch (snapshot.kind) {
+    case 'missing':
+      // Pointer lingered but the job aged out of retention (or belonged to another
+      // user) → idle.
+      return { state: 'idle' };
+    case 'completed':
+      return { state: 'completed', jobId, summary: snapshot.summary };
+    case 'failed':
+      return { state: 'failed', jobId, error: snapshot.failedReason || 'Backup restore failed' };
+    case 'queued':
+      return { state: 'queued', jobId };
+    case 'running':
+      return {
+        state: 'running',
+        jobId,
+        phase: snapshot.progress?.phase,
+        insertedRows: snapshot.progress?.insertedRows,
+      };
   }
-
-  if (state === 'failed') {
-    // Re-fetch once: a job that flips active → failed between getJob and getState
-    // can report `failed` while the first snapshot's failedReason is still empty.
-    const settled = (await backupRestoreQueue.getJob(jobId)) ?? job;
-    return { state: 'failed', jobId, error: settled.failedReason || 'Backup restore failed' };
-  }
-
-  if (state === 'waiting' || state === 'delayed') {
-    return { state: 'queued', jobId };
-  }
-  return { state: 'running', jobId, phase: progress?.phase, insertedRows: progress?.insertedRows };
 }

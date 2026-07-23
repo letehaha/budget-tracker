@@ -118,66 +118,45 @@ export const csvImportRateLimit = createRateLimit({
 });
 
 /**
- * Data-export rate limit (per user, 5 exports per 15 minutes).
- *
- * The export endpoint runs every transformer in parallel, materializes the
- * full result set in memory, and ties up the event loop for several seconds
- * during CSV/XLSX serialization. A click-storm or scripted spammer can
- * therefore degrade the API for every other request on the box.
- *
- * The window allows a real user to try JSON/CSV/XLSX back-to-back (or retry
- * a couple of times if a format reads wrong in their target tool) without
- * being blocked. The limiter is wrapped with `nonDev` so production enforces
- * it for abuse protection and the e2e suite enforces it for verification,
- * while local dev opts out.
+ * Per-user rate limit (5 attempts per 15 minutes) enforced everywhere except
+ * local dev. Shared by the heavyweight export/backup/restore endpoints, which
+ * each materialize or rewrite the user's full data on the API thread and so can
+ * degrade the whole box under a click-storm. They differ only by Redis key
+ * prefix, which keeps each endpoint's budget independent.
  */
-export const dataExportRateLimit = nonDev(
-  createRateLimit({
-    windowSeconds: 15 * 60,
-    maxAttempts: 5,
-    keyGenerator: (req: Request) => {
-      const user = req.user as Users;
-      return `data-export:user:${user.id}`;
-    },
-  }),
-);
+const perUserNonDevRateLimit = ({ prefix }: { prefix: string }) =>
+  nonDev(
+    createRateLimit({
+      windowSeconds: 15 * 60,
+      maxAttempts: 5,
+      keyGenerator: (req: Request) => {
+        const user = req.user as Users;
+        return `${prefix}:user:${user.id}`;
+      },
+    }),
+  );
 
 /**
- * Backup export rate limit (per user, 5 backups per 15 min).
- *
- * A backup dumps every user-owned table as raw JSON and DEFLATE-compresses the
- * result on the API thread, so a click-storm can tie up the event loop. Same
- * budget as data-export; `nonDev`-wrapped so prod and the e2e suite enforce it
- * while local dev opts out.
+ * Data-export rate limit. The export endpoint runs every transformer in
+ * parallel, materializes the full result set in memory, and ties up the event
+ * loop for several seconds during CSV/XLSX serialization. The window allows a
+ * real user to try JSON/CSV/XLSX back-to-back without being blocked.
  */
-export const backupRateLimit = nonDev(
-  createRateLimit({
-    windowSeconds: 15 * 60,
-    maxAttempts: 5,
-    keyGenerator: (req: Request) => {
-      const user = req.user as Users;
-      return `backup:user:${user.id}`;
-    },
-  }),
-);
+export const dataExportRateLimit = perUserNonDevRateLimit({ prefix: 'data-export' });
 
 /**
- * Backup restore rate limit (per user, 5 restores per 15 min).
- *
- * A restore wipes and re-inserts every user-owned table inside one transaction,
- * far heavier than an export. It gets its own key so a user's downloads and
- * restores don't drain a shared budget. `nonDev`-wrapped like the export limits.
+ * Backup export rate limit. A backup dumps every user-owned table as raw JSON
+ * and DEFLATE-compresses the result on the API thread, so a click-storm can tie
+ * up the event loop.
  */
-export const backupRestoreRateLimit = nonDev(
-  createRateLimit({
-    windowSeconds: 15 * 60,
-    maxAttempts: 5,
-    keyGenerator: (req: Request) => {
-      const user = req.user as Users;
-      return `backup-restore:user:${user.id}`;
-    },
-  }),
-);
+export const backupRateLimit = perUserNonDevRateLimit({ prefix: 'backup' });
+
+/**
+ * Backup restore rate limit. A restore wipes and re-inserts every user-owned
+ * table inside one transaction, far heavier than an export. Its own key keeps a
+ * user's downloads and restores from draining a shared budget.
+ */
+export const backupRestoreRateLimit = perUserNonDevRateLimit({ prefix: 'backup-restore' });
 
 /**
  * Share-invitation send rate limit (per owner, 30 sends per 24h in prod, 5 in test).

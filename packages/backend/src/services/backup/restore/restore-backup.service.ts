@@ -1,16 +1,15 @@
 import type { BackupRestoreProgress, BackupRestoreSummary, BackupRestoreWarning } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
-import { namespace } from '@models/connection';
 import UserSettings, { ZodSettingsSchema } from '@models/user-settings.model';
 import Users from '@models/users.model';
 import { runUserDestroyLifecycle } from '@services/user/user-destroy-lifecycle';
 import { destroyUserOwnedData } from '@services/user/wipe-user-data.service';
-import type { Transaction } from 'sequelize';
 
 import { BACKUP_TABLES } from '../registry';
 import { analyzeArchive } from './analyze-archive';
 import { loadBackupArchive, type ParsedArchive } from './load-archive';
 import { USER_ROW_GUARDED_FK, foreignReferenceNulledMessage } from './owned-reference-guard';
+import { triggerPostRestorePriceSync } from './post-restore-price-sync';
 import { resolveSecurities } from './resolve-securities';
 import { insertRestoreTables, purgeUserOwnedRestoreTables } from './restore-tables';
 
@@ -140,13 +139,8 @@ export async function restoreUserBackup({
     cacheLogPrefix: 'backup-restore',
     failureLogCode: 'BACKUP_RESTORE_FAILED',
     failureLogMessage: 'Backup restore failed',
-    destroyInTx: async ({ user }) => {
+    destroyInTx: async ({ user, transaction }) => {
       await destroyUserOwnedData({ user });
-
-      const transaction = namespace.get('transaction') as Transaction | undefined;
-      if (!transaction) {
-        throw new Error('Backup restore expected an active transaction inside the destroy lifecycle.');
-      }
 
       // Clear any user-owned rows the shared wipe leaves behind (it keeps the
       // Users row, so `userId`-cascade tables like Payees survive) before the
@@ -179,5 +173,14 @@ export async function restoreUserBackup({
   }
 
   await onProgress?.({ phase: 'finalizing' });
+
+  // Self-host only: backfill historical prices for the restored securities now
+  // that the restore transaction has committed. `runUserDestroyLifecycle` scopes
+  // and commits its own transaction internally, and `restoreUserBackup` runs with
+  // no ambient transaction (the BullMQ worker calls it directly), so each
+  // fire-and-forget `syncHistoricalPrices` opens its own fresh transaction rather
+  // than joining a committed one.
+  triggerPostRestorePriceSync({ securityIds: securities.resolvedSecurityIds });
+
   return { insertedByTable, warnings };
 }

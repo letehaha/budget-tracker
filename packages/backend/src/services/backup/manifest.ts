@@ -1,14 +1,10 @@
 import { BACKUP_FORMAT_VERSION, type BackupManifest, type BackupManifestFileEntry } from '@bt/shared/types';
 import { connection } from '@models/index';
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import type { BackupFile } from './dump-tables.service';
-
-function sha256Hex({ buffer }: { buffer: Buffer }): string {
-  return createHash('sha256').update(buffer).digest('hex');
-}
+import { sha256Hex } from './sha256';
 
 /**
  * Backend package version, informational-only in the manifest. package.json

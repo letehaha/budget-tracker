@@ -117,6 +117,10 @@ async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNe
  *
  * Wrapped in try/catch so a query failure degrades to an empty list instead of
  * taking down the whole sync-status response, mirroring getConnectionsNeedingReauth.
+ * Only a `DatabaseError` (the SQL query itself failing) is tolerated this way; any
+ * other error is a genuine bug (bad mapping, model/schema drift) and is re-thrown
+ * so it surfaces as a failed request instead of rendering connections with no
+ * consent badge.
  */
 async function getConnectionStatuses(userId: number): Promise<ConnectionStatusSummary[]> {
   try {
@@ -136,6 +140,13 @@ async function getConnectionStatuses(userId: number): Promise<ConnectionStatusSu
       };
     });
   } catch (error) {
+    // Anything other than the SQL query itself failing is a genuine bug (bad
+    // mapping, model/schema drift, etc.) — let it surface instead of silently
+    // reporting "no connection statuses".
+    if (!(error instanceof DatabaseError)) {
+      throw error;
+    }
+
     logger.error({ message: 'Failed to load connectionStatuses', error: error as Error }, { userId });
     return [];
   }

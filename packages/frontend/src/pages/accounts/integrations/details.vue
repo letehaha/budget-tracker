@@ -128,7 +128,7 @@
         v-if="needsReconnect && connectionDetails.providerType !== BANK_PROVIDER_TYPE.ENABLE_BANKING"
         class="border-destructive/60 bg-destructive/5 @container/reconnect mb-6"
       >
-        <CardContent class="p-5 sm:p-6">
+        <CardContent class="p-5 @md/reconnect:p-6">
           <div
             class="flex flex-col gap-4 @md/reconnect:flex-row @md/reconnect:items-center @md/reconnect:justify-between"
           >

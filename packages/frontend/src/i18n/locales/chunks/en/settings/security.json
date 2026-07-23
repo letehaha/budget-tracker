@@ -202,6 +202,7 @@
           "description": "Replace all current data with the contents of a backup zip.",
           "button": "Select backup file",
           "reading": "Reading file...",
+          "failedGeneric": "Backup restore failed",
           "invalidFileType": "Please choose a .zip backup file.",
           "fileTooLarge": "That backup is too large to restore (max {max}).",
           "readFailed": "Could not read that file. Please try again.",

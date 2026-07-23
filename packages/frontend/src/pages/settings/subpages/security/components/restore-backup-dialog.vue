@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WipeDataSharedResources } from '@/api/user';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import { RESTORE_PHASE_LABEL_KEYS } from '@/components/common/restore-phase-labels';
 import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { Checkbox } from '@/components/lib/ui/checkbox';
@@ -37,54 +38,57 @@ const failureMessage = ref('');
 const { mutate: restore, isPending: isSubmitting } = useRestoreBackup();
 const { data: statusData, isError: isStatusError, error: statusError } = useRestoreStatus({ jobId });
 
-// Give up on the restore if the poll stops advancing for this long. A worker that
-// never picks the job up keeps returning the same non-terminal status forever, so
-// without this the spinner would be an infinite terminal state.
-const RESTORE_STALL_TIMEOUT_MS = 2 * 60 * 1000;
+// Matches the boot watchdog's taking-long threshold: the restore holds the same
+// wipe-and-replace lock, and the backend ticks progress once per table, so a single
+// huge table (hundreds of thousands of rows) legitimately sits on one phase for
+// minutes. After this window the dialog surfaces a "still working" note but keeps
+// polling and blocking — it never calls a healthy destructive restore failed.
+const RESTORE_TAKING_LONG_THRESHOLD_MS = 5 * 60 * 1000;
 
-let stallTimer: ReturnType<typeof setTimeout> | null = null;
+const isTakingLong = ref(false);
+let takingLongTimer: ReturnType<typeof setTimeout> | null = null;
 
-const clearStallTimer = () => {
-  if (stallTimer) {
-    clearTimeout(stallTimer);
-    stallTimer = null;
+// Signature of the last observed progress point (phase + inserted rows). The timer
+// re-arms only when this actually changes, so neither per-poll object churn nor the
+// status query's structural sharing can wrongly reset the clock or leave it running.
+let lastProgressSignature: string | null = null;
+
+const clearTakingLongTimer = () => {
+  if (takingLongTimer) {
+    clearTimeout(takingLongTimer);
+    takingLongTimer = null;
   }
 };
 
-// Bail to a safe "reload and check" message. The wipe is atomic (already
-// committed or rolled back), so the honest move is to stop the spinner and let
-// the user verify, rather than pretend we know the outcome.
+// Bail to a safe "reload and check" message. Reserved for a poll that keeps failing
+// (status genuinely unverifiable), not for a slow-but-healthy restore: the wipe is
+// atomic (already committed or rolled back), so the honest move is to stop the
+// spinner and let the user verify, rather than pretend we know the outcome.
 const failWithUnconfirmed = () => {
-  clearStallTimer();
+  clearTakingLongTimer();
+  isTakingLong.value = false;
   failureMessage.value = t('settings.security.backup.restore.failed.unconfirmed');
   step.value = 'failed';
-  // Stop polling — the status is untrustworthy or the job is stuck.
+  // Stop polling — the status is untrustworthy.
   jobId.value = null;
 };
 
-// Restart the give-up timer whenever the restore actually advances.
-const armStallTimer = () => {
-  clearStallTimer();
-  stallTimer = setTimeout(() => {
-    if (step.value === 'progress') failWithUnconfirmed();
-  }, RESTORE_STALL_TIMEOUT_MS);
+// Restart the "still working" timer from the moment the restore last advanced.
+const armTakingLongTimer = () => {
+  clearTakingLongTimer();
+  isTakingLong.value = false;
+  takingLongTimer = setTimeout(() => {
+    if (step.value === 'progress') isTakingLong.value = true;
+  }, RESTORE_TAKING_LONG_THRESHOLD_MS);
 };
 
 const summary = computed(() => statusData.value?.summary ?? null);
 const progressPhase = computed<BackupRestorePhase | null>(() => statusData.value?.progress?.phase ?? null);
 const progressInserted = computed(() => statusData.value?.progress?.insertedRows ?? null);
 
-const PHASE_LABELS: Record<BackupRestorePhase, string> = {
-  validating: 'settings.security.backup.restore.progress.phases.validating',
-  'preparing-securities': 'settings.security.backup.restore.progress.phases.preparingSecurities',
-  wiping: 'settings.security.backup.restore.progress.phases.wiping',
-  restoring: 'settings.security.backup.restore.progress.phases.restoring',
-  finalizing: 'settings.security.backup.restore.progress.phases.finalizing',
-};
-
 const phaseLabel = computed(() =>
   progressPhase.value
-    ? t(PHASE_LABELS[progressPhase.value])
+    ? t(RESTORE_PHASE_LABEL_KEYS[progressPhase.value])
     : t('settings.security.backup.restore.progress.phases.validating'),
 );
 
@@ -100,7 +104,9 @@ const warnings = computed(() => summary.value?.warnings ?? []);
 const humanizeTable = (table: string) => table.replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
 const resetState = () => {
-  clearStallTimer();
+  clearTakingLongTimer();
+  isTakingLong.value = false;
+  lastProgressSignature = null;
   step.value = 'confirm';
   jobId.value = null;
   sharedResources.value = null;
@@ -113,17 +119,18 @@ watch(
   () => props.open,
   (open) => {
     if (open) resetState();
-    else clearStallTimer();
+    else clearTakingLongTimer();
   },
 );
 
-onBeforeUnmount(clearStallTimer);
+onBeforeUnmount(clearTakingLongTimer);
 
 // Drive the step machine off the poll's terminal states.
 watch(statusData, (status) => {
   if (!status) return;
   if (status.status === 'completed') {
-    clearStallTimer();
+    clearTakingLongTimer();
+    isTakingLong.value = false;
     step.value = 'summary';
     // Mark this restore handled for the boot watchdog: this dialog already wipes the
     // cache and reloads on "Done", so a plain F5 from the summary must not make the
@@ -136,12 +143,19 @@ watch(statusData, (status) => {
       captureException({ error, context: { feature: 'data-backup-restore' } }),
     );
   } else if (status.status === 'failed') {
-    clearStallTimer();
+    clearTakingLongTimer();
+    isTakingLong.value = false;
     failureMessage.value = status.error || t('settings.security.backup.restore.failed.genericError');
     step.value = 'failed';
   } else {
-    // Still working: healthy progress resets the give-up timer each poll.
-    armStallTimer();
+    // Still working. Re-arm the "still working" timer only when the restore actually
+    // advanced (new phase or more rows), so a long single-table insert can't reset
+    // the clock forever and a genuinely stalled one still surfaces the note.
+    const signature = `${status.progress?.phase ?? ''}:${status.progress?.insertedRows ?? ''}`;
+    if (signature !== lastProgressSignature) {
+      lastProgressSignature = signature;
+      armTakingLongTimer();
+    }
   }
 });
 
@@ -162,8 +176,9 @@ const submit = ({ acknowledgeSharing }: { acknowledgeSharing?: boolean }) => {
       onSuccess: ({ jobId: id }) => {
         jobId.value = id;
         step.value = 'progress';
-        // Guard the case where the first poll never arrives or never advances.
-        armStallTimer();
+        lastProgressSignature = null;
+        // Start the "still working" timer in case the first poll never arrives.
+        armTakingLongTimer();
       },
       onError: (e) => {
         if (
@@ -273,6 +288,9 @@ const handleClose = () => setOpen(false);
       </p>
       <p class="text-muted-foreground text-xs">
         {{ $t('settings.security.backup.restore.progress.description') }}
+      </p>
+      <p v-if="isTakingLong" class="text-muted-foreground text-xs">
+        {{ $t('settings.security.backup.restore.overlay.takingLong') }}
       </p>
     </div>
 

@@ -9,8 +9,6 @@
  * ids for a full round-trip.
  */
 
-import type { WipeDataSharedResources } from './api';
-
 /**
  * On-disk backup shape version. Restore hard-fails a manifest whose
  * `formatVersion` is greater than this (app too old for the backup).
@@ -194,14 +192,6 @@ export type BackupRestoreActiveStatus =
   | { state: 'running'; jobId: string; phase?: BackupRestorePhase; insertedRows?: number }
   | { state: 'completed'; jobId: string; summary: BackupRestoreSummary }
   | { state: 'failed'; jobId: string; error: string };
-
-/**
- * `details` of the restore preflight's shared-resource acknowledgement gate.
- * Restore reuses the wipe flow's exact contract (HTTP 409 +
- * `API_ERROR_CODES.wipeDataSharingAcknowledgementRequired`) so the frontend
- * can share the wipe acknowledgement UX — this is an alias, not a new shape.
- */
-export type BackupRestoreAckRequiredDetails = WipeDataSharedResources;
 
 /**
  * SSE payload the restore worker pushes as it advances. The poll endpoint

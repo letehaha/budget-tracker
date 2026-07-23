@@ -1,5 +1,9 @@
 import { getActiveRestoreStatus } from '@/api/backup';
-import { createBlockingJobWatchdog } from '@/composable/blocking-job-watchdog/create-blocking-job-watchdog';
+import {
+  type BlockingJobWatchdog,
+  createBlockingJobWatchdog,
+} from '@/composable/blocking-job-watchdog/create-blocking-job-watchdog';
+import { i18n } from '@/i18n';
 import { SSE_EVENT_TYPES, type BackupRestoreActiveStatus, type BackupRestoreSseProgress } from '@bt/shared/types';
 
 /**
@@ -8,8 +12,10 @@ import { SSE_EVENT_TYPES, type BackupRestoreActiveStatus, type BackupRestoreSseP
  * job's persisted progress); this bonus channel just moves the overlay forward
  * between polls. A `completed` push without a summary yet is reported as running so
  * the wipe+reload never fires with an undefined summary — the next poll carries it.
+ *
+ * Exported for unit tests: it is a pure mapping and each SSE branch is worth pinning.
  */
-function sseToStatus(payload: BackupRestoreSseProgress): BackupRestoreActiveStatus | null {
+export function sseToStatus(payload: BackupRestoreSseProgress): BackupRestoreActiveStatus | null {
   const { jobId, status, phase, processedCount, summary, error } = payload;
   switch (status) {
     case 'queued':
@@ -19,25 +25,43 @@ function sseToStatus(payload: BackupRestoreSseProgress): BackupRestoreActiveStat
     case 'completed':
       return summary ? { state: 'completed', jobId, summary } : { state: 'running', jobId, phase };
     case 'failed':
-      return { state: 'failed', jobId, error: error ?? 'Backup restore failed' };
+      // A `failed` push without a reason falls back to the localized generic message
+      // so the overlay's failure panel never renders a raw English string.
+      return {
+        state: 'failed',
+        jobId,
+        error: error ?? i18n.global.t('settings.security.backup.restore.failedGeneric'),
+      };
     default:
       return null;
   }
 }
 
-// Module-scoped singleton, same as the base-currency watchdog: one restore per user,
-// one identical blocking overlay on every open screen. A restore wipes and replaces
-// every table, so the default terminal side effect (full cache wipe + one reload) is
-// exactly what it needs — no override.
-const watchdog = createBlockingJobWatchdog<BackupRestoreActiveStatus, typeof SSE_EVENT_TYPES.BACKUP_RESTORE_PROGRESS>({
-  scope: 'backup-restore-status',
-  handledJobStorageKey: 'backup-restore-handled-job',
-  fetchStatus: getActiveRestoreStatus,
-  sse: {
-    event: SSE_EVENT_TYPES.BACKUP_RESTORE_PROGRESS,
-    toStatus: sseToStatus,
-  },
-});
+// Built lazily on first use, not at module top level: this composable and the
+// base-currency one both sit in the api ↔ store import cycle, and a second
+// synchronous factory call during that cycle runs the factory body before the
+// factory module's own `vue` import has initialized (temporal dead zone). Deferring
+// to first call means the watchdog is created after the graph has fully loaded.
+let watchdog: BlockingJobWatchdog<BackupRestoreActiveStatus> | null = null;
+
+// Singleton, same as the base-currency watchdog: one restore per user, one identical
+// blocking overlay on every open screen. A restore wipes and replaces every table, so
+// the default terminal side effect (full cache wipe + one reload) is exactly what it
+// needs — no override.
+function getWatchdog(): BlockingJobWatchdog<BackupRestoreActiveStatus> {
+  if (!watchdog) {
+    watchdog = createBlockingJobWatchdog<BackupRestoreActiveStatus, typeof SSE_EVENT_TYPES.BACKUP_RESTORE_PROGRESS>({
+      scope: 'backup-restore-status',
+      handledJobStorageKey: 'backup-restore-handled-job',
+      fetchStatus: getActiveRestoreStatus,
+      sse: {
+        event: SSE_EVENT_TYPES.BACKUP_RESTORE_PROGRESS,
+        toStatus: sseToStatus,
+      },
+    });
+  }
+  return watchdog;
+}
 
 /**
  * Shared watchdog for the data-restore job. On boot (`checkOnBoot`) it blocks the
@@ -47,5 +71,5 @@ const watchdog = createBlockingJobWatchdog<BackupRestoreActiveStatus, typeof SSE
  * tab / closed-tab cases.
  */
 export function useRestoreJobStatus() {
-  return watchdog;
+  return getWatchdog();
 }

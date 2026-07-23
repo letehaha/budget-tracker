@@ -46,7 +46,7 @@ describe('User data wipe (POST /user/wipe-data)', () => {
     const budget = await helpers.createCustomBudget({ name: 'Wipe budget', limitAmount: 500, raw: true });
     const portfolio = await helpers.createPortfolio({ payload: { name: 'Wipe portfolio' }, raw: true });
     const tag = await helpers.createTag({ payload: { name: 'wipe-tag', color: '#123456' }, raw: true });
-    const payee = await helpers.createPayee({ payload: helpers.buildPayeePayload({ name: 'Wipe payee' }), raw: true });
+    await helpers.createPayee({ payload: helpers.buildPayeePayload({ name: 'Wipe payee' }), raw: true });
     await helpers.addIgnoredName({ rawName: 'Wipe ignored merchant', raw: true });
     await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
     await helpers.updateUserSettings({ settings: { locale: 'uk' } });
@@ -84,7 +84,6 @@ describe('User data wipe (POST /user/wipe-data)', () => {
     // so learned payees and the ignore-list must not survive it.
     expect(await Payees.findAll({ where: { userId } })).toHaveLength(0);
     expect(await PayeeIgnoredNames.findAll({ where: { userId } })).toHaveLength(0);
-    void payee;
 
     // Custom category is gone but defaults are reseeded. The user gets a fresh-start state,
     // not an empty-state — opening the app after a wipe shouldn't force them to recreate

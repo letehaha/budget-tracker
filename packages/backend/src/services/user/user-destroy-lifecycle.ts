@@ -8,10 +8,11 @@ import {
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
+import { namespace } from '@models/connection';
 import ResourceShares from '@models/resource-shares.model';
 import Transactions from '@models/transactions.model';
 import * as Users from '@models/users.model';
-import { Op } from 'sequelize';
+import { Op, type Transaction } from 'sequelize';
 
 import { removePendingJobsForUser } from '../bank-data-providers/monobank/transaction-sync-queue';
 import { REDIS_KEYS as SYNC_REDIS_KEYS, clearAccountSyncStatus } from '../bank-data-providers/sync/sync-status-tracker';
@@ -59,6 +60,13 @@ interface OwnerSnapshot {
 
 interface DestroyInTxArgs {
   user: Users.default;
+  /**
+   * The active transaction the destroy runs inside. `runDestroyInTx` runs the hook
+   * within `withTransaction`, so this is always live — passed explicitly so hooks
+   * that write more rows (backup restore) don't re-read it from the CLS namespace.
+   * Hooks that don't need it (delete-user, wipe-data) can ignore it.
+   */
+  transaction: Transaction;
 }
 
 interface RunUserDestroyLifecycleArgs {
@@ -231,7 +239,10 @@ const runDestroyInTx = withTransaction(
       avatar: user.avatar ?? null,
     };
 
-    await destroyInTx({ user });
+    // Active transaction established by the surrounding `withTransaction`. Passed to
+    // the hook so callers that write more rows use the same transaction directly.
+    const transaction = namespace.get('transaction') as Transaction;
+    await destroyInTx({ user, transaction });
 
     return {
       notificationTargets,

@@ -1,4 +1,5 @@
 import type { RecordId } from '@bt/shared/types';
+import { logger } from '@js/utils/logger';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Securities from '@models/investments/securities.model';
@@ -19,7 +20,7 @@ export interface BackupFile {
   buffer: Buffer;
 }
 
-function toBuffer({ value }: { value: unknown }): Buffer {
+export function toBuffer({ value }: { value: unknown }): Buffer {
   return Buffer.from(JSON.stringify(value, null, 2), 'utf8');
 }
 
@@ -50,9 +51,18 @@ async function whereForScope({
 function stripAiApiKeys({ rows }: { rows: Row[] }): void {
   for (const row of rows) {
     const settings = row.settings as { ai?: { apiKeys?: unknown } } | null | undefined;
-    if (settings?.ai && Array.isArray(settings.ai.apiKeys)) {
+    if (!settings?.ai || settings.ai.apiKeys == null) continue;
+
+    if (Array.isArray(settings.ai.apiKeys)) {
       settings.ai.apiKeys = [];
+      continue;
     }
+
+    // apiKeys present but not the expected array — a drifted/legacy shape this
+    // stripper doesn't know how to blank. Surface it: this function's whole job
+    // is keeping secrets out of the archive, so an unhandled shape must not pass
+    // silently.
+    logger.warn('stripAiApiKeys: settings.ai.apiKeys has an unexpected non-array shape and was not stripped');
   }
 }
 

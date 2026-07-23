@@ -144,16 +144,19 @@ export function foreignReferenceNulledMessage({
   return `Cleared "${column}" on ${count} row(s) in "${table}" that referenced data outside this backup.`;
 }
 
-interface GuardRowResult {
-  /** False when a required FK is foreign — the whole row is dropped. */
-  keep: boolean;
-  /** Attribute name of the required FK that forced a drop, when `keep` is false. */
-  droppedColumn: string | null;
-  /** Attribute names of nullable FKs that were reset to null on a kept row. */
-  nulledColumns: string[];
-  /** Column overrides (keyed by DB field) that null each foreign nullable FK. */
-  overrides: Row;
-}
+type GuardRowResult =
+  | {
+      keep: true;
+      /** Attribute names of nullable FKs that were reset to null on a kept row. */
+      nulledColumns: string[];
+      /** Column overrides (keyed by DB field) that null each foreign nullable FK. */
+      overrides: Row;
+    }
+  | {
+      keep: false;
+      /** Attribute name of the required FK that forced the whole row to drop. */
+      droppedColumn: string;
+    };
 
 /**
  * Validate one row's guarded FKs against the ids inserted so far. A FK value is
@@ -185,11 +188,11 @@ export function guardRowReferences({
     if (!fk.allowNull) {
       // A single required foreign FK is enough to drop the whole row; attribute
       // the drop to the first offender so each dropped row is counted once.
-      return { keep: false, droppedColumn: fk.attrName, nulledColumns: [], overrides: {} };
+      return { keep: false, droppedColumn: fk.attrName };
     }
     overrides[fk.field] = null;
     nulledColumns.push(fk.attrName);
   }
 
-  return { keep: true, droppedColumn: null, nulledColumns, overrides };
+  return { keep: true, nulledColumns, overrides };
 }

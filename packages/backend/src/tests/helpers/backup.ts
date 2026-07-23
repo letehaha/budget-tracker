@@ -7,9 +7,9 @@ import {
 } from '@bt/shared/types';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
+import { sha256Hex } from '@services/backup/sha256';
 import AdmZip from 'adm-zip';
 import JSZip from 'jszip';
-import { createHash } from 'node:crypto';
 import request from 'supertest';
 
 import { makeRequest } from './common';
@@ -88,11 +88,6 @@ export function parseBackupArchive({ buffer }: { buffer: Buffer }): ParsedBackup
   };
 
   return { files, manifest, readData };
-}
-
-/** Hex SHA-256 of a buffer — same digest the manifest and preflight compute. */
-export function sha256Hex({ buffer }: { buffer: Buffer }): string {
-  return createHash('sha256').update(buffer).digest('hex');
 }
 
 /**

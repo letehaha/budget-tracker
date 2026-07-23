@@ -61,14 +61,16 @@ export async function purgeUserOwnedRestoreTables({
   transaction: Transaction;
 }): Promise<void> {
   const targets = BACKUP_TABLES.filter(
-    (def) => def.restoreMode === 'insert' && def.scope.strategy === 'userColumn',
-  ).sort((a, b) => b.tier - a.tier);
+    (def): def is BackupTableDef & { scope: { strategy: 'userColumn'; column: 'userId' | 'ownerUserId' } } =>
+      def.restoreMode === 'insert' && def.scope.strategy === 'userColumn',
+  )
+    .sort((a, b) => b.tier - a.tier)
+    .map((def) => ({ model: def.model, column: def.scope.column }));
 
-  for (const def of targets) {
-    if (def.scope.strategy !== 'userColumn') continue;
+  for (const { model, column } of targets) {
     // force:true so paranoid models (Portfolios, VentureDeals, VenturePlatforms)
     // hard-delete instead of leaving soft-deleted rows behind their default scope.
-    await def.model.destroy({ where: { [def.scope.column]: userId }, transaction, force: true });
+    await model.destroy({ where: { [column]: userId }, transaction, force: true });
   }
 }
 
@@ -178,15 +180,15 @@ async function insertTable({
       continue;
     }
 
-    // users-currencies: skip a row whose currency isn't seeded on the target.
-    if (def.fileName === 'users-currencies' && !ctx.currencyCodes.has(String(row.currencyCode))) {
+    // Skip a row whose currency isn't seeded on the target (users-currencies).
+    if (def.requireSeededCurrency && !ctx.currencyCodes.has(String(row.currencyCode))) {
       droppedCurrencyCount += 1;
       continue;
     }
 
     const guard = guardRowReferences({ guardedFks, row, insertedIds: ctx.insertedIds });
     if (!guard.keep) {
-      const column = guard.droppedColumn!;
+      const column = guard.droppedColumn;
       fkDroppedByColumn.set(column, (fkDroppedByColumn.get(column) ?? 0) + 1);
       continue;
     }
