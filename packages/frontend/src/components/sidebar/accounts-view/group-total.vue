@@ -15,6 +15,8 @@ const props = defineProps<{
   emphasis?: boolean;
   /** Placeholder while the underlying amounts are still loading. */
   loading?: boolean;
+  /** Render the amount even when it rounds to zero, instead of hiding the row's value. */
+  showZero?: boolean;
 }>();
 
 const { formatCompactAmount, formatAmountByCurrencyCode } = useFormatCurrency();
@@ -31,7 +33,7 @@ const full = computed(() => `${prefix.value}${formatAmountByCurrencyCode(props.a
 
 <template>
   <span v-if="loading" class="bg-muted/30 inline-block h-3.5 w-14 shrink-0 animate-pulse rounded" />
-  <DesktopOnlyTooltip v-else-if="!isZero" :content="full">
+  <DesktopOnlyTooltip v-else-if="!isZero || showZero" :content="full">
     <span
       :class="
         cn(

@@ -9,7 +9,6 @@ import {
   CreditCardIcon,
   GroupIcon,
   HandCoinsIcon,
-  LandmarkIcon,
   LayersIcon,
   LayoutDashboardIcon,
   RepeatIcon,
@@ -37,7 +36,6 @@ const isAccountsRoute = computed(
   () =>
     route.name === ROUTES_NAMES.accounts ||
     route.name === ROUTES_NAMES.account ||
-    route.name === ROUTES_NAMES.accountIntegrations ||
     route.name === ROUTES_NAMES.accountIntegrationDetails ||
     route.name === ROUTES_NAMES.loans ||
     route.name === ROUTES_NAMES.loanDetail ||
@@ -138,17 +136,6 @@ watch(
           >
             <WalletIcon :class="[navIconBase, isActive && navIconActive]" />
             <span>{{ $t('navigation.accountsList') }}</span>
-          </ui-button>
-        </router-link>
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.accountIntegrations }">
-          <ui-button
-            variant="ghost"
-            as="span"
-            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
-            size="sm"
-          >
-            <LandmarkIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.bankIntegrations') }}</span>
           </ui-button>
         </router-link>
         <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.loans }">

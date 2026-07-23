@@ -84,7 +84,7 @@
       <Building2 class="size-10 opacity-50" />
       <span>{{ $t('syncStatusTooltip.noBankAccounts') }}</span>
       <Button as-child size="sm" class="mt-4 w-full">
-        <RouterLink :to="{ name: ROUTES_NAMES.accountIntegrations }">{{
+        <RouterLink :to="{ name: ROUTES_NAMES.accounts, query: { connect: 'bank' } }">{{
           $t('syncStatusTooltip.connectButton')
         }}</RouterLink>
       </Button>
@@ -189,7 +189,7 @@
         }}
       </Button>
       <Button v-if="hasFailedAccounts || syncStuck" as-child variant="outline" size="sm" class="w-full">
-        <RouterLink :to="{ name: ROUTES_NAMES.accountIntegrations }">
+        <RouterLink :to="{ name: ROUTES_NAMES.accounts }">
           {{ $t('syncStatusTooltip.manageConnectionsButton') }}
         </RouterLink>
       </Button>

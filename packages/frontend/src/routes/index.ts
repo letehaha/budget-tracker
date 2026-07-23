@@ -49,9 +49,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/accounts/integrations',
-        name: ROUTES_NAMES.accountIntegrations,
-        component: () => import('@/pages/accounts/integrations/index.vue'),
-        meta: { i18nChunks: ['pages/account-integrations'] as I18nChunkName[] },
+        redirect: { name: ROUTES_NAMES.accounts },
       },
       {
         path: '/accounts/integrations/:connectionId',

@@ -76,7 +76,7 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 
 const navigateToIntegrations = () => {
-  router.push({ name: ROUTES_NAMES.accountIntegrations });
+  router.push({ name: ROUTES_NAMES.accounts, query: { connect: 'bank' } });
 };
 
 const navigateToImport = () => {

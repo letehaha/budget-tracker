@@ -4,6 +4,7 @@ import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 
 import { bankProviderRegistry } from '../registry';
+import { computeConsentValidity } from './consent-validity';
 
 interface GetConnectionDetailsParams {
   connectionId: string;
@@ -51,12 +52,6 @@ export interface ConnectionDetailsResponse {
   deactivationReason?: string | null;
 }
 
-const parseValidDate = (raw: unknown): Date | null => {
-  if (!raw) return null;
-  const parsed = new Date(raw as string);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
 export async function getConnectionDetails(params: GetConnectionDetailsParams): Promise<ConnectionDetailsResponse> {
   const { connectionId, userId } = params;
 
@@ -89,38 +84,10 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
 
   const providerMetadata = provider.metadata;
 
-  // Calculate consent validity info if available in metadata
-  let consentInfo: ConnectionDetailsResponse['consent'] = undefined;
+  // Consent validity for the expiry banner; absent when metadata carries no consent window
+  const consentInfo = computeConsentValidity({ metadata: connection.metadata });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const metadata = connection.metadata as any;
-
-  if (metadata?.consentValidUntil) {
-    const validUntil = parseValidDate(metadata.consentValidUntil);
-    const validFrom = parseValidDate(metadata.consentValidFrom);
-
-    if (validUntil) {
-      const msRemaining = validUntil.getTime() - Date.now();
-      const daysRemaining = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
-      const isExpired = msRemaining <= 0;
-      const isExpiringSoon = !isExpired && daysRemaining <= 7;
-
-      consentInfo = {
-        validFrom: validFrom?.toISOString() || null,
-        validUntil: validUntil.toISOString(),
-        daysRemaining: isExpired ? 0 : daysRemaining,
-        isExpired,
-        isExpiringSoon,
-      };
-    } else {
-      consentInfo = {
-        validFrom: validFrom?.toISOString() || null,
-        validUntil: null,
-        daysRemaining: null,
-        isExpired: false,
-        isExpiringSoon: false,
-      };
-    }
-  }
 
   return {
     id: connection.id,

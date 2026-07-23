@@ -61,12 +61,25 @@ export interface ConnectionNeedingReauth {
 }
 
 /**
+ * Per-connection consent status, so the Accounts page can render Active /
+ * Expiring-soon / Expired badges without fetching each connection separately.
+ */
+export interface ConnectionStatusSummary {
+  connectionId: string;
+  isActive: boolean;
+  consentExpired: boolean;
+  consentExpiringSoon: boolean;
+  daysRemaining: number | null;
+}
+
+/**
  * Payload for SYNC_STATUS_CHANGED event
  */
 export interface SyncStatusChangedPayload {
   lastSyncAt: number | null;
   accounts: SyncAccountStatus[];
   connectionsNeedingReauth: ConnectionNeedingReauth[];
+  connectionStatuses: ConnectionStatusSummary[];
   summary: {
     total: number;
     syncing: number;

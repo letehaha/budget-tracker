@@ -7,7 +7,7 @@
       :title="$t('pages.integrations.details.error.notFoundTitle')"
       :description="$t('pages.integrations.details.error.notFoundDescription')"
       :link-label="$t('pages.integrations.details.error.backButton')"
-      :link-to="{ name: ROUTES_NAMES.accountIntegrations }"
+      :link-to="{ name: ROUTES_NAMES.accounts }"
     />
 
     <div
@@ -23,7 +23,7 @@
       <p class="text-muted-foreground mb-6 max-w-md">
         {{ $t('pages.integrations.details.error.unexpectedDescription') }}
       </p>
-      <UiButton @click="router.push({ name: ROUTES_NAMES.accountIntegrations })">
+      <UiButton @click="router.push({ name: ROUTES_NAMES.accounts })">
         <ArrowLeftIcon class="size-4" />
         {{ $t('pages.integrations.details.error.backButton') }}
       </UiButton>
@@ -32,7 +32,7 @@
     <template v-else-if="connectionDetails">
       <!-- Header with back button -->
       <div class="mb-6 flex items-center gap-4">
-        <UiButton variant="ghost" size="icon" @click="router.push({ name: ROUTES_NAMES.accountIntegrations })">
+        <UiButton variant="ghost" size="icon" @click="router.push({ name: ROUTES_NAMES.accounts })">
           <span class="text-xl">←</span>
         </UiButton>
         <img
@@ -745,7 +745,7 @@ const { mutate: disconnectMutation, isPending: isDisconnecting } = useMutation({
         );
       },
     });
-    router.push({ name: ROUTES_NAMES.accountIntegrations });
+    router.push({ name: ROUTES_NAMES.accounts });
   },
   onError: () => {
     addErrorNotification(t('pages.integrations.notifications.disconnectFailed'));
