@@ -1,4 +1,6 @@
+import { useNotificationCenter } from '@/components/notification-center';
 import { useSSE } from '@/composable/use-sse';
+import { i18n } from '@/i18n';
 import { AuthError } from '@/js/errors';
 import { queryClient } from '@/lib/query-client';
 import { resetQueryCaches } from '@/lib/query-persister';
@@ -47,14 +49,15 @@ export interface BlockingJobWatchdog<TStatus extends BlockingJobStatusBase> {
   stop: () => void;
   /** Fetch status once at boot and drive the right side effect (watch / wipe+reload). */
   checkOnBoot: () => Promise<void>;
-  /** Record a completion this browser already reconciled, so a later boot stays quiet. */
+  /** Record a job outcome this browser already reconciled, so a later boot stays quiet. */
   markHandled: (params: { jobId: string }) => void;
 }
 
 interface BlockingJobWatchdogConfig<TStatus extends BlockingJobStatusBase, TEvent extends keyof SSEEventPayloadMap> {
   /** Sentry scope + log label, e.g. `base-currency-change-status`. */
   scope: string;
-  /** localStorage key holding the last completion this browser reloaded for. */
+  /** localStorage key holding the last job (completed-and-reloaded, or
+   *  failed-and-notified) this browser already reconciled. */
   handledJobStorageKey: string;
   /** Fetch the user's current status. MUST never 404 — "nothing running" is `idle`. */
   fetchStatus: () => Promise<TStatus>;
@@ -126,10 +129,11 @@ export function createBlockingJobWatchdog<
   /** Count of consecutive poll failures, reset on the next success. */
   let consecutivePollFailures = 0;
 
-  /** True when this browser has already reconciled the given completion. A storage
-   *  read failure (private mode, quota) counts as handled so broken storage can
-   *  never let the same completion trigger a reload loop. */
-  function isCompletionHandled({ jobId }: { jobId: string }): boolean {
+  /** True when this browser has already reconciled the given job (reload for a
+   *  completion, or notification for a boot-observed failure). A storage read
+   *  failure (private mode, quota) counts as handled so broken storage can never
+   *  let the same outcome trigger a reload/notification loop. */
+  function isJobHandled({ jobId }: { jobId: string }): boolean {
     try {
       return localStorage.getItem(config.handledJobStorageKey) === jobId;
     } catch {
@@ -292,8 +296,9 @@ export function createBlockingJobWatchdog<
    * (it was closed or hard-refreshed while the job ran) wipes caches and reloads
    * once — its persisted data was computed against pre-job state. The handled-job
    * marker guarantees that reload fires at most once per job per browser, so the
-   * retained completion cannot loop. `failed` at boot changed no data, so it is
-   * informational only.
+   * retained completion cannot loop. `failed` at boot changed no data (the job
+   * rolled back), so there's nothing to reload — but the user who closed the tab
+   * never saw it fail, so it gets a one-time toast instead, deduped the same way.
    */
   async function checkOnBoot(): Promise<void> {
     try {
@@ -302,8 +307,14 @@ export function createBlockingJobWatchdog<
         beginWatch({ seed: next });
         return;
       }
-      if (next.state === 'completed' && next.jobId && !isCompletionHandled({ jobId: next.jobId })) {
+      if (next.state === 'completed' && next.jobId && !isJobHandled({ jobId: next.jobId })) {
         await runCompleted(next);
+      }
+      if (next.state === 'failed' && next.jobId && !isJobHandled({ jobId: next.jobId })) {
+        markHandled({ jobId: next.jobId });
+        useNotificationCenter().addErrorNotification(
+          i18n.global.t('common.notifications.backgroundJobFailed', { error: next.error ?? '' }),
+        );
       }
     } catch (error) {
       // Boot status is best-effort; a failure here must not block app initialization.

@@ -1,13 +1,12 @@
 import type { BackupRestoreProgress, BackupRestoreSummary, BackupRestoreWarning } from '@bt/shared/types';
-import { ValidationError } from '@js/errors';
 import UserSettings, { ZodSettingsSchema } from '@models/user-settings.model';
 import Users from '@models/users.model';
 import { runUserDestroyLifecycle } from '@services/user/user-destroy-lifecycle';
 import { destroyUserOwnedData } from '@services/user/wipe-user-data.service';
 
 import { BACKUP_TABLES } from '../registry';
-import { analyzeArchive } from './analyze-archive';
-import { loadBackupArchive, type ParsedArchive } from './load-archive';
+import { type ParsedArchive } from './load-archive';
+import { loadValidatedArchive } from './load-validated-archive';
 import { USER_ROW_GUARDED_FK, foreignReferenceNulledMessage } from './owned-reference-guard';
 import { triggerPostRestorePriceSync } from './post-restore-price-sync';
 import { resolveSecurities } from './resolve-securities';
@@ -16,7 +15,12 @@ import { insertRestoreTables, purgeUserOwnedRestoreTables } from './restore-tabl
 type Row = Record<string, unknown>;
 type ProgressCallback = (progress: BackupRestoreProgress) => void | Promise<void>;
 
-const USER_RESTORE_FIELDS = BACKUP_TABLES.find((def) => def.restoreMode === 'updateUser')?.fields ?? [];
+const USER_RESTORE_DEF = BACKUP_TABLES.find((def) => def.restoreMode === 'updateUser');
+if (!USER_RESTORE_DEF?.fields) {
+  // A missing def / empty field list would silently restore zero user fields.
+  throw new Error('Backup registry misconfig: the updateUser table def is missing or has no restorable fields.');
+}
+const USER_RESTORE_FIELDS = USER_RESTORE_DEF.fields;
 
 /** UPDATE the target Users row with the tier-1 restorable fields only. Identity
  *  (id/username/email/authUserId/role) is never touched. Category UUIDs are
@@ -121,11 +125,7 @@ export async function restoreUserBackup({
   onProgress?: ProgressCallback;
 }): Promise<BackupRestoreSummary> {
   await onProgress?.({ phase: 'validating' });
-  const archive = await loadBackupArchive({ fileContent });
-  const analysis = analyzeArchive({ archive });
-  if (analysis.hardFailReasons.length > 0) {
-    throw new ValidationError({ message: analysis.hardFailReasons.join(' ') });
-  }
+  const { archive, analysis } = await loadValidatedArchive({ fileContent });
 
   await onProgress?.({ phase: 'preparing-securities' });
   const securities = await resolveSecurities({ archive, analysis });

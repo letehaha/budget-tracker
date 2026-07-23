@@ -59,10 +59,10 @@ function stripAiApiKeys({ rows }: { rows: Row[] }): void {
     }
 
     // apiKeys present but not the expected array — a drifted/legacy shape this
-    // stripper doesn't know how to blank. Surface it: this function's whole job
-    // is keeping secrets out of the archive, so an unhandled shape must not pass
-    // silently.
-    logger.warn('stripAiApiKeys: settings.ai.apiKeys has an unexpected non-array shape and was not stripped');
+    // stripper can't blank field-by-field. Fail closed: drop the whole ai block so
+    // no ciphertext can ride into a shareable archive.
+    logger.warn('stripAiApiKeys: settings.ai.apiKeys has an unexpected non-array shape; dropping the ai block');
+    delete settings.ai;
   }
 }
 
@@ -93,6 +93,11 @@ async function dumpTable({
   const where = await whereForScope({ scope: def.scope, userId, resolver });
 
   if (def.single) {
+    // Without an explicit field list Sequelize would dump every column (the
+    // auth-adjacent ones for Users), so refuse rather than over-export.
+    if (!def.fields) {
+      throw new Error(`Backup registry misconfig: single table "${def.fileName}" has no fields to dump.`);
+    }
     // Users: emit the restorable subset as a single object, not an array.
     const row = (await def.model.findOne({
       where,

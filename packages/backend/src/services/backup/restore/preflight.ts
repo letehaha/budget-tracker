@@ -1,9 +1,8 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
-import { ConflictError, ValidationError } from '@js/errors';
+import { ConflictError } from '@js/errors';
 import { getOwnedSharedResourceSummary } from '@services/user/wipe-user-data.service';
 
-import { analyzeArchive } from './analyze-archive';
-import { loadBackupArchive } from './load-archive';
+import { loadValidatedArchive } from './load-validated-archive';
 
 /**
  * Synchronous gate run before enqueuing a restore. Fully validates the upload —
@@ -23,11 +22,7 @@ export async function preflightRestore({
   fileContent: string;
   acknowledgeSharing?: boolean;
 }): Promise<void> {
-  const archive = await loadBackupArchive({ fileContent });
-  const analysis = analyzeArchive({ archive });
-  if (analysis.hardFailReasons.length > 0) {
-    throw new ValidationError({ message: analysis.hardFailReasons.join(' ') });
-  }
+  await loadValidatedArchive({ fileContent });
 
   if (!acknowledgeSharing) {
     const summary = await getOwnedSharedResourceSummary({ userId });

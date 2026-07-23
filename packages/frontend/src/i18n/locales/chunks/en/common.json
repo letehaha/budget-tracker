@@ -57,7 +57,8 @@
       "copyToClipboardFailed": "Failed to copy to clipboard"
     },
     "notifications": {
-      "subscriptionCurrencyNotConnected": "Subscriptions summary can't convert {currencies} to your base currency. Connect the currency in Settings → Currencies."
+      "subscriptionCurrencyNotConnected": "Subscriptions summary can't convert {currencies} to your base currency. Connect the currency in Settings → Currencies.",
+      "backgroundJobFailed": "A background job failed while you were away: {error}"
     },
     "labels": {
       "email": "Email",

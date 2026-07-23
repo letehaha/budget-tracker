@@ -22,6 +22,28 @@ export interface AccountWithConnection extends Accounts {
 }
 
 /**
+ * Shared catch-block guard: only a `DatabaseError` (the SQL query itself failing)
+ * degrades to an empty list; any other error is a genuine bug and is re-thrown so
+ * it surfaces as a failed request instead of looking like "nothing found".
+ */
+function toEmptyListOnDatabaseError({
+  error,
+  logMessage,
+  userId,
+}: {
+  error: unknown;
+  logMessage: string;
+  userId: number;
+}): never[] {
+  if (!(error instanceof DatabaseError)) {
+    throw error;
+  }
+
+  logger.error({ message: logMessage, error: error as Error }, { userId });
+  return [];
+}
+
+/**
  * Get all bank-connected accounts for a user
  */
 export async function getUserBankAccounts(userId: number): Promise<AccountWithConnection[]> {
@@ -98,15 +120,7 @@ async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNe
       };
     });
   } catch (error) {
-    // Anything other than the SQL query itself failing is a genuine bug (bad
-    // mapping, model/schema drift, etc.) — let it surface instead of silently
-    // reporting "no connections need reauth".
-    if (!(error instanceof DatabaseError)) {
-      throw error;
-    }
-
-    logger.error({ message: 'Failed to load connectionsNeedingReauth', error: error as Error }, { userId });
-    return [];
+    return toEmptyListOnDatabaseError({ error, logMessage: 'Failed to load connectionsNeedingReauth', userId });
   }
 }
 
@@ -140,15 +154,7 @@ async function getConnectionStatuses(userId: number): Promise<ConnectionStatusSu
       };
     });
   } catch (error) {
-    // Anything other than the SQL query itself failing is a genuine bug (bad
-    // mapping, model/schema drift, etc.) — let it surface instead of silently
-    // reporting "no connection statuses".
-    if (!(error instanceof DatabaseError)) {
-      throw error;
-    }
-
-    logger.error({ message: 'Failed to load connectionStatuses', error: error as Error }, { userId });
-    return [];
+    return toEmptyListOnDatabaseError({ error, logMessage: 'Failed to load connectionStatuses', userId });
   }
 }
 

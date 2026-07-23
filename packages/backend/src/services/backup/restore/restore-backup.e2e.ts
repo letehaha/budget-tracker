@@ -347,13 +347,11 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
     });
   });
 
-  // A backup file is user-editable (checksums are recomputed by any editor), so a
-  // hand-edited archive can aim a child row's foreign key at another user's row.
-  // The DB constraint is satisfied by ANY existing row, so on a shared instance a
-  // forged FK would attach the restorer's data to a victim. The restore must
-  // accept only ids it itself inserted this run: a foreign value on a required
-  // column drops the row, on a nullable column is nulled, and never touches the
-  // victim's data.
+  // Backup files are user-editable (checksums recompute), so a hand-edited archive
+  // can aim a child row's FK at another user's row — the DB constraint accepts ANY
+  // existing row. The restore only accepts ids it inserted this run: a required
+  // column drops the row, a nullable column is nulled, and the victim's data is
+  // never touched.
   describe('Cross-user reference forgery guard', () => {
     /** Provision a second user (the would-be victim) and seed a real account,
      *  category, payee and transaction whose ids a forged backup can point at. */
@@ -966,13 +964,10 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
     });
   });
 
-  // A second restore fired while one is in flight is rejected (the enqueue guard
-  // returns 423, and once the worker holds the base-currency lock the route guard
-  // returns 423 too). Not asserted here: the restore worker runs in-process and a
-  // small test dataset finishes before a second request can observe the in-flight
-  // job, so a real concurrency assertion would be timing-dependent and flaky in the
-  // CLS-shared-transaction e2e environment. Left as a documented gap rather than a
-  // flaky test.
+  // A second restore while one is in flight returns 423 (enqueue guard, then the
+  // worker's base-currency lock). Not asserted: the in-process worker finishes a
+  // small test dataset before a second request could observe the in-flight job,
+  // making a real concurrency assertion timing-dependent and flaky here.
   it.skip('rejects a concurrent restore for the same user (423)', () => {});
 
   // The user-scoped status endpoint (no job id) any device polls on boot to learn a
