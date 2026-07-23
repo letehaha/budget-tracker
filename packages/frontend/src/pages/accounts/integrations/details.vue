@@ -593,6 +593,7 @@ import DisconnectIntegrationDialog from './components/disconnect-integration-dia
 import EditConnectionNameDialog from './components/edit-connection-name-dialog.vue';
 import IntegrationDetailsSkeleton from './components/integration-details-skeleton.vue';
 import ReconnectConfirmationDialog from './components/reconnect-confirmation-dialog.vue';
+import { buildProviderCredentials } from './utils/build-provider-credentials';
 
 const route = useRoute();
 const router = useRouter();
@@ -676,10 +677,11 @@ const canUpdateCredentials = computed(() => {
 const handleUpdateCredentials = () => {
   if (!canUpdateCredentials.value) return;
 
-  const credentials: Record<string, unknown> = { apiKey: newApiKey.value };
-  if (connectionDetails.value?.providerType === BANK_PROVIDER_TYPE.WALUTOMAT) {
-    credentials.privateKey = newPrivateKey.value;
-  }
+  const credentials = buildProviderCredentials({
+    providerType: connectionDetails.value?.providerType,
+    apiKey: newApiKey.value,
+    privateKey: newPrivateKey.value,
+  });
   updateCredentialsMutation(credentials);
 };
 
