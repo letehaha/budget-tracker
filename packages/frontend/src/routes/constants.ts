@@ -61,6 +61,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsSecurityLoginMethods: `${ROUTER_LAYOUTS.dashboard}.settings.security.login-methods`,
   settingsSecuritySessions: `${ROUTER_LAYOUTS.dashboard}.settings.security.sessions`,
   settingsSecurityPassword: `${ROUTER_LAYOUTS.dashboard}.settings.security.password`,
+  settingsSecurityBackup: `${ROUTER_LAYOUTS.dashboard}.settings.security.backup`,
   settingsSecurityDanger: `${ROUTER_LAYOUTS.dashboard}.settings.security.danger`,
   settingsAdmin: `${ROUTER_LAYOUTS.dashboard}.settings.admin`,
   settingsAiIntegrations: `${ROUTER_LAYOUTS.dashboard}.settings.ai-integrations`,

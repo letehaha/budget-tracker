@@ -104,6 +104,11 @@ interface RunUserDestroyLifecycleArgs {
  * `share_owner_account_deleted` / `household_revoked` / `household_member_account_deleted`
  * notifications from the recipient's POV, so the helper names use the neutral "destroy"
  * framing rather than "delete".
+ *
+ * Returns `true` when the in-tx destroy hook actually ran, `false` when the user row
+ * had already vanished (a concurrent delete from another session) so the hook was
+ * skipped. Callers that wrote data inside the hook (backup restore) must treat `false`
+ * as a failure; wipe-data can ignore it.
  */
 export const runUserDestroyLifecycle = async ({
   userId,
@@ -113,7 +118,7 @@ export const runUserDestroyLifecycle = async ({
   cacheLogPrefix,
   failureLogCode,
   failureLogMessage,
-}: RunUserDestroyLifecycleArgs): Promise<void> => {
+}: RunUserDestroyLifecycleArgs): Promise<boolean> => {
   try {
     // 1. BullMQ pending sync jobs — waiting/delayed only. Active jobs hold their lock and
     //    finish on their own; they reference accountIds that may be gone by then, but the
@@ -136,7 +141,7 @@ export const runUserDestroyLifecycle = async ({
     // 3. In-tx spine + caller's destroyInTx. Returns null when the user vanished between
     //    the route auth and the tx (concurrent delete from another session).
     const txResult = await runDestroyInTx({ userId, destroyInTx, stampCreatorSnapshot });
-    if (!txResult) return;
+    if (!txResult) return false;
 
     const { notificationTargets, householdRevokedTargets, householdOwnerNotifyTargets, ownerSnapshot } = txResult;
 
@@ -161,6 +166,8 @@ export const runUserDestroyLifecycle = async ({
         memberSnapshot: ownerSnapshot,
       });
     }
+
+    return true;
   } catch (e) {
     logger.error({ message: failureLogMessage, error: e as Error }, { code: failureLogCode, userId });
     throw e;

@@ -7,6 +7,7 @@
         "loginMethods": "Login Methods",
         "activeSessions": "Active Sessions",
         "password": "Password",
+        "backup": "Backup & restore",
         "dangerZone": "Danger Zone"
       },
       "loginMethods": {
@@ -172,6 +173,92 @@
         "notifications": {
           "success": "Your account has been deleted successfully",
           "failed": "An error occurred while trying to delete your account"
+        }
+      },
+      "backup": {
+        "download": {
+          "title": "Download backup",
+          "description": "Save a complete, restorable copy of all your data as a zip file.",
+          "button": "Download",
+          "loading": "Preparing...",
+          "success": "Backup downloaded",
+          "failed": "Could not create backup. Please try again.",
+          "downloadBlocked": "Backup was created but your browser blocked the download. Check your download settings and try again.",
+          "limitations": {
+            "trigger": "Has limitations",
+            "title": "What a backup leaves out",
+            "intro": "Your backup includes all your data. For security, a couple of encrypted items can't travel with it and need setting up again after you restore:",
+            "items": {
+              "bankConnectionsTerm": "Bank connections",
+              "bankConnections": "{term} — access tokens are encrypted and tied to this server, so you'll reconnect each bank after restoring.",
+              "aiKeysTerm": "AI API keys",
+              "aiKeys": "{term} — stored encrypted, so you'll re-enter them after restoring."
+            },
+            "included": "Everything else — accounts, transactions, categories, budgets, investments, loans, tags, payees and subscriptions — is included."
+          }
+        },
+        "restore": {
+          "title": "Restore from backup",
+          "description": "Replace all current data with the contents of a backup zip.",
+          "button": "Select backup file",
+          "reading": "Reading file...",
+          "invalidFileType": "Please choose a .zip backup file.",
+          "fileTooLarge": "That backup is too large to restore (max {max}).",
+          "readFailed": "Could not read that file. Please try again.",
+          "confirm": {
+            "title": "Restore from backup?",
+            "warning": "This replaces ALL your current data",
+            "description": "Everything currently in your account will be permanently deleted and replaced with the contents of this backup. This cannot be undone.",
+            "selectedFile": "Selected file: {name}",
+            "confirmLabel": "Restore",
+            "reconnectTitle": "After restoring, set these up again",
+            "reconnectBankConnections": "Reconnect your bank connections",
+            "reconnectAiKeys": "Re-enter your AI API keys (if you use any)"
+          },
+          "acknowledge": {
+            "title": "Shared resources will lose access",
+            "description": "You own resources that other people currently have access to. Restoring will remove that access.",
+            "householdsCount": "{count} shared household | {count} shared households",
+            "checkbox": "I understand these shared resources will lose access.",
+            "confirmLabel": "Restore anyway"
+          },
+          "progress": {
+            "title": "Restoring your data",
+            "description": "This can take a little while. Please keep this window open.",
+            "inserted": "{count} records restored",
+            "phases": {
+              "validating": "Validating backup...",
+              "preparingSecurities": "Preparing securities...",
+              "wiping": "Clearing current data...",
+              "restoring": "Restoring records...",
+              "finalizing": "Finalizing..."
+            }
+          },
+          "summary": {
+            "title": "Restore complete",
+            "description": "Your data has been restored from the backup.",
+            "recordsHeading": "Restored records",
+            "warningsHeading": "Warnings",
+            "noRecords": "No records were restored.",
+            "doneButton": "Done"
+          },
+          "failed": {
+            "title": "Restore failed",
+            "genericError": "Something went wrong while restoring your backup.",
+            "unconfirmed": "Couldn't confirm the restore status. Reload the page and check your data.",
+            "closeButton": "Close"
+          },
+          "overlay": {
+            "title": "Restoring your data",
+            "description": "Please keep this tab open. We're replacing your data with your backup — this can take a moment.",
+            "preparing": "Preparing…",
+            "finishing": "Finishing up",
+            "takingLong": "This is taking longer than usual. Your data is still being restored — please keep this tab open.",
+            "unreachableTitle": "Can't reach the server",
+            "unreachableDescription": "We lost contact while the restore was running. It may still be finishing. You can dismiss this and reload the page to check.",
+            "failedTitle": "Restore failed",
+            "dismiss": "Dismiss"
+          }
         }
       }
     }

@@ -7,7 +7,7 @@ import {
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import { Op, literal } from 'sequelize';
+import { DatabaseError, Op, literal } from 'sequelize';
 
 import { computeConsentValidity } from '../connection/consent-validity';
 import {
@@ -43,17 +43,22 @@ export async function getUserBankAccounts(userId: number): Promise<AccountWithCo
 }
 
 /**
- * Get connections that were auto-deactivated due to an upstream auth failure
- * (expired session, revoked consent). These don't appear in regular sync status
- * because `getUserBankAccounts` filters by `isActive: true` — but the user needs
- * to see them to know they should reconnect.
+ * Get connections the user must reconnect: auto-deactivated after an upstream
+ * auth failure (expired session, revoked consent), or brought in by a data
+ * restore (credentials never travel, so a restored connection starts
+ * deactivated). These don't appear in regular sync status because
+ * `getUserBankAccounts` filters by `isActive: true` — but the user needs to see
+ * them to know they should reconnect.
  *
- * Filters by `metadata.deactivationReason === AUTH_FAILURE` so connections the
- * user disconnected manually stay hidden.
+ * Filters `metadata.deactivationReason` to AUTH_FAILURE or RESTORED so
+ * connections the user disconnected manually stay hidden.
  *
- * Wrapped in try/catch so a JSONB query failure degrades to an empty list
- * instead of taking down the whole sync-status response — the regular sync
- * status is more important than the reauth banner.
+ * Wrapped in try/catch so a DB-level failure of the raw JSONB query degrades
+ * to an empty list instead of taking down the whole sync-status response —
+ * the regular sync status is more important than the reauth banner. Only a
+ * `DatabaseError` (the SQL query itself failing) is tolerated this way; any
+ * other error is a genuine bug and is re-thrown so it surfaces as a failed
+ * request instead of looking like "nothing needs reauth".
  */
 async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNeedingReauth[]> {
   try {
@@ -64,7 +69,11 @@ async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNe
         // Raw JSONB path query — Sequelize's nested object form is unreliable
         // across dialect versions for JSONB, so use the Postgres ->> operator
         // directly to compare the text value of metadata.deactivationReason.
-        [Op.and]: [literal(`metadata->>'deactivationReason' = '${DEACTIVATION_REASON.AUTH_FAILURE}'`)],
+        [Op.and]: [
+          literal(
+            `metadata->>'deactivationReason' IN ('${DEACTIVATION_REASON.AUTH_FAILURE}', '${DEACTIVATION_REASON.RESTORED}')`,
+          ),
+        ],
       },
       include: [
         {
@@ -89,6 +98,13 @@ async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNe
       };
     });
   } catch (error) {
+    // Anything other than the SQL query itself failing is a genuine bug (bad
+    // mapping, model/schema drift, etc.) — let it surface instead of silently
+    // reporting "no connections need reauth".
+    if (!(error instanceof DatabaseError)) {
+      throw error;
+    }
+
     logger.error({ message: 'Failed to load connectionsNeedingReauth', error: error as Error }, { userId });
     return [];
   }

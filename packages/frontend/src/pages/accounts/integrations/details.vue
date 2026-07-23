@@ -120,25 +120,41 @@
         </Collapsible>
       </Card>
 
-      <!-- Auth Failure Banner (for LunchFlow and other API key providers).
+      <!-- Reconnect-required banner (for LunchFlow and other API key providers).
+           Shown for auth-failure and backup-restored connections alike.
            Excluded for Enable Banking because OAuth providers can't re-supply
            credentials inline — they reconnect via the Connection Validity card. -->
       <Card
-        v-if="isDeactivatedDueToAuth && connectionDetails.providerType !== BANK_PROVIDER_TYPE.ENABLE_BANKING"
-        class="border-destructive mb-6"
+        v-if="needsReconnect && connectionDetails.providerType !== BANK_PROVIDER_TYPE.ENABLE_BANKING"
+        class="border-destructive/60 bg-destructive/5 @container/reconnect mb-6"
       >
-        <CardContent class="p-6">
-          <div class="space-y-4">
-            <Callout variant="destructive" :title="$t('pages.integrations.authFailure.title')">
-              <p class="mt-1 text-sm">
-                {{ $t('pages.integrations.authFailure.description') }}
-              </p>
-            </Callout>
-            <div class="flex gap-3">
-              <UiButton variant="default" @click="isUpdateCredentialsDialogOpen = true">
-                {{ $t('pages.integrations.authFailure.updateButton') }}
-              </UiButton>
+        <CardContent class="p-5 sm:p-6">
+          <div
+            class="flex flex-col gap-4 @md/reconnect:flex-row @md/reconnect:items-center @md/reconnect:justify-between"
+          >
+            <div class="flex items-start gap-4">
+              <span
+                class="bg-destructive/15 text-destructive-text flex size-10 shrink-0 items-center justify-center rounded-full"
+              >
+                <CircleAlertIcon class="size-5" />
+              </span>
+              <div class="min-w-0">
+                <p class="text-destructive-text font-semibold">
+                  {{ $t('pages.integrations.authFailure.title') }}
+                </p>
+                <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
+                  {{ $t('pages.integrations.authFailure.description') }}
+                </p>
+              </div>
             </div>
+            <UiButton
+              variant="default"
+              class="w-full shrink-0 @md/reconnect:w-auto"
+              @click="isUpdateCredentialsDialogOpen = true"
+            >
+              <KeyRoundIcon class="size-4" />
+              {{ $t('pages.integrations.authFailure.updateButton') }}
+            </UiButton>
           </div>
         </CardContent>
       </Card>
@@ -581,10 +597,18 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
 import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, DEACTIVATION_REASON } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PencilIcon, SearchXIcon } from '@lucide/vue';
+import {
+  ArrowLeftIcon,
+  ChevronDownIcon,
+  CircleAlertIcon,
+  InfoIcon,
+  KeyRoundIcon,
+  PencilIcon,
+  SearchXIcon,
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -638,11 +662,15 @@ const institutionLogoUrl = computed(() => {
   return getBankInstitutionLogoUrl({ bankName: conn.bankName });
 });
 
-const isDeactivatedDueToAuth = computed(
+// A connection needs manual reconnection either after an auth failure or after a
+// data-backup restore (restored connections come in with an empty credential stub).
+// The banner copy is generic so it reads correctly for both.
+const needsReconnect = computed(
   () =>
     connectionDetails.value &&
     !connectionDetails.value.isActive &&
-    connectionDetails.value.deactivationReason === 'auth_failure',
+    (connectionDetails.value.deactivationReason === DEACTIVATION_REASON.AUTH_FAILURE ||
+      connectionDetails.value.deactivationReason === DEACTIVATION_REASON.RESTORED),
 );
 
 // Mutation for updating credentials

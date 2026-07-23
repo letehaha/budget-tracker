@@ -143,6 +143,43 @@ export const dataExportRateLimit = nonDev(
 );
 
 /**
+ * Backup export rate limit (per user, 5 backups per 15 min).
+ *
+ * A backup dumps every user-owned table as raw JSON and DEFLATE-compresses the
+ * result on the API thread, so a click-storm can tie up the event loop. Same
+ * budget as data-export; `nonDev`-wrapped so prod and the e2e suite enforce it
+ * while local dev opts out.
+ */
+export const backupRateLimit = nonDev(
+  createRateLimit({
+    windowSeconds: 15 * 60,
+    maxAttempts: 5,
+    keyGenerator: (req: Request) => {
+      const user = req.user as Users;
+      return `backup:user:${user.id}`;
+    },
+  }),
+);
+
+/**
+ * Backup restore rate limit (per user, 5 restores per 15 min).
+ *
+ * A restore wipes and re-inserts every user-owned table inside one transaction,
+ * far heavier than an export. It gets its own key so a user's downloads and
+ * restores don't drain a shared budget. `nonDev`-wrapped like the export limits.
+ */
+export const backupRestoreRateLimit = nonDev(
+  createRateLimit({
+    windowSeconds: 15 * 60,
+    maxAttempts: 5,
+    keyGenerator: (req: Request) => {
+      const user = req.user as Users;
+      return `backup-restore:user:${user.id}`;
+    },
+  }),
+);
+
+/**
  * Share-invitation send rate limit (per owner, 30 sends per 24h in prod, 5 in test).
  * Closes the cross-resource email-bombing gap that the per-resource pending cap and the
  * per-invitee resend rate limit don't cover (see PRD F11). Threshold is resolved at

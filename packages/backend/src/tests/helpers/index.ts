@@ -40,3 +40,4 @@ export * from './venture/platforms';
 export * from './venture/deals';
 export * from './venture/events';
 export * from './data-export';
+export * from './backup';
