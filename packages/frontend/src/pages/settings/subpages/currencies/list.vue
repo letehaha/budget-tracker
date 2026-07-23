@@ -1,50 +1,55 @@
 <template>
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
-    <template v-for="currency in currenciesList" :key="currency.id">
-      <ListItem :currency="currency" @click="selectCurrency(currency)" />
-    </template>
+  <div>
+    <div v-if="isLoading" class="border-border/60 bg-card divide-border/60 divide-y overflow-hidden rounded-xl border">
+      <div v-for="i in 4" :key="i" class="flex items-center gap-3 px-4 py-3">
+        <div class="bg-muted size-9 shrink-0 animate-pulse rounded-lg" />
+        <div class="flex-1 space-y-2">
+          <div class="bg-muted h-4 w-40 animate-pulse rounded" />
+          <div class="bg-muted h-3 w-16 animate-pulse rounded" />
+        </div>
+        <div class="bg-muted h-4 w-24 animate-pulse rounded" />
+      </div>
+    </div>
 
-    <ResponsiveDialog v-model:open="isEditingModalVisible">
-      <template #trigger>
-        <slot />
-      </template>
-
-      <template #title>
-        <span> {{ $t('settings.currencies.list.editCurrency') }} </span>
-      </template>
-
-      <template v-if="selectedCurrency">
-        <edit-currency
-          :currency="selectedCurrency"
-          :deletion-disabled="isDeletionDisabled(selectedCurrency)"
-          @submit="onCurrencyEdit"
+    <template v-else>
+      <div class="border-border/60 bg-card divide-border/60 divide-y overflow-hidden rounded-xl border">
+        <CurrencyListRow
+          v-for="currency in currenciesList"
+          :key="currency.id"
+          :currency="currency"
+          :accounts-count="usageMap[currency.currencyCode] ?? 0"
+          :expanded="expandedCurrencyCode === currency.currencyCode"
+          @toggle="toggleExpanded({ code: currency.currencyCode })"
+          @submit="collapseExpanded({ code: currency.currencyCode })"
         />
-      </template>
-    </ResponsiveDialog>
+      </div>
+
+      <div v-if="!hasAddedCurrencies" class="mt-4 flex flex-col items-center gap-1 py-6 text-center">
+        <CoinsIcon class="text-muted-foreground/60 mb-1 size-8" aria-hidden="true" />
+        <p class="text-sm font-medium">{{ $t('settings.currencies.empty.title') }}</p>
+        <p class="text-muted-foreground max-w-sm text-xs">{{ $t('settings.currencies.empty.description') }}</p>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { loadUserCurrenciesExchangeRates } from '@/api/currencies';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
-import { UserCurrencyModel } from '@bt/shared/types';
-import { useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useQuery } from '@tanstack/vue-query';
+import { CoinsIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { computed, nextTick, ref } from 'vue';
+import { computed, ref } from 'vue';
 
-import EditCurrency from './edit-currency/index.vue';
-import ListItem from './list-item.vue';
+import CurrencyListRow from './currency-list-row.vue';
+import { buildCurrencyUsageMap } from './currency-usage';
 import { CurrencyWithExchangeRate } from './types';
 
 const currenciesStore = useCurrenciesStore();
 const accountsStore = useAccountsStore();
 const { currencies } = storeToRefs(currenciesStore);
-const { accountsCurrencyCodes } = storeToRefs(accountsStore);
-const queryClient = useQueryClient();
-
-const isEditingModalVisible = ref(false);
+const { accounts } = storeToRefs(accountsStore);
 
 const { data: rates } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates,
@@ -53,6 +58,10 @@ const { data: rates } = useQuery({
   placeholderData: [],
 });
 
+const isLoading = computed(() => currencies.value.length === 0);
+
+// Base currency pinned first; every other currency carries the rate pair merged from
+// the exchange-rates query so each row can render both directions.
 const currenciesList = computed<CurrencyWithExchangeRate[]>(() =>
   currencies.value
     .map((item) => {
@@ -67,30 +76,23 @@ const currenciesList = computed<CurrencyWithExchangeRate[]>(() =>
         quoteRate,
       };
     })
-    .sort((a) => (a.isDefaultCurrency ? -1 : 1)),
+    .sort((a, b) => Number(b.isDefaultCurrency) - Number(a.isDefaultCurrency)),
 );
 
-const selectedCurrency = ref<CurrencyWithExchangeRate | null>(null);
+const hasAddedCurrencies = computed(() => currenciesList.value.some((currency) => !currency.isDefaultCurrency));
 
-const onCurrencyEdit = async () => {
-  currenciesStore.loadCurrencies({ force: true });
-  isEditingModalVisible.value = false;
+const usageMap = computed(() => buildCurrencyUsageMap({ accounts: accounts.value ?? [] }));
 
-  await nextTick();
+// Single-open accordion: expanding a row collapses whichever other row was open.
+const expandedCurrencyCode = ref<string | null>(null);
 
-  queryClient.invalidateQueries({
-    queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates,
-  });
+const toggleExpanded = ({ code }: { code: string }) => {
+  expandedCurrencyCode.value = expandedCurrencyCode.value === code ? null : code;
 };
 
-const selectCurrency = (currency: CurrencyWithExchangeRate) => {
-  if (currency.isDefaultCurrency) return;
-
-  selectedCurrency.value = currency;
-
-  isEditingModalVisible.value = true;
+const collapseExpanded = ({ code }: { code: string }) => {
+  if (expandedCurrencyCode.value === code) {
+    expandedCurrencyCode.value = null;
+  }
 };
-
-const isDeletionDisabled = (currency: UserCurrencyModel) =>
-  accountsCurrencyCodes.value.includes(currency?.currencyCode);
 </script>
