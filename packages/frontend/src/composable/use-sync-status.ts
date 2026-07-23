@@ -1,5 +1,5 @@
 import * as bankDataProvidersApi from '@/api/bank-data-providers';
-import type { SyncStatusResponse } from '@/api/bank-data-providers';
+import type { ConnectionStatusSummary, SyncStatusResponse } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import type { AccountGroups } from '@/common/types/models';
 import { ensureChunkLoaded } from '@/i18n';
@@ -129,6 +129,21 @@ export function useSyncStatus() {
 
   function isConnectionNeedingReauth(connectionId: string | null | undefined): boolean {
     return connectionId !== null && connectionId !== undefined && reauthConnectionIdsSet.value.has(connectionId);
+  }
+
+  // Same O(1)-lookup rationale as reauthConnectionIdsSet: the group row derives a
+  // status badge per connection on every render.
+  const connectionStatusById = computed(() => {
+    const map = new Map<string, ConnectionStatusSummary>();
+    for (const status of syncStatusData.value?.connectionStatuses ?? []) {
+      map.set(status.connectionId, status);
+    }
+    return map;
+  });
+
+  function getConnectionStatus(connectionId: string | null | undefined): ConnectionStatusSummary | undefined {
+    if (connectionId === null || connectionId === undefined) return undefined;
+    return connectionStatusById.value.get(connectionId);
   }
 
   // Walk the group tree (direct accounts + nested child groups) so a mixed-
@@ -349,6 +364,7 @@ export function useSyncStatus() {
     connectionsNeedingReauth,
     isAccountNeedingReauth,
     isConnectionNeedingReauth,
+    getConnectionStatus,
     groupHasReauthAccount,
     syncingSummaryText,
     showSuccessMessage,

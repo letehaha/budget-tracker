@@ -1,9 +1,15 @@
-import { ACCOUNT_STATUSES, type ConnectionNeedingReauth, DEACTIVATION_REASON } from '@bt/shared/types';
+import {
+  ACCOUNT_STATUSES,
+  type ConnectionNeedingReauth,
+  type ConnectionStatusSummary,
+  DEACTIVATION_REASON,
+} from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { Op, literal } from 'sequelize';
 
+import { computeConsentValidity } from '../connection/consent-validity';
 import {
   type AccountSyncStatus,
   SyncStatus,
@@ -89,12 +95,44 @@ async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNe
 }
 
 /**
+ * Get a consent-status summary for every connection the user has, so the
+ * Accounts page can render Active / Expiring-soon / Expired badges without
+ * fetching each connection's details separately.
+ *
+ * Wrapped in try/catch so a query failure degrades to an empty list instead of
+ * taking down the whole sync-status response, mirroring getConnectionsNeedingReauth.
+ */
+async function getConnectionStatuses(userId: number): Promise<ConnectionStatusSummary[]> {
+  try {
+    const connections = await BankDataProviderConnections.findAll({
+      where: { userId },
+      attributes: ['id', 'isActive', 'metadata'],
+    });
+
+    return connections.map((conn) => {
+      const consent = computeConsentValidity({ metadata: conn.metadata });
+      return {
+        connectionId: conn.id,
+        isActive: conn.isActive,
+        consentExpired: consent?.isExpired ?? false,
+        consentExpiringSoon: consent?.isExpiringSoon ?? false,
+        daysRemaining: consent?.daysRemaining ?? null,
+      };
+    });
+  } catch (error) {
+    logger.error({ message: 'Failed to load connectionStatuses', error: error as Error }, { userId });
+    return [];
+  }
+}
+
+/**
  * Get sync status for all user's bank accounts
  */
 export async function getUserAccountsSyncStatus(userId: number): Promise<{
   lastSyncAt: number | null;
   accounts: Array<AccountSyncStatus & { accountName: string; providerType: string }>;
   connectionsNeedingReauth: ConnectionNeedingReauth[];
+  connectionStatuses: ConnectionStatusSummary[];
   summary: {
     total: number;
     syncing: number;
@@ -107,10 +145,11 @@ export async function getUserAccountsSyncStatus(userId: number): Promise<{
   const accounts = await getUserBankAccounts(userId);
   const accountIds = accounts.map((a) => a.id);
 
-  const [statuses, lastSyncAt, connectionsNeedingReauth] = await Promise.all([
+  const [statuses, lastSyncAt, connectionsNeedingReauth, connectionStatuses] = await Promise.all([
     getMultipleAccountsSyncStatus(accountIds),
     getLastAutoSync(userId),
     getConnectionsNeedingReauth(userId),
+    getConnectionStatuses(userId),
   ]);
 
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
@@ -149,6 +188,7 @@ export async function getUserAccountsSyncStatus(userId: number): Promise<{
     lastSyncAt,
     accounts: enrichedStatuses,
     connectionsNeedingReauth,
+    connectionStatuses,
     summary,
   };
 }

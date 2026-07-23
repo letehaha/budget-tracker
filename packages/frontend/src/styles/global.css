@@ -82,6 +82,14 @@
   --color-loan-principal: var(--loan-principal);
   --color-loan-interest: var(--loan-interest);
 
+  --color-account-checking: var(--account-checking);
+  --color-account-saving: var(--account-saving);
+  --color-account-credit: var(--account-credit);
+  --color-account-cash: var(--account-cash);
+  --color-account-investment: var(--account-investment);
+  --color-account-crypto: var(--account-crypto);
+  --color-account-vehicle: var(--account-vehicle);
+
   /* Border radius */
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -296,6 +304,18 @@
     --loan-other: rgb(100, 116, 139);
     --loan-principal: rgb(59, 130, 246);
     --loan-interest: rgb(245, 158, 11);
+
+    /*
+      Per-account-category identity colors: one hue per account category, sitting behind the
+      soft tinted icon chip on account list rows so a category reads as the same color everywhere.
+    */
+    --account-checking: rgb(37, 99, 235);
+    --account-saving: rgb(16, 141, 90);
+    --account-credit: rgb(202, 138, 4);
+    --account-cash: rgb(13, 148, 136);
+    --account-investment: rgb(124, 92, 200);
+    --account-crypto: rgb(234, 88, 12);
+    --account-vehicle: rgb(79, 70, 229);
   }
 
   :root.dark {
@@ -371,6 +391,18 @@
     --loan-other: rgb(148, 163, 184);
     --loan-principal: rgb(96, 165, 250);
     --loan-interest: rgb(245, 158, 11);
+
+    /*
+      Per-account-category identity colors, brighter variants for contrast on the near-black dark
+      background, behind the soft tinted icon chip on account list rows.
+    */
+    --account-checking: rgb(96, 165, 250);
+    --account-saving: rgb(52, 211, 153);
+    --account-credit: rgb(245, 158, 11);
+    --account-cash: rgb(45, 212, 191);
+    --account-investment: rgb(167, 139, 250);
+    --account-crypto: rgb(251, 146, 60);
+    --account-vehicle: rgb(129, 140, 248);
   }
 }
 
